@@ -16,6 +16,8 @@ for step in STEPS:
     if r.returncode:
         sys.exit(f"{step} 失败：\n{r.stdout}{r.stderr}")
     print(f"{step}: {r.stdout.strip().splitlines()[0] if r.stdout.strip() else 'ok'}")
+    if r.stderr.strip():
+        print(r.stderr.strip(), file=sys.stderr)
 
 if "--check" in sys.argv:
     dirty = subprocess.run(["git", "status", "--porcelain", "--", "."], cwd=BASE, capture_output=True, text=True, check=True).stdout
