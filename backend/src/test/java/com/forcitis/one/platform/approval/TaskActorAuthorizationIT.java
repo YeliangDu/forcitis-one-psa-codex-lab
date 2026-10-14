@@ -36,6 +36,11 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 /** Flowable's own complete() checks nothing, so a non-handler must get 403 with task, candidates, assignee, status and published results unchanged. */
 class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
 
+    @org.junit.jupiter.api.BeforeEach
+    void candidateGroupNodes() {
+        deployVariant("groupnode");
+    }
+
     @Autowired
     ClaimTask claimTask;
 
@@ -64,8 +69,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         long stranger = newId();
         organisation.person(initiator, 1, null).person(candidate, 1, null).person(other, 1, null).person(stranger, 1, null);
         String key = newKey("actor");
-        ApprovalInstanceId instance = tx.execute(s -> approvals.start(new com.forcitis.one.platform.approval.api.ApprovalRequest(
-                com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator), java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
                         List.of(String.valueOf(candidate), String.valueOf(other)))))));
         return new Scene(key, instance, openTaskId(instance), initiator, candidate, other, stranger);
@@ -78,7 +82,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         var task = taskService.createTaskQuery().processInstanceId(scene.instance().value()).singleResult();
         return new Snapshot(task.getId(), task.getAssignee(),
                 taskService.getIdentityLinksForTask(task.getId()).stream().map(l -> l.getUserId() + ":" + l.getType()).sorted().toList(),
-                requestStatus(scene.key()), (int) events.resulted().stream().filter(e -> e.businessKey().equals(scene.key())).count());
+                requestStatus(scene.key()), (int) events.resulted().stream().filter(e -> e.document().documentId().value().equals(scene.key())).count());
     }
 
     void assertForbiddenAndUnchanged(Scene scene, Function<Scene, org.springframework.test.web.servlet.ResultActions> call) throws Exception {
@@ -194,8 +198,8 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                     return "won";
                 } catch (AccessDeniedException e) {
                     return "denied";
-                } catch (com.forcitis.one.platform.approval.application.ApprovalOperationException e) {
-                    return e.error().name();
+                } catch (com.forcitis.one.kernel.DomainException e) {
+                    return e.errorCode().name();
                 }
             }));
         }
@@ -225,8 +229,8 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                     return "won";
                 } catch (AccessDeniedException e) {
                     return "denied";
-                } catch (com.forcitis.one.platform.approval.application.ApprovalOperationException e) {
-                    return e.error().name();
+                } catch (com.forcitis.one.kernel.DomainException e) {
+                    return e.errorCode().name();
                 }
             }));
         }
@@ -240,7 +244,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         assertThat(results.stream().filter(r -> !r.equals("won"))).allMatch(r -> r.equals("denied")
                 || r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND") || r.equals("PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED"));
         assertThat(approvals.isFinished(scene.instance())).isTrue();
-        assertThat(events.resulted().stream().filter(e -> e.businessKey().equals(scene.key())).count()).isLessThanOrEqualTo(1);
+        assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(scene.key())).count()).isLessThanOrEqualTo(1);
     }
 
     @Test

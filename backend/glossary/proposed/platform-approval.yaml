@@ -448,6 +448,118 @@ terms:
   forbidden: []
   status: proposed
   note: 流程显示名
+- id: countersign
+  zh: 会签
+  en: Countersign
+  snake: countersign
+  kind: command
+  bc: platform.approval
+  definition: 节点上每位不同的审批人各有一个任务，全部通过才算通过；一路里任一人正式驳回即结束本轮（RULE-248/273）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-248）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: withdraw
+  zh: 撤回
+  en: Withdraw
+  snake: withdraw
+  kind: command
+  bc: platform.approval
+  definition: 发起人把在途审批拉回自己修改：本轮以退回结束，可重新发起下一轮（RULE-269）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-269）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: cancel
+  zh: 撤销
+  en: Cancel
+  snake: cancel
+  kind: command
+  bc: platform.approval
+  definition: 发起人结束整个审批并保留历史，单据回到草稿，不记为驳回（RULE-268/279/288）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-268）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: transfer
+  zh: 转交
+  en: Transfer
+  snake: transfer
+  kind: command
+  bc: platform.approval
+  definition: 当前处理人把任务交给另一位在职人员，原处理人不再能办理（RULE-285）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-285）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: cutoff
+  zh: 撤回截止点
+  en: Cutoff
+  snake: cutoff
+  kind: value
+  bc: platform.approval
+  definition: 流程里标了「撤回截止」的节点：其上有已完成任务之后，发起人不能再撤回或撤销（RULE-309）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-309）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: overdue
+  zh: 已超时
+  en: Overdue
+  snake: overdue
+  kind: state
+  bc: platform.approval
+  definition: 任务超过审批时限仍未处理，已记录并提醒处理人；只提醒，不自动通过（RULE-377..384）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-379）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: deadline
+  zh: 审批时限
+  en: Deadline
+  snake: deadline
+  kind: value
+  bc: platform.approval
+  definition: 提交日起第 n 个工作日结束；n 与升级间隔由节点的决策表给出（RULE-377/378）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-377）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: effect
+  zh: 效力
+  en: Effect
+  snake: effect
+  kind: value
+  bc: platform.approval
+  definition: 任务办理结果对本轮审批的效力：约束性的结束本轮，建议性的（加签人的驳回）只记录意见（RULE-273、RULE-291）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - advice
 - already
@@ -483,3 +595,63 @@ common_words:
 - unresolved
 - warn
 - when
+- transition
+- illegal
+- concurrent
+- cutoff
+- passed
+- enforce
+- escalation
+- countersign
+- withdraw
+- cancel
+- overdue
+- deadline
+- transfer
+- transferred
+- retract
+- digest
+- content
+- reminder
+- workday
+- node
+- nodes
+- policy
+- repeat
+- automatically
+- sequence
+- pending
+- closed
+- wrap
+- assemble
+- restart
+- begin
+- persisted
+- handler
+- stale
+- initiator
+- holder
+- holders
+- receivers
+- administrator
+- superior
+- superiors
+- legal
+- entity
+- document
+- documents
+- reference
+- config
+- calendar
+- add
+- assign
+- editable
+- escalate
+- loaded
+- pull
+- reassign
+- restore
+- revision
+- retraction
+- binding
+- nullable

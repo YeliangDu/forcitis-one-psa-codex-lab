@@ -7,20 +7,20 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
-import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
+import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
-import com.forcitis.one.organization.workforce.domain.StaffMember;
+import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 @Component
 class OrgDirectoryService implements OrgDirectory {
-    private final OrgSnapshotRepository snapshots;
+    private final OrgSnapshotQueries snapshots;
     private final RegisterEmployeeOnLogin registerOnLogin;
     private final RegisterEmployeeOnLoginName registerOnLoginName;
 
-    OrgDirectoryService(OrgSnapshotRepository snapshots, RegisterEmployeeOnLogin registerOnLogin,
+    OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
                         RegisterEmployeeOnLoginName registerOnLoginName) {
         this.snapshots = snapshots;
         this.registerOnLogin = registerOnLogin;
@@ -57,7 +57,7 @@ class OrgDirectoryService implements OrgDirectory {
                 .map(s -> s.assignment().reportsToEmployeeId())
                 .flatMap(snapshots::findStaff)
                 .filter(leader -> leader.employee().employmentStatus() == EmploymentStatus.EMPLOYED)
-                .map(StaffMember::userId);
+                .map(StaffEmployee::userId);
     }
 
     @Override
@@ -81,7 +81,7 @@ class OrgDirectoryService implements OrgDirectory {
         return snapshots.findAncestors(orgUnitId);
     }
 
-    private static EmployeeProfile profile(StaffMember staff) {
+    private static EmployeeProfile profile(StaffEmployee staff) {
         return new EmployeeProfile(staff.userId(), staff.employee().displayName(), staff.assignment().orgUnitId(),
                 staff.employee().wecomUserId(), staff.employee().employmentStatus(), staff.employee().feeEarner());
     }

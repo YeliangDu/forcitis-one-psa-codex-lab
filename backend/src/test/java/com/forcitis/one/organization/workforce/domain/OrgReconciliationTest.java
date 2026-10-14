@@ -1,8 +1,10 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+
 import static com.forcitis.one.organization.workforce.domain.Fixtures.apply;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.first;
-import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.tree;
@@ -15,8 +17,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class OrgReconciliationTest {
-    private static SourceSnapshot sourceSnapshot() {
-        return tree(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 1L), member(4, 2, 100L, null, null, null));
+    private static SourceOrgSnapshot sourceSnapshot() {
+        return tree(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 1L), person(4, 2, 100L, null, null, null));
     }
 
     @Test
@@ -35,8 +37,8 @@ class OrgReconciliationTest {
     @DisplayName("组织零差异: revoked units in the snapshot are not part of what the source returns")
     void revokedUnitsAreIgnored() {
         OrgSnapshot synced = apply(OrgSnapshot.empty(), first(sourceSnapshot()));
-        SourceSnapshot smaller = source(List.of(unit(1, null), unit(2, 1L)), List.of(), List.of(post(100), post(101)),
-                List.of(member(1, 2, 100L, null)));
+        SourceOrgSnapshot smaller = source(List.of(unit(1, null), unit(2, 1L)), List.of(), List.of(post(100), post(101)),
+                List.of(person(1, 2, 100L, null)));
         OrgSnapshot afterRevoke = apply(synced, SnapshotReconciler.reconcile(synced, smaller));
 
         assertThat(OrgReconciliation.compare(smaller, afterRevoke).isZeroDifference()).isTrue();
@@ -46,16 +48,16 @@ class OrgReconciliationTest {
     @DisplayName("组织零差异: drift is found - a changed direct leader, a changed parent, a missing and an unexpected employee")
     void driftIsReported() {
         OrgSnapshot synced = apply(OrgSnapshot.empty(), first(sourceSnapshot()));
-        StaffMember two = Fixtures.staff(synced, 2);
-        StaffMember drifted = new StaffMember(two.employee(), new Assignment(two.employee().userId(), two.assignment().orgUnitId(),
+        StaffEmployee two = Fixtures.staff(synced, 2);
+        StaffEmployee drifted = new StaffEmployee(two.employee(), new Assignment(two.employee().userId(), two.assignment().orgUnitId(),
                 two.assignment().positionId(), Fixtures.user(3)));
-        StaffMember leaver = Fixtures.staff(synced, 4);
-        StaffMember stillEmployed = new StaffMember(leaver.employee().withEmploymentStatus(EmploymentStatus.EMPLOYED), leaver.assignment());
+        StaffEmployee leaver = Fixtures.staff(synced, 4);
+        StaffEmployee stillEmployed = new StaffEmployee(leaver.employee().withEmploymentStatus(EmploymentStatus.EMPLOYED), leaver.assignment());
         List<OrgUnit> units = synced.orgUnits().stream()
                 .map(u -> u.orgUnitId().value() == 3 ? new OrgUnit(u.orgUnitId(), u.code(), u.name(), Fixtures.unitId(1),
                         u.sortOrder(), u.status(), u.headEmployeeId(), u.regionalReceivablesManagerId(), u.regionCategory(),
                         u.deliveryUnit(), u.shortName()) : u).toList();
-        List<StaffMember> staff = synced.staff().stream()
+        List<StaffEmployee> staff = synced.staff().stream()
                 .filter(s -> s.userId().value() != 3)
                 .map(s -> s.userId().value() == 2 ? drifted : s.userId().value() == 4 ? stillEmployed : s).toList();
         OrgSnapshot stored = new OrgSnapshot(units, synced.positions(), staff);

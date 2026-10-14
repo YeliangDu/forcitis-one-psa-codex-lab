@@ -221,18 +221,18 @@ class ArchitectureRulesTest {
     @Test
     void controllersAreVersioned() {
         classes().that().areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
-                .should(new ArchCondition<>("map to /api/{version}/<module>/...") {
+                .should(new ArchCondition<>("map to /api/v1/<module>/...") {
                     @Override
                     public void check(JavaClass c, ConditionEvents events) {
                         boolean ok = c.tryGetAnnotationOfType(org.springframework.web.bind.annotation.RequestMapping.class)
-                                .map(a -> a.value().length > 0 && a.value()[0].startsWith("/api/{version}/"))
+                                .map(a -> a.value().length > 0 && a.value()[0].startsWith("/api/v1/"))
                                 .orElse(false);
                         if (!ok) {
-                            events.add(SimpleConditionEvent.violated(c, c.getName() + " must declare @RequestMapping(\"/api/{version}/<module>/...\")"));
+                            events.add(SimpleConditionEvent.violated(c, c.getName() + " must declare @RequestMapping(\"/api/v1/<module>/...\")"));
                         }
                     }
                 })
-                .because("every endpoint is versioned (/api/v1/...); breaking changes go to v2 alongside v1")
+                .because("every endpoint path starts with /api/v1/; a breaking change gets its own /api/v2/ controller")
                 .check(CLASSES);
     }
 

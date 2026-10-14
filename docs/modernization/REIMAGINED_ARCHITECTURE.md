@@ -82,12 +82,77 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 | TIMESHEET 与生产当前版本（v15）对齐 | ——（依据 `runtime/prod_bpm.tsv` ##13） | <ul><li>节点：项目经理 `projectManagerId`；售前分支的区域负责人 `regionalHeadId`，路由标记 `preSalesHours`；发起人一级上级。</li><li>老变量名只在回放转换表中出现。</li><li>节点顺序与子流程范围**待用户确认**。</li></ul> |
 | 列名 `is_fee_earner`（原文 `fee_earner_flag`） | ——（DdlNamingTest：布尔列以 is_ 开头，禁用 flag） | `organization_workforce.employees.is_fee_earner` |
 | `event_publication` 归 `platform_integration` schema | psa-coordinator 同意 | Flyway 创建，关闭自动建表 |
+| 外发投递的并发令牌 | psa-coordinator 接受（代理 B 方案） | `outbound_deliveries` 以「认领号（`attempt_count`）+ 状态」作乐观锁；`version` 只递增，不参与校验。原因：卡片在途时，「已处理」说明仍要能写入同一行，若以 version 校验，会让投递作业持有的版本失效；认领号才是这张表真正的并发令牌 |
+| 审计最终一致 | 「B 审计订阅领域事件 (Recommended)」 | 业务审计在事件投递后可见，不与业务写入同时可见。延迟上限由事件发布登记表的重投策略决定：1 分钟间隔，最多 8 次；超过上限会触发「未完成事件发布」告警（P2）。安全审计（登录失败、拒绝访问）仍在独立事务中同步写入 |
 | **审批路由引入 DMN**（修订检查点 2「1a 不引入 DMN」） | 「B 决策表管业务判断 (Recommended)」 | DMN 只负责：走哪几路、能否跳过、能否自动通过、节点时限。用 Flowable DMN 执行，按部署版本生效，业务可评审。「取谁」仍由 BPMN 上的类型化指派规则决定，AssigneeResolver 只执行决策结果 |
 | **新建 `platform.web`** | 「新建 platform.web (Recommended)」 | 技术模块，承载跨模块的 web 装配：领域异常 → ErrorCode → ProblemDetail 的全局处理器、OpenAPI 定制 |
+| **新建 `platform.eventing`**（事件信封的实现位置，实现 `kernel.event.EventEnvelopes` 与 `DomainEvents`） | 「事件信封实现放在符合依赖图的位置，可以新建技术模块」 | 技术模块，不被任何模块依赖（各模块只用 kernel 里的端口），只依赖 `platform.identity` 的 `CurrentUser`；eventId 用 UUIDv7，时间取注入的 Clock，关联号从 `X-Correlation-Id` 经 MDC 带入事件信封与出站投递，行为人在请求里是用户、在作业或事件处理里是作业名 |
+| **`organization.attendance` 提前到 1a 建**（工作日历） | 「BC 提前到 1a 建；默认日历一份，预留法人专属日历」 | schema `organization_attendance`；`WorkCalendar` 周末休息、其余上班，叠加按年维护的节假日与调休上班日，业务时区 Asia/Shanghai（`forcitis.kernel.business-zone`）；依赖的年份未维护则失败并告警；维护权限 `organization.attendance:work-calendar:update` |
+| **版本只写在路径里**（复审 M3） | 「删除 ApiVersioning，@RequestMapping 写死 /api/v1」 | 控制器直接写 `/api/v1/...`，`/api/1/...` 是 404；破坏性变更另开 `/api/v2/` 控制器 |
 | **审计订阅领域事件** | 「B 审计订阅领域事件 (Recommended)」 | 对外有意义的业务状态变化，审计统一订阅领域事件（事件发布登记表保证不漏记）；安全事件（登录失败、拒绝访问）仍用 `recordIndependently` |
 | **审批时限 T+1 工作日** | 「工时要求T+1 审批完毕……」；T 从提交当天起算，+1 按工作日（需要工作日历）；超时提醒、升级给上级、计入时效统计，不自动通过 | 引擎通用的审批时限能力，时限由 DMN 或配置给出；工作日历由管理员维护；事件 `ApprovalTaskOverdue`、`ApprovalTaskEscalated` |
 
 无环要点：integration 不认识 FORCITIS one 用户；企业微信 userid 由 workforce 快照持有，identity 在登录时按 userid 查 workforce 的 api（取消 `external_identities` 表，评审 #8）；通知时 approval 从 workforce 取收件人的 userid，再调 integration 发送；审计由各模块调用 audit 的 api。各模块 api 方法数 ≤ 12（`ArchitectureRulesTest`）。
+
+### 2.2 上下文映射图（SESSION_PLAYBOOK §13 第 11 项）
+
+箭头从下游指向上游（下游依赖上游的 `api` 或 `events`）；边与 `architecture/module-dependencies.txt` 一致，`ModuleDependencyTest` 守护。
+
+```mermaid
+flowchart LR
+  subgraph SK["共享内核 kernel（OPEN 模块，所有模块可用）"]
+    K["Money · Hours · LegalEntityId · UserId · DocumentReference<br/>DomainException / ErrorCode · 事件信封与 DomainEvent（发布语言）"]
+  end
+  subgraph EXT["外部系统（只在 platform.integration 的适配器里出现名字）"]
+    WX["企业微信"]
+    SY["致远 A8 / 组织视图"]
+    LG["老系统只读视图"]
+  end
+  subgraph INT["platform.integration（防腐层 ACL + 开放主机服务）"]
+    ACL["seeyon · wecom · legacy 适配器<br/>api：OrgSource、WecomGateway、SsoTicketVerifier"]
+  end
+  WF["organization.workforce<br/>组织快照 · 法人 · 同步记录"]
+  AT["organization.attendance<br/>工作日历（WorkCalendar）"]
+  ID["platform.identity<br/>登录 · RBAC · 账号与角色"]
+  AP["platform.approval<br/>审批（另一工作流负责）"]
+  NM["platform.numbering<br/>单据编号"]
+  AU["platform.audit<br/>只追加审计"]
+  TS["cost.timesheet"]
+  DE["delivery.execution"]
+  EV["platform.eventing<br/>事件信封实现（技术模块）"]
+  WB["platform.web<br/>错误链 · 关联号过滤器（技术模块）"]
+  ACL -->|"ACL：翻译为 Source* 类型"| WX
+  ACL --> SY
+  ACL --> LG
+  WF -->|"Customer-Supplier：读 OrgSource"| ACL
+  ID -->|"Customer-Supplier"| WF
+  ID --> ACL
+  NM -->|"Customer-Supplier：读 LegalEntityDirectory"| WF
+  NM --> ID
+  AP --> ID
+  AP --> WF
+  AP --> ACL
+  AP -->|"Customer-Supplier：WorkCalendar"| AT
+  TS --> AP
+  TS --> ID
+  TS --> DE
+  EV -->|"CurrentUser"| ID
+  AU -. "订阅全部 DomainEvent（发布语言）" .-> WF
+  AU -.-> ID
+  AU -.-> NM
+  AU -.-> AT
+  ID -. "订阅 OrgSnapshotChanged" .-> WF
+  WF -. "LegalEntityNumberUsage 由 numbering 实现（依赖倒置，避免环）" .-> NM
+  classDef tech fill:#eee,stroke:#999
+  class EV,WB tech
+```
+
+- **共享内核**：`kernel` 只放不含业务行为的类型与端口；`WorkContext`（关联号、行为人）、`AggregateRoot`、`StateMachine` 也在这里。
+- **发布语言**：领域事件的信封与负载约束见 `proposals/EVENT_ANALYTICS_FIELDS.md` §6，目录在 `docs/modernization/events/asyncapi.yaml`（`EventCatalogueTest` 守护）。
+- **防腐层**：外部系统名只出现在 `platform.integration.infrastructure.*`；workforce 直接用 `platform.integration.api` 的 `Source*` 类型，不再有镜像类型。
+- **开放主机服务**：每个模块的 `api` 包（窄接口，`ArchitectureRulesTest` 守护）。
+- **依赖倒置**：workforce 需要知道某法人是否已发过号，却不能依赖 numbering（numbering 已依赖 workforce）；接口 `LegalEntityNumberUsage` 放在 workforce 的 api，由 numbering 实现。
+- **一致性**：同一事务只改一个聚合；跨聚合协作经事件（至少一次，按 eventId 幂等）或按 ID 查询。
 
 ## 3. 关键设计
 
@@ -129,21 +194,89 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 
 ### 3.4 审批引擎（范围待 Q-3）
 - Flowable 8 嵌入同一数据源（`ACT_*` 在 `platform_approval` schema）。BPMN 文件进版本库，不提供设计器（D-05）。**生产环境 `flowable.database-schema-update=false`**，引擎升级走专门的手册（评审 #15）。
-- **指派**：每个节点恰一条规则（RULE-262），写在 BPMN 扩展属性里，由 Java 的 `AssigneeResolver`（纯函数：规则 + 组织快照 + 流程变量 → 候选集）实现。1a 不引入 DMN，出现真正的决策表时再引入（评审 #9、#15）。
+- **指派**：每个节点恰一条规则（RULE-262），写在 BPMN 扩展属性里，由 Java 的 `AssigneeResolver`（纯函数：规则 + 组织快照 + 流程变量 → 候选集）实现。DMN 的引入见 §2.1 与 §3.4.2（取代此前「1a 不引入 DMN」）。
 - **单人节点**：改为候选组 + 认领（RULE-249）。排除停用和离职人员（RULE-253）；取不到人时转流程管理员并告警（RULE-250/254）；防自审（RULE-307）。
 - **1a 建议交付**（Q-3 建议项）：发起（幂等，唯一约束（流程类型, 单据 ID）与（流程类型, 单据 ID, 轮次），RULE-264/266/278）、认领（RULE-276）、办理（RULE-272/280）、退回发起人（RULE-275）、类型化结果事件（经事件发布登记表，至少一次，RULE-295/303/304）、合并待办。
 - **随第一个使用者交付**（Q-3 建议项）：加签、转交、退回到指定节点、撤回 / 撤销截止点（1b 报价）；行级审批生命周期（Phase 2 工时）。它们的规则已评审，验收测试在对应阶段启用。
 - **BEFORE 钩子**：SPI `ApprovalHook` 定义在 approval 的 `api` 中，在办理事务内调用（RULE-277/280）。1a 只有接口与测试替身。
 - **1a 不接入业务单据**（brief 风险二缓解）。
 
+#### 3.4.1 聚合边界与状态机（Phase 1a 第二轮，用户决定「现在就改，并加守护」）
+- **聚合**：`ApprovalRequest` 是聚合根，每张单据一个，带法人、轮次、状态、事件计数、`version`；它的 `ApprovalTask`（每个引擎任务一行）是成员实体，有自己的事件计数。所有改动先锁请求行，再改任务行，所以一个事务只改一个聚合；引擎里的流程实例不是聚合，是请求聚合的执行态。
+- **状态机在聚合内**：合法转换表是 `ApprovalRequest` / `ApprovalTask` / `Timesheet` 的私有常量，状态只能经领域方法改变，非法转换抛领域异常，应用层把它转成 `ErrorCode`，再由 web 转 ProblemDetail。仓储只写聚合给出的结果，更新带 `version` 与前置状态条件，不满足即 `StaleAggregateException`（409）。穷举测试：`ApprovalRequestStateMachineTest`、`ApprovalTaskStateMachineTest`、`TimesheetStateMachineTest`。
+
+```mermaid
+stateDiagram-v2
+    [*] --> RUNNING: begin（第 1 轮）
+    RUNNING --> APPROVED: approve（全部通过）
+    RUNNING --> REJECTED: reject（顶层驳回）
+    RUNNING --> RETURNED: returnRound（审批人退回 / 子流程内驳回）
+    RUNNING --> RETURNED: withdraw（发起人撤回，RULE-269）
+    RUNNING --> CANCELLED: cancel（发起人撤销，RULE-268）
+    RETURNED --> RUNNING: restart（上一轮发起人开新一轮）
+    CANCELLED --> RUNNING: restart
+    APPROVED --> [*]
+    REJECTED --> [*]
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: assign（TaskAssigned）
+    [*] --> COMPLETED: assignAutomatically（RULE-302，无卡片无结果事件）
+    PENDING --> CLAIMED: claim（TaskClaimed）
+    CLAIMED --> CLAIMED: transfer（TaskTransferred）
+    CLAIMED --> COMPLETED: complete（TaskResulted）
+    PENDING --> CLOSED: close（本轮已结束）
+    CLAIMED --> CLOSED: close
+    PENDING --> PENDING: markOverdue（ApprovalTaskOverdue，一次）
+    CLAIMED --> CLAIMED: markOverdue
+    CLAIMED --> PENDING: escalate（ApprovalTaskEscalated：释放认领，一次，须先超时）
+    PENDING --> PENDING: escalate
+```
+
+#### 3.4.2 事件流：审批 → 工时单
+```mermaid
+sequenceDiagram
+    participant U as 填报人
+    participant T as cost.timesheet（Timesheet 聚合）
+    participant A as platform.approval（ApprovalRequest / ApprovalTask）
+    participant R as 事件发布登记表
+    participant M as 审批人
+    U->>T: 提交（法人来自会话）
+    T->>A: ApprovalProcesses.start（单据引用 + 法人 + 内容摘要）
+    A-->>R: TaskAssigned（每位会签审批人一个任务）
+    T-->>R: TimesheetSubmitted
+    M->>A: 认领、办理（服务端校验操作人）
+    A-->>R: TaskClaimed、TaskResulted
+    A-->>R: ApprovalCompleted（APPROVED / REJECTED / RETURNED / CANCELLED）
+    R->>T: ApplyApprovalResult（按 eventId 幂等；轮次不符忽略）
+    T-->>R: TimesheetApproved / Returned / Rejected / Cancelled
+```
+- 两边只经事件协作：approval 拥有流程状态，业务模块拥有单据状态。事件由聚合记录（`EventDraft`，聚合上的事件计数就是信封的 `aggregateVersion`），应用层在同一事务里用 `EventEnvelopes` 包装后交 Modulith 发布；事件目录条目见 `docs/modernization/events/approval.yaml`、`timesheet.yaml`。
+- **会签**（RULE-248/273，G-2 已做）：TIMESHEET 三路都是 Flowable 多实例并行节点，集合表达式 `approverResolution` 给出去重后的审批人，每人一个任务；全部通过才过节点，任一正式驳回结束本轮（子流程内驳回即退回），加签人的驳回只作建议。
+- **决策表**（用户决定「B 决策表管业务判断」）：每个流程类型一张 DMN 表 `{流程标识}_nodes`，随部署版本生效，开始时求值一次，答案以流程变量带着走：走哪几路、取不到人能否跳过、重复审批人能否自动通过、节点时限与升级间隔。「取谁」仍由 BPMN 上的类型化指派规则决定。
+- **重复审批人**（RULE-302）：同一审批人在同一实例的同一节点再次出现，且内容摘要未变，由系统自动通过并记审计；内容变了必须重审。**撤回 / 撤销 / 截止点**（RULE-268/269/309）：「能否撤回」的显示与执行用同一个判断（`ApprovalRequest.checkWithdraw`），截止点是 BPMN 上标了 `cutoff` 的节点，只要有已完成的任务即越过。**转交**（RULE-285）只有当前处理人能做，新处理人要在职、非发起人、不在同节点已有任务。
+- **审批时限**（RULE-377..384）：截止 = 提交日起第 n 个工作日结束（`WorkCalendar`，按法人），到期提醒、再过一个间隔升级给上级（取不到交流程管理员并告警），不自动通过；ShedLock 定时作业 `platform.approval.deadline.enforce`，一任务一事务。
+
+```mermaid
+flowchart LR
+    S[提交日 T] -->|WorkCalendar.endOfWorkdayAfter n| D[截止 due]
+    D -->|定时作业：仍未处理| O[记超时 + 提醒]
+    O -->|WorkCalendar.endOfWorkdayAfter m| E[升级点]
+    E -->|定时作业：仍未处理| X{有上级?}
+    X -->|是| U[上级成为候选人 + 卡片]
+    X -->|否| P[流程管理员 + 告警]
+```
+
 ### 3.5 TIMESHEET 审批人序列回放（两步法，待 Q-4）
 - **(a) 引擎等价**：生产只读导出近期、**当前定义版本**的 TIMESHEET 实例样本，同时导出**当时的老 `system_users` / `system_dept` 快照**、指派规则、流程变量快照与实际审批人序列。`AssigneeResolver` 用老组织快照逐节点计算候选集。匹配口径为「老审批人 ∈ 新候选集」，以适应 RULE-249 的随机选人改为候选组。
 - **(b) 数据源差异**：单独报告 A8 与老表之间的漂移（领导被清空不同步、改名不同步等，RULE-365），不混入 (a)。
 - 差异分为三类：已评审的修正、数据源漂移、真缺陷。前两类按类别由用户接受，真缺陷逐条修复（评审 #6）。
 - 导出文件含人员姓名，不进仓库，只存本机 `~/.modernize/psa/`。执行前需用户授权生产只读查询。
+- **会签已实现**（G-2）：生产 v15 的三路都是并行多实例会签；新流程与之一致，每个不同的审批人一个任务，回放仍只比对「老审批人 ∈ 新候选集」。路由由决策表给出，回放工具的分支表与 BPMN、决策表的一致性由 `TimesheetApproverReplayIT.branchTableEqualsTheProcess` 守护。
 
 ### 3.6 合并待办
-- **新待办**：Flowable 任务，加上本人所在候选组的任务。
+- **新待办**：Flowable 任务，加上本人所在候选组的任务；会签节点每位审批人是自己的一项待办。
 - **老待办**：approval 的内部 ACL 通过只读账号查询**老库视图**（`bpm_task_ext` 中 result=1，关联 `ACT_RU_TASK` 与 `bpm_process_instance_ext` 标题），按 RULE-261 把行任务合并为（实例, 节点）一项。
   - 视图由 DBA 建立，只授权所需的列，**不授权令牌表**；建视图作为一次老系统变更登记（评审 #11）。
   - **不做缓存**：查询量约每天 540 次（180 天 97,591 次），直接查询即可。这样「待办数一致」的测试结果稳定（评审 #9）。
@@ -153,6 +286,7 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 - 通知意图（`TaskAssigned`、`ApprovalCompleted`、知会）→ approval 内部的通知端口（接口隔离；出现第二个使用者时再抽出 `platform.notification`，评审 #17）→ 从 workforce 取 userid → integration 发送 **文本卡片 + 跳转链接，不带按钮**（评审 #10）。`touser` 精确匹配，不带 `@all`。失败记入 `outbound_deliveries`，退避重试，进死信时告警。
 - 卡片按钮回调（C1a-15 的 P1 部分）推迟。原因：企业微信应用只有一个回调地址，目前由老系统占用。等老待办排空，或者新开独立的企业微信应用之后再做。
 - **候选组通知策略待 Q-3**：改为候选组认领后，一个任务会通知 N 个人。
+- 审批时限与转交增加三种卡片：超时提醒（`ApprovalTaskOverdue`，发给处理人）、升级（`ApprovalTaskEscalated`，发给上级或流程管理员）、转交（`TaskTransferred`，发给新处理人）；去重键分别是 `approval-task:{taskId}:overdue`、`:escalated`、`:transfer:{eventId}`。
 - 非生产环境：收件人改为配置的白名单，agentId 按环境配置（RULE-375）。
 
 ### 3.8 安全验证

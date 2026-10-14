@@ -1,6 +1,31 @@
 {
   "components" : {
     "schemas" : {
+      "CalendarDayRequest" : {
+        "properties" : {
+          "calendarDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "dayKind" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CalendarDayResponse" : {
+        "properties" : {
+          "calendarDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "dayKind" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "calendarDate", "dayKind" ],
+        "type" : "object"
+      },
       "CreateLegalEntityRequest" : {
         "properties" : {
           "code" : {
@@ -54,7 +79,7 @@
         },
         "type" : "object"
       },
-      "DecisionResult" : {
+      "DecisionResponse" : {
         "properties" : {
           "instanceId" : {
             "type" : "string"
@@ -63,6 +88,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "instanceId", "status" ],
         "type" : "object"
       },
       "EmergencyLoginRequest" : {
@@ -79,7 +105,7 @@
         },
         "type" : "object"
       },
-      "InboxItem" : {
+      "InboxItemResponse" : {
         "properties" : {
           "claimed" : {
             "type" : "boolean"
@@ -95,7 +121,6 @@
             "type" : "string"
           },
           "source" : {
-            "enum" : [ "NEW", "LEGACY" ],
             "type" : "string"
           },
           "taskId" : {
@@ -105,6 +130,34 @@
             "type" : "string"
           }
         },
+        "required" : [ "claimed", "source", "taskId", "title" ],
+        "type" : "object"
+      },
+      "InboxResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/InboxItemResponse"
+            },
+            "type" : "array"
+          },
+          "legacyAvailable" : {
+            "type" : "boolean"
+          },
+          "legacyCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "newCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "totalCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "totalCount" ],
         "type" : "object"
       },
       "LegacyNumberResponse" : {
@@ -155,28 +208,13 @@
         },
         "type" : "object"
       },
-      "MergedInbox" : {
+      "MaintainWorkCalendarRequest" : {
         "properties" : {
-          "items" : {
+          "days" : {
             "items" : {
-              "$ref" : "#/components/schemas/InboxItem"
+              "$ref" : "#/components/schemas/CalendarDayRequest"
             },
             "type" : "array"
-          },
-          "legacyAvailable" : {
-            "type" : "boolean"
-          },
-          "legacyCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "newCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "totalCount" : {
-            "format" : "int32",
-            "type" : "integer"
           }
         },
         "type" : "object"
@@ -327,6 +365,14 @@
             },
             "type" : "array",
             "uniqueItems" : true
+          }
+        },
+        "type" : "object"
+      },
+      "RetractTimesheetRequest" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -561,12 +607,9 @@
         "required" : [ "startedAt", "status", "syncRunId", "trigger" ],
         "type" : "object"
       },
-      "TaskDetail" : {
+      "TaskDetailResponse" : {
         "properties" : {
           "assignee" : {
-            "type" : "string"
-          },
-          "businessKey" : {
             "type" : "string"
           },
           "canAct" : {
@@ -580,6 +623,12 @@
           },
           "createdAt" : {
             "format" : "date-time",
+            "type" : "string"
+          },
+          "documentId" : {
+            "type" : "string"
+          },
+          "documentType" : {
             "type" : "string"
           },
           "initiator" : {
@@ -601,6 +650,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "canAct", "candidates", "createdAt", "documentId", "documentType", "initiator", "instanceId", "nodeKey", "nodeName", "processKey", "taskId" ],
         "type" : "object"
       },
       "TicketLoginRequest" : {
@@ -611,8 +661,42 @@
         },
         "type" : "object"
       },
+      "TimesheetResponse" : {
+        "properties" : {
+          "approvalInstanceId" : {
+            "type" : "string"
+          },
+          "canWithdraw" : {
+            "type" : "boolean"
+          },
+          "round" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "timesheetId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "canWithdraw", "round", "status", "timesheetId" ],
+        "type" : "object"
+      },
+      "TransferTaskRequest" : {
+        "properties" : {
+          "assigneeId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "UpdateLegalEntityRequest" : {
         "properties" : {
+          "code" : {
+            "type" : "string"
+          },
           "name" : {
             "type" : "string"
           },
@@ -636,6 +720,22 @@
           }
         },
         "type" : "object"
+      },
+      "WorkCalendarYearResponse" : {
+        "properties" : {
+          "calendarYear" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "days" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarDayResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "calendarYear", "days" ],
+        "type" : "object"
       }
     }
   },
@@ -645,6 +745,63 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/cost/timesheets/{id}" : {
+      "get" : {
+        "operationId" : "get_5",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TimesheetResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
+    "/api/v1/cost/timesheets/{id}:cancel" : {
+      "post" : {
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RetractTimesheetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
     "/api/v1/cost/timesheets/{id}:submit" : {
       "post" : {
         "operationId" : "submit",
@@ -676,6 +833,36 @@
                 }
               }
             },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
+    "/api/v1/cost/timesheets/{id}:withdraw" : {
+      "post" : {
+        "operationId" : "withdraw",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RetractTimesheetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
             "description" : "OK"
           }
         },
@@ -719,7 +906,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object"
+                  "$ref" : "#/components/schemas/LegalEntityResponse"
                 }
               }
             },
@@ -756,7 +943,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object"
+                  "$ref" : "#/components/schemas/LegalEntityResponse"
                 }
               }
             },
@@ -908,6 +1095,90 @@
         "tags" : [ "sync-run-controller" ]
       }
     },
+    "/api/v1/organization/work-calendars" : {
+      "get" : {
+        "operationId" : "maintainedYears",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "format" : "int32",
+                    "type" : "integer"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "work-calendar-controller" ]
+      }
+    },
+    "/api/v1/organization/work-calendars/{calendarYear}" : {
+      "get" : {
+        "operationId" : "view",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "calendarYear",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkCalendarYearResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "work-calendar-controller" ]
+      },
+      "put" : {
+        "operationId" : "maintain",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "calendarYear",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MaintainWorkCalendarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkCalendarYearResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "work-calendar-controller" ]
+      }
+    },
     "/api/v1/platform/approval-tasks" : {
       "get" : {
         "operationId" : "list_4",
@@ -916,7 +1187,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/MergedInbox"
+                  "$ref" : "#/components/schemas/InboxResponse"
                 }
               }
             },
@@ -942,7 +1213,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/TaskDetail"
+                  "$ref" : "#/components/schemas/TaskDetailResponse"
                 }
               }
             },
@@ -997,7 +1268,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/DecisionResult"
+                  "$ref" : "#/components/schemas/DecisionResponse"
                 }
               }
             },
@@ -1033,10 +1304,39 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/DecisionResult"
+                  "$ref" : "#/components/schemas/DecisionResponse"
                 }
               }
             },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
+    "/api/v1/platform/approval-tasks/{taskId}:transfer" : {
+      "post" : {
+        "operationId" : "transfer",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TransferTaskRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
             "description" : "OK"
           }
         },
@@ -1265,13 +1565,6 @@
         },
         "responses" : {
           "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
             "description" : "OK"
           }
         },

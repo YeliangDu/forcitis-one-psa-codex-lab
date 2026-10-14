@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ActionBar, ActionButton, BottomSheet, ButtonRow, TextAreaField } from '@/shared/ui/actions';
-import { REASON_RULES, type ReasonAction, type TaskActions, canConfirm } from '../model/task';
+import { REASON_RULES, type ReasonAction, type TaskActions, canConfirm, opinionText } from '../model/task';
 
 interface TaskActionBarProps {
   actions: TaskActions;
@@ -39,6 +39,7 @@ export function TaskActionBar({ actions, busy, onClaim, onApprove, onReject, onR
       </ActionBar>
       <BottomSheet open={rule !== undefined} title={rule?.title ?? ''} onClose={close}>
         <TextAreaField label={rule?.required === true ? '理由（必填）' : '理由（选填）'} value={reason} onChange={setReason} />
+        {open === 'approve' ? <p>意见显示为：{opinionText(reason)}</p> : null}
         <ButtonRow>
           <ActionButton variant="default" onClick={close}>取消</ActionButton>
           <ActionButton

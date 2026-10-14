@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ApprovalRequest;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.DecideTasks;
@@ -53,16 +53,15 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instanceOfB = start(documentOfB, userB, manager);
         Map<String, Object> before = variablesOf(instanceOfB);
 
-        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(new ApprovalRequest(
-                ProcessKey.COST_TIMESHEET_APPROVAL, documentOfB, new UserId(userA), Set.of("needs-seal"),
+        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new UserId(userA), Set.of("needs-seal"),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(userA))))))))
                 .isInstanceOf(AccessDeniedException.class);
 
         assertThat(variablesOf(instanceOfB)).isEqualTo(before);
         assertThat(instancesOf(documentOfB)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("select initiator_id from platform_approval.approval_requests where business_key = ?",
+        assertThat(jdbc.queryForObject("select initiator_id from platform_approval.approval_requests where document_key = ?",
                 Long.class, documentOfB)).isEqualTo(userB);
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where business_key = ?", Integer.class,
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class,
                 documentOfB)).isEqualTo(1);
         assertThat(requestStatus(documentOfB)).isEqualTo("RUNNING");
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
@@ -81,12 +80,11 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(round1), DecisionOutcome.REJECT, "fix it")));
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
         assertThat(taskService.createTaskQuery().processInstanceId(round1.value()).count()).as("nothing is parked at the initiator").isZero();
-        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL,
-                documentOfB, new UserId(userA), Set.of(), List.of()))))
+        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new UserId(userA), Set.of(), List.of()))))
                 .isInstanceOf(AccessDeniedException.class);
 
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where business_key = ?", Integer.class,
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class,
                 documentOfB)).isEqualTo(1);
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
                 && entry.actorId().equals(new UserId(userA))));
@@ -95,16 +93,16 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         assertThat(round2).isNotEqualTo(round1);
         assertThat(requestStatus(documentOfB)).isEqualTo("RUNNING");
         assertThat(openTask(round2).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
-        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where business_key = ?",
+        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_key = ?",
                 Integer.class, documentOfB)).isEqualTo(2);
         assertThat(instancesOf(documentOfB)).as("round 1 has ended, only round 2 runs").isEqualTo(1);
         assertThat(start(documentOfB, userB, manager)).isEqualTo(round2);
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where business_key = ?", Integer.class,
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class,
                 documentOfB)).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("I-5 approval exposes no HTTP start: its routes are the inbox, the detail and the three task actions only")
+    @DisplayName("I-5 approval exposes no HTTP start: its routes are the inbox, the detail and the task actions only")
     void thereIsNoHttpStart() {
         Map<String, List<String>> approvalRoutes = new TreeMap<>();
         for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : handlerMapping.getHandlerMethods().entrySet()) {
@@ -127,12 +125,12 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
             }
         }
         assertThat(approvalRoutes.keySet()).containsExactlyInAnyOrder(
-                "/api/{version}/platform/approval-tasks", "/api/{version}/platform/approval-tasks/{taskId}",
-                "/api/{version}/platform/approval-tasks/{taskId}:claim", "/api/{version}/platform/approval-tasks/{taskId}:decide",
-                "/api/{version}/platform/approval-tasks/{taskId}:return");
+                "/api/v1/platform/approval-tasks", "/api/v1/platform/approval-tasks/{taskId}",
+                "/api/v1/platform/approval-tasks/{taskId}:claim", "/api/v1/platform/approval-tasks/{taskId}:decide",
+                "/api/v1/platform/approval-tasks/{taskId}:return", "/api/v1/platform/approval-tasks/{taskId}:transfer");
     }
 
     int instancesOf(String businessKey) {
-        return (int) runtime.createProcessInstanceQuery().processInstanceBusinessKey(businessKey).count();
+        return (int) runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + businessKey).count();
     }
 }

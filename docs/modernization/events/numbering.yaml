@@ -1,0 +1,53 @@
+# 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
+components:
+  messages:
+    NumberingRuleConfirmed:
+      name: NumberingRuleConfirmed
+      title: 编号规则确认
+      payload:
+        type: object
+        properties:
+          documentType: &id001
+            type: string
+            enum:
+            - QUOTE
+            - TIMESHEET
+            - JOURNAL_VOUCHER
+            x-type: DocumentType
+      x-event:
+        eventType: platform.numbering.NumberingRuleConfirmed
+        version: 1
+        class: com.forcitis.one.platform.numbering.events.NumberingRuleConfirmed
+        aggregate: NumberingRule
+        idempotencyKey: eventId
+        publisher: platform.numbering
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
+        noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
+    NumberingRuleReconfigured:
+      name: NumberingRuleReconfigured
+      title: 编号规则的模板或起始值被修改
+      payload:
+        type: object
+        properties:
+          documentType: *id001
+      x-event:
+        eventType: platform.numbering.NumberingRuleReconfigured
+        version: 1
+        class: com.forcitis.one.platform.numbering.events.NumberingRuleReconfigured
+        aggregate: NumberingRule
+        idempotencyKey: eventId
+        publisher: platform.numbering
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
+        noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原

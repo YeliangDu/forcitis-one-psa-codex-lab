@@ -1,14 +1,14 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.organization.workforce.domain.LegalEntityRepository;
+import com.forcitis.one.organization.workforce.domain.LegalEntityQueries;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ListLegalEntities {
-    private final LegalEntityRepository legalEntities;
+    private final LegalEntityQueries legalEntities;
 
-    ListLegalEntities(LegalEntityRepository legalEntities) {
+    ListLegalEntities(LegalEntityQueries legalEntities) {
         this.legalEntities = legalEntities;
     }
 

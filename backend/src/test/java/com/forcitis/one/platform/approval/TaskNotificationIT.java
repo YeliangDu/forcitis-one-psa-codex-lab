@@ -14,7 +14,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ApprovalRequest;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.ClaimTask;
@@ -30,6 +30,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 class TaskNotificationIT extends ApprovalIntegrationSupport {
 
+    @org.junit.jupiter.api.BeforeEach
+    void candidateGroupNodes() {
+        deployVariant("groupnode");
+    }
+
     @Autowired
     ClaimTask claimTask;
 
@@ -37,7 +42,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
     DecideTasks decideTasks;
 
     ApprovalInstanceId startWithManagers(String key, long initiator, long... managers) {
-        return tx.execute(s -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+        return tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
     }
 

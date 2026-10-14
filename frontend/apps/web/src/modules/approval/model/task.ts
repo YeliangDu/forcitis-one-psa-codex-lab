@@ -2,8 +2,8 @@ import type { Schema } from '@forcitis/api';
 
 export const TASK_APPROVE_PERMISSION = 'platform.approval:task:approve';
 
-export type TaskDetail = Schema<'TaskDetail'>;
-export type DecisionResult = Schema<'DecisionResult'>;
+export type TaskDetail = Schema<'TaskDetailResponse'>;
+export type DecisionResult = Schema<'DecisionResponse'>;
 
 export interface TaskActions {
   claim: boolean;
@@ -21,6 +21,13 @@ export function availableActions(task: TaskDetail, canApprove: boolean): TaskAct
     reject: mayAct,
     returnToInitiator: mayAct,
   };
+}
+
+export const EMPTY_OPINION = '（未填写意见）';
+
+/** Display only: an empty opinion stays empty in the data (RULE-280). */
+export function opinionText(opinion: string | undefined): string {
+  return opinion === undefined || opinion.trim() === '' ? EMPTY_OPINION : opinion;
 }
 
 export const APPROVAL_STATUS_LABELS: Readonly<Record<string, string>> = {

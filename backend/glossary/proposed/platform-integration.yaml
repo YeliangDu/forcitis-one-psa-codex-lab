@@ -1,5 +1,19 @@
 # platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 terms:
+- id: error__platform_integration_delivery_transition_illegal
+  zh: 外发投递状态转换非法
+  en: PlatformIntegrationDeliveryTransitionIllegal
+  snake: platform_integration_delivery_transition_illegal
+  kind: error_code
+  bc: platform.integration
+  definition: 投递只能从待发送离开一次（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 - id: seeyon
   zh: 致远
   en: Seeyon
@@ -51,3 +65,15 @@ common_words:
 - sent
 - serialized
 - verifier
+- integration
+- age
+- archive
+- cleanup
+- exhausted
+- incomplete
+- jdbc
+- maximum
+- minimum
+- republish
+- stale
+- statistic

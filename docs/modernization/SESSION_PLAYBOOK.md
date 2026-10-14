@@ -245,6 +245,9 @@
 | 11 | 上下文映射 | 模块间关系（上下游、ACL、发布语言、共享内核）与 architecture/module-dependencies.txt 一致，并登记在架构文档中 |
 | 12 | 统一语言 | 类、方法、表、列、事件、错误码、界面文字都使用 terms.yaml 中的用语；新词以提议术语登记 |
 
+**已登记的例外**（psa-coordinator 2026-10-14 接受）：
+- 第 1 项：`organization.workforce` 的 `BeginSyncRun` / `ApplySourceSnapshot` 在开始新的同步运行时，会在同一事务内放行被取代的 HELD 记录、关闭被遗弃的 RUNNING 记录（涉及多条 `SyncRun`）。理由：这些都是同一类型的运维记录，拆成异步会留下「两条同步同时运行」的并发窗口。
+
 ### 14.1 数据架构检查清单（用户 2026-10-14：问「这些表符合olap、oltp、dama的核心思想吗？这么检查对吗？」后选「做，并把能自动化的变成守护 (Recommended)」）
 
 与 §14 同样适用于每波复审：对每张新增或修改的表逐项给出「符合」或「问题 + 证据（迁移文件:行、代码文件:行）」。基线与示例见 `phase1a/DATA_SCORECARD.md`；标「守护」的由 `DataArchitectureTest` / `DdlNamingTest` 自动检查（规格见该文件 §4），其余靠复审。

@@ -22,8 +22,7 @@ class TaskGuard {
     }
 
     TaskView requireTask(ApprovalTaskId taskId) {
-        return engine.findTask(taskId).orElseThrow(() -> new ApprovalOperationException(
-                ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND, "Task " + taskId.value() + " does not exist or is finished"));
+        return engine.findTask(taskId).orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " does not exist or is finished"));
     }
 
     TaskView requireActor(ApprovalTaskId taskId, UserId actor, String action) {
@@ -36,6 +35,15 @@ class TaskGuard {
         if (!TaskActors.mayAct(task, actor)) {
             deny(task, actor, action);
         }
+    }
+
+    /** Only the person who holds the task may hand it over; a mere candidate has to claim it first. */
+    TaskView requireHandler(ApprovalTaskId taskId, UserId actor, String action) {
+        TaskView task = requireTask(taskId);
+        if (!task.assignee().map(actor::equals).orElse(false)) {
+            deny(task, actor, action);
+        }
+        return task;
     }
 
     void deny(TaskView task, UserId actor, String action) {

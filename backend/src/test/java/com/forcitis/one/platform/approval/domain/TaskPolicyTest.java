@@ -2,7 +2,12 @@ package com.forcitis.one.platform.approval.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
+import java.util.Optional;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
@@ -15,8 +20,10 @@ import org.junit.jupiter.api.Test;
 class TaskPolicyTest {
 
     static TaskView task(UserId assignee, Set<UserId> candidates) {
-        return new TaskView(new ApprovalTaskId("t1"), new ApprovalInstanceId("i1"), ProcessKey.COST_TIMESHEET_APPROVAL, "doc-1",
-                "approverReview", "Approver review", new UserId(1), assignee, candidates, Instant.EPOCH, true, null);
+        return new TaskView(new ApprovalTaskId("t1"), new ApprovalInstanceId("i1"), ProcessKey.COST_TIMESHEET_APPROVAL,
+                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc-1")), new LegalEntityId(1), "approverReview",
+                "Approver review", new UserId(1), Optional.ofNullable(assignee), candidates, Instant.EPOCH, true, Optional.empty(), false,
+                "digest");
     }
 
     @Test

@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
+import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 public class ListSyncRuns {
     private static final int MAX = 200;
 
-    private final SyncRunRepository runs;
+    private final SyncRunQueries runs;
 
-    ListSyncRuns(SyncRunRepository runs) {
+    ListSyncRuns(SyncRunQueries runs) {
         this.runs = runs;
     }
 

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -121,7 +122,7 @@ class ApplicationIntegrationTest {
         for (Map.Entry<RequestMappingInfo, HandlerMethod> mapped : handlerMapping.getHandlerMethods().entrySet()) {
             PublicEndpoint publicEndpoint = mapped.getValue().getMethodAnnotation(PublicEndpoint.class);
             for (String pattern : mapped.getKey().getPatternValues()) {
-                String url = pattern.replace("{version}", "v1").replaceAll("\\{[^}]+}", "1");
+                String url = pattern.replaceAll("\\{[^}]+}", "1");
                 for (var method : mapped.getKey().getMethodsCondition().getMethods()) {
                     var request = request(HttpMethod.valueOf(method.name()), url).with(csrf())
                             .contentType(MediaType.APPLICATION_JSON).content("{}");
@@ -185,10 +186,13 @@ class ApplicationIntegrationTest {
     void submitWithoutAnExistingProjectManagerFailsInsteadOfPassingSilently() throws Exception {
         String unknownManager = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":424242}";
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> mvc.perform(post("/api/v1/cost/timesheets/8:submit").with(csrf())
+        String body = mvc.perform(post("/api/v1/cost/timesheets/8:submit").with(csrf())
                         .with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content(unknownManager)))
-                .hasStackTraceContaining("missing or invalid");
+                        .contentType(MediaType.APPLICATION_JSON).content(unknownManager))
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andReturn().getResponse().getContentAsString();
+        org.assertj.core.api.Assertions.assertThat(body).contains("\"status\":422");
     }
 
     @Test
@@ -203,17 +207,17 @@ class ApplicationIntegrationTest {
     }
 
     @Test
-    void unsupportedApiVersionIsRejected() throws Exception {
+    void unsupportedApiVersionIsNotARoute() throws Exception {
         mvc.perform(post("/api/v2/cost/timesheets/7:submit").with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void bareNumericVersionSegmentIsNotAccepted() throws Exception {
+    void bareNumericVersionSegmentIsNotARoute() throws Exception {
         mvc.perform(post("/api/1/cost/timesheets/7:submit").with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     @BeforeEach
@@ -396,6 +400,18 @@ class ApplicationIntegrationTest {
         if (type == String.class) {
             return "x";
         }
+        if (type == java.util.UUID.class) {
+            return java.util.UUID.fromString("0198a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b");
+        }
+        if (type == com.forcitis.one.kernel.AccountingPeriod.class) {
+            return new com.forcitis.one.kernel.AccountingPeriod(2026, 10);
+        }
+        if (type == com.forcitis.one.organization.workforce.api.LegalEntityCode.class) {
+            return new com.forcitis.one.organization.workforce.api.LegalEntityCode("FST");
+        }
+        if (type == java.time.Year.class) {
+            return java.time.Year.of(2026);
+        }
         if (type == BigDecimal.class) {
             return BigDecimal.ONE;
         }
@@ -404,6 +420,12 @@ class ApplicationIntegrationTest {
         }
         if (type == java.time.Instant.class) {
             return java.time.Instant.parse("2026-10-14T00:00:00Z");
+        }
+        if (type == java.util.UUID.class) {
+            return java.util.UUID.fromString("00000000-0000-7000-8000-000000000001");
+        }
+        if (type == com.forcitis.one.kernel.AccountingPeriod.class) {
+            return com.forcitis.one.kernel.AccountingPeriod.of(2026, 10);
         }
         if (type == java.util.Currency.class) {
             return java.util.Currency.getInstance("CNY");

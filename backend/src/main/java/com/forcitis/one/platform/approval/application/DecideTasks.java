@@ -7,59 +7,61 @@ import com.forcitis.one.platform.approval.api.HookAction;
 import com.forcitis.one.platform.approval.api.HookDecision;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
-import com.forcitis.one.platform.approval.domain.ApprovalRequestRecord;
-import com.forcitis.one.platform.approval.domain.ApprovalStatus;
+import com.forcitis.one.platform.approval.domain.ApprovalRequest;
+import com.forcitis.one.platform.approval.api.ApprovalStatus;
+import com.forcitis.one.platform.approval.domain.ApprovalTask;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.TaskView;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Order: tasks exist (404), actor may act on every task else whole batch 403, shape rules, every BEFORE hook, then complete (approvals first, rejections last). */
+/**
+ * Order: tasks exist (404), actor may act on every task else whole batch 403, shape rules, every BEFORE hook, then complete
+ * (approvals first, rejections last). An approval without a reason stays without one (RULE-280); a rejection of an added
+ * co-signer is advisory and does not end the round (RULE-273).
+ */
 @Service
 public class DecideTasks {
-
-    static final String DEFAULT_APPROVE_REASON = "同意";
 
     private final TaskGuard guard;
     private final HookGate hooks;
     private final ApprovalEngine engine;
     private final ApprovalLifecycle lifecycle;
-    private final AuditLog audit;
+    private final Aggregates aggregates;
+    private final BusinessTime time;
 
-    DecideTasks(TaskGuard guard, HookGate hooks, ApprovalEngine engine, ApprovalLifecycle lifecycle, AuditLog audit) {
+    DecideTasks(TaskGuard guard, HookGate hooks, ApprovalEngine engine, ApprovalLifecycle lifecycle, Aggregates aggregates,
+            BusinessTime time) {
         this.guard = guard;
         this.hooks = hooks;
         this.engine = engine;
         this.lifecycle = lifecycle;
-        this.audit = audit;
+        this.aggregates = aggregates;
+        this.time = time;
     }
 
     @Transactional
     public DecisionResult execute(UserId actor, List<TaskDecision> decisions) {
         if (decisions == null || decisions.isEmpty()) {
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_DECISION_EMPTY, "No decision given");
+            throw ApprovalError.PLATFORM_APPROVAL_DECISION_EMPTY.refusal("No decision given");
         }
         Set<ApprovalTaskId> seen = new HashSet<>();
         for (TaskDecision decision : decisions) {
             if (!seen.add(decision.taskId())) {
-                throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK,
-                        "Task " + decision.taskId().value() + " appears twice");
+                throw ApprovalError.PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK.refusal("Task " + decision.taskId().value() + " appears twice");
             }
             guard.requireMayAct(guard.requireTask(decision.taskId()), actor, "decide");
         }
         // Serialise with other decisions, then look again: another candidate may have claimed or finished a task while we waited.
         ApprovalInstanceId instanceId = guard.requireTask(decisions.getFirst().taskId()).instanceId();
-        ApprovalRequestRecord request = lifecycle.lock(instanceId);
+        ApprovalRequest request = lifecycle.lock(instanceId);
         Map<TaskDecision, TaskView> tasks = new LinkedHashMap<>();
         for (TaskDecision decision : decisions) {
             TaskView fresh = guard.requireTask(decision.taskId());
@@ -78,11 +80,11 @@ public class DecideTasks {
         hookDecisions.stream().flatMap(d -> d.variableUpdates().stream()).forEach(update -> engine.updateVariables(instanceId,
                 new ProcessVariables(Map.of(), Map.of(update.name(), update.values()))));
 
-        ApprovalStatus status = ApprovalStatus.RUNNING;
+        ApprovalStatus status = request.status();
         for (Map.Entry<TaskDecision, TaskView> entry : ordered) {
-            status = apply(request, entry.getKey(), entry.getValue(), actor, status);
+            status = apply(request, entry.getKey(), entry.getValue(), actor);
         }
-        return new DecisionResult(instanceId.value(), status.name());
+        return new DecisionResult(instanceId, status);
     }
 
     private void validateShape(Map<TaskDecision, TaskView> tasks) {
@@ -94,42 +96,40 @@ public class DecideTasks {
             if (instance == null) {
                 instance = task.instanceId();
             } else if (!instance.equals(task.instanceId())) {
-                throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE,
-                        "One submission may only decide tasks of one approval");
+                throw ApprovalError.PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE.refusal("One submission may only decide tasks of one approval");
             }
             if (!nodes.add(task.nodeKey())) {
-                throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_DECISION_SINGLE_ONLY,
-                        "Node " + task.nodeKey() + " takes exactly one decision per submission");
+                throw ApprovalError.PLATFORM_APPROVAL_DECISION_SINGLE_ONLY.refusal("Node " + task.nodeKey() + " takes exactly one decision per submission");
             }
-            boolean hookDecidesReason = task.beforeHookKey() != null && !task.beforeHookKey().isBlank();
+            boolean hookDecidesReason = task.beforeHookKey().filter(key -> !key.isBlank()).isPresent();
             if (decision.outcome() == DecisionOutcome.REJECT && isBlank(decision.reason()) && !hookDecidesReason) {
-                throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED,
-                        "A rejection needs a reason");
+                throw ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED.refusal("A rejection needs a reason");
             }
         }
     }
 
-    private ApprovalStatus apply(ApprovalRequestRecord request, TaskDecision decision, TaskView task, UserId actor,
-            ApprovalStatus current) {
-        claimIfNeeded(task, actor);
-        String reason = decision.outcome() == DecisionOutcome.APPROVE && isBlank(decision.reason())
-                ? DEFAULT_APPROVE_REASON : decision.reason();
-        audit.record(new AuditEntry("platform.approval.task." + decision.outcome().name().toLowerCase(Locale.ROOT),
-                actor, null, "approval-task:" + task.taskId().value(), reason));
+    private ApprovalStatus apply(ApprovalRequest request, TaskDecision decision, TaskView view, UserId actor) {
+        ApprovalTask task = aggregates.task(view.taskId());
+        if (!view.isClaimed()) {
+            lifecycle.claim(task, view, actor);
+        }
+        String reason = isBlank(decision.reason()) ? null : decision.reason();
         if (decision.outcome() == DecisionOutcome.APPROVE) {
-            engine.completeTask(task.taskId());
-            lifecycle.publishTaskResult(task, actor, TaskOutcome.APPROVED, reason);
-            return lifecycle.finishIfDone(request, ApprovalStatus.RUNNING);
+            Transitions.run(() -> task.complete(actor, TaskOutcome.APPROVED, false, reason, view.contentDigest(), time.today()));
+            aggregates.save(task);
+            engine.completeTask(view.taskId());
+            return lifecycle.finishIfDone(request);
         }
-        return task.insideSubProcess()
-                ? lifecycle.returned(request, task, actor, reason)
-                : lifecycle.reject(request, task, actor, reason);
-    }
-
-    private void claimIfNeeded(TaskView task, UserId actor) {
-        if (!task.isClaimed()) {
-            lifecycle.claim(task, actor);
+        if (view.advisory()) {
+            Transitions.run(() -> task.complete(actor, TaskOutcome.REJECTED, true, reason, view.contentDigest(), time.today()));
+            aggregates.save(task);
+            engine.completeTask(view.taskId());
+            return lifecycle.finishIfDone(request);
         }
+        TaskOutcome outcome = view.insideSubProcess() ? TaskOutcome.RETURNED : TaskOutcome.REJECTED;
+        Transitions.run(() -> task.complete(actor, outcome, false, reason, view.contentDigest(), time.today()));
+        aggregates.save(task);
+        return view.insideSubProcess() ? lifecycle.returned(request, reason) : lifecycle.reject(request, reason);
     }
 
     private static HookAction hookAction(DecisionOutcome outcome) {

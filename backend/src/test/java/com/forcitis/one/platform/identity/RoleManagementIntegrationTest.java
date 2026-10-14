@@ -75,7 +75,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(result).path("kind").asString()).isEqualTo("CUSTOM");
         assertThat(body(result).path("enabled").asBoolean()).isTrue();
         assertThat(jdbc.sql("select access_scope from platform_identity.roles where code = 'analyst'").query(String.class).single()).isEqualTo("SELF");
-        assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.role.created");
+        assertThat(recordedEvents.stream(com.forcitis.one.platform.identity.events.RoleCreated.class)).hasSize(1);
     }
 
     @Test

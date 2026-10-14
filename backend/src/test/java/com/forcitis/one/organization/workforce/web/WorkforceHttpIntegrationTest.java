@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.web;
 
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
-import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.tree;
@@ -17,9 +17,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
+import com.forcitis.one.organization.workforce.events.SyncRunReleased;
+import org.springframework.test.context.event.ApplicationEvents;
 import com.forcitis.one.organization.workforce.application.WorkforceIntegrationSupport;
-import com.forcitis.one.organization.workforce.domain.SourceMember;
+import com.forcitis.one.platform.integration.api.SourcePerson;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -42,6 +45,9 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     SyncOrgSnapshot sync;
 
     @Autowired
+    ApplicationEvents events;
+
+    @Autowired
     @org.springframework.beans.factory.annotation.Qualifier("requestMappingHandlerMapping")
     org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping handlerMapping;
 
@@ -55,7 +61,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
     private void synced() {
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L), unit(4, 1L)),
-                List.of(head(2, 1)), List.of(post(100)), List.of(member(1, 2, 100L, null), member(2, 3, 100L, 1L)));
+                List.of(head(2, 1)), List.of(post(100)), List.of(person(1, 2, 100L, null), person(2, 3, 100L, 1L)));
         sync.execute(SyncTrigger.SCHEDULED, false);
     }
 
@@ -80,11 +86,11 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         List<String> writes = new ArrayList<>();
         List<String> reads = new ArrayList<>();
         handlerMapping.getHandlerMethods().keySet().forEach(info -> info.getPatternValues().stream()
-                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities")).forEach(p -> info.getMethodsCondition().getMethods().forEach(m -> {
+                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities") && !p.contains("/work-calendars")).forEach(p -> info.getMethodsCondition().getMethods().forEach(m -> {
                     (m.name().equals("GET") ? reads : writes).add(m.name() + " " + p);
                 })));
 
-        assertThat(writes).containsExactly("POST /api/{version}/organization/sync-runs/{syncRunId}:release");
+        assertThat(writes).containsExactly("POST /api/v1/organization/sync-runs/{syncRunId}:release");
         assertThat(reads).hasSize(4);
     }
 
@@ -127,7 +133,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("sync records: newest first, one record with its differences and data exceptions")
     void syncRuns() throws Exception {
-        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 99, 100L, null));
+        orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 99, 100L, null));
         sync.execute(SyncTrigger.SCHEDULED, false);
         sync.execute(SyncTrigger.SCHEDULED, false);
 
@@ -149,13 +155,13 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("RULE-358 releasing a held run needs the execute permission, a CSRF token and a HELD run; the actor is the session user")
     void releaseHeldRun() throws Exception {
-        List<SourceMember> ten = new ArrayList<>();
+        List<SourcePerson> ten = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
-            ten.add(member(i, 2, 100L, null));
+            ten.add(person(i, 2, 100L, null));
         }
-        orgSource.snapshot = tree(ten.toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(ten.toArray(SourcePerson[]::new));
         sync.execute(SyncTrigger.SCHEDULED, false);
-        orgSource.snapshot = tree(ten.subList(0, 6).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(ten.subList(0, 6).toArray(SourcePerson[]::new));
         var held = sync.execute(SyncTrigger.SCHEDULED, false);
         assertThat(held.status()).isEqualTo(SyncRunStatus.HELD);
         String path = SYNC_RUNS + "/" + held.syncRunId().value() + ":release";
@@ -167,7 +173,10 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 .andExpect(jsonPath("$.outcome").value("RELEASED"))
                 .andExpect(jsonPath("$.syncRun.trigger").value("MANUAL"))
                 .andExpect(jsonPath("$.syncRun.status").value("SUCCEEDED"));
-        verify(audit).record(argThat((AuditEntry e) -> user(9001).equals(e.actorId()) && e.action().endsWith("sync-run.released")));
+        assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
+            assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
+            assertThat(e.envelope().actorId()).isEqualTo("9001");
+        });
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(4);
 
         mvc.perform(post(path).with(csrf()).with(EXECUTE))
@@ -181,13 +190,13 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("a release that cannot be applied (the source down) keeps the hold and says why")
     void releaseWhileSourceIsDown() throws Exception {
-        List<SourceMember> ten = new ArrayList<>();
+        List<SourcePerson> ten = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
-            ten.add(member(i, 2, 100L, null));
+            ten.add(person(i, 2, 100L, null));
         }
-        orgSource.snapshot = tree(ten.toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(ten.toArray(SourcePerson[]::new));
         sync.execute(SyncTrigger.SCHEDULED, false);
-        orgSource.snapshot = tree(ten.subList(0, 6).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(ten.subList(0, 6).toArray(SourcePerson[]::new));
         var held = sync.execute(SyncTrigger.SCHEDULED, false);
 
         orgSource.unavailable = true;

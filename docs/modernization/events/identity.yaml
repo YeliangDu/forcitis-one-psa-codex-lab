@@ -1,0 +1,208 @@
+# 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
+components:
+  messages:
+    RoleCreated:
+      name: RoleCreated
+      title: 角色新增
+      payload:
+        type: object
+        properties:
+          roleId:
+            type: string
+            x-type: RoleId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.RoleCreated
+        version: 1
+        class: com.forcitis.one.platform.identity.events.RoleCreated
+        aggregate: Role
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+    RoleRevised:
+      name: RoleRevised
+      title: 角色的名称、数据范围或权限被修改
+      payload:
+        type: object
+        properties:
+          roleId:
+            type: string
+            x-type: RoleId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.RoleRevised
+        version: 1
+        class: com.forcitis.one.platform.identity.events.RoleRevised
+        aggregate: Role
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+    RoleEnabled:
+      name: RoleEnabled
+      title: 角色启用
+      payload:
+        type: object
+        properties:
+          roleId:
+            type: string
+            x-type: RoleId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.RoleEnabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.RoleEnabled
+        aggregate: Role
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+    RoleDisabled:
+      name: RoleDisabled
+      title: 角色停用
+      payload:
+        type: object
+        properties:
+          roleId:
+            type: string
+            x-type: RoleId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.RoleDisabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.RoleDisabled
+        aggregate: Role
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+    RoleDeleted:
+      name: RoleDeleted
+      title: 角色删除
+      payload:
+        type: object
+        properties:
+          roleId:
+            type: string
+            x-type: RoleId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.RoleDeleted
+        version: 1
+        class: com.forcitis.one.platform.identity.events.RoleDeleted
+        aggregate: Role
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+    AccountEnabled:
+      name: AccountEnabled
+      title: 账号启用
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.AccountEnabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AccountEnabled
+        aggregate: UserAccount
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+    AccountDisabled:
+      name: AccountDisabled
+      title: 账号停用
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.AccountDisabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AccountDisabled
+        aggregate: UserAccount
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+    AccountRolesReplaced:
+      name: AccountRolesReplaced
+      title: 账号的角色被整体替换
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+          roleIds:
+            type: array
+            items:
+              type: string
+              x-type: RoleId
+      x-event:
+        eventType: platform.identity.AccountRolesReplaced
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AccountRolesReplaced
+        aggregate: UserAccount
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回

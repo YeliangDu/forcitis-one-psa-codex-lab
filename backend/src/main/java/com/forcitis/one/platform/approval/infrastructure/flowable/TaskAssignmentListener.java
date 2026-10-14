@@ -1,22 +1,21 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
+import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
-import com.forcitis.one.platform.approval.domain.AssigneeResolver;
-import com.forcitis.one.platform.approval.domain.NodePolicy;
+import com.forcitis.one.platform.approval.application.TaskRegistrar;
+import com.forcitis.one.platform.approval.application.TaskRegistration;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.Resolution;
-import com.forcitis.one.platform.approval.domain.ResolutionKind;
-import com.forcitis.one.platform.approval.events.TaskAssigned;
-import com.forcitis.one.platform.identity.api.RoleDirectory;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.OptionalInt;
 import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.UserTask;
 import org.flowable.common.engine.api.delegate.event.FlowableEngineEntityEvent;
@@ -24,33 +23,24 @@ import org.flowable.common.engine.api.delegate.event.FlowableEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEventListener;
 import org.flowable.engine.impl.util.ProcessDefinitionUtil;
 import org.flowable.task.service.impl.persistence.entity.TaskEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-/** Runs inside the engine command creating the task; nobody found goes to the process administrator, and without one the whole command rolls back (never a silent skip). */
+/**
+ * Runs inside the engine command creating the task. A countersign task already carries its one approver; any other node is resolved
+ * here. The task is registered with the approval module, which also tells whether the system passes it itself (RULE-302).
+ */
 @Component
 class TaskAssignmentListener implements FlowableEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(TaskAssignmentListener.class);
-
-    private final OrgDirectory org;
-    private final RoleDirectory roles;
-    private final AssignmentProperties properties;
-    private final ApplicationEventPublisher events;
-    private final MeterRegistry meters;
+    private final NodeAssignment assignment;
+    private final TaskRegistrar registrar;
     private final ObjectProvider<Clock> clock;
 
-    TaskAssignmentListener(OrgDirectory org, RoleDirectory roles, AssignmentProperties properties, ApplicationEventPublisher events,
-            MeterRegistry meters, ObjectProvider<Clock> clock) {
+    TaskAssignmentListener(NodeAssignment assignment, TaskRegistrar registrar, ObjectProvider<Clock> clock) {
+        this.assignment = assignment;
+        this.registrar = registrar;
         this.clock = clock;
-        this.org = org;
-        this.roles = roles;
-        this.properties = properties;
-        this.events = events;
-        this.meters = meters;
     }
 
     @Override
@@ -61,54 +51,47 @@ class TaskAssignmentListener implements FlowableEventListener {
         }
         BpmnModel model = ProcessDefinitionUtil.getBpmnModel(task.getProcessDefinitionId());
         UserTask node = (UserTask) model.getFlowElement(task.getTaskDefinitionKey());
-        NodePolicy policy = NodePolicyReader.read(node);
-
         ProcessVariables variables = EngineVariables.fromEngine(task.getVariables());
-        UserId initiator = new UserId(Long.parseLong(variables.firstVariable(FlowableApprovalEngine.VARIABLE_INITIATOR)
-                .orElseThrow(() -> new IllegalStateException("Instance " + task.getProcessInstanceId() + " has no initiator"))));
-        UserId administrator = properties.processAdministratorUserId() == null ? null : new UserId(properties.processAdministratorUserId());
 
-        Resolution resolution;
-        try {
-            resolution = new AssigneeResolver(org, roles, administrator)
-                    .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
-        } catch (RuntimeException failed) {
-            log.error("Resolving the assignees of node {} (instance {}) failed: {}", node.getId(), task.getProcessInstanceId(), failed.toString());
-            meters.counter("platform.approval.assignee.resolution.failed").increment();
-            throw failed;
+        List<UserId> candidates;
+        if (node.getLoopCharacteristics() != null) {
+            candidates = List.of(new UserId(Long.parseLong(variables.firstVariable(ApproverResolution.ELEMENT_VARIABLE)
+                    .orElseThrow(() -> new IllegalStateException("Countersign task of node " + node.getId() + " has no approver")))));
+        } else {
+            Resolution resolution = assignment.resolve(node, task.getProcessInstanceId(), task.getVariables());
+            if (NodeAssignment.isSkipped(resolution)) {
+                task.setVariableLocal(FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE, Boolean.TRUE);
+                return;
+            }
+            candidates = resolution.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
         }
-        if (resolution.kind() == ResolutionKind.SKIPPED) {
-            log.info("Node {} (instance {}) has nobody to assign and is skipped", node.getId(), task.getProcessInstanceId());
-            meters.counter("platform.approval.assignee.skipped").increment();
-            task.setVariableLocal(FlowableApprovalEngine.VARIABLE_SKIPPED, Boolean.TRUE);
-            return;
-        }
-        if (resolution.kind() == ResolutionKind.INVALID_INPUT) {
-            log.error("Node {} (instance {}) may be skipped when nobody is found, but its input is missing or invalid: not skipped, "
-                    + "the approval fails", node.getId(), task.getProcessInstanceId());
-            meters.counter("platform.approval.assignee.invalid.input").increment();
-            throw new IllegalStateException("Node " + node.getId() + " of instance " + task.getProcessInstanceId()
-                    + " reads a missing or invalid value, so it cannot be skipped");
-        }
-        if (resolution.kind() == ResolutionKind.UNRESOLVED) {
-            throw new IllegalStateException("Nobody can handle node " + node.getId() + " of instance " + task.getProcessInstanceId()
-                    + " and no process administrator is configured (forcitis.platform.approval.assignment.process-administrator-user-id)");
-        }
-        if (resolution.kind() != ResolutionKind.RESOLVED) {
-            log.warn("Assignment of node {} (instance {}) is {}: candidates {}", node.getId(), task.getProcessInstanceId(),
-                    resolution.kind(), resolution.candidates());
-            meters.counter("platform.approval.assignee.fallback", "kind", resolution.kind().name().toLowerCase(Locale.ROOT)).increment();
-        }
+
         task.setVariableLocal(FlowableApprovalEngine.VARIABLE_ASSIGNED_AT, clock.getIfAvailable(Clock::systemUTC).millis());
-        List<UserId> candidates = resolution.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
         candidates.forEach(candidate -> task.addCandidateUser(String.valueOf(candidate.value())));
 
         ProcessKey processKey = ProcessKey.valueOf(ProcessDefinitionUtil.getProcessDefinition(task.getProcessDefinitionId())
                 .getKey().toUpperCase(Locale.ROOT));
-        events.publishEvent(new TaskAssigned(new ApprovalTaskId(task.getId()), new ApprovalInstanceId(task.getProcessInstanceId()),
-                processKey, ProcessDefinitionUtil.getProcessDefinition(task.getProcessDefinitionId()).getName(),
-                variables.firstVariable(FlowableApprovalEngine.VARIABLE_BUSINESS_KEY).orElse(""), node.getId(),
-                task.getName(), initiator, candidates));
+        String nodeKey = node.getId();
+        boolean passedBySystem = registrar.register(new TaskRegistration(new ApprovalTaskId(task.getId()),
+                new ApprovalInstanceId(task.getProcessInstanceId()), processKey,
+                ProcessDefinitionUtil.getProcessDefinition(task.getProcessDefinitionId()).getName(),
+                FlowableApprovalEngine.documentOf(variables), new LegalEntityId(Long.parseLong(required(variables, FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY))),
+                nodeKey, task.getName(), new UserId(Long.parseLong(required(variables, FlowableApprovalEngine.VARIABLE_INITIATOR))), candidates,
+                LocalDate.parse(required(variables, FlowableApprovalEngine.VARIABLE_SUBMITTED_ON)),
+                workdays(variables, NodeDecisions.DEADLINE_WORKDAYS + nodeKey), workdays(variables, NodeDecisions.ESCALATION_WORKDAYS + nodeKey),
+                variables.firstVariable(NodeDecisions.AUTO_APPROVE_REPEAT + nodeKey).map(Boolean::parseBoolean).orElse(false),
+                required(variables, FlowableApprovalEngine.VARIABLE_CONTENT_DIGEST)));
+        if (passedBySystem) {
+            task.setVariableLocal(FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE, Boolean.TRUE);
+        }
+    }
+
+    private static String required(ProcessVariables variables, String name) {
+        return variables.firstVariable(name).orElseThrow(() -> new IllegalStateException("Process variable " + name + " is missing"));
+    }
+
+    private static OptionalInt workdays(ProcessVariables variables, String name) {
+        return variables.firstVariable(name).map(raw -> OptionalInt.of(Integer.parseInt(raw))).orElse(OptionalInt.empty());
     }
 
     @Override

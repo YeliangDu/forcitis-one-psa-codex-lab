@@ -23,15 +23,13 @@ public class GetTaskDetail {
     @Transactional(readOnly = true)
     public TaskDetail execute(ApprovalTaskId taskId, UserId viewer) {
         TaskView task = engine.findTask(taskId).filter(t -> isParticipant(t, viewer)).orElseThrow(
-                () -> new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND,
-                        "Task " + taskId.value() + " does not exist"));
-        List<String> candidates = task.candidates().stream().map(UserId::value).sorted(Comparator.naturalOrder()).map(String::valueOf).toList();
-        return new TaskDetail(task.taskId().value(), task.instanceId().value(), task.processKey().name(), task.businessKey(),
-                task.nodeKey(), task.nodeName(), String.valueOf(task.initiator().value()), task.assignee() == null ? null : String.valueOf(task.assignee().value()),
-                candidates, task.createdAt(), TaskActors.mayAct(task, viewer));
+                () -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " does not exist"));
+        List<UserId> candidates = task.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
+        return new TaskDetail(task.taskId(), task.instanceId(), task.processKey(), task.document(), task.nodeKey(), task.nodeName(),
+                task.initiator(), task.assignee(), candidates, task.createdAt(), TaskActors.mayAct(task, viewer));
     }
 
     private static boolean isParticipant(TaskView task, UserId viewer) {
-        return task.initiator().equals(viewer) || viewer.equals(task.assignee()) || task.candidates().contains(viewer);
+        return task.initiator().equals(viewer) || task.assignee().map(viewer::equals).orElse(false) || task.candidates().contains(viewer);
     }
 }

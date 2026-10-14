@@ -2,18 +2,23 @@ package com.forcitis.one.platform.approval;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
+import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalHook;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
-import com.forcitis.one.platform.approval.api.ApprovalRequest;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskResulted;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.time.Duration;
 import java.util.List;
@@ -41,14 +46,16 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** One PostgreSQL 18 container per test JVM and a cached application context; the Flowable schema is created by the engine only in tests; other modules' dependencies are doubles. */
-@SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
+@SpringBootTest(properties = {"flowable.async-executor-activate=false", "forcitis.platform.approval.deadline.enabled=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=" + ApprovalIntegrationSupport.ADMINISTRATOR,
-        "spring.datasource.hikari.connection-timeout=2000"})
+        "spring.datasource.hikari.connection-timeout=2000",
+        "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
 @Import(ApprovalIntegrationSupport.Doubles.class)
 public abstract class ApprovalIntegrationSupport {
 
     public static final long ADMINISTRATOR = 9001;
+    public static final LegalEntityId LEGAL_ENTITY = new LegalEntityId(1);
     static final AtomicLong IDS = new AtomicLong(100_000);
 
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
@@ -122,6 +129,35 @@ public abstract class ApprovalIntegrationSupport {
     @Autowired
     protected org.flowable.engine.TaskService taskService;
 
+    @Autowired
+    protected org.flowable.engine.RepositoryService repository;
+
+    @Autowired
+    protected org.flowable.dmn.api.DmnRepositoryService dmnRepository;
+
+    private final List<Runnable> variantCleanup = new java.util.ArrayList<>();
+
+    /** Deploys a test variant of the timesheet process and / or its decision table (whichever the directory has) as the newest version; removed after the test. */
+    protected void deployVariant(String directory) {
+        String bpmnResource = directory + "/cost_timesheet_approval.bpmn20.xml";
+        if (getClass().getClassLoader().getResource(bpmnResource) != null) {
+            String bpmn = repository.createDeployment().addClasspathResource(bpmnResource).deploy().getId();
+            variantCleanup.add(() -> repository.deleteDeployment(bpmn, true));
+        }
+        String dmnResource = directory + "/cost_timesheet_approval_nodes.dmn";
+        if (getClass().getClassLoader().getResource(dmnResource) != null) {
+            String dmn = dmnRepository.createDeployment().addClasspathResource(dmnResource).deploy().getId();
+            variantCleanup.add(() -> dmnRepository.deleteDeployment(dmn));
+        }
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void removeVariants() {
+        java.util.Collections.reverse(variantCleanup);
+        variantCleanup.forEach(Runnable::run);
+        variantCleanup.clear();
+    }
+
     @BeforeEach
     void administratorExists() {
         organisation.person(ADMINISTRATOR, 1, null);
@@ -146,8 +182,9 @@ public abstract class ApprovalIntegrationSupport {
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager, TimesheetRoutingFlag... flags) {
         Set<String> flagNames = java.util.Arrays.stream(flags).map(TimesheetRoutingFlag::flagName).collect(java.util.stream.Collectors.toSet());
-        return tx.execute(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, businessKey,
-                new UserId(initiator), flagNames, List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+        return tx.execute(status -> approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document(businessKey),
+                LEGAL_ENTITY, new UserId(initiator), flagNames,
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))), "digest")));
     }
 
     protected Task openTask(ApprovalInstanceId instance) {
@@ -166,13 +203,50 @@ public abstract class ApprovalIntegrationSupport {
         return new ApprovalTaskId(openTask(instance).getId());
     }
 
-    protected String requestStatus(String businessKey) {
-        return jdbc.queryForObject("select status from platform_approval.approval_requests where business_key = ?", String.class,
-                businessKey);
+    protected static ApprovalStartRequest startRequest(String key, UserId initiator, Set<String> flags, List<ApprovalField> fields) {
+        return new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, initiator, flags, fields, "digest");
+    }
+
+    protected static DocumentReference document(String key) {
+        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(key));
+    }
+
+    protected String requestStatus(String key) {
+        return jdbc.queryForObject("select status from platform_approval.approval_requests where document_key = ?", String.class, key);
+    }
+
+    protected List<String> auditActions(String subjectKey) {
+        return jdbc.queryForList("select action from platform_audit.audit_entries where subject_key = ?", String.class, subjectKey);
+    }
+
+    protected List<Long> auditActors(String subjectKey, String action) {
+        return jdbc.queryForList("select actor_id from platform_audit.audit_entries where subject_key = ? and action = ?", Long.class, subjectKey, action);
     }
 
     protected static void eventually(Runnable assertion) {
         Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).untilAsserted(assertion::run);
+    }
+
+    /** Makes the commit of a decision fail on demand, to prove that everything the decision did is one transaction. */
+    public static class CommitGate {
+        public volatile boolean failing;
+
+        @org.springframework.transaction.event.TransactionalEventListener(phase = org.springframework.transaction.event.TransactionPhase.BEFORE_COMMIT)
+        void on(TaskResulted event) {
+            if (failing) {
+                throw new IllegalStateException("the event store is down");
+            }
+        }
+    }
+
+    protected void actAs(long user) {
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(String.valueOf(user), "n/a", List.of()));
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void signOut() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
     public static class EventRecorder {
@@ -180,6 +254,8 @@ public abstract class ApprovalIntegrationSupport {
         private final List<ApprovalCompleted> completed = new CopyOnWriteArrayList<>();
         private final List<TaskResulted> resulted = new CopyOnWriteArrayList<>();
         private final List<TaskAssigned> assigned = new CopyOnWriteArrayList<>();
+        private final List<com.forcitis.one.platform.approval.events.ApprovalTaskOverdue> overdue = new CopyOnWriteArrayList<>();
+        private final List<com.forcitis.one.platform.approval.events.ApprovalTaskEscalated> escalated = new CopyOnWriteArrayList<>();
         private final Set<String> failedOnce = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
         public List<ApprovalCompleted> completed() {
@@ -194,6 +270,24 @@ public abstract class ApprovalIntegrationSupport {
             return assigned;
         }
 
+        public List<com.forcitis.one.platform.approval.events.ApprovalTaskOverdue> overdue() {
+            return overdue;
+        }
+
+        public List<com.forcitis.one.platform.approval.events.ApprovalTaskEscalated> escalated() {
+            return escalated;
+        }
+
+        @ApplicationModuleListener
+        void on(com.forcitis.one.platform.approval.events.ApprovalTaskOverdue event) {
+            overdue.add(event);
+        }
+
+        @ApplicationModuleListener
+        void on(com.forcitis.one.platform.approval.events.ApprovalTaskEscalated event) {
+            escalated.add(event);
+        }
+
         public Set<String> failedOnce() {
             return failedOnce;
         }
@@ -201,7 +295,7 @@ public abstract class ApprovalIntegrationSupport {
         @ApplicationModuleListener
         void on(ApprovalCompleted event) {
             // A business module's listener may fail; the registry keeps the publication and redelivers it.
-            if (event.businessKey().startsWith("flaky-") && failedOnce.add(event.businessKey())) {
+            if (event.document().documentId().value().startsWith("flaky-") && failedOnce.add(event.document().documentId().value())) {
                 throw new IllegalStateException("first delivery fails on purpose");
             }
             completed.add(event);
@@ -245,6 +339,29 @@ public abstract class ApprovalIntegrationSupport {
         @Primary
         FakeOrganisation fakeOrganisation() {
             return new FakeOrganisation();
+        }
+
+        @Bean
+        @Primary
+        CurrentUser administratorUnlessSignedIn() {
+            return new CurrentUser() {
+                @Override
+                public UserId userId() {
+                    var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                    return authentication != null && authentication.isAuthenticated() ? new UserId(Long.parseLong(authentication.getName()))
+                            : new UserId(ADMINISTRATOR);
+                }
+
+                @Override
+                public LegalEntityId legalEntityId() {
+                    return LEGAL_ENTITY;
+                }
+            };
+        }
+
+        @Bean
+        CommitGate commitGate() {
+            return new CommitGate();
         }
 
         @Bean
