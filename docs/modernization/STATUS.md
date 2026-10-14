@@ -8,7 +8,8 @@
 
 | 工作单元 | 状态 | 负责会话 | 入口 / 阻塞 | 下一条命令 |
 |---|---|---|---|---|
-| 评估、地图、规则抽取、定栈、brief | 完成；brief 已批准（Phase 1a、1b，2026-10-14） | psa-assess-brief（本会话） | — | — |
+| 评估、地图、规则抽取、定栈、brief | 完成；brief 已批准（Phase 1a、1b，2026-10-14） | — （评估会话已收尾） | — | — |
+| 总调度 | 进行中：派工、核对报告、汇总用户决定（SESSION_PLAYBOOK §11） | psa-coordinator | — | 工作会话结束前向 psa-coordinator 报告（§4 第 7 步） |
 | 规则评审（92 条 P0，按阶段分批） | 第一批完成（审批 28 条：正确 19、错误 9、待讨论 0，见 RULE_REVIEWS.md）；其余 64 条未开始 | — | 第二批：售前报价 14 条（1b 前）；其余按阶段 | Phase 1a 入口已无规则阻塞：新会话 `psa-1a-…` 运行 `/code-modernization:modernize-reimagine`；1b 前新会话 `psa-review-quotation` 运行 `/code-modernization:modernize-review psa` |
 | 老系统安全止血 | 补丁 6 轮修订完成，未部署 | — | 运维：Nacos 内部令牌、部署顺序、nginx 删除 `/other-api`、凭据轮换、dev 实测 | 用户安排运维与 dev 实测 |
 | 用语确认 | 完成（197 项） | — | 模板新增 4 个提议词条待下一轮确认 | — |
