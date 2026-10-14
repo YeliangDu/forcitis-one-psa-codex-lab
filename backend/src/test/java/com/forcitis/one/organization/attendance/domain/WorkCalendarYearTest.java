@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvent;
+import com.forcitis.one.fixture.doubles.CatalogueBusinessDates;
+import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.EventEnvelopes;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
@@ -19,9 +21,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class WorkCalendarYearTest {
-    static final EventEnvelopes ENVELOPES = draft -> new EventEnvelope(UUID.randomUUID(), draft.eventType(), draft.schemaVersion(),
-            Instant.EPOCH, draft.aggregateType(), draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null,
-            ActorType.SYSTEM, "test", draft.legalEntityId(), draft.businessDate(), draft.source(), null, draft.relatedAggregates());
+    static final EventEnvelopes ENVELOPES = unchecked -> {
+        EventDraft draft = CatalogueBusinessDates.check(unchecked);
+        return new EventEnvelope(UUID.randomUUID(), draft.eventType(), draft.schemaVersion(),
+                Instant.EPOCH, draft.aggregateType(), draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null,
+                ActorType.SYSTEM, "test", draft.legalEntityId(), draft.businessDate(), draft.source(), null, draft.relatedAggregates());
+    };
 
     static CalendarDay day(String date, DayKind kind) {
         return new CalendarDay(LocalDate.parse(date), kind);
