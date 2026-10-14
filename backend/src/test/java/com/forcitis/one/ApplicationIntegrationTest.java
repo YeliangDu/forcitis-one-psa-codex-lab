@@ -39,6 +39,7 @@ import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.support.TransactionTemplate;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -208,15 +209,24 @@ class ApplicationIntegrationTest {
 
     // ---------- configurable business numbering ----------
 
+    @BeforeEach
+    void legalEntitiesExist() {
+        jdbc.update("""
+                insert into organization_workforce.legal_entities (id, code, name, status)
+                values (1, 'FST', 'Synthetic legal entity one', 'ACTIVE'), (2, 'FIT', 'Synthetic legal entity two', 'ACTIVE')
+                on conflict (id) do nothing
+                """);
+    }
+
     @Test
     void numbersFollowTheRuleResetYearlyAndAreSeparatePerLegalEntity() {
         LocalDate day = LocalDate.of(2026, 10, 14);
-        // unified new format (ADR-0010 decision 5): {TYPE}-{LE}-{yyyyMM}-{seq:4}, reset monthly
-        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-1-202610-0001");
-        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-1-202610-0002");
-        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2L), day)).isEqualTo("QT-2-202610-0001");
-        assertThat(issue(DocumentType.QUOTE, LE1, LocalDate.of(2026, 11, 2))).isEqualTo("QT-1-202611-0001");
-        assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, day)).isEqualTo("JV-1-202610-000001");
+        // unified new format (ADR-0010 decision 5): {TYPE}-{LE}-{yyyyMM}-{seq:4}, reset monthly; {LE} is the legal entity code
+        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0001");
+        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0002");
+        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2L), day)).isEqualTo("QT-FIT-202610-0001");
+        assertThat(issue(DocumentType.QUOTE, LE1, LocalDate.of(2026, 11, 2))).isEqualTo("QT-FST-202611-0001");
+        assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, day)).isEqualTo("JV-FST-202610-000001");
     }
 
     @Test
@@ -261,7 +271,7 @@ class ApplicationIntegrationTest {
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500}"))
                 .andExpect(status().isNoContent());
-        assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZ1-202611-00500");
+        assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZFST-202611-00500");
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(user("8").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1}"))
                 .andExpect(status().isForbidden());

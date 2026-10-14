@@ -98,3 +98,59 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: outbound_delivery
+  zh: 外发投递
+  en: OutboundDelivery
+  snake: outbound_delivery
+  kind: entity
+  bc: platform.integration
+  definition: 一条待发往外部系统（企业微信）的消息及其发送结果；事务提交后由投递作业发送，失败退避重试，次数用尽进死信
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.7 §3.9
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: recipient
+  zh: 收件人
+  en: Recipient
+  snake: recipient
+  kind: role
+  bc: platform.integration
+  definition: 消息的接收人，用企业微信用户 ID 精确指定；不允许按部门、标签或全员投递
+  standard_ref:
+  - SECURITY_INVARIANTS.md I-6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: retry
+  zh: 重试
+  en: Retry
+  snake: retry
+  kind: action
+  bc: platform.integration
+  definition: 投递失败后按退避间隔再次发送（30 秒、2 分钟、10 分钟、30 分钟、2 小时，最多 8 次）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.7
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: sent
+  zh: 已发送
+  en: Sent
+  snake: sent
+  kind: state
+  bc: platform.integration
+  definition: 外发投递已被企业微信接受
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.7
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''

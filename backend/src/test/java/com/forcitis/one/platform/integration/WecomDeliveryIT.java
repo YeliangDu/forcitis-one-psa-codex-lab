@@ -1,0 +1,364 @@
+package com.forcitis.one.platform.integration;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.notContaining;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.platform.identity.api.RoleDirectory;
+import com.forcitis.one.platform.integration.api.WecomCard;
+import com.forcitis.one.platform.integration.api.WecomEntry;
+import com.forcitis.one.platform.integration.api.WecomGateway;
+import com.forcitis.one.platform.integration.application.DeliverWecomCards;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * The WeCom gateway end to end: the real application context on PostgreSQL 18, WeCom replaced by WireMock. The corp id,
+ * secret and agent id are made up for each run.
+ */
+@SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
+        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
+        "spring.datasource.hikari.connection-timeout=2000"})
+@Testcontainers
+class WecomDeliveryIT {
+
+    static final String TOKEN_PATH = "/cgi-bin/gettoken";
+    static final String SEND_PATH = "/cgi-bin/message/send";
+    static final String UPDATE_PATH = "/cgi-bin/message/update_template_card";
+
+    static final WireMockServer wecom = new WireMockServer(WireMockConfiguration.options().dynamicPort());
+
+    static {
+        wecom.start();
+    }
+
+    @DynamicPropertySource
+    static void wecomSettings(DynamicPropertyRegistry registry) {
+        registry.add("forcitis.platform.integration.wecom.enabled", () -> "true");
+        registry.add("forcitis.platform.integration.wecom.base-url", wecom::baseUrl);
+        registry.add("forcitis.platform.integration.wecom.corp-id", () -> "corp-" + UUID.randomUUID());
+        registry.add("forcitis.platform.integration.wecom.secret", () -> "secret-" + UUID.randomUUID());
+        registry.add("forcitis.platform.integration.wecom.agent-id", () -> "1000002");
+        registry.add("forcitis.platform.integration.wecom.recipients.restricted", () -> "true");
+        registry.add("forcitis.platform.integration.wecom.recipients.allowed", () -> "alice,carol");
+        registry.add("forcitis.platform.integration.wecom.delivery.interval", () -> "PT1H");
+    }
+
+    @MockitoBean
+    OrgDirectory orgDirectory;
+
+    @MockitoBean
+    RoleDirectory roleDirectory;
+
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+            .withInitScript("init-schemas.sql")
+            .withUrlParam("currentSchema", "platform_approval");
+
+    @Autowired
+    WecomGateway gateway;
+
+    @Autowired
+    DeliverWecomCards deliver;
+
+    @Autowired
+    TransactionTemplate tx;
+
+    @Autowired
+    JdbcClient jdbc;
+
+    @Autowired
+    MeterRegistry meters;
+
+    static final WecomUserId ALICE = new WecomUserId("alice");
+    static final WecomUserId BOB = new WecomUserId("bob");
+    static final WecomUserId CAROL = new WecomUserId("carol");
+
+    @BeforeEach
+    void cleanSlate() {
+        wecom.resetAll();
+        wecom.stubFor(get(urlPathEqualTo(TOKEN_PATH)).willReturn(okJson("{\"errcode\":0,\"access_token\":\"token-1\",\"expires_in\":7200}")));
+        jdbc.sql("delete from platform_integration.outbound_deliveries").update();
+    }
+
+    private static WecomCard card(String key, WecomUserId... recipients) {
+        return new WecomCard(List.of(recipients), "Approval to do", "Quote 17 waits for you", "https://one.example.test/tasks/" + key, key);
+    }
+
+    private void queue(WecomCard card) {
+        tx.executeWithoutResult(status -> gateway.send(card));
+    }
+
+    private Map<String, Object> row(String key) {
+        return jdbc.sql("select * from platform_integration.outbound_deliveries where deduplication_key = :key").param("key", key)
+                .query().singleRow();
+    }
+
+    private void sendSucceeds(String responseCodeJson) {
+        wecom.stubFor(post(urlPathEqualTo(SEND_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\"" + responseCodeJson + "}")));
+    }
+
+    private void makeDue(String key) {
+        jdbc.sql("update platform_integration.outbound_deliveries set next_attempt_at = now() - interval '1 second' where deduplication_key = :key")
+                .param("key", key).update();
+    }
+
+    private double gauge(String name) {
+        return meters.get(name).gauge().value();
+    }
+
+    @Test
+    @DisplayName("ARCH 3.7 send queues the card in the caller's transaction; nothing goes out until the delivery job runs")
+    void cardIsSentAfterCommitByTheJob() {
+        sendSucceeds(",\"response_code\":\"rc-1\"");
+
+        queue(card("approval-task:1", ALICE));
+
+        assertThat(row("approval-task:1")).containsEntry("status", "PENDING").containsEntry("attempt_count", 0);
+        wecom.verify(0, postRequestedFor(urlPathEqualTo(SEND_PATH)));
+
+        assertThat(deliver.execute()).isEqualTo(1);
+
+        wecom.verify(1, postRequestedFor(urlPathEqualTo(SEND_PATH)).withRequestBody(containing("\"touser\":\"alice\"")));
+        assertThat(row("approval-task:1")).containsEntry("status", "SENT").containsEntry("attempt_count", 1)
+                .containsEntry("response_code", "rc-1");
+    }
+
+    @Test
+    @DisplayName("ARCH 3.7 a rolled-back transaction leaves no card behind")
+    void rollbackQueuesNothing() {
+        tx.executeWithoutResult(status -> {
+            gateway.send(card("approval-task:2", ALICE));
+            status.setRollbackOnly();
+        });
+
+        assertThat(jdbc.sql("select count(*) from platform_integration.outbound_deliveries").query(Long.class).single()).isZero();
+        assertThat(deliver.execute()).isZero();
+        wecom.verify(0, postRequestedFor(urlPathEqualTo(SEND_PATH)));
+    }
+
+    @Test
+    @DisplayName("ARCH 3.7 send outside a transaction is refused")
+    void sendNeedsTheCallersTransaction() {
+        assertThatThrownBy(() -> gateway.send(card("approval-task:3", ALICE))).isInstanceOf(IllegalTransactionStateException.class);
+    }
+
+    @Test
+    @DisplayName("ARCH 3.7 the deduplication key makes sending idempotent: a repeated card is stored and sent once")
+    void sameKeyIsSentOnce() {
+        sendSucceeds(",\"response_code\":\"rc-1\"");
+
+        queue(card("approval-task:4", ALICE));
+        queue(card("approval-task:4", ALICE));
+        deliver.execute();
+        deliver.execute();
+
+        assertThat(jdbc.sql("select count(*) from platform_integration.outbound_deliveries where deduplication_key = 'approval-task:4'")
+                .query(Long.class).single()).isEqualTo(1);
+        wecom.verify(1, postRequestedFor(urlPathEqualTo(SEND_PATH)));
+    }
+
+    @Test
+    @DisplayName("RULE-375 recipients outside the allow list are skipped and recorded; the others still get the card")
+    void allowListFiltersRecipients() {
+        sendSucceeds("");
+
+        queue(card("approval-task:5", ALICE, BOB, CAROL));
+        deliver.execute();
+
+        wecom.verify(1, postRequestedFor(urlPathEqualTo(SEND_PATH)).withRequestBody(containing("\"touser\":\"alice|carol\""))
+                .withRequestBody(notContaining("bob")));
+        assertThat(row("approval-task:5")).containsEntry("status", "SENT").containsEntry("skipped_recipients", "bob");
+    }
+
+    @Test
+    @DisplayName("RULE-375 a card whose recipients are all outside the allow list is skipped without any WeCom call")
+    void nobodyOnTheAllowListMeansNoCall() {
+        queue(card("approval-task:6", BOB));
+
+        assertThat(deliver.execute()).isZero();
+
+        assertThat(row("approval-task:6")).containsEntry("status", "SKIPPED").containsEntry("skipped_recipients", "bob");
+        wecom.verify(0, postRequestedFor(urlPathEqualTo(SEND_PATH)));
+    }
+
+    @Test
+    @DisplayName("I-6 / RULE-374 a card without any recipient is not sent and is recorded as failed")
+    void noRecipientIsRecordedAsFailed() {
+        queue(card("approval-task:7"));
+
+        assertThat(deliver.execute()).isZero();
+
+        assertThat(row("approval-task:7")).containsEntry("status", "FAILED");
+        assertThat(row("approval-task:7").get("last_error").toString()).contains("no recipient");
+        wecom.verify(0, postRequestedFor(urlPathEqualTo(SEND_PATH)));
+    }
+
+    @Test
+    @DisplayName("I-6 the request that WeCom receives names exact users only")
+    void sentRequestNeverBroadcasts() {
+        sendSucceeds("");
+
+        queue(card("approval-task:8", ALICE, CAROL));
+        deliver.execute();
+
+        wecom.verify(1, postRequestedFor(urlPathEqualTo(SEND_PATH))
+                .withRequestBody(notContaining("toparty")).withRequestBody(notContaining("totag")).withRequestBody(notContaining("@all")));
+    }
+
+    @Test
+    @DisplayName("ARCH 3.7 a failed send is retried after the back-off and succeeds when WeCom recovers")
+    void failedSendIsRetried() {
+        wecom.stubFor(post(urlPathEqualTo(SEND_PATH)).willReturn(aResponse().withStatus(500)));
+        queue(card("approval-task:9", ALICE));
+
+        deliver.execute();
+
+        assertThat(row("approval-task:9")).containsEntry("status", "PENDING").containsEntry("attempt_count", 1);
+        Double secondsUntilRetry = jdbc.sql("select extract(epoch from (next_attempt_at - now())) from platform_integration.outbound_deliveries")
+                .query(Double.class).single();
+        assertThat(secondsUntilRetry).isBetween(20.0, 31.0);
+        assertThat(deliver.execute()).as("not due before the back-off has passed").isZero();
+
+        sendSucceeds(",\"response_code\":\"rc-9\"");
+        makeDue("approval-task:9");
+        assertThat(deliver.execute()).isEqualTo(1);
+
+        assertThat(row("approval-task:9")).containsEntry("status", "SENT").containsEntry("attempt_count", 2);
+    }
+
+    @Test
+    @DisplayName("ARCH 3.7/3.9 after 8 failed attempts the card is a dead letter and the dead-letter metric rises")
+    void exhaustedRetriesEndInTheDeadLetters() {
+        wecom.stubFor(post(urlPathEqualTo(SEND_PATH)).willReturn(okJson("{\"errcode\":60020,\"errmsg\":\"not allow to access from your ip\"}")));
+        double deadBefore = gauge("platform.integration.deliveries.dead.letters");
+        queue(card("approval-task:10", ALICE));
+
+        for (int attempt = 1; attempt <= 8; attempt++) {
+            makeDue("approval-task:10");
+            assertThat(deliver.execute()).isEqualTo(1);
+            assertThat(row("approval-task:10")).containsEntry("attempt_count", attempt)
+                    .containsEntry("status", attempt < 8 ? "PENDING" : "DEAD_LETTER");
+        }
+
+        assertThat(row("approval-task:10").get("last_error").toString()).contains("60020");
+        assertThat(gauge("platform.integration.deliveries.dead.letters")).isEqualTo(deadBefore + 1);
+        makeDue("approval-task:10");
+        assertThat(deliver.execute()).as("a dead letter is never picked up again").isZero();
+        wecom.verify(8, postRequestedFor(urlPathEqualTo(SEND_PATH)));
+    }
+
+    @Test
+    @DisplayName("ARCH 3.9 a card still pending 10 minutes after it was queued shows in the overdue metric until it is sent")
+    void overdueMetricCountsStalePendingCards() {
+        sendSucceeds("");
+        double before = gauge("platform.integration.deliveries.pending.overdue");
+        queue(card("approval-task:11", ALICE));
+        assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before);
+
+        jdbc.sql("update platform_integration.outbound_deliveries set created_at = now() - interval '11 minutes'").update();
+        assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before + 1);
+
+        deliver.execute();
+        assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("Q-3 markHandled replaces the sent card using its response code, once")
+    void markHandledReplacesTheCard() {
+        sendSucceeds(",\"response_code\":\"rc-12\"");
+        wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\"}")));
+        queue(card("approval-task:12", ALICE, CAROL));
+        deliver.execute();
+
+        gateway.markHandled("approval-task:12", "handled by Dave");
+        gateway.markHandled("approval-task:12", "handled by Dave");
+
+        wecom.verify(1, postRequestedFor(urlPathEqualTo(UPDATE_PATH)).withRequestBody(containing("\"response_code\":\"rc-12\""))
+                .withRequestBody(containing("handled by Dave")).withRequestBody(containing("\"userids\":[\"alice\",\"carol\"]")));
+        assertThat(row("approval-task:12")).containsEntry("handled_result", "UPDATED").containsEntry("handled_note", "handled by Dave");
+    }
+
+    @Test
+    @DisplayName("Q-3 without a response code the card is left as it is and the reason is recorded")
+    void markHandledWithoutResponseCodeDegrades() {
+        sendSucceeds("");
+        queue(card("approval-task:13", ALICE));
+        deliver.execute();
+
+        gateway.markHandled("approval-task:13", "handled by Dave");
+
+        wecom.verify(0, postRequestedFor(urlPathEqualTo(UPDATE_PATH)));
+        assertThat(row("approval-task:13").get("handled_result").toString()).startsWith("NOT_APPLIED").contains("no response code");
+    }
+
+    @Test
+    @DisplayName("Q-3 a card handled before it was delivered is not delivered at all")
+    void handledBeforeDeliveryIsNeverSent() {
+        queue(card("approval-task:14", ALICE));
+
+        gateway.markHandled("approval-task:14", "handled by Dave");
+        deliver.execute();
+
+        assertThat(row("approval-task:14")).containsEntry("status", "SKIPPED");
+        assertThat(row("approval-task:14").get("handled_result").toString()).startsWith("NOT_APPLIED");
+        wecom.verify(0, postRequestedFor(urlPathEqualTo(SEND_PATH)));
+    }
+
+    @Test
+    @DisplayName("Q-3 a failing replacement is recorded and does not throw; an unknown key is ignored")
+    void markHandledFailuresDoNotPropagate() {
+        sendSucceeds(",\"response_code\":\"rc-15\"");
+        wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":40037,\"errmsg\":\"invalid response code\"}")));
+        queue(card("approval-task:15", ALICE));
+        deliver.execute();
+
+        gateway.markHandled("approval-task:15", "handled by Dave");
+        gateway.markHandled("approval-task:unknown", "handled by Dave");
+
+        assertThat(row("approval-task:15").get("handled_result").toString()).startsWith("FAILED").contains("40037");
+    }
+
+    @Test
+    @DisplayName("RULE-322/323 the gateway exchanges a code for the WeCom user id; any failure answers empty and a blank code never calls WeCom")
+    void codeExchangeThroughTheGateway() {
+        wecom.stubFor(get(urlPathEqualTo("/cgi-bin/auth/getuserinfo")).willReturn(okJson("{\"errcode\":0,\"userid\":\"zhangsan\"}")));
+        assertThat(gateway.resolveWecomUserId("code-1", WecomEntry.WORKBENCH)).contains(new WecomUserId("zhangsan"));
+
+        wecom.stubFor(get(urlPathEqualTo("/cgi-bin/auth/getuserinfo")).willReturn(aResponse().withStatus(500)));
+        assertThat(gateway.resolveWecomUserId("code-2", WecomEntry.QR_CODE_LOGIN)).isEmpty();
+
+        wecom.resetRequests();
+        assertThat(gateway.resolveWecomUserId(" ", WecomEntry.WORKBENCH)).isEmpty();
+        assertThat(wecom.getAllServeEvents()).isEmpty();
+    }
+}

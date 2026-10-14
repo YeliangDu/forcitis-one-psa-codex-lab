@@ -11,6 +11,7 @@ public enum Permission {
     DELIVERY_BUDGET_UPDATE(Codes.DELIVERY_BUDGET_UPDATE),
     PLATFORM_NUMBERING_RULE_UPDATE(Codes.PLATFORM_NUMBERING_RULE_UPDATE),
     PLATFORM_NUMBERING_RULE_READ(Codes.PLATFORM_NUMBERING_RULE_READ),
+    PLATFORM_NUMBERING_LEGACY_NUMBER_READ(Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ),
     PLATFORM_APPROVAL_TASK_READ(Codes.PLATFORM_APPROVAL_TASK_READ),
     PLATFORM_APPROVAL_TASK_APPROVE(Codes.PLATFORM_APPROVAL_TASK_APPROVE),
     PLATFORM_IDENTITY_ROLE_READ(Codes.PLATFORM_IDENTITY_ROLE_READ),
@@ -18,7 +19,8 @@ public enum Permission {
     PLATFORM_AUDIT_ENTRY_READ(Codes.PLATFORM_AUDIT_ENTRY_READ),
     ORGANIZATION_WORKFORCE_ORG_UNIT_READ(Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ),
     ORGANIZATION_WORKFORCE_SYNC_RUN_READ(Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_READ),
-    ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE(Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE);
+    ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE(Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE),
+    ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE(Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
 
     private final String code;
 
@@ -37,6 +39,8 @@ public enum Permission {
         String DELIVERY_BUDGET_UPDATE = "delivery.execution:project-budget:update";
         String PLATFORM_NUMBERING_RULE_UPDATE = "platform.numbering:numbering-rule:update";
         String PLATFORM_NUMBERING_RULE_READ = "platform.numbering:numbering-rule:read";
+        /** Search by original (pre-migration) document number. */
+        String PLATFORM_NUMBERING_LEGACY_NUMBER_READ = "platform.numbering:legacy-number:read";
         /** Read the merged inbox and approval details. */
         String PLATFORM_APPROVAL_TASK_READ = "platform.approval:task:read";
         /** Claim, approve, reject or return a task the caller is a candidate for (RULE-276). */
@@ -48,5 +52,7 @@ public enum Permission {
         String ORGANIZATION_WORKFORCE_SYNC_RUN_READ = "organization.workforce:sync-run:read";
         /** Release a sync run held by the shrink guard (RULE-358/366). */
         String ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE = "organization.workforce:sync-run:execute";
+        /** Create and change legal entities (the legal entity table is maintained in the new system). */
+        String ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE = "organization.workforce:legal-entity:update";
     }
 }

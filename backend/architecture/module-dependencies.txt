@@ -9,5 +9,5 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 platform.audit ->
 platform.identity -> organization.workforce, platform.integration, platform.audit
 platform.integration ->
-platform.numbering -> platform.identity
+platform.numbering -> platform.identity, organization.workforce
 platform.scheduling ->
