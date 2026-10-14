@@ -43,19 +43,19 @@
 
 | # | 事项 | 谁 | 花钱 | 耗时 | 状态 / 依赖 |
 |---|---|---|---|---|---|
-| R-0 | 专用部署 runner 重建（`/opt/forcitis-one-runner` 归 root、hook、LaunchDaemon、`--disableupdate`、演练） | 用户（需 Mac 管理员密码与一次性注册令牌） | 否 | 1.5 h | deploy 作业的必需前置 |
-| R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | — |
+| R-0 | 专用部署 runner 重建（`/opt/forcitis-one-runner` 归 root、hook、LaunchDaemon、`--disableupdate`、演练） | 用户（需 Mac 管理员密码与一次性注册令牌） | 否 | 1.5 h | ✅ 2026-10-15：`mac-one-deploy` 在线（`scripts/release/runner_rebuild.sh`）；第 8 步拒绝演练待做 |
+| R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15 |
 | R-2 | 仓库级 Actions variables：8 个构建期变量 | 用户 | 否 | 0.2 h | B-2、B-3 完成后填 |
 | R-3 | 发布用 OSS bucket（法兰克福，30 天过期） | 用户 | 按量 | 0.3 h | 用户定首次 dev 部署前再建；与 B-11 归档 bucket 不同 |
 | R-4 | RAM：每环境部署子账号与 AccessKey；ECS 实例 RAM 角色 | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.5 h | 1-12 口令轮换、B-11 写入方策略也绑在该实例角色上 |
 | R-5 | 各 environment 的 secrets（含 `RELEASE_SIGNING_KEY`） | 用户 | 否 | 0.2 h | R-4、R-12 |
 | R-6 | 各 environment 的 variables（`OSS_*`、`DEPLOY_TRIGGER`、`WECOM_VERIFY_FILE`、`ECS_*`） | 用户 | 否 | 0.2 h | R-3、R-7；校验文件名为 static-pinned 中现有那一个 |
 | R-7 | ECS：安装器、签名公钥、`release-source`、aliyun CLI 与实例角色配置、云助手固定命令 | ops | 否 | 1 h | R-4、R-12；E-3 / E-9 / E-10 部分已完成 |
-| R-8 | 标签规则 `v*` | 用户 | 否 | 0.1 h | — |
-| R-9 | 启用 immutable releases；确认 Actions 权限与托管 runner | 用户 | 否 | 0.1 h | — |
+| R-8 | 标签规则 `v*` | 用户 | 否 | 0.1 h | ✅ 2026-10-15（只限更新与删除，见 RELEASE.md R-8） |
+| R-9 | 启用 immutable releases；确认 Actions 权限与托管 runner | 用户 | 否 | 0.1 h | ✅ 2026-10-15 |
 | R-10 | `one.env` 补 `SPRING_FLYWAY_ENABLED=false`；`/etc/forcitis-one/migrate/` 迁移凭据 | ops | 否 | — | ✅ 两项都已就位（one-ops-1a；迁移凭据由 C-3 写入）；首次 Flowable 安装项待首次部署 |
 | R-11 | bucket 建好后的连通演练（不部署） | ops | 否 | 0.5 h | R-3、R-4、R-7 |
-| R-12 | 发布签名密钥：可信机器生成，私钥进 secret，公钥经 PR 写入 `allowed_signers` 并装到 ECS | 用户生成；ops 装 ECS 公钥 | 否 | 0.3 h | — |
+| R-12 | 发布签名密钥：可信机器生成，私钥进 secret，公钥经 PR 写入 `allowed_signers` 并装到 ECS | 用户生成；ops 装 ECS 公钥 | 否 | 0.3 h | ✅ 2026-10-15；ECS 公钥随 R-7 安装 |
 
 ## 第 4 层：部署当日与部署后（出口前）
 
