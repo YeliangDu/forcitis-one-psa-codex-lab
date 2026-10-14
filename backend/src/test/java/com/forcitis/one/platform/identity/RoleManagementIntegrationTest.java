@@ -14,6 +14,7 @@ import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import jakarta.servlet.http.Cookie;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -273,5 +274,28 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(result.getResponse().getStatus()).isEqualTo(204);
         assertThat(accountVersion(1001)).isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("a role and an account keep the lock version and the event count apart: both are stored and move once per change that announces an event")
+    void storedCountersFollowTheChanges() throws Exception {
+        createRole("analyst", "Analyst", "", null);
+        long id = roleId("analyst");
+        mvc.perform(put(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Senior analyst\",\"enabled\":true,\"permissionCodes\":[]}")).andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(200));
+        mvc.perform(put(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Senior analyst\",\"enabled\":false,\"permissionCodes\":[]}")).andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(200));
+
+        assertThat(jdbc.sql("select version, event_count from platform_identity.roles where role_id = :id").param("id", id)
+                .query((rs, n) -> List.of(rs.getLong(1), rs.getLong(2))).single()).as("three saves; the last one revised and disabled the role, so it announced two events: 1 + 1 + 2").isEqualTo(List.of(3L, 4L));
+
+        createAccount(1001, "analyst");
+        mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(204));
+        mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin))
+                .andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(204));
+
+        assertThat(jdbc.sql("select version, event_count from platform_identity.user_accounts where user_id = 1001")
+                .query((rs, n) -> List.of(rs.getLong(1), rs.getLong(2))).single()).as("roles replaced, disabled").isEqualTo(List.of(2L, 2L));
     }
 }

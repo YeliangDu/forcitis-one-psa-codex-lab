@@ -122,6 +122,8 @@ class WorkCalendarIT {
 
         assertThat(jdbc.sql("select count(*) from organization_attendance.work_calendar_days").query(Integer.class).single()).isZero();
         assertThat(jdbc.sql("select version from organization_attendance.work_calendar_years").query(Long.class).single()).isEqualTo(2L);
+        assertThat(jdbc.sql("select event_count from organization_attendance.work_calendar_years").query(Long.class).single())
+                .as("two saves, one WorkCalendarYearMaintained each").isEqualTo(2L);
         mvc.perform(get(CALENDARS).with(READ)).andExpect(status().isOk()).andExpect(jsonPath("$.items[0].calendarYear").value(2026));
         mvc.perform(get(CALENDARS + "/2026").with(READ)).andExpect(status().isOk()).andExpect(header().string("ETag", "\"2\""))
                 .andExpect(jsonPath("$.days.length()").value(0));

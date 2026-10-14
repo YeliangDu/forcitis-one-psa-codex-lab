@@ -218,6 +218,10 @@ class NumberingRulesIT {
             mvc.perform(put(RULES + "/QUOTE").header("If-Match", etag).with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
                             .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
                     .andExpect(status().isOk()).andExpect(header().exists("ETag"));
+            assertThat(jdbc.sql("select version, event_count from platform_numbering.numbering_rules where document_type = 'QUOTE'")
+                    .query((rs, n) -> java.util.List.of(rs.getLong(1), rs.getLong(2))).single())
+                    .as("one save that reconfigured and confirmed the rule: the lock version moves once, the event count twice")
+                    .isEqualTo(java.util.List.of(1L, 2L));
             mvc.perform(get(RULES + "/QUOTE").with(READER))
                     .andExpect(jsonPath("$.confirmationStatus").value("CONFIRMED"))
                     .andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"));
