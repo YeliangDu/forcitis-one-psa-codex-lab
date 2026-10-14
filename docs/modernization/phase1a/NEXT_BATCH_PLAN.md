@@ -107,7 +107,7 @@
 | R-3a 纯合并基线 | 重构 | sonnet 执行，opus 复核 | 每个 schema 的迁移合并为一个基线文件；`application.properties:15`；建库脚本 §4b；`retired-module-schemas.txt` 与 `delivery_execution` 目录（基线中直接不再出现） | 任何表结构变化 | 两个空库各跑合并前、合并后的迁移，`pg_dump --schema-only` 的 diff 为空，证据写进 PR 正文 |
 | R-1 UUIDv7 | 重构 | sonnet 执行，opus 复审 | ID 值对象；`KernelConfiguration` 的默认 `IdGenerator` 改为 `Uuids.timeOrdered`；每个 schema 的主键与外键列；事件负载与 `events/*.yaml`；OpenAPI；`primary-key-type-baseline.txt` 删行；前端生成物 | 外部来源 ID：`SourceUnitId`、`SourcePersonId`、`SourcePositionId`；快照表按平台约定 §1 沿用 A8 ID，列入白名单 | 25 张基线表逐一处理：改为 uuid，或按约定列入快照白名单并写明理由。15 个 long 型 ID 值对象、OpenAPI 中 39 处 int64 逐一给出结论。一并解决 Flowable 顺序数字 ID（b12-M-12：`StrongUuidGenerator`）。全量测试与守护通过 |
 | R-2 改名 79 条 | 重构 | sonnet | 基线文件中的列、约束、索引名；引用这些名称的 SQL 与仓储；`ddl-naming-baseline.txt` 删行；`SensitiveColumnExposureGuardTest` 若未完成则补上 | 业务语义 | 基线清零，`DdlNamingTest` 通过 |
-| R-4 数据库时钟 | 重构 | sonnet | 基线中 99 处 `DEFAULT` 时钟与 3 处 `now()` 去掉；各 INSERT 显式传入注入 Clock 的时刻；迁移文件守护（扩展 `TimeSourceGuardTest`，扫描迁移） | — | 守护对迁移生效，`sql-database-clock-exceptions.txt` 仍为空 |
+| R-4 数据库时钟 | 重构 | **Codex 试点**（用户「用最合适的模型，你试试」；one-coordinator 派 Codex 在独立 worktree 实现，验收测试仍由测试代理先写，opus 复审，PR 正文注明 Codex 实现） | 基线中 99 处 `DEFAULT` 时钟与 3 处 `now()` 去掉；各 INSERT 显式传入注入 Clock 的时刻；迁移文件守护（扩展 `TimeSourceGuardTest`，扫描迁移） | — | 守护对迁移生效，`sql-database-clock-exceptions.txt` 仍为空 |
 
 ### 2.3 W2 公共基础（三路，冻结后只由整合者改）
 
@@ -160,7 +160,9 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
 另有 one-coordinator 2026-10-15 登记的缺陷卡（来自 ADR-0030 起草时的核查）：
 - **ADR28-1**：ADR-0028 第 1 条「同步会使可用 `super_admin` 少于 2 名时暂停」未实现——`ApplySourceSnapshot.java:85` 只在离职名单含超管或安全审计员时进入 HELD，人数不足只写进原因文本（`AdministratorSeparationReview.java:47-51`）。回归测试 `ADR28-1 可用超管将少于下限时同步暂停`；下限按 ADR-0030 在单人运维模式下为 1。
 - **ADR28-2**：ADR-0028 第 4 条所说「放行后超管将为 0 时只能走运维命令」的运维放行命令不存在（`OperationsCommands` 无 release）。回归测试 `ADR28-2 运维命令放行同步暂停（带见证人，审计）`。
-两张卡按 §6.1 第 10 条手术式修复（测试代理先写失败测试、一卡一最小改动、小 PR），排在 W3 与 F-12 同期（都动 `platform.identity` 运维命令，与 F-12 不并行，F-12 之后做）。
+- **FLW-1 Flowable 引擎时间来源**（one-coordinator 2026-10-15 登记，**首次部署前须有结论**）：`act_*` 由引擎自建，不在 R-4 范围；须核实引擎内部时间（任务创建、到期、计时器）是否取注入的 Clock（`ProcessEngineConfiguration` 的 clock / Spring `Clock` bean），以及审批时限、超期提醒与升级（D-1a 时限细则）、F-14 改派、ADR-0032 待办 5 个工作日升级用到的时刻从哪里取。结论写进规则卡与 INFRA_RUNBOOK；若需改动按缺陷卡手术式修复，回归测试 `FLW-1 引擎时间取注入 Clock，固定 Clock 下任务创建与到期时刻确定`。opus 核实（判断类）。
+
+ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先写失败测试、一卡一最小改动、小 PR），排在 W3 与 F-12 同期（都动 `platform.identity` 运维命令，与 F-12 不并行，F-12 之后做）。
 
 首次部署前要先修的几张：
 - 安全相关：B3-R3 幂等抢占与防护令牌、B3-R4 吊销会话审计、B3-R5 必记动作守护、B3-R2 仓储写入守护堵口；
