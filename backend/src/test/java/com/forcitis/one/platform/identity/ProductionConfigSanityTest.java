@@ -106,6 +106,9 @@ class ProductionConfigSanityTest {
         Properties prod = new Properties();
         prod.load(new StringReader(Files.readString(RESOURCES.resolve("application-prod.properties"))));
         assertThat(prod.getProperty("spring.flyway.enabled")).isEqualTo("false");
+        Properties dev = new Properties();
+        dev.load(new StringReader(Files.readString(RESOURCES.resolve("application-dev.properties"))));
+        assertThat(dev.getProperty("spring.flyway.enabled")).as("dev is deployed like production").isEqualTo("false");
         Properties shared = new Properties();
         shared.load(new StringReader(Files.readString(RESOURCES.resolve("application.properties"))));
         assertThat(shared.getProperty("spring.flyway.default-schema")).isEqualTo("one_migration");
