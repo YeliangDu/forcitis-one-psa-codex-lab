@@ -26,6 +26,8 @@ import com.forcitis.one.platform.approval.domain.DeadlinePlan;
 import com.forcitis.one.platform.approval.domain.TaskHandling;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -45,8 +47,10 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
             + " escalate_at, claimed_at, completed_at, overdue_at, escalated_at, outcome_kind, effect_kind, result_reason, approved_hash";
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcApprovalRequestRepository(JdbcClient jdbc) {
+    JdbcApprovalRequestRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -156,7 +160,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
         int updated = jdbc.sql("""
                 UPDATE platform_approval.approval_requests
                    SET current_round = :round, current_instance_id = :instance, status = :status, result_reason = :reason,
-                       summary_text = :summary, event_count = :sequence, updated_at = now(), version = :next
+                       summary_text = :summary, event_count = :sequence, updated_at = :updatedAt, version = :next
                  WHERE process_key = :processKey AND document_type = :type AND document_key = :id
                    AND version = :version AND status = :previous
                 """)
@@ -165,7 +169,8 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
                 .param("summary", request.summary().value()).param("sequence", request.eventSequenceAfterSave())
                 .param("next", request.versionAfterSave()).param("processKey", request.processKey().name())
                 .param("type", request.document().documentType().name()).param("id", request.document().documentId().value())
-                .param("version", request.version()).param("previous", request.loadedStatus().name()).update();
+                .param("version", request.version()).param("previous", request.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
         if (updated != 1) {
             throw concurrentChange(request);
         }
@@ -201,7 +206,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
                 UPDATE platform_approval.approval_tasks
                    SET status = :status, assignee_id = :assignee, claimed_at = :claimed, completed_at = :completed, overdue_at = :overdue,
                        escalated_at = :escalated, outcome_kind = :outcome, effect_kind = :effect, result_reason = :reason,
-                       approved_hash = :hash, updated_at = now()
+                       approved_hash = :hash, updated_at = :updatedAt
                  WHERE task_id = :id
                 """)
                 .param("status", task.status().name()).param("assignee", task.assignee().map(UserId::value).orElse(null))
@@ -212,7 +217,8 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
                 .param("outcome", task.outcome().map(TaskOutcome::name).orElse(null))
                 .param("effect", task.effect().map(TaskEffect::name).orElse(null))
                 .param("reason", task.resultReason().map(Reason::value).orElse(null))
-                .param("hash", task.approvedHash().map(ContentHash::value).orElse(null)).param("id", task.taskId().value()).update();
+                .param("hash", task.approvedHash().map(ContentHash::value).orElse(null)).param("id", task.taskId().value()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
         if (updated != 1) {
             throw ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.refusal("Task " + task.taskId().value() + " vanished while it was saved");
         }

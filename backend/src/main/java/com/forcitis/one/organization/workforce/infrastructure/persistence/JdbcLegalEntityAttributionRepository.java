@@ -10,6 +10,8 @@ import com.forcitis.one.organization.workforce.domain.AttributionPeriod;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttribution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionRepository;
 import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
@@ -19,8 +21,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepository {
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcLegalEntityAttributionRepository(JdbcClient jdbc) {
+    JdbcLegalEntityAttributionRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -65,11 +69,12 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
             id = attribution.storedRow();
             int updated = jdbc.sql("""
                             update organization_workforce.legal_entity_attributions
-                               set version = :next, event_count = :eventCount, updated_at = now()
+                               set version = :next, event_count = :eventCount, updated_at = :updatedAt
                              where attribution_id = :id and version = :version
                             """)
                     .param("next", attribution.versionAfterSave()).param("eventCount", attribution.eventSequenceAfterSave())
-                    .param("id", id).param("version", attribution.version()).update();
+                    .param("id", id).param("version", attribution.version()).param("updatedAt", Timestamp.from(clock.instant()))
+                    .update();
             if (updated != 1) {
                 throw conflict(attribution);
             }
@@ -98,10 +103,11 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
 
     private void updatePeriodEnd(long attributionId, AttributionPeriod period) {
         jdbc.sql("""
-                        update organization_workforce.legal_entity_attribution_periods set effective_to_date = :to, updated_at = now()
+                        update organization_workforce.legal_entity_attribution_periods set effective_to_date = :to, updated_at = :updatedAt
                          where attribution_id = :id and effective_from_date = :from
                         """)
-                .param("id", attributionId).param("from", Date.valueOf(period.effectiveFrom())).param("to", Date.valueOf(period.effectiveTo())).update();
+                .param("id", attributionId).param("from", Date.valueOf(period.effectiveFrom())).param("to", Date.valueOf(period.effectiveTo())).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
     }
 
     private static DomainException conflict(LegalEntityAttribution attribution) {

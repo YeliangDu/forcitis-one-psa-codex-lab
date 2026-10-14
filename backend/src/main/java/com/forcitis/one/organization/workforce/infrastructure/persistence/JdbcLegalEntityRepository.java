@@ -8,6 +8,7 @@ import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.LegalEntity;
 import com.forcitis.one.organization.workforce.domain.LegalEntityRepository;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
@@ -61,7 +62,7 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
         try {
             updated = jdbc.sql("""
                             update organization_workforce.legal_entities
-                               set code = :code, name = :name, status = :status, version = :next, event_count = :eventSequence, updated_at = now()
+                               set code = :code, name = :name, status = :status, version = :next, event_count = :eventSequence, updated_at = :updatedAt
                              where id = :id and version = :version and status = :loadedStatus and code = :loadedCode
                             """)
                     .param("code", legalEntity.code().value()).param("name", legalEntity.name())
@@ -69,6 +70,7 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
                     .param("eventSequence", legalEntity.eventSequenceAfterSave())
                     .param("id", legalEntity.legalEntityId().value()).param("version", legalEntity.version())
                     .param("loadedStatus", legalEntity.loadedStatus().name()).param("loadedCode", legalEntity.loadedCode().value())
+                    .param("updatedAt", Timestamp.from(clock.instant()))
                     .update();
         } catch (DuplicateKeyException taken) {
             throw codeTaken(legalEntity.code());

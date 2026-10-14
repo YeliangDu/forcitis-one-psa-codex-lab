@@ -1,0 +1,3 @@
+# SQL written in a Java string that reads the database's clock: <path under src/main/java>#<token>  # why.
+# TimeSourceGuardTest fails for such a word that is not listed here and for a line here that is no longer needed. Changes need design review.
+# The instant of a write is the injected Clock's, passed as a parameter, so tests control it and the application and the database never disagree.

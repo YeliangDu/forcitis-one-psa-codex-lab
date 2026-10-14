@@ -14,7 +14,9 @@ import com.forcitis.one.platform.identity.domain.RoleDraft;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashSet;
@@ -34,8 +36,10 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
             """;
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcAuthorizationRequestRepository(JdbcClient jdbc) {
+    JdbcAuthorizationRequestRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -79,13 +83,14 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
     public void save(AuthorizationRequest request) {
         int updated = jdbc.sql("""
                         update platform_identity.authorization_requests
-                           set request_status = :status, decided_by = :by, decided_at = :at, updated_at = now(), version = :next, event_count = :eventSequence
+                           set request_status = :status, decided_by = :by, decided_at = :at, updated_at = :updatedAt, version = :next, event_count = :eventSequence
                          where request_id = :id and version = :version and request_status = :loaded
                         """)
                 .param("status", request.status().name()).param("by", request.decidedBy() == null ? null : request.decidedBy().value(), Types.BIGINT)
                 .param("at", request.decidedAt() == null ? null : OffsetDateTime.ofInstant(request.decidedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("next", request.versionAfterSave()).param("eventSequence", request.eventSequenceAfterSave())
-                .param("id", request.requestId().value()).param("version", request.version()).param("loaded", request.loadedStatus().name()).update();
+                .param("id", request.requestId().value()).param("version", request.version()).param("loaded", request.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
         if (updated != 1) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT, "the authorization request was decided by someone else");
         }

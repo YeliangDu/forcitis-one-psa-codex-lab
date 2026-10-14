@@ -9,6 +9,8 @@ import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
 import com.forcitis.one.platform.identity.domain.EmergencyAdminStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -27,8 +29,10 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
             """;
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcEmergencyAdminRepository(JdbcClient jdbc) {
+    JdbcEmergencyAdminRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -79,13 +83,14 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
                                last_totp_step = case when :credentialsChanged then 0 else last_totp_step end,
                                failed_attempts = case when :credentialsChanged then 0 else failed_attempts end,
                                locked_until = case when :credentialsChanged then null else locked_until end,
-                               updated_at = now(), version = :next, event_count = :eventSequence
+                               updated_at = :updatedAt, version = :next, event_count = :eventSequence
                          where user_id = :id and version = :version and is_enabled = :loadedEnabled
                         """)
                 .param("enabled", admin.enabled()).param("hash", admin.passwordHash()).param("secret", admin.totpSecretEncrypted())
                 .param("credentialsChanged", admin.credentialsChanged()).param("next", admin.versionAfterSave())
                 .param("eventSequence", admin.eventSequenceAfterSave()).param("id", admin.userId().value())
                 .param("version", admin.version()).param("loadedEnabled", admin.loadedStatus() == EmergencyAdminStatus.ENABLED)
+                .param("updatedAt", Timestamp.from(clock.instant()))
                 .update();
         if (updated != 1) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
@@ -100,25 +105,28 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
                         update platform_identity.emergency_admins
                            set failed_attempts = %s,
                                locked_until = case when (%s) >= :max then :until else null end,
-                               updated_at = now()
+                               updated_at = :updatedAt
                          where user_id = :id and (locked_until is null or locked_until <= :now)
                         """.formatted(newCount, newCount))
                 .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).param("max", maxAttempts)
-                .param("until", OffsetDateTime.ofInstant(now.plus(lock), ZoneOffset.UTC)).param("id", userId.value()).update() == 1;
+                .param("until", OffsetDateTime.ofInstant(now.plus(lock), ZoneOffset.UTC)).param("id", userId.value()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update() == 1;
     }
 
     @Override
     public void recordSuccess(UserId userId) {
-        jdbc.sql("update platform_identity.emergency_admins set failed_attempts = 0, locked_until = null, updated_at = now() where user_id = :id")
-                .param("id", userId.value()).update();
+        jdbc.sql("update platform_identity.emergency_admins set failed_attempts = 0, locked_until = null, updated_at = :updatedAt where user_id = :id")
+                .param("id", userId.value()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
     }
 
     @Override
     public boolean acceptTotpStep(UserId userId, long step) {
         return jdbc.sql("""
-                        update platform_identity.emergency_admins set last_totp_step = :step, updated_at = now()
+                        update platform_identity.emergency_admins set last_totp_step = :step, updated_at = :updatedAt
                          where user_id = :id and last_totp_step < :step
                         """)
-                .param("step", step).param("id", userId.value()).update() == 1;
+                .param("step", step).param("id", userId.value()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update() == 1;
     }
 }
