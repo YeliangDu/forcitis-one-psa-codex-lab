@@ -169,7 +169,7 @@ class AuditExportAndOwnRecordsIT {
     }
 
     @Test
-    @DisplayName("a formula that starts with spaces or with a full-width trigger character is neutralised as well")
+    @DisplayName("B1-M9 a formula that starts with spaces or with a full-width trigger character is neutralised as well")
     void spacedAndFullWidthFormulasAreNeutralisedToo() throws Exception {
         record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:1", " =cmd"));
         record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:2", "\u3000+1"));

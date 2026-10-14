@@ -34,7 +34,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 模板的生效日（effectiveFrom）
+        businessDate: 模板的生效日（effectiveFrom）；种子版本被确认时的事件，businessDate 是 2000-01-01（种子版本的生效日）
         audit: audited
         publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
         noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原

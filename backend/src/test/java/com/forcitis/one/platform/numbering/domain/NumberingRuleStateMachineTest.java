@@ -215,7 +215,7 @@ class NumberingRuleStateMachineTest {
     }
 
     @Test
-    @DisplayName("B1-H2 a day before the confirmation day is refused, the author's date is kept; the same day and later days pass; a seeded default has no date to refuse")
+    @DisplayName("B1-H3 a day before the confirmation day is refused, the author's date is kept; the same day and later days pass; a seeded default has no date to refuse")
     void anEffectiveDateBeforeTheConfirmationDayIsRefused() {
         NumberingRule rule = rule(DocumentType.QUOTE, confirmed(1));
         rule.propose(OTHER, 7, DAY.minusDays(1), AUTHOR, AT);
@@ -235,7 +235,7 @@ class NumberingRuleStateMachineTest {
     }
 
     @Test
-    @DisplayName("B1-H2 the version in force on a business date is the highest confirmed one that has started by then")
+    @DisplayName("B1-H3 the version in force on a business date is the highest confirmed one that has started by then")
     void theVersionInForceFollowsTheBusinessDate() {
         TemplateVersion first = new TemplateVersion(1, TEMPLATE, 1, DAY, AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
         TemplateVersion second = new TemplateVersion(2, OTHER, 1, DAY.plusDays(10), AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);

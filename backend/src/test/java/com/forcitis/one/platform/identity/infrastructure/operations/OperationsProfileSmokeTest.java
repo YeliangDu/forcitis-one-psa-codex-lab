@@ -26,7 +26,7 @@ class OperationsProfileSmokeTest {
         POSTGRES.start();
     }
 
-    record Finished(int exitCode, boolean anyJobBean, boolean anyScheduledTask) {
+    record Finished(int exitCode, boolean anyJobBean, boolean anyScheduledTask, int webServerPort) {
     }
 
     private static byte[] random(int length) {
@@ -56,7 +56,8 @@ class OperationsProfileSmokeTest {
                     "shortNameRefreshJob", "eventPublicationJobs").anyMatch(context::containsBean);
             boolean anyScheduledTask = context.getBean(ScheduledAnnotationBeanPostProcessor.class).getScheduledTasks().stream()
                     .anyMatch(task -> task.toString().matches(".*(EmergencyAdminCheckJob|CredentialPurgeJob|OrgSnapshotSyncJob|ShortNameRefreshJob|EventPublicationJobs).*"));
-            return new Finished(exit.get(), anyJobBean, anyScheduledTask);
+            int port = context instanceof org.springframework.boot.web.server.context.WebServerApplicationContext web ? web.getWebServer().getPort() : -2;
+            return new Finished(exit.get(), anyJobBean, anyScheduledTask, port);
         }
     }
 
@@ -66,6 +67,7 @@ class OperationsProfileSmokeTest {
         Finished finished = run("--operator=alice", "--witness=bob");
 
         assertThat(finished.exitCode()).isEqualTo(2);
+        assertThat(finished.webServerPort()).as("B1-R3 the web part listens on no port").isEqualTo(-1);
         assertThat(finished.anyJobBean()).isFalse();
         assertThat(finished.anyScheduledTask()).isFalse();
     }

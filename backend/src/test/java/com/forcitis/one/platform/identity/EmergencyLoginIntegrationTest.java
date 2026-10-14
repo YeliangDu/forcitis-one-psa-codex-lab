@@ -83,7 +83,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("C1a-04 the password is stored as Argon2id and the TOTP secret only encrypted")
+    @DisplayName("B1-M11 C1a-04 the password is stored as Argon2id at the OWASP minimum and the TOTP secret only encrypted")
     void secretsAreNotStoredInTheClear() {
         String hash = jdbc.sql("select password_hash from platform_identity.emergency_admins").query(String.class).single();
         String sealed = jdbc.sql("select totp_secret_encrypted from platform_identity.emergency_admins").query(String.class).single();
@@ -132,7 +132,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("RULE-316 the attempt is counted before the credentials are checked: twenty parallel guesses get exactly five tries")
+    @DisplayName("B1-M11 RULE-316 the attempt is counted before the credentials are checked: twenty parallel guesses get exactly five tries")
     void parallelGuessesCannotSlipPastTheLimit() throws Exception {
         var pool = java.util.concurrent.Executors.newFixedThreadPool(20);
         try {

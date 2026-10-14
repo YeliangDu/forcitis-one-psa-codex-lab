@@ -212,7 +212,7 @@ class NumberingRuleFourEyesIT {
     }
 
     @Test
-    @DisplayName("B1-H2 the author's effective date is part of the version: issuing uses the highest confirmed version that has started by the business date")
+    @DisplayName("B1-H3 the author's effective date is part of the version: issuing uses the highest confirmed version that has started by the business date")
     void issuingFollowsTheEffectiveDate() throws Exception {
         NumberingFixtures.confirmSeeded(jdbc, "QUOTE");
         save(AUTHOR, "QUOTE", "{TYPE}-{LE}-{yyyyMM}-{seq:5}", BUSINESS_DAY.plusMonths(1)).andExpect(status().isNoContent());
@@ -225,7 +225,7 @@ class NumberingRuleFourEyesIT {
     }
 
     @Test
-    @DisplayName("B1-H2 / user decision: a day earlier than the confirmation day is refused with a clear code, and the author's date is never rewritten")
+    @DisplayName("B1-H3 / user decision: a day earlier than the confirmation day is refused with a clear code, and the author's date is never rewritten")
     void anEffectiveDateInThePastIsRefused() throws Exception {
         NumberingFixtures.confirmSeeded(jdbc, "QUOTE");
         LocalDate past = today().minusDays(1);

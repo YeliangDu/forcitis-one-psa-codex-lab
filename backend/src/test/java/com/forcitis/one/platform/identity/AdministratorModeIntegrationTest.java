@@ -141,7 +141,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("a refused entry to the administrator mode still uses up the OAuth state, so it cannot be tried again")
+    @DisplayName("B1-M2 a refused entry to the administrator mode still uses up the OAuth state, so it cannot be tried again")
     void aRefusedEntryConsumesTheState() throws Exception {
         createAccount(1100, "employee");
         String session = loginWithWecom(1100);
@@ -153,7 +153,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("when the hour ends by itself the exit is audited once and alerts, like a manual exit")
+    @DisplayName("B1-M1 when the hour ends by itself the exit is audited once and alerts, like a manual exit")
     void naturalExpiryIsAudited() throws Exception {
         createAccount(9, "super_admin", "employee");
         String elevated = cookie(enterAdministratorMode(loginWithWecom(9), 9), "SESSION");
@@ -167,7 +167,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("leaving the mode by hand changes the session id")
+    @DisplayName("B1-M1 leaving the mode by hand changes the session id")
     void leavingRotatesTheSessionId() throws Exception {
         createAccount(9, "super_admin", "employee");
         String elevated = cookie(enterAdministratorMode(loginWithWecom(9), 9), "SESSION");

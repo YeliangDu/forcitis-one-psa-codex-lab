@@ -221,7 +221,7 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 - 应急账号只能从内网段登录，失败 5 次锁 15 分钟；检查与计数在凭据验证之前一步完成，并发猜测也只有 5 次机会。应急登录直接进入管理模式，1 小时后会话结束。
 - 每日核对：任务 `platform.identity.emergency.admin.check`（ShedLock，每天一次，`forcitis.platform.identity.emergency.check.cron`）核对应急账号数量与可用性，少于 2 个可用即告警；总开关 `forcitis.platform.scheduling.jobs-enabled`（默认 true），本任务另有 `forcitis.platform.identity.emergency.check.enabled`。
 - **告警走 C-7 的日志告警规则**：本节与管理模式的告警都是一行 `ALERT platform.identity …` 的日志（结构化日志，见 §8），由 SLS 按 `ALERT` 关键字匹配后发往 A-5 指定的接收人；应用本身不直接发消息。涉及的告警：进入管理模式、退出或自然到期、应急登录、结束超级管理员或安全审计员的会话、应急账号因离职被停用、同步放行（`ALERT organization.workforce sync run …`）。
-- 同步因管理员离职而暂停时（ADR-0028）：留任的超级管理员在管理模式、或安全审计员在普通会话，通过 `POST /api/v1/organization/sync-runs/{id}:release` 写明理由放行；放行后将没有可用超级管理员时页面拒绝，只能用本节命令先授予角色。
+- 同步因管理员离职而暂停时（ADR-0028）：留任的超级管理员在管理模式、或安全审计员在普通会话，通过 `POST /api/v1/organization/sync-runs/{id}:release` 写明理由放行；放行后将没有可用超级管理员时页面拒绝。**恢复路径**（B1-R2，选的是写明路径而不是新增命令）：先用本节的 `grant-role --role-code=super_admin` 给一个留任的人授出超级管理员（双人在场、写审计），再由此人进入管理模式放行该暂停。
 - 开通人和被开通人都记入审计（`platform.identity.operations.*`）。
 - 剧本见 `runbooks/C-5-first-admins.md`（待按本节对齐）。
 
