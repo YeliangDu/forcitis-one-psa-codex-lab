@@ -16,6 +16,7 @@ public class TestWorkCalendar implements WorkCalendar {
 
     private final Set<LocalDate> holidays = ConcurrentHashMap.newKeySet();
     private final Set<LocalDate> makeUpWorkdays = ConcurrentHashMap.newKeySet();
+    private volatile String failure;
 
     public void holiday(LocalDate date) {
         holidays.add(date);
@@ -28,12 +29,21 @@ public class TestWorkCalendar implements WorkCalendar {
     public void reset() {
         holidays.clear();
         makeUpWorkdays.clear();
+        failure = null;
+    }
+
+    /** The calendar of a year nobody maintained: every answer fails. */
+    public void failWith(String message) {
+        failure = message;
     }
 
     @Override
     public Instant endOfWorkdayAfter(LocalDate startDate, int n, LegalEntityId legalEntityId) {
         if (n < 1) {
             throw new IllegalArgumentException("n must be at least 1");
+        }
+        if (failure != null) {
+            throw new IllegalStateException(failure);
         }
         LocalDate day = startDate;
         int counted = 0;

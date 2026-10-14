@@ -45,7 +45,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** One PostgreSQL 18 container per test JVM and a cached application context; the Flowable schema is created by the engine only in tests; other modules' dependencies are doubles. */
-@SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
+@SpringBootTest(properties = {"flowable.async-executor-activate=false", "forcitis.platform.approval.deadline.enabled=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=" + ApprovalIntegrationSupport.ADMINISTRATOR,
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
@@ -135,10 +135,13 @@ public abstract class ApprovalIntegrationSupport {
 
     private final List<Runnable> variantCleanup = new java.util.ArrayList<>();
 
-    /** Deploys a test variant of the timesheet process (and its decision table when the directory has one) as the newest version; removed after the test. */
+    /** Deploys a test variant of the timesheet process and / or its decision table (whichever the directory has) as the newest version; removed after the test. */
     protected void deployVariant(String directory) {
-        String bpmn = repository.createDeployment().addClasspathResource(directory + "/cost_timesheet_approval.bpmn20.xml").deploy().getId();
-        variantCleanup.add(() -> repository.deleteDeployment(bpmn, true));
+        String bpmnResource = directory + "/cost_timesheet_approval.bpmn20.xml";
+        if (getClass().getClassLoader().getResource(bpmnResource) != null) {
+            String bpmn = repository.createDeployment().addClasspathResource(bpmnResource).deploy().getId();
+            variantCleanup.add(() -> repository.deleteDeployment(bpmn, true));
+        }
         String dmnResource = directory + "/cost_timesheet_approval_nodes.dmn";
         if (getClass().getClassLoader().getResource(dmnResource) != null) {
             String dmn = dmnRepository.createDeployment().addClasspathResource(dmnResource).deploy().getId();
@@ -219,6 +222,8 @@ public abstract class ApprovalIntegrationSupport {
         private final List<ApprovalCompleted> completed = new CopyOnWriteArrayList<>();
         private final List<TaskResulted> resulted = new CopyOnWriteArrayList<>();
         private final List<TaskAssigned> assigned = new CopyOnWriteArrayList<>();
+        private final List<com.forcitis.one.platform.approval.events.ApprovalTaskOverdue> overdue = new CopyOnWriteArrayList<>();
+        private final List<com.forcitis.one.platform.approval.events.ApprovalTaskEscalated> escalated = new CopyOnWriteArrayList<>();
         private final Set<String> failedOnce = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
         public List<ApprovalCompleted> completed() {
@@ -231,6 +236,24 @@ public abstract class ApprovalIntegrationSupport {
 
         public List<TaskAssigned> assigned() {
             return assigned;
+        }
+
+        public List<com.forcitis.one.platform.approval.events.ApprovalTaskOverdue> overdue() {
+            return overdue;
+        }
+
+        public List<com.forcitis.one.platform.approval.events.ApprovalTaskEscalated> escalated() {
+            return escalated;
+        }
+
+        @ApplicationModuleListener
+        void on(com.forcitis.one.platform.approval.events.ApprovalTaskOverdue event) {
+            overdue.add(event);
+        }
+
+        @ApplicationModuleListener
+        void on(com.forcitis.one.platform.approval.events.ApprovalTaskEscalated event) {
+            escalated.add(event);
         }
 
         public Set<String> failedOnce() {
