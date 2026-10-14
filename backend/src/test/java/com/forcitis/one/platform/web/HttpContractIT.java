@@ -89,6 +89,29 @@ class HttpContractIT {
         assertThat(schemas.path("CursorPageRoleResponse").path("required").toString()).isEqualTo("[\"items\"]");
     }
 
+    @Test
+    @DisplayName("Idempotency-Key is offered exactly where the answer is stored: on POSTs, never under /sessions or on the login states, which hand out credentials")
+    void idempotencyKeyIsOfferedExactlyWhereItIsStored() throws Exception {
+        tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
+        int offered = 0;
+        for (var path : paths.properties()) {
+            for (var operation : path.getValue().properties()) {
+                boolean declared = false;
+                for (tools.jackson.databind.JsonNode parameter : operation.getValue().path("parameters")) {
+                    declared |= "Idempotency-Key".equals(parameter.path("name").asString());
+                }
+                String method = operation.getKey().toUpperCase(java.util.Locale.ROOT);
+                assertThat(declared).as(method + " " + path.getKey()).isEqualTo(IdempotencyScope.applies(method, path.getKey()));
+                offered += declared ? 1 : 0;
+            }
+        }
+        assertThat(offered).isPositive();
+        assertThat(IdempotencyScope.applies("POST", "/api/v1/platform/sessions:logout")).isFalse();
+        assertThat(IdempotencyScope.applies("POST", "/api/v1/platform/login-states")).isFalse();
+        assertThat(IdempotencyScope.applies("PUT", "/api/v1/organization/legal-entities/1")).isFalse();
+    }
+
     private static boolean allowsNull(tools.jackson.databind.JsonNode property) {
         for (tools.jackson.databind.JsonNode type : property.path("type")) {
             if ("null".equals(type.asString())) {

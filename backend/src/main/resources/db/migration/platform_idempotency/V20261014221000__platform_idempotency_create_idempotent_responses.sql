@@ -9,6 +9,7 @@ CREATE TABLE platform_idempotency.idempotent_responses (
     response_number integer,
     response_name   text,
     response_text   text,
+    response_header_text text,
     expires_at      timestamptz NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
@@ -22,6 +23,7 @@ COMMENT ON COLUMN platform_idempotency.idempotent_responses.request_hash IS '请
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.response_number IS '应答状态码：请求仍在处理时为空';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.response_name IS '应答内容类型名称，如 application/json';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.response_text IS '应答正文（UTF-8 文本）';
+COMMENT ON COLUMN platform_idempotency.idempotent_responses.response_header_text IS '应答头：要原样回放的头（ETag、Location）的 JSON 对象';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.expires_at IS '到期时间：创建后 24 小时';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.created_at IS '创建时间';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.updated_at IS '更新时间';

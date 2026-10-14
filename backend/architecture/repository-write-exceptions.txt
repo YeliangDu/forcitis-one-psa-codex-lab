@@ -20,3 +20,4 @@ com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredent
 com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#replace  # a browser identifier is a credential, not an aggregate: the old value is retired, the other accounts of the browser move to the new value and the new value is recorded in one transaction
 com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#invalidateAll  # removes every identifier of an account when it is disabled or its person leaves, in the transaction that ends its sessions
 com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#purge  # removes identifiers past their lifetime; nothing refers to them
+com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#purgeExpired  # removes answers past their 24 hours; nothing refers to them

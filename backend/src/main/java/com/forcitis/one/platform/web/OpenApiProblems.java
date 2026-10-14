@@ -29,7 +29,6 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 @Configuration
 class OpenApiProblems {
     static final String PROBLEM_JSON = "application/problem+json";
-    private static final List<String> LOGIN_ENTRY_POINTS = List.of("/login-states", "-login");
 
     @Bean
     OpenApiCustomizer problemContract() {
@@ -55,7 +54,7 @@ class OpenApiProblems {
             }
             openApi.getPaths().forEach((path, item) -> item.readOperationsMap().forEach((method, operation) -> {
                 declareProblem(operation);
-                if (method == PathItem.HttpMethod.POST && LOGIN_ENTRY_POINTS.stream().noneMatch(path::endsWith)) {
+                if (IdempotencyScope.applies(method.name(), path)) {
                     declareIdempotencyKey(operation);
                 }
             }));

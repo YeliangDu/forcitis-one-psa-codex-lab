@@ -2968,15 +2968,6 @@
     "/api/v1/platform/sessions:confirm-identity" : {
       "post" : {
         "operationId" : "confirmIdentity",
-        "parameters" : [ {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
         "responses" : {
           "200" : {
             "description" : "OK"
@@ -3064,15 +3055,6 @@
     "/api/v1/platform/sessions:logout" : {
       "post" : {
         "operationId" : "logout",
-        "parameters" : [ {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
         "responses" : {
           "200" : {
             "description" : "OK"

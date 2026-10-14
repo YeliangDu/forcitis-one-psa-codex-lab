@@ -20,8 +20,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
@@ -44,23 +47,27 @@ class IdempotencyFilter extends OncePerRequestFilter {
     static final String HEADER = "Idempotency-Key";
     static final Duration LIFETIME = Duration.ofHours(24);
     private static final int MAX_KEY_LENGTH = 128;
+    private static final List<String> REPLAYED_HEADERS = List.of("ETag", "Location");
 
     private final IdempotentResponses responses;
     private final Clock clock;
     private final JsonMapper json;
+    private final Duration inProgressTimeout;
 
-    IdempotencyFilter(IdempotentResponses responses, Clock clock, JsonMapper json) {
+    IdempotencyFilter(IdempotentResponses responses, Clock clock, JsonMapper json,
+            @Value("${forcitis.platform.web.idempotency.in-progress-timeout}") Duration inProgressTimeout) {
+        if (inProgressTimeout.isNegative() || inProgressTimeout.isZero()) {
+            throw new IllegalArgumentException("forcitis.platform.web.idempotency.in-progress-timeout must be positive");
+        }
         this.responses = responses;
         this.clock = clock;
         this.json = json;
+        this.inProgressTimeout = inProgressTimeout;
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return request.getHeader(HEADER) == null || switch (request.getMethod()) {
-            case "GET", "HEAD", "OPTIONS", "TRACE" -> true;
-            default -> false;
-        };
+        return request.getHeader(HEADER) == null || !IdempotencyScope.applies(request.getMethod(), request.getRequestURI());
     }
 
     @Override
@@ -80,7 +87,7 @@ class IdempotencyFilter extends OncePerRequestFilter {
         CachedBodyRequest cached = new CachedBodyRequest(request);
         String requestHash = hash(request, cached.body());
         Instant now = clock.instant();
-        if (responses.claim(userId, key, requestHash, now, now.plus(LIFETIME))) {
+        if (responses.claim(userId, key, requestHash, now, now.plus(LIFETIME), inProgressTimeout)) {
             runAndStore(userId, key, cached, response, chain);
             return;
         }
@@ -106,7 +113,7 @@ class IdempotencyFilter extends OncePerRequestFilter {
         } finally {
             if (completed && wrapper.getStatus() < 500) {
                 responses.finish(userId, key, wrapper.getStatus(), wrapper.getContentType(),
-                        new String(wrapper.getContentAsByteArray(), StandardCharsets.UTF_8));
+                        new String(wrapper.getContentAsByteArray(), StandardCharsets.UTF_8), replayedHeaders(wrapper));
             } else {
                 responses.release(userId, key);
             }
@@ -114,11 +121,23 @@ class IdempotencyFilter extends OncePerRequestFilter {
         }
     }
 
+    private static Map<String, String> replayedHeaders(HttpServletResponse response) {
+        Map<String, String> headers = new LinkedHashMap<>();
+        for (String name : REPLAYED_HEADERS) {
+            String value = response.getHeader(name);
+            if (value != null) {
+                headers.put(name, value);
+            }
+        }
+        return headers;
+    }
+
     private static void replay(HttpServletResponse response, IdempotentResponses.Stored stored) throws IOException {
         response.setStatus(stored.responseNumber());
         if (stored.responseName() != null) {
             response.setContentType(stored.responseName());
         }
+        stored.responseHeaders().forEach(response::setHeader);
         response.setHeader("Idempotent-Replayed", "true");
         response.setCharacterEncoding("UTF-8");
         response.getWriter().write(stored.responseText() == null ? "" : stored.responseText());
