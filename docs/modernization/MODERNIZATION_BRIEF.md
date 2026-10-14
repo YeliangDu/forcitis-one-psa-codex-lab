@@ -135,7 +135,7 @@ Risk: 中。
 - 风险二：老页面仍在调用 `fst/opportunity/*` 等接口。缓解：提供兼容门面。
 Entry criteria:
 - [ ] Phase 1a 的出口条件全部满足，且本 brief 已按试点结果重新生成
-- [ ] 售前与报价域被标记的 P0 规则已在 `RULE_REVIEWS.json` 中有结论
+- [x] 售前与报价域被标记的 P0 规则已在 `RULE_REVIEWS.json` 中有结论
 - [ ] 已列出所有调用 `/admin-api/fst/quotation/**`、`/admin-api/fst/opportunity/**` 的老调用方（PC、H5、外部系统），并为每个调用方注明：经兼容门面测试通过，或本阶段一并迁移
 - [ ] `psa_quotation*`、`psa_cost_template*`、`psa_crm_opportunity` 已有逐列所有权矩阵
 - [ ] 特征基线已录制：用 dev 库数据回放报价的保存、提交、审批，请求与结果记录在 `analysis/psa/BASELINE.md`
@@ -234,13 +234,13 @@ Exit criteria:
 行为契约取自 `BUSINESS_RULES.md` 的 **189 条 P0 规则**（全部 315 条）。它们构成回归测试集：每条在其所属阶段上线前，都必须证明等价，或以 `RULE_REVIEWS.json` 中的业务决定为准证明「按决定修正」。
 
 - **已定行为（97 条）**：置信度 High 且无疑似缺陷，按老系统行为复刻。
-- **阻塞项（92 条，已评审 28 条）**：置信度低于 High，或抽取时发现疑似缺陷（老行为看起来有误，或与文档不一致）。按用户要求「顺手修已知 bug、行为现代化」，这些规则**在所属阶段开工前必须经 `/code-modernization:modernize-review psa` 由业务逐条决定**：保持原行为、按修正行为实现，或列入讨论。未决定的规则阻塞该阶段的入口条件。已评审的条目按 `RULE_REVIEWS.json` 呈现：**不复刻** = 新系统按「新系统做法」实现，老行为不作为基准；「修正：」= 规则保留、按修正实现；「已评审」= 按老行为复刻。
+- **阻塞项（92 条，已评审 42 条）**：置信度低于 High，或抽取时发现疑似缺陷（老行为看起来有误，或与文档不一致）。按用户要求「顺手修已知 bug、行为现代化」，这些规则**在所属阶段开工前必须经 `/code-modernization:modernize-review psa` 由业务逐条决定**：保持原行为、按修正行为实现，或列入讨论。未决定的规则阻塞该阶段的入口条件。已评审的条目按 `RULE_REVIEWS.json` 呈现：**不复刻** = 新系统按「新系统做法」实现，老行为不作为基准；「修正：」= 规则保留、按修正实现；「已评审」= 按老行为复刻。
 
 | 域 | 阶段 | 已定（P0） | 阻塞（P0，需评审） | 其中已评审 |
 |---|---|---|---|---|
 | 工时与资源 | Phase 2 | 21 | 9 | 0 |
 | 项目成本与核算 | Phase 4 | 29 | 23 | 0 |
-| 售前与报价 | Phase 1b | 8 | 14 | 0 |
+| 售前与报价 | Phase 1b | 8 | 14 | 14 |
 | 交付、预算与收入 | Phase 2（收入确认部分在 Phase 4） | 19 | 18 | 0 |
 | 审批（platform.approval） | Phase 1a | 20 | 28 | 28 |
 
@@ -290,23 +290,23 @@ Exit criteria:
 
 ### 售前与报价（Phase 1b）
 
-**已定：** RULE-143 BU estimated cost = labour cost (whole tree) + the 8 fixed other-cost categories、RULE-146 Line amount: a hand-entered discounted total overrides quantity × unit price、RULE-156 Contract clauses are locked during approval、RULE-157 Server master data is the only source of position rates; strict check at submit、RULE-160 Approval-time adoption recalculates final amount and margin; quotation must stay PENDING、RULE-161 Server-side checks on monetary inputs、RULE-166 Approve/reject decisions are idempotent and ignore stale messages、RULE-167 Submission order: refresh costs, check all gates, compare-and-set, then start OPP_QUOTATION as one transaction
+**已定：** RULE-143 BU estimated cost = labour cost (whole tree) + the 8 fixed other-cost categories、RULE-146 Line amount: a hand-entered discounted total overrides quantity × unit price、RULE-156 Contract clauses are locked during approval、RULE-157 Server master data is the only source of position rates; strict check at submit、RULE-160 Approval-time adoption recalculates final amount and margin; quotation must stay PENDING（修订：审批中只能采纳成本（成本树、其他成本），采纳后用与保存相同的计算重算 BU 成本与毛利；不再重算最终报价，尾差、税率不可采纳（随 145、155 修订）。）、RULE-161 Server-side checks on monetary inputs、RULE-166 Approve/reject decisions are idempotent and ignore stale messages、RULE-167 Submission order: refresh costs, check all gates, compare-and-set, then start OPP_QUOTATION as one transaction
 
 **阻塞，需评审：**
-- [ ] RULE-139 Server rates always overwrite client rates; at submission every work package must have a fully priced role（`QuotationCostRateResolver.java:38-103`，置信度 High） — (1) PRE-R02 ("billing rates may be discounted, hours may not be changed") is not implemented: there is no rate discount, any client rate is overwritten, and hours are freely editable by cost editors. (2) The duplicate-ra
-- [ ] RULE-140 At submit, cost and margin are recalculated from the current rates before approval starts（`SubmitQuotationUseCase.java:51-81`，置信度 High） — A sales submission can therefore go to approval with labour cost understated (unpriced work packages count as 0) and margin overstated. The safeguards are the approval cost-required check (RULE-15) and the BU approver's 
-- [ ] RULE-141 Cost-tree work package value = hours × billing rate; labour cost = hours × cost rate（`CostEstimateNode.java:74-102`，置信度 Medium） — (1) The multiplication is not rounded; for example 12.5 h × ¥833.33 = ¥10,416.625, so the value saved depends on the DB column scale. (2) The seed docs (Q5 "逐层向上汇总", PRE-R04 "自底向上汇总标价") say the tree rolls up into the pri
-- [ ] RULE-142 Final quote equals the sum of line amounts plus the tail adjustment（`Quotation.java:237-246`，置信度 High） — Nothing stops the tail adjustment from wiping out most of the line total. The only limits are finalAmount > 0 at submit and clause-sum equality (RULE-10).
-- [ ] RULE-144 Gross margin is calculated on the ex-tax final quote using the header tax rate, to 4 decimals（`Quotation.java:252-259`，置信度 High） — (1) The seed doc (Q6) says to divide by a fixed 1.06; the code uses the quotation's own tax rate. (2) The margin always uses the header rate even when lines carry different rates. Example: one line of ¥113,000 at 13% has
-- [ ] RULE-145 Approval-time edits recalculate the final quote from the stored line total plus the new tail adjustment（`Quotation.java:367-410`，置信度 High） — (1) A tax-rate change during approval does not re-derive the stored lines' tax splits, so line amountNotax and taxAmount no longer match the header rate. (2) If a legacy row has labor_cost NULL and the approver adopts on
-- [ ] RULE-147 Role rates come from the master-data schemes in effect today, by role and city, newest scheme first（`PositionRateQueryImpl.java:50-92`，置信度 High） — Rates are taken as of the server's current date (`LocalDate.now()`), not the quotation's creation or submit date. Every save, submit or approval adoption re-prices the tree at that day's rates. Two schemes with the same 
-- [ ] RULE-155 During approval clauses are locked, so the tail adjustment is effectively frozen, and BU cost must be > 0 when required（`ApplyQuotationApprovalUseCase.java:65-101`，置信度 High） — Tail adjustment and tax/price changes are offered to approvers as adoptable fields, but whenever clauses exist any change to the final quote is guaranteed to fail.
-- [ ] RULE-158 Conditions for submitting a quotation for approval（`Quotation.java:265-279`，置信度 High） — The aggregate's comment says the new instance id is "由终态消息补写" (written back by the final-result message). The code actually binds it straight after the workflow starts (see RULE-03), so the comment is out of date.
-- [ ] RULE-159 Clause amounts must each be greater than 0 and add up exactly to the final quote（`Quotation.java:334-356`，置信度 High） — The comment at `SubmitQuotationUseCase.java:60` says "合计 ≤ 最终报价", but the code requires equality. The front end warns only when the total exceeds the final quote (+0.005 tolerance), so an under-allocated split gives no w
-- [ ] RULE-168 Only DRAFT or REJECTED quotations can be edited, submitted or deleted（`Quotation.java:532-540`，置信度 High） — The save path writes to the database with no status condition (`QuotationRepositoryImpl.saveEditorContent`, lines 89-150, plain `updateById` plus delete-and-reinsert of child rows). Submit (`updateStatusIf`), delete and 
-- [ ] RULE-169 How BPM final results map to quotation outcomes（`QuotationProcessResultHandler.java:34-52`，置信度 Medium） — A cancellation (e.g. the initiator withdraws) is stored as REJECTED, labelled "OA 驳回", and, if no comment was given, with reason "审批未通过". Users and reports cannot tell a withdrawal from a real rejection.
-- [ ] RULE-172 Only the applicant can save, submit or delete a quotation（`QuotationAccessGuard.java:66-71`，置信度 High） — The delete endpoint requires only the `fst:quotation:query` permission (`QuotationController.java:212-222`, by design per refs #1509), so any query-role user who owns a draft can delete it. Note this when mapping roles.
-- [ ] RULE-173 Users without cost-edit permission cannot change cost inputs; work-package cost fields are kept from the database（`SaveQuotationUseCase.java:51-164`，置信度 Medium） — New clauses (those without a code) carry the hours and roles sent by the client, so sales can set labour hours by deleting a clause and re-adding it.
+- [x] RULE-139 Server rates always overwrite client rates; at submission every work package must have a fully priced role（`QuotationCostRateResolver.java:38-103`，置信度 High） — 修正：服务端主数据费率为准；删掉永不触发的查重，改为确定性选方案（见 147）；不做标价折扣（问题1「不需要」），折扣用 RULE-146 行折后总价与尾差表达；工时仅成本编辑权限（BU）可改。（已评审 2026-10-14）
+- [x] RULE-140 At submit, cost and margin are recalculated from the current rates before approval starts（`SubmitQuotationUseCase.java:51-81`，置信度 High） — 修正：存在未定价工作包时毛利为空并标「成本未完整」，不输出虚高毛利；成本必填节点由 BU 补全。（已评审 2026-10-14）
+- [x] RULE-141 Cost-tree work package value = hours × billing rate; labour cost = hours × cost rate（`CostEstimateNode.java:74-102`，置信度 Medium） — 修正：工作包值、人工成本四舍五入到分；汇总由服务端计算；汇总标价仅参考（问题2「仅参考+审批提示」），审批单显示汇总标价、最终报价与偏差率，不约束最终报价。（已评审 2026-10-14）
+- [x] RULE-142 Final quote equals the sum of line amounts plus the tail adjustment（`Quotation.java:237-246`，置信度 High） — 修正：公式保留，合计取整到分；审批单显示尾差金额及其占行合计比例，不设硬上限。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-144 Gross margin is calculated on the ex-tax final quote using the header tax rate, to 4 decimals（`Quotation.java:252-259`，置信度 High） → 新系统做法：不含税额 = Σ行不含税金额 + 尾差 ÷（1+表头税率），毛利按此计算；不用固定 1.06。Phase 2 的 RULE-182/239 预算毛利须用同一口径。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-145 Approval-time edits recalculate the final quote from the stored line total plus the new tail adjustment（`Quotation.java:367-410`，置信度 High） → 新系统做法：审批时重算与保存使用同一计算函数——重新加载行、按税率重拆税额；人工成本为空的老数据从成本树重算。审批中不再重算最终报价（见 155、160）。（不复刻；评审 2026-10-14）
+- [x] RULE-147 Role rates come from the master-data schemes in effect today, by role and city, newest scheme first（`PositionRateQueryImpl.java:50-92`，置信度 High） — 修正：费率在提交时锁定（问题3「提交时锁定」）——草稿按当天生效费率；提交时写入费率快照，审批采纳使用该快照；驳回后重新提交按当天费率刷新。同一生效开始日的方案以唯一约束禁止。（已评审 2026-10-14）
+- [x] RULE-155 During approval clauses are locked, so the tail adjustment is effectively frozen, and BU cost must be > 0 when required（`ApplyQuotationApprovalUseCase.java:65-101`，置信度 High） — 修正：审批人不能调整最终报价（问题4「不能，需退回」）——去掉尾差、税率的采纳入口；需改价时退回发起人，由销售重拆条款后再提交。条款锁定保留；成本必填节点 BU 成本须 > 0 保留。（已评审 2026-10-14）
+- [x] RULE-158 Conditions for submitting a quotation for approval（`Quotation.java:265-279`，置信度 High）（已评审 2026-10-14：原样保留；流程实例在启动时绑定（与 RULE-167 一致），过期注释不带入。）
+- [x] RULE-159 Clause amounts must each be greater than 0 and add up exactly to the final quote（`Quotation.java:334-356`，置信度 High） — 修正：前后端同一等式校验（少分配同样提示）；「不要求条款」的豁免仅限带老数据标记的迁移在途单。（已评审 2026-10-14）
+- [x] RULE-168 Only DRAFT or REJECTED quotations can be edited, submitted or deleted（`Quotation.java:532-540`，置信度 High） — 修正：保存也做比较并更新（状态 + 版本号），与提交、删除、审批采纳一致，杜绝并发覆盖已提交单据。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-169 How BPM final results map to quotation outcomes（`QuotationProcessResultHandler.java:34-52`，置信度 Medium） → 新系统做法：与 RULE-279 一致——发起人撤销/取消后单据回到草稿，不记驳回原因；仅「不通过」记为已驳回；结果用枚举。（不复刻；评审 2026-10-14）
+- [x] RULE-172 Only the applicant can save, submit or delete a quotation（`QuotationAccessGuard.java:66-71`，置信度 High） — 修正：仅申请人可保存/提交/删除，超管不豁免；删除需独立删除权限，且须为申请人、单据为草稿或已驳回。（已评审 2026-10-14）
+- [x] RULE-173 Users without cost-edit permission cannot change cost inputs; work-package cost fields are kept from the database（`SaveQuotationUseCase.java:51-164`，置信度 Medium） — 修正：销售新建的条款（含模板）只带结构，角色、工时、费率一律清空，由 BU 填写。（已评审 2026-10-14）
 
 ### 交付、预算与收入（Phase 2（收入确认部分在 Phase 4））
 
