@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { publicPathOf } from './public-path.mjs';
 
 describe('H5 的子路径', () => {
-  it('默认是 /h5/，可以在构建时指定另一个子路径', () => {
+  it('INT-G3 固定为 /h5/：不设或设为 /h5/ 都得到 /h5/', () => {
     expect(publicPathOf({})).toBe('/h5/');
-    expect(publicPathOf({ H5_PUBLIC_PATH: '/apps/one-h5/' })).toBe('/apps/one-h5/');
+    expect(publicPathOf({ H5_PUBLIC_PATH: '/h5/' })).toBe('/h5/');
   });
 
-  it('不合法的值让构建失败，而不是生成指向错误位置的资源地址', () => {
-    for (const bad of ['', '/', 'h5/', '/h5', '//h5/', '/h5//x/', '/../', '/./', '/h5/../x/', 'https://x.example/h5/', '/h 5/', '/h5/?x=1']) {
-      expect(() => publicPathOf({ H5_PUBLIC_PATH: bad }), bad).toThrow(/H5_PUBLIC_PATH/);
+  it('INT-G3 设成别的值让构建失败，而不是悄悄换成另一个子路径', () => {
+    for (const other of ['/apps/one-h5/', '', '/', 'h5/', '/h5', '/H5/', '/h5/x/']) {
+      expect(() => publicPathOf({ H5_PUBLIC_PATH: other }), other).toThrow(/H5_PUBLIC_PATH/);
     }
   });
 });
