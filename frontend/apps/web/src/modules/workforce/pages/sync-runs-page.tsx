@@ -1,11 +1,11 @@
-import { Button, DataTable, Dialog, LoadingState, Notice, PageTitle, StatusBadge, type DataColumn } from '@forcitis/ui';
+import { Button, DataTable, Dialog, LoadingState, Notice, PageTitle, StatusBadge, TextAreaField, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { useCurrentUser } from '@/modules/session';
-import { describeFailure, failureOf } from '@/shared/lib/failure';
+import { describeFailure } from '@/shared/lib/failure';
 import { formatDateTime } from '@/shared/lib/format-date-time';
 import { useReleaseSyncRun, useSyncRunDetail, useSyncRuns } from '../hooks/use-workforce';
 import {
-  RELEASE_OUTCOME_MESSAGES,
+  RELEASE_FAILURE_MESSAGES,
   SYNC_RUN_RELEASE_PERMISSION,
   SYNC_STATUS_LABELS,
   SYNC_TRIGGER_LABELS,
@@ -23,9 +23,7 @@ const DIFF_COLUMNS: DataColumn<SyncDiff>[] = [
 ];
 
 function releaseFailure(error: unknown): string {
-  const { body } = failureOf(error);
-  const outcome = typeof body === 'object' && body !== null ? (body as Record<string, unknown>)['outcome'] : undefined;
-  return (typeof outcome === 'string' ? RELEASE_OUTCOME_MESSAGES[outcome] : undefined) ?? describeFailure(error);
+  return describeFailure(error, RELEASE_FAILURE_MESSAGES);
 }
 
 export function SyncRunsPage() {
@@ -34,6 +32,7 @@ export function SyncRunsPage() {
   const release = useReleaseSyncRun();
   const [viewing, setViewing] = useState<string>();
   const [releasing, setReleasing] = useState<SyncRun>();
+  const [reason, setReason] = useState('');
   const detail = useSyncRunDetail(viewing);
   const mayRelease = session.can(SYNC_RUN_RELEASE_PERMISSION);
 
@@ -42,6 +41,7 @@ export function SyncRunsPage() {
 
   const closeRelease = () => {
     setReleasing(undefined);
+    setReason('');
     release.reset();
   };
 
@@ -68,7 +68,8 @@ export function SyncRunsPage() {
   return (
     <>
       <PageTitle text="同步记录" />
-      <DataTable columns={columns} rows={runs.data} rowKey={(run) => run.syncRunId} emptyText="暂无同步记录" />
+      <DataTable columns={columns} rows={runs.data.pages.flatMap((page) => page.items)} rowKey={(run) => run.syncRunId} emptyText="暂无同步记录" />
+      {runs.hasNextPage ? <Button variant="default" onClick={() => void runs.fetchNextPage()} disabled={runs.isFetchingNextPage}>加载更多</Button> : null}
       <Dialog open={viewing !== undefined} title="同步差异" confirmText="关闭" cancelText="取消" onConfirm={() => setViewing(undefined)} onClose={() => setViewing(undefined)}>
         {detail.isPending ? <LoadingState /> : null}
         {detail.isError ? <Notice tone="error" title="同步差异加载失败">{describeFailure(detail.error)}</Notice> : null}
@@ -79,12 +80,14 @@ export function SyncRunsPage() {
         title="放行被中止的同步"
         confirmText="确认放行"
         confirmLoading={release.isPending}
-        onConfirm={() => releasing !== undefined && release.mutate(releasing.syncRunId, { onSuccess: closeRelease })}
+        confirmDisabled={reason.trim() === ''}
+        onConfirm={() => releasing !== undefined && release.mutate({ syncRunId: releasing.syncRunId, reason }, { onSuccess: closeRelease })}
         onClose={closeRelease}
       >
         {release.isError ? <Notice tone="error" title="放行失败">{releaseFailure(release.error)}</Notice> : null}
         <p>{releasing?.heldReason ?? '该同步因组织数据大幅减少而被中止。'}</p>
         <p>放行后，本次同步的组织数据会立即生效。请先核对同步差异再放行。</p>
+        <TextAreaField label="放行原因" value={reason} onChange={setReason} />
       </Dialog>
     </>
   );

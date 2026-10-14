@@ -6,5 +6,6 @@ export function currentUserBody(permissionCodes: string[]) {
     orgUnitName: '交付一部',
     permissionCodes,
     navigation: [],
+    identityConfirmed: true,
   };
 }

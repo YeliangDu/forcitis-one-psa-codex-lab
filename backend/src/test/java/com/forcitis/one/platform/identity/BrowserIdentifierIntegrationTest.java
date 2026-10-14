@@ -183,4 +183,22 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(storedIdentifiers(1001)).isZero();
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    com.forcitis.one.platform.identity.application.PurgeExpiredCredentials purge;
+
+    @Test
+    @DisplayName("C-M7 the clean-up job removes identifiers, current and rotated, once they are older than their lifetime, and only then")
+    void cleanUpRemovesOldIdentifiers() throws Exception {
+        String first = confirmedIdentifier(1001, null);
+        login(1001, first);
+        assertThat(storedIdentifiers(1001)).isEqualTo(2);
+
+        purge.execute();
+        assertThat(storedIdentifiers(1001)).as("still within the lifetime").isEqualTo(2);
+
+        clock.advance(Duration.ofDays(31));
+        purge.execute();
+        assertThat(storedIdentifiers(1001)).isZero();
+    }
 }

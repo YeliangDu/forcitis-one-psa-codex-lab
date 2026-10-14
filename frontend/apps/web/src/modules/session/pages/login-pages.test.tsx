@@ -38,7 +38,7 @@ describe('应急管理员登录', () => {
   });
 
   it('提交登录名、口令和动态口令，成功后进入系统', async () => {
-    const server = stubServer({ 'POST sessions:emergency-login': { body: { userId: '9', absoluteExpiresAt: '2026-10-15T00:00:00Z' } } });
+    const server = stubServer({ 'POST sessions:emergency-login': { body: { userId: '9', absoluteExpiresAt: '2026-10-15T00:00:00Z', identityConfirmationRequired: false } } });
     renderWithProviders(<EmergencyLoginPage />, { route: '/emergency' });
 
     await userEvent.type(screen.getByLabelText('登录名'), 'break-glass');

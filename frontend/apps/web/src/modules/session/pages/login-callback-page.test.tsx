@@ -9,7 +9,7 @@ describe('登录回调页', () => {
 
   it('企业微信回调：提交 code 和 state，并立刻把它们从地址栏清掉', async () => {
     window.history.replaceState(null, '', '/login/wecom?code=C-1&state=S-1');
-    const server = stubServer({ 'POST sessions:wecom-login': { body: { userId: '1', absoluteExpiresAt: '2026-10-15T00:00:00Z' } } });
+    const server = stubServer({ 'POST sessions:wecom-login': { body: { userId: '1', absoluteExpiresAt: '2026-10-15T00:00:00Z', identityConfirmationRequired: false } } });
     renderWithProviders(<LoginCallbackPage kind="wecom" />, { route: '/login/wecom' });
 
     await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
@@ -19,7 +19,7 @@ describe('登录回调页', () => {
 
   it('致远回调：提交票据，票据不留在地址栏', async () => {
     window.history.replaceState(null, '', '/login/sso?ticket=TK-9');
-    const server = stubServer({ 'POST sessions:sso-login': { body: { userId: '1', absoluteExpiresAt: '2026-10-15T00:00:00Z' } } });
+    const server = stubServer({ 'POST sessions:sso-login': { body: { userId: '1', absoluteExpiresAt: '2026-10-15T00:00:00Z', identityConfirmationRequired: false } } });
     renderWithProviders(<LoginCallbackPage kind="sso" />, { route: '/login/sso' });
 
     await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));

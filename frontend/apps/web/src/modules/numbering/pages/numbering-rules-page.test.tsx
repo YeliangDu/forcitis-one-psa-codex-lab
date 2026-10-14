@@ -22,7 +22,7 @@ function rowOf(text: string) {
 
 describe('编号规则页', () => {
   it('列出规则，并标出待确认和已确认', async () => {
-    stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET numbering-rules': { body: RULES } });
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET numbering-rules': { body: { items: RULES, nextCursor: null } } });
     renderWithProviders(<NumberingRulesPage />);
 
     expect(await screen.findByText('报价单')).toBeInTheDocument();
@@ -33,7 +33,7 @@ describe('编号规则页', () => {
   });
 
   it('没有修改权限时不显示编辑和确认', async () => {
-    stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET numbering-rules': { body: RULES } });
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET numbering-rules': { body: { items: RULES, nextCursor: null } } });
     renderWithProviders(<NumberingRulesPage />);
 
     await screen.findByText('报价单');
@@ -42,7 +42,7 @@ describe('编号规则页', () => {
   });
 
   it('有修改权限时每条规则可编辑，只有待确认的规则可确认', async () => {
-    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, UPDATE]) }, 'GET numbering-rules': { body: RULES } });
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, UPDATE]) }, 'GET numbering-rules': { body: { items: RULES, nextCursor: null } } });
     renderWithProviders(<NumberingRulesPage />);
 
     await screen.findByText('报价单');
@@ -54,7 +54,7 @@ describe('编号规则页', () => {
   it('编辑：提交新的模板、重置周期和起始流水号', async () => {
     const server = stubServer({
       'GET sessions:current': { body: currentUserBody([READ, UPDATE]) },
-      'GET numbering-rules': { body: RULES },
+      'GET numbering-rules': { body: { items: RULES, nextCursor: null } },
       'PUT numbering-rules/TIMESHEET': { status: 204 },
     });
     renderWithProviders(<NumberingRulesPage />);
@@ -74,7 +74,7 @@ describe('编号规则页', () => {
   it('确认：按当前规则提交，规则即变为已确认', async () => {
     const server = stubServer({
       'GET sessions:current': { body: currentUserBody([READ, UPDATE]) },
-      'GET numbering-rules': { body: RULES },
+      'GET numbering-rules': { body: { items: RULES, nextCursor: null } },
       'PUT numbering-rules/QUOTE': { status: 204 },
     });
     renderWithProviders(<NumberingRulesPage />);
@@ -90,7 +90,7 @@ describe('编号规则页', () => {
   it('服务端认为模板不合法（422）时，在对话框里显示原因', async () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ, UPDATE]) },
-      'GET numbering-rules': { body: RULES },
+      'GET numbering-rules': { body: { items: RULES, nextCursor: null } },
       'PUT numbering-rules/TIMESHEET': { status: 422, body: 'pattern must contain {seq}' },
     });
     renderWithProviders(<NumberingRulesPage />);

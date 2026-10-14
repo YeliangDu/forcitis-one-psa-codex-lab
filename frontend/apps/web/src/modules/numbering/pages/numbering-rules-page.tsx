@@ -76,7 +76,7 @@ export function NumberingRulesPage() {
   return (
     <>
       <PageTitle text="编号规则" />
-      <DataTable columns={columns} rows={rules.data} rowKey={(rule) => rule.documentType} emptyText="暂无编号规则" />
+      <DataTable columns={columns} rows={rules.data.items} rowKey={(rule) => rule.documentType} emptyText="暂无编号规则" />
       <Dialog
         open={editing !== undefined}
         title={editing?.mode === 'confirm' ? '确认编号规则' : '编辑编号规则'}

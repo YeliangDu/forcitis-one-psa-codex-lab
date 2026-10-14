@@ -15,14 +15,41 @@ export const postCostTimesheetsByIdSubmit = (...[args, options]: Call<paths['/ap
 export const postCostTimesheetsByIdWithdraw = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}:withdraw']['post']>) =>
   request<Result<paths['/api/v1/cost/timesheets/{id}:withdraw']['post']>>('post', '/api/v1/cost/timesheets/{id}:withdraw', args, options);
 
+export const getOrganizationEmployeeLegalEntitiesByEmployeeId = (...[args, options]: Call<paths['/api/v1/organization/employee-legal-entities/{employeeId}']['get']>) =>
+  request<Result<paths['/api/v1/organization/employee-legal-entities/{employeeId}']['get']>>('get', '/api/v1/organization/employee-legal-entities/{employeeId}', args, options, responseSchemas.getOrganizationEmployeeLegalEntitiesByEmployeeId);
+
+export const putOrganizationEmployeeLegalEntitiesByEmployeeId = (...[args, options]: Call<paths['/api/v1/organization/employee-legal-entities/{employeeId}']['put']>) =>
+  request<Result<paths['/api/v1/organization/employee-legal-entities/{employeeId}']['put']>>('put', '/api/v1/organization/employee-legal-entities/{employeeId}', args, options, responseSchemas.putOrganizationEmployeeLegalEntitiesByEmployeeId);
+
+export const postOrganizationEmployeeLegalEntitiesByEmployeeIdCorrect = (...[args, options]: Call<paths['/api/v1/organization/employee-legal-entities/{employeeId}:correct']['post']>) =>
+  request<Result<paths['/api/v1/organization/employee-legal-entities/{employeeId}:correct']['post']>>('post', '/api/v1/organization/employee-legal-entities/{employeeId}:correct', args, options, responseSchemas.postOrganizationEmployeeLegalEntitiesByEmployeeIdCorrect);
+
+export const postOrganizationEmployeeLegalEntitiesByEmployeeIdEnd = (...[args, options]: Call<paths['/api/v1/organization/employee-legal-entities/{employeeId}:end']['post']>) =>
+  request<Result<paths['/api/v1/organization/employee-legal-entities/{employeeId}:end']['post']>>('post', '/api/v1/organization/employee-legal-entities/{employeeId}:end', args, options, responseSchemas.postOrganizationEmployeeLegalEntitiesByEmployeeIdEnd);
+
 export const getOrganizationLegalEntities = (...[args, options]: Call<paths['/api/v1/organization/legal-entities']['get']>) =>
   request<Result<paths['/api/v1/organization/legal-entities']['get']>>('get', '/api/v1/organization/legal-entities', args, options, responseSchemas.getOrganizationLegalEntities);
 
 export const postOrganizationLegalEntities = (...[args, options]: Call<paths['/api/v1/organization/legal-entities']['post']>) =>
   request<Result<paths['/api/v1/organization/legal-entities']['post']>>('post', '/api/v1/organization/legal-entities', args, options, responseSchemas.postOrganizationLegalEntities);
 
+export const getOrganizationLegalEntitiesByLegalEntityId = (...[args, options]: Call<paths['/api/v1/organization/legal-entities/{legalEntityId}']['get']>) =>
+  request<Result<paths['/api/v1/organization/legal-entities/{legalEntityId}']['get']>>('get', '/api/v1/organization/legal-entities/{legalEntityId}', args, options, responseSchemas.getOrganizationLegalEntitiesByLegalEntityId);
+
 export const putOrganizationLegalEntitiesByLegalEntityId = (...[args, options]: Call<paths['/api/v1/organization/legal-entities/{legalEntityId}']['put']>) =>
   request<Result<paths['/api/v1/organization/legal-entities/{legalEntityId}']['put']>>('put', '/api/v1/organization/legal-entities/{legalEntityId}', args, options, responseSchemas.putOrganizationLegalEntitiesByLegalEntityId);
+
+export const getOrganizationOrgUnitLegalEntitiesByOrgUnitId = (...[args, options]: Call<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}']['get']>) =>
+  request<Result<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}']['get']>>('get', '/api/v1/organization/org-unit-legal-entities/{orgUnitId}', args, options, responseSchemas.getOrganizationOrgUnitLegalEntitiesByOrgUnitId);
+
+export const putOrganizationOrgUnitLegalEntitiesByOrgUnitId = (...[args, options]: Call<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}']['put']>) =>
+  request<Result<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}']['put']>>('put', '/api/v1/organization/org-unit-legal-entities/{orgUnitId}', args, options, responseSchemas.putOrganizationOrgUnitLegalEntitiesByOrgUnitId);
+
+export const postOrganizationOrgUnitLegalEntitiesByOrgUnitIdCorrect = (...[args, options]: Call<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}:correct']['post']>) =>
+  request<Result<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}:correct']['post']>>('post', '/api/v1/organization/org-unit-legal-entities/{orgUnitId}:correct', args, options, responseSchemas.postOrganizationOrgUnitLegalEntitiesByOrgUnitIdCorrect);
+
+export const postOrganizationOrgUnitLegalEntitiesByOrgUnitIdEnd = (...[args, options]: Call<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}:end']['post']>) =>
+  request<Result<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}:end']['post']>>('post', '/api/v1/organization/org-unit-legal-entities/{orgUnitId}:end', args, options, responseSchemas.postOrganizationOrgUnitLegalEntitiesByOrgUnitIdEnd);
 
 export const getOrganizationOrgUnits = (...[args, options]: Call<paths['/api/v1/organization/org-units']['get']>) =>
   request<Result<paths['/api/v1/organization/org-units']['get']>>('get', '/api/v1/organization/org-units', args, options, responseSchemas.getOrganizationOrgUnits);
@@ -38,6 +65,9 @@ export const getOrganizationSyncRunsBySyncRunId = (...[args, options]: Call<path
 
 export const postOrganizationSyncRunsBySyncRunIdRelease = (...[args, options]: Call<paths['/api/v1/organization/sync-runs/{syncRunId}:release']['post']>) =>
   request<Result<paths['/api/v1/organization/sync-runs/{syncRunId}:release']['post']>>('post', '/api/v1/organization/sync-runs/{syncRunId}:release', args, options, responseSchemas.postOrganizationSyncRunsBySyncRunIdRelease);
+
+export const postOrganizationSyncRunsReconcile = (...[args, options]: Call<paths['/api/v1/organization/sync-runs:reconcile']['post']>) =>
+  request<Result<paths['/api/v1/organization/sync-runs:reconcile']['post']>>('post', '/api/v1/organization/sync-runs:reconcile', args, options, responseSchemas.postOrganizationSyncRunsReconcile);
 
 export const getOrganizationWorkCalendars = (...[args, options]: Call<paths['/api/v1/organization/work-calendars']['get']>) =>
   request<Result<paths['/api/v1/organization/work-calendars']['get']>>('get', '/api/v1/organization/work-calendars', args, options, responseSchemas.getOrganizationWorkCalendars);
@@ -82,7 +112,7 @@ export const getPlatformNumberingRulesByDocumentType = (...[args, options]: Call
   request<Result<paths['/api/v1/platform/numbering-rules/{documentType}']['get']>>('get', '/api/v1/platform/numbering-rules/{documentType}', args, options, responseSchemas.getPlatformNumberingRulesByDocumentType);
 
 export const putPlatformNumberingRulesByDocumentType = (...[args, options]: Call<paths['/api/v1/platform/numbering-rules/{documentType}']['put']>) =>
-  request<Result<paths['/api/v1/platform/numbering-rules/{documentType}']['put']>>('put', '/api/v1/platform/numbering-rules/{documentType}', args, options);
+  request<Result<paths['/api/v1/platform/numbering-rules/{documentType}']['put']>>('put', '/api/v1/platform/numbering-rules/{documentType}', args, options, responseSchemas.putPlatformNumberingRulesByDocumentType);
 
 export const getPlatformRoles = (...[args, options]: Call<paths['/api/v1/platform/roles']['get']>) =>
   request<Result<paths['/api/v1/platform/roles']['get']>>('get', '/api/v1/platform/roles', args, options, responseSchemas.getPlatformRoles);
@@ -97,7 +127,10 @@ export const putPlatformRolesByRoleId = (...[args, options]: Call<paths['/api/v1
   request<Result<paths['/api/v1/platform/roles/{roleId}']['put']>>('put', '/api/v1/platform/roles/{roleId}', args, options, responseSchemas.putPlatformRolesByRoleId);
 
 export const deletePlatformRolesByRoleId = (...[args, options]: Call<paths['/api/v1/platform/roles/{roleId}']['delete']>) =>
-  request<Result<paths['/api/v1/platform/roles/{roleId}']['delete']>>('delete', '/api/v1/platform/roles/{roleId}', args, options, responseSchemas.deletePlatformRolesByRoleId);
+  request<Result<paths['/api/v1/platform/roles/{roleId}']['delete']>>('delete', '/api/v1/platform/roles/{roleId}', args, options);
+
+export const postPlatformSessionsConfirmIdentity = (...[args, options]: Call<paths['/api/v1/platform/sessions:confirm-identity']['post']>) =>
+  request<Result<paths['/api/v1/platform/sessions:confirm-identity']['post']>>('post', '/api/v1/platform/sessions:confirm-identity', args, options);
 
 export const getPlatformSessionsCurrent = (...[args, options]: Call<paths['/api/v1/platform/sessions:current']['get']>) =>
   request<Result<paths['/api/v1/platform/sessions:current']['get']>>('get', '/api/v1/platform/sessions:current', args, options, responseSchemas.getPlatformSessionsCurrent);
@@ -117,11 +150,14 @@ export const postPlatformSessionsTicketLogin = (...[args, options]: Call<paths['
 export const postPlatformSessionsWecomLogin = (...[args, options]: Call<paths['/api/v1/platform/sessions:wecom-login']['post']>) =>
   request<Result<paths['/api/v1/platform/sessions:wecom-login']['post']>>('post', '/api/v1/platform/sessions:wecom-login', args, options, responseSchemas.postPlatformSessionsWecomLogin);
 
+export const getPlatformUserAccountsByUserId = (...[args, options]: Call<paths['/api/v1/platform/user-accounts/{userId}']['get']>) =>
+  request<Result<paths['/api/v1/platform/user-accounts/{userId}']['get']>>('get', '/api/v1/platform/user-accounts/{userId}', args, options, responseSchemas.getPlatformUserAccountsByUserId);
+
 export const postPlatformUserAccountsByUserIdDisable = (...[args, options]: Call<paths['/api/v1/platform/user-accounts/{userId}:disable']['post']>) =>
-  request<Result<paths['/api/v1/platform/user-accounts/{userId}:disable']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:disable', args, options, responseSchemas.postPlatformUserAccountsByUserIdDisable);
+  request<Result<paths['/api/v1/platform/user-accounts/{userId}:disable']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:disable', args, options);
 
 export const postPlatformUserAccountsByUserIdEnable = (...[args, options]: Call<paths['/api/v1/platform/user-accounts/{userId}:enable']['post']>) =>
-  request<Result<paths['/api/v1/platform/user-accounts/{userId}:enable']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:enable', args, options, responseSchemas.postPlatformUserAccountsByUserIdEnable);
+  request<Result<paths['/api/v1/platform/user-accounts/{userId}:enable']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:enable', args, options);
 
 export const postPlatformUserAccountsByUserIdReplaceRoles = (...[args, options]: Call<paths['/api/v1/platform/user-accounts/{userId}:replace-roles']['post']>) =>
-  request<Result<paths['/api/v1/platform/user-accounts/{userId}:replace-roles']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:replace-roles', args, options, responseSchemas.postPlatformUserAccountsByUserIdReplaceRoles);
+  request<Result<paths['/api/v1/platform/user-accounts/{userId}:replace-roles']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:replace-roles', args, options);

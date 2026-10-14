@@ -55,7 +55,7 @@ describe('generated operations over the default client', () => {
   });
 
   it('treats a null property like an absent one, because the server writes unset optional properties as null', async () => {
-    stubFetch(200, { displayName: '张三', userId: '1001', permissionCodes: [], navigation: [{ name: '待办', routePath: null, children: [] }], orgUnitId: null });
+    stubFetch(200, { displayName: '张三', userId: '1001', permissionCodes: [], identityConfirmed: true, navigation: [{ name: '待办', routePath: null, children: [] }], orgUnitId: null });
     const user = await operations.getPlatformSessionsCurrent();
     expect(user.orgUnitId).toBeUndefined();
     expect(user.navigation[0]).toEqual({ name: '待办', children: [] });

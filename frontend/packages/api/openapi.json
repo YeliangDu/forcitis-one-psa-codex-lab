@@ -711,7 +711,8 @@
             "type" : "string"
           },
           "status" : {
-            "format" : "int32"
+            "format" : "int32",
+            "type" : "integer"
           },
           "title" : {
             "type" : "string"

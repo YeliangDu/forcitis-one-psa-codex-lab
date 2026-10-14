@@ -41,7 +41,7 @@ class OpenApiProblems {
             Schema<?> problem = new ObjectSchema()
                     .addProperty("type", new StringSchema())
                     .addProperty("title", new StringSchema())
-                    .addProperty("status", new Schema<Integer>().type("integer").format("int32"))
+                    .addProperty("status", new Schema<Integer>().types(java.util.Set.of("integer")).format("int32"))
                     .addProperty("detail", new StringSchema())
                     .addProperty("instance", new StringSchema())
                     .addProperty("errorCode", new Schema<String>().$ref("#/components/schemas/ErrorCode"))

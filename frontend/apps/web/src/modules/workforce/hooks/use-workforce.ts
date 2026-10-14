@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchOrgUnits, fetchSyncRun, fetchSyncRuns, releaseSyncRun } from '../api/workforce-api';
 
 const SYNC_RUNS_KEY = ['workforce', 'sync-runs'] as const;
@@ -8,7 +8,12 @@ export function useOrgUnits(includeRevoked: boolean) {
 }
 
 export function useSyncRuns() {
-  return useQuery({ queryKey: SYNC_RUNS_KEY, queryFn: fetchSyncRuns });
+  return useInfiniteQuery({
+    queryKey: SYNC_RUNS_KEY,
+    queryFn: ({ pageParam }) => fetchSyncRuns(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+  });
 }
 
 export function useSyncRunDetail(syncRunId: string | undefined) {
@@ -22,7 +27,7 @@ export function useSyncRunDetail(syncRunId: string | undefined) {
 export function useReleaseSyncRun() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: releaseSyncRun,
+    mutationFn: ({ syncRunId, reason }: { syncRunId: string; reason: string }) => releaseSyncRun(syncRunId, reason),
     onSettled: () => queryClient.invalidateQueries({ queryKey: SYNC_RUNS_KEY }),
   });
 }

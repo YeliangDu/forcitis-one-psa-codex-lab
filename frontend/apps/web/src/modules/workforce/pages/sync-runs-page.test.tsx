@@ -16,7 +16,7 @@ const RUNS = [
 
 describe('同步记录页', () => {
   it('列出同步记录，被中止的同步有放行按钮', async () => {
-    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) }, 'GET sync-runs': { body: RUNS } });
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) }, 'GET sync-runs': { body: { items: RUNS, nextCursor: null } } });
     renderWithProviders(<SyncRunsPage />);
 
     expect(await screen.findByText('被中止')).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe('同步记录页', () => {
   });
 
   it('没有放行权限时不显示放行', async () => {
-    stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET sync-runs': { body: RUNS } });
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET sync-runs': { body: { items: RUNS, nextCursor: null } } });
     renderWithProviders(<SyncRunsPage />);
 
     await screen.findByText('被中止');
@@ -37,12 +37,13 @@ describe('同步记录页', () => {
   it('放行：确认后请求放行该同步', async () => {
     const server = stubServer({
       'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) },
-      'GET sync-runs': { body: RUNS },
-      'POST sync-runs/12:release': { body: { outcome: 'RELEASED', message: null, syncRun: RUNS[0] } },
+      'GET sync-runs': { body: { items: RUNS, nextCursor: null } },
+      'POST sync-runs/12:release': { body: RUNS[0] },
     });
     renderWithProviders(<SyncRunsPage />);
 
     await userEvent.click(await screen.findByRole('button', { name: '放行' }));
+    await userEvent.type(within(await screen.findByRole('dialog')).getByLabelText('放行原因'), '已核对差异');
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '确认放行' }));
 
     await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
@@ -52,12 +53,13 @@ describe('同步记录页', () => {
   it('放行被拒绝（状态已变）时显示中文原因', async () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) },
-      'GET sync-runs': { body: RUNS },
-      'POST sync-runs/12:release': { status: 409, body: { outcome: 'NOT_HELD', message: 'the run is RELEASED' } },
+      'GET sync-runs': { body: { items: RUNS, nextCursor: null } },
+      'POST sync-runs/12:release': { status: 409, body: { status: 409, errorCode: 'ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL' } },
     });
     renderWithProviders(<SyncRunsPage />);
 
     await userEvent.click(await screen.findByRole('button', { name: '放行' }));
+    await userEvent.type(within(await screen.findByRole('dialog')).getByLabelText('放行原因'), '已核对差异');
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '确认放行' }));
 
     expect(await screen.findByText('该同步记录当前不是被中止状态，无法放行')).toBeInTheDocument();
@@ -67,7 +69,7 @@ describe('同步记录页', () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ]) },
       'GET sync-runs/11': { body: { syncRun: RUNS[1], diffs: [{ entityKind: 'EMPLOYEE', subjectKey: '1001', changeKind: 'UPDATED', changedFields: ['部门'], detail: '部门变更' }] } },
-      'GET sync-runs': { body: RUNS },
+      'GET sync-runs': { body: { items: RUNS, nextCursor: null } },
     });
     renderWithProviders(<SyncRunsPage />);
 
