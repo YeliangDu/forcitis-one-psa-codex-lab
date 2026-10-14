@@ -112,8 +112,14 @@ if wanted E-9; then
 fi
 
 if wanted E-10; then
-  step "E-10 前端静态资源目录（随发布包放入 current/web 与 current/web/h5，部署时完成）"
-  echo "（无初始化动作）"
+  step "E-10 静态资源：随发布切换的 current/web，与不随发布切换的 static-pinned（企业微信域名校验文件、ACME 校验）"
+  run "install -d -o root -g root -m 755 /data/forcitis-one/static-pinned /data/forcitis-one/static-pinned/.well-known/acme-challenge"
+  # 早先手工部署时 current 是实目录、校验文件放在 current/web：只复制到固定目录，不删原处；首次流水线部署前由运维把该目录改名移开
+  if [[ -d /data/forcitis-one/current && ! -L /data/forcitis-one/current ]]; then
+    run "find /data/forcitis-one/current/web -maxdepth 1 -name 'WW_verify_*.txt' -exec cp -p -n {} /data/forcitis-one/static-pinned/ \\;"
+    run "chown root:root /data/forcitis-one/static-pinned/WW_verify_*.txt && chmod 0644 /data/forcitis-one/static-pinned/WW_verify_*.txt"
+    echo "（/data/forcitis-one/current 是实目录：校验文件已复制到 static-pinned；nginx 换用新模板并验证后，执行 mv /data/forcitis-one/current /data/forcitis-one/current.manual-\$(date +%F)，再做首次流水线部署）"
+  fi
 fi
 
 step "E-11..E-17 控制台 / 交接事项"

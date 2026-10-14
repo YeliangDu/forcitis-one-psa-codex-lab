@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # FORCITIS one release installer on the ECS. Installed as /usr/local/sbin/forcitis-one-release (root:root 0755) by the one-time setup in
-# RELEASE.md (Phase 1a infra runbooks). Run as root by Cloud Assistant, or through a deploy key whose forced command is this script
-# (the key never gets a shell).
+# RELEASE.md (Phase 1a infra runbooks). Run as root by a fixed, parameterless Cloud Assistant command, or through a deploy key whose
+# forced command is this script (the key never gets a shell). It takes nothing from its caller but the environment name: what to install
+# is the deploy request the deploy job left in OSS, read with this instance's RAM role, and is only installed when the release statement
+# it names verifies against the signer key on this server.
 #
-#   install  <version> <dev|prod> <sha256 of the bundle> <commit sha>
-#            stdin, three lines: the presigned OSS URL of the bundle, the signed release statement and its signature (both base64)
-#   rollback [<version>]                                                back to the previous release, or to <version>
+#   install-pending <dev|prod>   install the release named in <prefix>/requests/<env>.json
+#   rollback [<version>]         back to the previous release, or to <version>
 #   status
 #
 # Every step fails loudly; a release that does not report healthy is switched back to the release that ran before.
@@ -17,6 +18,14 @@ BASE=/data/forcitis-one
 ETC=/etc/forcitis-one
 MIGRATION_CREDENTIALS="$ETC/migrate"
 RELEASE_SIGNERS="$ETC/release-signers"
+# Where the deploy job stages releases (root 0644, keys OSS_BUCKET, OSS_ENDPOINT, OSS_PREFIX, ALIYUN_PROFILE); the profile uses the
+# instance RAM role, so no credential is stored on this server
+RELEASE_SOURCE="$ETC/release-source"
+ALIYUN=/usr/local/bin/aliyun
+# Files nginx serves outside the releases, untouched by any deployment (WeCom trusted-domain verification, C-4 E-10)
+PINNED="$BASE/static-pinned"
+PINNED_PATTERN='^WW_verify_[A-Za-z0-9]{1,64}\.txt$'
+PUBLIC_HOST=one.forcitis.com
 STATEMENT_NAMESPACE=forcitis-one-release
 STATEMENT_FORMAT=forcitis-one-release-statement/1
 RELEASE_WORKFLOW=FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main
@@ -29,7 +38,6 @@ APPLICATION_CLASS=OneApplication
 MIGRATE_PROFILE_RESOURCE=BOOT-INF/classes/application-migrate.properties
 VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
 MAX_BUNDLE_BYTES=$((1024 * 1024 * 1024))
-BUNDLE_URL_PATTERN='^https://[a-z0-9.-]+\.aliyuncs\.com/[^[:space:]]+$'
 DOWNLOAD_TIMEOUT_SECONDS=1200
 HEALTH_TIMEOUT_SECONDS=180
 MIGRATION_TIMEOUT_SECONDS=900
@@ -43,7 +51,7 @@ fail() { log "FAILED: $*"; exit 1; }
 if [ "$(id -u)" -ne 0 ]; then
   [ -n "${SSH_ORIGINAL_COMMAND:-}" ] || fail "run as root, or through the deploy key"
   read -r -a words <<< "$SSH_ORIGINAL_COMMAND"
-  [[ "${#words[@]}" -ge 1 && "${#words[@]}" -le 5 ]] || fail "unexpected command"
+  [[ "${#words[@]}" -ge 1 && "${#words[@]}" -le 2 ]] || fail "unexpected command"
   for word in "${words[@]}"; do
     [[ "$word" =~ ^[A-Za-z0-9.+-]{1,64}$ ]] || fail "unexpected command"
   done
@@ -77,6 +85,19 @@ assert_root_owned() {
   done
 }
 
+# Every pinned verification file still answers 200 with its own content through nginx on this host
+pinned_served() {
+  local file name
+  for file in "$PINNED"/WW_verify_*.txt; do
+    [ -e "$file" ] || continue
+    name="$(basename "$file")"
+    curl -fsS --max-time 5 --resolve "$PUBLIC_HOST:443:127.0.0.1" "https://$PUBLIC_HOST/$name" 2>/dev/null | cmp -s - "$file" || {
+      log "pinned file $name is not served as it is on disk"
+      return 1
+    }
+  done
+}
+
 health_ok() {
   local port deadline body
   port="$(env_value MANAGEMENT_SERVER_PORT)"
@@ -85,7 +106,8 @@ health_ok() {
   while [ "$SECONDS" -lt "$deadline" ]; do
     if systemctl is-active --quiet "$UNIT"; then
       body="$(curl -fsS --max-time 5 "http://127.0.0.1:${port}/actuator/health" 2>/dev/null || true)"
-      if [ -n "$body" ] && printf '%s' "$body" | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("status") == "UP" else 1)' 2>/dev/null; then
+      if [ -n "$body" ] && printf '%s' "$body" | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("status") == "UP" else 1)' 2>/dev/null \
+         && pinned_served; then
         return 0
       fi
     fi
@@ -166,6 +188,7 @@ verify_statement() {
     || fail "the release statement's signature does not verify"
   [ "$(statement_field format "$statement")" = "$STATEMENT_FORMAT" ] || fail "unknown release statement format"
   [ "$(statement_field version "$statement")" = "$version" ] || fail "release statement is for another version"
+  [ "$(statement_field bundle "$statement")" = "$name.tar.gz" ] || fail "release statement names another bundle"
   [ "$(statement_field commit "$statement")" = "$commit" ] || fail "release statement is for another commit"
   [ "$(statement_field workflow "$statement")" = "$RELEASE_WORKFLOW" ] || fail "release statement was not produced by the release workflow on main"
   [ "$(statement_field bundle-sha256 "$statement")" = "$(sha256sum "$archive" | cut -d' ' -f1)" ] || fail "bundle differs from the signed release statement"
@@ -199,23 +222,39 @@ grant_static_read() {
   setfacl -R -m u:nginx:r-X "$dir"/web-*
 }
 
+source_value() {
+  local key="$1" line
+  line="$(grep -E "^${key}=" "$RELEASE_SOURCE" | tail -1 || true)"
+  printf '%s' "${line#*=}"
+}
+
+# Copies oss://<bucket>/<prefix>/<key> to <out> with the instance RAM role
+oss_get() {
+  local key="$1" out="$2" bucket endpoint prefix profile
+  bucket="$(source_value OSS_BUCKET)"; endpoint="$(source_value OSS_ENDPOINT)"
+  prefix="$(source_value OSS_PREFIX)"; profile="$(source_value ALIYUN_PROFILE)"
+  [[ "$bucket" =~ ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$ && "$endpoint" =~ ^[a-z0-9.-]+\.aliyuncs\.com$ \
+     && "$prefix" =~ ^[a-z0-9][a-z0-9/_-]*[a-z0-9]$ && "$profile" =~ ^[a-z0-9-]+$ ]] \
+    || fail "$RELEASE_SOURCE must set OSS_BUCKET, OSS_ENDPOINT, OSS_PREFIX and ALIYUN_PROFILE (RELEASE.md §7)"
+  timeout "$DOWNLOAD_TIMEOUT_SECONDS" "$ALIYUN" --profile "$profile" oss cp "oss://$bucket/$prefix/$key" "$out" \
+    --endpoint "$endpoint" -f >/dev/null || fail "could not fetch $prefix/$key from OSS"
+}
+
 place() {
-  local version="$1" env="$2" expected_sha="$3" commit="$4" url="$5" statement_b64="$6" signature_b64="$7" incoming archive top staged existing
+  local version="$1" env="$2" expected_sha="$3" commit="$4" incoming archive top staged existing
   incoming="$(mktemp -d "$releases/.incoming.XXXXXX")"
   trap 'rm -rf "$incoming"' EXIT
-  archive="$incoming/bundle.tar.gz"
-  # The URL carries a signature: never echo it
-  log "downloading the bundle from OSS"
-  curl -fsS --proto '=https' --tlsv1.2 --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 20 \
-    --max-time "$DOWNLOAD_TIMEOUT_SECONDS" --max-filesize "$MAX_BUNDLE_BYTES" -o "$archive" --url "$url" \
-    || fail "bundle download failed"
-  log "downloaded $(stat -c %s "$archive") bytes"
-  [ "$(sha256sum "$archive" | cut -d' ' -f1)" = "$expected_sha" ] || fail "bundle sha256 differs from the release's published sha256"
-
   top="forcitis-one-$version"
+  archive="$incoming/bundle.tar.gz"
+  log "fetching $top from OSS"
+  oss_get "$version/$top.tar.gz" "$archive"
+  oss_get "$version/$top.release" "$incoming/statement"
+  oss_get "$version/$top.release.sig" "$incoming/statement.sig"
+  [ "$(stat -c %s "$archive")" -le "$MAX_BUNDLE_BYTES" ] || fail "bundle larger than $MAX_BUNDLE_BYTES bytes"
+  log "fetched $(stat -c %s "$archive") bytes"
+  [ "$(sha256sum "$archive" | cut -d' ' -f1)" = "$expected_sha" ] || fail "bundle sha256 differs from the deploy request"
+
   check_tar_entries "$archive" "$top"
-  printf '%s' "$statement_b64" | base64 -d > "$incoming/statement" || fail "release statement is not base64"
-  printf '%s' "$signature_b64" | base64 -d > "$incoming/statement.sig" || fail "release statement signature is not base64"
   verify_statement "$archive" "$incoming/statement" "$version" "$commit"
   tar -xzf "$archive" -C "$incoming" --no-same-owner --no-same-permissions
   staged="$incoming/$top"
@@ -346,23 +385,41 @@ lock() {
   flock -n 9 || fail "another release operation is running"
 }
 
-cmd_install() {
-  local version="${1:-}" env="${2:-}" sha="${3:-}" commit="${4:-}" url="" statement_b64="" signature_b64="" profile running new first_install=false
-  valid_version "$version" || fail "invalid version '$version'"
+cmd_install_pending() {
+  local env="${1:-}" request version sha commit pinned_expected profile running new first_install=false
   case "$env" in dev|prod) ;; *) fail "environment must be dev or prod" ;; esac
-  [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || fail "sha256 of the bundle required"
-  [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "commit sha of the release required"
-  IFS= read -r -t 30 url || true
-  IFS= read -r -t 30 statement_b64 || true
-  IFS= read -r -t 30 signature_b64 || true
-  [[ "$url" =~ $BUNDLE_URL_PATTERN ]] || fail "stdin line 1 must carry the https OSS URL of the bundle"
-  [[ "$statement_b64" =~ ^[A-Za-z0-9+/=]{1,8192}$ && "$signature_b64" =~ ^[A-Za-z0-9+/=]{1,8192}$ ]] \
-    || fail "stdin lines 2 and 3 must carry the release statement and its signature in base64"
   profile="$(env_value SPRING_PROFILES_ACTIVE)"
   [ "$profile" = "$env" ] || fail "this server is configured for '$profile' (SPRING_PROFILES_ACTIVE), not '$env'"
+  [ -s "$RELEASE_SOURCE" ] && [ "$(stat -c '%U %a' "$RELEASE_SOURCE")" = "root 644" ] || fail "$RELEASE_SOURCE must exist, root-owned 0644"
+  [ -x "$ALIYUN" ] || fail "$ALIYUN is missing (RELEASE.md §7)"
+  request="$(mktemp)"
+  oss_get "requests/$env.json" "$request"
+  # Every field is checked here; the request only chooses among releases whose statements verify below
+  read -r version sha commit pinned_expected < <(python3 - "$request" <<'PY'
+import json, re, sys
+r = json.load(open(sys.argv[1]))
+checks = {"version": r"[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?", "bundleSha256": r"[0-9a-f]{64}", "commit": r"[0-9a-f]{40}",
+          "wecomVerifyFile": r"-|WW_verify_[A-Za-z0-9]{1,64}\.txt"}
+for key, pattern in checks.items():
+    if not isinstance(r.get(key), str) or not re.fullmatch(pattern, r[key]):
+        sys.exit(f"deploy request field {key} is missing or malformed")
+print(r["version"], r["bundleSha256"], r["commit"], r["wecomVerifyFile"])
+PY
+) || fail "the deploy request is not valid"
+  rm -f "$request"
+  valid_version "$version" || fail "invalid version '$version'"
+  [[ "$env" != prod || "$version" != *-* ]] || fail "prod takes released versions only, not the pre-release $version"
+  log "deploy request: $version ($commit) for $env"
+  if [ "$pinned_expected" != "-" ]; then
+    [[ "$pinned_expected" =~ $PINNED_PATTERN ]] || fail "stdin line 4 must name the WeCom verification file (WW_verify_*.txt) or be -"
+    [ -s "$PINNED/$pinned_expected" ] || fail "$PINNED/$pinned_expected is missing; WeCom would drop the trusted domain (C-4 E-10)"
+  fi
+  # An older manual setup kept static files in a real current/ directory; switching would discard them
+  [[ ! -e "$current_link" || -L "$current_link" ]] \
+    || fail "$current_link is a directory, not the release link; move pinned files to $PINNED and remove it first (C-4 E-10)"
   assert_root_owned "$BASE" "$releases"
   lock
-  place "$version" "$env" "$sha" "$commit" "$url" "$statement_b64" "$signature_b64"
+  place "$version" "$env" "$sha" "$commit"
   running="$(linked_version "$current_link")"
   [ -n "$running" ] || first_install=true
   if [ -n "$running" ] && [ "$running" != "$version" ]; then
@@ -407,8 +464,8 @@ cmd_status() {
 command="${1:-}"
 shift || true
 case "$command" in
-  install) cmd_install "$@" ;;
+  install-pending) cmd_install_pending "$@" ;;
   rollback) cmd_rollback "$@" ;;
   status) cmd_status ;;
-  *) fail "usage: install <version> <dev|prod> <sha256> <commit sha> (URL, statement, signature on stdin) | rollback [<version>] | status" ;;
+  *) fail "usage: install-pending <dev|prod> | rollback [<version>] | status" ;;
 esac

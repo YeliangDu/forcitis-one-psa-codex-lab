@@ -3,7 +3,8 @@
 # key (ssh-keygen -Y, namespace forcitis-one-release). It stands in for artifact attestations, which the GitHub Team plan does not offer
 # for private repositories (RELEASE.md §11). The private key lives only in the `release` environment, which only main can use.
 #
-#   statement.sh write  <bundle.tar.gz> <statement>                     inside the release workflow (reads GITHUB_WORKFLOW_REF, GITHUB_RUN_ID)
+#   statement.sh write  <bundle.tar.gz> <statement> <commit>            inside the release workflow (reads GITHUB_WORKFLOW_REF, GITHUB_RUN_ID);
+#                                                                       <commit> is the sha the workflow proved, never read from the bundle
 #   statement.sh sign   <statement> <private key file>                  writes <statement>.sig
 #   statement.sh verify <bundle.tar.gz> <statement> <allowed signers> <version> <commit>
 set -euo pipefail
@@ -27,11 +28,13 @@ command="${1:-}"
 shift || true
 case "$command" in
   write)
-    archive="${1:?bundle}"; out="${2:?statement}"
+    archive="${1:?bundle}"; out="${2:?statement}"; commit="${3:?commit}"
+    [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "commit must be a full sha"
     name="$(basename "$archive" .tar.gz)"
     version="${name#forcitis-one-}"
     [ -n "${GITHUB_WORKFLOW_REF:-}" ] && [ -n "${GITHUB_RUN_ID:-}" ] || fail "write runs inside GitHub Actions only"
-    commit="$(tar -xzOf "$archive" "$name/manifest.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["gitSha"])')"
+    built_from="$(tar -xzOf "$archive" "$name/manifest.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["gitSha"])')"
+    [ "$built_from" = "$commit" ] || fail "bundle manifest says $built_from, the proved commit is $commit"
     {
       echo "format: $FORMAT"
       echo "version: $version"

@@ -47,20 +47,17 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 
 ## 发布与部署：专用 runner
 
-`release.yml` 与 `deploy.yml` 的 `deploy` 作业只跑在专用 runner 上（RELEASE.md）；`deploy.yml` 的 `gate` 作业不碰凭据，仍在上面 4 个 runner 上跑。专用 runner 是 release 与 deploy 的**必需前置条件**（清单 B-10）：它不在，这些作业就排队不动。
+`release.yml` 的 `build` 作业与 `deploy.yml` 的 `deploy` 作业只跑在专用 runner 上；`release.yml` 的 `publish`（签名）跑在 GitHub 托管的 `ubuntu-24.04`（用户决定，签名私钥不与运行第三方构建代码的机器同机，是对「CI 不用托管机器」的唯一例外）；`deploy.yml` 的 `gate` 不碰凭据，仍在上面 4 个 runner 上跑。专用 runner 是 release 与 deploy 的**必需前置条件**（清单 B-10），按 RELEASE.md §7 R-0 重建。
 
 | 项 | 值 |
 |---|---|
 | 名称与标签 | `mac-one-deploy`；`self-hosted`、`macOS`、`ARM64`、`forcitis-one-deploy`（**不带** `forcitis-one`，不接 CI 作业） |
-| 运行用户 | macOS 用户 `forcitis-deploy`，非管理员，主目录 700（`yeliang` 读不到） |
-| 位置 | `/Users/forcitis-deploy/actions-runner` |
-| 常驻方式 | LaunchDaemon `actions.runner.forcitis-one-deploy`（`/Library/LaunchDaemons/actions.runner.forcitis-one-deploy.plist`） |
-| PATH | `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin` |
-| 工具 | 机器自带：git、curl、unzip、ssh、python3（Homebrew）、gh（Homebrew）、Homebrew 的 `openjdk@25`（不在 PATH 上，`toolchain.sh` 设 `JAVA_HOME`）。作业自带：Node 24 与 aliyun CLI 按版本与 SHA256 锁定下载到 `$RUNNER_TEMP`，pnpm 经 corepack 按 `frontend/package.json` 获取；Maven 仓库与 pnpm store 每次 release 在 `$RUNNER_TEMP` 新建（`--isolated-caches`），不读 `yeliang` 的 `~/.m2` 与 pnpm store。该用户没有 gh 登录，作业用 `GITHUB_TOKEN` |
-
-**pre-job hook（必需）**：runner 目录的 `.env` 设 `ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/forcitis-one/runner-job-started.sh`（来自 `scripts/release/runner_job_started.sh`），hook 与 `.env` 都归 root、`forcitis-deploy` 不可写。它只放行 main 上手动运行的 release.yml 与 deploy.yml：GitHub Team 计划不能在 GitHub 侧把 runner 限定到指定工作流（RELEASE.md §11），任何分支的工作流都可以写 `runs-on: forcitis-one-deploy`，由 hook 在第一步之前拒绝。hook 更新时以 root 重新安装并 `kickstart`。
-
-隔离的意义：PR 的作业可以在 4 个 CI runner 上执行任意代码，但读不到 `forcitis-deploy` 的主目录、`$RUNNER_TEMP` 与 environment secret，也无法往 release 构建的依赖缓存里投放东西。因此 `forcitis-deploy` 不得加入管理员组，也不得给它加 `forcitis-one` 标签。
+| 运行用户 | macOS 用户 `forcitis-deploy`，非管理员；主目录 `/Users/forcitis-deploy`，700 |
+| 位置 | `/opt/forcitis-one-runner`：程序与配置归 root、只读；只有 `_work`、`_diag` 归 `forcitis-deploy`；`.runner`、`.credentials*` 为 root:forcitis-deploy 0640 |
+| 常驻方式 | LaunchDaemon `actions.runner.forcitis-one-deploy`（`/Library/LaunchDaemons/actions.runner.forcitis-one-deploy.plist`，root 所有），`--disableupdate` 注册 |
+| pre-job hook | plist 的 `EnvironmentVariables` 设 `ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/forcitis-one/runner-job-started.sh`（root 所有，来自 `scripts/release/runner_job_started.sh`）；只放行 main 上手动运行的 release.yml 与 deploy.yml，并与事件载荷交叉核对 |
+| PATH | `/usr/bin:/bin:/usr/sbin:/sbin`（plist 与 `.path` 都只写这些）；**不含 `/opt/homebrew`**：它归 `yeliang:admin`，CI 作业可改写其中的程序 |
+| 工具 | 系统自带且 root 所有：bash、git 与 python3（Command Line Tools）、curl、tar、shasum、unzip、ssh、ssh-keygen 等；`toolchain.sh` 每个作业开头核验它们与 PATH 各项的真实路径及全部上级目录归 root、组与他人不可写，否则失败。Java 25、gh、Node 24、aliyun CLI 每个作业按版本与 SHA256 下载到 `$RUNNER_TEMP`（可选以 root 安装 Temurin 25 .pkg 免下载 Java）；pnpm 经 corepack 获取；release 构建用全新的 `HOME`、Maven 仓库与 pnpm store |
 
 日常操作（需要管理员权限）：
 
@@ -71,10 +68,10 @@ sudo launchctl bootout system/actions.runner.forcitis-one-deploy     # 停止并
 sudo launchctl bootstrap system /Library/LaunchDaemons/actions.runner.forcitis-one-deploy.plist  # 重新加载
 ```
 
-日志在 `/Users/forcitis-deploy/actions-runner/_diag/`（以 `forcitis-deploy` 身份查看：`sudo -u forcitis-deploy ls …`）。
+日志在 `/opt/forcitis-one-runner/_diag/`。
 
-升级：runner 程序会自行更新；手动升级时先 `bootout`，以 `forcitis-deploy` 身份在 `/Users/forcitis-deploy/actions-runner` 解压新版本覆盖（保留 `.runner`、`.credentials*`、`.env`、`.path`、`_work`），再 `bootstrap`。升级 Java（Homebrew `openjdk@25`）时同步检查 `toolchain.sh` 的路径；升级 Node 或 aliyun CLI 改 `toolchain.sh` 中的版本与 SHA256，同一个 PR 提交。
+升级（`--disableupdate` 下 runner 不自行更新）：`bootout`；下载新版本 runner 包并核对 GitHub 公布的 SHA256，以 root 解压覆盖 `/opt/forcitis-one-runner` 的程序文件（保留 `.runner`、`.credentials*`、`.env`、`.path`、`_work`、`_diag`），重新按 R-0 第 4 步设所有权；`bootstrap`。GitHub 对过旧的 runner 版本会停止派发作业，需定期升级。升级 Node、Java、gh 或 aliyun CLI 改 `scripts/release/toolchain.sh` 中的版本与 SHA256，同一个 PR 提交。hook 更新时以 root 重新安装并 `kickstart`。
 
-重新注册：在仓库 Settings → Actions → Runners 生成注册令牌（一小时有效，勿写入仓库），`bootout` 后以 `forcitis-deploy` 身份 `./config.sh remove --token <token>`，再 `./config.sh --url https://github.com/FORCITIS/forcitis-one-psa --token <token> --name mac-one-deploy --labels forcitis-one-deploy --unattended`，然后重新安装 LaunchDaemon（plist 中 `UserName` 为 `forcitis-deploy`）并 `bootstrap`。
+重新注册：按 RELEASE.md §7 R-0 第 1–8 步（令牌在 Settings → Actions → Runners 生成，一小时有效，勿写入仓库），注册后做第 8 步的演练。
 
-部署走法兰克福 OSS 中转，最后一跳推荐云助手（RELEASE.md §8）：不需要 ECS 开入方向端口；若改用 SSH 方式，runner 所在网络须有固定公网出口 IP，ECS 安全组 22 端口只对它开放，出口 IP 变化时同时改安全组与 deploy key 的 `from=`。
+部署走法兰克福 OSS 中转，最后一跳推荐云助手固定命令（RELEASE.md §8），不需要 ECS 开入方向端口；若改用 SSH 方式，runner 所在网络须有固定公网出口 IP，ECS 安全组 22 端口只对它开放。

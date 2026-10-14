@@ -1,30 +1,38 @@
-#!/usr/bin/env bash
-# Pre-job hook of the dedicated runner forcitis-one-deploy (ACTIONS_RUNNER_HOOK_JOB_STARTED in the runner's .env). It admits only the
-# release and deploy workflows of main, started by hand; any other job, from any branch or workflow file that names the runner's label,
-# fails before its first step. On the GitHub Team plan a runner group cannot be limited to selected workflows (RELEASE.md §11), so the
-# runner enforces it. Installed root-owned outside the runner directory, together with a root-owned .env, so no job can change it.
+#!/bin/bash
+# Pre-job hook of the dedicated runner forcitis-one-deploy, set as ACTIONS_RUNNER_HOOK_JOB_STARTED in the root-owned LaunchDaemon plist.
+# It admits only the release and deploy workflows of main, started by hand; any other job, from any branch or workflow file that names
+# the runner's label, fails before its first step. On the GitHub Team plan a runner group cannot be limited to selected workflows
+# (RELEASE.md §11), so the runner enforces it. Installed root-owned outside the runner directory; it runs only root-owned system tools.
+#
+# The variables are cross-checked with the event payload the runner wrote for this job, which must lie in this runner's own _temp, so a
+# workflow that sets GITHUB_REF or GITHUB_WORKFLOW_REF in its env still meets the payload of what really triggered it.
 set -euo pipefail
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
-ALLOWED_WORKFLOWS=(
-  "FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main"
-  "FORCITIS/forcitis-one-psa/.github/workflows/deploy.yml@refs/heads/main"
-)
+RUNNER_WORK=/opt/forcitis-one-runner/_work
+REPOSITORY=FORCITIS/forcitis-one-psa
+ALLOWED_WORKFLOW_FILES=(.github/workflows/release.yml .github/workflows/deploy.yml)
 
 refuse() { echo "forcitis-one-deploy runner: refusing this job: $*" >&2; exit 1; }
 
-[ "${GITHUB_REPOSITORY:-}" = "FORCITIS/forcitis-one-psa" ] || refuse "repository '${GITHUB_REPOSITORY:-unset}'"
-[ "${GITHUB_EVENT_NAME:-}" = "workflow_dispatch" ] || refuse "event '${GITHUB_EVENT_NAME:-unset}'; only manual runs are allowed"
-[ "${GITHUB_REF:-}" = "refs/heads/main" ] || refuse "ref '${GITHUB_REF:-unset}'; only main is allowed"
-allowed=false
-for workflow in "${ALLOWED_WORKFLOWS[@]}"; do
-  [ "${GITHUB_WORKFLOW_REF:-}" = "$workflow" ] && allowed=true
-done
-$allowed || refuse "workflow '${GITHUB_WORKFLOW_REF:-unset}' is not release.yml or deploy.yml on main"
+event_path="$(/bin/realpath "${GITHUB_EVENT_PATH:-/nonexistent}" 2>/dev/null)" || refuse "no event payload"
+case "$event_path" in "$RUNNER_WORK"/_temp/*) ;; *) refuse "event payload outside the runner's _temp" ;; esac
 
-# Processes of this user outside the runner are left over from an earlier job; report them (macOS starts some per-user services itself)
-strays="$(ps -U "$(id -u)" -o pid=,comm= | awk -v self="$$" -v parent="$PPID" \
-  '$1 != self && $1 != parent && $2 !~ /(Runner\.(Listener|Worker|PluginHost)|\/ps$|^ps$|awk|bash|cfprefsd|distnoted|trustd|secd|lsd|xpcproxy)/ { print }')"
-if [ -n "$strays" ]; then
-  echo "::warning title=forcitis-one-deploy runner::processes of $(id -un) left over from an earlier job: $(printf '%s' "$strays" | tr '\n' ';')"
-fi
-echo "forcitis-one-deploy runner: admitted $GITHUB_WORKFLOW_REF run $GITHUB_RUN_ID"
+workflow_file=""
+for file in "${ALLOWED_WORKFLOW_FILES[@]}"; do
+  [ "${GITHUB_WORKFLOW_REF:-}" = "$REPOSITORY/$file@refs/heads/main" ] && workflow_file="$file"
+done
+[ -n "$workflow_file" ] || refuse "workflow '${GITHUB_WORKFLOW_REF:-unset}' is not release.yml or deploy.yml on main"
+[ "${GITHUB_REPOSITORY:-}" = "$REPOSITORY" ] || refuse "repository '${GITHUB_REPOSITORY:-unset}'"
+[ "${GITHUB_EVENT_NAME:-}" = workflow_dispatch ] || refuse "event '${GITHUB_EVENT_NAME:-unset}'; only manual runs are allowed"
+[ "${GITHUB_REF:-}" = refs/heads/main ] || refuse "ref '${GITHUB_REF:-unset}'; only main is allowed"
+
+/usr/bin/python3 - "$event_path" "$REPOSITORY" "$workflow_file" <<'PY' || refuse "the event payload does not match the job's variables"
+import json, sys
+event = json.load(open(sys.argv[1]))
+ok = (event.get("ref") == "refs/heads/main" and event.get("workflow") == sys.argv[3]
+      and event.get("repository", {}).get("full_name") == sys.argv[2] and "inputs" in event)
+sys.exit(0 if ok else 1)
+PY
+
+echo "forcitis-one-deploy runner: admitted $GITHUB_WORKFLOW_REF run ${GITHUB_RUN_ID:-?}"

@@ -1,3 +1,4 @@
 # 生产部署批准（RELEASE.md §3、§11）：GitHub Team 计划的私有仓库没有 environment 的 required reviewers，
 # 改以「批准行经 PR 合入 main」作为 prod 部署前的人工批准。deploy_gate.py 只放行此处列出的版本。
-# 每行：<版本> <批准日期 YYYY-MM-DD> <批准人>（人名不进仓库时写角色，如 平台负责人）；只追加，不改旧行。
+# 每行：<版本> <提交 sha> <发布包 sha256> <批准日期 YYYY-MM-DD> <批准人>（人名不进仓库时写角色，如 平台负责人）；只追加，不改旧行。
+# 提交与 sha256 取自已发布 Release 的 .release 声明；deploy 在验签之后逐项核对，批准的是这一个构建而不只是版本号。

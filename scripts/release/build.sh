@@ -3,8 +3,10 @@
 # files, migration list, manifest.json and SHA256SUMS, packed as forcitis-one-<version>.tar.gz plus its .sha256.
 # Runbook: RELEASE.md among the Phase 1a infra runbooks
 #
-#   scripts/release/build.sh --version 0.1.0 [--out DIR] [--environments dev,prod] [--isolated-caches DIR]
+#   scripts/release/build.sh --version 0.1.0 [--out DIR] [--environments dev,prod] [--isolated-caches DIR] [--source DIR --commit SHA]
 #
+# --source DIR --commit SHA: build the checkout in DIR, which must be clean and at SHA, with the scripts of this checkout (the release
+# workflow runs its own, already reviewed scripts from main against the commit it proved, never the scripts of the commit it builds).
 # --isolated-caches DIR: Maven repository, pnpm store and HOME under DIR instead of the user's, so a release never reuses artifacts or
 # settings an earlier job could have planted (the release workflow passes a fresh directory).
 #
@@ -12,30 +14,40 @@
 # <ENV>_TARO_APP_WECOM_CORP_ID (ENV = DEV / PROD); every one must be set and non-empty.
 set -euo pipefail
 
-usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 fail() { echo "build.sh: $*" >&2; exit 1; }
 
 version=""
 out=""
 caches=""
+source_dir=""
+expected_commit=""
 environments="dev,prod"
 while [ $# -gt 0 ]; do
   case "$1" in
     --version) version="${2:-}"; shift 2 ;;
     --out) out="${2:-}"; shift 2 ;;
     --isolated-caches) caches="${2:-}"; shift 2 ;;
+    --source) source_dir="${2:-}"; shift 2 ;;
+    --commit) expected_commit="${2:-}"; shift 2 ;;
     --environments) environments="${2:-}"; shift 2 ;;
     -h|--help) usage ;;
     *) fail "unknown argument: $1" ;;
   esac
 done
 
-repo="$(cd "$(dirname "$0")/../.." && pwd)"
+tools="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=scripts/release/lib.sh
-. "$repo/scripts/release/lib.sh"
+. "$tools/scripts/release/lib.sh"
 
 release_version_valid "$version" || fail "--version must match ${RELEASE_VERSION_PATTERN} (got '${version}')"
-out="${out:-$repo/target/release}"
+out="${out:-$tools/target/release}"
+if [ -n "$source_dir" ]; then
+  [[ "$expected_commit" =~ ^[0-9a-f]{40}$ ]] || fail "--source needs --commit with the full sha it must be at"
+  repo="$(cd "$source_dir" && pwd)"
+else
+  repo="$tools"
+fi
 FRONTEND_VARIABLES="VITE_WECOM_CORP_ID VITE_WECOM_AGENT_ID VITE_SSO_PORTAL_URL TARO_APP_WECOM_CORP_ID"
 
 IFS=',' read -r -a envs <<< "$environments"
@@ -54,6 +66,7 @@ done
 cd "$repo"
 [ -z "$(git status --porcelain)" ] || fail "working tree is not clean; a release is built from a committed state only"
 sha="$(git rev-parse HEAD)"
+[ -z "$expected_commit" ] || [ "$sha" = "$expected_commit" ] || fail "$repo is at $sha, not at $expected_commit"
 commit_epoch="$(git log -1 --format=%ct HEAD)"
 
 java_version="$(java -version 2>&1 | head -1)"
@@ -91,7 +104,8 @@ cp "$jar" "$bundle/forcitis-one.jar"
 release_check_jar_runnable "$bundle/forcitis-one.jar" "$staging/jar-check" || exit 1
 
 echo "== frontend"
-(cd frontend && pnpm install --frozen-lockfile "${pnpm_cache[@]}" --reporter=silent)
+# Dependency install scripts never run: the build has been checked to work without them (RELEASE.md §10)
+(cd frontend && pnpm install --frozen-lockfile --ignore-scripts "${pnpm_cache[@]}" --reporter=silent)
 for env in "${envs[@]}"; do
   upper="$(printf '%s' "$env" | tr '[:lower:]' '[:upper:]')"
   build_env=(NODE_ENV=production)
@@ -132,11 +146,11 @@ done) > "$bundle/migrations.txt"
 [ -s "$bundle/migrations.txt" ] || fail "no migration files found"
 
 echo "== manifest"
-python3 "$repo/scripts/release/manifest.py" write "$bundle" \
+python3 "$tools/scripts/release/manifest.py" write "$bundle" \
   --version "$version" --git-sha "$sha" --commit-epoch "$commit_epoch" \
   --jdk "$java_version" --node "$node_version" --pnpm "$pnpm_pinned" \
   --environments "$environments" --frontend-variables "$FRONTEND_VARIABLES"
-python3 "$repo/scripts/release/manifest.py" verify "$bundle"
+python3 "$tools/scripts/release/manifest.py" verify "$bundle"
 
 mkdir -p "$out"
 archive="$out/$name.tar.gz"

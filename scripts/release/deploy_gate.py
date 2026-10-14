@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Refuses a deployment the repository says must not happen yet.
 
-  deploy_gate.py <dev|prod> <version>     run from the repository root on the main checkout
+  deploy_gate.py <dev|prod> <version>                        run from the repository root on the main checkout
+  deploy_gate.py approval <version> <commit> <bundle sha256>  prod, after the signed statement verified: the approval names exactly this build
   deploy_gate.py --self-test
 
 - Any environment: a blocker entry under docs/modernization/status/blockers/ whose line carries the marker `blocks: deploy` stops the
@@ -9,8 +10,8 @@
   coordinating session deletes the entry, or the marker, when the blocking work is merged.
 - prod: no pre-release version (-rc.N); every Phase 1a exit condition in section D of PREDEPLOY_CHECKLIST.md is done (verified on dev);
   C-9 (the production database) is done. "Done" means the status cell is exactly the done mark, nothing else. The version is listed in
-  prod-approvals.txt: on the GitHub Team plan a private repository has no required reviewers, so a reviewed approval line merged into
-  main is the human approval.
+  prod-approvals.txt as "<version> <commit> <bundle sha256> <YYYY-MM-DD> <approver>": on the GitHub Team plan a private repository has
+  no required reviewers, so a reviewed approval line merged into main is the human approval, and it pins the exact build approved.
 """
 import os
 import re
@@ -51,13 +52,29 @@ def table_rows(checklist_text, section_letter):
     return rows
 
 
-def approved_versions(root):
+def approvals(root):
+    """{version: (commit, bundle sha256)} from prod-approvals.txt; a malformed or repeated line fails the gate."""
     with open(os.path.join(root, PROD_APPROVALS), encoding="utf-8") as handle:
         rows = [line.split() for line in handle if line.strip() and not line.startswith("#")]
+    found = {}
     for row in rows:
-        if len(row) < 3 or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", row[1]):
-            raise SystemExit(f"deploy_gate.py: {PROD_APPROVALS} line {' '.join(row)!r} is not '<version> <YYYY-MM-DD> <approver>'")
-    return {row[0] for row in rows}
+        if (len(row) < 5 or not re.fullmatch(r"[0-9a-f]{40}", row[1]) or not re.fullmatch(r"[0-9a-f]{64}", row[2])
+                or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", row[3])):
+            raise SystemExit(f"deploy_gate.py: {PROD_APPROVALS} line {' '.join(row)!r} is not "
+                             "'<version> <commit> <bundle sha256> <YYYY-MM-DD> <approver>'")
+        if row[0] in found:
+            raise SystemExit(f"deploy_gate.py: {PROD_APPROVALS} approves {row[0]} twice")
+        found[row[0]] = (row[1], row[2])
+    return found
+
+
+def approval_problems(root, version, commit, bundle_sha256):
+    approved = approvals(root).get(version)
+    if approved is None:
+        return [f"{version} is not approved for prod in {PROD_APPROVALS}"]
+    if approved != (commit, bundle_sha256):
+        return [f"{PROD_APPROVALS} approves {version} as commit {approved[0]} bundle {approved[1]}, not {commit} bundle {bundle_sha256}"]
+    return []
 
 
 def check(root, environment, version):
@@ -74,7 +91,7 @@ def check(root, environment, version):
         open_exits = [row for row, status in exits.items() if status != DONE]
         if open_exits:
             problems.append(f"Phase 1a exit conditions (verified on dev) not done in {CHECKLIST}: {', '.join(open_exits)}")
-        if version not in approved_versions(root):
+        if version not in approvals(root):
             problems.append(f"{version} is not approved for prod in {PROD_APPROVALS}")
         executions = table_rows(text, "C")
         for row in PROD_PREREQUISITES:
@@ -88,7 +105,7 @@ def self_test():
         os.makedirs(os.path.join(root, BLOCKERS))
         os.makedirs(os.path.dirname(os.path.join(root, PROD_APPROVALS)))
         with open(os.path.join(root, PROD_APPROVALS), "w", encoding="utf-8") as handle:
-            handle.write("# header\n0.1.0 2026-10-14 平台负责人\n")
+            handle.write(f"# header\n0.1.0 {'c' * 40} {'d' * 64} 2026-10-14 平台负责人\n")
 
         def checklist(statuses, c9=DONE):
             rows = "".join(f"| D-{i} | x | y | {s} |\n" for i, s in enumerate(statuses, 1))
@@ -105,6 +122,9 @@ def self_test():
         assert check(root, "dev", "0.1.0-rc.1") == [] and check(root, "prod", "0.1.0") == []
         assert check(root, "prod", "0.1.0-rc.1"), "prod refuses pre-releases"
         assert any("not approved" in p for p in check(root, "prod", "0.2.0")), "prod needs an approval line"
+        assert approval_problems(root, "0.1.0", "c" * 40, "d" * 64) == []
+        assert approval_problems(root, "0.1.0", "e" * 40, "d" * 64), "the approval pins the commit"
+        assert approval_problems(root, "0.1.0", "c" * 40, "f" * 64), "the approval pins the bundle"
         checklist([DONE] * 8 + ["⬜"])
         assert check(root, "dev", "0.1.0") == [] and "D-9" in check(root, "prod", "0.1.0")[0]
         checklist([DONE] * 8 + [DONE + " 部分"])
@@ -122,7 +142,7 @@ def self_test():
         text = handle.read()
     assert len(table_rows(text, "D")) >= EXPECTED_EXIT_CONDITIONS, f"{CHECKLIST} section D no longer parses"
     assert all(row in table_rows(text, "C") for row in PROD_PREREQUISITES), f"{CHECKLIST} section C lacks {PROD_PREREQUISITES}"
-    approved_versions(".")
+    approvals(".")
     print("deploy_gate.py self-test passed")
 
 
@@ -130,6 +150,13 @@ def main(argv):
     if argv == ["--self-test"]:
         self_test()
         return 0
+    if len(argv) == 4 and argv[0] == "approval":
+        problems = approval_problems(".", *argv[1:])
+        for problem in problems:
+            print(f"deploy_gate.py: {problem}", file=sys.stderr)
+        if not problems:
+            print(f"deploy_gate.py: {argv[1]} is approved for prod as exactly this build")
+        return 1 if problems else 0
     if len(argv) != 2 or argv[0] not in ("dev", "prod"):
         print(__doc__, file=sys.stderr)
         return 2

@@ -19,9 +19,14 @@ name="$(basename "$archive" .tar.gz)"
 
 work="$(mktemp -d "${TMPDIR:-/tmp}/forcitis-one-verify.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
+# Same entry rules as the installer on the server (remote_install.sh check_tar_entries)
 tar -tzf "$archive" | while IFS= read -r entry; do
   case "$entry" in "$name"|"$name/"|"$name"/*) ;; *) fail "entry outside $name/: $entry" ;; esac
+  case "/$entry/" in */../*) fail "entry with ..: $entry" ;; esac
 done
+if tar -tvzf "$archive" | grep -Eq '^[lhbcp]'; then
+  fail "bundle contains links or special files"
+fi
 tar -xzf "$archive" -C "$work"
 bundle="$work/$name"
 
