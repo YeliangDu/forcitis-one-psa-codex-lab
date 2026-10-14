@@ -133,6 +133,10 @@ health_ok() {
 switch_to() {
   local version="$1"
   [ -d "$releases/$version" ] || fail "release $version is not installed"
+  if [ "$(systemctl is-enabled "$UNIT" 2>/dev/null || true)" != enabled ]; then
+    systemctl enable "$UNIT" || fail "could not enable $UNIT"
+    log "enabled $UNIT"
+  fi
   ln -sfn "releases/$version" "$BASE/.current.next"
   mv -T "$BASE/.current.next" "$current_link"
   systemctl restart "$UNIT"

@@ -1,6 +1,6 @@
 # 首次 dev 部署前运维剩余事项（按依赖排序）
 
-维护：one-ops。更新：2026-10-15。依据：`PREDEPLOY_CHECKLIST.md`、`CROSSCHECK.md`、`DECISIONS_A.md`、各剧本，以及 2026-10-15 对阿里云的只读查询。本表只列**首次 dev 部署之前**还要做的事；生产前事项见清单「生产前」时点。
+维护：one-ops。更新：2026-10-15（第二轮：C-3、C-4、C-6 已执行项，并入 RELEASE.md R-0..R-12）。依据：`PREDEPLOY_CHECKLIST.md`、`CROSSCHECK.md`、`DECISIONS_A.md`、各剧本，以及 2026-10-15 对阿里云的只读查询。本表只列**首次 dev 部署之前**还要做的事；生产前事项见清单「生产前」时点。
 
 「谁」：**ops** = one-ops（或 one-coordinator 派的运维子代理）；**用户** = 只能用户本人做或决定；**1a** = 1a 代码会话；**DBA** = 老系统 / A8 的数据库管理员（A-2 人选未定）。「花钱」：否 / 是（付费项编号见 C-7「落地方案」与本表）/ 按量（已开通服务的小额用量）。耗时是动手时间，不含等人。
 
@@ -16,17 +16,18 @@
 
 | # | 事项 | 谁 | 花钱 | 耗时 | 状态 / 依赖 |
 |---|---|---|---|---|---|
-| 1-1 | C-3 建 `forcitis_one_dev` 与 `one_dev_*` 角色；RDS SSL 与 CA（N-3） | ops（运维子代理在做） | 否 | 1 h | 用户已授权；完成后交 one-ops |
-| 1-2 | C-2 免费部分：删除保护、备份策略核对 | ops（运维子代理在做） | 否 | 0.5 h | 日志备份（RPO ≤ 5 分钟）若超出免费额度属按量，见 1-9 |
-| 1-3 | B-5 A8 与老系统只读视图和账号（三个视图、三个账号，口令服务器端生成） | ops（运维子代理在做） | 否 | 2 h | 用户已授权 |
-| 1-4 | B-6 在职但无企业微信 ID 的只读计数 | ops（运维子代理在做） | 否 | 0.5 h | 清零属出口前（组织数据管理员） |
-| 1-5 | C-4 余项 E-2..E-14、E-17：时区与时钟、Java 25、systemd、logrotate、目录、出站安全组、云监控操作系统级监控（现为 stopped） | ops（运维子代理在做） | 否 | 3 h | E-11 / E-12 依赖 1-9 的付费决定 |
-| 1-6 | A-3 第二名超管与两名应急账号持有人；A-8 dev 收件人白名单名单；A-5 值班安排 | 用户 | 否 | — | 平台负责人已定；人选记在本机 `~/.modernize/psa/infra/role_holders.md` |
-| 1-7 | A-5 建企业微信群「FORCITIS one 运维」与群机器人，把 Webhook 交 ops 写入 `/etc/forcitis-one/ops-alert.env`（经安全输入窗口，不经聊天） | 用户建群；ops 写入 | 否 | 0.5 h | C-7 演练与证书告警推送的前提 |
-| 1-8 | C-7 证书到期检查安装（`one_cert_check.sh` + 定时器） | ops | 否 | 0.5 h | ✅ 2026-10-15 已安装（t-hz0701b833ib7r4）；推送待 1-7 |
-| 1-9 | 付费决定：P-1 ARMS 抓取 FORCITIS one 指标；P-2 SLS Project 与日志告警（Logstore 30 天）；P-4 ECS 数据盘每日快照保留 7 天（E-17，快照按量计费）；P-5 RDS 日志备份超出免费额度的部分 | 用户 | 是 | — | P-1 是出口条件 D-6 必需；dev 部署本身不依赖 |
-| 1-10 | B-3 A8 管理员登记新系统的致远验票回跳地址 | 用户 → A8 管理员 | 否 | 0.5 h | 不替换老 SSO |
-| 1-11 | B-2 余项：企业可信 IP 47.114.56.157；H5 工作台入口（依赖 1a 改 H5 子路径，CROSSCHECK 第 4 条） | 用户（企业微信后台） | 否 | 0.5 h | 运维不改企业微信后台 |
+| 1-1 | C-3 建 `forcitis_one_dev` 与 `one_dev_*` 角色；RDS SSL 与 CA（N-3） | ops | 否 | — | ✅ 建库建角色与 verify（t-hz0701ctw0hn3eo）；三个登录角色口令在 ECS 上生成、只交 SCRAM 校验值；建库用内置 provider 的 `C.UTF-8`。实例 SSL 本已开启，CA 已装 `/etc/forcitis-one/rds-ca.pem`，三个角色 `verify-full` 实连通过 |
+| 1-2 | C-2 免费部分 | ops | 否 | — | ✅ 备份窗口改到北京 02:00–03:00（改前核对夜间 CPU 峰值 0.1 %）；自动续费已开、余额充足（10-17 再核对扣款）；删除保护对包年包月不可开。RPO：PostgreSQL 无日志备份频率选项，按用户决定接受现状（C-2「RPO 结论」） |
+| 1-3 | B-5 A8 与老系统只读视图和账号 | ops | 否 | — | ✅ A8（one-ops-1a）；老系统（one-ops 重跑：verify 全符合、真实登录 8 项越权全拒、`one.env` 已写） |
+| 1-4 | B-6 在职但无企业微信 ID 的只读计数 | ops | 否 | — | ✅ 在职 304、无 ID 0（2026-10-15T01:33:35+08:00） |
+| 1-5 | C-4 余项 | ops | 否 | — | ✅ E-3 用户与目录、E-4 Temurin 25.0.4.1、E-8 / E-9 / E-10 新布局（TLS 软链、static-pinned、续期 webroot、套件收紧，续期演练通过）、E-11 / E-12 SLS 与指标采集、E-14 出站白名单；服务单元已装未启用；云监控操作系统级指标（内存、磁盘使用率含数据盘）已在上报（接口状态字段 `OsMonitorStatus` 显示 stopped 与实际不符，以指标为准） |
+| 1-6 | A-3 超管与应急账号；A-8 dev 收件人白名单；A-5 值班 | 用户 | 否 | — | ✅ dev 阶段只有平台负责人一人操作（超管 1、应急账号 1，均为用户本人）；A-8 白名单 4 人已写入 ECS `one.env`；值班：平台负责人本人（用户「我来值班」） |
+| 1-7 | A-5 告警渠道 | 用户建群；ops 写入 | 否 | — | ✅ 「FORCITIS one 运维」群机器人；Webhook 经安全输入窗口写入 `ops-alert.env`（root 0600），测试消息用户确认收到；P1 不加短信 |
+| 1-8 | C-7 证书到期检查安装（`one_cert_check.sh` + 定时器） | ops | 否 | 0.5 h | ✅ 2026-10-15 已安装（t-hz0701b833ib7r4）；告警经 `one_alert_send` 推送到运维群 |
+| 1-9 | 付费决定 | 用户 | 是 | — | ✅ 用户选开 P-1、P-2、P-4、P-5，P-3 不开；P-4 快照策略已存在（含系统盘，保留现状）；P-5 无超额；P-1 / P-2 已开通（SLS 按使用功能计费、指标走 SLS Prometheus 指标库） |
+| 1-10 | B-3 在 A8「第三方应用」新建「FORCITIS one」单点登录入口（仿照未启用的「`FORCITIS PSA`」，页面地址 `https://one.forcitis.com/login/sso`） | 用户 / A8 管理员（A8 后台） | 否 | 0.5 h | ops 已查清：老系统现用的「数字运营平台」关联系统只 POST `memberId`、不验票，不可照搬；票据方式见 `handoff/B-3`；A8 验票根地址 `https://bpm.forcitis.com`，ECS 可达；`one.env` 已设 `SEEYON_OA_BASE_URL`、`FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED=true`、`LEGACY_LOGIN_URL` |
+| 1-12 | C-3 `one_admin` 口令轮换（用户「先建后轮换」） | ops | 否 | — | ✅ 2026-10-15：ECS 上以 `ALTER ROLE` 自改口令（`scripts/c3_rotate_admin_password.py`），不依赖 R-4 |
+| 1-11 | B-2 余项：企业可信 IP 47.114.56.157；H5 工作台入口（依赖 1a 改 H5 子路径，CROSSCHECK 第 4 条） | 用户（企业微信后台） | 否 | — | 可信 IP ✅ 2026-10-15（用户配置；ECS 出口 47.114.56.157 调 message/send 得 81013 而非 60020，IP 检查已通过，未发出消息）；H5 入口待 1a |
 
 ## 第 2 层：代码侧前置（1a）
 
@@ -38,9 +39,23 @@
 | 2-4 | 定时任务失败指标确认、Flowable 死信任务数指标（CROSSCHECK 第 13 条） | 1a | 否 | C-7 前 |
 | 2-5 | `SEEYON_VIEWS.sql` 注释与旧授权块（CROSSCHECK 第 10、11 条） | 1a | 否 | B-5 执行以交接包为准，不受影响 |
 
-## 第 3 层：发布与部署一次性设置（PR #59 合并后并入）
+## 第 3 层：发布与部署一次性设置（RELEASE.md §7，PR #59 已合并）
 
-PR #59 合并后，把 RELEASE.md §7 的 R-0..R-12 逐行并入此处，并标注谁做、是否花钱。已知其中需用户做的：R-0 专用部署 runner 重建（需 Mac 管理员密码）；R-1 / R-2 / R-5 / R-6 / R-8 / R-9 GitHub 仓库设置；R-3 法兰克福发布 bucket（用户定首次 dev 部署前再建，**花钱：按量**）；R-4 RAM 部署子账号与 ECS 实例角色；R-12 发布签名密钥。ops 做：R-7 ECS 安装器与云助手命令、R-10 `one.env` 补项、R-11 连通演练。
+| # | 事项 | 谁 | 花钱 | 耗时 | 状态 / 依赖 |
+|---|---|---|---|---|---|
+| R-0 | 专用部署 runner 重建（`/opt/forcitis-one-runner` 归 root、hook、LaunchDaemon、`--disableupdate`、演练） | 用户（需 Mac 管理员密码与一次性注册令牌） | 否 | 1.5 h | ✅ 2026-10-15：`mac-one-deploy` 在线（`scripts/release/runner_rebuild.sh`）；第 8 步拒绝演练通过（分支工作流与伪造变量均被 hook 拒绝），放行路径在首次 dev 部署时验证 |
+| R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15 |
+| R-2 | 仓库级 Actions variables：8 个构建期变量 | 用户 | 否 | 0.2 h | B-2、B-3 完成后填 |
+| R-3 | 发布用 OSS bucket（法兰克福，30 天过期） | 用户 | 按量 | 0.3 h | 用户定首次 dev 部署前再建；与 B-11 归档 bucket 不同 |
+| R-4 | RAM：每环境部署子账号与 AccessKey；ECS 实例 RAM 角色 | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.5 h | 1-12 口令轮换、B-11 写入方策略也绑在该实例角色上 |
+| R-5 | 各 environment 的 secrets（含 `RELEASE_SIGNING_KEY`） | 用户 | 否 | 0.2 h | R-4、R-12 |
+| R-6 | 各 environment 的 variables（`OSS_*`、`DEPLOY_TRIGGER`、`WECOM_VERIFY_FILE`、`ECS_*`） | 用户 | 否 | 0.2 h | R-3、R-7；校验文件名为 static-pinned 中现有那一个 |
+| R-7 | ECS：安装器、签名公钥、`release-source`、aliyun CLI 与实例角色配置、云助手固定命令 | ops | 否 | 1 h | R-4、R-12；E-3 / E-9 / E-10 部分已完成 |
+| R-8 | 标签规则 `v*` | 用户 | 否 | 0.1 h | ✅ 2026-10-15（只限更新与删除，见 RELEASE.md R-8） |
+| R-9 | 启用 immutable releases；确认 Actions 权限与托管 runner | 用户 | 否 | 0.1 h | ✅ 2026-10-15 |
+| R-10 | `one.env` 补 `SPRING_FLYWAY_ENABLED=false`；`/etc/forcitis-one/migrate/` 迁移凭据 | ops | 否 | — | ✅ 两项都已就位（one-ops-1a；迁移凭据由 C-3 写入）；首次 Flowable 安装项待首次部署 |
+| R-11 | bucket 建好后的连通演练（不部署） | ops | 否 | 0.5 h | R-3、R-4、R-7 |
+| R-12 | 发布签名密钥：可信机器生成，私钥进 secret，公钥经 PR 写入 `allowed_signers` 并装到 ECS | 用户生成；ops 装 ECS 公钥 | 否 | 0.3 h | ✅ 2026-10-15；ECS 公钥随 R-7 安装 |
 
 ## 第 4 层：部署当日与部署后（出口前）
 
@@ -59,3 +74,15 @@ PR #59 合并后，把 RELEASE.md §7 的 R-0..R-12 逐行并入此处，并标�
 | B-11 归档 OSS bucket（在线 3 年 + 归档 7 年） | 用户建；ops 演练 | 是：归档存储按量 | [`handoff/B-11-archive-oss-bucket.md`](handoff/B-11-archive-oss-bucket.md)：创建步骤、WORM 2557 天、写入方 / 调阅方最小权限策略、演练 |
 | C-1 RDS 扩容 | 用户 | 是 | 用户「现在还在开发阶段，生产阶段可以扩容的现在不做」：移到生产前 |
 | C-8 KMS、C-9 生产库、A-6 云安全中心付费版 | 用户 / ops | C-8、A-6 是 | 生产前 |
+| 生产前：维护窗口开启 SQL Server 实例 `rm-bp1690ep53t9778dp` 的 SSL，生产连接强制校验证书 | 用户定时间；ops | 否 | 用户「dev 先信任服务器证书，生产前开 SSL (Recommended)」；开 SSL 会重启承载 A8 与老系统的实例 |
+| 生产前：RDS PG 实例证书重签（私钥曾进入会话记录，必要时重启，与 IT 门户协调） | 用户定时间；ops | 否 | 用户「和生产前维护一并做」；PG 侧 SSL 已开启、`verify-full` 已就绪，重签后核对 CA 未变 |
+| 生产前：启用第二名超级管理员与第二个应急账号，C-5 恢复「双人在场」；撤销 dev 单人例外（若已批准） | 用户；ops | 否 | 用户「这些安全措施等到生产部署前再真正落实」；人选已定，见私有文件 |
+| 生产前：RPO 复核 | 用户 | 可能（高频快照按量） | 已确认 PostgreSQL 无日志备份频率选项；平台约定为「主机故障不丢数据（高可用）；误操作恢复精度取决于日志备份频率（实测约 2.4 小时），生产前再评估」；生产前决定是否开高频快照备份 |
+
+## 安全事件与风险登记
+
+| 日期 | 事项 | 影响 | 处置 |
+|---|---|---|---|
+| 2026-10-15 | 安全事件：调用 `rds DescribeDBInstanceSSL`（pgm-bp13vak0sew3m003）时直接打印了返回，返回中的实例证书私钥（`ServerKey`）进入 one-ops 会话记录 | 持有私钥者可冒充该 RDS 实例做中间人，须能截获 VPC 内网流量 | 用户「和生产前维护一并做」：生产前重签证书；已在 INFRA_RUNBOOK、C-2、C-3 加「不得调用会返回密钥的接口、不打印云接口原始返回」 |
+| 2026-10-15 | 风险：老系统应用服务器（公网 47.96.80.40）上的配置中心 8848 无需登录即可读出生产数据库高权限口令；安全组只对 `58.213.91.210/32`、`58.213.91.218/32` 放行 8848 | 用户确认两地址「是公司出口」：公司办公网内任何人可不登录读取该口令 | 按用户「老系统先不管」不处理 |
+| 2026-10-15 | 风险：SQL Server 实例 `rm-bp1690ep53t9778dp` 公网白名单组含 `0.0.0.0/0` | 该实例同时承载新系统读取 A8 与老系统的只读账号 | 用户「保持不动」 |

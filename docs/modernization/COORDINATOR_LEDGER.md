@@ -2,7 +2,7 @@
 
 调度会话的工作记忆。会话被压缩或重开时，先读本文件（调度会话名为 one-coordinator；工作会话向它报告）、`python3 docs/modernization/build_all.py` 生成的 STATUS.md（或 generated-docs 分支）、SESSION_PLAYBOOK §11–§14。只记「正在进行」的东西，完成即删；历史在 intent/、session-log/ 与 git 记录里。本文件只由调度会话维护，不拆片段。
 
-更新：2026-10-14 17:50（one-coordinator 接手后）
+更新：2026-10-15 23:10（one-coordinator）
 
 ## 用户授权调度会话自行决定的事
 - 审核并合并 PR（「合 PR 交给你审核，决定权给你」）。main 受保护：只要求 backend / frontend / gitleaks 三项 CI 通过（另有 assertion drift 仅警告），管理员也受限。
@@ -21,24 +21,44 @@
 ## 在途工作会话
 | 会话 | 在做 | 下一步 |
 |---|---|---|
-| psa-1a-platform-bridge-reimagine | 修复批 A / B / C 三个 sonnet 代理（17:05 派出，基线 1606d45）：B-1、H-1..H-7、M-*、ADR-0027、打分卡 K / D / T、84 项改名、businessDate、CROSSCHECK 第 2、5–8 项（B）、第 3、4 项与删除 delivery.execution（集成时）、H5 `/h5/` 子路径（C，用户在该会话定 N-1） | 集成 → 全量验证 → opus 复审 → 报告可合并（复审结论到了才合）。之后：守护 G-T1..G-T4 与 §14.1 守护、迁移基线合并（SESSION_PLAYBOOK §12.2，首次部署前），再派下一批；建议 B 后半段再拆 2–3 个代理（用户暂缓发出） |
-| 子代理：CI 提速 | 改 ci.yml / generated-docs.yml 到本机自托管 runner（mac-one-1..4，`~/actions-runners/one-N`，launchd，用户「用本机自托管 runner 吧」、离线就等）；并行、文档 PR 跳过构建；目标代码 PR < 60 s | 开 PR → 我审核：测试数不减（surefire 653 / 19 skipped、failsafe 203）、三个必需检查名不变 |
+| psa-1a-platform-bridge-reimagine | 修复批六路（A 审批/工时、B1 身份授权、B2 数据架构、B2b 事件指标、B3 平台约定、C 前端）；A、C、B2b 可整合，B2 终核中，B1、B3 修复中；已按 §6.1 改为滚动整合、复核按严重度分流 | 整合分支逐路并入 → 整体 opus 复审 → 我核对合并 → 删除 status/blockers/080。紧接下一批（首次部署前必须）：全部聚合主键 UUIDv7（用户已定，B3 曾擅自推迟）、84 项改名、迁移基线（含「只增不删」守护）、OneApplication main 与 spring-boot-maven-plugin（ZIP layout，回放命令走 PropertiesLauncher）、G-T1..G-T4 守护。下一批按 §6.1 七条派工 |
+| one-ops | 运维线长期会话。已做：C-3 dev 库与角色（one_admin 先建后轮换，builtin C.UTF-8）、B-5 A8 与老系统只读视图、C-4（Temurin 25、证书目录新布局、TLS 收紧、出站白名单、单元已装未启用）、C-6 角色与日历导出（回放导出进行中）、C-7 证书检查定时器、SLS 开通 | PR：C-3 / C-6 工具、nginx 模板、install-enable（#67 待解冲突）；DEV_DEPLOY_REMAINING 并入 #59 的 R-0..R-12；C-2 备份窗口改 02:00–03:00（先核门户夜间负载）；RDS PG verify-full（CA 链） |
+| forcitis-one-psa-36（design-sync 预演） | 已交 #64（字体令牌、预演项目同步） | 遗留：品牌字体入库、SelectField 出错样式、token 与 VI 标准色（#CF000E / #595757、Montserrat）对齐；正本同步前做 |
 
-已完成、可复用：psa-repo-fragments（#53）、psa-olap-architecture、psa-terms-review（第三轮用语确认待启动）、psa-1a-process-review、psa-authz-model、one-docs-naming、psa-gl-finance-review、psa-review-*。旧调度会话 psa-coordinator（改名 psa-coordinator-1）已交接，不再处理消息。
+已完成、可复用：psa-repo-fragments、psa-olap-architecture、psa-terms-review（第三轮用语确认待启动）、psa-1a-process-review、psa-authz-model、one-docs-naming、psa-gl-finance-review、psa-review-*。旧调度会话 psa-coordinator-1 已交接。
+
+## 后台任务与持久配置（SESSION_PLAYBOOK §2.1 第 9 条）
+| 位置 | 项 | 性质 | 负责 | 清理 |
+|---|---|---|---|---|
+| ECS i-bp122xlpar8w2uylmal2 | systemd 单元 one-ops-ghtest + /root/one-ops-ghtest.{sh,log} | 临时（GitHub 直拉测速，6 次） | one-ops | 出结果后删除，结果入记录 |
+| ECS | one-cert-check.timer、LoongCollector（ilogtaild / loongcollectord）、/etc/forcitis-one/ops-alert.env（群机器人 Webhook，root 0600）、/etc/forcitis-one/one.env、one-admin.pgpass、migrate/ | 长期 | one-ops | — |
+| 本机 Mac | 自托管 runner mac-one-1..4（~/actions-runners/one-N，LaunchAgent，用户 yeliang）与 mac-one-deploy（/opt/forcitis-one-runner，LaunchDaemon，用户 forcitis-deploy，pre-job hook） | 长期 | one-coordinator / one-ops | — |
+| 本机 Mac | ~/.modernize/psa/infra/role_holders.md（人名，0600）、~/.modernize/psa/finance/FINANCE_CONFIRM_v3.html（0600） | 长期私有 | one-coordinator | — |
+| 阿里云 | SLS Project forcitis-one-observability（30 天）、云监控 OS 指标、ECS 快照策略 forcitis-one-daily | 长期付费（约 40 元/月以内） | one-ops | — |
+| GitHub | environments release / dev / prod、签名私钥 secret（release）、v* 标签规则（仓库级，组织级待用户定）、immutable releases | 长期 | one-ops | — |
 
 ## 重要阻塞
 - 1a 修复批合并前禁止部署任何环境（status/blockers/080）。修复批合并前须 opus 复审。
+- 首次发布前：OneApplication 无 main（build.sh 拒绝打包），由下一批修。
+
+## 本机设施
+- CI：本机自托管 runner mac-one-1..4（`~/actions-runners/one-N`，标签 forcitis-one）。部署 runner mac-one-deploy 已从 GitHub 注销，待用户执行 R-0 重建（/opt/forcitis-one-runner、root 所有、hook、--disableupdate，用户 forcitis-deploy 已建）。发布打包与签名在 GitHub 托管机。
+- 代码 PR 合并前须有 opus 复审结论；文档 PR 凭 CI 合并。
 
 ## 待合并 PR
-- #54 CI 提速（本机自托管 runner）——等子代理改 openapi.json 竞争与 READ_BY_BUILDS 自检后合并。
-- 本 PR：A 类决定记录。
-- 已合并：#51、#52、#53、#55、#57。
+- #67 安装器首次 enable（one-ops 解冲突中）。已合并：#51–#61、#63–#66、#68（#62 与 #64 重复已关闭）。
 
-## 采纳的规则待落地（用户「采纳」，2026-10-14）
-- 守护 G-T1..G-T4（§14）、规格到测试对照（§13）、迁移基线开放标记与 migrations_immutable.py 放行（§12.2）→ 1a 修复批之后派。
-- brief 各阶段入口条件加「表结构评审已完成」「公共基础已冻结」→ brief 重新生成时一起审批（与统一编排路线同批）。
+## 采纳的规则待落地
+- §6.1 修复批流程七条（2026-10-15）：滚动整合与复核分流已用于本批，其余下一批启用；记录复审轮次与耗时作对比。
+- 守护 G-T1..G-T4、规格到测试对照、迁移基线开放标记 → 1a 下一批。
+- brief 各阶段入口条件加「表结构评审已完成」「公共基础已冻结」→ brief 重新生成时一起审批。
+- 项目技能 one-fix-loop（交付前自查）：已提议，用户未表态。
 
 ## 待用户 / 财务 / 运维决定
+- 用户待办：RDS 控制台查日志备份频率（RPO；查不到则平台约定改为「主机故障不丢、误操作恢复精度取决于日志备份」）；ICP 备案主体核验；建企业微信「FORCITIS one 运维」群与机器人（A-5，Webhook 经 one-ops 安全窗口）；R-0 部署 runner 重建（sudo）；R-1..R-12；建归档 OSS bucket（国内、归档存储、本地冗余、WORM 2557 天，B-11）与法兰克福发布 bucket；向 A8 方提 v_org_member 加离职日期列。
+- 发布流水线 U-1 / U-2 / U-3 / U-5：首次 prod 部署前定（建议接受 U-1、U-2、U-3；U-5 届时再定）。
+- 生产前维护窗口（用户定时间）：RDS SQL Server rm-bp1690ep53t9778dp 开 SSL 并强制校验；RDS PG 证书重签（私钥曾进 one-ops 会话记录）。
+- 老系统安全风险登记（用户「老系统先不管」）：SQL Server 公网白名单 0.0.0.0/0、psa-nacos 8848 对公司出口免登录可读生产库高权限口令、48088 对公网——这台 SQL Server 也承载新系统读 A8 的只读账号，1a 上线前须再请用户评估。
 - 部署前清单：A 类与 N-1..N-3 已决定（用户「A 类全部按建议」「其他人选先空着，N-2、N-3 也采纳」）；平台负责人为用户本人，其余人选待定（本机私有记录 `~/.modernize/psa/infra/role_holders.md`，不入仓库）——生产前须补齐第二名超管（运维）、安全审计员（不能是超管）、组织数据管理员、DBA。B 类只能用户或运维执行（先做 B-1 `/design-sync`、B-2 企业微信应用）；C 类执行前须确认，C-5 等运维命令实现。CI 无发布流水线（清单遗漏项）——待安排。
 - 财务：确认单 v2（`~/.modernize/psa/finance/FINANCE_CONFIRM_v2.html`，FQ-01..FQ-22 + 7 份 ADR），答复用 `r0/import_finance_answers.py` 导入；G1 开工前必须。FQ-18 需先跑 U8C 分类查询另行发送。
 - 用户：B1–B5 与经营问题清单（`~/.modernize/psa/bi-inputs/questions/`）；OAT 4 个文件在 ddd-theory 提交后改引提交号；确认单末尾「会计类新术语由财务逐条确认」是否保留（未答）。

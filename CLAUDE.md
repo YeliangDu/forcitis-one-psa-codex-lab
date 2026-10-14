@@ -22,3 +22,4 @@
 - 记录只改片段：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `docs/modernization/build_all.py` 从 `intent/`、`session-log/`、`status/`、`adr/src/` 生成；用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段（文件名带时刻与会话名，不手工起名），改完运行 `build_all.py`；ADR 与 brief 连同产物提交，INTENT / SESSION_LOG / STATUS 不入仓（只提交片段）；不直接编辑生成产物。
 - main 受分支保护：所有改动经 PR，CI 三项通过后由调度会话 one-coordinator 合并；工作会话结束前向 one-coordinator 报告。
 - 只在自己的 worktree 分支上工作并开 PR，不在主检出目录留未提交改动；用户已决定的事照做，有异议停下报告，不得自行推迟或改变。
+- 会话管理按 SESSION_PLAYBOOK §2.1：一个会话一个工作单元、超过约 8 小时或压缩两次在批次边界交接；`one-*` 命名且不重名；权限模式与调度会话一致；每个完成点向调度会话报告；用户在本会话的决定当场记 intent 并报调度会话；后台任务与持久配置登记台账；不打印、不调用返回密钥的接口。

@@ -70,8 +70,12 @@ echo | openssl s_client -connect one.forcitis.com:443 -tls1_1 2>&1 | grep -c "Ci
 | OCSP 装订 | 无（Let's Encrypt 已停止 OCSP 服务，不扣分） |
 | TLS 1.2 套件 | 除 AEAD 外仍接受 CBC 套件（例如 `ECDHE-ECDSA-AES128-SHA`、`ECDHE-ECDSA-AES256-SHA384`）：nginx 未设 `ssl_ciphers`，用的是 OpenSSL 默认 |
 
-判断：按 SSL Labs 现行评级规则大概率为 A；CBC 套件会被标为 WEAK，但不封顶。建议（随 C-4 的 nginx 模板一起改，执行前确认）：TLS 1.2 只留 ECDHE + AEAD，`ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305;`。另：现网证书在 `/etc/letsencrypt/live/one.forcitis.com/`，`files/nginx-one.conf` 模板仍写 `/etc/nginx/tls/…`，模板须对齐现网（C-4 负责的会话处理）。
+判断：按 SSL Labs 现行评级规则大概率为 A；CBC 套件会被标为 WEAK，但不封顶。建议（随 C-4 的 nginx 模板一起改，执行前确认）：TLS 1.2 只留 ECDHE + AEAD，`ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305;`。**已处理（2026-10-15，one-ops，t-hz0701e7qeb9lvk）**：nginx 换用 main 上的模板并加上述 `ssl_ciphers`（模板同改）；`/etc/nginx/tls/one.forcitis.com.{pem,key}` 软链到 Let's Encrypt 现网证书（C-4 E-9 现状做法）；续期 webroot 改为 `/data/forcitis-one/static-pinned`；企业微信校验文件复制到 static-pinned 并经 nginx 原样返回；`certbot renew --dry-run --run-deploy-hooks` 全部成功并运行 nginx 重载；备份在 ECS `/root/one-ops-backup-<时间>`。
 
-### SSL Labs 评级（未执行，需确认）
+### SSL Labs 评级
+
+**结果（2026-10-15，套件收紧之后，用户「允许 (Recommended)」）**：`one.forcitis.com`（47.114.56.157）评级 **A+**，无警告；协议仅 TLS 1.2 / 1.3，HSTS 已识别，前向保密等级 4（全部套件支持）。以 API `publish=off` 运行，不进公开列表。E-8 外部评测验收通过。
+
+原说明：
 
 SSL Labs 是第三方（Qualys）对外扫描：它会从境外向 `one.forcitis.com` 发起数十次 TLS 握手，并在评测结束后在公共列表中短时显示主机名（可用 `hideResults=on` 不公开）。要做的话，建议在上面的套件收紧之后跑一次，带 `hideResults=on`；不做的话，以上本机探测作为 E-8 的替代证据。

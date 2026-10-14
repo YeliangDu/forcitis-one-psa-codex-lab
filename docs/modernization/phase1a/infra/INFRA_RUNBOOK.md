@@ -6,6 +6,10 @@
 
 逐项执行剧本见 `runbooks/`（C 类），交给外部执行人的交接包见 `handoff/`（B 类），用户决定单见 `DECISIONS_A.md`，与代码的核对结果见 `CROSSCHECK.md`。
 
+> **运维纪律：不得调用会返回密钥的接口，也不打印云接口的原始返回。** 例如 `rds DescribeDBInstanceSSL` 会返回实例证书私钥（2026-10-15 曾因此使私钥进入会话记录，见 C-3 执行记录）。查询云资源时在进程内只取所需字段；口令、私钥、令牌只在服务器上生成与使用，跨机只以加密形式或经云助手文件下发。
+>
+> **生产库查询纪律：只做有索引的查询，并设语句超时。** 对生产库（老系统、A8、RDS）的只读查询只走主键或已有索引，分页取数；不跑无索引的大表关联或全表扫描；每条语句设超时（探针为 120 秒）。2026-10-15 曾有一条探查对应关系的无索引关联查询被超时终止，未造成影响。
+
 ## 0. 资源（用户已确认）
 
 | 资源 | 标识 | 说明 |
@@ -60,7 +64,7 @@
 | E-9 | 证书 | `one.forcitis.com` 证书放在 `/etc/nginx/tls/`，权限 600；如用 ACME，配置自动续期 | 到期日监控 |
 | E-10 | 前端静态资源 | PC 端 `dist` 放到 `/data/forcitis-one/current/web`，由 nginx 直接提供；H5 同理放到 `/h5`（构建期 `H5_PUBLIC_PATH` 默认 `/h5/`，用户决定 N-1，构建检查断言资源路径带子路径） | |
 | E-11 | 日志接 SLS | 安装 Logtail；采集 `/data/forcitis-one/logs/*.json`（应用输出结构化 JSON）和 nginx access / error 日志；Project 与门户分开或按 Logstore 区分 | SLS 能检索到日志 |
-| E-12 | 指标接 ARMS | 方案 A：ARMS Prometheus 抓取 `127.0.0.1:8081/actuator/prometheus`。方案 B：ARMS Java 探针，需先核实对 Java 25 的支持，不支持就用方案 A | ARMS 看板有数据 |
+| E-12 | 指标接 ARMS | 方案 A：ARMS Prometheus 抓取 `127.0.0.1:8081/actuator/prometheus`。方案 B：ARMS Java 探针，需先核实对 Java 25 的支持，不支持就用方案 A。**实际（2026-10-15）**：由 ECS 上的 LoongCollector 抓取，写入 SLS Prometheus 指标库 `forcitis-one-observability/metrics`（管理端口只听回环，VPC 内托管采集器抓不到；写 ARMS 需 AccessKey，不建），PromQL 告警在 SLS 上配置（C-7） | 指标库有数据 |
 | E-13 | 四类告警 | 在 ARMS / SLS 中配置以下四类，并在 dev 上用故障注入演练（出口条件）：<br>• 组织同步延迟：`organization.workforce.sync.*` 指标，或缩水保护中止<br>• 未完成事件发布：event_publication 中超过 10 分钟仍未完成，或出站投递进入死信<br>• 作业失败：`forcitis_platform_scheduling_job_failures_total{job}` 与 `forcitis_platform_approval_dead_letter_jobs`，规则见下方「E-13 补充」<br>• 登录失败率：5 分钟内失败率超过 20 % 且失败数 ≥ 20 | 演练记录 |
 | E-14 | 出站网络 | 安全组出方向放行：RDS 5432（同 VPC）、`qyapi.weixin.qq.com:443`、致远 OA 验票地址、A8 SQL Server、老系统 SQL Server（经白名单）；其余出站按需收紧 | |
 | E-15 | 企业微信 | 在企业微信后台为新应用配置：可信域名 `one.forcitis.com`、扫码登录回调域、企业可信 IP 47.114.56.157；工作台**新增**「FORCITIS one」入口，**不替换**老 H5（切换手册 §3.11） | 登录冒烟 |
@@ -68,7 +72,7 @@
 | E-17 | 备份 | RDS 自动备份保留 ≥7 天；ECS 数据盘设快照策略；日志在 SLS 中保留 30 天 | |
 
 **时区（E-6 补充）。** 业务日一律按 `forcitis.kernel.business-zone`（Asia/Shanghai）截取；时刻一律以 UTC 存储和输出，不依赖机器的时区：
-- **JVM 必须以 UTC 运行**，systemd 的 `ExecStart` 带 `-Duser.timezone=UTC`。选「启动时校验」而不是只写进手册：应用启动时检查 JVM 默认时区，不是 UTC 就拒绝启动并说明如何修正（`kernel.UtcJvm`），因为手册步骤会被漏掉，而一个按本地时区跑起来的节点会让驱动、日志和 `java.util.Date` 悄悄与别的节点不一致。测试 JVM 同样带该参数。
+- **JVM 必须以 UTC 运行**，systemd 的 `ExecStart` 带 `-Duser.timezone=UTC`。选「启动时校验」而不是只写进手册：应用启动时检查 JVM 默认时区，不是 UTC 就拒绝启动并说明如何修正（`kernel.UtcJvm`），因为手册步骤会被漏掉，而一个按本地时区跑起来的节点会让驱动、日志和 `java.util.Date` 悄悄与别的节点不一致。测试 JVM 同样带该参数。应用入口 `OneApplication.main` 先把默认时区设为 UTC（整合复审 INT-P1），所以这道校验在正常启动路径上总能通过，只拦其他方式建出的上下文。
 - **JSON**：时刻写成带偏移量的 ISO-8601（UTC，形如 `2026-10-14T04:00:00Z`），时长写成 ISO-8601，业务日写成不带时区的日期；见 `application.properties` 的 `spring.jackson.*`。
 - **数据库会话**：连接池对每个新连接执行 `SET TIME ZONE 'UTC'`（`spring.datasource.hikari.connection-init-sql`），不依赖 RDS 参数组、角色或库级默认值；URL 不用另加时区参数。
 
