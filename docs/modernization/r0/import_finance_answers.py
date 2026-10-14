@@ -15,8 +15,8 @@ text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
 if MARK not in text:
     sys.exit("答复文件缺少机读数据段，请让财务用确认单的「导出答复」或「复制答复」重新生成")
 p = json.loads(text.split(MARK, 1)[1].strip().splitlines()[0])
-if p.get("form") != "FINANCE_CONFIRM" or p.get("version") != 2:
-    sys.exit("不是第 2 版财务确认单的答复（第 1 版作废，请让财务改填第 2 版）")
+if p.get("form") != "FINANCE_CONFIRM" or p.get("version") not in (2, 3):
+    sys.exit("不是第 2 版或第 3 版财务确认单的答复（第 1 版作废，请让财务改填第 3 版）")
 meta = {"role": p.get("respondent_role", ""), "date": p.get("date", "")}
 filled = lambda a: bool(a.get("choice") or a.get("note"))
 

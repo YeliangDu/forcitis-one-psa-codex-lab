@@ -147,6 +147,8 @@ Entry criteria:
 - [ ] `psa_quotation*`、`psa_cost_template*`、`psa_crm_opportunity` 已有逐列所有权矩阵
 - [ ] 特征基线已录制：用 dev 库数据回放报价的保存、提交、审批，请求与结果记录在 `analysis/psa/BASELINE.md`
 - [ ] 本阶段涉及流程的流程梳理已完成（`process/1b/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
+  Proposed revision:（用户 2026-10-15：XD-10「采纳 (Recommended)」，intent 2026-10-15-214100-one-coordinator-横切决定单-XD-10）追加入口条件「横切关注点矩阵（`CROSS_CUTTING_MATRIX.md`）已按本阶段更新；本阶段需要的待决题（`CROSS_CUTTING_DECISIONS.md`）已有答复；本阶段用到的地基行已做进 kernel / platform 并冻结（SESSION_PLAYBOOK §13）」
+  Proposed revision:（用户 2026-10-15：XD-09「提前到 1b (Recommended)」，intent 2026-10-15-214100-one-coordinator-横切决定单-XD-09）追加入口条件「舍入差归属已有结论（财务 FQ-24；答复前按 XD-08「先按建议建」用最大余数法），金额舍入口径（FQ-23、FQ-25、FQ-26、FQ-27）已有财务答复或按建议口径登记；kernel 的按权重拆分原语与不舍入计算类型已冻结」——由 Phase 4 入口「分摊余数归属」移来，首个拆分场景是报价条款拆分（RULE-159）
 Exit criteria:
 - [ ] 售前与报价的 P0 规则全部有以规则 ID 命名的测试，且测试通过
 - [ ] 同一组输入在新旧系统上的最终报价、毛利、条款拆分、状态完全一致，或差异已在 `RULE_REVIEWS.json` 中被接受
@@ -171,6 +173,7 @@ Entry criteria:
   Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14）：追加入口条件「工时审批所需的流程字段已有来源：项目经理（`projectManagerId`）、区域负责人（`regionalHeadId`）与工时行类型路由标记（项目 / 售前 / OH）由哪个模块提供已决定（候选：delivery.execution 提供项目经理，organization.workforce 提供区域负责人）」。1a 中 TIMESHEET 只用于回放，不实际发起，取不到人时落流程管理员兜底。
   Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14，依据 R0 登记的 A8_ACCESS_REGISTER #29–#31）：追加入口条件「无效交付工时规则（生产 SQL Agent 作业第 4 步经 BI 视图 T_FST_INVALID_DELIVERY 回写，#31）已抽取为规则卡并评审；项目档案（#29）与项目预算（#30，与 PSA 预算双入口，RULE-182/239）的 A8 → 老 PSA 通道已在规则卡中登记」。
 - [ ] 本阶段涉及流程的流程梳理已完成（`process/2/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
+  Proposed revision:（用户 2026-10-15：XD-10「采纳 (Recommended)」，intent 2026-10-15-214100-one-coordinator-横切决定单-XD-10）追加入口条件「横切关注点矩阵（`CROSS_CUTTING_MATRIX.md`）已按本阶段更新；本阶段需要的待决题（`CROSS_CUTTING_DECISIONS.md`）已有答复；本阶段用到的地基行已做进 kernel / platform 并冻结（SESSION_PLAYBOOK §13）」
 Exit criteria:
 - [ ] 影子计算结果：一个完整会计期间内，新旧系统逐行的审批状态、锁定费率、标准成本金额、计费金额、人天、任务包实际工时完全一致，或差异已被接受
 - [ ] 切换发生在会计期间边界；老系统中切换前发起的工时审批实例已全部结束
@@ -191,6 +194,7 @@ Entry criteria:
 - [ ] 分贝通沙箱可用，签名密钥存放在 KMS
 - [ ] 分贝通回调地址 `/app-api/fst/fenbeitong/events/*` 的切换方式已与分贝通确认：改为新地址，或由兼容门面转发
 - [ ] 本阶段涉及流程的流程梳理已完成（`process/3/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
+  Proposed revision:（用户 2026-10-15：XD-10「采纳 (Recommended)」，intent 2026-10-15-214100-one-coordinator-横切决定单-XD-10）追加入口条件「横切关注点矩阵（`CROSS_CUTTING_MATRIX.md`）已按本阶段更新；本阶段需要的待决题（`CROSS_CUTTING_DECISIONS.md`）已有答复；本阶段用到的地基行已做进 kernel / platform 并冻结（SESSION_PLAYBOOK §13）」
 Exit criteria:
 - [ ] 差旅 P0 规则全部有测试，且测试通过
 - [ ] 一个完整月度周期（申请、订票、对账、分摊、月结审批）在新系统跑通，与老系统的对账单逐笔一致
@@ -206,6 +210,7 @@ Risk: 很高。
 Entry criteria:
 - [ ] Phase 2 和 Phase 3 的出口条件满足
 - [ ] 成本域被标记的 P0 规则已有结论（分摊余数归属、负成本进入 WIP 后的余额符号、红冲是部分还是全额、核销按数量配对还是按金额配对）
+  Proposed revision:（用户 2026-10-15：XD-09「提前到 1b (Recommended)」）本条中的「分摊余数归属」移到 Phase 1b 入口（见该处），其余三项（负成本进入 WIP 后的余额符号、红冲是部分还是全额、核销按数量配对还是按金额配对）不变
 - [ ] 收入确认按 ACC-R01「产出法 · 客户价值确认」实现，老文档中 EAC / POC 驱动收入的过期表述已更正；财务已确认期间重开政策、质保金条款（ADR-0016）
 - [ ] A8 客户产值确认单（方言，= 收入确认单）随 6a 迁入新系统，不设 A8 只读接入的双源期：在会计期间边界停用 A8 模板与 `oa-cuvalue-import` / `oa-cuvalue-sync`，同日起收入确认只在新系统发起；历史 19,869 行与 434 行退回按冲销关系迁入。本条改为「6a 出口条件满足（收入确认单已迁入新系统，A8 不再产生收入事实）；财务已确认预付款条款（PREPAY）无交付即确认收入的口径」。（ADR-0024 已采纳，2026-10-14）
 - [ ] 词表中会计口径相关的改名（G-8 至 G-13、G-16、G-17、G-20、G-21、G-27）已于 2026-10-14 由业务 Admin 确认；财务在本阶段开始前复核这些用语在凭证与报表中的口径（ADR-0018）
@@ -215,6 +220,7 @@ Entry criteria:
 - [ ] 月结批处理的耗时基线已导出
   Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14，依据 R0 登记的 A8_ACCESS_REGISTER #28）：追加入口条件「成本明细 → psa_pm_pay 通道（生产 SQL Agent 作业，#28）承载的成本明细规则已抽取为规则卡并评审，含隐含规则『委外和居间付款申请不结转』」。
 - [ ] 本阶段涉及流程的流程梳理已完成（`process/4/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
+  Proposed revision:（用户 2026-10-15：XD-10「采纳 (Recommended)」，intent 2026-10-15-214100-one-coordinator-横切决定单-XD-10）追加入口条件「横切关注点矩阵（`CROSS_CUTTING_MATRIX.md`）已按本阶段更新；本阶段需要的待决题（`CROSS_CUTTING_DECISIONS.md`）已有答复；本阶段用到的地基行已做进 kernel / platform 并冻结（SESSION_PLAYBOOK §13）」
 Exit criteria:
 - [ ] 两个月结期间，新旧系统的分摊行、WIP 余额、凭证分录逐笔一致，或差异已由财务在 `RULE_REVIEWS.json` 中签字接受
 - [ ] 对账等式全部成立：归集守恒、合同资产滚动恒等式（F113）、凭证借贷平衡；老系统的红冲记录已按冲销关系迁移，原行与反向行双向关联
@@ -234,6 +240,7 @@ Entry criteria:
 - [ ] Phase 4 的出口条件满足
 - [ ] 外部调用方清单（BI、KM、A8、IT 服务门户）中，每一方都已有确认的切换步骤
 - [ ] 本阶段涉及流程的流程梳理已完成（`process/5/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
+  Proposed revision:（用户 2026-10-15：XD-10「采纳 (Recommended)」，intent 2026-10-15-214100-one-coordinator-横切决定单-XD-10）追加入口条件「横切关注点矩阵（`CROSS_CUTTING_MATRIX.md`）已按本阶段更新；本阶段需要的待决题（`CROSS_CUTTING_DECISIONS.md`）已有答复；本阶段用到的地基行已做进 kernel / platform 并冻结（SESSION_PLAYBOOK §13）」
 Exit criteria:
 - [ ] BI 查询清单中的每条查询在 PostgreSQL `reporting` 上的结果，与切换前在 SQL Server 上的结果一致
 - [ ] 安全组已移除 48080 和 48088 规则，老服务进程已停止
