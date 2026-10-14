@@ -74,6 +74,14 @@ class ErrorContractIT {
     @Autowired
     JsonMapper json;
 
+    /**
+     * Endpoints that still answer 500 to an empty body, owned by the approval work stream (a null outcome is dereferenced before it is
+     * checked). Remove the entry when it is fixed: the test fails for an entry that is no longer needed.
+     */
+    private static final java.util.Set<String> KNOWN_SERVER_FAULTS = java.util.Set.of("POST /api/v1/platform/approval-tasks/{taskId}:decide");
+
+    private final java.util.Set<String> serverFaults = new java.util.TreeSet<>();
+
     private record Endpoint(HttpMethod method, String path, HandlerMethod handler, boolean publicEndpoint) {
         @Override
         public String toString() {
@@ -126,6 +134,13 @@ class ErrorContractIT {
             return;
         }
         JsonNode body = json.readTree(response.getContentAsString());
+        if (response.getStatus() == 500) {
+            serverFaults.add(endpoint.toString());
+            if (!KNOWN_SERVER_FAULTS.contains(endpoint.toString())) {
+                problems.add(endpoint + " " + situation + ": answers 500 " + body.path("errorCode").asString()
+                        + "; nonsense from the caller must be refused with 4xx, not break the server");
+            }
+        }
         if (!body.hasNonNull("errorCode") || !body.hasNonNull("status") || body.path("status").asInt() != response.getStatus()) {
             problems.add(endpoint + " " + situation + ": the problem has no errorCode or a wrong status: " + response.getContentAsString());
         }
@@ -145,6 +160,9 @@ class ErrorContractIT {
                 if (endpoint.method() != HttpMethod.GET) {
                     MockHttpServletResponse forged = mvc.perform(request(endpoint)).andReturn().getResponse();
                     assertProblem(endpoint, "without a CSRF token", forged, problems);
+                    if (forged.getStatus() != 401 && forged.getStatus() != 403) {
+                        problems.add(endpoint + " without a CSRF token: expected 401 or 403, was " + forged.getStatus());
+                    }
                 }
                 assertProblem(endpoint, "anonymous", anonymous, problems);
                 if (anonymous.getStatus() != 401) {
@@ -153,11 +171,18 @@ class ErrorContractIT {
                 MockHttpServletResponse nothing = mvc.perform(request(endpoint).with(user("5").authorities(List.of())).with(
                         org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())).andReturn().getResponse();
                 assertProblem(endpoint, "without permission", nothing, problems);
+                // Method security runs after the body is bound, so an unreadable body is answered 400 before the permission is looked at.
+                var authorization = endpoint.handler().getMethodAnnotation(org.springframework.security.access.prepost.PreAuthorize.class);
+                boolean bindingFirst = nothing.getStatus() == 400 && nothing.getContentAsString().contains("PLATFORM_WEB_REQUEST_INVALID");
+                if (authorization != null && authorization.value().contains("hasAuthority") && nothing.getStatus() != 403 && !bindingFirst) {
+                    problems.add(endpoint + " without permission: expected 403, was " + nothing.getStatus());
+                }
             }
             MockHttpServletResponse permitted = mvc.perform(request(endpoint).with(user("5").authorities(all)).with(
                     org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())).andReturn().getResponse();
             assertProblem(endpoint, "permitted caller, nonsense input", permitted, problems);
         }
         assertThat(problems).isEmpty();
+        assertThat(serverFaults).as("an entry of KNOWN_SERVER_FAULTS that no longer fails must be deleted").isEqualTo(KNOWN_SERVER_FAULTS);
     }
 }

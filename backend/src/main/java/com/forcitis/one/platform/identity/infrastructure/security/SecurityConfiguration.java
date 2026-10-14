@@ -8,6 +8,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
@@ -40,12 +43,20 @@ class SecurityConfiguration {
                     requests.anyRequest().authenticated();
                 })
                 .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint((request, response, failure) -> exceptionResolver.resolveException(request, response, null, failure))
-                        .accessDeniedHandler((request, response, failure) -> exceptionResolver.resolveException(request, response, null, failure)))
+                        .authenticationEntryPoint((request, response, failure) -> resolve(exceptionResolver, request, response, failure))
+                        .accessDeniedHandler((request, response, failure) -> resolve(exceptionResolver, request, response, failure)))
                 // An API never replays a saved request after login; the default cache would create a session row for every anonymous 401.
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()))
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable());
         return http.build();
+    }
+
+    /** A refusal that no resolver takes is a fault of ours, not of the caller: answer 500 instead of an empty 200. */
+    private static void resolve(HandlerExceptionResolver resolver, HttpServletRequest request, HttpServletResponse response, Exception failure)
+            throws IOException {
+        if (resolver.resolveException(request, response, null, failure) == null) {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 }
