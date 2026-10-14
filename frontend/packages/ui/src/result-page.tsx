@@ -1,9 +1,9 @@
 import { Result } from 'antd';
 import type { ReactNode } from 'react';
 
-type ResultKind = 'forbidden' | 'expired' | 'not-found' | 'error';
+type ResultKind = 'forbidden' | 'expired' | 'not-found' | 'error' | 'info';
 
-const STATUS = { forbidden: '403', expired: 'warning', 'not-found': '404', error: 'error' } as const;
+const STATUS = { forbidden: '403', expired: 'warning', 'not-found': '404', error: 'error', info: 'info' } as const;
 
 interface ResultPageProps {
   kind: ResultKind;

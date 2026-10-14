@@ -1,6 +1,6 @@
-import { isVersionConflict, useVersionedQuery } from '@forcitis/core';
+import { failureOf, isVersionConflict, useIntentKeys, useVersionedQuery } from '@forcitis/core';
 import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchNumberingRule, fetchNumberingRules, saveNumberingRule } from '../api/numbering-api';
+import { confirmNumberingRule, fetchNumberingRule, fetchNumberingRules, saveNumberingRule } from '../api/numbering-api';
 import type { RuleDraft } from '../model/numbering-rule';
 
 const KEY = ['numbering', 'rules'] as const;
@@ -26,6 +26,24 @@ export function useSaveNumberingRule() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
     onError: (error) => {
       if (isVersionConflict(error)) void queryClient.invalidateQueries({ queryKey: KEY });
+    },
+  });
+}
+
+/** A refused version (409) reads the rules again, so the user sees what the template is now. */
+export function useConfirmNumberingRule() {
+  const queryClient = useQueryClient();
+  const keys = useIntentKeys();
+  return useMutation({
+    mutationFn: ({ documentType, templateVersion }: { documentType: string; templateVersion: number }) => confirmNumberingRule(documentType, templateVersion, keys.keyFor(`confirm:${documentType}:${templateVersion}`)),
+    onSuccess: () => {
+      keys.done();
+      return queryClient.invalidateQueries({ queryKey: KEY });
+    },
+    onError: (error) => {
+      if (failureOf(error).status !== 409) return;
+      keys.done();
+      void queryClient.invalidateQueries({ queryKey: KEY });
     },
   });
 }

@@ -26,6 +26,7 @@ const TASK_DETAIL = {
   createdAt: '2026-10-14T01:00:00Z',
   canAct: true,
   overdue: false,
+  status: 'OPEN',
   history: [],
 };
 
@@ -76,7 +77,7 @@ describe('generated operations over the default client', () => {
   });
 
   it('treats a null property like an absent one, because the server writes unset optional properties as null', async () => {
-    stubFetch(200, { displayName: '张三', userId: '1001', permissionCodes: [], identityConfirmed: true, navigation: [{ name: '待办', routePath: null, children: [] }], orgUnitId: null });
+    stubFetch(200, { displayName: '张三', userId: '1001', permissionCodes: [], identityConfirmed: true, mode: 'NORMAL', navigation: [{ name: '待办', routePath: null, children: [] }], orgUnitId: null });
     const user = await operations.getPlatformSessionsCurrent();
     expect(user.orgUnitId).toBeUndefined();
     expect(user.navigation[0]).toEqual({ name: '待办', children: [] });
@@ -127,12 +128,12 @@ describe('a value outside the contract', () => {
     const reports: string[] = [];
     setContractViolationSink((message) => reports.push(message));
     const record = { recordId: 'r', taskId: 't', instanceId: 'i', processKey: 'COST_TIMESHEET_APPROVAL', documentType: 'TIMESHEET', documentId: 'D', nodeKey: 'n', nodeName: 'N', actorId: '1', actorName: 'A', decidedAt: '2026-10-14T00:00:00Z', round: 1 };
-    const page = { items: [{ ...record, action: 'APPROVED' }, { ...record, recordId: 'r2', action: 'ADVISED' }, { ...record, recordId: 'r3', action: 'ADVISED' }] };
+    const page = { items: [{ ...record, action: 'APPROVED' }, { ...record, recordId: 'r2', action: 'ESCALATED' }, { ...record, recordId: 'r3', action: 'ESCALATED' }] };
     stubFetch(200, page);
     const result = await operations.getPlatformApprovalTaskRecords();
-    expect(result.items.map((item) => item.action)).toEqual(['APPROVED', 'ADVISED', 'ADVISED']);
+    expect(result.items.map((item) => item.action)).toEqual(['APPROVED', 'ESCALATED', 'ESCALATED']);
     expect(reports).toHaveLength(1);
-    expect(reports[0]).toContain('ADVISED');
+    expect(reports[0]).toContain('ESCALATED');
   });
 
   it('a required field that is missing still fails the answer', async () => {

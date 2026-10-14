@@ -4,8 +4,9 @@ import { DOCUMENT_TYPE_LABELS, PROCESS_LABELS, labelOf } from './labels';
 export type InboxItem = Schema<'InboxItemResponse'>;
 export type InboxResponse = Schema<'InboxResponse'>;
 export type TaskDetail = Schema<'TaskDetailResponse'>;
-export type TaskRecord = Schema<'TaskRecordResponse'>;
-export type TaskRecordPage = Schema<'TaskRecordPageResponse'>;
+export type TaskRecord = Schema<'HandledTaskResponse'>;
+export type TaskHistoryEntry = Schema<'HistoryEntry'>;
+export type TaskRecordPage = Schema<'HandledTaskPageResponse'>;
 export type DecisionResult = Schema<'DecisionResponse'>;
 
 export type InboxFilterKey = 'all' | 'new' | 'legacy' | 'notice';
@@ -62,11 +63,11 @@ export const UNRECOGNISED_TASK_TITLE = '（无法显示的审批）';
 export function inboxTitle(item: InboxItem): string {
   if (item.source === 'LEGACY') return item.title ?? '';
   if (item.processKey === undefined || item.documentId === undefined) return UNRECOGNISED_TASK_TITLE;
-  return `${labelOf(PROCESS_LABELS, item.processKey)} ${item.documentId}`;
+  return `${labelOf(PROCESS_LABELS, item.processKey ?? '')} ${item.documentId}`;
 }
 
 export function recordTitle(record: Pick<TaskRecord, 'processKey' | 'documentId'>): string {
-  return `${labelOf(PROCESS_LABELS, record.processKey)} ${record.documentId}`;
+  return `${labelOf(PROCESS_LABELS, record.processKey ?? '')} ${record.documentId}`;
 }
 
 /** What marks an open task besides its title; overdue wins over claimed. */

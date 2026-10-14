@@ -898,21 +898,21 @@ export interface components {
         };
         AuditEntryResponse: {
             action: string;
-            actorId?: string | null;
-            afterText?: string | null;
-            beforeText?: string | null;
-            changeReason?: string | null;
+            actorId?: string;
+            afterText?: string;
+            beforeText?: string;
+            changeReason?: string;
             /** Format: date-time */
             createdAt: string;
-            detail?: string | null;
+            detail?: string;
             entryId: string;
-            loginMethod?: string | null;
-            onBehalfOfId?: string | null;
+            loginMethod?: string;
+            onBehalfOfId?: string;
             outcome?: components["schemas"]["AuditOutcome"] | (string & {});
-            sourceAddress?: string | null;
+            sourceAddress?: string;
             subjectKey: string;
             /** Format: uuid */
-            traceNumber?: string | null;
+            traceNumber?: string;
         };
         /** @enum {string} */
         AuditOutcome: "SUCCEEDED" | "FAILED";
@@ -962,47 +962,47 @@ export interface components {
         };
         CurrentUserResponse: {
             /** Format: date-time */
-            administratorModeExpiresAt?: string | null;
+            administratorModeExpiresAt?: string;
             displayName: string;
             identityConfirmed: boolean;
             mode: string;
             navigation: components["schemas"]["NavigationResponse"][];
-            orgUnitId?: string | null;
-            orgUnitName?: string | null;
+            orgUnitId?: string;
+            orgUnitName?: string;
             permissionCodes: string[];
             userId: string;
         };
         CursorPageAuditEntryResponse: {
             items: components["schemas"]["AuditEntryResponse"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         CursorPageAuthorizationRequestView: {
             items: components["schemas"]["AuthorizationRequestView"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         CursorPageLegacyNumberResponse: {
             items: components["schemas"]["LegacyNumberResponse"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         CursorPageLegalEntityResponse: {
             items: components["schemas"]["LegalEntityResponse"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         CursorPageMaintainedYearResponse: {
             items: components["schemas"]["MaintainedYearResponse"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         CursorPageNumberingRuleResponse: {
             items: components["schemas"]["NumberingRuleResponse"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         CursorPageRoleResponse: {
             items: components["schemas"]["RoleResponse"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         CursorPageSyncRunResponse: {
             items: components["schemas"]["SyncRunResponse"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         /** @enum {string} */
         DayKind: "HOLIDAY" | "MAKE_UP_WORKDAY";
@@ -1034,7 +1034,7 @@ export interface components {
         };
         HandledTaskPageResponse: {
             items: components["schemas"]["HandledTaskResponse"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         HandledTaskResponse: {
             action: components["schemas"]["TaskRecordAction"] | (string & {});
@@ -1047,9 +1047,9 @@ export interface components {
             instanceId: string;
             nodeKey: string;
             nodeName: string;
-            onBehalfOfName?: string | null;
+            onBehalfOfName?: string;
             processKey: components["schemas"]["ProcessKey"] | (string & {});
-            reason?: string | null;
+            reason?: string;
             recordId: string;
             /** Format: int32 */
             round: number;
@@ -1059,13 +1059,13 @@ export interface components {
             action: components["schemas"]["TaskRecordAction"] | (string & {});
             actorId: string;
             actorName: string;
-            assigneeName?: string | null;
+            assigneeName?: string;
             /** Format: date-time */
             decidedAt: string;
             nodeKey: string;
             nodeName: string;
-            onBehalfOfName?: string | null;
-            reason?: string | null;
+            onBehalfOfName?: string;
+            reason?: string;
             recordId: string;
             /** Format: int32 */
             round: number;
@@ -1075,12 +1075,12 @@ export interface components {
             category: string;
             claimed: boolean;
             /** Format: date-time */
-            createdAt?: string | null;
+            createdAt?: string;
             /** Format: date-time */
-            deadlineAt?: string | null;
-            detailUrl?: string | null;
-            documentId?: string | null;
-            nodeName?: string | null;
+            deadlineAt?: string;
+            detailUrl?: string;
+            documentId?: string;
+            nodeName?: string;
             overdue: boolean;
             processKey?: components["schemas"]["ProcessKey"] | (string & {});
             source: string;
@@ -1094,7 +1094,7 @@ export interface components {
             legacyCount: number;
             /** Format: int32 */
             newCount: number;
-            nextCursor?: string | null;
+            nextCursor?: string;
             /** Format: int32 */
             noticeCount: number;
             /** Format: int32 */
@@ -1105,7 +1105,7 @@ export interface components {
             documentType: components["schemas"]["DocumentType"] | (string & {});
             importBatch: string;
             legacyNumber: string;
-            legalEntityId?: string | null;
+            legalEntityId?: string;
         };
         LegalEntityAttributionResponse: {
             kind: string;
@@ -1114,7 +1114,7 @@ export interface components {
         };
         LegalEntityResponse: {
             /** Format: int64 */
-            accountingOrganizationNumber?: number | null;
+            accountingOrganizationNumber?: number;
             code: string;
             legalEntityId: string;
             name: string;
@@ -1124,7 +1124,7 @@ export interface components {
             /** Format: date-time */
             absoluteExpiresAt: string;
             /** Format: date-time */
-            administratorModeExpiresAt?: string | null;
+            administratorModeExpiresAt?: string;
             identityConfirmationRequired: boolean;
             userId: string;
         };
@@ -1145,7 +1145,7 @@ export interface components {
         NavigationResponse: {
             children: components["schemas"]["NavigationResponse"][];
             name: string;
-            routePath?: string | null;
+            routePath?: string;
         };
         NumberingRuleRequest: {
             /** Format: date */
@@ -1160,7 +1160,7 @@ export interface components {
             capacity: number;
             confirmationStatus: components["schemas"]["ConfirmationStatus"] | (string & {});
             documentType: components["schemas"]["DocumentType"] | (string & {});
-            documentTypeCode?: string | null;
+            documentTypeCode?: string;
             /** Format: date */
             effectiveFrom: string;
             pattern: string;
@@ -1199,35 +1199,35 @@ export interface components {
         OrgUnitResponse: {
             code: string;
             deliveryUnit: boolean;
-            headEmployeeId?: string | null;
+            headEmployeeId?: string;
             name: string;
             orgUnitId: string;
-            parentOrgUnitId?: string | null;
-            regionCategory?: string | null;
-            regionalReceivablesManagerId?: string | null;
-            shortName?: string | null;
+            parentOrgUnitId?: string;
+            regionCategory?: string;
+            regionalReceivablesManagerId?: string;
+            shortName?: string;
             /** Format: int32 */
-            sortOrder?: number | null;
+            sortOrder?: number;
             status: string;
         };
         OwnLoginRecordResponse: {
             action: string;
-            loginMethod?: string | null;
+            loginMethod?: string;
             /** Format: date-time */
             occurredAt: string;
-            outcome?: string | null;
-            sourceAddress?: string | null;
+            outcome?: string;
+            sourceAddress?: string;
         };
         PendingTemplate: {
-            authorId?: string | null;
+            authorId?: string;
             /** Format: date-time */
             authoredAt: string;
             /** Format: int64 */
             capacity: number;
-            confirmedBy?: string | null;
+            confirmedBy?: string;
             /** Format: date */
             effectiveFrom: string;
-            financeConfirmedBy?: string | null;
+            financeConfirmedBy?: string;
             pattern: string;
             resetPolicy: components["schemas"]["ResetPolicy"] | (string & {});
             /** Format: int64 */
@@ -1239,7 +1239,7 @@ export interface components {
             /** Format: date */
             effectiveFrom: string;
             /** Format: date */
-            effectiveTo?: string | null;
+            effectiveTo?: string;
             legalEntityId: string;
         };
         ProblemDetail: {
@@ -1254,8 +1254,8 @@ export interface components {
             title?: string;
             type?: string;
         };
-        /** @enum {string|null} */
-        ProcessKey: "COST_TIMESHEET_APPROVAL" | null;
+        /** @enum {string} */
+        ProcessKey: "COST_TIMESHEET_APPROVAL";
         ReassignTaskRequest: {
             /** Format: int64 */
             assigneeId?: number;
@@ -1265,7 +1265,7 @@ export interface components {
             reason?: string;
         };
         ReleaseResponse: {
-            message?: string | null;
+            message?: string;
             outcome: string;
             syncRun?: components["schemas"]["SyncRunResponse"];
         };
@@ -1297,9 +1297,9 @@ export interface components {
         SyncDiffResponse: {
             changeKind: string;
             changedFields: string[];
-            detail?: string | null;
+            detail?: string;
             entityKind: string;
-            issueKind?: string | null;
+            issueKind?: string;
             subjectKey: string;
         };
         SyncRunDetailResponse: {
@@ -1308,40 +1308,40 @@ export interface components {
         };
         SyncRunResponse: {
             /** Format: int32 */
-            employedWithoutWecomCount?: number | null;
+            employedWithoutWecomCount?: number;
             /** Format: int32 */
-            employeeChangeCount?: number | null;
-            failureReason?: string | null;
+            employeeChangeCount?: number;
+            failureReason?: string;
             /** Format: date-time */
-            finishedAt?: string | null;
-            heldReason?: string | null;
+            finishedAt?: string;
+            heldReason?: string;
             heldSeparations: string[];
             holdKinds: string[];
             /** Format: int32 */
-            incomingActiveOrgUnitCount?: number | null;
+            incomingActiveOrgUnitCount?: number;
             /** Format: int32 */
-            incomingEmployedCount?: number | null;
+            incomingEmployedCount?: number;
             /** Format: int32 */
-            isolatedRowCount?: number | null;
+            isolatedRowCount?: number;
             /** Format: int32 */
-            issueCount?: number | null;
+            issueCount?: number;
             /** Format: int32 */
-            orgUnitChangeCount?: number | null;
+            orgUnitChangeCount?: number;
             /** Format: int32 */
-            positionChangeCount?: number | null;
+            positionChangeCount?: number;
             /** Format: int32 */
-            previousActiveOrgUnitCount?: number | null;
+            previousActiveOrgUnitCount?: number;
             /** Format: int32 */
-            previousEmployedCount?: number | null;
+            previousEmployedCount?: number;
             /** Format: date-time */
-            releasedAt?: string | null;
-            releasedBy?: string | null;
-            releasedByRunId?: string | null;
+            releasedAt?: string;
+            releasedBy?: string;
+            releasedByRunId?: string;
             releasedKinds: string[];
             /** Format: int32 */
-            sourceEmployeeCount?: number | null;
+            sourceEmployeeCount?: number;
             /** Format: int32 */
-            sourceOrgUnitCount?: number | null;
+            sourceOrgUnitCount?: number;
             /** Format: date-time */
             startedAt: string;
             status: string;
@@ -1349,49 +1349,49 @@ export interface components {
             trigger: string;
         };
         TaskDetailResponse: {
-            assignee?: string | null;
-            assigneeName?: string | null;
+            assignee?: string;
+            assigneeName?: string;
             canAct: boolean;
             candidateNames: string[];
             candidates: string[];
             /** Format: date-time */
-            completedAt?: string | null;
+            completedAt?: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
-            deadlineAt?: string | null;
+            deadlineAt?: string;
             documentId: string;
             documentType: components["schemas"]["DocumentType"] | (string & {});
             /** Format: date-time */
-            dueAt?: string | null;
-            effect?: string | null;
+            dueAt?: string;
+            effect?: string;
             history: components["schemas"]["HistoryEntry"][];
             initiator: string;
             initiatorName: string;
-            initiatorOrgUnitName?: string | null;
+            initiatorOrgUnitName?: string;
             instanceId: string;
             nodeKey: string;
-            nodeName?: string | null;
-            outcome?: string | null;
+            nodeName?: string;
+            outcome?: string;
             overdue: boolean;
             processKey: components["schemas"]["ProcessKey"] | (string & {});
-            reason?: string | null;
+            reason?: string;
             status: string;
-            summary?: string | null;
+            summary?: string;
             taskId: string;
         };
         TaskOverviewPageResponse: {
             items: components["schemas"]["TaskOverviewResponse"][];
-            nextCursor?: string | null;
+            nextCursor?: string;
         };
         TaskOverviewResponse: {
-            assignee?: string | null;
+            assignee?: string;
             /** Format: date-time */
             createdAt: string;
             documentId: string;
             documentType: components["schemas"]["DocumentType"] | (string & {});
             /** Format: date-time */
-            dueAt?: string | null;
+            dueAt?: string;
             nodeKey: string;
             overdue: boolean;
             processKey: components["schemas"]["ProcessKey"] | (string & {});

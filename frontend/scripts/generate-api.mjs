@@ -196,13 +196,33 @@ const isEnum = (node) => node.enum !== undefined || (node.$ref !== undefined && 
  * `Union | (string & {})`: a table lookup by it does not compile without a fallback (labelOf). The enum components themselves stay closed unions,
  * so `Record<Union, ...>` tables remain exhaustive.
  */
-function openEnumProperty(property, schemaObject) {
-  if (!isEnum(schemaObject) || property.type === undefined) return undefined;
-  const open = ts.factory.createIntersectionTypeNode([ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword), ts.factory.createTypeLiteralNode([])]);
-  return ts.factory.updatePropertySignature(property, property.modifiers, property.name, property.questionToken, ts.factory.createUnionTypeNode([property.type, open]));
+function withoutNull(type) {
+  if (!ts.isUnionTypeNode(type)) return type;
+  const kept = type.types.filter((member) => !(ts.isLiteralTypeNode(member) && member.literal.kind === ts.SyntaxKind.NullKeyword));
+  if (kept.length === type.types.length) return type;
+  return kept.length === 1 ? kept[0] : ts.factory.createUnionTypeNode(kept);
 }
 
-const schema = HEADER + astToString(await openapiTS(spec, { transformProperty: openEnumProperty }));
+/**
+ * The client removes every null from an answer before it is validated (the server writes an absent optional property as null), so no property is typed `| null`.
+ * Enum-valued properties get the open union described above.
+ */
+function adjustProperty(property, schemaObject) {
+  if (property.type === undefined) return undefined;
+  const type = withoutNull(property.type);
+  const open = ts.factory.createIntersectionTypeNode([ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword), ts.factory.createTypeLiteralNode([])]);
+  const finalType = isEnum(schemaObject) ? ts.factory.createUnionTypeNode([type, open]) : type;
+  if (finalType === property.type) return undefined;
+  return ts.factory.updatePropertySignature(property, property.modifiers, property.name, property.questionToken, finalType);
+}
+
+/** An enum component the backend marked nullable (type ["string", "null"]) is a plain enum for the types: the client removes nulls before anything reads them. */
+const typeSpec = structuredClone(spec);
+for (const component of Object.values(typeSpec.components?.schemas ?? {})) {
+  if (component.enum !== undefined && Array.isArray(component.type)) component.type = component.type.find((candidate) => candidate !== 'null');
+}
+
+const schema = HEADER + astToString(await openapiTS(typeSpec, { transformProperty: adjustProperty }));
 const errorCodeValues = `export const ErrorCodeValues = [${spec.components.schemas.ErrorCode.enum.map(literal).join(', ')}] as const;`;
 
 const validatorsSource = `${HEADER}import { z } from 'zod';

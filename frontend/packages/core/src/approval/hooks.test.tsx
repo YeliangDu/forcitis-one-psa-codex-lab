@@ -86,7 +86,7 @@ describe('待办的刷新', () => {
   afterEach(() => vi.useRealTimers());
 
   const page = (items: string[], nextCursor?: string) => ({
-    items: items.map((id) => ({ source: 'NEW', category: 'TODO', overdue: false, claimed: false, taskId: id, processKey: 'COST_TIMESHEET_APPROVAL', documentId: id })),
+    items: items.map((id) => ({ source: 'NEW', category: 'TODO', overdue: false, claimed: false, taskId: id, title: id, processKey: 'COST_TIMESHEET_APPROVAL', documentId: id })),
     newCount: 3, legacyCount: 0, noticeCount: 0, totalCount: 3, legacyAvailable: true,
     ...(nextCursor === undefined ? {} : { nextCursor }),
   });

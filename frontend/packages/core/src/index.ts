@@ -1,6 +1,6 @@
 export { businessToday } from './business-day';
 export { ERROR_MESSAGES } from './error-messages';
-export { versionOf } from '@forcitis/api';
+export { nextCursorOf, versionOf } from '@forcitis/api';
 export { describeFailure, failureOf, isVersionConflict } from './failure';
 export { formatDateTime } from './format-date-time';
 export { useIntentKeys } from './intent-keys';
@@ -24,9 +24,9 @@ export {
   opinionText,
   recordTitle,
 } from './approval/model';
-export type { InboxItem, InboxView, ReasonAction, TaskActions, TaskRecord } from './approval/model';
+export type { InboxItem, InboxView, ReasonAction, TaskActions, TaskHistoryEntry, TaskRecord } from './approval/model';
 
-export { loginWithWecom, requestLoginState } from './session/api';
+export { logout, loginWithWecom, requestLoginState } from './session/api';
 export type { LoginEntry } from './session/api';
 export { installApiGuards } from './session/api-guards';
-export { CURRENT_USER_KEY, useCurrentUser, useCurrentUserQuery } from './session/hooks';
+export { CURRENT_USER_KEY, useConfirmIdentity, useCurrentUser, useCurrentUserQuery } from './session/hooks';

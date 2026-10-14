@@ -17,3 +17,16 @@ export function checkedPage<Page extends CursorPage<unknown>>(page: Page, reques
 export function nextCursorOf(page: CursorPage<unknown>): string | undefined {
   return page.nextCursor === undefined || page.nextCursor === null || page.nextCursor === '' ? undefined : page.nextCursor;
 }
+
+/** For a short list that is shown whole (maintained years, numbering rules): every page, and an error instead of a silent cut when the list is longer than expected. */
+export async function collectPages<Item>(fetchPage: (cursor: string | undefined) => Promise<CursorPage<Item>>, maxPages = 20): Promise<Item[]> {
+  const items: Item[] = [];
+  let cursor: string | undefined;
+  for (let fetched = 0; fetched < maxPages; fetched += 1) {
+    const page = checkedPage(await fetchPage(cursor), cursor);
+    items.push(...page.items);
+    cursor = nextCursorOf(page);
+    if (cursor === undefined) return items;
+  }
+  throw new Error(`The list has more than ${maxPages} pages; show it page by page instead of reading it whole.`);
+}
