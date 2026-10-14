@@ -69,3 +69,13 @@ jobs:
       # 记录文件与 ADR 由片段生成；片段与已提交的生成产物不一致即失败
       - name: generated docs match fragments
         run: python3 docs/modernization/build_all.py --check
+
+  assertion-drift:
+    name: assertion drift (warning only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python3 scripts/ci/assertion_drift.py origin/${{ github.base_ref }}
