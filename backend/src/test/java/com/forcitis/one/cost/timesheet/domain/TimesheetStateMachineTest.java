@@ -3,9 +3,9 @@ package com.forcitis.one.cost.timesheet.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.forcitis.one.kernel.Reason;
-import com.forcitis.one.platform.approval.api.RoundNumber;
+import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
+import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.events.TimesheetApproved;
 import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
@@ -13,105 +13,101 @@ import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
 import com.forcitis.one.delivery.execution.api.WorkPackageId;
+import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
+import com.forcitis.one.kernel.AccountingPeriod;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Reason;
+import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.kernel.event.ActorType;
-import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import java.time.Instant;
+import com.forcitis.one.kernel.event.AggregateReference;
+import com.forcitis.one.kernel.event.DomainEvent;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.platform.approval.api.RoundNumber;
+import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Stream;
+import java.util.Random;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 class TimesheetStateMachineTest {
 
     static final UserId OWNER = new UserId(30);
     static final UserId STRANGER = new UserId(31);
     static final LocalDate WORK_DATE = LocalDate.of(2026, 10, 13);
-
-    /** Written down independently of the aggregate: action, from, to. REVISE keeps the status. */
-    static final Map<Timesheet.Action, Map<TimesheetStatus, TimesheetStatus>> LEGAL = Map.of(
-            Timesheet.Action.REVISE, Map.of(TimesheetStatus.DRAFT, TimesheetStatus.DRAFT, TimesheetStatus.RETURNED, TimesheetStatus.RETURNED),
-            Timesheet.Action.SUBMIT, Map.of(TimesheetStatus.DRAFT, TimesheetStatus.SUBMITTED, TimesheetStatus.RETURNED, TimesheetStatus.SUBMITTED),
-            Timesheet.Action.APPROVE, Map.of(TimesheetStatus.SUBMITTED, TimesheetStatus.APPROVED),
-            Timesheet.Action.REJECT, Map.of(TimesheetStatus.SUBMITTED, TimesheetStatus.REJECTED),
-            Timesheet.Action.RETURN, Map.of(TimesheetStatus.SUBMITTED, TimesheetStatus.RETURNED),
-            Timesheet.Action.CANCEL, Map.of(TimesheetStatus.SUBMITTED, TimesheetStatus.DRAFT));
+    static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
+    static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
     static Timesheet in(TimesheetStatus status) {
-        return Timesheet.restore(new TimesheetId(7), OWNER, new LegalEntityId(1), new WorkPackageId(1), WORK_DATE, Hours.of("8"),
-                new UserId(40), status, 2, new ApprovalInstanceId("i-2"), 4, 6);
+        return Timesheet.restore(new TimesheetId(7), new DocumentNumber("TS-ABC-202610-0007"), OWNER, new LegalEntityId(1), new OrgUnitId(5),
+                new WorkPackageId(1), WORK_DATE, Hours.of("8"), new UserId(40), status, 2, TODAY.minusDays(1), 6, 4);
     }
 
-    static void perform(Timesheet timesheet, Timesheet.Action action) {
-        switch (action) {
-            case REVISE -> timesheet.revise(OWNER, new WorkPackageId(2), WORK_DATE, Hours.of("6"), new UserId(41));
-            case SUBMIT -> timesheet.submit(OWNER, new ApprovalInstanceId("i-3"));
-            case APPROVE -> timesheet.approve();
-            case REJECT -> timesheet.reject("no");
-            case RETURN -> timesheet.returnForRevision("fix");
-            case CANCEL -> timesheet.cancelSubmission("changed my mind");
-        }
-    }
-
-    static Stream<Arguments> everyActionInEveryStatus() {
-        return Stream.of(Timesheet.Action.values()).flatMap(action -> Stream.of(TimesheetStatus.values())
-                .map(status -> Arguments.of(action, status, LEGAL.get(action).get(status))));
-    }
-
-    @ParameterizedTest(name = "{0} while {1} gives {2}")
-    @MethodSource("everyActionInEveryStatus")
-    @DisplayName("RULE-279/289 every legal timesheet move follows the table and every other pair is refused without any change")
-    void everyPairBehavesAsTheTableSays(Timesheet.Action action, TimesheetStatus from, TimesheetStatus to) {
-        Timesheet timesheet = in(from);
-        if (to != null) {
-            perform(timesheet, action);
-            assertThat(timesheet.status()).isEqualTo(to);
-        } else {
-            assertThatThrownBy(() -> perform(timesheet, action)).isInstanceOf(TimesheetTransitionException.class)
-                    .extracting(e -> ((TimesheetTransitionException) e).violation())
-                    .isEqualTo(TimesheetTransitionException.Violation.ILLEGAL_TRANSITION);
-            assertThat(timesheet.status()).isEqualTo(from);
-            assertThat(timesheet.round()).isEqualTo(2);
-            assertThat(timesheet.workPackageId()).isEqualTo(new WorkPackageId(1));
-            assertThat(timesheet.pullEvents()).isEmpty();
-        }
+    static Timesheet drafted() {
+        return Timesheet.draft(new TimesheetId(7), new DocumentNumber("TS-ABC-202610-0007"), new AggregateReference("NumberingRule", "TIMESHEET"),
+                OWNER, new LegalEntityId(1), new OrgUnitId(5), new WorkPackageId(1), WORK_DATE, Hours.of("8"), new UserId(40), TODAY);
     }
 
     @Test
-    @DisplayName("RULE-279 the table has a row for every action, so a new action cannot be forgotten")
-    void theTableCoversEveryAction() {
-        assertThat(LEGAL).containsOnlyKeys(Timesheet.Action.values());
+    @DisplayName("RULE-279/289 every timesheet operation is tried from every status: only the table's pairs move, every other pair is refused with a conflict and changes nothing")
+    void everyOperationInEveryStatus() {
+        List<String> tried = new TransitionTable<TimesheetStatus, Timesheet>(TimesheetStatus.class, TimesheetStateMachineTest::in, Timesheet::status)
+                .operation("revise", t -> t.revise(OWNER, new WorkPackageId(2), WORK_DATE, Hours.of("6"), new UserId(41)),
+                        TimesheetStatus.DRAFT, TimesheetStatus.DRAFT, TimesheetStatus.RETURNED, TimesheetStatus.RETURNED)
+                .operation("submit", t -> t.submit(OWNER, TODAY), TimesheetStatus.DRAFT, TimesheetStatus.SUBMITTED, TimesheetStatus.RETURNED,
+                        TimesheetStatus.SUBMITTED)
+                .operation("approve", Timesheet::approve, TimesheetStatus.SUBMITTED, TimesheetStatus.APPROVED)
+                .operation("reject", t -> t.reject(new Reason("no")), TimesheetStatus.SUBMITTED, TimesheetStatus.REJECTED)
+                .operation("return", t -> t.returnForRevision(new Reason("fix")), TimesheetStatus.SUBMITTED, TimesheetStatus.RETURNED)
+                .operation("cancel", t -> t.cancelSubmission(new Reason("changed my mind")), TimesheetStatus.SUBMITTED, TimesheetStatus.DRAFT)
+                .verify();
+        assertThat(tried).hasSize(6 * TimesheetStatus.values().length);
     }
 
     @Test
     @DisplayName("I-5 only the employee revises or submits the timesheet")
     void onlyTheOwnerChangesAndSubmits() {
-        assertThatThrownBy(() -> in(TimesheetStatus.DRAFT).submit(STRANGER, new ApprovalInstanceId("i")))
-                .extracting(e -> ((TimesheetTransitionException) e).violation()).isEqualTo(TimesheetTransitionException.Violation.NOT_OWNER);
+        assertThatThrownBy(() -> in(TimesheetStatus.DRAFT).submit(STRANGER, TODAY)).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_NOT_OWNER));
         assertThatThrownBy(() -> in(TimesheetStatus.RETURNED).revise(STRANGER, new WorkPackageId(2), WORK_DATE, Hours.of("1"), new UserId(41)))
-                .extracting(e -> ((TimesheetTransitionException) e).violation()).isEqualTo(TimesheetTransitionException.Violation.NOT_OWNER);
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_NOT_OWNER));
     }
 
     @Test
-    @DisplayName("RULE-267 a returned timesheet is revised and submitted again as the next round; the content digest follows the content")
+    @DisplayName("H-6 D-1a-126 the work date is what the employee entered: it cannot be after today, and a resubmission cannot rewrite it")
+    void theWorkDateIsEnteredAndKept() {
+        assertThatThrownBy(() -> Timesheet.draft(new TimesheetId(7), new DocumentNumber("TS-1"), new AggregateReference("NumberingRule", "TIMESHEET"),
+                OWNER, new LegalEntityId(1), new OrgUnitId(5), new WorkPackageId(1), TODAY.plusDays(1), Hours.of("8"), new UserId(40), TODAY))
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_WORK_DATE_IN_FUTURE));
+        Timesheet today = Timesheet.draft(new TimesheetId(8), new DocumentNumber("TS-2"), new AggregateReference("NumberingRule", "TIMESHEET"),
+                OWNER, new LegalEntityId(1), new OrgUnitId(5), new WorkPackageId(1), TODAY, Hours.of("8"), new UserId(40), TODAY);
+        assertThat(today.workDate()).isEqualTo(TODAY);
+
+        Timesheet returned = in(TimesheetStatus.RETURNED);
+        assertThatThrownBy(() -> returned.revise(OWNER, new WorkPackageId(1), WORK_DATE.plusDays(1), Hours.of("8"), new UserId(40)))
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_WORK_DATE_FIXED));
+        returned.revise(OWNER, new WorkPackageId(1), WORK_DATE, Hours.of("7.5"), new UserId(40));
+        returned.submit(OWNER, TODAY.plusDays(3));
+        assertThat(returned.workDate()).as("submitting days later does not move the hours to another day").isEqualTo(WORK_DATE);
+        assertThat(returned.submittedOn()).as("the day of submission is a fact of its own").contains(TODAY.plusDays(3));
+        assertThat(returned.periodOfWork()).isEqualTo(AccountingPeriod.of(2026, 10));
+    }
+
+    @Test
+    @DisplayName("RULE-267 a returned timesheet is revised and submitted again as the next round; the content hash follows the content")
     void returnedThenRevisedThenSubmittedAgain() {
         Timesheet timesheet = in(TimesheetStatus.RETURNED);
-        String before = timesheet.contentDigest();
+        var before = timesheet.contentHash();
         timesheet.revise(OWNER, new WorkPackageId(1), WORK_DATE, Hours.of("7.5"), new UserId(40));
-        assertThat(timesheet.contentDigest()).isNotEqualTo(before);
-        timesheet.submit(OWNER, new ApprovalInstanceId("i-3"));
+        assertThat(timesheet.contentHash()).isNotEqualTo(before);
+        timesheet.submit(OWNER, TODAY);
         assertThat(timesheet.status()).isEqualTo(TimesheetStatus.SUBMITTED);
         assertThat(timesheet.round()).isEqualTo(3);
-        assertThat(timesheet.approvalInstanceId()).contains(new ApprovalInstanceId("i-3"));
         assertThat(timesheet.isAwaitingResultOfRound(3)).isTrue();
         assertThat(timesheet.isAwaitingResultOfRound(2)).as("a result of an older round is not awaited").isFalse();
     }
@@ -120,55 +116,109 @@ class TimesheetStateMachineTest {
     @DisplayName("RULE-279 cancelling returns the timesheet to a draft that is not counted as refused")
     void cancelIsNotARefusal() {
         Timesheet timesheet = in(TimesheetStatus.SUBMITTED);
-        timesheet.cancelSubmission("wrong hours");
+        timesheet.cancelSubmission(new Reason("wrong hours"));
         assertThat(timesheet.status()).isEqualTo(TimesheetStatus.DRAFT);
         assertThat(timesheet.status().isEditable()).isTrue();
-        assertThat(timesheet.pullEvents()).extracting(e -> e.draft().eventType()).containsExactly("cost.timesheet.TimesheetCancelled");
+        assertThat(timesheet.drainEvents(ENVELOPES)).extracting(e -> e.envelope().eventType()).containsExactly("cost.timesheet.TimesheetCancelled");
     }
 
     @Test
-    @DisplayName("RULE-295 each timesheet event carries the work date as business date, the legal entity and the aggregate's own event number")
+    @DisplayName("H-1 RULE-295 submitting records one TimesheetSubmitted that carries everything the approval needs: employee, project manager, round, routing, hash, summary; the numbering aggregate is named as touched together")
+    void submittingPublishesWhatTheApprovalNeeds() {
+        Timesheet timesheet = drafted();
+        timesheet.submit(OWNER, TODAY);
+
+        List<DomainEvent> events = timesheet.drainEvents(ENVELOPES);
+
+        assertThat(events).singleElement().isInstanceOfSatisfying(TimesheetSubmitted.class, submitted -> {
+            assertThat(submitted.document().documentId().value()).isEqualTo("7");
+            assertThat(submitted.number()).isEqualTo(new DocumentNumber("TS-ABC-202610-0007"));
+            assertThat(submitted.employee()).isEqualTo(OWNER);
+            assertThat(submitted.projectManager()).isEqualTo(new UserId(40));
+            assertThat(submitted.round()).isEqualTo(new RoundNumber(1));
+            assertThat(submitted.submittedOn()).isEqualTo(TODAY);
+            assertThat(submitted.routingFlags()).containsExactly(TimesheetRoutingFlag.PROJECT_HOURS);
+            assertThat(submitted.contentHash()).isEqualTo(timesheet.contentHash());
+            assertThat(submitted.summary().value()).contains("TS-ABC-202610-0007").contains("2026-10-13");
+            assertThat(submitted.envelope().businessDate()).as("the business date of the fact is the work date").isEqualTo(WORK_DATE);
+            assertThat(submitted.envelope().legalEntityId()).isEqualTo(new LegalEntityId(1));
+            assertThat(submitted.envelope().aggregateVersion()).isEqualTo(1);
+            assertThat(submitted.envelope().relatedAggregates()).as("DDD-1 the counter that took the number in the same transaction")
+                    .containsExactly(new AggregateReference("NumberingRule", "TIMESHEET"));
+        });
+    }
+
+    @Test
+    @DisplayName("RULE-295 each timesheet event carries the work date as business date, the legal entity and the aggregate's own running event number")
     void eventsCarryTheDraftFields() {
         Timesheet timesheet = in(TimesheetStatus.DRAFT);
-        timesheet.submit(OWNER, new ApprovalInstanceId("i-3"));
-        timesheet.returnForRevision("fix");
-        timesheet.submit(OWNER, new ApprovalInstanceId("i-4"));
+        timesheet.submit(OWNER, TODAY);
+        timesheet.returnForRevision(new Reason("fix"));
+        timesheet.submit(OWNER, TODAY);
         timesheet.approve();
 
-        List<PendingEvent> events = timesheet.pullEvents();
-        assertThat(events).extracting(e -> e.draft().eventType()).containsExactly("cost.timesheet.TimesheetSubmitted",
-                "cost.timesheet.TimesheetReturned", "cost.timesheet.TimesheetSubmitted", "cost.timesheet.TimesheetApproved");
-        assertThat(events).extracting(e -> e.draft().aggregateVersion()).containsExactly(5L, 6L, 7L, 8L);
-        assertThat(events).extracting(e -> e.draft().businessDate()).containsOnly(WORK_DATE);
-        assertThat(events).extracting(e -> e.draft().legalEntityId()).containsOnly(new LegalEntityId(1));
-        assertThat(events).extracting(e -> e.draft().aggregateId()).containsOnly("7");
+        List<DomainEvent> events = timesheet.drainEvents(ENVELOPES);
 
-        TimesheetSubmitted submitted = (TimesheetSubmitted) events.get(0).assemble().apply(envelope(events.get(0)));
-        assertThat(submitted.approvalInstanceId()).isEqualTo(new ApprovalInstanceId("i-3"));
-        assertThat(submitted.round()).isEqualTo(new RoundNumber(3));
-        assertThat(submitted.document().documentId().value()).isEqualTo("7");
-        assertThat(events.get(1).assemble().apply(envelope(events.get(1)))).isInstanceOf(TimesheetReturned.class);
-        TimesheetApproved approved = (TimesheetApproved) events.get(3).assemble().apply(envelope(events.get(3)));
-        assertThat(approved.submittedHours()).isEqualTo(Hours.of("8"));
+        assertThat(events).extracting(e -> e.envelope().eventType()).containsExactly("cost.timesheet.TimesheetSubmitted",
+                "cost.timesheet.TimesheetReturned", "cost.timesheet.TimesheetSubmitted", "cost.timesheet.TimesheetApproved");
+        assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(5L, 6L, 7L, 8L);
+        assertThat(events).extracting(e -> e.envelope().businessDate()).containsOnly(WORK_DATE);
+        assertThat(events).extracting(e -> e.envelope().legalEntityId()).containsOnly(new LegalEntityId(1));
+        assertThat(events).extracting(e -> e.envelope().aggregateId()).containsOnly("7");
+        assertThat(((TimesheetSubmitted) events.get(0)).round()).isEqualTo(new RoundNumber(3));
+        assertThat(events.get(1)).isInstanceOf(TimesheetReturned.class);
+        assertThat(((TimesheetApproved) events.get(3)).submittedHours()).isEqualTo(Hours.of("8"));
+        assertThat(timesheet.version()).as("one save, one version step, however many events").isEqualTo(7);
+        assertThat(timesheet.eventSequence()).isEqualTo(8);
     }
 
     @Test
     @DisplayName("RULE-279 a refusal and a cancel carry their reason")
     void reasonsTravelWithTheEvents() {
         Timesheet refused = in(TimesheetStatus.SUBMITTED);
-        refused.reject("over budget");
-        PendingEvent rejected = refused.pullEvents().getFirst();
-        assertThat(((TimesheetRejected) rejected.assemble().apply(envelope(rejected))).reason()).isEqualTo(new Reason("over budget"));
+        refused.reject(new Reason("over budget"));
+        assertThat(((TimesheetRejected) refused.drainEvents(ENVELOPES).getFirst()).reason()).isEqualTo(new Reason("over budget"));
 
         Timesheet cancelled = in(TimesheetStatus.SUBMITTED);
-        cancelled.cancelSubmission("duplicate");
-        PendingEvent cancel = cancelled.pullEvents().getFirst();
-        assertThat(((TimesheetCancelled) cancel.assemble().apply(envelope(cancel))).reason()).isEqualTo(new Reason("duplicate"));
+        cancelled.cancelSubmission(new Reason("duplicate"));
+        assertThat(((TimesheetCancelled) cancelled.drainEvents(ENVELOPES).getFirst()).reason()).isEqualTo(new Reason("duplicate"));
     }
 
-    private static EventEnvelope envelope(PendingEvent event) {
-        return new EventEnvelope(UUID.randomUUID(), event.draft().eventType(), 1, Instant.EPOCH, event.draft().aggregateType(),
-                event.draft().aggregateId(), event.draft().aggregateVersion(), UUID.randomUUID(), null, ActorType.SYSTEM, "x",
-                event.draft().legalEntityId(), event.draft().businessDate(), event.draft().source(), null, List.of());
+    @Test
+    @DisplayName("DDD-3 over any sequence of operations the event numbers are 1..n without a gap, a save without events does not advance them, and the version moves once per save")
+    void eventNumbersHaveNoGaps() {
+        for (long seed = 0; seed < 200; seed++) {
+            Random random = new Random(seed);
+            Timesheet timesheet = drafted();
+            List<Long> numbers = new ArrayList<>();
+            long saves = 0;
+            for (int step = 0; step < 25; step++) {
+                try {
+                    switch (random.nextInt(7)) {
+                        case 0 -> timesheet.revise(OWNER, new WorkPackageId(1 + random.nextInt(3)), WORK_DATE, Hours.of("8"), new UserId(40));
+                        case 1 -> timesheet.submit(OWNER, TODAY);
+                        case 2 -> timesheet.approve();
+                        case 3 -> timesheet.reject(new Reason("no"));
+                        case 4 -> timesheet.returnForRevision(new Reason("fix"));
+                        case 5 -> timesheet.cancelSubmission(new Reason("changed"));
+                        default -> {
+                        }
+                    }
+                } catch (DomainException refused) {
+                    // an illegal move records nothing
+                }
+                long sequenceBefore = timesheet.eventSequence();
+                boolean hadEvents = timesheet.hasPendingEvents();
+                List<DomainEvent> published = timesheet.drainEvents(ENVELOPES);
+                saves++;
+                published.forEach(event -> numbers.add(event.envelope().aggregateVersion()));
+                assertThat(hadEvents).isEqualTo(!published.isEmpty());
+                assertThat(timesheet.eventSequence()).as("seed %s step %s", seed, step).isEqualTo(sequenceBefore + published.size());
+                assertThat(timesheet.version()).as("seed %s step %s", seed, step).isEqualTo(saves);
+            }
+            for (int i = 0; i < numbers.size(); i++) {
+                assertThat(numbers.get(i)).as("seed %s", seed).isEqualTo(i + 1L);
+            }
+        }
     }
 }

@@ -1,4 +1,4 @@
-package com.forcitis.one.cost.timesheet.application;
+package com.forcitis.one.cost.timesheet.api;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorCode;
@@ -8,10 +8,16 @@ public enum TimesheetError implements ErrorCode {
     COST_TIMESHEET_EXCEEDS_REMAINING_HOURS(ErrorKind.UNPROCESSABLE),
     COST_TIMESHEET_UNKNOWN_WORK_PACKAGE(ErrorKind.NOT_FOUND),
     COST_TIMESHEET_NOT_FOUND(ErrorKind.NOT_FOUND),
+    COST_TIMESHEET_NOT_OWNER(ErrorKind.FORBIDDEN),
     COST_TIMESHEET_TRANSITION_ILLEGAL(ErrorKind.CONFLICT),
     COST_TIMESHEET_CONCURRENT_CHANGE(ErrorKind.CONFLICT),
     COST_TIMESHEET_REASON_REQUIRED(ErrorKind.UNPROCESSABLE),
-    COST_TIMESHEET_CUTOFF_PASSED(ErrorKind.CONFLICT);
+    COST_TIMESHEET_CUTOFF_PASSED(ErrorKind.CONFLICT),
+    COST_TIMESHEET_WORK_DATE_REQUIRED(ErrorKind.UNPROCESSABLE),
+    COST_TIMESHEET_WORK_DATE_IN_FUTURE(ErrorKind.UNPROCESSABLE),
+    COST_TIMESHEET_WORK_DATE_FIXED(ErrorKind.UNPROCESSABLE),
+    COST_TIMESHEET_RESULT_PENDING(ErrorKind.CONFLICT),
+    COST_TIMESHEET_EMPLOYEE_UNKNOWN(ErrorKind.UNPROCESSABLE);
 
     private final ErrorKind kind;
 
