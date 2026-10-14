@@ -171,6 +171,7 @@
 - **指标命名**：`forcitis.<子域>.<bc>.…`，例如 `forcitis.platform.integration.deliveries.dead.letters`；看板和告警规则用新名字。
 - **新增 schema**：`organization_attendance`（工作日历），已写入 `one_db_roles_schemas.sql`；上线前需在每个环境执行该脚本中对应的建 schema 与授权语句，再启动应用。
 - **工作日历要先维护**：依赖工作日历的计算（审批时限等）在所属年份没有维护时失败并记 `ALERT` 日志与指标 `forcitis.organization.attendance.calendar.unmaintained`；管理员用 `PUT /api/v1/organization/work-calendars/{年}` 维护（权限 `organization.attendance:work-calendar:update`），每年底前维护下一年。
+- **今天之前的日期不可修改**（T2）：改动会得到 422 `ORGANIZATION_ATTENDANCE_LOCKED_DAY_CHANGED`。例外只给组织数据管理员，调用时带确认参数 `lockedDaysConfirmed`，并发出 `WorkCalendarLockedDaysChanged`（进审计，载荷列出被改的日期）；已算出的审批截止时刻不重算。
 
 ## 9. 事件发布登记表的运维（ADR-0025 评审 C-4、C-8）
 

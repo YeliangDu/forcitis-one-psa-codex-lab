@@ -26,3 +26,34 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.organization.attendance.domain.WorkCalendarYearTest
         noConsumer: 暂无消费方：审批超时提醒将在日历变更后重算截止时间（approval 依赖 attendance）；现在就发布，是因为日历变更之后已算出的截止时间需要有据可查
+    WorkCalendarLockedDaysChanged:
+      name: WorkCalendarLockedDaysChanged
+      title: 工作日历中已过去的日期被组织数据管理员确认修改
+      payload:
+        type: object
+        properties:
+          calendarYear:
+            type: integer
+            x-type: Year
+            description: 日历年份
+          lockedDates:
+            type: array
+            items:
+              type: string
+              x-type: LocalDate
+            description: 被修改的、早于操作当天的日期
+      x-event:
+        eventType: organization.attendance.WorkCalendarLockedDaysChanged
+        version: 1
+        class: com.forcitis.one.organization.attendance.events.WorkCalendarLockedDaysChanged
+        aggregate: WorkCalendarYear
+        idempotencyKey: eventId
+        publisher: organization.attendance
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：载荷 lockedDates 列出被改的日期；已算出的审批时效不因此重算
+        audit: audited
+        publisherTest: com.forcitis.one.organization.attendance.domain.WorkCalendarYearTest
+        noConsumer: 暂无消费方：这是对工作日历例外修改的审计留痕；现在就发布，是因为例外修改的操作人与日期事后无法还原

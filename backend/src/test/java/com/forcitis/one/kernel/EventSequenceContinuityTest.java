@@ -110,8 +110,9 @@ class EventSequenceContinuityTest {
     @DisplayName("WorkCalendarYear: events are numbered 1..n")
     void workCalendarYear() {
         checkMany(() -> WorkCalendarYear.unmaintained(WorkCalendarKey.defaultFor(2026)), List.of(
-                y -> y.maintain(List.of()), y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY))),
-                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)))));
+                y -> y.maintain(List.of(), LocalDate.of(2026, 6, 1), true),
+                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true),
+                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true)));
     }
 
     @Test
