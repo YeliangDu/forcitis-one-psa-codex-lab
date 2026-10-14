@@ -99,6 +99,18 @@ export const postPlatformApprovalTasksByTaskIdTransfer = (...[args, options]: Ca
 export const getPlatformAuditEntries = (...[args, options]: Call<paths['/api/v1/platform/audit-entries']['get']>) =>
   request<Result<paths['/api/v1/platform/audit-entries']['get']>>('get', '/api/v1/platform/audit-entries', args, options, responseSchemas.getPlatformAuditEntries);
 
+export const getPlatformAuditEntriesExport = (...[args, options]: Call<paths['/api/v1/platform/audit-entries:export']['get']>) =>
+  request<Result<paths['/api/v1/platform/audit-entries:export']['get']>>('get', '/api/v1/platform/audit-entries:export', args, options, responseSchemas.getPlatformAuditEntriesExport);
+
+export const getPlatformAuthorizationRequests = (...[args, options]: Call<paths['/api/v1/platform/authorization-requests']['get']>) =>
+  request<Result<paths['/api/v1/platform/authorization-requests']['get']>>('get', '/api/v1/platform/authorization-requests', args, options, responseSchemas.getPlatformAuthorizationRequests);
+
+export const postPlatformAuthorizationRequestsByRequestIdConfirm = (...[args, options]: Call<paths['/api/v1/platform/authorization-requests/{requestId}:confirm']['post']>) =>
+  request<Result<paths['/api/v1/platform/authorization-requests/{requestId}:confirm']['post']>>('post', '/api/v1/platform/authorization-requests/{requestId}:confirm', args, options, undefined, { idempotent: true });
+
+export const postPlatformAuthorizationRequestsByRequestIdReject = (...[args, options]: Call<paths['/api/v1/platform/authorization-requests/{requestId}:reject']['post']>) =>
+  request<Result<paths['/api/v1/platform/authorization-requests/{requestId}:reject']['post']>>('post', '/api/v1/platform/authorization-requests/{requestId}:reject', args, options, undefined, { idempotent: true });
+
 export const getPlatformLegacyNumbers = (...[args, options]: Call<paths['/api/v1/platform/legacy-numbers']['get']>) =>
   request<Result<paths['/api/v1/platform/legacy-numbers']['get']>>('get', '/api/v1/platform/legacy-numbers', args, options, responseSchemas.getPlatformLegacyNumbers);
 
@@ -116,6 +128,15 @@ export const getPlatformNumberingRulesByDocumentType = (...[args, options]: Call
 
 export const putPlatformNumberingRulesByDocumentType = (...[args, options]: Call<paths['/api/v1/platform/numbering-rules/{documentType}']['put']>) =>
   request<Result<paths['/api/v1/platform/numbering-rules/{documentType}']['put']>>('put', '/api/v1/platform/numbering-rules/{documentType}', args, options, responseSchemas.putPlatformNumberingRulesByDocumentType, { versioned: true });
+
+export const postPlatformNumberingRulesByDocumentTypeConfirm = (...[args, options]: Call<paths['/api/v1/platform/numbering-rules/{documentType}:confirm']['post']>) =>
+  request<Result<paths['/api/v1/platform/numbering-rules/{documentType}:confirm']['post']>>('post', '/api/v1/platform/numbering-rules/{documentType}:confirm', args, options, responseSchemas.postPlatformNumberingRulesByDocumentTypeConfirm, { idempotent: true });
+
+export const postPlatformNumberingRulesByDocumentTypeConfirmFinance = (...[args, options]: Call<paths['/api/v1/platform/numbering-rules/{documentType}:confirm-finance']['post']>) =>
+  request<Result<paths['/api/v1/platform/numbering-rules/{documentType}:confirm-finance']['post']>>('post', '/api/v1/platform/numbering-rules/{documentType}:confirm-finance', args, options, responseSchemas.postPlatformNumberingRulesByDocumentTypeConfirmFinance, { idempotent: true });
+
+export const getPlatformOwnLoginRecords = (...[args, options]: Call<paths['/api/v1/platform/own-login-records']['get']>) =>
+  request<Result<paths['/api/v1/platform/own-login-records']['get']>>('get', '/api/v1/platform/own-login-records', args, options, responseSchemas.getPlatformOwnLoginRecords);
 
 export const getPlatformRoles = (...[args, options]: Call<paths['/api/v1/platform/roles']['get']>) =>
   request<Result<paths['/api/v1/platform/roles']['get']>>('get', '/api/v1/platform/roles', args, options, responseSchemas.getPlatformRoles);
@@ -141,6 +162,12 @@ export const getPlatformSessionsCurrent = (...[args, options]: Call<paths['/api/
 export const postPlatformSessionsEmergencyLogin = (...[args, options]: Call<paths['/api/v1/platform/sessions:emergency-login']['post']>) =>
   request<Result<paths['/api/v1/platform/sessions:emergency-login']['post']>>('post', '/api/v1/platform/sessions:emergency-login', args, options, responseSchemas.postPlatformSessionsEmergencyLogin);
 
+export const postPlatformSessionsEnterAdministratorMode = (...[args, options]: Call<paths['/api/v1/platform/sessions:enter-administrator-mode']['post']>) =>
+  request<Result<paths['/api/v1/platform/sessions:enter-administrator-mode']['post']>>('post', '/api/v1/platform/sessions:enter-administrator-mode', args, options, responseSchemas.postPlatformSessionsEnterAdministratorMode);
+
+export const postPlatformSessionsExitAdministratorMode = (...[args, options]: Call<paths['/api/v1/platform/sessions:exit-administrator-mode']['post']>) =>
+  request<Result<paths['/api/v1/platform/sessions:exit-administrator-mode']['post']>>('post', '/api/v1/platform/sessions:exit-administrator-mode', args, options, undefined);
+
 export const postPlatformSessionsLogout = (...[args, options]: Call<paths['/api/v1/platform/sessions:logout']['post']>) =>
   request<Result<paths['/api/v1/platform/sessions:logout']['post']>>('post', '/api/v1/platform/sessions:logout', args, options, undefined);
 
@@ -162,5 +189,8 @@ export const postPlatformUserAccountsByUserIdDisable = (...[args, options]: Call
 export const postPlatformUserAccountsByUserIdEnable = (...[args, options]: Call<paths['/api/v1/platform/user-accounts/{userId}:enable']['post']>) =>
   request<Result<paths['/api/v1/platform/user-accounts/{userId}:enable']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:enable', args, options, undefined, { versioned: true, idempotent: true });
 
+export const postPlatformUserAccountsByUserIdForceLogout = (...[args, options]: Call<paths['/api/v1/platform/user-accounts/{userId}:force-logout']['post']>) =>
+  request<Result<paths['/api/v1/platform/user-accounts/{userId}:force-logout']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:force-logout', args, options, undefined, { idempotent: true });
+
 export const postPlatformUserAccountsByUserIdReplaceRoles = (...[args, options]: Call<paths['/api/v1/platform/user-accounts/{userId}:replace-roles']['post']>) =>
-  request<Result<paths['/api/v1/platform/user-accounts/{userId}:replace-roles']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:replace-roles', args, options, undefined, { versioned: true, idempotent: true });
+  request<Result<paths['/api/v1/platform/user-accounts/{userId}:replace-roles']['post']>>('post', '/api/v1/platform/user-accounts/{userId}:replace-roles', args, options, responseSchemas.postPlatformUserAccountsByUserIdReplaceRoles, { versioned: true, idempotent: true });

@@ -4,9 +4,13 @@ import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.PageRequest;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.audit.api.AuditError;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.application.AuditEntryPageView;
 import com.forcitis.one.platform.audit.application.AuditSearch;
 import com.forcitis.one.platform.audit.application.SearchAuditEntries;
+import java.security.Principal;
 import java.time.Instant;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,16 +33,17 @@ class AuditEntryController {
     @PreAuthorize("hasAuthority('" + AuditPermissions.ENTRY_READ + "')")
     CursorPage<AuditEntryResponse> list(@RequestParam(required = false) Long actorId, @RequestParam(required = false) Long onBehalfOfId,
                            @RequestParam(required = false) String action, @RequestParam(required = false) String actionPrefix,
-                           @RequestParam(required = false) String sourceAddress, @RequestParam(required = false) String result,
+                           @RequestParam(required = false) String sourceAddress, @RequestParam(required = false) AuditOutcome outcome,
                            @RequestParam(required = false) String subjectKey,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
-                           @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+                           @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor, Principal caller) {
         AuditEntryPageView page;
         try {
-            page = search.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKey, sourceAddress, result, from, to, PageRequest.of(limit, cursor, "audit-entries")));
+            page = search.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKey, sourceAddress, outcome, from, to,
+                    PageRequest.of(limit, cursor, "audit-entries")), new UserId(Long.parseLong(caller.getName())));
         } catch (IllegalArgumentException invalid) {
-            throw new DomainException(AuditWebError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, invalid.getMessage());
+            throw new DomainException(AuditError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, invalid.getMessage());
         }
         return CursorPage.of(page.items().stream().map(AuditEntryResponse::of).toList(), page.nextCursor());
     }

@@ -18,5 +18,8 @@ public interface SyncRunQueries {
 
     int countHeld();
 
+    /** Runs waiting for a person, oldest first. */
+    List<SyncRunRecord> findHeld();
+
     Optional<Integer> findLatestEmployedWithoutWecomCount();
 }

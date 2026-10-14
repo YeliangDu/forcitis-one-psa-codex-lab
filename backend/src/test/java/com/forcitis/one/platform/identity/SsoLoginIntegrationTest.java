@@ -176,6 +176,11 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(result).path("identityConfirmationRequired").asBoolean()).isTrue();
         assertThat(mvc.perform(get("/api/v1/platform/approval-tasks").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn()
                 .getResponse().getStatus()).as("unconfirmed: no permission").isEqualTo(403);
+        for (String readOnly : new String[] {"/api/v1/platform/approval-tasks/1", "/api/v1/platform/approval-task-records",
+                "/api/v1/platform/approval-task-overviews"}) {
+            assertThat(mvc.perform(get(readOnly).cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn().getResponse().getStatus())
+                    .as("unconfirmed: the read-only endpoint " + readOnly + " that asks only for a signed-in person is shut too").isEqualTo(403);
+        }
         assertThat(body(mvc.perform(get("/api/v1/platform/sessions:current").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn())
                 .path("identityConfirmed").asBoolean()).isFalse();
         MvcResult unconfirmedProfile = mvc.perform(get("/api/v1/platform/sessions:current").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn();

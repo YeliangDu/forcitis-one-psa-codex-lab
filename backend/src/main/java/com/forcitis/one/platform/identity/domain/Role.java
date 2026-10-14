@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 public final class Role extends AggregateRoot {
 
     public static final RoleCode SUPER_ADMIN = new RoleCode("super_admin");
+    public static final RoleCode SECURITY_AUDITOR = new RoleCode("security_auditor");
     public static final StateMachine<RoleStatus> MACHINE = StateMachine.of(RoleStatus.class)
             .allow(RoleStatus.ENABLED, RoleStatus.DISABLED)
             .allow(RoleStatus.DISABLED, RoleStatus.ENABLED)

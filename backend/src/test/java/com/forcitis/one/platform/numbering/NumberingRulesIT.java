@@ -24,19 +24,12 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
 import com.forcitis.one.platform.numbering.api.RegisterLegacyNumbers;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -55,17 +48,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
 @Testcontainers
-@Import(NumberingRulesIT.FixedClock.class)
 class NumberingRulesIT {
-    @TestConfiguration
-    static class FixedClock {
-        @Bean
-        @Primary
-        Clock fixedClock() {
-            return Clock.fixed(Instant.parse("2026-10-14T04:00:00Z"), ZoneOffset.UTC);
-        }
-    }
-
     @MockitoBean
     OrgDirectory orgDirectory;
 
@@ -117,11 +100,18 @@ class NumberingRulesIT {
 
     @BeforeEach
     void legalEntitiesExist() {
+        NumberingFixtures.restoreSeededDefaults(jdbc);
         org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Optional.empty());
         org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(1)))
                 .thenReturn(java.util.Optional.of(new com.forcitis.one.organization.workforce.api.LegalEntityCode("FST")));
         org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(2)))
                 .thenReturn(java.util.Optional.of(new com.forcitis.one.organization.workforce.api.LegalEntityCode("FIT")));
+    }
+
+    private void inForce(String... types) {
+        for (String type : types) {
+            NumberingFixtures.confirmSeeded(jdbc, type);
+        }
     }
 
     private String issue(DocumentType type, LegalEntityId legalEntity, LocalDate day) {
@@ -163,6 +153,7 @@ class NumberingRulesIT {
     @Test
     @DisplayName("the quote's first number follows the unified format with the registered code QT")
     void quoteNumbersCarryTheRegisteredTypeCode() {
+        inForce("QUOTE");
         LocalDate day = LocalDate.of(2026, 10, 14);
 
         assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0001");
@@ -173,6 +164,7 @@ class NumberingRulesIT {
     @Test
     @DisplayName("an unknown legal entity cannot take a number, whatever the template")
     void unknownLegalEntityCannotIssue() {
+        inForce("QUOTE", "TIMESHEET");
         LocalDate day = LocalDate.of(2027, 3, 3);
 
         assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(99), day))
@@ -185,6 +177,7 @@ class NumberingRulesIT {
     @Test
     @DisplayName("a deactivated legal entity cannot take a new number")
     void deactivatedLegalEntityCannotIssue() {
+        inForce("QUOTE", "TIMESHEET");
         LocalDate day = LocalDate.of(2027, 4, 4);
         assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(3), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
         assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(3), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
@@ -194,16 +187,14 @@ class NumberingRulesIT {
     @DisplayName("a template without {LE} (configured later by an administrator) shares one counter across legal entities, so numbers never repeat")
     void templateWithoutLegalEntityTokenSharesOneCounter() {
         LocalDate day = LocalDate.of(2027, 5, 6);
-        jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{yyyyMMdd}-{seq:4}', reset_policy = 'DAILY' where document_type = 'TIMESHEET'").update();
-        try {
-            String first = issue(DocumentType.TIMESHEET, LE1, day);
-            String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
+        inForce("TIMESHEET");
+        NumberingFixtures.useTemplate(jdbc, "TIMESHEET", "{TYPE}-{yyyyMMdd}-{seq:4}", "DAILY");
 
-            assertThat(first).isEqualTo("TS-20270506-0001");
-            assertThat(second).isEqualTo("TS-20270506-0002");
-        } finally {
-            jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}', reset_policy = 'MONTHLY' where document_type = 'TIMESHEET'").update();
-        }
+        String first = issue(DocumentType.TIMESHEET, LE1, day);
+        String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
+
+        assertThat(first).isEqualTo("TS-20270506-0001");
+        assertThat(second).isEqualTo("TS-20270506-0002");
     }
 
     @Test
@@ -215,6 +206,7 @@ class NumberingRulesIT {
                     .andExpect(jsonPath("$.resetPolicy").value("MONTHLY"))
                     .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"));
         }
+        inForce("TIMESHEET", "JOURNAL_VOUCHER");
         LocalDate day = LocalDate.of(2027, 6, 7);
         assertThat(issue(DocumentType.TIMESHEET, LE1, day)).isEqualTo("TS-FST-202706-0001");
         assertThat(issue(DocumentType.TIMESHEET, new LegalEntityId(2), day)).isEqualTo("TS-FIT-202706-0001");
@@ -222,62 +214,25 @@ class NumberingRulesIT {
     }
 
     @Test
-    @DisplayName("saving a rule is the administrator's confirmation")
-    void savingConfirmsTheRule() throws Exception {
-        try {
-            mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isPreconditionRequired()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_REQUIRED"));
-            mvc.perform(put(RULES + "/QUOTE").header("If-Match", "\"999\"").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isPreconditionFailed());
-            String etag = mvc.perform(get(RULES + "/QUOTE").with(READER)).andReturn().getResponse().getHeader("ETag");
-            java.util.List<Long> before = jdbc.sql("select version, event_count from platform_numbering.numbering_rules where document_type = 'QUOTE'")
-                    .query((rs, n) -> java.util.List.of(rs.getLong(1), rs.getLong(2))).single();
-            mvc.perform(put(RULES + "/QUOTE").header("If-Match", etag).with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isOk()).andExpect(header().exists("ETag"));
-            assertThat(jdbc.sql("select version, event_count from platform_numbering.numbering_rules where document_type = 'QUOTE'")
-                    .query((rs, n) -> java.util.List.of(rs.getLong(1), rs.getLong(2))).single())
-                    .as("one save that reconfigured and confirmed the rule: the lock version moves once, the event count twice")
-                    .isEqualTo(java.util.List.of(before.get(0) + 1, before.get(1) + 2));
-            mvc.perform(get(RULES + "/QUOTE").with(READER))
-                    .andExpect(jsonPath("$.confirmationStatus").value("CONFIRMED"))
-                    .andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"));
-            assertThat(quoteRuleVersionAndEffectiveDay()).isEqualTo("1/" + today());
+    @DisplayName("ADR-0027 2.4 saving a rule only saves a new version that waits for someone else's confirmation; it confirms nothing")
+    void savingDoesNotConfirm() throws Exception {
+        String body = "{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\""
+                + java.time.LocalDate.now().plusDays(1) + "\"}";
+        mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isPreconditionRequired()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_REQUIRED"));
+        mvc.perform(put(RULES + "/QUOTE").header("If-Match", "\"999\"").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isPreconditionFailed());
+        String etag = mvc.perform(get(RULES + "/QUOTE").with(READER)).andReturn().getResponse().getHeader("ETag");
+        mvc.perform(put(RULES + "/QUOTE").header("If-Match", etag).with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andExpect(header().exists("ETag"));
 
-            mvc.perform(put(RULES + "/QUOTE").header("If-Match", quoteEtag()).with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isOk());
-            assertThat(quoteRuleVersionAndEffectiveDay()).as("replacing a confirmed template starts the next version").isEqualTo("2/" + today());
-            long versionAfterSecondSave = jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'")
-                    .query(Long.class).single();
-
-            mvc.perform(put(RULES + "/QUOTE").header("If-Match", quoteEtag()).with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isOk());
-            assertThat(quoteRuleVersionAndEffectiveDay()).as("saving the same template again changes nothing").isEqualTo("2/" + today());
-            assertThat(jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'").query(Long.class).single())
-                    .as("and does not even touch the row").isEqualTo(versionAfterSecondSave);
-        } finally {
-            // put the shared fixture back to the seeded default so other tests keep seeing the pending template
-            jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}',"
-                    + " confirmation_status = 'PENDING_CONFIRMATION', rule_version_number = 1, effective_from_date = null"
-                    + " where document_type = 'QUOTE'").update();
-        }
-    }
-
-    private String quoteEtag() throws Exception {
-        return mvc.perform(get(RULES + "/QUOTE").with(READER)).andReturn().getResponse().getHeader("ETag");
-    }
-
-    private String quoteRuleVersionAndEffectiveDay() {
-        return jdbc.sql("select rule_version_number || '/' || effective_from_date from platform_numbering.numbering_rules where document_type = 'QUOTE'")
-                .query(String.class).single();
-    }
-
-    private static LocalDate today() {
-        return LocalDate.of(2026, 10, 14);
+        mvc.perform(get(RULES + "/QUOTE").with(READER))
+                .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"))
+                .andExpect(jsonPath("$.pending.templateVersion").value(2))
+                .andExpect(jsonPath("$.pending.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"))
+                .andExpect(jsonPath("$.pending.authorId").value("9"));
+        assertThatThrownBy(() -> issue(DocumentType.QUOTE, LE1, LocalDate.of(2027, 7, 1)))
+                .isInstanceOf(com.forcitis.one.kernel.DomainException.class).hasMessageContaining("no confirmed template");
     }
 
     @Test

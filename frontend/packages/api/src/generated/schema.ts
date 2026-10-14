@@ -135,7 +135,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -167,7 +167,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -263,7 +263,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -279,7 +279,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -295,7 +295,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -423,9 +423,73 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/audit-entries:export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/authorization-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/authorization-requests/{requestId}:confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/authorization-requests/{requestId}:reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -439,7 +503,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -487,7 +551,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -505,6 +569,54 @@ export interface paths {
         };
         get: operations["get_1"];
         put: operations["put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/numbering-rules/{documentType}:confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/numbering-rules/{documentType}:confirm-finance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirmByFinance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/own-login-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_2"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -586,6 +698,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["loginAsEmergencyAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/sessions:enter-administrator-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["enter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/sessions:exit-administrator-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["exit"];
         delete?: never;
         options?: never;
         head?: never;
@@ -704,6 +848,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/user-accounts/{userId}:force-logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["forceLogout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/user-accounts/{userId}:replace-roles": {
         parameters: {
             query?: never;
@@ -726,6 +886,10 @@ export interface components {
     schemas: {
         /** @enum {string} */
         AccessScopeKind: "ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS";
+        AdministratorModeResponse: {
+            /** Format: date-time */
+            administratorModeExpiresAt: string;
+        };
         AttributeLegalEntityRequest: {
             /** Format: date */
             effectiveFrom?: string;
@@ -742,12 +906,30 @@ export interface components {
             createdAt: string;
             detail?: string | null;
             entryId: string;
+            loginMethod?: string | null;
             onBehalfOfId?: string | null;
-            result?: string | null;
+            outcome?: components["schemas"]["AuditOutcome"] | (string & {});
             sourceAddress?: string | null;
             subjectKey: string;
             /** Format: uuid */
             traceNumber?: string | null;
+        };
+        /** @enum {string} */
+        AuditOutcome: "SUCCEEDED" | "FAILED";
+        AuthorizationRequestView: {
+            kind?: string;
+            permissionCodes?: string[];
+            requestId?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            /** Format: int64 */
+            requestedBy?: number;
+            roleCodes?: string[];
+            /** Format: int64 */
+            roleId?: number;
+            roleName?: string;
+            /** Format: int64 */
+            subjectUserId?: number;
         };
         CalendarDayRequest: {
             /** Format: date */
@@ -758,6 +940,10 @@ export interface components {
             /** Format: date */
             calendarDate: string;
             dayKind: components["schemas"]["DayKind"] | (string & {});
+        };
+        ConfirmNumberingRuleRequest: {
+            /** Format: int32 */
+            templateVersion?: number;
         };
         /** @enum {string} */
         ConfirmationStatus: "PENDING_CONFIRMATION" | "CONFIRMED";
@@ -775,8 +961,11 @@ export interface components {
             name?: string;
         };
         CurrentUserResponse: {
+            /** Format: date-time */
+            administratorModeExpiresAt?: string | null;
             displayName: string;
             identityConfirmed: boolean;
+            mode: string;
             navigation: components["schemas"]["NavigationResponse"][];
             orgUnitId?: string | null;
             orgUnitName?: string | null;
@@ -785,6 +974,10 @@ export interface components {
         };
         CursorPageAuditEntryResponse: {
             items: components["schemas"]["AuditEntryResponse"][];
+            nextCursor?: string | null;
+        };
+        CursorPageAuthorizationRequestView: {
+            items: components["schemas"]["AuthorizationRequestView"][];
             nextCursor?: string | null;
         };
         CursorPageLegacyNumberResponse: {
@@ -835,7 +1028,10 @@ export interface components {
             effectiveTo?: string;
         };
         /** @enum {string} */
-        ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE" | "COST_TIMESHEET_CUTOFF_PASSED" | "COST_TIMESHEET_EMPLOYEE_UNKNOWN" | "COST_TIMESHEET_NOT_FOUND" | "COST_TIMESHEET_NOT_OWNER" | "COST_TIMESHEET_PROJECT_MANAGER_INVALID" | "COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN" | "COST_TIMESHEET_REASON_REQUIRED" | "COST_TIMESHEET_RESULT_PENDING" | "COST_TIMESHEET_TRANSITION_ILLEGAL" | "COST_TIMESHEET_WORK_DATE_FIXED" | "COST_TIMESHEET_WORK_DATE_IN_FUTURE" | "COST_TIMESHEET_WORK_DATE_REQUIRED" | "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE" | "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN" | "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR" | "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED" | "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY" | "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED" | "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE" | "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID" | "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND" | "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE" | "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL" | "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND" | "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND" | "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL" | "PLATFORM_APPROVAL_ALREADY_APPROVED" | "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID" | "PLATFORM_APPROVAL_CONCURRENT_CHANGE" | "PLATFORM_APPROVAL_CUTOFF_PASSED" | "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE" | "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK" | "PLATFORM_APPROVAL_DECISION_EMPTY" | "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY" | "PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING" | "PLATFORM_APPROVAL_HOOK_BLOCKED" | "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED" | "PLATFORM_APPROVAL_NODE_CONFIG_INVALID" | "PLATFORM_APPROVAL_NOT_ADMINISTRATOR" | "PLATFORM_APPROVAL_NOT_INITIATOR" | "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND" | "PLATFORM_APPROVAL_NO_ROUTE" | "PLATFORM_APPROVAL_PAGE_INVALID" | "PLATFORM_APPROVAL_REASON_REQUIRED" | "PLATFORM_APPROVAL_REQUEST_NOT_FOUND" | "PLATFORM_APPROVAL_ROUND_MISMATCH" | "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN" | "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED" | "PLATFORM_APPROVAL_TASK_NOT_FOUND" | "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID" | "PLATFORM_APPROVAL_TRANSITION_ILLEGAL" | "PLATFORM_AUDIT_QUERY_INVALID" | "PLATFORM_IDENTITY_ACCOUNT_DISABLED" | "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND" | "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_CONCURRENT_UPDATE" | "PLATFORM_IDENTITY_CREDENTIALS_INVALID" | "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING" | "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED" | "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN" | "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED" | "PLATFORM_IDENTITY_NETWORK_DENIED" | "PLATFORM_IDENTITY_NOT_SIGNED_IN" | "PLATFORM_IDENTITY_PERMISSION_UNKNOWN" | "PLATFORM_IDENTITY_ROLE_BLANK_NAME" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME" | "PLATFORM_IDENTITY_ROLE_INVALID_CODE" | "PLATFORM_IDENTITY_ROLE_IN_USE" | "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED" | "PLATFORM_IDENTITY_ROLE_NOT_FOUND" | "PLATFORM_IDENTITY_ROLE_RESERVED_CODE" | "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN" | "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_SSO_UNAVAILABLE" | "PLATFORM_IDENTITY_STATE_INVALID" | "PLATFORM_IDENTITY_TICKET_INVALID" | "PLATFORM_IDENTITY_TICKET_REPLAYED" | "PLATFORM_IDENTITY_WECOM_CODE_INVALID" | "PLATFORM_IDENTITY_WECOM_NOT_BOUND" | "PLATFORM_INTEGRATION_CONCURRENT_UPDATE" | "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_CONCURRENT_UPDATE" | "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND" | "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN" | "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID" | "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE" | "PLATFORM_NUMBERING_RULE_INVALID" | "PLATFORM_NUMBERING_RULE_NOT_FOUND" | "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL" | "PLATFORM_WEB_ACCESS_DENIED" | "PLATFORM_WEB_CORRELATION_INVALID" | "PLATFORM_WEB_CURSOR_INVALID" | "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS" | "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED" | "PLATFORM_WEB_REQUEST_INVALID" | "PLATFORM_WEB_SOURCE_BROKEN" | "PLATFORM_WEB_SOURCE_UNAVAILABLE" | "PLATFORM_WEB_UNAUTHENTICATED" | "PLATFORM_WEB_UNEXPECTED" | "PLATFORM_WEB_VERSION_MALFORMED" | "PLATFORM_WEB_VERSION_MISMATCH" | "PLATFORM_WEB_VERSION_REQUIRED";
+        ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE" | "COST_TIMESHEET_CUTOFF_PASSED" | "COST_TIMESHEET_EMPLOYEE_UNKNOWN" | "COST_TIMESHEET_NOT_FOUND" | "COST_TIMESHEET_NOT_OWNER" | "COST_TIMESHEET_PROJECT_MANAGER_INVALID" | "COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN" | "COST_TIMESHEET_REASON_REQUIRED" | "COST_TIMESHEET_RESULT_PENDING" | "COST_TIMESHEET_TRANSITION_ILLEGAL" | "COST_TIMESHEET_WORK_DATE_FIXED" | "COST_TIMESHEET_WORK_DATE_IN_FUTURE" | "COST_TIMESHEET_WORK_DATE_REQUIRED" | "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE" | "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN" | "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR" | "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED" | "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY" | "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED" | "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE" | "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID" | "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND" | "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE" | "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL" | "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND" | "ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN" | "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED" | "ORGANIZATION_WORKFORCE_SEPARATION_HOLD_FORBIDDEN" | "ORGANIZATION_WORKFORCE_SEPARATION_HOLD_REFUSED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND" | "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL" | "PLATFORM_APPROVAL_ALREADY_APPROVED" | "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID" | "PLATFORM_APPROVAL_CONCURRENT_CHANGE" | "PLATFORM_APPROVAL_CUTOFF_PASSED" | "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE" | "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK" | "PLATFORM_APPROVAL_DECISION_EMPTY" | "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY" | "PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING" | "PLATFORM_APPROVAL_HOOK_BLOCKED" | "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED" | "PLATFORM_APPROVAL_NODE_CONFIG_INVALID" | "PLATFORM_APPROVAL_NOT_ADMINISTRATOR" | "PLATFORM_APPROVAL_NOT_INITIATOR" | "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND" | "PLATFORM_APPROVAL_NO_ROUTE" | "PLATFORM_APPROVAL_PAGE_INVALID" | "PLATFORM_APPROVAL_REASON_REQUIRED" | "PLATFORM_APPROVAL_REQUEST_NOT_FOUND" | "PLATFORM_APPROVAL_ROUND_MISMATCH" | "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN" | "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED" | "PLATFORM_APPROVAL_TASK_NOT_FOUND" | "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID" | "PLATFORM_APPROVAL_TRANSITION_ILLEGAL" | "PLATFORM_AUDIT_EXPORT_TOO_LARGE" | "PLATFORM_AUDIT_QUERY_INVALID" | "PLATFORM_IDENTITY_ACCOUNT_DISABLED" | "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND" | "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_ADMINISTRATOR_MODE_DENIED" | "PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED" | "PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_FOUND" | "PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING" | "PLATFORM_IDENTITY_CONCURRENT_UPDATE" | "PLATFORM_IDENTITY_CREDENTIALS_INVALID" | "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING" | "PLATFORM_IDENTITY_EMERGENCY_ADMIN_DUPLICATE" | "PLATFORM_IDENTITY_EMERGENCY_ADMIN_NOT_FOUND" | "PLATFORM_IDENTITY_EMERGENCY_ADMIN_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID" | "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED" | "PLATFORM_IDENTITY_FORCED_LOGOUT_REASON_REQUIRED" | "PLATFORM_IDENTITY_FORCED_LOGOUT_SELF_FORBIDDEN" | "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN" | "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED" | "PLATFORM_IDENTITY_NETWORK_DENIED" | "PLATFORM_IDENTITY_NOT_SIGNED_IN" | "PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED" | "PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN" | "PLATFORM_IDENTITY_OWN_ROLE_DEFINITION_FORBIDDEN" | "PLATFORM_IDENTITY_PERMISSION_UNKNOWN" | "PLATFORM_IDENTITY_ROLE_BLANK_NAME" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME" | "PLATFORM_IDENTITY_ROLE_INVALID_CODE" | "PLATFORM_IDENTITY_ROLE_IN_USE" | "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED" | "PLATFORM_IDENTITY_ROLE_NOT_FOUND" | "PLATFORM_IDENTITY_ROLE_RESERVED_CODE" | "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN" | "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_SSO_UNAVAILABLE" | "PLATFORM_IDENTITY_STATE_INVALID" | "PLATFORM_IDENTITY_TICKET_INVALID" | "PLATFORM_IDENTITY_TICKET_REPLAYED" | "PLATFORM_IDENTITY_WECOM_CODE_INVALID" | "PLATFORM_IDENTITY_WECOM_NOT_BOUND" | "PLATFORM_INTEGRATION_CONCURRENT_UPDATE" | "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_CONCURRENT_UPDATE" | "PLATFORM_NUMBERING_CONFIRMATION_REPEATED" | "PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR" | "PLATFORM_NUMBERING_EFFECTIVE_DATE_PASSED" | "PLATFORM_NUMBERING_FINANCE_CONFIRMATION_NOT_REQUIRED" | "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND" | "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN" | "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID" | "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE" | "PLATFORM_NUMBERING_NOTHING_TO_CONFIRM" | "PLATFORM_NUMBERING_RULE_INVALID" | "PLATFORM_NUMBERING_RULE_NOT_CONFIRMED" | "PLATFORM_NUMBERING_RULE_NOT_FOUND" | "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_VERSION_MISMATCH" | "PLATFORM_WEB_ACCESS_DENIED" | "PLATFORM_WEB_CORRELATION_INVALID" | "PLATFORM_WEB_CURSOR_INVALID" | "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS" | "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED" | "PLATFORM_WEB_REQUEST_INVALID" | "PLATFORM_WEB_SOURCE_BROKEN" | "PLATFORM_WEB_SOURCE_UNAVAILABLE" | "PLATFORM_WEB_UNAUTHENTICATED" | "PLATFORM_WEB_UNEXPECTED" | "PLATFORM_WEB_VERSION_MALFORMED" | "PLATFORM_WEB_VERSION_MISMATCH" | "PLATFORM_WEB_VERSION_REQUIRED";
+        ForcedLogoutRequest: {
+            reason?: string;
+        };
         HandledTaskPageResponse: {
             items: components["schemas"]["HandledTaskResponse"][];
             nextCursor?: string | null;
@@ -928,7 +1124,7 @@ export interface components {
             /** Format: date-time */
             absoluteExpiresAt: string;
             /** Format: date-time */
-            administrationExpiresAt?: string | null;
+            administratorModeExpiresAt?: string | null;
             identityConfirmationRequired: boolean;
             userId: string;
         };
@@ -952,6 +1148,8 @@ export interface components {
             routePath?: string | null;
         };
         NumberingRuleRequest: {
+            /** Format: date */
+            effectiveFrom?: string;
             pattern?: string;
             resetPolicy?: components["schemas"]["ResetPolicy"] | (string & {});
             /** Format: int64 */
@@ -963,10 +1161,18 @@ export interface components {
             confirmationStatus: components["schemas"]["ConfirmationStatus"] | (string & {});
             documentType: components["schemas"]["DocumentType"] | (string & {});
             documentTypeCode?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
             pattern: string;
+            pending?: components["schemas"]["PendingTemplate"];
+            requiresFinanceConfirmation: boolean;
             resetPolicy: components["schemas"]["ResetPolicy"] | (string & {});
             /** Format: int64 */
             startValue: number;
+            /** Format: int32 */
+            templateVersion: number;
+            /** Format: int64 */
+            version: number;
         };
         OrgReconciliationResponse: {
             missingInSnapshot: string[];
@@ -1004,6 +1210,31 @@ export interface components {
             sortOrder?: number | null;
             status: string;
         };
+        OwnLoginRecordResponse: {
+            action: string;
+            loginMethod?: string | null;
+            /** Format: date-time */
+            occurredAt: string;
+            outcome?: string | null;
+            sourceAddress?: string | null;
+        };
+        PendingTemplate: {
+            authorId?: string | null;
+            /** Format: date-time */
+            authoredAt: string;
+            /** Format: int64 */
+            capacity: number;
+            confirmedBy?: string | null;
+            /** Format: date */
+            effectiveFrom: string;
+            financeConfirmedBy?: string | null;
+            pattern: string;
+            resetPolicy: components["schemas"]["ResetPolicy"] | (string & {});
+            /** Format: int64 */
+            startValue: number;
+            /** Format: int32 */
+            templateVersion: number;
+        };
         Period: {
             /** Format: date */
             effectiveFrom: string;
@@ -1030,8 +1261,13 @@ export interface components {
             assigneeId?: number;
             reason?: string;
         };
-        ReleaseSyncRunRequest: {
+        ReleaseRequest: {
             reason?: string;
+        };
+        ReleaseResponse: {
+            message?: string | null;
+            outcome: string;
+            syncRun?: components["schemas"]["SyncRunResponse"];
         };
         ReplaceRolesRequest: {
             roleCodes?: string[];
@@ -1079,6 +1315,8 @@ export interface components {
             /** Format: date-time */
             finishedAt?: string | null;
             heldReason?: string | null;
+            heldSeparations: string[];
+            holdKinds: string[];
             /** Format: int32 */
             incomingActiveOrgUnitCount?: number | null;
             /** Format: int32 */
@@ -1099,6 +1337,7 @@ export interface components {
             releasedAt?: string | null;
             releasedBy?: string | null;
             releasedByRunId?: string | null;
+            releasedKinds: string[];
             /** Format: int32 */
             sourceEmployeeCount?: number | null;
             /** Format: int32 */
@@ -1630,7 +1869,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: {
                 includeRevoked?: boolean;
@@ -1692,11 +1931,12 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: {
                 limit?: number;
                 cursor?: string;
+                status?: string;
             };
             header?: never;
             path?: never;
@@ -1767,9 +2007,9 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "application/json": components["schemas"]["ReleaseSyncRunRequest"];
+                "application/json": components["schemas"]["ReleaseRequest"];
             };
         };
         responses: {
@@ -1779,7 +2019,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["SyncRunResponse"];
+                    "*/*": components["schemas"]["ReleaseResponse"];
                 };
             };
             /** @description The request was refused */
@@ -1925,7 +2165,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: {
                 overdueOnly?: boolean;
@@ -2030,7 +2270,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: {
                 cursor?: string;
@@ -2134,7 +2374,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 cursor?: string;
@@ -2991,7 +3231,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: {
                 actorId?: number;
@@ -2999,7 +3239,7 @@ export interface operations {
                 action?: string;
                 actionPrefix?: string;
                 sourceAddress?: string;
-                result?: string;
+                outcome?: components["schemas"]["AuditOutcome"];
                 subjectKey?: string;
                 from?: string;
                 to?: string;
@@ -3032,7 +3272,138 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    export: {
+        parameters: {
+            query?: {
+                actorId?: number;
+                action?: string;
+                subjectKey?: string;
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    pending: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CursorPageAuthorizationRequestView"];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    confirm_1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The same key with the same request within 24 hours gets the first answer again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The same key with the same request within 24 hours gets the first answer again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_4: {
         parameters: {
             query: {
                 documentType: components["schemas"]["DocumentType"];
@@ -3134,7 +3505,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: {
                 limit?: number;
@@ -3234,6 +3605,113 @@ export interface operations {
             };
         };
     };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The same key with the same request within 24 hours gets the first answer again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                documentType: components["schemas"]["DocumentType"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmNumberingRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NumberingRuleResponse"];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    confirmByFinance: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The same key with the same request within 24 hours gets the first answer again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                documentType: components["schemas"]["DocumentType"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmNumberingRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NumberingRuleResponse"];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_2: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OwnLoginRecordResponse"][];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     list: {
         parameters: {
             query?: {
@@ -3288,7 +3766,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RoleResponse"];
+                    "*/*": Record<string, never>;
                 };
             };
             /** @description The request was refused */
@@ -3356,7 +3834,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RoleResponse"];
+                    "*/*": Record<string, never>;
                 };
             };
             /** @description The request was refused */
@@ -3478,6 +3956,68 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["LoginResponse"];
                 };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    enter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                loginBinding?: string;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WecomLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdministratorModeResponse"];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    exit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description The request was refused */
             default: {
@@ -3715,6 +4255,42 @@ export interface operations {
             };
         };
     };
+    forceLogout: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The same key with the same request within 24 hours gets the first answer again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForcedLogoutRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
     replaceRoles: {
         parameters: {
             query?: never;
@@ -3739,7 +4315,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": Record<string, never>;
+                };
             };
             /** @description The request was refused */
             default: {

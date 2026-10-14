@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -16,11 +17,17 @@ import com.forcitis.one.platform.identity.application.AccessCache;
 import com.forcitis.one.platform.integration.api.SsoTicketVerifier;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.forcitis.one.platform.integration.api.WecomGateway;
+import jakarta.servlet.http.Cookie;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -31,12 +38,15 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -56,12 +66,12 @@ import tools.jackson.databind.json.JsonMapper;
         "forcitis.platform.identity.sso.legacy-login-url=https://legacy.example.invalid/login",
         "FORCITIS_TICKET_KEY_SHORT=too-short"})
 @AutoConfigureMockMvc
-@org.springframework.test.context.event.RecordApplicationEvents
+@RecordApplicationEvents
 @Import(IdentityIntegrationTest.ClockConfiguration.class)
 abstract class IdentityIntegrationTest {
 
-    @org.springframework.beans.factory.annotation.Autowired
-    org.springframework.test.context.event.ApplicationEvents recordedEvents;
+    @Autowired
+    ApplicationEvents recordedEvents;
 
     /** Throw-away key per test run (no key literal in the repo). */
     static final String TOTP_KEY = Base64.getEncoder().encodeToString(randomBytes(32));
@@ -97,7 +107,33 @@ abstract class IdentityIntegrationTest {
         MutableClock mutableClock() {
             return new MutableClock();
         }
+
+        @Bean
+        DomainEventRecorder domainEventRecorder() {
+            return new DomainEventRecorder();
+        }
     }
+
+    /** Sees every domain event on the thread that publishes it, including the asynchronous listeners' own threads. */
+    static class DomainEventRecorder {
+        private final List<DomainEvent> seen = new CopyOnWriteArrayList<>();
+
+        @EventListener
+        void on(DomainEvent event) {
+            seen.add(event);
+        }
+
+        <T extends DomainEvent> List<T> of(Class<T> type) {
+            return seen.stream().filter(type::isInstance).map(type::cast).toList();
+        }
+
+        void clear() {
+            seen.clear();
+        }
+    }
+
+    @Autowired
+    DomainEventRecorder domainEvents;
 
     @MockitoBean
     OrgDirectory orgDirectory;
@@ -129,9 +165,9 @@ abstract class IdentityIntegrationTest {
     /** Not spring-security-test's csrf(): that swaps the CSRF repository of the whole shared context. */
     static RequestPostProcessor xsrf() {
         return request -> {
-            request.setCookies(java.util.stream.Stream.concat(
-                    request.getCookies() == null ? java.util.stream.Stream.<jakarta.servlet.http.Cookie>empty() : java.util.Arrays.stream(request.getCookies()),
-                    java.util.stream.Stream.of(new jakarta.servlet.http.Cookie("XSRF-TOKEN", "test-xsrf-token"))).toArray(jakarta.servlet.http.Cookie[]::new));
+            request.setCookies(Stream.concat(
+                    request.getCookies() == null ? Stream.<Cookie>empty() : Arrays.stream(request.getCookies()),
+                    Stream.of(new Cookie("XSRF-TOKEN", "test-xsrf-token"))).toArray(Cookie[]::new));
             request.addHeader("X-XSRF-TOKEN", "test-xsrf-token");
             return request;
         };
@@ -140,6 +176,7 @@ abstract class IdentityIntegrationTest {
     @BeforeEach
     void cleanDatabase() {
         clock.reset();
+        domainEvents.clear();
         accessCache.evictAll();
         Mockito.reset(ssoVerifier);
         jdbc.sql("delete from platform_identity.sessions").update();
@@ -174,6 +211,7 @@ abstract class IdentityIntegrationTest {
             jdbc.sql("""
                             insert into platform_identity.account_roles (user_id, role_id)
                             select :id, role_id from platform_identity.roles where lower(code) = lower(:code)
+                            on conflict do nothing
                             """)
                     .param("id", id).param("code", code).update();
         }
@@ -181,6 +219,10 @@ abstract class IdentityIntegrationTest {
 
     String accountVersion(long id) {
         return "\"" + jdbc.sql("select version from platform_identity.user_accounts where user_id = :id").param("id", id).query(Long.class).optional().orElse(0L) + "\"";
+    }
+
+    String roleVersion(long roleId) {
+        return "\"" + jdbc.sql("select version from platform_identity.roles where role_id = :id").param("id", roleId).query(Long.class).single() + "\"";
     }
 
     long count(String table) {
@@ -191,7 +233,7 @@ abstract class IdentityIntegrationTest {
         return mvc.perform(post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn();
     }
 
-    final java.util.Map<String, String> bindings = new java.util.concurrent.ConcurrentHashMap<>();
+    final Map<String, String> bindings = new ConcurrentHashMap<>();
 
     /** Asks for a login state as a browser would and keeps the binding cookie that came with it. */
     String newLoginState(String entry) throws Exception {
@@ -206,7 +248,7 @@ abstract class IdentityIntegrationTest {
         var request = post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body);
         String binding = state == null ? null : bindings.get(state);
         if (binding != null) {
-            request = request.cookie(new jakarta.servlet.http.Cookie("loginBinding", binding));
+            request = request.cookie(new Cookie("loginBinding", binding));
         }
         return mvc.perform(request).andReturn();
     }
@@ -239,6 +281,29 @@ abstract class IdentityIntegrationTest {
             throw new AssertionError("login failed: " + result.getResponse().getStatus() + " " + result.getResponse().getContentAsString());
         }
         return cookie(result, "SESSION");
+    }
+
+    static final String ENTER_ADMINISTRATOR_MODE = "/api/v1/platform/sessions:enter-administrator-mode";
+
+    /** The person's session asks for the administrator mode, proving themselves with a fresh WeCom code of person personProvedByTheCode. */
+    MvcResult enterAdministratorMode(String session, long personProvedByTheCode) throws Exception {
+        knownEmployee(personProvedByTheCode, EmploymentStatus.EMPLOYED);
+        String code = "reverify-" + personProvedByTheCode + "-" + System.nanoTime();
+        wecomAccepts(code, WecomEntry.WORKBENCH, personProvedByTheCode);
+        String state = newLoginState("WORKBENCH");
+        return mvc.perform(post(ENTER_ADMINISTRATOR_MODE).with(xsrf()).cookie(new Cookie("SESSION", session))
+                .cookie(new Cookie("loginBinding", bindings.get(state))).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}")).andReturn();
+    }
+
+    /** A session in the administrator mode for a super_admin holder who is employed. */
+    String administratorSession(long id) throws Exception {
+        createAccount(id, "super_admin", "employee");
+        MvcResult entered = enterAdministratorMode(loginWithWecom(id), id);
+        if (entered.getResponse().getStatus() != 200) {
+            throw new AssertionError("entering the administrator mode failed: " + entered.getResponse().getContentAsString());
+        }
+        return cookie(entered, "SESSION");
     }
 
     List<AuditEntry> recorded() {

@@ -1,26 +1,12 @@
 # Phase 1a 修复批 B2b（事件业务日期、指标）新增术语（proposed，待业务评审，ADR-0018）。
 terms:
-- id: rule_version_number
-  zh: 模板版本号
-  en: RuleVersionNumber
-  snake: rule_version_number
-  kind: value
-  bc: platform.numbering
-  definition: 编号模板的版本号，从 1 起；已确认的模板被替换时加 1。代码里的值对象叫 RuleVersion，事件负载叫 ruleVersion，数据库列叫 rule_version_number，三者是同一个东西
-  standard_ref:
-  - proposals/EVENT_ANALYTICS_FIELDS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: rule_version
   zh: 规则版本
   en: RuleVersion
   snake: rule_version
   kind: value
   bc: platform.numbering
-  definition: 编号规则的版本值对象，对应列 rule_version_number；与乐观锁 version、事件序号 event_count 无关
+  definition: 编号模板的版本号值对象（RuleVersion），从 1 起，每保存一个新模板加 1；版本表的 version_number 列、接口字段 templateVersion 和事件负载 ruleVersion 是同一个东西；与乐观锁 version、事件序号 event_count 无关
   standard_ref:
   - proposals/EVENT_ANALYTICS_FIELDS.md
   confidence: medium

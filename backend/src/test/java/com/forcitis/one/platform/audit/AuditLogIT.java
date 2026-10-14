@@ -214,15 +214,15 @@ class AuditLogIT {
     }
 
     @Test
-    @DisplayName("D-1a-170/171 an entry carries source address, result, reason and before / after; they can be searched by on-behalf-of, address, result and action prefix")
+    @DisplayName("D-1a-170/171 an entry carries source address, outcome, login method, reason and before / after; they can be searched by on-behalf-of, address, outcome and action prefix")
     void traceColumnsAreStoredAndSearchable() throws Exception {
         String subject = unique("subject");
         String prefix = unique("platform.audit.trace");
         tx.executeWithoutResult(s -> {
             audit.record(new AuditEntry(prefix + ".changed", new UserId(61), new UserId(62), subject, "d")
-                    .withTrace("10.1.2.3", com.forcitis.one.platform.audit.api.AuditResult.SUCCESS).withChange("quarterly review", "ACTIVE", "INACTIVE"));
+                    .withTrace("10.1.2.3", com.forcitis.one.platform.audit.api.AuditOutcome.SUCCEEDED, "SSO").withChange("quarterly review", "ACTIVE", "INACTIVE"));
             audit.record(new AuditEntry(prefix + ".refused", new UserId(61), null, subject, "d")
-                    .withTrace("10.9.9.9", com.forcitis.one.platform.audit.api.AuditResult.FAILURE));
+                    .withTrace("10.9.9.9", com.forcitis.one.platform.audit.api.AuditOutcome.FAILED, null));
         });
 
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("actionPrefix", prefix).with(READER))
@@ -230,15 +230,27 @@ class AuditLogIT {
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("onBehalfOfId", "62").with(READER))
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].sourceAddress").value("10.1.2.3"))
-                .andExpect(jsonPath("$.items[0].result").value("SUCCESS"))
+                .andExpect(jsonPath("$.items[0].outcome").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.items[0].loginMethod").value("SSO"))
                 .andExpect(jsonPath("$.items[0].changeReason").value("quarterly review"))
                 .andExpect(jsonPath("$.items[0].beforeText").value("ACTIVE"))
                 .andExpect(jsonPath("$.items[0].afterText").value("INACTIVE"));
-        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("result", "FAILURE").with(READER))
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("outcome", "FAILED").with(READER))
                 .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].sourceAddress").value("10.9.9.9"));
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("sourceAddress", "10.9.9.9").with(READER))
                 .andExpect(jsonPath("$.items.length()").value(1));
-        mvc.perform(get(ENTRIES).param("result", "MAYBE").with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(get(ENTRIES).param("outcome", "MAYBE").with(READER)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("B1-M9 looking into the audit trail is an audit entry of its own: who, with which filter, how many were returned (intent 152)")
+    void searchesAreAudited() throws Exception {
+        String subject = unique("subject");
+
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).with(READER)).andExpect(status().isOk());
+
+        assertThat(jdbc.sql("select actor_id || '|' || detail from platform_audit.audit_entries where action = 'platform.audit.audit-entry.searched' and detail like :d")
+                .param("d", "%subjectKey=" + subject + "%").query(String.class).single()).startsWith("7|returned=0 filter=subjectKey=" + subject);
     }
 
     @Test

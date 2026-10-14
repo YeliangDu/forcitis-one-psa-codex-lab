@@ -64,7 +64,8 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                        org_unit_change_count = :g, employee_change_count = :h, position_change_count = :i,
                        isolated_row_count = :j, issue_count = :k, employed_without_wecom_count = :l,
                        held_reason = :heldReason, failure_reason = :failureReason, released_by = :releasedBy,
-                       released_at = :releasedAt, released_by_run_id = :releasedByRun, version = :nextVersion, event_count = :eventSequence, updated_at = now()
+                       released_at = :releasedAt, released_by_run_id = :releasedByRun, hold_kind_codes = :holdKinds, released_kind_codes = :releasedKinds,
+                       version = :nextVersion, event_count = :eventSequence, updated_at = now()
                  where id = :id and version = :version and status = :loadedStatus
                 """)
                 .param("status", run.status().name())
@@ -86,12 +87,19 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                 .param("releasedBy", run.releasedBy() == null ? null : run.releasedBy().value(), Types.BIGINT)
                 .param("releasedAt", run.releasedAt() == null ? null : Timestamp.from(run.releasedAt()), Types.TIMESTAMP)
                 .param("releasedByRun", run.releasedByRunId() == null ? null : run.releasedByRunId().value(), Types.BIGINT)
+                .param("holdKinds", run.holdKinds().stream().map(Enum::name).toArray(String[]::new))
+                .param("releasedKinds", run.releasedKinds().stream().map(Enum::name).toArray(String[]::new))
                 .param("nextVersion", run.versionAfterSave()).param("eventSequence", run.eventSequenceAfterSave())
                 .param("id", run.syncRunId().value()).param("version", run.version()).param("loadedStatus", run.loadedStatus().name())
                 .update();
         if (updated != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
                     "sync run " + run.syncRunId().value() + " was changed by someone else");
+        }
+        jdbc.sql("delete from organization_workforce.sync_run_held_separations where sync_run_id = :id").param("id", run.syncRunId().value()).update();
+        for (var person : run.heldSeparations()) {
+            jdbc.sql("insert into organization_workforce.sync_run_held_separations (sync_run_id, employee_id) values (:id, :employee)")
+                    .param("id", run.syncRunId().value()).param("employee", person.value()).update();
         }
     }
 

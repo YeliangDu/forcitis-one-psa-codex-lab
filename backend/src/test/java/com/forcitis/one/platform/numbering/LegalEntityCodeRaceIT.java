@@ -72,6 +72,12 @@ class LegalEntityCodeRaceIT {
 
     private static final LocalDate DAY = LocalDate.of(2026, 10, 14);
 
+    @org.junit.jupiter.api.BeforeEach
+    void quoteTemplateInForce() {
+        NumberingFixtures.restoreSeededDefaults(jdbc);
+        NumberingFixtures.confirmSeeded(jdbc, "QUOTE");
+    }
+
     private LegalEntityId legalEntity(String code) {
         try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "numbering.race.test")) {
             return new LegalEntityId(createLegalEntity.execute(code, "Synthetic " + code, null).legalEntityId());

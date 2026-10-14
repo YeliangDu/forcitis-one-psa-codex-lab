@@ -10,7 +10,7 @@ import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.audit.api.AuditResult;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttribution;
@@ -46,7 +46,7 @@ public class CorrectLegalEntityAttribution {
         if (!caller.holds(PERMISSION)) {
             audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.correction-refused", correctedBy, null,
                     "legal-entity-attribution:" + kind + ":" + subjectId, "the caller lacks " + PERMISSION)
-                    .withTrace(null, AuditResult.FAILURE));
+                    .withTrace(null, AuditOutcome.FAILED, null));
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN, ErrorKind.FORBIDDEN,
                     "correcting an attribution needs " + PERMISSION);
         }

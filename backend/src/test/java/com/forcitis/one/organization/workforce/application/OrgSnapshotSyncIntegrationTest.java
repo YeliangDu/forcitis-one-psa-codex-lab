@@ -238,9 +238,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        SyncRunView released = release.execute(held.syncRunId().value(), 9001L, new com.forcitis.one.kernel.Reason("synthetic: the source is right"));
+        ReleaseResult released = release.execute(held.syncRunId().value(), 9001L, "source repaired by hand", true, false);
 
-        assertThat(released.status()).isEqualTo("SUCCEEDED");
+        assertThat(released).isInstanceOfSatisfying(ReleaseResult.Released.class, r -> assertThat(r.releasedRun().status()).isEqualTo("SUCCEEDED"));
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(3);
         assertThat(jdbc.sql("select status || ':' || released_by from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value())
                 .query(String.class).single()).isEqualTo("RELEASED:9001");
@@ -251,10 +251,8 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
-        assertThatThrownBy(() -> release.execute(held.syncRunId().value(), 9001L, new com.forcitis.one.kernel.Reason("synthetic: the source is right"))).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL));
-        assertThatThrownBy(() -> release.execute(424242L, 9001L, new com.forcitis.one.kernel.Reason("synthetic"))).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND));
+        assertThat(release.execute(held.syncRunId().value(), 9001L, "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotHeld.class);
+        assertThat(release.execute(424242L, 9001L, "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotFound.class);
     }
 
     @Test

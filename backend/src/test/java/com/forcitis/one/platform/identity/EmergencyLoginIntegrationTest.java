@@ -1,6 +1,8 @@
 package com.forcitis.one.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.kernel.UserId;
@@ -11,7 +13,12 @@ import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
 import com.forcitis.one.platform.identity.domain.PasswordHasher;
 import com.forcitis.one.platform.identity.domain.Totp;
 import com.forcitis.one.platform.identity.domain.TotpSecretVault;
+import com.forcitis.one.platform.identity.api.Permission;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.servlet.http.Cookie;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +35,9 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     EmergencyAdminRepository admins;
 
     @Autowired
+    MeterRegistry meters;
+
+    @Autowired
     PasswordHasher hasher;
 
     @Autowired
@@ -40,7 +50,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(7, EmploymentStatus.EMPLOYED);
         createAccount(7, "super_admin");
         secret = Totp.newSecret();
-        admins.register(new EmergencyAdmin(new UserId(7), "breakglass", hasher.hash(PASSWORD), vault.seal(secret), 0, 0, null, true));
+        admins.insertIfAbsent(EmergencyAdmin.register(new UserId(7), "breakglass", hasher.hash(PASSWORD), vault.seal(secret)));
     }
 
     private String code() {
@@ -73,12 +83,12 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("C1a-04 the password is stored as Argon2id and the TOTP secret only encrypted")
+    @DisplayName("B1-M11 C1a-04 the password is stored as Argon2id at the OWASP minimum and the TOTP secret only encrypted")
     void secretsAreNotStoredInTheClear() {
         String hash = jdbc.sql("select password_hash from platform_identity.emergency_admins").query(String.class).single();
         String sealed = jdbc.sql("select totp_secret_encrypted from platform_identity.emergency_admins").query(String.class).single();
 
-        assertThat(hash).startsWith("$argon2id$").doesNotContain(PASSWORD);
+        assertThat(hash).startsWith("$argon2id$v=19$m=19456,t=2,p=1$").doesNotContain(PASSWORD);
         assertThat(sealed).doesNotContain(Totp.toBase32(secret));
         assertThat(vault.open(sealed)).isEqualTo(secret);
     }
@@ -126,6 +136,27 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
+    @DisplayName("B1-M11 RULE-316 the attempt is counted before the credentials are checked: twenty parallel guesses get exactly five tries")
+    void parallelGuessesCannotSlipPastTheLimit() throws Exception {
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(20);
+        try {
+            var attempts = new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+            for (int i = 0; i < 20; i++) {
+                attempts.add(pool.submit(() -> admins.reserveAttempt(new UserId(7), clock.instant(), 5, Duration.ofMinutes(15))));
+            }
+            int allowed = 0;
+            for (var attempt : attempts) {
+                allowed += attempt.get() ? 1 : 0;
+            }
+
+            assertThat(allowed).isEqualTo(5);
+            assertThat(jdbc.sql("select failed_attempts from platform_identity.emergency_admins").query(Integer.class).single()).isEqualTo(5);
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     @DisplayName("RULE-316 fewer than five failures do not lock, and success clears the counter")
     void successClearsTheCounter() throws Exception {
         for (int i = 0; i < 4; i++) {
@@ -159,13 +190,128 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("RULE-326 the emergency account passes the same gate: a separated person cannot use it")
-    void sameGate() throws Exception {
+    @DisplayName("ADR-0027 1.3 a person the snapshot clearly lists as separated cannot use the emergency account")
+    void separatedPersonIsRefused() throws Exception {
         knownEmployee(7, EmploymentStatus.SEPARATED);
 
         MvcResult result = login("breakglass", PASSWORD, code());
 
         assertThat(result.getResponse().getStatus()).isEqualTo(403);
         assertThat(result.getResponse().getContentAsString()).contains("PLATFORM_IDENTITY_EMPLOYEE_SEPARATED");
+        assertThat(cookie(result, "SESSION")).isNull();
+    }
+
+    @Test
+    @DisplayName("ADR-0027 1.3 a missing snapshot does not stop the login: the organisation source may be down")
+    void missingSnapshotIsAllowed() throws Exception {
+        when(orgDirectory.findEmployee(new UserId(7))).thenReturn(Optional.empty());
+
+        MvcResult result = login("breakglass", PASSWORD, code());
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        assertThat(body(result).path("administratorModeExpiresAt").asString()).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("ADR-0027 1.2 the bound person must hold super_admin right now")
+    void boundPersonMustHoldSuperAdmin() throws Exception {
+        jdbc.sql("delete from platform_identity.account_roles where user_id = 7").update();
+
+        MvcResult result = login("breakglass", PASSWORD, code());
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(401);
+        assertThat(result.getResponse().getContentAsString()).contains("PLATFORM_IDENTITY_CREDENTIALS_INVALID");
+        assertThat(cookie(result, "SESSION")).isNull();
+        assertThat(recordedIndependently()).anySatisfy(entry -> assertThat(entry.detail()).contains("no longer holds super_admin"));
+    }
+
+    @Test
+    @DisplayName("ADR-0027 1.2 a disabled bound account is refused")
+    void boundAccountMustBeEnabled() throws Exception {
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where user_id = 7").update();
+
+        MvcResult result = login("breakglass", PASSWORD, code());
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(403);
+        assertThat(result.getResponse().getContentAsString()).contains("PLATFORM_IDENTITY_ACCOUNT_DISABLED");
+    }
+
+    @Test
+    @DisplayName("ADR-0027 1.5 the login starts in the administrator mode for one hour, audits and alerts; the second request is still valid")
+    void administratorModeForOneHour() throws Exception {
+        double loginsBefore = meters.counter("forcitis.platform.identity.emergency.logins").count();
+        Instant before = clock.instant();
+        MvcResult result = login("breakglass", PASSWORD, code());
+        Instant after = clock.instant();
+        String session = cookie(result, "SESSION");
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        assertThat(Instant.parse(body(result).path("administratorModeExpiresAt").asString())).isBetween(before.plus(Duration.ofHours(1)),
+                after.plus(Duration.ofHours(1)));
+        assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.login.succeeded", "platform.identity.emergency.login");
+        assertThat(meters.counter("forcitis.platform.identity.emergency.logins").count()).isEqualTo(loginsBefore + 1);
+
+        var me = body(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn());
+        var again = mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn();
+        assertThat(me.path("mode").asString()).isEqualTo("ADMINISTRATOR");
+        assertThat(Instant.parse(me.path("administratorModeExpiresAt").asString())).isBetween(before.plus(Duration.ofHours(1)),
+                after.plus(Duration.ofHours(1)));
+        assertThat(again.getResponse().getStatus()).as("no employment check on later requests").isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("ADR-0027 1.5 the hour is not extended: afterwards the emergency session is over")
+    void administratorModeIsNotExtended() throws Exception {
+        String session = cookie(login("breakglass", PASSWORD, code()), "SESSION");
+        clock.advance(Duration.ofMinutes(59));
+        assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse()
+                .getStatus()).isEqualTo(200);
+
+        clock.advance(Duration.ofMinutes(2));
+
+        assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse()
+                .getStatus()).isEqualTo(401);
+        assertThat(count("sessions")).isZero();
+    }
+
+    @Test
+    @DisplayName("ADR-0027 1.4 within 60 s of super_admin being taken away the emergency session stops working, without an event")
+    void sessionEndsWhenSuperAdminIsTakenAway() throws Exception {
+        String session = cookie(login("breakglass", PASSWORD, code()), "SESSION");
+        assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse()
+                .getStatus()).isEqualTo(200);
+        jdbc.sql("delete from platform_identity.account_roles where user_id = 7").update();
+
+        clock.advance(Duration.ofSeconds(61));
+
+        assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse()
+                .getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    @DisplayName("ADR-0027 1.4 within 60 s of the emergency account being disabled its session stops working")
+    void sessionEndsWhenTheEmergencyAccountIsDisabled() throws Exception {
+        String session = cookie(login("breakglass", PASSWORD, code()), "SESSION");
+        assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse()
+                .getStatus()).isEqualTo(200);
+        jdbc.sql("update platform_identity.emergency_admins set is_enabled = false where user_id = 7").update();
+
+        clock.advance(Duration.ofSeconds(61));
+
+        assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse()
+                .getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    @DisplayName("ADR-0027 1.5 an emergency session carries the platform permissions only, never a business one")
+    void emergencySessionHasPlatformPermissionsOnly() throws Exception {
+        String session = cookie(login("breakglass", PASSWORD, code()), "SESSION");
+
+        var me = body(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn());
+
+        assertThat(me.path("permissionCodes").valueStream().map(n -> n.asString()).toList()).containsExactlyInAnyOrder(
+                Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+                Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE,
+                Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
     }
 }

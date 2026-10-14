@@ -59,6 +59,11 @@ class JdbcSyncRunQueries implements SyncRunQueries {
     }
 
     @Override
+    public List<SyncRunRecord> findHeld() {
+        return jdbc.sql(SyncRunRows.SELECT + " where status = 'HELD' order by id").query((rs, n) -> SyncRunRows.record(rs)).list();
+    }
+
+    @Override
     public int countHeld() {
         return jdbc.sql("select count(*) from organization_workforce.sync_runs where status = 'HELD'").query(Integer.class).single();
     }

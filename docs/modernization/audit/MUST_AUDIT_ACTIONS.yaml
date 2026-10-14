@@ -14,9 +14,17 @@ categories:
   actions:
   - platform.identity.session.expired
   - platform.identity.session.revoked
-  - planned: platform.identity.session.force-revoked | 业务管理员强制某用户下线并填原因（ADR-0027 管理模式的强制下线权限，由身份与授权批次实现）
 - name: 权限与角色
   actions:
+  - platform.identity.access.denied
+  - platform.identity.account.role.revoked
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.grant.refused
+  - platform.identity.operations.account.role.granted
+  - platform.identity.privileged.request
   - platform.identity.AccountDisabled
   - platform.identity.AccountEnabled
   - platform.identity.AccountOpened
@@ -34,7 +42,9 @@ categories:
   - organization.workforce.OrgSnapshotChanged
   - organization.workforce.SyncRunFailed
   - organization.workforce.SyncRunHeld
+  - organization.workforce.SyncRunHoldReleased
   - organization.workforce.SyncRunReleased
+  - organization.workforce.sync-run.released
 - name: 法人
   actions:
   - organization.workforce.EmployeeRegistered
@@ -48,8 +58,10 @@ categories:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   - organization.workforce.legal-entity-attribution.correction-refused
+  - organization.workforce.legal-entity-attribution.refused
 - name: 编号规则
   actions:
+  - platform.numbering.NumberingRuleConfirmationGiven
   - platform.numbering.NumberingRuleConfirmed
   - platform.numbering.NumberingRuleReconfigured
 - name: 审批
@@ -68,9 +80,27 @@ categories:
   - platform.approval.start.denied
   - platform.approval.task.denied
   - platform.approval.task.list-all
+- name: 管理模式
+  actions:
+  - platform.identity.administrator-mode.entered
+  - platform.identity.administrator-mode.exited
+  - platform.identity.administrator-mode.refused
 - name: 应急账号
   actions:
-  - planned: platform.identity.emergency-admin.registered | 应急账号开通与停用（ADR-0027），由身份与授权批次实现；应急登录本身已记在登录类别（method=EMERGENCY）
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.emergency-admin.check-failed
+  - platform.identity.emergency.login
+  - platform.identity.operations.emergency-admin.credentials-reset
+  - platform.identity.operations.emergency-admin.disabled
+  - platform.identity.operations.emergency-admin.enabled
+  - platform.identity.operations.emergency-admin.registered
+- name: 审计查询
+  actions:
+  - platform.audit.audit-entry.exported
+  - platform.audit.audit-entry.searched
 - name: 配置变更
   actions:
   - organization.attendance.WorkCalendarLockedDaysChanged

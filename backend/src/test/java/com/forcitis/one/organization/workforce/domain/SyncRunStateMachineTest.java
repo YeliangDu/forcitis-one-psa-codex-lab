@@ -6,9 +6,12 @@ import static com.forcitis.one.organization.workforce.domain.SyncRunStatus.RELEA
 import static com.forcitis.one.organization.workforce.domain.SyncRunStatus.RUNNING;
 import static com.forcitis.one.organization.workforce.domain.SyncRunStatus.SUCCEEDED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.TransitionTable;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.HoldKind;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -17,10 +20,12 @@ import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.organization.workforce.events.SyncRunFailed;
 import com.forcitis.one.organization.workforce.events.SyncRunHeld;
 import com.forcitis.one.organization.workforce.events.SyncRunReleased;
+import com.forcitis.one.organization.workforce.events.SyncRunHoldReleased;
 import com.forcitis.one.organization.workforce.events.SyncRunSucceeded;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -134,5 +139,38 @@ class SyncRunStateMachineTest {
             assertThat(done.hasPendingEvents()).isFalse();
         }
         assertThat(done.status()).isEqualTo(SUCCEEDED);
+    }
+
+    @Test
+    @DisplayName("ADR-0028 each kind of hold is lifted once and separately; the run is fully lifted only when every kind is")
+    void kindsAreLiftedOneByOne() {
+        SyncRun run = at(RUNNING);
+        run.hold(NOW, STATS, "both", Set.of(HoldKind.SHRINK_GUARD, HoldKind.ADMINISTRATOR_SEPARATION), List.of(new UserId(1)));
+        run.drainEvents(TestEnvelopes.INSTANCE);
+
+        run.releaseKind(HoldKind.SHRINK_GUARD, new UserId(9));
+
+        assertThat(run.allHoldsReleased()).isFalse();
+        assertThat(run.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(SyncRunHoldReleased.class, e -> {
+            assertThat(e.holdKind()).isEqualTo(HoldKind.SHRINK_GUARD);
+            assertThat(e.releasedBy()).isEqualTo(new UserId(9));
+        });
+        assertThatThrownBy(() -> run.releaseKind(HoldKind.SHRINK_GUARD, new UserId(9))).isInstanceOf(DomainException.class);
+        run.releaseKind(HoldKind.ADMINISTRATOR_SEPARATION, new UserId(8));
+        assertThat(run.allHoldsReleased()).isTrue();
+    }
+
+    @Test
+    @DisplayName("ADR-0028 a refreshed hold keeps what was lifted only while the kinds and the leavers are exactly the same")
+    void aChangedHoldWithdrawsTheLifts() {
+        SyncRun run = at(RUNNING);
+        run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new UserId(1)));
+        run.releaseKind(HoldKind.ADMINISTRATOR_SEPARATION, new UserId(9));
+
+        run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new UserId(1)));
+        assertThat(run.releasedKinds()).containsExactly(HoldKind.ADMINISTRATOR_SEPARATION);
+
+        run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new UserId(1), new UserId(2)));
+        assertThat(run.releasedKinds()).isEmpty();
     }
 }

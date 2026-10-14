@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.audit.domain;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
 import java.time.Instant;
 
 /**
@@ -8,7 +9,7 @@ import java.time.Instant;
  * position the previous page ended at.
  */
 public record AuditQuery(UserId actorId, UserId onBehalfOfId, String action, String actionPrefix, String subjectKey, String sourceAddress,
-                         String result, Instant from, Instant to, Position after, int limit) {
+                         AuditOutcome outcome, Instant from, Instant to, Position after, int limit) {
 
     public static final int MAX_LIMIT = 200;
 
@@ -21,9 +22,6 @@ public record AuditQuery(UserId actorId, UserId onBehalfOfId, String action, Str
         }
         if (from != null && to != null && !from.isBefore(to)) {
             throw new IllegalArgumentException("from must be before to");
-        }
-        if (result != null && !result.equals("SUCCESS") && !result.equals("FAILURE")) {
-            throw new IllegalArgumentException("result must be SUCCESS or FAILURE");
         }
     }
 }

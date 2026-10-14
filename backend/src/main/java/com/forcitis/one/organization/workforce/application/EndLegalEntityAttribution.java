@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
@@ -18,16 +19,20 @@ public class EndLegalEntityAttribution {
     private final LegalEntityAttributionRepository attributions;
     private final AttributionSubjects subjects;
     private final DomainEvents events;
+    private final OwnAttributionGuard ownAttribution;
 
-    EndLegalEntityAttribution(LegalEntityAttributionRepository attributions, AttributionSubjects subjects, DomainEvents events) {
+    EndLegalEntityAttribution(LegalEntityAttributionRepository attributions, AttributionSubjects subjects, DomainEvents events,
+                              OwnAttributionGuard ownAttribution) {
+        this.ownAttribution = ownAttribution;
         this.attributions = attributions;
         this.subjects = subjects;
         this.events = events;
     }
 
     @Transactional
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LocalDate effectiveTo, ExpectedVersion expected) {
+    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LocalDate effectiveTo, ExpectedVersion expected, UserId actor) {
         AttributionSubject subject = subjects.require(kind, subjectId);
+        ownAttribution.requireNotOwn(subject, actor);
         LegalEntityAttribution attribution = attributions.find(subject).orElseThrow(() -> new DomainException(
                 WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND, ErrorKind.NOT_FOUND, "nothing is attributed to this subject"));
         expected.check(attribution.version());

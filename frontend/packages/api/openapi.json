@@ -5,6 +5,16 @@
         "enum" : [ "ALL", "CUSTOM_ORG_UNITS", "OWN_ORG_UNIT", "OWN_ORG_UNIT_SUBTREE", "SELF", "SELF_AND_DIRECT_REPORTS" ],
         "type" : "string"
       },
+      "AdministratorModeResponse" : {
+        "properties" : {
+          "administratorModeExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "administratorModeExpiresAt" ],
+        "type" : "object"
+      },
       "AttributeLegalEntityRequest" : {
         "properties" : {
           "effectiveFrom" : {
@@ -45,11 +55,14 @@
           "entryId" : {
             "type" : "string"
           },
+          "loginMethod" : {
+            "type" : [ "string", "null" ]
+          },
           "onBehalfOfId" : {
             "type" : [ "string", "null" ]
           },
-          "result" : {
-            "type" : [ "string", "null" ]
+          "outcome" : {
+            "$ref" : "#/components/schemas/AuditOutcome"
           },
           "sourceAddress" : {
             "type" : [ "string", "null" ]
@@ -63,6 +76,52 @@
           }
         },
         "required" : [ "action", "createdAt", "entryId", "subjectKey" ],
+        "type" : "object"
+      },
+      "AuditOutcome" : {
+        "enum" : [ "SUCCEEDED", "FAILED" ],
+        "type" : "string"
+      },
+      "AuthorizationRequestView" : {
+        "properties" : {
+          "kind" : {
+            "type" : "string"
+          },
+          "permissionCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "requestedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "requestedBy" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "roleCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "roleId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "roleName" : {
+            "type" : "string"
+          },
+          "subjectUserId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "CalendarDayRequest" : {
@@ -88,6 +147,15 @@
           }
         },
         "required" : [ "calendarDate", "dayKind" ],
+        "type" : "object"
+      },
+      "ConfirmNumberingRuleRequest" : {
+        "properties" : {
+          "templateVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "ConfirmationStatus" : {
@@ -127,11 +195,18 @@
       },
       "CurrentUserResponse" : {
         "properties" : {
+          "administratorModeExpiresAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
           "displayName" : {
             "type" : "string"
           },
           "identityConfirmed" : {
             "type" : "boolean"
+          },
+          "mode" : {
+            "type" : "string"
           },
           "navigation" : {
             "items" : {
@@ -155,7 +230,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "displayName", "identityConfirmed", "navigation", "permissionCodes", "userId" ],
+        "required" : [ "displayName", "identityConfirmed", "mode", "navigation", "permissionCodes", "userId" ],
         "type" : "object"
       },
       "CursorPageAuditEntryResponse" : {
@@ -163,6 +238,21 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/AuditEntryResponse"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "CursorPageAuthorizationRequestView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AuthorizationRequestView"
             },
             "type" : "array"
           },
@@ -322,8 +412,16 @@
         "type" : "object"
       },
       "ErrorCode" : {
-        "enum" : [ "COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EMPLOYEE_UNKNOWN", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_NOT_OWNER", "COST_TIMESHEET_PROJECT_MANAGER_INVALID", "COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_RESULT_PENDING", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_WORK_DATE_FIXED", "COST_TIMESHEET_WORK_DATE_IN_FUTURE", "COST_TIMESHEET_WORK_DATE_REQUIRED", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND", "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ALREADY_APPROVED", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NODE_CONFIG_INVALID", "PLATFORM_APPROVAL_NOT_ADMINISTRATOR", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_PAGE_INVALID", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_ROUND_MISMATCH", "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_AUDIT_QUERY_INVALID", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_NOT_SIGNED_IN", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_IN_USE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_CONCURRENT_UPDATE", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND", "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN", "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID", "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MALFORMED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED" ],
+        "enum" : [ "COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EMPLOYEE_UNKNOWN", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_NOT_OWNER", "COST_TIMESHEET_PROJECT_MANAGER_INVALID", "COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_RESULT_PENDING", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_WORK_DATE_FIXED", "COST_TIMESHEET_WORK_DATE_IN_FUTURE", "COST_TIMESHEET_WORK_DATE_REQUIRED", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND", "ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN", "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_SEPARATION_HOLD_FORBIDDEN", "ORGANIZATION_WORKFORCE_SEPARATION_HOLD_REFUSED", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ALREADY_APPROVED", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NODE_CONFIG_INVALID", "PLATFORM_APPROVAL_NOT_ADMINISTRATOR", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_PAGE_INVALID", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_ROUND_MISMATCH", "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_AUDIT_EXPORT_TOO_LARGE", "PLATFORM_AUDIT_QUERY_INVALID", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_ADMINISTRATOR_MODE_DENIED", "PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED", "PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_FOUND", "PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING", "PLATFORM_IDENTITY_EMERGENCY_ADMIN_DUPLICATE", "PLATFORM_IDENTITY_EMERGENCY_ADMIN_NOT_FOUND", "PLATFORM_IDENTITY_EMERGENCY_ADMIN_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_FORCED_LOGOUT_REASON_REQUIRED", "PLATFORM_IDENTITY_FORCED_LOGOUT_SELF_FORBIDDEN", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_NOT_SIGNED_IN", "PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED", "PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN", "PLATFORM_IDENTITY_OWN_ROLE_DEFINITION_FORBIDDEN", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_IN_USE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_CONCURRENT_UPDATE", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_CONFIRMATION_REPEATED", "PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR", "PLATFORM_NUMBERING_EFFECTIVE_DATE_PASSED", "PLATFORM_NUMBERING_FINANCE_CONFIRMATION_NOT_REQUIRED", "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND", "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN", "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID", "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE", "PLATFORM_NUMBERING_NOTHING_TO_CONFIRM", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_CONFIRMED", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_VERSION_MISMATCH", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MALFORMED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED" ],
         "type" : "string"
+      },
+      "ForcedLogoutRequest" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
       },
       "HandledTaskPageResponse" : {
         "properties" : {
@@ -582,7 +680,7 @@
             "format" : "date-time",
             "type" : "string"
           },
-          "administrationExpiresAt" : {
+          "administratorModeExpiresAt" : {
             "format" : "date-time",
             "type" : [ "string", "null" ]
           },
@@ -657,6 +755,10 @@
       },
       "NumberingRuleRequest" : {
         "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
           "pattern" : {
             "type" : "string"
           },
@@ -685,8 +787,18 @@
           "documentTypeCode" : {
             "type" : [ "string", "null" ]
           },
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
           "pattern" : {
             "type" : "string"
+          },
+          "pending" : {
+            "$ref" : "#/components/schemas/PendingTemplate"
+          },
+          "requiresFinanceConfirmation" : {
+            "type" : "boolean"
           },
           "resetPolicy" : {
             "$ref" : "#/components/schemas/ResetPolicy"
@@ -694,9 +806,17 @@
           "startValue" : {
             "format" : "int64",
             "type" : "integer"
+          },
+          "templateVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "version" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         },
-        "required" : [ "capacity", "confirmationStatus", "documentType", "pattern", "resetPolicy", "startValue" ],
+        "required" : [ "capacity", "confirmationStatus", "documentType", "effectiveFrom", "pattern", "requiresFinanceConfirmation", "resetPolicy", "startValue", "templateVersion", "version" ],
         "type" : "object"
       },
       "OrgReconciliationResponse" : {
@@ -821,6 +941,69 @@
         "required" : [ "code", "deliveryUnit", "name", "orgUnitId", "status" ],
         "type" : "object"
       },
+      "OwnLoginRecordResponse" : {
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "loginMethod" : {
+            "type" : [ "string", "null" ]
+          },
+          "occurredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : [ "string", "null" ]
+          },
+          "sourceAddress" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "action", "occurredAt" ],
+        "type" : "object"
+      },
+      "PendingTemplate" : {
+        "properties" : {
+          "authorId" : {
+            "type" : [ "string", "null" ]
+          },
+          "authoredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "capacity" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "confirmedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "financeConfirmedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "pattern" : {
+            "type" : "string"
+          },
+          "resetPolicy" : {
+            "$ref" : "#/components/schemas/ResetPolicy"
+          },
+          "startValue" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "templateVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "authoredAt", "capacity", "effectiveFrom", "pattern", "resetPolicy", "startValue", "templateVersion" ],
+        "type" : "object"
+      },
       "Period" : {
         "properties" : {
           "effectiveFrom" : {
@@ -886,12 +1069,27 @@
         },
         "type" : "object"
       },
-      "ReleaseSyncRunRequest" : {
+      "ReleaseRequest" : {
         "properties" : {
           "reason" : {
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "ReleaseResponse" : {
+        "properties" : {
+          "message" : {
+            "type" : [ "string", "null" ]
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "syncRun" : {
+            "$ref" : "#/components/schemas/SyncRunResponse"
+          }
+        },
+        "required" : [ "outcome" ],
         "type" : "object"
       },
       "ReplaceRolesRequest" : {
@@ -1037,6 +1235,18 @@
           "heldReason" : {
             "type" : [ "string", "null" ]
           },
+          "heldSeparations" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "holdKinds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "incomingActiveOrgUnitCount" : {
             "format" : "int32",
             "type" : [ "integer", "null" ]
@@ -1079,6 +1289,12 @@
           "releasedByRunId" : {
             "type" : [ "string", "null" ]
           },
+          "releasedKinds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "sourceEmployeeCount" : {
             "format" : "int32",
             "type" : [ "integer", "null" ]
@@ -1101,7 +1317,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "startedAt", "status", "syncRunId", "trigger" ],
+        "required" : [ "heldSeparations", "holdKinds", "releasedKinds", "startedAt", "status", "syncRunId", "trigger" ],
         "type" : "object"
       },
       "TaskDetailResponse" : {
@@ -1962,7 +2178,7 @@
     },
     "/api/v1/organization/org-units" : {
       "get" : {
-        "operationId" : "list_9",
+        "operationId" : "list_10",
         "parameters" : [ {
           "in" : "query",
           "name" : "includeRevoked",
@@ -2039,7 +2255,7 @@
     },
     "/api/v1/organization/sync-runs" : {
       "get" : {
-        "operationId" : "list_8",
+        "operationId" : "list_9",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -2051,6 +2267,13 @@
         }, {
           "in" : "query",
           "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -2142,17 +2365,18 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/ReleaseSyncRunRequest"
+                "$ref" : "#/components/schemas/ReleaseRequest"
               }
             }
-          }
+          },
+          "required" : true
         },
         "responses" : {
           "200" : {
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/SyncRunResponse"
+                  "$ref" : "#/components/schemas/ReleaseResponse"
                 }
               }
             },
@@ -2344,7 +2568,7 @@
     },
     "/api/v1/platform/approval-task-overviews" : {
       "get" : {
-        "operationId" : "list_7",
+        "operationId" : "list_8",
         "parameters" : [ {
           "in" : "query",
           "name" : "overdueOnly",
@@ -2476,7 +2700,7 @@
     },
     "/api/v1/platform/approval-task-records" : {
       "get" : {
-        "operationId" : "list_6",
+        "operationId" : "list_7",
         "parameters" : [ {
           "in" : "query",
           "name" : "cursor",
@@ -2600,7 +2824,7 @@
     },
     "/api/v1/platform/approval-tasks" : {
       "get" : {
-        "operationId" : "list_5",
+        "operationId" : "list_6",
         "parameters" : [ {
           "in" : "query",
           "name" : "cursor",
@@ -3638,7 +3862,7 @@
     },
     "/api/v1/platform/audit-entries" : {
       "get" : {
-        "operationId" : "list_4",
+        "operationId" : "list_5",
         "parameters" : [ {
           "in" : "query",
           "name" : "actorId",
@@ -3678,10 +3902,10 @@
           }
         }, {
           "in" : "query",
-          "name" : "result",
+          "name" : "outcome",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/AuditOutcome"
           }
         }, {
           "in" : "query",
@@ -3747,9 +3971,197 @@
         "tags" : [ "audit-entry-controller" ]
       }
     },
+    "/api/v1/platform/audit-entries:export" : {
+      "get" : {
+        "operationId" : "export",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "actorId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "action",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "subjectKey",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "audit-export-controller" ]
+      }
+    },
+    "/api/v1/platform/authorization-requests" : {
+      "get" : {
+        "operationId" : "pending",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CursorPageAuthorizationRequestView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "authorization-request-controller" ]
+      }
+    },
+    "/api/v1/platform/authorization-requests/{requestId}:confirm" : {
+      "post" : {
+        "operationId" : "confirm_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "requestId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "authorization-request-controller" ]
+      }
+    },
+    "/api/v1/platform/authorization-requests/{requestId}:reject" : {
+      "post" : {
+        "operationId" : "reject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "requestId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "authorization-request-controller" ]
+      }
+    },
     "/api/v1/platform/legacy-numbers" : {
       "get" : {
-        "operationId" : "list_3",
+        "operationId" : "list_4",
         "parameters" : [ {
           "in" : "query",
           "name" : "documentType",
@@ -3898,7 +4310,7 @@
     },
     "/api/v1/platform/numbering-rules" : {
       "get" : {
-        "operationId" : "list_2",
+        "operationId" : "list_3",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -4027,6 +4439,155 @@
         "tags" : [ "numbering-rule-controller" ]
       }
     },
+    "/api/v1/platform/numbering-rules/{documentType}:confirm" : {
+      "post" : {
+        "operationId" : "confirm",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "documentType",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/DocumentType"
+          }
+        }, {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmNumberingRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NumberingRuleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "numbering-rule-controller" ]
+      }
+    },
+    "/api/v1/platform/numbering-rules/{documentType}:confirm-finance" : {
+      "post" : {
+        "operationId" : "confirmByFinance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "documentType",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/DocumentType"
+          }
+        }, {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmNumberingRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NumberingRuleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "numbering-rule-controller" ]
+      }
+    },
+    "/api/v1/platform/own-login-records" : {
+      "get" : {
+        "operationId" : "list_2",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OwnLoginRecordResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "own-login-record-controller" ]
+      }
+    },
     "/api/v1/platform/roles" : {
       "get" : {
         "operationId" : "list",
@@ -4096,7 +4657,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/RoleResponse"
+                  "type" : "object"
                 }
               }
             },
@@ -4220,7 +4781,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/RoleResponse"
+                  "type" : "object"
                 }
               }
             },
@@ -4325,6 +4886,73 @@
           }
         },
         "tags" : [ "session-controller" ]
+      }
+    },
+    "/api/v1/platform/sessions:enter-administrator-mode" : {
+      "post" : {
+        "operationId" : "enter",
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "loginBinding",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WecomLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdministratorModeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "administrator-mode-controller" ]
+      }
+    },
+    "/api/v1/platform/sessions:exit-administrator-mode" : {
+      "post" : {
+        "operationId" : "exit",
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "administrator-mode-controller" ]
       }
     },
     "/api/v1/platform/sessions:logout" : {
@@ -4597,6 +5225,54 @@
         "tags" : [ "role-controller" ]
       }
     },
+    "/api/v1/platform/user-accounts/{userId}:force-logout" : {
+      "post" : {
+        "operationId" : "forceLogout",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ForcedLogoutRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "forced-logout-controller" ]
+      }
+    },
     "/api/v1/platform/user-accounts/{userId}:replace-roles" : {
       "post" : {
         "operationId" : "replaceRoles",
@@ -4636,6 +5312,13 @@
         },
         "responses" : {
           "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
             "description" : "OK"
           },
           "default" : {

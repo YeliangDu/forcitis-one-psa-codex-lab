@@ -1,136 +1,250 @@
 package com.forcitis.one.platform.numbering.domain;
 
-import static com.forcitis.one.platform.numbering.api.ConfirmationStatus.CONFIRMED;
-import static com.forcitis.one.platform.numbering.api.ConfirmationStatus.PENDING_CONFIRMATION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.DocumentType;
-import com.forcitis.one.kernel.TransitionTable;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.TestEnvelopes;
-import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
+import com.forcitis.one.platform.numbering.api.ConfirmationKind;
+import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import com.forcitis.one.platform.numbering.api.RuleVersion;
+import com.forcitis.one.platform.numbering.events.NumberingRuleConfirmationGiven;
 import com.forcitis.one.platform.numbering.events.NumberingRuleConfirmed;
 import com.forcitis.one.platform.numbering.events.NumberingRuleReconfigured;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class NumberingRuleStateMachineTest {
     static final NumberingPattern TEMPLATE = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
     static final NumberingPattern OTHER = new NumberingPattern("{TYPE}-{yyyy}-{seq:5}", ResetPolicy.YEARLY);
+    static final LocalDate DAY = LocalDate.parse("2026-10-15");
+    static final Instant AT = Instant.parse("2026-10-14T08:00:00Z");
+    static final UserId AUTHOR = new UserId(11);
+    static final UserId CONFIRMER = new UserId(12);
+    static final UserId FINANCE = new UserId(13);
 
-    static final LocalDate ENFORCED_SINCE = LocalDate.of(2026, 9, 1);
-    static final LocalDate DAY = LocalDate.of(2026, 10, 20);
+    static TemplateVersion pending(int number, UserId author) {
+        return new TemplateVersion(number, TEMPLATE, 1, DAY, author, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
+    }
 
-    static NumberingRule at(ConfirmationStatus status) {
-        return NumberingRule.restore(DocumentType.QUOTE, TEMPLATE, 1, status.name(), 1, status == CONFIRMED ? ENFORCED_SINCE : null, 4, 4);
+    static TemplateVersion confirmed(int number) {
+        return new TemplateVersion(number, TEMPLATE, 1, DAY, AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
+    }
+
+    static NumberingRule rule(DocumentType type, TemplateVersion... versions) {
+        return NumberingRule.restore(type, List.of(versions), 4, 4);
+    }
+
+    static DomainException refusal(Runnable action) {
+        return (DomainException) catchThrowable(action);
+    }
+
+    private static Throwable catchThrowable(Runnable action) {
+        try {
+            action.run();
+        } catch (RuntimeException failure) {
+            return failure;
+        }
+        throw new AssertionError("expected a refusal");
     }
 
     @Test
-    @DisplayName("confirm and reconfigure are tried from every status: confirm only from PENDING_CONFIRMATION; reconfigure always, and it confirms")
-    void exhaustiveTransitions() {
-        new TransitionTable<ConfirmationStatus, NumberingRule>(ConfirmationStatus.class, NumberingRuleStateMachineTest::at, NumberingRule::confirmation)
-                .operation("confirm", rule -> rule.confirm(DAY), PENDING_CONFIRMATION, CONFIRMED)
-                .operation("reconfigure", rule -> rule.reconfigure(OTHER, 7, DAY), PENDING_CONFIRMATION, CONFIRMED, CONFIRMED, CONFIRMED)
-                .verify();
-    }
+    @DisplayName("ADR-0027 2.4 the author of a version cannot confirm it; someone else can, and the version then issues")
+    void theAuthorCannotConfirmTheirOwnVersion() {
+        NumberingRule rule = rule(DocumentType.QUOTE, pending(1, AUTHOR));
 
-    @Test
-    @DisplayName("reconfiguring a pending rule records Reconfigured then Confirmed; a confirmed rule only Reconfigured")
-    void events() {
-        NumberingRule pending = at(PENDING_CONFIRMATION);
-        pending.reconfigure(OTHER, 7, DAY);
-        assertThat(pending.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.getClass().getSimpleName()).containsExactly("NumberingRuleReconfigured",
-                "NumberingRuleConfirmed");
-        assertThat(pending.pattern()).isEqualTo(OTHER);
-        assertThat(pending.startValue()).isEqualTo(7);
-        assertThat(pending.eventSequence()).isEqualTo(6);
-        assertThat(pending.version()).isEqualTo(5);
+        DomainException refused = refusal(() -> rule.confirm(AUTHOR, AT, DAY, new RuleVersion(1)));
 
-        NumberingRule confirmed = at(CONFIRMED);
-        confirmed.reconfigure(OTHER, 7, DAY);
-        assertThat(confirmed.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(NumberingRuleReconfigured.class, e -> {
-            assertThat(e.documentType()).isEqualTo(DocumentType.QUOTE);
-            assertThat(e.envelope().aggregateId()).isEqualTo("QUOTE");
-            assertThat(e.envelope().aggregateVersion()).isEqualTo(5);
+        assertThat(refused.errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR);
+        assertThat(refused.kind()).isEqualTo(ErrorKind.FORBIDDEN);
+        assertThat(rule.inForce()).isEmpty();
+        assertThat(rule.hasPendingEvents()).isFalse();
+
+        rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(1));
+
+        assertThat(rule.inForce()).hasValueSatisfying(v -> {
+            assertThat(v.number()).isEqualTo(1);
+            assertThat(v.confirmedBy()).isEqualTo(CONFIRMER);
         });
-    }
-
-    @Test
-    @DisplayName("the events carry the template version and the day it takes effect, and the effective day is their businessDate")
-    void eventsCarryRuleVersionAndEffectiveDay() {
-        NumberingRule pending = at(PENDING_CONFIRMATION);
-        pending.reconfigure(OTHER, 7, DAY);
-        assertThat(pending.drainEvents(TestEnvelopes.INSTANCE)).satisfiesExactly(
-                reconfigured -> assertThat(reconfigured).isInstanceOfSatisfying(NumberingRuleReconfigured.class, e -> {
-                    assertThat(e.ruleVersion().value()).as("a template that was never in force is not a new version").isEqualTo(1);
-                    assertThat(e.effectiveFrom()).isEqualTo(DAY);
-                    assertThat(e.envelope().businessDate()).isEqualTo(DAY);
+        assertThat(rule.drainEvents(TestEnvelopes.INSTANCE)).satisfiesExactly(
+                e -> assertThat(e).isInstanceOfSatisfying(NumberingRuleConfirmationGiven.class, given -> {
+                    assertThat(given.kind()).isEqualTo(ConfirmationKind.BUSINESS);
+                    assertThat(given.ruleVersion()).isEqualTo(new RuleVersion(1));
                 }),
-                confirmed -> assertThat(confirmed).isInstanceOfSatisfying(NumberingRuleConfirmed.class, e -> {
-                    assertThat(e.ruleVersion().value()).isEqualTo(1);
-                    assertThat(e.effectiveFrom()).isEqualTo(DAY);
-                    assertThat(e.envelope().businessDate()).isEqualTo(DAY);
-                }));
-        assertThat(pending.ruleVersion().value()).isEqualTo(1);
-        assertThat(pending.effectiveFrom()).isEqualTo(DAY);
+                e -> assertThat(e).isInstanceOf(NumberingRuleConfirmed.class));
+    }
 
-        NumberingRule confirmed = at(CONFIRMED);
-        confirmed.reconfigure(OTHER, 7, DAY);
-        assertThat(confirmed.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(NumberingRuleReconfigured.class, e -> {
-            assertThat(e.ruleVersion().value()).as("replacing a template in force starts the next version").isEqualTo(2);
-            assertThat(e.effectiveFrom()).isEqualTo(DAY);
-            assertThat(e.envelope().businessDate()).isEqualTo(DAY);
+    @Test
+    @DisplayName("ADR-0027 2.4 a seeded default template has no author, so anyone entitled to approve may confirm it")
+    void aSeededDefaultCanBeConfirmedByAnyone() {
+        NumberingRule rule = rule(DocumentType.QUOTE, pending(1, null));
+
+        rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(1));
+
+        assertThat(rule.inForce()).isPresent();
+    }
+
+    @Test
+    @DisplayName("ADR-0027 2.4 a change saves a new version; the confirmed one keeps issuing until the new one is confirmed")
+    void aChangeLeavesTheConfirmedVersionInForce() {
+        NumberingRule rule = rule(DocumentType.QUOTE, confirmed(1));
+
+        rule.propose(OTHER, 7, DAY, AUTHOR, AT);
+
+        assertThat(rule.inForce()).hasValueSatisfying(v -> assertThat(v.number()).isEqualTo(1));
+        assertThat(rule.pending()).hasValueSatisfying(v -> {
+            assertThat(v.number()).isEqualTo(2);
+            assertThat(v.pattern()).isEqualTo(OTHER);
+            assertThat(v.startValue()).isEqualTo(7);
+            assertThat(v.author()).isEqualTo(AUTHOR);
         });
-        assertThat(confirmed.ruleVersion().value()).isEqualTo(2);
+        assertThat(rule.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(NumberingRuleReconfigured.class,
+                e -> assertThat(e.ruleVersion()).isEqualTo(new RuleVersion(2)));
+
+        rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(2));
+
+        assertThat(rule.inForce()).hasValueSatisfying(v -> assertThat(v.number()).isEqualTo(2));
+        assertThat(rule.pending()).isEmpty();
     }
 
     @Test
-    @DisplayName("an event is sealed with the version of its own time even when a later change follows before it is drained")
-    void sealedVersionsDoNotMoveWithLaterChanges() {
-        NumberingRule rule = at(CONFIRMED);
-        rule.reconfigure(OTHER, 7, DAY);
-        rule.reconfigure(TEMPLATE, 8, DAY.plusDays(1));
+    @DisplayName("ADR-0027 2.4 a second change before confirmation replaces the waiting version, which is never confirmed")
+    void aSecondChangeSupersedesTheWaitingVersion() {
+        NumberingRule rule = rule(DocumentType.QUOTE, pending(1, AUTHOR));
 
-        assertThat(rule.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> ((NumberingRuleReconfigured) e).ruleVersion().value()).containsExactly(2L, 3L);
+        rule.propose(OTHER, 7, DAY, AUTHOR, AT);
+
+        assertThat(rule.versions()).extracting(TemplateVersion::status).containsExactly(VersionStatus.SUPERSEDED, VersionStatus.PENDING_CONFIRMATION);
+        assertThat(rule.changedVersions()).hasSize(2);
+        assertThat(refusal(() -> rule.confirm(AUTHOR, AT, DAY, new RuleVersion(2))).errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR);
     }
 
     @Test
-    @DisplayName("without an effective day nothing is confirmed or reconfigured")
-    void effectiveDayIsRequired() {
-        NumberingRule pending = at(PENDING_CONFIRMATION);
-        assertThatThrownBy(() -> pending.confirm(null)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> pending.reconfigure(OTHER, 7, null)).isInstanceOf(NullPointerException.class);
-        assertThat(pending.confirmation()).isEqualTo(PENDING_CONFIRMATION);
-        assertThat(pending.hasPendingEvents()).isFalse();
-        assertThatThrownBy(() -> NumberingRule.restore(DocumentType.QUOTE, TEMPLATE, 1, "CONFIRMED", 1, null, 0, 0))
-                .isInstanceOf(IllegalArgumentException.class);
+    @DisplayName("ADR-0027 2.4 a version is confirmed once; with nothing waiting there is nothing to confirm")
+    void nothingToConfirmAndNoSecondConfirmation() {
+        NumberingRule settled = rule(DocumentType.QUOTE, confirmed(1));
+        assertThat(refusal(() -> settled.confirm(CONFIRMER, AT, DAY, new RuleVersion(1))).errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_NOTHING_TO_CONFIRM);
+
+        NumberingRule voucher = rule(DocumentType.JOURNAL_VOUCHER, pending(1, AUTHOR));
+        voucher.confirm(CONFIRMER, AT, DAY, new RuleVersion(1));
+        assertThat(refusal(() -> voucher.confirm(new UserId(99), AT, DAY, new RuleVersion(1))).errorCode())
+                .isEqualTo(NumberingError.PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL);
     }
 
     @Test
-    @DisplayName("saving the template and start value a confirmed rule already has changes nothing: no event, same version, same effective day")
-    void repeatedSaveOfAConfirmedRuleIsANoOp() {
-        NumberingRule confirmed = at(CONFIRMED);
+    @DisplayName("D-1a-157 a voucher template also needs the finance confirmation, from a third person")
+    void aVoucherTemplateNeedsTheFinanceConfirmationToo() {
+        NumberingRule rule = rule(DocumentType.JOURNAL_VOUCHER, pending(1, AUTHOR));
+        assertThat(rule.requiresFinanceConfirmation()).isTrue();
 
-        confirmed.reconfigure(TEMPLATE, 1, DAY);
+        rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(1));
 
-        assertThat(confirmed.hasPendingEvents()).isFalse();
-        assertThat(confirmed.ruleVersion().value()).isEqualTo(1);
-        assertThat(confirmed.effectiveFrom()).isEqualTo(ENFORCED_SINCE);
-    }
+        assertThat(rule.inForce()).as("the business confirmation alone is not enough").isEmpty();
+        assertThat(rule.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(NumberingRuleConfirmationGiven.class);
+        assertThat(refusal(() -> rule.confirmByFinance(AUTHOR, AT, DAY, new RuleVersion(1))).errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR);
+        assertThat(refusal(() -> rule.confirmByFinance(CONFIRMER, AT, DAY, new RuleVersion(1))).errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_CONFIRMATION_REPEATED);
 
-    @Test
-    @DisplayName("saving an unchanged template on a pending rule only confirms it: one Confirmed event, the first version")
-    void unchangedSaveOfAPendingRuleConfirms() {
-        NumberingRule pending = at(PENDING_CONFIRMATION);
+        rule.confirmByFinance(FINANCE, AT, DAY, new RuleVersion(1));
 
-        pending.reconfigure(TEMPLATE, 1, DAY);
-
-        assertThat(pending.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(NumberingRuleConfirmed.class, e -> {
-            assertThat(e.ruleVersion().value()).isEqualTo(1);
-            assertThat(e.effectiveFrom()).isEqualTo(DAY);
+        assertThat(rule.inForce()).hasValueSatisfying(v -> {
+            assertThat(v.confirmedBy()).isEqualTo(CONFIRMER);
+            assertThat(v.financeConfirmedBy()).isEqualTo(FINANCE);
         });
-        assertThat(pending.confirmation()).isEqualTo(CONFIRMED);
+        assertThat(rule.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.getClass().getSimpleName())
+                .containsExactly("NumberingRuleConfirmationGiven", "NumberingRuleConfirmed");
+    }
+
+    @Test
+    @DisplayName("D-1a-157 the finance confirmation may come first; the version is in force once both are there")
+    void theFinanceConfirmationMayComeFirst() {
+        NumberingRule rule = rule(DocumentType.JOURNAL_VOUCHER, pending(1, AUTHOR));
+
+        rule.confirmByFinance(FINANCE, AT, DAY, new RuleVersion(1));
+        assertThat(rule.inForce()).isEmpty();
+        assertThat(refusal(() -> rule.confirm(FINANCE, AT, DAY, new RuleVersion(1))).errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_CONFIRMATION_REPEATED);
+        rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(1));
+
+        assertThat(rule.inForce()).isPresent();
+    }
+
+    @Test
+    @DisplayName("D-1a-157 only voucher templates take a finance confirmation")
+    void otherTemplatesTakeNoFinanceConfirmation() {
+        NumberingRule rule = rule(DocumentType.QUOTE, pending(1, AUTHOR));
+
+        assertThat(rule.requiresFinanceConfirmation()).isFalse();
+        assertThat(refusal(() -> rule.confirmByFinance(FINANCE, AT, DAY, new RuleVersion(1))).errorCode())
+                .isEqualTo(NumberingError.PLATFORM_NUMBERING_FINANCE_CONFIRMATION_NOT_REQUIRED);
+    }
+
+    @Test
+    @DisplayName("D-1a-147 a rule with no confirmed version has nothing in force: it issues no number")
+    void nothingInForceUntilConfirmed() {
+        NumberingRule rule = rule(DocumentType.QUOTE, pending(1, null));
+
+        assertThat(rule.inForce()).isEmpty();
+        assertThat(rule.current().number()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("a template that cannot be saved is refused without touching the rule")
+    void anInvalidProposalChangesNothing() {
+        NumberingRule rule = rule(DocumentType.QUOTE, pending(1, null));
+
+        assertThatThrownBy(() -> rule.propose(OTHER, 0, DAY, AUTHOR, AT)).isInstanceOf(IllegalArgumentException.class);
+        assertThat(rule.versions()).hasSize(1);
+        assertThat(rule.hasPendingEvents()).isFalse();
+    }
+
+    @Test
+    @DisplayName("B1-H1 a confirmation names the version looked at: a different one is refused and confirms nothing")
+    void aConfirmationOfAnotherVersionIsRefused() {
+        NumberingRule rule = rule(DocumentType.QUOTE, pending(1, null));
+        rule.propose(OTHER, 7, DAY, AUTHOR, AT);
+
+        assertThat(refusal(() -> rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(1))).errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_VERSION_MISMATCH);
+        assertThat(refusal(() -> rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(1))).kind()).isEqualTo(ErrorKind.CONFLICT);
+        assertThat(rule.inForce()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("B1-H3 a day before the confirmation day is refused, the author's date is kept; the same day and later days pass; a seeded default has no date to refuse")
+    void anEffectiveDateBeforeTheConfirmationDayIsRefused() {
+        NumberingRule rule = rule(DocumentType.QUOTE, confirmed(1));
+        rule.propose(OTHER, 7, DAY.minusDays(1), AUTHOR, AT);
+
+        DomainException refused = refusal(() -> rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(2)));
+
+        assertThat(refused.errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_EFFECTIVE_DATE_PASSED);
+        assertThat(refused.kind()).isEqualTo(ErrorKind.UNPROCESSABLE);
+        assertThat(rule.pending()).hasValueSatisfying(v -> assertThat(v.effectiveFrom()).isEqualTo(DAY.minusDays(1)));
+        rule.propose(OTHER, 7, DAY, AUTHOR, AT);
+        rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(3));
+        assertThat(rule.inForce()).hasValueSatisfying(v -> assertThat(v.number()).isEqualTo(3));
+
+        NumberingRule seeded = rule(DocumentType.QUOTE, new TemplateVersion(1, TEMPLATE, 1, DAY.minusYears(26), null, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null));
+        seeded.confirm(CONFIRMER, AT, DAY, new RuleVersion(1));
+        assertThat(seeded.inForce()).isPresent();
+    }
+
+    @Test
+    @DisplayName("B1-H3 the version in force on a business date is the highest confirmed one that has started by then")
+    void theVersionInForceFollowsTheBusinessDate() {
+        TemplateVersion first = new TemplateVersion(1, TEMPLATE, 1, DAY, AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
+        TemplateVersion second = new TemplateVersion(2, OTHER, 1, DAY.plusDays(10), AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
+        TemplateVersion waiting = new TemplateVersion(3, OTHER, 1, DAY.plusDays(5), AUTHOR, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
+        NumberingRule rule = rule(DocumentType.QUOTE, first, second, waiting);
+
+        assertThat(rule.inForceOn(DAY.minusDays(1))).isEmpty();
+        assertThat(rule.inForceOn(DAY.plusDays(9))).hasValueSatisfying(v -> assertThat(v.number()).isEqualTo(1));
+        assertThat(rule.inForceOn(DAY.plusDays(10))).hasValueSatisfying(v -> assertThat(v.number()).isEqualTo(2));
+        assertThat(rule.inForce()).hasValueSatisfying(v -> assertThat(v.number()).isEqualTo(2));
     }
 }

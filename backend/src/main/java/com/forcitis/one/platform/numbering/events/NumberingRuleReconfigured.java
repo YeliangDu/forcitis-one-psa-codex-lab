@@ -6,7 +6,6 @@ import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.platform.numbering.api.RuleVersion;
 import java.time.LocalDate;
 
-/** ruleVersion is the template version in force from effectiveFrom, which is also the envelope's businessDate. */
-public record NumberingRuleReconfigured(EventEnvelope envelope, DocumentType documentType, RuleVersion ruleVersion, LocalDate effectiveFrom)
-        implements DomainEvent {
+/** A new version of the template was saved and waits for confirmation. */
+public record NumberingRuleReconfigured(EventEnvelope envelope, DocumentType documentType, RuleVersion ruleVersion, LocalDate effectiveFrom) implements DomainEvent {
 }

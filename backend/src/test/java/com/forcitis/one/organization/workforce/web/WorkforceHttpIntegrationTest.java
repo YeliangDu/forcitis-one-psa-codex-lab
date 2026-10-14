@@ -80,8 +80,8 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         mvc.perform(get(ORG_UNITS).with(READ_RUNS)).andExpect(status().isForbidden());
         mvc.perform(get(SYNC_RUNS).with(READ_ORG)).andExpect(status().isForbidden());
         mvc.perform(post(SYNC_RUNS + "/1:release").with(csrf())).andExpect(status().isUnauthorized());
-        mvc.perform(post(SYNC_RUNS + "/1:release").with(csrf()).with(READ_RUNS)).andExpect(status().isForbidden());
-        mvc.perform(post(SYNC_RUNS + "/1:release").with(EXECUTE)).andExpect(status().isForbidden());
+        mvc.perform(post(SYNC_RUNS + "/1:release").with(csrf()).with(READ_RUNS).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}")).andExpect(status().isForbidden());
+        mvc.perform(post(SYNC_RUNS + "/1:release").with(EXECUTE).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}")).andExpect(status().isForbidden());
     }
 
     @Test
@@ -175,12 +175,13 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(held.status()).isEqualTo(SyncRunStatus.HELD);
         String path = SYNC_RUNS + "/" + held.syncRunId().value() + ":release";
 
-        mvc.perform(post(path).with(EXECUTE)).andExpect(status().isForbidden());
+        mvc.perform(post(path).with(EXECUTE).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"headcount change is real\"}")).andExpect(status().isForbidden());
 
         mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content(REASON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.trigger").value("MANUAL"))
-                .andExpect(jsonPath("$.status").value("SUCCEEDED"));
+                .andExpect(jsonPath("$.outcome").value("RELEASED"))
+                .andExpect(jsonPath("$.syncRun.trigger").value("MANUAL"))
+                .andExpect(jsonPath("$.syncRun.status").value("SUCCEEDED"));
         assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
             assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
             assertThat(e.envelope().actorId()).isEqualTo("9001");
@@ -240,10 +241,10 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         String path = SYNC_RUNS + "/" + held.syncRunId().value() + ":release";
 
         mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"  \"}"))
-                .andExpect(status().isUnprocessableContent())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED"));
         mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isUnprocessableContent());
+                .andExpect(status().isBadRequest());
         mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content(REASON)).andExpect(status().isOk());
 
         assertThat(events.stream(SyncRunReleased.class)).singleElement()

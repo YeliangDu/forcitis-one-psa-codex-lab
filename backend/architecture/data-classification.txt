@@ -13,7 +13,9 @@ platform_identity.login_states.state_hash | SENSITIVE | 一次性登录 state �
 platform_identity.sso_ticket_uses.ticket_hash | SENSITIVE | 一次性单点登录票据的摘要
 platform_identity.ticket_issuers.key_reference | SENSITIVE | 签名密钥在 KMS 中的引用
 platform_identity.sessions_attributes.attribute_bytes | RESTRICTED | 会话内容
-platform_audit.audit_entries.source_address | SENSITIVE | 个人信息：操作来源 IP；只经审计查询权限输出
+platform_identity.emergency_admins.account_name | SENSITIVE | 应急账号的登录名，可辅助撞库
+platform_identity.sessions.principal_name | SENSITIVE | 个人信息：会话所属用户 ID
+platform_audit.audit_entries.source_address | SENSITIVE | 个人信息：登录与会话类条目的客户端地址
 organization_workforce.employees.display_name | SENSITIVE | 个人信息：姓名
 organization_workforce.employees.login_name | SENSITIVE | 个人信息：登录名
 organization_workforce.employees.wecom_user_id | SENSITIVE | 个人信息：企业微信用户 ID

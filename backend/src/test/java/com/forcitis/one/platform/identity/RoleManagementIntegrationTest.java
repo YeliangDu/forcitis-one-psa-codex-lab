@@ -13,6 +13,7 @@ import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
+import com.forcitis.one.platform.identity.events.RoleCreated;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
 import java.util.Set;
@@ -37,7 +38,8 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @BeforeEach
     void callers() {
         createAccount(9, "super_admin");
-        admin = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, () -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
+        admin = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, () -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
+                () -> Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE);
         reader = user("8").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
     }
 
@@ -80,7 +82,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(result).path("kind").asString()).isEqualTo("CUSTOM");
         assertThat(body(result).path("enabled").asBoolean()).isTrue();
         assertThat(jdbc.sql("select access_scope from platform_identity.roles where code = 'analyst'").query(String.class).single()).isEqualTo("SELF");
-        assertThat(recordedEvents.stream(com.forcitis.one.platform.identity.events.RoleCreated.class)).hasSize(1);
+        assertThat(recordedEvents.stream(RoleCreated.class)).hasSize(1);
     }
 
     @Test
@@ -198,11 +200,12 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 .param("p", Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE).update();
         createAccount(5, "role-editor");
         createAccount(1001);
-        RequestPostProcessor editor = user("5").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE);
+        RequestPostProcessor editor = user("5").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+                () -> Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE);
 
         MvcResult broad = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"mine\",\"name\":\"Mine\",\"permissionCodes\":[\"cost.timesheet:timesheet:approve\"]}")).andReturn();
-        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/5:replace-roles").header("If-Match", accountVersion(5)).with(xsrf()).with(editor)
+        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(editor)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"role-editor\",\"super_admin\"]}")).andReturn();
         MvcResult within = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"small\",\"name\":\"Small\",\"permissionCodes\":[\"" + Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE + "\"]}")).andReturn();
@@ -211,7 +214,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(errorCode(broad)).isEqualTo("PLATFORM_IDENTITY_ROLE_NOT_ALLOWED");
         assertThat(toSuperAdmin.getResponse().getStatus()).isEqualTo(403);
         assertThat(within.getResponse().getStatus()).isEqualTo(201);
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = 5")
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = 1001")
                 .query(Long.class).single()).isZero();
     }
 

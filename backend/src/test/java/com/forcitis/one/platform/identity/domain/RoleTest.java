@@ -82,26 +82,29 @@ class RoleTest {
     }
 
     @Test
-    @DisplayName("RULE-340 an enabled super_admin holds every permission and counts as administrator; a disabled one does not")
+    @DisplayName("ADR-0026 5 / ADR-0027 2.5 an enabled super_admin counts as administrator and holds no permission by it, only the platform ones in the administrator mode; a disabled one does not")
     void superAdmin() {
         AccessProfile admin = AccessProfile.of(List.of(system("super_admin", Set.of())));
 
         assertThat(admin.isAdministrator()).isTrue();
-        assertThat(admin.permissionCodes()).hasSize(Permission.values().length);
-        assertThat(admin.hasPermission(Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE)).isTrue();
+        assertThat(admin.permissionCodes()).isEmpty();
+        assertThat(admin.administratorModePermissionCodes()).containsExactlyInAnyOrder(Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
+                Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE,
+                Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
 
         Role disabledAdmin = Role.restore(new RoleId(1), new RoleCode("super_admin"), "x", "SYSTEM", "DISABLED", AccessScopeKind.ALL, true, Set.of(), 0, 0);
         assertThat(AccessProfile.of(List.of(disabledAdmin)).isAdministrator()).isFalse();
+        assertThat(AccessProfile.of(List.of(disabledAdmin)).administratorModePermissionCodes()).isEmpty();
     }
 
     @Test
-    @DisplayName("RULE-342 role-code check: any of the codes; an empty list passes; super_admin always passes")
+    @DisplayName("RULE-342 role-code check: any of the codes; an empty list passes; super_admin no longer passes for every code (ADR-0026 5)")
     void roleCodeCheck() {
         AccessProfile profile = AccessProfile.of(List.of(custom("reviewer", Set.of())));
 
         assertThat(profile.hasAnyRole(List.of(new RoleCode("reviewer"), new RoleCode("PMO")))).isTrue();
         assertThat(profile.hasAnyRole(List.of(new RoleCode("PMO")))).isFalse();
         assertThat(profile.hasAnyRole(List.of())).isTrue();
-        assertThat(AccessProfile.of(List.of(system("super_admin", Set.of()))).hasAnyRole(List.of(new RoleCode("PMO")))).isTrue();
+        assertThat(AccessProfile.of(List.of(system("super_admin", Set.of()))).hasAnyRole(List.of(new RoleCode("PMO")))).isFalse();
     }
 }

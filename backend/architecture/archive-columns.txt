@@ -11,10 +11,11 @@ subject_key | ARCHIVE | INTERNAL | what it was done to ({type}:{id})
 detail | ARCHIVE | INTERNAL | one-line description without keys or personal data
 event_id | ARCHIVE | INTERNAL | the domain event that caused the entry, the idempotency key
 correlation_id | ARCHIVE | INTERNAL | ties the entry to the request or job run
-source_address | ARCHIVE | SENSITIVE | where the action came from (a network address); personal data, kept because the entry is evidence of who acted from where
-result_kind | ARCHIVE | INTERNAL | whether the audited action succeeded or failed
 change_reason | ARCHIVE | INTERNAL | the reason the person gave for a change
 before_text | ARCHIVE | INTERNAL | the value before a change, as text without secrets (the entry refuses text that looks like one)
 after_text | ARCHIVE | INTERNAL | the value after a change, as text without secrets
 created_at | ARCHIVE | INTERNAL | when the audited fact happened
 updated_at | EXCLUDE | INTERNAL | always equal to created_at (the row is never updated)
+source_address | ARCHIVE | SENSITIVE | the client address of a login or session end, kept for tracing a security incident after the online period (user decision 2026-10-15); personal data, so the archive store is access-controlled like the audit trail
+outcome_kind | ARCHIVE | INTERNAL | whether the login or the session end succeeded or failed
+login_method_kind | ARCHIVE | INTERNAL | which way the person logged in (WeCom, SSO, ticket, emergency)

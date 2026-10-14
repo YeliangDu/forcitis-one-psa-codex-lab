@@ -22,8 +22,10 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     public void save(AuditEntry entry, Instant createdAt) {
         jdbc.sql("""
                         insert into platform_audit.audit_entries (created_at, updated_at, action, actor_id, on_behalf_of_id, subject_key, detail,
-                                                                  source_address, result_kind, change_reason, before_text, after_text)
-                        values (:createdAt, :createdAt, :action, :actor, :onBehalfOf, :subject, :detail, :sourceAddress, :result, :reason, :before, :after)
+                                                                  source_address, outcome_kind, login_method_kind,
+                                                                  change_reason, before_text, after_text)
+                        values (:createdAt, :createdAt, :action, :actor, :onBehalfOf, :subject, :detail, :sourceAddress, :outcome, :loginMethod,
+                                :reason, :before, :after)
                         """)
                 .param("createdAt", Timestamp.from(createdAt))
                 .param("action", entry.action())
@@ -32,7 +34,8 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
                 .param("subject", entry.subjectKey())
                 .param("detail", entry.detail(), Types.VARCHAR)
                 .param("sourceAddress", entry.sourceAddress(), Types.VARCHAR)
-                .param("result", entry.result() == null ? null : entry.result().name(), Types.VARCHAR)
+                .param("outcome", entry.outcome() == null ? null : entry.outcome().name(), Types.VARCHAR)
+                .param("loginMethod", entry.loginMethod(), Types.VARCHAR)
                 .param("reason", entry.changeReason(), Types.VARCHAR)
                 .param("before", entry.beforeText(), Types.VARCHAR)
                 .param("after", entry.afterText(), Types.VARCHAR)
@@ -43,10 +46,9 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     public boolean saveForEvent(AuditEntry entry, Instant createdAt, UUID eventId, UUID correlationId) {
         return jdbc.sql("""
                         insert into platform_audit.audit_entries (created_at, updated_at, action, actor_id, on_behalf_of_id, subject_key, detail,
-                                                                  source_address, result_kind, change_reason, before_text, after_text,
-                                                                  event_id, correlation_id)
-                        values (:createdAt, :createdAt, :action, :actor, :onBehalfOf, :subject, :detail, :sourceAddress, :result, :reason,
-                                :before, :after, :eventId, :correlationId)
+                                                                  event_id, correlation_id, change_reason, before_text, after_text)
+                        values (:createdAt, :createdAt, :action, :actor, :onBehalfOf, :subject, :detail, :eventId, :correlationId,
+                                :reason, :before, :after)
                         on conflict (event_id) do nothing
                         """)
                 .param("createdAt", Timestamp.from(createdAt))
@@ -55,13 +57,11 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
                 .param("onBehalfOf", entry.onBehalfOfId() == null ? null : entry.onBehalfOfId().value(), Types.BIGINT)
                 .param("subject", entry.subjectKey())
                 .param("detail", entry.detail(), Types.VARCHAR)
-                .param("sourceAddress", entry.sourceAddress(), Types.VARCHAR)
-                .param("result", entry.result() == null ? null : entry.result().name(), Types.VARCHAR)
+                .param("eventId", eventId, Types.OTHER)
+                .param("correlationId", correlationId, Types.OTHER)
                 .param("reason", entry.changeReason(), Types.VARCHAR)
                 .param("before", entry.beforeText(), Types.VARCHAR)
                 .param("after", entry.afterText(), Types.VARCHAR)
-                .param("eventId", eventId, Types.OTHER)
-                .param("correlationId", correlationId, Types.OTHER)
                 .update() > 0;
     }
 }

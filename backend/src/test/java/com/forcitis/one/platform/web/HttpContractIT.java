@@ -82,7 +82,7 @@ class HttpContractIT {
         assertThat(allowsNull(schemas.path("AuditEntryResponse").path("properties").path("detail"))).isTrue();
         assertThat(schemas.path("AuditEntryResponse").path("required").toString()).doesNotContain("\"detail\"").contains("\"action\"");
         assertThat(allowsNull(schemas.path("LegalEntityResponse").path("properties").path("accountingOrganizationNumber"))).isTrue();
-        assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("administrationExpiresAt"))).isTrue();
+        assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("administratorModeExpiresAt"))).isTrue();
         assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("userId"))).isFalse();
         assertThat(allowsNull(schemas.path("CursorPageRoleResponse").path("properties").path("nextCursor"))).isTrue();
         assertThat(schemas.path("CursorPageRoleResponse").path("required").toString()).isEqualTo("[\"items\"]");
@@ -90,7 +90,8 @@ class HttpContractIT {
 
     /** A list that answers a bare array instead of a cursor page, with the reason: the whole tree is needed to draw the hierarchy. */
     private static final java.util.Map<String, String> UNPAGED_LISTS = java.util.Map.of(
-            "/api/v1/organization/org-units", "the organisation tree is drawn and scoped as a whole and is bounded by the size of the firm");
+            "/api/v1/organization/org-units", "the organisation tree is drawn and scoped as a whole and is bounded by the size of the firm",
+            "/api/v1/platform/own-login-records", "the person's own recent login history: the newest records of one person, at most 200, read for a glance");
 
     @Test
     @DisplayName("every list endpoint answers a cursor page with limit and cursor parameters, or is an unpaged list with its reason on record")

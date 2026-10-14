@@ -185,6 +185,30 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
     }
 
     @org.springframework.beans.factory.annotation.Autowired
+    org.springframework.context.ApplicationEventPublisher events;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    org.springframework.transaction.support.TransactionTemplate tx;
+
+    @Test
+    @DisplayName("C-M7 the account separation fact invalidates the identifiers of the person, and a second delivery changes nothing")
+    void separationInvalidates() throws Exception {
+        confirmedIdentifier(1001, null);
+        confirmedIdentifier(1002, null);
+        assertThat(storedIdentifiers(1001)).isPositive();
+        com.forcitis.one.kernel.UserId separated = new com.forcitis.one.kernel.UserId(1001);
+        var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
+                com.forcitis.one.kernel.event.TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(separated),
+                List.of(), java.time.LocalDate.of(2026, 10, 15));
+
+        tx.executeWithoutResult(status -> events.publishEvent(snapshot));
+        org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(storedIdentifiers(1001)).isZero());
+        tx.executeWithoutResult(status -> events.publishEvent(snapshot));
+
+        assertThat(storedIdentifiers(1002)).as("nobody else is touched").isPositive();
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
     com.forcitis.one.platform.identity.application.PurgeExpiredCredentials purge;
 
     @Test

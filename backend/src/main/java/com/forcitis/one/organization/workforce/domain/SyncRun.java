@@ -7,17 +7,23 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.organization.workforce.api.HoldKind;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.organization.workforce.events.SyncRunFailed;
 import com.forcitis.one.organization.workforce.events.SyncRunHeld;
+import com.forcitis.one.organization.workforce.events.SyncRunHoldReleased;
 import com.forcitis.one.organization.workforce.events.SyncRunReleased;
 import com.forcitis.one.organization.workforce.events.SyncRunSucceeded;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * One run of the org snapshot sync. RUNNING ends as SUCCEEDED, HELD (shrink guard) or FAILED; a HELD run is refreshed by a later
@@ -43,11 +49,18 @@ public final class SyncRun extends AggregateRoot {
     private UserId releasedBy;
     private Instant releasedAt;
     private SyncRunId releasedByRunId;
+    private Set<HoldKind> holdKinds;
+    private Set<HoldKind> releasedKinds;
+    private List<UserId> heldSeparations;
 
     private SyncRun(SyncRunId syncRunId, SyncTrigger trigger, SyncRunStatus status, Instant startedAt, Instant finishedAt,
                     RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
-                    SyncRunId releasedByRunId, long version, long eventSequence) {
+                    SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds, List<UserId> heldSeparations, long version,
+                    long eventSequence) {
         super(version, eventSequence);
+        this.holdKinds = Set.copyOf(holdKinds);
+        this.releasedKinds = Set.copyOf(releasedKinds);
+        this.heldSeparations = List.copyOf(heldSeparations);
         this.syncRunId = syncRunId;
         this.trigger = Objects.requireNonNull(trigger, "trigger");
         this.status = Objects.requireNonNull(status, "status");
@@ -64,20 +77,44 @@ public final class SyncRun extends AggregateRoot {
 
     /** A run that is about to be inserted; the repository gives it its id with withId. */
     public static SyncRun unsaved(SyncTrigger trigger, Instant startedAt) {
-        return new SyncRun(null, trigger, SyncRunStatus.RUNNING, startedAt, null, null, null, null, null, null, null, 0, 0);
+        return new SyncRun(null, trigger, SyncRunStatus.RUNNING, startedAt, null, null, null, null, null, null, null, Set.of(), Set.of(), List.of(), 0, 0);
     }
 
     public SyncRun withId(SyncRunId id) {
         return new SyncRun(Objects.requireNonNull(id, "id"), trigger, status, startedAt, finishedAt, stats, heldReason, failureReason,
-                releasedBy, releasedAt, releasedByRunId, version(), eventSequence());
+                releasedBy, releasedAt, releasedByRunId, holdKinds, releasedKinds, heldSeparations, version(), eventSequence());
     }
 
     /** Rebuilds a stored run; status is the stored name. */
     public static SyncRun restore(SyncRunId syncRunId, SyncTrigger trigger, String status, Instant startedAt, Instant finishedAt,
                                   RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
                                   SyncRunId releasedByRunId, long version, long eventSequence) {
+        return restore(syncRunId, trigger, status, startedAt, finishedAt, stats, heldReason, failureReason, releasedBy, releasedAt,
+                releasedByRunId, heldReason == null ? Set.of() : Set.of(HoldKind.SHRINK_GUARD), Set.of(), List.of(), version, eventSequence);
+    }
+
+    public static SyncRun restore(SyncRunId syncRunId, SyncTrigger trigger, String status, Instant startedAt, Instant finishedAt,
+                                  RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
+                                  SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds,
+                                  List<UserId> heldSeparations, long version, long eventSequence) {
         return new SyncRun(syncRunId, trigger, SyncRunStatus.valueOf(status), startedAt, finishedAt, stats, heldReason,
-                failureReason, releasedBy, releasedAt, releasedByRunId, version, eventSequence);
+                failureReason, releasedBy, releasedAt, releasedByRunId, holdKinds, releasedKinds, heldSeparations, version, eventSequence);
+    }
+
+    public Set<HoldKind> holdKinds() {
+        return holdKinds;
+    }
+
+    public Set<HoldKind> releasedKinds() {
+        return releasedKinds;
+    }
+
+    public List<UserId> heldSeparations() {
+        return heldSeparations;
+    }
+
+    public boolean allHoldsReleased() {
+        return releasedKinds.containsAll(holdKinds);
     }
 
     public SyncRunId syncRunId() {
@@ -144,11 +181,38 @@ public final class SyncRun extends AggregateRoot {
 
     /** From RUNNING, or from HELD when a later run is held for the same reason: the earlier run is refreshed. */
     public void hold(Instant now, RunStats runStats, String reason) {
+        hold(now, runStats, reason, Set.of(HoldKind.SHRINK_GUARD), List.of());
+    }
+
+    /** A refreshed hold keeps the kinds already lifted only when the kinds and the leavers are exactly the same as before. */
+    public void hold(Instant now, RunStats runStats, String reason, Set<HoldKind> kinds, List<UserId> separating) {
         move(SyncRunStatus.HELD);
         this.finishedAt = now;
         this.stats = runStats;
         this.heldReason = reason;
+        boolean same = kinds.equals(holdKinds) && Set.copyOf(separating).equals(Set.copyOf(heldSeparations));
+        if (!same) {
+            this.releasedKinds = Set.of();
+        }
+        this.holdKinds = Set.copyOf(kinds);
+        this.heldSeparations = List.copyOf(separating);
         record((envelopes, version) -> new SyncRunHeld(envelopes.wrap(draft("SyncRunHeld", version)), syncRunId));
+    }
+
+    /** Lifts one kind of hold; the run stays held until every kind is lifted. */
+    public void releaseKind(HoldKind kind, UserId by) {
+        if (status != SyncRunStatus.HELD || !holdKinds.contains(kind) || releasedKinds.contains(kind)) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL, ErrorKind.CONFLICT,
+                    "the hold " + kind + " of run " + syncRunId.value() + " is not waiting to be lifted");
+        }
+        Set<HoldKind> lifted = new HashSet<>(releasedKinds);
+        lifted.add(kind);
+        this.releasedKinds = Set.copyOf(lifted);
+        record((envelopes, version) -> new SyncRunHoldReleased(envelopes.wrap(draft("SyncRunHoldReleased", version)), syncRunId, kind, by));
+    }
+
+    public void withdrawReleases() {
+        this.releasedKinds = Set.of();
     }
 
     public void fail(Instant now, String reason) {

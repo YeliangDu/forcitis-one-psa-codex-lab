@@ -109,6 +109,13 @@ tables:
     retention: {policy: 1y, job: organization.workforce.sync.purge}
     lineage: {source: NEW}
     writers: [organization.workforce]
+  organization_workforce.sync_run_held_separations:
+    role: AGGREGATE_CHILD
+    aggregate: SyncRun
+    mutability: REPLACE_SET
+    retention: {policy: 1y, job: organization.workforce.sync.purge}
+    lineage: {source: NEW}
+    writers: [organization.workforce]
   organization_workforce.legal_entities:
     role: AGGREGATE_ROOT
     aggregate: LegalEntity
@@ -217,8 +224,6 @@ tables:
     writers: [platform.idempotency]
 
   platform_identity.user_accounts:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: AGGREGATE_ROOT
     aggregate: UserAccount
     mutability: MUTABLE
@@ -226,8 +231,6 @@ tables:
     lineage: {source: NEW}
     writers: [platform.identity]
   platform_identity.roles:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: AGGREGATE_ROOT
     aggregate: Role
     mutability: MUTABLE
@@ -235,8 +238,6 @@ tables:
     lineage: {source: NEW}
     writers: [platform.identity]
   platform_identity.role_permissions:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: AGGREGATE_CHILD
     aggregate: Role
     mutability: REPLACE_SET
@@ -244,8 +245,6 @@ tables:
     lineage: {source: NEW}
     writers: [platform.identity]
   platform_identity.account_roles:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: AGGREGATE_CHILD
     aggregate: UserAccount
     mutability: REPLACE_SET
@@ -253,24 +252,18 @@ tables:
     lineage: {source: NEW}
     writers: [platform.identity]
   platform_identity.navigation_items:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: CONFIG
     mutability: MIGRATION_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     readers: [platform.identity]
   platform_identity.login_states:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: ONE_TIME
     mutability: INSERT_DELETE
     retention: {policy: EXPIRY, job: platform.identity.credential.purge}
     lineage: {source: NEW}
     writers: [platform.identity]
   platform_identity.sso_ticket_uses:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: ONE_TIME
     mutability: INSERT_DELETE
     retention: {policy: EXPIRY, job: platform.identity.credential.purge}
@@ -283,17 +276,12 @@ tables:
     lineage: {source: NEW}
     writers: [platform.identity]
   platform_identity.ticket_issuers:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: CONFIG
     mutability: MIGRATION_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     readers: [platform.identity]
   platform_identity.emergency_admins:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
-      - {rule: D5, column: account_name, due: "2026-11-30", owner: B1, ref: K10, note: "classify account_name in data-classification.txt"}
     role: AGGREGATE_ROOT
     aggregate: EmergencyAdmin
     mutability: CONDITIONAL_UPDATE
@@ -301,9 +289,16 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.identity]
+  platform_identity.authorization_requests:
+    role: AGGREGATE_ROOT
+    aggregate: AuthorizationRequest
+    mutability: MUTABLE
+    fk_exceptions:
+      role_id: a request outlives the role it asked to change; the role may be deleted while the request is decided or kept as history
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.identity]
   platform_identity.sessions:
-    gaps:
-      - {rule: D5, column: principal_name, due: "2026-11-30", owner: B1, ref: K10, note: "classify principal_name (framework column, personal data)"}
     role: FRAMEWORK
     mutability: FRAMEWORK
     retention: {policy: FRAMEWORK}
@@ -335,18 +330,21 @@ tables:
     writers: [platform.integration]
 
   platform_numbering.numbering_rules:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
-      - {rule: D10, column: versions_table, due: "2026-11-30", owner: B1, ref: K11, note: "numbering_rule_versions (append-only, effective_from_date, confirmed_by, confirmed_at) and versions_table here"}
     role: CONFIG_VERSIONED
     aggregate: NumberingRule
     mutability: MUTABLE
+    versions_table: platform_numbering.numbering_rule_versions
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.numbering]
+  platform_numbering.numbering_rule_versions:
+    role: AGGREGATE_CHILD
+    aggregate: NumberingRule
+    mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.numbering]
   platform_numbering.numbering_counters:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: COUNTER
     mutability: CONDITIONAL_UPDATE
     condition: allocated by one atomic upsert (repository-write-exceptions.txt, reserveNext)
@@ -354,8 +352,6 @@ tables:
     lineage: {source: NEW}
     writers: [platform.numbering]
   platform_numbering.legacy_numbers:
-    gaps:
-      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
     role: LINEAGE
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}

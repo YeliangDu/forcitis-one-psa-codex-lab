@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
@@ -23,9 +24,11 @@ public class AttributeLegalEntity {
     private final LegalEntityQueries legalEntities;
     private final AttributionSubjects subjects;
     private final DomainEvents events;
+    private final OwnAttributionGuard ownAttribution;
 
     AttributeLegalEntity(LegalEntityAttributionRepository attributions, LegalEntityQueries legalEntities, AttributionSubjects subjects,
-                         DomainEvents events) {
+                         DomainEvents events, OwnAttributionGuard ownAttribution) {
+        this.ownAttribution = ownAttribution;
         this.attributions = attributions;
         this.legalEntities = legalEntities;
         this.subjects = subjects;
@@ -33,8 +36,9 @@ public class AttributeLegalEntity {
     }
 
     @Transactional
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, long legalEntityId, LocalDate effectiveFrom, ExpectedVersion expected) {
+    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, long legalEntityId, LocalDate effectiveFrom, ExpectedVersion expected, UserId actor) {
         AttributionSubject subject = subjects.require(kind, subjectId);
+        ownAttribution.requireNotOwn(subject, actor);
         LegalEntityId target = legalEntityId > 0 ? new LegalEntityId(legalEntityId) : null;
         if (target == null || legalEntities.find(target).filter(e -> e.status() == LegalEntityStatus.ACTIVE).isEmpty()) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND, ErrorKind.UNPROCESSABLE,

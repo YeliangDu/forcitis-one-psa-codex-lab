@@ -3,7 +3,7 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.audit.api.AuditResult;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.identity.domain.BrowserIdentifiers;
 import com.forcitis.one.platform.identity.domain.Digests;
 import com.forcitis.one.platform.identity.domain.IdentityCheckReason;
@@ -49,7 +49,7 @@ class BrowserIdentity {
         this.clock = clock;
     }
 
-    Judgement judge(UserId userId, @Nullable String presented) {
+    Judgement judge(UserId userId, LoginMethod method, @Nullable String presented) {
         Instant now = clock.instant();
         String presentedHash = presented == null || presented.isBlank() ? null : Digests.sha256Hex(presented);
         Optional<BrowserIdentifiers.Known> known = presentedHash == null ? Optional.empty() : identifiers.find(presentedHash, userId);
@@ -69,7 +69,7 @@ class BrowserIdentity {
             identifiers.invalidateAll(userId);
             audit.record(new AuditEntry("platform.identity.browser-identifier.replayed", userId, null, "user-account:" + userId.value(),
                     "risk=HIGH identifier=" + prefix(presentedHash) + " every browser identifier of the account was invalidated")
-                    .withTrace(origin.address(), AuditResult.FAILURE));
+                    .withTrace(origin.address(), AuditOutcome.FAILED, method.name()));
         }
         String issued = null;
         if (reason == null) {
@@ -79,7 +79,7 @@ class BrowserIdentity {
         audit.record(new AuditEntry("platform.identity.login.identity-check", userId, null, "user-account:" + userId.value(),
                 reason == null ? "outcome=SKIPPED identifier=" + prefix(presentedHash)
                         : "outcome=CONFIRMATION_REQUIRED reason=" + reason + (presentedHash == null ? "" : " identifier=" + prefix(presentedHash)))
-                .withTrace(origin.address(), reason == null ? AuditResult.SUCCESS : AuditResult.FAILURE));
+                .withTrace(origin.address(), reason == null ? AuditOutcome.SUCCEEDED : AuditOutcome.FAILED, method.name()));
         return new Judgement(reason, issued);
     }
 
