@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/** Writes must run inside the caller's transaction. */
+/** Writing side: writes must run inside the caller's transaction. Reading for browsing and lookups is OrgSnapshotQueries. */
 public interface OrgSnapshotRepository {
     /** Serialises writers; held until the surrounding transaction ends. */
     void lockForWrite();
@@ -21,20 +21,6 @@ public interface OrgSnapshotRepository {
     void save(Reconciliation changes, SyncRunId syncRunId, Instant now);
 
     void saveStaffEmployee(StaffEmployee member, SyncRunId syncRunId, Instant now);
-
-    Optional<StaffEmployee> findStaff(UserId userId);
-
-    /** Prefers the employed person. */
-    Optional<StaffEmployee> findStaffByWecomUserId(WecomUserId wecomUserId);
-
-    /** Only employed people carry a login name. */
-    Optional<StaffEmployee> findStaffByLoginName(String loginName);
-
-    Optional<OrgUnit> findOrgUnit(OrgUnitId orgUnitId);
-
-    List<OrgUnit> findAllOrgUnits();
-
-    List<OrgUnitId> findAncestors(OrgUnitId orgUnitId);
 
     Set<OrgUnitId> findOrgUnitIds();
 

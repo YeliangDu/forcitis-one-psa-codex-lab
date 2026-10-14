@@ -11,8 +11,8 @@ import com.forcitis.one.organization.attendance.api.AttendanceError;
 import com.forcitis.one.organization.attendance.domain.CalendarDay;
 import com.forcitis.one.organization.attendance.domain.DayKind;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
-import com.forcitis.one.organization.attendance.domain.WorkCalendarRepository;
-import com.forcitis.one.organization.attendance.domain.WorkCalendarYear;
+import com.forcitis.one.organization.attendance.domain.WorkCalendarQueries;
+import com.forcitis.one.organization.attendance.domain.WorkCalendarYearRecord;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,11 +28,11 @@ import org.junit.jupiter.api.Test;
 class WorkCalendarServiceTest {
     static final LegalEntityId FST = new LegalEntityId(1);
 
-    static class MemoryCalendars implements WorkCalendarRepository {
-        final Map<WorkCalendarKey, WorkCalendarYear> years = new HashMap<>();
+    static class MemoryCalendars implements WorkCalendarQueries {
+        final Map<WorkCalendarKey, WorkCalendarYearRecord> years = new HashMap<>();
 
         @Override
-        public Optional<WorkCalendarYear> find(WorkCalendarKey key) {
+        public Optional<WorkCalendarYearRecord> find(WorkCalendarKey key) {
             return Optional.ofNullable(years.get(key));
         }
 
@@ -42,15 +42,8 @@ class WorkCalendarServiceTest {
                     .map(WorkCalendarKey::calendarYear).sorted().toList();
         }
 
-        @Override
-        public void save(WorkCalendarYear calendarYear) {
-            years.put(calendarYear.key(), calendarYear);
-        }
-
         void maintain(WorkCalendarKey key, CalendarDay... days) {
-            WorkCalendarYear year = WorkCalendarYear.unmaintained(key);
-            year.maintain(List.of(days));
-            years.put(key, year);
+            years.put(key, new WorkCalendarYearRecord(key, List.of(days)));
         }
     }
 

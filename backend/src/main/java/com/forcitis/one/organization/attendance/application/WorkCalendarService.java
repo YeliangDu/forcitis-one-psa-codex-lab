@@ -7,8 +7,8 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
 import com.forcitis.one.organization.attendance.api.WorkCalendar;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
-import com.forcitis.one.organization.attendance.domain.WorkCalendarRepository;
-import com.forcitis.one.organization.attendance.domain.WorkCalendarYear;
+import com.forcitis.one.organization.attendance.domain.WorkCalendarQueries;
+import com.forcitis.one.organization.attendance.domain.WorkCalendarYearRecord;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
@@ -29,11 +29,11 @@ class WorkCalendarService implements WorkCalendar {
     private static final Logger LOG = LoggerFactory.getLogger(WorkCalendarService.class);
     static final int MAX_WORKDAYS = 3660;
 
-    private final WorkCalendarRepository calendars;
+    private final WorkCalendarQueries calendars;
     private final BusinessZone businessZone;
     private final Counter unmaintained;
 
-    WorkCalendarService(WorkCalendarRepository calendars, BusinessZone businessZone, MeterRegistry meters) {
+    WorkCalendarService(WorkCalendarQueries calendars, BusinessZone businessZone, MeterRegistry meters) {
         this.calendars = calendars;
         this.businessZone = businessZone;
         this.unmaintained = Counter.builder("forcitis.organization.attendance.calendar.unmaintained")
@@ -52,7 +52,7 @@ class WorkCalendarService implements WorkCalendar {
         if (n < 1 || n > MAX_WORKDAYS) {
             throw new IllegalArgumentException("n must be 1.." + MAX_WORKDAYS + ": " + n);
         }
-        Map<Integer, WorkCalendarYear> loaded = new HashMap<>();
+        Map<Integer, WorkCalendarYearRecord> loaded = new HashMap<>();
         LocalDate day = startDate;
         int counted = 0;
         while (counted < n) {
@@ -64,10 +64,10 @@ class WorkCalendarService implements WorkCalendar {
         return day.plusDays(1).atStartOfDay(businessZone.zone()).toInstant();
     }
 
-    private boolean isWorkday(LocalDate date, LegalEntityId legalEntityId, Map<Integer, WorkCalendarYear> loaded) {
+    private boolean isWorkday(LocalDate date, LegalEntityId legalEntityId, Map<Integer, WorkCalendarYearRecord> loaded) {
         Objects.requireNonNull(date, "date");
         Objects.requireNonNull(legalEntityId, "legalEntityId");
-        WorkCalendarYear year = loaded.get(date.getYear());
+        WorkCalendarYearRecord year = loaded.get(date.getYear());
         if (year == null) {
             year = calendars.find(new WorkCalendarKey(legalEntityId, date.getYear()))
                     .or(() -> calendars.find(WorkCalendarKey.defaultFor(date.getYear())))

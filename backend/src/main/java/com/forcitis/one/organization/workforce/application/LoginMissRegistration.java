@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.EmployeeChecks;
+import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
 import com.forcitis.one.platform.integration.api.SourcePerson;
 import com.forcitis.one.organization.workforce.domain.SourceTerms;
@@ -21,10 +22,12 @@ class LoginMissRegistration {
     private static final Logger LOG = LoggerFactory.getLogger(LoginMissRegistration.class);
 
     private final OrgSnapshotRepository snapshots;
+    private final OrgSnapshotQueries lookups;
     private final PersistRegisteredEmployee persist;
 
-    LoginMissRegistration(OrgSnapshotRepository snapshots, PersistRegisteredEmployee persist) {
+    LoginMissRegistration(OrgSnapshotRepository snapshots, OrgSnapshotQueries lookups, PersistRegisteredEmployee persist) {
         this.snapshots = snapshots;
+        this.lookups = lookups;
         this.persist = persist;
     }
 
@@ -70,7 +73,7 @@ class LoginMissRegistration {
         if (leader == null || leader.equals(SourceTerms.person(person.personId()))) {
             return null;
         }
-        return snapshots.findStaff(leader)
+        return lookups.findStaff(leader)
                 .filter(s -> s.employee().employmentStatus() == EmploymentStatus.EMPLOYED)
                 .map(StaffEmployee::userId)
                 .orElse(null);

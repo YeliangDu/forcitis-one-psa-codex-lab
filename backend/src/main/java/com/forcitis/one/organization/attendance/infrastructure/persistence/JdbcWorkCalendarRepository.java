@@ -43,16 +43,6 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
     }
 
     @Override
-    public List<Integer> findMaintainedYears(LegalEntityId legalEntityId) {
-        return jdbc.sql("""
-                        select year_number from organization_attendance.work_calendar_years
-                         where legal_entity_id is not distinct from :legalEntityId order by year_number
-                        """)
-                .param("legalEntityId", legalEntityId == null ? null : legalEntityId.value(), java.sql.Types.BIGINT)
-                .query(Integer.class).list();
-    }
-
-    @Override
     public void save(WorkCalendarYear calendarYear) {
         WorkCalendarKey key = calendarYear.key();
         long id;

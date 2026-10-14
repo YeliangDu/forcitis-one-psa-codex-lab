@@ -2,7 +2,7 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgHierarchy;
-import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
+import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
 import java.util.Map;
 import java.util.Optional;
@@ -10,9 +10,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class GetOrgUnit {
-    private final OrgSnapshotRepository snapshots;
+    private final OrgSnapshotQueries snapshots;
 
-    GetOrgUnit(OrgSnapshotRepository snapshots) {
+    GetOrgUnit(OrgSnapshotQueries snapshots) {
         this.snapshots = snapshots;
     }
 

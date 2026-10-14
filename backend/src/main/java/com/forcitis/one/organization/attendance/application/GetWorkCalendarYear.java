@@ -4,14 +4,14 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
-import com.forcitis.one.organization.attendance.domain.WorkCalendarRepository;
+import com.forcitis.one.organization.attendance.domain.WorkCalendarQueries;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GetWorkCalendarYear {
-    private final WorkCalendarRepository calendars;
+    private final WorkCalendarQueries calendars;
 
-    GetWorkCalendarYear(WorkCalendarRepository calendars) {
+    GetWorkCalendarYear(WorkCalendarQueries calendars) {
         this.calendars = calendars;
     }
 

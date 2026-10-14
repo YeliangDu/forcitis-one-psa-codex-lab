@@ -7,7 +7,7 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
-import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
+import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import java.util.List;
@@ -16,11 +16,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 class OrgDirectoryService implements OrgDirectory {
-    private final OrgSnapshotRepository snapshots;
+    private final OrgSnapshotQueries snapshots;
     private final RegisterEmployeeOnLogin registerOnLogin;
     private final RegisterEmployeeOnLoginName registerOnLoginName;
 
-    OrgDirectoryService(OrgSnapshotRepository snapshots, RegisterEmployeeOnLogin registerOnLogin,
+    OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
                         RegisterEmployeeOnLoginName registerOnLoginName) {
         this.snapshots = snapshots;
         this.registerOnLogin = registerOnLogin;

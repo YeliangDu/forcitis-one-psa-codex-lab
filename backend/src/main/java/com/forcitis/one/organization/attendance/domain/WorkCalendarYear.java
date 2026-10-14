@@ -8,7 +8,6 @@ import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
 import com.forcitis.one.organization.attendance.events.WorkCalendarYearMaintained;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.List;
@@ -56,11 +55,7 @@ public final class WorkCalendarYear extends AggregateRoot {
         if (date.getYear() != key.calendarYear()) {
             throw new IllegalArgumentException(date + " is not in calendar year " + key.calendarYear());
         }
-        DayKind exception = exceptions.get(date);
-        if (exception != null) {
-            return exception == DayKind.MAKE_UP_WORKDAY;
-        }
-        return date.getDayOfWeek() != DayOfWeek.SATURDAY && date.getDayOfWeek() != DayOfWeek.SUNDAY;
+        return WorkdayRules.isWorkday(date, exceptions);
     }
 
     /** Replaces the whole year: what the administrator saves is the complete list of exceptions. */
