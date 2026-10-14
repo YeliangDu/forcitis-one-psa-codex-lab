@@ -10,7 +10,7 @@ import com.forcitis.one.platform.approval.domain.TaskView;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import org.springframework.stereotype.Component;
 
-/** Audits a refusal in its own transaction so it survives the rollback, then throws AccessDeniedException (I-7). */
+/** Audits a refusal in its own transaction so it survives the rollback, then answers "no such task", the same as for a task that is not there (I-7). */
 @Component
 class TaskGuard {
 

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 /**
  * D-1a-110..113: T is the workday the task is created in (the next workday when it is created on a day off); the deadline is 23:59 of
  * the deadlineWorkdays-th workday after T; the reminder is 09:00 on the next workday after the deadline; the escalation is 09:00 on
- * the escalationWorkdays-th workday after the reminder. A calendar that cannot answer fails the command (RULE-383).
+ * the escalationWorkdays-th workday after the reminder. A calendar that cannot answer fails the start of the approval, not the submission of the document (RULE-383).
  */
 @Component
 class DeadlinePlanner {

@@ -205,7 +205,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-383 a calendar that cannot answer fails the submission instead of assuming every day is a workday; nothing is left behind")
+    @DisplayName("RULE-383 a calendar that cannot answer fails the start of the approval instead of assuming every day is a workday; nothing is left behind")
     void calendarFailureFailsTheStart() {
         calendar.failWith("year 2026 is not maintained");
         long unit = newId();

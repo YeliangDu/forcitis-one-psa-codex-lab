@@ -1,7 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import com.forcitis.one.platform.approval.api.ProcessKey;
-import com.forcitis.one.platform.approval.domain.ProcessAdministrator;
 import java.util.ArrayList;
 import java.util.List;
 import org.flowable.bpmn.model.BpmnModel;
@@ -30,36 +29,24 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
     private final RepositoryService repository;
     private final TaskAssignmentListener listener;
     private final AssignmentProperties properties;
-    private final ProcessAdministrator administrator;
+    private final ProcessAdministratorCheck administrators;
     private final Environment environment;
 
     EngineWiring(ProcessEngine engine, RepositoryService repository, TaskAssignmentListener listener, AssignmentProperties properties,
-            ProcessAdministrator administrator, Environment environment) {
+            ProcessAdministratorCheck administrators, Environment environment) {
         this.engine = engine;
         this.repository = repository;
         this.listener = listener;
         this.properties = properties;
-        this.administrator = administrator;
+        this.administrators = administrators;
         this.environment = environment;
     }
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        verifyProcessAdministrators();
+        administrators.verify();
         verifyDefinitions();
         engine.getProcessEngineConfiguration().getEventDispatcher().addEventListener(listener, FlowableEngineEventType.TASK_CREATED);
-    }
-
-    private void verifyProcessAdministrators() {
-        if (!administrator.holders().isEmpty()) {
-            return;
-        }
-        String message = "Nobody holds the role '" + properties.processAdministratorRole() + "' (or it does not exist): a task nobody can be found for"
-                + " would have nowhere to go (D-1a-61)";
-        if (environment.acceptsProfiles(Profiles.of("prod"))) {
-            throw new IllegalStateException(message);
-        }
-        log.warn("{}", message);
     }
 
     private void verifyDefinitions() {

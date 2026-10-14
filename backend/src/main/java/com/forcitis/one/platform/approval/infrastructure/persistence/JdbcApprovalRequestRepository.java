@@ -79,8 +79,9 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
 
     @Override
     public Optional<ApprovalRequest> findByTaskForUpdate(ApprovalTaskId taskId) {
-        return select("WHERE (process_key, document_key) IN (SELECT process_key, document_key FROM platform_approval.approval_tasks"
-                + " WHERE task_id = :task)", " FOR UPDATE")
+        return select("WHERE (process_key, document_type, document_key) IN (SELECT t.process_key, r.document_type, t.document_key"
+                + " FROM platform_approval.approval_tasks t JOIN platform_approval.approval_requests r"
+                + " ON r.process_key = t.process_key AND r.document_key = t.document_key WHERE t.task_id = :task)", " FOR UPDATE")
                 .param("task", taskId.value()).query((rs, n) -> readRow(rs)).optional().map(this::restore);
     }
 
