@@ -94,3 +94,6 @@
 | 「可以从我现在U8C 系统蒸馏总账做法」（2026-10-14，经评估会话转达） | U8C_GL_PRACTICE.md（只读蒸馏结构、规则、公式与计数），作为 ADR-0022 依据 |
 | 安全补丁第 7 轮后（2026-10-14，psa-sec-hotfix 会话）：「老系统先不管，确保新系统没有这些缺陷」 | 老系统安全止血搁置（STATUS）；phase1a/SECURITY_INVARIANTS.md I-1..I-9；老系统补丁与止血方案保留在 security_remediation.* 备查，不执行 |
 | 同上，问「老系统不处理的前提下，新系统如何对待老系统的登录令牌？」：「取消桥接 (Recommended)」（与检查点 2 Q-1 一致） | ADR-0009 §6 补充：老 PSA 后端在免密入口修复前不得作为签名票据签发方；SECURITY_INVARIANTS I-1、I-2 |
+| psa-coordinator 汇总决定（2026-10-14）：H-1 产值确认单「迁入新系统，不设双源期 (Recommended)」；H-3 人工成本「新系统要自建整个hrm，算薪要迁入」；M-5 客商 / 部门映射 / 银行卡「主数据全部进新系统」；1a 修订 M-4 §9a 证明项与 brief §2 integration-acl 行「两条都同意 (Recommended)」 | ADR-0016、brief 中 A8 产值只读接入的表述改为迁入（修订稿）；ADR-0021 薪酬改为迁入并自建 HRM；客商、部门映射、员工银行卡等主数据归新系统（银行卡须按敏感个人信息加密存储与最小授权）；brief Phase 1a 出口与 §2 两条 Proposed revision |
+| 老系统 SEC-116（短信验证码固定 9999）经 psa-coordinator 提示生产风险后：「仍然完全不处理」 | 老系统不做任何止血；风险由用户承担；新系统按 SECURITY_INVARIANTS I-1..I-9 隔离 |
+| OA 盘点：ADR-0021「采纳；6a–6c 并入 Phase 4 前 (Recommended)」；应付与付款「新建「应付与付款」BC (Recommended)」；非项目采购、员工借还款、合伙人注资退回「都算，都进新系统 (Recommended)」 | ADR-0021 已采纳；6a–6c 为 Phase 4 出口前置；新建应付与付款 BC（蓝图编号由 psa-gl-scope 统一）；三类事实列入权责事实矩阵 |
