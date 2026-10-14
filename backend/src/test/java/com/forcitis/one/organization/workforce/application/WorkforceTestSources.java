@@ -8,6 +8,12 @@ import org.springframework.context.annotation.Primary;
 public class WorkforceTestSources {
     @Bean
     @Primary
+    public AdjustableClock adjustableClock() {
+        return new AdjustableClock();
+    }
+
+    @Bean
+    @Primary
     public FakeOrgSource fakeOrgSource() {
         return new FakeOrgSource();
     }

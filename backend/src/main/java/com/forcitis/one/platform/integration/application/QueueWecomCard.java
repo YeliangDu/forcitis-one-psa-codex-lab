@@ -11,7 +11,6 @@ import java.time.Clock;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,10 +24,10 @@ public class QueueWecomCard {
     private final RecipientPolicy policy;
     private final Clock clock;
 
-    QueueWecomCard(OutboundDeliveryRepository deliveries, RecipientPolicy policy, ObjectProvider<Clock> clock) {
+    QueueWecomCard(OutboundDeliveryRepository deliveries, RecipientPolicy policy, Clock clock) {
         this.deliveries = deliveries;
         this.policy = policy;
-        this.clock = Clocks.from(clock);
+        this.clock = clock;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

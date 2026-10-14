@@ -15,7 +15,6 @@ import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -36,12 +35,12 @@ public class DeliverWecomCards {
     private final Clock clock;
 
     DeliverWecomCards(OutboundDeliveryRepository deliveries, MarkWecomCardHandled handled, WecomClient wecom,
-                      TransactionTemplate transaction, ObjectProvider<Clock> clock) {
+                      TransactionTemplate transaction, Clock clock) {
         this.deliveries = deliveries;
         this.handled = handled;
         this.wecom = wecom;
         this.transaction = transaction;
-        this.clock = Clocks.from(clock);
+        this.clock = clock;
     }
 
     public int execute() {

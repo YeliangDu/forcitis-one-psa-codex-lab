@@ -1,4 +1,104 @@
 # Phase 1a 修复批 B 新增术语（proposed，待业务评审，ADR-0018）。
-terms: []
+terms:
+- id: error__organization_workforce_employee_legal_entity_unresolved
+  zh: 员工法人无法确定
+  en: OrganizationWorkforceEmployeeLegalEntityUnresolved
+  snake: organization_workforce_employee_legal_entity_unresolved
+  kind: error_code
+  bc: organization.workforce
+  definition: 该日期没有适用于该员工的法人归属（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_attribution_date_invalid
+  zh: 法人归属日期非法
+  en: OrganizationWorkforceAttributionDateInvalid
+  snake: organization_workforce_attribution_date_invalid
+  kind: error_code
+  bc: organization.workforce
+  definition: 新的法人归属须晚于最近一段归属的生效日，结束日须晚于生效日（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_attribution_not_open
+  zh: 没有未结束的法人归属
+  en: OrganizationWorkforceAttributionNotOpen
+  snake: organization_workforce_attribution_not_open
+  kind: error_code
+  bc: organization.workforce
+  definition: 对象没有仍在生效的法人归属，无法结束（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_attribution_not_found
+  zh: 法人归属不存在
+  en: OrganizationWorkforceAttributionNotFound
+  snake: organization_workforce_attribution_not_found
+  kind: error_code
+  bc: organization.workforce
+  definition: 对象没有任何法人归属（404）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_attribution_subject_not_found
+  zh: 法人归属对象不存在
+  en: OrganizationWorkforceAttributionSubjectNotFound
+  snake: organization_workforce_attribution_subject_not_found
+  kind: error_code
+  bc: organization.workforce
+  definition: 部门或员工不存在（404）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_default_role_missing
+  zh: 默认角色不存在
+  en: PlatformIdentityDefaultRoleMissing
+  snake: platform_identity_default_role_missing
+  kind: error_code
+  bc: platform.identity
+  definition: 配置的默认角色不存在，无法开立账号（503）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_not_signed_in
+  zh: 未登录
+  en: PlatformIdentityNotSignedIn
+  snake: platform_identity_not_signed_in
+  kind: error_code
+  bc: platform.identity
+  definition: 请求没有已登录的用户（401）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - opened
+- clock
+- ended

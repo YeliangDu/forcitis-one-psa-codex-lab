@@ -35,7 +35,7 @@ class EventPublicationJobsTest {
     void setUp() {
         StaticListableBeanFactory beans = new StaticListableBeanFactory();
         beans.addBean("clock", Clock.fixed(NOW, ZoneOffset.UTC));
-        jobs = new EventPublicationJobs(incomplete, completed, statistics, meters, beans.getBeanProvider(Clock.class), Duration.ofMinutes(1), 8,
+        jobs = new EventPublicationJobs(incomplete, completed, statistics, meters, Clock.fixed(NOW, ZoneOffset.UTC), Duration.ofMinutes(1), 8,
                 Duration.ofDays(30), Duration.ofMinutes(10));
     }
 

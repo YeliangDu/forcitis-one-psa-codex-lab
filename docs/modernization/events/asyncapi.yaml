@@ -181,6 +181,16 @@ channels:
     messages:
       EmployeeRegistered:
         $ref: '#/components/messages/EmployeeRegistered'
+  legalEntityAttributed:
+    address: organization.workforce.LegalEntityAttributed
+    messages:
+      LegalEntityAttributed:
+        $ref: '#/components/messages/LegalEntityAttributed'
+  legalEntityAttributionEnded:
+    address: organization.workforce.LegalEntityAttributionEnded
+    messages:
+      LegalEntityAttributionEnded:
+        $ref: '#/components/messages/LegalEntityAttributionEnded'
 operations:
   publishApprovalCompleted:
     action: send
@@ -714,6 +724,34 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
+  publishLegalEntityAttributed:
+    action: send
+    channel:
+      $ref: '#/channels/legalEntityAttributed'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/legalEntityAttributed/messages/LegalEntityAttributed'
+  handleLegalEntityAttributedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/legalEntityAttributed'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/legalEntityAttributed/messages/LegalEntityAttributed'
+  publishLegalEntityAttributionEnded:
+    action: send
+    channel:
+      $ref: '#/channels/legalEntityAttributionEnded'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/legalEntityAttributionEnded/messages/LegalEntityAttributionEnded'
+  handleLegalEntityAttributionEndedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/legalEntityAttributionEnded'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/legalEntityAttributionEnded/messages/LegalEntityAttributionEnded'
 components:
   schemas:
     EventEnvelope:
@@ -2513,3 +2551,77 @@ components:
             type: string
             x-type: UserId
             description: 稳定 ID 的字符串形式
+    LegalEntityAttributed:
+      name: LegalEntityAttributed
+      title: 部门或员工从某日起归属某法人
+      x-event:
+        eventType: organization.workforce.LegalEntityAttributed
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityAttributed
+        aggregate: LegalEntityAttribution
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 归属的生效日（effectiveFrom）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityAttributionTest
+        noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为归属变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - subject
+        - legalEntityId
+        - effectiveFrom
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          subject:
+            type: string
+            x-type: AttributionSubject
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+          effectiveFrom:
+            type: string
+            x-type: LocalDate
+    LegalEntityAttributionEnded:
+      name: LegalEntityAttributionEnded
+      title: 部门或员工的法人归属在某日结束
+      x-event:
+        eventType: organization.workforce.LegalEntityAttributionEnded
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityAttributionEnded
+        aggregate: LegalEntityAttribution
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 归属的失效日（effectiveTo）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityAttributionTest
+        noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为归属变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - subject
+        - legalEntityId
+        - effectiveTo
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          subject:
+            type: string
+            x-type: AttributionSubject
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+          effectiveTo:
+            type: string
+            x-type: LocalDate

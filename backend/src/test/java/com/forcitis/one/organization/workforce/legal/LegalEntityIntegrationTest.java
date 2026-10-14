@@ -58,7 +58,7 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     @BeforeEach
     void noLegalEntities() {
         jdbc.sql("truncate table platform_numbering.numbering_counters").update();
-        jdbc.sql("truncate table organization_workforce.legal_entities restart identity").update();
+        jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
     }
 
     private void create(String code, String name) throws Exception {

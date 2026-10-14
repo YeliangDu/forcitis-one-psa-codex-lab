@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -37,9 +38,13 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     private static final long WRITER_LOCK_KEY = 20261014131000L;
 
     private final JdbcClient jdbc;
+    private final OrgHistory history;
+    private final BusinessZone zone;
 
-    JdbcOrgSnapshotRepository(JdbcClient jdbc) {
+    JdbcOrgSnapshotRepository(JdbcClient jdbc, BusinessZone zone) {
         this.jdbc = jdbc;
+        this.history = new OrgHistory(jdbc);
+        this.zone = zone;
     }
 
     @Override
@@ -121,6 +126,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .param("category", u.regionCategory() == null ? null : u.regionCategory().name())
                 .param("delivery", u.deliveryUnit()).param("shortName", u.shortName())
                 .param("run", run).param("now", now).update();
+        history.recordOrgUnit(u, zone.dateOf(now.toInstant()));
     }
 
     private void upsertStaff(StaffEmployee s, Long run, Timestamp now) {
@@ -156,6 +162,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .param("position", a.positionId() == null ? null : a.positionId().value())
                 .param("reportsTo", a.reportsToEmployeeId() == null ? null : a.reportsToEmployeeId().value())
                 .param("now", now).update();
+        history.recordAssignment(a, zone.dateOf(now.toInstant()));
     }
 
     @Override

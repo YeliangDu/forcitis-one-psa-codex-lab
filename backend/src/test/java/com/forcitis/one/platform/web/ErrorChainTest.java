@@ -72,7 +72,7 @@ class ErrorChainTest {
         StaticListableBeanFactory beans = new StaticListableBeanFactory();
         beans.addBean("clock", Clock.systemUTC());
         mvc = MockMvcBuilders.standaloneSetup(new StubController()).setControllerAdvice(new GlobalExceptionHandler())
-                .addFilters(new CorrelationIdFilter(beans.getBeanProvider(Clock.class))).build();
+                .addFilters(new CorrelationIdFilter(Clock.systemUTC())).build();
     }
 
     @Test

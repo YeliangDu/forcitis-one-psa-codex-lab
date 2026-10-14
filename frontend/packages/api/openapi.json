@@ -1,6 +1,19 @@
 {
   "components" : {
     "schemas" : {
+      "AttributeLegalEntityRequest" : {
+        "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "legalEntityId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "CalendarDayRequest" : {
         "properties" : {
           "calendarDate" : {
@@ -105,6 +118,15 @@
         },
         "type" : "object"
       },
+      "EndLegalEntityAttributionRequest" : {
+        "properties" : {
+          "effectiveTo" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "InboxItemResponse" : {
         "properties" : {
           "claimed" : {
@@ -179,6 +201,24 @@
           }
         },
         "required" : [ "documentId", "documentType", "importBatch", "legacyNumber", "legalEntityId" ],
+        "type" : "object"
+      },
+      "LegalEntityAttributionResponse" : {
+        "properties" : {
+          "kind" : {
+            "type" : "string"
+          },
+          "periods" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Period"
+            },
+            "type" : "array"
+          },
+          "subjectId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "kind", "periods", "subjectId" ],
         "type" : "object"
       },
       "LegalEntityResponse" : {
@@ -340,6 +380,23 @@
           }
         },
         "required" : [ "code", "deliveryUnit", "name", "orgUnitId", "status" ],
+        "type" : "object"
+      },
+      "Period" : {
+        "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "effectiveTo" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "legalEntityId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "effectiveFrom", "effectiveTo", "legalEntityId" ],
         "type" : "object"
       },
       "ReleaseResponse" : {
@@ -869,6 +926,105 @@
         "tags" : [ "timesheet-controller" ]
       }
     },
+    "/api/v1/organization/employee-legal-entities/{employeeId}" : {
+      "get" : {
+        "operationId" : "ofEmployee",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "employeeId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      },
+      "put" : {
+        "operationId" : "attributeEmployee",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "employeeId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttributeLegalEntityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      }
+    },
+    "/api/v1/organization/employee-legal-entities/{employeeId}:end" : {
+      "post" : {
+        "operationId" : "endEmployee",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "employeeId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EndLegalEntityAttributionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      }
+    },
     "/api/v1/organization/legal-entities" : {
       "get" : {
         "operationId" : "list_1",
@@ -951,6 +1107,105 @@
           }
         },
         "tags" : [ "legal-entity-controller" ]
+      }
+    },
+    "/api/v1/organization/org-unit-legal-entities/{orgUnitId}" : {
+      "get" : {
+        "operationId" : "ofOrgUnit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orgUnitId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      },
+      "put" : {
+        "operationId" : "attributeOrgUnit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orgUnitId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttributeLegalEntityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      }
+    },
+    "/api/v1/organization/org-unit-legal-entities/{orgUnitId}:end" : {
+      "post" : {
+        "operationId" : "endOrgUnit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orgUnitId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EndLegalEntityAttributionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
       }
     },
     "/api/v1/organization/org-units" : {

@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,12 +34,12 @@ public class ApplySourceSnapshot {
     private final int maxDropPercent;
 
     ApplySourceSnapshot(OrgSnapshotRepository snapshots, SyncRunRepository runs, DomainEvents events,
-                        ObjectProvider<Clock> clock,
+                        Clock clock,
                         @Value("${forcitis.organization.workforce.sync.max-drop-percent:20}") int maxDropPercent) {
         this.snapshots = snapshots;
         this.runs = runs;
         this.events = events;
-        this.clock = Clocks.from(clock);
+        this.clock = clock;
         this.maxDropPercent = maxDropPercent;
     }
 

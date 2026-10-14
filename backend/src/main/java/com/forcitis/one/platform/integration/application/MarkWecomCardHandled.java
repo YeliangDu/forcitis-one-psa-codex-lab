@@ -10,7 +10,6 @@ import java.time.Clock;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +23,9 @@ public class MarkWecomCardHandled {
     private final OutboundDeliveryRepository deliveries;
     private final Clock clock;
 
-    MarkWecomCardHandled(OutboundDeliveryRepository deliveries, ObjectProvider<Clock> clock) {
+    MarkWecomCardHandled(OutboundDeliveryRepository deliveries, Clock clock) {
         this.deliveries = deliveries;
-        this.clock = Clocks.from(clock);
+        this.clock = clock;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
