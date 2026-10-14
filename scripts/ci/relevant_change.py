@@ -25,6 +25,8 @@ READ_BY_BUILDS = (
 # making such docs changes rebuild the backend and frontend
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/phase1a/infra/runbooks/sql/",
+    "docs/modernization/build_all.py",
+    "docs/modernization/check_legacy_name.py",
 )
 
 
