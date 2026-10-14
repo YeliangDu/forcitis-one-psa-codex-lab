@@ -42,10 +42,11 @@ record ReplayExport(int formatVersion, String processKey, Long processAdministra
     record OrgUnitRecord(long orgUnitId, Long parentOrgUnitId, Long headUserId, Long regionalReceivablesManagerId, boolean active) {
     }
 
-    record InstanceRecord(String instanceId, long initiatorId, Map<String, List<String>> formFields,
-                          Map<String, List<String>> variables, List<NodeRecord> nodes) {
+    record InstanceRecord(String instanceId, long initiatorId, List<Integer> legacyHourTypes,
+                          Map<String, List<String>> formFields, Map<String, List<String>> variables, List<NodeRecord> nodes) {
 
         InstanceRecord {
+            legacyHourTypes = legacyHourTypes == null ? List.of() : List.copyOf(legacyHourTypes);
             formFields = formFields == null ? Map.of() : Map.copyOf(formFields);
             variables = variables == null ? Map.of() : Map.copyOf(variables);
             nodes = nodes == null ? List.of() : List.copyOf(nodes);

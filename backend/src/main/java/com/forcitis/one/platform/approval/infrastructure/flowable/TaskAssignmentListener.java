@@ -75,7 +75,13 @@ class TaskAssignmentListener implements FlowableEventListener {
         UserId administrator = properties.processAdministratorUserId() == null ? null : new UserId(properties.processAdministratorUserId());
 
         Resolution resolution = new AssigneeResolver(org, roles, administrator)
-                .resolve(policy.rule(), policy.selfApprovalAllowed(), initiator, variables);
+                .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
+        if (resolution.kind() == ResolutionKind.SKIPPED) {
+            log.info("Node {} (instance {}) has nobody to assign and is skipped", node.getId(), task.getProcessInstanceId());
+            meters.counter("platform.approval.assignee.skipped").increment();
+            task.setVariableLocal(FlowableApprovalEngine.VARIABLE_SKIPPED, Boolean.TRUE);
+            return;
+        }
         if (resolution.kind() == ResolutionKind.UNRESOLVED) {
             throw new IllegalStateException("Nobody can handle node " + node.getId() + " of instance " + task.getProcessInstanceId()
                     + " and no process administrator is configured (forcitis.platform.approval.assignment.process-administrator-user-id)");

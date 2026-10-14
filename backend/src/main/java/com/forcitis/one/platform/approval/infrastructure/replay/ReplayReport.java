@@ -16,7 +16,7 @@ record ReplayReport(String processKey, int instances, int nodes, Map<ReplayVerdi
 
     /** One node whose old approvers are not all in the new candidate set. */
     record Difference(String instanceId, String nodeKey, String ruleType, ReplayVerdict verdict, ResolutionKind resolution,
-                      List<Long> candidates, List<Long> actualApprovers) {
+                      List<Long> candidates, List<Long> actualApprovers, String note) {
     }
 
     int count(ReplayVerdict verdict) {
@@ -43,11 +43,11 @@ record ReplayReport(String processKey, int instances, int nodes, Map<ReplayVerdi
         if (differences.isEmpty()) {
             md.append("None.\n");
         } else {
-            md.append("| instance | node | rule | verdict | resolution | new candidates | old approvers |\n|---|---|---|---|---|---|---|\n");
+            md.append("| instance | node | rule | verdict | resolution | new candidates | old approvers | note |\n|---|---|---|---|---|---|---|---|\n");
             for (Difference d : differences) {
                 md.append("| ").append(d.instanceId()).append(" | ").append(d.nodeKey()).append(" | ").append(d.ruleType())
                         .append(" | ").append(d.verdict()).append(" | ").append(d.resolution()).append(" | ")
-                        .append(d.candidates()).append(" | ").append(d.actualApprovers()).append(" |\n");
+                        .append(d.candidates()).append(" | ").append(d.actualApprovers()).append(" | ").append(d.note()).append(" |\n");
             }
         }
         return md.toString();

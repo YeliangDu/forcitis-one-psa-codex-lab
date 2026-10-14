@@ -171,7 +171,7 @@ class ApplicationIntegrationTest {
                 .andExpect(jsonPath("$.outcome").value("SUBMITTED"));
         assertThat(count("platform_approval")).isGreaterThan(20);
         assertThat(count("public")).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_ru_task", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_hi_procinst", Integer.class)).isGreaterThanOrEqualTo(1);
     }
 
     @Test

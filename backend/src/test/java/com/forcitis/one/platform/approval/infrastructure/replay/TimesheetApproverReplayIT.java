@@ -35,9 +35,9 @@ class TimesheetApproverReplayIT {
     void classifiesEveryNode() throws IOException {
         ReplayReport report = TimesheetApproverReplay.replay(fixture());
 
-        assertThat(report.instances()).isEqualTo(8);
-        assertThat(report.nodes()).isEqualTo(11);
-        assertThat(report.count(ReplayVerdict.MATCH)).isEqualTo(5);
+        assertThat(report.instances()).isEqualTo(10);
+        assertThat(report.nodes()).isEqualTo(13);
+        assertThat(report.count(ReplayVerdict.MATCH)).isEqualTo(7);
         assertThat(report.count(ReplayVerdict.REVIEWED_REPORTING_LINE)).isEqualTo(1);
         assertThat(report.count(ReplayVerdict.REVIEWED_DISABLED_APPROVER)).isEqualTo(1);
         assertThat(report.count(ReplayVerdict.REVIEWED_HARDCODED_FALLBACK)).isEqualTo(1);
@@ -47,21 +47,21 @@ class TimesheetApproverReplayIT {
         assertThat(report.hasDefects()).isTrue();
         assertThat(report.differences()).hasSize(5 + 1);
         assertThat(report.differences()).filteredOn(d -> d.verdict() == ReplayVerdict.DEFECT).singleElement().satisfies(d -> {
-            assertThat(d.instanceId()).isEqualTo("SYN-7");
-            assertThat(d.nodeKey()).isEqualTo("roleReview");
-            assertThat(d.ruleType()).isEqualTo("ROLE");
-            assertThat(d.candidates()).containsExactly(110L, 112L);
+            assertThat(d.instanceId()).isEqualTo("SYN-8");
+            assertThat(d.nodeKey()).isEqualTo("regionalHeadReview");
+            assertThat(d.ruleType()).isEqualTo("FORM_FIELD_USERS");
+            assertThat(d.candidates()).containsExactly(110L);
             assertThat(d.actualApprovers()).containsExactly(105L);
         });
-        assertThat(report.resolutionCounts().get(ResolutionKind.RESOLVED)).isEqualTo(6);
+        assertThat(report.resolutionCounts().get(ResolutionKind.RESOLVED)).isEqualTo(7);
     }
 
     @Test
-    @DisplayName("RULE-249 'old approver in the new candidate set': one of several role holders matches, all countersigners must be members")
+    @DisplayName("RULE-249 'old approver in the new candidate set': every actual approver of a node is a member, in any order")
     void matchingIsMembership() throws IOException {
         ReplayReport report = TimesheetApproverReplay.replay(fixture());
-        assertThat(report.differences()).noneMatch(d -> d.instanceId().equals("SYN-8"));
-        assertThat(report.differences()).noneMatch(d -> d.instanceId().equals("SYN-1"));
+        assertThat(report.differences()).noneMatch(d -> d.instanceId().equals("SYN-3"));
+        assertThat(report.differences()).noneMatch(d -> d.instanceId().equals("SYN-2"));
     }
 
     @Test
@@ -70,7 +70,7 @@ class TimesheetApproverReplayIT {
         ReplayReport first = TimesheetApproverReplay.replay(fixture());
         ReplayReport second = TimesheetApproverReplay.replay(fixture());
         assertThat(second).isEqualTo(first);
-        assertThat(first.toMarkdown()).contains("| DEFECT | 1 |").contains("SYN-7").doesNotContain("person-").doesNotContain("exported");
+        assertThat(first.toMarkdown()).contains("| DEFECT | 1 |").contains("SYN-8").doesNotContain("person-").doesNotContain("exported");
     }
 
     @Test
@@ -78,8 +78,79 @@ class TimesheetApproverReplayIT {
     void cleanExportPasses() throws IOException {
         ReplayExport all = fixture();
         ReplayExport clean = new ReplayExport(all.formatVersion(), all.processKey(), all.processAdministratorUserId(),
-                all.legacyFallbackUserIds(), all.snapshot(), all.instances().stream().filter(i -> !i.instanceId().equals("SYN-7")).toList());
+                all.legacyFallbackUserIds(), all.snapshot(), all.instances().stream().filter(i -> !i.instanceId().equals("SYN-8")).toList());
         assertThat(TimesheetApproverReplay.replay(clean).hasDefects()).isFalse();
+    }
+
+    private static ReplayReport replayOnly(String instanceId) throws IOException {
+        ReplayExport all = fixture();
+        return TimesheetApproverReplay.replay(new ReplayExport(all.formatVersion(), all.processKey(), all.processAdministratorUserId(),
+                all.legacyFallbackUserIds(), all.snapshot(), all.instances().stream().filter(i -> i.instanceId().equals(instanceId)).toList()));
+    }
+
+    @Test
+    @DisplayName("TIMESHEET v15 the branches run in parallel: only project hours, project plus pre-sales, and all three hour types each match by node set and candidates")
+    void threeShapesMatch() throws IOException {
+        assertThat(replayOnly("SYN-1").nodes()).isEqualTo(1);
+        assertThat(replayOnly("SYN-2").nodes()).isEqualTo(2);
+        assertThat(replayOnly("SYN-3").nodes()).isEqualTo(3);
+        for (String id : List.of("SYN-1", "SYN-2", "SYN-3")) {
+            assertThat(replayOnly(id).count(ReplayVerdict.MATCH)).as(id).isEqualTo(replayOnly(id).nodes());
+            assertThat(replayOnly(id).hasDefects()).as(id).isFalse();
+        }
+    }
+
+    @Test
+    @DisplayName("TIMESHEET v15 skip_when_empty: a node nobody acted on matches when the new rule finds nobody either")
+    void skippedNodeMatches() throws IOException {
+        ReplayReport report = replayOnly("SYN-9");
+        assertThat(report.count(ReplayVerdict.MATCH)).isEqualTo(1);
+        assertThat(report.resolutionCounts().get(ResolutionKind.SKIPPED)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("TIMESHEET v15 node set: a node the new process would not run, and a node the old system skipped but the new process assigns, are defects")
+    void nodeSetDifferencesAreDefects() throws IOException {
+        ReplayExport all = fixture();
+        ReplayExport.InstanceRecord base = all.instances().stream().filter(i -> i.instanceId().equals("SYN-1")).findFirst().orElseThrow();
+        ReplayExport.NodeRecord extra = new ReplayExport.NodeRecord("regionalHeadReview",
+                java.util.Map.of("type", "FORM_FIELD_USERS", "field", "regionalHeadId"), false, List.of(112L));
+        ReplayExport.InstanceRecord withExtra = new ReplayExport.InstanceRecord("X-1", base.initiatorId(), base.legacyHourTypes(),
+                base.formFields(), base.variables(), List.of(base.nodes().getFirst(), extra));
+        ReplayExport.InstanceRecord oldSkipped = new ReplayExport.InstanceRecord("X-2", base.initiatorId(), base.legacyHourTypes(),
+                base.formFields(), base.variables(), List.of());
+        ReplayReport report = TimesheetApproverReplay.replay(new ReplayExport(1, "TIMESHEET", 900L, List.of(), all.snapshot(),
+                List.of(withExtra, oldSkipped)));
+        assertThat(report.differences()).extracting(ReplayReport.Difference::instanceId, ReplayReport.Difference::verdict)
+                .containsExactlyInAnyOrder(org.assertj.core.api.Assertions.tuple("X-1", ReplayVerdict.DEFECT),
+                        org.assertj.core.api.Assertions.tuple("X-2", ReplayVerdict.DEFECT));
+    }
+
+    @Test
+    @DisplayName("TIMESHEET v15 the old hour types map to the routing flags and the old task names to the node keys, in the one vocabulary table")
+    void vocabularyTable() {
+        assertThat(LegacyVocabulary.flag(0)).isEqualTo("projectHours");
+        assertThat(LegacyVocabulary.flag(1)).isEqualTo("preSalesHours");
+        assertThat(LegacyVocabulary.flag(2)).isEqualTo("overheadHours");
+        assertThat(LegacyVocabulary.HOUR_TYPE_FLAGS.values()).containsExactlyInAnyOrderElementsOf(
+                TimesheetBranches.ALL.stream().map(TimesheetBranches.Branch::flag).toList());
+        assertThat(LegacyVocabulary.NODE_KEYS.values()).containsExactlyInAnyOrderElementsOf(
+                TimesheetBranches.ALL.stream().map(TimesheetBranches.Branch::nodeKey).toList());
+    }
+
+    @Test
+    @DisplayName("TIMESHEET v15 the replay's branch table equals the shipped BPMN: flags, nodes, rules and routing-flag constants")
+    void branchTableEqualsTheProcess() throws Exception {
+        String xml = Files.readString(Path.of("src/main/resources/processes/cost_timesheet_approval.bpmn20.xml"));
+        for (TimesheetBranches.Branch branch : TimesheetBranches.ALL) {
+            assertThat(xml).contains("getOrDefault('" + branch.flag() + "', false)").contains("<userTask id=\"" + branch.nodeKey() + "\"");
+            String attributes = branch.rule().entrySet().stream().filter(e -> !e.getKey().equals("type"))
+                    .map(e -> e.getKey() + "=\"" + e.getValue() + "\"").sorted().collect(java.util.stream.Collectors.joining(" "));
+            assertThat(xml).contains("type=\"" + branch.rule().get("type") + "\" " + attributes);
+        }
+        assertThat(java.util.Arrays.stream(com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag.values())
+                .map(com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag::flagName).toList())
+                .containsExactlyInAnyOrderElementsOf(TimesheetBranches.ALL.stream().map(TimesheetBranches.Branch::flag).toList());
     }
 
     @Test
@@ -98,7 +169,7 @@ class TimesheetApproverReplayIT {
 
         ReplayExport all = fixture();
         ReplayExport clean = new ReplayExport(all.formatVersion(), all.processKey(), all.processAdministratorUserId(),
-                all.legacyFallbackUserIds(), all.snapshot(), all.instances().stream().filter(i -> !i.instanceId().equals("SYN-7")).toList());
+                all.legacyFallbackUserIds(), all.snapshot(), all.instances().stream().filter(i -> !i.instanceId().equals("SYN-8")).toList());
         Path cleanExport = directory.resolve("clean.json");
         Files.writeString(cleanExport, MAPPER.writeValueAsString(clean));
         Path withoutDefect = directory.resolve("clean");
@@ -161,9 +232,9 @@ class TimesheetApproverReplayIT {
                 for (String attribute : List.of("field", "department", "variable")) {
                     rule.computeIfPresent(attribute, (k, v) -> oldFields.getOrDefault(v, v));
                 }
-                nodes.add(new ReplayExport.NodeRecord(n.nodeKey(), rule, n.selfApprovalAllowed(), n.actualApprovers()));
+                nodes.add(new ReplayExport.NodeRecord(inverse(LegacyVocabulary.NODE_KEYS).getOrDefault(n.nodeKey(), n.nodeKey()), rule, n.selfApprovalAllowed(), n.actualApprovers()));
             });
-            return new ReplayExport.InstanceRecord(i.instanceId(), i.initiatorId(), rename(i.formFields(), oldFields),
+            return new ReplayExport.InstanceRecord(i.instanceId(), i.initiatorId(), i.legacyHourTypes(), rename(i.formFields(), oldFields),
                     rename(i.variables(), oldFields), nodes);
         }).toList();
         ReplayExport old = new ReplayExport(current.formatVersion(), current.processKey(), current.processAdministratorUserId(),

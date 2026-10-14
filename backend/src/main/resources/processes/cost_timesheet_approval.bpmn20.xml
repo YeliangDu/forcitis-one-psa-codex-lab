@@ -1,62 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xmlns:forcitis="https://forcitis.com/psa/approval/extension"
              targetNamespace="https://forcitis.com/psa/approval">
   <!--
-    process id = ProcessKey.COST_TIMESHEET_APPROVAL.key(): {subdomain}_{bc}_{snake} of the owning module (G47).
-
-    Assignment rules live in the forcitis:assignmentRule extension element of each user task, exactly one per task
-    (RULE-262). The Java AssigneeResolver evaluates them; BPMN holds no scripts and no business rules.
-      type    ROLE | DEPARTMENT_HEAD | INITIATOR_SUPERVISOR | FORM_FIELD_USERS
-              (role / department / level / field attributes as the type needs; department is optional and defaults to
-              the initiator's own unit. Other types are deferred or not offered: AssignmentRuleCodec refuses them.)
-      selfApproval="allowed"    exempts the node from the self-approval guard (RULE-307)
-      beforeHook="KEY"          names the BEFORE hook the node runs inside the decide transaction (RULE-277/283)
-
-    A user task INSIDE the sub-process returns to the initiator when it is rejected: the round ends and the initiator
-    starts a new round (RULE-271/290); a top-level user task ends the approval when it is rejected.
-
-    Field names and the routing flag are the ones the owning module publishes in cost.timesheet.api
-    (TimesheetApprovalField, TimesheetRoutingFlag); a test keeps this file and those enums equal.
-
-    Shape of the current production process (docs/modernization/runtime/prod_bpm.tsv, TIMESHEET:15): the project manager
-    named on the timesheet reviews first; for pre-sales hours the regional head reviews too; the initiator's direct
-    supervisor decides last. The old rework node of the initiator has no counterpart: a return ends the round.
+    One forcitis:assignmentRule per user task (RULE-262). skipWhenEmpty="true" lets a node pass when its rule finds nobody
+    (RULE-300); every other failure is an error. Branch conditions and field names are the ones cost.timesheet.api publishes
+    (TimesheetRoutingFlag, TimesheetApprovalField); BpmnRuleConventionsTest keeps them equal.
+    A rejection inside the sub-process returns the timesheet and ends the round.
   -->
   <process id="cost_timesheet_approval" name="Timesheet approval" isExecutable="true">
     <startEvent id="start"/>
     <sequenceFlow id="toReviewStage" sourceRef="start" targetRef="reviewStage"/>
-    <subProcess id="reviewStage" name="Review by the project side">
+    <subProcess id="reviewStage" name="Review">
       <startEvent id="reviewStart"/>
-      <sequenceFlow id="toProjectManagerReview" sourceRef="reviewStart" targetRef="projectManagerReview"/>
+      <sequenceFlow id="toReviewFork" sourceRef="reviewStart" targetRef="reviewFork"/>
+      <inclusiveGateway id="reviewFork"/>
+      <sequenceFlow id="toProjectManagerReview" sourceRef="reviewFork" targetRef="projectManagerReview">
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('projectHours', false)}</conditionExpression>
+      </sequenceFlow>
+      <sequenceFlow id="toRegionalHeadReview" sourceRef="reviewFork" targetRef="regionalHeadReview">
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('preSalesHours', false)}</conditionExpression>
+      </sequenceFlow>
+      <sequenceFlow id="toSupervisorReview" sourceRef="reviewFork" targetRef="supervisorReview">
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('overheadHours', false)}</conditionExpression>
+      </sequenceFlow>
       <userTask id="projectManagerReview" name="Project manager review">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" skipWhenEmpty="true"/>
         </extensionElements>
       </userTask>
-      <sequenceFlow id="toPreSalesCheck" sourceRef="projectManagerReview" targetRef="preSalesCheck"/>
-      <exclusiveGateway id="preSalesCheck" name="Pre-sales hours?" default="skipRegionalHead"/>
-      <sequenceFlow id="toRegionalHeadReview" sourceRef="preSalesCheck" targetRef="regionalHeadReview">
-        <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${vars:getOrDefault('preSalesHours', false)}</conditionExpression>
-      </sequenceFlow>
-      <sequenceFlow id="skipRegionalHead" sourceRef="preSalesCheck" targetRef="reviewJoin"/>
       <userTask id="regionalHeadReview" name="Regional head review">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId" skipWhenEmpty="true"/>
         </extensionElements>
       </userTask>
-      <sequenceFlow id="toReviewJoin" sourceRef="regionalHeadReview" targetRef="reviewJoin"/>
-      <exclusiveGateway id="reviewJoin"/>
+      <userTask id="supervisorReview" name="Supervisor review">
+        <extensionElements>
+          <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1" skipWhenEmpty="true"/>
+        </extensionElements>
+      </userTask>
+      <sequenceFlow id="fromProjectManagerReview" sourceRef="projectManagerReview" targetRef="reviewJoin"/>
+      <sequenceFlow id="fromRegionalHeadReview" sourceRef="regionalHeadReview" targetRef="reviewJoin"/>
+      <sequenceFlow id="fromSupervisorReview" sourceRef="supervisorReview" targetRef="reviewJoin"/>
+      <inclusiveGateway id="reviewJoin"/>
       <sequenceFlow id="toReviewEnd" sourceRef="reviewJoin" targetRef="reviewEnd"/>
       <endEvent id="reviewEnd"/>
     </subProcess>
-    <sequenceFlow id="toSupervisorReview" sourceRef="reviewStage" targetRef="supervisorReview"/>
-    <userTask id="supervisorReview" name="Supervisor review">
-      <extensionElements>
-        <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1"/>
-      </extensionElements>
-    </userTask>
-    <sequenceFlow id="toEnd" sourceRef="supervisorReview" targetRef="end"/>
+    <sequenceFlow id="toEnd" sourceRef="reviewStage" targetRef="end"/>
     <endEvent id="end"/>
   </process>
 </definitions>

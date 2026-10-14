@@ -38,8 +38,16 @@ public final class AssigneeResolver {
     }
 
     public Resolution resolve(AssignmentRule rule, boolean selfApprovalAllowed, UserId initiator, ProcessVariables variables) {
+        return resolve(rule, selfApprovalAllowed, false, initiator, variables);
+    }
+
+    public Resolution resolve(AssignmentRule rule, boolean selfApprovalAllowed, boolean skipWhenEmpty, UserId initiator,
+            ProcessVariables variables) {
         Collected collected = collect(rule, initiator, variables);
         Set<UserId> candidates = employed(collected.users());
+        if (skipWhenEmpty && candidates.isEmpty()) {
+            return new Resolution(Set.of(), ResolutionKind.SKIPPED);
+        }
         ResolutionKind kind = collected.escalated() ? ResolutionKind.ESCALATED_REPORTING_LINE : ResolutionKind.RESOLVED;
         if (!selfApprovalAllowed && candidates.contains(initiator)) {
             Set<UserId> others = new LinkedHashSet<>(candidates);

@@ -10,6 +10,8 @@ import com.forcitis.one.platform.approval.domain.ResolutionKind;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +19,8 @@ import java.util.Set;
 /**
  * Replays recorded approver sequences on the new engine's AssigneeResolver (REIMAGINED_ARCHITECTURE §3.5 (a)). For every node
  * of every exported instance it computes the candidate set from the OLD organisation snapshot and compares by
- * "every old approver is in the new candidate set" (RULE-249 turned a random pick into a candidate group). Mismatches are
+ * "every old approver is in the new candidate set" (RULE-249 turned a random pick into a candidate group), and the set of nodes
+ * by the routing flags the old hour types map to (the branches run in parallel, so no order is compared). Mismatches are
  * classified: reviewed corrections are accepted by category, everything else is a DEFECT.
  */
 final class TimesheetApproverReplay {
@@ -34,30 +37,68 @@ final class TimesheetApproverReplay {
         Map<ReplayVerdict, Integer> verdicts = new EnumMap<>(ReplayVerdict.class);
         Map<ResolutionKind, Integer> resolutions = new EnumMap<>(ResolutionKind.class);
         List<ReplayReport.Difference> differences = new ArrayList<>();
-        int nodes = 0;
+        int[] nodes = {0};
         for (ReplayExport.InstanceRecord instance : export.instances()) {
             ProcessVariables variables = new ProcessVariables(LegacyVocabulary.fields(instance.formFields()),
                     LegacyVocabulary.fields(instance.variables()));
+            UserId initiator = new UserId(instance.initiatorId());
+            Set<String> flags = new HashSet<>();
+            instance.legacyHourTypes().forEach(type -> flags.add(LegacyVocabulary.flag(type)));
+            Map<String, ReplayExport.NodeRecord> exported = new LinkedHashMap<>();
             for (ReplayExport.NodeRecord node : instance.nodes()) {
-                if (LegacyVocabulary.isReworkNode(node)) {
+                if (!LegacyVocabulary.isReworkNode(node)) {
+                    exported.put(LegacyVocabulary.nodeKey(node.nodeKey()), node);
+                }
+            }
+            Set<String> nodeKeys = new LinkedHashSet<>();
+            TimesheetBranches.ALL.stream().filter(b -> flags.contains(b.flag())).forEach(b -> nodeKeys.add(b.nodeKey()));
+            nodeKeys.addAll(exported.keySet());
+            for (String nodeKey : nodeKeys) {
+                nodes[0]++;
+                TimesheetBranches.Branch branch = TimesheetBranches.byNode(nodeKey);
+                ReplayExport.NodeRecord node = exported.get(nodeKey);
+                boolean expected = branch != null && flags.contains(branch.flag());
+                List<Long> actual = node == null ? List.of() : node.actualApprovers();
+                if (branch == null || !expected) {
+                    record(verdicts, resolutions, differences, new ReplayReport.Difference(instance.instanceId(), nodeKey,
+                            node.rule().get("type"), ReplayVerdict.DEFECT, null, List.of(), actual, "node not in the new process for these hour types"));
                     continue;
                 }
-                nodes++;
-                Map<String, String> ruleElement = LegacyVocabulary.rule(node.rule());
-                AssignmentRule rule = AssignmentRuleCodec.parse(ruleElement.get("type"), ruleElement::get);
-                Resolution resolution = resolver.resolve(rule, node.selfApprovalAllowed(), new UserId(instance.initiatorId()), variables);
-                resolutions.merge(resolution.kind(), 1, Integer::sum);
+                AssignmentRule rule = AssignmentRuleCodec.parse(branch.rule().get("type"), branch.rule()::get);
+                String note = "";
+                if (node != null) {
+                    Map<String, String> oldRule = LegacyVocabulary.rule(node.rule());
+                    if (!AssignmentRuleCodec.parse(oldRule.get("type"), oldRule::get).equals(rule)) {
+                        note = "old rule differs from the new rule of the node";
+                    }
+                }
+                Resolution resolution = resolver.resolve(rule, false, true, initiator, variables);
                 Set<Long> candidates = new HashSet<>();
                 resolution.candidates().forEach(c -> candidates.add(c.value()));
-                ReplayVerdict verdict = verdictOf(node, instance.initiatorId(), resolution, candidates, snapshot, hardCoded);
+                ReplayVerdict verdict;
+                if (!note.isEmpty()) {
+                    verdict = ReplayVerdict.DEFECT;
+                } else if (node == null) {
+                    verdict = resolution.kind() == ResolutionKind.SKIPPED ? ReplayVerdict.MATCH : ReplayVerdict.DEFECT;
+                    note = verdict == ReplayVerdict.MATCH ? "" : "old skipped the node, the new process assigns it";
+                } else {
+                    verdict = verdictOf(node, instance.initiatorId(), resolution, candidates, snapshot, hardCoded);
+                }
+                resolutions.merge(resolution.kind(), 1, Integer::sum);
                 verdicts.merge(verdict, 1, Integer::sum);
                 if (verdict != ReplayVerdict.MATCH) {
-                    differences.add(new ReplayReport.Difference(instance.instanceId(), node.nodeKey(), ruleElement.get("type"), verdict,
-                            resolution.kind(), candidates.stream().sorted().toList(), node.actualApprovers().stream().sorted().toList()));
+                    differences.add(new ReplayReport.Difference(instance.instanceId(), nodeKey, branch.rule().get("type"), verdict,
+                            resolution.kind(), candidates.stream().sorted().toList(), actual.stream().sorted().toList(), note));
                 }
             }
         }
-        return new ReplayReport(export.processKey(), export.instances().size(), nodes, verdicts, resolutions, differences);
+        return new ReplayReport(export.processKey(), export.instances().size(), nodes[0], verdicts, resolutions, differences);
+    }
+
+    private static void record(Map<ReplayVerdict, Integer> verdicts, Map<ResolutionKind, Integer> resolutions,
+            List<ReplayReport.Difference> differences, ReplayReport.Difference difference) {
+        verdicts.merge(difference.verdict(), 1, Integer::sum);
+        differences.add(difference);
     }
 
     private static ReplayVerdict verdictOf(ReplayExport.NodeRecord node, long initiator, Resolution resolution,
@@ -80,7 +121,7 @@ final class TimesheetApproverReplay {
             case ESCALATED_REPORTING_LINE -> ReplayVerdict.REVIEWED_REPORTING_LINE;
             case ESCALATED_SELF_APPROVAL -> ReplayVerdict.REVIEWED_SELF_APPROVAL;
             case ADMINISTRATOR_FALLBACK -> ReplayVerdict.REVIEWED_ADMINISTRATOR_FALLBACK;
-            case RESOLVED, UNRESOLVED -> ReplayVerdict.DEFECT;
+            case RESOLVED, SKIPPED, UNRESOLVED -> ReplayVerdict.DEFECT;
         };
     }
 }

@@ -1,0 +1,102 @@
+# cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）。
+terms:
+- id: time_entry_category
+  zh: 工时类别
+  en: TimeEntryCategory
+  snake: time_entry_category
+  kind: value
+  bc: cost.timesheet
+  definition: 工时按用途的分类，取值为项目工时、售前工时、OH 工时；决定工时单走哪些审批分支
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: project_hours
+  zh: 项目工时
+  en: ProjectHours
+  snake: project_hours
+  kind: value
+  bc: cost.timesheet
+  definition: 工时类别的取值：记在项目工作上的工时
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: pre_sales_hours
+  zh: 售前工时
+  en: PreSalesHours
+  snake: pre_sales_hours
+  kind: value
+  bc: cost.timesheet
+  definition: 工时类别的取值：记在售前工作上的工时
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 尚非正式用语
+- id: overhead_hours
+  zh: OH 工时
+  en: OverheadHours
+  snake: overhead_hours
+  kind: value
+  bc: cost.timesheet
+  definition: 工时类别的取值：记在间接（管理）工作上的工时
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: low
+  aliases:
+  - name: OH工时
+    type: undetermined
+  forbidden: []
+  status: proposed
+  note: 疑似方言，第三轮用语确认
+- id: project_hours_flag
+  zh: 项目工时标记
+  en: ProjectHoursFlag
+  snake: project_hours_flag
+  kind: routing-flag
+  bc: cost.timesheet
+  definition: 由工时类别派生的路由布尔值（路由标记 projectHours）：工时单含项目工时则走项目经理审批；不是业务概念本身
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: pre_sales_hours_flag
+  zh: 售前工时标记
+  en: PreSalesHoursFlag
+  snake: pre_sales_hours_flag
+  kind: routing-flag
+  bc: cost.timesheet
+  definition: 由工时类别派生的路由布尔值（路由标记 preSalesHours）：工时单含售前工时则走区域负责人审批；不是业务概念本身
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: overhead_hours_flag
+  zh: OH 工时标记
+  en: OverheadHoursFlag
+  snake: overhead_hours_flag
+  kind: routing-flag
+  bc: cost.timesheet
+  definition: 由工时类别派生的路由布尔值（路由标记 overheadHours）：工时单含 OH 工时则走一级汇报人审批；不是业务概念本身
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 依赖「OH 工时」用语确认，第三轮用语确认

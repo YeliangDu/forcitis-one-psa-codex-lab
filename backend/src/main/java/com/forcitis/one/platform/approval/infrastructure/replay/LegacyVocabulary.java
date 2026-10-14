@@ -17,6 +17,18 @@ final class LegacyVocabulary {
     static final Map<String, String> RULE_TYPES = table(
             "INITIATOR_LEADER", "INITIATOR_SUPERVISOR");
 
+    /** Old hour line types (0 project, 1 pre-sales, 2 overhead) -> the routing flags of the owning module. */
+    static final Map<String, String> HOUR_TYPE_FLAGS = table(
+            "0", "projectHours",
+            "1", "preSalesHours",
+            "2", "overheadHours");
+
+    /** Old task names -> node keys of the BPMN. */
+    static final Map<String, String> NODE_KEYS = table(
+            "项目经理审批", "projectManagerReview",
+            "区域负责人审批", "regionalHeadReview",
+            "一级汇报人审批", "supervisorReview");
+
     /** The old employee key of the person-level supervisor in the exported snapshot. */
     static final String SUPERVISOR_KEY = "leaderUserId";
 
@@ -28,6 +40,18 @@ final class LegacyVocabulary {
 
     static String field(String name) {
         return FIELD_NAMES.getOrDefault(name, name);
+    }
+
+    static String nodeKey(String name) {
+        return NODE_KEYS.getOrDefault(name, name);
+    }
+
+    static String flag(int hourType) {
+        String flag = HOUR_TYPE_FLAGS.get(String.valueOf(hourType));
+        if (flag == null) {
+            throw new IllegalArgumentException("Unknown old hour type " + hourType);
+        }
+        return flag;
     }
 
     static String ruleType(String type) {
