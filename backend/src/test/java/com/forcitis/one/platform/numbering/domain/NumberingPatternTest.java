@@ -67,8 +67,8 @@ class NumberingPatternTest {
     void aRuleWhoseTemplateUsesTheTypeCodeIsAcceptedForARegisteredCode() {
         NumberingPattern pattern = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
 
-        assertThat(NumberingRule.confirmed(DocumentType.TIMESHEET, pattern, 1).confirmation()).isEqualTo(ConfirmationStatus.CONFIRMED);
-        assertThat(new NumberingRule(DocumentType.QUOTE, pattern, 1, ConfirmationStatus.PENDING_CONFIRMATION).confirmation())
+        assertThat(NumberingRule.restore(DocumentType.TIMESHEET, pattern, 1, "CONFIRMED", 0).confirmation()).isEqualTo(ConfirmationStatus.CONFIRMED);
+        assertThat(NumberingRule.restore(DocumentType.QUOTE, pattern, 1, "PENDING_CONFIRMATION", 0).confirmation())
                 .isEqualTo(ConfirmationStatus.PENDING_CONFIRMATION);
     }
 

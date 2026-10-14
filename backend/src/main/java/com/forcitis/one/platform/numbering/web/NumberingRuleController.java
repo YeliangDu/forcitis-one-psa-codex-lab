@@ -2,6 +2,9 @@ package com.forcitis.one.platform.numbering.web;
 
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.application.ConfigureNumberingRule;
 import com.forcitis.one.platform.numbering.application.FindNumberingRule;
 import com.forcitis.one.platform.numbering.application.ListNumberingRules;
@@ -47,12 +50,17 @@ class NumberingRuleController {
 
     @PutMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE + "')")
-    ResponseEntity<String> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request) {
+    ResponseEntity<Void> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request) {
+        configure.execute(documentType, request.pattern(), parse(request.resetPolicy()), request.startValue());
+        return ResponseEntity.noContent().build();
+    }
+
+    private static ResetPolicy parse(String resetPolicy) {
         try {
-            configure.execute(documentType, request.pattern(), ResetPolicy.valueOf(request.resetPolicy()), request.startValue());
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException invalid) {
-            return ResponseEntity.unprocessableContent().body(invalid.getMessage());
+            return ResetPolicy.valueOf(resetPolicy);
+        } catch (IllegalArgumentException | NullPointerException unknown) {
+            throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE,
+                    "reset policy must be one of " + java.util.Arrays.toString(ResetPolicy.values()));
         }
     }
 }

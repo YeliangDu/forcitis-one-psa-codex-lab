@@ -98,3 +98,7 @@ terms:
   forbidden: []
   status: proposed
   note: 例 JV-FST-202610-0001；模板待管理员确认
+common_words:
+- confirm
+- reconfigure
+- reconfigured
