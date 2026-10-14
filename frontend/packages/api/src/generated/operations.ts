@@ -15,6 +15,15 @@ export const postCostTimesheetsByIdSubmit = (...[args, options]: Call<paths['/ap
 export const postCostTimesheetsByIdWithdraw = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}:withdraw']['post']>) =>
   request<Result<paths['/api/v1/cost/timesheets/{id}:withdraw']['post']>>('post', '/api/v1/cost/timesheets/{id}:withdraw', args, options);
 
+export const getOrganizationEmployeeLegalEntitiesByEmployeeId = (...[args, options]: Call<paths['/api/v1/organization/employee-legal-entities/{employeeId}']['get']>) =>
+  request<Result<paths['/api/v1/organization/employee-legal-entities/{employeeId}']['get']>>('get', '/api/v1/organization/employee-legal-entities/{employeeId}', args, options, responseSchemas.getOrganizationEmployeeLegalEntitiesByEmployeeId);
+
+export const putOrganizationEmployeeLegalEntitiesByEmployeeId = (...[args, options]: Call<paths['/api/v1/organization/employee-legal-entities/{employeeId}']['put']>) =>
+  request<Result<paths['/api/v1/organization/employee-legal-entities/{employeeId}']['put']>>('put', '/api/v1/organization/employee-legal-entities/{employeeId}', args, options, responseSchemas.putOrganizationEmployeeLegalEntitiesByEmployeeId);
+
+export const postOrganizationEmployeeLegalEntitiesByEmployeeIdEnd = (...[args, options]: Call<paths['/api/v1/organization/employee-legal-entities/{employeeId}:end']['post']>) =>
+  request<Result<paths['/api/v1/organization/employee-legal-entities/{employeeId}:end']['post']>>('post', '/api/v1/organization/employee-legal-entities/{employeeId}:end', args, options, responseSchemas.postOrganizationEmployeeLegalEntitiesByEmployeeIdEnd);
+
 export const getOrganizationLegalEntities = (...[args, options]: Call<paths['/api/v1/organization/legal-entities']['get']>) =>
   request<Result<paths['/api/v1/organization/legal-entities']['get']>>('get', '/api/v1/organization/legal-entities', args, options, responseSchemas.getOrganizationLegalEntities);
 
@@ -23,6 +32,15 @@ export const postOrganizationLegalEntities = (...[args, options]: Call<paths['/a
 
 export const putOrganizationLegalEntitiesByLegalEntityId = (...[args, options]: Call<paths['/api/v1/organization/legal-entities/{legalEntityId}']['put']>) =>
   request<Result<paths['/api/v1/organization/legal-entities/{legalEntityId}']['put']>>('put', '/api/v1/organization/legal-entities/{legalEntityId}', args, options, responseSchemas.putOrganizationLegalEntitiesByLegalEntityId);
+
+export const getOrganizationOrgUnitLegalEntitiesByOrgUnitId = (...[args, options]: Call<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}']['get']>) =>
+  request<Result<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}']['get']>>('get', '/api/v1/organization/org-unit-legal-entities/{orgUnitId}', args, options, responseSchemas.getOrganizationOrgUnitLegalEntitiesByOrgUnitId);
+
+export const putOrganizationOrgUnitLegalEntitiesByOrgUnitId = (...[args, options]: Call<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}']['put']>) =>
+  request<Result<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}']['put']>>('put', '/api/v1/organization/org-unit-legal-entities/{orgUnitId}', args, options, responseSchemas.putOrganizationOrgUnitLegalEntitiesByOrgUnitId);
+
+export const postOrganizationOrgUnitLegalEntitiesByOrgUnitIdEnd = (...[args, options]: Call<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}:end']['post']>) =>
+  request<Result<paths['/api/v1/organization/org-unit-legal-entities/{orgUnitId}:end']['post']>>('post', '/api/v1/organization/org-unit-legal-entities/{orgUnitId}:end', args, options, responseSchemas.postOrganizationOrgUnitLegalEntitiesByOrgUnitIdEnd);
 
 export const getOrganizationOrgUnits = (...[args, options]: Call<paths['/api/v1/organization/org-units']['get']>) =>
   request<Result<paths['/api/v1/organization/org-units']['get']>>('get', '/api/v1/organization/org-units', args, options, responseSchemas.getOrganizationOrgUnits);

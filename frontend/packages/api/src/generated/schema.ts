@@ -64,6 +64,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organization/employee-legal-entities/{employeeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ofEmployee"];
+        put: operations["attributeEmployee"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/employee-legal-entities/{employeeId}:end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["endEmployee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization/legal-entities": {
         parameters: {
             query?: never;
@@ -90,6 +122,38 @@ export interface paths {
         get?: never;
         put: operations["update_1"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/org-unit-legal-entities/{orgUnitId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ofOrgUnit"];
+        put: operations["attributeOrgUnit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/org-unit-legal-entities/{orgUnitId}:end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["endOrgUnit"];
         delete?: never;
         options?: never;
         head?: never;
@@ -564,6 +628,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AttributeLegalEntityRequest: {
+            /** Format: date */
+            effectiveFrom?: string;
+            /** Format: int64 */
+            legalEntityId?: number;
+        };
         CalendarDayRequest: {
             /** Format: date */
             calendarDate?: string;
@@ -600,6 +670,10 @@ export interface components {
             password?: string;
             totpCode?: string;
         };
+        EndLegalEntityAttributionRequest: {
+            /** Format: date */
+            effectiveTo?: string;
+        };
         InboxItemResponse: {
             claimed: boolean;
             /** Format: date-time */
@@ -625,7 +699,12 @@ export interface components {
             documentType: string;
             importBatch: string;
             legacyNumber: string;
-            legalEntityId: string;
+            legalEntityId?: string;
+        };
+        LegalEntityAttributionResponse: {
+            kind: string;
+            periods: components["schemas"]["Period"][];
+            subjectId: string;
         };
         LegalEntityResponse: {
             code: string;
@@ -680,6 +759,13 @@ export interface components {
             /** Format: int32 */
             sortOrder?: number;
             status: string;
+        };
+        Period: {
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: string;
+            legalEntityId: string;
         };
         ReleaseResponse: {
             message?: string;
@@ -929,6 +1015,80 @@ export interface operations {
             };
         };
     };
+    ofEmployee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employeeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LegalEntityAttributionResponse"];
+                };
+            };
+        };
+    };
+    attributeEmployee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employeeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttributeLegalEntityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LegalEntityAttributionResponse"];
+                };
+            };
+        };
+    };
+    endEmployee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employeeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndLegalEntityAttributionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LegalEntityAttributionResponse"];
+                };
+            };
+        };
+    };
     list_1: {
         parameters: {
             query?: never;
@@ -995,6 +1155,80 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LegalEntityResponse"];
+                };
+            };
+        };
+    };
+    ofOrgUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgUnitId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LegalEntityAttributionResponse"];
+                };
+            };
+        };
+    };
+    attributeOrgUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgUnitId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttributeLegalEntityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LegalEntityAttributionResponse"];
+                };
+            };
+        };
+    };
+    endOrgUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgUnitId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndLegalEntityAttributionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LegalEntityAttributionResponse"];
                 };
             };
         };
@@ -1686,7 +1920,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                loginBinding?: string;
+            };
         };
         requestBody: {
             content: {

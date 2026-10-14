@@ -1,6 +1,11 @@
 // Generated from packages/api/openapi.json by scripts/generate-api.mjs. Do not edit by hand.
 import { z } from 'zod';
 
+export const AttributeLegalEntityRequestSchema = z.object({
+  effectiveFrom: z.string().optional(),
+  legalEntityId: z.number().int().optional(),
+});
+
 export const CalendarDayRequestSchema = z.object({
   calendarDate: z.string().optional(),
   dayKind: z.string().optional(),
@@ -41,6 +46,10 @@ export const EmergencyLoginRequestSchema = z.object({
   totpCode: z.string().optional(),
 });
 
+export const EndLegalEntityAttributionRequestSchema = z.object({
+  effectiveTo: z.string().optional(),
+});
+
 export const InboxItemResponseSchema = z.object({
   claimed: z.boolean(),
   createdAt: z.string().optional(),
@@ -64,7 +73,13 @@ export const LegacyNumberResponseSchema = z.object({
   documentType: z.string(),
   importBatch: z.string(),
   legacyNumber: z.string(),
-  legalEntityId: z.string(),
+  legalEntityId: z.string().optional(),
+});
+
+export const LegalEntityAttributionResponseSchema = z.object({
+  kind: z.string(),
+  get periods() { return z.array(PeriodSchema); },
+  subjectId: z.string(),
 });
 
 export const LegalEntityResponseSchema = z.object({
@@ -122,6 +137,12 @@ export const OrgUnitResponseSchema = z.object({
   shortName: z.string().optional(),
   sortOrder: z.number().int().optional(),
   status: z.string(),
+});
+
+export const PeriodSchema = z.object({
+  effectiveFrom: z.string(),
+  effectiveTo: z.string(),
+  legalEntityId: z.string(),
 });
 
 export const ReleaseResponseSchema = z.object({
@@ -264,9 +285,15 @@ export const WorkCalendarYearResponseSchema = z.object({
 export const responseSchemas = {
   getCostTimesheetsById: TimesheetResponseSchema,
   postCostTimesheetsByIdSubmit: SubmitTimesheetResponseSchema,
+  getOrganizationEmployeeLegalEntitiesByEmployeeId: LegalEntityAttributionResponseSchema,
+  putOrganizationEmployeeLegalEntitiesByEmployeeId: LegalEntityAttributionResponseSchema,
+  postOrganizationEmployeeLegalEntitiesByEmployeeIdEnd: LegalEntityAttributionResponseSchema,
   getOrganizationLegalEntities: z.array(LegalEntityResponseSchema),
   postOrganizationLegalEntities: LegalEntityResponseSchema,
   putOrganizationLegalEntitiesByLegalEntityId: LegalEntityResponseSchema,
+  getOrganizationOrgUnitLegalEntitiesByOrgUnitId: LegalEntityAttributionResponseSchema,
+  putOrganizationOrgUnitLegalEntitiesByOrgUnitId: LegalEntityAttributionResponseSchema,
+  postOrganizationOrgUnitLegalEntitiesByOrgUnitIdEnd: LegalEntityAttributionResponseSchema,
   getOrganizationOrgUnits: z.array(OrgUnitResponseSchema),
   getOrganizationOrgUnitsByOrgUnitId: OrgUnitDetailResponseSchema,
   getOrganizationSyncRuns: z.array(SyncRunResponseSchema),
