@@ -96,6 +96,7 @@ class SessionController {
     @PublicEndpoint(reason = "Portal single sign-on: the server checks the one-time ticket against the portal. ADR-0009 §3, RULE-320/321, I-3, I-9")
     ResponseEntity<LoginResponse> loginWithSso(@RequestBody TicketLoginRequest request,
             @Parameter(hidden = true) @CookieValue(name = BrowserIdentifierCookie.NAME, required = false) String browserIdentifier) {
+        throttle("sso-login");
         return withIdentifierCookie(loginWithSso.execute(request.ticket(), browserIdentifier), emptyToNull(ssoSettings.legacyLoginUrl()));
     }
 
@@ -103,12 +104,14 @@ class SessionController {
     @PublicEndpoint(reason = "Signed one-time ticket from an allow-listed external system (HMAC, at most 60 s, nonce used once). ADR-0009 §3, RULE-318, C1a-03, I-2, I-3, I-9")
     ResponseEntity<LoginResponse> loginWithSignedTicket(@RequestBody TicketLoginRequest request,
             @Parameter(hidden = true) @CookieValue(name = BrowserIdentifierCookie.NAME, required = false) String browserIdentifier) {
+        throttle("ticket-login");
         return withIdentifierCookie(loginWithSignedTicket.execute(request.ticket(), browserIdentifier), null);
     }
 
     @PostMapping(path = "/sessions:emergency-login")
     @PublicEndpoint(reason = "Break-glass administrator: Argon2id password plus TOTP, internal network only, locked after 5 failures. ADR-0009 §3, RULE-316/317, C1a-04, I-3")
     LoginResponse loginAsEmergencyAdmin(@RequestBody EmergencyLoginRequest request) {
+        throttle("emergency-login");
         return respond(loginAsEmergencyAdmin.execute(new EmergencyLoginCommand(request.loginName(), request.password(), request.totpCode())), null);
     }
 

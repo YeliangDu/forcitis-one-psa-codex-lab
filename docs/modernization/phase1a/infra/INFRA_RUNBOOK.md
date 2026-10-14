@@ -170,4 +170,5 @@
 
 - 规则放在 ARMS / SLS 中，名称以 `forcitis.<子域>.<bc>.…` 指标为准；每条告警写明级别、阈值、处理手册链接。
 - 新增指标：`forcitis.organization.workforce.reconciliation.differences`（每日对账差异数，非零为 P2）。
-- 新增限流：登录请求每个客户端地址每分钟 `forcitis.platform.identity.login-throttle.max-per-minute`（默认 30）次，超出返回 429；计数器在单个节点内，多节点部署时总额 = 节点数 × 限额。
+- 新增限流：登录类请求按「客户端地址 + 请求类别」每分钟计数，超出返回 429；类别与配置项为 `forcitis.platform.identity.login-throttle.limits.<类别>`，类别包括 `login-states`、`wecom-login`、`sso-login`、`ticket-login`、`emergency-login`，没有默认值，缺一个启动失败；计数器在单个节点内，多节点部署时总额 = 节点数 × 限额。
+- **限额依据办公室出口地址**：全所人员常经同一个出口 IP 上网，上班时段短时间内集中登录，所以人人都要用的 `login-states`（600）和 `wecom-login`（300）取数百，单人使用的取较低值。上线前用生产反向代理访问日志实测：取工作日早高峰最忙一分钟内「同一出口地址的 `login-states` 与 `wecom-login` 请求数」的最大值，限额至少取其 2 倍；若各分所出口地址不同，按最大的那个算。命中 429 时先查日志中的客户端地址与请求类别，再决定调限额，不要整体关闭限流。

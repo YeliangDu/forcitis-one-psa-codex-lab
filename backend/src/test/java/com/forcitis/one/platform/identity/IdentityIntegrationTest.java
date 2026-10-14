@@ -48,7 +48,11 @@ import tools.jackson.databind.json.JsonMapper;
 @SpringBootTest(properties = {
         "flowable.async-executor-activate=false",
         "forcitis.platform.identity.sso.enabled=true",
-        "forcitis.platform.identity.login-throttle.max-per-minute=100000",
+        "forcitis.platform.identity.login-throttle.limits.login-states=100000",
+        "forcitis.platform.identity.login-throttle.limits.wecom-login=100000",
+        "forcitis.platform.identity.login-throttle.limits.sso-login=100000",
+        "forcitis.platform.identity.login-throttle.limits.ticket-login=100000",
+        "forcitis.platform.identity.login-throttle.limits.emergency-login=100000",
         "forcitis.platform.identity.sso.legacy-login-url=https://legacy.example.invalid/login",
         "FORCITIS_TICKET_KEY_SHORT=too-short"})
 @AutoConfigureMockMvc
