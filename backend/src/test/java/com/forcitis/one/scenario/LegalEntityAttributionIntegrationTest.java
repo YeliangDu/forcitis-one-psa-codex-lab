@@ -1,4 +1,4 @@
-package com.forcitis.one.organization.workforce.legal;
+package com.forcitis.one.scenario;
 
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;

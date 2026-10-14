@@ -1,4 +1,6 @@
-package com.forcitis.one.organization.workforce.web;
+package com.forcitis.one.scenario;
+
+import com.forcitis.one.platform.identity.api.Permission;
 
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
@@ -59,9 +61,9 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         return user("9001").authorities(java.util.Arrays.stream(authorities).<org.springframework.security.core.GrantedAuthority>map(a -> () -> a).toList());
     }
 
-    private static final RequestPostProcessor READ_ORG = caller(WorkforcePermissions.ORG_UNIT_READ);
-    private static final RequestPostProcessor READ_RUNS = caller(WorkforcePermissions.SYNC_RUN_READ);
-    private static final RequestPostProcessor EXECUTE = caller(WorkforcePermissions.SYNC_RUN_EXECUTE);
+    private static final RequestPostProcessor READ_ORG = caller(Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
+    private static final RequestPostProcessor READ_RUNS = caller(Permission.Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_READ);
+    private static final RequestPostProcessor EXECUTE = caller(Permission.Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE);
 
     @org.junit.jupiter.api.BeforeEach
     void theCallerIsTheOrganisationDataAdministrator() {

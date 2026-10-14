@@ -50,4 +50,7 @@
 | B3-R7 | `scripts/ci/` | CI 加迁移版本单调性检查：新增迁移的版本号不得低于 main 上已有的最高版本 | 脚本 self-test |
 | B3-R8 | B3 的 Medium 测试 | M2、M3、M5–M7、M9–M13 对应测试的 DisplayName 补复审编号 | — |
 
+| INT-G1 | `AuditArchiveJob.java:32-36`、`platform_audit.properties:5-6` | 审计在线行到期移出（见 DEFERRED，生产部署前完成） | `INT-G1 …` |
+| INT-G3 | `frontend/apps/h5/config/public-path.mjs:7` | H5 子路径改为代码常量 `/h5/`，不再读环境变量；若须可配，缺失用常量、配置值不等于 `/h5/` 即构建失败（one-coordinator 裁定，依据用户「H5 用 /h5/ 子路径」） | `INT-G3 …` |
+
 （整合复审结束后继续追加）
