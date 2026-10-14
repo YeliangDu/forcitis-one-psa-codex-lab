@@ -54,7 +54,7 @@
 | E-3 | 运行用户 | `useradd --system --home /data/forcitis-one --shell /sbin/nologin forcitis` | `id forcitis` |
 | E-4 | Java 运行时 | Eclipse Temurin 25 JRE（RPM 包，固定小版本），或 Alibaba Dragonwell 25；要与 CI 的 Java 25 一致 | `java -version` |
 | E-5 | 目录 | `/data/forcitis-one/{releases,current→releases/<ver>,logs,tmp}`，属主 forcitis，权限 750；`/etc/forcitis-one/` 属主 root:forcitis，权限 750 | |
-| E-6 | 服务 | systemd 单元 `forcitis-one.service`：User=forcitis；`EnvironmentFile=/etc/forcitis-one/one.env`；`ExecStart=/usr/bin/java -XX:MaxRAMPercentage=60 -jar /data/forcitis-one/current/forcitis-one.jar`；`Restart=on-failure`；加固项 `NoNewPrivileges=yes`、`ProtectSystem=strict`、`ReadWritePaths=/data/forcitis-one/logs /data/forcitis-one/tmp`、`PrivateTmp=yes` | `systemctl status` |
+| E-6 | 服务 | systemd 单元 `forcitis-one.service`：User=forcitis；`EnvironmentFile=/etc/forcitis-one/one.env`；`ExecStart=/usr/bin/java -Duser.timezone=UTC -XX:MaxRAMPercentage=60 -jar /data/forcitis-one/current/forcitis-one.jar`；`Restart=on-failure`；加固项 `NoNewPrivileges=yes`、`ProtectSystem=strict`、`ReadWritePaths=/data/forcitis-one/logs /data/forcitis-one/tmp`、`PrivateTmp=yes` | `systemctl status` |
 | E-7 | 应用端口 | 应用只监听 `127.0.0.1:8080`；管理端点另设 `127.0.0.1:8081`，只开放 health 和 prometheus。代码默认未设监听地址与管理端口、只暴露 health，须在 one.env 设 `SERVER_ADDRESS`、`MANAGEMENT_SERVER_ADDRESS`、`MANAGEMENT_SERVER_PORT`、`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,prometheus`（`runbooks/files/one.env.template`） | 外网扫描只看到 80/443 |
 | E-8 | 反向代理 | nginx（发行版包）：80 端口 301 跳转到 443；443 用 TLS 1.2/1.3；`proxy_pass http://127.0.0.1:8080`；**覆盖** `X-Forwarded-For` 和 `X-Forwarded-Proto`（应用的 `FORCITIS_TRUSTED_PROXIES` 只信任 127.0.0.1）；开启 HSTS；`client_max_body_size` 20m；不转发 `/actuator`、`/v3/api-docs`；**访问日志不记查询串**（`/login/wecom?code=&state=`、`/login/sso?ticket=` 的一次性凭证，D-1a-39），并加 `Referrer-Policy: no-referrer`（`runbooks/files/nginx-one.conf`） | SSL Labs A；`curl -I` |
 | E-9 | 证书 | `one.forcitis.com` 证书放在 `/etc/nginx/tls/`，权限 600；如用 ACME，配置自动续期 | 到期日监控 |
@@ -66,6 +66,11 @@
 | E-15 | 企业微信 | 在企业微信后台为新应用配置：可信域名 `one.forcitis.com`、扫码登录回调域、企业可信 IP 47.114.56.157；工作台**新增**「FORCITIS one」入口，**不替换**老 H5（切换手册 §3.11） | 登录冒烟 |
 | E-16 | 致远 | 由 A8 管理员登记新系统的验票回跳地址，**不替换**老 SSO | 登录冒烟 |
 | E-17 | 备份 | RDS 自动备份保留 ≥7 天；ECS 数据盘设快照策略；日志在 SLS 中保留 30 天 | |
+
+**时区（E-6 补充）。** 业务日一律按 `forcitis.kernel.business-zone`（Asia/Shanghai）截取；时刻一律以 UTC 存储和输出，不依赖机器的时区：
+- **JVM 必须以 UTC 运行**，systemd 的 `ExecStart` 带 `-Duser.timezone=UTC`。选「启动时校验」而不是只写进手册：应用启动时检查 JVM 默认时区，不是 UTC 就拒绝启动并说明如何修正（`kernel.UtcJvm`），因为手册步骤会被漏掉，而一个按本地时区跑起来的节点会让驱动、日志和 `java.util.Date` 悄悄与别的节点不一致。测试 JVM 同样带该参数。
+- **JSON**：时刻写成带偏移量的 ISO-8601（UTC，形如 `2026-10-14T04:00:00Z`），时长写成 ISO-8601，业务日写成不带时区的日期；见 `application.properties` 的 `spring.jackson.*`。
+- **数据库会话**：连接池对每个新连接执行 `SET TIME ZONE 'UTC'`（`spring.datasource.hikari.connection-init-sql`），不依赖 RDS 参数组、角色或库级默认值；URL 不用另加时区参数。
 
 **E-13 补充：作业失败告警（部署前清单 C-7）**
 
