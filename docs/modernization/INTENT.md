@@ -88,3 +88,4 @@
 | Phase 1a reimagine 检查点 1（能力 P0 与舍弃，2026-10-14）：「按建议批准」 | AI_NATIVE_SPEC.md §1、§7（C1a-11 与卡片按钮操作为 P1，其余为 P0；D-01..D-09 舍弃） |
 | 规则评审第三批（identity/org 45 条，2026-10-14）逐条作答：RULE-323 小程序「保留 (Recommended)」；RULE-331/332 会话时长「空闲10h+上限24h (Recommended)」；RULE-349 下属「只算直接下属 (Recommended)」；其余条目（询问时写作「其余 42 条（上表除 323 外的条目，349 中下属深度以外的部分）」，实际为除 323 外的全部 44 条）：「整批同意 (Recommended)」 | RULE_REVIEWS.json / .md（RULE-316..376 第三批：正确 16、错误 29）；AI_NATIVE_SPEC §5.2、C1a-01；BRIEF Phase 1a 入口条件勾选 |
 | 第三批「其余」条数复核（2026-10-14，psa-coordinator 询问）：「是，44 条都同意」 | RULE_REVIEWS.json（RULE-316..376 中除 323 外的 44 条） |
+| 「确保权责业务事实全部在新系统」（2026-10-14，对 OA 流程盘点的要求） | GUIDING_PRINCIPLES §9a「权责事实全部在新系统」；OA_PROCESS_INVENTORY 分类与权责事实完整性矩阵；ADR-0021 |
