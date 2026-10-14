@@ -289,3 +289,23 @@
 - 未完成与阻塞：需改代码约 70 项已报 psa-coordinator 转 1a 会话；ADR-0026 第 5 项第 2、6 条与 D-11 须按 intent 156–158 修订；ADR-0009 §6 第 21 行与 I-2 矛盾；ADR-0010 占位符与背景漏列；新企业微信自建应用（运维）。
 - 下一步命令：Phase 1b 前新会话 `psa-1b-process-review`；Phase 2 流程梳理须决定 D-1a-127 所列工时单业务侧事项。
 - 会话 ID：本会话（worktree xin-7143b1，分支 claude/psa-1a-process-review）
+
+## 2026-10-14 · psa-repo-fragments · 片段文件名去序号化
+- 目标：片段序号在并行会话间撞号（intent 099–101 各两条），改为不需要协调的文件名（psa-coordinator 派工；非用户决定，INTENT 不记）。
+- 输入：origin/main 190c79f（#37–#39 已合并）；build_records.py、new_intent.py、new_log.py、build_all.py。
+- 用户决定（原话）：无。
+- 产出：new_intent.py（新增必填 --session）/ new_log.py 生成 <日期>-<HHMMSS>-<会话名>[-<短名>].md，同秒冲突自动顺延一秒；build_records.py 按（日期、旧格式在前、旧序号或时刻、文件名）确定排序，旧格式同日同序号给出警告（不失败），不合规文件名失败；build_all.py 透传警告；SESSION_PLAYBOOK §1、§4、§8 与 CLAUDE.md 更新用法。已有文件不改名。
+- 验证：新 main 上重新生成产物无变化（现有顺序不变），并报出 3 组真实撞号警告；临时副本测试：旧格式撞号警告、新格式排在旧格式之后、同一秒两个会话按文件名排序、缺 --session 打印用法、坏文件名失败。build_all.py --check 通过。未使用子代理。
+- 未完成与阻塞：无。
+- 下一步命令：在途会话按新用法建片段（psa-coordinator 转达）。
+- 会话 ID：本会话（worktree xin-884358，分支 claude/psa-fragment-naming）
+
+## 2026-10-14 · psa-repo-fragments · 命名标准借鉴 DAMA
+- 目标：按用户「全部在 1a 做」，在命名标准中补 DAMA / ISO 11179 的列名类别词、约束与索引命名、列级敏感分级、1a 表保留期，更正 GUIDING_PRINCIPLES §6 过时内容，并给出 1a 改名清单（psa-coordinator 派工）。
+- 输入：origin/main 190c79f（含 1a 全部迁移脚本 15 个）；NAMING_STANDARD、GUIDING_PRINCIPLES §6、backend DdlNamingTest 与 architecture/ 下其他守护清单的格式。
+- 用户决定（原话见 INTENT.md）：问「1a 还有哪些设计需要现在考虑？所有表命名是否有标准？需要借鉴 dama 的标准吗」，选「全部在 1a 做 (Recommended)」。
+- 产出：NAMING_STANDARD §2.4（类别词与类型表、pk_/fk_/uk_/ck_/ix_ 命名、框架表豁免）、§2.5（四级分级与处理）、守护表 D2；DdlNamingTest 新增按迁移推算最终表结构（跟踪 ADD / RENAME COLUMN、RENAME CONSTRAINT、ALTER INDEX RENAME、DROP），检查类别词与类型、约束与索引命名、敏感列登记，附注入与改名跟踪测试；architecture/ddl-naming-baseline.txt（83 项：列 26、约束 41、索引 16，每行附改名建议）；architecture/data-classification.txt（10 列）；GUIDING_PRINCIPLES §6 主数据改为全部进新系统、数据安全引用分级、1a 表保留期建议值（待用户决定）、ID 策略标待定。
+- 验证：DdlNamingTest 5 项通过（注入：错类别词、错类型、未命名或错名的约束与索引、未登记的敏感列均失败；后续迁移改名后违规消失；基线删行则该项重新报错，多余的基线行报「已修好请删除」；删掉敏感登记则报错）；NamingSurfaceTest、GlossaryTest、LegacyShapeTest、ArchitectureRulesTest 通过；完整 mvnw verify 见报告。未使用子代理。
+- 未完成与阻塞：保留期待用户决定；ID 策略以 1a 方案为准；web / api 出参不暴露敏感列的守护由 1a 实现；类别词表比派工单多出若干项（见报告），请用户确认。
+- 下一步命令：1a 按 ddl-naming-baseline.txt 用 Flyway 追加迁移改名并删行。
+- 会话 ID：本会话（worktree xin-884358，分支 claude/psa-fragment-naming）
