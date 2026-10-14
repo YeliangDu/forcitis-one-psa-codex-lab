@@ -14,7 +14,7 @@
 | 老系统安全止血 | **搁置**（用户 2026-10-14：「老系统先不管，确保新系统没有这些缺陷」）。补丁 7 轮与止血方案保留备查，不执行 | — | 无（不再阻塞新系统：新系统不信任老系统身份，见 phase1a/SECURITY_INVARIANTS.md） | — |
 | 用语确认 | 完成（197 项） | — | 模板新增 4 个提议词条待下一轮确认 | — |
 | Phase 1a 平台桥接（试点） | 进行中（2026-10-14 派工） | psa-1a-platform-bridge-reimagine | 入口条件见 brief：未满足项含安全止血与凭据轮换、主机与 RDS、骨架与 CI、老表所有权矩阵 | `/code-modernization:modernize-reimagine`（新会话 `psa-1a-…`） |
-| OA 流程盘点（迁入边界与顺序） | 完成（2026-10-14）：OA_PROCESS_INVENTORY.md（125 个在用模板分类：迁入 39、视情况 48、留在 OA 35、已停用 3；权责事实完整性矩阵 23 行；36 处集成点逐处判定）；ADR-0021（提议）；A8 叫法 20 项登记为待确认用语 | — （psa-oa-inventory 已收尾） | 待用户决定：ADR-0021、§9 八个问题（应付 BC、薪酬范围、阶段编号等）、用语确认表 A 组 20 项 | 用户决定后由 psa-coordinator 把 6a–6f 并入 brief；6a 前新会话补抽 A8 合同与收入规则 |
+| OA 流程盘点（迁入边界与顺序） | 完成（2026-10-14）：OA_PROCESS_INVENTORY.md（125 个在用模板：迁入 80、视情况 30、留在 OA 12、已停用 3；权责事实完整性矩阵 24 行 + 主数据；36 处集成点逐处判定；6a–6f 阶段草案）；ADR-0021 **已采纳**（用户：「采纳；6a–6c 并入 Phase 4 前」）；ADR-0016 第 44 行修订提议与 brief 两条 `Proposed revision:`（H-1 不设双源期、Phase 4 出口以 6a–6c 为前置）；A8 叫法 20 项登记为待确认用语 | — （psa-oa-inventory 已收尾） | 待用户：批准 ADR-0016 修订提议与 brief 两条修订；用语确认表 A 组 20 项；财务判定 U8C 手工 / 出纳 / 固定资产凭证；「应付与付款」BC 编号由 psa-gl-scope 统一 | 6a 前新会话 `psa-6a-contract-revenue-extract` 补抽 A8 合同与收入规则（含表单触发器） |
 | 总账纳入新系统与三大报表（范围评估） | 进行中（2026-10-14 派工） | psa-gl-scope | 只读盘点 PSA→U8C 凭证与 U8C 总账做法；U8C 访问方式须先经用户确认；产出 U8C_GL_PRACTICE.md、ADR-0022（提议）、brief 修订稿 | 完成后由用户审批 ADR-0022 与 brief 修订 |
 | Phase 1b 报价 | 未开始 | — | Phase 1a 出口 | — |
 | Phase 2 交付 + 工时 | 未开始 | — | Phase 1b 出口 | — |
@@ -27,4 +27,4 @@
 - 老系统安全缺陷（含 SEC-116 验证码固定 9999）按用户决定不处理；新系统按 `phase1a/SECURITY_INVARIANTS.md` I-1..I-9 保证不继承。brief Phase 1a 入口条件「老系统已止血」需按 `Proposed revision:` 追加说明（psa-coordinator）。
 - 运维事项：收窄 48088 安全组与 nginx 拒绝免密端点（SEC-001 网络层止血）、删除 `/other-api`（SEC-107）、Nacos 内部令牌、凭据轮换；开通独立 ECS 与 RDS PG 18 高可用、ARMS/SLS。
 - 业务编号新格式的各单据模板，在 Phase 1a 由管理员确认。
-- OA 流程盘点（OA_PROCESS_INVENTORY.md §9）：ADR-0021 是否采纳；应付与付款 BC 归属；薪酬是否迁入；非项目采购 / 员工借还款 / 合伙人注资是否属权责事实；6a–6c 的阶段编号（Phase 4 出口依赖它们）；客户与供应商主档归属；U8C 手工 / 出纳 / 固定资产凭证由财务逐类判定；用语确认表 A 组 20 项。
+- OA 流程盘点（OA_PROCESS_INVENTORY.md §9 待办）：ADR-0016 修订提议与 brief Phase 4 两条 `Proposed revision:` 待批准；用语确认表 A 组 20 项；U8C 手工 / 出纳 / 固定资产凭证由财务逐类判定。
