@@ -26,10 +26,18 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
                     (10, 'Own department', null, 'ACTIVE'), (11, 'Below it', 10, 'ACTIVE'), (20, 'Another department', null, 'ACTIVE')
                 on conflict do nothing
                 """).update();
+        jdbc.sql("""
+                insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values
+                    (901, 'E901', 'In own department', 'EMPLOYED'), (902, 'E902', 'In another department', 'EMPLOYED')
+                on conflict do nothing
+                """).update();
+        jdbc.sql("insert into organization_workforce.assignments (employee_id, org_unit_id) values (901, 10), (902, 20) on conflict do nothing").update();
     }
 
     @AfterEach
     void removeTheUnits() {
+        jdbc.sql("delete from organization_workforce.assignments where employee_id in (901, 902)").update();
+        jdbc.sql("delete from organization_workforce.employees where id in (901, 902)").update();
         jdbc.sql("delete from organization_workforce.org_units where id in (10, 11, 20)").update();
     }
 
@@ -134,5 +142,45 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(listed(session)).containsExactly("10", "11", "20");
         assertThat(read(session, "/20").getResponse().getStatus()).isEqualTo(200);
         assertThat(denials()).isEmpty();
+    }
+
+    private static final String BASE = "/api/v1/organization";
+
+    private MvcResult readAttribution(String session, String path) throws Exception {
+        return mvc.perform(get(BASE + path).cookie(new Cookie("SESSION", session))).andReturn();
+    }
+
+    @Test
+    @DisplayName("B1-scope the legal entity of a unit or an employee outside the caller's scope is a 404 like a missing one and is audited; inside it is readable")
+    void legalEntityAttributionFollowsTheScope() throws Exception {
+        customRole("scope-own-4", "OWN_ORG_UNIT");
+        String session = sessionWithRole(26, "scope-own-4");
+
+        assertThat(readAttribution(session, "/org-unit-legal-entities/10").getResponse().getStatus()).isEqualTo(200);
+        assertThat(readAttribution(session, "/employee-legal-entities/901").getResponse().getStatus()).isEqualTo(200);
+        MvcResult otherUnit = readAttribution(session, "/org-unit-legal-entities/20");
+        MvcResult otherEmployee = readAttribution(session, "/employee-legal-entities/902");
+        MvcResult missingUnit = readAttribution(session, "/org-unit-legal-entities/999");
+
+        assertThat(otherUnit.getResponse().getStatus()).isEqualTo(404);
+        assertThat(otherEmployee.getResponse().getStatus()).isEqualTo(404);
+        assertThat(body(otherUnit).path("errorCode").asString()).as("the same answer as for a unit that does not exist")
+                .isEqualTo(body(missingUnit).path("errorCode").asString());
+        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("organization.workforce.legal-entity-attribution.denied"))
+                .extracting(AuditEntry::subjectKey).containsExactlyInAnyOrder("org_unit:20", "employee:902");
+    }
+
+    @Test
+    @DisplayName("B1-scope a person-only scope reads no legal entity attribution at all, and the organisation data administrator reads every one")
+    void legalEntityAttributionForSelfAndForTheAdministrator() throws Exception {
+        customRole("scope-self-2", "SELF");
+        String self = sessionWithRole(27, "scope-self-2");
+        createAccount(32, "org_data_admin");
+        String administrator = loginWithWecom(32);
+
+        assertThat(readAttribution(self, "/org-unit-legal-entities/10").getResponse().getStatus()).isEqualTo(404);
+        assertThat(readAttribution(self, "/employee-legal-entities/901").getResponse().getStatus()).isEqualTo(404);
+        assertThat(readAttribution(administrator, "/org-unit-legal-entities/20").getResponse().getStatus()).isEqualTo(200);
+        assertThat(readAttribution(administrator, "/employee-legal-entities/902").getResponse().getStatus()).isEqualTo(200);
     }
 }

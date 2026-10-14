@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.application.AttributeLegalEntity;
@@ -21,8 +22,11 @@ class LegalEntityAttributionController {
     private final GetLegalEntityAttribution get;
     private final AttributeLegalEntity attribute;
     private final EndLegalEntityAttribution end;
+    private final OrgUnitAccess access;
 
-    LegalEntityAttributionController(GetLegalEntityAttribution get, AttributeLegalEntity attribute, EndLegalEntityAttribution end) {
+    LegalEntityAttributionController(GetLegalEntityAttribution get, AttributeLegalEntity attribute, EndLegalEntityAttribution end,
+            OrgUnitAccess access) {
+        this.access = access;
         this.get = get;
         this.attribute = attribute;
         this.end = end;
@@ -30,8 +34,9 @@ class LegalEntityAttributionController {
 
     @GetMapping("/org-unit-legal-entities/{orgUnitId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_UNIT_READ + "')")
-    LegalEntityAttributionResponse ofOrgUnit(@PathVariable long orgUnitId) {
-        return LegalEntityAttributionResponse.of(get.execute(AttributionKind.ORG_UNIT, orgUnitId));
+    LegalEntityAttributionResponse ofOrgUnit(@PathVariable long orgUnitId, Principal caller) {
+        return LegalEntityAttributionResponse.of(get.execute(AttributionKind.ORG_UNIT, orgUnitId,
+                access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ), actor(caller)));
     }
 
     @PutMapping("/org-unit-legal-entities/{orgUnitId}")
@@ -49,8 +54,9 @@ class LegalEntityAttributionController {
 
     @GetMapping("/employee-legal-entities/{employeeId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_UNIT_READ + "')")
-    LegalEntityAttributionResponse ofEmployee(@PathVariable long employeeId) {
-        return LegalEntityAttributionResponse.of(get.execute(AttributionKind.EMPLOYEE, employeeId));
+    LegalEntityAttributionResponse ofEmployee(@PathVariable long employeeId, Principal caller) {
+        return LegalEntityAttributionResponse.of(get.execute(AttributionKind.EMPLOYEE, employeeId,
+                access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ), actor(caller)));
     }
 
     @PutMapping("/employee-legal-entities/{employeeId}")
