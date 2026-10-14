@@ -162,6 +162,11 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
 - **ADR28-2**：ADR-0028 第 4 条所说「放行后超管将为 0 时只能走运维命令」的运维放行命令不存在（`OperationsCommands` 无 release）。回归测试 `ADR28-2 运维命令放行同步暂停（带见证人，审计）`。
 - **FLW-1 Flowable 引擎时间来源**（one-coordinator 2026-10-15 登记，**首次部署前须有结论**）：`act_*` 由引擎自建，不在 R-4 范围；须核实引擎内部时间（任务创建、到期、计时器）是否取注入的 Clock（`ProcessEngineConfiguration` 的 clock / Spring `Clock` bean），以及审批时限、超期提醒与升级（D-1a 时限细则）、F-14 改派、ADR-0032 待办 5 个工作日升级用到的时刻从哪里取。结论写进规则卡与 INFRA_RUNBOOK；若需改动按缺陷卡手术式修复，回归测试 `FLW-1 引擎时间取注入 Clock，固定 Clock 下任务创建与到期时刻确定`。opus 核实（判断类）。
 
+- **R-6 删除 `numbering_rules` 旧列**（R-3a opus 复核 M-1）：基线保留了 `pattern`、`reset_policy`、`start_value`、`confirmation_status` 四个旧列（纯合并须保留，`NumberingVersionMigrationIT` 断言其可空）。基线开放期内核实无读写方后删除（直接改基线，附预期表结构 diff），同步改该断言并在 PR 单列理由；排在 R-2 之后、R-5 之前，可与 R-2 同批（同属表结构清理）。
+- **OSS-1 实例元数据加固模式**（one-ops 2026-10-15，经 one-coordinator）：归档 ECS 的实例元数据服务为加固模式（须先取元数据令牌再取实例角色凭据）。归档写入方（审计归档、流程归档）实现时核对所用阿里云 SDK 默认凭证链版本支持该模式，并加启动自检（取不到凭据即失败并告警）或集成测试说明。
+- **OSS-2 归档只写不读**（同上）：写入方 RAM 策略显式拒绝 GetObject；`INFRA_RUNBOOK` §5 所写 `oss:GetObjectMetadata` 未授予且是否为有效动作名待核。核对 `OssObjectStore` 探针与写入后校验实际调用的接口：不得写后回读，校验用上传返回的 ETag / CRC；探针若需读元信息，把实际接口名告诉 one-ops 补授权。WORM 在第一个写入方上线前由用户决定再锁。
+OSS-1、OSS-2 在首次部署前须有结论（归档作业随 dev 部署启用）；按缺陷卡手术式处理，回归测试 `OSS-1 …`、`OSS-2 归档校验不读对象`。
+
 ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先写失败测试、一卡一最小改动、小 PR），排在 W3 与 F-12 同期（都动 `platform.identity` 运维命令，与 F-12 不并行，F-12 之后做）。
 
 首次部署前要先修的几张：
