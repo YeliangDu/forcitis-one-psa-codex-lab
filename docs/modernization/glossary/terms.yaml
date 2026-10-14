@@ -1,0 +1,5107 @@
+# terms.yaml — FORCITIS one / PSA 现代化统一语言（单一来源初版，机器可读）
+# 生成：python3 glossary/build_terms.py ；人工修改请改生成器，避免与 03-通用语言.md 漂移
+meta:
+  version: 0.1.0-draft
+  date: '2026-10-14'
+  source:
+  - psa/docs/domain/00_战略设计/03-通用语言.md（经 glossary/source_terms.json）
+  - GLOSSARY.md §2 核心术语 38 条
+  - STANDARDS_AUDIT.md（G-8 起改名建议）
+  naming_priority:
+  - 1 法规与会计准则：中文用《企业会计准则》原文用语（CAS 14 收入：合同、履约义务、交易价格、合同资产、合同负债、应收账款、合同履约成本、合同取得成本、时段履约 / 时点履约、履约进度、投入法 / 产出法）；英文用 IFRS 15 / IAS 与 IFRS XBRL taxonomy（ifrs-full）标准用语
+  - 2 行业与工程标准：中文用国标（GB/T 50326、GB/T 50358、GB/T 50500 的工程变更、现场签证、索赔、质量保证金、竣工结算等）；英文用 PMI PMBOK / AACE（WBS、WorkPackage、EstimateAtCompletion、EstimateToComplete、EarnedValue、PlannedValue、ActualCost、Baseline）与
+    FIDIC（Variation、Claim、RetentionMoney、InterimPaymentCertificate）
+  - 3 专业服务 / PSA 行业通行写法（Timesheet、TimeEntry、Utilization、Billable、RateCard、Engagement、WIP），在准则与国标未覆盖时采用
+  - 4 所有跟正式用语不符合的叫法都归为公司内部方言（dialect），新系统一律采用正式用语，方言不进入代码、界面文案、接口文档、列注释；判定不了的标为 undetermined，登记在 TERM_CONFIRMATION.md 由业务 Admin 确认（用户 2026-10-14 裁定）；禁用拼音、自造缩写
+  field_notes:
+    status: approved = 原词表已有且符合标准；proposed = 本次建议改名或新增，待评审（见 change_ref 指向的 G 编号）
+    confidence: standard_ref 对应关系的把握程度；条文号不确定的只写到准则 / 标准名一级
+    id: 稳定 slug；同一英文名在多个 BC 同名异义时以 <bc>__ 前缀隔离
+    aliases: 'type: dialect（方言：业务口头或旧系统叫法，只用于检索和沟通，禁止进入代码、界面文案、接口文档、列注释）| undetermined（公司叫法，是正式用语还是方言待确认）| old-code（03 词表旧代码名）| legacy-code / legacy-table（老 PSA）| kpi-symbol | abbr | industry | standard-zh
+      / standard-en；deprecated=true 表示新代码禁用'
+    coverage: 38 个核心术语全部 + 财务关键 BC（operations.facts / operations.policy / contract.* / delivery.* / cost.* / receivables.* / accounting.*）的附录术语 + 准则 / EVM 缺位的新增术语
+terms:
+- id: business_fact
+  zh: 经营事实
+  en: BusinessFact
+  snake: business_fact
+  kind: entity
+  bc: operations.facts
+  definition: 由发布事件认定、证据化、可归属的业务事实
+  standard_ref:
+  - 企业会计准则——基本准则（第九条 权责发生制）
+  - ADR-0016 权责发生制业财一体主干
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 权责发生制事实只追加（ADR-0016）
+- id: fact_evidence
+  zh: 事实证据
+  en: FactEvidence
+  snake: fact_evidence
+  kind: value
+  bc: operations.facts
+  definition: 事实的来源事件全局 ID 与原始单据引用
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+- id: business_fact_attributed
+  zh: 事实归属
+  en: BusinessFactAttributed
+  snake: business_fact_attributed
+  kind: event
+  bc: operations.facts
+  definition: 把事实归到九维归属维度的判定结果
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: primary_attribution
+  zh: 主归属
+  en: PrimaryAttribution
+  snake: primary_attribution
+  kind: entity
+  bc: operations.facts
+  definition: 同一口径下事实唯一的主归属结果（辅助归属需比例守恒）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: attribution_rule_set
+  zh: 归属规则
+  en: AttributionRuleSet
+  snake: attribution_rule_set
+  kind: entity
+  bc: operations.facts
+  definition: 九维归属的版本化判定规则
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: business_fact_restated
+  zh: 事实重述
+  en: BusinessFactRestated
+  snake: business_fact_restated
+  kind: event
+  bc: operations.facts
+  definition: 引用原事实、落当期的受控更正（事实不可删改）
+  standard_ref:
+  - 企业会计准则第 28 号——会计政策、会计估计变更和差错更正
+  - IAS 8 Accounting Policies, Changes in Accounting Estimates and Errors
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 准则「差错更正」是会计口径；此处为经营事实更正，只借用概念
+- id: operations_facts__responsible_party
+  zh: 责任对象
+  en: ResponsibleParty
+  snake: responsible_party
+  kind: role
+  bc: operations.facts
+  definition: 事实归属的责任承载（责任人/BU/法人）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: business_period
+  zh: 经营期间
+  en: BusinessPeriod
+  snake: business_period
+  kind: value
+  bc: operations.facts
+  definition: 经营口径下的期间，封闭后归属不可变
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  - ADR-0016 权责发生制业财一体主干
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 与 AccountingPeriod 的对齐关系见 G-16
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: business_fact_ledger
+  zh: 经营台账
+  en: BusinessFactLedger
+  snake: business_fact_ledger
+  kind: entity
+  bc: operations.facts
+  definition: 按维度聚合事实的读模型（非聚合）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: business_variance
+  zh: 经营偏差
+  en: BusinessVariance
+  snake: business_variance
+  kind: metric
+  bc: operations.facts
+  definition: 经营事实层面的异常与漏损（三偏差术语之一）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: business_result
+  zh: 经营结果
+  en: BusinessResult
+  snake: business_result
+  kind: entity
+  bc: operations.facts
+  definition: 归属后事实在口径下的聚合呈现
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: policy
+  zh: 经营口径
+  en: Policy
+  snake: policy
+  kind: entity
+  bc: operations.policy
+  definition: 指标的公式、来源映射与维度适用的定义
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: policy_version
+  zh: 口径版本
+  en: PolicyVersion
+  snake: policy_version
+  kind: entity
+  bc: operations.policy
+  definition: 按期版本化、审批留痕的口径集（KPI 体系的口径主权载体）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: metric_definition
+  zh: 指标定义
+  en: MetricDefinition
+  snake: metric_definition
+  kind: entity
+  bc: operations.policy
+  definition: 口径版本内单个指标的四层映射（公式→语义字段→事实表→维度）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: reconciliation
+  zh: 经营勾稽
+  en: Reconciliation
+  snake: reconciliation
+  kind: command
+  bc: operations.policy
+  definition: 按 KPI §15 勾稽族执行的跨域对账
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: reconciliation_deviation
+  zh: 勾稽差异
+  en: ReconciliationDeviation
+  snake: reconciliation_deviation
+  kind: entity
+  bc: operations.policy
+  definition: 不同口径间对账的差额（三偏差术语之一）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: reconciliation_deviation_case
+  zh: 勾稽差异案
+  en: ReconciliationDeviationCase
+  snake: reconciliation_deviation_case
+  kind: entity
+  bc: operations.policy
+  definition: 超容差差异的生命周期载体（解释/修正/豁免三选一关闭）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: formula
+  zh: 公式
+  en: Formula
+  snake: formula
+  kind: entity
+  bc: operations.policy
+  definition: 指标定义的构成要素（四层映射的前两层）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: source_mapping
+  zh: 数据来源映射
+  en: SourceMapping
+  snake: source_mapping
+  kind: entity
+  bc: operations.policy
+  definition: 指标定义的构成要素（四层映射的前两层）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: deviation_explanation
+  zh: 偏差解释
+  en: DeviationExplanation
+  snake: deviation_explanation
+  kind: entity
+  bc: operations.policy
+  definition: 面向口径与数据的差异解释（区别于经营复盘）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: result_explanation
+  zh: 经营结果解释
+  en: ResultExplanation
+  snake: result_explanation
+  kind: entity
+  bc: operations.policy
+  definition: 面向口径与数据的差异解释（区别于经营复盘）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: operations_policy__basis_difference_list
+  zh: 口径差异清单
+  en: BasisDifferenceList
+  snake: basis_difference_list
+  kind: document
+  bc: operations.policy
+  definition: 业务口径 vs 法定口径的差异及解释（与核算共维护）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: attribution_rule_version
+  zh: 归属规则版本
+  en: AttributionRuleVersion
+  snake: attribution_rule_version
+  kind: entity
+  bc: operations.facts
+  definition: 归属规则集的生效版本（生效不重叠、被引用不可改）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: operating_accounting_taxonomy
+  zh: 经营会计分类法
+  en: OperatingAccountingTaxonomy
+  snake: operating_accounting_taxonomy
+  kind: entity
+  bc: operations.policy
+  definition: 基于 XBRL、US GAAP、ASC 606、管理会计与 FORCITIS AEC 扩展的企业级财务/经营原语语义坐标系
+  standard_ref:
+  - IFRS Accounting Taxonomy (ifrs-full)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: standard_accounting_primitive
+  zh: 标准财务原语
+  en: StandardAccountingPrimitive
+  snake: standard_accounting_primitive
+  kind: entity
+  bc: operations.policy
+  definition: 可映射外部会计/报告标准的财务概念，优先复用而非自创
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: operating_accounting_extension
+  zh: 经营扩展原语
+  en: OperatingAccountingExtension
+  snake: operating_accounting_extension
+  kind: entity
+  bc: operations.policy
+  definition: 标准财务原语不足以表达 AEC 项目制经营语义时登记的 FORCITIS 扩展概念
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: go_no_go_template
+  zh: 评估模板
+  en: GoNoGoTemplate
+  snake: go_no_go_template
+  kind: entity
+  bc: operations.policy
+  definition: 追/不追评估的维度权重、阈值区间、否决项、评审角色权重、决策-赢率映射的版本化配置（按业务线差异化，policy_param）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract
+  zh: 合同
+  en: Contract
+  snake: contract
+  kind: entity
+  bc: contract.baseline
+  definition: 与客户的收入合同（采购/分包合同另属采购子域，独立语义）；四形态：独立合同/框架协议/任务订单/内部结算协议
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - 中华人民共和国民法典·合同编
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: CAS 14 / IFRS 15 第一步「识别与客户订立的合同」；收入合同
+- id: contract_type
+  zh: 合同形态
+  en: ContractType
+  snake: contract_type
+  kind: value
+  bc: contract.baseline
+  definition: 独立合同 / 框架协议 / 任务订单 / 内部结算协议 四形态枚举（决定必填要件与主体规则）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_draft
+  zh: 合同草案
+  en: ContractDraft
+  snake: contract_draft
+  kind: entity
+  bc: contract.baseline
+  definition: 未审批签署的合同工作态（可修改；基线化后转不可变演进）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_source_ref
+  zh: 合同来源
+  en: ContractSourceRef
+  snake: contract_source_ref
+  kind: value
+  bc: contract.baseline
+  definition: 草案来源：赢单转化 / 直建（例外原因+审批必填）/ 历史导入（LEGACY_MIGRATION 标记，豁免承诺比对）/ 框架下任务订单
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: customer_party
+  zh: 客户方主体
+  en: CustomerParty
+  snake: customer_party
+  kind: role
+  bc: contract.baseline
+  definition: 合同甲方的客户引用与签约瞬间冻结快照（customerId 稳定引用 + 名称/法定标识快照——历史基线不随客户主数据演变漂移；内部结算协议形态为空、改用关联法人对）；付款/开票/项目业主主体同构引用（缺省=客户方主体）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: signature_evidence
+  zh: 签署证据
+  en: SignatureEvidence
+  snake: signature_evidence
+  kind: entity
+  bc: contract.baseline
+  definition: 合同签署的证据留存（签署文件、时间、主体、方式——经电子合同防腐层接入）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: approval_evidence
+  zh: 审批证据
+  en: ApprovalEvidence
+  snake: approval_evidence
+  kind: entity
+  bc: contract.baseline
+  definition: OA 审批结果事实（流程 ID、结论、审批人——经防腐层接入）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: active_baseline_version
+  zh: 当前有效基线
+  en: ActiveBaselineVersion
+  snake: active_baseline_version
+  kind: entity
+  bc: contract.baseline
+  definition: 同一合同同一时间唯一生效的基线版本（新版本生效旧版本原子转被取代态）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: deviation_disposition
+  zh: 承诺差异处理结论
+  en: DeviationDisposition
+  snake: deviation_disposition
+  kind: entity
+  bc: contract.baseline
+  definition: 承诺差异的处理终态：已接受/已拒绝/已豁免（不利差异处于待处理时禁止基线化）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_gap_item
+  zh: 合同缺口项
+  en: ContractGapItem
+  snake: contract_gap_item
+  kind: entity
+  bc: contract.baseline
+  definition: 单条缺口的生命周期实体（识别→处理中→已解除 / 已豁免；豁免=风险被授权接受≠缺口不存在）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: waive_contract_gap
+  zh: 缺口豁免
+  en: WaiveContractGap
+  snake: waive_contract_gap
+  kind: command
+  bc: contract.baseline
+  definition: 管理层授权接受缺口风险的显式动作（审批留痕，缺口事实仍可审计）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_gap_waived
+  zh: 缺口豁免
+  en: ContractGapWaived
+  snake: contract_gap_waived
+  kind: event
+  bc: contract.baseline
+  definition: 管理层授权接受缺口风险的显式动作（审批留痕，缺口事实仍可审计）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: tm_cap
+  zh: T&M 封顶
+  en: TmCap
+  snake: tm_cap
+  kind: value
+  bc: contract.baseline
+  definition: T&M 合同的可选计费上限（有 cap 时开票准入执行硬检查，Q5 业主确认）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: medium
+  aliases:
+  - name: Not-to-exceed（NTE）
+    type: industry
+    deprecated: false
+  forbidden: []
+  status: approved
+- id: framework_capacity_reservation
+  zh: 框架限额占用
+  en: FrameworkCapacityReservation
+  snake: framework_capacity_reservation
+  kind: entity
+  bc: contract.baseline
+  definition: 任务订单登记对框架协议金额限额的占用（占用→创建→失败释放的编排补偿；Q4 限额可选）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: payment_term_item
+  zh: 付款条件项
+  en: PaymentTermItem
+  snake: payment_term_item
+  kind: entity
+  bc: contract.baseline
+  definition: 付款周期、账期、付款前置条件、逾期条款的合约侧定义
+  standard_ref:
+  - 中华人民共和国民法典·合同编
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: IFRS 15 重大融资成分判断需读付款条件
+- id: import_legacy_contract_baseline
+  zh: 历史合同导入
+  en: ImportLegacyContractBaseline
+  snake: import_legacy_contract_baseline
+  kind: command
+  bc: contract.baseline
+  definition: 存量合同的受控迁移入口（LEGACY_MIGRATION 来源标记、豁免承诺比对、审计可辨）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_signed
+  zh: 合同签署事实
+  en: ContractSigned
+  snake: contract_signed
+  kind: event
+  bc: contract.baseline
+  definition: 签署完成的经营事实事件（签约额指标的事实来源；语义护栏：仅签署事实、不作交付/WIP/开票充分依据）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: scope_item
+  zh: 合同范围条目
+  en: ScopeItem
+  snake: scope_item
+  kind: entity
+  bc: contract.baseline
+  definition: 工作条款内的范围行（服务阶段/交付成果/排除项/客户输入责任）
+  standard_ref:
+  - PMI PMBOK Guide
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: framework_link
+  zh: 框架挂靠信息
+  en: FrameworkLink
+  snake: framework_link
+  kind: entity
+  bc: contract.baseline
+  definition: 任务订单对框架协议的挂靠引用（框架 ID+订单编号+占用金额）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: internal_settlement_term
+  zh: 内部结算条款
+  en: InternalSettlementTerm
+  snake: internal_settlement_term
+  kind: entity
+  bc: contract.baseline
+  definition: 内部结算协议的关联法人对与结算口径引用（ADR-011，只登记不计算）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_period
+  zh: 合同期间
+  en: ContractPeriod
+  snake: contract_period
+  kind: value
+  bc: contract.baseline
+  definition: 合同起止日（任务订单期间须落框架期间内）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: baseline_version_no
+  zh: 基线版本号
+  en: BaselineVersionNo
+  snake: baseline_version_no
+  kind: value
+  bc: contract.baseline
+  definition: 单调递增的基线版本标识
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_completeness_result
+  zh: 合同完备度结论
+  en: ContractCompletenessResult
+  snake: contract_completeness_result
+  kind: entity
+  bc: contract.baseline
+  definition: 六项判定（签署/范围/金额/期限/计价要件/主体清晰）的结论与缺口清单
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: legal_entity_ref
+  zh: 我方法人引用
+  en: LegalEntityRef
+  snake: legal_entity_ref
+  kind: value
+  bc: contract.baseline
+  definition: 签约法人+交付法人的结构载体（词表概念 ContractingLegalEntity 的实现形态，共享内核 LegalEntityId）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: change_order_ref
+  zh: 变更引用
+  en: ChangeOrderRef
+  snake: change_order_ref
+  kind: value
+  bc: contract.baseline
+  definition: 基线版本 2+ 的变更批准事实引用（变更编号+event_id）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: opportunity_accepted_snapshot
+  zh: 赢单预填快照
+  en: OpportunityAcceptedSnapshot
+  snake: opportunity_accepted_snapshot
+  kind: value
+  bc: contract.baseline
+  definition: 赢单来源草案绑定的 OpportunityAccepted 本地快照
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: proposal_commitment_snapshot
+  zh: 承诺比对基准快照
+  en: ProposalCommitmentSnapshot
+  snake: proposal_commitment_snapshot
+  kind: value
+  bc: contract.baseline
+  definition: ProposalCommitted 的本地快照（承诺差异比对基准）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: project_owner_party
+  zh: 项目业主主体
+  en: ProjectOwnerParty
+  snake: project_owner_party
+  kind: role
+  bc: contract.baseline
+  definition: 合同上的项目业主客户引用（客户 BC 多主体之一的合约侧登记；开票主体合约侧统一沿用客户 BC 码名 InvoicedParty、不另造 InvoiceTitleParty——评估 D-06 双码名裁决 2026-07-07）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_working_terms
+  zh: 合同工作条款
+  en: ContractWorkingTerms
+  snake: contract_working_terms
+  kind: entity
+  bc: contract.baseline
+  definition: 当前可编辑的合同条款容器（范围/开票计划/费率/付款条件）；与基线快照分离——基线生效时复制生成不可变快照（定稿审查 P0-5）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_signing_exception
+  zh: 签署例外
+  en: ContractSigningException
+  snake: contract_signing_exception
+  kind: entity
+  bc: contract.baseline
+  definition: 签署前客户转黑名单的唯一放行通道（例外类型+管理层审批+证据留痕；特批通道开放性待 Q59）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: legacy_baseline_quality
+  zh: 历史导入质量等级
+  en: LegacyBaselineQuality
+  snake: legacy_baseline_quality
+  kind: entity
+  bc: contract.baseline
+  definition: LEGACY_MIGRATION 数据质量四级：COMPLETE/PARTIAL/MINIMAL/UNVERIFIED——UNVERIFIED 不得作 WIP 与开票依据（定稿审查 P1-4）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: correct_contract_party
+  zh: 修正合同主体
+  en: CorrectContractParty
+  snake: correct_contract_party
+  kind: command
+  bc: contract.baseline
+  definition: DRAFT 限定的主体修正命令（留痕；合并重绑建议的人工确认入口——合并不静默切换合同主体）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_baseline
+  zh: 合同基线
+  en: ContractBaseline
+  snake: contract_baseline
+  kind: entity
+  bc: contract.baseline
+  definition: 签署审批后生效的合同事实真相版本
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: ContractBaselined
+    type: old-code
+    deprecated: true
+  forbidden:
+  - ContractBaselined
+  status: approved
+  change_ref: G-29
+  note: 实体 ContractBaseline，事件 ContractBaselined 保留
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: baseline_version
+  zh: 基线版本
+  en: BaselineVersion
+  snake: baseline_version
+  kind: entity
+  bc: contract.baseline
+  definition: 单调递增、历史不可变的基线快照（版本2+仅由已批准变更产生）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_scope
+  zh: 合同范围
+  en: ContractScope
+  snake: contract_scope
+  kind: entity
+  bc: contract.baseline
+  definition: 基线内的范围条目，WBS 挂接与超范围判断的基准
+  standard_ref:
+  - PMI PMBOK Guide
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: performance_condition
+  zh: 履约条件
+  en: PerformanceCondition
+  snake: performance_condition
+  kind: value
+  bc: contract.baseline
+  definition: 合同约定的交付、质量、验收条件
+  standard_ref:
+  - 中华人民共和国民法典·合同编
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+- id: pricing_model
+  zh: 计价模式
+  en: PricingModel
+  snake: pricing_model
+  kind: value
+  bc: contract.baseline
+  definition: 现役三种：固定总价 / T&M / 成本加酬金（**形态与计价正交** P0-1；Q6 三种履约计量方式佐证）；**封闭枚举+开放规格**：新计价类型经扩展协议注册（词表定名→规格注册→WIP 计量确认→schema 扩值→ADR），即插即用（业主需求 2026-07-06）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: pricing_model_spec
+  zh: 计价模式规格
+  en: PricingModelSpec
+  snake: pricing_model_spec
+  kind: value
+  bc: contract.baseline
+  definition: 每种计价模式的行为契约：必备商务条件集、履约计量方法、开票准入档案、基线快照字段集、数理守恒规则——不变式通用化校验的策略载体；新模式必须 ADR+策略实现、不做运行时配置
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: fixed_price
+  zh: 固定总价
+  en: FixedPrice
+  snake: fixed_price
+  kind: value
+  bc: contract.baseline
+  definition: 按里程碑/节点开票计划计价的模式
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: time_and_materials
+  zh: T&M 工时计费
+  en: TimeAndMaterials
+  snake: time_and_materials
+  kind: value
+  bc: contract.baseline
+  definition: 可计费工时×费率计价的模式（须有费率表）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: IFRS 15 B16 「有权开票金额」实务简化常用于 T&M
+- id: framework_agreement
+  zh: 框架协议
+  en: FrameworkAgreement
+  snake: framework_agreement
+  kind: entity
+  bc: contract.baseline
+  definition: 挂靠任务订单的框架合同（限额按合同约定，Q4 已确认）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: task_order
+  zh: 任务订单
+  en: TaskOrder
+  snake: task_order
+  kind: entity
+  bc: contract.baseline
+  definition: 挂靠已生效框架协议的独立聚合实例
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: TaskOrderRegistered
+    type: old-code
+    deprecated: true
+  forbidden:
+  - TaskOrderRegistered
+  status: approved
+  change_ref: G-29
+  note: 词表以事件名充当实体名；实体 TaskOrder，事件 TaskOrderRegistered 保留
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: cost_plus
+  zh: 成本加酬金
+  en: CostPlus
+  snake: cost_plus
+  kind: value
+  bc: contract.baseline
+  definition: 成本实报实销+约定酬金的计价模式
+  standard_ref:
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: rate_card_item
+  zh: 费率表
+  en: RateCardItem
+  snake: rate_card_item
+  kind: entity
+  bc: contract.baseline
+  definition: T&M 计费的职级/角色费率清单（含币种与有效期）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: BillRateDO, HourlyRateDO
+    type: legacy-code
+    deprecated: true
+  - name: psa_bill_rate*, psa_pm_hourlyrate*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: contract_clause
+  zh: 合同条款
+  en: ContractClause
+  snake: contract_clause
+  kind: entity
+  bc: contract.baseline
+  definition: 合同的结算条款实体（固定总价阶段款 FIXED_LUMP_SUM——98% 主形态 / 按量结算款 UNIT_RATE——品控按次月结；业主口述 2026-07-07）：clauseId 为**经济事实挂接锚点**（收入/成本/开票/回款按条款挂载，业主裁决）；聚合内实体非独立聚合根（生命周期依附+总额守恒聚合内自证）；轻状态机 PENDING→ACTIVE→SETTLEABLE→SUPERSEDED/VOIDED（开票/结清为读模型投影态）；原
+    BillingScheduleItem 升级并入
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: low
+  aliases:
+  - name: 合同条款
+    type: standard-zh
+    deprecated: false
+  - name: ContractTerm / ContractTermDO / termNumber
+    type: legacy-code
+    deprecated: true
+  - name: psa_pm_contract_term / psa_contract_clause
+    type: legacy-table
+    deprecated: true
+  - name: 开票计划 / 开票计划节点
+    type: dialect
+    deprecated: true
+  - name: BillingScheduleItem
+    type: old-code
+    deprecated: true
+  - name: 开票计划
+    type: dialect
+    deprecated: true
+  forbidden:
+  - BillingScheduleItem
+  - ContractTerm
+  - Term
+  - 开票计划
+  - 开票计划节点
+  status: approved
+  change_ref: G-21
+  note: 条款是收入 / 成本 / 开票的挂接锚点，语义接近准则「履约义务」，又兼作付款节点；需财务确认二者关系，见 G-21
+  old_codes: []
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: evidence_level
+  zh: 证据效力等级
+  en: EvidenceLevel
+  snake: evidence_level
+  kind: value
+  bc: contract.riskdelivery
+  definition: 预开工/风险交付证据的司法效力四级分级（一级盖章文件/二级官方邮箱确认+交付回执/三级沟通与履约痕迹/四级口头——系统判定不可人工改；项目部章须授权佐证方判一级）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contracting_legal_entity
+  zh: 签约法人
+  en: ContractingLegalEntity
+  snake: contracting_legal_entity
+  kind: role
+  bc: contract.baseline
+  definition: 合同的我方法人主体（与交付法人可不同，均必填）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: commitment_deviation
+  zh: 承诺差异
+  en: CommitmentDeviation
+  snake: commitment_deviation
+  kind: entity
+  bc: contract.baseline
+  definition: 顾问建议书承诺快照与合同基线的差异记录（比对为基线生效前置、不利差异须有处理结论；记录事实发布 CommitmentDeviationRecorded）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_completeness
+  zh: 合同完备度
+  en: ContractCompleteness
+  snake: contract_completeness
+  kind: entity
+  bc: contract.baseline
+  definition: 签署/范围/金额/期限/计价要件的完备结论
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_gap_identified
+  zh: 合同缺口
+  en: ContractGapIdentified
+  snake: contract_gap_identified
+  kind: event
+  bc: contract.baseline
+  definition: 完备度缺陷的显式风险事实（承载于合同缺口项实体，非主状态；是否允许缺口下交付归风险交付 BC）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: change_order
+  zh: 变更
+  en: ChangeOrder
+  snake: change_order
+  kind: document
+  bc: contract.changeorder
+  definition: 合同范围/价格/工期的正式修改（增补协议是落地形式之一）
+  standard_ref:
+  - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases:
+  - name: 工程变更
+    type: standard-zh
+    deprecated: false
+  - name: Variation（FIDIC）
+    type: standard-en
+    deprecated: false
+  - name: ContractModification（IFRS 15 会计口径）
+    type: standard-en
+    deprecated: false
+  forbidden: []
+  status: approved
+  note: 国标「工程变更」，FIDIC Cl.13 Variation；进入核算时对应 CAS 14 / IFRS 15「合同变更」(contract modification)
+- id: change_order_draft
+  zh: 变更意向
+  en: ChangeOrderDraft
+  snake: change_order_draft
+  kind: entity
+  bc: contract.changeorder
+  definition: 变更的识别登记态（影响评估的前置）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: impact_assessment
+  zh: 影响评估
+  en: ImpactAssessment
+  snake: impact_assessment
+  kind: document
+  bc: contract.changeorder
+  definition: 变更的范围/成本/工期/价格影响（ΔCO，F038 分量）
+  standard_ref:
+  - PMI PMBOK Guide
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: unapproved_work_flag
+  zh: 未批先干
+  en: UnapprovedWorkFlag
+  snake: unapproved_work_flag
+  kind: entity
+  bc: contract.changeorder
+  definition: 已执行未获批的变更风险标记（F170 落地率分母差，必须可视）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: supplemental_agreement
+  zh: 增补
+  en: SupplementalAgreement
+  snake: supplemental_agreement
+  kind: document
+  bc: contract.changeorder
+  definition: 以增补协议落地的重大变更形式
+  standard_ref:
+  - 中华人民共和国民法典·合同编
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: site_visa
+  zh: 现场签证
+  en: SiteVisa
+  snake: site_visa
+  kind: document
+  bc: contract.changeorder
+  definition: 现场事实的客户签认（证据，不必然改基线）
+  standard_ref:
+  - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
+  confidence: low
+  aliases:
+  - name: 签证
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 签证
+  status: approved
+  change_ref: G-26
+  note: 中文改用国标原文「现场签证」；英文 SiteVisa 为业主确认的中国 AEC 方言（03 词表），FIDIC 无对等术语，暂保留
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: site_visa_time_window
+  zh: 现场签证时效
+  en: SiteVisaTimeWindow
+  snake: site_visa_time_window
+  kind: value
+  bc: contract.changeorder
+  definition: 签认的时间窗口（按项目类型配置、默认 14 天，超窗标记取证风险，Q18 已确认）
+  standard_ref:
+  - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
+  confidence: low
+  aliases:
+  - name: 签证时效
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 签证时效
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: claim
+  zh: 索赔
+  en: Claim
+  snake: claim
+  kind: document
+  bc: contract.changeorder
+  definition: 一方对另一方的补偿主张（双向：我方主张/客户主张）
+  standard_ref:
+  - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: FIDIC 2017 Cl.20 Employer's and Contractor's Claims
+- id: claim_asserted
+  zh: 索赔通知
+  en: ClaimAsserted
+  snake: claim_asserted
+  kind: event
+  bc: contract.changeorder
+  definition: 合同时限内的正式主张通知（超时限记时限风险）
+  standard_ref:
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: claim_time_bar
+  zh: 索赔时限
+  en: ClaimTimeBar
+  snake: claim_time_bar
+  kind: value
+  bc: contract.changeorder
+  definition: 合同约定的索赔通知期限
+  standard_ref:
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: risk_delivery
+  zh: 风险交付
+  en: RiskDelivery
+  snake: risk_delivery
+  kind: entity
+  bc: contract.riskdelivery
+  definition: 合同不完备或越界状态下的受控例外交付
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: risk_delivery_authorization
+  zh: 风险交付授权
+  en: RiskDeliveryAuthorization
+  snake: risk_delivery_authorization
+  kind: entity
+  bc: contract.riskdelivery
+  definition: 额度+期限+责任方三要素的例外授权（同项目同类型同时段唯一）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: uncontracted_delivery
+  zh: 无合同交付
+  en: UncontractedDelivery
+  snake: uncontracted_delivery
+  kind: state
+  bc: contract.riskdelivery
+  definition: 交付启动时无生效合同基线（起算锚点，F169 证据，Q1 已确认从严口径）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: CAS 14 合同成立五条件未满足时不得确认收入
+- id: out_of_scope_delivery
+  zh: 超范围交付
+  en: OutOfScopeDelivery
+  snake: out_of_scope_delivery
+  kind: entity
+  bc: contract.riskdelivery
+  definition: 超出基线范围+已批准变更的先行投入
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: scope_creep_identified
+  zh: 无签证范围蔓延
+  en: ScopeCreepIdentified
+  snake: scope_creep_identified
+  kind: event
+  bc: contract.changeorder
+  definition: 未正式化的隐性范围扩张（F171，交付侧闸口为 OutOfScopeWorkDetected）
+  standard_ref:
+  - PMI PMBOK Guide
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: contract_risk
+  zh: 合约风险
+  en: ContractRisk
+  snake: contract_risk
+  kind: entity
+  bc: contract.riskdelivery
+  definition: 合约子域风险事实的统称（敞口对齐 F127A）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: risk_type
+  zh: 风险类型
+  en: RiskType
+  snake: risk_type
+  kind: value
+  bc: contract.riskdelivery
+  definition: 无合同/合同缺口/超范围/前端高风险承接四类
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: risk_level
+  zh: 风险等级
+  en: RiskLevel
+  snake: risk_level
+  kind: value
+  bc: contract.riskdelivery
+  definition: 授权审批层级路由的风险分档
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: authorized_limit
+  zh: 授权额度
+  en: AuthorizedLimit
+  snake: authorized_limit
+  kind: entity
+  bc: contract.riskdelivery
+  definition: 风险交付授权的三要素之二（成本口径上限与起止日）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: authorization_period
+  zh: 授权期限
+  en: AuthorizationPeriod
+  snake: authorization_period
+  kind: value
+  bc: contract.riskdelivery
+  definition: 风险交付授权的三要素之二（成本口径上限与起止日）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_riskdelivery__responsible_party
+  zh: 责任承担方
+  en: ResponsibleParty
+  snake: responsible_party
+  kind: role
+  bc: contract.riskdelivery
+  definition: 授权三要素之三（BU/法人/责任人）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: uncontracted_exposure
+  zh: 无合同风险敞口
+  en: UncontractedExposure
+  snake: uncontracted_exposure
+  kind: metric
+  bc: contract.riskdelivery
+  definition: NR+CA+AR 三段合计的无合同敞口（F127A）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: 风险敞口
+    type: dialect
+    deprecated: true
+  - name: RiskExposure
+    type: old-code
+    deprecated: true
+  forbidden:
+  - RiskExposure
+  - 风险敞口
+  status: approved
+  change_ref: G-27
+  note: 定义专指无合同敞口（NR+CA+AR，F127A），通用名 RiskExposure 与其它风险敞口歧义；且无合同时不存在准则口径合同资产，CA 段应为未开票在制
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: regularized
+  zh: 转正
+  en: Regularized
+  snake: regularized
+  kind: event
+  bc: contract.riskdelivery
+  definition: 合同生效/变更批准后的授权复核关闭
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: halted
+  zh: 叫停
+  en: Halted
+  snake: halted
+  kind: event
+  bc: contract.riskdelivery
+  definition: 风险交付的主动终止（通知交付侧）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: scope_changed
+  zh: 范围变化
+  en: ScopeChanged
+  snake: scope_changed
+  kind: event
+  bc: contract.changeorder
+  definition: 变更认定的范围影响事实
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: change_order_approved
+  zh: 变更批准
+  en: ChangeOrderApproved
+  snake: change_order_approved
+  kind: event
+  bc: contract.changeorder
+  definition: 客户批准变更（携批准证据与 ΔCO）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: site_visa_confirmed
+  zh: 现场签证签认
+  en: SiteVisaConfirmed
+  snake: site_visa_confirmed
+  kind: event
+  bc: contract.changeorder
+  definition: 客户代表对签证的确认动作
+  standard_ref:
+  - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
+  confidence: low
+  aliases:
+  - name: 签认
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 签认
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_changeorder__responsible_party
+  zh: 责任方
+  en: ResponsibleParty
+  snake: responsible_party
+  kind: role
+  bc: contract.changeorder
+  definition: 变更/签证/索赔的归因必填维度（对齐 dim_scope）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: reason_category
+  zh: 原因分类
+  en: ReasonCategory
+  snake: reason_category
+  kind: value
+  bc: contract.changeorder
+  definition: 变更/签证/索赔的归因必填维度（对齐 dim_scope）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: claim_settled
+  zh: 达成
+  en: ClaimSettled
+  snake: claim_settled
+  kind: event
+  bc: contract.changeorder
+  definition: 索赔谈判的结案（携 SETTLE_AMT）
+  standard_ref:
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: liquidated_damages
+  zh: 违约金
+  en: LiquidatedDamages
+  snake: liquidated_damages
+  kind: value
+  bc: contract.changeorder
+  definition: 客户主张的扣罚（PEN，认定在本 BC、贷项执行在 AR，Q19 已确认）
+  standard_ref:
+  - 中华人民共和国民法典·合同编
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: medium
+  aliases:
+  - name: 罚款
+    type: dialect
+    deprecated: true
+  - name: Penalty
+    type: old-code
+    deprecated: true
+  - name: PEN（KPI 符号）
+    type: kpi-symbol
+    deprecated: false
+  forbidden:
+  - Fine
+  - Penalty
+  - 罚款
+  status: approved
+  change_ref: G-20
+  note: 「罚款」在中文法律语境指行政处罚；合同扣罚为违约金（民法典第五百八十五条），FIDIC Cl.8.8 Delay Damages；核算上属可变对价
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: wbs_node
+  zh: WBS
+  en: WbsNode
+  snake: wbs_node
+  kind: entity
+  bc: delivery.execution
+  definition: 工作分解结构，节点必须挂接合同范围条目或已批准变更
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Work Breakdown Structures
+  - GB/T 50326-2017 建设工程项目管理规范
+  confidence: high
+  aliases:
+  - name: BudgetClause / BudgetDeliverable
+    type: legacy-code
+    deprecated: true
+  - name: psa_budget_*
+    type: legacy-table
+    deprecated: true
+  - name: BudgetClause/BudgetDeliverable
+    type: legacy-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: delivery_package
+  zh: 交付包
+  en: DeliveryPackage
+  snake: delivery_package
+  kind: entity
+  bc: delivery.execution
+  definition: WBS 下的工作单元分组
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-22
+  note: 与 WorkPackage 是否同一概念待业务确认（验收对象类型含交付包）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: work_package
+  zh: 工作包
+  en: WorkPackage
+  snake: work_package
+  kind: entity
+  bc: delivery.execution
+  definition: WBS 下的工作单元分组
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Work Breakdown Structures
+  confidence: high
+  aliases:
+  - name: 任务包
+    type: dialect
+    deprecated: true
+  - name: TaskPackage / task_package
+    type: legacy-code
+    deprecated: true
+  - name: psa_task_package
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - TaskPackage
+  - 任务包
+  status: approved
+  change_ref: G-22
+  note: PMBOK 中文版用「工作包」（WBS 最底层）；「任务包」降为别名
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: deliverable
+  zh: 交付物
+  en: Deliverable
+  snake: deliverable
+  kind: entity
+  bc: delivery.execution
+  definition: 向客户交付的成果物（验收对象类型之一）
+  standard_ref:
+  - PMI PMBOK Guide
+  - FIDIC Client/Consultant Model Services Agreement 2017（White Book）
+  confidence: high
+  aliases:
+  - name: DeliverableDO, DeliverableSubmission
+    type: legacy-code
+    deprecated: true
+  - name: psa_deliverable*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: delivery_plan
+  zh: 交付计划
+  en: DeliveryPlan
+  snake: delivery_plan
+  kind: entity
+  bc: delivery.execution
+  definition: WBS/里程碑/计划价值的版本化计划
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: plan_baseline
+  zh: 计划基线
+  en: PlanBaseline
+  snake: plan_baseline
+  kind: entity
+  bc: delivery.execution
+  definition: 交付计划的不可变版本（修订须依据；与经营子域计划基线同名不同义）
+  standard_ref:
+  - PMI PMBOK Guide
+  confidence: high
+  aliases:
+  - name: ProjectBudget, wbs_budget_*
+    type: legacy-code
+    deprecated: true
+  - name: psa_pm_project.wbs_budget_*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: PMBOK performance measurement baseline
+  core: true
+- id: milestone
+  zh: 里程碑
+  en: Milestone
+  snake: milestone
+  kind: entity
+  bc: delivery.execution
+  definition: 计划内的关键节点（执行状态挂交付项目聚合）
+  standard_ref:
+  - PMI PMBOK Guide
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: milestone_completion_submitted
+  zh: 完成申报
+  en: MilestoneCompletionSubmitted
+  snake: milestone_completion_submitted
+  kind: event
+  bc: delivery.execution
+  definition: 交付侧的里程碑完成声明（验收裁定权归质量侧，ADR-005）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: eac_assessment
+  zh: EAC
+  en: EacAssessment
+  snake: eac_assessment
+  kind: document
+  bc: delivery.execution
+  definition: 完工估算 = 已发生成本（成本归集提供）+ ETC（本 BC 估算），投入法 POC 分母
+  standard_ref:
+  - PMI PMBOK Guide
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases:
+  - name: etcHours, eac
+    type: legacy-code
+    deprecated: true
+  - name: psa_task_package.etc_hours
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: EAC = AC + ETC 与 PMBOK 一致；值对象另立 EstimateAtCompletion（G-23）
+  core: true
+- id: estimate_to_complete
+  zh: ETC
+  en: EstimateToComplete
+  snake: estimate_to_complete
+  kind: metric
+  bc: delivery.execution
+  definition: 剩余完工估算
+  standard_ref:
+  - PMI PMBOK Guide
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases:
+  - name: etcHours
+    type: legacy-code
+    deprecated: true
+  - name: psa_task_package.etc_hours
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: schedule_variance_identified
+  zh: 进度偏差识别
+  en: ScheduleVarianceIdentified
+  snake: schedule_variance_identified
+  kind: event
+  bc: delivery.execution
+  definition: EVM 口径的 SPI 偏差（F175）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: ProgressDeviationIdentified
+    type: old-code
+    deprecated: true
+  - name: 进度偏差
+    type: dialect
+    deprecated: true
+  forbidden:
+  - ProgressDeviationIdentified
+  - 进度偏差
+  status: approved
+  change_ref: G-23
+  note: 定义即 EVM 的 SV / SPI，用 PMBOK 原词
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: phased_delivery
+  zh: 阶段性交付
+  en: PhasedDelivery
+  snake: phased_delivery
+  kind: entity
+  bc: delivery.execution
+  definition: 交付执行的过程度量
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: delivery_cycle_time
+  zh: 交付周期
+  en: DeliveryCycleTime
+  snake: delivery_cycle_time
+  kind: value
+  bc: delivery.execution
+  definition: 交付执行的过程度量
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: delivery_variance
+  zh: 交付偏差
+  en: DeliveryVariance
+  snake: delivery_variance
+  kind: metric
+  bc: delivery.execution
+  definition: 交付执行的过程度量
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: post_completion_service_order
+  zh: 后期服务单
+  en: PostCompletionServiceOrder
+  snake: post_completion_service_order
+  kind: document
+  bc: delivery.execution
+  definition: 质保期服务的登记与工时（归属待 Q21）
+  standard_ref:
+  - 建设工程质量保证金管理办法（建质〔2017〕138 号）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 质保期服务；国标称缺陷责任期 / 保修期，见 G-17
+- id: post_completion_service_hours
+  zh: 后期服务工时
+  en: PostCompletionServiceHours
+  snake: post_completion_service_hours
+  kind: metric
+  bc: delivery.execution
+  definition: 质保期服务的登记与工时（归属待 Q21）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: quality_standard
+  zh: 质量标准
+  en: QualityStandard
+  snake: quality_standard
+  kind: entity
+  bc: delivery.acceptance
+  definition: 验收检查项的依据（源自合同履约条件与公司制度）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: delivery_confirmation
+  zh: 交付确认单
+  en: DeliveryConfirmation
+  snake: delivery_confirmation
+  kind: document
+  bc: delivery.execution
+  definition: 完成申报的证据载体
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: acceptance_record
+  zh: 验收单
+  en: AcceptanceRecord
+  snake: acceptance_record
+  kind: document
+  bc: delivery.acceptance
+  definition: 统一验收裁定载体（对象类型化：里程碑/交付包/交付物/最终验收）
+  standard_ref:
+  - GB/T 50326-2017 建设工程项目管理规范
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: medium
+  aliases:
+  - name: DeliverableSubmission(DLV_ACCEPTED)
+    type: legacy-code
+    deprecated: true
+  - name: psa_deliverable_submission
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 最终验收对应国标「竣工验收」、FIDIC Cl.10 Taking-Over；收入确认触发点（ACC-R01 客户价值确认单）
+  core: true
+- id: acceptance_target_type
+  zh: 验收对象类型
+  en: AcceptanceTargetType
+  snake: acceptance_target_type
+  kind: value
+  bc: delivery.acceptance
+  definition: 验收单的类型维度（ADR-005 统一模型）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: conditional_pass
+  zh: 有条件通过
+  en: ConditionalPass
+  snake: conditional_pass
+  kind: value
+  bc: delivery.acceptance
+  definition: 附条件项与整改期限的验收结论（销项前不发 MilestoneAccepted，Q22）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: acceptance_returned
+  zh: 验收退回
+  en: AcceptanceReturned
+  snake: acceptance_returned
+  kind: event
+  bc: delivery.acceptance
+  definition: 验收不通过，里程碑回进行中
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: acceptance_status
+  zh: 交付验收状态
+  en: AcceptanceStatus
+  snake: acceptance_status
+  kind: state
+  bc: delivery.acceptance
+  definition: 验收单状态机的对外呈现
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: quality_issue
+  zh: 质量问题
+  en: QualityIssue
+  snake: quality_issue
+  kind: entity
+  bc: delivery.acceptance
+  definition: 识别→确认→处置→关闭的质量缺陷生命周期
+  standard_ref:
+  - GB/T 19000-2016 / ISO 9000:2015 质量管理体系 基础和术语
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ISO 9000 nonconformity
+- id: blocking_quality_issue
+  zh: 阻断性质量问题
+  en: BlockingQualityIssue
+  snake: blocking_quality_issue
+  kind: entity
+  bc: delivery.acceptance
+  definition: 未关闭则阻断验收通过的质量问题
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: concession_acceptance
+  zh: 让步接受
+  en: ConcessionAcceptance
+  snake: concession_acceptance
+  kind: value
+  bc: delivery.acceptance
+  definition: 不返工、降标准接受的处置方式（客户书面确认为硬性守卫，Q38 业主裁决）
+  standard_ref:
+  - GB/T 19000-2016 / ISO 9000:2015 质量管理体系 基础和术语
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: rework_recognition
+  zh: 返工认定
+  en: ReworkRecognition
+  snake: rework_recognition
+  kind: entity
+  bc: delivery.acceptance
+  definition: 原因分类+责任归因双要素的返工事实认定
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: rework_reason_category
+  zh: 返工原因分类
+  en: ReworkReasonCategory
+  snake: rework_reason_category
+  kind: value
+  bc: delivery.acceptance
+  definition: 六类编码：客户原因/内部质量/范围不清/人员能力/管理失控/交付理解偏差（Q8 定稿 2026-07-04）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: responsibility_attribution
+  zh: 责任归因
+  en: ResponsibilityAttribution
+  snake: responsibility_attribution
+  kind: entity
+  bc: delivery.acceptance
+  definition: 责任方+责任比例的认定
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: quality_loss
+  zh: 质量损失
+  en: QualityLoss
+  snake: quality_loss
+  kind: metric
+  bc: delivery.acceptance
+  definition: 挂质量问题与责任方的损失金额（QL）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: rework_rate
+  zh: 返工率
+  en: ReworkRate
+  snake: rework_rate
+  kind: metric
+  bc: delivery.acceptance
+  definition: 质量侧过程度量（F030Q 等）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: defect_rate
+  zh: 质量缺陷率
+  en: DefectRate
+  snake: defect_rate
+  kind: metric
+  bc: delivery.acceptance
+  definition: 质量侧过程度量（F030Q 等）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: milestone_accepted
+  zh: 验收通过
+  en: MilestoneAccepted
+  snake: milestone_accepted
+  kind: event
+  bc: delivery.acceptance
+  definition: 检查项全通过且无阻断问题的验收结论（发布 MilestoneAccepted）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: rework
+  zh: 返工
+  en: Rework
+  snake: rework
+  kind: value
+  bc: delivery.acceptance
+  definition: 质量问题的处置方式之一（须开返工认定单）
+  standard_ref:
+  - GB/T 19000-2016 / ISO 9000:2015 质量管理体系 基础和术语
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: time_entry
+  zh: 工时
+  en: TimeEntry
+  snake: time_entry
+  kind: entity
+  bc: cost.timesheet
+  definition: 员工填报的时间投入记录
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: ManHourItemDO / works
+    type: legacy-code
+    deprecated: true
+  - name: psa_time_sheet_works
+    type: legacy-table
+    deprecated: true
+  - name: TimesheetLine
+    type: old-code
+    deprecated: true
+  forbidden:
+  - ManHour
+  - ManHourItem
+  - TimesheetLine
+  - WorkHour
+  - Works
+  status: approved
+  core: true
+- id: timesheet
+  zh: 工时单
+  en: Timesheet
+  snake: timesheet
+  kind: document
+  bc: cost.timesheet
+  definition: 员工×期间的填报与审核载体
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: ManHourDO / TimeSheet
+    type: legacy-code
+    deprecated: true
+  - name: psa_time_sheet
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - ManHour
+  - TimeSheet
+  - WorkHour
+  status: approved
+  core: true
+- id: effective_hours
+  zh: 有效工时
+  en: EffectiveHours
+  snake: effective_hours
+  kind: metric
+  bc: cost.timesheet
+  definition: 经认定形成有效产出的工时（EFF_HRS 分子）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: ineffective_hours
+  zh: 无效工时
+  en: IneffectiveHours
+  snake: ineffective_hours
+  kind: metric
+  bc: cost.timesheet
+  definition: 认定为未形成有效产出的工时
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: rework_hours
+  zh: 返工工时
+  en: ReworkHours
+  snake: rework_hours
+  kind: metric
+  bc: cost.timesheet
+  definition: 只能由 ReworkRecognized 引用产生的工时分类
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: billable_hours
+  zh: 可计费工时
+  en: BillableHours
+  snake: billable_hours
+  kind: metric
+  bc: cost.timesheet
+  definition: 有效 且 关联 T&M 合同 且 在费率表范围内的工时（可计费 ⊆ 有效）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: billable, BillingUser
+    type: legacy-code
+    deprecated: true
+  - name: psa_time_sheet_works.billable
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: effectiveness_assessment
+  zh: 有效性认定
+  en: EffectivenessAssessment
+  snake: effectiveness_assessment
+  kind: entity
+  bc: cost.timesheet
+  definition: 项目×期间的批量认定（数量守恒：四类之和=填报总数）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: capacity_realization
+  zh: 产能变现
+  en: CapacityRealization
+  snake: capacity_realization
+  kind: metric
+  bc: cost.timesheet
+  definition: 可用产能转化为有效产出的分析（F022/F187）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 行业近义指标为 Utilization（利用率），口径不同不合并
+- id: idle_capacity
+  zh: 闲置产能
+  en: IdleCapacity
+  snake: idle_capacity
+  kind: metric
+  bc: cost.timesheet
+  definition: 闲置+待派+无效内部事务（F187 口径）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+- id: project_cost
+  zh: 项目成本
+  en: ProjectCost
+  snake: project_cost
+  kind: metric
+  bc: cost.costing
+  definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  confidence: medium
+  aliases:
+  - name: CostLedgerDO / cost_summary
+    type: legacy-code
+    deprecated: true
+  - name: psa_cost_ledger / psa_cost_summary
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: project_cost_account
+  zh: 成本账户
+  en: ProjectCostAccount
+  snake: project_cost_account
+  kind: entity
+  bc: cost.costing
+  definition: 项目×承担法人×币种的归集与期间封闭载体
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: cost_entry
+  zh: 成本明细
+  en: CostEntry
+  snake: cost_entry
+  kind: entity
+  bc: cost.costing
+  definition: 只追加、必带来源事实引用与归因维度的成本记录
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  confidence: medium
+  aliases:
+  - name: CostLedgerDO, cost_summary
+    type: legacy-code
+    deprecated: true
+  - name: psa_cost_ledger, psa_cost_summary
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: direct_labor
+  zh: 直接人工
+  en: DirectLabor
+  snake: direct_labor
+  kind: metric
+  bc: cost.costing
+  definition: 有效工时×标准费率版本（可复算）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: direct_expense
+  zh: 直接费用
+  en: DirectExpense
+  snake: direct_expense
+  kind: metric
+  bc: cost.costing
+  definition: 判定为项目直接的费用（经费用 BC 防腐层）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: outsourcing_cost
+  zh: 外包成本
+  en: OutsourcingCost
+  snake: outsourcing_cost
+  kind: metric
+  bc: cost.costing
+  definition: 人力劳务外包投入：按工时/人月计费、人员受我方管理（Q31 业主定稿 2026-07-04）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: subcontract_cost
+  zh: 分包成本
+  en: SubcontractCost
+  snake: subcontract_cost
+  kind: metric
+  bc: cost.costing
+  definition: 成果性专业分包投入：按验收计价、责任随成果转移（Q31 业主定稿 2026-07-04，核算科目与成本路径同步区分）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: cost_accumulated
+  zh: 成本归集
+  en: CostAccumulated
+  snake: cost_accumulated
+  kind: event
+  bc: cost.costing
+  definition: 权责发生制下按来源分类入账成本账户
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases:
+  - name: CostAllocated
+    type: old-code
+    deprecated: true
+  forbidden:
+  - CostAllocated
+  status: approved
+  change_ref: G-18
+  note: 「归集」= accumulation；allocation 是「分配 / 分摊」，与 AllocateOverhead 冲突
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: cost_attribution
+  zh: 成本归因
+  en: CostAttribution
+  snake: cost_attribution
+  kind: entity
+  bc: cost.costing
+  definition: 六分量归因维度（返工/效率/范围/结构/浪费/其他，F102A）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: cost_adjustment
+  zh: 成本调整
+  en: CostAdjustment
+  snake: cost_adjustment
+  kind: entity
+  bc: cost.costing
+  definition: 封期后引用原明细的当期更正
+  standard_ref:
+  - 企业会计准则第 28 号——会计政策、会计估计变更和差错更正
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+- id: standard_cost_rate_card
+  zh: 标准费率
+  en: StandardCostRateCard
+  snake: standard_cost_rate_card
+  kind: entity
+  bc: cost.costing
+  definition: 薪酬脱敏后的版本化政策费率（财务维护）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-3
+- id: rate_card_version
+  zh: 费率版本
+  en: RateCardVersion
+  snake: rate_card_version
+  kind: entity
+  bc: cost.costing
+  definition: 生效期间不重叠、被引用不可改的费率快照
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: RateVersion
+    type: old-code
+    deprecated: true
+  forbidden:
+  - RateVersion
+  status: approved
+  change_ref: G-3
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: pending_intercompany_settlement
+  zh: 待内部结算
+  en: PendingIntercompanySettlement
+  snake: pending_intercompany_settlement
+  kind: state
+  bc: cost.costing
+  definition: 跨法人投入的挂起状态，按 ADR-011 内部结算单确认后解除
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: cost_budget
+  zh: 成本预算
+  en: CostBudget
+  snake: cost_budget
+  kind: metric
+  bc: cost.costing
+  definition: 预算对照与偏差度量（BURN_STD F058A）
+  standard_ref:
+  - PMI PMBOK Guide
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: cost_budget_variance
+  zh: 成本预算偏差
+  en: CostBudgetVariance
+  snake: cost_budget_variance
+  kind: metric
+  bc: cost.costing
+  definition: 预算对照与偏差度量（BURN_STD F058A）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: CostVariance
+    type: old-code
+    deprecated: true
+  - name: 成本偏差
+    type: dialect
+    deprecated: true
+  forbidden:
+  - CostVariance
+  - 成本偏差
+  status: approved
+  change_ref: G-24
+  note: PMBOK 的 CostVariance 专指 EVM 的 CV = EV − AC；本词定义是预算 vs 实际（BURN_STD），换名避免与 EVM 指标同名异义
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: period_close_readiness
+  zh: 成本关账前置检查
+  en: PeriodCloseReadiness
+  snake: period_close_readiness
+  kind: document
+  bc: cost.costing
+  definition: 成本期间关闭（与回款子域「封期」同义，各 BC 内部用词一致）
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干
+  - 会计基础工作规范（财政部）
+  confidence: medium
+  aliases:
+  - name: 期间封闭 / 封期
+    type: dialect
+    deprecated: true
+  - name: PeriodProgress / next_step
+    type: legacy-code
+    deprecated: true
+  - name: psa_period_progress / psa_carry_period_progress
+    type: legacy-table
+    deprecated: true
+  - name: PeriodClose
+    type: old-code
+    deprecated: true
+  forbidden:
+  - PeriodClose
+  - 期间封闭
+  - 封期
+  status: approved
+  change_ref: G-16
+  note: 期间状态只归 accounting.period；成本侧只提供关账前置检查结论
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_fulfilment_cost
+  zh: 合同履约成本
+  en: ContractFulfilmentCost
+  snake: contract_fulfilment_cost
+  kind: entity
+  bc: cost.costing
+  definition: 已发生、待与收入确认匹配的可资本化履约成本（成本/存货计量，收入确认时转主营业务成本）；全库唯一 WIP，与回款侧合同资产计量基准不同（IFRS 15 §95-98 / CAS 14）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - ifrs-full:AssetsRecognisedFromCostsToObtainOrFulfilContractsWithCustomers
+  confidence: medium
+  aliases:
+  - name: 成本 WIP / 在制成本
+    type: dialect
+    deprecated: true
+  - name: CostWip
+    type: old-code
+    deprecated: true
+  - name: WipEntry / WipCostAccount
+    type: legacy-code
+    deprecated: true
+  - name: psa_wip_entry / psa_wip_movement / psa_wip_period_balance / psa_wip_cost_account
+    type: legacy-table
+    deprecated: true
+  - name: 合同履约成本 / 成本 WIP
+    type: dialect
+    deprecated: true
+  forbidden:
+  - CostWip
+  - Wip
+  - WipEntry
+  - 成本 WIP
+  - 在制成本
+  - 合同履约成本
+  status: approved
+  change_ref: G-10
+  note: 准则科目名「合同履约成本」（IFRS 15 §95-98 costs to fulfil a contract；ACC-R12 要求 1/2 级科目用准则原词）；与回款侧未开票在制同名异物（09-业务规则 §7 警示），代码禁用裸 Wip
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: indirect_cost_pool
+  zh: 间接成本池 / 被分摊池
+  en: IndirectCostPool
+  snake: indirect_cost_pool
+  kind: entity
+  bc: cost.costing
+  definition: 汇集待两档分摊的间接（OH）成本的池（丢单商机费用、期间费用等入池；即「分摊」三义中的分摊源；物理表 psa_oh_cost_pool）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  - US Cost Accounting Standards 418（Allocation of direct and indirect costs）
+  confidence: high
+  aliases:
+  - name: OH 池 / 被分摊池
+    type: dialect
+    deprecated: true
+  - name: OhCostPool
+    type: legacy-code
+    deprecated: true
+  - name: psa_oh_cost_pool
+    type: legacy-table
+    deprecated: true
+  - name: OH pool, OhAllocationCalculator
+    type: legacy-code
+    deprecated: true
+  forbidden:
+  - OhCostPool
+  - OhPool
+  - OH 池
+  - 被分摊池
+  status: approved
+  change_ref: G-28
+  core: true
+- id: cost_transfer_batch
+  zh: 成本结转批次
+  en: CostTransferBatch
+  snake: cost_transfer_batch
+  kind: entity
+  bc: cost.costing
+  definition: 一次成本结转的批量执行载体（台账行 → 成本 WIP → 凭证请求同批确认，支撑四方对账；carry_type 0/1/2/3/4，DRAFT→POSTED）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  confidence: medium
+  aliases:
+  - name: 结转批次
+    type: dialect
+    deprecated: true
+  - name: CarryBatch / CarryForwardData
+    type: old-code
+    deprecated: true
+  - name: psa_carry_batch* / psa_wip_carry_forward_*
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - Carry
+  - CarryBatch
+  - CarryForward
+  - 结转批次
+  status: approved
+  change_ref: G-14
+  note: 「结转」= transfer；carry / carry forward 在会计英语中指余额结转下期，语义不符
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: expense_root_category
+  zh: 费用类型一级分类
+  en: ExpenseRootCategory
+  snake: expense_root_category
+  kind: value
+  bc: cost.costing
+  definition: 成本行的根费用类别（root_category → 费用性质，由费用分类视图产出，A11）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: profit_or_loss_ledger
+  zh: 损益台账
+  en: ProfitOrLossLedger
+  snake: profit_or_loss_ledger
+  kind: entity
+  bc: cost.costing
+  definition: 成本转损益 / 红冲的损益侧只追加台账（psa_pl_ledger）
+  standard_ref:
+  - IAS 1 Presentation of Financial Statements
+  - 企业会计准则第 30 号——财务报表列报
+  confidence: medium
+  aliases:
+  - name: PlLedger / PlLedgerDO
+    type: old-code
+    deprecated: true
+  - name: psa_pl_ledger*
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - Pl
+  - PlLedger
+  - PnL
+  status: approved
+  change_ref: G-15
+  note: Pl 是自造缩写；IAS 1 原文 profit or loss
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: allocate_indirect_cost
+  zh: 间接成本分摊
+  en: AllocateIndirectCost
+  snake: allocate_indirect_cost
+  kind: command
+  bc: cost.costing
+  definition: 按分档判据把间接成本池摊到项目的执行动作（两档 OH 分摊；不过账、仅管理口径，B1）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  - US Cost Accounting Standards 418（Allocation of direct and indirect costs）
+  confidence: medium
+  aliases:
+  - name: OH 分摊
+    type: dialect
+    deprecated: true
+  - name: AllocateOverhead
+    type: old-code
+    deprecated: true
+  - name: OhAllocationCalculator
+    type: legacy-code
+    deprecated: true
+  - name: psa_cost_allocation* / psa_oh_allocation_*
+    type: legacy-table
+    deprecated: true
+  - name: OH pool, OhAllocationCalculator
+    type: legacy-code
+    deprecated: true
+  - name: psa_oh_cost_pool, psa_cost_allocation*
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - AllocateOverhead
+  - Oh
+  - OhAllocation
+  - OH 分摊
+  status: approved
+  change_ref: G-28
+  note: 与 IndirectCostPool 同一词族；OH 只作别名。分摊仅管理口径、不过账（COST-R42）
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: allocation_result
+  zh: 分摊结果
+  en: AllocationResult
+  snake: allocation_result
+  kind: entity
+  bc: cost.costing
+  definition: 分摊主行＋分摊行的生效结果（batch_type 试算/全量、status 草稿/生效，B4）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: submit_timesheet
+  zh: 填报
+  en: SubmitTimesheet
+  snake: submit_timesheet
+  kind: command
+  bc: cost.timesheet
+  definition: 工时单的员工提交与 PM 审核动作
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: saveManHour, approve
+    type: legacy-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: approve_timesheet
+  zh: 审核
+  en: ApproveTimesheet
+  snake: approve_timesheet
+  kind: command
+  bc: cost.timesheet
+  definition: 工时单的员工提交与 PM 审核动作
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: saveManHour, approve
+    type: legacy-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: validation_evidence
+  zh: 认定证据
+  en: ValidationEvidence
+  snake: validation_evidence
+  kind: entity
+  bc: cost.timesheet
+  definition: 有效性认定必备的交付事实/产出引用
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: submission_deadline
+  zh: 填报截止
+  en: SubmissionDeadline
+  snake: submission_deadline
+  kind: value
+  bc: cost.timesheet
+  definition: 期间填报的截止时点（policy_param）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: unbilled_wip
+  zh: 未开票在制（WIP）
+  en: UnbilledWip
+  snake: unbilled_wip
+  kind: metric
+  bc: receivables.wip
+  definition: 管理口径：累计履约进度收入 − 累计已开票，按项目 × 合同条款计量，含无合同部分；不是准则科目
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: WIP
+    type: dialect
+    deprecated: true
+  - name: Wip
+    type: old-code
+    deprecated: true
+  forbidden:
+  - Wip
+  status: approved
+  change_ref: G-9
+  note: WIP 是 PSA 行业管理口径（未开票价值），合同资产是准则口径；两者差异 = 无合同 WIP + 合同负债抵消 + 减值，见 G-8/G-9
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_asset
+  zh: 合同资产
+  en: ContractAsset
+  snake: contract_asset
+  kind: entity
+  bc: receivables.wip
+  definition: 准则口径：企业已向客户转让商品或服务而有权收取对价、且该权利取决于时间流逝之外因素的权利；按合同与合同负债净额列示
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - ifrs-full:ContractAssets
+  confidence: high
+  aliases:
+  - name: CA（KPI 符号，F113）
+    type: kpi-symbol
+    deprecated: false
+  - name: WipAccount
+    type: old-code
+    deprecated: true
+  - name: psa_pm_contract_asset_impairment
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - WipAccount
+  status: approved
+  change_ref: G-8
+  note: IFRS 15 §105-109；与应收账款（无条件收款权）区分；预期信用损失按 CAS 22 / IFRS 9 计提
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: measure_of_progress
+  zh: 履约进度
+  en: MeasureOfProgress
+  snake: measure_of_progress
+  kind: metric
+  bc: receivables.wip
+  definition: 履约义务完成程度的计量值，取值 [0,1]（F041），按投入法或产出法计量
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: medium
+  aliases:
+  - name: 完工百分比 / POC
+    type: dialect
+    deprecated: true
+  - name: Poc / PercentageOfCompletion / progress
+    type: old-code
+    deprecated: true
+  - name: psa_pm_project.progress_pro
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - PercentageOfCompletion
+  - Poc
+  - 完工百分比
+  status: approved
+  change_ref: G-13
+  note: 「完工百分比」是已废止的 IAS 11 / CAS 15 建造合同用语；CAS 14 / IFRS 15 §39-45 称履约进度。POC 保留为 KPI 符号别名
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: progress_assessment
+  zh: 履约进度认定
+  en: ProgressAssessment
+  snake: progress_assessment
+  kind: document
+  bc: receivables.wip
+  definition: 项目×合同×期间的计量认定单（证据必备、封期锁定）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 履约进度认定单
+- id: input_method
+  zh: 投入法
+  en: InputMethod
+  snake: input_method
+  kind: value
+  bc: receivables.wip
+  definition: 按累计投入占预计总投入的计量法（T&M 用工时、成本加酬金用成本，F040）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: IFRS 15 B18-B19
+- id: output_method
+  zh: 产出法
+  en: OutputMethod
+  snake: output_method
+  kind: value
+  bc: receivables.wip
+  definition: 按里程碑/交付物完成的计量法（固定总价，F039）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: IFRS 15 B15-B17；ACC-R01 定稿收入确认统一为产出法·客户价值确认，与词表「T&M 用投入法」冲突待财务确认
+- id: invoice_issued
+  zh: 开票
+  en: InvoiceIssued
+  snake: invoice_issued
+  kind: event
+  bc: receivables.wip
+  definition: 发票开具动作（开票 ≠ 收入，收入以 ProgressRecognized 为准）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 开票 ≠ 收入；开票时合同资产转应收账款（或冲合同负债）
+- id: billing_request
+  zh: 开票申请
+  en: BillingRequest
+  snake: billing_request
+  kind: document
+  bc: receivables.wip
+  definition: 准入检查→开票→移交 AR 的流程载体
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: ProjectBillingView
+    type: legacy-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: invoice_eligibility_confirmed
+  zh: 开票准入
+  en: InvoiceEligibilityConfirmed
+  snake: invoice_eligibility_confirmed
+  kind: event
+  bc: receivables.wip
+  definition: 按计价模式矩阵的硬性检查（通过才可开票）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: tm_period_bill
+  zh: T&M 期间账单
+  en: TmPeriodBill
+  snake: tm_period_bill
+  kind: document
+  bc: receivables.wip
+  definition: 期间可计费工时×费率的开票依据汇总（截止规则 Q20）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: uncontracted_wip
+  zh: 无合同 WIP
+  en: UncontractedWip
+  snake: uncontracted_wip
+  kind: metric
+  bc: receivables.wip
+  definition: NOCTR 状态的 WIP：永不可开票，待风险交付转正（F164）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-9
+  note: 无合同即不满足 CAS 14 合同成立条件：永不进入 ContractAsset，只存在于管理口径未开票在制
+- id: revenue_recognition
+  zh: 收入确认单
+  en: RevenueRecognition
+  snake: revenue_recognition
+  kind: document
+  bc: receivables.wip
+  definition: 凭客户确认（验收单、邮件确认、签字日期）按合同条款确认收入的单据；审批通过即确认收入，收入期间取客户签字日所在月；法定入账另为 StatutoryRevenueBooked
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - ifrs-full:RevenueFromContractsWithCustomers
+  confidence: medium
+  aliases:
+  - name: 产值确认单 / 产值
+    type: dialect
+    deprecated: true
+  - name: 收入确认准备
+    type: dialect
+    deprecated: true
+  - name: ProgressRecognized
+    type: old-code
+    deprecated: true
+  - name: CuValueDO / RevenueConfirmation / RevenueFact
+    type: legacy-code
+    deprecated: true
+  - name: psa_pm_cuvalue / psa_revenue_confirmation / psa_revenue_fact
+    type: legacy-table
+    deprecated: true
+  - name: 收入确认准备（产值）
+    type: dialect
+    deprecated: true
+  forbidden:
+  - CuValue
+  - Cuvalue
+  - OutputValue
+  - ProgressRecognized
+  - 产值
+  - 产值确认单
+  - 收入确认准备
+  - 收入确认准备（产值）
+  status: approved
+  change_ref: G-12
+  note: 用户 2026-10-14 裁定：「产值确认单就是收入确认单，系统用收入确认这个语言，现在的叫法可以归为方言」。ACC-R01：客户价值确认是确认收入的唯一触发点。事件名 RevenueRecognized
+  core: true
+- id: period_adjustment
+  zh: 期间调整
+  en: PeriodAdjustment
+  snake: period_adjustment
+  kind: entity
+  bc: receivables.wip
+  definition: 期间封闭后更正走当期 ADJ 的权责发生制约束
+  standard_ref:
+  - 企业会计准则——基本准则（第九条 权责发生制）
+  - ADR-0016 权责发生制业财一体主干
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: accounts_receivable
+  zh: 应收账款
+  en: AccountsReceivable
+  snake: accounts_receivable
+  kind: metric
+  bc: receivables.collection
+  definition: 应收账款（发票之后的收款权）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  - ifrs-full:TradeReceivables
+  confidence: medium
+  aliases:
+  - name: AR
+    type: abbr
+    deprecated: false
+  - name: Ar
+    type: old-code
+    deprecated: false
+  forbidden:
+  - Ar
+  status: approved
+  note: 准则：无条件收款权（仅取决于时间流逝）；代码保留 Ar 前缀写法 ArItem
+- id: ar_item
+  zh: 应收单
+  en: ArItem
+  snake: ar_item
+  kind: entity
+  bc: receivables.collection
+  definition: 一张发票一个应收载体（只能由 InvoiceIssued 产生）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: cash_received
+  zh: 回款
+  en: CashReceived
+  snake: cash_received
+  kind: event
+  bc: receivables.collection
+  definition: 客户付款到账的确认（CYCLE_B2C 终点）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: cash_receipt
+  zh: 回款单
+  en: CashReceipt
+  snake: cash_receipt
+  kind: document
+  bc: receivables.collection
+  definition: 一笔到账的认领与分配载体（分配合计=到账金额）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: receipt_claiming
+  zh: 到账认领
+  en: ReceiptClaiming
+  snake: receipt_claiming
+  kind: command
+  bc: receivables.collection
+  definition: 到账与客户/应收的匹配与核销分配
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: receipt_allocation
+  zh: 回款分配
+  en: ReceiptAllocation
+  snake: receipt_allocation
+  kind: entity
+  bc: receivables.collection
+  definition: 到账与客户/应收的匹配与核销分配
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: cash_application
+  zh: 核销
+  en: CashApplication
+  snake: cash_application
+  kind: command
+  bc: receivables.collection
+  definition: 回款对应收余额的冲减（≤余额，必引用分配明细）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: ar_written_off
+  zh: 坏账核销
+  en: ArWrittenOff
+  snake: ar_written_off
+  kind: event
+  bc: receivables.collection
+  definition: 引用减值依据的应收终态处理（进 IMP_AR）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  - IFRS 9 Financial Instruments（expected credit losses）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: aging
+  zh: 账龄
+  en: Aging
+  snake: aging
+  kind: metric
+  bc: receivables.collection
+  definition: 应收与 WIP 共用的分桶口径（0-30/30-90/90-180/180+）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: aging_bucket
+  zh: 账龄桶
+  en: AgingBucket
+  snake: aging_bucket
+  kind: value
+  bc: receivables.collection
+  definition: 应收与 WIP 共用的分桶口径（0-30/30-90/90-180/180+）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: disputed_receivable
+  zh: 争议应收
+  en: DisputedReceivable
+  snake: disputed_receivable
+  kind: state
+  bc: receivables.collection
+  definition: 挂索赔案引用的争议标记（争议不停账龄）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: retention_money
+  zh: 质量保证金
+  en: RetentionMoney
+  snake: retention_money
+  kind: entity
+  bc: receivables.collection
+  definition: 按合同质保条款拆分的独立应收类型（RET，F127C/D、F181）
+  standard_ref:
+  - 建设工程质量保证金管理办法（建质〔2017〕138 号）
+  - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  confidence: high
+  aliases:
+  - name: 质保金
+    type: dialect
+    deprecated: true
+  - name: Retention / RET
+    type: old-code
+    deprecated: true
+  forbidden:
+  - Retention
+  - 质保金
+  status: approved
+  change_ref: G-17
+  note: 国标全称「质量保证金」，FIDIC Cl.14 Retention Money；裸 Retention 与 java.lang.annotation.Retention、日志保留等冲突。未到期质保金在准则上通常属合同资产而非应收账款，待财务确认
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: collection
+  zh: 催收
+  en: Collection
+  snake: collection
+  kind: command
+  bc: receivables.collection
+  definition: 收款行动与计划管理
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: collection_plan
+  zh: 回款计划
+  en: CollectionPlan
+  snake: collection_plan
+  kind: document
+  bc: receivables.collection
+  definition: 收款行动与计划管理
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: ar_overdue_detected
+  zh: 逾期应收
+  en: ArOverdueDetected
+  snake: ar_overdue_detected
+  kind: event
+  bc: receivables.collection
+  definition: 到期未收的账龄升级状态（ODAR F123）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: ecl_alert
+  zh: ECL 预警
+  en: EclAlert
+  snake: ecl_alert
+  kind: event
+  bc: receivables.collection
+  definition: 预期信用损失的前置信号（预警在本 BC、法定计提在核算）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  - IFRS 9 Financial Instruments（expected credit losses）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: bad_debt_risk
+  zh: 坏账风险
+  en: BadDebtRisk
+  snake: bad_debt_risk
+  kind: metric
+  bc: receivables.collection
+  definition: 减值前置信号的统称（WIP/AR 两侧事件已拆分，主权唯一）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: impairment_risk
+  zh: 减值风险
+  en: ImpairmentRisk
+  snake: impairment_risk
+  kind: metric
+  bc: receivables.collection
+  definition: 减值前置信号的统称（WIP/AR 两侧事件已拆分，主权唯一）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  - 企业会计准则第 8 号——资产减值
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: cash_conversion
+  zh: 现金转化
+  en: CashConversion
+  snake: cash_conversion
+  kind: metric
+  bc: receivables.collection
+  definition: 履约到现金的端到端转化（CCR F127）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: time_capture_rate
+  zh: 工时捕获率
+  en: TimeCaptureRate
+  snake: time_capture_rate
+  kind: metric
+  bc: receivables.wip
+  definition: T&M 可计费工时 vs 项目工时（HCR F030H）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: contract_asset_impairment_risk_raised
+  zh: 减值预警
+  en: ContractAssetImpairmentRiskRaised
+  snake: contract_asset_impairment_risk_raised
+  kind: event
+  bc: receivables.wip
+  definition: WIP/AR 侧的前置预警信号统称（区别于法定计提；两侧事件已拆分）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  - IFRS 9 Financial Instruments（expected credit losses）
+  - 企业会计准则第 8 号——资产减值
+  confidence: medium
+  aliases:
+  - name: WipImpairmentRiskRaised
+    type: old-code
+    deprecated: true
+  forbidden:
+  - WipImpairmentRiskRaised
+  status: approved
+  change_ref: G-8
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: ar_impairment_risk_raised
+  zh: 减值预警
+  en: ArImpairmentRiskRaised
+  snake: ar_impairment_risk_raised
+  kind: event
+  bc: receivables.wip
+  definition: WIP/AR 侧的前置预警信号统称（区别于法定计提；两侧事件已拆分）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  - IFRS 9 Financial Instruments（expected credit losses）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: retention_money_release_due
+  zh: 质量保证金到期返还
+  en: RetentionMoneyReleaseDue
+  snake: retention_money_release_due
+  kind: event
+  bc: receivables.collection
+  definition: 质保期届满、质保金应收进入可回收状态
+  standard_ref:
+  - 建设工程质量保证金管理办法（建质〔2017〕138 号）
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: medium
+  aliases:
+  - name: 质保金到期
+    type: dialect
+    deprecated: true
+  - name: RetentionDue
+    type: old-code
+    deprecated: true
+  forbidden:
+  - RetentionDue
+  - 质保金到期
+  status: approved
+  change_ref: G-17
+  note: 期间称「缺陷责任期」（建质〔2017〕138 号），「质保期」为别名
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: final_account
+  zh: 竣工结算
+  en: FinalAccount
+  snake: final_account
+  kind: document
+  bc: receivables.wip
+  definition: 完工后对最终交易价格的对账确认流程（ADR-010，F127E/F179 周期埋点）
+  standard_ref:
+  - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: medium
+  aliases:
+  - name: 结算单
+    type: dialect
+    deprecated: true
+  - name: SettlementRecord
+    type: old-code
+    deprecated: true
+  forbidden:
+  - SettlementRecord
+  - 结算单
+  status: approved
+  change_ref: G-19
+  note: 国标「竣工结算」，FIDIC Cl.14.11 Final Statement / Final Payment Certificate；Settlement 在英语里多指款项结清，且与 ClaimSettled / IntercompanySettlement 冲突
+  old_codes: []
+  core: null
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: final_account_discount
+  zh: 结算折让
+  en: FinalAccountDiscount
+  snake: final_account_discount
+  kind: value
+  bc: receivables.wip
+  definition: 结算确认中的减让（SETTLE_DISC，留痕不可改）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  confidence: low
+  aliases:
+  - name: SettlementDiscount
+    type: old-code
+    deprecated: true
+  - name: 结算折扣
+    type: dialect
+    deprecated: true
+  forbidden:
+  - SettlementDiscount
+  - 结算折扣
+  status: approved
+  change_ref: G-19
+  note: 核算上属可变对价 / 交易价格调整
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: journal_voucher
+  zh: 会计凭证
+  en: JournalVoucher
+  snake: journal_voucher
+  kind: document
+  bc: accounting.ledger
+  definition: 可追溯来源业务事件的分录载体（外购系统承载，主权在本 BC）
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  confidence: high
+  aliases:
+  - name: VoucherDO / U8cVoucherDO
+    type: legacy-code
+    deprecated: true
+  - name: psa_voucher* / psa_u8c_voucher
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: general_ledger
+  zh: 总账
+  en: GeneralLedger
+  snake: general_ledger
+  kind: entity
+  bc: accounting.ledger
+  definition: 法定账簿与报表对象（外购系统承载）
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: account
+  zh: 科目
+  en: Account
+  snake: account
+  kind: entity
+  bc: accounting.ledger
+  definition: 法定账簿与报表对象（外购系统承载）
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 会计科目；1/2 级科目用准则原词（ACC-R12）
+- id: balance_sheet
+  zh: 资产负债
+  en: BalanceSheet
+  snake: balance_sheet
+  kind: document
+  bc: accounting.ledger
+  definition: 法定账簿与报表对象（外购系统承载）
+  standard_ref:
+  - 企业会计准则第 30 号——财务报表列报
+  - IAS 1 Presentation of Financial Statements
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: IAS 1 称 statement of financial position
+- id: income_statement
+  zh: 利润表
+  en: IncomeStatement
+  snake: income_statement
+  kind: document
+  bc: accounting.ledger
+  definition: 法定账簿与报表对象（外购系统承载）
+  standard_ref:
+  - 企业会计准则第 30 号——财务报表列报
+  - IAS 1 Presentation of Financial Statements
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: CAS 30 利润表；IAS 1 statement of profit or loss
+- id: financial_statement
+  zh: 财务报表
+  en: FinancialStatement
+  snake: financial_statement
+  kind: document
+  bc: accounting.ledger
+  definition: 法定账簿与报表对象（外购系统承载）
+  standard_ref:
+  - 企业会计准则第 30 号——财务报表列报
+  - IAS 1 Presentation of Financial Statements
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: accounting_period_closed
+  zh: 会计期间
+  en: AccountingPeriodClosed
+  snake: accounting_period_closed
+  kind: event
+  bc: accounting.ledger
+  definition: 核算期间，关闭顺序强制业务期间先封
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  - ADR-0016 权责发生制业财一体主干
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 实体 AccountingPeriod 移入 accounting.period（G-4、G-16）
+- id: statutory_revenue_booked
+  zh: 法定收入
+  en: StatutoryRevenueBooked
+  snake: statutory_revenue_booked
+  kind: event
+  bc: accounting.ledger
+  definition: 以 ProgressRecognized 为依据的准则收入（开票≠收入）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: statutory_cost
+  zh: 法定成本
+  en: StatutoryCost
+  snake: statutory_cost
+  kind: metric
+  bc: accounting.ledger
+  definition: 准则口径的成本入账与结转
+  standard_ref:
+  - 企业会计准则第 30 号——财务报表列报
+  - ifrs-full:CostOfSales
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: period_end_closing
+  zh: 期末结转
+  en: PeriodEndClosing
+  snake: period_end_closing
+  kind: command
+  bc: accounting.ledger
+  definition: 准则口径的成本入账与结转
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: impairment_booked
+  zh: 减值分录
+  en: ImpairmentBooked
+  snake: impairment_booked
+  kind: event
+  bc: accounting.ledger
+  definition: 实际计提口径（F116B，区别于业务侧预警口径）
+  standard_ref:
+  - 企业会计准则第 8 号——资产减值
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: accounting_ledger__basis_difference_list
+  zh: 合规口径
+  en: BasisDifferenceList
+  snake: basis_difference_list
+  kind: document
+  bc: accounting.ledger
+  definition: 法定口径与经营口径的差异清单（与经营口径与勾稽 BC 共维护）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: functional_currency
+  zh: 记账本位币
+  en: FunctionalCurrency
+  snake: functional_currency
+  kind: value
+  bc: accounting.ledger
+  definition: 法人独立成账的币种基础与期末折算（汇率来源留痕）
+  standard_ref:
+  - 企业会计准则第 19 号——外币折算
+  - IAS 21 The Effects of Changes in Foreign Exchange Rates
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: currency_translation
+  zh: 汇率折算
+  en: CurrencyTranslation
+  snake: currency_translation
+  kind: command
+  bc: accounting.ledger
+  definition: 法人独立成账的币种基础与期末折算（汇率来源留痕）
+  standard_ref:
+  - 企业会计准则第 19 号——外币折算
+  - IAS 21 The Effects of Changes in Foreign Exchange Rates
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: related_party_transaction
+  zh: 关联交易
+  en: RelatedPartyTransaction
+  snake: related_party_transaction
+  kind: entity
+  bc: accounting.ledger
+  definition: 跨法人业务的核算侧表达（成对入账）
+  standard_ref:
+  - 企业会计准则第 36 号——关联方披露
+  - IAS 24 Related Party Disclosures
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: intercompany_balance
+  zh: 内部往来
+  en: IntercompanyBalance
+  snake: intercompany_balance
+  kind: metric
+  bc: accounting.ledger
+  definition: 跨法人业务的核算侧表达（成对入账）
+  standard_ref:
+  - 企业会计准则第 33 号——合并财务报表
+  - IFRS 10 Consolidated Financial Statements
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+- id: intercompany_elimination
+  zh: 内部往来抵销
+  en: IntercompanyElimination
+  snake: intercompany_elimination
+  kind: command
+  bc: accounting.ledger
+  definition: 对销恒等：A 内部应收 = B 内部应付，差额不清零期间不关
+  standard_ref:
+  - 企业会计准则第 33 号——合并财务报表
+  - IFRS 10 Consolidated Financial Statements
+  confidence: high
+  aliases:
+  - name: 内部往来对销
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 内部往来对销
+  status: approved
+  change_ref: G-25
+  note: CAS 33 原文用「抵销」，不用「对销」
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: intercompany_settlement
+  zh: 内部结算
+  en: IntercompanySettlement
+  snake: intercompany_settlement
+  kind: command
+  bc: accounting.ledger
+  definition: 跨法人结算：成本加成模型（ADR-011），加成率为财务政策参数、跨境合规由税务把关
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: transfer_pricing
+  zh: 转移定价
+  en: TransferPricing
+  snake: transfer_pricing
+  kind: value
+  bc: accounting.ledger
+  definition: 跨法人结算：成本加成模型（ADR-011），加成率为财务政策参数、跨境合规由税务把关
+  standard_ref:
+  - IAS 24 Related Party Disclosures
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+- id: accounting_mapping_rule_set
+  zh: 核算映射规则
+  en: AccountingMappingRuleSet
+  snake: accounting_mapping_rule_set
+  kind: entity
+  bc: accounting.ledger
+  definition: 业务事件→凭证模板的版本化防腐层配置
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: period_close_sequence
+  zh: 期间关闭顺序
+  en: PeriodCloseSequence
+  snake: period_close_sequence
+  kind: value
+  bc: accounting.ledger
+  definition: 工时→成本→WIP→经营→核算的强制封闭次序
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: quote
+  zh: 报价单
+  en: Quote
+  snake: quote
+  kind: document
+  bc: presales.quoting
+  definition: 报价编制、审批与定价的独立聚合（2026-07-05 聚合根严格评估拆出）：工时估算×职级费率、五分量全成本、折扣管控、版本链（**每版本一个聚合实例**：调整产生新实例携前版引用，SUPERSEDED/VOIDED 为实例终态——冷启动提问 5 显式化 2026-07-07）；草拟→提交→BU 审定→生效流转
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: Quotation / QuotationDO
+    type: legacy-code
+    deprecated: true
+  - name: psa_quotation, psa_quotation_line, psa_quotation_seal
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - BaoJia
+  - Quotation
+  status: approved
+  core: true
+- id: cost_estimate_node
+  zh: 成本估算树
+  en: CostEstimateNode
+  snake: cost_estimate_node
+  kind: entity
+  bc: presales.quoting
+  definition: 报价成本估算树的节点（分量 × 层级）
+  standard_ref:
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: medium
+  aliases:
+  - name: CostEstimateNode
+    type: legacy-code
+    deprecated: true
+  - name: psa_cost_estimate_*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  change_ref: G-5
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: labor_estimate_line
+  zh: 工时估算明细
+  en: LaborEstimateLine
+  snake: labor_estimate_line
+  kind: entity
+  bc: presales.quoting
+  definition: 报价内按职级的预估工时明细行（职级 × 工时 × 费率 = 人工小计）
+  standard_ref:
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: ManhourEstimateItem
+    type: legacy-code
+    deprecated: true
+  forbidden:
+  - ManHour
+  - ManhourEstimateItem
+  status: approved
+  change_ref: G-1
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: opportunity
+  zh: 商机
+  en: Opportunity
+  snake: opportunity
+  kind: entity
+  bc: presales.quoting
+  definition: 立项跟进的销售机会，评估→报价→承诺→转化的全生命周期对象
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: OpportunityDO, OppCloseStatus
+    type: legacy-code
+    deprecated: true
+  - name: psa_crm_opportunity
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: customer
+  zh: 客户
+  en: Customer
+  snake: customer
+  kind: entity
+  bc: presales.customer
+  definition: 具备独立签约与付款主体资格的法律责任实体的主数据档案（判定标准=能否独立签合同、独立承担付款义务，业主报告 2026-07-06）；唯一法定标识，合并保留历史
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  confidence: high
+  aliases:
+  - name: CustomerDO
+    type: legacy-code
+    deprecated: true
+  - name: psa_bd_customer
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: rate_card
+  zh: 费率卡
+  en: RateCard
+  snake: rate_card
+  kind: entity
+  bc: contract.baseline
+  definition: 合同约定的计费费率集合（RateCardItem 的聚合）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: BillRateDO, HourlyRateDO
+    type: legacy-code
+    deprecated: true
+  - name: psa_bill_rate*, psa_pm_hourlyrate*
+    type: legacy-table
+    deprecated: true
+  - name: BillRateDO / HourlyRateDO
+    type: legacy-code
+    deprecated: true
+  - name: psa_bill_rate* / psa_pm_hourlyrate*
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - BillRateTable
+  - HourlyRate
+  status: approved
+  core: true
+  change_ref: G-3
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: project
+  zh: 项目
+  en: Project
+  snake: project
+  kind: entity
+  bc: delivery.execution
+  definition: 交付执行的项目聚合（词表未收录，补入）
+  standard_ref:
+  - PMI PMBOK Guide
+  - GB/T 50326-2017 建设工程项目管理规范
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: PmProjectDO, ProjectDO
+    type: legacy-code
+    deprecated: true
+  - name: psa_pm_project
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - PmProject
+  status: approved
+  change_ref: G-29
+  note: PSA 行业中与客户的整体合作也称 Engagement；本系统 Engagement 仅用于客户侧 EngagementHistory，不作项目别名
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: project_budget
+  zh: 项目预算（WBS 预算）
+  en: ProjectBudget
+  snake: project_budget
+  kind: entity
+  bc: delivery.execution
+  definition: WBS 层级的项目成本预算；锁定即计划基线生效（词表未收录，补入）
+  standard_ref:
+  - PMI PMBOK Guide
+  confidence: high
+  aliases:
+  - name: ProjectBudget, wbs_budget_*
+    type: legacy-code
+    deprecated: true
+  - name: psa_pm_project.wbs_budget_*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  change_ref: G-29
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: expense_claim
+  zh: 报销单
+  en: ExpenseClaim
+  snake: expense_claim
+  kind: document
+  bc: expense.spend
+  definition: 引用已批申请（或政策豁免）的费用确认载体
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: TravelApplication, Invoice
+    type: legacy-code
+    deprecated: true
+  - name: psa_travel_application*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: travel_expense
+  zh: 差旅
+  en: TravelExpense
+  snake: travel_expense
+  kind: value
+  bc: expense.spend
+  definition: 费用类别
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: TravelApplication, Invoice
+    type: legacy-code
+    deprecated: true
+  - name: psa_travel_application*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+- id: legal_entity
+  zh: 法人主体
+  en: LegalEntity
+  snake: legal_entity
+  kind: entity
+  bc: organization.workforce
+  definition: 法律实体主数据（主权归组织人事 BC，Q11 已确认 2026-07-04；核算持属性视图）
+  standard_ref:
+  - 企业会计准则第 33 号——合并财务报表
+  confidence: medium
+  aliases:
+  - name: companyCode, company_code
+    type: legacy-code
+    deprecated: true
+  - name: system_dept / mdm
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - CompanyCode
+  - companyCode
+  status: approved
+  core: true
+- id: employee
+  zh: 员工
+  en: Employee
+  snake: employee
+  kind: entity
+  bc: organization.workforce
+  definition: 员工主数据与任职记录（EmployeeId 来源）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: AdminUserDO, DeptDO
+    type: legacy-code
+    deprecated: true
+  - name: system_users, system_dept
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: org_unit
+  zh: 组织单元
+  en: OrgUnit
+  snake: org_unit
+  kind: entity
+  bc: organization.workforce
+  definition: 法人→BU→部门层级（组织单元必挂法人主体）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: AdminUserDO, DeptDO
+    type: legacy-code
+    deprecated: true
+  - name: system_users, system_dept
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: job_grade
+  zh: 职级
+  en: JobGrade
+  snake: job_grade
+  kind: value
+  bc: organization.workforce
+  definition: 员工职级 T1-T7 七级（组织主数据，计费费率与折扣权限的档位依据）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: jobLevelCode, postCode
+    type: legacy-code
+    deprecated: true
+  - name: system_post
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: position
+  zh: 岗位
+  en: Position
+  snake: position
+  kind: value
+  bc: organization.workforce
+  definition: 任职与费率适用的岗级体系
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: jobLevelCode, postCode
+    type: legacy-code
+    deprecated: true
+  - name: system_post
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: accounting_period
+  zh: 会计期间
+  en: AccountingPeriod
+  snake: accounting_period
+  kind: entity
+  bc: accounting.period
+  definition: 按（期间, 法人）粒度的期间状态载体，只有会计期间 BC 能写
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  - ADR-0016 权责发生制业财一体主干
+  confidence: high
+  aliases:
+  - name: AccountingPeriodDO
+    type: legacy-code
+    deprecated: true
+  - name: mdm_accounting_period
+    type: legacy-table
+    deprecated: true
+  - name: psa_accounting_period
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  change_ref: G-4
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: user
+  zh: 用户
+  en: User
+  snake: user
+  kind: entity
+  bc: platform.identity
+  definition: 技术权限（RBAC；业务授权语义归业务 BC）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: AdminUserDO, RoleDO, MenuDO
+    type: legacy-code
+    deprecated: true
+  - name: system_users, system_role, system_menu
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: role
+  zh: 角色
+  en: Role
+  snake: role
+  kind: role
+  bc: platform.identity
+  definition: 技术权限（RBAC；业务授权语义归业务 BC）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: AdminUserDO, RoleDO, MenuDO
+    type: legacy-code
+    deprecated: true
+  - name: system_users, system_role, system_menu
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: permission
+  zh: 权限
+  en: Permission
+  snake: permission
+  kind: value
+  bc: platform.identity
+  definition: 技术权限（RBAC；业务授权语义归业务 BC）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: AdminUserDO, RoleDO, MenuDO
+    type: legacy-code
+    deprecated: true
+  - name: system_users, system_role, system_menu
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: workflow
+  zh: 流程
+  en: Workflow
+  snake: workflow
+  kind: entity
+  bc: platform.approval
+  definition: 审批流转承载（能不能批由业务 BC 判定）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: Bpm*, CustomizedBpmOA
+    type: legacy-code
+    deprecated: true
+  - name: bpm_*, ACT_*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: workflow_instance
+  zh: 流程实例
+  en: WorkflowInstance
+  snake: workflow_instance
+  kind: entity
+  bc: platform.approval
+  definition: 审批流转承载（能不能批由业务 BC 判定）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: Bpm*, CustomizedBpmOA
+    type: legacy-code
+    deprecated: true
+  - name: bpm_*, ACT_*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: approval
+  zh: 审批
+  en: Approval
+  snake: approval
+  kind: command
+  bc: platform.approval
+  definition: 审批流转承载（能不能批由业务 BC 判定）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: Bpm*, CustomizedBpmOA
+    type: legacy-code
+    deprecated: true
+  - name: bpm_*, ACT_*
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: rule_engine
+  zh: 规则引擎
+  en: RuleEngine
+  snake: rule_engine
+  kind: entity
+  bc: platform.approval
+  definition: 只承载执行；规则定义与版本主权归业务 BC（红线）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: rule_execution
+  zh: 规则执行
+  en: RuleExecution
+  snake: rule_execution
+  kind: event
+  bc: platform.approval
+  definition: 只承载执行；规则定义与版本主权归业务 BC（红线）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: dead_letter_queue
+  zh: 异常队列
+  en: DeadLetterQueue
+  snake: dead_letter_queue
+  kind: entity
+  bc: platform.integration
+  definition: 映射失败消息的显式滞留处（不得静默丢弃）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: ReliableDeliveryTask, psa_bpm_mq_outbox
+    type: legacy-code
+    deprecated: true
+  - name: psa_reliable_delivery_task, psa_bpm_mq_outbox
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: delivery_guarantee
+  zh: 投递保证
+  en: DeliveryGuarantee
+  snake: delivery_guarantee
+  kind: value
+  bc: platform.integration
+  definition: 至少一次投递 + 事件不可篡改 + 可重放
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: ReliableDeliveryTask, psa_bpm_mq_outbox
+    type: legacy-code
+    deprecated: true
+  - name: psa_reliable_delivery_task, psa_bpm_mq_outbox
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: audit_log
+  zh: 审计日志
+  en: AuditLog
+  snake: audit_log
+  kind: entity
+  bc: platform.audit
+  definition: 只追加、不可篡改、可回放的变更轨迹
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases:
+  - name: OperateLog, ApiAccessLog
+    type: legacy-code
+    deprecated: true
+  - name: system_operate_log, infra_api_access_log
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_liability
+  zh: 合同负债
+  en: ContractLiability
+  snake: contract_liability
+  kind: entity
+  bc: receivables.wip
+  definition: 企业已收或应收客户对价而应向客户转让商品或服务的义务（预收款、超额开票），按合同与合同资产净额列示
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - ifrs-full:ContractLiabilities
+  confidence: high
+  aliases:
+  - name: 预收款 / 递延收入
+    type: dialect
+    deprecated: true
+  - name: AdvanceReceipt / DeferredRevenue
+    type: old-code
+    deprecated: true
+  forbidden:
+  - DeferredRevenue
+  - AdvanceReceipt
+  - 预收款
+  - 递延收入
+  status: approved
+  change_ref: G-11
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: performance_obligation
+  zh: 履约义务
+  en: PerformanceObligation
+  snake: performance_obligation
+  kind: entity
+  bc: contract.baseline
+  definition: 合同中向客户转让可明确区分商品或服务的承诺，收入确认的计量单元
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases:
+  - name: 合同条款（若财务确认等同）
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 合同条款（若财务确认等同）
+  status: approved
+  change_ref: G-21
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: transaction_price
+  zh: 交易价格
+  en: TransactionPrice
+  snake: transaction_price
+  kind: value
+  bc: contract.baseline
+  definition: 企业因向客户转让商品或服务而预期有权收取的对价金额，含可变对价估计
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases:
+  - name: 合同金额 / 最终交易价格
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 合同金额
+  - 最终交易价格
+  status: approved
+  change_ref: G-21
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: variable_consideration
+  zh: 可变对价
+  en: VariableConsideration
+  snake: variable_consideration
+  kind: value
+  bc: contract.baseline
+  definition: 交易价格中随折让、违约金、奖励、索赔结果等变动的部分
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-20
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: contract_modification
+  zh: 合同变更（会计口径）
+  en: ContractModification
+  snake: contract_modification
+  kind: event
+  bc: contract.changeorder
+  definition: 经批准的合同范围或价格变更在收入核算上的处理事实（单独合同 / 原合同终止新立 / 累积追加调整）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-21
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: costs_to_obtain_contract
+  zh: 合同取得成本
+  en: CostsToObtainContract
+  snake: costs_to_obtain_contract
+  kind: metric
+  bc: cost.costing
+  definition: 为取得合同发生的增量成本（如居间佣金），预期可收回时确认为资产
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - ifrs-full:AssetsRecognisedFromCostsToObtainOrFulfilContractsWithCustomers
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-10
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: satisfied_over_time
+  zh: 时段履约
+  en: SatisfiedOverTime
+  snake: satisfied_over_time
+  kind: value
+  bc: receivables.wip
+  definition: 在某一时段内履行的履约义务，按履约进度确认收入
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-13
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: satisfied_at_point_in_time
+  zh: 时点履约
+  en: SatisfiedAtPointInTime
+  snake: satisfied_at_point_in_time
+  kind: value
+  bc: receivables.wip
+  definition: 在某一时点履行的履约义务，控制权转移时确认收入
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-13
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: revenue_recognized
+  zh: 收入已确认
+  en: RevenueRecognized
+  snake: revenue_recognized
+  kind: event
+  bc: receivables.wip
+  definition: 收入确认单生效的事实事件（替代 ProgressRecognized 事件名）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: medium
+  aliases:
+  - name: ProgressRecognized
+    type: old-code
+    deprecated: true
+  forbidden:
+  - ProgressRecognized
+  status: approved
+  change_ref: G-12
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: cost_of_sales
+  zh: 营业成本
+  en: CostOfSales
+  snake: cost_of_sales
+  kind: metric
+  bc: cost.costing
+  definition: 随收入确认由合同履约成本转出的成本（原「主营业务成本」）
+  standard_ref:
+  - 企业会计准则第 30 号——财务报表列报
+  - ifrs-full:CostOfSales
+  confidence: medium
+  aliases:
+  - name: 主营业务成本 / 主营成本
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 主营业务成本
+  - 主营成本
+  status: approved
+  change_ref: G-10
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: remaining_performance_obligation
+  zh: 剩余履约义务
+  en: RemainingPerformanceObligation
+  snake: remaining_performance_obligation
+  kind: metric
+  bc: contract.baseline
+  definition: 已签约未履约部分分摊的交易价格（行业称在手合同额 / backlog）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - ifrs-full:TransactionPriceAllocatedToRemainingPerformanceObligations
+  confidence: medium
+  aliases:
+  - name: 在手合同额 / Backlog
+    type: industry
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-21
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: onerous_contract
+  zh: 亏损合同
+  en: OnerousContract
+  snake: onerous_contract
+  kind: state
+  bc: delivery.execution
+  definition: 履行合同义务不可避免的成本超过预期经济利益的合同
+  standard_ref:
+  - 企业会计准则第 13 号——或有事项（亏损合同）
+  - IAS 37 Provisions, Contingent Liabilities and Contingent Assets
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: estimate_at_completion
+  zh: 完工估算
+  en: EstimateAtCompletion
+  snake: estimate_at_completion
+  kind: metric
+  bc: delivery.execution
+  definition: EAC = 实际成本 AC + 完工尚需估算 ETC
+  standard_ref:
+  - PMI PMBOK Guide
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases:
+  - name: EAC
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: planned_value
+  zh: 计划价值
+  en: PlannedValue
+  snake: planned_value
+  kind: metric
+  bc: delivery.execution
+  definition: 按基线截至某时点计划完成工作的预算价值（PV）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  - GB/T 50358-2017 建设项目工程总承包管理规范
+  confidence: high
+  aliases:
+  - name: PV
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: earned_value
+  zh: 挣值
+  en: EarnedValue
+  snake: earned_value
+  kind: metric
+  bc: delivery.execution
+  definition: 截至某时点已完成工作的预算价值（EV；GB/T 50358 称赢得值）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  - GB/T 50358-2017 建设项目工程总承包管理规范
+  confidence: high
+  aliases:
+  - name: 赢得值 / EV
+    type: standard-zh
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: actual_cost
+  zh: 实际成本
+  en: ActualCost
+  snake: actual_cost
+  kind: metric
+  bc: delivery.execution
+  definition: 截至某时点已完成工作的实际发生成本（AC）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: AC
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: cost_performance_index
+  zh: 成本绩效指数
+  en: CostPerformanceIndex
+  snake: cost_performance_index
+  kind: metric
+  bc: delivery.execution
+  definition: CPI = EV / AC
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: CPI
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: schedule_performance_index
+  zh: 进度绩效指数
+  en: SchedulePerformanceIndex
+  snake: schedule_performance_index
+  kind: metric
+  bc: delivery.execution
+  definition: SPI = EV / PV
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: SPI
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: schedule_variance
+  zh: 进度偏差
+  en: ScheduleVariance
+  snake: schedule_variance
+  kind: metric
+  bc: delivery.execution
+  definition: SV = EV − PV
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: SV
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: earned_value_cost_variance
+  zh: 挣值成本偏差
+  en: EarnedValueCostVariance
+  snake: earned_value_cost_variance
+  kind: metric
+  bc: delivery.execution
+  definition: EVM 的 CV = EV − AC（与成本预算偏差 CostBudgetVariance 区分）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: CV
+    type: abbr
+    deprecated: false
+  forbidden:
+  - CostVariance
+  status: approved
+  change_ref: G-24
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: defects_liability_period
+  zh: 缺陷责任期
+  en: DefectsLiabilityPeriod
+  snake: defects_liability_period
+  kind: value
+  bc: receivables.collection
+  definition: 质量保证金扣留与返还所对应的期间（区别于法定保修期）
+  standard_ref:
+  - 建设工程质量保证金管理办法（建质〔2017〕138 号）
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: high
+  aliases:
+  - name: 质保期
+    type: dialect
+    deprecated: true
+  - name: Defects Notification Period（FIDIC）
+    type: standard-en
+    deprecated: false
+  forbidden:
+  - WarrantyPeriod
+  - 质保期
+  status: approved
+  change_ref: G-17
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: interim_payment_certificate
+  zh: 期中支付证书
+  en: InterimPaymentCertificate
+  snake: interim_payment_certificate
+  kind: document
+  bc: receivables.wip
+  definition: 按合同对阶段完成工作的进度款确认（国标称进度款支付）
+  standard_ref:
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
+  confidence: medium
+  aliases:
+  - name: 进度款
+    type: standard-zh
+    deprecated: false
+  - name: IPC
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-19
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: period_status
+  zh: 期间状态
+  en: PeriodStatus
+  snake: period_status
+  kind: state
+  bc: accounting.period
+  definition: OPEN / CLOSING / CLOSED（重开政策待财务确认）
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-16
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: period_close
+  zh: 期末关账
+  en: PeriodClose
+  snake: period_close
+  kind: command
+  bc: accounting.period
+  definition: 一组前置检查（各 BC 关账前置检查结论）加一次期间状态转换
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  - ADR-0016 权责发生制业财一体主干
+  confidence: medium
+  aliases:
+  - name: 期间封闭 / 封期 / 结账
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 期间封闭
+  - 封期
+  - 结账
+  status: approved
+  change_ref: G-16
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: reopen_accounting_period
+  zh: 期间重开
+  en: ReopenAccountingPeriod
+  snake: reopen_accounting_period
+  kind: command
+  bc: accounting.period
+  definition: 已关账期间的受控重开（政策待财务确认）
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-16
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: posting_candidate
+  zh: 过账候选
+  en: PostingCandidate
+  snake: posting_candidate
+  kind: value
+  bc: operations.facts
+  definition: 触账 BC 向单一过账管道提交的类型化候选分录
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-16
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: reversing_entry
+  zh: 冲销
+  en: ReversingEntry
+  snake: reversing_entry
+  kind: entity
+  bc: operations.facts
+  definition: 生成反向事实与新序号的更正方式，原行保留并双向关联
+  standard_ref:
+  - 会计基础工作规范（财政部）
+  - ADR-0016 权责发生制业财一体主干
+  confidence: medium
+  aliases:
+  - name: 红冲 / 红字冲销
+    type: dialect
+    deprecated: true
+  - name: RedReversal / revenueRedReversal
+    type: legacy-code
+    deprecated: true
+  forbidden:
+  - RedReversal
+  - Hongchong
+  - 红冲
+  - 红字冲销
+  status: approved
+  change_ref: G-16
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: bill_rate_card
+  zh: 计费费率卡
+  en: BillRateCard
+  snake: bill_rate_card
+  kind: entity
+  bc: contract.baseline
+  definition: 对客计费费率卡（与成本费率卡 StandardCostRateCard 对称）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-3
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: utilization_rate
+  zh: 利用率
+  en: UtilizationRate
+  snake: utilization_rate
+  kind: metric
+  bc: cost.timesheet
+  definition: 可计费工时 / 可用工时（PSA 通行指标）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: Utilization
+    type: industry
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-2
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+common_words:
+- Id
+- Uuid
+- Key
+- Code
+- 'No'
+- Name
+- Title
+- Description
+- Remark
+- Note
+- Type
+- Kind
+- Category
+- Status
+- State
+- Level
+- Version
+- Seq
+- Sequence
+- Index
+- Order
+- Sort
+- Line
+- Item
+- Detail
+- Entry
+- Record
+- List
+- Page
+- Amount
+- Price
+- Quantity
+- Qty
+- Rate
+- Ratio
+- Percent
+- Total
+- Sum
+- Count
+- Balance
+- Currency
+- Money
+- Hours
+- Date
+- Time
+- Timestamp
+- Period
+- Start
+- End
+- From
+- To
+- Year
+- Month
+- Day
+- Created
+- Updated
+- Deleted
+- By
+- At
+- Request
+- Response
+- Command
+- Query
+- Queries
+- Commands
+- Result
+- Summary
+- View
+- Dashboard
+- Queue
+- Ledger
+- Snapshot
+- Ref
+- Reference
+- Source
+- Target
+- Owner
+- Approver
+- Reason
+- Comment
+- Attachment
+- File
+- Url
+- Is
+- Has
+- Repository
+- Controller
+- Client
+- Gateway
+- Config
+- Policy
+- Spec
+- Rule
+- Event
+- Handler
+- Mapper
+- Create
+- Update
+- Delete
+- Get
+- Find
+- Submit
+- Approve
+- Reject
+- Cancel
+- Withdraw
+- Close
+- Open
+- Reopen
+- Draft
+- Pending
+- Active
+- Inactive
+- Approved
+- Rejected
+- Cancelled
+- Closed
+- Valid
+- Invalid
+- Enabled
+- Min
+- Max
+- Default
+- Limit
+- Threshold
+- Tax
+- Net
+- Gross
+- Debit
+- Credit
+- Api
+- Http
+- Json
+- Dto

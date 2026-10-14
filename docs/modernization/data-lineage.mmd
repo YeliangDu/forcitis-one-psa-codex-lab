@@ -1,0 +1,60 @@
+graph LR
+  dom_approval_workflow_bpm["Approval & workflow (BPM)"]
+  dom_expense_travel["Expense & travel"]
+  dom_finance_cost_accounting_ar["Finance: cost, accounting & AR"]
+  dom_front_end_shell_pc_h5["Front-end shell (PC & H5)"]
+  dom_identity_org_platform["Identity, org & platform"]
+  dom_infrastructure_framework["Infrastructure & framework"]
+  dom_presales_crm_contract["Presales, CRM & contract"]
+  dom_project_delivery["Project & delivery"]
+  dom_reporting_dashboards["Reporting & dashboards"]
+  dom_shared_cross_cutting["Shared / cross-cutting"]
+  dom_timesheet_resources["Timesheet & resources"]
+  ds_psa_pm_project[("psa_pm_project")]
+  ds_bpm_oa_customized[("bpm_oa_customized")]
+  ds_psa_time_sheet_works[("psa_time_sheet_works")]
+  ds_psa_pm_contract_term[("psa_pm_contract_term")]
+  ds_psa_crm_opportunity[("psa_crm_opportunity")]
+  ds_psa_pm_contract[("psa_pm_contract")]
+  ds_system_dept[("system_dept")]
+  ds_psa_bd_customer[("psa_bd_customer")]
+  ds_bpm_process_instance_ext[("bpm_process_instance_ext")]
+  ds_psa_pm_plan_task[("psa_pm_plan_task")]
+  ds_psa_reliable_delivery_task[("psa_reliable_delivery_task")]
+  ds_system_users[("system_users")]
+  dom_finance_cost_accounting_ar -.->|read 7| ds_psa_pm_project
+  dom_finance_cost_accounting_ar ==>|write 6| ds_psa_pm_project
+  dom_project_delivery -.->|read 5| ds_psa_pm_project
+  dom_approval_workflow_bpm -.->|read 9| ds_bpm_oa_customized
+  dom_approval_workflow_bpm ==>|write 5| ds_bpm_oa_customized
+  dom_project_delivery -.->|read 2| ds_bpm_oa_customized
+  dom_timesheet_resources -.->|read 4| ds_psa_time_sheet_works
+  dom_project_delivery -.->|read 3| ds_psa_time_sheet_works
+  dom_project_delivery ==>|write 3| ds_psa_time_sheet_works
+  dom_finance_cost_accounting_ar -.->|read 5| ds_psa_pm_contract_term
+  dom_project_delivery -.->|read 3| ds_psa_pm_contract_term
+  dom_presales_crm_contract -.->|read 2| ds_psa_pm_contract_term
+  dom_finance_cost_accounting_ar -.->|read 3| ds_psa_crm_opportunity
+  dom_timesheet_resources -.->|read 3| ds_psa_crm_opportunity
+  dom_presales_crm_contract -.->|read 2| ds_psa_crm_opportunity
+  dom_finance_cost_accounting_ar -.->|read 5| ds_psa_pm_contract
+  dom_project_delivery -.->|read 3| ds_psa_pm_contract
+  dom_presales_crm_contract -.->|read 2| ds_psa_pm_contract
+  dom_timesheet_resources -.->|read 4| ds_system_dept
+  dom_identity_org_platform -.->|read 4| ds_system_dept
+  dom_timesheet_resources ==>|write 3| ds_system_dept
+  dom_presales_crm_contract -.->|read 2| ds_psa_bd_customer
+  dom_timesheet_resources -.->|read 2| ds_psa_bd_customer
+  dom_project_delivery -.->|read 2| ds_psa_bd_customer
+  dom_project_delivery -.->|read 4| ds_bpm_process_instance_ext
+  dom_approval_workflow_bpm -.->|read 4| ds_bpm_process_instance_ext
+  dom_timesheet_resources -.->|read 2| ds_bpm_process_instance_ext
+  dom_timesheet_resources -.->|read 5| ds_psa_pm_plan_task
+  dom_project_delivery -.->|read 2| ds_psa_pm_plan_task
+  dom_project_delivery ==>|write 2| ds_psa_pm_plan_task
+  dom_finance_cost_accounting_ar -.->|read 2| ds_psa_reliable_delivery_task
+  dom_finance_cost_accounting_ar ==>|write 2| ds_psa_reliable_delivery_task
+  dom_expense_travel -.->|read 2| ds_psa_reliable_delivery_task
+  dom_timesheet_resources -.->|read 5| ds_system_users
+  dom_timesheet_resources ==>|write 4| ds_system_users
+  dom_identity_org_platform -.->|read 2| ds_system_users

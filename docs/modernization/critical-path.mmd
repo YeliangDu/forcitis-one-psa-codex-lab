@@ -1,0 +1,10 @@
+flowchart TD
+  A["员工在 H5 / PC 填报工时<br/>h5:pages/work/project · pc:views/project/manhour"] --> B["提交并校验<br/>fst:service/manhour<br/>生产 180 天：工时接口 376,422 次调用，失败率 2.00%"]
+  B --> C[("psa_time_sheet_works<br/>699,925 行")]
+  B --> D["发起工时审批<br/>bpm:service/task（Flowable）<br/>审批接口 323,867 次调用"]
+  D --> E["经理在待办中通过 / 驳回<br/>pc:views/bpm/processInstance"]
+  E --> F["MQ topic-bpm-*-result<br/>fst:mq/consumer 回写状态"]
+  F --> B
+  B --> G["XXL-JOB：人天、费率、工时同步<br/>fst:trigger/task"]
+  G --> H["月末成本归集<br/>fst:application/cost"]
+  note["延迟数据不可用：access log 的 duration 字段单位存疑"]

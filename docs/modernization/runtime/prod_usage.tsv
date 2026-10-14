@@ -1,0 +1,1464 @@
+##00_log_window
+2024-08-14 16:18:06	2026-10-14 14:01:23	4903080
+##01_api_usage_raw
+infra-server	GET	/admin-api/infra/file/4/get/1b71aceccc9f3e717e8fc48fcc18d69cf61c5d81eb496b39bf5d4cadd555cbc4.jpg	10	1	2026-05-06 09:18:41	2026-09-12 21:58:39	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467614459133952/submit	1	1	2026-10-09 12:52:36	2026-10-09 12:52:36	1	1	0
+fst-server	GET	/admin-api/fst/resource/plan-task/page	145	36	2026-04-27 19:05:39	2026-09-22 17:11:41	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/58cd09fe87a737b8982ff426f15f26c9b394bd2a1cafe462d06b08405df788a7.jpg	11	1	2026-04-17 21:05:49	2026-05-07 18:02:21	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260831/1788147242732318w09.jpeg	3	1	2026-08-31 11:42:28	2026-08-31 11:43:08	0	0	0
+bpm-server	GET	/admin-api/bpm/user-group/page	11	4	2026-06-29 17:54:47	2026-09-22 20:22:46	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1466856388108288/save-draft	2	1	2026-09-28 19:49:40	2026-09-28 20:26:27	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20261010/17916114875578tz1dn.pdf	7	1	2026-10-10 16:25:47	2026-10-10 16:42:02	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/1790669487238vtnaj8.jpg	3	1	2026-09-30 11:35:06	2026-09-30 18:13:26	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/1467680526204928/expense-allocation	7	2	2026-10-10 11:16:45	2026-10-12 21:02:13	0	0	1
+fst-server	GET	/admin-api/system/auth/get-permission-info	2	1	2026-05-26 17:16:56	2026-06-30 03:47:14	0	0	0
+bpm-server	GET	/admin-api/bpm/model/page	130	7	2026-04-30 19:20:40	2026-10-13 14:22:26	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/eb72742f71fd9b2b61afcf8ec9009b32d9283541efdd2e64e159541e2ee7854b.jpg	1	1	2026-04-23 17:31:42	2026-04-23 17:31:42	0	0	0
+bpm-server	PUT	/admin-api/bpm/process-instance/withdraw-to-initiator	11	9	2026-09-22 21:37:46	2026-10-12 09:24:59	0	0	3
+fst-server	GET	/admin-api/fst/cost/collection/batch/latest	127	2	2026-09-22 12:26:26	2026-10-10 16:45:40	0	0	0
+fst-server	GET	/admin-api/fst/accounting/cost/carried-over/list	21	8	2026-04-27 09:09:00	2026-08-26 13:47:51	0	0	1
+system-server	GET	/app-api/system/dict-data/list-all-simple	61266	333	2026-04-30 19:15:26	2026-10-14 14:01:06	0	1	31
+fst-server	GET	/admin-api/fst/cost/carry-batch/period-options	45	7	2026-09-22 12:26:40	2026-10-14 10:36:07	0	0	0
+bpm-server	GET	/admin-api/bpm/task/list-by-process-instance-id	14748	226	2026-04-17 21:37:50	2026-10-14 13:42:03	0	7	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/2f61a39f97108d4a6c6ffb9fb5482912b90f50ae72aa505aeb3f292d2feee511.pdf	1	1	2026-10-13 13:55:42	2026-10-13 13:55:42	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/9fcfa1704477133f0ce152437ea0ff65d5e009c53ef5409f7611849e22e13980.png	9062	1	2026-04-17 14:31:59	2026-10-13 21:04:13	0	0	0
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/deliverable/20260730/17854024174559n8u59.docx	23	1	2026-07-30 17:07:07	2026-07-31 11:36:19	0	0	23
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/85d0b06d81a2af94f6cdd37a623692e93631dab03a6520ea1ebe5e3f164a6c2c.xlsx	2	1	2026-08-14 19:39:31	2026-08-14 19:53:33	2	3	0
+fst-server	GET	/admin-api/fst/travel-applications/1467007456985088/expense-allocation	12	3	2026-09-30 23:03:07	2026-10-10 17:53:54	0	0	0
+fst-server	GET	/admin-api/fst/resource/plan/page	771	50	2026-04-20 22:45:45	2026-09-20 17:38:17	0	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/340c164a5f687a04e019d672dc294745679b649330f9da24113d6577b76e1792.xlsx	1	1	2026-08-14 11:43:11	2026-08-14 11:43:11	0	0	0
+fst-server	GET	/admin-api/fst/plan/works/list-by-projectIdList	331	11	2026-04-20 20:21:45	2026-09-21 09:40:03	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/mine-summary	111	36	2026-09-22 14:42:29	2026-10-13 22:54:56	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/1467834777960448/expense-allocation	2	1	2026-10-12 15:35:16	2026-10-12 15:36:01	0	0	1
+fst-server	GET	/admin-api/fst/project/view/project-budget	363	35	2026-04-20 12:00:01	2026-09-22 09:09:53	1	17	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/866c177f9c5af278c907b2390df32e59fa42a79042b5f7ee182b21abe2a474d9.jpg	4	1	2026-10-10 17:53:35	2026-10-10 17:56:03	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/revenue/confirm	20	7	2026-09-24 11:24:26	2026-10-14 11:07:45	0	1	0
+fst-server	GET	/app-api/fst/man-hour/item/get-by-instance-id	4	2	2026-07-25 10:02:02	2026-07-25 10:17:49	0	0	0
+system-server	PUT	/admin-api/system/user/profile/update	4	4	2026-05-06 09:18:45	2026-10-10 11:51:42	0	0	0
+system-server	GET	/admin-api/system/user/skill-tags/page	3	3	2026-07-06 17:52:37	2026-09-29 10:00:30	0	0	0
+system-server	GET	/admin-api/system/menu/get	27	4	2026-09-17 15:48:24	2026-10-09 10:22:48	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/3fa14ca86991835c34f3441fc6e750c576b3534cb2aadef628f78267098a15d3.jpg	469	1	2026-04-17 21:24:45	2026-09-30 22:34:04	0	0	1
+infra-server	GET	/admin-api/infra/file/4/get/0ee706d5206980978ed342cf3ef4bd1a6873e5579b31dfd7790cc139cfecd315.jpg	224	1	2026-04-20 12:00:01	2026-09-29 10:01:12	0	0	0
+fst-server	GET	/admin-api/fst/cost/pre-posting-check/items/TIMESHEET_APPROVAL/rows	1	1	2026-10-10 16:26:48	2026-10-10 16:26:48	1	1	0
+fst-server	POST	/admin-api/fst/travel-cities/synchronize	2	2	2026-09-22 14:42:52	2026-09-22 19:01:24	1	2	0
+fst-server	GET	/admin-api/fst/task/user/page	990	88	2026-04-17 14:32:25	2026-05-10 22:04:04	0	1	0
+infra-server	GET	/admin-api/infra/file/4/get/633a4ac237f39ea3640e9c53692f9251cc1038e98901a70fc577b3f580857e7a.jpg	215	1	2026-04-17 20:06:31	2026-09-30 18:14:00	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260826/1787724376305do4h7j.jpg	1	1	2026-08-26 19:03:43	2026-08-26 19:03:43	0	0	0
+infra-server	GET	/admin-api/infra/data-source-config/list	9	5	2026-06-24 10:34:06	2026-09-23 17:18:42	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/e82bd324fd5545fdc92c7d470e5c6ad80a5c49efead7c88bfde3446f1c450e17.jpg	226	1	2026-05-08 16:32:39	2026-09-30 18:09:48	0	0	0
+bpm-server	POST	/admin-api/bpm/node-field-permission/save	2	1	2026-09-30 11:08:45	2026-10-13 14:22:52	0	0	0
+system-server	GET	/admin-api/system/sensitive-word/page	1	1	2026-09-25 19:00:49	2026-09-25 19:00:49	0	0	0
+fst-server	GET	/admin-api/fst/pm-project/progress-export	2	1	2026-10-10 19:18:13	2026-10-10 19:20:51	326	326	2
+system-server	PUT	/admin-api/system/dept/update	92	1	2026-05-06 20:03:44	2026-08-14 21:14:11	0	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/0705958fa283d3cc90c99b78d064dfdd636dc1ae72788020fbedf8f03e6f5544.docx	1	1	2026-08-31 12:02:08	2026-08-31 12:02:08	0	0	0
+fst-server	GET	/admin-api/fst/travel-application-revisions/get	1	1	2026-10-08 10:22:05	2026-10-08 10:22:05	0	0	0
+fst-server	GET	/app-api/fst/task/user/page/all	10841	329	2026-04-30 19:15:28	2026-10-14 12:10:19	0	2	0
+fst-server	POST	/admin-api/fst/resource/plan/user/refuse	14	5	2026-04-30 10:51:27	2026-05-13 21:31:40	0	0	2
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/6cd4fe026ba30aeb8bdd4f50c1f488def305ebaace5cc48ccc1aaca4d4ade105.pdf	1	1	2026-10-12 13:02:23	2026-10-12 13:02:23	0	0	0
+fst-server	GET	/admin-api/fst/cost/allocation/batch/1466476645326848	36	1	2026-09-23 11:03:43	2026-09-23 11:04:56	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/29b4fdcb144e0e20d8e5a706aab38f6533f4d24855b3211c1276ba3aa914fc74.jpg	128	1	2026-04-17 18:32:29	2026-09-30 17:52:07	0	0	0
+fst-server	POST	/app-api/fst/fenbeitong/events/external-approval-task	8	1	2026-10-08 09:38:05	2026-10-08 10:13:47	1	2	0
+infra-server	GET	/admin-api/infra/file/4/get/b7fee1dd8b0fe7bb13b0b9d1725f93e09a1850798e8736ec3de6a1686454caa3.jpg	79	1	2026-06-24 17:03:52	2026-09-23 19:18:33	0	0	0
+fst-server	GET	/app-api/fst/task/to-be-accepted/page	359	120	2026-04-17 18:26:37	2026-05-27 19:50:02	0	0	0
+system-server	GET	/admin-api/system/menu/list-all-simple	49	5	2026-04-28 14:31:05	2026-10-13 14:01:58	0	0	0
+fst-server	GET	/admin-api/fst/cost/entry-error/source-type-options	12	4	2026-09-22 12:26:19	2026-10-10 16:44:29	0	0	0
+fst-server	POST	/app-api/fst/man-hour/add	26446	328	2026-04-30 19:20:06	2026-10-14 08:53:52	0	149	2171
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/ab2d6b7c5182a038b70922b18deb85039f247cf1d4b80e952403dc0051af954b.pdf	1	1	2026-09-30 11:30:14	2026-09-30 11:30:14	0	0	0
+fst-server	GET	/admin-api/fst/travel-platform-org/employee-consumption-template-catalogue	5	2	2026-09-22 17:33:31	2026-09-22 18:50:36	0	0	0
+system-server	GET	/app-api/system/user/profile/get	32172	333	2026-04-30 19:58:27	2026-10-14 13:45:12	0	1	1
+fst-server	GET	/admin-api/fst/travel-cities/page	241	31	2026-09-22 16:41:01	2026-10-12 21:24:50	0	0	0
+fst-server	GET	/admin-api/fst/resource/plan/import-data/list	465	44	2026-04-20 22:45:46	2026-09-20 17:38:13	0	1	6
+fst-server	POST	/admin-api/fst/travel-applications/1467834777960448/submit	1	1	2026-10-12 15:35:00	2026-10-12 15:35:00	0	0	0
+fst-server	POST	/admin-api/fst/task/person/save	596	64	2026-04-17 20:09:29	2026-09-21 20:56:25	0	1	2
+fst-server	DELETE	/admin-api/fst/task/delete	23	6	2026-05-06 14:04:37	2026-05-12 21:32:14	0	0	0
+infra-server	POST	/admin-api/infra/file/upload	128	19	2026-09-23 15:09:57	2026-10-14 12:08:25	6	231	11
+fst-server	GET	/admin-api/fst/cost/carry-batch/company-options	33	7	2026-09-22 12:26:40	2026-10-14 10:36:07	0	0	0
+infra-server	GET	/app-api/infra/api/app-api/infra/file/upload	4	1	2026-09-20 03:48:24	2026-10-09 23:11:23	0	0	0
+fst-server	GET	/admin-api/fst/common/billing/user	13701	267	2026-04-17 14:31:09	2026-10-14 11:57:16	0	1	6
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/958ce69b005e45a5cb76c4e198eeef1b08ad87413eb12eefaa17cf960468c1dc.pdf	5	1	2026-09-29 17:10:50	2026-09-30 11:25:55	0	0	0
+bpm-server	GET	/admin-api/bpm/process-definition/page	3	2	2026-06-29 20:33:46	2026-07-17 15:37:44	0	0	0
+bpm-server	GET	/admin-api/system/auth/get-permission-info	1	1	2026-05-26 17:13:28	2026-05-26 17:13:28	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20261012/17917744660673qmael.png	2	1	2026-10-13 10:04:31	2026-10-14 10:06:31	0	0	0
+infra-server	GET	/admin-api/infra/test-demo/page	3	3	2026-06-24 10:34:08	2026-09-23 17:19:04	0	0	0
+fst-server	POST	/admin-api/fst/accounting-period/transition	6	1	2026-09-22 19:58:33	2026-09-23 12:18:18	0	0	0
+system-server	POST	/admin-api/system/social-user/bind	1	1	2026-06-03 21:22:02	2026-06-03 21:22:02	0	0	0
+fst-server	GET	/admin-api/fst/pm-project/progress/task/etc-approval	294	32	2026-09-22 20:15:05	2026-10-13 21:04:31	0	4	3
+fst-server	GET	/admin-api/fst/cost-correction/page	40	3	2026-09-22 11:10:12	2026-10-12 19:09:40	0	0	1
+infra-server	GET	/admin-api/infra/api-access-log/page	13	1	2026-09-14 13:49:21	2026-10-08 11:23:10	10	16	0
+fst-server	GET	/admin-api/fst/man-hour/rejected-opinions	6	1	2026-09-22 17:06:52	2026-09-23 10:15:45	0	0	0
+system-server	GET	/app-api/system/auth/logout	5	1	2026-09-28 11:12:47	2026-09-28 11:18:18	0	0	0
+fst-server	GET	/admin-api/fst/man-hour/get	11250	253	2026-04-17 14:36:13	2026-10-14 09:06:39	0	1	28
+fst-server	DELETE	/admin-api/fst/pm-project/budget/task/delete	44	10	2026-09-22 19:17:26	2026-10-13 14:13:46	0	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE%202026-06-22%20103608.png	1	1	2026-08-31 17:25:04	2026-08-31 17:25:04	0	0	1
+infra-server	GET	/admin-api/infra/codegen/table/page	4	3	2026-06-24 10:34:06	2026-08-25 21:37:00	0	0	0
+system-server	PUT	/admin-api/system/user/profile/update-avatar	14	12	2026-05-06 09:18:40	2026-10-10 17:56:12	0	1	0
+infra-server	GET	/admin-api/infra/file/4/get/c7c4631d396622e2c75d3ff174f58e58b6791d502a2370acef1b68a5c2fdbb5c.jpg	139	1	2026-04-17 18:52:50	2026-09-30 23:32:12	0	0	0
+bpm-server	PUT	/admin-api/bpm/task/return	26	13	2026-06-29 21:27:00	2026-09-21 23:08:59	0	1	2
+fst-server	GET	/admin-api/fst/cost-option/workpkg/list	3346	81	2026-09-22 17:27:37	2026-10-14 12:16:23	0	3	0
+infra-server	GET	/admin-api/infra/file/4/get/8cd757ea36d63d331fcf08227b3e6cf1536fb3d7dc7985190b523bc7eb1d35cb.jpg	28	1	2026-04-17 18:07:22	2026-05-06 18:08:15	0	0	0
+infra-server	GET	/app-api/infra/app-api/infra/file/upload	2	1	2026-10-09 23:13:52	2026-10-09 23:13:53	0	0	0
+fst-server	GET	/admin-api/fst/travel-platform-org/synchronization-status	13	3	2026-09-22 17:33:35	2026-09-22 19:04:46	0	0	0
+bpm-server	GET	/admin-api/bpm/activity/list	14629	225	2026-04-17 21:37:50	2026-10-14 13:42:04	0	2	0
+bpm-server	GET	/admin-api/bpm/task/done-page	5450	252	2026-04-18 13:52:16	2026-10-14 14:01:23	0	25	55
+fst-server	GET	/admin-api/fst/cost-correction/history/page	2	1	2026-09-22 11:40:22	2026-09-23 16:57:28	0	0	0
+fst-server	GET	/admin-api/fst/we-com/callback/check-url	3	1	2026-06-09 19:19:54	2026-06-12 22:00:06	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/budget/deliverable/rename	44	9	2026-09-22 19:32:45	2026-10-13 14:15:33	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467694812635136/submit	1	1	2026-10-10 16:07:24	2026-10-10 16:07:24	1	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20261012/1791784338225cst7hu.png	3	1	2026-10-13 10:10:41	2026-10-14 10:18:04	0	0	0
+bpm-server	POST	/admin-api/bpm/oa/customized/create	697	118	2026-04-17 14:36:11	2026-05-07 09:14:25	0	11	68
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/5727ef8678d51a2405ce7b64d4268b463cbbfe0ea5a9162fb69783d2bc9575bc.xlsx	2	1	2026-08-14 11:24:50	2026-08-14 11:30:06	0	0	0
+fst-server	GET	/admin-api/fst/accounting/cost/list	2	2	2026-05-08 11:01:16	2026-07-13 11:20:24	1	1	2
+fst-server	GET	/admin-api/fst/cost-option/deliverable/list	1795	101	2026-09-22 14:46:02	2026-10-14 13:37:03	0	0	0
+fst-server	GET	/admin-api/fst/opportunity/stats	142	42	2026-09-22 12:57:20	2026-10-14 13:36:48	0	2	0
+fst-server	GET	/admin-api/fst/quotation/material/list	501	29	2026-09-23 11:59:27	2026-10-14 13:42:03	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/1790661700549qen2p8.pdf	1	1	2026-09-29 18:50:01	2026-09-29 18:50:01	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/1aec15eb3c5703da9eba21816e53a706f2329d61531e54f8582d88ec4282a82a.jpg	2	1	2026-09-30 11:53:51	2026-09-30 14:03:03	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/17906543595726n3r1g.pdf	1	1	2026-09-29 18:51:02	2026-09-29 18:51:02	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20261010/1791611495996zrjwqr.pdf	1	1	2026-10-10 16:39:16	2026-10-10 16:39:16	0	0	0
+system-server	GET	/admin-api/system/dept/list-enable-all-simple	532	31	2026-04-17 21:57:23	2026-10-14 13:37:03	0	0	0
+fst-server	GET	/admin-api/fst/project/page	959	77	2026-04-20 13:55:31	2026-09-22 17:07:54	0	8	8
+fst-server	POST	/admin-api/fst/travel-applications/1466833580441600/submit	1	1	2026-09-28 12:05:35	2026-09-28 12:05:35	3	3	0
+fst-server	GET	/admin-api/fst/pm-project/budget/revision/obsolete-nodes	524	33	2026-09-22 20:17:46	2026-10-14 11:56:17	0	1	14
+fst-server	GET	/admin-api/fst/travel-applications/1467852223807488/expense-allocation	2	2	2026-10-12 22:48:17	2026-10-13 09:03:15	0	0	0
+system-server	GET	/admin-api/system/dict-type/list-all-simple	85	3	2026-04-20 15:02:08	2026-09-25 18:54:30	0	0	0
+system-server	POST	/admin-api/system/captcha/get	4436	1	2026-04-17 21:30:54	2026-10-14 10:17:50	0	0	3
+fst-server	POST	/admin-api/fst/cost/allocation/full	6	1	2026-09-22 19:51:11	2026-09-23 12:06:41	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/7d0a89a1aee0326278f3a46d96781b54c25d76122882bcc1360609c60ec61213.xlsx	1	1	2026-08-13 18:12:14	2026-08-13 18:12:14	0	0	0
+system-server	PUT	/admin-api/system/menu/update	24	3	2026-09-22 11:08:04	2026-10-09 10:22:51	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260904/1788505387533hxunbc.docx	1	1	2026-09-04 15:04:09	2026-09-04 15:04:09	0	0	0
+bpm-server	GET	/admin-api/bpm/form/list-all-simple	95	7	2026-04-30 19:20:40	2026-10-13 14:22:26	0	0	0
+system-server	GET	/admin-api/system/user/get	25	5	2026-04-29 15:13:02	2026-09-24 09:08:44	0	0	0
+system-server	GET	/admin-api/system/permission/list-role-resources	52	5	2026-04-28 14:31:05	2026-10-13 14:01:58	0	0	0
+fst-server	GET	/admin-api/fst/cost/revenue-red-reversal/reason-options	6	1	2026-09-22 14:53:32	2026-09-23 11:03:28	0	0	0
+infra-server	GET	/app-api/infra/file/upload/app-api/infra/file/upload	2	1	2026-10-09 23:13:48	2026-10-09 23:13:49	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/c0bf2553395442d6f9364c1bdabf1650b7200089846777665a5c9d355a63f461.jpg	18	1	2026-04-17 22:01:27	2026-05-18 16:10:52	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/1466833580441600/expense-allocation	12	2	2026-09-28 14:14:50	2026-10-12 10:15:23	0	0	0
+system-server	GET	/admin-api/system/oss/upload	8	1	2026-09-20 03:36:29	2026-10-09 23:11:47	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1466426475364352/submit	1	1	2026-09-22 18:03:01	2026-09-22 18:03:01	27	27	0
+fst-server	GET	/admin-api/fst/travel-applications/1466426475364352/expense-allocation	102	2	2026-09-22 18:03:01	2026-10-13 14:01:42	0	0	0
+system-server	POST	/admin-api/system/auth/customization-login	2371	1	2026-04-17 16:28:32	2026-05-29 21:01:36	0	0	1
+bpm-server	GET	/admin-api/bpm/task/return-activity-list	35	5	2026-09-24 15:31:05	2026-10-13 13:46:14	0	0	0
+fst-server	POST	/admin-api/fst/quotation/create-draft	64	15	2026-09-23 11:59:26	2026-10-14 11:30:23	0	0	0
+fst-server	GET	/admin-api/fst/travel-cities/by-application-count	132	31	2026-09-22 16:41:01	2026-10-12 21:24:45	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/budget/task/create	350	12	2026-09-22 19:12:49	2026-10-14 11:55:50	0	0	0
+system-server	GET	/admin-api/system/role/page	174	6	2026-04-20 15:49:25	2026-10-13 14:22:17	0	0	0
+fst-server	GET	/admin-api/fst/cost/allocation/batch/1466431792267264	39	1	2026-09-22 19:51:11	2026-09-22 19:52:30	0	0	0
+bpm-server	GET	/app-api/bpm/process-instance/get	1966	181	2026-04-17 16:28:39	2026-10-13 00:22:21	0	2	0
+system-server	GET	/admin-api/system/dict-data/list-all-simple	155182	315	2026-04-17 14:24:10	2026-10-14 14:01:22	0	3	24
+fst-server	GET	/admin-api/fst/pm-project/revenue/get-by-clause	63	10	2026-09-22 19:55:43	2026-10-14 11:04:46	0	0	0
+fst-server	GET	/admin-api/fst/cost/opening/official/period-options	3	1	2026-09-22 11:29:58	2026-09-22 17:02:21	0	0	0
+fst-server	GET	/admin-api/fst/cost/pre-posting-check/items/CONFIRMED_TERM_POC/rows	2	1	2026-09-23 09:37:06	2026-09-23 09:59:08	1	2	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/237c16d65d725a872b0a765436f23eaf26dede4684976a8da0a86b07a42f6867.pdf	1	1	2026-10-14 10:18:26	2026-10-14 10:18:26	12	12	0
+fst-server	GET	/app-api/fst/man-hour/works-space/wbs2	4022	46	2026-04-30 21:05:42	2026-10-14 08:52:48	0	1	0
+fst-server	GET	/admin-api/fst/project/view/other-cost/list	121	11	2026-05-08 11:03:40	2026-09-02 13:50:47	0	0	0
+system-server	POST	/admin-api/system/dict-type/create	20	1	2026-04-28 14:26:49	2026-09-03 15:42:10	0	0	0
+fst-server	GET	/admin-api/fst/travel-external-approval-tasks/my-page	337	70	2026-09-22 14:43:02	2026-10-13 22:54:58	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/1466437300985856/expense-allocation	6	2	2026-09-23 16:34:21	2026-09-27 20:13:38	0	0	0
+infra-server	GET	/app-api/infra/file/upload/api/app-api/infra/file/upload	4	1	2026-09-20 03:48:23	2026-10-09 23:11:20	0	0	0
+fst-server	GET	/admin-api/fst/task/pm/page	19157	303	2026-04-17 14:24:10	2026-09-23 11:11:24	0	18	4
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260826/17877423974031xdi2g.jpg	1	1	2026-08-26 21:43:37	2026-08-26 21:43:37	0	0	0
+fst-server	POST	/app-api/fst/fenbeitong/events/order-status	34	1	2026-09-22 20:05:20	2026-10-13 12:05:36	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260924/17902202192828y376o.jpg	1	1	2026-09-24 14:39:58	2026-09-24 14:39:58	0	0	0
+system-server	PUT	/admin-api/system/dict-data/update	9	2	2026-04-20 15:02:35	2026-05-18 17:13:12	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/733a48676c876906f35b630e43fce0494b32c35ad2c6483879e3fa66ade35038.jpg	31	1	2026-04-17 19:08:43	2026-06-30 09:18:33	0	0	0
+system-server	PUT	/admin-api/system/user/update	14	2	2026-05-07 13:59:57	2026-09-24 09:08:46	0	0	0
+fst-server	GET	/admin-api/fst/man-hour/edit-detail	146	49	2026-05-12 22:01:35	2026-10-12 10:26:56	0	0	27
+fst-server	POST	/admin-api/fst/travel-applications/1467852223807488/submit	1	1	2026-10-12 21:34:35	2026-10-12 21:34:35	0	0	0
+bpm-server	POST	/app-api/bpm/oa/customized/create	2267	231	2026-04-17 18:04:51	2026-04-30 18:45:15	0	13	49
+fst-server	GET	/admin-api/fst/project/view/get	383	38	2026-04-20 12:00:01	2026-09-22 09:09:53	0	0	0
+system-server	POST	/admin-api/system/auth/a8-login	1425	1	2026-05-21 21:18:42	2026-09-22 18:22:26	0	1	196
+fst-server	POST	/admin-api/fst/travel-applications/1466558006149120/submit	1	1	2026-09-24 14:39:55	2026-09-24 14:39:55	1	1	0
+fst-server	GET	/app-api/fst/task/user/page	3521	220	2026-04-17 18:04:12	2026-05-29 21:01:39	0	2	4
+fst-server	GET	/admin-api/fst/plan-template/get	2	2	2026-05-01 20:14:43	2026-07-09 19:01:34	0	0	0
+fst-server	GET	/admin-api/fst/cost/pre-posting-check/items/EXPENSE_NOT_RATIFIED/rows	1	1	2026-10-10 16:26:48	2026-10-10 16:26:48	0	0	0
+bpm-server	GET	/app-api/bpm/task/done-page	262	120	2026-04-17 16:36:18	2026-05-13 19:24:20	0	1	0
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/7f8682f0de7166d8204b777b438fc8a2b26600cdd348b5399754d15602f464f2.pdf	12	1	2026-09-23 17:07:42	2026-09-23 17:28:21	0	0	12
+fst-server	GET	/admin-api/fst/plan-template/list	23	8	2026-04-29 13:12:02	2026-09-22 17:07:27	0	0	0
+fst-server	POST	/admin-api/fst/cost/collection/confirm	8	1	2026-09-22 19:51:10	2026-09-23 12:06:40	0	0	2
+fst-server	POST	/admin-api/fst/man-hour/update	763	127	2026-04-17 14:36:10	2026-05-10 22:03:53	0	2	18
+fst-server	GET	/admin-api/fst/common/user/group-by-login-id	204	20	2026-04-20 09:29:59	2026-09-21 09:35:01	0	0	0
+fst-server	GET	/admin-api/fst/accounting/wip/analysis	20	2	2026-06-24 10:33:49	2026-09-22 12:27:05	0	0	20
+fst-server	POST	/admin-api/fst/travel-applications/1467494458908672/expense-allocation/confirm	1	1	2026-10-12 10:27:03	2026-10-12 10:27:03	0	0	0
+fst-server	GET	/admin-api/fst/invoice-tax-deductions/created-by-names	14	1	2026-10-09 16:39:39	2026-10-14 10:35:10	0	0	0
+fst-server	GET	/admin-api/fst/travel-external-approval-tasks/by-travel-application	130	18	2026-09-22 18:03:01	2026-10-14 10:35:09	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467676755107840/submit	2	1	2026-10-10 10:00:02	2026-10-10 10:02:18	1	2	0
+infra-server	GET	/app-api/infra/file/api/app-api/infra/file/upload	4	1	2026-09-20 03:48:24	2026-10-09 23:11:22	0	0	0
+fst-server	POST	/admin-api/fst/man-hour/add	7869	178	2026-04-30 19:40:36	2026-10-14 07:29:58	0	60	517
+fst-server	GET	/admin-api/fst/pm-project/budget/revision/list	177	30	2026-09-22 14:46:19	2026-10-14 11:55:00	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/6b0f8e8774c8416b49bffc60961e5abdb777b680f40431175c5d2a3b03c7abbc.jpg	138	1	2026-04-17 20:53:00	2026-09-23 17:58:45	0	0	0
+fst-server	GET	/admin-api/fst/travel-cities/cache-health	231	44	2026-09-22 14:42:29	2026-10-14 10:35:09	0	0	0
+system-server	POST	/admin-api/system/auth/logout	133108	112	2026-04-19 10:43:52	2026-10-14 10:17:49	0	2	0
+infra-server	GET	/admin-api/infra/file/4/get/81a7a68c3a540a8dff9da7c3d8b8e63f506d05dd7a4add1e51adf1ae71ff4f62.jpg	15	1	2026-07-13 11:22:56	2026-09-10 21:15:17	0	0	0
+fst-server	GET	/admin-api/fst/quotation/get	548	32	2026-09-23 11:59:27	2026-10-14 13:42:03	0	2	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/a06f4336aac2620a89cfd3c99c1c3d99c65eea354f9cd72e53afbe4fe18c70af.pdf	1	1	2026-09-29 08:56:25	2026-09-29 08:56:25	0	0	0
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/9c8b01fb0b4e6a55b0adc28e0cd466d01e454e836bf8640e8fe9e4ce508b92eb.zip	2	1	2026-07-30 16:56:05	2026-07-30 16:57:45	0	0	2
+fst-server	GET	/admin-api/fst/cost-recon-disposition/soft-gate	9	1	2026-09-22 20:10:07	2026-09-23 11:03:22	0	0	0
+fst-server	GET	/admin-api/fst/project/view/list	869	69	2026-04-17 14:24:23	2026-09-22 17:07:43	1	26	48
+system-server	PUT	/admin-api/system/role/update	11	1	2026-04-21 16:29:35	2026-04-29 15:08:43	0	0	0
+fst-server	GET	/admin-api/fst/pm-project/progress/get	2680	46	2026-09-22 14:46:35	2026-10-14 11:56:34	0	9	0
+fst-server	GET	/admin-api/fst/cost/collection/pool	1	1	2026-09-23 10:15:17	2026-09-23 10:15:17	0	0	0
+fst-server	GET	/admin-api/fst/common/biget/project	8	3	2026-06-06 20:14:08	2026-09-21 15:28:22	0	0	0
+fst-server	GET	/admin-api/fst/cost/carry-batch/status	1639	1	2026-09-22 19:52:31	2026-09-23 12:18:18	0	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/2f2bb4dc094aa0bf926035faff90713f48597523a6ec85aa91fd687834eb0007.jpg	1	1	2026-09-30 19:38:40	2026-09-30 19:38:40	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467841101242368/submit	1	1	2026-10-12 17:43:39	2026-10-12 17:43:39	0	0	0
+system-server	POST	/admin-api/system/auth/login	1198	1	2026-04-19 10:44:03	2026-10-14 10:17:51	0	1	621
+system-server	GET	/admin-api/system/oauth2-token/page	1	1	2026-09-23 17:18:36	2026-09-23 17:18:36	0	0	0
+infra-server	GET	/admin-api/infra/file/undefined/get/deliverable/20261010/1791611495996zrjwqr.pdf	1	1	2026-10-10 16:32:54	2026-10-10 16:32:54	0	0	1
+bpm-server	GET	/admin-api/bpm/process-instance/my-page	35732	289	2026-04-17 21:41:21	2026-10-14 14:01:23	0	22	28
+bpm-server	GET	/admin-api/bpm/task/todo-page/all	184	16	2026-04-19 10:43:36	2026-10-12 22:25:57	0	2	0
+fst-server	POST	/admin-api/fst/travel-applications/1466498591170560/expense-allocation/confirm	4	1	2026-09-24 14:06:35	2026-09-30 11:09:14	0	1	0
+infra-server	GET	/admin-api/infra/file/undefined/get/4cb8915918588b19f1546dc1725025e8baa7ae3dbeb46aa979c6327b54b47925.pdf	1	1	2026-10-10 16:35:58	2026-10-10 16:35:58	0	0	1
+system-server	GET	/admin-api/system/menu/list	100	6	2026-04-28 14:30:57	2026-10-09 10:22:53	0	0	0
+fst-server	POST	/admin-api/fst/travel-application-revisions/capabilities	30	8	2026-09-22 18:50:28	2026-10-12 20:12:38	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/6bf8d5a7eabf6a867f3be5b23aab030012ba8b52bbbebb8585aad6fb0a31a7b2.pdf	1	1	2026-09-29 08:54:23	2026-09-29 08:54:23	0	0	0
+fst-server	GET	/admin-api/fst/cost/opening/official/status	4	1	2026-09-22 11:30:09	2026-09-22 17:04:28	0	0	0
+fst-server	POST	/app-api/fst/resource/plan/user/update	21	2	2026-06-26 23:42:46	2026-06-29 21:24:49	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/a48fdf7ef628e601e75e36b054f26ad76c2b67216557bcf63ccb07f8eab2a608.pdf	1	1	2026-09-30 11:29:27	2026-09-30 11:29:27	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/progress/task/update	733	35	2026-09-22 17:45:00	2026-10-14 09:09:32	0	2	3
+infra-server	GET	/admin-api/infra/api-error-log/page	11	1	2026-09-14 10:13:22	2026-09-14 14:17:50	0	0	0
+bpm-server	PUT	/admin-api/bpm/task-assign-rule/update	8	2	2026-09-22 21:47:17	2026-09-30 11:10:18	0	0	0
+bpm-server	PUT	/admin-api/bpm/task/approve	4845	48	2026-04-17 21:37:59	2026-09-22 09:13:14	0	134	44
+bpm-server	GET	/admin-api/bpm/process-definition/list	13	9	2026-04-21 18:38:46	2026-05-06 16:34:12	0	0	0
+fst-server	GET	/admin-api/fst/accounting/wip/carried-over/second/list	16	4	2026-06-24 10:33:28	2026-09-22 12:15:00	0	0	0
+system-server	DELETE	/admin-api/system/menu/delete	1	1	2026-09-22 13:00:04	2026-09-22 13:00:04	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/5ce110f0bef6cbca018cbe0dea5c062000995dd87b8fbff4a0dc49f0419f0f3b.jpg	20	1	2026-04-17 21:04:37	2026-05-06 19:35:04	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/27a565ed81e5d0eff236b79330be5efbe9044e8604f1f19c109145a2e2f52f3f.jpg	14	1	2026-04-30 18:15:47	2026-06-29 09:56:40	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/881c1c54a12272ac8f6cd308cdb21d3a64df80bcc35c3ed9f88c12b694e42759.jpg	1	1	2026-05-22 16:51:32	2026-05-22 16:51:32	0	0	0
+bpm-server	GET	/admin-api/bpm/task-assign-rule/list	100	5	2026-04-30 19:39:28	2026-10-13 14:22:31	0	1	0
+fst-server	GET	/admin-api/fst/cost-correction/options	15	3	2026-09-22 11:10:12	2026-10-12 19:09:37	0	0	0
+system-server	GET	/admin-api/system/auth/a8-login	33	1	2026-05-07 15:56:04	2026-09-15 20:20:20	0	0	0
+fst-server	GET	/admin-api/fst/pm-project/revenue/list-by-project	727	46	2026-09-22 14:46:35	2026-10-14 11:56:34	0	1	0
+system-server	GET	/admin-api/system/dept/list-all-simple	11	4	2026-06-17 15:16:25	2026-09-22 14:01:27	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/8c6383fc75fc0f9084a95e46ba67b0f4b4475f47ad262a23cd9e76779d455887.pdf	2	1	2026-09-30 13:34:50	2026-09-30 15:35:40	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/progress/task/done/my	11	5	2026-09-30 15:15:19	2026-10-09 20:56:37	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1466856388108288/submit	2	1	2026-09-28 19:49:40	2026-09-28 20:26:27	0	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/dcbcc9144ec2db35395ea0bb09b086dd16e35c00ad59b304244d3e7d5d472420.pdf	4	1	2026-09-24 10:21:53	2026-09-30 18:10:29	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/750b907e007bc67cf79f642f7f6a14c0bf1335d8af6f1f1939d7d172d045f6f6.jpg	114	1	2026-07-17 09:48:33	2026-09-29 23:57:33	0	0	0
+fst-server	GET	/admin-api/fst/travel-business-objects	567	41	2026-09-22 17:34:19	2026-10-14 10:35:09	0	9	1
+system-server	POST	/admin-api/system/auth/customization-login/id	1397	1	2026-09-20 11:07:11	2026-10-13 21:30:28	0	3	0
+system-server	POST	/admin-api/system/permission/assign-role-menu	26	4	2026-04-28 14:31:11	2026-10-13 14:02:12	0	2	0
+fst-server	GET	/admin-api/fst/cost/wip-report/terms	5	3	2026-09-22 13:33:23	2026-10-09 15:42:22	0	0	0
+fst-server	GET	/admin-api/fst/quotation/position-rates	2904	59	2026-09-22 14:46:02	2026-10-14 13:37:04	0	1	0
+bpm-server	GET	/admin-api/bpm/node-field-permission/by-task	532	31	2026-09-22 21:02:53	2026-10-14 13:42:03	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/ca33d055c0dd44dc9521a221dfac0f47e586d6253109fbbc91a8c1c79f448536.pdf	2	1	2026-09-29 08:52:57	2026-09-30 00:05:46	0	0	0
+fst-server	GET	/admin-api/fst/cost/allocation/batches	1	1	2026-10-10 16:35:37	2026-10-10 16:35:37	0	0	0
+fst-server	GET	/admin-api/fst/project/view/project-performance	363	35	2026-04-20 12:00:01	2026-09-22 09:09:53	0	33	0
+fst-server	GET	/admin-api/fst/biget/sampling-history/list	2	2	2026-07-06 17:46:55	2026-09-29 11:26:42	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467494458908672/expense-allocation/save-drafts	1	1	2026-10-12 10:26:39	2026-10-12 10:26:39	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260828/1787888148961rmfkk3.jpg	1	1	2026-09-01 17:28:58	2026-09-01 17:28:58	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467833534390272/submit	1	1	2026-10-12 15:09:42	2026-10-12 15:09:42	1	1	0
+system-server	GET	/admin-api/system/auth/social-auth-redirect	423	3	2026-04-20 09:13:33	2026-10-09 09:16:09	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/1466856388108288/expense-allocation	7	3	2026-09-28 20:38:36	2026-10-10 10:32:15	0	0	2
+infra-server	GET	/admin-api/infra/file/4/get/872672843cd18e38b2f88ec88c03003651c61951191f3dedbca2bfec406a0c20.jpg	19	1	2026-04-17 23:02:51	2026-06-10 08:59:26	0	0	0
+fst-server	GET	/admin-api/fst/pm-project/budget/get	2579	51	2026-09-22 14:46:19	2026-10-14 11:56:34	0	1	0
+fst-server	GET	/admin-api/fst/travel-applications/1467248778838016/expense-allocation	2	1	2026-10-04 10:56:24	2026-10-04 13:00:57	0	0	0
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/7d0a89a1aee0326278f3a46d96781b54c25d76122882bcc1360609c60ec61213.xlsx	2	1	2026-08-13 17:56:08	2026-08-13 17:56:17	0	0	2
+fst-server	GET	/admin-api/fst/pm-project/export	3	2	2026-09-23 15:32:27	2026-10-10 19:21:04	4	6	0
+fst-server	GET	/admin-api/fst/workflow-form/submit-candidates	59	3	2026-09-22 14:50:50	2026-10-13 13:44:59	0	0	0
+bpm-server	GET	/admin-api/bpm/oa/leave/page	7	4	2026-06-09 15:29:07	2026-07-06 17:52:06	0	0	0
+fst-server	GET	/admin-api/fst/project/export	13	4	2026-05-11 09:52:02	2026-07-02 14:28:49	0	1	12
+fst-server	GET	/admin-api/fst/project/simple/list	17	6	2026-07-06 17:41:52	2026-10-10 16:44:29	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/1467841101242368/expense-allocation	1	1	2026-10-12 17:47:20	2026-10-12 17:47:20	0	0	0
+fst-server	GET	/admin-api/fst/resource/group/view	204	56	2026-04-20 13:56:09	2026-09-22 17:07:37	1	4	0
+fst-server	POST	/admin-api/fst/cost/carry-batch/trial	18	1	2026-09-22 19:52:31	2026-09-23 12:12:20	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/budget/lock	23	14	2026-09-22 20:17:51	2026-10-14 11:56:18	0	1	0
+fst-server	GET	/admin-api/fst/project/my/page	6004	71	2026-04-17 14:33:07	2026-09-22 19:19:36	0	3	2
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/17906541460711716m8.pdf	1	1	2026-09-29 18:50:37	2026-09-29 18:50:37	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/1467614459133952/expense-allocation	20	2	2026-10-09 12:54:18	2026-10-13 18:00:17	0	0	0
+fst-server	POST	/app-api/fst/fenbeitong/events/application-status	10	1	2026-09-24 13:57:53	2026-10-13 11:12:04	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/get	202	28	2026-09-22 18:04:52	2026-10-14 10:35:09	0	1	0
+fst-server	GET	/admin-api/fst/cost/allocation/batch/1466477462528000	40	1	2026-09-23 11:20:21	2026-09-23 11:21:42	0	0	0
+fst-server	POST	/admin-api/fst/cost/opportunity-expense/reclassify	1	1	2026-10-10 16:35:18	2026-10-10 16:35:18	0	0	1
+fst-server	POST	/admin-api/fst/travel-application-revisions	1	1	2026-10-08 10:22:01	2026-10-08 10:22:01	3	3	0
+fst-server	GET	/admin-api/fst/cost/pre-posting-check/items/EXPENSE_ATTRIBUTION/rows	1	1	2026-10-10 16:26:48	2026-10-10 16:26:48	4	4	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260928/1790561583209pnmxgf.pdf	1	1	2026-09-28 10:13:12	2026-09-28 10:13:12	0	0	0
+fst-server	GET	/admin-api/fst/man-hour/export	175	34	2026-04-18 22:47:38	2026-10-13 21:39:32	2	66	15
+fst-server	GET	/admin-api/fst/accounting/wip/aging/page	88	21	2026-04-30 11:00:23	2026-09-20 16:07:42	0	4	1
+fst-server	POST	/admin-api/fst/travel-applications/1466498591170560/submit	1	1	2026-09-23 18:30:13	2026-09-23 18:30:13	0	0	0
+fst-server	GET	/admin-api/fst/cost/collection/cost-type-options	25	5	2026-09-22 12:26:19	2026-10-10 16:44:29	0	0	0
+fst-server	GET	/admin-api/fst/project/view/profit	363	35	2026-04-20 12:00:01	2026-09-22 09:09:53	0	21	0
+bpm-server	DELETE	/admin-api/bpm/process-instance/cancel	137	62	2026-04-30 10:52:44	2026-10-13 19:50:05	2	62	5
+fst-server	POST	/admin-api/fst/travel-applications/1466437300985856/submit	1	1	2026-09-22 21:43:16	2026-09-22 21:43:16	1	1	0
+fst-server	GET	/admin-api/fst/man-hour/works-space	9609	229	2026-04-30 19:13:36	2026-10-14 13:36:25	0	39	17
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/38c1788554b6ef32d757fcacd9343b2757fe585a0dc57060208ff05ca157a838.pdf	2	1	2026-09-30 00:04:16	2026-09-30 00:04:26	0	0	0
+fst-server	GET	/admin-api/fst/resource/weekly-meeting/list	185	16	2026-04-20 20:16:47	2026-09-21 09:35:03	0	1	0
+fst-server	GET	/admin-api/fst/task/to-be-accepted/page	18484	303	2026-04-17 14:24:10	2026-09-23 11:11:24	0	2	1
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/1790652313621wo0t3y.pdf	1	1	2026-09-29 18:49:33	2026-09-29 18:49:33	0	0	0
+infra-server	DELETE	/admin-api/infra/file/delete	1	1	2026-10-12 10:06:40	2026-10-12 10:06:40	0	0	0
+fst-server	GET	/app-api/fst/man-hour/item/get	118758	236	2026-04-17 16:28:39	2026-10-14 12:33:00	0	11	1310
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/98dfc6c7ae3e414047424c1d794b9dfaeb3af291c2f20f25ed27adebaec26b90.pdf	1	1	2026-09-30 11:28:18	2026-09-30 11:28:18	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/dce92b1467847db05dafb8a1f1e662dd713a3916d7d602d9895ea39453bf8e89.jpg	108	1	2026-05-25 20:47:32	2026-09-24 16:07:44	0	0	0
+fst-server	POST	/admin-api/fst/man-hour/process-edit-submit	113	43	2026-05-12 22:02:47	2026-10-12 10:27:06	0	60	39
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/1790648291905vme8j3.pdf	1	1	2026-09-29 18:50:18	2026-09-29 18:50:18	0	0	0
+fst-server	GET	/admin-api/fst/task/shortcut/page	10207	302	2026-04-17 14:31:09	2026-10-14 12:10:19	0	2	0
+fst-server	POST	/app-api/fst/man-hour/process-edit-submit	458	152	2026-05-11 18:25:01	2026-10-14 09:10:14	0	5	99
+system-server	GET	/admin-api/system/login-log/page	1	1	2026-10-08 11:14:41	2026-10-08 11:14:41	0	0	0
+fst-server	GET	/admin-api/fst/project/view/overview	362	35	2026-04-20 12:00:01	2026-09-22 09:09:53	0	0	0
+fst-server	GET	/admin-api/fst/pm-project/page	814	60	2026-09-22 12:15:14	2026-10-14 11:53:01	0	15	1
+fst-server	GET	/admin-api/fst/cost/wip-report/matrix	1	1	2026-09-22 17:19:51	2026-09-22 17:19:51	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1466558006149120/save-draft	2	1	2026-09-24 14:39:46	2026-09-24 14:39:55	0	0	0
+bpm-server	PUT	/admin-api/bpm/model/update	9	2	2026-04-30 19:39:25	2026-09-30 13:02:22	0	0	0
+fst-server	GET	/admin-api/fst/cost/pre-posting-check/run	4	2	2026-09-23 09:36:58	2026-10-10 16:26:25	11	22	0
+fst-server	GET	/admin-api/fst/pm-project/stats	404	60	2026-09-22 12:15:14	2026-10-14 11:52:51	0	1	1
+fst-server	GET	/admin-api/fst/cost/opening/result/kpi	2	1	2026-09-22 11:41:42	2026-09-22 17:04:30	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/progress/task/reopen	45	13	2026-09-22 18:42:35	2026-10-13 20:56:55	0	0	1
+system-server	GET	/admin-api/system/post/get	1	1	2026-08-06 22:35:21	2026-08-06 22:35:21	0	0	0
+system-server	GET	/admin-api/system/post/page	21	3	2026-08-06 22:31:00	2026-09-25 19:00:43	0	0	0
+infra-server	GET	/app-api/infra/file/app-api/infra/file/upload	2	1	2026-10-09 23:13:51	2026-10-09 23:13:52	0	0	0
+system-server	GET	/admin-api/system/auth/list-menus	22571	315	2026-04-17 14:24:10	2026-10-14 14:01:22	0	0	0
+fst-server	GET	/admin-api/fst/accounting/wip/list	2	2	2026-05-08 11:01:36	2026-07-08 13:40:55	0	0	2
+bpm-server	PUT	/admin-api/bpm/task/reject	18	9	2026-05-06 19:04:42	2026-06-04 22:12:30	13	61	4
+fst-server	POST	/admin-api/fst/resource/weekly-meeting/save	181	11	2026-04-20 20:23:40	2026-09-21 09:40:49	0	1	18
+fst-server	GET	/admin-api/fst/travel-application-revisions/approval-detail	1	1	2026-10-08 11:36:13	2026-10-08 11:36:13	0	0	0
+fst-server	GET	/admin-api/fst/cost/opening/result/by-month	2	1	2026-09-22 11:41:42	2026-09-22 17:04:30	0	0	0
+fst-server	POST	/admin-api/fst/task/save	2911	66	2026-04-17 14:31:57	2026-10-13 21:01:42	0	1	11
+fst-server	POST	/admin-api/fst/quotation/save	59	10	2026-09-23 15:17:44	2026-10-14 12:30:59	0	0	3
+fst-server	GET	/admin-api/fst/travel-applications/1467847567343616/expense-allocation	7	2	2026-10-12 20:12:18	2026-10-13 18:00:24	0	0	0
+fst-server	POST	/admin-api/fst/cost/carry-batch/confirm	18	1	2026-09-22 19:55:34	2026-09-23 12:16:22	8	17	0
+fst-server	GET	/admin-api/fst/cost/collection/period-options	21	4	2026-09-22 12:26:21	2026-10-10 16:44:32	0	0	0
+bpm-server	GET	/admin-api/bpm/node-field-permission/list	8	1	2026-09-23 10:57:54	2026-10-13 14:22:31	0	0	0
+fst-server	GET	/admin-api/fst/cost/opportunity-expense/page	3	1	2026-10-10 16:35:20	2026-10-10 16:35:27	0	0	0
+system-server	GET	/admin-api/system/role/get	61	4	2026-04-21 16:29:28	2026-10-13 14:01:56	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/925e5ec272fc5652b08d19a11717ac8a9967c338d257e6b6e9c70a1b8906c716.jpg	40	1	2026-04-17 18:21:43	2026-08-27 16:00:31	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/progress/task/self-create	47	21	2026-09-22 17:28:05	2026-10-13 18:06:34	0	1	0
+fst-server	POST	/admin-api/fst/pm-project/budget/cost-items	34	9	2026-09-22 19:40:20	2026-10-10 11:29:57	0	0	0
+fst-server	GET	/admin-api/fst/accounting-period/list	15	4	2026-09-22 12:26:28	2026-10-10 18:10:56	0	0	0
+system-server	GET	/admin-api/system/user/list-all-simple	10253	227	2026-04-17 21:37:50	2026-10-14 13:42:03	0	2	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260928/1790579745700xpifmt.png	1	1	2026-09-28 16:31:58	2026-09-28 16:31:58	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/451c81bccab4175278a4c13d05685126c6e7f31114ca3b8cf462fcbd9d77f0d2.pdf	1	1	2026-09-30 11:30:20	2026-09-30 11:30:20	0	0	0
+fst-server	GET	/admin-api/fst/resource/weekly-meeting-statistics/list	42	15	2026-04-30 18:25:30	2026-09-09 11:53:48	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/1467494458908672/expense-allocation	12	3	2026-10-07 20:11:37	2026-10-12 11:55:56	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/8648498dbf2a020eb86d84710a382f7c0fbdc4c6a90b8d1e2a2c33d6fc19f04d.pdf	1	1	2026-09-30 11:27:28	2026-09-30 11:27:28	0	0	0
+fst-server	GET	/admin-api/fst/cost/wip-report/aging	1	1	2026-09-22 17:19:52	2026-09-22 17:19:52	0	0	0
+fst-server	GET	/admin-api/fst/task/prompt/count	56057	303	2026-04-17 14:24:10	2026-09-23 11:11:24	0	5	1
+system-server	POST	/admin-api/system/menu/create	5	1	2026-09-22 11:03:58	2026-09-22 11:07:44	0	0	0
+bpm-server	PUT	/app-api/bpm/task/reject	151	17	2026-04-18 07:08:13	2026-06-05 19:26:10	285	1381	106
+fst-server	POST	/admin-api/fst/resource/plan/update	214	40	2026-04-22 20:49:36	2026-09-20 17:38:17	0	0	0
+infra-server	GET	/app-api/infra/file/upload	58	1	2026-09-20 03:42:54	2026-10-09 23:17:36	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/20e3d2b593c3551b8d7e35eae2ee40634eaec5500283c9440a356b85733c3dac.pdf	1	1	2026-09-30 11:29:21	2026-09-30 11:29:21	0	0	0
+fst-server	GET	/admin-api/fst/travel-cities	69	9	2026-09-22 17:49:25	2026-10-12 18:10:20	0	0	0
+system-server	GET	/admin-api/system/user/page	469	8	2026-04-20 16:36:55	2026-10-14 10:43:02	0	0	1
+fst-server	GET	/admin-api/fst/travel-applications/1466493410893824/expense-allocation	5	2	2026-09-23 16:49:22	2026-10-10 15:15:52	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467007456985088/expense-allocation/confirm	1	1	2026-10-09 09:05:38	2026-10-09 09:05:38	0	0	0
+fst-server	GET	/admin-api/fst/cost/carry-batch/page	26	4	2026-09-22 13:33:28	2026-10-10 18:11:13	0	0	0
+fst-server	POST	/admin-api/fst/cost/profit-report/refresh	7	3	2026-09-22 19:17:01	2026-10-14 09:07:33	0	0	0
+fst-server	GET	/admin-api/fst/cost/carry-batch/period-progress	127	4	2026-09-22 13:33:28	2026-10-10 18:11:20	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/3cfd1283f812396a52d199d3a8bb4dd99a7c6e32f6425f73a62a691834a80edc.pdf	1	1	2026-09-30 15:35:08	2026-09-30 15:35:08	0	0	0
+fst-server	GET	/admin-api/fst/user/get	22501	315	2026-04-17 14:24:10	2026-10-14 14:01:22	0	1	1
+bpm-server	GET	/admin-api/bpm/form/page	26	8	2026-04-30 19:22:23	2026-09-25 22:17:35	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/57c3172a04d77585ed08e740bf6b7c459cdb6b1cb1a6fd5bef859abfbe5511e8.png	36643	1	2026-04-17 14:36:21	2026-10-14 12:33:14	0	0	0
+fst-server	POST	/admin-api/fst/task/progress/update	8211	219	2026-04-20 21:04:38	2026-10-09 14:22:04	0	2	3
+fst-server	GET	/admin-api/fst/travel-applications/1467834168688640/expense-allocation	2	1	2026-10-12 15:23:03	2026-10-12 15:36:25	0	0	1
+fst-server	POST	/admin-api/fst/pm-project/progress/deliverable/create	60	16	2026-09-22 18:39:18	2026-10-14 09:07:25	0	0	1
+fst-server	GET	/admin-api/fst/cost/profit-report/project-options	1	1	2026-09-28 15:54:32	2026-09-28 15:54:32	0	0	1
+fst-server	POST	/admin-api/fst/travel-applications/1467847567343616/submit	1	1	2026-10-12 19:55:12	2026-10-12 19:55:12	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/1467694812635136/expense-allocation	5	2	2026-10-10 16:07:24	2026-10-11 08:42:02	0	0	0
+bpm-server	GET	/app-api/bpm/task/todo-page	12671	277	2026-04-17 16:28:32	2026-06-05 23:00:19	0	78	0
+fst-server	GET	/admin-api/fst/pm-project/progress/pick-tree	120	36	2026-09-22 17:27:17	2026-10-14 09:04:32	0	0	0
+bpm-server	GET	/admin-api/bpm/node-field-permission/field-catalog	67	3	2026-09-22 14:50:50	2026-10-13 14:22:31	0	0	0
+fst-server	POST	/admin-api/fst/resource/task/user/accept	77	20	2026-04-20 13:43:30	2026-07-16 20:43:57	0	0	0
+fst-server	GET	/admin-api/fst/task/user/page/all	9275	254	2026-04-17 18:52:54	2026-10-14 13:33:21	0	2	3
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/7f8682f0de7166d8204b777b438fc8a2b26600cdd348b5399754d15602f464f2.pdf	5	1	2026-09-23 17:19:43	2026-10-11 11:09:26	0	0	0
+fst-server	GET	/admin-api/fst/cost/voucher/page	6	4	2026-09-22 12:47:44	2026-10-10 18:11:25	0	0	1
+fst-server	GET	/app-api/fst/man-hour/editable-todo	11074	293	2026-09-22 16:40:44	2026-10-14 14:01:06	0	1	0
+fst-server	POST	/admin-api/fst/pm-project/progress/task/etc	210	27	2026-09-22 17:45:22	2026-10-14 09:08:06	0	5	0
+fst-server	GET	/admin-api/fst/travel-applications/1467676755107840/expense-allocation	10	2	2026-10-10 10:00:02	2026-10-10 18:54:20	0	0	0
+fst-server	GET	/admin-api/fst/cost/profit-report/export	6	3	2026-09-23 12:32:41	2026-10-14 09:20:06	15	20	1
+fst-server	POST	/app-api/fst/resource/task/user/create	85	25	2026-04-17 18:32:56	2026-09-02 00:27:06	0	0	0
+fst-server	GET	/admin-api/fst/cost/profit-report/foot	21	4	2026-09-22 19:17:12	2026-10-14 10:36:16	0	0	0
+system-server	GET	/admin-api/system/auth/seeyon-sso%E8%BF%99%E4%B8%AA%E6%8E%A5%E5%8F%A3%E9%80%9A%E4%B9%88	1	1	2026-10-08 09:58:25	2026-10-08 09:58:25	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467007456985088/submit	1	1	2026-09-30 23:03:07	2026-09-30 23:03:07	0	0	0
+fst-server	GET	/admin-api/fst/cost/profit-report/kpis	40	6	2026-09-22 12:26:40	2026-10-14 10:36:15	4	31	19
+infra-server	PUT	/admin-api/infra/file-config/update-master	1	1	2026-07-31 11:15:39	2026-07-31 11:15:39	0	0	0
+bpm-server	PUT	/app-api/bpm/task/decide	3044	73	2026-09-22 18:21:42	2026-10-14 12:33:08	0	10	3
+fst-server	GET	/admin-api/fst/cost/pre-posting-check/items/TIMESHEET_OPPORTUNITY_STATUS/rows	4	2	2026-09-23 09:37:06	2026-10-10 16:26:48	1	2	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/68283f89dae6907a8dbcfb5c7f270e77028b9bc2d41a8bd6bd11ac90496c0097.pdf	3	1	2026-09-29 20:14:19	2026-09-30 11:28:39	0	0	0
+fst-server	GET	/admin-api/fst/project-billing/get	77	28	2026-09-22 14:50:10	2026-10-14 11:56:34	0	0	0
+fst-server	GET	/admin-api/fst/invest-forecast/edit/get-by-project-id	6	3	2026-06-03 17:02:45	2026-07-24 19:13:26	0	1	0
+system-server	GET	/admin-api/system/tenant/get-id-by-name	6	1	2026-09-22 10:54:36	2026-09-22 11:22:43	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/budget/task/update	1193	13	2026-09-22 19:13:07	2026-10-14 11:56:02	0	2	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20261012/1791784387080ju9wjx.png	3	1	2026-10-13 10:10:15	2026-10-14 10:18:04	0	0	0
+system-server	GET	/admin-api/system/user/skill-tags/get	126	75	2026-04-20 18:25:17	2026-10-10 20:29:33	0	0	0
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/b2c936d4202347148c4f977b216a7e29.jpg	3	1	2026-07-30 16:51:23	2026-07-30 16:53:09	0	0	3
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/cb93b95e385547ee868f6332dab430ec.jpg	1	1	2026-07-31 11:21:07	2026-07-31 11:21:07	0	0	1
+fst-server	POST	/admin-api/fst/cost-recon-disposition/run	2	1	2026-09-22 20:11:16	2026-09-23 11:03:20	0	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/07c9b91d6efee124e9575136d16dacbfe0dac047573c245148d8e74278ecfdb7.xlsx	1	1	2026-08-14 10:43:17	2026-08-14 10:43:17	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20261012/1791784334313ip05hz.pdf	1	1	2026-10-13 10:10:44	2026-10-13 10:10:44	0	0	0
+infra-server	GET	/admin-api/system/auth/get-permission-info	1	1	2026-05-26 17:11:49	2026-05-26 17:11:49	0	0	0
+system-server	POST	/admin-api/system/oss/upload	4	1	2026-09-20 03:39:11	2026-10-09 23:03:03	4	7	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260928/1790561939524fjiogg.pdf	1	1	2026-09-29 09:52:54	2026-09-29 09:52:54	0	0	0
+fst-server	GET	/admin-api/fst/plan/get	3	2	2026-04-20 13:56:22	2026-08-29 16:09:54	0	0	0
+bpm-server	GET	/admin-api/bpm/process-instance/get	21946	226	2026-04-17 21:37:49	2026-10-14 13:42:03	0	6	1
+infra-server	GET	/admin-api/infra/file/4/get/8d43a4128f077a5cc4abca2d186860b8bea027a859537733730dd88a0aa4db89.jpg	151	1	2026-04-21 17:58:25	2026-09-30 17:59:48	0	1	0
+fst-server	GET	/app-api/fst/man-hour/works-space	35334	331	2026-04-30 19:15:33	2026-10-14 10:39:15	0	8	24
+fst-server	GET	/admin-api/fst/travel-allowance-standards	448	74	2026-09-30 11:08:40	2026-10-14 10:35:10	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/375763a797628579c5b45cf80dc162d0341acd0453b2fb8c3d2dcffe3fe383d8.png	1	1	2026-10-12 10:06:25	2026-10-12 10:06:25	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/2d69f3efa81223696d04e3b88b7b0452dfd67a4eb4ce85ad915a609a5f880b6f.pdf	1	1	2026-09-30 15:35:15	2026-09-30 15:35:15	18	18	0
+fst-server	GET	/admin-api/fst/plan-template/works/list	2	2	2026-05-01 20:14:43	2026-07-09 19:01:34	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/1790668172764p5t8h0.pdf	1	1	2026-09-29 18:48:30	2026-09-29 18:48:30	0	0	0
+system-server	POST	/admin-api/system/role/create	7	2	2026-04-21 16:29:09	2026-09-10 09:22:01	0	0	0
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/deliverable/20260731/1785467404847sq7mn3.docx	1	1	2026-07-31 11:11:41	2026-07-31 11:11:41	0	0	1
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/fa989c6be08cd693a7e3cb9619d3c473e6788a197f038e80dbd2cdd63aac08c1.pdf	1	1	2026-10-13 13:55:38	2026-10-13 13:55:38	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467248778838016/submit	1	1	2026-10-04 08:52:49	2026-10-04 08:52:49	1	1	0
+fst-server	GET	/admin-api/fst/cost/collection/oh-import/page	1	1	2026-10-10 16:59:47	2026-10-10 16:59:47	0	0	0
+bpm-server	POST	/admin-api/bpm/model/deploy	23	3	2026-04-30 19:40:36	2026-09-30 13:02:22	0	2	1
+bpm-server	PUT	/admin-api/bpm/task/batch/approve	1	1	2026-05-05 10:21:24	2026-05-05 10:21:24	84	84	0
+system-server	GET	/admin-api/system/dict-type/get	91	4	2026-04-20 15:02:08	2026-09-25 18:54:30	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/79640d2018ef38ac33eb4ac8f3be4319c4612d39a45b04b9f39af721b94de5af.pdf	1	1	2026-09-30 11:30:09	2026-09-30 11:30:09	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/budget/import	26	16	2026-09-22 17:09:22	2026-10-14 11:55:00	0	0	0
+fst-server	DELETE	/admin-api/fst/pm-project/progress/deliverable/delete	6	3	2026-09-28 13:55:47	2026-10-13 19:02:55	0	0	0
+fst-server	GET	/admin-api/fst/man-hour/closed/list	22	7	2026-05-15 17:56:06	2026-09-10 16:59:08	0	2	0
+system-server	POST	/admin-api/system/dict-data/create	112	2	2026-04-28 14:27:19	2026-09-03 15:42:40	0	0	2
+fst-server	POST	/admin-api/fst/travel-platform-org/synchronize	2	1	2026-09-22 17:33:41	2026-09-22 17:36:13	1	3	2
+fst-server	GET	/admin-api/fst/cost-correction/batch/page	15	3	2026-09-22 11:10:12	2026-10-12 19:09:37	0	0	0
+system-server	PUT	/admin-api/system/dict-type/update	1	1	2026-09-01 17:44:15	2026-09-01 17:44:15	0	0	0
+system-server	GET	/admin-api/system/auth/seeyon-sso	1079	1	2026-10-08 09:49:37	2026-10-14 13:36:43	0	2	23
+fst-server	GET	/admin-api/fst/cost-template/list-simple	288	25	2026-09-23 11:59:27	2026-10-14 13:37:03	0	0	0
+fst-server	DELETE	/app-api/fst/man-hour/delete-withdrawn	32	30	2026-06-13 10:25:21	2026-10-12 21:12:03	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/1790669522708ubj2q3.jpg	2	1	2026-09-30 11:35:55	2026-09-30 18:14:07	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1466493410893824/submit	1	1	2026-09-23 16:44:49	2026-09-23 16:44:49	1	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260928/1790561677799lgej6g.pdf	3	1	2026-09-28 10:14:40	2026-09-28 10:16:42	0	0	0
+system-server	GET	/admin-api/system/oauth2-client/page	3	2	2026-09-23 17:18:34	2026-10-08 11:14:44	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260829/17879866111013vjc09.docx	1	1	2026-08-29 15:00:05	2026-08-29 15:00:05	0	0	0
+system-server	GET	/admin-api/system/auth/qy-wechat/login	16	1	2026-05-11 19:05:27	2026-07-04 13:10:34	0	0	0
+fst-server	DELETE	/admin-api/fst/man-hour/delete-withdrawn	5	5	2026-06-14 21:55:34	2026-09-06 22:30:26	0	0	0
+fst-server	GET	/admin-api/fst/project/my/group/page	2784	108	2026-04-17 18:53:09	2026-10-14 11:57:23	0	3	2
+fst-server	GET	/admin-api/fst/common/date/info	358	16	2026-04-20 20:16:48	2026-09-21 09:35:04	0	1	2
+bpm-server	PUT	/app-api/bpm/task/approve	26851	80	2026-04-17 18:38:20	2026-09-22 09:43:46	0	277	240
+fst-server	GET	/admin-api/fst/travel-application-revisions/allowed	246	22	2026-09-22 18:04:52	2026-10-14 10:35:09	0	1	0
+bpm-server	GET	/app-api/bpm/task/todo-list	97591	329	2026-05-11 14:17:06	2026-10-14 14:01:06	0	382	46
+fst-server	GET	/admin-api/fst/resource/person	218	10	2026-04-17 21:57:23	2026-09-29 21:16:00	0	0	0
+fst-server	GET	/admin-api/fst/cost/allocation/batch/1466478284374016	29	1	2026-09-23 11:37:04	2026-09-23 11:38:03	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/5c37bbe331039cd2edbac8864d5ff074e54061e4ab4f01d747db6d9b53c31b46.jpg	24	1	2026-05-06 16:33:05	2026-10-01 03:32:32	0	0	0
+fst-server	POST	/admin-api/fst/resource/weekly-meeting/resource-allocation/get	259	6	2026-04-20 20:37:17	2026-09-12 15:00:13	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/1790669518003gffkn1.jpg	2	1	2026-09-30 11:35:44	2026-09-30 18:13:01	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/833eaf7ad730ec9afded9b9b0181d9d7d4c456772fff825ff1da001f6c3cca4c.jpg	4	1	2026-10-10 20:22:29	2026-10-10 21:18:51	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/860f54d9e473ed3fdea287ada873c0b91ff1c1abcc24dc826992c8ad4b5651f3.xlsx	1	1	2026-08-13 20:10:34	2026-08-13 20:10:34	37	37	0
+system-server	GET	/admin-api/system/user/profile/get	100	71	2026-04-20 18:25:17	2026-10-10 20:29:33	0	0	0
+system-server	GET	/admin-api/system/error-code/page	1	1	2026-09-25 19:00:50	2026-09-25 19:00:50	0	0	0
+system-server	POST	/admin-api/system/auth/qy-wechat/checkToken	49536	331	2026-04-23 15:13:01	2026-10-14 14:01:05	0	5	25394
+fst-server	POST	/admin-api/fst/cost-correction/posting-check	3	1	2026-09-22 11:40:12	2026-09-23 16:57:01	0	0	0
+infra-server	GET	/admin-api/infra/config/get-value-by-key	116	7	2026-04-20 16:36:55	2026-10-14 10:21:53	0	0	0
+system-server	GET	/admin-api/system/sensitive-word/get-tags	1	1	2026-09-25 19:00:49	2026-09-25 19:00:49	0	0	0
+fst-server	GET	/admin-api/fst/cost/collection/ledger	12	2	2026-09-22 12:26:26	2026-10-10 16:45:35	0	1	0
+system-server	GET	/admin-api/system/notice/page	4	4	2026-08-04 15:51:35	2026-10-08 11:10:56	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/5ba9b0b38ed35fe31143cdbe635e7aeae9e5d3055f1d5b2fb7fed216954f799f.docx	3	1	2026-09-28 12:19:17	2026-09-30 11:29:39	0	0	0
+system-server	GET	/admin-api/system/operate-log/page	9	1	2026-09-14 13:48:11	2026-10-08 11:13:30	1	11	0
+fst-server	GET	/admin-api/fst/cost/collection/summary	12	2	2026-09-22 12:26:26	2026-10-10 16:45:40	0	3	0
+fst-server	GET	/admin-api/fst/travel-applications/1467833534390272/expense-allocation	1	1	2026-10-12 15:10:50	2026-10-12 15:10:50	0	0	0
+fst-server	POST	/admin-api/fst/cost/collection/execute	6	1	2026-09-22 19:47:28	2026-09-23 12:02:55	0	0	0
+fst-server	POST	/admin-api/fst/task/person/update	1	1	2026-09-15 18:19:35	2026-09-15 18:19:35	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/368ff9f472f181c63530bc03d0352547cbfbb3acd20f0b80056dfbcf5da2d2e1.jpg	6	1	2026-04-24 19:54:16	2026-07-03 08:41:45	0	0	0
+fst-server	GET	/admin-api/fst/task/export	7	4	2026-05-08 11:51:39	2026-08-31 21:37:34	0	2	5
+fst-server	GET	/admin-api/fst/project/view/labor-cost/list	10	4	2026-05-08 11:03:33	2026-09-10 16:59:56	0	1	0
+fst-server	GET	/admin-api/fst/cost/allocation/batch/1466479009767424	28	1	2026-09-23 11:51:50	2026-09-23 11:52:46	0	0	0
+fst-server	GET	/admin-api/fst/pm-project/progress/task-page	249	54	2026-09-22 17:07:59	2026-10-14 10:25:35	0	1	15
+infra-server	GET	/admin-api/infra/file/4/get/cbecb685787ee1b550a2d6e8bbd69ff5509b71284079d7e43d3b612bf67684ab.jpg	97	1	2026-04-17 18:10:58	2026-09-29 20:11:46	0	0	0
+fst-server	GET	/admin-api/fst/cost/collection/labor-reclass-summary	6	1	2026-09-22 20:10:13	2026-10-10 16:59:47	0	0	0
+system-server	POST	/admin-api/system/auth/qy-wechat/h5-login	25112	1	2026-05-30 15:14:27	2026-10-14 13:45:12	0	2	250
+infra-server	GET	/admin-api/infra/file/4/get/928037c80fa05db2af1c7526a29c49758529f93714311634a8124e693b9ed611.png	40578	1	2026-04-17 18:05:35	2026-10-14 13:33:24	0	0	0
+system-server	PUT	/admin-api/system/user/update-password	1	1	2026-09-24 13:24:54	2026-09-24 13:24:54	0	0	0
+system-server	GET	/admin-api/system/dict-type/page	139	7	2026-04-20 15:01:55	2026-09-25 18:54:18	0	0	0
+system-server	POST	/admin-api/system/auth/social-login	195	5	2026-04-20 09:13:47	2026-06-06 10:52:54	0	1	0
+infra-server	GET	/admin-api/infra/file-config/get	11	1	2026-07-31 11:15:40	2026-10-10 16:31:32	0	0	0
+fst-server	GET	/app-api/fst/man-hour/main/get	115219	217	2026-04-30 19:44:41	2026-10-14 12:33:00	0	9	3084
+fst-server	GET	/admin-api/fst/pm-project/revenue/get	70	10	2026-09-24 11:49:09	2026-10-14 11:09:15	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/dceb2fe49eb14baeb0e2757cc71a799291a563ddf6fab38aca60c1704a7da099.pdf	1	1	2026-10-11 23:29:13	2026-10-11 23:29:13	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/6cdaa5e8d211d24eb2c24fcf3bdf9ebc8e3be874ccf178ba50a605a01917c78a.jpg	541	1	2026-04-17 21:56:34	2026-10-04 08:50:00	0	0	0
+fst-server	GET	/admin-api/fst/resource/weekly-meeting/page	594	63	2026-04-20 09:29:56	2026-09-22 13:45:22	0	1	0
+fst-server	GET	/admin-api/fst/common/user/group	2806	252	2026-04-20 09:29:56	2026-10-14 11:52:49	0	1	0
+fst-server	GET	/app-api/fst/task/pending-assign-person/page	211	1	2026-04-30 21:22:49	2026-05-15 21:25:28	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/6e46e9b7f6303cc3b463c893c8bafc388c26df275206678a7927a4e18461fae0.jpg	62	1	2026-04-17 18:46:58	2026-06-20 11:30:18	0	1	0
+fst-server	POST	/admin-api/fst/travel-applications/1467852223807488/save-draft	2	1	2026-10-12 21:30:01	2026-10-12 21:34:34	0	0	0
+fst-server	GET	/admin-api/fst/travel-applications/my-page	551	127	2026-09-22 14:42:29	2026-10-13 23:30:22	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/641b2f6db937d531dbb8b7c0ff7b77c527af2c204f9fe71d4e68616c7bc5c0e8.pdf	1	1	2026-09-24 10:25:16	2026-09-24 10:25:16	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/e50cd6b3c35fb516755c7fc6b4a0cdbdd5b51c4440c5bd34848e86812637458f.pdf	1	1	2026-10-12 10:05:34	2026-10-12 10:05:34	0	0	0
+fst-server	GET	/admin-api/fst/cost/opening/health-check/issues	3	1	2026-09-22 14:52:41	2026-09-22 16:47:44	2	2	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260928/17905997700761riasc.png	1	1	2026-09-29 18:51:32	2026-09-29 18:51:32	0	0	0
+fst-server	GET	/admin-api/fst/cost/allocation/batch/1466479739977728	23	1	2026-09-23 12:06:41	2026-09-23 12:07:27	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467834168688640/submit	1	1	2026-10-12 15:22:36	2026-10-12 15:22:36	1	1	0
+fst-server	GET	/admin-api/fst/pm-project/progress/my-tasks	4542	202	2026-09-22 10:57:55	2026-10-14 14:01:23	0	5	7
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/2f2bb4dc094aa0bf926035faff90713f48597523a6ec85aa91fd687834eb0007.jpg	17	1	2026-08-19 11:56:06	2026-09-03 08:52:41	0	0	17
+infra-server	PUT	/admin-api/infra/file-config/update	5	1	2026-07-31 11:15:53	2026-10-10 16:30:32	0	0	0
+fst-server	GET	/app-api/fst/man-hour/is-workday	145	78	2026-07-12 09:40:52	2026-10-13 21:44:16	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/87c41d5be5f740aacf65bacb753f004b22a23627e8107ab9554b2bc895b670e5.xlsx	1	1	2026-08-14 13:51:31	2026-08-14 13:51:31	0	0	0
+bpm-server	GET	/admin-api/bpm/process-instance/withdrawable	2715	111	2026-09-22 14:46:44	2026-10-14 13:42:03	0	0	0
+fst-server	GET	/admin-api/fst/accounting/wip/carried-over/list	19	7	2026-04-27 09:09:03	2026-08-26 13:47:48	0	0	0
+fst-server	POST	/admin-api/fst/we-com/callback/check-url	4701	265	2026-04-17 14:36:34	2026-10-14 09:23:18	0	1	410
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/1790668248730qrwoik.pdf	1	1	2026-09-29 18:49:02	2026-09-29 18:49:02	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20261012/1791784383353l1qxku.pdf	2	1	2026-10-13 10:10:23	2026-10-13 10:56:10	0	0	0
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/ade4567ef7a4daf5901291af1a8901b080424fa09669fd459f5d14c170c5c3e6.jpg	7	1	2026-09-22 17:10:40	2026-09-23 10:20:51	0	0	7
+bpm-server	PUT	/app-api/bpm/task/return	90	28	2026-06-06 21:39:23	2026-10-14 08:52:31	0	15	3
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/deliverable/20260730/1785404100654cx35r7.zip	1	1	2026-07-30 17:35:20	2026-07-30 17:35:20	0	0	1
+fst-server	PUT	/admin-api/fst/travel-platform-org/employee-consumption-template-mappings	1	1	2026-09-22 17:36:02	2026-09-22 17:36:02	0	0	0
+infra-server	POST	/admin-api/infra/file-config/create	1	1	2026-07-31 11:15:35	2026-07-31 11:15:35	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/02ecb5bdb08f2033b984450c6c7affeacf17944ff08dd23823ee2f7d3867be16.jpg	4	1	2026-09-30 10:02:08	2026-10-12 09:05:38	0	0	0
+infra-server	HEAD	/admin-api/infra/file/1462655169118208/get/5727ef8678d51a2405ce7b64d4268b463cbbfe0ea5a9162fb69783d2bc9575bc.xlsx	1	1	2026-08-14 11:30:41	2026-08-14 11:30:41	0	0	0
+fst-server	GET	/app-api/fst/user/my-team-recent-assign-hours	10	1	2026-04-30 21:22:54	2026-05-15 21:25:35	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260928/1790599859916s6k8co.jpg	1	1	2026-09-29 18:51:49	2026-09-29 18:51:49	0	0	0
+system-server	GET	/admin-api/system/dict-data/get	11	3	2026-04-20 15:02:32	2026-09-25 18:59:29	0	0	0
+fst-server	GET	/admin-api/fst/cost/voucher/stats	6	4	2026-09-22 12:47:44	2026-10-10 18:11:25	0	0	1
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20261012/1791774505643l730vq.pdf	3	1	2026-10-12 13:55:48	2026-10-13 10:04:43	0	0	0
+fst-server	GET	/admin-api/fst/quotation/list-by-opportunity	93	18	2026-09-22 14:45:53	2026-10-14 13:37:01	0	0	0
+fst-server	GET	/admin-api/fst/resource/weekly-meeting/works/list	178	16	2026-04-20 20:16:48	2026-09-21 09:35:04	0	1	0
+system-server	HEAD	/admin-api/system/captcha/get	2	1	2026-09-06 19:20:21	2026-09-17 22:26:27	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/6b9863a78c238afb97757e655b0cde9df4172c8bef22b3e3a3e727007e474f70.jpg	4	1	2026-10-10 17:56:12	2026-10-14 10:33:59	0	0	0
+fst-server	POST	/admin-api/fst/cost/opportunity-expense/sync-crm-status	1	1	2026-10-10 16:35:20	2026-10-10 16:35:20	0	0	0
+system-server	GET	/app-api/system/auth/get-permission-info	5289	246	2026-04-17 16:28:30	2026-05-29 21:01:36	0	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/14cae1c05ee77b262b3a13fd3914feedd6e640165b83afaed907d55e4d45e6fc.pdf	1	1	2026-09-30 11:30:03	2026-09-30 11:30:03	0	0	0
+fst-server	GET	/admin-api/fst/man-hour/item/get	11304	254	2026-04-17 14:36:13	2026-10-14 09:06:39	0	15	43
+fst-server	POST	/admin-api/fst/travel-applications/1467007456985088/expense-allocation/save-drafts	1	1	2026-10-09 09:05:32	2026-10-09 09:05:32	0	0	0
+system-server	GET	/admin-api/system/auth/singleSignOn/YD-get	15281	1	2026-04-17 14:24:09	2026-09-28 20:32:36	0	5	60
+fst-server	GET	/admin-api/fst/task/get	9437	226	2026-04-17 18:52:58	2026-10-09 14:22:02	0	3	33
+fst-server	GET	/admin-api/fst/cost/manual-writeoff/page	17	1	2026-09-22 12:40:48	2026-09-22 13:09:16	0	0	0
+fst-server	GET	/app-api/fst/man-hour/rejected-opinions	201	20	2026-09-22 21:02:41	2026-10-14 09:09:13	0	0	0
+fst-server	GET	/admin-api/fst/pm-project/get	1398	63	2026-09-22 14:46:19	2026-10-14 11:56:34	0	1	0
+fst-server	POST	/admin-api/fst/travel-applications/1467680526204928/submit	1	1	2026-10-10 11:16:45	2026-10-10 11:16:45	1	1	0
+bpm-server	GET	/app-api/bpm/task/check-approval	869	52	2026-04-17 18:38:17	2026-05-07 08:34:52	0	1	0
+fst-server	POST	/admin-api/fst/quotation/submit	39	10	2026-09-23 15:28:52	2026-10-14 12:31:00	0	1	0
+fst-server	GET	/admin-api/fst/pm-project/progress/task-page/my	127	46	2026-09-30 11:14:57	2026-10-14 11:57:16	0	0	0
+system-server	GET	/admin-api/system/dept/list-by-data-permission	13717	287	2026-04-17 14:24:23	2026-10-14 11:57:16	0	4	0
+fst-server	GET	/admin-api/fst/cost-recon-disposition/page	9	1	2026-09-22 20:10:07	2026-09-23 11:03:22	0	0	0
+fst-server	GET	/admin-api/fst/budget/labor-cost/list	6	3	2026-05-08 11:03:24	2026-09-10 16:59:20	0	0	0
+bpm-server	PUT	/admin-api/bpm/task/return-to-activity	27	5	2026-09-28 10:32:23	2026-10-13 13:46:21	0	0	0
+bpm-server	GET	/app-api/bpm/task/list-by-process-instance-id	1957	180	2026-04-17 16:28:39	2026-10-13 00:22:21	0	0	0
+bpm-server	GET	/admin-api/bpm/task/todo-page	1691	158	2026-04-17 21:37:45	2026-05-14 23:32:34	0	1	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/ade4567ef7a4daf5901291af1a8901b080424fa09669fd459f5d14c170c5c3e6.jpg	20	1	2026-09-23 20:32:03	2026-10-13 21:02:31	0	0	0
+fst-server	GET	/app-api/fst/man-hour/edit-detail	622	164	2026-05-11 18:23:59	2026-10-14 09:09:19	0	0	41
+bpm-server	GET	/admin-api/bpm/user-group/list-all-simple	69	5	2026-04-30 19:39:28	2026-10-13 13:44:59	0	0	0
+infra-server	GET	/admin-api/infra/file/1462460358287360/get	1	1	2026-07-31 11:17:00	2026-07-31 11:17:00	0	0	1
+system-server	PUT	/app-api/system/user/profile/updatePwd	5	1	2026-06-24 14:21:28	2026-06-24 14:31:09	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/1ba8e0f4772d1735fa29c5fad6c119619c22ddbf21e5914880d61a8d0cf225cf.pdf	1	1	2026-09-29 17:10:02	2026-09-29 17:10:02	0	0	0
+system-server	POST	/admin-api/system/auth/qy-wechat/login	7828	1	2026-04-20 16:03:50	2026-06-08 21:39:47	0	2	187
+bpm-server	GET	/admin-api/bpm/model/get	53	7	2026-04-30 19:20:44	2026-10-13 14:08:25	0	0	0
+infra-server	GET	/admin-api/infra/file/4/get/2f3f2ac82187e0517f40c68586d098da51e8722a06e5728d772fed8990987932.jpg	1	1	2026-05-22 09:07:49	2026-05-22 09:07:49	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260924/17902202788702ldgoo.jpg	1	1	2026-09-24 14:42:50	2026-09-24 14:42:50	0	0	0
+system-server	GET	/admin-api/system/dict-data/page	218	3	2026-04-20 15:02:08	2026-09-25 18:54:30	0	0	0
+fst-server	GET	/admin-api/fst/cost/profit-report/detail	1	1	2026-09-23 10:25:41	2026-09-23 10:25:41	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260829/1787985464936bij9pc.docx	1	1	2026-08-29 14:38:56	2026-08-29 14:38:56	0	0	0
+fst-server	GET	/admin-api/fst/hourly-rate/list	31	7	2026-04-27 09:08:59	2026-09-22 13:35:53	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467676755107840/save-draft	1	1	2026-10-10 10:02:17	2026-10-10 10:02:17	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1467494458908672/submit	1	1	2026-10-07 20:11:12	2026-10-07 20:11:12	0	0	0
+fst-server	GET	/admin-api/fst/cost/revenue-red-reversal/page	7	3	2026-09-22 17:19:24	2026-10-10 18:11:09	0	0	0
+fst-server	GET	/admin-api/fst/hourly-rate/detail/list	10	3	2026-07-01 16:11:24	2026-09-22 14:01:27	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260924/1790220254003a8lfut.jpg	2	1	2026-09-24 14:39:38	2026-09-24 14:40:13	0	0	0
+fst-server	GET	/admin-api/fst/cost/profit-report/project-status-options	17	6	2026-09-22 12:26:40	2026-10-14 10:36:07	0	0	0
+system-server	GET	/admin-api/system/role/list-all-simple	220	5	2026-04-20 16:37:03	2026-10-13 14:00:03	0	0	0
+fst-server	GET	/admin-api/fst/cost/pre-posting-check/items/TIMESHEET_APPROVAL_HOURS/rows	3	1	2026-09-23 09:37:06	2026-09-23 12:52:07	0	0	0
+fst-server	GET	/admin-api/fst/man-hour/page	12687	279	2026-04-17 14:32:18	2026-10-14 11:45:21	0	59	18
+infra-server	GET	/admin-api/infra/file/4/get/1fc002449806b5a75d71bf42396f4e039a6b4ed1d3da9c98da01e60ccdb077ab.jpg	4	1	2026-06-17 18:13:34	2026-09-23 17:19:16	0	0	0
+fst-server	GET	/admin-api/fst/accounting/wip/second/list	1	1	2026-04-27 09:09:04	2026-04-27 09:09:04	9	9	1
+fst-server	POST	/admin-api/fst/pm-project/progress/task/create	276	28	2026-09-22 17:42:31	2026-10-14 09:07:31	0	0	1
+system-server	GET	/admin-api/system/auth/get-permission-info	155244	315	2026-04-17 14:24:10	2026-10-14 14:01:22	0	2	0
+bpm-server	GET	/app-api/bpm/process-instance/my-page	45281	330	2026-04-17 16:28:33	2026-10-14 14:01:21	0	318	7
+fst-server	GET	/admin-api/fst/travel-applications/1466498591170560/expense-allocation	32	3	2026-09-23 18:39:55	2026-10-14 10:35:09	0	4	2
+system-server	POST	/admin-api/system/permission/assign-role-data-scope	8	3	2026-04-23 15:08:57	2026-09-10 09:22:35	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/create-draft	58	22	2026-09-22 18:03:00	2026-10-12 21:29:56	0	0	38
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260928/1790599202974roe2l4.jpg	1	1	2026-09-29 18:51:24	2026-09-29 18:51:24	0	0	0
+fst-server	POST	/app-api/fst/man-hour/update	2440	231	2026-04-17 18:04:50	2026-05-29 21:02:02	0	3	0
+fst-server	POST	/admin-api/fst/workflow-form/approve	194	19	2026-09-22 21:04:01	2026-10-14 13:33:22	0	10	7
+fst-server	GET	/admin-api/fst/invoice-tax-deductions	18	1	2026-09-30 13:33:39	2026-10-14 10:35:10	0	0	0
+bpm-server	GET	/admin-api/bpm/task/todo-list	11047	229	2026-05-11 18:04:11	2026-10-14 14:01:23	0	3	2
+bpm-server	GET	/admin-api/bpm/process-definition/get-bpmn-xml	14630	225	2026-04-17 21:37:50	2026-10-14 13:42:04	0	2	0
+fst-server	GET	/admin-api/fst/cost-template/list	42	29	2026-09-22 14:45:59	2026-10-13 14:01:28	0	0	0
+fst-server	POST	/admin-api/fst/travel-applications/1466498591170560/expense-allocation/save-drafts	1	1	2026-09-24 14:06:31	2026-09-24 14:06:31	0	0	0
+fst-server	GET	/admin-api/fst/cost/pre-posting-check/items/TIMESHEET_PROJECT_STATUS/rows	4	2	2026-09-23 09:37:06	2026-10-10 16:26:48	1	2	0
+fst-server	GET	/admin-api/fst/travel-applications/1466558006149120/expense-allocation	3	2	2026-09-24 14:43:44	2026-10-01 08:51:19	0	0	0
+system-server	GET	/admin-api/system/post/list-all-simple	380	22	2026-04-20 16:36:55	2026-10-14 13:37:03	0	0	0
+system-server	GET	/admin-api/system/captcha/get	8	1	2026-05-22 11:23:58	2026-09-22 11:22:42	0	0	0
+fst-server	GET	/app-api/fst/process/to-be-sent/page	2587	177	2026-04-17 18:51:36	2026-05-13 19:24:29	0	1	0
+infra-server	GET	/admin-api/infra/file-config/page	17	3	2026-07-31 11:14:32	2026-10-14 10:06:27	0	0	0
+fst-server	GET	/admin-api/fst/man-hour/editable-todo	475	72	2026-09-22 14:52:28	2026-10-14 12:31:45	0	0	0
+system-server	GET	/admin-api/system/permission/list-user-roles	149	4	2026-04-20 16:37:03	2026-10-13 14:00:03	0	0	0
+infra-server	HEAD	/admin-api/infra/file/1462655169118208/get/deliverable/20261010/17916114875578tz1dn.pdf	3	1	2026-10-10 16:25:28	2026-10-10 16:33:06	0	0	0
+fst-server	GET	/admin-api/fst/cost/opening/result/drawer/month-projects	1	1	2026-09-22 17:04:34	2026-09-22 17:04:34	0	0	0
+fst-server	GET	/admin-api/fst/hourly-rate/get	10	3	2026-07-01 16:11:24	2026-09-22 14:01:27	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/4cb8915918588b19f1546dc1725025e8baa7ae3dbeb46aa979c6327b54b47925.pdf	1	1	2026-10-13 13:55:27	2026-10-13 13:55:27	0	0	0
+fst-server	GET	/admin-api/fst/man-hour/works-space/wbs2	2179	35	2026-05-05 22:04:45	2026-10-14 13:37:01	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/budget/plan-dates	70	10	2026-09-22 19:10:36	2026-10-14 09:02:25	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/progress/task/done	511	13	2026-09-22 18:40:42	2026-10-13 21:00:18	0	0	1
+fst-server	GET	/admin-api/fst/man-hour/closed/page	5064	256	2026-04-17 17:25:47	2026-10-14 11:52:49	0	4	62
+infra-server	GET	/admin-api/infra/db-doc/export-html	10	2	2026-07-31 14:15:02	2026-09-24 08:49:16	3	31	0
+fst-server	POST	/admin-api/fst/invoice-tax-deductions/save	4	1	2026-10-09 16:39:39	2026-10-09 16:39:51	0	0	0
+fst-server	GET	/admin-api/fst/cost-template/get	71	16	2026-09-22 14:46:02	2026-10-14 12:29:28	0	0	0
+system-server	POST	/admin-api/system/permission/assign-user-role	85	3	2026-04-20 16:37:35	2026-10-13 09:42:27	0	0	1
+system-server	GET	/admin-api/system/dept/list	255	5	2026-05-06 20:03:23	2026-09-25 19:00:44	0	0	0
+fst-server	GET	/admin-api/fst/cost/collection/batch/status	704	1	2026-09-22 19:47:29	2026-09-23 12:06:40	0	2	0
+fst-server	GET	/admin-api/fst/biget/page	5	2	2026-07-06 17:41:52	2026-09-29 11:26:34	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/ccf9f3f1544255df2a182dd0201cb182b073ec02d1171c854ff834b67861ddeb.doc	1	1	2026-09-29 22:42:54	2026-09-29 22:42:54	0	0	0
+fst-server	GET	/admin-api/fst/cost-option/workpkg/list-batch	62	15	2026-09-22 14:46:02	2026-10-12 22:28:37	0	0	0
+fst-server	GET	/admin-api/fst/travel-application-revisions/active	153	19	2026-09-22 18:04:52	2026-10-14 10:35:09	0	0	0
+fst-server	POST	/admin-api/fst/cost-correction/posting-check/scan	2	2	2026-09-22 14:37:46	2026-09-22 14:49:03	0	0	0
+infra-server	GET	/admin-api/infra/file-config/test	1	1	2026-07-31 11:20:59	2026-07-31 11:20:59	0	0	0
+fst-server	GET	/admin-api/fst/resource/weekly-meeting/works/get	42	14	2026-04-27 09:52:23	2026-09-21 15:23:13	0	0	0
+fst-server	POST	/admin-api/fst/pm-project/budget/deliverable	117	13	2026-09-22 19:11:38	2026-10-14 11:55:30	0	0	0
+bpm-server	PUT	/admin-api/bpm/task/decide	735	56	2026-09-22 18:01:30	2026-10-14 11:08:31	0	19	1
+fst-server	GET	/admin-api/fst/common/user	83	15	2026-04-19 10:43:36	2026-10-12 22:25:57	0	0	0
+fst-server	GET	/admin-api/fst/task/page	4571	221	2026-04-20 22:57:19	2026-10-14 14:01:23	0	3	1
+fst-server	GET	/admin-api/fst/common/biget-all/project	5	2	2026-07-06 17:41:52	2026-09-29 11:26:33	0	0	0
+fst-server	GET	/admin-api/fst/cost/opening/health-check	7	2	2026-09-22 14:38:06	2026-09-22 20:00:45	11	35	2
+infra-server	GET	/admin-api/infra/file/page	10	3	2026-10-10 16:32:48	2026-10-14 10:18:04	0	0	0
+bpm-server	DELETE	/app-api/bpm/process-instance/cancel	398	166	2026-04-30 19:46:25	2026-10-14 08:40:15	3	121	51
+bpm-server	POST	/admin-api/bpm/task-assign-rule/create	9	1	2026-04-30 19:39:54	2026-09-23 09:04:52	0	0	0
+fst-server	DELETE	/admin-api/fst/pm-project/progress/task/delete	128	22	2026-09-22 18:39:33	2026-10-13 21:00:40	0	1	2
+system-server	GET	/admin-api/system/file/upload	4	1	2026-09-20 03:56:30	2026-10-09 23:18:27	0	0	0
+fst-server	GET	/admin-api/fst/cost/pre-posting-check/items/EXPENSE_OUTSOURCING_NOT_RATIFIED/rows	1	1	2026-10-10 16:26:48	2026-10-10 16:26:48	0	0	0
+fst-server	GET	/admin-api/fst/invest-forecast/page	50	21	2026-04-30 13:52:51	2026-09-22 12:27:28	0	4	0
+fst-server	GET	/admin-api/fst/common/biget/user	5	2	2026-07-06 17:41:52	2026-09-29 11:26:33	0	0	0
+fst-server	DELETE	/admin-api/fst/quotation/delete	6	4	2026-09-24 11:50:40	2026-10-14 11:20:07	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/deliverable/20260929/1790669505216snm73s.jpg	2	1	2026-09-30 11:35:17	2026-09-30 18:13:08	0	0	0
+system-server	GET	/admin-api/system/dept/get	144	2	2026-05-06 20:03:35	2026-09-22 17:55:01	0	0	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/eab5e53c5e52284e61df7953ba7eca8e40e5ba22e4b0c6160a7310b10c2caa01.xlsx	2	1	2026-08-13 20:24:37	2026-08-13 20:29:38	0	0	0
+fst-server	GET	/admin-api/fst/cost/profit-report/tree	31	4	2026-09-22 19:17:12	2026-10-14 10:36:15	0	12	0
+infra-server	GET	/admin-api/infra/file/1462655169118208/get/fa925cc7c6f66234ca4de68f003abfd94cab030f6898cf28c4507afa8dacc920.pdf	2	1	2026-09-30 13:34:44	2026-09-30 15:35:34	0	0	0
+fst-server	GET	/app-api/fst/workflow-form/summary	2395	47	2026-09-22 20:24:24	2026-10-14 12:38:24	0	0	0
+fst-server	GET	/admin-api/fst/opportunity/page	3221	99	2026-04-17 14:31:14	2026-10-14 13:36:59	0	2	0
+fst-server	GET	/admin-api/fst/travel-cities/synchronization-status	7	3	2026-09-22 14:42:48	2026-09-22 19:01:26	0	0	0
+infra-server	GET	/admin-api/infra/file/1462460358287360/get/deliverable/20260730/17854024174559n8u59.docx%E4%B8%BA%E5%95%A5%E6%98%AF500	1	1	2026-07-30 17:15:55	2026-07-30 17:15:55	0	0	1
+fst-server	GET	/admin-api/fst/common/project/plan-works	3499	117	2026-04-17 14:33:26	2026-09-22 19:38:03	0	2	43
+##02_menus
+1	0	系统管理	1	/system			0	1
+2	0	基础设施	1	/infra			0	1
+5	1185	OA 示例	1	oa			0	1
+100	1	用户管理	2	user	system/user/index	system:user:list	0	1
+101	1	角色管理	2	role	system/role/index		0	1
+102	1	菜单管理	2	menu	system/menu/index		0	1
+103	1	部门管理	2	dept	system/dept/index		0	1
+104	1	岗位管理	2	post	system/post/index		0	1
+105	1	字典管理	2	dict	system/dict/index		0	1
+106	2	配置管理	2	config	infra/config/index		0	1
+107	1	通知公告	2	notice	system/notice/index		0	1
+108	1	审计日志	1	log			0	1
+109	1261	令牌管理	2	token	system/oauth2/token/index		0	1
+110	2	定时任务	2	job	infra/job/index		1	1
+111	2	MySQL 监控	2	druid	infra/druid/index		0	1
+112	2	Java 监控	2	admin-server	infra/server/index		1	1
+113	2	Redis 监控	2	redis	infra/redis/index		0	1
+114	2	表单构建	2	build	infra/build/index	infra:build:list	0	1
+115	2	代码生成	2	codegen	infra/codegen/index	infra:codegen:query	0	1
+116	2	系统接口	2	swagger	infra/swagger/index	infra:swagger:list	0	1
+500	108	操作日志	2	operate-log	system/operatelog/index		0	1
+501	108	登录日志	2	login-log	system/loginlog/index		0	1
+1001	100	用户查询	3			system:user:query	0	1
+1002	100	用户新增	3			system:user:create	0	1
+1003	100	用户修改	3			system:user:update	0	1
+1004	100	用户删除	3			system:user:delete	0	1
+1005	100	用户导出	3			system:user:export	0	1
+1006	100	用户导入	3			system:user:import	0	1
+1007	100	重置密码	3			system:user:update-password	0	1
+1008	101	角色查询	3			system:role:query	0	1
+1009	101	角色新增	3			system:role:create	0	1
+1010	101	角色修改	3			system:role:update	0	1
+1011	101	角色删除	3			system:role:delete	0	1
+1012	101	角色导出	3			system:role:export	0	1
+1013	102	菜单查询	3			system:menu:query	0	1
+1014	102	菜单新增	3			system:menu:create	0	1
+1015	102	菜单修改	3			system:menu:update	0	1
+1016	102	菜单删除	3			system:menu:delete	0	1
+1017	103	部门查询	3			system:dept:query	0	1
+1018	103	部门新增	3			system:dept:create	0	1
+1019	103	部门修改	3			system:dept:update	0	1
+1020	103	部门删除	3			system:dept:delete	0	1
+1021	104	岗位查询	3			system:post:query	0	1
+1022	104	岗位新增	3			system:post:create	0	1
+1023	104	岗位修改	3			system:post:update	0	1
+1024	104	岗位删除	3			system:post:delete	0	1
+1025	104	岗位导出	3			system:post:export	0	1
+1026	105	字典查询	3	#		system:dict:query	0	1
+1027	105	字典新增	3			system:dict:create	0	1
+1028	105	字典修改	3			system:dict:update	0	1
+1029	105	字典删除	3			system:dict:delete	0	1
+1030	105	字典导出	3	#		system:dict:export	0	1
+1031	106	配置查询	3			infra:config:query	0	1
+1032	106	配置新增	3			infra:config:create	0	1
+1033	106	配置修改	3			infra:config:update	0	1
+1034	106	配置删除	3			infra:config:delete	0	1
+1035	106	配置导出	3			infra:config:export	0	1
+1036	107	公告查询	3	#		system:notice:query	0	1
+1037	107	公告新增	3			system:notice:create	0	1
+1038	107	公告修改	3			system:notice:update	0	1
+1039	107	公告删除	3			system:notice:delete	0	1
+1040	500	操作查询	3			system:operate-log:query	0	1
+1042	500	日志导出	3			system:operate-log:export	0	1
+1043	501	登录查询	3	#		system:login-log:query	0	1
+1045	501	日志导出	3	#		system:login-log:export	0	1
+1046	109	令牌列表	3			system:oauth2-token:page	0	1
+1048	109	令牌删除	3			system:oauth2-token:delete	0	1
+1050	110	任务新增	3			infra:job:create	0	1
+1051	110	任务修改	3			infra:job:update	0	1
+1052	110	任务删除	3			infra:job:delete	0	1
+1053	110	状态修改	3			infra:job:update	0	1
+1054	110	任务导出	3			infra:job:export	0	1
+1056	115	生成修改	3			infra:codegen:update	0	1
+1057	115	生成删除	3			infra:codegen:delete	0	1
+1058	115	导入代码	3			infra:codegen:create	0	1
+1059	115	预览代码	3			infra:codegen:preview	0	1
+1060	115	生成代码	3			infra:codegen:download	0	1
+1063	101	设置角色菜单权限	3			system:permission:assign-role-menu	0	1
+1064	101	设置角色数据权限	3			system:permission:assign-role-data-scope	0	1
+1065	101	设置用户角色	3			system:permission:assign-user-role	0	1
+1066	113	获得 Redis 监控信息	3			infra:redis:get-monitor-info	0	1
+1067	113	获得 Redis Key 列表	3			infra:redis:get-key-list	0	1
+1070	2	代码生成示例	2	test-demo	infra/testDemo/index	infra:test-demo:query	0	1
+1071	1070	测试示例表创建	3			infra:test-demo:create	0	1
+1072	1070	测试示例表更新	3			infra:test-demo:update	0	1
+1073	1070	测试示例表删除	3			infra:test-demo:delete	0	1
+1074	1070	测试示例表导出	3			infra:test-demo:export	0	1
+1075	110	任务触发	3			infra:job:trigger	0	1
+1076	2	数据库文档	2	db-doc	infra/dbDoc/index		0	1
+1077	2	监控平台	2	skywalking	infra/skywalking/index		1	1
+1078	1083	访问日志	2	api-access-log	infra/apiAccessLog/index		0	1
+1082	1078	日志导出	3			infra:api-access-log:export	0	1
+1083	2	API 日志	2	log			0	1
+1084	1083	错误日志	2	api-error-log	infra/apiErrorLog/index	infra:api-error-log:query	0	1
+1085	1084	日志处理	3			infra:api-error-log:update-status	0	1
+1086	1084	日志导出	3			infra:api-error-log:export	0	1
+1087	110	任务查询	3			infra:job:query	0	1
+1088	1078	日志查询	3			infra:api-access-log:query	0	1
+1089	1084	日志查询	3			infra:api-error-log:query	0	1
+1090	1243	文件列表	2	file	infra/file/index		0	1
+1091	1090	文件查询	3			infra:file:query	0	1
+1092	1090	文件删除	3			infra:file:delete	0	1
+1093	1	短信管理	1	sms			0	1
+1094	1093	短信渠道	2	sms-channel	system/sms/smsChannel		0	1
+1095	1094	短信渠道查询	3			system:sms-channel:query	0	1
+1096	1094	短信渠道创建	3			system:sms-channel:create	0	1
+1097	1094	短信渠道更新	3			system:sms-channel:update	0	1
+1098	1094	短信渠道删除	3			system:sms-channel:delete	0	1
+1100	1093	短信模板	2	sms-template	system/sms/smsTemplate		0	1
+1101	1100	短信模板查询	3			system:sms-template:query	0	1
+1102	1100	短信模板创建	3			system:sms-template:create	0	1
+1103	1100	短信模板更新	3			system:sms-template:update	0	1
+1104	1100	短信模板删除	3			system:sms-template:delete	0	1
+1105	1100	短信模板导出	3			system:sms-template:export	0	1
+1106	1100	发送测试短信	3			system:sms-template:send-sms	0	1
+1107	1093	短信日志	2	sms-log	system/sms/smsLog		0	1
+1108	1107	短信日志查询	3			system:sms-log:query	0	1
+1109	1107	短信日志导出	3			system:sms-log:export	0	1
+1110	1	错误码管理	2	error-code	system/errorCode/index		0	1
+1111	1110	错误码查询	3			system:error-code:query	0	1
+1112	1110	错误码创建	3			system:error-code:create	0	1
+1113	1110	错误码更新	3			system:error-code:update	0	1
+1114	1110	错误码删除	3			system:error-code:delete	0	1
+1115	1110	错误码导出	3			system:error-code:export	0	1
+1117	0	支付管理	1	/pay		0	1	0
+1118	5	请假查询	2	leave	bpm/oa/leave/index		0	1
+1119	1118	请假申请查询	3			bpm:oa-leave:query	0	1
+1120	1118	请假申请创建	3			bpm:oa-leave:create	0	1
+1126	1117	应用信息	2	app	pay/app/index		0	0
+1127	1126	支付应用信息查询	3			pay:app:query	0	0
+1128	1126	支付应用信息创建	3			pay:app:create	0	0
+1129	1126	支付应用信息更新	3			pay:app:update	0	0
+1130	1126	支付应用信息删除	3			pay:app:delete	0	0
+1131	1126	支付应用信息导出	3			pay:app:export	0	0
+1132	1129	秘钥解析	3			pay:channel:parsing	0	0
+1133	1132	支付商户信息查询	3			pay:merchant:query	0	0
+1134	1132	支付商户信息创建	3			pay:merchant:create	0	0
+1135	1132	支付商户信息更新	3			pay:merchant:update	0	0
+1136	1132	支付商户信息删除	3			pay:merchant:delete	0	0
+1137	1132	支付商户信息导出	3			pay:merchant:export	0	0
+1150	1129	秘钥解析	3				0	0
+1161	1117	退款订单	2	refund	pay/refund/index		0	0
+1162	1161	退款订单查询	3			pay:refund:query	0	0
+1163	1161	退款订单创建	3			pay:refund:create	0	0
+1164	1161	退款订单更新	3			pay:refund:update	0	0
+1165	1161	退款订单删除	3			pay:refund:delete	0	0
+1166	1161	退款订单导出	3			pay:refund:export	0	0
+1173	1117	支付订单	2	order	pay/order/index		0	0
+1174	1173	支付订单查询	3			pay:order:query	0	0
+1175	1173	支付订单创建	3			pay:order:create	0	0
+1176	1173	支付订单更新	3			pay:order:update	0	0
+1177	1173	支付订单删除	3			pay:order:delete	0	0
+1178	1173	支付订单导出	3			pay:order:export	0	0
+1179	1117	商户信息	2	merchant	pay/merchant/index		0	0
+1180	1179	支付商户信息查询	3			pay:merchant:query	0	0
+1181	1179	支付商户信息创建	3			pay:merchant:create	0	0
+1182	1179	支付商户信息更新	3			pay:merchant:update	0	0
+1183	1179	支付商户信息删除	3				0	0
+1184	1179	支付商户信息导出	3			pay:merchant:export	0	0
+1185	0	工作流程	1	/bpm			0	1
+1186	1185	流程管理	1	manager			0	1
+1187	1186	流程表单	2	form	bpm/form/index		0	1
+1188	1187	表单查询	3			bpm:form:query	0	1
+1189	1187	表单创建	3			bpm:form:create	0	1
+1190	1187	表单更新	3			bpm:form:update	0	1
+1191	1187	表单删除	3			bpm:form:delete	0	1
+1192	1187	表单导出	3			bpm:form:export	0	1
+1193	1186	流程模型	2	model	bpm/model/index		0	1
+1194	1193	模型查询	3			bpm:model:query	0	1
+1195	1193	模型创建	3			bpm:model:create	0	1
+1196	1193	模型导入	3			bpm:model:import	0	1
+1197	1193	模型更新	3			bpm:model:update	0	1
+1198	1193	模型删除	3			bpm:model:delete	0	1
+1199	1193	模型发布	3			bpm:model:deploy	0	1
+1201	1376657077354496	我的流程	2	my	bpm/processInstance/index		0	29
+1202	1201	流程实例的查询	3			bpm:process-instance:query	0	29
+1207	1376657077354496	待办任务	2	todo	bpm/task/todo		0	30
+1208	1376657077354496	已办任务	2	done	bpm/task/done		0	29
+1209	1186	用户分组	2	user-group	bpm/group/index		0	1
+1210	1209	用户组查询	3			bpm:user-group:query	0	1
+1211	1209	用户组创建	3			bpm:user-group:create	0	1
+1212	1209	用户组更新	3			bpm:user-group:update	0	1
+1213	1209	用户组删除	3			bpm:user-group:delete	0	1
+1215	1193	流程定义查询	3			bpm:process-definition:query	0	1
+1216	1193	流程任务分配规则查询	3			bpm:task-assign-rule:query	0	1
+1217	1193	流程任务分配规则创建	3			bpm:task-assign-rule:create	0	1
+1218	1193	流程任务分配规则更新	3			bpm:task-assign-rule:update	0	1
+1219	1201	流程实例的创建	3			bpm:process-instance:create	0	29
+1220	1201	流程实例的取消	3			bpm:process-instance:cancel	0	29
+1221	1207	流程任务的查询	3			bpm:task:query	0	30
+1222	1207	流程任务的更新	3			bpm:task:update	0	30
+1237	1243	文件配置	2	file-config	infra/fileConfig/index		0	1
+1238	1237	文件配置查询	3			infra:file-config:query	0	1
+1239	1237	文件配置创建	3			infra:file-config:create	0	1
+1240	1237	文件配置更新	3			infra:file-config:update	0	1
+1241	1237	文件配置删除	3			infra:file-config:delete	0	1
+1242	1237	文件配置导出	3			infra:file-config:export	0	1
+1243	2	文件管理	2	file			0	1
+1247	1	敏感词管理	2	sensitive-word	system/sensitiveWord/index		0	1
+1248	1247	敏感词查询	3			system:sensitive-word:query	0	1
+1249	1247	敏感词创建	3			system:sensitive-word:create	0	1
+1250	1247	敏感词更新	3			system:sensitive-word:update	0	1
+1251	1247	敏感词删除	3			system:sensitive-word:delete	0	1
+1252	1247	敏感词导出	3			system:sensitive-word:export	0	1
+1254	0	作者动态	1	https://www.iocoder.cn			1	0
+1255	2	数据源配置	2	data-source-config	infra/dataSourceConfig/index		0	1
+1256	1255	数据源配置查询	3			infra:data-source-config:query	0	1
+1257	1255	数据源配置创建	3			infra:data-source-config:create	0	1
+1258	1255	数据源配置更新	3			infra:data-source-config:update	0	1
+1259	1255	数据源配置删除	3			infra:data-source-config:delete	0	1
+1260	1255	数据源配置导出	3			infra:data-source-config:export	0	1
+1261	1	OAuth 2.0	1	oauth2			0	1
+1263	1261	应用管理	2	oauth2/application	system/oauth2/client/index		0	1
+1264	1263	客户端查询	3			system:oauth2-client:query	0	1
+1265	1263	客户端创建	3			system:oauth2-client:create	0	1
+1266	1263	客户端更新	3			system:oauth2-client:update	0	1
+1267	1263	客户端删除	3			system:oauth2-client:delete	0	1
+1281	0	报表管理	1	/visualization			1	1
+1282	1281	报表设计器	2	jimu-report	visualization/jmreport/index		0	1
+2000	0	商品中心	1	/product		0	1	0
+2002	2000	商品分类	2	category	mall/product/category/index		0	0
+2003	2002	分类查询	3			product:category:query	0	0
+2004	2002	分类创建	3			product:category:create	0	0
+2005	2002	分类更新	3			product:category:update	0	0
+2006	2002	分类删除	3			product:category:delete	0	0
+2008	2000	商品品牌	2	brand	mall/product/brand/index		0	0
+2009	2008	品牌查询	3			product:brand:query	0	0
+2010	2008	品牌创建	3			product:brand:create	0	0
+2011	2008	品牌更新	3			product:brand:update	0	0
+2012	2008	品牌删除	3			product:brand:delete	0	0
+2014	2000	商品列表	2	spu	mall/product/spu/index		0	0
+2015	2014	商品查询	3			product:spu:query	0	0
+2016	2014	商品创建	3			product:spu:create	0	0
+2017	2014	商品更新	3			product:spu:update	0	0
+2018	2014	商品删除	3			product:spu:delete	0	0
+2019	2000	商品属性	2	property	mall/product/property/index		0	0
+2020	2019	规格查询	3			product:property:query	0	0
+2021	2019	规格创建	3			product:property:create	0	0
+2022	2019	规格更新	3			product:property:update	0	0
+2023	2019	规格删除	3			product:property:delete	0	0
+2025	2000	Banner管理	2	banner	mall/market/banner/index		0	0
+2026	2025	Banner查询	3			market:banner:query	0	0
+2027	2025	Banner创建	3			market:banner:create	0	0
+2028	2025	Banner更新	3			market:banner:update	0	0
+2029	2025	Banner删除	3			market:banner:delete	0	0
+2030	0	营销中心	1	/promotion			1	0
+2032	2030	优惠劵	2	coupon-template	mall/promotion/couponTemplate/index		0	0
+2033	2032	优惠劵模板查询	3			promotion:coupon-template:query	0	0
+2034	2032	优惠劵模板创建	3			promotion:coupon-template:create	0	0
+2035	2032	优惠劵模板更新	3			promotion:coupon-template:update	0	0
+2036	2032	优惠劵模板删除	3			promotion:coupon-template:delete	0	0
+2038	2030	会员优惠劵	2	coupon	mall/promotion/coupon/index		0	0
+2039	2038	优惠劵查询	3			promotion:coupon:query	0	0
+2040	2038	优惠劵删除	3			promotion:coupon:delete	0	0
+2041	2030	满减送活动	2	reward-activity	mall/promotion/rewardActivity/index		0	0
+2042	2041	满减送活动查询	3			promotion:reward-activity:query	0	0
+2043	2041	满减送活动创建	3			promotion:reward-activity:create	0	0
+2044	2041	满减送活动更新	3			promotion:reward-activity:update	0	0
+2045	2041	满减送活动删除	3			promotion:reward-activity:delete	0	0
+2046	2041	满减送活动关闭	3			promotion:reward-activity:close	0	0
+2047	2030	限时折扣活动	2	discount-activity	mall/promotion/discountActivity/index		0	0
+2048	2047	限时折扣活动查询	3			promotion:discount-activity:query	0	0
+2049	2047	限时折扣活动创建	3			promotion:discount-activity:create	0	0
+2050	2047	限时折扣活动更新	3			promotion:discount-activity:update	0	0
+2051	2047	限时折扣活动删除	3			promotion:discount-activity:delete	0	0
+2052	2047	限时折扣活动关闭	3			promotion:discount-activity:close	0	0
+2059	2030	秒杀活动管理	2	seckill-activity	mall/promotion/seckill/seckillActivity/index		0	0
+2060	2059	秒杀活动查询	3			promotion:seckill-activity:query	0	0
+2061	2059	秒杀活动创建	3			promotion:seckill-activity:create	0	0
+2062	2059	秒杀活动更新	3			promotion:seckill-activity:update	0	0
+2063	2059	秒杀活动删除	3			promotion:seckill-activity:delete	0	0
+2064	2059	秒杀活动导出	3			promotion:seckill-activity:export	0	0
+2066	2030	秒杀时段管理	2	seckill-time	mall/promotion/seckill/seckillTime/index		0	0
+2067	2066	秒杀时段查询	3			promotion:seckill-time:query	0	0
+2068	2066	秒杀时段创建	3			promotion:seckill-time:create	0	0
+2069	2066	秒杀时段更新	3			promotion:seckill-time:update	0	0
+2070	2066	秒杀时段删除	3			promotion:seckill-time:delete	0	0
+2071	2066	秒杀时段导出	3			promotion:seckill-time:export	0	0
+2072	0	订单中心	1	/trade		0	1	0
+2073	2072	售后退款	2	trade/after-sale	mall/trade/afterSale/index		0	0
+2074	2073	售后查询	3			trade:after-sale:query	0	0
+2075	2059	秒杀活动关闭	3			promotion:sekill-activity:close	0	0
+2076	2072	订单列表	2	trade/order	mall/trade/order/index		0	0
+2077	2072	物流公司管理管理	2	express-company	mall/trade/expressCompany/index		0	0
+2078	2077	物流公司管理查询	3			trade:express-company:query	0	0
+2079	2077	物流公司管理创建	3			trade:express-company:create	0	0
+2080	2077	物流公司管理更新	3			trade:express-company:update	0	0
+2081	2077	物流公司管理删除	3			trade:express-company:delete	0	0
+2082	2077	物流公司管理导出	3			trade:express-company:export	0	0
+2083	1	地区管理	2	area	system/area/index		0	1
+2084	0	公众号管理	1	/mp			1	1
+2085	2084	账号管理	2	account	mp/account/index	mp:account:query	0	1
+2086	2085	新增账号	3			mp:account:create	0	1
+2087	2085	修改账号	3			mp:account:update	0	1
+2088	2085	查询账号	3			mp:account:query	0	1
+2089	2085	删除账号	3			mp:account:delete	0	1
+2090	2085	生成二维码	3			mp:account:qr-code	0	1
+2091	2085	清空 API 配额	3			mp:account:clear-quota	0	1
+2092	2084	数据统计	2	statistics	mp/statistics/index	mp:statistics:query	0	1
+2093	2084	标签管理	2	tag	mp/tag/index		0	1
+2094	2093	查询标签	3			mp:tag:query	0	1
+2095	2093	新增标签	3			mp:tag:create	0	1
+2096	2093	修改标签	3			mp:tag:update	0	1
+2097	2093	删除标签	3			mp:tag:delete	0	1
+2098	2093	同步标签	3			mp:tag:sync	0	1
+2099	2084	粉丝管理	2	user	mp/user/index		0	1
+2100	2099	查询粉丝	3			mp:user:query	0	1
+2101	2099	修改粉丝	3			mp:user:update	0	1
+2102	2099	同步粉丝	3			mp:user:sync	0	1
+2103	2084	消息管理	2	message	mp/message/index		0	1
+2104	2084	图文发表记录	2	free-publish	mp/freePublish/index		0	1
+2105	2104	查询发布列表	3			mp:free-publish:query	0	1
+2106	2104	发布草稿	3			mp:free-publish:submit	0	1
+2107	2104	删除发布记录	3			mp:free-publish:delete	0	1
+2108	2084	图文草稿箱	2	draft	mp/draft/index		0	1
+2109	2108	新建草稿	3			mp:draft:create	0	1
+2110	2108	修改草稿	3			mp:draft:update	0	1
+2111	2108	查询草稿	3			mp:draft:query	0	1
+2112	2108	删除草稿	3			mp:draft:delete	0	1
+2113	2084	素材管理	2	material	mp/material/index		0	1
+2114	2113	上传临时素材	3			mp:material:upload-temporary	0	1
+2115	2113	上传永久素材	3			mp:material:upload-permanent	0	1
+2116	2113	删除素材	3			mp:material:delete	0	1
+2117	2113	上传图文图片	3			mp:material:upload-news-image	0	1
+2118	2113	查询素材	3			mp:material:query	0	1
+2119	2084	菜单管理	2	menu	mp/menu/index		0	1
+2120	2084	自动回复	2	auto-reply	mp/autoReply/index		0	1
+2121	2120	查询回复	3			mp:auto-reply:query	0	1
+2122	2120	新增回复	3			mp:auto-reply:create	0	1
+2123	2120	修改回复	3			mp:auto-reply:update	0	1
+2124	2120	删除回复	3			mp:auto-reply:delete	0	1
+2125	2119	查询菜单	3			mp:menu:query	0	1
+2126	2119	保存菜单	3			mp:menu:save	0	1
+2127	2119	删除菜单	3			mp:menu:delete	0	1
+2128	2103	查询消息	3			mp:message:query	0	1
+2129	2103	发送消息	3			mp:message:send	0	1
+2130	1	邮箱管理	2	mail			1	1
+2131	2130	邮箱账号	2	mail-account	system/mail/account/index		0	1
+2132	2131	账号查询	3			system:mail-account:query	0	1
+2133	2131	账号创建	3			system:mail-account:create	0	1
+2134	2131	账号更新	3			system:mail-account:update	0	1
+2135	2131	账号删除	3			system:mail-account:delete	0	1
+2136	2130	邮件模版	2	mail-template	system/mail/template/index		0	1
+2137	2136	模版查询	3			system:mail-template:query	0	1
+2138	2136	模版创建	3			system:mail-template:create	0	1
+2139	2136	模版更新	3			system:mail-template:update	0	1
+2140	2136	模版删除	3			system:mail-template:delete	0	1
+2141	2130	邮件记录	2	mail-log	system/mail/log/index		0	1
+2142	2141	日志查询	3			system:mail-log:query	0	1
+2143	2136	发送测试邮件	3			system:mail-template:send-mail	0	1
+2144	1	站内信管理	1	notify			0	1
+2145	2144	模板管理	2	notify-template	system/notify/template/index		0	1
+2146	2145	站内信模板查询	3			system:notify-template:query	0	1
+2147	2145	站内信模板创建	3			system:notify-template:create	0	1
+2148	2145	站内信模板更新	3			system:notify-template:update	0	1
+2149	2145	站内信模板删除	3			system:notify-template:delete	0	1
+2150	2145	发送测试站内信	3			system:notify-template:send-notify	0	1
+2151	2144	消息记录	2	notify-message	system/notify/message/index		0	1
+2152	2151	站内信消息查询	3			system:notify-message:query	0	1
+1373184558743552	0	项目管理	1	/project			0	28
+1373184628080640	1373184558743552	资源看板	2	visualized	project/visualized/index		1	14
+1373186428231680	1373184558743552	项目计划	2	planning	project/planning/index		1	15
+1373980388048896	1373184558743552	工时填报	2	timesheet	project/timesheet/index		0	27
+1376657077354496	0	流程审批	1	/workflow			0	30
+1381917606330368	1373184558743552	工时查询	2	timesheetsearch	project/timesheet/search/index		0	27
+1383191099564032	1373184558743552	计划模版	2	planModule	project/plan_modules/index		1	5
+1387367437836288	1373184558743552	任务清单	2	taskLists	project/taskLists/index		0	25
+1388347671691264	1373184558743552	我的任务	2	myTaskLists	project/myTaskLists/index		0	27
+1391181944823808	1419841362542592	工时单价	2	price	project/price/index		1	2
+1391182047608832	1373184558743552	项目视图	2	views	project/lists/index		1	14
+1392807881179136	1373184558743552	技能标签	2	skillTag	project/skillTag/index		0	10
+1403709051805696	0	测区抽取	1	/survey			0	4
+1403709101899776	1403709051805696	立即抽取	2	randomInspection	survey/randomInspection		0	4
+1403709205037056	1403709051805696	信息维护	2	projectInfo	survey/projectInfo		0	4
+1403709261570048	1403709051805696	历史记录	2	randomInspectionHistory	survey/randomInspectionHistory		0	4
+1413040782049280	1373184558743552	项目周会	2	weeklyMeeting	project/weeklyMeeting/index		1	14
+1414094939578368	1373184558743552	周会统计	2	weeklyMeetingStatistics	project/weeklyMeetingStatistics/index		1	9
+1419841362542592	0	管理会计	1	/accounting			0	19
+1419841403535360	1419841362542592	WIP结转	2	carryForward	accounting/carryForward/index		1	1
+1419841446346752	1419841362542592	二次结转	2	secondCarryForward	accounting/carryForward/second/index		1	1
+1419841498537984	1419841362542592	WIP账龄分析	2	aging	accounting/aging/index		0	18
+1419841525686272	1419841362542592	项目滚动预测	2	forecast	project/forecast/index		1	8
+1426497119838208	1376657077354496	全部待办	2	todo-all	bpm/task/todoAll		0	5
+1426500599545856	1419841362542592	成本结转	2	costCarryForward	accounting/costCarryForward/index		1	2
+1445259153776640	1419841362542592	WIP汇总分析	2	analysis	accounting/analysis/index		1	1
+1445259153776641	0	员工自助	1	/employee			0	15
+1445259153776642	1445259153776641	费用报销	1	expense			0	15
+1445259153776643	1445259153776642	差旅费用报销申请	2	travel-application	accounting/travel/application/index	fst:travel-application:query	0	15
+1445259153776644	1445259153776643	新建差旅申请	3			fst:travel-application:create	0	15
+1445259153776645	1445259153776643	维护差旅申请	3			fst:travel-application:update	0	15
+1445259153776646	1445259153776643	查看城市同步状态	3			fst:travel-city-synchronization:query	0	3
+1445259153776647	1445259153776643	立即同步城市	3			fst:travel-city-synchronization:run	0	3
+1445259153776648	1445259153776643	查看组织同步状态	3			fst:travel-platform-org-synchronization:query	0	2
+1445259153776649	1445259153776643	立即同步组织	3			fst:travel-platform-org-synchronization:run	0	2
+1445259153776650	1445259153776642	我的超标订单	2	external-approval	accounting/travel/external-approval/index	fst:travel-external-approval:query	0	15
+1445259153776651	1445259153776643	导出等待打款差旅申请	3			fst:travel-pending-payout:export	0	5
+1445259153776652	1445259153776643	余额不足退款人工重投	3			fst:travel-expense-message:retry-refund	0	5
+1445259153776653	1445259153776643	财务标记发票抵扣资格	3			invoice:saveInvoiceTaxDeduction	0	4
+1460691832086528	0	商机管理	1	/opportunity			0	20
+1460691944316928	1460691832086528	商机列表	2	opportunity	project/opportunity/index		0	20
+1460698830438400	1460691944316928	发起报价	3			fst:quotation:create	0	19
+1460699041112064	1460691944316928	报价历史	3			fst:quotation:query	0	19
+1460699055685632	1460691944316928	统计卡片	3			fst:opportunity:query	0	19
+1460896278773760	1460691832086528	成本测算模板	2	costTemplate	project/costTemplate/index		0	18
+1460896376954880	1460896278773760	查询	3			fst:cost-template:query	0	18
+1460896397443072	1460896278773760	创建	3			fst:cost-template:create	0	18
+1460896410558464	1460896278773760	编辑	3			fst:cost-template:update	0	18
+1460896424419328	1460896278773760	删除	3			fst:cost-template:delete	0	18
+1461109534277632	1373184558743552	项目列表	2	pmList	project/pmList/index		0	15
+1461109768560640	1461109534277632	项目查询	3			fst:pm-project:query	0	15
+1461613243080704	1207	统一审批提交	3			fst:workflow:approve	0	10
+1461614154407936	1460691944316928	保存与提交报价	3			fst:quotation:update	0	18
+1461614171283456	1460691944316928	删除报价	3			fst:quotation:delete	0	18
+1461660830826496	1460691944316928	成本测算编辑	3			fst:quotation:cost-edit	0	17
+1461945313517578	1463928648957952	方案查询	3			cost:allocation:scheme:query	0	4
+1461945313517579	1463928648957952	方案维护	3			cost:allocation:scheme:save	0	4
+1461946617896960	1461109534277632	预算编制	3			fst:pm-project:budget	0	14
+1461946618863616	1461109534277632	预算委外费用可见	3			fst:pm-project:budget-cost-view	0	13
+1462455493894144	1461109534277632	成果提交与确认	3			fst:pm-project:deliverable	0	8
+1462578468413440	1461109534277632	收入确认	3			fst:pm-project:revenue	0	8
+1462962947923968	1419841362542592	WIP产值红冲	2	revenue-red-reversal	accounting/revenueRedReversal/index	cost:carry-batch:query	0	4
+1463086995963904	1466405878710272	数据检测	2	health-check	costopenning/index		0	1
+1463359770173440	1466405878710272	数据体检	2	health	costopenning/index		0	1
+1463359901925376	1466405878710272	期初执行	2	execute	costopenning/execute		0	1
+1463370462232576	1466405878710272	产值事件	2	costopenning/revenueEvents	costopenning/revenueEvents		0	1
+1463519207170048	1419841362542592	区域费用分摊部门对照表	2	dept-mapping	accounting/regionalAllocationDeptMapping/index	cost:allocation:dept-mapping:query	0	3
+1463519219974144	1463519207170048	维护区域费用分摊部门对照	3			cost:allocation:dept-mapping:manage	0	3
+1463924243742720	1419841362542592	成本归集	2	cost-collection	accounting/costCollection/index	cost:collection:query	0	4
+1463924256677888	1463924243742720	执行归集	3			cost:collection:execute	0	4
+1463924280614912	1463924243742720	归集确认	3			cost:collection:confirm	0	4
+1463924290002944	1463924243742720	归集对账	3			cost:collection:reconcile	0	4
+1463924298334208	1463924243742720	重检	3			cost:entry-error:recheck	0	4
+1463924306214912	1463924243742720	异常查询	3			cost:entry-error:query	0	4
+1463924314947584	1463924243742720	豁免	3			cost:entry-error:exempt	0	4
+1463928648957952	1419841362542592	间接费用分摊	2	cost-allocation	accounting/costAllocation/index	cost:allocation:query	0	4
+1463928661082112	1463928648957952	分摊执行	3			cost:allocation:execute	0	4
+1463939089973248	1419841362542592	成本结转过账	2	cost-carry	accounting/costCarry/index	cost:carry-batch:query	0	4
+1463939102285824	1463939089973248	发起试算	3			cost:carry-batch:draft	0	4
+1463939112329216	1463939089973248	确认过账	3			cost:carry-batch:confirm	0	4
+1463939120119808	1463939089973248	剔除明细	3			cost:carry-batch:exclude	0	4
+1463939129507840	1463939089973248	取消批次	3			cost:carry-batch:cancel	0	4
+1463939138674688	1463939089973248	凭证预览	3			cost:carry-batch:preview	0	4
+1464000728121344	1419841362542592	项目三级利润表	2	project-profit-l3	accounting/projectProfitL3/index	cost:profit-report:query	0	4
+1464000762519552	1419841362542592	商机费用台账	2	opportunityExpenseLedger	accounting/opportunityExpenseLedger/index	cost:opportunity-expense:query	0	4
+1464000799899648	1464000762519552	刷新商机状态	3			cost:opportunity-expense:sync	0	4
+1464000809795584	1464000762519552	立即重判归位	3			cost:opportunity-expense:reclassify	0	4
+1464069332148224	1464070117064704	查询	3			cost:wip-report:query	0	3
+1464069342044160	1464070117064704	导出	3			cost:wip-report:export	0	3
+1464070042796032	1419841362542592	管理会计期间	2	accounting-period	accounting/accountingPeriod/index	accounting:period:query	0	4
+1464070053527552	1464070042796032	管理会计期间	3			accounting:period:manage	0	4
+1464070073892864	1419841362542592	凭证管理	2	voucher-manage	accounting/voucherManage/index	cost:voucher:query	0	3
+1464070087221248	1464070073892864	管理凭证投递	3			cost:voucher:manage	0	3
+1464070117064704	1419841362542592	项目WIP汇总报表	2	project-wip-summary	accounting/projectWipSummary/index	cost:wip-report:page	0	3
+1464349921550336	1461109534277632	etc变动	3			fst:pm-project:progress	0	8
+1464504784068608	1388347671691264	新增商机任务	3			fst:task:opp-create	0	11
+1464524131770368	1419841362542592	批量过账	2	cost-batch-posting	accounting/costBatchPosting/index		0	1
+1465069142204416	1419841362542592	WIP手工转出名单	2	wipManualWriteOff	accounting/wipManualWriteOff/index	fst:wip-manual-writeoff:query	0	1
+1465069158064128	1465069142204416	名单查询	3			fst:wip-manual-writeoff:query	0	1
+1465069174620160	1465069142204416	名单导入/作废	3			fst:wip-manual-writeoff:execute	0	1
+1466405878710272	0	期初管理	1	/cost-opening			0	1
+1466405930934272	1466405878710272	费用明细修正	2	costCorrection	costopenning/costCorrection/index		0	1
+1466406012059648	1466405878710272	期初执行-正式	2	execute-official	costopenning/executeOfficial	cost:opening:query	0	1
+1466406063808512	1466405878710272	期初数据	2	result	costopenning/result		0	1
+1466406063808513	1419841362542592	分贝通对账单	2	platform-statement	accounting/travel/statement/index	fst:statement-source:query	0	0
+1466406063808514	1466406063808513	手动拉取账单	3			fst:statement-source:request	0	0
+1466406063808515	1466406063808513	保存核查草稿	3			fst:statement-approval:save	0	0
+1466406063808516	1466406063808513	查看整月核对	3			fst:statement-approval:query	0	0
+1466406063808517	1466406063808513	保存整月核查进度	3			fst:statement-approval:review	0	0
+1466406063808518	1466406063808513	暂缓或撤销额外项	3			fst:statement-approval:defer	0	0
+1466406063808519	1466406063808513	发起整月审批	3			fst:statement-approval:submit	0	0
+##04_table_rows
+ACT_EVT_LOG	0
+ACT_GE_BYTEARRAY	1285107
+ACT_GE_PROPERTY	13
+ACT_HI_ACTINST	1364224
+ACT_HI_ATTACHMENT	0
+ACT_HI_COMMENT	20
+ACT_HI_DETAIL	4141443
+ACT_HI_ENTITYLINK	0
+ACT_HI_IDENTITYLINK	700979
+ACT_HI_PROCINST	131114
+ACT_HI_TASKINST	164324
+ACT_HI_TSK_LOG	0
+ACT_HI_VARINST	3806677
+ACT_ID_BYTEARRAY	0
+ACT_ID_GROUP	0
+ACT_ID_INFO	0
+ACT_ID_MEMBERSHIP	0
+ACT_ID_PRIV	0
+ACT_ID_PRIV_MAPPING	0
+ACT_ID_PROPERTY	1
+ACT_ID_TOKEN	0
+ACT_ID_USER	0
+ACT_PROCDEF_INFO	0
+ACT_RE_DEPLOYMENT	33
+ACT_RE_MODEL	10
+ACT_RE_PROCDEF	33
+ACT_RU_ACTINST	1405
+ACT_RU_DEADLETTER_JOB	0
+ACT_RU_ENTITYLINK	0
+ACT_RU_EVENT_SUBSCR	0
+ACT_RU_EXECUTION	380
+ACT_RU_EXTERNAL_JOB	0
+ACT_RU_HISTORY_JOB	0
+ACT_RU_IDENTITYLINK	598
+ACT_RU_JOB	0
+ACT_RU_SUSPENDED_JOB	0
+ACT_RU_TASK	95
+ACT_RU_TIMER_JOB	0
+ACT_RU_VARIABLE	2515
+audit_admin_force	0
+audit_travel_application_status	76
+bpm_form	3
+bpm_node_field_permission	899
+bpm_oa_customized	131142
+bpm_oa_leave	5
+bpm_oa_start_request	198
+bpm_process_definition_ext	56
+bpm_process_instance_copy	0
+bpm_process_instance_ext	132304
+bpm_task_assign_rule	230
+bpm_task_ext	166037
+bpm_user_group	2
+FLW_CHANNEL_DEFINITION	0
+FLW_EV_DATABASECHANGELOG	3
+FLW_EV_DATABASECHANGELOGLOCK	1
+FLW_EVENT_DEFINITION	0
+FLW_EVENT_DEPLOYMENT	0
+FLW_EVENT_RESOURCE	0
+FLW_RU_BATCH	0
+FLW_RU_BATCH_PART	0
+flyway_schema_history	310
+FST_ACT_EVT_LOG	0
+FST_ACT_GE_BYTEARRAY	3
+FST_ACT_GE_PROPERTY	13
+FST_ACT_HI_ACTINST	0
+FST_ACT_HI_ATTACHMENT	0
+FST_ACT_HI_COMMENT	0
+FST_ACT_HI_DETAIL	0
+FST_ACT_HI_ENTITYLINK	0
+FST_ACT_HI_IDENTITYLINK	0
+FST_ACT_HI_PROCINST	0
+FST_ACT_HI_TASKINST	0
+FST_ACT_HI_TSK_LOG	0
+FST_ACT_HI_VARINST	0
+FST_ACT_PROCDEF_INFO	0
+FST_ACT_RE_DEPLOYMENT	1
+FST_ACT_RE_MODEL	0
+FST_ACT_RE_PROCDEF	3
+FST_ACT_RU_ACTINST	0
+FST_ACT_RU_DEADLETTER_JOB	0
+FST_ACT_RU_ENTITYLINK	0
+FST_ACT_RU_EVENT_SUBSCR	0
+FST_ACT_RU_EXECUTION	0
+FST_ACT_RU_EXTERNAL_JOB	0
+FST_ACT_RU_HISTORY_JOB	0
+FST_ACT_RU_IDENTITYLINK	0
+FST_ACT_RU_JOB	0
+FST_ACT_RU_SUSPENDED_JOB	0
+FST_ACT_RU_TASK	0
+FST_ACT_RU_TIMER_JOB	0
+FST_ACT_RU_VARIABLE	0
+fst_convergence_signal	0
+FST_FLW_RU_BATCH	0
+FST_FLW_RU_BATCH_PART	0
+fst_process_start	0
+infra_api_access_log	4903080
+infra_api_error_log	15613
+infra_codegen_column	0
+infra_codegen_table	0
+infra_config	6
+infra_data_source_config	0
+infra_file	231
+infra_file_config	7
+infra_file_content	105
+infra_job	2
+infra_job_log	0
+infra_test_demo	0
+mdm_accounting_period	19
+mdm_bill_rate	7
+mdm_bill_rate_detail	8433
+mdm_standard_cost_rate	7
+mdm_standard_cost_rate_detail	8433
+member_user	0
+pay_app	0
+pay_channel	0
+pay_merchant	0
+pay_notify_log	0
+pay_notify_task	0
+pay_order	0
+pay_order_extension	0
+pay_refund	0
+psa_admin_force_compensation	0
+psa_allowance_expense_allocation_line	4
+psa_allowance_expense_allocation_revision	4
+psa_allowance_expense_allocation_revision_line	4
+psa_allowance_expense_group	4
+psa_bd_customer	8790
+psa_bd_group	2468
+psa_biget_project	7
+psa_biget_project_house	11439
+psa_biget_project_house_range	12
+psa_biget_sampling_history	1
+psa_bpm_activity_event_log	20
+psa_bpm_mq_outbox	0
+psa_bpm_result_compensation	8
+psa_budget_deliverable	9578
+psa_budget_task_package	40214
+psa_calendar	4018
+psa_carry_batch	18
+psa_carry_batch_line	2827974
+psa_carry_period_progress	6
+psa_carry_reversal	0
+psa_collect_recon	0
+psa_contract_clause	9448
+psa_contract_term_poc_snapshot	31094
+psa_cost_allocation	6
+psa_cost_allocation_dept	48
+psa_cost_allocation_line	1273596
+psa_cost_collection_batch	6
+psa_cost_deliverable	42
+psa_cost_entry_error	15616
+psa_cost_entry_error_issue	0
+psa_cost_estimate_node	3436
+psa_cost_ledger	1273596
+psa_cost_recon_disposition	15
+psa_cost_source_claim	1774034
+psa_cost_summary_daily	33765
+psa_cost_summary_entertainment	4813
+psa_cost_summary_ext_import_batch	3
+psa_cost_summary_history	185430
+psa_cost_summary_history_log	179922
+psa_cost_summary_payment	36648
+psa_cost_summary_posting_check_run	45
+psa_cost_summary_special	1784
+psa_cost_summary_travel	110495
+psa_cost_template	6
+psa_cost_template_node	202
+psa_cost_workpkg	2419
+psa_crm_customervisit	12955
+psa_crm_leads	9542
+psa_crm_opportunity	9218
+psa_deliverable	10611
+psa_deliverable_attachment	0
+psa_deliverable_submission	0
+psa_expense_allocation_log	1
+psa_expense_invoice	4
+psa_expense_invoice_log	6
+psa_expense_invoice_ownership	8
+psa_expense_invoice_revision	4
+psa_expense_invoice_revision_line	3
+psa_external_approval_task	0
+psa_external_approval_task_fact	8
+psa_fenbeitong_expense_message_log	47
+psa_fenbeitong_failure_list_checkpoint	1
+psa_fenbeitong_failure_list_run_log	5
+psa_fenbeitong_travel_application_snapshot	19
+psa_fenbeitong_travel_application_snapshot_revision	19
+psa_fenbeitong_travel_statement_snapshot	0
+psa_fenbeitong_travel_statement_snapshot_revision	0
+psa_forecast_works_man_hour	4075
+psa_invoice_tax_deduction_log	4
+psa_labor_reclass_run	0
+psa_labor_reclass_voucher_reg	0
+psa_legacy_manual_expense_allocation_line	0
+psa_legacy_manual_expense_group	0
+psa_legacy_platform_expense_allocation_line	0
+psa_legacy_platform_expense_group	0
+psa_manual_expense_allocation_line	2
+psa_manual_expense_allocation_revision	8
+psa_manual_expense_allocation_revision_line	8
+psa_manual_expense_group	5
+psa_material	15
+psa_month_statement	0
+psa_month_statement_approval	0
+psa_month_statement_approval_fact	0
+psa_month_statement_approval_log	0
+psa_month_statement_approval_process	0
+psa_month_statement_approval_revision	0
+psa_month_statement_approval_source	0
+psa_monthly_close_batch	0
+psa_monthly_close_batch_item	0
+psa_oh_cost_pool	537754
+psa_ohproject_detail	153
+psa_opening_range_month	0
+psa_opening_range_run	0
+psa_opening_revenue_event	0
+psa_opportunity_expense	50471
+psa_pl_ledger	1257726
+psa_platform_city	3986
+psa_platform_city_snapshot	1
+psa_platform_city_snapshot_line	3986
+psa_platform_city_synchronization_fence	1
+psa_platform_city_synchronization_run	23
+psa_platform_expense_allocation_line	5
+psa_platform_expense_allocation_revision	5
+psa_platform_expense_allocation_revision_line	5
+psa_platform_expense_group	27
+psa_platform_grant	18
+psa_platform_grant_log	0
+psa_platform_grant_revision	0
+psa_platform_order	27
+psa_platform_order_log	27
+psa_platform_order_refund	1
+psa_platform_order_revision	27
+psa_platform_statement_approval_log	0
+psa_platform_statement_batch	0
+psa_platform_statement_line	0
+psa_platform_statement_source_log	0
+psa_platform_statement_source_run	0
+psa_pm_budget	2634
+psa_pm_budget_cost_item	1578
+psa_pm_budget_works	212295
+psa_pm_budget_works_cost	27199
+psa_pm_contacts	0
+psa_pm_cuvalue	19909
+psa_pm_hourlyrate	14
+psa_pm_hourlyrate_detail	1545
+psa_pm_pay	74571
+psa_pm_plan	2302
+psa_pm_plan_task	27487
+psa_pm_plan_works	29091
+psa_pm_plantemplate	3
+psa_pm_plantemplate_works	65
+psa_pm_production_labor_ratio	24
+psa_pm_project	5404
+psa_pm_project_contacts	0
+psa_pm_project_invest_forecast	284
+psa_pm_project_invest_forecast_works	1420
+psa_pm_user_skill_tags	4420
+psa_pm_weekly_meeting	1239
+psa_pm_weekly_meeting_works	36153
+psa_process_to_be_sent	7
+psa_project_budget_revision	1
+psa_project_budget_snapshot	1
+psa_quotation	47
+psa_quotation_line	412
+psa_quotation_seal	55
+psa_reliable_delivery_attempt	355
+psa_reliable_delivery_task	354
+psa_revenue_confirmation	20
+psa_revenue_fact	0
+psa_revenue_posting_rule	9
+psa_revenue_posting_rule_aux	33
+psa_revenue_posting_rule_line	30
+psa_task_package	58543
+psa_time_sheet	529882
+psa_time_sheet_approve_status_revision	61929
+psa_time_sheet_revision	846
+psa_time_sheet_revision_detail	1722
+psa_time_sheet_works	699925
+psa_time_sheet_works_end	624461
+psa_time_sheet_works_error	0
+psa_time_sheet_works_error_log	0
+psa_travel_allowance_expense_line	4
+psa_travel_application	20
+psa_travel_application_line	20
+psa_travel_application_revision	1
+psa_travel_application_revision_line	1
+psa_travel_application_revision_package	1
+psa_travel_expense_allocation	3
+psa_travel_expense_allocation_revision	6
+psa_travel_expense_approval_candidate	0
+psa_travel_expense_approval_candidate_line	0
+psa_travel_expense_approval_conclusion	0
+psa_travel_expense_approval_conclusion_reuse	0
+psa_travel_expense_approval_impact_closure	0
+psa_travel_expense_approval_issue	0
+psa_travel_expense_approval_issue_resolution	0
+psa_travel_expense_message_application_mapping	24
+psa_travel_expense_message_refund_retry_log	0
+psa_travel_platform_employee_consumption_template_configuration	2
+psa_travel_platform_employee_consumption_template_mapping	135
+psa_travel_platform_org_synchronization_candidate	354
+psa_travel_platform_org_synchronization_fence	1
+psa_travel_platform_org_synchronization_run	22
+psa_travel_platform_org_synchronization_source_mapping	350
+psa_travel_platform_org_synchronization_warning	0
+psa_u8c_voucher	78
+psa_voucher	323
+psa_voucher_line	1908
+psa_voucher_line_aux	1908
+psa_wbs_incr_invalidated	140
+psa_wbs_incr_snapshot	127596
+psa_wbs_migration_map	89125
+psa_wip_carry_forward_data	28
+psa_wip_carry_forward_data_works	125587
+psa_wip_commission	3937
+psa_wip_cost_account	0
+psa_wip_entry	1273368
+psa_wip_manual_writeoff_list	1228
+psa_wip_movement	2827974
+psa_wip_outsourcing	205
+psa_wip_period_balance	34391
+psa_workflow_start_round	198
+qrtz_blob_triggers	0
+qrtz_calendars	0
+qrtz_cron_triggers	1
+qrtz_fired_triggers	0
+qrtz_job_details	1
+qrtz_locks	2
+qrtz_paused_trigger_grps	0
+qrtz_scheduler_state	1
+qrtz_simple_triggers	0
+qrtz_simprop_triggers	0
+qrtz_triggers	1
+rule_oh_allocation_dept_mapping	126
+system_dep_version	204
+system_dept	367
+system_dict_data	465
+system_dict_type	119
+system_error_code	453
+system_login_log	178533
+system_mail_account	3
+system_mail_log	0
+system_mail_template	3
+system_menu	489
+system_notice	3
+system_notify_message	7
+system_notify_template	0
+system_oauth2_access_token	192659
+system_oauth2_approve	0
+system_oauth2_client	4
+system_oauth2_code	0
+system_oauth2_refresh_token	192671
+system_operate_log	805022
+system_post	210
+system_role	47
+system_role_menu	2155
+system_sensitive_word	3
+system_sms_channel	3
+system_sms_code	2
+system_sms_log	233456
+system_sms_template	10
+system_social_user	192
+system_social_user_bind	515
+system_user_post	40
+system_user_role	1857
+system_user_session	0
+system_users	1258
+tmp_issue1781_salesteam_patch	5549
+##05_active_users_180d
+335
+##06_login_users_180d
+335	55790

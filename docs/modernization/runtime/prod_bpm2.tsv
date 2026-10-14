@@ -1,0 +1,40 @@
+##11_bpmn_features
+PM_REVENUE	3047	3	0	0	0	0	0	0	0	0	0	0
+PM_ETC	3108	3	0	0	0	0	0	0	0	0	0	0
+TRAVEL	41527	11	5	0	4	24	14	0	4	0	0	0
+TIMESHEET	11257	4	0	0	2	10	6	0	2	0	0	0
+PM_STAGE_REVIEW	3622	4	0	0	0	0	0	0	0	0	0	0
+EXTERNAL_APPROVAL	13486	4	2	0	0	10	4	0	2	0	0	1
+TRAVEL_REVISION	7238	3	1	0	0	6	4	0	0	0	0	0
+PM_DELIVERABLE	5273	5	1	0	0	2	0	0	0	0	0	0
+PM_BUDGET	5834	6	1	0	0	2	0	0	0	0	0	0
+OPP_QUOTATION	6591	7	1	0	0	2	0	0	0	0	0	0
+##12_conditions
+TRAVEL	conditionExpression xsi:type="bpmn2:tFormalExpression">${var:containsAny('applicationLines.businessObjectType', 'project')}</bpmn2:conditionExpression>       </bpmn2:sequenceFlow>       <bpmn2:userTask id="travel_bo_region_review" name="鍖哄煙璐熻矗浜�">         <bpmn
+TIMESHEET	conditionExpression xsi:type="bpmn2:tFormalExpression">${var:containsAny('manHourTypeList.type', 0)}</bpmn2:conditionExpression></bpmn2:sequenceFlow><bpmn2:sequenceFlow id="Flow_04d8p27" name="鍞墠宸ユ椂" sourceRef="Gateway_121bzuh" targetRef="Activity_01vbv92"><b
+TRAVEL_REVISION	conditionExpression xsi:type="bpmn2:tFormalExpression">${routeType == 'project'}</bpmn2:conditionExpression></bpmn2:sequenceFlow><bpmn2:sequenceFlow id="travel_revision_to_region" sourceRef="travel_revision_route" targetRef="travel_revision_region_review"><bpm
+OPP_QUOTATION	conditionExpression xsi:type="bpmn2:tFormalExpression">${var:equals('needSeal',true)}</bpmn2:conditionExpression></bpmn2:sequenceFlow><bpmn2:sequenceFlow id="Flow_e2" sourceRef="Activity_0vi0l4o" targetRef="Event_0tepvgo" /><bpmn2:userTask id="Activity_0gpatwp
+PM_DELIVERABLE	conditionExpression xsi:type="bpmn2:tFormalExpression">${firstPass == "false"}</bpmn2:conditionExpression></bpmn2:sequenceFlow><bpmn2:sequenceFlow id="Flow_s6" sourceRef="Activity_director_final" targetRef="Activity_pmo_second" /><bpmn2:sequenceFlow id="Flow_s
+PM_BUDGET	conditionExpression xsi:type="bpmn2:tFormalExpression">${var:equals('budgetGmNotBelowQuote', 'true')}</bpmn2:conditionExpression></bpmn2:sequenceFlow><bpmn2:sequenceFlow id="Flow_ceo" sourceRef="Gateway_gm" targetRef="Activity_ceo" /><bpmn2:sequenceFlow id="Fl
+EXTERNAL_APPROVAL	conditionExpression xsi:type="bpmn2:tFormalExpression">${routeType == 'project'}</bpmn2:conditionExpression>     </bpmn2:sequenceFlow>     <bpmn2:sequenceFlow id="external_approval_to_region" sourceRef="external_approval_route" targetRef="external_approval_reg
+##15_bpmn_names
+TIMESHEET	TIMESHEET.TIMESHEET.png
+TRAVEL	TRAVEL.bpmn
+TIMESHEET	TIMESHEET.bpmn
+PM_STAGE_REVIEW	PM_STAGE_REVIEW.bpmn
+PM_REVENUE	PM_REVENUE.PM_REVENUE.png
+PM_REVENUE	PM_REVENUE.bpmn
+OPP_QUOTATION	OPP_QUOTATION.OPP_QUOTATION.png
+PM_DELIVERABLE	PM_DELIVERABLE.PM_DELIVERABLE.png
+EXTERNAL_APPROVAL	EXTERNAL_APPROVAL.EXTERNAL_APPROVAL.png
+TRAVEL_REVISION	TRAVEL_REVISION.TRAVEL_REVISION.png
+PM_ETC	PM_ETC.bpmn
+TRAVEL	TRAVEL.TRAVEL.png
+PM_BUDGET	PM_BUDGET.PM_BUDGET.png
+EXTERNAL_APPROVAL	EXTERNAL_APPROVAL.bpmn
+PM_STAGE_REVIEW	PM_STAGE_REVIEW.PM_STAGE_REVIEW.png
+TRAVEL_REVISION	TRAVEL_REVISION.bpmn
+PM_DELIVERABLE	PM_DELIVERABLE.bpmn
+PM_BUDGET	PM_BUDGET.bpmn
+OPP_QUOTATION	OPP_QUOTATION.bpmn
+PM_ETC	PM_ETC.PM_ETC.png

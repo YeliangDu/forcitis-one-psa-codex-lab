@@ -1,0 +1,55 @@
+graph TD
+  dom_approval_workflow_bpm["Approval & workflow (BPM)<br/>entry points: 21"]
+  dom_expense_travel["Expense & travel<br/>entry points: 3"]
+  dom_finance_cost_accounting_ar["Finance: cost, accounting & AR<br/>entry points: 33"]
+  dom_front_end_shell_pc_h5["Front-end shell (PC & H5)<br/>entry points: 12"]
+  dom_identity_org_platform["Identity, org & platform<br/>entry points: 57"]
+  dom_infrastructure_framework["Infrastructure & framework<br/>entry points: 25"]
+  dom_presales_crm_contract["Presales, CRM & contract<br/>entry points: 9"]
+  dom_project_delivery["Project & delivery<br/>entry points: 24"]
+  dom_reporting_dashboards["Reporting & dashboards<br/>entry points: 6"]
+  dom_shared_cross_cutting["Shared / cross-cutting<br/>entry points: 2"]
+  dom_timesheet_resources["Timesheet & resources<br/>entry points: 12"]
+  dom_identity_org_platform -->|166| dom_infrastructure_framework
+  dom_timesheet_resources -->|66| dom_infrastructure_framework
+  dom_project_delivery -->|61| dom_infrastructure_framework
+  dom_finance_cost_accounting_ar -->|59| dom_infrastructure_framework
+  dom_approval_workflow_bpm -->|58| dom_infrastructure_framework
+  dom_identity_org_platform -->|51| dom_timesheet_resources
+  dom_project_delivery -->|49| dom_timesheet_resources
+  dom_finance_cost_accounting_ar -->|46| dom_project_delivery
+  dom_timesheet_resources -->|42| dom_identity_org_platform
+  dom_project_delivery -->|37| dom_approval_workflow_bpm
+  dom_finance_cost_accounting_ar -->|36| dom_shared_cross_cutting
+  dom_presales_crm_contract -->|36| dom_infrastructure_framework
+  dom_approval_workflow_bpm -->|35| dom_project_delivery
+  dom_timesheet_resources -->|30| dom_project_delivery
+  dom_project_delivery -->|27| dom_shared_cross_cutting
+  dom_project_delivery -->|27| dom_finance_cost_accounting_ar
+  dom_shared_cross_cutting -->|26| dom_infrastructure_framework
+  dom_finance_cost_accounting_ar -->|24| dom_presales_crm_contract
+  dom_project_delivery -->|23| dom_identity_org_platform
+  dom_project_delivery -->|23| dom_presales_crm_contract
+  dom_finance_cost_accounting_ar -->|21| dom_identity_org_platform
+  dom_finance_cost_accounting_ar -->|19| dom_timesheet_resources
+  dom_approval_workflow_bpm -->|18| dom_identity_org_platform
+  dom_expense_travel -->|15| dom_approval_workflow_bpm
+  dom_approval_workflow_bpm -->|13| dom_timesheet_resources
+  dom_presales_crm_contract -->|13| dom_shared_cross_cutting
+  dom_shared_cross_cutting -->|13| dom_timesheet_resources
+  dom_approval_workflow_bpm -->|12| dom_shared_cross_cutting
+  dom_timesheet_resources -->|12| dom_shared_cross_cutting
+  dom_presales_crm_contract -->|12| dom_project_delivery
+  dom_project_delivery -->|12| dom_front_end_shell_pc_h5
+  dom_expense_travel -->|11| dom_infrastructure_framework
+  dom_timesheet_resources -->|11| dom_finance_cost_accounting_ar
+  dom_timesheet_resources -->|11| dom_presales_crm_contract
+  dom_identity_org_platform -->|10| dom_project_delivery
+  dom_shared_cross_cutting -->|10| dom_approval_workflow_bpm
+  dom_shared_cross_cutting -->|10| dom_identity_org_platform
+  dom_approval_workflow_bpm -->|10| dom_presales_crm_contract
+  classDef entry fill:#cc785c,color:#fff
+  class dom_identity_org_platform entry
+  class dom_finance_cost_accounting_ar entry
+  class dom_infrastructure_framework entry
+  class dom_project_delivery entry

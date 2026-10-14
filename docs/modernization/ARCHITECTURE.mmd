@@ -1,0 +1,65 @@
+graph TD
+  subgraph Commercial
+    PRE[Presales: CRM / Opportunity / Quotation]
+    CON[Contract & Receivables]
+  end
+  subgraph Delivery_Ops[Delivery operations]
+    DEL[Project Delivery: WBS / Budget / Deliverables]
+    TS[Timesheet / Man-hour]
+    SUR[Survey / BIGET]
+  end
+  subgraph Finance
+    COST[Project Cost & Accounting]
+    EXP[Expense / Travel]
+  end
+  subgraph Platform_Services[Platform services]
+    BPM[bpm-server: Flowable]
+    ORG[system-server: Identity / Org]
+    PLAT[Reliable-delivery outbox]
+    INFRA[infra-server: File / Config]
+  end
+  subgraph External
+    A8[(Seeyon A8 OA DB)]
+    U8C[Yonyou U8C]
+    FBT[Fenbeitong]
+    WECOM[WeCom]
+    KM[KM portal]
+    BI[BI system - reads PSA DB]
+  end
+  COST -->|85| DEL
+  COST -->|40| CON
+  COST -->|34| TS
+  COST -->|33| PRE
+  TS -->|30| COST
+  PRE -->|23| COST
+  DEL -->|20| COST
+  DEL -->|40| TS
+  TS -->|24| DEL
+  DEL -->|33| PRE
+  DEL -->|23| CON
+  CON -->|18| DEL
+  TS -->|16| PRE
+  EXP -->|44| COST
+  EXP -->|18| PRE
+  EXP -->|88| PLAT
+  COST -->|31| PLAT
+  SUR --> DEL
+  DEL -->|Feign| ORG
+  TS -->|Feign| ORG
+  COST -->|Feign| BPM
+  EXP -->|Feign start / approve| BPM
+  BPM -.->|MQ process-result / task| TS
+  BPM -.->|MQ| DEL
+  BPM -.->|MQ| PRE
+  BPM -.->|MQ| EXP
+  BPM -->|Feign WorkflowHook / Form| EXP
+  ORG -.->|MQ topic-org-change| DEL
+  ORG -->|Feign FileApi| INFRA
+  ORG -->|WeCom OAuth| WECOM
+  ORG -->|SSO redirect| KM
+  DEL -->|A8 sync jobs, slave DB| A8
+  PLAT -->|U8C voucher post| U8C
+  PLAT -->|travel delivery handlers| FBT
+  FBT -.->|event webhook| EXP
+  TS -->|WeCom app messages| WECOM
+  BI -.->|SSO :48080, direct SQL| ORG
