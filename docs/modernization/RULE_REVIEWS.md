@@ -1,4 +1,4 @@
-# RULE_REVIEWS — psa
+# RULE_REVIEWS — FORCITIS one
 
 规则评审记录，由 `/code-modernization:modernize-review psa` 写入，数据源为 `RULE_REVIEWS.json`。第一批为审批域（platform.approval，Phase 1a 前）的 28 条被标记 P0 规则，2026-10-14 由会话 psa-review-approval 评审：RULE-248/249/250/252 由用户逐条作答；其余 24 条由用户整批同意评估会话 PSA现代化工程 的建议，其中 RULE-293 由用户亲自决定。结论：正确 19 条（其中多条为「正确+修」——规则保留、缺陷在新系统中修掉，见备注），错误或不需要 9 条，待讨论 0 条。标为「错误」的规则不作为行为契约的基准，新系统按备注中的修正行为实现。
 

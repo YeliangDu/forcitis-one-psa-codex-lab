@@ -1,4 +1,4 @@
-# ASSESSMENT — psa
+# ASSESSMENT — FORCITIS one
 
 日期：2026-10-14 · 源码：`legacy/psa` → `/Users/yeliang/Projects/FORCITIS/psa`（软链）· 运行时数据：生产库只读探查（`runtime/prod_usage.tsv`）+ 生产 ECS 与安全组配置
 

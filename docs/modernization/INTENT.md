@@ -1,4 +1,4 @@
-# INTENT — psa
+# INTENT — FORCITIS one
 
 日期：2026-10-14
 

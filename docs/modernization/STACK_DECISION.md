@@ -1,4 +1,4 @@
-# 目标技术栈定稿 — FORCITIS one（PSA 现代化）
+# 目标技术栈定稿 — FORCITIS one 现代化
 
 日期：2026-10-14 · 产品：**FORCITIS one** · 入口：**one.forcitis.com**（ADR-0001）
 

@@ -1,4 +1,4 @@
-# 指导思想 — FORCITIS one（PSA 现代化）
+# 指导思想 — FORCITIS one 现代化
 
 日期：2026-10-14
 
