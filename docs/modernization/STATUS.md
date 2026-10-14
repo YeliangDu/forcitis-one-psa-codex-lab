@@ -21,7 +21,7 @@
 | 变更治理（ADR 生命周期、规则调整三类、已过账事实只能冲销） | 完成（2026-10-14）：SESSION_PLAYBOOK §12；adr/README.md「ADR 生命周期与变更规则」与「历史偏差」；build_adrs.py 校验；CONFIG_CHANGELOG.md；ADR-0024（提议） | — （psa-change-governance 已收尾） | 待用户审批 ADR-0024（采纳时同一提交删除 ADR-0016 追加段并标注部分取代） | — |
 | 公共记录片段化（INTENT / SESSION_LOG / STATUS / ADR 一条记录一个文件） | 完成（2026-10-14）：intent/、session-log/、status/、adr/src/ 片段与生成器；build_all.py；CI 生成一致性检查；CLAUDE.md 与 SESSION_PLAYBOOK 改为只改片段；迁移后产物除空白外逐字节一致 | — （psa-repo-fragments 已收尾） | — | 各会话改用 new_intent.py / new_log.py 与 status/ 片段，改完运行 build_all.py 并连同产物提交 |
 | 写代码规则第二批（11 条）与「流程梳理」步骤写入 | 完成（2026-10-14）：SESSION_PLAYBOOK §5 第二批 11 条、§13 流程梳理；CLAUDE.md；.pre-commit-config.yaml；PR 模板；brief 各阶段入口条件与 §5「流程梳理结论」 | — （psa-repo-fragments 已收尾） | — | 调度会话派 `psa-1a-process-review` 补做 Phase 1a 流程梳理 |
-| 文档去除旧名称「PSA」（新系统称 FORCITIS one，老系统称「老系统」，字面标识保留） | 进行中（2026-10-14 派工）：统计与样例待 psa-coordinator 核对，核对后分批替换 | one-docs-naming（2026-10-14 认领） | 统计核对 | — |
+| 文档去除旧名称「PSA」（新系统称 FORCITIS one，老系统称「老系统」，字面标识保留） | 完成（2026-10-14）：B1–B6 分批替换；check_legacy_name.py 守护接入 CI；backend 断言消息交 1a 会话 | — （one-docs-naming 已收尾） | — | 新会话名用 one-* 前缀；legacy_system 术语转正待下一轮用语确认 |
 | R0 指标口径基线 | 完成（2026-10-14）：在用报表盘点与指标基线草稿（r0/）；B6–B11、Q1（C 为主，D 后期可选，AG Grid 企业版）、Q5（OAT 入 glossary/oat/）、Q11（BI 使用量与 T_FST 元数据，生产只读）、Q12（问题模板）已完成；待财务 FQ-01..20（r0/FINANCE_QUESTIONS.md）；第三轮用语输入（r0/TERMS_ROUND3_INPUT.md）；新登记生产 SQL Agent 通道 A8_ACCESS_REGISTER #28–#32 | — （psa-r0-metric-baseline 已收尾） | 待用户：B1–B5、问题清单（~/.modernize/psa/bi-inputs/questions/）；待财务：FQ-01..20；第三轮用语确认 | R1 入口条件草稿见 r0/TOOL_COMPARISON.md §7；财务答复回填基线（r0/FINANCE_ANSWERS.json） |
 | Phase 1b 报价 | 未开始 | — | Phase 1a 出口 | — |
 | Phase 2 交付 + 工时 | 未开始 | — | Phase 1b 出口 | — |

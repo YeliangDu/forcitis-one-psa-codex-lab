@@ -69,3 +69,6 @@ jobs:
       # 记录文件与 ADR 由片段生成；片段与已提交的生成产物不一致即失败
       - name: generated docs match fragments
         run: python3 docs/modernization/build_all.py --check
+      # 文档不得用「PSA」指代系统（用户 2026-10-14）；例外规则见脚本说明
+      - name: no legacy system name in docs
+        run: python3 docs/modernization/check_legacy_name.py
