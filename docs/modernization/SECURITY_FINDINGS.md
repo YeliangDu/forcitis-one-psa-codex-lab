@@ -6,10 +6,10 @@
 
 | 严重度 | 数量 |
 |---|---|
-| Critical | 5（SEC-001、002、003、006 + 依赖中的 4 个 Critical 合并计入 SEC-017） |
-| High | 9（SEC-004、005、007、008、009、010、011、012、016） |
-| Medium | 7（SEC-013、014、015、017、018、019、020） |
-| Low | 6（SEC-021 至 026） |
+| Critical | 5（SEC-001、002、003、006 + 依赖中的 4 个 Critical 合并计入 SEC-017）；第 7 轮另增 SEC-116 |
+| High | 9（SEC-004、005、007、008、009、010、011、012、016）；第 7 轮另增 SEC-117、119、120 |
+| Medium | 7（SEC-013、014、015、017、018、019、020）；第 7 轮另增 SEC-118 |
+| Low | 6（SEC-021 至 026）；第 7 轮另增 SEC-121 |
 
 主要 CWE：CWE-306 未鉴权的关键功能（8 项）· CWE-798/321 硬编码凭据（3 项）· CWE-862/639 越权（2 项）· CWE-79 XSS（2 项）· CWE-1395 有漏洞的依赖（3 项）
 
@@ -127,3 +127,32 @@ pnpm audit 汇总：PC 端 critical 4 / high 45 / moderate 42；H5 端 critical 
 | 新发现（未修补） | SEC-106：`justauth.type.WECHAT_ENTERPRISE.client-secret`、`DINGTALK.client-secret` 硬编码在 system-biz、fst-biz 的 `application-{local,dev,prod}.yaml`（6 个文件），企业微信那一条与文档第 833 行是同一个密钥。处理：轮换，改由 Nacos 注入，列入清理历史清单 |
 
 两份补丁每一轮都通过了 `patch --dry-run` 和 `git apply --check`；打到临时副本后，用 JDK 8 离线编译通过；可共享补丁和说明文档的泄密扫描均为 0 命中。
+
+## 第 7 轮：Phase 1a 规格挖掘补录（SEC-116 至 119，2026-10-14）
+
+来源：`psa-1a-platform-bridge-reimagine` 会话整理接口与规则时发现（`phase1a/INTERFACES.md` U7、W7、W11、P1；`rules/IDENTITY_ORG_RULES.md` RULE-328、RULE-376）。由 `psa-sec-hotfix` 会话逐条读码确认、修补。位置按未打补丁的老仓 `19d60d234` 标注。
+
+| ID | CWE | 严重度 | 位置 | 利用条件与场景 | 修复（第 7 轮补丁） |
+|---|---|---|---|---|---|
+| SEC-116 | CWE-1391/287/307 | **Critical** | system `application.yaml:192-193`、fst `application.yaml:283-284`（`yudao.sms-code.begin-code`/`end-code` 均为 9999）；`SmsCodeServiceImpl.java:72`（在区间内取随机数，区间只有一个值）、`:94-96`（按「手机号 + 用户提交的 code」查记录）；`AuthController.java:207,215`（`sms-login`、`send-sms-code` 均 `@PermitAll`）；`AdminAuthServiceImpl.java:299-311` | 匿名先调 `send-sms-code` 给某员工手机号生成一条验证码记录（**记录在发短信之前写库，短信通道是否可用无关紧要**），再调 `sms-login` 提交 `9999`，即拿到该员工的访问令牌和刷新令牌，等同免密登录。前提：知道一个员工手机号（`send-sms-code` 对不存在的手机号返回「手机号不存在」，可枚举），且生产 Nacos 没有覆盖这两个配置项（**未核实**）。即使改成随机码，原校验按 code 查找、不限次数，4 位码 10 分钟内可穷举 | 默认区间改为 6 位（100000–999999）；区间不足 90 万个取值时拒绝生成验证码；校验只比对该手机号该场景**最近一条**验证码，常量时间比较，**输错一次即作废**；新增开关 `psa.auth.sms-login.enabled`（默认 `false`），关闭时两个端点直接拒绝（PC 登录页的短信入口已注释，没有在用的调用方）；短信登录拒绝已停用账号 |
+| SEC-117 | CWE-639/862 | High（第 3 轮补丁后为 Low） | `CustomizedBpmController.java:29-36`、`CustomizedBpmAPPController.java:29`（`@PermitAll`）；`CustomizedBpmOAServiceImpl.java:137-165` | SEC-005 的延伸。匿名调用 `customized/create`，`paramsId` 填他人已被退回的单据：服务端按 `paramsId` 找到对方的存活实例，用请求里的变量 `setVariables` 覆盖流程变量，并以对方身份 `complete` 发起人任务，单据带着篡改过的路由变量重新进入审批。第 3 轮补丁已把两个 HTTP 入口改为不授予任何角色的权限（普通用户 403），剩余风险只在超级管理员或将来重新开放入口时 | 两个 HTTP 入口在调用服务前执行 `validateHttpSubmitOwner`：单据已绑定流程实例时，只有该实例的发起人（`HistoricProcessInstance.startUserId`）本人可以再次提交，查不到实例按不属于本人处理（403）；未登录 401；`paramsId` 为空 400。RPC 入口（fst 各流程）不受影响 |
+| SEC-118 | CWE-200/284 | Medium | `fst/service/message/MessageServiceImpl.java:79-81,108-110,143-144,339-340`；`fst/service/common/CommonServiceImpl.java:421-433` | 每条审批待办、完成、知会消息都带 `toparty:"@all"`、`totag:"@all"`。企业微信只把 `touser:"@all"` 定义为全员；`toparty`/`totag` 为 `"@all"` 时的实际投递效果**未核实**。若被当作全员，审批标题与金额等内容会推送给可见范围内的所有人；`touser` 为空时（接收人未绑定企业微信）风险更大 | 4 处构造不再设置 `toparty`/`totag`；发送出口 `sendMsgToWeCom` 统一去掉这两个字段，`touser` 为空、含空段或含 `@all` 时不发送并记 WARN |
+| SEC-119 | CWE-639/345 | High（第 6 轮补丁后为 Medium） | `fst/controller/admin/wecom/WeComCallbackController.java:65-142`（老仓 `:113` 用 EventKey 第 4 段设置登录人） | 回调匿名，只靠企业微信签名与解密，而 Token 与 AESKey 已泄露在仓库中（SEC-006）。持有密钥者可伪造回调，以任意用户身份接受或拒绝任务。第 6 轮补丁已改为以 `FromUserName` 定人，但 EventKey 不足 4 段时跳过比对，且没有校验点击人是否是该任务的应处理人 | EventKey 严格解析为 `task_{1|0}_{任务ID}_{接收人ID}`，格式不符直接忽略；`FromUserName` 映射到的用户必须等于接收人段，**且**必须是该任务当前应处理的人（组员发起 → 项目经理；经理指派 → 组员，与 `acceptTask`/`refuseTask` 的分支一致）。**前提仍是 SEC-006 轮换回调 Token 与 AESKey**，否则攻击者可同时伪造 `FromUserName` |
+| SEC-120 | CWE-639/862 | **High**（第 7 轮复审发现） | `fst/controller/admin/resource/ResourceController.java:142-153`；`fst/controller/app/resource/ResourceAPPController.java:28-45`（`@PreAuthorize` 被注释）；`ResourceServiceImpl.acceptTask/refuseTask` | 任何已登录员工 POST 任意任务 ID，即可替组员接受或拒绝任务，或替项目经理审批；也使 SEC-119 的回调加固形同虚设 | `acceptTask`/`refuseTask` 内逐条校验登录人是该任务的应处理人（规则同 SEC-119），否则整批 403；任务 ID 查不到 400。PC、App、企业微信卡片三处入口共用 |
+| SEC-121 | CWE-362 | Low（第 7 轮复审发现） | `SmsCodeServiceImpl` 作废与消费为「先读后 `updateById`」 | 并发提交可让一条验证码被比对多次 | 先用条件更新（`used = 0 → 1`）原子占用，再比对；每条验证码只有一次比对机会 |
+
+### 第 7 轮修订与验证
+
+- 可共享补丁增至 **84 个文件**：第 6 轮的 67 个文件中改动 5 个（`ErrorCodeConstants`、`AdminAuthServiceImpl`、两个 `CustomizedBpm*Controller`、`WeComCallbackController`），其余 62 个逐字节不变；新增 17 个（含 6 个测试类）。凭据补丁不变（5 个文件，与第 7 轮改动的文件无交集）。
+- 在老仓 `19d60d234` 的 `git archive` 全新副本上 `git apply --check` 两份补丁均通过；应用后的树与编辑用的树一致（git tree 哈希相同）；对老仓本身只做了 `patch --dry-run`（未改动）。
+- JDK 8（Corretto 8）离线编译网关、system、bpm、fst、infra 五个服务及框架（`-am`）通过。
+- 单测：新增 6 个测试类 26 个用例，连同第 6 轮的 19 个和 bpm 已有的 `CustomizedBpmOAServiceImpl*Test` 11 个，共 **56 个，全部通过**。`AdminAuthServiceImplTest` 在**未打补丁的老仓上同样失败**（缺 `CommonService` 的 mock，Spring 上下文起不来），与本补丁无关，未计入。
+- 泄密扫描：凭据补丁删除的 13 个字面量在可共享补丁、notes、本文件中 0 命中；通用模式 0 命中。
+- **运行时未在 dev 实测**（各项 dev 实测步骤见 notes 的 SEC-116 至 120 章节）。
+- SEC-116 的**无需发版止血**（网关拦截路由、两个对外主机的 nginx、48088 安全组、Nacos 覆盖验证码区间）与生产只读核实清单见 notes「SEC-116」与「Round 7: deploy order and read-only checks」。
+
+| 轮次 | 结果 |
+|---|---|
+| 第 7 轮复审（security-auditor 子代理，opus） | SEC-116、SEC-118 RESOLVES；SEC-117 PARTIAL（首次提交时不校验 `paramsId` 归属，bpm 看不到 fst 工时单；只有超级管理员可达）；SEC-119 PARTIAL（PC、App 的接受与拒绝接口没有处理人校验，即 SEC-120）；新发现 SEC-120（High）、SEC-121（Low）。另指出：Nacos 覆盖验证码区间可热生效，但在未打补丁的版本上只是去掉固定码，仍可并发猜测；停用短信模板无效（验证码先写库后发送）；nginx 规则要用 `^~` 前缀并覆盖 `apiprod.forcitis.com`；48088 绕过 nginx |
+| 第 7 轮复审后修订 | SEC-120：`acceptTask`/`refuseTask` 内校验应处理人。SEC-121：原子占用后再比对。短信登录拒绝超级管理员。止血方案按复审意见改为「网关拦截路由 → 两个主机的 nginx → 安全组 → Nacos」。修订部分有单测覆盖，未再派第二个复审代理 |
+| 当前结论（第 7 轮） | 代码层面：SEC-116、118、119、120、121 有修复；SEC-117 剩首次提交的 `paramsId` 绑定，彻底修复是删除两个 HTTP 入口（待用户决定）。**SEC-116 在生产是否可利用取决于生产 Nacos 是否覆盖了 9999，尚未核实**；在核实前应先执行无需发版的止血 |

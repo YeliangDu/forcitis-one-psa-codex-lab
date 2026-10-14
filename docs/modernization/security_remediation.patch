@@ -1,16 +1,25 @@
 diff --git a/psa-backend/yudao-module-system/yudao-module-system-api/src/main/java/cn/iocoder/yudao/module/system/enums/ErrorCodeConstants.java b/psa-backend/yudao-module-system/yudao-module-system-api/src/main/java/cn/iocoder/yudao/module/system/enums/ErrorCodeConstants.java
-index fd3cf53..b1ba197 100644
+index fd3cf53..325c7c3 100644
 --- a/psa-backend/yudao-module-system/yudao-module-system-api/src/main/java/cn/iocoder/yudao/module/system/enums/ErrorCodeConstants.java
 +++ b/psa-backend/yudao-module-system/yudao-module-system-api/src/main/java/cn/iocoder/yudao/module/system/enums/ErrorCodeConstants.java
-@@ -20,6 +20,8 @@ public interface ErrorCodeConstants {
+@@ -20,6 +20,9 @@ public interface ErrorCodeConstants {
      ErrorCode AUTH_SEEYON_SSO_TICKET_INVALID = new ErrorCode(1002000009, "OA 单点登录票据无效或已过期，请回到 OA 重新点击入口");
      ErrorCode AUTH_SEEYON_SSO_OA_UNAVAILABLE = new ErrorCode(1002000010, "暂时无法向 OA 校验登录身份，请稍后重试");
      ErrorCode AUTH_SEEYON_SSO_USER_NOT_EXISTS = new ErrorCode(1002000011, "PSA 中不存在 OA 账号 {} 对应的用户");
 +    ErrorCode AUTH_TRUSTED_CALLER_REJECTED = new ErrorCode(1002000012, "登录失败，调用方身份校验未通过");
 +    ErrorCode AUTH_PASSWORDLESS_SUPER_ADMIN_FORBIDDEN = new ErrorCode(1002000013, "超级管理员账号不允许免密登录，请使用账号密码登录");
++    ErrorCode AUTH_SMS_LOGIN_DISABLED = new ErrorCode(1002000014, "短信验证码登录未启用");
  
      // ========== 菜单模块 1002001000 ==========
      ErrorCode MENU_NAME_DUPLICATE = new ErrorCode(1002001000, "已经存在该名字的菜单");
+@@ -101,6 +104,7 @@ public interface ErrorCodeConstants {
+     ErrorCode SMS_CODE_SEND_TOO_FAST = new ErrorCode(1002014005, "短信发送过于频率");
+     ErrorCode SMS_CODE_IS_EXISTS = new ErrorCode(1002014006, "手机号已被使用");
+     ErrorCode SMS_CODE_IS_UNUSED = new ErrorCode(1002014007, "验证码未被使用");
++    ErrorCode SMS_CODE_RANGE_INSECURE = new ErrorCode(1002014008, "短信验证码配置不安全，暂停发送");
+ 
+     // ========== 错误码模块 1002017000 ==========
+     ErrorCode ERROR_CODE_NOT_EXISTS = new ErrorCode(1002017000, "错误码不存在");
 diff --git a/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/framework/sso/TrustedCallerProperties.java b/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/framework/sso/TrustedCallerProperties.java
 new file mode 100644
 index 0000000..ef1a6c8
@@ -703,7 +712,7 @@ index e21eda1..186914c 100644
       * 微信小程序登录后台
       * @param code
 diff --git a/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceImpl.java b/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceImpl.java
-index e0b49ec..2e1ce6d 100644
+index e0b49ec..a31d776 100644
 --- a/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceImpl.java
 +++ b/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceImpl.java
 @@ -31,6 +31,8 @@ import cn.iocoder.yudao.module.system.service.common.CommonService;
@@ -723,7 +732,7 @@ index e0b49ec..2e1ce6d 100644
  import java.util.List;
  import java.util.Map;
  import java.util.Objects;
-@@ -102,6 +105,10 @@ public class AdminAuthServiceImpl implements AdminAuthService {
+@@ -102,11 +105,20 @@ public class AdminAuthServiceImpl implements AdminAuthService {
      private SeeyonSsoProperties seeyonSsoProperties;
      @Resource
      private SeeyonSsoTicketClient seeyonSsoTicketClient;
@@ -734,7 +743,17 @@ index e0b49ec..2e1ce6d 100644
      /**
       * 验证码的开关，默认为 true
       */
-@@ -152,15 +159,27 @@ public class AdminAuthServiceImpl implements AdminAuthService {
+     @Value("${yudao.captcha.enable:true}")
+     private Boolean captchaEnable;
++    /**
++     * 短信验证码登录的开关，默认关闭（SEC-116）：PC 登录页的短信入口已注释，没有在用的调用方
++     */
++    @Value("${psa.auth.sms-login.enabled:false}")
++    private Boolean smsLoginEnabled;
+ 
+     private static final String SEEYON_SSO_TICKET_KEY_PREFIX = "seeyon_sso:ticket:";
+     private static final int SEEYON_SSO_TICKET_MAX_LENGTH = 256;
+@@ -152,15 +164,27 @@ public class AdminAuthServiceImpl implements AdminAuthService {
  
      @Override
      public AuthLoginRespVO customizationLogin(String userName) {
@@ -766,7 +785,7 @@ index e0b49ec..2e1ce6d 100644
      }
  
      @Override
-@@ -205,14 +224,36 @@ public class AdminAuthServiceImpl implements AdminAuthService {
+@@ -205,14 +229,36 @@ public class AdminAuthServiceImpl implements AdminAuthService {
  
      @Override
      public AuthLoginRespVO customizationLoginByUserId(String userId) {
@@ -806,6 +825,48 @@ index e0b49ec..2e1ce6d 100644
      }
  
      @Override
+@@ -287,6 +333,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
+ 
+     @Override
+     public void sendSmsCode(AuthSmsSendReqVO reqVO) {
++        validateSmsLoginEnabled();
+         // 登录场景，验证是否存在
+         if (userService.getUserByMobile(reqVO.getMobile()) == null) {
+             throw exception(AUTH_MOBILE_NOT_EXISTS);
+@@ -297,6 +344,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
+ 
+     @Override
+     public AuthLoginRespVO smsLogin(AuthSmsLoginReqVO reqVO) {
++        validateSmsLoginEnabled();
+         // 校验验证码
+         smsCodeApi.useSmsCode(AuthConvert.INSTANCE.convert(reqVO, SmsSceneEnum.ADMIN_MEMBER_LOGIN.getScene(), getClientIP()));
+ 
+@@ -305,11 +353,25 @@ public class AdminAuthServiceImpl implements AdminAuthService {
+         if (user == null) {
+             throw exception(USER_NOT_EXISTS);
+         }
++        if (ObjectUtil.notEqual(user.getStatus(), CommonStatusEnum.ENABLE.getStatus())) {
++            throw exception(AUTH_LOGIN_USER_DISABLED);
++        }
++        // 与外部免密入口一致：超级管理员不允许凭短信验证码登录（SEC-116）
++        if (roleService.hasAnySuperAdmin(permissionService.getUserRoleIdsFromCache(user.getId(),
++                Collections.singleton(CommonStatusEnum.ENABLE.getStatus())))) {
++            throw exception(AUTH_PASSWORDLESS_SUPER_ADMIN_FORBIDDEN);
++        }
+ 
+         // 创建 Token 令牌，记录登录日志
+         return createTokenAfterLoginSuccess(user.getId(), reqVO.getMobile(), LoginLogTypeEnum.LOGIN_MOBILE);
+     }
+ 
++    private void validateSmsLoginEnabled() {
++        if (!Boolean.TRUE.equals(smsLoginEnabled)) {
++            throw exception(AUTH_SMS_LOGIN_DISABLED);
++        }
++    }
++
+     @VisibleForTesting
+     void verifyCaptcha(AuthLoginReqVO reqVO) {
+         // 如果验证码关闭，则不进行校验
 diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/cost/projectcost/CostOpeningController.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/cost/projectcost/CostOpeningController.java
 index 99a601c..557b59a 100644
 --- a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/cost/projectcost/CostOpeningController.java
@@ -1748,10 +1809,15 @@ index af30367..2858392 100644
          if (ids == null || ids.isEmpty()) {
              return CommonResult.success("W 检测完成：入参 ids 为空");
 diff --git a/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/controller/admin/oa/CustomizedBpmController.java b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/controller/admin/oa/CustomizedBpmController.java
-index 3f99031..1bc34d9 100644
+index 3f99031..210e9ac 100644
 --- a/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/controller/admin/oa/CustomizedBpmController.java
 +++ b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/controller/admin/oa/CustomizedBpmController.java
-@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.bpm.controller.admin.oa.vo.BpmOACreateReqVO;
+@@ -2,10 +2,12 @@ package cn.iocoder.yudao.module.bpm.controller.admin.oa;
+ 
+ import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+ import cn.iocoder.yudao.framework.datapermission.core.annotation.DataPermission;
++import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+ import cn.iocoder.yudao.module.bpm.controller.admin.oa.vo.BpmOACreateReqVO;
  import cn.iocoder.yudao.module.bpm.service.oa.CustomizedBpmOAService;
  import io.swagger.annotations.Api;
  import io.swagger.annotations.ApiOperation;
@@ -1759,7 +1825,7 @@ index 3f99031..1bc34d9 100644
  import org.springframework.validation.annotation.Validated;
  import org.springframework.web.bind.annotation.PostMapping;
  import org.springframework.web.bind.annotation.RequestBody;
-@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
+@@ -13,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
  import org.springframework.web.bind.annotation.RestController;
  
  import javax.annotation.Resource;
@@ -1767,7 +1833,7 @@ index 3f99031..1bc34d9 100644
  import javax.validation.Valid;
  
  import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
-@@ -27,12 +27,14 @@ public class CustomizedBpmController {
+@@ -27,12 +28,16 @@ public class CustomizedBpmController {
      private CustomizedBpmOAService customizedBpmOAService;
  
      @PostMapping("/create")
@@ -1781,6 +1847,8 @@ index 3f99031..1bc34d9 100644
 -
 +        // 发起人只认登录态；流程标识与流程变量按白名单收口（SEC-005）
 +        CustomizedBpmCreateReqSanitizer.sanitize(reqVO);
++        // 已绑定流程的单据只允许原发起人再次提交（SEC-117）
++        customizedBpmOAService.validateHttpSubmitOwner(reqVO.getParamsId(), SecurityFrameworkUtils.getLoginUserId());
          customizedBpmOAService.createOA(reqVO);
          return success(true);
      }
@@ -1872,13 +1940,14 @@ index 0000000..631c5ff
 +
 +}
 diff --git a/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/controller/app/oa/CustomizedBpmAPPController.java b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/controller/app/oa/CustomizedBpmAPPController.java
-index a5c8167..a38772f 100644
+index a5c8167..b9f2121 100644
 --- a/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/controller/app/oa/CustomizedBpmAPPController.java
 +++ b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/controller/app/oa/CustomizedBpmAPPController.java
-@@ -2,10 +2,12 @@ package cn.iocoder.yudao.module.bpm.controller.app.oa;
+@@ -2,10 +2,13 @@ package cn.iocoder.yudao.module.bpm.controller.app.oa;
  
  import cn.iocoder.yudao.framework.common.pojo.CommonResult;
  import cn.iocoder.yudao.framework.datapermission.core.annotation.DataPermission;
++import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 +import cn.iocoder.yudao.module.bpm.controller.admin.oa.CustomizedBpmCreateReqSanitizer;
  import cn.iocoder.yudao.module.bpm.controller.admin.oa.vo.BpmOACreateReqVO;
  import cn.iocoder.yudao.module.bpm.service.oa.CustomizedBpmOAService;
@@ -1888,7 +1957,7 @@ index a5c8167..a38772f 100644
  import org.springframework.validation.annotation.Validated;
  import org.springframework.web.bind.annotation.PostMapping;
  import org.springframework.web.bind.annotation.RequestBody;
-@@ -13,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
+@@ -13,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
  import org.springframework.web.bind.annotation.RestController;
  
  import javax.annotation.Resource;
@@ -1896,7 +1965,7 @@ index a5c8167..a38772f 100644
  import javax.validation.Valid;
  
  import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
-@@ -27,11 +28,14 @@ public class CustomizedBpmAPPController {
+@@ -27,11 +29,16 @@ public class CustomizedBpmAPPController {
      private CustomizedBpmOAService customizedBpmOAService;
  
      @PostMapping("/create")
@@ -1909,6 +1978,8 @@ index a5c8167..a38772f 100644
      public CommonResult<Boolean> createOA(@Valid @RequestBody BpmOACreateReqVO reqVO) {
 +        // 发起人只认登录态；流程标识与流程变量按白名单收口（SEC-005）
 +        CustomizedBpmCreateReqSanitizer.sanitize(reqVO);
++        // 已绑定流程的单据只允许原发起人再次提交（SEC-117）
++        customizedBpmOAService.validateHttpSubmitOwner(reqVO.getParamsId(), SecurityFrameworkUtils.getLoginUserId());
          customizedBpmOAService.createOA(reqVO);
          return success(true);
      }
@@ -2029,7 +2100,7 @@ index 0000000..a04d2bb
 +
 +}
 diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComCallbackController.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComCallbackController.java
-index 1302057..6202316 100644
+index 1302057..7a06bb9 100644
 --- a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComCallbackController.java
 +++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComCallbackController.java
 @@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.fst.controller.admin.wecom;
@@ -2070,24 +2141,77 @@ index 1302057..6202316 100644
      // 企业微信配置「接收消息」回调URL 时的一次性 URL 校验（GET + echostr）。与下方 POST 回调同路径、不同方法，可共存。
      @GetMapping("/check-url")
      @ApiOperation("校验企业微信回调地址")
-@@ -109,8 +118,15 @@ public class WeComCallbackController {
+@@ -107,32 +116,45 @@ public class WeComCallbackController {
+         Integer agentId = (Integer) plaintextObject.get("AgentID");
+         // 新按钮名称
          String replaceName = "";
-         // 处理业务
-         String[] eventKeys = eventKey.split("_");
+-        // 处理业务
+-        String[] eventKeys = eventKey.split("_");
++        // 处理业务：EventKey 必须是 task_{1|0}_{任务ID}_{接收人ID}，格式不符直接忽略（SEC-119）
++        WeComTaskCardKey cardKey = WeComTaskCardKey.parse(eventKey);
++        if (cardKey == null) {
++            log.warn("[savaTaskAction][EventKey({}) 格式不符，忽略回调]", eventKey);
++            return success(false);
++        }
 +        // 操作人以验签解密后的 FromUserName 为准；EventKey 第 4 段只是发卡片时写入的业务键，不作身份依据
 +        Long operatorId = resolveUserIdByWeComId(fromUserName);
-+        if (operatorId == null || (eventKeys.length > 3 && !String.valueOf(operatorId).equals(eventKeys[3]))) {
++        if (operatorId == null || !operatorId.equals(cardKey.getRecipientUserId())) {
 +            log.warn("[savaTaskAction][企业微信用户({}) 与卡片接收人({}) 不匹配或无启用的 PSA 账号，忽略回调]",
-+                    fromUserName, eventKeys.length > 3 ? eventKeys[3] : null);
++                    fromUserName, cardKey.getRecipientUserId());
++            return success(false);
++        }
++        // 操作人还必须是该任务当前应处理的人（组员发起 → 项目经理；经理指派 → 组员），与 PC 端的处理人一致（SEC-119）
++        Long taskId = cardKey.getTaskId();
++        if (!resourceService.isTaskResponder(taskId, operatorId)) {
++            log.warn("[savaTaskAction][用户({}) 不是任务({}) 的应处理人，忽略回调]", operatorId, taskId);
 +            return success(false);
 +        }
          // 设置登录用户
 -        WebFrameworkUtils.setLoginUserId(request, Long.valueOf(eventKeys[3]));
+-        // 判断业务类型
+-        if ("task".equals(eventKeys[0])) {
+-            String result = eventKeys[1];
+-            Long taskId = Long.valueOf(eventKeys[2]);
+-            // 判断业务结果
+-            if (FSTConstant.WeComCallbackResult.接受.equals(result)) {
+-                // 改变业务数据（同意）
+-                replaceName = "已接受";
+-                try {
+-                    resourceService.acceptTask(CollectionUtils.buildSingleList(taskId));
+-                } catch (Exception e) {
+-                    replaceName = "PC端已操作";
+-                }
 +        WebFrameworkUtils.setLoginUserId(request, operatorId);
-         // 判断业务类型
-         if ("task".equals(eventKeys[0])) {
-             String result = eventKeys[1];
-@@ -141,6 +157,20 @@ public class WeComCallbackController {
++        String result = cardKey.getResult();
++        // 判断业务结果
++        if (FSTConstant.WeComCallbackResult.接受.equals(result)) {
++            // 改变业务数据（同意）
++            replaceName = "已接受";
++            try {
++                resourceService.acceptTask(CollectionUtils.buildSingleList(taskId));
++            } catch (Exception e) {
++                replaceName = "PC端已操作";
+             }
+-            if (FSTConstant.WeComCallbackResult.拒绝.equals(result)) {
+-                // 改变业务数据（拒绝）
+-                replaceName = "已拒绝";
+-                try {
+-                    resourceService.refuseTask(CollectionUtils.buildSingleList(taskId));
+-                } catch (Exception e) {
+-                    replaceName = "PC端已操作";
+-                }
++        }
++        if (FSTConstant.WeComCallbackResult.拒绝.equals(result)) {
++            // 改变业务数据（拒绝）
++            replaceName = "已拒绝";
++            try {
++                resourceService.refuseTask(CollectionUtils.buildSingleList(taskId));
++            } catch (Exception e) {
++                replaceName = "PC端已操作";
+             }
+         }
+         // 改变互动消息按钮状态
+@@ -141,6 +163,20 @@ public class WeComCallbackController {
          return success(true);
      }
  
@@ -3588,4 +3712,1020 @@ index 0000000..5a7ab3b
 +        }
 +        assertEquals(4, mappings);
 +    }
++}
+diff --git a/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAService.java b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAService.java
+index e2f50e2..91d832d 100644
+--- a/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAService.java
++++ b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAService.java
+@@ -28,6 +28,15 @@ public interface CustomizedBpmOAService {
+      */
+     void continueProcessAfterReturn(BpmOACreateReqVO reqVO);
+ 
++    /**
++     * HTTP 发起入口的归属校验（SEC-117）：单据已绑定流程实例时，只有该实例的发起人本人可以再次提交，
++     * 防止借「驳回后重新提交」分支覆盖他人流程变量并替其完成发起人任务。RPC 入口不调用本方法。
++     *
++     * @param paramsId    单据 ID
++     * @param loginUserId 当前登录用户
++     */
++    void validateHttpSubmitOwner(Long paramsId, Long loginUserId);
++
+     /**
+      * 流程结束
+      * @param event 流程实例的结果发生变化的
+diff --git a/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAServiceImpl.java b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAServiceImpl.java
+index 0830bbb..847c086 100644
+--- a/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAServiceImpl.java
++++ b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAServiceImpl.java
+@@ -35,6 +35,7 @@ import org.flowable.bpmn.model.UserTask;
+ import org.flowable.engine.RepositoryService;
+ import org.flowable.engine.RuntimeService;
+ import org.flowable.engine.TaskService;
++import org.flowable.engine.history.HistoricProcessInstance;
+ import org.flowable.engine.repository.ProcessDefinition;
+ import org.flowable.task.api.Task;
+ import org.springframework.stereotype.Service;
+@@ -45,6 +46,11 @@ import javax.annotation.Resource;
+ import java.util.*;
+ import java.util.stream.Collectors;
+ 
++import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.BAD_REQUEST;
++import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
++import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.UNAUTHORIZED;
++import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception0;
++
+ @Slf4j
+ @Service
+ @Validated
+@@ -224,6 +230,27 @@ public class CustomizedBpmOAServiceImpl implements CustomizedBpmOAService {
+         return processInstanceVariables;
+     }
+ 
++    @Override
++    public void validateHttpSubmitOwner(Long paramsId, Long loginUserId) {
++        if (loginUserId == null) {
++            throw exception0(UNAUTHORIZED.getCode(), UNAUTHORIZED.getMsg());
++        }
++        if (paramsId == null) {
++            throw exception0(BAD_REQUEST.getCode(), "单据ID不能为空");
++        }
++        CustomizedBpmOADO binding = customizedBpmOAMapper.selectOne("params_id", paramsId);
++        if (binding == null || StrUtil.isBlank(binding.getProcessInstanceId())) {
++            return; // 首次发起，由登录人作为发起人
++        }
++        // 存活或已结束的实例都按历史实例取发起人；查不到时按不属于本人处理
++        HistoricProcessInstance instance = processInstanceService.getHistoricProcessInstance(binding.getProcessInstanceId());
++        if (instance == null || !String.valueOf(loginUserId).equals(instance.getStartUserId())) {
++            log.warn("[validateHttpSubmitOwner][用户({}) 尝试提交不属于自己的单据({})，流程实例({})]",
++                    loginUserId, paramsId, binding.getProcessInstanceId());
++            throw exception0(FORBIDDEN.getCode(), "无权提交他人的单据");
++        }
++    }
++
+     @Override
+     @Transactional(rollbackFor = Exception.class)
+     public void continueProcessAfterReturn(BpmOACreateReqVO reqVO) {
+diff --git a/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/test/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAServiceImplHttpOwnerTest.java b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/test/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAServiceImplHttpOwnerTest.java
+new file mode 100644
+index 0000000..4119653
+--- /dev/null
++++ b/psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/test/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAServiceImplHttpOwnerTest.java
+@@ -0,0 +1,87 @@
++package cn.iocoder.yudao.module.bpm.service.oa;
++
++import cn.iocoder.yudao.framework.common.exception.ServiceException;
++import cn.iocoder.yudao.module.bpm.dal.dataobject.oa.CustomizedBpmOADO;
++import cn.iocoder.yudao.module.bpm.dal.mysql.oa.CustomizedBpmOAMapper;
++import cn.iocoder.yudao.module.bpm.service.task.BpmProcessInstanceService;
++import org.flowable.engine.history.HistoricProcessInstance;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.springframework.test.util.ReflectionTestUtils;
++
++import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.*;
++import static org.assertj.core.api.Assertions.assertThatCode;
++import static org.assertj.core.api.Assertions.assertThatThrownBy;
++import static org.mockito.Mockito.mock;
++import static org.mockito.Mockito.when;
++
++/**
++ * SEC-117：HTTP 发起入口不能借「重新提交」分支操作他人的流程
++ */
++class CustomizedBpmOAServiceImplHttpOwnerTest {
++
++    private final CustomizedBpmOAServiceImpl service = new CustomizedBpmOAServiceImpl();
++    private final CustomizedBpmOAMapper mapper = mock(CustomizedBpmOAMapper.class);
++    private final BpmProcessInstanceService processInstanceService = mock(BpmProcessInstanceService.class);
++
++    @BeforeEach
++    void setUp() {
++        ReflectionTestUtils.setField(service, "customizedBpmOAMapper", mapper);
++        ReflectionTestUtils.setField(service, "processInstanceService", processInstanceService);
++    }
++
++    @Test
++    void firstSubmissionIsAllowed() {
++        when(mapper.selectOne("params_id", 1L)).thenReturn(null);
++
++        assertThatCode(() -> service.validateHttpSubmitOwner(1L, 100L)).doesNotThrowAnyException();
++    }
++
++    @Test
++    void starterMayResubmit() {
++        bind(1L, "pi-1", "100");
++
++        assertThatCode(() -> service.validateHttpSubmitOwner(1L, 100L)).doesNotThrowAnyException();
++    }
++
++    @Test
++    void otherUserCannotResubmitSomeoneElsesInstance() {
++        bind(1L, "pi-1", "100");
++
++        assertThatThrownBy(() -> service.validateHttpSubmitOwner(1L, 200L))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(FORBIDDEN.getCode());
++    }
++
++    @Test
++    void missingHistoricInstanceIsTreatedAsNotOwned() {
++        CustomizedBpmOADO binding = new CustomizedBpmOADO();
++        binding.setProcessInstanceId("pi-gone");
++        when(mapper.selectOne("params_id", 1L)).thenReturn(binding);
++        when(processInstanceService.getHistoricProcessInstance("pi-gone")).thenReturn(null);
++
++        assertThatThrownBy(() -> service.validateHttpSubmitOwner(1L, 100L))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(FORBIDDEN.getCode());
++    }
++
++    @Test
++    void anonymousAndMissingParamsIdAreRejected() {
++        assertThatThrownBy(() -> service.validateHttpSubmitOwner(1L, null))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(UNAUTHORIZED.getCode());
++        assertThatThrownBy(() -> service.validateHttpSubmitOwner(null, 100L))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(BAD_REQUEST.getCode());
++    }
++
++    private void bind(Long paramsId, String processInstanceId, String startUserId) {
++        CustomizedBpmOADO binding = new CustomizedBpmOADO();
++        binding.setProcessInstanceId(processInstanceId);
++        when(mapper.selectOne("params_id", paramsId)).thenReturn(binding);
++        HistoricProcessInstance instance = mock(HistoricProcessInstance.class);
++        when(instance.getStartUserId()).thenReturn(startUserId);
++        when(processInstanceService.getHistoricProcessInstance(processInstanceId)).thenReturn(instance);
++    }
++
++}
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComTaskCardKey.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComTaskCardKey.java
+new file mode 100644
+index 0000000..59b29e1
+--- /dev/null
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComTaskCardKey.java
+@@ -0,0 +1,41 @@
++package cn.iocoder.yudao.module.fst.controller.admin.wecom;
++
++import cn.iocoder.yudao.module.fst.enums.fst.FSTConstant;
++import lombok.AllArgsConstructor;
++import lombok.Getter;
++
++/**
++ * 任务卡片按钮的 EventKey：{@code task_{1接受|0拒绝}_{任务ID}_{卡片接收人ID}}（见 MessageServiceImpl 发卡片处）。
++ * <p>只做格式解析；身份以 FromUserName 为准，接收人段仅用于与之比对（SEC-119）。
++ */
++@Getter
++@AllArgsConstructor
++final class WeComTaskCardKey {
++
++    private final String result;
++    private final Long taskId;
++    private final Long recipientUserId;
++
++    /**
++     * @return 格式不符（段数不是 4、业务类型不是 task、结果不是接受或拒绝、ID 不是数字）时返回 null
++     */
++    static WeComTaskCardKey parse(String eventKey) {
++        if (eventKey == null) {
++            return null;
++        }
++        String[] parts = eventKey.split("_", -1);
++        if (parts.length != 4 || !"task".equals(parts[0])) {
++            return null;
++        }
++        String result = parts[1];
++        if (!FSTConstant.WeComCallbackResult.接受.equals(result) && !FSTConstant.WeComCallbackResult.拒绝.equals(result)) {
++            return null;
++        }
++        try {
++            return new WeComTaskCardKey(result, Long.valueOf(parts[2]), Long.valueOf(parts[3]));
++        } catch (NumberFormatException e) {
++            return null;
++        }
++    }
++
++}
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/common/CommonServiceImpl.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/common/CommonServiceImpl.java
+index e250988..a680de9 100644
+--- a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/common/CommonServiceImpl.java
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/common/CommonServiceImpl.java
+@@ -419,6 +419,11 @@ public class CommonServiceImpl implements CommonService {
+ 
+     @Override
+     public void sendMsgToWeCom(JSONObject contentObj) {
++        // 只允许点对点发送：去掉 toparty / totag，touser 为空或含 @all 时不发（SEC-118）
++        if (!WeComMessageRecipientGuard.restrictToUsers(contentObj)) {
++            log.warn("[sendMsgToWeCom][接收人({}) 无效，未发送]", contentObj == null ? null : contentObj.get("touser"));
++            return;
++        }
+         log.info("sendMsgToWeCom：" + contentObj);
+         // PSA APP Token
+         WeComTokenVO tokenVO = this.getPsaWeComToken();
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/common/WeComMessageRecipientGuard.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/common/WeComMessageRecipientGuard.java
+new file mode 100644
+index 0000000..057dc65
+--- /dev/null
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/common/WeComMessageRecipientGuard.java
+@@ -0,0 +1,41 @@
++package cn.iocoder.yudao.module.fst.service.common;
++
++import cn.hutool.core.util.StrUtil;
++
++import java.util.Map;
++
++/**
++ * 企业微信应用消息的接收人收口（SEC-118）。
++ * <p>PSA 的应用消息都是发给单个审批人或申请人的；toparty / totag 一律去掉，
++ * touser 为空或含 {@code @all}（企业微信约定的「全部成员」）时不发送，避免审批内容广播到全员。
++ */
++public final class WeComMessageRecipientGuard {
++
++    private static final String ALL = "@all";
++
++    private WeComMessageRecipientGuard() {
++    }
++
++    /**
++     * @param contentObj message/send 请求体，会被原地修改
++     * @return true 表示可以发送
++     */
++    public static boolean restrictToUsers(Map<String, Object> contentObj) {
++        if (contentObj == null) {
++            return false;
++        }
++        contentObj.remove("toparty");
++        contentObj.remove("totag");
++        Object touser = contentObj.get("touser");
++        if (touser == null || StrUtil.isBlank(touser.toString())) {
++            return false;
++        }
++        for (String user : touser.toString().split("\\|")) {
++            if (StrUtil.isBlank(user) || ALL.equalsIgnoreCase(user.trim())) {
++                return false;
++            }
++        }
++        return true;
++    }
++
++}
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/message/MessageServiceImpl.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/message/MessageServiceImpl.java
+index 80b2be9..b438409 100644
+--- a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/message/MessageServiceImpl.java
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/message/MessageServiceImpl.java
+@@ -75,10 +75,7 @@ public class MessageServiceImpl implements MessageService {
+         JSONObject contentObj = new JSONObject();
+         // 消息接收人ID
+         contentObj.put("touser", messageVO.getRecipientId());
+-        // 部门ID列表，多个接收者用‘|’分隔，最多支持100个。当touser为@all时忽略本参数
+-        contentObj.put("toparty", "@all");
+-        // 标签ID列表，多个接收者用‘|’分隔，最多支持100个。当touser为@all时忽略本参数
+-        contentObj.put("totag", "@all");
++        // 只发给 touser 指定的人，不设 toparty / totag（SEC-118：原值 "@all"）
+         // 消息类型，此时固定为：textcard（文本卡片消息）
+         contentObj.put("msgtype", "textcard");
+         // 企业应用的id，整型。企业内部开发，可在应用的设置页面查看；第三方服务商，可通过接口 获取企业授权信息 获取该参数值
+@@ -104,10 +101,7 @@ public class MessageServiceImpl implements MessageService {
+         JSONObject contentObj = new JSONObject();
+         // 消息接收人ID
+         contentObj.put("touser", messageVO.getRecipientId());
+-        // 部门ID列表，多个接收者用‘|’分隔，最多支持100个。当touser为@all时忽略本参数
+-        contentObj.put("toparty", "@all");
+-        // 标签ID列表，多个接收者用‘|’分隔，最多支持100个。当touser为@all时忽略本参数
+-        contentObj.put("totag", "@all");
++        // 只发给 touser 指定的人，不设 toparty / totag（SEC-118：原值 "@all"）
+         // 消息类型，此时固定为：news（图文卡片消息）
+         contentObj.put("msgtype", "news");
+         // 企业应用的id，整型。企业内部开发，可在应用的设置页面查看；第三方服务商，可通过接口 获取企业授权信息 获取该参数值
+@@ -140,8 +134,7 @@ public class MessageServiceImpl implements MessageService {
+     public void sendWeComTemplateCardMsgByBPM(MessageVO messageVO) {
+         JSONObject contentObj = new JSONObject();
+         contentObj.put("touser", messageVO.getRecipientId());
+-        contentObj.put("toparty", "@all");
+-        contentObj.put("totag", "@all");
++        // 只发给 touser 指定的人，不设 toparty / totag（SEC-118：原值 "@all"）
+         contentObj.put("msgtype", "template_card");
+         contentObj.put("agentid", weComAgentId());
+         contentObj.put("template_card", messageVO.getContentMap());
+@@ -336,8 +329,7 @@ public class MessageServiceImpl implements MessageService {
+     public void sendWeComMarkdownMsgByBPM(MessageVO messageVO) {
+         JSONObject contentObj = new JSONObject();
+         contentObj.put("touser", messageVO.getRecipientId());
+-        contentObj.put("toparty", "@all");
+-        contentObj.put("totag", "@all");
++        // 只发给 touser 指定的人，不设 toparty / totag（SEC-118：原值 "@all"）
+         contentObj.put("msgtype", "markdown");
+         contentObj.put("agentid", weComAgentId());
+ 
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/resource/ResourceService.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/resource/ResourceService.java
+index c6a6906..3a3ebd7 100644
+--- a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/resource/ResourceService.java
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/resource/ResourceService.java
+@@ -31,6 +31,16 @@ public interface ResourceService {
+      */
+     void refuseTask(List<Long> taskIdList);
+ 
++    /**
++     * 判断用户是否为该任务当前应处理（接受 / 拒绝）的人（SEC-119，企业微信卡片回调用）：
++     * 组员自己发起的任务由项目经理审批，经理指派的任务由组员接受，与 acceptTask / refuseTask 的分支一致。
++     *
++     * @param taskId 任务 ID
++     * @param userId 用户 ID
++     * @return 是否为应处理人
++     */
++    boolean isTaskResponder(Long taskId, Long userId);
++
+ 
+     /**
+      * 资源可视化（甘特图）
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/resource/ResourceServiceImpl.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/resource/ResourceServiceImpl.java
+index 38cccb8..5b2990f 100644
+--- a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/resource/ResourceServiceImpl.java
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/resource/ResourceServiceImpl.java
+@@ -65,6 +65,12 @@ import java.time.LocalDateTime;
+ import java.time.ZoneOffset;
+ import java.util.*;
+ 
++import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
++
++import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.BAD_REQUEST;
++import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
++import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception0;
++
+ @Service
+ @Slf4j
+ public class ResourceServiceImpl implements ResourceService {
+@@ -207,11 +213,47 @@ public class ResourceServiceImpl implements ResourceService {
+     }
+ 
+ 
++    @Override
++    public boolean isTaskResponder(Long taskId, Long userId) {
++        if (taskId == null || userId == null) {
++            return false;
++        }
++        return isTaskResponder(taskMapper.selectById(taskId), userId);
++    }
++
++    /**
++     * 组员自己发起 → 项目经理审批；否则（经理指派）→ 组员接受（SEC-119、SEC-120）
++     */
++    private static boolean isTaskResponder(TaskDO taskDO, Long userId) {
++        if (taskDO == null || taskDO.getPersonId() == null || userId == null) {
++            return false;
++        }
++        Long responder = taskDO.getPersonId().toString().equals(taskDO.getCreator())
++                ? taskDO.getManagerId() : taskDO.getPersonId();
++        return userId.equals(responder);
++    }
++
++    /**
++     * 接受 / 拒绝任务只能由该任务当前应处理的人操作（SEC-120）：PC、App 与企业微信卡片回调共用此校验
++     */
++    private static void validateTaskResponders(List<Long> taskIdList, List<TaskDO> taskDOList, Long loginUserId) {
++        if (taskIdList == null || taskIdList.isEmpty() || taskDOList.size() != new HashSet<>(taskIdList).size()) {
++            throw exception0(BAD_REQUEST.getCode(), "任务不存在");
++        }
++        for (TaskDO taskDO : taskDOList) {
++            if (!isTaskResponder(taskDO, loginUserId)) {
++                log.warn("[validateTaskResponders][用户({}) 不是任务({}) 的应处理人]", loginUserId, taskDO.getId());
++                throw exception0(FORBIDDEN.getCode(), "无权处理该任务");
++            }
++        }
++    }
++
+     @Override
+     @Transactional(rollbackFor = Exception.class)
+     public void acceptTask(List<Long> taskIdList) {
+         // 获取任务
+         List<TaskDO> taskDOList = taskMapper.selectList(TaskDO::getId, taskIdList);
++        validateTaskResponders(taskIdList, taskDOList, WebFrameworkUtils.getLoginUserId());
+         // 消息集合
+         List<PSAMessageModel> psaMessageModelList = new ArrayList<>();
+         taskDOList.forEach(taskDO -> {
+@@ -259,6 +301,7 @@ public class ResourceServiceImpl implements ResourceService {
+     @Transactional(rollbackFor = Exception.class)
+     public void refuseTask(List<Long> taskIdList) {
+         List<TaskDO> taskDOList = taskMapper.selectList(TaskDO::getId, taskIdList);
++        validateTaskResponders(taskIdList, taskDOList, WebFrameworkUtils.getLoginUserId());
+         List<PSAMessageModel> psaMessageModelList = new ArrayList<>();
+         taskDOList.forEach(taskDO -> {
+             Long sendUserId;
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/resources/application.yaml b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/resources/application.yaml
+index efaaefb..d43e395 100644
+--- a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/resources/application.yaml
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/resources/application.yaml
+@@ -280,8 +280,9 @@ yudao:
+     expire-times: 10m
+     send-frequency: 1m
+     send-maximum-quantity-per-day: 10
+-    begin-code: 9999 # 这里配置 9999 的原因是，测试方便。
+-    end-code: 9999 # 这里配置 9999 的原因是，测试方便。
++    # 6 位随机码（SEC-116）：原 9999~9999 即固定码，配合匿名的 sms-login 等于免密登录；区间不足 90 万个取值时服务端拒绝发送
++    begin-code: 100000
++    end-code: 999999
+ 
+ debug: false
+ 
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/test/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComTaskCardKeyTest.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/test/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComTaskCardKeyTest.java
+new file mode 100644
+index 0000000..80925d2
+--- /dev/null
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/test/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComTaskCardKeyTest.java
+@@ -0,0 +1,33 @@
++package cn.iocoder.yudao.module.fst.controller.admin.wecom;
++
++import org.junit.jupiter.api.Test;
++
++import static org.assertj.core.api.Assertions.assertThat;
++
++/**
++ * SEC-119：卡片 EventKey 严格按 task_{1|0}_{任务ID}_{接收人ID} 解析
++ */
++class WeComTaskCardKeyTest {
++
++    @Test
++    void parsesWellFormedKey() {
++        WeComTaskCardKey key = WeComTaskCardKey.parse("task_1_555_2001");
++
++        assertThat(key).isNotNull();
++        assertThat(key.getResult()).isEqualTo("1");
++        assertThat(key.getTaskId()).isEqualTo(555L);
++        assertThat(key.getRecipientUserId()).isEqualTo(2001L);
++    }
++
++    @Test
++    void rejectsMalformedKeys() {
++        assertThat(WeComTaskCardKey.parse(null)).isNull();
++        assertThat(WeComTaskCardKey.parse("task_1_555")).isNull();          // 缺接收人段：旧实现会跳过比对
++        assertThat(WeComTaskCardKey.parse("task_1_555_2001_x")).isNull();
++        assertThat(WeComTaskCardKey.parse("task_1_555_")).isNull();
++        assertThat(WeComTaskCardKey.parse("task_2_555_2001")).isNull();
++        assertThat(WeComTaskCardKey.parse("plan_1_555_2001")).isNull();
++        assertThat(WeComTaskCardKey.parse("task_1_abc_2001")).isNull();
++    }
++
++}
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/test/java/cn/iocoder/yudao/module/fst/service/common/WeComMessageRecipientGuardTest.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/test/java/cn/iocoder/yudao/module/fst/service/common/WeComMessageRecipientGuardTest.java
+new file mode 100644
+index 0000000..4053c95
+--- /dev/null
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/test/java/cn/iocoder/yudao/module/fst/service/common/WeComMessageRecipientGuardTest.java
+@@ -0,0 +1,48 @@
++package cn.iocoder.yudao.module.fst.service.common;
++
++import com.alibaba.fastjson.JSONObject;
++import org.junit.jupiter.api.Test;
++
++import static org.assertj.core.api.Assertions.assertThat;
++
++/**
++ * SEC-118：应用消息只发给 touser，不广播
++ */
++class WeComMessageRecipientGuardTest {
++
++    @Test
++    void stripsPartyAndTagAndKeepsSingleUser() {
++        JSONObject content = new JSONObject();
++        content.put("touser", "zhangsan");
++        content.put("toparty", "@all");
++        content.put("totag", "@all");
++
++        assertThat(WeComMessageRecipientGuard.restrictToUsers(content)).isTrue();
++        assertThat(content).doesNotContainKeys("toparty", "totag");
++        assertThat(content.get("touser")).isEqualTo("zhangsan");
++    }
++
++    @Test
++    void refusesBlankOrAllRecipients() {
++        assertThat(WeComMessageRecipientGuard.restrictToUsers(with(null))).isFalse();
++        assertThat(WeComMessageRecipientGuard.restrictToUsers(with(" "))).isFalse();
++        assertThat(WeComMessageRecipientGuard.restrictToUsers(with("@all"))).isFalse();
++        assertThat(WeComMessageRecipientGuard.restrictToUsers(with("@ALL"))).isFalse();
++        assertThat(WeComMessageRecipientGuard.restrictToUsers(with("zhangsan|@all"))).isFalse();
++        assertThat(WeComMessageRecipientGuard.restrictToUsers(with("zhangsan||lisi"))).isFalse();
++        assertThat(WeComMessageRecipientGuard.restrictToUsers(null)).isFalse();
++    }
++
++    @Test
++    void allowsMultipleNamedUsers() {
++        assertThat(WeComMessageRecipientGuard.restrictToUsers(with("zhangsan|lisi"))).isTrue();
++    }
++
++    private static JSONObject with(String touser) {
++        JSONObject content = new JSONObject();
++        content.put("touser", touser);
++        content.put("toparty", "@all");
++        return content;
++    }
++
++}
+diff --git a/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/test/java/cn/iocoder/yudao/module/fst/service/resource/ResourceServiceTaskResponderTest.java b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/test/java/cn/iocoder/yudao/module/fst/service/resource/ResourceServiceTaskResponderTest.java
+new file mode 100644
+index 0000000..777ec08
+--- /dev/null
++++ b/psa-backend/yudao-module-fst/yudao-module-fst-biz/src/test/java/cn/iocoder/yudao/module/fst/service/resource/ResourceServiceTaskResponderTest.java
+@@ -0,0 +1,104 @@
++package cn.iocoder.yudao.module.fst.service.resource;
++
++import cn.iocoder.yudao.module.fst.dal.dataobject.resource.TaskDO;
++import cn.iocoder.yudao.module.fst.dal.mysql.resource.TaskMapper;
++import cn.iocoder.yudao.framework.common.exception.ServiceException;
++import cn.iocoder.yudao.framework.web.core.util.WebFrameworkUtils;
++import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
++import org.junit.jupiter.api.Test;
++import org.springframework.test.util.ReflectionTestUtils;
++
++import java.util.Collections;
++
++import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.BAD_REQUEST;
++import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
++import static org.assertj.core.api.Assertions.assertThat;
++import static org.assertj.core.api.Assertions.assertThatThrownBy;
++import static org.mockito.ArgumentMatchers.any;
++import static org.mockito.ArgumentMatchers.anyCollection;
++import static org.mockito.Mockito.mock;
++import static org.mockito.Mockito.when;
++
++/**
++ * SEC-119 / SEC-120：只有任务的应处理人可以接受或拒绝（卡片回调、PC、App 共用）
++ */
++class ResourceServiceTaskResponderTest {
++
++    private final ResourceServiceImpl service = new ResourceServiceImpl();
++    private final TaskMapper taskMapper = mock(TaskMapper.class);
++
++    @Test
++    void memberInitiatedTaskIsHandledByManager() {
++        stub(task("100", 100L, 900L));
++
++        assertThat(service.isTaskResponder(1L, 900L)).isTrue();
++        assertThat(service.isTaskResponder(1L, 100L)).isFalse();
++    }
++
++    @Test
++    void managerAssignedTaskIsHandledByMember() {
++        stub(task("900", 100L, 900L));
++
++        assertThat(service.isTaskResponder(1L, 100L)).isTrue();
++        assertThat(service.isTaskResponder(1L, 900L)).isFalse();
++        assertThat(service.isTaskResponder(1L, 555L)).isFalse();
++    }
++
++    @Test
++    void unknownTaskOrUserIsNotAResponder() {
++        ReflectionTestUtils.setField(service, "taskMapper", taskMapper);
++        when(taskMapper.selectById(2L)).thenReturn(null);
++
++        assertThat(service.isTaskResponder(2L, 100L)).isFalse();
++        assertThat(service.isTaskResponder(null, 100L)).isFalse();
++        assertThat(service.isTaskResponder(1L, null)).isFalse();
++    }
++
++    @Test
++    void acceptAndRefuseRejectNonResponders() {
++        // SEC-120：PC / App 的接受、拒绝接口原先不校验处理人
++        TaskDO taskDO = task("100", 100L, 900L);
++        taskDO.setId(1L);
++        ReflectionTestUtils.setField(service, "taskMapper", taskMapper);
++        when(taskMapper.selectList(any(SFunction.class), anyCollection())).thenReturn(Collections.singletonList(taskDO));
++        WebFrameworkUtils.setLoginUserIdOverride(100L);
++        try {
++            assertThatThrownBy(() -> service.acceptTask(Collections.singletonList(1L)))
++                    .isInstanceOf(ServiceException.class)
++                    .extracting("code").isEqualTo(FORBIDDEN.getCode());
++            assertThatThrownBy(() -> service.refuseTask(Collections.singletonList(1L)))
++                    .isInstanceOf(ServiceException.class)
++                    .extracting("code").isEqualTo(FORBIDDEN.getCode());
++        } finally {
++            WebFrameworkUtils.clearLoginUserIdOverride();
++        }
++    }
++
++    @Test
++    void unknownTaskIdIsRejected() {
++        ReflectionTestUtils.setField(service, "taskMapper", taskMapper);
++        when(taskMapper.selectList(any(SFunction.class), anyCollection())).thenReturn(Collections.emptyList());
++        WebFrameworkUtils.setLoginUserIdOverride(900L);
++        try {
++            assertThatThrownBy(() -> service.acceptTask(Collections.singletonList(1L)))
++                    .isInstanceOf(ServiceException.class)
++                    .extracting("code").isEqualTo(BAD_REQUEST.getCode());
++        } finally {
++            WebFrameworkUtils.clearLoginUserIdOverride();
++        }
++    }
++
++    private void stub(TaskDO taskDO) {
++        ReflectionTestUtils.setField(service, "taskMapper", taskMapper);
++        when(taskMapper.selectById(1L)).thenReturn(taskDO);
++    }
++
++    private static TaskDO task(String creator, Long personId, Long managerId) {
++        TaskDO taskDO = new TaskDO();
++        taskDO.setCreator(creator);
++        taskDO.setPersonId(personId);
++        taskDO.setManagerId(managerId);
++        return taskDO;
++    }
++
++}
+diff --git a/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/sms/SmsCodeServiceImpl.java b/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/sms/SmsCodeServiceImpl.java
+index 778445d..68a5e44 100644
+--- a/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/sms/SmsCodeServiceImpl.java
++++ b/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/sms/SmsCodeServiceImpl.java
+@@ -12,11 +12,16 @@ import cn.iocoder.yudao.module.system.dal.dataobject.sms.SmsCodeDO;
+ import cn.iocoder.yudao.module.system.dal.mysql.sms.SmsCodeMapper;
+ import cn.iocoder.yudao.module.system.enums.sms.SmsSceneEnum;
+ import cn.iocoder.yudao.module.system.framework.sms.SmsCodeProperties;
++import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
++import com.google.common.annotations.VisibleForTesting;
++import lombok.extern.slf4j.Slf4j;
+ import org.springframework.stereotype.Service;
+ import org.springframework.validation.annotation.Validated;
+ 
+ import javax.annotation.Resource;
+ 
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
+ import java.time.LocalDateTime;
+ import java.time.temporal.ChronoUnit;
+ 
+@@ -30,8 +35,15 @@ import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.*;
+  */
+ @Service
+ @Validated
++@Slf4j
+ public class SmsCodeServiceImpl implements SmsCodeService {
+ 
++    /**
++     * 验证码取值区间的最小容量（6 位数字）；低于此值（如测试用的 9999~9999 固定码）一律不发（SEC-116）
++     */
++    @VisibleForTesting
++    static final int MIN_CODE_RANGE_SIZE = 900_000;
++
+     @Resource
+     private SmsCodeProperties smsCodeProperties;
+ 
+@@ -68,6 +80,12 @@ public class SmsCodeServiceImpl implements SmsCodeService {
+             // TODO 芋艿：提升，每个 IP 每小时可发送数量
+         }
+ 
++        // 取值区间过小（固定码等）时拒绝发送，避免验证码可被猜中（SEC-116）
++        if (!isCodeRangeSecure(smsCodeProperties.getBeginCode(), smsCodeProperties.getEndCode())) {
++            log.error("[createSmsCode][验证码区间({}~{}) 不足 {} 个取值，拒绝发送]",
++                    smsCodeProperties.getBeginCode(), smsCodeProperties.getEndCode(), MIN_CODE_RANGE_SIZE);
++            throw ServiceExceptionUtil.exception(SMS_CODE_RANGE_INSECURE);
++        }
+         // 创建验证码记录
+         String code = String.valueOf(randomInt(smsCodeProperties.getBeginCode(), smsCodeProperties.getEndCode() + 1));
+         SmsCodeDO newSmsCode = SmsCodeDO.builder().mobile(mobile).code(code).scene(scene)
+@@ -79,11 +97,14 @@ public class SmsCodeServiceImpl implements SmsCodeService {
+ 
+     @Override
+     public void useSmsCode(SmsCodeUseReqDTO reqDTO) {
+-        // 检测验证码是否有效
+-        SmsCodeDO lastSmsCode = this.checkSmsCode0(reqDTO.getMobile(), reqDTO.getCode(), reqDTO.getScene());
+-        // 使用验证码
+-        smsCodeMapper.updateById(SmsCodeDO.builder().id(lastSmsCode.getId())
+-                .used(true).usedTime(LocalDateTime.now()).usedIp(reqDTO.getUsedIp()).build());
++        // 先原子占用最近一条验证码，再比对：每条验证码只有一次比对机会，并发提交也不例外（SEC-116、SEC-121）
++        SmsCodeDO lastSmsCode = this.getLatestUsableCode(reqDTO.getMobile(), reqDTO.getScene());
++        if (!claim(lastSmsCode.getId(), reqDTO.getUsedIp())) {
++            throw ServiceExceptionUtil.exception(SMS_CODE_USED);
++        }
++        if (!codeEquals(lastSmsCode.getCode(), reqDTO.getCode())) {
++            throw ServiceExceptionUtil.exception(SMS_CODE_NOT_CORRECT);
++        }
+     }
+ 
+     @Override
+@@ -92,22 +113,56 @@ public class SmsCodeServiceImpl implements SmsCodeService {
+     }
+ 
+     public SmsCodeDO checkSmsCode0(String mobile, String code, Integer scene) {
+-        // 校验验证码
+-        SmsCodeDO lastSmsCode = smsCodeMapper.selectLastByMobile(mobile, code, scene);
++        SmsCodeDO lastSmsCode = getLatestUsableCode(mobile, scene);
++        // 输错一次即作废，需重新获取（SEC-116，防暴力猜测）
++        if (!codeEquals(lastSmsCode.getCode(), code)) {
++            claim(lastSmsCode.getId(), null);
++            throw ServiceExceptionUtil.exception(SMS_CODE_NOT_CORRECT);
++        }
++        return lastSmsCode;
++    }
++
++    /**
++     * 只认该手机号在该场景下最近发出的一条验证码（SEC-116）：
++     * 原实现按「手机号 + 用户提交的 code」查找，等于允许在有效期内对任意一条已发验证码无限次猜测
++     */
++    private SmsCodeDO getLatestUsableCode(String mobile, Integer scene) {
++        SmsCodeDO lastSmsCode = smsCodeMapper.selectLastByMobile(mobile, null, scene);
+         // 若验证码不存在，抛出异常
+         if (lastSmsCode == null) {
+             throw ServiceExceptionUtil.exception(SMS_CODE_NOT_FOUND);
+         }
++        // 判断验证码是否已被使用（含因输错而作废的）
++        if (Boolean.TRUE.equals(lastSmsCode.getUsed())) {
++            throw ServiceExceptionUtil.exception(SMS_CODE_USED);
++        }
+         // 超过时间
+         if (LocalDateTimeUtil.between(lastSmsCode.getCreateTime(), LocalDateTime.now()).toMillis()
+                 >= smsCodeProperties.getExpireTimes().toMillis()) { // 验证码已过期
+             throw ServiceExceptionUtil.exception(SMS_CODE_EXPIRED);
+         }
+-        // 判断验证码是否已被使用
+-        if (Boolean.TRUE.equals(lastSmsCode.getUsed())) {
+-            throw ServiceExceptionUtil.exception(SMS_CODE_USED);
+-        }
+         return lastSmsCode;
+     }
+ 
++    /**
++     * 条件更新 used = false → true；只有一个请求能占用成功（SEC-121）
++     */
++    private boolean claim(Integer id, String usedIp) {
++        return smsCodeMapper.update(SmsCodeDO.builder().used(true).usedTime(LocalDateTime.now()).usedIp(usedIp).build(),
++                new LambdaQueryWrapper<SmsCodeDO>().eq(SmsCodeDO::getId, id).eq(SmsCodeDO::getUsed, false)) == 1;
++    }
++
++    @VisibleForTesting
++    static boolean isCodeRangeSecure(Integer beginCode, Integer endCode) {
++        return beginCode != null && endCode != null
++                && (long) endCode - beginCode + 1 >= MIN_CODE_RANGE_SIZE;
++    }
++
++    private static boolean codeEquals(String expected, String actual) {
++        if (expected == null || actual == null) {
++            return false;
++        }
++        return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), actual.getBytes(StandardCharsets.UTF_8));
++    }
++
+ }
+diff --git a/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/resources/application.yaml b/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/resources/application.yaml
+index 7ceab43..1dc7e0f 100644
+--- a/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/resources/application.yaml
++++ b/psa-backend/yudao-module-system/yudao-module-system-biz/src/main/resources/application.yaml
+@@ -189,8 +189,9 @@ yudao:
+     expire-times: 10m
+     send-frequency: 1m
+     send-maximum-quantity-per-day: 10
+-    begin-code: 9999 # 这里配置 9999 的原因是，测试方便。
+-    end-code: 9999 # 这里配置 9999 的原因是，测试方便。
++    # 6 位随机码（SEC-116）：原 9999~9999 即固定码，配合匿名的 sms-login 等于免密登录；区间不足 90 万个取值时服务端拒绝发送
++    begin-code: 100000
++    end-code: 999999
+ 
+ psa:
+   seeyon-sso: # 致远 OA 单点登录到 PSA（#1871）；各环境在 Nacos 覆盖 enabled / oa-base-url / redirect-url
+diff --git a/psa-backend/yudao-module-system/yudao-module-system-biz/src/test/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceSmsLoginSwitchTest.java b/psa-backend/yudao-module-system/yudao-module-system-biz/src/test/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceSmsLoginSwitchTest.java
+new file mode 100644
+index 0000000..ec98b00
+--- /dev/null
++++ b/psa-backend/yudao-module-system/yudao-module-system-biz/src/test/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceSmsLoginSwitchTest.java
+@@ -0,0 +1,54 @@
++package cn.iocoder.yudao.module.system.service.auth;
++
++import cn.iocoder.yudao.framework.common.exception.ServiceException;
++import cn.iocoder.yudao.module.system.api.sms.SmsCodeApi;
++import cn.iocoder.yudao.module.system.controller.admin.auth.vo.AuthSmsLoginReqVO;
++import cn.iocoder.yudao.module.system.controller.admin.auth.vo.AuthSmsSendReqVO;
++import org.junit.jupiter.api.Test;
++import org.springframework.test.util.ReflectionTestUtils;
++
++import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.AUTH_SMS_LOGIN_DISABLED;
++import static org.assertj.core.api.Assertions.assertThatThrownBy;
++import static org.mockito.Mockito.mock;
++import static org.mockito.Mockito.verifyNoInteractions;
++
++/**
++ * SEC-116：短信验证码登录默认关闭
++ */
++class AdminAuthServiceSmsLoginSwitchTest {
++
++    @Test
++    void smsEndpointsRefuseWhenSwitchIsOff() {
++        AdminAuthServiceImpl service = new AdminAuthServiceImpl();
++        SmsCodeApi smsCodeApi = mock(SmsCodeApi.class);
++        ReflectionTestUtils.setField(service, "smsCodeApi", smsCodeApi);
++        ReflectionTestUtils.setField(service, "smsLoginEnabled", false);
++
++        AuthSmsSendReqVO sendReqVO = new AuthSmsSendReqVO();
++        sendReqVO.setMobile("13800000000");
++        assertThatThrownBy(() -> service.sendSmsCode(sendReqVO))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(AUTH_SMS_LOGIN_DISABLED.getCode());
++
++        AuthSmsLoginReqVO loginReqVO = new AuthSmsLoginReqVO();
++        loginReqVO.setMobile("13800000000");
++        loginReqVO.setCode("9999");
++        assertThatThrownBy(() -> service.smsLogin(loginReqVO))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(AUTH_SMS_LOGIN_DISABLED.getCode());
++        verifyNoInteractions(smsCodeApi);
++    }
++
++    @Test
++    void switchDefaultsToOffWhenPropertyMissing() {
++        // 未注入（等同配置缺省）时也视为关闭
++        AdminAuthServiceImpl service = new AdminAuthServiceImpl();
++        AuthSmsLoginReqVO loginReqVO = new AuthSmsLoginReqVO();
++        loginReqVO.setMobile("13800000000");
++        loginReqVO.setCode("123456");
++        assertThatThrownBy(() -> service.smsLogin(loginReqVO))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(AUTH_SMS_LOGIN_DISABLED.getCode());
++    }
++
++}
+diff --git a/psa-backend/yudao-module-system/yudao-module-system-biz/src/test/java/cn/iocoder/yudao/module/system/service/sms/SmsCodeServiceImplSecurityTest.java b/psa-backend/yudao-module-system/yudao-module-system-biz/src/test/java/cn/iocoder/yudao/module/system/service/sms/SmsCodeServiceImplSecurityTest.java
+new file mode 100644
+index 0000000..2fbae09
+--- /dev/null
++++ b/psa-backend/yudao-module-system/yudao-module-system-biz/src/test/java/cn/iocoder/yudao/module/system/service/sms/SmsCodeServiceImplSecurityTest.java
+@@ -0,0 +1,165 @@
++package cn.iocoder.yudao.module.system.service.sms;
++
++import cn.iocoder.yudao.framework.common.exception.ServiceException;
++import cn.iocoder.yudao.module.system.api.sms.dto.code.SmsCodeSendReqDTO;
++import cn.iocoder.yudao.module.system.api.sms.dto.code.SmsCodeUseReqDTO;
++import cn.iocoder.yudao.module.system.dal.dataobject.sms.SmsCodeDO;
++import cn.iocoder.yudao.module.system.dal.mysql.sms.SmsCodeMapper;
++import cn.iocoder.yudao.module.system.framework.sms.SmsCodeProperties;
++import com.baomidou.mybatisplus.core.conditions.Wrapper;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.mockito.ArgumentCaptor;
++import org.springframework.test.util.ReflectionTestUtils;
++
++import java.time.Duration;
++import java.time.LocalDateTime;
++
++import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.*;
++import static org.assertj.core.api.Assertions.assertThat;
++import static org.assertj.core.api.Assertions.assertThatThrownBy;
++import static org.mockito.ArgumentMatchers.any;
++import static org.mockito.ArgumentMatchers.isNull;
++import static org.mockito.Mockito.*;
++
++/**
++ * SEC-116 / SEC-121：固定验证码、无限次猜测与并发猜测
++ */
++class SmsCodeServiceImplSecurityTest {
++
++    private static final String MOBILE = "13800000000";
++    private static final int SCENE = 21;
++
++    private final SmsCodeServiceImpl service = new SmsCodeServiceImpl();
++    private final SmsCodeMapper mapper = mock(SmsCodeMapper.class);
++    private final SmsSendService smsSendService = mock(SmsSendService.class);
++    private final SmsCodeProperties properties = new SmsCodeProperties();
++
++    @BeforeEach
++    void setUp() {
++        properties.setExpireTimes(Duration.ofMinutes(10));
++        properties.setSendFrequency(Duration.ofMinutes(1));
++        properties.setSendMaximumQuantityPerDay(10);
++        properties.setBeginCode(100000);
++        properties.setEndCode(999999);
++        ReflectionTestUtils.setField(service, "smsCodeMapper", mapper);
++        ReflectionTestUtils.setField(service, "smsCodeProperties", properties);
++        ReflectionTestUtils.setField(service, "smsSendService", smsSendService);
++    }
++
++    @Test
++    void rangeCheckRejectsFixedOrShortCodes() {
++        assertThat(SmsCodeServiceImpl.isCodeRangeSecure(9999, 9999)).isFalse();
++        assertThat(SmsCodeServiceImpl.isCodeRangeSecure(1000, 9999)).isFalse();
++        assertThat(SmsCodeServiceImpl.isCodeRangeSecure(null, 999999)).isFalse();
++        assertThat(SmsCodeServiceImpl.isCodeRangeSecure(100000, 999999)).isTrue();
++    }
++
++    @Test
++    void refusesToSendWhenRangeIsFixed() {
++        properties.setBeginCode(9999);
++        properties.setEndCode(9999);
++
++        assertThatThrownBy(() -> service.sendSmsCode(sendReq()))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(SMS_CODE_RANGE_INSECURE.getCode());
++        verify(mapper, never()).insert(any(SmsCodeDO.class));
++        verifyNoInteractions(smsSendService);
++    }
++
++    @Test
++    void sendsSixDigitCodeWithDefaultRange() {
++        service.sendSmsCode(sendReq());
++
++        ArgumentCaptor<SmsCodeDO> captor = ArgumentCaptor.forClass(SmsCodeDO.class);
++        verify(mapper).insert(captor.capture());
++        assertThat(captor.getValue().getCode()).hasSize(6);
++    }
++
++    @Test
++    void wrongCodeBurnsTheLatestCode() {
++        when(mapper.selectLastByMobile(eq(MOBILE), isNull(), eq(SCENE))).thenReturn(code(7, "123456", false));
++        when(mapper.update(any(SmsCodeDO.class), any(Wrapper.class))).thenReturn(1);
++
++        assertThatThrownBy(() -> service.checkSmsCode0(MOBILE, "654321", SCENE))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(SMS_CODE_NOT_CORRECT.getCode());
++        ArgumentCaptor<SmsCodeDO> captor = ArgumentCaptor.forClass(SmsCodeDO.class);
++        verify(mapper).update(captor.capture(), any(Wrapper.class));
++        assertThat(captor.getValue().getUsed()).isTrue();
++    }
++
++    @Test
++    void useClaimsBeforeComparingSoAWrongGuessBurnsTheCode() {
++        when(mapper.selectLastByMobile(eq(MOBILE), isNull(), eq(SCENE))).thenReturn(code(7, "123456", false));
++        when(mapper.update(any(SmsCodeDO.class), any(Wrapper.class))).thenReturn(1);
++
++        assertThatThrownBy(() -> service.useSmsCode(useReq("654321")))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(SMS_CODE_NOT_CORRECT.getCode());
++        verify(mapper).update(any(SmsCodeDO.class), any(Wrapper.class));
++    }
++
++    @Test
++    void concurrentLoserCannotUseTheCode() {
++        // 另一个并发请求已占用（条件更新 0 行）→ 即使 code 正确也拒绝（SEC-121）
++        when(mapper.selectLastByMobile(eq(MOBILE), isNull(), eq(SCENE))).thenReturn(code(7, "123456", false));
++        when(mapper.update(any(SmsCodeDO.class), any(Wrapper.class))).thenReturn(0);
++
++        assertThatThrownBy(() -> service.useSmsCode(useReq("123456")))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(SMS_CODE_USED.getCode());
++    }
++
++    @Test
++    void correctCodeIsConsumedOnce() {
++        when(mapper.selectLastByMobile(eq(MOBILE), isNull(), eq(SCENE))).thenReturn(code(7, "123456", false));
++        when(mapper.update(any(SmsCodeDO.class), any(Wrapper.class))).thenReturn(1);
++
++        service.useSmsCode(useReq("123456"));
++        verify(mapper).update(any(SmsCodeDO.class), any(Wrapper.class));
++        verify(mapper, never()).updateById(any(SmsCodeDO.class));
++    }
++
++    @Test
++    void burnedCodeCannotBeRetriedEvenWithTheRightValue() {
++        when(mapper.selectLastByMobile(eq(MOBILE), isNull(), eq(SCENE))).thenReturn(code(7, "123456", true));
++
++        assertThatThrownBy(() -> service.checkSmsCode0(MOBILE, "123456", SCENE))
++                .isInstanceOf(ServiceException.class)
++                .extracting("code").isEqualTo(SMS_CODE_USED.getCode());
++    }
++
++    @Test
++    void onlyTheLatestCodeIsLookedUp() {
++        when(mapper.selectLastByMobile(eq(MOBILE), isNull(), eq(SCENE))).thenReturn(code(8, "111111", false));
++
++        assertThat(service.checkSmsCode0(MOBILE, "111111", SCENE).getId()).isEqualTo(8);
++        // 不再按用户提交的 code 去查（否则可对任一已发验证码反复猜）
++        verify(mapper, never()).selectLastByMobile(any(), eq("111111"), any());
++    }
++
++    private static SmsCodeUseReqDTO useReq(String value) {
++        SmsCodeUseReqDTO reqDTO = new SmsCodeUseReqDTO();
++        reqDTO.setMobile(MOBILE);
++        reqDTO.setScene(SCENE);
++        reqDTO.setCode(value);
++        reqDTO.setUsedIp("127.0.0.1");
++        return reqDTO;
++    }
++
++    private static SmsCodeSendReqDTO sendReq() {
++        SmsCodeSendReqDTO reqDTO = new SmsCodeSendReqDTO();
++        reqDTO.setMobile(MOBILE);
++        reqDTO.setScene(SCENE);
++        reqDTO.setCreateIp("127.0.0.1");
++        return reqDTO;
++    }
++
++    private static SmsCodeDO code(Integer id, String value, boolean used) {
++        SmsCodeDO codeDO = SmsCodeDO.builder().id(id).mobile(MOBILE).code(value).scene(SCENE).used(used).build();
++        codeDO.setCreateTime(LocalDateTime.now());
++        return codeDO;
++    }
++
 +}
