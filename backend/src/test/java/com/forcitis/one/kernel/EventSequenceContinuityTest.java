@@ -129,6 +129,49 @@ class EventSequenceContinuityTest {
         Random dates = new Random(7);
         checkMany(() -> LegalEntityAttribution.empty(new AttributionSubject(AttributionKind.ORG_UNIT, 3)), List.of(
                 a -> a.attribute(new LegalEntityId(1 + dates.nextInt(2)), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400))),
-                a -> a.end(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800)))));
+                a -> a.end(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800))),
+                a -> a.correct(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400)), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800)),
+                        new Reason("typo"), new UserId(1))));
+    }
+
+    @Test
+    @DisplayName("RegisteredEmployee: its one event is numbered after the stored sequence")
+    void registeredEmployee() {
+        UserId id = new UserId(42);
+        var staff = new com.forcitis.one.organization.workforce.domain.StaffEmployee(
+                new com.forcitis.one.organization.workforce.domain.Employee(id, "E42", "Synthetic", "synthetic", null, null, null,
+                        com.forcitis.one.organization.workforce.api.EmploymentStatus.EMPLOYED, false),
+                new com.forcitis.one.organization.workforce.domain.Assignment(id, new com.forcitis.one.organization.workforce.api.OrgUnitId(3), null, null));
+        var registered = com.forcitis.one.organization.workforce.domain.RegisteredEmployee.onFirstLogin(staff, 4, 6);
+
+        assertThat(registered.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.envelope().aggregateVersion()).containsExactly(7L);
+        assertThat(registered.eventSequence()).isEqualTo(7);
+        assertThat(registered.version()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("OutboundDelivery: it announces no event, so its sequence stays where it was while the lock version moves")
+    void outboundDelivery() {
+        checkMany(() -> com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(
+                        new com.forcitis.one.platform.integration.domain.OutboundDeliveryId(1), "approval-task:42",
+                        List.of(new WecomUserId("alice")), "title", "description", null, "PENDING", 0, null, null, null,
+                        com.forcitis.one.platform.integration.domain.DeliveryKind.CARD, null, java.util.UUID.randomUUID(), 0, 0),
+                List.of(d -> d.markSent("0", NOW), d -> d.scheduleRetry(NOW, "later"), d -> d.deadLetter("gave up"), d -> d.skip("not allowed")));
+    }
+
+    @Test
+    @DisplayName("every aggregate of the system is covered by a case above, so a new one cannot be added without its sequence being tested")
+    void everyAggregateIsCovered() throws Exception {
+        var scanner = new org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider(false);
+        scanner.addIncludeFilter(new org.springframework.core.type.filter.AssignableTypeFilter(AggregateRoot.class));
+        java.util.Set<String> found = new java.util.TreeSet<>();
+        for (var candidate : scanner.findCandidateComponents("com.forcitis.one")) {
+            if (candidate.getBeanClassName().contains(".domain.")) {
+                found.add(Class.forName(candidate.getBeanClassName()).getSimpleName());
+            }
+        }
+
+        assertThat(found).containsExactlyInAnyOrder("UserAccount", "Role", "LegalEntity", "LegalEntityAttribution", "SyncRun", "WorkCalendarYear",
+                "NumberingRule", "RegisteredEmployee", "OutboundDelivery");
     }
 }

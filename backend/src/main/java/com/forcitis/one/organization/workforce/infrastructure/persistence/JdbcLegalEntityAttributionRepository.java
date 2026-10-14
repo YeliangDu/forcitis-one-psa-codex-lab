@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.organization.workforce.api.AttributionId;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
@@ -14,6 +15,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionRepo
 import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -35,8 +37,8 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
                          where subject_kind = :kind and subject_id = :id
                         """)
                 .param("kind", subject.kind().name()).param("id", subject.subjectKey())
-                .query((rs, n) -> new long[] {rs.getLong("attribution_id"), rs.getLong("version"), rs.getLong("event_count")}).optional()
-                .map(row -> LegalEntityAttribution.restore(row[0], subject, periods(subject), row[1], row[2]));
+                .query((rs, n) -> LegalEntityAttribution.restore(new AttributionId(rs.getObject("attribution_id", UUID.class)), subject, periods(subject),
+                        rs.getLong("version"), rs.getLong("event_count"))).optional();
     }
 
     private void updatePeriodEnd(AttributionSubject subject, AttributionPeriod period) {
@@ -95,28 +97,26 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
 
     @Override
     public void save(LegalEntityAttribution attribution) {
-        long id;
-        if (attribution.storedRow() == null) {
+        if (attribution.storedId() == null) {
             try {
-                id = jdbc.sql("""
-                                insert into organization_workforce.legal_entity_attributions (subject_kind, subject_id, version, event_count)
-                                values (:kind, :subject, :version, :eventCount) returning attribution_id
+                jdbc.sql("""
+                                insert into organization_workforce.legal_entity_attributions (attribution_id, subject_kind, subject_id, version, event_count)
+                                values (:id, :kind, :subject, :version, :eventCount)
                                 """)
+                        .param("id", ids.next())
                         .param("kind", attribution.subject().kind().name()).param("subject", attribution.subject().subjectKey())
-                        .param("version", attribution.versionAfterSave()).param("eventCount", attribution.eventSequenceAfterSave())
-                        .query(Long.class).single();
+                        .param("version", attribution.versionAfterSave()).param("eventCount", attribution.eventSequenceAfterSave()).update();
             } catch (DuplicateKeyException saved) {
                 throw conflict(attribution);
             }
         } else {
-            id = attribution.storedRow();
             int updated = jdbc.sql("""
                             update organization_workforce.legal_entity_attributions
                                set version = :next, event_count = :eventCount, updated_at = now()
                              where attribution_id = :id and version = :version
                             """)
                     .param("next", attribution.versionAfterSave()).param("eventCount", attribution.eventSequenceAfterSave())
-                    .param("id", id).param("version", attribution.version()).update();
+                    .param("id", attribution.storedId().value()).param("version", attribution.version()).update();
             if (updated != 1) {
                 throw conflict(attribution);
             }

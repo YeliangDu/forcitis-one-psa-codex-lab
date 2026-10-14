@@ -200,6 +200,9 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(count()).isEqualTo(2);
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    org.springframework.transaction.PlatformTransactionManager transactions;
+
     @Test
     @DisplayName("the directory gives numbering the code of a legal entity, also a deactivated one, and nothing for an unknown id")
     void directoryFindsTheCode() throws Exception {
@@ -209,8 +212,13 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
 
         assertThat(directory.findCode(new LegalEntityId(1))).contains(new LegalEntityCode("FST"));
         assertThat(directory.findCode(new LegalEntityId(2))).isEmpty();
-        assertThat(directory.lockActiveCode(new LegalEntityId(1))).isEmpty();
-        assertThat(directory.lockActiveCode(new LegalEntityId(2))).isEmpty();
+        var inTransaction = new org.springframework.transaction.support.TransactionTemplate(transactions);
+        java.util.Optional<LegalEntityCode> deactivated = inTransaction.execute(status -> directory.lockActiveCode(new LegalEntityId(1)));
+        java.util.Optional<LegalEntityCode> unknown = inTransaction.execute(status -> directory.lockActiveCode(new LegalEntityId(2)));
+        assertThat(deactivated).isEmpty();
+        assertThat(unknown).isEmpty();
+        assertThatThrownBy(() -> directory.lockActiveCode(new LegalEntityId(1))).as("the lock needs the caller's transaction")
+                .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
     }
 
     @Test

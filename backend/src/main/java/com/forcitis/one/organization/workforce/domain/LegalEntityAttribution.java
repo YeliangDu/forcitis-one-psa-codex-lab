@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
+import com.forcitis.one.organization.workforce.api.AttributionId;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.events.LegalEntityAttributed;
@@ -25,16 +26,16 @@ import java.util.Optional;
  * never rewritten: a new attribution starts after the start of the latest period.
  */
 public final class LegalEntityAttribution extends AggregateRoot {
-    private final Long storedRow;
+    private final AttributionId storedId;
     private final AttributionSubject subject;
     private final int storedPeriodCount;
     private List<AttributionPeriod> periods;
     private final List<AttributionCorrection> pendingCorrections = new ArrayList<>();
 
-    private LegalEntityAttribution(Long storedRow, AttributionSubject subject, List<AttributionPeriod> periods, long version,
+    private LegalEntityAttribution(AttributionId storedId, AttributionSubject subject, List<AttributionPeriod> periods, long version,
                                    long eventCount) {
         super(version, eventCount);
-        this.storedRow = storedRow;
+        this.storedId = storedId;
         this.subject = Objects.requireNonNull(subject, "subject");
         this.periods = List.copyOf(periods);
         this.storedPeriodCount = this.periods.size();
@@ -44,14 +45,14 @@ public final class LegalEntityAttribution extends AggregateRoot {
         return new LegalEntityAttribution(null, subject, List.of(), 0, 0);
     }
 
-    public static LegalEntityAttribution restore(long storedRow, AttributionSubject subject, List<AttributionPeriod> periods, long version,
+    public static LegalEntityAttribution restore(AttributionId storedId, AttributionSubject subject, List<AttributionPeriod> periods, long version,
                                                  long eventCount) {
-        return new LegalEntityAttribution(storedRow, subject, periods.stream().sorted(java.util.Comparator.comparing(AttributionPeriod::effectiveFrom)).toList(),
+        return new LegalEntityAttribution(storedId, subject, periods.stream().sorted(java.util.Comparator.comparing(AttributionPeriod::effectiveFrom)).toList(),
                 version, eventCount);
     }
 
-    public Long storedRow() {
-        return storedRow;
+    public AttributionId storedId() {
+        return storedId;
     }
 
     public AttributionSubject subject() {

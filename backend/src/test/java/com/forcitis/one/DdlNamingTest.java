@@ -100,6 +100,7 @@ class DdlNamingTest {
     static final class Table {
         final Map<String, Column> columns = new LinkedHashMap<>();
         final Map<String, Constraint> constraints = new LinkedHashMap<>();
+        final List<String> primaryKey = new ArrayList<>();
     }
 
     static final class Schema {
@@ -327,6 +328,8 @@ class DdlNamingTest {
         model.columns.put(name, new Column(name, type, lower.contains("check")));
         // PostgreSQL's default names for inline constraints: <table>_pkey, <table>_<column>_fkey, <table>_<column>_key
         if (lower.contains("primary key")) {
+            model.primaryKey.clear();
+            model.primaryKey.add(name);
             putConstraint(model, "pk", named(lower, table + "_pkey"), false);
         }
         if (lower.contains("references")) {
@@ -363,6 +366,15 @@ class DdlNamingTest {
                 case "unique" -> table + "_" + joined + "_key";
                 default -> table + "_check";
             };
+        }
+        if (kind.equals("primary key")) {
+            Matcher keyColumns = Pattern.compile("primary key\\s*\\(([^)]*)\\)").matcher(lower);
+            if (keyColumns.find()) {
+                model.primaryKey.clear();
+                for (String keyColumn : keyColumns.group(1).split(",")) {
+                    model.primaryKey.add(keyColumn.trim());
+                }
+            }
         }
         putConstraint(model, switch (kind) {
             case "primary key" -> "pk";

@@ -116,7 +116,7 @@ class LegalEntityCodeRaceIT {
         assertThat(number).startsWith("QT-RAA-");
         assertThat(refused).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED));
-        assertThat(directory.lockActiveCode(le).orElseThrow().value()).isEqualTo("RAA");
+        assertThat(directory.findCode(le).orElseThrow().value()).isEqualTo("RAA");
     }
 
     @Test

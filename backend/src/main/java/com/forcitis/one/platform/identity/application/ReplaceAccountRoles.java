@@ -23,16 +23,16 @@ public class ReplaceAccountRoles {
     private final AccountRepository accounts;
     private final RoleRepository roles;
     private final PrivilegeCeiling ceiling;
-    private final SessionRegistry sessions;
+    private final SessionRevocation revocation;
     private final AccessCache cache;
     private final DomainEvents events;
 
-    ReplaceAccountRoles(AccountRepository accounts, RoleRepository roles, PrivilegeCeiling ceiling, SessionRegistry sessions,
+    ReplaceAccountRoles(AccountRepository accounts, RoleRepository roles, PrivilegeCeiling ceiling, SessionRevocation revocation,
             AccessCache cache, DomainEvents events) {
         this.accounts = accounts;
         this.roles = roles;
         this.ceiling = ceiling;
-        this.sessions = sessions;
+        this.revocation = revocation;
         this.cache = cache;
         this.events = events;
     }
@@ -68,7 +68,7 @@ public class ReplaceAccountRoles {
         if (account.hasPendingEvents()) {
             accounts.save(account);
             events.publish(account);
-            sessions.revokeAll(target);
+            revocation.revokeAll(target, "the roles of the account were replaced");
             cache.evict(target);
         }
         return account.version();

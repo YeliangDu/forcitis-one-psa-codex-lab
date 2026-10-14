@@ -48,7 +48,7 @@ class LegalEntityAttributionTest {
     @Test
     @DisplayName("each attribution and each ending announces its own event, numbered after the stored count, with the legal entity and the day")
     void events() {
-        LegalEntityAttribution attribution = LegalEntityAttribution.restore(5, new AttributionSubject(AttributionKind.EMPLOYEE, 42),
+        LegalEntityAttribution attribution = LegalEntityAttribution.restore(new com.forcitis.one.organization.workforce.api.AttributionId(java.util.UUID.randomUUID()), new AttributionSubject(AttributionKind.EMPLOYEE, 42),
                 List.of(), 2, 2);
         attribution.attribute(LE1, JAN);
         attribution.end(JUL);

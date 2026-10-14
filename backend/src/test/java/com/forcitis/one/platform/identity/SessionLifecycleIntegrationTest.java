@@ -138,6 +138,40 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = '1001'").query(Long.class).single()).isZero();
         assertThat(recordedEvents.stream(com.forcitis.one.platform.identity.events.AccountDisabled.class)).singleElement()
                 .satisfies(e -> assertThat(e.envelope().actorId()).isEqualTo("9"));
+        assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.revoked")).singleElement()
+                .satisfies(e -> {
+                    assertThat(e.subjectKey()).isEqualTo("user-account:1001");
+                    assertThat(e.detail()).contains("disabled");
+                });
+    }
+
+    @Autowired
+    com.forcitis.one.platform.identity.application.PurgeExpiredSessions purgeExpiredSessions;
+
+    private void insertSession(String id, long createdMillis, long expiryMillis, String principal) {
+        jdbc.sql("""
+                insert into platform_identity.sessions (primary_id, session_id, creation_time, last_access_time, max_inactive_interval, expiry_time, principal_name)
+                values (:id, :id, :created, :created, 36000, :expiry, :principal)
+                """).param("id", id).param("created", createdMillis).param("expiry", expiryMillis).param("principal", principal).update();
+    }
+
+    @Test
+    @DisplayName("D-1a-45 a session that runs out is audited with its cause (idle or too old) and then removed; a live session is left alone")
+    void expiredSessionsAreAuditedThenRemoved() {
+        long now = clock.millis();
+        long day = Duration.ofHours(24).toMillis();
+        insertSession(java.util.UUID.randomUUID().toString(), now - 1000, now - 500, "1001");
+        insertSession(java.util.UUID.randomUUID().toString(), now - day - 1000, now + 600_000, "1002");
+        insertSession(java.util.UUID.randomUUID().toString(), now - 1000, now + 600_000, "1003");
+
+        int removed = purgeExpiredSessions.execute();
+
+        assertThat(removed).isEqualTo(2);
+        assertThat(jdbc.sql("select count(*) from platform_identity.sessions").query(Long.class).single()).isEqualTo(1);
+        assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.expired"))
+                .extracting(AuditEntry::subjectKey, AuditEntry::detail)
+                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple("user-account:1001", "cause=IDLE"),
+                        org.assertj.core.groups.Tuple.tuple("user-account:1002", "cause=ABSOLUTE"));
     }
 
     @Test

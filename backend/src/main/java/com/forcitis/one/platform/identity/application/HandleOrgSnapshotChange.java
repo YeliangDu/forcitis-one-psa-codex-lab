@@ -17,17 +17,17 @@ public class HandleOrgSnapshotChange {
 
     private final OrgDirectory directory;
     private final AccountProvisioning provisioning;
-    private final SessionRegistry sessions;
+    private final SessionRevocation revocation;
     private final AccessCache cache;
     private final AuditLog audit;
     private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
 
-    HandleOrgSnapshotChange(OrgDirectory directory, AccountProvisioning provisioning, SessionRegistry sessions, AccessCache cache,
+    HandleOrgSnapshotChange(OrgDirectory directory, AccountProvisioning provisioning, SessionRevocation revocation, AccessCache cache,
             AuditLog audit, RevokeBrowserIdentifiers revokeBrowserIdentifiers) {
         this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
         this.directory = directory;
         this.provisioning = provisioning;
-        this.sessions = sessions;
+        this.revocation = revocation;
         this.cache = cache;
         this.audit = audit;
     }
@@ -52,9 +52,8 @@ public class HandleOrgSnapshotChange {
     }
 
     private void revoke(UserId userId, String reason) {
-        sessions.revokeAll(userId);
+        revocation.revokeAll(userId, reason);
         revokeBrowserIdentifiers.execute(userId);
         cache.evict(userId);
-        audit.record(new AuditEntry("platform.identity.session.revoked", null, null, "user-account:" + userId.value(), reason));
     }
 }

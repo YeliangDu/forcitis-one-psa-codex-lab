@@ -13,16 +13,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChangeAccountStatus {
 
     private final AccountRepository accounts;
-    private final SessionRegistry sessions;
+    private final SessionRevocation revocation;
     private final AccessCache cache;
     private final DomainEvents events;
     private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
 
-    ChangeAccountStatus(AccountRepository accounts, SessionRegistry sessions, AccessCache cache, DomainEvents events,
+    ChangeAccountStatus(AccountRepository accounts, SessionRevocation revocation, AccessCache cache, DomainEvents events,
             RevokeBrowserIdentifiers revokeBrowserIdentifiers) {
         this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
         this.accounts = accounts;
-        this.sessions = sessions;
+        this.revocation = revocation;
         this.cache = cache;
         this.events = events;
     }
@@ -40,7 +40,7 @@ public class ChangeAccountStatus {
             events.publish(account);
         }
         if (!enable) {
-            sessions.revokeAll(account.userId());
+            revocation.revokeAll(account.userId(), "the account was disabled");
             revokeBrowserIdentifiers.execute(account.userId());
         }
         cache.evict(account.userId());
