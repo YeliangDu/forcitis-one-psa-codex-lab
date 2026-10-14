@@ -15,6 +15,7 @@
 - 非生成文件冲突：退回给作者会话合并（不要替作者手工合并业务文档）；作者推到本地分支后，由调度会话 `git push origin <commit>:refs/heads/<PR 分支>`（先确认是快进）。
 - zsh 中 `"$H:claude/..."` 会被当成修饰符，写成 `"${H}:refs/heads/..."`。
 - 审核要点：与 main 是否冲突；gitleaks 全历史；build_all --check；文档不含金额与个人信息；不得修改已合入的迁移（CI 有 migrations_immutable）；文档不用「PSA」指代系统（CI 有 check_legacy_name）。
+- 代码 PR 在工作会话的 opus 复审结论出来之前不合并（#50 教训）；只有文档 PR 可凭 CI 合并。
 - CI 偶发失败先看是否与 PR 内容无关（如测试抖动），`gh run rerun <id> --failed`，并让 1a 修成确定性。
 
 ## 在途工作会话
