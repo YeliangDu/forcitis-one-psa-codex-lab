@@ -154,8 +154,8 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
 - 转功能补做：INT-M12 → F-13，INT-M13 → F-14（前任建议优先，排 W3 首批）。
 - 并入结构性重构：INT-M9、INT-L12（Flowable `StrongUuidGenerator`）、INT-M10 与 INT-L18（裸 long 改类型化 ID）→ R-1；INT-L23 → R-4；INT-L24 → R-3a。
 - 并入功能补做：INT-M16、INT-L6、INT-L19、INT-L22、INT-L26 → F-2；INT-L29（系统角色豁免）→ F-1；INT-L15（敏感清单集合相等）→ ADR-0032 及其实现。
-- 文档项交 one-coordinator：INT-L16（§14 已登记例外）、INT-L32（DEFERRED / CROSSCHECK 过期条目）。
-- 其余（INT-M1..M8、M11、M14、M15，INT-L9..L11、L13、L14、L17、L20、L21、L25、L27、L28、L30、L31）为缺陷卡；INT-L10 需 one-coordinator 先核对契约（D-1a-78 与 D-1a-89）。
+- 文档项：INT-L16 已由 one-coordinator 在 #85 写入 §14，关闭；INT-L32 在本更正 PR 中处理（DEFERRED 删过期行并补「专业产值切分 → Phase 2」，CROSSCHECK 第 4 条改为已解决）；INT-L10 按 one-coordinator 核对以 D-1a-78 为准，contract.md D-1a-89 措辞补全（不改语义），回归测试 `INT-L10 重启起点与契约一致` 按 D-1a-78 断言。
+- 其余（INT-M1..M8、M11、M14、M15，INT-L9..L11、L13、L14、L17、L20、L21、L25、L27、L28、L30、L31）为缺陷卡。
 
 首次部署前要先修的几张：
 - 安全相关：B3-R3 幂等抢占与防护令牌、B3-R4 吊销会话审计、B3-R5 必记动作守护、B3-R2 仓储写入守护堵口；
