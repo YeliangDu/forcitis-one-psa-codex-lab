@@ -174,7 +174,11 @@ terms:
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 实际结果
+    type: undetermined
+    deprecated: false
+    source: 在用报表：运营看板
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
@@ -446,7 +450,11 @@ terms:
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 待签合约
+    type: undetermined
+    deprecated: false
+    source: 在用报表：经营分析报告、交付中心汇报
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
@@ -1496,6 +1504,10 @@ terms:
   - name: RiskExposure
     type: old-code
     deprecated: true
+  - name: 待签项目投入
+    type: undetermined
+    deprecated: false
+    source: 在用报表：交付中心汇报 5.1–5.2
   forbidden:
   - RiskExposure
   - 风险敞口
@@ -2314,6 +2326,10 @@ terms:
   - name: psa_time_sheet_works.billable
     type: legacy-table
     deprecated: true
+  - name: 收费工时
+    type: undetermined
+    deprecated: false
+    source: 在用报表：运营看板人效情况
   forbidden: []
   status: approved
   core: true
@@ -2450,7 +2466,11 @@ terms:
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 委外费
+    type: undetermined
+    deprecated: false
+    source: 在用报表：损益表、现金流量表（外包或分包待确认）
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
@@ -2925,6 +2945,10 @@ terms:
   - name: Wip
     type: old-code
     deprecated: true
+  - name: 本年度未开票
+    type: undetermined
+    deprecated: false
+    source: 在用报表：交付中心汇报 3.1（本年口径，不得与全量合同资产相加）
   forbidden:
   - Wip
   status: approved
@@ -2953,6 +2977,14 @@ terms:
   - name: psa_pm_contract_asset_impairment
     type: legacy-table
     deprecated: true
+  - name: 已确认未开票
+    type: undetermined
+    deprecated: false
+    source: 在用报表：交付中心汇报、运营看板立项明细
+  - name: 存量资产
+    type: undetermined
+    deprecated: false
+    source: 在用报表：交付中心汇报区域健康度
   forbidden:
   - WipAccount
   status: approved
@@ -3049,6 +3081,10 @@ terms:
     type: dialect
     deprecated: true
     source: A8 档案 formmain_0428
+  - name: 开票收入
+    type: undetermined
+    deprecated: false
+    source: 在用报表：损益表（开票收入（含税））
   forbidden:
   - 发票档案
   status: approved
@@ -3164,6 +3200,14 @@ terms:
     type: dialect
     deprecated: true
     source: A8 档案 formmain_0581
+  - name: 已确认产值
+    type: dialect
+    deprecated: true
+    source: 在用报表：运营看板立项明细
+  - name: 客户产值
+    type: dialect
+    deprecated: true
+    source: 在用报表：运营看板预算指标类型
   - name: ProgressRecognition
     type: old-code
     deprecated: true
@@ -3178,6 +3222,8 @@ terms:
   - 收入确认准备（产值）
   - 客户产值确认单
   - 客户产值确认档案
+  - 已确认产值
+  - 客户产值
   - ProgressRecognition
   status: approved
   change_ref: G-12
@@ -3216,6 +3262,10 @@ terms:
   - name: Ar
     type: old-code
     deprecated: false
+  - name: 已开票未回款
+    type: undetermined
+    deprecated: false
+    source: 在用报表：应收账款分析底表
   forbidden:
   - Ar
   status: approved
@@ -3243,7 +3293,11 @@ terms:
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 回款收入
+    type: undetermined
+    deprecated: false
+    source: 在用报表：损益表区域表（含现金、保理、商票、工抵）
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
@@ -3323,6 +3377,10 @@ terms:
     type: dialect
     deprecated: true
     source: A8 模板「应收坏账申请流程」；计提还是核销待财务确认
+  - name: 坏账
+    type: undetermined
+    deprecated: false
+    source: 在用报表：应收账款分析底表（OA 坏账申请导出）
   forbidden:
   - 应收坏账申请
   status: approved
@@ -3350,7 +3408,11 @@ terms:
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 账龄区间
+    type: undetermined
+    deprecated: false
+    source: 在用报表：应收账款分析底表
   forbidden: []
   status: approved
 - id: disputed_receivable
@@ -3417,7 +3479,11 @@ terms:
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 预计回款
+    type: undetermined
+    deprecated: false
+    source: 在用报表：应收账款分析底表、运营看板开票明细
   forbidden: []
   status: approved
 - id: ar_overdue_detected
@@ -4573,6 +4639,10 @@ terms:
     type: dialect
     deprecated: true
     source: A8 模板「预收款单新增」
+  - name: 预收
+    type: undetermined
+    deprecated: false
+    source: 在用报表：运营看板回款明细「是否预收」
   forbidden:
   - DeferredRevenue
   - AdvanceReceipt
@@ -4617,6 +4687,10 @@ terms:
   - name: 合同金额 / 最终交易价格
     type: dialect
     deprecated: true
+  - name: 合同额
+    type: undetermined
+    deprecated: false
+    source: 在用报表：经营分析报告（合同额、合同额占比）
   forbidden:
   - 合同金额
   - 最终交易价格
@@ -4761,6 +4835,14 @@ terms:
   - name: 在手合同额 / Backlog
     type: industry
     deprecated: false
+  - name: 剩余合同额
+    type: undetermined
+    deprecated: false
+    source: 在用报表：运营看板人效情况
+  - name: 合约储备
+    type: undetermined
+    deprecated: false
+    source: 在用报表：经营分析报告业绩摘要
   forbidden: []
   status: approved
   change_ref: G-21
@@ -5104,6 +5186,10 @@ terms:
   - name: Utilization
     type: industry
     deprecated: false
+  - name: 产能饱和度
+    type: undetermined
+    deprecated: false
+    source: 在用报表：运营看板人效情况、交付中心汇报
   forbidden: []
   status: approved
   change_ref: G-2

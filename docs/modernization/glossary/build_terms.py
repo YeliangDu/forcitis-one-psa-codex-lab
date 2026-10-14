@@ -587,9 +587,12 @@ for t in terms:
         t["confirmed"] = "2026-10-14（业务 Admin，用语确认页）"
 # OA 流程盘点（2026-10-14，放在已有确认之后，不受已确认改名的连带）：A8 表单与流程中的叫法登记为待确认别名，不定为正式用语（ADR-0018）
 import os as _os
-if _os.path.exists("glossary/oa_aliases.json"):
-    _byid = {t["id"]: t for t in terms}
-    for _a in json.load(open("glossary/oa_aliases.json", encoding="utf-8"))["aliases"]:
+# R0 在用报表盘点（2026-10-14）：管理报表叫法同样只登记为待确认别名（glossary/r0_report_aliases.json）
+_byid = {t["id"]: t for t in terms}
+for _src in ("glossary/oa_aliases.json", "glossary/r0_report_aliases.json"):
+    if not _os.path.exists(_src):
+        continue
+    for _a in json.load(open(_src, encoding="utf-8"))["aliases"]:
         _t = _byid[_a["term"]]
         if all(al["name"] != _a["name"] for al in _t.get("aliases") or []):
             _t.setdefault("aliases", []).append({"name": _a["name"], "type": "zh-internal", "deprecated": False, "source": _a["source"]})

@@ -131,6 +131,18 @@
 - 未完成与阻塞：ADR-0023 与 BI_SCOPE §6 Q1–Q12 待用户决定；118 个 T_FST_* 只按名称与 6 个已读定义归组，逐个核对留给 R0；ADR-0022 未合入 main，本分支的 build_adrs.py 与 adr/README.md 不含 0022，合并时需人工合并两条。
 - 下一步命令：用户决定后新会话 `psa-r0-metric-baseline` 做 R0。
 - 会话 ID：本会话（worktree xin-e2a79b，分支 claude/psa-bi-scope）
+## 2026-10-14 · psa-gl-finance-review · 总账财务评审（G1 入口前）
+- 目标：按 psa-coordinator 派工，评审 GL_FINANCE_REVIEW ★22 项与 GL_SCOPE_REVISIONS §D；派工补充后范围为 §D 第 3 项（科目表与编码）与新增第 17 项（口径转换规则，首要），§D 第 1、2 项与 GL-109 已由用户决定。
+- 输入：SESSION_PLAYBOOK §3–§5、STATUS.md、SESSION_LOG 上一条（psa-gl-scope）、U8C_GL_PRACTICE.md、u8c/、U8C_CAPABILITY_MAP.md、GL_COMPLIANCE_CHECKLIST.md、rules/GL_RULES.md、ADR-0016/0017/0022、proposals/GL_SCOPE_REVISIONS.md、INTENT.md。
+- 做法：opus 子代理逐项核对依据、写建议卡（rules/GL_FINANCE_REVIEW_NOTES.md），合并重叠项（GL-013→D17-4、GL-073→D17-5、GL-112/048→D17-12、GL-110/125→D3，GL-104 降级），D17 拆为 13 个子项；分 7 组弹窗由用户逐项作答。建议卡指出原清单 16 处欠妥（如 GL-026 列报行、GL-044 校验式应为净利润、GL-057 与 ADR-0022 第 5 条冲突）。
+- 用户决定（原话已记 INTENT.md）：28 项中 27 项选推荐项；D3 未采纳推荐：「两账各一张科目表」「权责新编一套」「确认，修订 ADR-0022」。
+- 产出：rules/GL_FINANCE_DECISIONS.json（数据源）与生成的 GL_FINANCE_DECISIONS.md、build_gl_decisions.py；GL_FINANCE_REVIEW_NOTES.md；GL_RULES.md 受影响规则卡加「财务评审结论」；GL_FINANCE_REVIEW.md 第一节加结论列；GL_SCOPE_REVISIONS §D 第 3、17 项结论与 §E（ADR-0022 第 2、5、9 条修订提议）；ADR-0022 证据引用（build_adrs.py 重新生成，状态不变）。
+- 验证：build_gl_decisions.py 重跑一致；build_adrs.py 重新生成只改 ADR-0022 一行；未访问 U8C 与生产；新增文件不含余额金额、凭证明细与个人信息。
+- 未完成与阻塞：待财务 12 问（见 GL_FINANCE_DECISIONS.md）；D17-12 历史单账簿凭证分类需 U8C 只读查询（未执行，须 psa-coordinator 安排）；GL-026「某一时段内履行」须审计师确认（G2 审计师认可还应把收付口径与 CAS 14 的差距列为专门议题）；付款申请单中转科目（GL-095）未评审；GL_FINANCE_REVIEW 第二至四节 83 项未开始。
+- 下一步命令：用户转财务答复待财务清单；psa-coordinator 安排 D17-12 只读查询与第二节（Phase 4 前）评审会话，并提交 ADR-0022 与 §E 修订提议给用户审批。
+- 子代理与模型：评审建议卡与会计口径判断（opus，1 个，续用一次）。
+- 会话 ID：本会话（worktree psa-gl-finance-review-bd1b33，分支 claude/psa-gl-finance-review）
+
 
 ## 2026-10-14 · psa-bi-decisions · 经营分析待决项 Q3–Q12 逐项确认
 - 目标：按 psa-coordinator 派工，对 BI_SCOPE.md §6 的 Q3–Q12 逐项给出选项、推荐与依据，取得用户决定并落档。
@@ -142,3 +154,57 @@
 - 未完成与阻塞：F1–F5 待财务、B1–B5 待业务；INTENT 与 coordinator 分支（Q1/Q2 行）同在文件末尾追加，合并时需按时间顺序合两行。
 - 下一步命令：新会话 `psa-r0-metric-baseline` 做 R0。
 - 会话 ID：本会话（worktree xin-a2d389，分支 claude/psa-bi-decisions）
+## 2026-10-14 · psa-change-governance · 变更治理写入会话方案与 ADR 规则
+- 目标：把用户的四条变更治理规则写进 SESSION_PLAYBOOK.md 与 adr/README.md，生成器加校验，盘点现有偏差（psa-coordinator 派工；本会话原为 psa-oa-inventory，复用）。
+- 输入：origin/main 9e6e279；SESSION_PLAYBOOK、adr/build_adrs.py、ADR-0001..0023、proposals/GL_SCOPE_REVISIONS.md、各 ADR 的 git 历史。
+- 用户决定（原话见 INTENT.md）：变更治理四条。
+- 产出：SESSION_PLAYBOOK §12（ADR 不改正文 / 三类规则调整 / 已过账事实只能冲销 / 谁可以改什么），§1 状态文件表、§4 收尾、§11 合并前核对交叉引用；adr/build_adrs.py 支持「取代」与四个必备小节（影响面、迁移方案、回滚方案、需同步修改的守护规则），校验状态集、ADR-0024 起必备小节、取代时旧 ADR 状态同步，README 由生成器写入「ADR 生命周期与变更规则」；CONFIG_CHANGELOG.md（只追加的配置变更登记，空表）。
+- 验证：build_adrs.py 重新生成，ADR-0001..0023 无变化，只有 README 新增一节；负向测试（临时副本注入 ADR-0024）：缺必备小节、状态「讨论中」、取代 ADR-0016 第 6 条而旧状态未标注，三种均生成失败；正确写法生成成功并渲染「取代」行与四个小节。未使用子代理（盘点用 grep 与 git log 即可完成）。
+- 现状清单（未修改这些 ADR）：已采纳后被直接改正文的——ADR-0009 第 6 条（5a9c69c 修订、2517ef3 补充）、ADR-0016 后果第 4 条后追加的「修订提议」（1cd7219）、ADR-0018 决定 2 追加第二轮确认记录（507b9bd、8d6f9d0）、ADR-0020 第 7 条改写与新增第 8 条（62da1fc）；ADR-0011 头部状态为全部定稿，正文仍有 3 处【提议】标记。修订稿形式的提议：GL_SCOPE_REVISIONS.md A（ADR-0016 第 6 条）、B（ADR-0017 第 4 条）；ADR-0016 第 44 行后的修订提议。缺四个必备小节：ADR-0001..0023 全部（其中 0022、0023 为提议）。
+- 未完成与阻塞：建议的新 ADR 与历史偏差的处置待用户决定（见报告）。
+- 下一步命令：用户决定后，由对应会话按 §12 起草取代 ADR（经 build_adrs.py 生成）。
+- 会话 ID：本会话（worktree xin-884358，分支 claude/psa-change-governance）
+
+## 2026-10-14 · psa-change-governance · 变更治理后续：ADR-0024 与历史偏差登记
+- 目标：落实用户对历史偏差、部分取代写法、ADR-0022 的决定（psa-coordinator 转达）。
+- 用户决定（原话见 INTENT.md）：「只补必要的，其余承认既成事实 (Recommended)」；部分取代「认可 (Recommended)」；ADR-0022「要，补齐后再拿来审批」（由 psa-gl-finance-review 负责，本会话未改 ADR-0022）。
+- 产出：ADR-0024（提议）「收入确认单迁入新系统、不设双源期」，部分取代 ADR-0016 后果第 4 条，四个必备小节齐全，决定第 5 条写明采纳时同一提交删除 ADR-0016 追加段并标注部分取代（本次未删）；adr/README.md 新增「历史偏差（规则生效前）」（ADR-0009 第 6 条两次、ADR-0016 追加段、ADR-0018 第 2 条记录、ADR-0020 第 7/8 条、ADR-0011 残留标记，含提交号与用户原话）；STATUS 新增「变更治理」行（完成）；INTENT 记原话。
+- 验证：build_adrs.py 生成 24 份，ADR-0001..0023 无变化；ADR-0024 通过必备小节校验（提议状态不触发取代同步校验，采纳时会触发）。
+- 下一步命令：用户审批 ADR-0024 后，在同一提交中改 ADR-0016 状态、删除追加段、改 ADR-0024 为已采纳，重跑 build_adrs.py。
+- 会话 ID：本会话（worktree xin-884358，分支 claude/psa-change-governance）
+
+## 2026-10-14 · psa-gl-finance-review（续）· ADR-0022 采纳前补齐
+- 目标：按 psa-coordinator 派工补充（用户：ADR-0022「要，补齐后再拿来审批 (Recommended)」；部分取代写法「认可」），把评审结论与修订稿并入 ADR-0022，并按 SESSION_PLAYBOOK §12 补齐必备小节。
+- 输入：PR #23（评审结论）、PR #24（变更治理：§12、ADR 生命周期、生成器校验）两个分支；两者在本次提交时均未合并。
+- 用户决定（原话）：本会话中用户：「提交」（在 #23、#24 合并前提交）。
+- 做法：分支 claude/psa-gl-adr22-complete 基于 #23 分支，合并 #24 分支（INTENT、SESSION_LOG 只追加，冲突时两边都保留）；build_adrs.py 中 ADR-0022 改为 9 元组：supersedes「ADR-0016 第 6 条、ADR-0017 第 4 条」，以及 impact、migration、rollback、guards 四个小节；决定第 2 条（两个账簿、两张科目表加映射、口径转换规则分类、三条对账等式）、第 4 条（报表行两账共用）、第 5 条（现金流量标在现金分录、现金等价物范围）、第 8 条（权责账簿不与 U8C 权责账套对账）、第 10 条（两账同时关账、不反结账）改写，新增第 11 条（G1 起步与期初）、第 12 条（取代声明）；CAS 14 差距风险写入影响面。GL_SCOPE_REVISIONS §A、§B、§E 注明已并入。
+- 验证：合并后先重跑生成器，与分支内容一致；打补丁后重跑，只有 ADR-0022.md 与 README.md（状态文字）变化；生成器校验通过；ADR-0016、0017 状态未改。
+- 未完成：ADR-0022 待用户审批；采纳时同一提交把 ADR-0016、0017 状态标为「已采纳（第 N 条已被 ADR-0022 取代）」并把 ADR-0022 状态改为已采纳；建议审批前按 §12 做一次 architecture-critic（opus）对抗性评审（ADR-0022 早于该规则，非强制，待 psa-coordinator 或用户决定）。
+- 下一步命令：#23、#24 合并后 psa-coordinator 为本分支开 PR，并把 ADR-0022 交用户审批。
+- 子代理与模型：无新子代理。
+- 会话 ID：本会话（worktree psa-gl-finance-review-bd1b33，分支 claude/psa-gl-adr22-complete）
+
+## 2026-10-14 · psa-gl-finance-review（续）· ADR-0022 对抗性评审
+- 目标：psa-coordinator 决定按 SESSION_PLAYBOOK §12 第 3 条，在交用户审批前对 941723a 的 ADR-0022 做 architecture-critic 评审，意见与处理写入提交。
+- 做法：architecture-critic（opus）出 15 张意见卡（阻塞 3、重要 10、建议 2，结论「修改后可交审批」）；本会话核对其引用的事实（ADR-0016 第 3 条与 G35、U8C 收付账套 52 个公司档案、ADR-0023 L2「重述」）均属实；需用户决定的 6 项弹窗作答（原话已记 INTENT）；全部 15 项写进 build_adrs.py 中的 ADR-0022 并重新生成。
+- 产出：adr/ADR-0022.md（仍为提议）、build_adrs.py、README.md；proposals/ADR-0022_CRITIC.md；GL_FINANCE_DECISIONS GL-123（C-9 修正）、D17-6（C-5 待财务，待财务问题增至 13 个）。
+- 验证：生成器校验通过，只有 ADR-0022 与 README 变化；ADR-0016、0017 状态未改。
+- 未完成：C-5 与差异类名单待财务；ADR-0022 待用户审批；采纳时同一提交标注 ADR-0016「已采纳（第 6 条已被 ADR-0022 取代）」、ADR-0017「已采纳（第 4 条及对照表 accounting.ledger 行已被 ADR-0022 取代）」；ADR-0023 L2 措辞须在采纳前与本 ADR 对齐（psa-coordinator 安排）。
+- 下一步命令：#23、#24 合并后把本分支 rebase 到最新 main（丢掉本地对 #23 / #24 的合并提交）、重跑生成器，报告提交号；psa-coordinator 开 PR 并交用户审批。
+- 子代理与模型：architecture-critic（opus，1 个）。
+
+## 2026-10-14 · psa-gl-finance-review（续）· ADR-0022 补两点（psa-coordinator 决定）
+- 目标：① ADR-0023 L2「重述新版本」按 §12 部分取代处理，不另开编号；② 收付推送前移到 6a 对 6a 入口、Phase 4 排期、G1 草案的影响写入 ADR-0022，brief 只在模板追加 Proposed revision 草稿。
+- 产出：ADR-0022「取代」增加「ADR-0023 L2 中『重述新版本』对总账与财务报表的适用」，决定第 10、12 条写明总账与 accounting.reporting 不重述；影响面「阶段」与迁移方案写明三项影响；MODERNIZATION_BRIEF.template.md Phase 4 入口追加 `Proposed revision:`；proposals/ADR-0022_CRITIC.md 补记。改写脚本第三段（patch3）按顺序在 critic 改写之后运行。ADR-0023 状态未改。
+- 验证：生成器校验通过，只有 ADR-0022 与 README 变化。
+- 下一步命令：PR #25 合并后 rebase 到最新 main，按顺序重跑三个改写脚本，报告提交号。
+
+## 2026-10-14 · psa-r0-metric-baseline · R0 第一步：在用报表结构分析
+- 目标：psa-coordinator 派工——分析用户提供的在用报表（2 份 pptx、4 份 xlsx，仓库外 ~/.modernize/psa/bi-inputs/）：结构抽取、方言 → 正式用语与 OAT、口径问题、对照 BI_SCOPE E1–E14、初步重新梳理建议（指标基线草稿）。
+- 输入：BI_SCOPE.md §6.1（PR #22 分支）、rules/GL_FINANCE_DECISIONS.md（PR #23 分支）、SESSION_PLAYBOOK §12（PR #24 分支）、glossary/terms.yaml（348 条）、OAT 机器主数据（ddd-theory 1ace877，245 条）。基线 origin/main eb52c8d，收尾时 rebase 到 eb006e1。
+- 用户决定（原话，经 psa-coordinator 转达）：「这会目前正在使用的各类别报表，语言都是方言，要跟正式语言统一，目前基本靠人工分析，你转到目录，安排分析吧，这些都不是最佳的报表，全部需要重新梳理，这只作为你的参考」；用户即业务 Admin，B1–B5 由用户本人回答。
+- 产出：r0/REPORT_INVENTORY.md；r0/METRIC_BASELINE_DRAFT.md；r0/structure/（pptx、pl、cash_ar、ops 结构与 term_mapping，脱敏）；glossary/r0_report_aliases.json 与 build_terms.py 接入（用语确认表 A 组 19 项）；STATUS 更新。
+- 验证：只读输入（openpyxl 跳过损坏样式表）；产出文件人工抽查与脚本扫描无金额、人名、客户名、项目名（去掉一处人名缩写）；build_terms / build_confirmation / build_glossary 重新生成，terms.yaml 只新增别名与「产值」类禁用写法，348 条状态不变；gitleaks 通过。子代理：结构抽取 4 个（sonnet）、用语与 OAT 对照 1 个（sonnet）；口径判断与重新梳理由本会话（opus）完成。
+- 未完成与阻塞：B6–B11、F6–F10 与 A 组 19 项待用户 / 财务；§5 新词条未起草；R0 其余（Q5、Q11、Q12、工具对比）待安排。scratchpad 中的未脱敏中间文件已删除。
+- 下一步命令：psa-coordinator 安排 R0 其余内容；用语确认页（A 组 19 项 + 新词条起草稿）。
+- 会话 ID：本会话（worktree xin-e2a79b，分支 claude/psa-r0-metric-baseline）
