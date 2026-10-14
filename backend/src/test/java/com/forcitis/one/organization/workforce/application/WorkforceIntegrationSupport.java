@@ -1,7 +1,10 @@
 package com.forcitis.one.organization.workforce.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import com.forcitis.one.platform.integration.api.WecomGateway;
@@ -51,6 +54,18 @@ public abstract class WorkforceIntegrationSupport {
     protected FakeShortNameSource oldSystem;
 
     private WorkContext.Scope acting;
+
+    @BeforeEach
+    protected void startCountingAggregateWrites() {
+        com.forcitis.one.fixture.doubles.AggregateWriteGuard.forget();
+    }
+
+    @AfterEach
+    protected void oneTransactionChangesOneAggregateUnlessRegistered() {
+        List<String> violations = com.forcitis.one.fixture.doubles.AggregateWriteGuard.violations();
+        com.forcitis.one.fixture.doubles.AggregateWriteGuard.forget();
+        assertThat(violations).as("DDD-1 one transaction changes one aggregate").isEmpty();
+    }
 
     @BeforeEach
     protected void actAsTheTestJob() {

@@ -27,6 +27,7 @@ public class AggregateWriteGuard {
 
     static final Path EXCEPTIONS = Path.of("architecture/multi-aggregate-exceptions.txt");
     private static final List<String> VIOLATIONS = new CopyOnWriteArrayList<>();
+    private static final List<Set<String>> MULTI = new CopyOnWriteArrayList<>();
     private final ThreadLocal<Set<String>> savedInTransaction = new ThreadLocal<>();
     private final ThreadLocal<Set<String>> namedByEvents = new ThreadLocal<>();
 
@@ -34,7 +35,13 @@ public class AggregateWriteGuard {
         return List.copyOf(VIOLATIONS);
     }
 
+    /** The aggregate sets of the transactions that changed more than one kind, registered or not: lets a test see that an exception is really used. */
+    public static List<Set<String>> multiAggregateTransactions() {
+        return List.copyOf(MULTI);
+    }
+
     public static void forget() {
+        MULTI.clear();
         VIOLATIONS.clear();
     }
 
@@ -52,6 +59,9 @@ public class AggregateWriteGuard {
                     public void afterCompletion(int status) {
                         savedInTransaction.remove();
                         namedByEvents.remove();
+                        if (kinds.size() > 1) {
+                            MULTI.add(new TreeSet<>(kinds));
+                        }
                         if (kinds.size() > 1 && !registered(kinds)) {
                             VIOLATIONS.add("a transaction saved " + new TreeSet<>(kinds) + " and that set is not in " + EXCEPTIONS);
                         } else if (kinds.size() > 1 && !named.containsAll(kinds)) {
@@ -63,9 +73,17 @@ public class AggregateWriteGuard {
                     }
                 });
             }
-            savedInTransaction.get().add(call.getArgs()[0].getClass().getSimpleName());
+            savedInTransaction.get().add(kindOf(call));
         }
         return result;
+    }
+
+    /** Saved arguments that are a unit of work and not an aggregate, with the aggregate they change: OrgSnapshotRepository saves a Reconciliation of the snapshot. */
+    private static final java.util.Map<String, String> AGGREGATE_OF_UNIT_OF_WORK = java.util.Map.of("Reconciliation", "OrgSnapshot");
+
+    private static String kindOf(ProceedingJoinPoint call) {
+        String argument = call.getArgs()[0].getClass().getSimpleName();
+        return AGGREGATE_OF_UNIT_OF_WORK.getOrDefault(argument, argument);
     }
 
     /** The aggregates the events of the running transaction name: their own, and the ones they say were touched together. */

@@ -71,6 +71,23 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @DisplayName("INT-DDD-H2 同步应用快照的多聚合写已登记，事件 relatedAggregates 列出快照")
+    void applyingTheSnapshotIsARegisteredMultiAggregateWrite() throws java.io.IOException {
+        orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L)), List.of(head(2, 1)), List.of(post(100)), people(2));
+
+        SyncResult result = sync.execute(SyncTrigger.SCHEDULED, false);
+
+        assertThat(com.forcitis.one.fixture.doubles.AggregateWriteGuard.multiAggregateTransactions())
+                .as("the guard sees the run and the snapshot written together").contains(java.util.Set.of("OrgSnapshot", "SyncRun"));
+        assertThat(com.forcitis.one.fixture.doubles.AggregateWriteGuard.entries(java.nio.file.Files.readAllLines(java.nio.file.Path.of("architecture/multi-aggregate-exceptions.txt"))))
+                .as("and that pair is registered").anyMatch(set -> set.containsAll(java.util.Set.of("OrgSnapshot", "SyncRun")));
+        var snapshot = new com.forcitis.one.kernel.event.AggregateReference("OrgSnapshot", String.valueOf(result.syncRunId().value()));
+        assertThat(events.stream(com.forcitis.one.organization.workforce.events.SyncRunSucceeded.class)).singleElement()
+                .satisfies(e -> assertThat(e.envelope().relatedAggregates()).containsExactly(snapshot));
+        assertThat(events.stream(OrgSnapshotChanged.class)).singleElement().satisfies(e -> assertThat(e.envelope().relatedAggregates()).containsExactly(snapshot));
+    }
+
+    @Test
     @DisplayName("RULE-357/373 the first run builds the snapshot in one transaction, logs run and differences, announces the change")
     void firstRunBuildsTheSnapshot() {
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(head(2, 1)),

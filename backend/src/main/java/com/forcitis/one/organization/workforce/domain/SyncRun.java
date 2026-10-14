@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
@@ -172,9 +173,9 @@ public final class SyncRun extends AggregateRoot {
         this.finishedAt = now;
         this.stats = runStats;
         this.heldReason = null;
-        record((envelopes, version) -> new SyncRunSucceeded(envelopes.wrap(draft("SyncRunSucceeded", version)), syncRunId));
+        record((envelopes, version) -> new SyncRunSucceeded(envelopes.wrap(draftWithSnapshot("SyncRunSucceeded", version, null)), syncRunId));
         if (change.hasContent()) {
-            record((envelopes, version) -> new OrgSnapshotChanged(envelopes.wrap(draft("OrgSnapshotChanged", version, snapshotDate)),
+            record((envelopes, version) -> new OrgSnapshotChanged(envelopes.wrap(draftWithSnapshot("OrgSnapshotChanged", version, snapshotDate)),
                     change.changedEmployees(), change.separatedEmployees(), change.changedOrgUnits(), snapshotDate));
         }
     }
@@ -233,6 +234,12 @@ public final class SyncRun extends AggregateRoot {
 
     private void move(SyncRunStatus target) {
         this.status = MACHINE.require(status, target, WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL);
+    }
+
+    /** A successful run applies the snapshot in the same transaction (ApplySourceSnapshot, registered in multi-aggregate-exceptions.txt); its events say so. */
+    private EventDraft draftWithSnapshot(String eventName, long version, LocalDate businessDate) {
+        return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, String.valueOf(syncRunId.value()), version, null, businessDate,
+                new EventSource(SourceSystem.ONE, null), List.of(new AggregateReference("OrgSnapshot", String.valueOf(syncRunId.value()))));
     }
 
     private EventDraft draft(String eventName, long version) {
