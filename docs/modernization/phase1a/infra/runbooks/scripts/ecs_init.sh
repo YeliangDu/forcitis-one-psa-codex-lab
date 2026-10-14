@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# FORCITIS one · C-4 · ECS 初始化 E-1..E-10（i-bp122xlpar8w2uylmal2，Alibaba Cloud Linux 4）。经云助手以 root 执行。
+# 默认只打印将要执行的命令；加 --apply 才执行。执行前须用户确认（对外变更）。
+#
+# 用法：
+#   ecs_init.sh --data-disk /dev/vdb --java-pkg <已确认的 Java 25 包名或 RPM 路径> [--only E-1,E-3] [--apply]
+#   需要与本脚本同目录的 ../files/（forcitis-one.service、nginx-one.conf、forcitis-one.logrotate、one.env.template）
+# E-11..E-17 是控制台或交接事项，脚本只打印指引（见 C-4-ecs-init.md）。
+set -euo pipefail
+
+APPLY=0
+ONLY=""
+DATA_DISK=""
+JAVA_PKG=""
+FILES="$(cd "$(dirname "$0")/../files" && pwd)"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --apply) APPLY=1 ;;
+    --only) ONLY="$2"; shift ;;
+    --data-disk) DATA_DISK="$2"; shift ;;
+    --java-pkg) JAVA_PKG="$2"; shift ;;
+    *) echo "未知参数：$1" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+[[ $EUID -eq 0 || $APPLY -eq 0 ]] || { echo "--apply 须以 root 执行" >&2; exit 2; }
+
+run() {
+  echo "+ $*"
+  if [[ $APPLY -eq 1 ]]; then bash -c "$*"; fi
+}
+wanted() { [[ -z "$ONLY" || ",$ONLY," == *",$1,"* ]]; }
+step() { echo; echo "===== $1 ====="; }
+fail() { echo "停止：$*" >&2; exit 1; }
+
+[[ $APPLY -eq 1 ]] && echo "模式：执行" || echo "模式：只打印（加 --apply 执行）"
+
+if wanted E-1; then
+  step "E-1 数据盘挂载到 /data（xfs，fstab 用 UUID + nofail）"
+  [[ -n "$DATA_DISK" ]] || fail "E-1 需要 --data-disk（先用 lsblk 确认 200G 未挂载的盘）"
+  [[ -b "$DATA_DISK" ]] || fail "$DATA_DISK 不是块设备"
+  if [[ -n "$(blkid -o value -s TYPE "$DATA_DISK" 2>/dev/null || true)" ]]; then
+    fail "$DATA_DISK 已有文件系统，拒绝格式化；人工确认后再处理"
+  fi
+  if lsblk -no MOUNTPOINT "$DATA_DISK" | grep -q .; then fail "$DATA_DISK 已挂载"; fi
+  run "mkfs.xfs -L forcitis-data $DATA_DISK"
+  run "mkdir -p /data"
+  run "echo \"UUID=\$(blkid -o value -s UUID $DATA_DISK) /data xfs defaults,nofail 0 2\" >> /etc/fstab"
+  run "systemctl daemon-reload && mount /data"
+fi
+
+if wanted E-2; then
+  step "E-2 系统更新、时区、chronyd"
+  run "dnf -y update"
+  run "timedatectl set-timezone Asia/Shanghai"
+  run "systemctl enable --now chronyd"
+fi
+
+if wanted E-3; then
+  step "E-3 运行用户 forcitis"
+  run "id forcitis >/dev/null 2>&1 || useradd --system --home /data/forcitis-one --shell /sbin/nologin forcitis"
+fi
+
+if wanted E-4; then
+  step "E-4 Java 25 运行时（与 CI 的 Temurin 25 一致）"
+  [[ -n "$JAVA_PKG" ]] || fail "E-4 需要 --java-pkg（执行前确认点：来源与固定小版本）"
+  run "dnf -y install $JAVA_PKG"
+  run "dnf -y install 'dnf-command(versionlock)' && dnf versionlock add $JAVA_PKG"
+fi
+
+if wanted E-5; then
+  step "E-5 目录与权限"
+  run "install -d -o forcitis -g forcitis -m 750 /data/forcitis-one /data/forcitis-one/releases /data/forcitis-one/logs /data/forcitis-one/tmp"
+  run "install -d -o root -g forcitis -m 750 /etc/forcitis-one"
+  run "test -e /etc/forcitis-one/one.env || install -o root -g forcitis -m 0640 $FILES/one.env.template /etc/forcitis-one/one.env"
+fi
+
+if wanted E-6; then
+  step "E-6 systemd 单元与日志轮转（不启动；首次部署时再启动）"
+  run "install -o root -g root -m 0644 $FILES/forcitis-one.service /etc/systemd/system/forcitis-one.service"
+  run "install -o root -g root -m 0644 $FILES/forcitis-one.logrotate /etc/logrotate.d/forcitis-one"
+  run "systemctl daemon-reload && systemctl enable forcitis-one"
+fi
+
+if wanted E-7; then
+  step "E-7 应用只监听本机：由 one.env 的 SERVER_ADDRESS / MANAGEMENT_SERVER_* 控制，此处只核对"
+  run "grep -E '^(SERVER_ADDRESS|SERVER_PORT|MANAGEMENT_SERVER_ADDRESS|MANAGEMENT_SERVER_PORT|MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE)=' /etc/forcitis-one/one.env"
+fi
+
+if wanted E-8; then
+  step "E-8 nginx（发行版包）"
+  run "dnf -y install nginx"
+  run "install -o root -g root -m 0644 $FILES/nginx-one.conf /etc/nginx/conf.d/one.conf"
+  run "install -d -o root -g root -m 700 /etc/nginx/tls"
+  echo "（证书就位前 nginx -t 会失败，属预期；E-9 完成后再 enable --now nginx）"
+fi
+
+if wanted E-9; then
+  step "E-9 证书（B-4 交接包；私钥 600）"
+  run "test -s /etc/nginx/tls/one.forcitis.com.pem && test -s /etc/nginx/tls/one.forcitis.com.key"
+  run "chmod 600 /etc/nginx/tls/one.forcitis.com.key /etc/nginx/tls/one.forcitis.com.pem"
+  run "nginx -t && systemctl enable --now nginx"
+fi
+
+if wanted E-10; then
+  step "E-10 前端静态资源目录（随发布包放入 current/web 与 current/web/h5，部署时完成）"
+  echo "（无初始化动作）"
+fi
+
+step "E-11..E-17 控制台 / 交接事项"
+cat <<'TXT'
+E-11 SLS Logtail：在 SLS 控制台为本 ECS 生成安装命令后执行；采集 /data/forcitis-one/logs/*.json 与 /var/log/nginx/one.*。
+E-12 ARMS Prometheus：抓取 127.0.0.1:8081/actuator/prometheus（先确认 one.env 已暴露 prometheus）。
+E-13 告警：见 C-7-alerts.md。
+E-14 安全组出方向：见 C-4-ecs-init.md 表格，在 ECS 控制台配置。
+E-15 企业微信：见 handoff/B-2-wecom-app.md。
+E-16 致远：见 handoff/B-3-a8-sso-return.md。
+E-17 备份：RDS 见 C-2；ECS 数据盘快照策略在控制台设置（每日、保留 7 天）。
+TXT
