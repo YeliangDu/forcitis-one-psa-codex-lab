@@ -2,31 +2,59 @@ package com.forcitis.one;
 
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.type.classreading.MetadataReader;
+import org.springframework.core.ResolvableType;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-/** Response records: every component is required unless declared @Nullable or Optional. Request records keep their own validation. */
+/**
+ * Every component of a response record is required unless declared @Nullable or Optional. Only records in a web package that a
+ * controller really returns are touched; two of them sharing a simple name stop the application, because schemas are keyed by it.
+ */
 @Configuration
-class OpenApiRequiredProperties {
+class OpenApiRequiredProperties implements SmartInitializingSingleton {
+
+    private final ApplicationContext context;
+    private volatile Map<String, Class<?>> responseRecords = Map.of();
+
+    @Autowired
+    OpenApiRequiredProperties(ApplicationContext context) {
+        this.context = context;
+    }
+
+    @Override
+    public void afterSingletonsInstantiated() {
+        List<ResolvableType> returned = new ArrayList<>();
+        for (RequestMappingHandlerMapping mapping : context.getBeansOfType(RequestMappingHandlerMapping.class).values()) {
+            for (HandlerMethod handler : mapping.getHandlerMethods().values()) {
+                returned.add(ResolvableType.forMethodReturnType(handler.getMethod(), handler.getBeanType()));
+            }
+        }
+        responseRecords = responseRecords(returned);
+    }
 
     @Bean
     OpenApiCustomizer responsePropertiesAreRequired() {
-        Map<String, Class<?>> records = recordsBySimpleName();
         return openApi -> {
             if (openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) {
                 return;
             }
             openApi.getComponents().getSchemas().forEach((name, schema) -> {
-                Class<?> type = records.get(name);
-                if (type == null || name.endsWith("Request") || schema.getProperties() == null) {
+                Class<?> type = responseRecords.get(name);
+                if (type == null || schema.getProperties() == null) {
                     return;
                 }
                 List<String> required = new ArrayList<>();
@@ -41,28 +69,39 @@ class OpenApiRequiredProperties {
         };
     }
 
-    private static boolean nullable(RecordComponent component) {
-        return component.getAnnotatedType().isAnnotationPresent(Nullable.class) || component.getType() == Optional.class;
+    static Map<String, Class<?>> responseRecords(Collection<ResolvableType> returnTypes) {
+        Map<String, Class<?>> found = new LinkedHashMap<>();
+        Set<Class<?>> visited = new HashSet<>();
+        returnTypes.forEach(type -> collect(type, found, visited));
+        return found;
     }
 
-    private static Map<String, Class<?>> recordsBySimpleName() {
-        ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(false) {
-            @Override
-            protected boolean isCandidateComponent(org.springframework.beans.factory.annotation.AnnotatedBeanDefinition definition) {
-                return true;
+    private static void collect(ResolvableType type, Map<String, Class<?>> found, Set<Class<?>> visited) {
+        Class<?> raw = type.resolve();
+        if (raw != null && raw.isRecord() && isWebType(raw) && visited.add(raw)) {
+            Class<?> other = found.putIfAbsent(raw.getSimpleName(), raw);
+            if (other != null) {
+                throw new IllegalStateException("Two response records share the simple name " + raw.getSimpleName() + ": "
+                        + other.getName() + " and " + raw.getName() + " (OpenAPI schemas are keyed by it)");
             }
-        };
-        scanner.addIncludeFilter((MetadataReader reader, org.springframework.core.type.classreading.MetadataReaderFactory factory) ->
-                "java.lang.Record".equals(reader.getClassMetadata().getSuperClassName()));
-        Map<String, Class<?>> records = new HashMap<>();
-        scanner.findCandidateComponents("com.forcitis.one").forEach(definition -> {
-            try {
-                Class<?> type = Class.forName(definition.getBeanClassName());
-                records.put(type.getSimpleName(), type);
-            } catch (ClassNotFoundException e) {
-                throw new IllegalStateException(e);
+            for (RecordComponent component : raw.getRecordComponents()) {
+                collect(ResolvableType.forType(component.getGenericType(), type), found, visited);
             }
-        });
-        return records;
+        }
+        for (ResolvableType generic : type.getGenerics()) {
+            collect(generic, found, visited);
+        }
+        if (type.isArray()) {
+            collect(type.getComponentType(), found, visited);
+        }
+    }
+
+    private static boolean isWebType(Class<?> type) {
+        String name = type.getPackageName();
+        return name.endsWith(".web") || name.contains(".web.");
+    }
+
+    private static boolean nullable(RecordComponent component) {
+        return component.getAnnotatedType().isAnnotationPresent(Nullable.class) || component.getType() == Optional.class;
     }
 }

@@ -41,7 +41,7 @@ class SeeyonTicketVerifierTest {
     }
 
     private SeeyonTicketVerifier verifier(String baseUrl, Duration timeout) {
-        return new SeeyonTicketVerifier(new SeeyonProperties(new SeeyonProperties.Views(false, null, null, null, false, 0, 0, null, null),
+        return new SeeyonTicketVerifier(new SeeyonProperties(new SeeyonProperties.Views(false, null, null, null, false, 0, 0, null, null, null),
                 new SeeyonProperties.Sso(baseUrl, timeout)));
     }
 

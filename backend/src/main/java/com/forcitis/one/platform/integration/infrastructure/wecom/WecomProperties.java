@@ -16,6 +16,7 @@ record WecomProperties(@DefaultValue("false") boolean enabled, @DefaultValue("ht
     record Recipients(@DefaultValue("true") boolean restricted, @DefaultValue List<String> allowed) {
     }
 
-    record Delivery(@DefaultValue("PT5S") Duration interval) {
+    /** duplicateTaskErrorCodes: WeCom errcodes that mean a card with this task_id was already sent; the public error list names none, so verify before use. */
+    record Delivery(@DefaultValue("PT5S") Duration interval, @DefaultValue List<Integer> duplicateTaskErrorCodes) {
     }
 }

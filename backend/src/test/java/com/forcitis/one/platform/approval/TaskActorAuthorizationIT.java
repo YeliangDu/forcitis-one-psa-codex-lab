@@ -4,6 +4,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
@@ -101,6 +102,20 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         }
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.task.denied")
                 && entry.actorId().equals(new UserId(scene.stranger())) && entry.subjectKey().equals("approval-task:" + id)));
+    }
+
+    @Test
+    @DisplayName("I-7 a refusal is still 403 when its audit entry cannot be written")
+    void refusalSurvivesAFailingAudit() throws Exception {
+        Scene scene = scene();
+        String id = scene.task().value();
+        org.mockito.Mockito.doThrow(new IllegalStateException("audit store is down")).when(audit).recordIndependently(any());
+        try {
+            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf())
+                    .with(approver(scene.stranger())), 403));
+        } finally {
+            org.mockito.Mockito.reset(audit);
+        }
     }
 
     @Test

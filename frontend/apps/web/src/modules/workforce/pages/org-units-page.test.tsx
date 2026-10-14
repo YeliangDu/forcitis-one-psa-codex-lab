@@ -7,7 +7,7 @@ import { buildOrgTree } from '../model/org-unit';
 import { OrgUnitsPage } from './org-units-page';
 
 const UNITS = [
-  { orgUnitId: '1', name: '总部', code: 'HQ', shortName: '总部', parentOrgUnitId: null, status: 'ACTIVE', deliveryUnit: false, sortOrder: 1 },
+  { orgUnitId: '1', name: '总部', code: 'HQ', shortName: '总部', status: 'ACTIVE', deliveryUnit: false, sortOrder: 1 },
   { orgUnitId: '3', name: '交付二部', code: 'D2', shortName: '二部', parentOrgUnitId: '1', status: 'ACTIVE', deliveryUnit: true, sortOrder: 2 },
   { orgUnitId: '2', name: '交付一部', code: 'D1', shortName: '一部', parentOrgUnitId: '1', status: 'ACTIVE', deliveryUnit: true, sortOrder: 1 },
 ];

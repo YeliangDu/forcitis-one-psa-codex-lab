@@ -3,7 +3,7 @@ package com.forcitis.one;
 import com.forcitis.one.kernel.ErrorCode;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.identity.api.Permission;
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import com.tngtech.archunit.core.domain.JavaClass;
 import java.io.IOException;
 import java.io.InputStream;

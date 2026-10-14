@@ -1,38 +1,9 @@
-import { z } from 'zod';
+import type { Schema } from '@forcitis/api';
 
 export const SYNC_RUN_RELEASE_PERMISSION = 'organization.workforce:sync-run:execute';
 
-export const syncRunSchema = z.object({
-  syncRunId: z.string(),
-  trigger: z.string(),
-  status: z.string(),
-  startedAt: z.string().nullish(),
-  finishedAt: z.string().nullish(),
-  orgUnitChangeCount: z.number().nullish(),
-  employeeChangeCount: z.number().nullish(),
-  positionChangeCount: z.number().nullish(),
-  issueCount: z.number().nullish(),
-  isolatedRowCount: z.number().nullish(),
-  heldReason: z.string().nullish(),
-  failureReason: z.string().nullish(),
-  releasedAt: z.string().nullish(),
-});
-
-export const syncDiffSchema = z.object({
-  entityKind: z.string().nullish(),
-  subjectKey: z.string().nullish(),
-  changeKind: z.string().nullish(),
-  issueKind: z.string().nullish(),
-  detail: z.string().nullish(),
-  changedFields: z.array(z.string()).nullish(),
-});
-
-export const syncRunDetailSchema = z.object({ syncRun: syncRunSchema, diffs: z.array(syncDiffSchema) });
-
-export const releaseResultSchema = z.object({ outcome: z.string(), message: z.string().nullish() });
-
-export type SyncRun = z.infer<typeof syncRunSchema>;
-export type SyncDiff = z.infer<typeof syncDiffSchema>;
+export type SyncRun = Schema<'SyncRunResponse'>;
+export type SyncDiff = Schema<'SyncDiffResponse'>;
 
 export const SYNC_STATUS_LABELS: Readonly<Record<string, string>> = {
   RUNNING: '运行中',

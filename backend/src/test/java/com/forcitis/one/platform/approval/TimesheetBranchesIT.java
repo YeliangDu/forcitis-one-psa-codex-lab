@@ -10,6 +10,8 @@ import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.application.ApprovalError;
+import com.forcitis.one.platform.approval.application.ApprovalOperationException;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
 import com.forcitis.one.platform.approval.application.TaskDecision;
@@ -25,6 +27,9 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
 
     @Autowired
     DecideTasks decideTasks;
+
+    @Autowired
+    io.micrometer.core.instrument.MeterRegistry meters;
 
     record Staff(long initiator, long projectManager, long regionalHead, long supervisor) {
     }
@@ -117,12 +122,34 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         assertThat(approvals.isFinished(instance)).isTrue();
     }
 
+    ApprovalInstanceId startWith(String key, Staff s, List<ApprovalField> fields, TimesheetRoutingFlag... flags) {
+        Set<String> names = new java.util.HashSet<>();
+        for (TimesheetRoutingFlag flag : flags) {
+            names.add(flag.flagName());
+        }
+        return tx.execute(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key,
+                new UserId(s.initiator()), names, fields)));
+    }
+
+    static ApprovalField projectManagers(String... values) {
+        return new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(values));
+    }
+
+    double counter(String name) {
+        var found = meters.find(name).counter();
+        return found == null ? 0 : found.count();
+    }
+
     @Test
-    @DisplayName("RULE-300 a node that allows skipping and finds nobody passes; the approval goes on without it")
-    void emptyNodeIsSkipped() {
+    @DisplayName("RULE-300 a node that allows skipping, whose field is complete and valid but whose person left, passes; the approval goes on without it")
+    void nodeWithNobodyLeftIsSkipped() {
         Staff s = staff();
+        long gone = newId();
+        organisation.separated(gone, newId(), null);
         String key = newKey("branches");
-        ApprovalInstanceId instance = start(key, s, List.of(), TimesheetRoutingFlag.PROJECT_HOURS, TimesheetRoutingFlag.PRE_SALES_HOURS);
+        ApprovalInstanceId instance = startWith(key, s, List.of(projectManagers(String.valueOf(s.projectManager())),
+                new ApprovalField(TimesheetApprovalField.REGIONAL_HEAD.fieldName(), List.of(String.valueOf(gone)))),
+                TimesheetRoutingFlag.PROJECT_HOURS, TimesheetRoutingFlag.PRE_SALES_HOURS);
 
         assertThat(openNodes(instance)).containsExactly("projectManagerReview");
         approve(s.projectManager(), instance, "projectManagerReview");
@@ -130,21 +157,62 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-300 when every branch is skipped the approval is APPROVED at once")
-    void allBranchesSkipped() {
+    @DisplayName("G-1 / RULE-300 a missing field is not 'nobody': the start fails and an alert is counted, nothing passes silently")
+    void missingFieldFailsInsteadOfSkipping() {
         Staff s = staff();
-        String key = newKey("branches");
-        ApprovalInstanceId instance = tx.execute(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key,
-                new UserId(s.initiator()), Set.of(TimesheetRoutingFlag.PRE_SALES_HOURS.flagName()), List.of())));
+        double before = counter("platform.approval.assignee.invalid.input");
 
-        assertThat(openNodes(instance)).isEmpty();
-        assertThat(requestStatus(key)).isEqualTo("APPROVED");
+        assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(), TimesheetRoutingFlag.PROJECT_HOURS))
+                .isInstanceOf(RuntimeException.class).hasStackTraceContaining("missing or invalid");
+
+        assertThat(counter("platform.approval.assignee.invalid.input")).isEqualTo(before + 1);
     }
 
     @Test
-    @DisplayName("a timesheet with no hour type routes nowhere: the start fails loudly instead of approving silently")
-    void noRoutingFlagFails() {
+    @DisplayName("G-1 / RULE-300 a value that is not a person (unknown id, not an id) fails the start instead of skipping the node")
+    void invalidValueFailsInsteadOfSkipping() {
         Staff s = staff();
-        assertThatThrownBy(() -> start(newKey("branches"), s, List.of(), new TimesheetRoutingFlag[0])).isInstanceOf(RuntimeException.class);
+
+        assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers(String.valueOf(newId()))),
+                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOf(RuntimeException.class).hasStackTraceContaining("missing or invalid");
+        assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers("not-an-id")),
+                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOf(RuntimeException.class).hasStackTraceContaining("missing or invalid");
+    }
+
+    @Test
+    @DisplayName("G-1 / RULE-300 a failure while resolving a node fails the start and is counted")
+    void resolutionFailureFailsTheStart() {
+        Staff s = staff();
+        double before = counter("platform.approval.assignee.resolution.failed");
+        organisation.failOnNextLookup();
+
+        assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers(String.valueOf(s.projectManager()))),
+                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOf(RuntimeException.class);
+
+        assertThat(counter("platform.approval.assignee.resolution.failed")).isEqualTo(before + 1);
+    }
+
+    @Test
+    @DisplayName("RULE-300 when every branch is skipped the start fails and an alert is counted; the approval is never passed silently")
+    void allBranchesSkippedFails() {
+        Staff s = staff();
+        long gone = newId();
+        organisation.separated(gone, newId(), null);
+        double before = counter("platform.approval.all.nodes.skipped");
+
+        assertThatThrownBy(() -> startWith(newKey("branches"), s,
+                List.of(new ApprovalField(TimesheetApprovalField.REGIONAL_HEAD.fieldName(), List.of(String.valueOf(gone)))),
+                TimesheetRoutingFlag.PRE_SALES_HOURS)).isInstanceOf(RuntimeException.class).hasStackTraceContaining("found nobody to assign");
+
+        assertThat(counter("platform.approval.all.nodes.skipped")).isEqualTo(before + 1);
+    }
+
+    @Test
+    @DisplayName("a timesheet with no hour type routes nowhere: the start is refused as a business error")
+    void noRoutingFlagIsRefused() {
+        Staff s = staff();
+        assertThatThrownBy(() -> start(newKey("branches"), s, List.of(), new TimesheetRoutingFlag[0]))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NO_ROUTE));
     }
 }

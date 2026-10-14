@@ -1,9 +1,8 @@
 import { operations } from '@forcitis/api';
-import { z } from 'zod';
-import { type RuleDraft, numberingRuleSchema } from '../model/numbering-rule';
+import type { RuleDraft } from '../model/numbering-rule';
 
-export async function fetchNumberingRules() {
-  return z.array(numberingRuleSchema).parse(await operations.getPlatformNumberingRules());
+export function fetchNumberingRules() {
+  return operations.getPlatformNumberingRules();
 }
 
 type DocumentTypeParam = NonNullable<Parameters<typeof operations.putPlatformNumberingRulesByDocumentType>[0]>['path']['documentType'];

@@ -19,6 +19,20 @@ class SeeyonOrgTreeTest {
         return new OrgUnitRow(new SourceUnitId(id), "C" + id, "Unit " + id, path, sortOrder, state, List.of(), null, null, false);
     }
 
+    static List<SourceOrgUnit> resolve(List<OrgUnitRow> rows) {
+        return SeeyonOrgTree.resolve(rows, "00000001");
+    }
+
+    @Test
+    @DisplayName("M7 the sync root is a setting: another root path scopes the tree below it")
+    void rootPathIsConfigurable() {
+        List<SourceOrgUnit> units = SeeyonOrgTree.resolve(List.of(row(7, "00000002"), row(8, "000000020001")), "00000002");
+
+        assertThat(units).extracting(u -> u.parentUnitId() == null ? null : u.parentUnitId().value()).containsExactly(null, 7L);
+        assertThatThrownBy(() -> SeeyonOrgTree.resolve(List.of(row(2, "00000001")), "00000002"))
+                .isInstanceOf(ExternalSourceBrokenException.class).hasMessageContaining("not below the sync root");
+    }
+
     static OrgUnitRow row(long id, String path) {
         return row(id, path, SourceRecordState.ACTIVE, (int) id);
     }
@@ -26,7 +40,7 @@ class SeeyonOrgTreeTest {
     @Test
     @DisplayName("RULE-354 parent = the unit one level up; the root has none; parents come before children")
     void parentsAreResolved() {
-        List<SourceOrgUnit> units = SeeyonOrgTree.resolve(List.of(row(4, "0000000100010001"), row(2, "00000001"), row(3, "000000010001"),
+        List<SourceOrgUnit> units = resolve(List.of(row(4, "0000000100010001"), row(2, "00000001"), row(3, "000000010001"),
                 row(5, "000000010002")));
 
         assertThat(units).extracting(u -> u.unitId().value()).containsExactly(2L, 3L, 5L, 4L);
@@ -36,23 +50,23 @@ class SeeyonOrgTreeTest {
     @Test
     @DisplayName("RULE-354 a missing parent breaks the tree: the whole read is rejected")
     void missingParent() {
-        assertThatThrownBy(() -> SeeyonOrgTree.resolve(List.of(row(2, "00000001"), row(4, "0000000100010001"))))
+        assertThatThrownBy(() -> resolve(List.of(row(2, "00000001"), row(4, "0000000100010001"))))
                 .isInstanceOf(ExternalSourceBrokenException.class).hasMessageContaining("org unit 4").hasMessageContaining("no parent");
     }
 
     @Test
     @DisplayName("RULE-354 a unit outside the sync root, or with a malformed path, breaks the tree")
     void outsideTheRoot() {
-        assertThatThrownBy(() -> SeeyonOrgTree.resolve(List.of(row(9, "00000002")))).isInstanceOf(ExternalSourceBrokenException.class)
+        assertThatThrownBy(() -> resolve(List.of(row(9, "00000002")))).isInstanceOf(ExternalSourceBrokenException.class)
                 .hasMessageContaining("not below the sync root");
-        assertThatThrownBy(() -> SeeyonOrgTree.resolve(List.of(row(2, "00000001"), row(9, "00000001000"))))
+        assertThatThrownBy(() -> resolve(List.of(row(2, "00000001"), row(9, "00000001000"))))
                 .isInstanceOf(ExternalSourceBrokenException.class);
     }
 
     @Test
     @DisplayName("RULE-354 two units on one place: the active one is the parent candidate, the other is reported as sharing the place")
     void sharedPlace() {
-        List<SourceOrgUnit> units = SeeyonOrgTree.resolve(List.of(row(2, "00000001"),
+        List<SourceOrgUnit> units = resolve(List.of(row(2, "00000001"),
                 row(3, "000000010001", SourceRecordState.DISABLED, 1), row(4, "000000010001", SourceRecordState.ACTIVE, 2),
                 row(5, "0000000100010001")));
 

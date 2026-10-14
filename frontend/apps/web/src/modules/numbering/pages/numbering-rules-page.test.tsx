@@ -11,7 +11,7 @@ const UPDATE = 'platform.numbering:numbering-rule:update';
 
 const RULES = [
   { documentType: 'QUOTE', documentTypeCode: 'QT', pattern: '{TYPE}-{LE}-{yyyyMM}-{seq:4}', resetPolicy: 'MONTHLY', startValue: 1, capacity: 9999, confirmationStatus: 'PENDING_CONFIRMATION' },
-  { documentType: 'TIMESHEET', documentTypeCode: null, pattern: 'TS{yyyyMMdd}{seq:4}', resetPolicy: 'DAILY', startValue: 1, capacity: 9999, confirmationStatus: 'CONFIRMED' },
+  { documentType: 'TIMESHEET', documentTypeCode: 'TS', pattern: '{TYPE}-{yyyyMMdd}-{seq:4}', resetPolicy: 'DAILY', startValue: 1, capacity: 9999, confirmationStatus: 'CONFIRMED' },
 ];
 
 function rowOf(text: string) {

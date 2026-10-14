@@ -36,7 +36,7 @@ public final class AssigneeResolver {
         Collected collected = collect(rule, initiator, variables);
         Set<UserId> candidates = employed(collected.users());
         if (skipWhenEmpty && candidates.isEmpty()) {
-            return new Resolution(Set.of(), ResolutionKind.SKIPPED);
+            return new Resolution(Set.of(), collected.invalidInput() ? ResolutionKind.INVALID_INPUT : ResolutionKind.SKIPPED);
         }
         ResolutionKind kind = collected.escalated() ? ResolutionKind.ESCALATED_REPORTING_LINE : ResolutionKind.RESOLVED;
         if (!selfApprovalAllowed && candidates.contains(initiator)) {
@@ -64,20 +64,43 @@ public final class AssigneeResolver {
         return new Resolution(Set.of(administrator), ResolutionKind.ADMINISTRATOR_FALLBACK);
     }
 
-    private record Collected(Set<UserId> users, boolean escalated) {
+    /** invalidInput: what the rule reads is missing or points at nobody who exists, so "no candidates" would not mean "nobody is responsible". */
+    private record Collected(Set<UserId> users, boolean escalated, boolean invalidInput) {
         static Collected of(Set<UserId> users) {
-            return new Collected(users, false);
+            return new Collected(users, false, false);
+        }
+
+        static Collected invalid() {
+            return new Collected(Set.of(), false, true);
         }
     }
 
     private Collected collect(AssignmentRule rule, UserId initiator, ProcessVariables variables) {
         return switch (rule) {
             case AssignmentRule.Role role -> Collected.of(roles.findRoleHolders(role.role()));
-            case AssignmentRule.DepartmentHead head -> Collected.of(departmentOf(head.departmentVariable(), initiator, variables)
-                    .flatMap(this::nearestHead).map(Set::of).orElse(Set.of()));
-            case AssignmentRule.InitiatorSupervisor supervisor -> initiatorSupervisor(initiator, supervisor.level());
-            case AssignmentRule.FormFieldUsers field -> Collected.of(ProcessVariables.parseUsers(variables.formField(field.field())));
+            case AssignmentRule.DepartmentHead head -> departmentHead(head, initiator, variables);
+            case AssignmentRule.InitiatorSupervisor supervisor -> org.findEmployee(initiator).isEmpty() ? Collected.invalid()
+                    : initiatorSupervisor(initiator, supervisor.level());
+            case AssignmentRule.FormFieldUsers field -> formFieldUsers(field.field(), variables);
         };
+    }
+
+    private Collected departmentHead(AssignmentRule.DepartmentHead head, UserId initiator, ProcessVariables variables) {
+        Optional<OrgUnitId> unit = departmentOf(head.departmentVariable(), initiator, variables);
+        if (unit.isEmpty() || org.findOrgUnit(unit.get()).isEmpty()) {
+            return Collected.invalid();
+        }
+        return Collected.of(nearestHead(unit.get()).map(Set::of).orElse(Set.of()));
+    }
+
+    private Collected formFieldUsers(String field, ProcessVariables variables) {
+        List<String> raw = variables.formField(field);
+        boolean valid = !raw.isEmpty() && raw.stream().allMatch(this::isExistingPerson);
+        return new Collected(ProcessVariables.parseUsers(raw), false, !valid);
+    }
+
+    private boolean isExistingPerson(String raw) {
+        return raw != null && ProcessVariables.parseUsers(List.of(raw)).stream().anyMatch(id -> org.findEmployee(id).isPresent());
     }
 
     private Optional<OrgUnitId> departmentOf(String variable, UserId initiator, ProcessVariables variables) {
@@ -128,7 +151,7 @@ public final class AssigneeResolver {
             if (next.isEmpty()) {
                 Optional<UserId> pushed = org.findEmployee(current).map(EmployeeProfile::orgUnitId)
                         .flatMap(unit -> headFrom(unit, line));
-                return new Collected(pushed.map(Set::of).orElse(Set.of()), true);
+                return new Collected(pushed.map(Set::of).orElse(Set.of()), true, false);
             }
             current = next.get();
             line.add(current);

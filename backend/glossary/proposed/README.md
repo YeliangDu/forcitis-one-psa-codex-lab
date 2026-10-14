@@ -131,3 +131,22 @@
 | `approve` | 通过 | Approve | 审批人对任务给出同意的结论 |  |
 | `reject` | 驳回 | Reject | 审批人对任务给出不同意的结论，是否终止流程取决于所在节点 |  |
 | `legacy_system` | 老系统 | LegacySystem | 被本系统替代的原项目管理系统（待办合并期间只读接入） | 是（疑似方言，第三轮用语确认；界面用语，正式叫法待定） |
+| `new_system` | 新系统 | NewSystem | FORCITIS one 本身；待办合并期间与老系统并存，界面用来标出待办的来源 | 待确认（用户指定提议） |
+| `org_browse` | 组织浏览 | OrgBrowse | 只读浏览组织单元树的页面 | 待确认（用户指定提议） |
+| `current_node` | 当前节点 | CurrentNode | 审批任务当前所在的流程节点 | 待确认（用户指定提议） |
+| `trigger_mode` | 触发方式 | TriggerMode | 一次同步是定时触发还是手动触发 | 待确认（用户指定提议） |
+| `held` | 被中止 | Held | 同步记录的状态：被缩水保护中止，等待管理员放行；与「被中止的同步」指同一状态 | 待确认（用户指定提议） |
+| `release` | 放行 | Release | 管理员核对同步差异后，让被中止的同步生效的动作 |  |
+| `org_sync` | 同步 | OrgSync | 把组织来源的组织单元与员工变化应用到本系统的一次运行 |  |
+| `delivery_unit` | 交付单元 | DeliveryUnit | 承担项目交付的组织单元 |  |
+| `serial_number` | 流水号 | SerialNumber | 编号中随单据递增的序号部分 |  |
+| `start_serial_number` | 起始流水号 | StartSerialNumber | 编号规则中流水号的起始值 |  |
+| `issue_number` | 发号 | IssueNumber | 按编号规则为一张单据分配编号 |  |
+| `user_account` | 用户账号 | UserAccount | 一名员工在本系统的登录主体，可启用或停用 |  |
+| `portal` | 门户 | Portal | 公司门户，致远单点登录的入口 |  |
+| `totp_code` | 动态口令 | TotpCode | 应急管理员登录时的一次性动态口令（TOTP） |  |
+| `authorization` | 授权 | Authorization | 向用户授予权限，或企业微信确认用户身份的授权 |  |
+| `reason` | 理由 | Reason | 审批人办理任务时填写的说明；驳回和退回必填 |  |
+| `business_check` | 业务校验 | BusinessCheck | 办理审批前由业务模块执行的校验，不通过则不能办理 |  |
+| `task_participant` | 参与人 | TaskParticipant | 审批任务的候选审批人或处理人 |  |
+| `account_disabled` | 停用 | AccountDisabled | 账号被管理员停用，停用后不能登录，已有会话随即失效 |  |

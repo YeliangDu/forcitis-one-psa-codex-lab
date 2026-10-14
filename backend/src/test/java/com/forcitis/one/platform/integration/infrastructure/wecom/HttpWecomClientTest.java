@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.WecomEntry;
+import com.forcitis.one.platform.integration.domain.DeliveryKind;
 import com.forcitis.one.platform.integration.domain.DeliveryStatus;
 import com.forcitis.one.platform.integration.domain.OutboundDelivery;
 import com.forcitis.one.platform.integration.domain.OutboundDeliveryId;
@@ -66,9 +67,11 @@ class HttpWecomClientTest {
         client = clientWith(Duration.ofSeconds(5));
     }
 
+    private List<Integer> duplicateTaskCodes = List.of();
+
     private HttpWecomClient clientWith(Duration readTimeout) {
         WecomProperties properties = new WecomProperties(true, wecom.baseUrl(), CORP_ID, SECRET, "1000002", Duration.ofSeconds(5),
-                readTimeout, new WecomProperties.Recipients(true, List.of()), new WecomProperties.Delivery(Duration.ofSeconds(5)));
+                readTimeout, new WecomProperties.Recipients(true, List.of()), new WecomProperties.Delivery(Duration.ofSeconds(5), duplicateTaskCodes));
         return new HttpWecomClient(properties, JsonMapper.builder().build(), clock);
     }
 
@@ -83,7 +86,7 @@ class HttpWecomClientTest {
 
     private static OutboundDelivery delivery() {
         return new OutboundDelivery(new OutboundDeliveryId(1), "approval-task:42", List.of(new WecomUserId("alice"), new WecomUserId("bob")),
-                "title", "description", "https://one.example.test/tasks/42", DeliveryStatus.PENDING, 1, null, null);
+                "title", "description", "https://one.example.test/tasks/42", DeliveryStatus.PENDING, 1, null, null, DeliveryKind.CARD, null);
     }
 
     @Test
@@ -243,13 +246,25 @@ class HttpWecomClientTest {
     }
 
     @Test
+    @DisplayName("ARCH 3.7 an errcode configured as 'task_id already used' means the card was sent before: sent, without a response code")
+    void configuredDuplicateTaskErrorCountsAsSent() {
+        tokenIs("token-1", 7200);
+        wecom.stubFor(post(urlPathEqualTo(SEND_PATH)).willReturn(okJson("{\"errcode\":42014,\"errmsg\":\"task_id used\"}")));
+
+        assertThatThrownBy(() -> client.sendCard(delivery())).isInstanceOf(ExternalSystemUnavailableException.class);
+
+        duplicateTaskCodes = List.of(42014);
+        assertThat(clientWith(Duration.ofSeconds(5)).sendCard(delivery())).isEmpty();
+    }
+
+    @Test
     @DisplayName("Q-3 replacing a card posts the response code and the exact recipients with the handled note")
     void replacementUsesTheResponseCode() {
         tokenIs("token-1", 7200);
         wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\"}")));
         OutboundDelivery sent = new OutboundDelivery(new OutboundDeliveryId(1), "approval-task:42",
                 List.of(new WecomUserId("alice"), new WecomUserId("bob")), "title", "description", "https://one.example.test/tasks/42",
-                DeliveryStatus.SENT, 1, "rc-1", null);
+                DeliveryStatus.SENT, 1, "rc-1", null, DeliveryKind.CARD, null);
 
         client.replaceWithHandledNote(sent, "handled by Carol");
 

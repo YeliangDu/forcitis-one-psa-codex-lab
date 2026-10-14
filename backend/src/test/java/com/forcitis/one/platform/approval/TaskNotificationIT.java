@@ -52,7 +52,8 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         long first = newId();
         long second = newId();
         organisation.person(initiator, 1, null).person(first, 1, null).person(second, 1, null);
-        ApprovalInstanceId instance = startWithManagers(newKey("notify"), initiator, first, second);
+        String key = newKey("notify");
+        ApprovalInstanceId instance = startWithManagers(key, initiator, first, second);
         ApprovalTaskId task = openTaskId(instance);
 
         verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
@@ -61,9 +62,10 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         WecomCard card = captor.getAllValues().stream().filter(c -> c.deduplicationKey().equals(dedupKey(task))).findFirst().orElseThrow();
         assertThat(card.wecomUserIds()).containsExactlyInAnyOrder(new WecomUserId(organisation.wecomOf(first)),
                 new WecomUserId(organisation.wecomOf(second)));
-        assertThat(card.title()).contains("Project manager review");
+        assertThat(card.title()).contains("项目经理审批");
         assertThat(card.targetUrl()).contains(task.value());
-        assertThat(card.description()).contains(ProcessKey.COST_TIMESHEET_APPROVAL.name());
+        assertThat(card.description()).contains("工时审批").contains("单据 " + key.substring(key.lastIndexOf(':') + 1));
+        assertThat(card.title() + card.description()).doesNotContain("COST_TIMESHEET_APPROVAL").doesNotContain("timesheet:");
     }
 
     @Test

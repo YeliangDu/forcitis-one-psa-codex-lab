@@ -9,7 +9,6 @@ const TASK: TaskDetail = {
   nodeKey: 'dept-head',
   nodeName: '部门负责人审核',
   initiator: '2002',
-  assignee: null,
   candidates: ['1001', '1002'],
   createdAt: '2026-10-14T01:00:00Z',
   canAct: true,
