@@ -47,4 +47,4 @@ pnpm --filter @forcitis/h5 test        # Vitest + Testing Library
 
 Taro 4.3 的 React 运行时（`react-reconciler` 0.29）要求 React 18，PC 端用 React 19。两端各自在自己的 `package.json` 里声明；类型包统一用工作区目录里的版本，避免 `@types/react` 双版本。Taro 升级支持 React 19 后再合并。
 
-老 H5（psa-mini）只用来理解行为，代码没有搬运。
+老 H5 只用来理解行为，代码没有搬运。
