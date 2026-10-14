@@ -43,6 +43,6 @@ class WorkCalendarController {
     @PreAuthorize("hasAuthority('" + AttendancePermissions.WORK_CALENDAR_UPDATE + "')")
     WorkCalendarYearResponse maintain(@PathVariable int calendarYear, @RequestBody MaintainWorkCalendarRequest request) {
         List<DayEntry> days = request.days().stream().map(d -> new DayEntry(d.calendarDate(), d.dayKind())).toList();
-        return WorkCalendarYearResponse.of(maintain.execute(new MaintainWorkCalendarCommand(calendarYear, days, false)));
+        return WorkCalendarYearResponse.of(maintain.execute(new MaintainWorkCalendarCommand(calendarYear, days)));
     }
 }

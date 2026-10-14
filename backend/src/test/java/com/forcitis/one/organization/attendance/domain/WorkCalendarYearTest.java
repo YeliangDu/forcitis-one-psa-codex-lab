@@ -9,6 +9,8 @@ import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.EventEnvelopes;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
+import com.forcitis.one.organization.attendance.api.DayException;
+import com.forcitis.one.organization.attendance.api.LockedDayChange;
 import com.forcitis.one.organization.attendance.events.WorkCalendarLockedDaysChanged;
 import com.forcitis.one.organization.attendance.events.WorkCalendarYearMaintained;
 import java.time.Instant;
@@ -115,8 +117,22 @@ class WorkCalendarYearTest {
         List<DomainEvent> events = year.drainEvents(ENVELOPES);
         assertThat(events).hasSize(2);
         assertThat(events.get(1)).isInstanceOfSatisfying(WorkCalendarLockedDaysChanged.class, e -> {
-            assertThat(e.lockedDates()).containsExactly(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-03"));
+            assertThat(e.changes()).containsExactly(
+                    new LockedDayChange(LocalDate.parse("2026-10-01"), DayException.HOLIDAY, DayException.NONE),
+                    new LockedDayChange(LocalDate.parse("2026-10-03"), DayException.NONE, DayException.MAKE_UP_WORKDAY));
+            assertThat(e.auditDetail()).isEqualTo("2026-10-01 HOLIDAY -> NONE; 2026-10-03 NONE -> MAKE_UP_WORKDAY");
             assertThat(e.envelope().aggregateVersion()).isEqualTo(5);
         });
+    }
+
+    @Test
+    @DisplayName("T2 the first maintenance of a year may list days before today: nothing computed on them has been changed; the lock starts with the second")
+    void firstMaintenanceOfAPastYearIsAllowed() {
+        WorkCalendarYear year = WorkCalendarYear.unmaintained(WorkCalendarKey.defaultFor(2024));
+
+        year.maintain(List.of(day("2024-10-01", DayKind.HOLIDAY), day("2024-10-02", DayKind.HOLIDAY)), LocalDate.parse("2026-10-14"), false);
+
+        assertThat(year.days()).hasSize(2);
+        assertThat(year.drainEvents(ENVELOPES)).singleElement().isInstanceOf(WorkCalendarYearMaintained.class);
     }
 }

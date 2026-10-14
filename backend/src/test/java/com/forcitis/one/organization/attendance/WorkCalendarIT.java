@@ -12,7 +12,9 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.attendance.api.WorkCalendar;
 import com.forcitis.one.organization.attendance.application.DayEntry;
 import com.forcitis.one.organization.attendance.application.MaintainWorkCalendarCommand;
-import com.forcitis.one.organization.attendance.application.MaintainWorkCalendarYear;
+import com.forcitis.one.organization.attendance.application.MaintainLockedWorkCalendarDays;
+import com.forcitis.one.organization.attendance.api.DayException;
+import com.forcitis.one.organization.attendance.api.LockedDayChange;
 import com.forcitis.one.organization.attendance.events.WorkCalendarLockedDaysChanged;
 import com.forcitis.one.organization.attendance.events.WorkCalendarYearMaintained;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -84,7 +86,7 @@ class WorkCalendarIT {
     com.forcitis.one.fixture.doubles.MutableClock clock;
 
     @Autowired
-    MaintainWorkCalendarYear maintainYear;
+    MaintainLockedWorkCalendarDays maintainLocked;
 
     @Autowired
     MockMvc mvc;
@@ -198,12 +200,31 @@ class WorkCalendarIT {
         mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026)).andExpect(status().isOk());
         clock.set(java.time.Instant.parse("2026-10-14T00:00:00Z"));
 
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.TestingAuthenticationToken("9001", null, "organization.attendance:locked-day:update"));
         try (var acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "organization.attendance.test")) {
-            maintainYear.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of(new DayEntry(LocalDate.parse("2026-10-10"), "MAKE_UP_WORKDAY")), true));
+            maintainLocked.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of(new DayEntry(LocalDate.parse("2026-10-10"), "MAKE_UP_WORKDAY"))));
         }
 
         assertThat(workCalendar.isWorkday(LocalDate.parse("2026-10-12"), new LegalEntityId(1))).isTrue();
         assertThat(events.stream(WorkCalendarLockedDaysChanged.class)).singleElement().satisfies(e ->
-                assertThat(e.lockedDates()).containsExactly(LocalDate.parse("2026-10-12")));
+                assertThat(e.changes()).containsExactly(new LockedDayChange(LocalDate.parse("2026-10-12"), DayException.HOLIDAY, DayException.NONE)));
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("T2 the exception is its own use case with its own permission: without it the call is refused and nothing changes")
+    void lockedDaysNeedTheirOwnPermission() throws Exception {
+        mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026)).andExpect(status().isOk());
+        clock.set(java.time.Instant.parse("2026-10-14T00:00:00Z"));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.TestingAuthenticationToken("9001", null, "organization.attendance:work-calendar:update"));
+        try {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> maintainLocked.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of())))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        assertThat(jdbc.sql("select count(*) from organization_attendance.work_calendar_days").query(Integer.class).single()).isEqualTo(2);
     }
 }
