@@ -68,7 +68,9 @@ reboot                                                              # 若 E-2 �
 
 ## 首次部署（dev；须 1a 修复批合并后，且 C-3、B-5 完成）
 
-1. 发布包（版本号 `<ver>`）：`forcitis-one.jar`、`web/`、`web/h5/`、`SHA256SUMS`。**CI 目前不产出发布包**（见 `CROSSCHECK.md` 第 15 条），首次由代码会话按同一提交本地构建并附 SHA256，经云助手上传到 `/data/forcitis-one/releases/<ver>/`，`sha256sum -c SHA256SUMS`。
+> 发布流水线已补（`RELEASE.md`）：首次部署改按 `RELEASE.md`「首次部署」执行，由 `deploy` 工作流与 ECS 上的 `forcitis-one-release` 完成下面第 1–3 步。下面的手工步骤留作流水线不可用时的备用，执行时注意两点：第 2 步 `-p Environment=` 的开关会被 `EnvironmentFile` 中的同名值覆盖（systemd 规则），应改为 java 命令行参数（`--WECOM_ENABLED=false` 等，见 `scripts/release/remote_install.sh` 的 `migrate`）；`one.env` 须有 `SPRING_FLYWAY_ENABLED=false`，迁移那次以 `--spring.flyway.enabled=true` 打开。
+
+1. 发布包（版本号 `<ver>`）：`forcitis-one.jar`、`web/`、`web/h5/`、`SHA256SUMS`。发布包由 `release` 工作流产出（`RELEASE.md`），经云助手上传到 `/data/forcitis-one/releases/<ver>/`，`sha256sum -c SHA256SUMS`。
 2. 迁移（迁移凭据只在这一步出现）：
    ```bash
    # /etc/forcitis-one/migrate.env（0600 root:root）：SPRING_FLYWAY_USER=one_dev_migrator 与 SPRING_FLYWAY_PASSWORD；

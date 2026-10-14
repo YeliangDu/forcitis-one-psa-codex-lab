@@ -1,0 +1,121 @@
+name: deploy
+
+# Deploys a published release to dev or prod over SSH; the server-side steps are scripts/release/remote_install.sh.
+# Blocked while docs/modernization/status/blockers/ holds a deploy blocker (080); prod also needs every Phase 1a exit condition done.
+# Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        type: choice
+        options: [dev, prod]
+        required: true
+      version:
+        description: 'Published release version without the v prefix, e.g. 0.1.0'
+        required: true
+      confirm:
+        description: 'prod only: type the version again to confirm'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  checks: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  # Runs before the environment's reviewers are asked, so a blocked deployment fails without waiting for an approval
+  gate:
+    name: deployment allowed
+    runs-on: [self-hosted, forcitis-one]
+    timeout-minutes: 5
+    env:
+      TARGET_ENV: ${{ inputs.environment }}
+      VERSION: ${{ inputs.version }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: main
+      - run: |
+          . scripts/release/lib.sh
+          release_version_valid "$VERSION" || { echo "version '$VERSION' must match $RELEASE_VERSION_PATTERN" >&2; exit 1; }
+          if [ "$TARGET_ENV" = prod ] && [ "$CONFIRM" != "$VERSION" ]; then
+            echo "prod deployment needs the version typed again in 'confirm'" >&2
+            exit 1
+          fi
+          python3 scripts/release/deploy_gate.py --self-test
+          python3 scripts/release/deploy_gate.py "$TARGET_ENV"
+
+  deploy:
+    name: deploy ${{ inputs.version }} to ${{ inputs.environment }}
+    needs: gate
+    runs-on: [self-hosted, forcitis-one]
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 45
+    env:
+      TARGET_ENV: ${{ inputs.environment }}
+      VERSION: ${{ inputs.version }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # Checked again after the approval: main may have gained a blocker while the run waited
+      - name: repository allows this deployment
+        run: |
+          . scripts/release/lib.sh
+          release_version_valid "$VERSION" || { echo "version '$VERSION' must match $RELEASE_VERSION_PATTERN" >&2; exit 1; }
+          if [ "$TARGET_ENV" = prod ] && [ "$CONFIRM" != "$VERSION" ]; then
+            echo "prod deployment needs the version typed again in 'confirm'" >&2
+            exit 1
+          fi
+          python3 scripts/release/deploy_gate.py "$TARGET_ENV"
+
+      - name: release is published, on main and passed ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release="$(gh release view "v$VERSION" --json isDraft,tagName -q '.isDraft')"
+          [ "$release" = false ] || { echo "v$VERSION is a draft; publish it before deploying" >&2; exit 1; }
+          git fetch -q origin "refs/tags/v$VERSION:refs/tags/v$VERSION"
+          python3 scripts/release/ci_passed.py "$(git rev-parse "v$VERSION^{commit}")"
+
+      - name: download and verify the bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/deploy"
+          gh release download "v$VERSION" --dir "$RUNNER_TEMP/deploy" --clobber \
+            --pattern "forcitis-one-$VERSION.tar.gz" --pattern "forcitis-one-$VERSION.tar.gz.sha256"
+          scripts/release/verify_bundle.sh "$RUNNER_TEMP/deploy/forcitis-one-$VERSION.tar.gz"
+
+      - name: install on the server
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          for name in DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS DEPLOY_HOST DEPLOY_USER; do
+            [ -n "${!name}" ] || { echo "environment $TARGET_ENV lacks $name (RELEASE.md, one-time setup)" >&2; exit 1; }
+          done
+          ssh_dir="$RUNNER_TEMP/deploy/ssh"
+          (umask 077 && mkdir -p "$ssh_dir" && printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/key" && printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts")
+          archive="$RUNNER_TEMP/deploy/forcitis-one-$VERSION.tar.gz"
+          sha="$(cut -d' ' -f1 "$archive.sha256")"
+          ssh -i "$ssh_dir/key" -p "${DEPLOY_PORT:-22}" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o IdentityAgent=none \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$ssh_dir/known_hosts" -o GlobalKnownHostsFile=/dev/null \
+            -o ConnectTimeout=20 -o ServerAliveInterval=30 \
+            "$DEPLOY_USER@$DEPLOY_HOST" install "$VERSION" "$TARGET_ENV" "$sha" < "$archive"
+
+      - if: always()
+        run: rm -rf "$RUNNER_TEMP/deploy"

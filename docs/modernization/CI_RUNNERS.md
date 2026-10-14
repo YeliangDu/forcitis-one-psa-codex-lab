@@ -44,3 +44,12 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 ## 作业怎样判定可跳过
 
 `scripts/ci/relevant_change.py` 比较 PR 与基线分支：只有 `docs/`（除 `glossary/`、`events/`、`phase1a/SEEYON_VIEWS.sql`，这三处被测试读取）和根目录 `*.md` 的改动才算无关；此时 backend、frontend 作业照常开始并成功结束，只是跳过构建步骤，三项必需检查仍然报告。push 到 main 总是全量运行。
+
+## 发布与部署
+
+`release.yml`（发布包）与 `deploy.yml`（部署，被 `status/blockers/080` 拦住）也跑在这 4 个 runner 上，说明见 `docs/modernization/phase1a/infra/runbooks/RELEASE.md`。
+
+- `release` 占 1 个 runner 约 1–2 分钟（不跑测试，只用 CI 已通过的结论）；`deploy` 先占 1 个 runner 跑 `gate`，审批后再占 1 个。两者都按工作流串行（`concurrency`），不取消进行中的运行。
+- 构建工具链与 CI 相同（Java 25、Node 24、锁定的 pnpm），`build.sh` 只检查不安装。产物写在 `$RUNNER_TEMP`，作业结束删除。
+- 部署作业把 environment secret 中的 deploy key 写到 `$RUNNER_TEMP`（权限 600），结束即删。4 个 runner 是同一 macOS 用户，同机的其他作业理论上能读到；建议另注册一个独立用户、标签 `forcitis-one-deploy` 的 runner 专跑 `deploy`（RELEASE.md §10）。
+- runner 所在网络须有固定公网出口 IP，ECS 安全组的 22 端口只对它开放（RELEASE.md §8）；出口 IP 变化时同时改安全组与 ECS 上 deploy key 的 `from=`。
