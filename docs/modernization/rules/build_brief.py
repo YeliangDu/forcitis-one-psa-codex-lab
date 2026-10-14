@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Fill {{BEHAVIOR_CONTRACT}} in MODERNIZATION_BRIEF.template.md from BUSINESS_RULES.md P0 rules and RULE_REVIEWS.json.
+"""Fill {{BEHAVIOR_CONTRACT}} in MODERNIZATION_BRIEF.template.md from the P0 rules in BUSINESS_RULES.md and
+rules/IDENTITY_ORG_RULES.md (RULE-316..376) plus RULE_REVIEWS.json.
 
 Run from the repo's docs/modernization (or pass the directory holding BUSINESS_RULES.md as argv[1]; analysis/psa is still accepted)."""
 import re, collections, json, os, sys
@@ -7,12 +8,25 @@ BASE = sys.argv[1] if len(sys.argv) > 1 else ("analysis/psa" if os.path.isdir("a
 rules = open(os.path.join(BASE, "BUSINESS_RULES.md"), encoding="utf-8").read()
 _rv = os.path.join(BASE, "RULE_REVIEWS.json")
 reviews = json.load(open(_rv, encoding="utf-8"))["reviews"] if os.path.exists(_rv) else {}
+IDORG = "身份与组织（platform.identity、organization.workforce）"
 PHASE = {"售前与报价": "Phase 1b", "审批（platform.approval）": "Phase 1a", "交付、预算与收入": "Phase 2（收入确认部分在 Phase 4）",
-         "工时与资源": "Phase 2", "项目成本与核算": "Phase 4"}
+         "工时与资源": "Phase 2", "项目成本与核算": "Phase 4", IDORG: "Phase 1a"}
 rows = re.findall(r"^\| (RULE-\d+) \| ([^|]+) \| ([^|]+) \| (\w+) \| (P\d) \| `([^`]+)` \| (\w+) \|$", rules, re.M)
 body = {m.group(1): m.group(2) for m in re.finditer(r"### (RULE-\d+): .+\n((?:(?!### RULE-).*\n)*)", rules)}
+settled = [r for r in rows if r[4] == "P0" and r[6] == "High" and "Suspected defect" not in body[r[0]]]
+# identity/org rules live in their own file: the extractor's Review flag decides settled vs blocked
+_io = os.path.join(BASE, "rules", "IDENTITY_ORG_RULES.md")
+io_src = open(_io, encoding="utf-8").read() if os.path.exists(_io) else ""
+io_body = {m.group(1): m.group(2) for m in re.finditer(r"### (RULE-\d+): .+\n((?:(?!### RULE-).*\n)*)", io_src)}
+for rid, title, prio, review in re.findall(r"^\| (RULE-\d+) \| (?:identity|org) \| (.+?) \| (P\d) \| (Yes|No) \|$", io_src, re.M):
+    b = io_body[rid]
+    src = re.search(r"\*\*Source:\*\* `[^`]*?([^/`]+)`", b).group(1)
+    r = (rid, IDORG, " " + title, re.search(r"\*\*Category:\*\* (\w+)", b).group(1), prio, src,
+         re.search(r"\*\*Confidence:\*\* (\w+)", b).group(1))
+    rows.append(r); body[rid] = b
+    if prio == "P0" and review == "No":
+        settled.append(r)
 p0 = [r for r in rows if r[4] == "P0"]
-settled = [r for r in p0 if r[6] == "High" and "Suspected defect" not in body[r[0]]]
 blocked = [r for r in p0 if r not in settled]
 by = collections.defaultdict(lambda: [[], []])
 for r in p0:
@@ -34,8 +48,8 @@ def contract_line(r, dfx):
         return f"- [x] {old} — 修正：{note_body(note)}（已评审 {when}）"
     return f"- [x] {old}（已评审 {when}" + (f"：{note_body(note)}" if note_body(note) else "") + "）"
 reviewed = [r for r in blocked if r[0] in reviews and reviews[r[0]]["verdict"] != "discuss"]
-L = [f"行为契约取自 `BUSINESS_RULES.md` 的 **{len(p0)} 条 P0 规则**（全部 {len(rows)} 条）。它们构成回归测试集：每条在其所属阶段上线前，都必须证明等价，或以 `RULE_REVIEWS.json` 中的业务决定为准证明「按决定修正」。", "",
-     f"- **已定行为（{len(settled)} 条）**：置信度 High 且无疑似缺陷，按老系统行为复刻。",
+L = [f"行为契约取自 `BUSINESS_RULES.md` 与 `rules/IDENTITY_ORG_RULES.md` 的 **{len(p0)} 条 P0 规则**（全部 {len(rows)} 条）。它们构成回归测试集：每条在其所属阶段上线前，都必须证明等价，或以 `RULE_REVIEWS.json` 中的业务决定为准证明「按决定修正」。", "",
+     f"- **已定行为（{len(settled)} 条）**：置信度 High 且无疑似缺陷（身份与组织域以抽取时的 Review=No 为准），按老系统行为复刻。",
      f"- **阻塞项（{len(blocked)} 条，已评审 {len(reviewed)} 条）**：置信度低于 High，或抽取时发现疑似缺陷（老行为看起来有误，或与文档不一致）。按用户要求「顺手修已知 bug、行为现代化」，这些规则**在所属阶段开工前必须经 `/code-modernization:modernize-review psa` 由业务逐条决定**：保持原行为、按修正行为实现，或列入讨论。未决定的规则阻塞该阶段的入口条件。已评审的条目按 `RULE_REVIEWS.json` 呈现：**不复刻** = 新系统按「新系统做法」实现，老行为不作为基准；「修正：」= 规则保留、按修正实现；「已评审」= 按老行为复刻。", "",
      "| 域 | 阶段 | 已定（P0） | 阻塞（P0，需评审） | 其中已评审 |", "|---|---|---|---|---|"]
 for d, (s, b) in by.items():
