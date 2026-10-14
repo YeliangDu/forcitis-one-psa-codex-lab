@@ -2,7 +2,7 @@ package com.forcitis.one.platform.numbering;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;

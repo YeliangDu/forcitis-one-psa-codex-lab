@@ -26,7 +26,7 @@ import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import com.tngtech.archunit.core.domain.JavaClass;
 import java.lang.reflect.RecordComponent;
 import java.math.BigDecimal;

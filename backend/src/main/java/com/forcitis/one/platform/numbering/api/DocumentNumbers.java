@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.numbering.api;
 
+import com.forcitis.one.kernel.DocumentType;
+
 import com.forcitis.one.kernel.LegalEntityId;
 import java.time.LocalDate;
 

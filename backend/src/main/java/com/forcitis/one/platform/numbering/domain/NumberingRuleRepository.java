@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.numbering.domain;
 
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import java.util.List;
 import java.util.Optional;
 

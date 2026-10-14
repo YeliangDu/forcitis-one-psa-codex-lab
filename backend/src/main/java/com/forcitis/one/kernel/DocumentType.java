@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.numbering.api;
+package com.forcitis.one.kernel;
 
 import java.util.Optional;
 

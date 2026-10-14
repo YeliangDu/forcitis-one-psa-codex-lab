@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;

@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.numbering.infrastructure.persistence;
 
 import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
