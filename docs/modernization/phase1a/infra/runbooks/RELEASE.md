@@ -151,7 +151,17 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 ### R-0 专用部署 runner 重建（必需；只有 deploy 作业依赖它，release 在 GitHub 托管机上）
 
-**已完成（2026-10-15，one-ops 引导、用户输入口令）**：脚本 `scripts/release/runner_rebuild.sh`（参数：发行包、GitHub 公布的 SHA256、注册令牌文件）。runner 2.338.0（osx-arm64，SHA256 与发布页一致），`mac-one-deploy` 在线，标签 `self-hosted, macOS, ARM64, forcitis-one-deploy`，进程以 `forcitis-deploy` 运行；第 8 步演练待做。
+**已完成（2026-10-15，one-ops 引导、用户输入口令）**：脚本 `scripts/release/runner_rebuild.sh`（参数：发行包、GitHub 公布的 SHA256、注册令牌文件）。runner 2.338.0（osx-arm64，SHA256 与发布页一致），`mac-one-deploy` 在线，标签 `self-hosted, macOS, ARM64, forcitis-one-deploy`，进程以 `forcitis-deploy` 运行。
+
+**第 8 步演练结果（2026-10-15，临时分支 `drill/r0-runner-refusal`，演练后分支与运行记录已删除）**：
+| 情形 | 结果 |
+|---|---|
+| 分支上新增工作流，作业 `runs-on: [self-hosted, forcitis-one-deploy]`，push 触发 | 在「Set up runner」被 hook 拒绝：`workflow '…/r0-drill.yml@refs/heads/drill/r0-runner-refusal' is not deploy.yml on main` |
+| 同一工作流在工作流级与作业级 `env` 伪造 `GITHUB_REF`、`GITHUB_EVENT_NAME`、`GITHUB_WORKFLOW_REF` | 同样被拒绝，拒绝理由显示的是真实的工作流来源（伪造不生效） |
+| 分支上手动运行 release.yml | 两个作业因 `if: github.ref == 'refs/heads/main'` 跳过，未进入任何 runner |
+| 分支上手动运行 deploy.yml | 两个作业同样跳过 |
+| main 上手动运行 release.yml 并把作业指到部署 runner | 不做：须改 main 上的工作流，等于真实变更 |
+| main 上手动运行 deploy.yml（放行路径） | 不做：部署仍被 blockers/080 挡住，gate 先失败、到不了部署 runner；首次 dev 部署时验证放行 |
 
 原 `mac-one-deploy` 已从 GitHub 注销（从未接过作业），本机 LaunchDaemon 仍在。按下列方案重建，使作业改不了 runner 本身、改不了 hook、也用不到任何用户可写的程序：
 
