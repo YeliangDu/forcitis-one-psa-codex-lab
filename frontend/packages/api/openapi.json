@@ -1,6 +1,53 @@
 {
   "components" : {
     "schemas" : {
+      "ApprovalStatus" : {
+        "enum" : [ "APPROVED", "CANCELLED", "REJECTED", "RETURNED", "RUNNING" ],
+        "type" : "string"
+      },
+      "AuditEntryPageResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AuditEntryResponse"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "AuditEntryResponse" : {
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "actorId" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "detail" : {
+            "type" : "string"
+          },
+          "entryId" : {
+            "type" : "string"
+          },
+          "onBehalfOfId" : {
+            "type" : "string"
+          },
+          "subjectKey" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "createdAt", "entryId", "subjectKey" ],
+        "type" : "object"
+      },
       "CalendarDayRequest" : {
         "properties" : {
           "calendarDate" : {
@@ -8,9 +55,10 @@
             "type" : "string"
           },
           "dayKind" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/DayKind"
           }
         },
+        "required" : [ "calendarDate", "dayKind" ],
         "type" : "object"
       },
       "CalendarDayResponse" : {
@@ -20,7 +68,7 @@
             "type" : "string"
           },
           "dayKind" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/DayKind"
           }
         },
         "required" : [ "calendarDate", "dayKind" ],
@@ -67,6 +115,10 @@
         "required" : [ "displayName", "navigation", "permissionCodes", "userId" ],
         "type" : "object"
       },
+      "DayKind" : {
+        "enum" : [ "HOLIDAY", "MAKE_UP_WORKDAY" ],
+        "type" : "string"
+      },
       "DecideTaskRequest" : {
         "properties" : {
           "outcome" : {
@@ -85,7 +137,7 @@
             "type" : "string"
           },
           "status" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/ApprovalStatus"
           }
         },
         "required" : [ "instanceId", "status" ],
@@ -105,6 +157,10 @@
         },
         "type" : "object"
       },
+      "ErrorCode" : {
+        "enum" : [ "COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE", "COST_TIMESHEET_WORK_DATE_IN_FUTURE", "COST_TIMESHEET_WORK_DATE_REQUIRED", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED" ],
+        "type" : "string"
+      },
       "InboxItemResponse" : {
         "properties" : {
           "claimed" : {
@@ -117,11 +173,17 @@
           "detailUrl" : {
             "type" : "string"
           },
+          "documentId" : {
+            "type" : "string"
+          },
           "nodeName" : {
             "type" : "string"
           },
+          "processKey" : {
+            "$ref" : "#/components/schemas/ProcessKey"
+          },
           "source" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/InboxSource"
           },
           "taskId" : {
             "type" : "string"
@@ -130,7 +192,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "claimed", "source", "taskId", "title" ],
+        "required" : [ "claimed", "source", "taskId" ],
         "type" : "object"
       },
       "InboxResponse" : {
@@ -152,6 +214,9 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "nextCursor" : {
+            "type" : "string"
+          },
           "totalCount" : {
             "format" : "int32",
             "type" : "integer"
@@ -159,6 +224,10 @@
         },
         "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "totalCount" ],
         "type" : "object"
+      },
+      "InboxSource" : {
+        "enum" : [ "LEGACY", "NEW" ],
+        "type" : "string"
       },
       "LegacyNumberResponse" : {
         "properties" : {
@@ -215,8 +284,12 @@
               "$ref" : "#/components/schemas/CalendarDayRequest"
             },
             "type" : "array"
+          },
+          "lockedDaysConfirmed" : {
+            "type" : "boolean"
           }
         },
+        "required" : [ "days" ],
         "type" : "object"
       },
       "NavigationResponse" : {
@@ -342,6 +415,38 @@
         "required" : [ "code", "deliveryUnit", "name", "orgUnitId", "status" ],
         "type" : "object"
       },
+      "ProblemDetail" : {
+        "properties" : {
+          "correlationId" : {
+            "type" : "string"
+          },
+          "detail" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "$ref" : "#/components/schemas/ErrorCode"
+          },
+          "instance" : {
+            "type" : "string"
+          },
+          "status" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "errorCode", "status" ],
+        "type" : "object"
+      },
+      "ProcessKey" : {
+        "enum" : [ "COST_TIMESHEET_APPROVAL" ],
+        "type" : "string"
+      },
       "ReleaseResponse" : {
         "properties" : {
           "message" : {
@@ -453,29 +558,16 @@
             "format" : "int64",
             "type" : "integer"
           },
+          "workDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
           "workPackageId" : {
             "format" : "int64",
             "type" : "integer"
           }
         },
-        "type" : "object"
-      },
-      "SubmitTimesheetResponse" : {
-        "properties" : {
-          "approvalInstanceId" : {
-            "type" : "string"
-          },
-          "errorCode" : {
-            "type" : "string"
-          },
-          "outcome" : {
-            "type" : "string"
-          },
-          "remainingHours" : {
-            "type" : "number"
-          }
-        },
-        "required" : [ "outcome" ],
+        "required" : [ "hours", "projectManagerId", "workDate", "workPackageId" ],
         "type" : "object"
       },
       "SyncDiffResponse" : {
@@ -631,6 +723,12 @@
           "documentType" : {
             "type" : "string"
           },
+          "history" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TaskRecordResponse"
+            },
+            "type" : "array"
+          },
           "initiator" : {
             "type" : "string"
           },
@@ -644,13 +742,79 @@
             "type" : "string"
           },
           "processKey" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/ProcessKey"
           },
           "taskId" : {
             "type" : "string"
           }
         },
-        "required" : [ "canAct", "candidates", "createdAt", "documentId", "documentType", "initiator", "instanceId", "nodeKey", "nodeName", "processKey", "taskId" ],
+        "required" : [ "canAct", "candidates", "createdAt", "documentId", "documentType", "history", "initiator", "instanceId", "nodeKey", "nodeName", "processKey", "taskId" ],
+        "type" : "object"
+      },
+      "TaskRecordAction" : {
+        "enum" : [ "APPROVED", "AUTO_APPROVED", "REJECTED", "RETURNED", "TRANSFERRED" ],
+        "type" : "string"
+      },
+      "TaskRecordPageResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TaskRecordResponse"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "TaskRecordResponse" : {
+        "properties" : {
+          "action" : {
+            "$ref" : "#/components/schemas/TaskRecordAction"
+          },
+          "actorId" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "documentId" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "type" : "string"
+          },
+          "instanceId" : {
+            "type" : "string"
+          },
+          "nodeKey" : {
+            "type" : "string"
+          },
+          "nodeName" : {
+            "type" : "string"
+          },
+          "processKey" : {
+            "$ref" : "#/components/schemas/ProcessKey"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "recordId" : {
+            "type" : "string"
+          },
+          "round" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "taskId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "actorId", "decidedAt", "documentId", "documentType", "instanceId", "nodeKey", "nodeName", "processKey", "recordId", "round", "taskId" ],
         "type" : "object"
       },
       "TicketLoginRequest" : {
@@ -663,9 +827,6 @@
       },
       "TimesheetResponse" : {
         "properties" : {
-          "approvalInstanceId" : {
-            "type" : "string"
-          },
           "canWithdraw" : {
             "type" : "boolean"
           },
@@ -674,14 +835,22 @@
             "type" : "integer"
           },
           "status" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/TimesheetStatus"
           },
           "timesheetId" : {
             "type" : "string"
+          },
+          "workDate" : {
+            "format" : "date",
+            "type" : "string"
           }
         },
-        "required" : [ "canWithdraw", "round", "status", "timesheetId" ],
+        "required" : [ "canWithdraw", "round", "status", "timesheetId", "workDate" ],
         "type" : "object"
+      },
+      "TimesheetStatus" : {
+        "enum" : [ "APPROVED", "DRAFT", "REJECTED", "RETURNED", "SUBMITTED" ],
+        "type" : "string"
       },
       "TransferTaskRequest" : {
         "properties" : {
@@ -767,6 +936,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "timesheet-controller" ]
@@ -783,6 +962,20 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -797,6 +990,16 @@
         "responses" : {
           "200" : {
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "timesheet-controller" ]
@@ -813,6 +1016,20 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -825,15 +1042,18 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "202" : {
+            "description" : "Accepted"
+          },
+          "default" : {
             "content" : {
-              "*/*" : {
+              "application/problem+json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/SubmitTimesheetResponse"
+                  "$ref" : "#/components/schemas/ProblemDetail"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Error"
           }
         },
         "tags" : [ "timesheet-controller" ]
@@ -850,6 +1070,20 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -864,6 +1098,16 @@
         "responses" : {
           "200" : {
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "timesheet-controller" ]
@@ -885,12 +1129,30 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "legal-entity-controller" ]
       },
       "post" : {
         "operationId" : "create_1",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -911,6 +1173,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "legal-entity-controller" ]
@@ -926,6 +1198,13 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -948,6 +1227,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "legal-entity-controller" ]
@@ -978,6 +1267,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "org-unit-controller" ]
@@ -1005,6 +1304,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "org-unit-controller" ]
@@ -1036,6 +1345,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "sync-run-controller" ]
@@ -1063,6 +1382,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "sync-run-controller" ]
@@ -1079,6 +1408,13 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -1090,6 +1426,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "sync-run-controller" ]
@@ -1112,6 +1458,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "work-calendar-controller" ]
@@ -1139,6 +1495,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "work-calendar-controller" ]
@@ -1152,6 +1518,13 @@
           "schema" : {
             "format" : "int32",
             "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -1174,14 +1547,90 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "work-calendar-controller" ]
       }
     },
+    "/api/v1/platform/approval-task-records" : {
+      "get" : {
+        "operationId" : "list_records",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaskRecordPageResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
     "/api/v1/platform/approval-tasks" : {
       "get" : {
         "operationId" : "list_4",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {
@@ -1192,6 +1641,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -1218,6 +1677,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -1233,10 +1702,34 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -1249,6 +1742,20 @@
           "in" : "path",
           "name" : "taskId",
           "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -1273,6 +1780,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -1285,6 +1802,20 @@
           "in" : "path",
           "name" : "taskId",
           "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -1309,6 +1840,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -1321,6 +1862,20 @@
           "in" : "path",
           "name" : "taskId",
           "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -1338,6 +1893,16 @@
         "responses" : {
           "200" : {
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -1386,12 +1951,10 @@
           }
         }, {
           "in" : "query",
-          "name" : "page",
+          "name" : "cursor",
           "required" : false,
           "schema" : {
-            "default" : 0,
-            "format" : "int32",
-            "type" : "integer"
+            "type" : "string"
           }
         }, {
           "in" : "query",
@@ -1408,11 +1971,21 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object"
+                  "$ref" : "#/components/schemas/AuditEntryPageResponse"
                 }
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "audit-entry-controller" ]
@@ -1462,6 +2035,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "legacy-number-controller" ]
@@ -1490,6 +2073,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "session-controller" ]
@@ -1511,6 +2104,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "numbering-rule-controller" ]
@@ -1538,6 +2141,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "numbering-rule-controller" ]
@@ -1550,6 +2163,13 @@
           "required" : true,
           "schema" : {
             "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
             "type" : "string"
           }
         } ],
@@ -1566,6 +2186,16 @@
         "responses" : {
           "200" : {
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "numbering-rule-controller" ]
@@ -1587,12 +2217,30 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "role-controller" ]
       },
       "post" : {
         "operationId" : "create",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1613,6 +2261,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "role-controller" ]
@@ -1629,6 +2287,13 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -1640,6 +2305,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "role-controller" ]
@@ -1665,6 +2340,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "role-controller" ]
@@ -1678,6 +2363,13 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -1700,6 +2392,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "role-controller" ]
@@ -1718,6 +2420,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "session-controller" ]
@@ -1746,6 +2458,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "session-controller" ]
@@ -1757,6 +2479,16 @@
         "responses" : {
           "200" : {
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "session-controller" ]
@@ -1785,6 +2517,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "session-controller" ]
@@ -1813,6 +2555,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "session-controller" ]
@@ -1841,6 +2593,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "session-controller" ]
@@ -1857,6 +2619,13 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -1868,6 +2637,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "role-controller" ]
@@ -1884,6 +2663,13 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -1895,6 +2681,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "role-controller" ]
@@ -1910,6 +2706,13 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -1932,6 +2735,16 @@
               }
             },
             "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Error"
           }
         },
         "tags" : [ "role-controller" ]
