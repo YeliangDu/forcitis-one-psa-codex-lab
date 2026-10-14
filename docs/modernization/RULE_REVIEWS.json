@@ -258,6 +258,276 @@
       "at": "2026-10-14T10:29:26+02:00",
       "title": "The task-result consumer routes by business key, and a hook replaces the handler",
       "note": "错误（整批同意评估会话建议）：统一为钩子与业务处理都执行、顺序固定，与流程结果处理一致。"
+    },
+    "RULE-316": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Password login: same error for unknown user and wrong password; disabled users refused",
+      "note": "正确+修（整批同意评审建议）：只保留管理员应急账号（强口令 + MFA + 锁定，C1a-04）；未知账号与错误口令仍报同一错误；员工不再口令登录（D-02）。"
+    },
+    "RULE-317": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Login form: account and password are 4–16 characters; account is letters and digits only",
+      "note": "错误（整批同意评审建议）：员工无口令；应急账号口令至少 12 位并要求复杂度。"
+    },
+    "RULE-318": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Passwordless \"customization\" login issues real tokens for any username or user id",
+      "note": "错误（整批同意评审建议）：免密端点不迁移（D-04），外部调用方改用签名、短时效、一次性票据并服务端校验，拒绝停用用户与超管（C1a-03、SEC-001）。"
+    },
+    "RULE-319": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "A8 login trusts the memberId in the request and redirects with tokens in the URL",
+      "note": "错误（整批同意评审建议）：A8 入口统一走致远服务端验票（RULE-320），不信任请求中的 memberId，令牌不进 URL。"
+    },
+    "RULE-322": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "WeCom H5 OAuth login maps the WeCom userid to `we_com_id` exactly",
+      "note": "正确+修（整批同意评审建议）：按 we_com_id 精确映射保留；映射后必须「启用且在职」；删 local 环境固定用户后门；密钥由配置注入并轮换（SEC-006）。"
+    },
+    "RULE-323": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "WeCom mini-program login (jscode2session) uses the same `we_com_id` mapping",
+      "note": "正确+修（用户作答）：小程序保留（问题「保留」）——与 H5 共用 we_com_id 精确映射与「启用且在职」校验；密钥由配置注入。"
+    },
+    "RULE-324": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "PC WeCom web login guesses the user from the email local part or an \"f-stripped\" id",
+      "note": "错误（整批同意评审建议）：不按邮箱前缀或去掉 f 猜人，只按 we_com_id 精确映射（与 H5 同一键），未映射拒绝；令牌不进 URL。"
+    },
+    "RULE-325": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "WeCom social auto-binding is written under a different user type than it is read",
+      "note": "错误（整批同意评审建议）：社交绑定表不迁移（D-03），身份只用 we_com_id。"
+    },
+    "RULE-326": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Only password and Seeyon logins check the disabled status",
+      "note": "错误（整批同意评审建议）：所有登录入口在建会话前过同一道检查：启用且未删除（identity BC 一处实现）。"
+    },
+    "RULE-327": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Resigned (soft-deleted) users are kept out only by the lookup filter",
+      "note": "错误（整批同意评审建议）：显式检查「已离职」并返回明确业务错误，不依赖 ORM 逻辑删除过滤，不抛空指针或越界。"
+    },
+    "RULE-328": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "SMS login: the code must be valid and the mobile must exist",
+      "note": "错误（整批同意评审建议）：短信登录不迁移（D-01，ADR-0019「短信不迁移」）。"
+    },
+    "RULE-329": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "KM token: anonymous caller, memberId used as a mobile number or a PSA id",
+      "note": "错误（整批同意评审建议）：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。"
+    },
+    "RULE-331": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Every login creates a refresh token and an access token for client \"default\"",
+      "note": "错误（用户作答）：不再签发令牌对，改服务端会话（ADR-0009 §2，Spring Session JDBC + HttpOnly/SameSite Cookie）；时长为配置项（见 332）。"
+    },
+    "RULE-332": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Access-token expiry slides to now + 10 h on every check",
+      "note": "错误（用户作答）：会话时长「空闲 10h + 上限 24h」——10 小时无活动过期，登录 24 小时后无论是否活跃都须重新登录；均为配置项；令牌不打印到日志。"
+    },
+    "RULE-333": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Refresh revokes sibling access tokens but never rotates the refresh token",
+      "note": "错误（整批同意评审建议）：新系统无刷新令牌；登录时轮换会话 ID；过渡期对老令牌只读校验后换发新会话（C1a-06）。"
+    },
+    "RULE-335": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Four SSO paths put access and refresh tokens in the redirect URL",
+      "note": "错误（整批同意评审建议）：令牌不进 URL；SSO 回跳用一次性 code，在服务端换取 HttpOnly 会话 Cookie。"
+    },
+    "RULE-336": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Services trust the `login-user` header, treat a bad token as anonymous, and ignore user type",
+      "note": "错误（整批同意评审建议）：身份只来自服务端会话（CurrentUser），不信任任何外部身份请求头；无效会话返回 401 而非匿名；按接口族校验用户类型；mock 登录只限本地。"
+    },
+    "RULE-337": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "The gateway does no authentication",
+      "note": "错误（整批同意评审建议）：默认拒绝集中在 platform.identity 一处（G28/G33）；匿名遍历全部接口返回 401（C1a-07）。"
+    },
+    "RULE-338": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Disabling, deleting or a resignation via sync does not revoke live tokens",
+      "note": "错误（整批同意评审建议）：停用、删除、离职（含同步）、角色变更时即时吊销该用户全部会话；解析会话时校验用户状态。"
+    },
+    "RULE-344": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Every user without a role silently gets role 2 whenever the user cache reloads",
+      "note": "错误（整批同意评审建议）：不再在缓存刷新时隐式补授角色 2（C1a-08）；A8 新建在职员工时显式授予一次基础角色并审计；管理员移除后不补回；离职或已删除员工不授。"
+    },
+    "RULE-345": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Role maintenance: reserved code, unique name and code, system roles frozen, default scope ALL",
+      "note": "正确+修（整批同意评审建议）：保留 super_admin 预留码、名称与编码唯一、系统角色冻结、删角色连带删关联；新角色默认数据范围 SELF（最小权限），不再默认 ALL。"
+    },
+    "RULE-349": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Business data scope = union over roles; ALL anywhere means unrestricted",
+      "note": "正确+修（用户作答）：各角色并集保留；只计启用角色；自定义部门只在 DEPT_CUSTOM 下生效；排除已离职用户；「本人及下属」只算直接下属（问题「只算直接下属」，与老系统一致）；以显式 AccessScope（法人 × 部门 × 项目角色）表达。"
+    },
+    "RULE-350": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Row filtering applies only to opt-in methods with `@DataOwner` fields",
+      "note": "错误（整批同意评审建议）：不用注解开启的隐式 SQL 改写；AccessScope 显式传入仓储，异常即拒绝（fail-closed）（ADR-0009 §4、ADR-0019）。"
+    },
+    "RULE-351": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "An empty data scope fails open",
+      "note": "错误（整批同意评审建议）：空数据范围返回零行，不放行。"
+    },
+    "RULE-352": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "A second, different data-scope engine guards system user and dept writes",
+      "note": "错误（整批同意评审建议）：合并为一套数据范围模型（同 349），读写同一口径。"
+    },
+    "RULE-355": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "A8 dept \"disabled\" test and how it maps to PSA status and deleted",
+      "note": "正确+修（整批同意评审建议）：停用判定保留；NULL 的处理写成显式规则（仍视为有效，同步报告列出 NULL 行，与 A8 负责人确认）；「停用」与「撤销」分为两个状态，不再混同。"
+    },
+    "RULE-356": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "A8 is authoritative for dept leader, regional AR, category and delivery flag",
+      "note": "正确+修（整批同意评审建议）：A8 为部门负责人、区域 AR、类别、交付标识的权威来源；关系类型 ID 等改为配置并在启动时校验；多名负责人时取 ID 最小者并告警给数据管理员（确定性、不阻塞）。"
+    },
+    "RULE-357": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive",
+      "note": "正确+修（整批同意评审建议）：A8 部门随 A8 新增、更新、撤销、恢复；PSA 不再有手工部门（D-06）；PSA 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。"
+    },
+    "RULE-359": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Manual dept edits: parent valid, no cycles, unique name, no delete with children",
+      "note": "错误（整批同意评审建议）：组织数据在新系统只读，不提供手工维护部门（D-06，C1a-10）；树完整性由同步校验。"
+    },
+    "RULE-360": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "\"Dept and below\" = recursive children from a cache that includes deleted depts",
+      "note": "正确+修（整批同意评审建议）：「本部门及以下」递归保留；计算权限范围时排除已撤销部门，历史报表可包含。"
+    },
+    "RULE-361": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "A8 user sync scope uses a substring match, unlike the dept prefix rule",
+      "note": "错误（整批同意评审建议）：人员同步范围改用与部门同步相同的前缀规则（PATH 以 00000001 开头），人员不指向未同步部门。"
+    },
+    "RULE-362": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "A new A8 person becomes a PSA user with username = phone and a default password",
+      "note": "正确+修（整批同意评审建议）：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。"
+    },
+    "RULE-363": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Resignation = A8 login name is null → PSA user soft-deleted",
+      "note": "正确+修（整批同意评审建议）：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。"
+    },
+    "RULE-364": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Rehire and phone change restore and re-enable the PSA user",
+      "note": "正确+修（整批同意评审建议）：复职（A8 重新有登录名）时恢复；换手机号不覆盖 PSA 的手工停用（启用状态由 PSA 拥有）；用户名跟随 A8 登录名同步。"
+    },
+    "RULE-365": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Per-field update semantics in user sync are asymmetric",
+      "note": "错误（整批同意评审建议）：A8 权威列按值同步并显式写 NULL（汇报线清空也同步）；单行缺部门或岗位时隔离该行并告警，不中断整批。"
+    },
+    "RULE-366": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Users that drop out of the A8 result set are never deactivated",
+      "note": "错误（整批同意评审建议）：不在 A8 结果中的人员视为离职候选，经与部门同步相同的 80% 缩水保护后停用并吊销会话。"
+    },
+    "RULE-367": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Post sync only adds and renames",
+      "note": "错误（整批同意评审建议）：岗位同步状态与删除（停用 / 删除同步到 PSA），保证「岗位必须启用」的校验有意义。"
+    },
+    "RULE-368": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Manual user maintenance: unique username, mobile and email; enabled dept and posts",
+      "note": "错误（整批同意评审建议）：不提供手工维护人员（D-06）；身份键为 A8 ID，唯一性在全部行上保证（含已离职）。"
+    },
+    "RULE-369": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Excel user import: per-row validation, optional update, init password",
+      "note": "错误（整批同意评审建议）：Excel 导入用户不迁移（D-06），不设共享初始口令。"
+    },
+    "RULE-370": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Password change rules",
+      "note": "错误（整批同意评审建议）：员工无口令；仅应急账号可改口令，改后吊销其其他会话（ADR-0009）。"
+    },
+    "RULE-372": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Two separate leader concepts: person leader and dept leader",
+      "note": "正确+修（整批同意评审建议）：「直属领导」（人员 leader）与「部门负责人」两个概念保留，每个流程写明用哪一个；同步时校验存在、在职、非本人、无环，不合格的报告数据管理员；审批取人按 RULE-250 往上推一级。"
+    },
+    "RULE-373": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Org-change events: field diff after commit; dept sync events miss fields and repeat deletes",
+      "note": "正确+修（整批同意评审建议）：提交后按字段差异发组织变更事件保留；事件字段与同步字段用同一清单；已删除的不重复发 DELETED；经事件发布登记表投递（C1a-11）。"
+    },
+    "RULE-374": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "WeCom message recipients are resolved through `we_com_id`",
+      "note": "正确+修（整批同意评审建议）：按 we_com_id 解析收件人保留；所有发送处空值安全（缺失只告警跳过）；输出「在职但无 we_com_id」数据质量报告。"
+    },
+    "RULE-375": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "Non-production task messages go to one hard-coded person; agentId chosen by environment",
+      "note": "正确+修（整批同意评审建议）：非生产环境重定向保留；测试收件人改为配置的白名单，agentId 按环境配置，不写死个人。"
+    },
+    "RULE-376": {
+      "verdict": "wrong",
+      "at": "2026-10-14T11:00:28+02:00",
+      "title": "WeCom card callback takes the acting user from the button key, not from FromUserName",
+      "note": "错误（整批同意评审建议）：操作人按 FromUserName → we_com_id → 用户确定，且必须是该任务处理人；回调 token 与 AES key 移到配置并轮换（SEC-006）。"
     }
   }
 }
