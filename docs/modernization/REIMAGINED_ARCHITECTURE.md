@@ -50,7 +50,7 @@ C4Container
 | `organization.workforce` | A8 组织快照（部门、人员、岗位、任职、汇报线、负责人 / 区域 AR / 类别 / 交付标识、**企业微信 userid**）；同步运行与差异；缩水保护与人工放行；对账查询；单人即时查询（登录未命中时）；`OrgChanged` 事件。内部 ACL：A8 只读视图 | C1a-10、11；RULE-354..373 | `organization_workforce`：`org_units`、`employees`、`positions`、`assignments`、`legal_entities`、`sync_runs`、`sync_diffs` |
 | `platform.approval` | Flowable 8 引擎封装；纯函数 `AssigneeResolver`（引擎与回放共用）；发起 / 认领 / 办理 / 退回发起人；幂等发起与轮次；类型化结果事件；合并待办；通知意图（模块内接口隔离）。内部 ACL：老待办只读视图。**其余生命周期能力范围待 Q-3** | C1a-12..15；RULE-248..314（已评审） | `platform_approval`：`approval_requests`、`start_rounds`；Flowable `ACT_*`（无 `approval_tasks_view`、`hook_registrations`、`assignment_rules`、`legacy_inbox_cache`，评审 #9） |
 | `platform.integration` | 共用企业微信客户端（access_token 缓存、OAuth code 换 userid、发送文本卡片）；`outbound_deliveries`（重试、退避、死信） | C1a-01、15 出站部分 | `platform_integration`：`outbound_deliveries` |
-| `platform.audit` | 只追加审计：登录成功 / 失败、会话吊销、权限变更、代理操作；失败类审计用独立事务（REQUIRES_NEW），触发器保证只追加（G34） | C1a-17 | `platform_audit`：`audit_events` |
+| `platform.audit` | 只追加审计：登录成功 / 失败、会话吊销、权限变更、代理操作；失败类审计用独立事务（REQUIRES_NEW），触发器保证只追加（G34） | C1a-17 | `platform_audit`：`audit_entries` |
 | `platform.numbering` | 模板已实现；1a 增加编号规则页与 `legacy_numbers`（**范围待 Q-2**） | C1a-16；ADR-0010 | `platform_numbering` |
 | `platform.scheduling` | ShedLock（模板已有）；作业失败用 Micrometer 定时任务观测指标，不建表（评审 #13） | C1a-18 | `platform_scheduling` |
 | `kernel` | `Money`、`LegalEntityId`（已有），新增最小形态的 `AccountingPeriod`、`ProjectCoordinate`（类型 + 不变式，不含业务行为，评审 #3） | ADR-0016 入口条件 | — |
