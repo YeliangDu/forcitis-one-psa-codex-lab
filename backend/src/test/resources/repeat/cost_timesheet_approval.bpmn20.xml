@@ -10,7 +10,7 @@
     <sequenceFlow id="toRepeatReview" sourceRef="start" targetRef="repeatReview"/>
     <userTask id="repeatReview" name="Repeat review">
       <extensionElements>
-        <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" beforeHook="TEST_DEPARTMENT_REVIEW"/>
+        <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" beforeHook="TEST_DEPARTMENT_REVIEW" routingFlag="again" autoApproveRepeat="true"/>
       </extensionElements>
     </userTask>
     <sequenceFlow id="toAgain" sourceRef="repeatReview" targetRef="again"/>

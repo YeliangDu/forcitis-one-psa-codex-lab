@@ -1,6 +1,10 @@
 {
   "components" : {
     "schemas" : {
+      "AccessScopeKind" : {
+        "enum" : [ "ALL", "CUSTOM_ORG_UNITS", "OWN_ORG_UNIT", "OWN_ORG_UNIT_SUBTREE", "SELF", "SELF_AND_DIRECT_REPORTS" ],
+        "type" : "string"
+      },
       "AttributeLegalEntityRequest" : {
         "properties" : {
           "effectiveFrom" : {
@@ -68,8 +72,7 @@
             "type" : "string"
           },
           "dayKind" : {
-            "enum" : [ "HOLIDAY", "MAKE_UP_WORKDAY" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/DayKind"
           }
         },
         "type" : "object"
@@ -81,12 +84,15 @@
             "type" : "string"
           },
           "dayKind" : {
-            "enum" : [ "HOLIDAY", "MAKE_UP_WORKDAY" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/DayKind"
           }
         },
         "required" : [ "calendarDate", "dayKind" ],
         "type" : "object"
+      },
+      "ConfirmationStatus" : {
+        "enum" : [ "PENDING_CONFIRMATION", "CONFIRMED" ],
+        "type" : "string"
       },
       "CorrectLegalEntityAttributionRequest" : {
         "properties" : {
@@ -257,17 +263,24 @@
         "required" : [ "items" ],
         "type" : "object"
       },
+      "DayKind" : {
+        "enum" : [ "HOLIDAY", "MAKE_UP_WORKDAY" ],
+        "type" : "string"
+      },
       "DecideTaskRequest" : {
         "properties" : {
           "outcome" : {
-            "enum" : [ "APPROVE", "REJECT" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/DecisionOutcome"
           },
           "reason" : {
             "type" : "string"
           }
         },
         "type" : "object"
+      },
+      "DecisionOutcome" : {
+        "enum" : [ "APPROVE", "REJECT" ],
+        "type" : "string"
       },
       "DecisionResponse" : {
         "properties" : {
@@ -280,6 +293,10 @@
         },
         "required" : [ "instanceId", "status" ],
         "type" : "object"
+      },
+      "DocumentType" : {
+        "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
+        "type" : "string"
       },
       "EmergencyLoginRequest" : {
         "properties" : {
@@ -305,11 +322,126 @@
         "type" : "object"
       },
       "ErrorCode" : {
-        "enum" : [ "COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_PROJECT_MANAGER_INVALID", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_FORBIDDEN", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND", "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_AUDIT_QUERY_INVALID", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_NOT_SIGNED_IN", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_IN_USE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_CONCURRENT_UPDATE", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND", "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN", "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID", "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED" ],
+        "enum" : [ "COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EMPLOYEE_UNKNOWN", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_NOT_OWNER", "COST_TIMESHEET_PROJECT_MANAGER_INVALID", "COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_RESULT_PENDING", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_WORK_DATE_FIXED", "COST_TIMESHEET_WORK_DATE_IN_FUTURE", "COST_TIMESHEET_WORK_DATE_REQUIRED", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND", "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ALREADY_APPROVED", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NODE_CONFIG_INVALID", "PLATFORM_APPROVAL_NOT_ADMINISTRATOR", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_PAGE_INVALID", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_ROUND_MISMATCH", "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_AUDIT_QUERY_INVALID", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_NOT_SIGNED_IN", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_IN_USE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_CONCURRENT_UPDATE", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND", "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN", "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID", "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MALFORMED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED" ],
         "type" : "string"
+      },
+      "HandledTaskPageResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/HandledTaskResponse"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "HandledTaskResponse" : {
+        "properties" : {
+          "action" : {
+            "$ref" : "#/components/schemas/TaskRecordAction"
+          },
+          "actorId" : {
+            "type" : "string"
+          },
+          "actorName" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "documentId" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "$ref" : "#/components/schemas/DocumentType"
+          },
+          "instanceId" : {
+            "type" : "string"
+          },
+          "nodeKey" : {
+            "type" : "string"
+          },
+          "nodeName" : {
+            "type" : "string"
+          },
+          "onBehalfOfName" : {
+            "type" : [ "string", "null" ]
+          },
+          "processKey" : {
+            "$ref" : "#/components/schemas/ProcessKey"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "recordId" : {
+            "type" : "string"
+          },
+          "round" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "taskId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "actorId", "actorName", "decidedAt", "documentId", "documentType", "instanceId", "nodeKey", "nodeName", "processKey", "recordId", "round", "taskId" ],
+        "type" : "object"
+      },
+      "HistoryEntry" : {
+        "properties" : {
+          "action" : {
+            "$ref" : "#/components/schemas/TaskRecordAction"
+          },
+          "actorId" : {
+            "type" : "string"
+          },
+          "actorName" : {
+            "type" : "string"
+          },
+          "assigneeName" : {
+            "type" : [ "string", "null" ]
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "nodeKey" : {
+            "type" : "string"
+          },
+          "nodeName" : {
+            "type" : "string"
+          },
+          "onBehalfOfName" : {
+            "type" : [ "string", "null" ]
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "recordId" : {
+            "type" : "string"
+          },
+          "round" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "taskId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "actorId", "actorName", "decidedAt", "nodeKey", "nodeName", "recordId", "round", "taskId" ],
+        "type" : "object"
       },
       "InboxItemResponse" : {
         "properties" : {
+          "category" : {
+            "type" : "string"
+          },
           "claimed" : {
             "type" : "boolean"
           },
@@ -317,11 +449,24 @@
             "format" : "date-time",
             "type" : [ "string", "null" ]
           },
+          "deadlineAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
           "detailUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "documentId" : {
             "type" : [ "string", "null" ]
           },
           "nodeName" : {
             "type" : [ "string", "null" ]
+          },
+          "overdue" : {
+            "type" : "boolean"
+          },
+          "processKey" : {
+            "$ref" : "#/components/schemas/ProcessKey"
           },
           "source" : {
             "type" : "string"
@@ -333,7 +478,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "claimed", "source", "taskId", "title" ],
+        "required" : [ "category", "claimed", "overdue", "source", "taskId", "title" ],
         "type" : "object"
       },
       "InboxResponse" : {
@@ -355,12 +500,19 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          },
+          "noticeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "totalCount" : {
             "format" : "int32",
             "type" : "integer"
           }
         },
-        "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "totalCount" ],
+        "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "noticeCount", "totalCount" ],
         "type" : "object"
       },
       "LegacyNumberResponse" : {
@@ -369,8 +521,7 @@
             "type" : "string"
           },
           "documentType" : {
-            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/DocumentType"
           },
           "importBatch" : {
             "type" : "string"
@@ -448,8 +599,7 @@
       "LoginStateRequest" : {
         "properties" : {
           "entry" : {
-            "enum" : [ "WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/WecomEntry"
           }
         },
         "type" : "object"
@@ -511,8 +661,7 @@
             "type" : "string"
           },
           "resetPolicy" : {
-            "enum" : [ "NEVER", "YEARLY", "MONTHLY", "DAILY" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/ResetPolicy"
           },
           "startValue" : {
             "format" : "int64",
@@ -528,12 +677,10 @@
             "type" : "integer"
           },
           "confirmationStatus" : {
-            "enum" : [ "PENDING_CONFIRMATION", "CONFIRMED" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/ConfirmationStatus"
           },
           "documentType" : {
-            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/DocumentType"
           },
           "documentTypeCode" : {
             "type" : [ "string", "null" ]
@@ -542,8 +689,7 @@
             "type" : "string"
           },
           "resetPolicy" : {
-            "enum" : [ "NEVER", "YEARLY", "MONTHLY", "DAILY" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/ResetPolicy"
           },
           "startValue" : {
             "format" : "int64",
@@ -724,6 +870,22 @@
         "required" : [ "errorCode", "status" ],
         "type" : "object"
       },
+      "ProcessKey" : {
+        "enum" : [ "COST_TIMESHEET_APPROVAL" ],
+        "type" : [ "string", "null" ]
+      },
+      "ReassignTaskRequest" : {
+        "properties" : {
+          "assigneeId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "ReleaseSyncRunRequest" : {
         "properties" : {
           "reason" : {
@@ -744,13 +906,9 @@
         },
         "type" : "object"
       },
-      "RetractTimesheetRequest" : {
-        "properties" : {
-          "reason" : {
-            "type" : "string"
-          }
-        },
-        "type" : "object"
+      "ResetPolicy" : {
+        "enum" : [ "NEVER", "YEARLY", "MONTHLY", "DAILY" ],
+        "type" : "string"
       },
       "ReturnTaskRequest" : {
         "properties" : {
@@ -763,8 +921,7 @@
       "RoleRequest" : {
         "properties" : {
           "accessScope" : {
-            "enum" : [ "ALL", "CUSTOM_ORG_UNITS", "OWN_ORG_UNIT", "OWN_ORG_UNIT_SUBTREE", "SELF", "SELF_AND_DIRECT_REPORTS" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/AccessScopeKind"
           },
           "code" : {
             "type" : "string"
@@ -788,8 +945,7 @@
       "RoleResponse" : {
         "properties" : {
           "accessScope" : {
-            "enum" : [ "ALL", "CUSTOM_ORG_UNITS", "OWN_ORG_UNIT", "OWN_ORG_UNIT_SUBTREE", "SELF", "SELF_AND_DIRECT_REPORTS" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/AccessScopeKind"
           },
           "administrative" : {
             "type" : "boolean"
@@ -817,40 +973,6 @@
           }
         },
         "required" : [ "accessScope", "administrative", "code", "enabled", "kind", "name", "permissionCodes", "roleId" ],
-        "type" : "object"
-      },
-      "SubmitTimesheetRequest" : {
-        "properties" : {
-          "hours" : {
-            "type" : "number"
-          },
-          "projectManagerId" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "workPackageId" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        },
-        "type" : "object"
-      },
-      "SubmitTimesheetResponse" : {
-        "properties" : {
-          "approvalInstanceId" : {
-            "type" : [ "string", "null" ]
-          },
-          "errorCode" : {
-            "type" : [ "string", "null" ]
-          },
-          "outcome" : {
-            "type" : "string"
-          },
-          "remainingHours" : {
-            "type" : [ "number", "null" ]
-          }
-        },
-        "required" : [ "outcome" ],
         "type" : "object"
       },
       "SyncDiffResponse" : {
@@ -987,14 +1109,117 @@
           "assignee" : {
             "type" : [ "string", "null" ]
           },
+          "assigneeName" : {
+            "type" : [ "string", "null" ]
+          },
           "canAct" : {
             "type" : "boolean"
+          },
+          "candidateNames" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
           },
           "candidates" : {
             "items" : {
               "type" : "string"
             },
             "type" : "array"
+          },
+          "completedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "deadlineAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "documentId" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "$ref" : "#/components/schemas/DocumentType"
+          },
+          "dueAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "effect" : {
+            "type" : [ "string", "null" ]
+          },
+          "history" : {
+            "items" : {
+              "$ref" : "#/components/schemas/HistoryEntry"
+            },
+            "type" : "array"
+          },
+          "initiator" : {
+            "type" : "string"
+          },
+          "initiatorName" : {
+            "type" : "string"
+          },
+          "initiatorOrgUnitName" : {
+            "type" : [ "string", "null" ]
+          },
+          "instanceId" : {
+            "type" : "string"
+          },
+          "nodeKey" : {
+            "type" : "string"
+          },
+          "nodeName" : {
+            "type" : [ "string", "null" ]
+          },
+          "outcome" : {
+            "type" : [ "string", "null" ]
+          },
+          "overdue" : {
+            "type" : "boolean"
+          },
+          "processKey" : {
+            "$ref" : "#/components/schemas/ProcessKey"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "summary" : {
+            "type" : [ "string", "null" ]
+          },
+          "taskId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "canAct", "candidateNames", "candidates", "createdAt", "documentId", "documentType", "history", "initiator", "initiatorName", "instanceId", "nodeKey", "overdue", "processKey", "status", "taskId" ],
+        "type" : "object"
+      },
+      "TaskOverviewPageResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TaskOverviewResponse"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "TaskOverviewResponse" : {
+        "properties" : {
+          "assignee" : {
+            "type" : [ "string", "null" ]
           },
           "createdAt" : {
             "format" : "date-time",
@@ -1004,29 +1229,34 @@
             "type" : "string"
           },
           "documentType" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/DocumentType"
           },
-          "initiator" : {
-            "type" : "string"
-          },
-          "instanceId" : {
-            "type" : "string"
+          "dueAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
           },
           "nodeKey" : {
             "type" : "string"
           },
-          "nodeName" : {
-            "type" : "string"
+          "overdue" : {
+            "type" : "boolean"
           },
           "processKey" : {
+            "$ref" : "#/components/schemas/ProcessKey"
+          },
+          "status" : {
             "type" : "string"
           },
           "taskId" : {
             "type" : "string"
           }
         },
-        "required" : [ "canAct", "candidates", "createdAt", "documentId", "documentType", "initiator", "instanceId", "nodeKey", "nodeName", "processKey", "taskId" ],
+        "required" : [ "createdAt", "documentId", "documentType", "nodeKey", "overdue", "processKey", "status", "taskId" ],
         "type" : "object"
+      },
+      "TaskRecordAction" : {
+        "enum" : [ "CLAIMED", "RELEASED", "APPROVED", "REJECTED", "RETURNED", "ADVISED", "PASSED_AUTOMATICALLY", "TRANSFERRED", "REASSIGNED" ],
+        "type" : "string"
       },
       "TicketLoginRequest" : {
         "properties" : {
@@ -1036,33 +1266,14 @@
         },
         "type" : "object"
       },
-      "TimesheetResponse" : {
-        "properties" : {
-          "approvalInstanceId" : {
-            "type" : [ "string", "null" ]
-          },
-          "canWithdraw" : {
-            "type" : "boolean"
-          },
-          "round" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "status" : {
-            "type" : "string"
-          },
-          "timesheetId" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "canWithdraw", "round", "status", "timesheetId" ],
-        "type" : "object"
-      },
       "TransferTaskRequest" : {
         "properties" : {
           "assigneeId" : {
             "format" : "int64",
             "type" : "integer"
+          },
+          "reason" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -1103,14 +1314,17 @@
         "required" : [ "roleCodes", "status", "userId" ],
         "type" : "object"
       },
+      "WecomEntry" : {
+        "enum" : [ "WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN" ],
+        "type" : "string"
+      },
       "WecomLoginRequest" : {
         "properties" : {
           "code" : {
             "type" : "string"
           },
           "entry" : {
-            "enum" : [ "WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/WecomEntry"
           },
           "state" : {
             "type" : "string"
@@ -1142,194 +1356,6 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
-    "/api/v1/cost/timesheets/{id}" : {
-      "get" : {
-        "operationId" : "get_6",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TimesheetResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetail"
-                }
-              }
-            },
-            "description" : "The request was refused"
-          }
-        },
-        "tags" : [ "timesheet-controller" ]
-      }
-    },
-    "/api/v1/cost/timesheets/{id}:cancel" : {
-      "post" : {
-        "operationId" : "cancel",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RetractTimesheetRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetail"
-                }
-              }
-            },
-            "description" : "The request was refused"
-          }
-        },
-        "tags" : [ "timesheet-controller" ]
-      }
-    },
-    "/api/v1/cost/timesheets/{id}:submit" : {
-      "post" : {
-        "operationId" : "submit",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/SubmitTimesheetRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/SubmitTimesheetResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetail"
-                }
-              }
-            },
-            "description" : "The request was refused"
-          }
-        },
-        "tags" : [ "timesheet-controller" ]
-      }
-    },
-    "/api/v1/cost/timesheets/{id}:withdraw" : {
-      "post" : {
-        "operationId" : "withdraw",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "id",
-          "required" : true,
-          "schema" : {
-            "format" : "int64",
-            "type" : "integer"
-          }
-        }, {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RetractTimesheetRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ProblemDetail"
-                }
-              }
-            },
-            "description" : "The request was refused"
-          }
-        },
-        "tags" : [ "timesheet-controller" ]
-      }
-    },
     "/api/v1/organization/employee-legal-entities/{employeeId}" : {
       "get" : {
         "operationId" : "ofEmployee",
@@ -1379,14 +1405,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "in" : "header",
-          "name" : "If-None-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -1440,7 +1459,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -1502,7 +1521,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -1688,7 +1707,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -1777,14 +1796,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "in" : "header",
-          "name" : "If-None-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -1838,7 +1850,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -1900,7 +1912,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -1950,7 +1962,7 @@
     },
     "/api/v1/organization/org-units" : {
       "get" : {
-        "operationId" : "list_6",
+        "operationId" : "list_9",
         "parameters" : [ {
           "in" : "query",
           "name" : "includeRevoked",
@@ -2027,7 +2039,7 @@
     },
     "/api/v1/organization/sync-runs" : {
       "get" : {
-        "operationId" : "list_5",
+        "operationId" : "list_8",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -2108,7 +2120,7 @@
     },
     "/api/v1/organization/sync-runs/{syncRunId}:release" : {
       "post" : {
-        "operationId" : "release",
+        "operationId" : "release_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "syncRunId",
@@ -2290,14 +2302,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "in" : "header",
-          "name" : "If-None-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -2337,9 +2342,281 @@
         "tags" : [ "work-calendar-controller" ]
       }
     },
+    "/api/v1/platform/approval-task-overviews" : {
+      "get" : {
+        "operationId" : "list_7",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "overdueOnly",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaskOverviewPageResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "approval-task-overview-controller" ]
+      }
+    },
+    "/api/v1/platform/approval-task-records" : {
+      "get" : {
+        "operationId" : "list_6",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HandledTaskPageResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "approval-task-record-controller" ]
+      }
+    },
     "/api/v1/platform/approval-tasks" : {
       "get" : {
-        "operationId" : "list_4",
+        "operationId" : "list_5",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {
@@ -2350,6 +2627,86 @@
               }
             },
             "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
           },
           "default" : {
             "content" : {
@@ -2387,6 +2744,86 @@
             },
             "description" : "OK"
           },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
+          },
           "default" : {
             "content" : {
               "application/problem+json" : {
@@ -2412,6 +2849,13 @@
             "type" : "string"
           }
         }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
           "description" : "The same key with the same request within 24 hours gets the first answer again",
           "in" : "header",
           "name" : "Idempotency-Key",
@@ -2423,6 +2867,86 @@
         "responses" : {
           "200" : {
             "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
           },
           "default" : {
             "content" : {
@@ -2444,6 +2968,13 @@
         "parameters" : [ {
           "in" : "path",
           "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
           "required" : true,
           "schema" : {
             "type" : "string"
@@ -2478,6 +3009,344 @@
             },
             "description" : "OK"
           },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
+    "/api/v1/platform/approval-tasks/{taskId}:reassign" : {
+      "post" : {
+        "operationId" : "reassign",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReassignTaskRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
+    "/api/v1/platform/approval-tasks/{taskId}:release" : {
+      "post" : {
+        "operationId" : "release",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
+          },
           "default" : {
             "content" : {
               "application/problem+json" : {
@@ -2498,6 +3367,13 @@
         "parameters" : [ {
           "in" : "path",
           "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
           "required" : true,
           "schema" : {
             "type" : "string"
@@ -2532,6 +3408,86 @@
             },
             "description" : "OK"
           },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
+          },
           "default" : {
             "content" : {
               "application/problem+json" : {
@@ -2552,6 +3508,13 @@
         "parameters" : [ {
           "in" : "path",
           "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
           "required" : true,
           "schema" : {
             "type" : "string"
@@ -2579,6 +3542,86 @@
           "200" : {
             "description" : "OK"
           },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request is malformed, or If-Match is not one strong ETag"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "Nobody is signed in"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The caller may not do this"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "No such task, or the caller may not know it"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The task or the approval is not in a state that allows this"
+          },
+          "412" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)"
+          },
+          "422" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request breaks a rule; errorCode says which"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "If-Match with the ETag of the task as read (the version of its approval request) is required"
+          },
           "default" : {
             "content" : {
               "application/problem+json" : {
@@ -2595,7 +3638,7 @@
     },
     "/api/v1/platform/audit-entries" : {
       "get" : {
-        "operationId" : "list_3",
+        "operationId" : "list_4",
         "parameters" : [ {
           "in" : "query",
           "name" : "actorId",
@@ -2706,30 +3749,30 @@
     },
     "/api/v1/platform/legacy-numbers" : {
       "get" : {
-        "operationId" : "byLegacyNumber",
+        "operationId" : "list_3",
         "parameters" : [ {
           "in" : "query",
           "name" : "documentType",
           "required" : true,
           "schema" : {
-            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/DocumentType"
           }
         }, {
-          "description" : "Exactly one of legacyNumber, legacyNumberPrefix and documentId is given",
-          "in" : "query",
-          "name" : "legacyNumber",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "description" : "Exactly one of legacyNumber, legacyNumberPrefix and documentId is given",
+          "description" : "Exactly one of legacyNumberPrefix and documentId is given",
           "in" : "query",
           "name" : "legacyNumberPrefix",
           "required" : false,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "description" : "Exactly one of legacyNumberPrefix and documentId is given",
+          "in" : "query",
+          "name" : "documentId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         }, {
           "in" : "query",
@@ -2746,14 +3789,48 @@
           "schema" : {
             "type" : "string"
           }
-        }, {
-          "description" : "Exactly one of legacyNumber, legacyNumberPrefix and documentId is given",
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CursorPageLegacyNumberResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "legacy-number-controller" ]
+      }
+    },
+    "/api/v1/platform/legacy-numbers:resolve" : {
+      "get" : {
+        "operationId" : "resolve",
+        "parameters" : [ {
           "in" : "query",
-          "name" : "documentId",
-          "required" : false,
+          "name" : "documentType",
+          "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "$ref" : "#/components/schemas/DocumentType"
+          }
+        }, {
+          "in" : "query",
+          "name" : "legacyNumber",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -2761,11 +3838,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "oneOf" : [ {
-                    "$ref" : "#/components/schemas/CursorPageLegacyNumberResponse"
-                  }, {
-                    "$ref" : "#/components/schemas/LegacyNumberResponse"
-                  } ]
+                  "$ref" : "#/components/schemas/LegacyNumberResponse"
                 }
               }
             },
@@ -2875,8 +3948,7 @@
           "name" : "documentType",
           "required" : true,
           "schema" : {
-            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/DocumentType"
           }
         } ],
         "responses" : {
@@ -2910,13 +3982,12 @@
           "name" : "documentType",
           "required" : true,
           "schema" : {
-            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
-            "type" : "string"
+            "$ref" : "#/components/schemas/DocumentType"
           }
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -3059,7 +4130,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -3129,7 +4200,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -3450,7 +4521,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -3495,7 +4566,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -3540,7 +4611,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }

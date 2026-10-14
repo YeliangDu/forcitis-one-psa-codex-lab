@@ -5,7 +5,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionQuer
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** version is null while nothing has ever been attributed to the subject: the first attribution is then written with If-None-Match: *. */
+/** version is null while nothing has ever been attributed to the subject: the first attribution is then written with If-Match: "0". */
 @Service
 public class GetLegalEntityAttribution {
     private final LegalEntityAttributionQueries attributions;

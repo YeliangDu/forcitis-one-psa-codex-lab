@@ -6,8 +6,8 @@ import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.organization.attendance.application.DayEntry;
 import com.forcitis.one.organization.attendance.application.GetWorkCalendarYear;
 import com.forcitis.one.organization.attendance.application.ListWorkCalendarYears;
-import com.forcitis.one.organization.attendance.api.AttendancePermissions;
 import com.forcitis.one.organization.attendance.application.MaintainLockedWorkCalendarDays;
+import com.forcitis.one.organization.attendance.application.MaintainWorkCalendarCommand;
 import com.forcitis.one.organization.attendance.application.MaintainWorkCalendarYear;
 import com.forcitis.one.organization.attendance.application.WorkCalendarYearView;
 import java.util.List;
@@ -52,15 +52,14 @@ class WorkCalendarController {
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(year.version())).body(WorkCalendarYearResponse.of(year));
     }
 
-    /** A year that was never maintained is created with If-None-Match: *, a maintained one is replaced with If-Match. */
+    /** A year that was never maintained is created with If-Match: "0", a maintained one is replaced with the ETag it was read with. */
     @PutMapping("/{calendarYear}")
     @PreAuthorize("hasAuthority('" + AttendancePermissions.WORK_CALENDAR_UPDATE + "')")
     ResponseEntity<WorkCalendarYearResponse> maintain(@PathVariable int calendarYear, @RequestBody MaintainWorkCalendarRequest request,
-            @RequestHeader(value = "If-Match", required = false) String ifMatch,
-            @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
+            @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         List<DayEntry> days = request.days().stream().map(d -> new DayEntry(d.calendarDate(), d.dayKind() == null ? null : d.dayKind().name())).toList();
-        ExpectedVersion expected = ExpectedVersion.fromHeaders(ifMatch, ifNoneMatch);
-        WorkCalendarYearView year = request.confirmed() ? maintainLocked.execute(calendarYear, expected, days) : maintain.execute(calendarYear, expected, days);
+        MaintainWorkCalendarCommand command = new MaintainWorkCalendarCommand(calendarYear, days, ExpectedVersion.fromHeader(ifMatch));
+        WorkCalendarYearView year = request.confirmed() ? maintainLocked.execute(command) : maintain.execute(command);
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(year.version())).body(WorkCalendarYearResponse.of(year));
     }
 }

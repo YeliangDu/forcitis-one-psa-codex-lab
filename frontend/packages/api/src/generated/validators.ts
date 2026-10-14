@@ -1,5 +1,10 @@
 // Generated from packages/api/openapi.json by scripts/generate-api.mjs. Do not edit by hand.
 import { z } from 'zod';
+import { lenientEnum } from '../contract';
+
+export const ErrorCodeValues = ["COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EMPLOYEE_UNKNOWN", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_NOT_OWNER", "COST_TIMESHEET_PROJECT_MANAGER_INVALID", "COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_RESULT_PENDING", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_WORK_DATE_FIXED", "COST_TIMESHEET_WORK_DATE_IN_FUTURE", "COST_TIMESHEET_WORK_DATE_REQUIRED", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND", "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ALREADY_APPROVED", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NODE_CONFIG_INVALID", "PLATFORM_APPROVAL_NOT_ADMINISTRATOR", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_PAGE_INVALID", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_ROUND_MISMATCH", "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_AUDIT_QUERY_INVALID", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_NOT_SIGNED_IN", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_IN_USE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_CONCURRENT_UPDATE", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND", "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN", "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID", "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MALFORMED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED"] as const;
+
+export const AccessScopeKindSchema = lenientEnum("AccessScopeKind", ["ALL", "CUSTOM_ORG_UNITS", "OWN_ORG_UNIT", "OWN_ORG_UNIT_SUBTREE", "SELF", "SELF_AND_DIRECT_REPORTS"]);
 
 export const AttributeLegalEntityRequestSchema = z.object({
   effectiveFrom: z.string().optional(),
@@ -24,13 +29,15 @@ export const AuditEntryResponseSchema = z.object({
 
 export const CalendarDayRequestSchema = z.object({
   calendarDate: z.string().optional(),
-  dayKind: z.enum(["HOLIDAY", "MAKE_UP_WORKDAY"]).optional(),
+  get dayKind() { return DayKindSchema.optional(); },
 });
 
 export const CalendarDayResponseSchema = z.object({
   calendarDate: z.string(),
-  dayKind: z.enum(["HOLIDAY", "MAKE_UP_WORKDAY"]),
+  get dayKind() { return DayKindSchema; },
 });
+
+export const ConfirmationStatusSchema = lenientEnum("ConfirmationStatus", ["PENDING_CONFIRMATION", "CONFIRMED"]);
 
 export const CorrectLegalEntityAttributionRequestSchema = z.object({
   effectiveTo: z.string().optional(),
@@ -89,15 +96,21 @@ export const CursorPageSyncRunResponseSchema = z.object({
   nextCursor: z.string().nullable().optional(),
 });
 
+export const DayKindSchema = lenientEnum("DayKind", ["HOLIDAY", "MAKE_UP_WORKDAY"]);
+
 export const DecideTaskRequestSchema = z.object({
-  outcome: z.enum(["APPROVE", "REJECT"]).optional(),
+  get outcome() { return DecisionOutcomeSchema.optional(); },
   reason: z.string().optional(),
 });
+
+export const DecisionOutcomeSchema = lenientEnum("DecisionOutcome", ["APPROVE", "REJECT"]);
 
 export const DecisionResponseSchema = z.object({
   instanceId: z.string(),
   status: z.string(),
 });
+
+export const DocumentTypeSchema = lenientEnum("DocumentType", ["QUOTE", "TIMESHEET", "JOURNAL_VOUCHER"]);
 
 export const EmergencyLoginRequestSchema = z.object({
   loginName: z.string().optional(),
@@ -109,13 +122,56 @@ export const EndLegalEntityAttributionRequestSchema = z.object({
   effectiveTo: z.string().optional(),
 });
 
-export const ErrorCodeSchema = z.enum(["COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_PROJECT_MANAGER_INVALID", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_FORBIDDEN", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND", "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_AUDIT_QUERY_INVALID", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_NOT_SIGNED_IN", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_IN_USE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_CONCURRENT_UPDATE", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND", "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN", "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID", "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED"]);
+export const ErrorCodeSchema = lenientEnum("ErrorCode", ["COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EMPLOYEE_UNKNOWN", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_NOT_OWNER", "COST_TIMESHEET_PROJECT_MANAGER_INVALID", "COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_RESULT_PENDING", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_WORK_DATE_FIXED", "COST_TIMESHEET_WORK_DATE_IN_FUTURE", "COST_TIMESHEET_WORK_DATE_REQUIRED", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP", "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED", "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND", "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ALREADY_APPROVED", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NODE_CONFIG_INVALID", "PLATFORM_APPROVAL_NOT_ADMINISTRATOR", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_PAGE_INVALID", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_ROUND_MISMATCH", "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_AUDIT_QUERY_INVALID", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_NOT_SIGNED_IN", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_IN_USE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_CONCURRENT_UPDATE", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND", "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN", "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID", "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MALFORMED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED"]);
+
+export const HandledTaskPageResponseSchema = z.object({
+  get items() { return z.array(HandledTaskResponseSchema); },
+  nextCursor: z.string().nullable().optional(),
+});
+
+export const HandledTaskResponseSchema = z.object({
+  get action() { return TaskRecordActionSchema; },
+  actorId: z.string(),
+  actorName: z.string(),
+  decidedAt: z.string(),
+  documentId: z.string(),
+  get documentType() { return DocumentTypeSchema; },
+  instanceId: z.string(),
+  nodeKey: z.string(),
+  nodeName: z.string(),
+  onBehalfOfName: z.string().nullable().optional(),
+  get processKey() { return ProcessKeySchema; },
+  reason: z.string().nullable().optional(),
+  recordId: z.string(),
+  round: z.number().int(),
+  taskId: z.string(),
+});
+
+export const HistoryEntrySchema = z.object({
+  get action() { return TaskRecordActionSchema; },
+  actorId: z.string(),
+  actorName: z.string(),
+  assigneeName: z.string().nullable().optional(),
+  decidedAt: z.string(),
+  nodeKey: z.string(),
+  nodeName: z.string(),
+  onBehalfOfName: z.string().nullable().optional(),
+  reason: z.string().nullable().optional(),
+  recordId: z.string(),
+  round: z.number().int(),
+  taskId: z.string(),
+});
 
 export const InboxItemResponseSchema = z.object({
+  category: z.string(),
   claimed: z.boolean(),
   createdAt: z.string().nullable().optional(),
+  deadlineAt: z.string().nullable().optional(),
   detailUrl: z.string().nullable().optional(),
+  documentId: z.string().nullable().optional(),
   nodeName: z.string().nullable().optional(),
+  overdue: z.boolean(),
+  get processKey() { return ProcessKeySchema.optional(); },
   source: z.string(),
   taskId: z.string(),
   title: z.string(),
@@ -126,12 +182,14 @@ export const InboxResponseSchema = z.object({
   legacyAvailable: z.boolean(),
   legacyCount: z.number().int(),
   newCount: z.number().int(),
+  nextCursor: z.string().nullable().optional(),
+  noticeCount: z.number().int(),
   totalCount: z.number().int(),
 });
 
 export const LegacyNumberResponseSchema = z.object({
   documentId: z.string(),
-  documentType: z.enum(["QUOTE", "TIMESHEET", "JOURNAL_VOUCHER"]),
+  get documentType() { return DocumentTypeSchema; },
   importBatch: z.string(),
   legacyNumber: z.string(),
   legalEntityId: z.string().nullable().optional(),
@@ -159,7 +217,7 @@ export const LoginResponseSchema = z.object({
 });
 
 export const LoginStateRequestSchema = z.object({
-  entry: z.enum(["WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN"]).optional(),
+  get entry() { return WecomEntrySchema.optional(); },
 });
 
 export const LoginStateResponseSchema = z.object({
@@ -183,17 +241,17 @@ export const NavigationResponseSchema = z.object({
 
 export const NumberingRuleRequestSchema = z.object({
   pattern: z.string().optional(),
-  resetPolicy: z.enum(["NEVER", "YEARLY", "MONTHLY", "DAILY"]).optional(),
+  get resetPolicy() { return ResetPolicySchema.optional(); },
   startValue: z.number().int().optional(),
 });
 
 export const NumberingRuleResponseSchema = z.object({
   capacity: z.number().int(),
-  confirmationStatus: z.enum(["PENDING_CONFIRMATION", "CONFIRMED"]),
-  documentType: z.enum(["QUOTE", "TIMESHEET", "JOURNAL_VOUCHER"]),
+  get confirmationStatus() { return ConfirmationStatusSchema; },
+  get documentType() { return DocumentTypeSchema; },
   documentTypeCode: z.string().nullable().optional(),
   pattern: z.string(),
-  resetPolicy: z.enum(["NEVER", "YEARLY", "MONTHLY", "DAILY"]),
+  get resetPolicy() { return ResetPolicySchema; },
   startValue: z.number().int(),
 });
 
@@ -248,6 +306,13 @@ export const ProblemDetailSchema = z.object({
   type: z.string().optional(),
 });
 
+export const ProcessKeySchema = lenientEnum("ProcessKey", ["COST_TIMESHEET_APPROVAL"]).nullable();
+
+export const ReassignTaskRequestSchema = z.object({
+  assigneeId: z.number().int().optional(),
+  reason: z.string().optional(),
+});
+
 export const ReleaseSyncRunRequestSchema = z.object({
   reason: z.string().optional(),
 });
@@ -256,16 +321,14 @@ export const ReplaceRolesRequestSchema = z.object({
   roleCodes: z.array(z.string()).optional(),
 });
 
-export const RetractTimesheetRequestSchema = z.object({
-  reason: z.string().optional(),
-});
+export const ResetPolicySchema = lenientEnum("ResetPolicy", ["NEVER", "YEARLY", "MONTHLY", "DAILY"]);
 
 export const ReturnTaskRequestSchema = z.object({
   reason: z.string().optional(),
 });
 
 export const RoleRequestSchema = z.object({
-  accessScope: z.enum(["ALL", "CUSTOM_ORG_UNITS", "OWN_ORG_UNIT", "OWN_ORG_UNIT_SUBTREE", "SELF", "SELF_AND_DIRECT_REPORTS"]).optional(),
+  get accessScope() { return AccessScopeKindSchema.optional(); },
   code: z.string().optional(),
   enabled: z.boolean().optional(),
   name: z.string().optional(),
@@ -273,7 +336,7 @@ export const RoleRequestSchema = z.object({
 });
 
 export const RoleResponseSchema = z.object({
-  accessScope: z.enum(["ALL", "CUSTOM_ORG_UNITS", "OWN_ORG_UNIT", "OWN_ORG_UNIT_SUBTREE", "SELF", "SELF_AND_DIRECT_REPORTS"]),
+  get accessScope() { return AccessScopeKindSchema; },
   administrative: z.boolean(),
   code: z.string(),
   enabled: z.boolean(),
@@ -281,19 +344,6 @@ export const RoleResponseSchema = z.object({
   name: z.string(),
   permissionCodes: z.array(z.string()),
   roleId: z.string(),
-});
-
-export const SubmitTimesheetRequestSchema = z.object({
-  hours: z.number().optional(),
-  projectManagerId: z.number().int().optional(),
-  workPackageId: z.number().int().optional(),
-});
-
-export const SubmitTimesheetResponseSchema = z.object({
-  approvalInstanceId: z.string().nullable().optional(),
-  errorCode: z.string().nullable().optional(),
-  outcome: z.string(),
-  remainingHours: z.number().nullable().optional(),
 });
 
 export const SyncDiffResponseSchema = z.object({
@@ -337,33 +387,60 @@ export const SyncRunResponseSchema = z.object({
 
 export const TaskDetailResponseSchema = z.object({
   assignee: z.string().nullable().optional(),
+  assigneeName: z.string().nullable().optional(),
   canAct: z.boolean(),
+  candidateNames: z.array(z.string()),
   candidates: z.array(z.string()),
+  completedAt: z.string().nullable().optional(),
   createdAt: z.string(),
+  deadlineAt: z.string().nullable().optional(),
   documentId: z.string(),
-  documentType: z.string(),
+  get documentType() { return DocumentTypeSchema; },
+  dueAt: z.string().nullable().optional(),
+  effect: z.string().nullable().optional(),
+  get history() { return z.array(HistoryEntrySchema); },
   initiator: z.string(),
+  initiatorName: z.string(),
+  initiatorOrgUnitName: z.string().nullable().optional(),
   instanceId: z.string(),
   nodeKey: z.string(),
-  nodeName: z.string(),
-  processKey: z.string(),
+  nodeName: z.string().nullable().optional(),
+  outcome: z.string().nullable().optional(),
+  overdue: z.boolean(),
+  get processKey() { return ProcessKeySchema; },
+  reason: z.string().nullable().optional(),
+  status: z.string(),
+  summary: z.string().nullable().optional(),
   taskId: z.string(),
 });
+
+export const TaskOverviewPageResponseSchema = z.object({
+  get items() { return z.array(TaskOverviewResponseSchema); },
+  nextCursor: z.string().nullable().optional(),
+});
+
+export const TaskOverviewResponseSchema = z.object({
+  assignee: z.string().nullable().optional(),
+  createdAt: z.string(),
+  documentId: z.string(),
+  get documentType() { return DocumentTypeSchema; },
+  dueAt: z.string().nullable().optional(),
+  nodeKey: z.string(),
+  overdue: z.boolean(),
+  get processKey() { return ProcessKeySchema; },
+  status: z.string(),
+  taskId: z.string(),
+});
+
+export const TaskRecordActionSchema = lenientEnum("TaskRecordAction", ["CLAIMED", "RELEASED", "APPROVED", "REJECTED", "RETURNED", "ADVISED", "PASSED_AUTOMATICALLY", "TRANSFERRED", "REASSIGNED"]);
 
 export const TicketLoginRequestSchema = z.object({
   ticket: z.string().optional(),
 });
 
-export const TimesheetResponseSchema = z.object({
-  approvalInstanceId: z.string().nullable().optional(),
-  canWithdraw: z.boolean(),
-  round: z.number().int(),
-  status: z.string(),
-  timesheetId: z.string(),
-});
-
 export const TransferTaskRequestSchema = z.object({
   assigneeId: z.number().int().optional(),
+  reason: z.string().optional(),
 });
 
 export const UpdateLegalEntityRequestSchema = z.object({
@@ -379,9 +456,11 @@ export const UserAccountResponseSchema = z.object({
   userId: z.string(),
 });
 
+export const WecomEntrySchema = lenientEnum("WecomEntry", ["WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN"]);
+
 export const WecomLoginRequestSchema = z.object({
   code: z.string().optional(),
-  entry: z.enum(["WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN"]).optional(),
+  get entry() { return WecomEntrySchema.optional(); },
   state: z.string().optional(),
 });
 
@@ -391,8 +470,6 @@ export const WorkCalendarYearResponseSchema = z.object({
 });
 
 export const responseSchemas = {
-  getCostTimesheetsById: TimesheetResponseSchema,
-  postCostTimesheetsByIdSubmit: SubmitTimesheetResponseSchema,
   getOrganizationEmployeeLegalEntitiesByEmployeeId: LegalEntityAttributionResponseSchema,
   putOrganizationEmployeeLegalEntitiesByEmployeeId: LegalEntityAttributionResponseSchema,
   postOrganizationEmployeeLegalEntitiesByEmployeeIdCorrect: LegalEntityAttributionResponseSchema,
@@ -414,12 +491,15 @@ export const responseSchemas = {
   getOrganizationWorkCalendars: CursorPageMaintainedYearResponseSchema,
   getOrganizationWorkCalendarsByCalendarYear: WorkCalendarYearResponseSchema,
   putOrganizationWorkCalendarsByCalendarYear: WorkCalendarYearResponseSchema,
+  getPlatformApprovalTaskOverviews: TaskOverviewPageResponseSchema,
+  getPlatformApprovalTaskRecords: HandledTaskPageResponseSchema,
   getPlatformApprovalTasks: InboxResponseSchema,
   getPlatformApprovalTasksByTaskId: TaskDetailResponseSchema,
   postPlatformApprovalTasksByTaskIdDecide: DecisionResponseSchema,
   postPlatformApprovalTasksByTaskIdReturn: DecisionResponseSchema,
   getPlatformAuditEntries: CursorPageAuditEntryResponseSchema,
-  getPlatformLegacyNumbers: z.union([CursorPageLegacyNumberResponseSchema, LegacyNumberResponseSchema]),
+  getPlatformLegacyNumbers: CursorPageLegacyNumberResponseSchema,
+  getPlatformLegacyNumbersResolve: LegacyNumberResponseSchema,
   postPlatformLoginStates: LoginStateResponseSchema,
   getPlatformNumberingRules: CursorPageNumberingRuleResponseSchema,
   getPlatformNumberingRulesByDocumentType: NumberingRuleResponseSchema,

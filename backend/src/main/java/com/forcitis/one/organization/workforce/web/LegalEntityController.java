@@ -62,7 +62,7 @@ class LegalEntityController {
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
     ResponseEntity<LegalEntityResponse> update(@PathVariable long legalEntityId, @RequestBody UpdateLegalEntityRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
-        LegalEntityView view = update.execute(legalEntityId, ExpectedVersion.fromHeaders(ifMatch, null), request.code(), request.name(), request.status(),
+        LegalEntityView view = update.execute(legalEntityId, ExpectedVersion.fromHeader(ifMatch), request.code(), request.name(), request.status(),
                 request.accountingOrganizationNumber());
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(LegalEntityResponse.of(view));
     }

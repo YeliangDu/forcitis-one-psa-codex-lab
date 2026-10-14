@@ -21,7 +21,7 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
- * Every component of a response record is required unless declared @Nullable or Optional. Only records in a web package that a
+ * Every component of a response record is required unless declared @Nullable (JSpecify or Spring) or Optional. Only records in a web package that a
  * controller really returns are touched; two of them sharing a simple name stop the application, because schemas are keyed by it.
  */
 @Configuration
@@ -79,7 +79,7 @@ class OpenApiRequiredProperties implements SmartInitializingSingleton {
         };
     }
 
-    /** OpenAPI 3.1: a value that may be null says so in its type list (or, for a reference, as one of two alternatives). */
+    /** OpenAPI 3.1: a value that may be null says so in its type list. A reference cannot: it is only left out of "required" (the client reads null as absent). */
     @SuppressWarnings({"unchecked", "rawtypes"})
     static void markNullable(io.swagger.v3.oas.models.media.Schema property) {
         java.util.Set<String> types = property.getTypes() != null ? new java.util.LinkedHashSet<>(property.getTypes())
@@ -88,10 +88,6 @@ class OpenApiRequiredProperties implements SmartInitializingSingleton {
             types.add("null");
             property.setTypes(types);
             property.setType(null);
-        } else if (property.get$ref() != null) {
-            String ref = property.get$ref();
-            property.set$ref(null);
-            property.setOneOf(List.of(new io.swagger.v3.oas.models.media.Schema<>().$ref(ref), new io.swagger.v3.oas.models.media.Schema<>().addType("null")));
         }
     }
 
@@ -128,6 +124,7 @@ class OpenApiRequiredProperties implements SmartInitializingSingleton {
     }
 
     private static boolean nullable(RecordComponent component) {
-        return component.getAnnotatedType().isAnnotationPresent(Nullable.class) || component.getType() == Optional.class;
+        return component.getAnnotatedType().isAnnotationPresent(Nullable.class) || component.getAccessor().isAnnotationPresent(org.springframework.lang.Nullable.class)
+                || component.getType() == Optional.class;
     }
 }

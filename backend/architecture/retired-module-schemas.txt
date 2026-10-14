@@ -1,0 +1,3 @@
+# A module that was deleted keeps its Flyway folder: applied migrations are never edited or moved, and a later migration of the same folder drops its schema.
+# <schema>  # why the module is gone. NamingSurfaceTest accepts the folder only while the last migration in it drops the schema.
+delivery_execution  # D-1a-127: the work package module was deleted; timesheets no longer check remaining hours against work packages

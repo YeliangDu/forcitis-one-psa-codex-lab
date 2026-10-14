@@ -43,7 +43,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000"})
 @Testcontainers
 class WecomDeliveryIT {
@@ -121,8 +120,19 @@ class WecomDeliveryIT {
     }
 
     private Map<String, Object> row(String key) {
-        return jdbc.sql("select * from platform_integration.outbound_deliveries where deduplication_key = :key").param("key", key)
+        Map<String, Object> raw = jdbc.sql("select * from platform_integration.outbound_deliveries where deduplication_key = :key").param("key", key)
                 .query().singleRow();
+        Map<String, Object> row = new java.util.HashMap<>(raw);
+        row.replaceAll((column, value) -> value instanceof java.sql.Array array ? elements(array) : value);
+        return row;
+    }
+
+    private static List<String> elements(java.sql.Array array) {
+        try {
+            return List.of((String[]) array.getArray());
+        } catch (java.sql.SQLException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private void sendSucceeds(String responseCodeJson) {
@@ -199,7 +209,7 @@ class WecomDeliveryIT {
 
         wecom.verify(1, postRequestedFor(urlPathEqualTo(SEND_PATH)).withRequestBody(containing("\"touser\":\"alice|carol\""))
                 .withRequestBody(notContaining("bob")));
-        assertThat(row("approval-task:5")).containsEntry("status", "SENT").containsEntry("skipped_recipients", "bob");
+        assertThat(row("approval-task:5")).containsEntry("status", "SENT").containsEntry("skipped_recipient_codes", List.of("bob"));
     }
 
     @Test
@@ -209,7 +219,7 @@ class WecomDeliveryIT {
 
         assertThat(deliver.execute()).isZero();
 
-        assertThat(row("approval-task:6")).containsEntry("status", "SKIPPED").containsEntry("skipped_recipients", "bob");
+        assertThat(row("approval-task:6")).containsEntry("status", "SKIPPED").containsEntry("skipped_recipient_codes", List.of("bob"));
         wecom.verify(0, postRequestedFor(urlPathEqualTo(SEND_PATH)));
     }
 

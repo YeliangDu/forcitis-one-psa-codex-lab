@@ -11,7 +11,8 @@ export interface InboxRow {
   subtitle: string;
   timeText: string;
   tag: { label: string; tone: StatusTone };
-  state?: string;
+  state?: string | undefined;
+  note?: string;
   href?: string;
   external: boolean;
   onOpen?: () => void;
@@ -20,7 +21,7 @@ export interface InboxRow {
 export interface InboxFilter {
   key: string;
   label: string;
-  count: number;
+  count?: number;
 }
 
 interface InboxListProps {
@@ -39,7 +40,7 @@ export function InboxList({ rows, filters, activeFilter, onFilterChange, emptyTe
       <Segmented
         value={activeFilter}
         onChange={(key) => onFilterChange(String(key))}
-        options={filters.map((filter) => ({ value: filter.key, label: `${filter.label} ${filter.count}` }))}
+        options={filters.map((filter) => ({ value: filter.key, label: filter.count === undefined ? filter.label : `${filter.label} ${filter.count}` }))}
       />
       {notice === undefined ? null : <div className="inbox-list__notice">{notice}</div>}
       {rows.length === 0
@@ -54,6 +55,7 @@ export function InboxList({ rows, filters, activeFilter, onFilterChange, emptyTe
                     ? <span>{row.title}</span>
                     : <TextLink href={row.href} external={row.external} {...(row.onOpen === undefined ? {} : { onNavigate: row.onOpen })}>{row.title}</TextLink>}
                   <span className="inbox-list__subtitle">{row.subtitle}</span>
+                  {row.note === undefined ? null : <span className="inbox-list__subtitle">{row.note}</span>}
                 </div>
                 {row.state === undefined ? null : <span className="inbox-list__state">{row.state}</span>}
                 <time className="inbox-list__time">{row.timeText}</time>

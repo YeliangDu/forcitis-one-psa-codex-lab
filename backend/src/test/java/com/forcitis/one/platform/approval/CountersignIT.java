@@ -57,7 +57,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
     }
 
     DecisionResult decide(long actor, Task task, DecisionOutcome outcome, String reason) {
-        return decideTasks.execute(new UserId(actor), List.of(new TaskDecision(new ApprovalTaskId(task.getId()), outcome, reason)));
+        return decideTasks.execute(new UserId(actor), List.of(new TaskDecision(new ApprovalTaskId(task.getId()), outcome, reason)), java.util.OptionalLong.empty());
     }
 
     @Test
@@ -106,7 +106,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
         Task secondsTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(String.valueOf(s.second()))).findFirst().orElseThrow();
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> decide(s.first(), secondsTask, DecisionOutcome.APPROVE, null))
-                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
         assertThat(openTasks(instance)).hasSize(2);
     }
 
@@ -168,6 +168,6 @@ class CountersignIT extends ApprovalIntegrationSupport {
     void invalidApproverFailsInsteadOfSkipping() {
         Staff s = staff();
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> start(newKey("countersign-invalid"), s, 424242L))
-                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
     }
 }

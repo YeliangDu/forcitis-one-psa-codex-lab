@@ -1,9 +1,8 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { currentUserBody } from '@/shared/testing/fixtures';
+import { currentUserBody, problemBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { SessionGate } from './session-gate';
 
 const leaveTo = vi.hoisted(() => vi.fn());
@@ -67,12 +66,12 @@ describe('企业微信工作台静默登录', () => {
     window.history.replaceState(null, '', '/?code=C-1&state=S-1');
     const server = stubServer({
       'GET sessions:current': { status: 401, body: {} },
-      'POST sessions:wecom-login': { status: 403, body: { errorCode: 'PLATFORM_IDENTITY_WECOM_NOT_BOUND' } },
+      'POST sessions:wecom-login': { status: 403, body: problemBody(403, 'PLATFORM_IDENTITY_WECOM_NOT_BOUND') },
       'POST login-states': { body: { state: 'S-2' } },
     });
     renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
 
-    expect(await screen.findByText('该企业微信用户尚未对应到员工，请联系管理员')).toBeInTheDocument();
+    expect(await screen.findByText('企业微信用户尚未对应到员工，请联系管理员')).toBeInTheDocument();
     expect(leaveTo).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', { name: '重新登录' }));
@@ -88,7 +87,7 @@ describe('企业微信工作台静默登录', () => {
     });
     renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
 
-    expect(await screen.findByText('登录成功，但登录状态没有保存下来，请重新登录')).toBeInTheDocument();
+    expect(await screen.findByText('登录成功，登录状态没有保存下来，请重新登录')).toBeInTheDocument();
     expect(leaveTo).not.toHaveBeenCalled();
   });
 

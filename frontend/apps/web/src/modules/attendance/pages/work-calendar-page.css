@@ -1,0 +1,71 @@
+.work-calendar__months {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.work-calendar__month {
+  padding: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: var(--surface-raised);
+}
+
+.work-calendar__month-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.work-calendar__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.work-calendar__weekday {
+  font-size: 12px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.work-calendar__day {
+  padding: 4px 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.work-calendar__day--rest {
+  color: var(--text-secondary);
+}
+
+.work-calendar__day--holiday {
+  border-color: var(--status-posted-border);
+  background: var(--status-posted-bg);
+  color: var(--status-posted-fg);
+}
+
+.work-calendar__day--make-up {
+  border-color: var(--status-pending-border);
+  background: var(--status-pending-bg);
+  color: var(--status-pending-fg);
+}
+
+.work-calendar__day--locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.work-calendar__day--edited {
+  outline: 2px solid var(--status-info-border);
+}
+
+.work-calendar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}

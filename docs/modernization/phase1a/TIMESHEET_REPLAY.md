@@ -32,15 +32,23 @@
 
 ## 命令行入口
 
-不需要 Spring，不需要数据库，不联网。先编译，再运行：
+不需要 Spring，不需要数据库，不联网。回放命令保留独立的 `main`，与应用分开启动；发布包（Spring Boot 可执行 jar，`spring-boot-maven-plugin` 显式指定 `mainClass` 为 `OneApplication`，layout 为 `ZIP` 以启用 `PropertiesLauncher`）里同时带着它，在 ECS 上离线运行：
+
+```bash
+D=/data/forcitis-one/import/c6/<日期>
+java -Dloader.main=com.forcitis.one.platform.approval.infrastructure.replay.TimesheetApproverReplayCommand \
+  -cp /data/forcitis-one/app/<版本>/forcitis-one.jar org.springframework.boot.loader.launch.PropertiesLauncher \
+  "$D/timesheet-export.json" "$D/replay-out"
+```
+
+运行时需要 ECS 上的 Java 25。开发机上也可以直接用编译结果运行：
 
 ```bash
 cd backend
 ./mvnw -q compile
 ./mvnw -q dependency:build-classpath -Dmdep.outputFile=target/replay-cp.txt
 java -cp "target/classes:$(cat target/replay-cp.txt)" \
-  com.forcitis.one.platform.approval.infrastructure.replay.TimesheetApproverReplayCommand \
-  ~/.modernize/psa/timesheet-export.json ~/.modernize/psa/replay-out
+  com.forcitis.one.platform.approval.infrastructure.replay.TimesheetApproverReplayCommand <导出文件> <输出目录>
 ```
 
 输出目录里生成 `replay-report.json`（机器可读）和 `replay-report.md`（汇总表加差异清单）。报告只含人员 ID，不含姓名。
@@ -51,7 +59,7 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
 
 ## 导出文件（JSON，`formatVersion` = 1）
 
-**导出文件含真实人员，只存本机 `~/.modernize/psa/`，不进仓库。** 生产只读导出需用户授权（Q-4）。
+**导出文件含真实人员，只存新 ECS 的 `/data/forcitis-one/import/c6/<日期>/`（目录 root 0700、文件 root 0600，附 manifest），回放在 ECS 上运行，不进仓库，不下载到个人电脑；保留到 1a 生产切换后 30 天删除（C-6 执行方案，one-ops PR #65）。** 生产只读导出需用户授权（Q-4）。
 
 导出文件说**新词汇**（词表术语）；老系统的名字只出现在下面的「老名 → 新名」转换表和回放代码里的同一张表
 （`platform/approval/infrastructure/replay/LegacyVocabulary`，LegacyShapeTest 的例外清单只登记这一个文件）。
@@ -197,8 +205,8 @@ SELECT r.task_definition_key, r.type, r.options, r.row_approval, r.skip_when_emp
 ## 执行步骤（本会话，Q-4 授权后）
 
 1. 经用户授权，在生产做只读导出：近期、**当前定义版本**的 TIMESHEET 实例样本；同时导出当时的 `system_users` / `system_dept` 快照、
-   `bpm_task_assign_rule`、流程变量快照、各单据的工时行类型集合与实际审批人序列，按上面的格式写成一个 JSON，存 `~/.modernize/psa/`。
-2. 运行命令行，读 `replay-report.md`。
+   `bpm_task_assign_rule`、流程变量快照、各单据的工时行类型集合与实际审批人序列，按上面的格式写成一个 JSON，存 ECS 的 `/data/forcitis-one/import/c6/<日期>/`（权限与保留期见上）。
+2. 在 ECS 上用发布包运行命令行（见「命令行入口」），读 `replay-report.md`；报告同样只留在该目录。
 3. 各 `REVIEWED_*` 类别请用户逐类接受；每条 `DEFECT` 修复并重跑，直到没有 `DEFECT`。
 4. 另出步骤 (b) 的数据源差异报告（A8 与老表）。
 

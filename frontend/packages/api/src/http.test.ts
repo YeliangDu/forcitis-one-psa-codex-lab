@@ -1,23 +1,32 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, createHttpClient } from './http';
+import { forgetReportedViolations, setContractViolationSink } from './contract';
+import { ApiError, MissingVersionError, createHttpClient, versionOf } from './http';
 
 interface Recorded {
   url: string;
   init: RequestInit;
 }
 
-function clientWith(reply: { status: number; body?: unknown }, options: { cookie?: string; handlers?: { onUnauthenticated?: () => void; onForbidden?: () => void } } = {}) {
+type Reply = { status: number; body?: unknown; headers?: Record<string, string> };
+
+function clientWith(reply: Reply | (() => Reply), options: { cookie?: string; handlers?: { onUnauthenticated?: () => void; onForbidden?: () => void }; newKey?: () => string } = {}) {
   const calls: Recorded[] = [];
   const client = createHttpClient({
     baseUrl: 'https://one.example',
     fetchImpl: async (url, init) => {
       calls.push({ url, init });
-      return new Response(reply.body === undefined ? null : JSON.stringify(reply.body), { status: reply.status });
+      const answer = typeof reply === 'function' ? reply() : reply;
+      return new Response(answer.body === undefined ? null : JSON.stringify(answer.body), { status: answer.status, ...(answer.headers === undefined ? {} : { headers: answer.headers }) });
     },
     readCookie: (name) => (name === 'XSRF-TOKEN' ? options.cookie : undefined),
     handlers: () => options.handlers ?? {},
+    ...(options.newKey === undefined ? {} : { newKey: options.newKey }),
   });
   return { client, calls };
+}
+
+function problem(status: number, errorCode: string) {
+  return { status, errorCode, title: 'x', correlationId: 'c-1' };
 }
 
 function headersOf(recorded: Recorded | undefined): Headers {
@@ -67,8 +76,8 @@ describe('HTTP client', () => {
   it('on 401 calls the unauthenticated handler (login redirect) and still rejects with the error', async () => {
     const onUnauthenticated = vi.fn();
     const onForbidden = vi.fn();
-    const { client } = clientWith({ status: 401, body: { errorCode: 'X' } }, { handlers: { onUnauthenticated, onForbidden } });
-    await expect(client.request('get', '/things')).rejects.toMatchObject({ status: 401, code: 'X' });
+    const { client } = clientWith({ status: 401, body: problem(401, 'PLATFORM_WEB_UNAUTHENTICATED') }, { handlers: { onUnauthenticated, onForbidden } });
+    await expect(client.request('get', '/things')).rejects.toMatchObject({ status: 401, code: 'PLATFORM_WEB_UNAUTHENTICATED' });
     expect(onUnauthenticated).toHaveBeenCalledTimes(1);
     expect(onForbidden).not.toHaveBeenCalled();
   });
@@ -96,7 +105,7 @@ describe('HTTP client', () => {
   it('does not treat other failures as redirects and keeps the business error code', async () => {
     const onUnauthenticated = vi.fn();
     const onForbidden = vi.fn();
-    const { client } = clientWith({ status: 409, body: { errorCode: 'PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED', message: 'x' } }, { handlers: { onUnauthenticated, onForbidden } });
+    const { client } = clientWith({ status: 409, body: problem(409, 'PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED') }, { handlers: { onUnauthenticated, onForbidden } });
     await expect(client.request('post', '/things', { body: {} })).rejects.toMatchObject({ status: 409, code: 'PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED' });
     expect(onUnauthenticated).not.toHaveBeenCalled();
     expect(onForbidden).not.toHaveBeenCalled();
@@ -118,5 +127,110 @@ describe('HTTP client', () => {
     await client.request('post', '/things', { body: {} });
     expect(headersOf(calls[0]).get('X-XSRF-TOKEN')).toBe('from-cookie');
     document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  });
+
+  it('keeps the whole ProblemDetail of an error answer, with its correlation id', async () => {
+    const { client } = clientWith({ status: 422, body: { ...problem(422, 'PLATFORM_APPROVAL_REASON_REQUIRED'), detail: 'reason is required', extra: null } });
+    const failure = await client.request('post', '/things', { body: {} }).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(ApiError);
+    expect((failure as ApiError).problem).toMatchObject({ errorCode: 'PLATFORM_APPROVAL_REASON_REQUIRED', status: 422, correlationId: 'c-1' });
+  });
+
+  it('an error code this client does not know keeps the whole body (legacyLoginUrl included), has no known code, and is reported once', async () => {
+    forgetReportedViolations();
+    const reports: string[] = [];
+    setContractViolationSink((message) => reports.push(message));
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const { client } = clientWith({ status: 503, body: { ...problem(503, 'PLATFORM_FUTURE_CODE'), legacyLoginUrl: 'https://old.example.com/login' } });
+      const failure = (await client.request('post', '/login', { body: {} }).catch((error: unknown) => error)) as ApiError;
+      expect(failure.status).toBe(503);
+      expect(failure.code).toBeUndefined();
+      expect(failure.problem).toMatchObject({ errorCode: 'PLATFORM_FUTURE_CODE', legacyLoginUrl: 'https://old.example.com/login' });
+    }
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toContain('PLATFORM_FUTURE_CODE');
+    setContractViolationSink((message) => console.error(message));
+  });
+
+  it('an error body that is not a ProblemDetail leaves only the status to trust', async () => {
+    for (const body of [{ errorCode: 'PLATFORM_WEB_UNEXPECTED' }, { outcome: 'NOT_HELD' }, '<html>bad gateway</html>']) {
+      const { client } = clientWith({ status: 500, body });
+      const failure = (await client.request('get', '/things').catch((error: unknown) => error)) as ApiError;
+      expect(failure.status).toBe(500);
+      expect(failure.code).toBeUndefined();
+      expect(failure.problem).toBeUndefined();
+    }
+    const empty = (await clientWith({ status: 502 }).client.request('get', '/things').catch((error: unknown) => error)) as ApiError;
+    expect(empty.problem).toBeUndefined();
+  });
+
+  describe('If-Match', () => {
+    const versioned = { versioned: true } as const;
+
+    it('the version travels with the data that was read, and the caller hands it back explicitly', async () => {
+      const { client, calls } = clientWith(() => ({ status: 200, body: {}, headers: { ETag: '"7"' } }));
+      const read = await client.request('get', '/tasks/{id}', { path: { id: 5 } });
+      expect(versionOf(read)).toBe('"7"');
+      await client.request('post', '/tasks/{id}:decide', { path: { id: 5 }, body: {} }, { ifMatch: versionOf(read) }, undefined, versioned);
+      expect(headersOf(calls[1]).get('If-Match')).toBe('"7"');
+    });
+
+    it('an answer without an ETag carries no version, and a later answer never inherits an earlier one', async () => {
+      let etag: string | undefined = '"1"';
+      const { client } = clientWith(() => ({ status: 200, body: {}, ...(etag === undefined ? {} : { headers: { ETag: etag } }) }));
+      const first = await client.request('get', '/tasks/{id}', { path: { id: 5 } });
+      etag = undefined;
+      const second = await client.request('get', '/tasks/{id}', { path: { id: 5 } });
+      expect(versionOf(first)).toBe('"1"');
+      expect(versionOf(second)).toBeUndefined();
+    });
+
+    it('refuses a versioned update that has no version, and sends nothing', async () => {
+      const { client, calls } = clientWith({ status: 200, body: {} });
+      await expect(client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, {}, undefined, versioned)).rejects.toBeInstanceOf(MissingVersionError);
+      expect(calls).toHaveLength(0);
+    });
+
+    it('creating a resource that does not exist yet sends If-None-Match: * instead of a version', async () => {
+      const { client, calls } = clientWith({ status: 200, body: {} });
+      await client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { createOnly: true }, undefined, versioned);
+      expect(headersOf(calls[0]).get('If-None-Match')).toBe('*');
+      expect(headersOf(calls[0]).has('If-Match')).toBe(false);
+    });
+
+    it('a version that is given wins over createOnly', async () => {
+      const { client, calls } = clientWith({ status: 200, body: {} });
+      await client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { createOnly: true, ifMatch: '"2"' }, undefined, versioned);
+      expect(headersOf(calls[0]).get('If-Match')).toBe('"2"');
+      expect(headersOf(calls[0]).has('If-None-Match')).toBe(false);
+    });
+
+    it('a 412 is a plain error with its code; nothing is remembered that a retry could reuse', async () => {
+      const { client, calls } = clientWith({ status: 412, body: problem(412, 'PLATFORM_WEB_VERSION_MISMATCH') });
+      await expect(client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { ifMatch: '"3"' }, undefined, versioned)).rejects.toMatchObject({ status: 412, code: 'PLATFORM_WEB_VERSION_MISMATCH' });
+      await expect(client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, {}, undefined, versioned)).rejects.toBeInstanceOf(MissingVersionError);
+      expect(calls).toHaveLength(1);
+    });
+  });
+
+  describe('Idempotency-Key', () => {
+    const idempotent = { idempotent: true } as const;
+
+    it('gives every side-effecting call its own key and lets the caller repeat one with the same key', async () => {
+      let counter = 0;
+      const { client, calls } = clientWith({ status: 200, body: {} }, { newKey: () => `key-${(counter += 1)}` });
+      await client.request('post', '/things', { body: {} }, {}, undefined, idempotent);
+      await client.request('post', '/things', { body: {} }, {}, undefined, idempotent);
+      await client.request('post', '/things', { body: {} }, { idempotencyKey: 'again' }, undefined, idempotent);
+      await client.request('post', '/things', { body: {} }, {}, undefined, {});
+      expect(calls.map((call) => headersOf(call).get('Idempotency-Key'))).toEqual(['key-1', 'key-2', 'again', null]);
+    });
+
+    it('makes a well-formed version 4 UUID when none is injected', async () => {
+      const calls: Recorded[] = [];
+      const plain = createHttpClient({ fetchImpl: async (url, init) => { calls.push({ url, init }); return new Response('{}'); } });
+      await plain.request('post', '/things', { body: {} }, {}, undefined, idempotent);
+      expect(headersOf(calls[0]).get('Idempotency-Key')).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    });
   });
 });

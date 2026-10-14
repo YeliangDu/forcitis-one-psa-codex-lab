@@ -1,20 +1,45 @@
 // Runs after `taro build --type h5`: every emitted script must parse. Taro's minifier once wrote class private fields of a dependency as
 // invalid syntax (`#"e"`), which unit tests cannot see and which leaves the page blank. The bundle must also stay at ES2020 (Chrome 80 /
 // iOS 13.4), what WeCom's embedded browsers handle; Taro's own dependencies are shipped untranspiled at that level.
+// Exactly one React must be bundled, and it must be 18: counted by the versions react and react-dom assign.
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'acorn';
+import { publicPathOf } from '../config/public-path.mjs';
 
-const dist = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'js');
+const given = process.argv.indexOf('--dist');
+const root = given > 0 ? process.argv[given + 1] : join(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
+const dist = join(root, 'js');
 const ECMA_VERSION = 2020;
 let failed = false;
+const reactVersions = [];
 const files = readdirSync(dist).filter((name) => name.endsWith('.js'));
 for (const name of files) {
+  const source = readFileSync(join(dist, name), 'utf8');
   try {
-    parse(readFileSync(join(dist, name), 'utf8'), { ecmaVersion: ECMA_VERSION });
+    parse(source, { ecmaVersion: ECMA_VERSION });
   } catch (error) {
     console.error(`dist/js/${name} is not valid ES${ECMA_VERSION}: ${error.message}`);
+    failed = true;
+  }
+  for (const [, version] of source.matchAll(/\.version="((?:1[6-9]|2\d)\.\d+\.\d+)(?:-next[\w.-]*)?"/g)) reactVersions.push(version);
+}
+// One copy of React is `react` and `react-dom`, each assigning its version once; a second copy (React 19 from the shared package) would break every hook.
+if (reactVersions.length !== 2 || reactVersions.some((version) => !version.startsWith('18.'))) {
+  console.error(`The bundle must contain exactly one React 18 (react + react-dom), found versions [${reactVersions.join(', ')}]. @forcitis/core is shared with apps/web (React 19); its React imports must resolve to this app (config/index.ts alias).`);
+  failed = true;
+}
+const publicPath = publicPathOf(process.env);
+const page = readFileSync(join(root, 'index.html'), 'utf8');
+const references = [...page.matchAll(/\b(?:src|href)=["']?([^"'\s>]+)/g)].map((match) => match[1]).filter((target) => !/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(target));
+if (references.length === 0) {
+  console.error('dist/index.html references no scripts or styles: the H5 build produced nothing usable.');
+  failed = true;
+}
+for (const target of references) {
+  if (!target.startsWith(publicPath)) {
+    console.error(`dist/index.html references "${target}", outside the sub-path ${publicPath}; the page would not load when served there.`);
     failed = true;
   }
 }

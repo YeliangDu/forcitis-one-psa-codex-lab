@@ -14,3 +14,10 @@ platform_identity.sso_ticket_uses.ticket_hash | SENSITIVE | 一次性单点登�
 platform_identity.ticket_issuers.key_reference | SENSITIVE | 签名密钥在 KMS 中的引用
 platform_identity.sessions_attributes.attribute_bytes | RESTRICTED | 会话内容
 platform_audit.audit_entries.source_address | SENSITIVE | 个人信息：操作来源 IP；只经审计查询权限输出
+organization_workforce.employees.display_name | SENSITIVE | 个人信息：姓名
+organization_workforce.employees.login_name | SENSITIVE | 个人信息：登录名
+organization_workforce.employees.wecom_user_id | SENSITIVE | 个人信息：企业微信用户 ID
+organization_workforce.employees.employee_code | SENSITIVE | 个人信息：工号
+platform_integration.outbound_deliveries.recipient_codes | SENSITIVE | 个人信息：收件人的企业微信用户 ID
+platform_integration.outbound_deliveries.skipped_recipient_codes | SENSITIVE | 个人信息：被跳过收件人的企业微信用户 ID
+platform_identity.browser_identifiers.identifier_hash | SENSITIVE | 浏览器标识的摘要：可用于判断某浏览器是否已被本人确认

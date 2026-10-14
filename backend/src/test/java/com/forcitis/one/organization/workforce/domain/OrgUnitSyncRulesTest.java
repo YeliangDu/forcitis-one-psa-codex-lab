@@ -126,6 +126,43 @@ class OrgUnitSyncRulesTest {
     }
 
     @Test
+    @DisplayName("B2-H3 a regional receivables manager who is not in the snapshot is stored empty and reported, and the sync goes on")
+    void unknownRegionalManagerIsReported() {
+        SourceOrgSnapshot snapshot = source(List.of(unit(1, null), unit(2, 1L)), List.of(manager(2, 999)), List.of(post(100)),
+                List.of(person(801, 1, 100L, null)));
+
+        Reconciliation changes = first(snapshot);
+
+        OrgSnapshot after = apply(OrgSnapshot.empty(), changes);
+        assertThat(orgUnit(after, 2).regionalReceivablesManagerId()).isNull();
+        assertThat(orgUnit(after, 1)).isNotNull();
+        assertThat(issues(changes)).contains(IssueKind.REGIONAL_MANAGER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("B2-H3 a parent unit that is neither in the snapshot nor stored is reported and the parent is stored empty, so no key can dangle")
+    void unknownParentIsReported() {
+        SourceOrgSnapshot snapshot = source(List.of(unit(1, null), unit(2, 777L)), List.of(), List.of(post(100)), List.of());
+
+        Reconciliation changes = first(snapshot);
+
+        OrgSnapshot after = apply(OrgSnapshot.empty(), changes);
+        assertThat(orgUnit(after, 2).parentOrgUnitId()).isNull();
+        assertThat(orgUnit(after, 1)).isNotNull();
+        assertThat(issues(changes)).contains(IssueKind.PARENT_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("B2-H3 a parent that is stored but no longer returned still counts as known (it is revoked, not deleted)")
+    void aStoredParentIsKnown() {
+        OrgSnapshot before = apply(OrgSnapshot.empty(), first(source(List.of(unit(1, null), unit(2, 1L)), List.of(), List.of(post(100)), List.of())));
+
+        Reconciliation changes = SnapshotReconciler.reconcile(before, source(List.of(unit(3, 1L)), List.of(), List.of(post(100)), List.of()));
+
+        assertThat(issues(changes)).doesNotContain(IssueKind.PARENT_NOT_FOUND);
+    }
+
+    @Test
     @DisplayName("RULE-357 insert new, update on change, revoke what the source no longer returns, revive when it returns")
     void insertUpdateRevokeRevive() {
         OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree()));

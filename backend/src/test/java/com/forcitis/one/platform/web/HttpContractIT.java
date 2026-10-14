@@ -26,7 +26,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
@@ -122,16 +121,16 @@ class HttpContractIT {
     }
 
     @Test
-    @DisplayName("the original-number lookup declares only documentType as required: the three ways to search are alternatives, not a conjunction")
+    @DisplayName("the original-number list declares documentType as required and its two search keys as alternatives; the exact lookup is its own operation")
     void legacyNumberSearchKeysAreAlternatives() throws Exception {
-        tools.jackson.databind.JsonNode parameters = new tools.jackson.databind.json.JsonMapper().readTree(
-                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
-                .path("paths").path("/api/v1/platform/legacy-numbers").path("get").path("parameters");
+        tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
         java.util.Map<String, Boolean> required = new java.util.TreeMap<>();
-        parameters.forEach(p -> required.put(p.path("name").asString(), p.path("required").asBoolean()));
+        paths.path("/api/v1/platform/legacy-numbers").path("get").path("parameters").forEach(p -> required.put(p.path("name").asString(), p.path("required").asBoolean()));
 
-        assertThat(required).containsEntry("documentType", true).containsEntry("legacyNumber", false)
-                .containsEntry("legacyNumberPrefix", false).containsEntry("documentId", false);
+        assertThat(required).containsEntry("documentType", true).containsEntry("legacyNumberPrefix", false).containsEntry("documentId", false)
+                .doesNotContainKey("legacyNumber");
+        assertThat(paths.path("/api/v1/platform/legacy-numbers:resolve").path("get").isMissingNode()).isFalse();
     }
 
     @Test

@@ -1,9 +1,8 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { currentUserBody } from '@/shared/testing/fixtures';
+import { currentUserBody, problemBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { SyncRunsPage } from './sync-runs-page';
 
 const READ = 'organization.workforce:sync-run:read';
@@ -16,7 +15,7 @@ const RUNS = [
 
 describe('同步记录页', () => {
   it('列出同步记录，被中止的同步有放行按钮', async () => {
-    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) }, 'GET sync-runs': { body: { items: RUNS, nextCursor: null } } });
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) }, 'GET sync-runs': { body: RUNS } });
     renderWithProviders(<SyncRunsPage />);
 
     expect(await screen.findByText('被中止')).toBeInTheDocument();
@@ -26,7 +25,7 @@ describe('同步记录页', () => {
   });
 
   it('没有放行权限时不显示放行', async () => {
-    stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET sync-runs': { body: { items: RUNS, nextCursor: null } } });
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET sync-runs': { body: RUNS } });
     renderWithProviders(<SyncRunsPage />);
 
     await screen.findByText('被中止');
@@ -37,13 +36,12 @@ describe('同步记录页', () => {
   it('放行：确认后请求放行该同步', async () => {
     const server = stubServer({
       'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) },
-      'GET sync-runs': { body: { items: RUNS, nextCursor: null } },
-      'POST sync-runs/12:release': { body: RUNS[0] },
+      'GET sync-runs': { body: RUNS },
+      'POST sync-runs/12:release': { body: { outcome: 'RELEASED', message: null, syncRun: RUNS[0] } },
     });
     renderWithProviders(<SyncRunsPage />);
 
     await userEvent.click(await screen.findByRole('button', { name: '放行' }));
-    await userEvent.type(within(await screen.findByRole('dialog')).getByLabelText('放行原因'), '已核对差异');
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '确认放行' }));
 
     await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
@@ -53,23 +51,22 @@ describe('同步记录页', () => {
   it('放行被拒绝（状态已变）时显示中文原因', async () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) },
-      'GET sync-runs': { body: { items: RUNS, nextCursor: null } },
-      'POST sync-runs/12:release': { status: 409, body: { status: 409, errorCode: 'ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL' } },
+      'GET sync-runs': { body: RUNS },
+      'POST sync-runs/12:release': { status: 409, body: problemBody(409, 'ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL') },
     });
     renderWithProviders(<SyncRunsPage />);
 
     await userEvent.click(await screen.findByRole('button', { name: '放行' }));
-    await userEvent.type(within(await screen.findByRole('dialog')).getByLabelText('放行原因'), '已核对差异');
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '确认放行' }));
 
-    expect(await screen.findByText('该同步记录当前不是被中止状态，无法放行')).toBeInTheDocument();
+    expect(await screen.findByText('这个同步记录当前不是被中止状态，无法放行')).toBeInTheDocument();
   });
 
   it('查看同步差异：显示这次同步的变化', async () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ]) },
       'GET sync-runs/11': { body: { syncRun: RUNS[1], diffs: [{ entityKind: 'EMPLOYEE', subjectKey: '1001', changeKind: 'UPDATED', changedFields: ['部门'], detail: '部门变更' }] } },
-      'GET sync-runs': { body: { items: RUNS, nextCursor: null } },
+      'GET sync-runs': { body: RUNS },
     });
     renderWithProviders(<SyncRunsPage />);
 

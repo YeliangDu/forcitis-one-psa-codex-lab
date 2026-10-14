@@ -5,7 +5,7 @@ import { loadVocabulary, scan, sourceFiles } from './copy-glossary.mjs';
 
 const frontend = join(dirname(fileURLToPath(import.meta.url)), '..');
 const repository = join(frontend, '..');
-const DEFAULT_ROOTS = ['apps/web/src', 'apps/h5/src', 'packages/ui/src', 'packages/design-system/src'].map((root) => join(frontend, root));
+const DEFAULT_ROOTS = ['apps/web/src', 'apps/h5/src', 'packages/core/src', 'packages/ui/src', 'packages/design-system/src'].map((root) => join(frontend, root));
 const given = process.argv.flatMap((argument, index, all) => (argument === '--root' && all[index + 1] !== undefined ? [all[index + 1]] : []));
 const ROOTS = given.length > 0 ? given : DEFAULT_ROOTS;
 

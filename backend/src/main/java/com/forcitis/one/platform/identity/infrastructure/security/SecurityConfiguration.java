@@ -9,6 +9,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authorization.AuthorizationDecision;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -40,7 +44,15 @@ class SecurityConfiguration {
                     publicEndpoints.entries().forEach(entry -> requests
                             .requestMatchers(PathPatternRequestMatcher.withDefaults().matcher(entry.method(), entry.pattern()))
                             .permitAll());
-                    requests.anyRequest().authenticated();
+                    for (String own : List.of("current", "confirm-identity", "logout")) {
+                        requests.requestMatchers(PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.valueOf("current".equals(own) ? "GET" : "POST"),
+                                "/api/v1/platform/sessions:" + own)).authenticated();
+                    }
+                    requests.anyRequest().access((authentication, context) -> {
+                        var who = authentication.get();
+                        boolean signedIn = who != null && who.isAuthenticated() && !(who instanceof AnonymousAuthenticationToken);
+                        return new AuthorizationDecision(signedIn && (!(who instanceof IdentityAuthentication identity) || identity.identityConfirmed()));
+                    });
                 })
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, failure) -> resolve(exceptionResolver, request, response, failure))

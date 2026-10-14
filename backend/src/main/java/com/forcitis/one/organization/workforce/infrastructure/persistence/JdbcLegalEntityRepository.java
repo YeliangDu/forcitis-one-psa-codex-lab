@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -8,6 +9,7 @@ import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.LegalEntity;
 import com.forcitis.one.organization.workforce.domain.LegalEntityRepository;
+import java.time.Clock;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -16,9 +18,15 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcLegalEntityRepository implements LegalEntityRepository {
     private final JdbcClient jdbc;
+    private final LegalEntityHistory history;
+    private final Clock clock;
+    private final BusinessZone zone;
 
-    JdbcLegalEntityRepository(JdbcClient jdbc) {
+    JdbcLegalEntityRepository(JdbcClient jdbc, Clock clock, BusinessZone zone) {
         this.jdbc = jdbc;
+        this.history = new LegalEntityHistory(jdbc);
+        this.clock = clock;
+        this.zone = zone;
     }
 
     @Override
@@ -51,7 +59,9 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
                     .param("accounting", accountingValue(unsaved), java.sql.Types.BIGINT)
                     .param("version", unsaved.versionAfterSave()).param("eventSequence", unsaved.eventSequenceAfterSave())
                     .query(Long.class).single();
-            return unsaved.withId(new LegalEntityId(id));
+            LegalEntity saved = unsaved.withId(new LegalEntityId(id));
+            history.recordLegalEntity(saved, zone.today(clock));
+            return saved;
         } catch (DuplicateKeyException taken) {
             throw taken(taken, unsaved);
         }
@@ -79,6 +89,7 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
                     "legal entity " + legalEntity.legalEntityId().value() + " was changed by someone else");
         }
+        history.recordLegalEntity(legalEntity, zone.today(clock));
     }
 
     private static DomainException taken(DuplicateKeyException failure, LegalEntity entity) {

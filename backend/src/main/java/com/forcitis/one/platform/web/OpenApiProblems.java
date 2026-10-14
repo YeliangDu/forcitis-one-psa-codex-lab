@@ -30,6 +30,11 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 class OpenApiProblems {
     static final String PROBLEM_JSON = "application/problem+json";
 
+    static {
+        // An enum is one named schema (ProcessKey, DocumentType, ...), not a copy of its values in every response that uses it.
+        io.swagger.v3.core.jackson.ModelResolver.enumsAsRef = true;
+    }
+
     @Bean
     OpenApiCustomizer problemContract() {
         List<String> codes = errorCodes();
@@ -54,11 +59,19 @@ class OpenApiProblems {
             }
             openApi.getPaths().forEach((path, item) -> item.readOperationsMap().forEach((method, operation) -> {
                 declareProblem(operation);
+                requireIfMatch(operation);
                 if (IdempotencyScope.applies(method.name(), path)) {
                     declareIdempotencyKey(operation);
                 }
             }));
         };
+    }
+
+    /** The server answers 428 without it; the contract says the write cannot be made without it. */
+    private static void requireIfMatch(Operation operation) {
+        if (operation.getParameters() != null) {
+            operation.getParameters().stream().filter(p -> "If-Match".equals(p.getName())).forEach(p -> p.setRequired(true));
+        }
     }
 
     private static void declareProblem(Operation operation) {
@@ -67,6 +80,11 @@ class OpenApiProblems {
         }
         Content content = new Content().addMediaType(PROBLEM_JSON, new MediaType().schema(new Schema<>().$ref("#/components/schemas/ProblemDetail")));
         operation.getResponses().addApiResponse("default", new ApiResponse().description("The request was refused").content(content));
+        operation.getResponses().forEach((status, response) -> {
+            if (status.matches("[45]\\d\\d") && response.getContent() != null) {
+                response.getContent().forEach((type, media) -> media.setSchema(new Schema<>().$ref("#/components/schemas/ProblemDetail")));
+            }
+        });
     }
 
     private static void declareIdempotencyKey(Operation operation) {

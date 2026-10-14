@@ -59,7 +59,7 @@ class NumberingRuleController {
         if (request.resetPolicy() == null) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, "the reset policy is missing");
         }
-        NumberingRuleView rule = configure.execute(documentType, ExpectedVersion.fromHeaders(ifMatch, null), request.pattern(),
+        NumberingRuleView rule = configure.execute(documentType, ExpectedVersion.fromHeader(ifMatch), request.pattern(),
                 request.resetPolicy(), request.startValue());
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(rule.version())).body(NumberingRuleResponse.from(rule));
     }

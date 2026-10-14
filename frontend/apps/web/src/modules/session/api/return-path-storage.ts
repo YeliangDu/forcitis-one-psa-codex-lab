@@ -1,4 +1,4 @@
-import { safeInternalPath } from '@/shared/lib/safe-url';
+import { safeInternalPath } from '@forcitis/core';
 
 const KEY = 'forcitis.login.return-path';
 

@@ -24,7 +24,7 @@ class TestIsolationGuardTest {
     static final Path TESTS = Path.of("src/test/java/com/forcitis/one");
     static final Path EXCEPTIONS = Path.of("architecture/test-isolation-exceptions.txt");
     static final Pattern STRING = Pattern.compile("\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);
-    static final Pattern SCHEMA_TABLE = Pattern.compile("\\b((?:organization|platform|cost|delivery)_[a-z]+)\\.[a-z_]+\\b");
+    static final Pattern SCHEMA_TABLE = Pattern.compile("\\b((?:organization|platform|cost|delivery)_[a-z]+)\\.(?!properties\\b)[a-z_]+\\b");
 
     static String schemaOf(Path file) {
         Path relative = TESTS.relativize(file);

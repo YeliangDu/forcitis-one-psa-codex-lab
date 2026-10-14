@@ -1,29 +1,42 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.platform.approval.domain.Moment;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
-/** Business dates are cut in the legal entities' time zone (Asia/Shanghai), never in the server's. */
+/** Business dates are cut in the business zone, never in the server's. */
 @Component
 class BusinessTime {
 
-    static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
+    private final Clock clock;
+    private final BusinessZone zone;
 
-    private final ObjectProvider<Clock> clock;
-
-    BusinessTime(ObjectProvider<Clock> clock) {
+    BusinessTime(Clock clock, BusinessZone zone) {
         this.clock = clock;
+        this.zone = zone;
     }
 
     Instant now() {
-        return clock.getIfAvailable(Clock::systemUTC).instant();
+        return clock.instant();
     }
 
     LocalDate today() {
-        return LocalDate.ofInstant(now(), ZONE);
+        return zone.today(clock);
+    }
+
+    Moment moment() {
+        Instant now = clock.instant();
+        return new Moment(now, zone.dateOf(now));
+    }
+
+    BusinessZone zone() {
+        return zone;
+    }
+
+    Clock clock() {
+        return clock;
     }
 }

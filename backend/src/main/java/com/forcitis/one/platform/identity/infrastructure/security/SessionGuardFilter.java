@@ -45,7 +45,7 @@ final class SessionGuardFilter extends OncePerRequestFilter {
                     boolean unconfirmed = session == null || !Boolean.TRUE.equals(session.getAttribute(ServletSessionRegistry.CONFIRMED_ATTRIBUTE));
                     SecurityContext refreshed = SecurityContextHolder.createEmptyContext();
                     refreshed.setAuthentication(identity.withAuthorities(unconfirmed ? List.of()
-                            : principal.authorities().stream().map(SimpleGrantedAuthority::new).toList()));
+                            : principal.authorities().stream().map(SimpleGrantedAuthority::new).toList(), !unconfirmed));
                     SecurityContextHolder.setContext(refreshed);
                 } else {
                     terminate(request);

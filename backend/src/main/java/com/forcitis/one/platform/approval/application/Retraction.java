@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ProcessKey;
@@ -20,17 +21,14 @@ class Retraction {
 
     private final ApprovalRequestRepository requests;
     private final ApprovalEngine engine;
-    private final ApprovalLifecycle lifecycle;
-    private final Aggregates aggregates;
+    private final Approvals approvals;
     private final DenialAudit denials;
     private final BusinessTime time;
 
-    Retraction(ApprovalRequestRepository requests, ApprovalEngine engine, ApprovalLifecycle lifecycle, Aggregates aggregates,
-            DenialAudit denials, BusinessTime time) {
+    Retraction(ApprovalRequestRepository requests, ApprovalEngine engine, Approvals approvals, DenialAudit denials, BusinessTime time) {
         this.requests = requests;
         this.engine = engine;
-        this.lifecycle = lifecycle;
-        this.aggregates = aggregates;
+        this.approvals = approvals;
         this.denials = denials;
         this.time = time;
     }
@@ -41,7 +39,7 @@ class Retraction {
     }
 
     RetractionResult withdraw(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
-        Optional<ApprovalRequest> found = requests.find(processKey, document);
+        Optional<ApprovalRequest> found = requests.findForUpdate(processKey, document);
         if (found.isEmpty()) {
             return RetractionResult.NOT_RUNNING;
         }
@@ -52,15 +50,14 @@ class Retraction {
         if (refusal != null) {
             return refusal;
         }
-        Transitions.run(() -> request.withdraw(actor, cutoff, reason, time.today()));
+        request.withdraw(actor, cutoff, Reason.ofNullable(reason), time.moment());
         engine.endAsReturned(request.instanceId());
-        aggregates.save(request);
-        lifecycle.closeOpenTasks(request.instanceId());
+        approvals.save(request);
         return RetractionResult.DONE;
     }
 
     RetractionResult cancel(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
-        Optional<ApprovalRequest> found = requests.find(processKey, document);
+        Optional<ApprovalRequest> found = requests.findForUpdate(processKey, document);
         if (found.isEmpty()) {
             return RetractionResult.NOT_RUNNING;
         }
@@ -71,10 +68,9 @@ class Retraction {
         if (refusal != null) {
             return refusal;
         }
-        Transitions.run(() -> request.cancel(actor, cutoff, reason, time.today()));
+        request.cancel(actor, cutoff, Reason.ofNullable(reason), time.moment());
         engine.terminate(request.instanceId(), "CANCELLED");
-        aggregates.save(request);
-        lifecycle.closeOpenTasks(request.instanceId());
+        approvals.save(request);
         return RetractionResult.DONE;
     }
 

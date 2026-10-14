@@ -55,20 +55,25 @@ categories:
 - name: 审批
   actions:
   - platform.approval.ApprovalCompleted
+  - platform.approval.ApprovalRoundStarted
   - platform.approval.ApprovalTaskEscalated
+  - platform.approval.DocumentSubmittedForApproval
   - platform.approval.TaskAssigned
   - platform.approval.TaskClaimed
+  - platform.approval.TaskReassigned
+  - platform.approval.TaskReleased
   - platform.approval.TaskResulted
   - platform.approval.TaskTransferred
   - platform.approval.request.denied
   - platform.approval.start.denied
-  - platform.approval.task.auto-approve
   - platform.approval.task.denied
+  - platform.approval.task.list-all
 - name: 应急账号
   actions:
   - planned: platform.identity.emergency-admin.registered | 应急账号开通与停用（ADR-0027），由身份与授权批次实现；应急登录本身已记在登录类别（method=EMERGENCY）
 - name: 配置变更
   actions:
+  - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
 - name: 工时单
   actions:

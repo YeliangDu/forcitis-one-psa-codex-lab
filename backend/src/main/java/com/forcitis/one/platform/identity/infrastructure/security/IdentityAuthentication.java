@@ -15,17 +15,25 @@ final class IdentityAuthentication extends AbstractAuthenticationToken {
     private final String userId;
     private final Instant loginAt;
     private final String method;
+    private final boolean identityConfirmed;
 
-    IdentityAuthentication(String userId, Instant loginAt, String method, Collection<? extends GrantedAuthority> authorities) {
+    IdentityAuthentication(String userId, Instant loginAt, String method, Collection<? extends GrantedAuthority> authorities,
+            boolean identityConfirmed) {
         super(authorities);
         this.userId = userId;
         this.loginAt = loginAt;
         this.method = method;
+        this.identityConfirmed = identityConfirmed;
         super.setAuthenticated(true);
     }
 
-    IdentityAuthentication withAuthorities(Collection<? extends GrantedAuthority> fresh) {
-        return new IdentityAuthentication(userId, loginAt, method, fresh);
+    IdentityAuthentication withAuthorities(Collection<? extends GrantedAuthority> fresh, boolean confirmed) {
+        return new IdentityAuthentication(userId, loginAt, method, fresh, confirmed);
+    }
+
+    /** False while the person has not said that the account a ticket logged them into is theirs: such a session may do nothing else (C-M7). */
+    boolean identityConfirmed() {
+        return identityConfirmed;
     }
 
     Instant loginAt() {

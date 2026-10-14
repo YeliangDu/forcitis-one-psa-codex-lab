@@ -98,20 +98,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_attendance_locked_day_unconfirmed
-  zh: 过去日期变更未确认
-  en: OrganizationAttendanceLockedDayUnconfirmed
-  snake: organization_attendance_locked_day_unconfirmed
-  kind: error_code
-  bc: organization.attendance
-  definition: "修改今天之前的日期须由维护人确认（422）"
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__organization_workforce_org_unit_not_found
   zh: 组织单元不存在
   en: OrganizationWorkforceOrgUnitNotFound
@@ -588,34 +574,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__platform_web_version_mismatch
-  zh: 版本不一致
-  en: PlatformWebVersionMismatch
-  snake: platform_web_version_mismatch
-  kind: error_code
-  bc: platform.web
-  definition: "写请求所依据的版本已过期，资源已被他人修改（412）"
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__platform_web_version_required
-  zh: 缺少版本
-  en: PlatformWebVersionRequired
-  snake: platform_web_version_required
-  kind: error_code
-  bc: platform.web
-  definition: "写请求必须带 If-Match（首次创建带 If-None-Match: *）（428）"
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_numbering_legacy_number_taken
   zh: 原编号已被占用
   en: PlatformNumberingLegacyNumberTaken
@@ -686,20 +644,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_attendance_locked_day_forbidden
-  zh: 无权修改已过日期
-  en: OrganizationAttendanceLockedDayForbidden
-  snake: organization_attendance_locked_day_forbidden
-  kind: error_code
-  bc: organization.attendance
-  definition: "改动今天以前的工作日历日期需要单独的权限（403）"
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__organization_workforce_attribution_period_not_found
   zh: 归属期间不存在
   en: OrganizationWorkforceAttributionPeriodNotFound
@@ -763,6 +707,62 @@ terms:
   kind: error_code
   bc: organization.workforce
   definition: "更正已关闭的归属期间需要单独的权限，拒绝时记入审计（403）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: escalation
+  zh: 升级
+  en: Escalation
+  snake: escalation
+  kind: action
+  bc: platform.approval
+  definition: "审批任务超时未处理时，转给上级处理"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: reassignment
+  zh: 改派
+  en: Reassignment
+  snake: reassignment
+  kind: action
+  bc: platform.approval
+  definition: "流程管理员把待办改给另一个人"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: release_of_task
+  zh: 释放
+  en: ReleaseOfTask
+  snake: release_of_task
+  kind: action
+  bc: platform.approval
+  definition: "认领人放回已认领的任务，让候选人重新认领"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: accounting_voucher_text
+  zh: 记账凭证
+  en: AccountingVoucherText
+  snake: accounting_voucher_text
+  kind: concept
+  bc: platform.approval
+  definition: "会计凭证在对外文案中的叫法（审批单据类型的显示名）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium

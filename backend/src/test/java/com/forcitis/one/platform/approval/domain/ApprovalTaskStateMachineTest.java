@@ -1,219 +1,298 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Reason;
+import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.kernel.event.ActorType;
-import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.kernel.event.DomainEvent;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalStatus;
+import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.EscalationTarget;
+import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.NodeName;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.ProcessName;
 import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
+import com.forcitis.one.platform.approval.events.ApprovalCompleted;
+import com.forcitis.one.platform.approval.events.ApprovalRoundStarted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
+import com.forcitis.one.platform.approval.events.TaskClosed;
+import com.forcitis.one.platform.approval.events.TaskReassigned;
+import com.forcitis.one.platform.approval.events.TaskReleased;
 import com.forcitis.one.platform.approval.events.TaskResulted;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 class ApprovalTaskStateMachineTest {
 
-    enum Move {
-        CLAIM,
-        COMPLETE,
-        COMPLETE_AUTOMATICALLY,
-        CLOSE,
-        TRANSFER,
-        MARK_OVERDUE,
-        ESCALATE
-    }
-
     static final UserId HOLDER = new UserId(20);
     static final UserId OTHER = new UserId(21);
-    static final Instant DUE = Instant.parse("2026-10-15T16:00:00Z");
-    static final Instant ESCALATE_AT = Instant.parse("2026-10-16T16:00:00Z");
-    static final Instant AFTER_BOTH = Instant.parse("2026-10-17T00:00:00Z");
-    static final LocalDate TODAY = LocalDate.of(2026, 10, 17);
+    static final UserId INITIATOR = new UserId(10);
+    static final Instant DUE = Instant.parse("2026-10-19T15:59:00Z");
+    static final Instant REMIND_AT = Instant.parse("2026-10-20T01:00:00Z");
+    static final Instant ESCALATE_AT = Instant.parse("2026-10-21T01:00:00Z");
+    static final Instant AFTER_BOTH = Instant.parse("2026-10-22T00:00:00Z");
+    static final Moment NOW = new Moment(AFTER_BOTH, LocalDate.of(2026, 10, 22));
+    static final ApprovalTaskId TASK = new ApprovalTaskId("t-1");
+    static final ApprovalInstanceId INSTANCE = new ApprovalInstanceId("i-1");
+    static final NodeKey NODE = new NodeKey("projectManagerReview");
+    static final com.forcitis.one.platform.approval.api.NodeName NODE_NAME = new com.forcitis.one.platform.approval.api.NodeName("项目经理审批");
+    static final UserId ADMIN = new UserId(1);
+    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));
+    static final DeadlinePlan PLAN = new DeadlinePlan(DUE, REMIND_AT, ESCALATE_AT);
+    static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
-    /** Written down independently of the aggregate: for each move the statuses from which it is legal (the deadline moves also need the right time). */
-    static final Map<Move, List<ApprovalTaskStatus>> LEGAL = new EnumMap<>(Map.of(
-            Move.CLAIM, List.of(ApprovalTaskStatus.PENDING),
-            Move.COMPLETE, List.of(ApprovalTaskStatus.CLAIMED),
-            Move.COMPLETE_AUTOMATICALLY, List.of(ApprovalTaskStatus.PENDING),
-            Move.CLOSE, List.of(ApprovalTaskStatus.PENDING, ApprovalTaskStatus.CLAIMED),
-            Move.TRANSFER, List.of(ApprovalTaskStatus.CLAIMED),
-            Move.MARK_OVERDUE, List.of(ApprovalTaskStatus.PENDING, ApprovalTaskStatus.CLAIMED),
-            Move.ESCALATE, List.of()));
-
-    static ApprovalTask in(ApprovalTaskStatus status, Instant overdueAt) {
-        return ApprovalTask.restore(new ApprovalTaskId("t-1"), new ApprovalInstanceId("i-1"), ProcessKey.COST_TIMESHEET_APPROVAL,
-                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7")), new LegalEntityId(1), "projectManagerReview", status,
-                status == ApprovalTaskStatus.CLAIMED || status == ApprovalTaskStatus.COMPLETED ? HOLDER : null, DUE, ESCALATE_AT,
-                overdueAt, null, null, 2, 0);
+    static ApprovalTask taskIn(ApprovalTaskStatus status, Instant overdueAt) {
+        boolean held = status == ApprovalTaskStatus.CLAIMED || status == ApprovalTaskStatus.COMPLETED;
+        return ApprovalTask.restore(TASK, INSTANCE, NODE, NODE_NAME, status, held ? HOLDER : null, Instant.parse("2026-10-16T02:00:00Z"), PLAN,
+                status == ApprovalTaskStatus.CLAIMED ? Instant.parse("2026-10-16T03:00:00Z") : null,
+                status == ApprovalTaskStatus.COMPLETED ? Instant.parse("2026-10-16T04:00:00Z") : null, overdueAt, null,
+                status == ApprovalTaskStatus.COMPLETED ? TaskOutcome.APPROVED : null,
+                status == ApprovalTaskStatus.COMPLETED ? TaskEffect.BINDING : null, null, null);
     }
 
-    static void perform(ApprovalTask task, Move move) {
-        switch (move) {
-            case CLAIM -> task.claim(HOLDER, TODAY);
-            case COMPLETE -> task.complete(HOLDER, TaskOutcome.APPROVED, false, null, "digest", TODAY);
-            case COMPLETE_AUTOMATICALLY -> task.completeAutomatically();
-            case CLOSE -> task.close();
-            case TRANSFER -> task.transfer(HOLDER, OTHER, TODAY);
-            case MARK_OVERDUE -> task.markOverdue(List.of(HOLDER), AFTER_BOTH, TODAY);
-            case ESCALATE -> task.escalate(List.of(OTHER), false, AFTER_BOTH, TODAY);
-        }
+    static ApprovalRequest requestWith(ApprovalTask task) {
+        return ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(1), INITIATOR, 1, INSTANCE,
+                ApprovalStatus.RUNNING, null, new ApprovalSummary("summary"), List.of(task), 0, 0);
     }
 
-    static Stream<Arguments> everyMoveInEveryStatus() {
-        return Stream.of(Move.values()).flatMap(move -> Stream.of(ApprovalTaskStatus.values())
-                .map(status -> Arguments.of(move, status, LEGAL.get(move).contains(status))));
+    static ApprovalRequest in(ApprovalTaskStatus status) {
+        return requestWith(taskIn(status, null));
     }
 
-    @ParameterizedTest(name = "{0} while {1} is legal: {2}")
-    @MethodSource("everyMoveInEveryStatus")
-    @DisplayName("RULE-276/289 every task move is legal only from the statuses of the table, and an illegal one changes nothing")
-    void everyPairBehavesAsTheTableSays(Move move, ApprovalTaskStatus from, boolean legal) {
-        ApprovalTask task = in(from, null);
-        if (legal) {
-            perform(task, move);
-        } else {
-            assertThatThrownBy(() -> perform(task, move)).isInstanceOf(ApprovalTransitionException.class);
-            assertThat(task.status()).isEqualTo(from);
-            assertThat(task.pullEvents()).isEmpty();
-        }
-    }
-
-    @ParameterizedTest(name = "escalate while {0}")
-    @MethodSource("openStatuses")
-    @DisplayName("platform.approval deadline: a task escalates only after its overdue was recorded, and a claimed one goes back to the pool")
-    void escalationFollowsTheReminder(ApprovalTaskStatus open) {
-        ApprovalTask notReminded = in(open, null);
-        assertThatThrownBy(() -> perform(notReminded, Move.ESCALATE)).isInstanceOf(ApprovalTransitionException.class);
-
-        ApprovalTask reminded = in(open, DUE);
-        perform(reminded, Move.ESCALATE);
-        assertThat(reminded.status()).isEqualTo(ApprovalTaskStatus.PENDING);
-        assertThat(reminded.assignee()).isEmpty();
-        assertThat(reminded.escalatedAt()).contains(AFTER_BOTH);
-        assertThatThrownBy(() -> perform(reminded, Move.ESCALATE)).as("only once").isInstanceOf(ApprovalTransitionException.class);
-    }
-
-    static Stream<ApprovalTaskStatus> openStatuses() {
-        return Stream.of(ApprovalTaskStatus.PENDING, ApprovalTaskStatus.CLAIMED);
+    static ApprovalTaskStatus statusOf(ApprovalRequest request) {
+        return request.task(TASK).status();
     }
 
     @Test
-    @DisplayName("platform.approval deadline: overdue is recorded once, and not before the due time")
+    @DisplayName("RULE-276/289 every task move is tried from every task status: only the table's pairs move, every other pair is refused with a conflict and changes nothing")
+    void everyMoveInEveryStatus() {
+        List<String> tried = new TransitionTable<ApprovalTaskStatus, ApprovalRequest>(ApprovalTaskStatus.class,
+                ApprovalTaskStateMachineTest::in, ApprovalTaskStateMachineTest::statusOf)
+                .operation("claim", r -> r.claimTask(TASK, HOLDER, NOW), ApprovalTaskStatus.PENDING, ApprovalTaskStatus.CLAIMED)
+                .operation("release", r -> r.releaseTask(TASK, HOLDER, NOW), ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.PENDING)
+                .operation("complete", r -> r.completeTask(TASK, HOLDER, TaskOutcome.APPROVED, false, null, new ContentHash("h"), NOW),
+                        ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.COMPLETED)
+                .operation("close", r -> r.closeTask(TASK, NOW), ApprovalTaskStatus.PENDING, ApprovalTaskStatus.CLOSED,
+                        ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.CLOSED)
+                .operation("transfer", r -> r.transferTask(TASK, HOLDER, OTHER, new Reason("on leave"), NOW), ApprovalTaskStatus.CLAIMED,
+                        ApprovalTaskStatus.CLAIMED)
+                .operation("reassign", r -> r.reassignTask(TASK, ADMIN, OTHER, new Reason("covering"), NOW), ApprovalTaskStatus.PENDING,
+                        ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.CLAIMED)
+                .verify();
+        assertThat(tried).hasSize(6 * ApprovalTaskStatus.values().length);
+    }
+
+    @Test
+    @DisplayName("platform.approval deadline: a task escalates only after its overdue was recorded and not before the escalation time; a claimed one goes back to the pool; only once")
+    void escalationFollowsTheReminder() {
+        for (ApprovalTaskStatus open : List.of(ApprovalTaskStatus.PENDING, ApprovalTaskStatus.CLAIMED)) {
+            ApprovalRequest notReminded = requestWith(taskIn(open, null));
+            assertThatThrownBy(() -> notReminded.escalateTask(TASK, List.of(OTHER), false, NOW)).isInstanceOf(DomainException.class);
+
+            ApprovalRequest reminded = requestWith(taskIn(open, REMIND_AT));
+            assertThatThrownBy(() -> reminded.escalateTask(TASK, List.of(OTHER), false,
+                    new Moment(ESCALATE_AT.minusSeconds(1), NOW.date()))).isInstanceOf(DomainException.class);
+            reminded.escalateTask(TASK, List.of(OTHER), false, NOW);
+            assertThat(reminded.task(TASK).status()).isEqualTo(ApprovalTaskStatus.PENDING);
+            assertThat(reminded.task(TASK).assignee()).isEmpty();
+            assertThat(reminded.task(TASK).claimedAt()).isEmpty();
+            assertThat(reminded.task(TASK).escalatedAt()).contains(AFTER_BOTH);
+            assertThatThrownBy(() -> reminded.escalateTask(TASK, List.of(OTHER), false, NOW)).as("only once").isInstanceOf(DomainException.class);
+        }
+    }
+
+    @Test
+    @DisplayName("platform.approval deadline: the overdue is recorded once and not before the reminder time")
     void overdueOnceAndNotEarly() {
-        ApprovalTask task = in(ApprovalTaskStatus.PENDING, null);
-        assertThatThrownBy(() -> task.markOverdue(List.of(HOLDER), DUE.minusSeconds(1), TODAY)).isInstanceOf(ApprovalTransitionException.class);
-        task.markOverdue(List.of(HOLDER), DUE, TODAY);
-        assertThat(task.overdueAt()).contains(DUE);
-        assertThatThrownBy(() -> task.markOverdue(List.of(HOLDER), AFTER_BOTH, TODAY)).isInstanceOf(ApprovalTransitionException.class);
+        ApprovalRequest request = in(ApprovalTaskStatus.PENDING);
+        assertThatThrownBy(() -> request.markTaskOverdue(TASK, List.of(HOLDER), new Moment(REMIND_AT.minusSeconds(1), NOW.date())))
+                .isInstanceOf(DomainException.class);
+        request.markTaskOverdue(TASK, List.of(HOLDER), new Moment(REMIND_AT, NOW.date()));
+        assertThat(request.task(TASK).overdueAt()).contains(REMIND_AT);
+        assertThatThrownBy(() -> request.markTaskOverdue(TASK, List.of(HOLDER), NOW)).isInstanceOf(DomainException.class);
     }
 
     @Test
     @DisplayName("platform.approval deadline: a task without a deadline is never overdue")
     void noDeadlineNoOverdue() {
-        ApprovalTask task = ApprovalTask.restore(new ApprovalTaskId("t-2"), new ApprovalInstanceId("i-1"), ProcessKey.COST_TIMESHEET_APPROVAL,
-                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7")), new LegalEntityId(1), "node", ApprovalTaskStatus.PENDING,
-                null, null, null, null, null, null, 0, 0);
-        assertThatThrownBy(() -> task.markOverdue(List.of(HOLDER), AFTER_BOTH, TODAY)).isInstanceOf(ApprovalTransitionException.class);
+        ApprovalTask task = ApprovalTask.restore(TASK, INSTANCE, NODE, NODE_NAME, ApprovalTaskStatus.PENDING, null, Instant.EPOCH, null, null, null, null,
+                null, null, null, null, null);
+        assertThatThrownBy(() -> requestWith(task).markTaskOverdue(TASK, List.of(HOLDER), NOW)).isInstanceOf(DomainException.class);
     }
 
     @Test
-    @DisplayName("RULE-285 only the current handler hands a task over, never to themself")
-    void transferIsTheHandlersAndToSomebodyElse() {
-        ApprovalTask task = in(ApprovalTaskStatus.CLAIMED, null);
-        assertThatThrownBy(() -> task.transfer(OTHER, new UserId(22), TODAY)).isInstanceOf(ApprovalTransitionException.class);
-        assertThatThrownBy(() -> task.transfer(HOLDER, HOLDER, TODAY)).isInstanceOf(ApprovalTransitionException.class);
-        task.transfer(HOLDER, OTHER, TODAY);
-        assertThat(task.assignee()).contains(OTHER);
+    @DisplayName("RULE-285 D-1a-75 only the current handler hands a task over, never to themself, and says why")
+    void transferIsTheHandlersAndToSomebodyElseWithAReason() {
+        ApprovalRequest request = in(ApprovalTaskStatus.CLAIMED);
+        assertThatThrownBy(() -> request.transferTask(TASK, OTHER, new UserId(22), new Reason("r"), NOW)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> request.transferTask(TASK, HOLDER, HOLDER, new Reason("r"), NOW)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> request.transferTask(TASK, HOLDER, OTHER, null, NOW)).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+        request.transferTask(TASK, HOLDER, OTHER, new Reason("on leave"), NOW);
+        assertThat(request.task(TASK).assignee()).contains(OTHER);
     }
 
     @Test
     @DisplayName("RULE-276 only the person who claimed the task completes it")
     void onlyTheAssigneeCompletes() {
-        ApprovalTask task = in(ApprovalTaskStatus.CLAIMED, null);
-        assertThatThrownBy(() -> task.complete(OTHER, TaskOutcome.APPROVED, false, null, "d", TODAY)).isInstanceOf(ApprovalTransitionException.class);
-        assertThat(task.status()).isEqualTo(ApprovalTaskStatus.CLAIMED);
+        ApprovalRequest request = in(ApprovalTaskStatus.CLAIMED);
+        assertThatThrownBy(() -> request.completeTask(TASK, OTHER, TaskOutcome.APPROVED, false, null, new ContentHash("d"), NOW))
+                .isInstanceOf(DomainException.class);
+        assertThat(statusOf(request)).isEqualTo(ApprovalTaskStatus.CLAIMED);
     }
 
     @Test
-    @DisplayName("RULE-302 the digest of what was approved is kept for a formal approval only; an advisory rejection and a system pass keep none")
-    void digestOnlyForFormalApprovals() {
-        ApprovalTask approved = in(ApprovalTaskStatus.CLAIMED, null);
-        approved.complete(HOLDER, TaskOutcome.APPROVED, false, null, "d1", TODAY);
-        assertThat(approved.approvedDigest()).contains("d1");
+    @DisplayName("RULE-280 the opinion is kept as given: no reason stays no reason, a reason stays a reason; the time of the decision is recorded")
+    void theOpinionIsKeptAsGiven() {
+        ApprovalRequest silent = in(ApprovalTaskStatus.CLAIMED);
+        silent.completeTask(TASK, HOLDER, TaskOutcome.APPROVED, false, null, new ContentHash("d"), NOW);
+        assertThat(silent.task(TASK).resultReason()).isEmpty();
+        assertThat(silent.task(TASK).completedAt()).contains(AFTER_BOTH);
 
-        ApprovalTask advisory = in(ApprovalTaskStatus.CLAIMED, null);
-        advisory.complete(HOLDER, TaskOutcome.REJECTED, true, "too high", "d1", TODAY);
-        assertThat(advisory.approvedDigest()).isEmpty();
-
-        ApprovalTask automatic = ApprovalTask.assignAutomatically(new ApprovalTaskId("t-3"), new ApprovalInstanceId("i-1"),
-                ProcessKey.COST_TIMESHEET_APPROVAL, new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7")), new LegalEntityId(1), "node");
-        assertThat(automatic.status()).isEqualTo(ApprovalTaskStatus.COMPLETED);
-        assertThat(automatic.approvedDigest()).isEmpty();
-        assertThat(automatic.pullEvents()).as("no card, no result for a system pass").isEmpty();
+        ApprovalRequest worded = in(ApprovalTaskStatus.CLAIMED);
+        worded.completeTask(TASK, HOLDER, TaskOutcome.APPROVED, false, new Reason("looks right"), new ContentHash("d"), NOW);
+        assertThat(worded.task(TASK).resultReason()).contains(new Reason("looks right"));
+        List<DomainEvent> events = worded.drainEvents(ENVELOPES);
+        assertThat(((TaskResulted) events.getFirst()).reason()).isEqualTo(new Reason("looks right"));
+        List<DomainEvent> silentEvents = silent.drainEvents(ENVELOPES);
+        assertThat(((TaskResulted) silentEvents.getFirst()).reason()).isNull();
     }
 
     @Test
-    @DisplayName("RULE-295 each task event carries the task's own running event number and typed payload")
-    void eventsCarryTheTaskSequence() {
-        ApprovalTask task = ApprovalTask.assign(new ApprovalTaskId("t-4"), new ApprovalInstanceId("i-1"), ProcessKey.COST_TIMESHEET_APPROVAL,
-                "工时审批", new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7")), new LegalEntityId(1), "projectManagerReview",
-                "项目经理审批", new UserId(5), List.of(HOLDER, OTHER), DUE, ESCALATE_AT, TODAY);
-        task.claim(HOLDER, TODAY);
-        task.markOverdue(List.of(HOLDER), AFTER_BOTH, TODAY);
-        task.escalate(List.of(OTHER), false, AFTER_BOTH, TODAY);
-        task.claim(OTHER, TODAY);
-        task.transfer(OTHER, new UserId(22), TODAY);
-        task.complete(new UserId(22), TaskOutcome.APPROVED, false, null, "d", TODAY);
+    @DisplayName("RULE-302 D-1a-66 the hash of what was approved is kept for a formal approval only; an advisory rejection keeps none; a system pass says AUTOMATIC and is a result event")
+    void hashOnlyForFormalApprovals() {
+        ApprovalRequest approved = in(ApprovalTaskStatus.CLAIMED);
+        approved.completeTask(TASK, HOLDER, TaskOutcome.APPROVED, false, null, new ContentHash("h1"), NOW);
+        assertThat(approved.task(TASK).approvedHash()).contains(new ContentHash("h1"));
 
-        List<PendingEvent> events = task.pullEvents();
-        assertThat(events).extracting(e -> e.draft().eventType()).containsExactly("platform.approval.TaskAssigned",
-                "platform.approval.TaskClaimed", "platform.approval.ApprovalTaskOverdue", "platform.approval.ApprovalTaskEscalated",
-                "platform.approval.TaskClaimed", "platform.approval.TaskTransferred", "platform.approval.TaskResulted");
-        assertThat(events).extracting(e -> e.draft().aggregateVersion()).containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L);
-        assertThat(events).extracting(e -> e.draft().aggregateType()).containsOnly("ApprovalTask");
-        assertThat(events).extracting(e -> e.draft().aggregateId()).containsOnly("t-4");
+        ApprovalRequest advisory = in(ApprovalTaskStatus.CLAIMED);
+        advisory.completeTask(TASK, HOLDER, TaskOutcome.REJECTED, true, new Reason("too high"), new ContentHash("h1"), NOW);
+        assertThat(advisory.task(TASK).approvedHash()).isEmpty();
+        assertThat(((TaskResulted) advisory.drainEvents(ENVELOPES).getFirst()).effect()).isEqualTo(TaskEffect.ADVISORY);
 
-        assertThat(events.get(0).assemble().apply(envelope(events.get(0)))).isInstanceOf(TaskAssigned.class);
-        assertThat(events.get(1).assemble().apply(envelope(events.get(1)))).isInstanceOf(TaskClaimed.class);
-        ApprovalTaskOverdue overdue = (ApprovalTaskOverdue) events.get(2).assemble().apply(envelope(events.get(2)));
+        ApprovalRequest request = ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(1), INITIATOR, INSTANCE,
+                new ApprovalSummary("summary"), UUID.randomUUID(), NOW);
+        request.drainEvents(ENVELOPES);
+        TaskAssignment assignment = new TaskAssignment(new ApprovalTaskId("t-3"), INSTANCE, NODE, new NodeName("Review"),
+                new ProcessName("Timesheet approval"), List.of(HOLDER), Optional.empty());
+        request.passAutomatically(assignment, HOLDER, NOW);
+        assertThat(request.task(new ApprovalTaskId("t-3")).status()).isEqualTo(ApprovalTaskStatus.COMPLETED);
+        assertThat(request.task(new ApprovalTaskId("t-3")).approvedHash()).isEmpty();
+        List<DomainEvent> events = request.drainEvents(ENVELOPES);
+        assertThat(events).singleElement().isInstanceOfSatisfying(TaskResulted.class, result -> {
+            assertThat(result.effect()).isEqualTo(TaskEffect.AUTOMATIC);
+            assertThat(result.outcome()).isEqualTo(TaskOutcome.APPROVED);
+            assertThat(result.assignee()).isEqualTo(HOLDER);
+        });
+    }
+
+    @Test
+    @DisplayName("RULE-295 M-4 every task event carries the request's running event number; opening a round and closing a task are events too")
+    void eventsCarryTheRequestsSequence() {
+        ApprovalRequest request = ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(1), INITIATOR, INSTANCE,
+                new ApprovalSummary("summary"), UUID.randomUUID(), NOW);
+        TaskAssignment first = new TaskAssignment(TASK, INSTANCE, NODE, new NodeName("项目经理审批"), new ProcessName("工时审批"),
+                List.of(HOLDER, OTHER), Optional.of(PLAN));
+        TaskAssignment second = new TaskAssignment(new ApprovalTaskId("t-2"), INSTANCE, new NodeKey("supervisorReview"), new NodeName("一级汇报人审批"),
+                new ProcessName("工时审批"), List.of(HOLDER), Optional.empty());
+        request.assignTask(first, NOW);
+        request.assignTask(second, NOW);
+        request.claimTask(TASK, HOLDER, NOW);
+        request.markTaskOverdue(TASK, List.of(HOLDER), NOW);
+        request.escalateTask(TASK, List.of(OTHER), false, NOW);
+        request.claimTask(TASK, OTHER, NOW);
+        request.transferTask(TASK, OTHER, new UserId(22), new Reason("on leave"), NOW);
+        request.reassignTask(TASK, ADMIN, new UserId(23), new Reason("covering"), NOW);
+        request.releaseTask(TASK, new UserId(23), NOW);
+        request.claimTask(TASK, HOLDER, NOW);
+        request.completeTask(TASK, HOLDER, TaskOutcome.APPROVED, false, null, new ContentHash("d"), NOW);
+        request.reject(new Reason("no"), NOW);
+
+        List<DomainEvent> events = request.drainEvents(ENVELOPES);
+
+        assertThat(events).extracting(e -> e.envelope().eventType()).containsExactly("platform.approval.ApprovalRoundStarted",
+                "platform.approval.TaskAssigned", "platform.approval.TaskAssigned", "platform.approval.TaskClaimed",
+                "platform.approval.ApprovalTaskOverdue", "platform.approval.ApprovalTaskEscalated", "platform.approval.TaskClaimed",
+                "platform.approval.TaskTransferred", "platform.approval.TaskReassigned", "platform.approval.TaskReleased",
+                "platform.approval.TaskClaimed", "platform.approval.TaskResulted", "platform.approval.TaskClosed",
+                "platform.approval.ApprovalCompleted");
+        assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L,
+                13L, 14L);
+        assertThat(events).extracting(e -> e.envelope().aggregateType()).containsOnly("ApprovalRequest");
+        assertThat(events).extracting(e -> e.envelope().aggregateId()).containsOnly("TIMESHEET:7");
+
+        assertThat(events.get(0)).isInstanceOf(ApprovalRoundStarted.class);
+        TaskAssigned assigned = (TaskAssigned) events.get(1);
+        assertThat(assigned.candidates()).containsExactly(HOLDER, OTHER);
+        assertThat(assigned.dueAt()).isEqualTo(DUE);
+        assertThat(assigned.summary()).isEqualTo(new ApprovalSummary("summary"));
+        assertThat(((TaskAssigned) events.get(2)).dueAt()).as("a node without a deadline has none").isNull();
+        assertThat(events.get(3)).isInstanceOf(TaskClaimed.class);
+        ApprovalTaskOverdue overdue = (ApprovalTaskOverdue) events.get(4);
         assertThat(overdue.dueAt()).isEqualTo(DUE);
         assertThat(overdue.holders()).containsExactly(HOLDER);
-        ApprovalTaskEscalated escalated = (ApprovalTaskEscalated) events.get(3).assemble().apply(envelope(events.get(3)));
+        ApprovalTaskEscalated escalated = (ApprovalTaskEscalated) events.get(5);
         assertThat(escalated.escalatedTo()).containsExactly(OTHER);
         assertThat(escalated.target()).isEqualTo(EscalationTarget.SUPERVISOR);
-        assertThat(events.get(5).assemble().apply(envelope(events.get(5)))).isInstanceOf(TaskTransferred.class);
-        TaskResulted resulted = (TaskResulted) events.get(6).assemble().apply(envelope(events.get(6)));
-        assertThat(resulted.outcome()).isEqualTo(TaskOutcome.APPROVED);
-        assertThat(resulted.effect()).isEqualTo(TaskEffect.BINDING);
+        TaskTransferred transferred = (TaskTransferred) events.get(7);
+        assertThat(transferred.reason()).isEqualTo(new Reason("on leave"));
+        TaskReassigned reassigned = (TaskReassigned) events.get(8);
+        assertThat(reassigned.from()).isEqualTo(new UserId(22));
+        assertThat(reassigned.to()).isEqualTo(new UserId(23));
+        assertThat(events.get(9)).isInstanceOf(TaskReleased.class);
+        assertThat(events.get(12)).isInstanceOf(TaskClosed.class);
+        assertThat(((TaskClosed) events.get(12)).taskId()).isEqualTo(new ApprovalTaskId("t-2"));
+        assertThat(events.get(13)).isInstanceOf(ApprovalCompleted.class);
+        assertThat(request.eventSequence()).isEqualTo(14);
     }
 
-    private static EventEnvelope envelope(PendingEvent event) {
-        return new EventEnvelope(UUID.randomUUID(), event.draft().eventType(), 1, Instant.EPOCH, event.draft().aggregateType(),
-                event.draft().aggregateId(), event.draft().aggregateVersion(), UUID.randomUUID(), null, ActorType.SYSTEM, "job",
-                event.draft().legalEntityId(), event.draft().businessDate(), event.draft().source(), null, List.of());
+    @Test
+    @DisplayName("M-6 a task given back by its holder can be claimed again; the process administrator may hand any open task to somebody, with a reason")
+    void releaseAndReassign() {
+        ApprovalRequest request = in(ApprovalTaskStatus.CLAIMED);
+        request.releaseTask(TASK, HOLDER, NOW);
+        assertThat(request.task(TASK).assignee()).isEmpty();
+        request.claimTask(TASK, OTHER, NOW);
+        assertThat(request.task(TASK).assignee()).contains(OTHER);
+
+        ApprovalRequest pending = in(ApprovalTaskStatus.PENDING);
+        assertThatThrownBy(() -> pending.reassignTask(TASK, ADMIN, OTHER, null, NOW)).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+        pending.reassignTask(TASK, ADMIN, OTHER, new Reason("covering"), NOW);
+        assertThat(pending.task(TASK).status()).isEqualTo(ApprovalTaskStatus.CLAIMED);
+        assertThat(pending.task(TASK).assignee()).contains(OTHER);
+    }
+
+    @Test
+    @DisplayName("M-7 a task of an old round that is still open can be closed on its own; the closing is an event")
+    void anOldTaskIsClosedAlone() {
+        ApprovalRequest request = in(ApprovalTaskStatus.PENDING);
+        request.closeTask(TASK, NOW);
+        assertThat(statusOf(request)).isEqualTo(ApprovalTaskStatus.CLOSED);
+        assertThat(request.drainEvents(ENVELOPES)).singleElement().isInstanceOf(TaskClosed.class);
     }
 }

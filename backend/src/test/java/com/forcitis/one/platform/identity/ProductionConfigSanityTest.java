@@ -83,6 +83,20 @@ class ProductionConfigSanityTest {
         assertThat(problems).isEmpty();
     }
 
+    @Test
+    @DisplayName("release pipeline: the prod profile never migrates by itself; migrations run in the separate migrate step")
+    void productionServiceDoesNotMigrate() throws IOException {
+        Properties prod = new Properties();
+        prod.load(new StringReader(Files.readString(RESOURCES.resolve("application-prod.properties"))));
+        assertThat(prod.getProperty("spring.flyway.enabled")).isEqualTo("false");
+        Properties dev = new Properties();
+        dev.load(new StringReader(Files.readString(RESOURCES.resolve("application-dev.properties"))));
+        assertThat(dev.getProperty("spring.flyway.enabled")).as("dev is deployed like production").isEqualTo("false");
+        Properties shared = new Properties();
+        shared.load(new StringReader(Files.readString(RESOURCES.resolve("application.properties"))));
+        assertThat(shared.getProperty("spring.flyway.default-schema")).isEqualTo("one_migration");
+    }
+
     private static List<Path> files(Path root, String... suffixes) {
         try (Stream<Path> walk = Files.walk(root)) {
             return walk.filter(Files::isRegularFile).filter(p -> Stream.of(suffixes).anyMatch(s -> p.toString().endsWith(s))).sorted().toList();

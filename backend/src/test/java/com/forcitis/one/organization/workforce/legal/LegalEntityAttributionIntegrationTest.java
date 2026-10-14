@@ -73,7 +73,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         jdbc.sql("alter table organization_workforce.legal_entity_attribution_corrections disable trigger user").update();
         jdbc.sql("delete from organization_workforce.legal_entity_attribution_corrections").update();
         jdbc.sql("alter table organization_workforce.legal_entity_attribution_corrections enable trigger user").update();
-        jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
+        com.forcitis.one.organization.workforce.application.VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
         le1 = new LegalEntityId(createLegalEntity.execute("FST", "Synthetic one", null).legalEntityId());
         le2 = new LegalEntityId(createLegalEntity.execute("FIT", "Synthetic two", null).legalEntityId());
     }
@@ -97,7 +97,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         String url = "/api/v1/organization/org-unit-legal-entities/" + orgUnitId;
         String etag = etagOf(url);
         var request = put(url).with(csrf()).with(MAINTAINER);
-        mvc.perform((etag == null ? request.header("If-None-Match", "*") : request.header("If-Match", etag))
+        mvc.perform((etag == null ? request.header("If-Match", "\"0\"") : request.header("If-Match", etag))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"legalEntityId\":" + legalEntity.value() + ",\"effectiveFrom\":\"" + from + "\"}")).andExpect(status().isOk());
     }
@@ -149,7 +149,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         assertThat(resolver.on(user(2), day)).as("a subtree overrides the ancestor").isEqualTo(le2);
         assertThat(resolver.on(user(1), day)).isEqualTo(le1);
 
-        mvc.perform(put("/api/v1/organization/employee-legal-entities/2").header("If-None-Match", "*").with(csrf()).with(MAINTAINER)
+        mvc.perform(put("/api/v1/organization/employee-legal-entities/2").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"legalEntityId\":" + le1.value() + ",\"effectiveFrom\":\"" + day.plusDays(1) + "\"}")).andExpect(status().isOk());
         assertThat(resolver.on(user(2), day)).isEqualTo(le2);
@@ -185,10 +185,10 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         mvc.perform(put("/api/v1/organization/org-unit-legal-entities/1").with(csrf()).with(READER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":2,\"effectiveFrom\":\"" + day.plusDays(1) + "\"}"))
                 .andExpect(status().isForbidden());
-        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/404").header("If-None-Match", "*").with(csrf()).with(MAINTAINER)
+        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/404").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":1,\"effectiveFrom\":\"" + day + "\"}"))
                 .andExpect(status().isNotFound());
-        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/2").header("If-None-Match", "*").with(csrf()).with(MAINTAINER)
+        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/2").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":404,\"effectiveFrom\":\"" + day + "\"}"))
                 .andExpect(status().isUnprocessableContent());
         mvc.perform(put("/api/v1/organization/org-unit-legal-entities/1").header("If-Match", etagOf("/api/v1/organization/org-unit-legal-entities/1")).with(csrf()).with(MAINTAINER)
@@ -201,7 +201,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     }
 
     @Test
-    @DisplayName("B3-M4 attributing and ending need the version: none is 428, a stale one 412, a weak tag 400; the first attribution uses If-None-Match: *")
+    @DisplayName("B3-M4 attributing and ending need the version: none is 428, a stale one 412, a weak tag 400; the first attribution uses If-Match: 0")
     void writesNeedTheVersion() throws Exception {
         synced(2L);
         LocalDate day = today();
@@ -211,9 +211,9 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         mvc.perform(put(url).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isPreconditionRequired());
         mvc.perform(put(url).header("If-Match", "\"3\"").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isPreconditionFailed());
-        mvc.perform(put(url).header("If-None-Match", "*").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON).content(body))
+        mvc.perform(put(url).header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk()).andExpect(header().exists("ETag"));
-        mvc.perform(put(url).header("If-None-Match", "*").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON).content(body))
+        mvc.perform(put(url).header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isPreconditionFailed());
         String etag = etagOf(url);
         mvc.perform(post(url + ":end").header("If-Match", "W/" + etag).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)

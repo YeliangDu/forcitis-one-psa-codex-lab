@@ -4,7 +4,6 @@ package com.forcitis.one.platform.identity.api;
 public enum Permission {
     TIMESHEET_SUBMIT(Codes.TIMESHEET_SUBMIT),
     TIMESHEET_APPROVE(Codes.TIMESHEET_APPROVE),
-    DELIVERY_BUDGET_UPDATE(Codes.DELIVERY_BUDGET_UPDATE),
     PLATFORM_NUMBERING_RULE_UPDATE(Codes.PLATFORM_NUMBERING_RULE_UPDATE),
     PLATFORM_NUMBERING_RULE_READ(Codes.PLATFORM_NUMBERING_RULE_READ),
     PLATFORM_NUMBERING_LEGACY_NUMBER_READ(Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ),
@@ -20,7 +19,7 @@ public enum Permission {
     ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE(Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE),
     ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ(Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ),
     ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE(Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE),
-    ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE_LOCKED_DAYS(Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE_LOCKED_DAYS);
+    ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE(Codes.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE);
 
     private final String code;
 
@@ -35,7 +34,6 @@ public enum Permission {
     public interface Codes {
         String TIMESHEET_SUBMIT = "cost.timesheet:timesheet:submit";
         String TIMESHEET_APPROVE = "cost.timesheet:timesheet:approve";
-        String DELIVERY_BUDGET_UPDATE = "delivery.execution:project-budget:update";
         String PLATFORM_NUMBERING_RULE_UPDATE = "platform.numbering:numbering-rule:update";
         String PLATFORM_NUMBERING_RULE_READ = "platform.numbering:numbering-rule:read";
         String PLATFORM_NUMBERING_LEGACY_NUMBER_READ = "platform.numbering:legacy-number:read";
@@ -51,6 +49,6 @@ public enum Permission {
         String ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE = "organization.workforce:legal-entity-attribution-correction:create";
         String ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ = "organization.attendance:work-calendar:read";
         String ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE = "organization.attendance:work-calendar:update";
-        String ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE_LOCKED_DAYS = "organization.attendance:locked-day:update";
+        String ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE = "organization.attendance:locked-day:update";
     }
 }

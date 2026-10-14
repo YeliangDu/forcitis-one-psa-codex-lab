@@ -53,7 +53,7 @@ class ServletSessionRegistry implements SessionRegistry {
         HttpServletRequest request = attributes.getRequest();
         HttpServletResponse response = attributes.getResponse();
         Instant now = clock.instant();
-        IdentityAuthentication authentication = new IdentityAuthentication(String.valueOf(userId.value()), now, method.name(), List.of());
+        IdentityAuthentication authentication = new IdentityAuthentication(String.valueOf(userId.value()), now, method.name(), List.of(), identityConfirmed);
         HttpSession session = request.getSession(true);
         rotation.onAuthentication(authentication, request, response);
         session = request.getSession(true);

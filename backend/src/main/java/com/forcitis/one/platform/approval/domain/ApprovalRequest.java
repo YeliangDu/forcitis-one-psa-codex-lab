@@ -1,69 +1,92 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
+import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
+import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
+import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
+import com.forcitis.one.platform.approval.api.ApprovalSummary;
+import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ContentHash;
+import com.forcitis.one.platform.approval.api.EscalationTarget;
+import com.forcitis.one.platform.approval.api.NodeKey;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.ReturnSource;
 import com.forcitis.one.platform.approval.api.RoundNumber;
+import com.forcitis.one.platform.approval.api.TaskEffect;
+import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
-import java.time.LocalDate;
+import com.forcitis.one.platform.approval.events.ApprovalRoundStarted;
+import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
+import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.TaskAssigned;
+import com.forcitis.one.platform.approval.events.TaskClaimed;
+import com.forcitis.one.platform.approval.events.TaskClosed;
+import com.forcitis.one.platform.approval.events.TaskReassigned;
+import com.forcitis.one.platform.approval.events.TaskReleased;
+import com.forcitis.one.platform.approval.events.TaskResulted;
+import com.forcitis.one.platform.approval.events.TaskTransferred;
+import java.time.Instant;
+import com.forcitis.one.platform.approval.api.TaskRecordAction;
+import com.forcitis.one.platform.approval.api.TaskRecordId;
+import com.forcitis.one.kernel.Uuids;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Function;
 
-/** One request per (process type, document); each round has its own engine instance and the status changes only through the methods below. */
-public final class ApprovalRequest {
+/**
+ * One request per (process type, document). Each round has its own engine instance, and the tasks of the round belong to the
+ * request: they change only through the methods below, under the request's version, and their events carry the request's event
+ * sequence.
+ */
+public final class ApprovalRequest extends AggregateRoot {
 
     private static final String AGGREGATE_TYPE = "ApprovalRequest";
-    private static final String EVENT_TYPE = "platform.approval.ApprovalCompleted";
+    private static final String EVENT_PREFIX = "platform.approval.";
 
-    private static final Map<ApprovalAction, Map<ApprovalStatus, ApprovalStatus>> TRANSITIONS = new EnumMap<>(ApprovalAction.class);
-
-    static {
-        allow(ApprovalAction.RESTART, ApprovalStatus.RUNNING, ApprovalStatus.RETURNED, ApprovalStatus.CANCELLED);
-        allow(ApprovalAction.APPROVE, ApprovalStatus.APPROVED, ApprovalStatus.RUNNING);
-        allow(ApprovalAction.REJECT, ApprovalStatus.REJECTED, ApprovalStatus.RUNNING);
-        allow(ApprovalAction.RETURN, ApprovalStatus.RETURNED, ApprovalStatus.RUNNING);
-        allow(ApprovalAction.WITHDRAW, ApprovalStatus.RETURNED, ApprovalStatus.RUNNING);
-        allow(ApprovalAction.CANCEL, ApprovalStatus.CANCELLED, ApprovalStatus.RUNNING);
-    }
-
-    private static void allow(ApprovalAction action, ApprovalStatus target, ApprovalStatus... from) {
-        Map<ApprovalStatus, ApprovalStatus> row = new EnumMap<>(ApprovalStatus.class);
-        for (ApprovalStatus status : from) {
-            row.put(status, target);
-        }
-        TRANSITIONS.put(action, row);
-    }
+    public static final StateMachine<ApprovalStatus> MACHINE = StateMachine.of(ApprovalStatus.class)
+            .allow(ApprovalStatus.RUNNING, ApprovalStatus.APPROVED, ApprovalStatus.REJECTED, ApprovalStatus.RETURNED,
+                    ApprovalStatus.CANCELLED)
+            .allow(ApprovalStatus.RETURNED, ApprovalStatus.RUNNING)
+            .allow(ApprovalStatus.REJECTED, ApprovalStatus.RUNNING)
+            .allow(ApprovalStatus.CANCELLED, ApprovalStatus.RUNNING)
+            .build();
 
     private final ProcessKey processKey;
     private final DocumentReference document;
     private final LegalEntityId legalEntityId;
     private final UserId initiator;
-    private final long loadedVersion;
     private final ApprovalStatus loadedStatus;
     private final int loadedRound;
     private final boolean isNew;
+    private final List<ApprovalTask> tasks;
+    private final List<TaskHandling> handlings = new ArrayList<>();
     private int round;
     private ApprovalInstanceId instanceId;
     private ApprovalStatus status;
-    private String resultReason;
-    private long eventSequence;
-    private final List<PendingEvent> events = new ArrayList<>();
+    private Reason resultReason;
+    private ApprovalSummary summary;
+    private UUID trigger;
 
-    private ApprovalRequest(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator,
-            int round, ApprovalInstanceId instanceId, ApprovalStatus status, String resultReason, long eventSequence, long version,
-            boolean isNew) {
+    private ApprovalRequest(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator, int round,
+            ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason, ApprovalSummary summary, List<ApprovalTask> tasks,
+            UUID trigger, long version, long eventSequence, boolean isNew) {
+        super(version, eventSequence);
         this.processKey = Objects.requireNonNull(processKey, "processKey");
         this.document = Objects.requireNonNull(document, "document");
         this.legalEntityId = Objects.requireNonNull(legalEntityId, "legalEntityId");
@@ -72,50 +95,156 @@ public final class ApprovalRequest {
         this.instanceId = Objects.requireNonNull(instanceId, "instanceId");
         this.status = Objects.requireNonNull(status, "status");
         this.resultReason = resultReason;
-        this.eventSequence = eventSequence;
-        this.loadedVersion = version;
+        this.summary = Objects.requireNonNull(summary, "summary");
+        this.tasks = new ArrayList<>(tasks);
+        this.trigger = trigger;
         this.loadedStatus = status;
         this.loadedRound = round;
         this.isNew = isNew;
     }
 
-    public static ApprovalRequest begin(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId,
-            UserId initiator, ApprovalInstanceId instanceId) {
-        return new ApprovalRequest(processKey, document, legalEntityId, initiator, 1, instanceId, ApprovalStatus.RUNNING, null, 0, 0, true);
+    public static ApprovalRequest begin(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator,
+            ApprovalInstanceId instanceId, ApprovalSummary summary, UUID trigger, Moment now) {
+        ApprovalRequest request = new ApprovalRequest(processKey, document, legalEntityId, initiator, 1, instanceId, ApprovalStatus.RUNNING,
+                null, summary, List.of(), Objects.requireNonNull(trigger, "trigger"), 0, 0, true);
+        request.announceRound(now);
+        return request;
     }
 
-    public static ApprovalRequest restore(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId,
-            UserId initiator, int round, ApprovalInstanceId instanceId, ApprovalStatus status, String resultReason, long eventSequence,
-            long version) {
-        return new ApprovalRequest(processKey, document, legalEntityId, initiator, round, instanceId, status, resultReason, eventSequence,
-                version, false);
+    public static ApprovalRequest restore(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator,
+            int round, ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason, ApprovalSummary summary,
+            List<ApprovalTask> tasks, long version, long eventSequence) {
+        return new ApprovalRequest(processKey, document, legalEntityId, initiator, round, instanceId, status, resultReason, summary, tasks,
+                null, version, eventSequence, false);
     }
 
-    public void restart(UserId by, ApprovalInstanceId newInstance) {
-        ApprovalStatus target = target(ApprovalAction.RESTART);
+    public void restart(UserId by, ApprovalInstanceId newInstance, ApprovalSummary newSummary, UUID newTrigger, Moment now) {
         if (!initiator.equals(by)) {
-            throw new ApprovalTransitionException(ApprovalTransitionException.Violation.NOT_INITIATOR,
-                    "Only the initiator of the previous round may start the next one");
+            throw ApprovalError.PLATFORM_APPROVAL_NOT_INITIATOR.refusal("Only the initiator of the previous round may start the next one");
         }
-        status = target;
+        status = MACHINE.require(status, ApprovalStatus.RUNNING, ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL);
         round++;
         instanceId = Objects.requireNonNull(newInstance, "newInstance");
+        trigger = Objects.requireNonNull(newTrigger, "newTrigger");
+        summary = Objects.requireNonNull(newSummary, "newSummary");
         resultReason = null;
+        announceRound(now);
     }
 
-    public void approve(LocalDate businessDate) {
-        status = target(ApprovalAction.APPROVE);
-        complete(ApprovalOutcome.APPROVED, null, businessDate);
+    private void announceRound(Moment now) {
+        ProcessKey key = processKey;
+        ApprovalInstanceId instance = instanceId;
+        RoundNumber started = new RoundNumber(round);
+        emit("ApprovalRoundStarted", now, envelope -> new ApprovalRoundStarted(envelope, document, key, instance, started, initiator));
     }
 
-    public void reject(String reason, LocalDate businessDate) {
-        status = target(ApprovalAction.REJECT);
-        complete(ApprovalOutcome.REJECTED, reason, businessDate);
+    public void assignTask(TaskAssignment assignment, Moment now) {
+        requireOpenRound(assignment);
+        tasks.add(ApprovalTask.assigned(assignment, now.at()));
+        emit("TaskAssigned", now, envelope -> new TaskAssigned(envelope, assignment.taskId(), assignment.instanceId(), processKey,
+                assignment.processName(), document, summary, assignment.nodeKey(), assignment.nodeName(), initiator,
+                assignment.candidates(), assignment.deadline().map(DeadlinePlan::dueAt).orElse(null)));
     }
 
-    public void returnRound(String reason, LocalDate businessDate) {
-        status = target(ApprovalAction.RETURN);
-        complete(ApprovalOutcome.RETURNED, reason, businessDate);
+    public boolean isRepeatApprover(NodeKey node, UserId user, ContentHash digest) {
+        return tasks.stream().anyMatch(task -> task.instanceId().equals(instanceId) && task.nodeKey().equals(node)
+                && task.status() == ApprovalTaskStatus.COMPLETED && task.assignee().map(user::equals).orElse(false)
+                && task.approvedHash().map(digest::equals).orElse(false));
+    }
+
+    public void passAutomatically(TaskAssignment assignment, UserId approver, Moment now) {
+        requireOpenRound(assignment);
+        ApprovalTask passed = ApprovalTask.passedBySystem(assignment, approver, now.at());
+        tasks.add(passed);
+        note(passed, TaskRecordAction.PASSED_AUTOMATICALLY, approver, null, null, null, now);
+        emitResult(assignment.taskId(), assignment.instanceId(), assignment.nodeKey(), approver, TaskOutcome.APPROVED, TaskEffect.AUTOMATIC,
+                null, now);
+    }
+
+    public void claimTask(ApprovalTaskId taskId, UserId by, Moment now) {
+        ApprovalTask task = task(taskId);
+        task.claim(by, now.at());
+        note(task, TaskRecordAction.CLAIMED, by, null, null, null, now);
+        ApprovalInstanceId instance = task.instanceId();
+        emit("TaskClaimed", now, envelope -> new TaskClaimed(envelope, taskId, instance, document, by));
+    }
+
+    public void releaseTask(ApprovalTaskId taskId, UserId by, Moment now) {
+        ApprovalTask task = task(taskId);
+        task.release(by);
+        note(task, TaskRecordAction.RELEASED, by, null, null, null, now);
+        ApprovalInstanceId instance = task.instanceId();
+        NodeKey node = task.nodeKey();
+        emit("TaskReleased", now, envelope -> new TaskReleased(envelope, taskId, instance, document, node, by));
+    }
+
+    public void transferTask(ApprovalTaskId taskId, UserId from, UserId to, Reason reason, Moment now) {
+        requireReason(reason, "A transfer");
+        ApprovalTask task = task(taskId);
+        task.transfer(from, to);
+        note(task, TaskRecordAction.TRANSFERRED, from, null, to, reason, now);
+        ApprovalInstanceId instance = task.instanceId();
+        NodeKey node = task.nodeKey();
+        emit("TaskTransferred", now, envelope -> new TaskTransferred(envelope, taskId, instance, document, node, from, to, reason));
+    }
+
+    public void reassignTask(ApprovalTaskId taskId, UserId by, UserId to, Reason reason, Moment now) {
+        requireReason(reason, "A reassignment");
+        ApprovalTask task = task(taskId);
+        UserId previous = task.assignee().orElse(null);
+        task.reassign(to, now.at());
+        note(task, TaskRecordAction.REASSIGNED, by, previous, to, reason, now);
+        ApprovalInstanceId instance = task.instanceId();
+        NodeKey node = task.nodeKey();
+        emit("TaskReassigned", now, envelope -> new TaskReassigned(envelope, taskId, instance, document, node, previous, to, reason));
+    }
+
+    public void completeTask(ApprovalTaskId taskId, UserId by, TaskOutcome outcome, boolean advisory, Reason reason,
+            ContentHash digest, Moment now) {
+        ApprovalTask task = task(taskId);
+        task.complete(by, outcome, advisory, reason, digest, now.at());
+        note(task, advisory ? TaskRecordAction.ADVISED : TaskRecordAction.valueOf(outcome.name()), by, null, null, reason, now);
+        emitResult(taskId, task.instanceId(), task.nodeKey(), by, outcome, advisory ? TaskEffect.ADVISORY : TaskEffect.BINDING, reason, now);
+    }
+
+    public void markTaskOverdue(ApprovalTaskId taskId, List<UserId> holders, Moment now) {
+        ApprovalTask task = task(taskId);
+        task.markOverdue(now.at());
+        List<UserId> reminded = List.copyOf(holders);
+        Instant due = task.deadline().orElseThrow().dueAt();
+        ApprovalInstanceId instance = task.instanceId();
+        NodeKey node = task.nodeKey();
+        emit("ApprovalTaskOverdue", now, envelope -> new ApprovalTaskOverdue(envelope, taskId, instance, document, node, due, reminded));
+    }
+
+    public void escalateTask(ApprovalTaskId taskId, List<UserId> escalatedTo, boolean toProcessAdministrator, Moment now) {
+        ApprovalTask task = task(taskId);
+        task.escalate(now.at());
+        List<UserId> receivers = List.copyOf(escalatedTo);
+        ApprovalInstanceId instance = task.instanceId();
+        NodeKey node = task.nodeKey();
+        emit("ApprovalTaskEscalated", now, envelope -> new ApprovalTaskEscalated(envelope, taskId, instance, document, node, receivers,
+                toProcessAdministrator ? EscalationTarget.PROCESS_ADMINISTRATOR : EscalationTarget.SUPERVISOR));
+    }
+
+    public void closeTask(ApprovalTaskId taskId, Moment now) {
+        closeOne(task(taskId), now);
+    }
+
+    public void approve(Moment now) {
+        end(ApprovalStatus.APPROVED, ApprovalOutcome.APPROVED, null, null, now);
+    }
+
+    public void reject(Reason reason, Moment now) {
+        end(ApprovalStatus.REJECTED, ApprovalOutcome.REJECTED, reason, null, now);
+    }
+
+    public void returnRound(Reason reason, Moment now) {
+        end(ApprovalStatus.RETURNED, ApprovalOutcome.RETURNED, reason, ReturnSource.APPROVER, now);
+    }
+
+    public void returnRoundBySystem(Reason reason, Moment now) {
+        end(ApprovalStatus.RETURNED, ApprovalOutcome.RETURNED, reason, ReturnSource.SYSTEM, now);
     }
 
     public WithdrawCheck checkWithdraw(UserId actor, boolean cutoffPassed) {
@@ -128,61 +257,107 @@ public final class ApprovalRequest {
         return cutoffPassed ? WithdrawCheck.CUTOFF_PASSED : WithdrawCheck.ALLOWED;
     }
 
-    public void withdraw(UserId actor, boolean cutoffPassed, String reason, LocalDate businessDate) {
-        ApprovalStatus target = target(ApprovalAction.WITHDRAW);
+    public void withdraw(UserId actor, boolean cutoffPassed, Reason reason, Moment now) {
         requireWithdrawable(actor, cutoffPassed, reason);
-        status = target;
-        complete(ApprovalOutcome.RETURNED, reason, businessDate);
+        end(ApprovalStatus.RETURNED, ApprovalOutcome.RETURNED, reason, ReturnSource.INITIATOR, now);
     }
 
-    public void cancel(UserId actor, boolean cutoffPassed, String reason, LocalDate businessDate) {
-        ApprovalStatus target = target(ApprovalAction.CANCEL);
+    public void cancel(UserId actor, boolean cutoffPassed, Reason reason, Moment now) {
         requireWithdrawable(actor, cutoffPassed, reason);
-        status = target;
-        complete(ApprovalOutcome.CANCELLED, reason, businessDate);
+        end(ApprovalStatus.CANCELLED, ApprovalOutcome.CANCELLED, reason, null, now);
     }
 
-    private void requireWithdrawable(UserId actor, boolean cutoffPassed, String reason) {
+    private void requireWithdrawable(UserId actor, boolean cutoffPassed, Reason reason) {
         switch (checkWithdraw(actor, cutoffPassed)) {
-            case NOT_INITIATOR -> throw new ApprovalTransitionException(ApprovalTransitionException.Violation.NOT_INITIATOR,
-                    "Only the initiator may withdraw or cancel");
-            case CUTOFF_PASSED -> throw new ApprovalTransitionException(ApprovalTransitionException.Violation.CUTOFF_PASSED,
-                    "A cut-off node has already finished a task");
-            case NOT_RUNNING, ALLOWED -> {
+            case NOT_INITIATOR -> throw ApprovalError.PLATFORM_APPROVAL_NOT_INITIATOR.refusal("Only the initiator may withdraw or cancel");
+            case CUTOFF_PASSED -> throw ApprovalError.PLATFORM_APPROVAL_CUTOFF_PASSED.refusal("A cut-off node has already finished a task");
+            case NOT_RUNNING -> throw ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal(
+                    "The approval cannot be withdrawn or cancelled while it is " + status);
+            case ALLOWED -> {
             }
         }
-        if (reason == null || reason.isBlank()) {
-            throw new ApprovalTransitionException(ApprovalTransitionException.Violation.REASON_REQUIRED, "A reason is required");
-        }
+        requireReason(reason, "A withdrawal or cancellation");
     }
 
-    private ApprovalStatus target(ApprovalAction action) {
-        ApprovalStatus target = TRANSITIONS.get(action).get(status);
-        if (target == null) {
-            throw new ApprovalTransitionException(ApprovalTransitionException.Violation.ILLEGAL_TRANSITION,
-                    action + " is not possible while the approval is " + status);
+    private void end(ApprovalStatus target, ApprovalOutcome outcome, Reason reason, ReturnSource source, Moment now) {
+        status = MACHINE.require(status, target, ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL);
+        for (ApprovalTask open : openTasks()) {
+            closeOne(open, now);
         }
-        return target;
-    }
-
-    private void complete(ApprovalOutcome outcome, String reason, LocalDate businessDate) {
         resultReason = reason;
         ApprovalInstanceId instance = instanceId;
-        int completedRound = round;
-        EventDraft draft = new EventDraft(EVENT_TYPE, 1, AGGREGATE_TYPE, aggregateId(), ++eventSequence, legalEntityId, businessDate,
-                new EventSource(SourceSystem.ONE, null), List.of());
-        events.add(new PendingEvent(draft, envelope -> new ApprovalCompleted(envelope, document, processKey, instance,
-                new RoundNumber(completedRound), outcome, Reason.ofNullable(reason))));
+        RoundNumber completed = new RoundNumber(round);
+        emit("ApprovalCompleted", now, envelope -> new ApprovalCompleted(envelope, document, processKey, instance, completed, initiator,
+                outcome, reason, source));
+    }
+
+    private void closeOne(ApprovalTask task, Moment now) {
+        task.close();
+        ApprovalTaskId id = task.taskId();
+        ApprovalInstanceId instance = task.instanceId();
+        NodeKey node = task.nodeKey();
+        emit("TaskClosed", now, envelope -> new TaskClosed(envelope, id, instance, document, node));
+    }
+
+    private void note(ApprovalTask task, TaskRecordAction action, UserId actor, UserId onBehalfOf, UserId assignee, Reason reason, Moment now) {
+        handlings.add(new TaskHandling(new TaskRecordId(Uuids.timeOrdered(now.at())), processKey, document, round, task.taskId(),
+                task.instanceId(), task.nodeKey(), task.nodeName(), action, actor, Optional.ofNullable(onBehalfOf), Optional.ofNullable(assignee),
+                Optional.ofNullable(reason), now.at()));
+    }
+
+    /** What the repository appends to the trail in the save that follows; asking twice gives nothing the second time. */
+    public List<TaskHandling> drainHandlings() {
+        List<TaskHandling> drained = List.copyOf(handlings);
+        handlings.clear();
+        return drained;
+    }
+
+    private void emitResult(ApprovalTaskId taskId, ApprovalInstanceId instance, NodeKey node, UserId by, TaskOutcome outcome,
+            TaskEffect effect, Reason reason, Moment now) {
+        emit("TaskResulted", now, envelope -> new TaskResulted(envelope, taskId, instance, processKey, document, node, by, outcome,
+                effect, reason));
+    }
+
+    private void emit(String eventName, Moment now, Function<EventEnvelope, DomainEvent> assemble) {
+        record((envelopes, sequence) -> assemble.apply(envelopes.wrap(new EventDraft(EVENT_PREFIX + eventName, 1, AGGREGATE_TYPE,
+                aggregateId(), sequence, legalEntityId, now.date(), new EventSource(SourceSystem.ONE, null), List.of()))));
+    }
+
+    private void requireOpenRound(TaskAssignment assignment) {
+        if (status != ApprovalStatus.RUNNING || !assignment.instanceId().equals(instanceId)) {
+            throw ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal(
+                    "Task " + assignment.taskId().value() + " does not belong to the running round of " + aggregateId());
+        }
+        if (tasks.stream().anyMatch(task -> task.taskId().equals(assignment.taskId()))) {
+            throw ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal("Task " + assignment.taskId().value() + " exists already");
+        }
+    }
+
+    private static void requireReason(Reason reason, String what) {
+        if (reason == null) {
+            throw ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED.refusal(what + " needs a reason");
+        }
+    }
+
+    public ApprovalTask task(ApprovalTaskId taskId) {
+        return tasks.stream().filter(task -> task.taskId().equals(taskId)).findFirst().orElseThrow(
+                () -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " is not part of " + aggregateId()));
+    }
+
+    public Optional<ApprovalTask> findTask(ApprovalTaskId taskId) {
+        return tasks.stream().filter(task -> task.taskId().equals(taskId)).findFirst();
+    }
+
+    public List<ApprovalTask> tasks() {
+        return List.copyOf(tasks);
+    }
+
+    public List<ApprovalTask> openTasks() {
+        return tasks.stream().filter(task -> task.status().isOpen()).toList();
     }
 
     public String aggregateId() {
         return document.documentType().name() + ":" + document.documentId().value();
-    }
-
-    public List<PendingEvent> pullEvents() {
-        List<PendingEvent> pulled = List.copyOf(events);
-        events.clear();
-        return pulled;
     }
 
     public ProcessKey processKey() {
@@ -213,16 +388,16 @@ public final class ApprovalRequest {
         return status;
     }
 
-    public String resultReason() {
-        return resultReason;
+    public ApprovalSummary summary() {
+        return summary;
     }
 
-    public long eventSequence() {
-        return eventSequence;
+    public Optional<Reason> resultReason() {
+        return Optional.ofNullable(resultReason);
     }
 
-    public long loadedVersion() {
-        return loadedVersion;
+    public Optional<UUID> trigger() {
+        return Optional.ofNullable(trigger);
     }
 
     public ApprovalStatus loadedStatus() {
@@ -235,5 +410,9 @@ public final class ApprovalRequest {
 
     public boolean isNew() {
         return isNew;
+    }
+
+    public boolean startsRound() {
+        return isNew || round != loadedRound;
     }
 }

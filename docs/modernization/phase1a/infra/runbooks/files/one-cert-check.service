@@ -1,0 +1,10 @@
+[Unit]
+Description=FORCITIS one certificate expiry and renewal check (C-7)
+After=network-online.target nginx.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/one_cert_check.sh
+PrivateTmp=true
+ProtectHome=true
+NoNewPrivileges=true

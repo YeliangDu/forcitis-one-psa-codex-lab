@@ -1,21 +1,19 @@
 package com.forcitis.one.organization.attendance.application;
 
-import com.forcitis.one.kernel.ExpectedVersion;
-import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** A change to a day before today is refused here (422): that is what MaintainLockedWorkCalendarDays is for. */
+/** Only the default calendar is maintained for now; the legal-entity calendar is reserved in the model and the schema. Days before today stay as they are. */
 @Service
 public class MaintainWorkCalendarYear {
-    private final WorkCalendarMaintenance maintenance;
+    private final CalendarMaintenance maintenance;
 
-    MaintainWorkCalendarYear(WorkCalendarMaintenance maintenance) {
+    MaintainWorkCalendarYear(CalendarMaintenance maintenance) {
         this.maintenance = maintenance;
     }
 
     @Transactional
-    public WorkCalendarYearView execute(int calendarYear, ExpectedVersion expected, List<DayEntry> days) {
-        return maintenance.maintain(calendarYear, expected, false, days);
+    public WorkCalendarYearView execute(MaintainWorkCalendarCommand command) {
+        return maintenance.run(command, false);
     }
 }

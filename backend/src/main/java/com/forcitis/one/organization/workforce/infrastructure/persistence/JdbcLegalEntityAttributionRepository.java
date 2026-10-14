@@ -49,13 +49,6 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
                 .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE).update();
     }
 
-    private void deletePeriod(AttributionSubject subject, AttributionPeriod period) {
-        String sql = subject.kind() == AttributionKind.ORG_UNIT
-                ? "delete from organization_workforce.org_unit_legal_entities where org_unit_id = :id and effective_from_date = :from"
-                : "delete from organization_workforce.employee_legal_entities where employee_id = :id and effective_from_date = :from";
-        jdbc.sql(sql).param("id", subject.subjectKey()).param("from", Date.valueOf(period.effectiveFrom())).update();
-    }
-
     private void writePeriods(LegalEntityAttribution attribution) {
         AttributionSubject subject = attribution.subject();
         java.util.Map<java.time.LocalDate, AttributionPeriod> stored = new java.util.HashMap<>();
@@ -68,14 +61,14 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
                 insertPeriod(subject, period);
             } else if (!before.equals(period)) {
                 if (!before.legalEntityId().equals(period.legalEntityId())) {
-                    deletePeriod(subject, before);
-                    insertPeriod(subject, period);
-                } else {
-                    updatePeriodEnd(subject, period);
+                    throw new IllegalStateException("a period never changes its legal entity: it is closed and a new one is appended");
                 }
+                updatePeriodEnd(subject, period);
             }
         }
-        stored.values().forEach(removed -> deletePeriod(subject, removed));
+        if (!stored.isEmpty()) {
+            throw new IllegalStateException("a period is never removed: " + stored.keySet());
+        }
     }
 
     private void insertPeriod(AttributionSubject subject, AttributionPeriod period) {

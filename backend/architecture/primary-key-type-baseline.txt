@@ -1,7 +1,6 @@
 # B3-M8：单列主键必须是 uuid（由 IdGenerator 生成）。下列表在规则生效前已存在，主键仍是 bigint 或其他类型（PrimaryKeyTypeGuardTest）。
 # 格式：<schema.table>  # 说明。只减不增：新表一律用 uuid；改成 uuid 后删掉对应行，测试会拒绝已修好却没删的行。UUIDv7 本身排入下一批。
 cost_timesheet.timesheets  # existing table
-delivery_execution.work_packages  # existing table
 organization_attendance.work_calendar_days  # existing table
 organization_attendance.work_calendar_years  # existing table
 organization_workforce.assignments  # existing table
@@ -24,3 +23,5 @@ platform_identity.user_accounts  # existing table
 platform_integration.outbound_deliveries  # existing table
 platform_numbering.legacy_numbers  # existing table
 platform_numbering.numbering_rules  # existing table
+platform_approval.process_archive_skips  # created by the data architecture batch in parallel with this rule; the key becomes a uuid with UUIDv7
+platform_audit.audit_archive_batches  # created by the data architecture batch in parallel with this rule; the key becomes a uuid with UUIDv7

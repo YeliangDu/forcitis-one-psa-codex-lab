@@ -1,10 +1,9 @@
+import { DOCUMENT_TYPE_LABELS, describeFailure, labelOf, versionOf } from '@forcitis/core';
 import { Button, DataTable, Dialog, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextField, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { useCurrentUser } from '@/modules/session';
-import { describeFailure, failureOf } from '@/shared/lib/failure';
-import { useNumberingRules, useSaveNumberingRule } from '../hooks/use-numbering-rules';
+import { useNumberingRuleForEdit, useNumberingRules, useSaveNumberingRule } from '../hooks/use-numbering-rules';
 import {
-  DOCUMENT_TYPE_LABELS,
   NUMBERING_UPDATE_PERMISSION,
   type NumberingRule,
   RESET_POLICY_LABELS,
@@ -17,17 +16,12 @@ import {
 
 type Editing = { mode: 'edit' | 'confirm'; rule: NumberingRule; draft: RuleDraft };
 
-function saveFailure(error: unknown): string {
-  const { status, body } = failureOf(error);
-  if (status === 422) return `编号模板或起始流水号不符合规则${typeof body === 'string' && body !== '' ? `（${body}）` : ''}`;
-  return describeFailure(error);
-}
-
 export function NumberingRulesPage() {
   const session = useCurrentUser();
   const rules = useNumberingRules();
   const save = useSaveNumberingRule();
   const [editing, setEditing] = useState<Editing>();
+  const editedRule = useNumberingRuleForEdit(editing?.rule.documentType);
   const mayUpdate = session.can(NUMBERING_UPDATE_PERMISSION);
 
   if (rules.isPending) return <LoadingState />;
@@ -39,11 +33,11 @@ export function NumberingRulesPage() {
   };
   const submit = () => {
     if (editing === undefined) return;
-    save.mutate({ documentType: editing.rule.documentType, draft: editing.draft }, { onSuccess: close });
+    save.mutate({ documentType: editing.rule.documentType, draft: editing.draft, version: versionOf(editedRule.data) }, { onSuccess: close });
   };
 
   const columns: DataColumn<NumberingRule>[] = [
-    { key: 'type', title: '单据类型', render: (rule) => DOCUMENT_TYPE_LABELS[rule.documentType] ?? rule.documentType },
+    { key: 'type', title: '单据类型', render: (rule) => labelOf(DOCUMENT_TYPE_LABELS, rule.documentType) },
     { key: 'code', title: '单据类型代码', render: (rule) => rule.documentTypeCode ?? '—' },
     { key: 'pattern', title: '编号模板', render: (rule) => <code>{rule.pattern}</code> },
     { key: 'reset', title: '流水号重置周期', render: (rule) => RESET_POLICY_LABELS[rule.resetPolicy] ?? rule.resetPolicy },
@@ -82,15 +76,16 @@ export function NumberingRulesPage() {
         title={editing?.mode === 'confirm' ? '确认编号规则' : '编辑编号规则'}
         confirmText={editing?.mode === 'confirm' ? '确认' : '保存'}
         confirmLoading={save.isPending}
-        confirmDisabled={Object.keys(problems).length > 0}
+        confirmDisabled={Object.keys(problems).length > 0 || !editedRule.isSuccess || editedRule.isFetching}
         onConfirm={submit}
         onClose={close}
       >
-        {save.isError ? <Notice tone="error" title="保存失败">{saveFailure(save.error)}</Notice> : null}
-        {editing?.mode === 'confirm' ? <p>确认后，该单据类型将按下面的编号规则发号。如需调整，请先修改再确认。</p> : null}
+        {save.isError ? <Notice tone="error" title="保存失败">{describeFailure(save.error)}</Notice> : null}
+        {editedRule.isError ? <Notice tone="error" title="编号规则加载失败">{describeFailure(editedRule.error)}</Notice> : null}
+        {editing?.mode === 'confirm' ? <p>确认之后，这个单据类型将按下面的编号规则发号。如需调整，请先修改再确认。</p> : null}
         {editing === undefined ? null : (
           <>
-            <TextField label="单据类型" value={DOCUMENT_TYPE_LABELS[editing.rule.documentType] ?? editing.rule.documentType} onChange={() => undefined} disabled />
+            <TextField label="单据类型" value={labelOf(DOCUMENT_TYPE_LABELS, editing.rule.documentType)} onChange={() => undefined} disabled />
             <TextField label="编号模板" value={editing.draft.pattern} onChange={(pattern) => setDraft({ pattern })} {...(problems.pattern === undefined ? {} : { error: problems.pattern })} />
             <SelectField label="流水号重置周期" value={editing.draft.resetPolicy} options={RESET_POLICY_OPTIONS} onChange={(resetPolicy) => setDraft({ resetPolicy })} />
             <TextField label="起始流水号" type="number" value={editing.draft.startValue} onChange={(startValue) => setDraft({ startValue })} {...(problems.startValue === undefined ? {} : { error: problems.startValue })} />

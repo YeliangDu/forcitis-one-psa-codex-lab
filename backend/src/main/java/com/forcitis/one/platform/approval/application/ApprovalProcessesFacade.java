@@ -4,11 +4,13 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
+import com.forcitis.one.platform.approval.api.ApprovalProgress;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /** Offers nothing that acts on a task (I-5, I-7). */
@@ -19,14 +21,16 @@ class ApprovalProcessesFacade implements ApprovalProcesses {
     private final WithdrawApproval withdrawApproval;
     private final CancelApproval cancelApproval;
     private final CheckWithdraw checkWithdraw;
+    private final GetApprovalProgress getProgress;
     private final ApprovalEngine engine;
 
     ApprovalProcessesFacade(StartApproval startApproval, WithdrawApproval withdrawApproval, CancelApproval cancelApproval,
-            CheckWithdraw checkWithdraw, ApprovalEngine engine) {
+            CheckWithdraw checkWithdraw, GetApprovalProgress getProgress, ApprovalEngine engine) {
         this.startApproval = startApproval;
         this.withdrawApproval = withdrawApproval;
         this.cancelApproval = cancelApproval;
         this.checkWithdraw = checkWithdraw;
+        this.getProgress = getProgress;
         this.engine = engine;
     }
 
@@ -38,6 +42,11 @@ class ApprovalProcessesFacade implements ApprovalProcesses {
     @Override
     public boolean isFinished(ApprovalInstanceId instance) {
         return !engine.isRunning(instance);
+    }
+
+    @Override
+    public Optional<ApprovalProgress> progress(ProcessKey processKey, DocumentReference document) {
+        return getProgress.execute(processKey, document);
     }
 
     @Override

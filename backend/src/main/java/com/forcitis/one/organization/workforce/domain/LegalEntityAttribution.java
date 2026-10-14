@@ -90,8 +90,12 @@ public final class LegalEntityAttribution extends AggregateRoot {
         if (latest.isPresent() && latest.get().isOpen() && latest.get().legalEntityId().equals(legalEntityId)) {
             return;
         }
+        if (latest.isPresent() && !latest.get().isOpen() && from.isBefore(latest.get().effectiveTo())) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID, ErrorKind.UNPROCESSABLE,
+                    "the latest attribution ended on " + latest.get().effectiveTo() + "; a closed period is not shortened, so a new one starts on or after that day");
+        }
         List<AttributionPeriod> next = new ArrayList<>(periods);
-        if (latest.isPresent() && (latest.get().isOpen() || latest.get().effectiveTo().isAfter(from))) {
+        if (latest.isPresent() && latest.get().isOpen()) {
             next.set(next.indexOf(latest.get()), latest.get().closedOn(from));
         }
         next.add(new AttributionPeriod(legalEntityId, from, null));

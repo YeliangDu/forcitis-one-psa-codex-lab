@@ -1,6 +1,12 @@
 # Words that may appear in UI copy without being business terms (用户 2026-10-14：允许清单只放非业务词，如「确定」「取消」「加载中」).
 # A word with business meaning does not belong here: register it in backend/glossary/proposed/frontend-ui.yaml instead.
 # Copy is cut into these words and registered terms (longest match first); whatever is left over fails scripts/check-copy-glossary.mjs.
+# A one-character word is only a connector: it must stand between two words (的, 和, 或 ...), never start or end a text or sit next to another connector.
+# A phrase that starts with a one-character word (请重新, 已被) is therefore listed whole, and a state such as 已认领 is a registered term.
+# `standalone` lists the values that may be a whole text by themselves.
+standalone:
+  - 是
+  - 否
 words:
   # particles, pronouns, connectives
   - 的
@@ -174,5 +180,73 @@ words:
   - 符合
   - 其他
   - 保存下来
-  - 原因
+  # fixed phrases that start with a connector
+  - 请稍后
+  - 请重新
+  - 请刷新
+  - 请联系
+  - 请填写
+  - 请选择
+  - 请先
+  - 请从
+  - 请检查
+  - 仅在
+  - 将按
+  - 须为
+  - 已被
+  - 刚刚被
+  - 找不到
+  - 同一天
   - 更多
+  - 正在
+  - 请查看
+  - 已经
+  - 已保存
+  # plain nouns and verbs of the work calendar and the checks
+  - 之后
+  - 需要
+  - 才能
+  - 日期
+  - 年度
+  - 年份
+  - 所选
+  - 属于
+  - 范围
+  - 超过
+  - 超出
+  - 重复
+  - 设置
+  - 设在
+  - 可以
+  - 执行
+  - 只有
+  - 晚于
+  - 今天
+  - 灰色
+  - 影响
+  - 下面
+  - 周一
+  - 周二
+  - 周三
+  - 周四
+  - 周五
+  - 周六
+  - 周日
+  - 列表
+  - 已载入
+  - 最新
+  - 未保存
+  - 由
+  - 第
+  - 轮
+  - 等
+  - 需
+  - 超
+  - 限
+  - 尽快
+  - 适用
+  - 同事
+  - 结束
+  - 完成
+  - 截止
+  - 路径

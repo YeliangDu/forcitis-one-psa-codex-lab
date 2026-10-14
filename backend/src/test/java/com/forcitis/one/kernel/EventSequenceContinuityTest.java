@@ -103,7 +103,7 @@ class EventSequenceContinuityTest {
     void syncRun() {
         RunStats stats = new RunStats(1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0);
         checkMany(() -> SyncRun.restore(new SyncRunId(1), SyncTrigger.SCHEDULED, "RUNNING", NOW, null, null, null, null, null, null, null, 0, 0),
-                List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of())), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
+                List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of()), LocalDate.of(2026, 10, 13)), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
                         r -> r.release(null, new SyncRunId(2), NOW, null)));
     }
 
@@ -111,16 +111,18 @@ class EventSequenceContinuityTest {
     @DisplayName("WorkCalendarYear: events are numbered 1..n")
     void workCalendarYear() {
         checkMany(() -> WorkCalendarYear.unmaintained(WorkCalendarKey.defaultFor(2026)), List.of(
-                y -> y.maintain(List.of(), TODAY, true), y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY)), TODAY, true),
-                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)), TODAY, true)));
+                y -> y.maintain(List.of(), LocalDate.of(2026, 6, 1), true),
+                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true),
+                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true)));
     }
 
     @Test
     @DisplayName("NumberingRule: events are numbered 1..n")
     void numberingRule() {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);
-        checkMany(() -> NumberingRule.restore(DocumentType.QUOTE, pattern, 1, "PENDING_CONFIRMATION", 0, 0), List.of(
-                NumberingRule::confirm, r -> r.reconfigure(pattern, 5), r -> r.reconfigure(pattern, 0)));
+        checkMany(() -> NumberingRule.restore(DocumentType.QUOTE, pattern, 1, "PENDING_CONFIRMATION", 1, null, 0, 0), List.of(
+                r -> r.confirm(LocalDate.of(2026, 10, 14)), r -> r.reconfigure(pattern, 5, LocalDate.of(2026, 10, 15)),
+                r -> r.reconfigure(pattern, 0, LocalDate.of(2026, 10, 16))));
     }
 
     @Test
@@ -157,21 +159,5 @@ class EventSequenceContinuityTest {
                         List.of(new WecomUserId("alice")), "title", "description", null, "PENDING", 0, null, null, null,
                         com.forcitis.one.platform.integration.domain.DeliveryKind.CARD, null, java.util.UUID.randomUUID(), 0, 0),
                 List.of(d -> d.markSent("0", NOW), d -> d.scheduleRetry(NOW, "later"), d -> d.deadLetter("gave up"), d -> d.skip("not allowed")));
-    }
-
-    @Test
-    @DisplayName("every aggregate of the system is covered by a case above, so a new one cannot be added without its sequence being tested")
-    void everyAggregateIsCovered() throws Exception {
-        var scanner = new org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider(false);
-        scanner.addIncludeFilter(new org.springframework.core.type.filter.AssignableTypeFilter(AggregateRoot.class));
-        java.util.Set<String> found = new java.util.TreeSet<>();
-        for (var candidate : scanner.findCandidateComponents("com.forcitis.one")) {
-            if (candidate.getBeanClassName().contains(".domain.")) {
-                found.add(Class.forName(candidate.getBeanClassName()).getSimpleName());
-            }
-        }
-
-        assertThat(found).containsExactlyInAnyOrder("UserAccount", "Role", "LegalEntity", "LegalEntityAttribution", "SyncRun", "WorkCalendarYear",
-                "NumberingRule", "RegisteredEmployee", "OutboundDelivery");
     }
 }

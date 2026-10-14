@@ -1,0 +1,3 @@
+# Public key of the release signing key (ssh-keygen allowed_signers format), RELEASE.md §7 R-12.
+# One line: forcitis-one-release namespaces="forcitis-one-release" ssh-ed25519 AAAA... forcitis-one-release
+# Empty until the key is generated: deployment verification fails closed. The same line goes to /etc/forcitis-one/release-signers on the ECS.

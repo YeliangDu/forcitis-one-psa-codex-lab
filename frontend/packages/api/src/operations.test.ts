@@ -1,14 +1,33 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ResponseShapeError, operations, setApiHandlers } from './index';
+import { forgetReportedViolations, setContractViolationSink } from './contract';
+import { MissingVersionError, ResponseShapeError, operations, setApiHandlers, versionOf } from './index';
 
-function stubFetch(status: number, body: unknown) {
+function stubFetch(status: number, body: unknown, headers: Record<string, string> = {}) {
   const calls: { url: string; init: RequestInit }[] = [];
   vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
     calls.push({ url, init });
-    return new Response(JSON.stringify(body), { status });
+    return new Response(JSON.stringify(body), { status, headers });
   });
   return calls;
 }
+
+const TASK_DETAIL = {
+  taskId: '42',
+  instanceId: '9',
+  processKey: 'COST_TIMESHEET_APPROVAL',
+  documentType: 'TIMESHEET',
+  documentId: '7',
+  nodeKey: 'pm',
+  nodeName: '项目经理',
+  initiator: '1',
+  initiatorName: '李四',
+  candidates: [],
+  candidateNames: [],
+  createdAt: '2026-10-14T01:00:00Z',
+  canAct: true,
+  overdue: false,
+  history: [],
+};
 
 describe('generated operations over the default client', () => {
   afterEach(() => {
@@ -18,8 +37,10 @@ describe('generated operations over the default client', () => {
 
   it('calls the path from openapi.json with the path parameter filled in and the CSRF header', async () => {
     document.cookie = 'XSRF-TOKEN=t-1; path=/';
+    stubFetch(200, TASK_DETAIL, { ETag: '"1"' });
+    const task = await operations.getPlatformApprovalTasksByTaskId({ path: { taskId: '42' } });
     const calls = stubFetch(200, { instanceId: '9', status: 'APPROVED' });
-    const result = await operations.postPlatformApprovalTasksByTaskIdDecide({ path: { taskId: '42' }, body: { outcome: 'APPROVE', reason: 'ok' } });
+    const result = await operations.postPlatformApprovalTasksByTaskIdDecide({ path: { taskId: '42' }, body: { outcome: 'APPROVE', reason: 'ok' } }, { ifMatch: versionOf(task) });
     expect(result).toEqual({ instanceId: '9', status: 'APPROVED' });
     expect(calls[0]?.url.endsWith('/platform/approval-tasks/42:decide')).toBe(true);
     expect(new Headers(calls[0]?.init.headers).get('X-XSRF-TOKEN')).toBe('t-1');
@@ -64,5 +85,58 @@ describe('generated operations over the default client', () => {
   it('validates an answer nested inside a list', async () => {
     stubFetch(200, [{ orgUnitId: '1', name: '交付一部', status: 'ACTIVE' }, { orgUnitId: 2 }]);
     await expect(operations.getOrganizationOrgUnits()).rejects.toBeInstanceOf(ResponseShapeError);
+  });
+});
+
+describe('platform traits declared in openapi.json', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('an update sends the version of the data it is based on as If-Match, and a fresh Idempotency-Key', async () => {
+    stubFetch(200, TASK_DETAIL, { ETag: '"5"' });
+    const task = await operations.getPlatformApprovalTasksByTaskId({ path: { taskId: '42' } });
+    const calls = stubFetch(200, { instanceId: '9', status: 'APPROVED' });
+    await operations.postPlatformApprovalTasksByTaskIdDecide({ path: { taskId: '42' }, body: { outcome: 'APPROVE' } }, { ifMatch: versionOf(task) });
+    const headers = new Headers(calls[0]?.init.headers);
+    expect(headers.get('If-Match')).toBe('"5"');
+    expect(headers.get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('an update without a version fails before anything is sent', async () => {
+    const calls = stubFetch(200, {});
+    await expect(operations.postPlatformApprovalTasksByTaskIdDecide({ path: { taskId: '42' }, body: { outcome: 'APPROVE' } })).rejects.toBeInstanceOf(MissingVersionError);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('a login call carries neither header', async () => {
+    const calls = stubFetch(200, {});
+    await operations.postPlatformSessionsLogout();
+    const headers = new Headers(calls[0]?.init.headers);
+    expect(headers.has('If-Match')).toBe(false);
+    expect(headers.has('Idempotency-Key')).toBe(false);
+  });
+});
+
+describe('a value outside the contract', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    setContractViolationSink((message) => console.error(message));
+  });
+
+  it('an enum value a newer server added does not fail the whole list; it is kept and reported once', async () => {
+    forgetReportedViolations();
+    const reports: string[] = [];
+    setContractViolationSink((message) => reports.push(message));
+    const record = { recordId: 'r', taskId: 't', instanceId: 'i', processKey: 'COST_TIMESHEET_APPROVAL', documentType: 'TIMESHEET', documentId: 'D', nodeKey: 'n', nodeName: 'N', actorId: '1', actorName: 'A', decidedAt: '2026-10-14T00:00:00Z', round: 1 };
+    const page = { items: [{ ...record, action: 'APPROVED' }, { ...record, recordId: 'r2', action: 'ADVISED' }, { ...record, recordId: 'r3', action: 'ADVISED' }] };
+    stubFetch(200, page);
+    const result = await operations.getPlatformApprovalTaskRecords();
+    expect(result.items.map((item) => item.action)).toEqual(['APPROVED', 'ADVISED', 'ADVISED']);
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toContain('ADVISED');
+  });
+
+  it('a required field that is missing still fails the answer', async () => {
+    stubFetch(200, { items: [{ recordId: 'r' }] });
+    await expect(operations.getPlatformApprovalTaskRecords()).rejects.toBeInstanceOf(ResponseShapeError);
   });
 });

@@ -78,7 +78,7 @@ class LegacyShapeTest {
 
     static final Pattern URL_PREFIX = Pattern.compile("/(admin|app|rpc)-api/");
     static final Pattern BASE_TYPE = Pattern.compile(
-            "CommonResult|PageResult|PageParam|pageNo|BaseDO|TenantBaseDO|BaseMapperX|LambdaQueryWrapper|TenantContextHolder|@TenantIgnore");
+            "(?<![A-Za-z0-9_])(?:CommonResult|PageResult|PageParam|pageNo|BaseDO|TenantBaseDO|BaseMapperX|LambdaQueryWrapper|TenantContextHolder)(?![A-Za-z0-9_])|@TenantIgnore");
     static final Pattern CLASS_DECLARATION = Pattern.compile("\\b(?:class|record|interface|enum)\\s+([A-Z][A-Za-z0-9_]*)");
     static final Pattern CLASS_SUFFIX = Pattern.compile("(ServiceImpl|Convert|DO|ReqVO|RespVO|VO|Mapper)$");
     static final Pattern PACKAGE_LINE = Pattern.compile("^\\s*package\\s+([\\w.]+)\\s*;", Pattern.MULTILINE);
