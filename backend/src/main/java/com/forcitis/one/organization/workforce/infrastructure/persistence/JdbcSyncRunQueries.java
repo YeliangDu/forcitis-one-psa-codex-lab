@@ -9,7 +9,6 @@ import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import com.forcitis.one.organization.workforce.domain.SyncRunRecord;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,14 +38,14 @@ class JdbcSyncRunQueries implements SyncRunQueries {
     @Override
     public List<SyncDiff> findDiffs(SyncRunId syncRunId) {
         return jdbc.sql("""
-                select entity_kind, subject_key, change_kind, changed_fields, issue_kind, detail
+                select entity_kind, subject_key, change_kind, changed_field_codes, issue_kind, detail
                   from organization_workforce.sync_diffs where sync_run_id = :id order by id
                 """).param("id", syncRunId.value()).query((rs, n) -> {
-            String fields = rs.getString("changed_fields");
+            java.sql.Array fields = rs.getArray("changed_field_codes");
             String issue = rs.getString("issue_kind");
             return new SyncDiff(EntityKind.valueOf(rs.getString("entity_kind")), rs.getString("subject_key"),
                     ChangeKind.valueOf(rs.getString("change_kind")),
-                    fields == null ? List.of() : Arrays.asList(fields.split(",")),
+                    fields == null ? List.<String>of() : List.of((String[]) fields.getArray()),
                     issue == null ? null : IssueKind.valueOf(issue), rs.getString("detail"));
         }).list();
     }

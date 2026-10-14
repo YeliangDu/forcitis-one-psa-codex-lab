@@ -532,20 +532,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: template_version
-  zh: 模板版本
-  en: TemplateVersion
-  snake: template_version
-  kind: concept
-  bc: platform.numbering
-  definition: 编号模板每保存一次加 1 的版本号；确认必须带所见的版本号，版本已变则 409（B1-H1）
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: voucher_numbering_rule
   zh: 凭证号规则
   en: VoucherNumberingRule

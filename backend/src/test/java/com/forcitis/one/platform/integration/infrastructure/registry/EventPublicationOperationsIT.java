@@ -31,7 +31,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "forcitis.platform.integration.event-publication.jobs-enabled=true",
         "forcitis.platform.integration.event-publication.republish-interval=PT6H",
         "spring.datasource.hikari.connection-timeout=2000"})

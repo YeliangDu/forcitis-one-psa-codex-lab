@@ -3,6 +3,7 @@ package com.forcitis.one.organization.attendance.web;
 import com.forcitis.one.organization.attendance.application.DayEntry;
 import com.forcitis.one.organization.attendance.application.GetWorkCalendarYear;
 import com.forcitis.one.organization.attendance.application.ListWorkCalendarYears;
+import com.forcitis.one.organization.attendance.application.MaintainWorkCalendarCommand;
 import com.forcitis.one.organization.attendance.application.MaintainWorkCalendarYear;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -42,6 +43,6 @@ class WorkCalendarController {
     @PreAuthorize("hasAuthority('" + AttendancePermissions.WORK_CALENDAR_UPDATE + "')")
     WorkCalendarYearResponse maintain(@PathVariable int calendarYear, @RequestBody MaintainWorkCalendarRequest request) {
         List<DayEntry> days = request.days().stream().map(d -> new DayEntry(d.calendarDate(), d.dayKind())).toList();
-        return WorkCalendarYearResponse.of(maintain.execute(calendarYear, days));
+        return WorkCalendarYearResponse.of(maintain.execute(new MaintainWorkCalendarCommand(calendarYear, days)));
     }
 }

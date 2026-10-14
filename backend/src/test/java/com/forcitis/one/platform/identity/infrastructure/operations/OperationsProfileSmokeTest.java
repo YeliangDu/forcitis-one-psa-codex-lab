@@ -43,7 +43,10 @@ class OperationsProfileSmokeTest {
         String[] infrastructure = {
                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl(), "--spring.datasource.username=" + POSTGRES.getUsername(),
                 "--spring.datasource.password=" + POSTGRES.getPassword(), "--spring.datasource.hikari.connection-timeout=2000",
-                "--flowable.database-schema-update=true", "--forcitis.platform.identity.sso.enabled=false",
+                "--flowable.database-schema-update=true", "--spring.flyway.create-schemas=true", "--forcitis.cost.timesheet.consumed-events.enabled=false",
+                "--forcitis.platform.approval.process-archive.enabled=false", "--forcitis.organization.workforce.sync-purge.enabled=false",
+                "--forcitis.platform.integration.outbound-purge.enabled=false", "--forcitis.platform.integration.archive-store.enabled=false",
+                "--forcitis.platform.audit.archive.enabled=false", "--forcitis.platform.approval.process-administrator-required=false", "--forcitis.platform.identity.sso.enabled=false",
                 "--forcitis.platform.identity.emergency.totp-encryption-key=" + Base64.getEncoder().encodeToString(random(32)),
                 "--FORCITIS_TICKET_KEY_KM=" + HexFormat.of().formatHex(random(32))};
         String[] all = java.util.stream.Stream.concat(java.util.Arrays.stream(infrastructure), java.util.Arrays.stream(commandLine))

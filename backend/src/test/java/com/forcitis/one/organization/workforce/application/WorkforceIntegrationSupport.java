@@ -65,16 +65,17 @@ public abstract class WorkforceIntegrationSupport {
     @BeforeEach
     protected void emptySnapshot() {
         awaitEventListeners();
-        jdbc.sql("""
+        VersionTables.truncate(jdbc, """
                 truncate table organization_workforce.sync_diffs, organization_workforce.sync_runs,
                        organization_workforce.legal_entity_attribution_periods, organization_workforce.legal_entity_attributions,
                        organization_workforce.org_unit_versions, organization_workforce.assignment_versions,
                        organization_workforce.assignments, organization_workforce.employees,
                        organization_workforce.org_units, organization_workforce.positions restart identity cascade
-                """).update();
+                """);
         clock.reset();
         orgSource.unavailable = false;
         orgSource.failure = null;
+        orgSource.afterRead = () -> { };
         orgSource.singleLookupResult = java.util.List.of();
         orgSource.singleLookups.set(0);
         oldSystem.unavailable = false;

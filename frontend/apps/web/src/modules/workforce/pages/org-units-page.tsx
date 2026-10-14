@@ -1,6 +1,6 @@
 import { Button, DataTable, LoadingState, Notice, PageTitle, StatusBadge, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
-import { describeFailure } from '@/shared/lib/failure';
+import { describeFailure } from '@forcitis/core';
 import { useOrgUnits } from '../hooks/use-workforce';
 import { ORG_UNIT_STATUS_LABELS, type OrgUnitNode, buildOrgTree } from '../model/org-unit';
 

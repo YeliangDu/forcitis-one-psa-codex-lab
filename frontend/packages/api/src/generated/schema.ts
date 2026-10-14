@@ -16,54 +16,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/cost/timesheets/{id}:cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["cancel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cost/timesheets/{id}:submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["submit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cost/timesheets/{id}:withdraw": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["withdraw"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/organization/legal-entities": {
         parameters: {
             query?: never;
@@ -201,6 +153,22 @@ export interface paths {
         };
         get: operations["view"];
         put: operations["maintain"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/approval-task-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_records"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -564,15 +532,31 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        ApprovalStatus: "APPROVED" | "CANCELLED" | "REJECTED" | "RETURNED" | "RUNNING";
+        AuditEntryPageResponse: {
+            items: components["schemas"]["AuditEntryResponse"][];
+            nextCursor?: string;
+        };
+        AuditEntryResponse: {
+            action: string;
+            actorId?: string;
+            /** Format: date-time */
+            createdAt: string;
+            detail?: string;
+            entryId: string;
+            onBehalfOfId?: string;
+            subjectKey: string;
+        };
         CalendarDayRequest: {
             /** Format: date */
-            calendarDate?: string;
-            dayKind?: string;
+            calendarDate: string;
+            dayKind: components["schemas"]["DayKind"] | (string & {});
         };
         CalendarDayResponse: {
             /** Format: date */
             calendarDate: string;
-            dayKind: string;
+            dayKind: components["schemas"]["DayKind"] | (string & {});
         };
         CreateLegalEntityRequest: {
             code?: string;
@@ -586,29 +570,43 @@ export interface components {
             permissionCodes: string[];
             userId: string;
         };
+        /** @enum {string} */
+        DayKind: "HOLIDAY" | "MAKE_UP_WORKDAY";
         DecideTaskRequest: {
             /** @enum {string} */
-            outcome?: "APPROVE" | "REJECT";
+            outcome?: ("APPROVE" | "REJECT") | (string & {});
             reason?: string;
         };
         DecisionResponse: {
             instanceId: string;
-            status: string;
+            status: components["schemas"]["ApprovalStatus"] | (string & {});
         };
+        /** @enum {string} */
+        DocumentType: "JOURNAL_VOUCHER" | "QUOTE" | "TIMESHEET";
         EmergencyLoginRequest: {
             loginName?: string;
             password?: string;
             totpCode?: string;
         };
+        /** @enum {string} */
+        ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE" | "COST_TIMESHEET_CUTOFF_PASSED" | "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS" | "COST_TIMESHEET_NOT_FOUND" | "COST_TIMESHEET_REASON_REQUIRED" | "COST_TIMESHEET_TRANSITION_ILLEGAL" | "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE" | "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE" | "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN" | "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR" | "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED" | "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY" | "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED" | "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE" | "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL" | "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND" | "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL" | "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID" | "PLATFORM_APPROVAL_CONCURRENT_CHANGE" | "PLATFORM_APPROVAL_CUTOFF_PASSED" | "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE" | "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK" | "PLATFORM_APPROVAL_DECISION_EMPTY" | "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY" | "PLATFORM_APPROVAL_HOOK_BLOCKED" | "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED" | "PLATFORM_APPROVAL_NOT_INITIATOR" | "PLATFORM_APPROVAL_NO_ROUTE" | "PLATFORM_APPROVAL_REASON_REQUIRED" | "PLATFORM_APPROVAL_REQUEST_NOT_FOUND" | "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED" | "PLATFORM_APPROVAL_TASK_NOT_FOUND" | "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID" | "PLATFORM_APPROVAL_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_ACCOUNT_DISABLED" | "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND" | "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_CONCURRENT_UPDATE" | "PLATFORM_IDENTITY_CREDENTIALS_INVALID" | "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED" | "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN" | "PLATFORM_IDENTITY_NETWORK_DENIED" | "PLATFORM_IDENTITY_PERMISSION_UNKNOWN" | "PLATFORM_IDENTITY_ROLE_BLANK_NAME" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME" | "PLATFORM_IDENTITY_ROLE_INVALID_CODE" | "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED" | "PLATFORM_IDENTITY_ROLE_NOT_FOUND" | "PLATFORM_IDENTITY_ROLE_RESERVED_CODE" | "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN" | "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_SSO_UNAVAILABLE" | "PLATFORM_IDENTITY_STATE_INVALID" | "PLATFORM_IDENTITY_TICKET_INVALID" | "PLATFORM_IDENTITY_TICKET_REPLAYED" | "PLATFORM_IDENTITY_WECOM_CODE_INVALID" | "PLATFORM_IDENTITY_WECOM_NOT_BOUND" | "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_CONCURRENT_UPDATE" | "PLATFORM_NUMBERING_RULE_INVALID" | "PLATFORM_NUMBERING_RULE_NOT_FOUND" | "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL" | "PLATFORM_WEB_ACCESS_DENIED" | "PLATFORM_WEB_CORRELATION_INVALID" | "PLATFORM_WEB_CURSOR_INVALID" | "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED" | "PLATFORM_WEB_REQUEST_INVALID" | "PLATFORM_WEB_SOURCE_BROKEN" | "PLATFORM_WEB_SOURCE_UNAVAILABLE" | "PLATFORM_WEB_UNAUTHENTICATED" | "PLATFORM_WEB_UNEXPECTED" | "PLATFORM_WEB_VERSION_MISMATCH" | "PLATFORM_WEB_VERSION_REQUIRED";
+        /** @enum {string} */
+        InboxCategory: "NOTICE" | "TODO";
         InboxItemResponse: {
+            category: components["schemas"]["InboxCategory"] | (string & {});
             claimed: boolean;
             /** Format: date-time */
             createdAt?: string;
+            /** Format: date-time */
+            deadlineAt?: string;
             detailUrl?: string;
+            documentId?: string;
             nodeName?: string;
-            source: string;
+            overdue: boolean;
+            processKey?: components["schemas"]["ProcessKey"] | (string & {});
+            source: components["schemas"]["InboxSource"] | (string & {});
             taskId: string;
-            title: string;
+            title?: string;
         };
         InboxResponse: {
             items: components["schemas"]["InboxItemResponse"][];
@@ -617,9 +615,14 @@ export interface components {
             legacyCount: number;
             /** Format: int32 */
             newCount: number;
+            nextCursor?: string;
+            /** Format: int32 */
+            noticeCount: number;
             /** Format: int32 */
             totalCount: number;
         };
+        /** @enum {string} */
+        InboxSource: "LEGACY" | "NEW";
         LegacyNumberResponse: {
             documentId: string;
             documentType: string;
@@ -635,10 +638,14 @@ export interface components {
         };
         LoginStateRequest: {
             /** @enum {string} */
-            entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
+            entry?: ("WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN") | (string & {});
+        };
+        LoginStateResponse: {
+            state: string;
         };
         MaintainWorkCalendarRequest: {
-            days?: components["schemas"]["CalendarDayRequest"][];
+            days: components["schemas"]["CalendarDayRequest"][];
+            lockedDaysConfirmed?: boolean;
         };
         NavigationResponse: {
             children: components["schemas"]["NavigationResponse"][];
@@ -655,7 +662,7 @@ export interface components {
             /** Format: int64 */
             capacity: number;
             confirmationStatus: string;
-            documentType: string;
+            documentType: components["schemas"]["DocumentType"] | (string & {});
             documentTypeCode?: string;
             pattern: string;
             resetPolicy: string;
@@ -681,6 +688,19 @@ export interface components {
             sortOrder?: number;
             status: string;
         };
+        ProblemDetail: {
+            correlationId?: string;
+            detail?: string;
+            errorCode: components["schemas"]["ErrorCode"] | (string & {});
+            instance?: string;
+            legacyLoginUrl?: string;
+            /** Format: int32 */
+            status: number;
+            title?: string;
+            type?: string;
+        };
+        /** @enum {string} */
+        ProcessKey: "COST_TIMESHEET_APPROVAL";
         ReleaseResponse: {
             message?: string;
             outcome: string;
@@ -689,15 +709,12 @@ export interface components {
         ReplaceRolesRequest: {
             roleCodes?: string[];
         };
-        RetractTimesheetRequest: {
-            reason?: string;
-        };
         ReturnTaskRequest: {
             reason?: string;
         };
         RoleRequest: {
             /** @enum {string} */
-            accessScope?: "ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS";
+            accessScope?: ("ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS") | (string & {});
             code?: string;
             enabled?: boolean;
             name?: string;
@@ -705,7 +722,7 @@ export interface components {
         };
         RoleResponse: {
             /** @enum {string} */
-            accessScope: "ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS";
+            accessScope: ("ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS") | (string & {});
             administrative: boolean;
             code: string;
             enabled: boolean;
@@ -713,19 +730,6 @@ export interface components {
             name: string;
             permissionCodes: string[];
             roleId: string;
-        };
-        SubmitTimesheetRequest: {
-            hours?: number;
-            /** Format: int64 */
-            projectManagerId?: number;
-            /** Format: int64 */
-            workPackageId?: number;
-        };
-        SubmitTimesheetResponse: {
-            approvalInstanceId?: string;
-            errorCode?: string;
-            outcome: string;
-            remainingHours?: number;
         };
         SyncDiffResponse: {
             changeKind: string;
@@ -780,17 +784,51 @@ export interface components {
         };
         TaskDetailResponse: {
             assignee?: string;
+            assigneeName?: string;
             canAct: boolean;
+            candidateNames: string[];
             candidates: string[];
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            deadlineAt?: string;
             documentId: string;
-            documentType: string;
+            documentType: components["schemas"]["DocumentType"] | (string & {});
+            history: components["schemas"]["TaskRecordResponse"][];
             initiator: string;
+            initiatorName: string;
+            initiatorOrgUnitName?: string;
             instanceId: string;
             nodeKey: string;
             nodeName: string;
-            processKey: string;
+            overdue: boolean;
+            processKey: components["schemas"]["ProcessKey"] | (string & {});
+            summary?: string;
+            taskId: string;
+        };
+        /** @enum {string} */
+        TaskRecordAction: "APPROVED" | "AUTO_APPROVED" | "REJECTED" | "RETURNED" | "TRANSFERRED";
+        TaskRecordPageResponse: {
+            items: components["schemas"]["TaskRecordResponse"][];
+            nextCursor?: string;
+        };
+        TaskRecordResponse: {
+            action: components["schemas"]["TaskRecordAction"] | (string & {});
+            actorId: string;
+            actorName: string;
+            /** Format: date-time */
+            decidedAt: string;
+            documentId: string;
+            documentType: components["schemas"]["DocumentType"] | (string & {});
+            instanceId: string;
+            nodeKey: string;
+            nodeName: string;
+            onBehalfOfName?: string;
+            processKey: components["schemas"]["ProcessKey"] | (string & {});
+            reason?: string;
+            recordId: string;
+            /** Format: int32 */
+            round: number;
             taskId: string;
         };
         TicketLoginRequest: {
@@ -816,7 +854,7 @@ export interface components {
         WecomLoginRequest: {
             code?: string;
             /** @enum {string} */
-            entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
+            entry?: ("WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN") | (string & {});
             state?: string;
         };
         WorkCalendarYearResponse: {
@@ -853,79 +891,14 @@ export interface operations {
                     "*/*": components["schemas"]["TimesheetResponse"];
                 };
             };
-        };
-    };
-    cancel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RetractTimesheetRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    submit: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubmitTimesheetRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["SubmitTimesheetResponse"];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
-            };
-        };
-    };
-    withdraw: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RetractTimesheetRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
@@ -947,12 +920,23 @@ export interface operations {
                     "*/*": components["schemas"]["LegalEntityResponse"][];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     create_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -971,12 +955,23 @@ export interface operations {
                     "*/*": components["schemas"]["LegalEntityResponse"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     update_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "If-Match": string;
+            };
             path: {
                 legalEntityId: number;
             };
@@ -995,6 +990,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LegalEntityResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1019,6 +1023,15 @@ export interface operations {
                     "*/*": components["schemas"]["OrgUnitResponse"][];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     get_4: {
@@ -1039,6 +1052,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OrgUnitDetailResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1063,6 +1085,15 @@ export interface operations {
                     "*/*": components["schemas"]["SyncRunResponse"][];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     get_3: {
@@ -1085,12 +1116,23 @@ export interface operations {
                     "*/*": components["schemas"]["SyncRunDetailResponse"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     release: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 syncRunId: number;
             };
@@ -1105,6 +1147,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ReleaseResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1125,6 +1176,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": number[];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1149,12 +1209,23 @@ export interface operations {
                     "*/*": components["schemas"]["WorkCalendarYearResponse"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     maintain: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "If-Match": string;
+            };
             path: {
                 calendarYear: number;
             };
@@ -1175,11 +1246,55 @@ export interface operations {
                     "*/*": components["schemas"]["WorkCalendarYearResponse"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list_records: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskRecordPageResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     list_4: {
         parameters: {
-            query?: never;
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1193,6 +1308,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InboxResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1217,12 +1341,24 @@ export interface operations {
                     "*/*": components["schemas"]["TaskDetailResponse"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     claim: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
             path: {
                 taskId: string;
             };
@@ -1237,12 +1373,24 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     decide: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
             path: {
                 taskId: string;
             };
@@ -1263,12 +1411,24 @@ export interface operations {
                     "*/*": components["schemas"]["DecisionResponse"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     returnTask: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
             path: {
                 taskId: string;
             };
@@ -1289,12 +1449,24 @@ export interface operations {
                     "*/*": components["schemas"]["DecisionResponse"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     transfer: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
             path: {
                 taskId: string;
             };
@@ -1313,6 +1485,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     list_3: {
@@ -1323,7 +1504,7 @@ export interface operations {
                 subjectKey?: string;
                 from?: string;
                 to?: string;
-                page?: number;
+                cursor?: string;
                 limit?: number;
             };
             header?: never;
@@ -1338,7 +1519,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["AuditEntryPageResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1365,6 +1555,15 @@ export interface operations {
                     "*/*": components["schemas"]["LegacyNumberResponse"][] | components["schemas"]["LegacyNumberResponse"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     beginWecomLogin: {
@@ -1386,7 +1585,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["LoginStateResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1407,6 +1615,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["NumberingRuleResponse"][];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1431,12 +1648,23 @@ export interface operations {
                     "*/*": components["schemas"]["NumberingRuleResponse"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     put: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "If-Match": string;
+            };
             path: {
                 documentType: "QUOTE" | "TIMESHEET" | "JOURNAL_VOUCHER";
             };
@@ -1454,6 +1682,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
             };
         };
     };
@@ -1475,12 +1712,23 @@ export interface operations {
                     "*/*": components["schemas"]["RoleResponse"][];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1497,6 +1745,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1521,12 +1778,23 @@ export interface operations {
                     "*/*": Record<string, never>;
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     update: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "If-Match": string;
+            };
             path: {
                 roleId: number;
             };
@@ -1547,12 +1815,23 @@ export interface operations {
                     "*/*": Record<string, never>;
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     delete: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "If-Match": string;
+            };
             path: {
                 roleId: number;
             };
@@ -1567,6 +1846,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1587,6 +1875,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CurrentUserResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1613,6 +1910,15 @@ export interface operations {
                     "*/*": Record<string, never>;
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     logout: {
@@ -1630,6 +1936,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
             };
         };
     };
@@ -1653,6 +1968,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1679,6 +2003,15 @@ export interface operations {
                     "*/*": Record<string, never>;
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     loginWithWecom: {
@@ -1703,12 +2036,23 @@ export interface operations {
                     "*/*": Record<string, never>;
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     disable: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -1723,6 +2067,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -1730,7 +2083,9 @@ export interface operations {
     enable: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -1747,12 +2102,23 @@ export interface operations {
                     "*/*": Record<string, never>;
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
         };
     };
     replaceRoles: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 userId: number;
             };
@@ -1771,6 +2137,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };

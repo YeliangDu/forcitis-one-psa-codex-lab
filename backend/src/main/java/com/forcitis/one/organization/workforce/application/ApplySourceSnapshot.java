@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.HoldKind;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -18,6 +19,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -40,16 +42,18 @@ public class ApplySourceSnapshot {
     private final DomainEvents events;
     private final SeparationReview separations;
     private final Clock clock;
+    private final BusinessZone businessZone;
     private final int maxDropPercent;
 
     ApplySourceSnapshot(OrgSnapshotRepository snapshots, SyncRunRepository runs, DomainEvents events, SeparationReview separations,
-                        Clock clock,
+                        Clock clock, BusinessZone businessZone,
                         @Value("${forcitis.organization.workforce.sync.max-drop-percent:20}") int maxDropPercent) {
         this.snapshots = snapshots;
         this.runs = runs;
         this.events = events;
         this.separations = separations;
         this.clock = clock;
+        this.businessZone = businessZone;
         this.maxDropPercent = maxDropPercent;
     }
 
@@ -70,6 +74,7 @@ public class ApplySourceSnapshot {
         Reconciliation changes = SnapshotReconciler.reconcile(current, source);
         ShrinkGuard.Verdict verdict = ShrinkGuard.evaluate(changes.stats(), maxDropPercent);
         Instant now = clock.instant();
+        LocalDate snapshotDate = businessZone.dateOf(run.startedAt());
         Optional<SyncRun> earlier = runs.findHeldExcept(syncRunId).stream().findFirst();
         Set<HoldKind> lifted = releasedBy == null ? Set.of() : earlier.map(SyncRun::releasedKinds).orElse(Set.of());
         boolean shrinkHeld = verdict.held() && !bypassShrinkGuard && !lifted.contains(HoldKind.SHRINK_GUARD);
@@ -96,9 +101,9 @@ public class ApplySourceSnapshot {
             LOG.warn("organization.workforce sync {} runs with the shrink guard bypassed by an administrator: {}",
                     syncRunId.value(), verdict.reason());
         }
-        snapshots.save(changes, syncRunId, now);
+        snapshots.save(changes, syncRunId, now, snapshotDate);
         runs.saveDiffs(syncRunId, changes.diffs());
-        run.succeed(now, changes.stats(), changes.change());
+        run.succeed(now, changes.stats(), changes.change(), snapshotDate);
         runs.save(run);
         events.publish(run);
         if (run.trigger() == SyncTrigger.SCHEDULED) {

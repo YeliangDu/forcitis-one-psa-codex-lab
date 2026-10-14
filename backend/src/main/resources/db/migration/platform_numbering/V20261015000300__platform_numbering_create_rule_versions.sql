@@ -46,8 +46,8 @@ COMMENT ON COLUMN platform_numbering.numbering_rule_versions.updated_at IS '更�
 CREATE FUNCTION platform_numbering.guard_rule_version_change() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
-    IF TG_OP = 'DELETE' THEN
-        RAISE EXCEPTION 'platform_numbering.numbering_rule_versions is append-only: DELETE is not allowed' USING ERRCODE = 'restrict_violation';
+    IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
+        RAISE EXCEPTION 'platform_numbering.numbering_rule_versions is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
     END IF;
     IF NEW.document_type IS DISTINCT FROM OLD.document_type OR NEW.version_number IS DISTINCT FROM OLD.version_number
        OR NEW.template_text IS DISTINCT FROM OLD.template_text OR NEW.reset_policy IS DISTINCT FROM OLD.reset_policy
@@ -69,6 +69,9 @@ $$;
 CREATE TRIGGER numbering_rule_versions_guard
     BEFORE UPDATE OR DELETE ON platform_numbering.numbering_rule_versions
     FOR EACH ROW EXECUTE FUNCTION platform_numbering.guard_rule_version_change();
+CREATE TRIGGER tg_numbering_rule_versions_append_only_truncate
+    BEFORE TRUNCATE ON platform_numbering.numbering_rule_versions
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_numbering.guard_rule_version_change();
 
 -- 现有规则的模板成为版本 1，一律回到待确认：没有列能判断原作者，由业务管理员按四眼重新确认（凭证号模板另由财务确认）。
 INSERT INTO platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status)

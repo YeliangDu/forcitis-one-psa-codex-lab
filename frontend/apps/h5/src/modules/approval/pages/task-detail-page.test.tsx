@@ -1,32 +1,19 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { currentUserBody } from '@/shared/testing/fixtures';
+import { VERSION_HEADER, currentUserBody, problemBody, stubServer, taskDetailBody, taskRecordBody } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { navigation, resetNavigation } from '@/shared/testing/taro-stub';
 import { TaskDetailPage } from './task-detail-page';
 
 const APPROVE = 'platform.approval:task:approve';
-const TASK = {
-  taskId: 't-1',
-  instanceId: 'i-1',
-  processKey: 'COST_TIMESHEET_APPROVAL',
-  documentType: 'TIMESHEET',
-  documentId: 'TS-FST-202610-0001',
-  nodeKey: 'dept-head',
-  nodeName: '部门负责人审核',
-  initiator: '2002',
-  candidates: ['1001', '1002'],
-  createdAt: '2026-10-14T01:00:00Z',
-  canAct: true,
-};
+const TASK = taskDetailBody();
 
 function open(task: object = TASK, permissions: string[] = [APPROVE], extra: Parameters<typeof stubServer>[0] = {}) {
   resetNavigation({ taskId: 't-1' });
   return stubServer({
     'GET sessions:current': { body: currentUserBody(permissions) },
-    'GET approval-tasks/t-1': { body: task },
+    'GET approval-tasks/t-1': { body: task, headers: VERSION_HEADER },
     ...extra,
   });
 }
@@ -42,8 +29,9 @@ describe('审批详情', () => {
     await showTask();
 
     expect(screen.getByText('工时单审批')).toBeInTheDocument();
-    expect(screen.getByText('TIMESHEET TS-FST-202610-0001')).toBeInTheDocument();
-    expect(screen.getByText('1001、1002')).toBeInTheDocument();
+    expect(screen.getByText('工时单 TS-FST-202610-0001')).toBeInTheDocument();
+    expect(screen.getByText('李四')).toBeInTheDocument();
+    expect(screen.getByText('张三、王五')).toBeInTheDocument();
     expect(screen.getByText('待认领')).toBeInTheDocument();
   });
 
@@ -57,7 +45,7 @@ describe('审批详情', () => {
   });
 
   it('已认领的任务不再显示认领', async () => {
-    open({ ...TASK, assignee: '1001' });
+    open({ ...TASK, assignee: '1001', assigneeName: '张三' });
     await showTask();
 
     expect(await screen.findByRole('button', { name: '通过' })).toBeInTheDocument();
@@ -65,13 +53,12 @@ describe('审批详情', () => {
     expect(screen.getByText('已认领')).toBeInTheDocument();
   });
 
-  it('没有办理权限时一个按钮都不显示', async () => {
+  it('办理不另需权限码（D-1a-179）：没有办理权限码但服务端允许办理时，同样显示办理按钮', async () => {
     open(TASK, []);
     await showTask();
 
-    await waitFor(() => expect(screen.queryByRole('button', { name: '通过' })).not.toBeInTheDocument());
     for (const name of ['认领', '通过', '驳回', '退回']) {
-      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+      expect(await screen.findByRole('button', { name })).toBeInTheDocument();
     }
   });
 
@@ -146,7 +133,7 @@ describe('审批详情', () => {
   });
 
   it('办理被服务端拒绝：显示原因，留在本页', async () => {
-    open(TASK, [APPROVE], { 'POST approval-tasks/t-1:decide': { status: 409, body: { errorCode: 'PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED' } } });
+    open(TASK, [APPROVE], { 'POST approval-tasks/t-1:decide': { status: 409, body: problemBody(409, 'PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED') } });
     await showTask();
 
     await userEvent.click(await screen.findByRole('button', { name: '通过' }));
@@ -160,11 +147,11 @@ describe('审批详情', () => {
     resetNavigation({ taskId: 'gone' });
     stubServer({
       'GET sessions:current': { body: currentUserBody([APPROVE]) },
-      'GET approval-tasks/gone': { status: 404, body: { errorCode: 'PLATFORM_APPROVAL_TASK_NOT_FOUND' } },
+      'GET approval-tasks/gone': { status: 404, body: problemBody(404, 'PLATFORM_APPROVAL_TASK_NOT_FOUND') },
     });
     renderWithProviders(<TaskDetailPage />);
 
-    expect(await screen.findByText('审批任务不存在，或你不是它的参与人')).toBeInTheDocument();
+    expect(await screen.findByText('审批任务不存在，或者你不是参与人')).toBeInTheDocument();
   });
 
   it('地址里没有任务编号：直接提示，不发请求', async () => {
@@ -172,7 +159,45 @@ describe('审批详情', () => {
     const server = stubServer({ 'GET sessions:current': { body: currentUserBody([APPROVE]) } });
     renderWithProviders(<TaskDetailPage />);
 
-    expect(await screen.findByText('审批任务不存在，或你不是它的参与人')).toBeInTheDocument();
+    expect(await screen.findByText('审批任务不存在，或者你不是参与人')).toBeInTheDocument();
     expect(server.calls.some((call) => call.url.includes('approval-tasks'))).toBe(false);
+  });
+});
+
+describe('审批记录与意见', () => {
+  it('显示每条审批记录的意见；通过时没有填写意见的显示（未填写意见）', async () => {
+    open(taskDetailBody({
+      history: [
+        taskRecordBody({ recordId: 'r-1', nodeName: '项目经理审核', action: 'APPROVED', reason: '工时与计划相符' }),
+        taskRecordBody({ recordId: 'r-2', nodeName: '区域负责人审核', action: 'APPROVED' }),
+        taskRecordBody({ recordId: 'r-3', nodeName: '总监审核', action: 'REJECTED', reason: '工时不符' }),
+      ],
+    }));
+    await showTask();
+
+    expect(await screen.findByText('工时与计划相符')).toBeInTheDocument();
+    expect(screen.getByText('工时不符')).toBeInTheDocument();
+    expect(screen.getByText('（未填写意见）')).toBeInTheDocument();
+  });
+
+  it('还没有审批记录时说明没有记录', async () => {
+    open();
+    await showTask();
+
+    expect(await screen.findByText('暂无审批记录')).toBeInTheDocument();
+  });
+
+  it('办理请求带着读到的版本和幂等键，版本冲突（412）时提示刷新', async () => {
+    const server = open(TASK, [APPROVE], { 'POST approval-tasks/t-1:decide': { status: 412, body: problemBody(412, 'PLATFORM_WEB_VERSION_MISMATCH') } });
+    await showTask();
+
+    await userEvent.click(await screen.findByRole('button', { name: '通过' }));
+    await userEvent.click(screen.getByRole('button', { name: '确认通过' }));
+
+    expect(await screen.findByText('内容刚刚被其他人修改，请刷新后重试')).toBeInTheDocument();
+    const decide = server.calls.find((call) => call.url.endsWith(':decide'));
+    expect(decide?.headers.get('If-Match')).toBe('"1"');
+    expect(decide?.headers.get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/);
+    expect(navigation.replaced).toEqual([]);
   });
 });

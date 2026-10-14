@@ -105,7 +105,7 @@ class EventSequenceContinuityTest {
     void syncRun() {
         RunStats stats = new RunStats(1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0);
         checkMany(() -> SyncRun.restore(new SyncRunId(1), SyncTrigger.SCHEDULED, "RUNNING", NOW, null, null, null, null, null, null, null, 0, 0),
-                List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of())), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
+                List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of()), LocalDate.of(2026, 10, 13)), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
                         r -> r.release(null, new SyncRunId(2), NOW)));
     }
 
@@ -113,8 +113,9 @@ class EventSequenceContinuityTest {
     @DisplayName("WorkCalendarYear: events are numbered 1..n")
     void workCalendarYear() {
         checkMany(() -> WorkCalendarYear.unmaintained(WorkCalendarKey.defaultFor(2026)), List.of(
-                y -> y.maintain(List.of()), y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY))),
-                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)))));
+                y -> y.maintain(List.of(), LocalDate.of(2026, 6, 1), true),
+                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true),
+                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true)));
     }
 
     @Test

@@ -1,25 +1,22 @@
 package com.forcitis.one.platform.approval.application;
 
-import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.api.ProcessKey;
-import java.time.LocalDate;
+import com.forcitis.one.platform.approval.api.ContentHash;
+import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.NodeName;
+import com.forcitis.one.platform.approval.api.ProcessName;
+import com.forcitis.one.platform.approval.domain.NodeDeadline;
 import java.util.List;
-import java.util.OptionalInt;
+import java.util.Optional;
 
-/** deadlineWorkdays, escalationWorkdays and autoApproveRepeat come from the node's decision table; the deadline numbers are both given or both absent. */
-public record TaskRegistration(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey, String processName,
-                               DocumentReference document, LegalEntityId legalEntityId, String nodeKey, String nodeName,
-                               UserId initiator, List<UserId> candidates, LocalDate submittedOn, OptionalInt deadlineWorkdays,
-                               OptionalInt escalationWorkdays, boolean autoApproveRepeat, String contentDigest) {
+/** What the engine knows about a task it just created, plus the node's own parameters (BPMN extension attributes). */
+public record TaskRegistration(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessName processName, NodeKey nodeKey,
+                               NodeName nodeName, List<UserId> candidates, boolean autoApproveRepeat, Optional<NodeDeadline> deadline,
+                               ContentHash contentHash) {
 
     public TaskRegistration {
         candidates = List.copyOf(candidates);
-        if (deadlineWorkdays.isPresent() != escalationWorkdays.isPresent()) {
-            throw new IllegalArgumentException("a node deadline needs both the deadline and the escalation interval");
-        }
     }
 }

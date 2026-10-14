@@ -1,8 +1,8 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { problemBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { EmergencyLoginPage } from './emergency-login-page';
 import { LoginPage } from './login-page';
 
@@ -51,7 +51,7 @@ describe('应急管理员登录', () => {
   });
 
   it('登录失败时显示中文原因，不跳转到登录页或权限不足页', async () => {
-    stubServer({ 'POST sessions:emergency-login': { status: 401, body: { errorCode: 'PLATFORM_IDENTITY_CREDENTIALS_INVALID' } } });
+    stubServer({ 'POST sessions:emergency-login': { status: 401, body: problemBody(401, 'PLATFORM_IDENTITY_CREDENTIALS_INVALID') } });
     renderWithProviders(<EmergencyLoginPage />, { route: '/emergency', path: '/emergency' });
 
     await userEvent.type(screen.getByLabelText('登录名'), 'break-glass');
@@ -64,7 +64,7 @@ describe('应急管理员登录', () => {
   });
 
   it('不在内网时说明原因', async () => {
-    stubServer({ 'POST sessions:emergency-login': { status: 403, body: { errorCode: 'PLATFORM_IDENTITY_NETWORK_DENIED' } } });
+    stubServer({ 'POST sessions:emergency-login': { status: 403, body: problemBody(403, 'PLATFORM_IDENTITY_NETWORK_DENIED') } });
     renderWithProviders(<EmergencyLoginPage />, { route: '/emergency', path: '/emergency' });
 
     await userEvent.type(screen.getByLabelText('登录名'), 'break-glass');

@@ -3,14 +3,19 @@ package com.forcitis.one.platform.approval.domain;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /** Does NOT check who the actor is: callers decide with TaskActors first (I-7). */
 public interface ApprovalEngine {
 
-    ApprovalInstanceId startInstance(InstanceStart start);
+    /** The routing flags the process definition reacts to; a flag outside this set means nothing to the process. */
+    Set<String> routingFlagsOf(ProcessKey processKey);
+
+    void startInstance(InstanceStart start);
 
     boolean isRunning(ApprovalInstanceId instanceId);
 
@@ -30,7 +35,6 @@ public interface ApprovalEngine {
     void addCandidates(ApprovalTaskId taskId, Collection<UserId> users);
 
     void completeTask(ApprovalTaskId taskId);
-
 
     void endAsReturned(ApprovalInstanceId instanceId);
 

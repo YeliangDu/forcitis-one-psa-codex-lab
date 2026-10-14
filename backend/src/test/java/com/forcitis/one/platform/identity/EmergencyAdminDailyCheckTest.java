@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.identity.application.CheckEmergencyAdmins;
+import com.forcitis.one.platform.identity.application.ReconcileEmergencyAdmins;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
 import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
 import com.forcitis.one.platform.identity.domain.PasswordHasher;
@@ -21,7 +21,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 class EmergencyAdminDailyCheckTest extends IdentityIntegrationTest {
 
     @Autowired
-    CheckEmergencyAdmins check;
+    ReconcileEmergencyAdmins check;
 
     @Autowired
     EmergencyAdminRepository admins;

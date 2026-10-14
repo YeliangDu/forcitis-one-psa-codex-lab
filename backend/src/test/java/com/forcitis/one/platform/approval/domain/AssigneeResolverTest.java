@@ -29,7 +29,7 @@ class AssigneeResolverTest {
                 .person(101, 1, null).person(110, 10, null).separated(120, 12, null).person(130, 13, null).person(131, 10, null)
                 .person(1, 11, 2L).person(2, 10, 3L).person(3, 1, null)
                 .person(ADMIN, 1, null);
-        resolver = new AssigneeResolver(org, org, new UserId(ADMIN));
+        resolver = new AssigneeResolver(org, org, java.util.Set.of(new UserId(ADMIN)));
     }
 
     Resolution resolve(AssignmentRule rule, long initiator, ProcessVariables variables) {
@@ -100,24 +100,29 @@ class AssigneeResolverTest {
     @DisplayName("RULE-250 nothing found anywhere goes to the process administrator; without one the result is UNRESOLVED")
     void nothingFoundGoesToAdministrator() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
-        Resolution r = new AssigneeResolver(lonely, lonely, new UserId(ADMIN))
+        Resolution r = new AssigneeResolver(lonely, lonely, java.util.Set.of(new UserId(ADMIN)))
                 .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new UserId(5), ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(ADMIN));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
 
-        Resolution none = new AssigneeResolver(lonely, lonely, null)
+        Resolution none = new AssigneeResolver(lonely, lonely, java.util.Set.of())
                 .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new UserId(5), ProcessVariables.empty());
         assertThat(none.candidates()).isEmpty();
         assertThat(none.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
     }
 
     @Test
-    @DisplayName("RULE-300 a node that may be skipped is skipped only when its input is complete and valid and nobody is left; a node that may not be skipped goes to the administrator")
+    @DisplayName("RULE-300 a node that may be skipped is skipped only when its input is complete and valid and nobody is left; a node that may not be skipped goes to the administrator; a node that may not be skipped goes to the administrator")
     void skipOnlyWhenEmptyAndAllowed() {
         AssignmentRule.FormFieldUsers rule = new AssignmentRule.FormFieldUsers("projectManagerId");
         Resolution skipped = resolver.resolve(rule, false, true, new UserId(1), fields("projectManagerId", "120"));
         assertThat(skipped.kind()).isEqualTo(ResolutionKind.SKIPPED);
+        assertThat(skipped.namedApproverInvalid()).as("the document names an approver who cannot act: remembered, so that an approval whose every node was skipped like this goes back to the initiator").isTrue();
         assertThat(skipped.candidates()).isEmpty();
+        Resolution nobody = resolver.resolve(new AssignmentRule.Role(new com.forcitis.one.platform.identity.api.RoleCode("nobody-holds-this")), false, true,
+                new UserId(1), ProcessVariables.empty());
+        assertThat(nobody.kind()).isEqualTo(ResolutionKind.SKIPPED);
+        assertThat(nobody.namedApproverInvalid()).as("a rule that finds nobody by itself is a set-up matter").isFalse();
         assertThat(resolver.resolve(rule, false, false, new UserId(1), fields("projectManagerId", "120")).kind())
                 .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
         assertThat(resolver.resolve(rule, false, false, new UserId(1), ProcessVariables.empty()).kind())
@@ -147,7 +152,7 @@ class AssigneeResolverTest {
     @DisplayName("RULE-300 a complete, valid input with really nobody (no supervisor, no head, no role holder) is SKIPPED")
     void reallyNobodyIsSkipped() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
-        AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, new UserId(ADMIN));
+        AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, java.util.Set.of(new UserId(ADMIN)));
 
         assertThat(lonelyResolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new UserId(5), ProcessVariables.empty())
                 .kind()).isEqualTo(ResolutionKind.SKIPPED);

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
@@ -10,6 +11,7 @@ import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Service;
 public class HandleOrgSnapshotChange {
 
     private static final String ACTOR = "platform.identity.separation";
+    private static final int MAX_ATTEMPTS = 3;
 
     private final OrgDirectory directory;
     private final AccountProvisioning provisioning;
@@ -78,17 +81,28 @@ public class HandleOrgSnapshotChange {
                 .withTrace(null, AuditOutcome.SUCCEEDED, null));
     }
 
+    /** The account may be written by the listener that opens it at the same moment: the loser reads again instead of leaving the event undelivered. */
     private void revokeRoles(UserId userId) {
-        Optional<UserAccount> found = accounts.find(userId);
-        if (found.isEmpty() || found.get().roles().isEmpty()) {
+        for (int attempt = 1; ; attempt++) {
+            Optional<UserAccount> found = accounts.find(userId);
+            if (found.isEmpty() || found.get().roles().isEmpty()) {
+                return;
+            }
+            UserAccount account = found.get();
+            Set<RoleCode> held = accounts.findAssignedRoleCodes(userId);
+            account.recordSeparation();
+            try {
+                accounts.save(account);
+            } catch (DomainException conflict) {
+                if (attempt >= MAX_ATTEMPTS || conflict.errorCode() != IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE) {
+                    throw conflict;
+                }
+                continue;
+            }
+            events.publish(account);
+            held.stream().map(RoleCode::value).sorted(Comparator.naturalOrder()).forEach(code -> audit.record(new AuditEntry(
+                    "platform.identity.account.role.revoked", null, null, "user-account:" + userId.value(), "role=" + code + " cause=separation")));
             return;
         }
-        UserAccount account = found.get();
-        Set<RoleCode> held = accounts.findAssignedRoleCodes(userId);
-        account.recordSeparation();
-        accounts.save(account);
-        events.publish(account);
-        held.stream().map(RoleCode::value).sorted(Comparator.naturalOrder()).forEach(code -> audit.record(new AuditEntry(
-                "platform.identity.account.role.revoked", null, null, "user-account:" + userId.value(), "role=" + code + " cause=separation")));
     }
 }

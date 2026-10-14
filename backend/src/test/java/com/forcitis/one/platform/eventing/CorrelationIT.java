@@ -63,7 +63,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** One HTTP request: the event it publishes, the handler that runs on it, the deliveries both queue and the outbound call share one correlation id. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
 @Import(CorrelationIT.Probe.class)
@@ -116,7 +115,7 @@ class CorrelationIT {
 
     static final class ThingAggregate extends AggregateRoot {
         ThingAggregate() {
-            super(0);
+            super(0, 0);
         }
 
         void happen() {

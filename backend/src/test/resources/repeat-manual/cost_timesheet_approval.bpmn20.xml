@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test-only like the repeat variant, but a repeat approver is not passed automatically. Test-only variant of the timesheet process whose single node comes back once (RULE-302 needs the same approver on the same node twice).
+     RepeatApproverIT deploys it as a newer version and deletes it again. Not on the auto-deploy path (processes/). -->
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:forcitis="https://forcitis.com/psa/approval/extension"
+             targetNamespace="https://forcitis.com/psa/approval">
+  <process id="cost_timesheet_approval" name="Timesheet approval (repeat, manual)" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="toRepeatReview" sourceRef="start" targetRef="repeatReview"/>
+    <userTask id="repeatReview" name="Repeat review">
+      <extensionElements>
+        <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" beforeHook="TEST_DEPARTMENT_REVIEW" routingFlag="again"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toAgain" sourceRef="repeatReview" targetRef="again"/>
+    <exclusiveGateway id="again" default="toEnd"/>
+    <sequenceFlow id="backToReview" sourceRef="again" targetRef="repeatReview">
+      <extensionElements>
+        <flowable:executionListener event="take" expression="${execution.setVariable('again', false)}"/>
+      </extensionElements>
+      <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('again', false)}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="toEnd" sourceRef="again" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>

@@ -10,6 +10,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.attendance.api.WorkCalendar;
+import com.forcitis.one.organization.attendance.application.DayEntry;
+import com.forcitis.one.organization.attendance.application.MaintainWorkCalendarCommand;
+import com.forcitis.one.organization.attendance.application.MaintainLockedWorkCalendarDays;
+import com.forcitis.one.organization.attendance.api.DayException;
+import com.forcitis.one.organization.attendance.api.LockedDayChange;
+import com.forcitis.one.organization.attendance.events.WorkCalendarLockedDaysChanged;
 import com.forcitis.one.organization.attendance.events.WorkCalendarYearMaintained;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -37,12 +43,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
 @RecordApplicationEvents
 @Testcontainers
+@org.springframework.context.annotation.Import(WorkCalendarIT.FixedClock.class)
 class WorkCalendarIT {
     static final String CALENDARS = "/api/v1/organization/work-calendars";
 
@@ -64,6 +70,23 @@ class WorkCalendarIT {
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
+    static final java.time.Instant CLOCK_START = java.time.Instant.parse("2026-10-01T00:00:00Z");
+
+    @org.springframework.boot.test.context.TestConfiguration
+    static class FixedClock {
+        @org.springframework.context.annotation.Bean
+        @org.springframework.context.annotation.Primary
+        com.forcitis.one.fixture.doubles.MutableClock clock() {
+            return new com.forcitis.one.fixture.doubles.MutableClock(CLOCK_START, java.time.ZoneOffset.UTC);
+        }
+    }
+
+    @Autowired
+    com.forcitis.one.fixture.doubles.MutableClock clock;
+
+    @Autowired
+    MaintainLockedWorkCalendarDays maintainLocked;
+
     @Autowired
     MockMvc mvc;
 
@@ -78,6 +101,7 @@ class WorkCalendarIT {
 
     @BeforeEach
     void empty() {
+        clock.set(CLOCK_START);
         jdbc.sql("truncate table organization_attendance.work_calendar_days, organization_attendance.work_calendar_years restart identity cascade").update();
     }
 
@@ -154,5 +178,52 @@ class WorkCalendarIT {
         mvc.perform(get(CALENDARS).with(UPDATE)).andExpect(status().isForbidden());
         mvc.perform(put(CALENDARS + "/2026").with(READ).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"days\": []}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("T2 over HTTP a past day cannot change: 422 ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED, nothing saved")
+    void pastDaysAreLockedOverHttp() throws Exception {
+        mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026)).andExpect(status().isOk());
+        clock.set(java.time.Instant.parse("2026-10-14T00:00:00Z"));
+
+        mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"days\": []}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED"));
+
+        assertThat(jdbc.sql("select count(*) from organization_attendance.work_calendar_days").query(Integer.class).single()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("T2 with lockedDaysConfirmed the change is saved and publishes WorkCalendarLockedDaysChanged with the changed past days; the answers follow")
+    void confirmedChangeIsSavedAndAudited() throws Exception {
+        mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026)).andExpect(status().isOk());
+        clock.set(java.time.Instant.parse("2026-10-14T00:00:00Z"));
+
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.TestingAuthenticationToken("9001", null, "organization.attendance:locked-day:update"));
+        try (var acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "organization.attendance.test")) {
+            maintainLocked.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of(new DayEntry(LocalDate.parse("2026-10-10"), "MAKE_UP_WORKDAY"))));
+        }
+
+        assertThat(workCalendar.isWorkday(LocalDate.parse("2026-10-12"), new LegalEntityId(1))).isTrue();
+        assertThat(events.stream(WorkCalendarLockedDaysChanged.class)).singleElement().satisfies(e ->
+                assertThat(e.changes()).containsExactly(new LockedDayChange(LocalDate.parse("2026-10-12"), DayException.HOLIDAY, DayException.NONE)));
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("T2 the exception is its own use case with its own permission: without it the call is refused and nothing changes")
+    void lockedDaysNeedTheirOwnPermission() throws Exception {
+        mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026)).andExpect(status().isOk());
+        clock.set(java.time.Instant.parse("2026-10-14T00:00:00Z"));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.TestingAuthenticationToken("9001", null, "organization.attendance:work-calendar:update"));
+        try {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> maintainLocked.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of())))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        assertThat(jdbc.sql("select count(*) from organization_attendance.work_calendar_days").query(Integer.class).single()).isEqualTo(2);
     }
 }

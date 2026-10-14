@@ -31,6 +31,13 @@ describe('企业微信静默授权的地址处理', () => {
     expect(query.get('redirect_uri')).toBe('https://one.example.com/?x=1#/app/pages/inbox');
   });
 
+  it('部署在 /h5/ 子路径下时，回调地址和去掉授权参数后的地址都保留子路径', () => {
+    const here = 'https://one.example.com/h5/?code=C&state=S#/app/pages/inbox';
+    expect(withoutAuthorizationReply(here)).toBe('/h5/#/app/pages/inbox');
+    const url = authorizeUrl({ corpId: 'ww-corp' }, 'S-9', 'https://one.example.com/h5/#/app/pages/inbox');
+    expect(new URL(url).searchParams.get('redirect_uri')).toBe('https://one.example.com/h5/#/app/pages/inbox');
+  });
+
   it('没有配置企业 ID 时读出空值，由调用方判定为未配置', () => {
     expect(readLoginConfig(undefined)).toEqual({ corpId: '' });
   });

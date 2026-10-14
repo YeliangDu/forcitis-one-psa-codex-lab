@@ -1,9 +1,8 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { currentUserBody } from '@/shared/testing/fixtures';
+import { currentUserBody, problemBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { SyncRunsPage } from './sync-runs-page';
 
 const READ = 'organization.workforce:sync-run:read';
@@ -53,14 +52,14 @@ describe('同步记录页', () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) },
       'GET sync-runs': { body: RUNS },
-      'POST sync-runs/12:release': { status: 409, body: { outcome: 'NOT_HELD', message: 'the run is RELEASED' } },
+      'POST sync-runs/12:release': { status: 409, body: problemBody(409, 'ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL') },
     });
     renderWithProviders(<SyncRunsPage />);
 
     await userEvent.click(await screen.findByRole('button', { name: '放行' }));
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '确认放行' }));
 
-    expect(await screen.findByText('该同步记录当前不是被中止状态，无法放行')).toBeInTheDocument();
+    expect(await screen.findByText('这个同步记录当前不是被中止状态，无法放行')).toBeInTheDocument();
   });
 
   it('查看同步差异：显示这次同步的变化', async () => {

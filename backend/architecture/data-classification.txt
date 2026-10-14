@@ -16,3 +16,9 @@ platform_identity.sessions_attributes.attribute_bytes | RESTRICTED | 会话内�
 platform_identity.emergency_admins.account_name | SENSITIVE | 应急账号的登录名，可辅助撞库
 platform_identity.sessions.principal_name | SENSITIVE | 个人信息：会话所属用户 ID
 platform_audit.audit_entries.source_address | SENSITIVE | 个人信息：登录与会话类条目的客户端地址
+organization_workforce.employees.display_name | SENSITIVE | 个人信息：姓名
+organization_workforce.employees.login_name | SENSITIVE | 个人信息：登录名
+organization_workforce.employees.wecom_user_id | SENSITIVE | 个人信息：企业微信用户 ID
+organization_workforce.employees.employee_code | SENSITIVE | 个人信息：工号
+platform_integration.outbound_deliveries.recipient_codes | SENSITIVE | 个人信息：收件人的企业微信用户 ID
+platform_integration.outbound_deliveries.skipped_recipient_codes | SENSITIVE | 个人信息：被跳过收件人的企业微信用户 ID

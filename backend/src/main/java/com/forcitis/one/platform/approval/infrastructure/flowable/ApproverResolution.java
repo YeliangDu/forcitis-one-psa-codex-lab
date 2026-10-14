@@ -25,6 +25,9 @@ class ApproverResolution implements Function<DelegateExecution, Collection<Strin
     public Collection<String> apply(DelegateExecution execution) {
         UserTask node = (UserTask) execution.getCurrentFlowElement();
         Resolution resolution = assignment.resolve(node, execution.getProcessInstanceId(), execution.getVariables());
+        if (resolution.namedApproverInvalid()) {
+            execution.setVariable(FlowableApprovalEngine.VARIABLE_APPROVER_INVALID, Boolean.TRUE);
+        }
         return resolution.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).map(id -> String.valueOf(id.value())).toList();
     }
 }

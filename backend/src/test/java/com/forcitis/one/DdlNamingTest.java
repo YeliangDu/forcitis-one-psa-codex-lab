@@ -307,6 +307,16 @@ class DdlNamingTest {
                 schema.indexKinds.put(renameIndex.group(3), kind);
             }
         }
+        Matcher dropTable = Pattern.compile("DROP TABLE\\s+(?:IF EXISTS\\s+)?([a-z0-9_]+)\\.([a-z0-9_]+)", Pattern.CASE_INSENSITIVE).matcher(sql);
+        while (dropTable.find()) {
+            Schema schema = schemas.computeIfAbsent(dropTable.group(1), s -> new Schema());
+            schema.tables.remove(dropTable.group(2));
+            List<String> indexes = schema.indexes.entrySet().stream().filter(e -> e.getValue().equals(dropTable.group(2))).map(Map.Entry::getKey).toList();
+            indexes.forEach(i -> {
+                schema.indexes.remove(i);
+                schema.indexKinds.remove(i);
+            });
+        }
         Matcher dropIndex = Pattern.compile("DROP INDEX\\s+(?:IF EXISTS\\s+)?([a-z0-9_]+)\\.([a-z0-9_]+)", Pattern.CASE_INSENSITIVE).matcher(sql);
         while (dropIndex.find()) {
             Schema schema = schemas.computeIfAbsent(dropIndex.group(1), s -> new Schema());

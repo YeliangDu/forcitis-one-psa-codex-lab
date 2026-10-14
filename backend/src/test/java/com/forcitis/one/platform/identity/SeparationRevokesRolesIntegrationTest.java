@@ -47,7 +47,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
 
     private void publish(List<UserId> changed, List<UserId> separated) {
         tx.executeWithoutResult(status -> events.publishEvent(
-                new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), changed, separated, List.of())));
+                new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), changed, separated, List.of(), java.time.LocalDate.of(2026, 10, 15))));
     }
 
     private long roleCount(long userId) {

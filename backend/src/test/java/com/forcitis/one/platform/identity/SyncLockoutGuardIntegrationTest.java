@@ -14,6 +14,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
+import com.forcitis.one.organization.workforce.application.VersionTables;
 import com.forcitis.one.organization.workforce.application.SyncResult;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
@@ -68,13 +69,13 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @BeforeEach
     void tenPeopleTwoOfThemSuperAdministrators() {
         awaitListeners();
-        jdbc.sql("""
+        VersionTables.truncate(jdbc, """
                 truncate table organization_workforce.sync_diffs, organization_workforce.sync_runs,
                        organization_workforce.legal_entity_attribution_periods, organization_workforce.legal_entity_attributions,
                        organization_workforce.org_unit_versions, organization_workforce.assignment_versions,
                        organization_workforce.assignments, organization_workforce.employees,
                        organization_workforce.org_units, organization_workforce.positions restart identity cascade
-                """).update();
+                """);
         everyone = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
             everyone.add(person(i, 2, 100L, null));

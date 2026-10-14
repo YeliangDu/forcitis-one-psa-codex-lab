@@ -9,7 +9,7 @@
     <sequenceFlow id="toFirst" sourceRef="start" targetRef="firstReview"/>
     <userTask id="firstReview" name="First review">
       <extensionElements>
-        <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
+        <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" routingFlag="projectHours"/>
       </extensionElements>
     </userTask>
     <sequenceFlow id="toSecond" sourceRef="firstReview" targetRef="cutoffReview"/>

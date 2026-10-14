@@ -1,11 +1,9 @@
+import { CURRENT_USER_KEY, describeFailure } from '@forcitis/core';
 import { Button, Notice, TextField } from '@forcitis/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { describeFailure } from '@/shared/lib/failure';
 import { loginAsEmergencyAdmin } from '../api/session-api';
-import { CURRENT_USER_KEY } from '../hooks/use-current-user';
-import { LOGIN_ERROR_MESSAGES } from '../model/login-errors';
 import './emergency-login-page.css';
 
 export function EmergencyLoginPage() {
@@ -27,7 +25,7 @@ export function EmergencyLoginPage() {
         void navigate('/', { replace: true });
       })
       .catch((error: unknown) => {
-        setProblem(describeFailure(error, LOGIN_ERROR_MESSAGES));
+        setProblem(describeFailure(error));
         setBusy(false);
       });
   };

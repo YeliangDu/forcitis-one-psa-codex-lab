@@ -10,6 +10,7 @@
   "dependencies": {
     "@babel/runtime": "^7.28.4",
     "@forcitis/api": "workspace:*",
+    "@forcitis/core": "workspace:*",
     "@forcitis/design-system": "workspace:*",
     "@tanstack/react-query": "^5.104.2",
     "@tarojs/components": "4.3.0",

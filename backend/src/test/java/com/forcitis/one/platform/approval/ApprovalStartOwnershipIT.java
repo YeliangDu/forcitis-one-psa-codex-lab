@@ -77,7 +77,7 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         organisation.person(userA, 1, null).person(userB, 1, null).person(manager, 1, null);
         String documentOfB = newKey("ownership");
         ApprovalInstanceId round1 = start(documentOfB, userB, manager);
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(round1), DecisionOutcome.REJECT, "fix it")));
+        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(round1), DecisionOutcome.REJECT, "fix it")), java.util.OptionalLong.empty());
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
         assertThat(taskService.createTaskQuery().processInstanceId(round1.value()).count()).as("nothing is parked at the initiator").isZero();
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new UserId(userA), Set.of(), List.of()))))
@@ -127,7 +127,9 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         assertThat(approvalRoutes.keySet()).containsExactlyInAnyOrder(
                 "/api/v1/platform/approval-tasks", "/api/v1/platform/approval-tasks/{taskId}",
                 "/api/v1/platform/approval-tasks/{taskId}:claim", "/api/v1/platform/approval-tasks/{taskId}:decide",
-                "/api/v1/platform/approval-tasks/{taskId}:return", "/api/v1/platform/approval-tasks/{taskId}:transfer");
+                "/api/v1/platform/approval-tasks/{taskId}:return", "/api/v1/platform/approval-tasks/{taskId}:transfer",
+                "/api/v1/platform/approval-tasks/{taskId}:release", "/api/v1/platform/approval-tasks/{taskId}:reassign",
+                "/api/v1/platform/approval-task-records", "/api/v1/platform/approval-task-overviews");
     }
 
     int instancesOf(String businessKey) {

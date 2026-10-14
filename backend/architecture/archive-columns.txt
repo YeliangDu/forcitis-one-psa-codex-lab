@@ -1,0 +1,18 @@
+# Columns of platform_audit.audit_entries and whether the audit archive carries them (AuditArchiveJob.COLUMNS). Every column of the table is listed;
+# a column added to the table without a line here fails DataArchitectureTest, and a column classified RESTRICTED in data-classification.txt can never be ARCHIVE.
+# AuditArchiveColumnsTest keeps the ARCHIVE lines equal to the job's list. An archived column must be a bigint, integer, boolean, text, uuid or timestamptz:
+# the job refuses any other type instead of turning it into text.
+# Format: <column> | <ARCHIVE|EXCLUDE> | <level> | <why>
+id | ARCHIVE | INTERNAL | the entry's number, the archive's progress marker
+action | ARCHIVE | INTERNAL | what was done
+actor_id | ARCHIVE | INTERNAL | who did it (an id, no name)
+on_behalf_of_id | ARCHIVE | INTERNAL | on whose behalf, for explicit proxy actions
+subject_key | ARCHIVE | INTERNAL | what it was done to ({type}:{id})
+detail | ARCHIVE | INTERNAL | one-line description without keys or personal data
+event_id | ARCHIVE | INTERNAL | the domain event that caused the entry, the idempotency key
+correlation_id | ARCHIVE | INTERNAL | ties the entry to the request or job run
+created_at | ARCHIVE | INTERNAL | when the audited fact happened
+updated_at | EXCLUDE | INTERNAL | always equal to created_at (the row is never updated)
+source_address | EXCLUDE | SENSITIVE | the client address of a login is personal data; it stays in the online table and is not copied to the archive store
+outcome_kind | ARCHIVE | INTERNAL | whether the login or the session end succeeded or failed
+login_method_kind | ARCHIVE | INTERNAL | which way the person logged in (WeCom, SSO, ticket, emergency)

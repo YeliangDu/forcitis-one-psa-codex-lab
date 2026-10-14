@@ -30,10 +30,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-/** Flowable's own complete() checks nothing, so a non-handler must get 403 with task, candidates, assignee, status and published results unchanged. */
+/** Flowable's own complete() checks nothing, so a non-handler must get 404, the same as for a task that is not there, with task, candidates, assignee, status and published results unchanged. */
 class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
 
     @org.junit.jupiter.api.BeforeEach
@@ -92,52 +91,52 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("I-7 claim / decide / return by a stranger or by the initiator -> 403 over HTTP, task untouched")
+    @DisplayName("I-7 claim / decide / return by a stranger or by the initiator -> 404 over HTTP, task untouched")
     void nonHandlersAreForbiddenOverHttp() throws Exception {
         Scene scene = scene();
         String id = scene.task().value();
         for (long outsider : new long[] {scene.stranger(), scene.initiator()}) {
-            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf())
-                    .with(approver(outsider)), 403));
-            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf())
-                    .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"x\"}"), 403));
-            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":return").with(csrf())
-                    .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 403));
+            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag())
+                    .with(approver(outsider)), 404));
+            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf()).with(currentEtag())
+                    .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"x\"}"), 404));
+            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":return").with(csrf()).with(currentEtag())
+                    .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 404));
         }
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.task.denied")
                 && entry.actorId().equals(new UserId(scene.stranger())) && entry.subjectKey().equals("approval-task:" + id)));
     }
 
     @Test
-    @DisplayName("I-7 a refusal is still 403 when its audit entry cannot be written")
+    @DisplayName("I-7 a refusal is still 404 when its audit entry cannot be written")
     void refusalSurvivesAFailingAudit() throws Exception {
         Scene scene = scene();
         String id = scene.task().value();
         org.mockito.Mockito.doThrow(new IllegalStateException("audit store is down")).when(audit).recordIndependently(any());
         try {
-            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf())
-                    .with(approver(scene.stranger())), 403));
+            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag())
+                    .with(approver(scene.stranger())), 404));
         } finally {
             org.mockito.Mockito.reset(audit);
         }
     }
 
     @Test
-    @DisplayName("I-7 after a claim only the claimer may act: the other candidate gets 403 for claim, decide and return")
+    @DisplayName("I-7 after a claim only the claimer may act: the other candidate gets 404 for claim, decide and return")
     void afterAClaimOnlyTheClaimerActs() throws Exception {
         Scene scene = scene();
         String id = scene.task().value();
-        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(approver(scene.candidate())))
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag()).with(approver(scene.candidate())))
                 .andExpect(status().isNoContent());
         assertThat(snapshot(scene).assignee()).isEqualTo(String.valueOf(scene.candidate()));
 
-        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf())
-                .with(approver(scene.otherCandidate())), 403));
-        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf())
+        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag())
+                .with(approver(scene.otherCandidate())), 404));
+        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf()).with(currentEtag())
                 .with(approver(scene.otherCandidate())).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"outcome\":\"APPROVE\",\"reason\":\"x\"}"), 403));
-        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":return").with(csrf())
-                .with(approver(scene.otherCandidate())).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 403));
+                .content("{\"outcome\":\"APPROVE\",\"reason\":\"x\"}"), 404));
+        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":return").with(csrf()).with(currentEtag())
+                .with(approver(scene.otherCandidate())).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 404));
         assertThat(snapshot(scene).assignee()).isEqualTo(String.valueOf(scene.candidate()));
     }
 
@@ -147,10 +146,10 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         Scene scene = scene();
         Snapshot before = snapshot(scene);
         UserId stranger = new UserId(scene.stranger());
-        assertThatThrownBy(() -> claimTask.execute(scene.task(), stranger)).isInstanceOf(AccessDeniedException.class);
-        assertThatThrownBy(() -> decideTasks.execute(stranger, List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "x"))))
-                .isInstanceOf(AccessDeniedException.class);
-        assertThatThrownBy(() -> returnToInitiator.execute(scene.task(), stranger, "x")).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> claimTask.execute(scene.task(), stranger, java.util.OptionalLong.empty())).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
+        assertThatThrownBy(() -> decideTasks.execute(stranger, List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "x")), java.util.OptionalLong.empty()))
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
+        assertThatThrownBy(() -> returnToInitiator.execute(scene.task(), stranger, "x", java.util.OptionalLong.empty())).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
         assertThat(snapshot(scene)).isEqualTo(before);
     }
 
@@ -164,8 +163,8 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         Snapshot beforeMine = snapshot(mine);
         Snapshot beforeForeign = snapshot(foreign);
         assertThatThrownBy(() -> decideTasks.execute(actor, List.of(
-                new TaskDecision(mine.task(), DecisionOutcome.APPROVE, "ok"), new TaskDecision(foreign.task(), DecisionOutcome.APPROVE, "ok"))))
-                .isInstanceOf(AccessDeniedException.class);
+                new TaskDecision(mine.task(), DecisionOutcome.APPROVE, "ok"), new TaskDecision(foreign.task(), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty()))
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
         assertThat(snapshot(mine)).isEqualTo(beforeMine);
         assertThat(snapshot(foreign)).isEqualTo(beforeForeign);
     }
@@ -176,15 +175,15 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         Scene scene = scene();
         String id = scene.task().value();
         Snapshot before = snapshot(scene);
-        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf()).with(approver(scene.stranger()))
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf()).with(currentEtag()).with(approver(scene.stranger()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"userId\":" + scene.candidate() + ",\"approverId\":" + scene.candidate() + "}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
         assertThat(snapshot(scene)).isEqualTo(before);
     }
 
     @org.junit.jupiter.api.RepeatedTest(8)
-    @DisplayName("RULE-276/I-7 two candidates claiming at the same moment: exactly one wins, the other is refused (403 or 409), never a server error")
+    @DisplayName("RULE-276/I-7 two candidates claiming at the same moment: exactly one wins, the other is refused (404 or 409), never a server error")
     void concurrentClaimsHaveOneWinner() throws Exception {
         Scene scene = scene();
         java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
@@ -194,10 +193,8 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
             outcomes.add(pool.submit(() -> {
                 go.await();
                 try {
-                    claimTask.execute(scene.task(), new UserId(candidate));
+                    claimTask.execute(scene.task(), new UserId(candidate), java.util.OptionalLong.empty());
                     return "won";
-                } catch (AccessDeniedException e) {
-                    return "denied";
                 } catch (com.forcitis.one.kernel.DomainException e) {
                     return e.errorCode().name();
                 }
@@ -210,7 +207,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         }
         pool.shutdown();
         assertThat(results).containsOnlyOnce("won");
-        assertThat(results.stream().filter(r -> !r.equals("won"))).allMatch(r -> r.equals("denied") || r.equals("PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED"));
+        assertThat(results.stream().filter(r -> !r.equals("won"))).allMatch(r -> r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND") || r.equals("PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED"));
         assertThat(snapshot(scene).assignee()).isIn(String.valueOf(scene.candidate()), String.valueOf(scene.otherCandidate()));
     }
 
@@ -225,10 +222,8 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
             outcomes.add(pool.submit(() -> {
                 go.await();
                 try {
-                    decideTasks.execute(new UserId(candidate), List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "ok")));
+                    decideTasks.execute(new UserId(candidate), List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
                     return "won";
-                } catch (AccessDeniedException e) {
-                    return "denied";
                 } catch (com.forcitis.one.kernel.DomainException e) {
                     return e.errorCode().name();
                 }
@@ -241,22 +236,22 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         }
         pool.shutdown();
         assertThat(results).containsOnlyOnce("won");
-        assertThat(results.stream().filter(r -> !r.equals("won"))).allMatch(r -> r.equals("denied")
+        assertThat(results.stream().filter(r -> !r.equals("won"))).allMatch(r -> r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND")
                 || r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND") || r.equals("PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED"));
         assertThat(approvals.isFinished(scene.instance())).isTrue();
         assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(scene.key())).count()).isLessThanOrEqualTo(1);
     }
 
     @Test
-    @DisplayName("the menu permission is required on top: claim / decide / return without it are 403, the inbox needs the read permission")
-    void permissionsAreRequiredAsWell() throws Exception {
+    @DisplayName("D-1a-179 acting on a task needs to be its handler or candidate and no permission code; the inbox needs a signed-in session only")
+    void noPermissionCodeIsNeededToAct() throws Exception {
         Scene scene = scene();
         String id = scene.task().value();
-        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(reader(scene.candidate())))
-                .andExpect(status().isForbidden());
-        mvc.perform(get("/api/v1/platform/approval-tasks").with(approver(scene.candidate()))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/platform/approval-tasks").with(approver(scene.candidate()))).andExpect(status().isOk());
         mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(scene.candidate()))).andExpect(status().isOk());
-        assertThat(snapshot(scene).assignee()).isNull();
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag()).with(reader(scene.candidate())))
+                .andExpect(status().isNoContent());
+        assertThat(snapshot(scene).assignee()).isEqualTo(String.valueOf(scene.candidate()));
     }
 
     @Test
@@ -275,10 +270,32 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("an unknown task is 404 for every operation, not 403 and not a server error")
     void unknownTaskIsNotFound() throws Exception {
-        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:claim").with(csrf()).with(approver(newId())))
+        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:claim").with(csrf()).with(currentEtag()).with(approver(newId())))
                 .andExpect(status().isNotFound());
-        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:decide").with(csrf()).with(approver(newId()))
+        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:decide").with(csrf()).with(currentEtag()).with(approver(newId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\"}")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("M-12 somebody who may not touch a task and a task that does not exist get the very same answer: status, content type, error code, title and detail")
+    void strangerAndUnknownTaskAreIndistinguishable() throws Exception {
+        Scene scene = scene();
+        String stranger = String.valueOf(scene.stranger());
+        for (String action : List.of(":claim", ":release", ":decide", ":return", ":transfer")) {
+            String body = "{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"assigneeId\":" + scene.otherCandidate() + "}";
+            var foreign = mvc.perform(post("/api/v1/platform/approval-tasks/" + scene.task().value() + action).with(csrf()).with(currentEtag())
+                    .with(approver(scene.stranger())).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
+            var missing = mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task" + action).with(csrf()).with(currentEtag())
+                    .with(approver(scene.stranger())).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
+            assertThat(foreign.getStatus()).as(action).isEqualTo(404).isEqualTo(missing.getStatus());
+            assertThat(foreign.getContentType()).as(action).isEqualTo(missing.getContentType());
+            var f = com.jayway.jsonpath.JsonPath.parse(foreign.getContentAsString());
+            var m = com.jayway.jsonpath.JsonPath.parse(missing.getContentAsString());
+            for (String field : List.of("$.errorCode", "$.title", "$.detail", "$.status", "$.type")) {
+                assertThat((Object) f.read(field)).as(action + " " + field).isEqualTo(m.read(field));
+            }
+        }
+        mvc.perform(get("/api/v1/platform/approval-tasks/" + scene.task().value()).with(user(stranger))).andExpect(status().isNotFound());
     }
 
     private org.springframework.test.web.servlet.ResultActions perform(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request,

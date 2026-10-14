@@ -118,12 +118,12 @@ class JdbcSyncRunRepository implements SyncRunRepository {
         for (SyncDiff d : diffs) {
             jdbc.sql("""
                     insert into organization_workforce.sync_diffs (sync_run_id, entity_kind, subject_key, change_kind,
-                           changed_fields, issue_kind, detail)
+                           changed_field_codes, issue_kind, detail)
                     values (:run, :entity, :subject, :change, :fields, :issue, :detail)
                     """)
                     .param("run", syncRunId.value()).param("entity", d.entityKind().name()).param("subject", d.subjectKey())
                     .param("change", d.changeKind().name())
-                    .param("fields", d.changedFields().isEmpty() ? null : String.join(",", d.changedFields()))
+                    .param("fields", d.changedFields().isEmpty() ? null : d.changedFields().toArray(String[]::new), java.sql.Types.ARRAY)
                     .param("issue", d.issueKind() == null ? null : d.issueKind().name())
                     .param("detail", truncate(d.detail())).update();
         }

@@ -23,6 +23,7 @@ import com.forcitis.one.organization.workforce.application.WorkforceIntegrationS
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.organization.workforce.application.VersionTables;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +58,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
 
     @BeforeEach
     void orgWithOneLegalEntity() {
-        jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
+        VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
         legalEntity = createLegalEntity.execute("FST", "Synthetic one").legalEntityId();
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L), unit(4, null)), List.of(head(2, 1)), List.of(post(100)),
                 List.of(person(1, 2, 100L, null), person(2, 3, 100L, 1L), person(3, 4, 100L, null)));

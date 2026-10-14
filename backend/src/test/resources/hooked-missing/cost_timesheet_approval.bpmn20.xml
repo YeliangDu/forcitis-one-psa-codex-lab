@@ -12,7 +12,7 @@
       <sequenceFlow id="toApproverReview" sourceRef="reviewStart" targetRef="approverReview"/>
       <userTask id="approverReview" name="Approver review">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" routingFlag="projectHours"/>
         </extensionElements>
       </userTask>
       <sequenceFlow id="toReviewEnd" sourceRef="approverReview" targetRef="reviewEnd"/>
