@@ -89,7 +89,17 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 
 ### 3.3 组织快照
 - **权责事实边界（GUIDING_PRINCIPLES §9a，用户 2026-10-14：「确保权责业务事实全部在新系统」）**：A8 在新系统中**只**作为组织主数据（部门、人员、岗位、汇报线、负责人）、身份（致远 SSO）的来源。合同、产值 / 收入确认、成本、费用、开票、回款、分包、付款等权责事实不得从 A8 读取或在 A8 存放。A8 只读视图只授权组织表列；workforce 的 A8 ACL 由 ArchUnit 规则限定只能被 `organization.workforce` 使用。老 fst 中其他 `a8_db` 跨库读取（如 `docs/ops/oa-*` 存储过程涉及的报价、产值、开票、奖金）不在新系统中以「直接读 A8」延续，在各自阶段改为新系统自有事实。
-- 数据源：**A8 只读视图**（由 A8 管理员建立并维护；启动时校验所需列存在；关系类型 ID 等改为配置，RULE-356），不读老 `system_users` / `system_dept`。出口条件「与 A8 零差异」以 A8 为基准。
+- **§9a 的机器守护**（architecture-critic §9a 专项核对，2026-10-14）：
+  - **视图列白名单入库**：`organization/workforce/a8-view-columns.yaml` 列出视图名、列名、来源表与列、分类（组织 / 身份），启动时校验 `INFORMATION_SCHEMA.COLUMNS` 与白名单**完全相等**（不只是「所需列存在」）。DBA 脚本只授予视图 SELECT，对 `a8_db` 基表显式 DENY；A8 账号无 INSERT / UPDATE / EXEC，并由集成测试断言写操作被拒绝。
+  - **1a 白名单范围**：`ORG_UNIT`、`ORG_RELATIONSHIP`（负责人、区域 AR 两种关系类型）、`ADDRESSBOOK` 扩展属性 32 / 33 与 `CTP_ENUM*` 显示值、`ORG_POST`、`ORG_MEMBER`、`ORG_PRINCIPAL.LOGIN_NAME`，以及 `formmain_0307` 的 3 列（企业邮箱、性别、收费员工标识）。生日（`EXT_ATTR_21`，敏感信息）、银行卡等不进 1a 视图。
+  - **收费员工标识**：A8 `FIELD0244` 在新系统中命名为 `employees.fee_earner_flag`（不叫 `is_billable`），只是人事分类。可计费性由新系统判定，这个标识只是输入之一；以后凡是用到它的权责事实，都要把当时的值和同步批次号一并快照。
+  - **单一路径**：批量同步与登录未命中时的单人查询共用同一视图、同一映射器，只是查询条件不同。
+  - **ArchUnit**：只有 `organization.workforce.infrastructure..` 能使用 A8 数据源；只有 `platform.identity.infrastructure..` 能使用致远验票客户端。
+  - **源码扫描测试**：`src/main` 与 Flyway 中禁止出现 `formmain_`、`formson_`、`a8_db`、`LEXMIS`、`T_U8C_`（白名单视图名除外）。
+  - **依赖与 DDL 禁令**：Maven Enforcer 禁止 `dynamic-datasource`；Flyway 禁止 `CREATE EXTENSION tds_fdw|postgres_fdw|dblink`、`CREATE SERVER`、`IMPORT FOREIGN SCHEMA`。
+  - **schema 守护**：`organization_workforce` 不得有金额列；workforce 的 `api` 不暴露 `Money` / `AccountingPeriod`。
+  - **跨阶段台账**：老系统对 A8 的全部读写登记在 `phase1a/A8_ACCESS_REGISTER.md`，每个阶段出口时更新状态。
+- 数据源：**A8 只读视图**（由 A8 管理员建立并维护；启动时校验列集合与白名单完全相等；关系类型 ID 等改为配置，RULE-356），不读老 `system_users` / `system_dept`。出口条件「与 A8 零差异」以 A8 为基准。
 - 每 **5 分钟**一次（ShedLock；每次约 1,300 人、367 个部门），全量拉取 → 计算差异 → 单事务写入，并记录 `sync_runs` / `sync_diffs`。源数据缩水超过 20 % 时中止并告警，管理员可在页面人工放行（RULE-358/366，评审 #14）。
 - A8 权威列按值同步，空值也写入（RULE-365）；单行缺部门或岗位时隔离该行并告警（RULE-365）；`we_com_id` 在建档时写入（RULE-362）；多名负责人时取 ID 最小者并告警（RULE-356）。
 - `short_name`：在新系统的维护页上线前，每天从老表只读刷新一次（评审 #20）。`company_code`：不迁移。

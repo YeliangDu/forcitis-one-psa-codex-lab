@@ -54,7 +54,7 @@
 
 ## 2. Domain Model（Phase 1a）
 
-模块（子域.BC）：`platform.identity`、`organization.workforce`、`platform.approval`、`platform.integration`（企业微信 / A8 / KM 防腐层）、`platform.numbering`、`platform.audit`。schema 按 `<子域>_<BC>`（NAMING_STANDARD）。
+模块（子域.BC）：`platform.identity`、`organization.workforce`、`platform.approval`、`platform.integration`（共用企业微信客户端与出站投递；A8 防腐层归 `organization.workforce`，致远验票归 `platform.identity`，见 REIMAGINED_ARCHITECTURE §2，检查点 2 已批准）、`platform.numbering`、`platform.audit`。schema 按 `<子域>_<BC>`（NAMING_STANDARD）。
 
 ```mermaid
 erDiagram
@@ -85,7 +85,7 @@ erDiagram
 ```
 
 要点：
-- `USER_ACCOUNT.id` 与 `EMPLOYEE.id` 沿用 A8 `ORG_MEMBER.ID`（有符号 bigint，生产存在负数）；`ORG_UNIT.id` 沿用 `ORG_UNIT.ID`。老 OA 存储过程依赖此等值（所有权矩阵「外部」）。
+- `USER_ACCOUNT.id` 与 `EMPLOYEE.id` 沿用 A8 `ORG_MEMBER.ID`（有符号 bigint，生产存在负数）；`ORG_UNIT.id` 沿用 `ORG_UNIT.ID`。ID 沿用只为身份连续性；新系统不向 A8 写任何业务数据，也不为老 OA 存储过程（`oa-quotation-sync`、`oa-cuvalue-sync` 等，把权责事实写进 A8）供数，它们随所服务的 OA 流程按阶段下线（§9a，`phase1a/A8_ACCESS_REGISTER.md`）。
 - `APPROVAL_REQUEST` 唯一键（流程类型, 单据 ID）+（流程类型, 单据 ID, 轮次）（RULE-266/278 修正）。
 - `INBOX_ITEM` 是读模型：新引擎任务 + 老系统 `bpm_task_ext` 只读投影，带来源标记。
 - 内核值对象（ADR-0016）：`Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId`；1a 实际使用 `LegalEntityId`（编号、数据范围）。
