@@ -103,7 +103,7 @@ Command: /code-modernization:modernize-reimagine
 Modules: system:service/auth, system:controller/admin/auth, system:service/permission, system:service/dept, system:service/user, fst:service/sync, fst:util/wx, fst:service/message, bpm:service/task, bpm:service/definition, bpm:service/oa, bpm:framework/flowable, bpm:mq/producer, fst:framework/workflowhook, fst:service/workflowform, fst:application/platform, fst:infrastructure/platform, pc:views/bpm/processInstance, pc:views/bpm/task, h5:pages/work/process, pc:layout, pc:router, pc:views/login
 Scale: L
 Risk: 高。
-- 风险一：身份桥接出错会影响所有人登录。缓解：新系统只读校验老令牌，不向老库写令牌；会话失败时退回老系统登录页；登录失败率进入告警。
+- 风险一：身份桥接出错会影响所有人登录。缓解：1a 已取消桥接——新系统不读、不写、不校验老令牌表（用户：「1a 删除桥接」），也不信任老系统签发的任何身份；会话失败时退回老系统登录页；登录失败率进入告警。
 - 风险二：两套审批引擎并存，待办需要合并。缓解：外壳合并展示新旧待办；新流程只承接 1b 及之后切换的单据；老流程在老 Flowable 上排空。
 Entry criteria:
 - [ ] 本 brief 获批（至少覆盖 Phase 1a 和 1b）
@@ -118,7 +118,7 @@ Entry criteria:
 - [ ] 内核值对象 `Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId` 已就位（ADR-0016）
 - [x] 已对 identity、org 两个域补抽规则并完成评审（`RULE_REVIEWS.json` 中有对应记录）——61 条见 `rules/IDENTITY_ORG_RULES.md`，标记的 45 条已评审（正确 16、错误 29，2026-10-14，见 RULE_REVIEWS.md 第三批）
 - [ ] 本阶段涉及的老表（`system_users`、`system_dept`、`bpm_*`、`psa_process_to_be_sent`）已有逐列所有权矩阵
-- [ ] 本阶段涉及流程的流程梳理已完成（`process/1a/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）（Phase 1a 已在实施中，本条为补做）
+- [x] 本阶段涉及流程的流程梳理已完成（`process/1a/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）（Phase 1a 已在实施中，本条为补做；2026-10-14 完成：7 个流程、D-1a-01..181 全部有用户决定，178 条写入 §5，另 3 条为文档更正）
 Exit criteria:
 - [ ] one.forcitis.com 上线：用企业微信 OAuth 和致远 SSO 登录都能成功；遍历全部接口的匿名访问测试返回 401
   Proposed revision:（检查点 2，用户 2026-10-14：「两条都按建议修订」）匿名访问测试改为「非 `@PublicEndpoint` 的接口一律返回 401，且 `@PublicEndpoint` 集合等于经 CODEOWNERS 评审的白名单快照」；另加无 CSRF 写操作返回 403，上线前从 nginx 外侧黑盒遍历。
@@ -131,6 +131,7 @@ Exit criteria:
 - [ ] 同步延迟、未完成的事件发布、作业失败、登录失败率四类告警已接入，并在 dev 上演练触发
 - [ ] 回滚演练：撤销 nginx 路由后，老系统登录和审批不受影响
 - [ ] 首次 `/design-sync` 完成：正本由 `shared/ui` 同步生成，原有全部组件逐个比对预览无缺失，`_ds_sync.json` 锚点已写入；1a 的差距（合并待办收件箱、登录页、权限不足 / 会话过期页）已补入正本
+- [ ] 「在职但无企业微信 ID」清单为 0（确无企业微信的人逐个登记原因）（用户 2026-10-14：「加 (Recommended)」，D-1a-35）
 
 #### Phase 1b — 报价
 Command: /code-modernization:modernize-reimagine
@@ -257,7 +258,7 @@ Exit criteria:
 
 | 阶段 | 特征测试（老系统录制） | 契约测试 | 双跑比对 | 属性测试 | 人工 UAT |
 |---|---|---|---|---|---|
-| 1a 平台桥接 | ✔ 回放生产 TIMESHEET 实例的审批人序列 | ✔ 老令牌校验；组织快照与 A8 对账 | ✔ 待办数量比对 | — | ✔ 登录冒烟 |
+| 1a 平台桥接 | ✔ 回放生产 TIMESHEET 实例的审批人序列 | ✔ 新系统不访问老令牌表（守护测试）；组织快照与 A8 对账 | ✔ 待办数量比对 | — | ✔ 登录冒烟 |
 | 1b 报价 | ✔ 用 dev 库回放保存、提交、审批 | ✔ 反向同步写入老表的结构；OpenAPI 契约 | ✔ 金额、毛利、条款拆分 | ✔ 条款合计 = 最终报价；税率边界 | ✔ 业务 Admin |
 | 2 交付 + 工时 | ✔ 预算、修订、ETC、交付物、收入 | ✔ 任务包同步、收入事实 `events` | ✔ 预算毛利、CEO 路由、收入额度 | ✔ 收入额度不超过条款金额 | ✔ PM 抽样 |
 | 2（工时部分） | ✔ 填报和行级审批状态机 | ✔ 工时事实同步；过账候选结构 | ✔ 影子计算，逐行比对一个完整期间，期间边界一次性切换 | ✔ 每日 7.5 / 15 小时边界、人天合计；事实只追加 | ✔ PM 与部门抽样 |

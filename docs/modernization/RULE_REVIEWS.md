@@ -65,7 +65,7 @@
 | RULE-329 | 错误 | 2026-10-14 11:00 | KM token: anonymous caller, memberId used as a mobile number or a PSA id | 错误（整批同意评审建议）：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。 |
 | RULE-331 | 错误 | 2026-10-14 11:00 | Every login creates a refresh token and an access token for client "default" | 错误（用户作答）：不再签发令牌对，改服务端会话（ADR-0009 §2，Spring Session JDBC + HttpOnly/SameSite Cookie）；时长为配置项（见 332）。 |
 | RULE-332 | 错误 | 2026-10-14 11:00 | Access-token expiry slides to now + 10 h on every check | 错误（用户作答）：会话时长「空闲 10h + 上限 24h」——10 小时无活动过期，登录 24 小时后无论是否活跃都须重新登录；均为配置项；令牌不打印到日志。 |
-| RULE-333 | 错误 | 2026-10-14 11:00 | Refresh revokes sibling access tokens but never rotates the refresh token | 错误（整批同意评审建议）：新系统无刷新令牌；登录时轮换会话 ID；过渡期对老令牌只读校验后换发新会话（C1a-06）。 |
+| RULE-333 | 错误 | 2026-10-14 11:00 | Refresh revokes sibling access tokens but never rotates the refresh token | 错误（整批同意评审建议）：新系统无刷新令牌；登录时轮换会话 ID；新系统不读、不写、不校验老令牌表（C1a-06 已删除，用户『取消桥接』）。 |
 | RULE-335 | 错误 | 2026-10-14 11:00 | Four SSO paths put access and refresh tokens in the redirect URL | 错误（整批同意评审建议）：令牌不进 URL；SSO 回跳用一次性 code，在服务端换取 HttpOnly 会话 Cookie。 |
 | RULE-336 | 错误 | 2026-10-14 11:00 | Services trust the `login-user` header, treat a bad token as anonymous, and ignore user type | 错误（整批同意评审建议）：身份只来自服务端会话（CurrentUser），不信任任何外部身份请求头；无效会话返回 401 而非匿名；按接口族校验用户类型；mock 登录只限本地。 |
 | RULE-337 | 错误 | 2026-10-14 11:00 | The gateway does no authentication | 错误（整批同意评审建议）：默认拒绝集中在 platform.identity 一处（G28/G33）；匿名遍历全部接口返回 401（C1a-07）。 |
