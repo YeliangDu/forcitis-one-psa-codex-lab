@@ -243,6 +243,17 @@ class ApplicationIntegrationTest {
                 """);
     }
 
+    @BeforeEach
+    void seededNumberingRulesAreConfirmed() {
+        jdbc.update("""
+                update platform_numbering.numbering_rule_versions
+                   set status = 'CONFIRMED', confirmed_by = 101, confirmed_at = now(),
+                       finance_confirmed_by = case when document_type = 'JOURNAL_VOUCHER' then 102 end,
+                       finance_confirmed_at = case when document_type = 'JOURNAL_VOUCHER' then now() end
+                 where version_number = 1 and status = 'PENDING_CONFIRMATION'
+                """);
+    }
+
     @Test
     void numbersFollowTheRuleResetYearlyAndAreSeparatePerLegalEntity() {
         LocalDate day = LocalDate.of(2026, 10, 14);
@@ -296,6 +307,12 @@ class ApplicationIntegrationTest {
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500}"))
                 .andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm").with(csrf())
+                        .with(user("10").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE)))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm-finance").with(csrf())
+                        .with(user("11").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE)))
+                .andExpect(status().isOk());
         assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZFST-202611-00500");
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(user("8").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1}"))

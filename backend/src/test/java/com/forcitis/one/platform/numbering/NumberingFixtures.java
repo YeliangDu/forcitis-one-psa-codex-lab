@@ -1,0 +1,54 @@
+package com.forcitis.one.platform.numbering;
+
+import org.springframework.jdbc.core.simple.JdbcClient;
+
+/**
+ * Test set-up for the numbering schema only. A saved version is immutable and cannot be deleted, so the tests that need a known
+ * start switch the guarding trigger off for the length of the statement, then restore the seeded defaults.
+ */
+final class NumberingFixtures {
+
+    private static final String VERSIONS = "platform_numbering.numbering_rule_versions";
+    private static final String TRIGGER = "numbering_rule_versions_immutable";
+
+    private NumberingFixtures() {
+    }
+
+    /** Every rule is back on its seeded default template, waiting for confirmation, with no counter and no history. */
+    static void restoreSeededDefaults(JdbcClient jdbc) {
+        jdbc.sql("alter table " + VERSIONS + " disable trigger " + TRIGGER).update();
+        try {
+            jdbc.sql("delete from " + VERSIONS).update();
+            jdbc.sql("""
+                    insert into platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value, authored_at, status)
+                    select document_type, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, now(), 'PENDING_CONFIRMATION'
+                      from platform_numbering.numbering_rules
+                    """).update();
+        } finally {
+            jdbc.sql("alter table " + VERSIONS + " enable trigger " + TRIGGER).update();
+        }
+        jdbc.sql("update platform_numbering.numbering_rules set version = 0, event_count = 0").update();
+        jdbc.sql("delete from platform_numbering.numbering_counters").update();
+    }
+
+    /** The seeded version is in force, as if two other people had confirmed it. */
+    static void confirmSeeded(JdbcClient jdbc, String documentType) {
+        jdbc.sql("""
+                update platform_numbering.numbering_rule_versions
+                   set status = 'CONFIRMED', confirmed_by = 101, confirmed_at = now(),
+                       finance_confirmed_by = case when :type = 'JOURNAL_VOUCHER' then 102 end,
+                       finance_confirmed_at = case when :type = 'JOURNAL_VOUCHER' then now() end
+                 where document_type = :type and version_number = 1
+                """).param("type", documentType).update();
+    }
+
+    static void useTemplate(JdbcClient jdbc, String documentType, String pattern, String resetPolicy) {
+        jdbc.sql("alter table " + VERSIONS + " disable trigger " + TRIGGER).update();
+        try {
+            jdbc.sql("update " + VERSIONS + " set template_text = :pattern, reset_policy = :reset where document_type = :type and version_number = 1")
+                    .param("pattern", pattern).param("reset", resetPolicy).param("type", documentType).update();
+        } finally {
+            jdbc.sql("alter table " + VERSIONS + " enable trigger " + TRIGGER).update();
+        }
+    }
+}

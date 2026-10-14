@@ -1,0 +1,73 @@
+-- ADR-0027 第 2 项第 4 条：编号模板按版本保存、不可变；作者不得确认自己的版本；未确认的规则不发号。
+CREATE TABLE platform_numbering.numbering_rule_versions (
+    document_type        text        NOT NULL CHECK (document_type IN ('QUOTE', 'TIMESHEET', 'JOURNAL_VOUCHER')),
+    version_number       integer     NOT NULL CHECK (version_number >= 1),
+    template_text        text        NOT NULL,
+    reset_policy         text        NOT NULL CHECK (reset_policy IN ('NEVER', 'YEARLY', 'MONTHLY', 'DAILY')),
+    start_value          bigint      NOT NULL CHECK (start_value >= 1),
+    author_id            bigint,
+    authored_at          timestamptz NOT NULL,
+    status               text        NOT NULL CHECK (status IN ('PENDING_CONFIRMATION', 'CONFIRMED', 'SUPERSEDED')),
+    confirmed_by         bigint,
+    confirmed_at         timestamptz,
+    finance_confirmed_by bigint,
+    finance_confirmed_at timestamptz,
+    created_at           timestamptz NOT NULL DEFAULT now(),
+    updated_at           timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_numbering_rule_versions PRIMARY KEY (document_type, version_number),
+    CONSTRAINT fk_numbering_rule_versions_document_type FOREIGN KEY (document_type) REFERENCES platform_numbering.numbering_rules (document_type),
+    CONSTRAINT ck_numbering_rule_versions_confirmer_is_not_author
+        CHECK (author_id IS NULL OR ((confirmed_by IS NULL OR confirmed_by <> author_id) AND (finance_confirmed_by IS NULL OR finance_confirmed_by <> author_id))),
+    CONSTRAINT ck_numbering_rule_versions_two_different_confirmers
+        CHECK (confirmed_by IS NULL OR finance_confirmed_by IS NULL OR confirmed_by <> finance_confirmed_by),
+    CONSTRAINT ck_numbering_rule_versions_confirmation_time
+        CHECK ((confirmed_by IS NULL) = (confirmed_at IS NULL) AND (finance_confirmed_by IS NULL) = (finance_confirmed_at IS NULL))
+);
+CREATE UNIQUE INDEX uk_numbering_rule_versions_document_type ON platform_numbering.numbering_rule_versions (document_type)
+    WHERE status = 'PENDING_CONFIRMATION';
+COMMENT ON TABLE platform_numbering.numbering_rule_versions IS '编号规则版本：模板按版本保存，保存后内容不可变（触发器拒绝修改内容与删除），只补确认；每种单据至多一个待确认版本，已确认的最高版本发号';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.document_type IS '单据类型（DocumentType 枚举名）';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.version_number IS '版本号：每种单据从 1 递增';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.template_text IS '编号模板，占位符 {TYPE} {LE} {yyyy} {yy} {MM} {dd} {yyyyMM} {yyyyMMdd} {yyMMdd} {seq:N}（N 为 1 至 12），如 {TYPE}-{LE}-{yyyyMM}-{seq:4}';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.reset_policy IS '流水号重置周期：NEVER / YEARLY / MONTHLY / DAILY';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.start_value IS '每个周期的起始流水号';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.author_id IS '作者用户 ID：保存该版本的人；种子默认模板为空；确认人不得是作者（四眼）';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.authored_at IS '保存该版本的时间';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.status IS '版本状态：PENDING_CONFIRMATION 待确认 / CONFIRMED 已确认（最高的已确认版本发号）/ SUPERSEDED 被新版本取代而未经确认';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.confirmed_by IS '业务确认人用户 ID：持有 numbering-rule:approve 的人';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.confirmed_at IS '业务确认时间';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.finance_confirmed_by IS '财务确认人用户 ID：凭证号模板另需；与业务确认人、作者都不是同一人';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.finance_confirmed_at IS '财务确认时间';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.created_at IS '创建时间';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.updated_at IS '更新时间';
+
+CREATE FUNCTION platform_numbering.reject_rule_version_content_change() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'platform_numbering.numbering_rule_versions is append-only: DELETE is not allowed' USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NEW.document_type IS DISTINCT FROM OLD.document_type OR NEW.version_number IS DISTINCT FROM OLD.version_number
+       OR NEW.template_text IS DISTINCT FROM OLD.template_text OR NEW.reset_policy IS DISTINCT FROM OLD.reset_policy
+       OR NEW.start_value IS DISTINCT FROM OLD.start_value OR NEW.author_id IS DISTINCT FROM OLD.author_id
+       OR NEW.authored_at IS DISTINCT FROM OLD.authored_at THEN
+        RAISE EXCEPTION 'a saved numbering template version is immutable' USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+CREATE TRIGGER numbering_rule_versions_immutable
+    BEFORE UPDATE OR DELETE ON platform_numbering.numbering_rule_versions
+    FOR EACH ROW EXECUTE FUNCTION platform_numbering.reject_rule_version_content_change();
+
+-- 现有规则的模板成为版本 1，一律回到待确认：没有列能判断原作者，由业务管理员按四眼重新确认（凭证号模板另由财务确认）。
+INSERT INTO platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value, authored_at, status)
+SELECT document_type, 1, pattern, reset_policy, start_value, now(), 'PENDING_CONFIRMATION'
+  FROM platform_numbering.numbering_rules;
+
+ALTER TABLE platform_numbering.numbering_rules
+    DROP COLUMN pattern,
+    DROP COLUMN reset_policy,
+    DROP COLUMN start_value,
+    DROP COLUMN confirmation_status;
+COMMENT ON TABLE platform_numbering.numbering_rules IS '编号规则：每种单据一条，是版本的聚合根；模板内容在 numbering_rule_versions，由组织数据管理员维护、业务管理员确认（凭证号另需财务确认）';

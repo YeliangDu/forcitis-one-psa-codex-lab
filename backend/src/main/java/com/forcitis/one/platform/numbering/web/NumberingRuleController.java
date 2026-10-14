@@ -1,19 +1,24 @@
 package com.forcitis.one.platform.numbering.web;
 
-import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.numbering.api.NumberingError;
+import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import com.forcitis.one.platform.numbering.application.ConfigureNumberingRule;
+import com.forcitis.one.platform.numbering.application.ConfirmNumberingRule;
+import com.forcitis.one.platform.numbering.application.ConfirmNumberingRuleByFinance;
 import com.forcitis.one.platform.numbering.application.FindNumberingRule;
 import com.forcitis.one.platform.numbering.application.ListNumberingRules;
-import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import java.security.Principal;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,11 +29,16 @@ import org.springframework.web.bind.annotation.RestController;
 class NumberingRuleController {
 
     private final ConfigureNumberingRule configure;
+    private final ConfirmNumberingRule confirm;
+    private final ConfirmNumberingRuleByFinance confirmByFinance;
     private final ListNumberingRules list;
     private final FindNumberingRule find;
 
-    NumberingRuleController(ConfigureNumberingRule configure, ListNumberingRules list, FindNumberingRule find) {
+    NumberingRuleController(ConfigureNumberingRule configure, ConfirmNumberingRule confirm, ConfirmNumberingRuleByFinance confirmByFinance,
+            ListNumberingRules list, FindNumberingRule find) {
         this.configure = configure;
+        this.confirm = confirm;
+        this.confirmByFinance = confirmByFinance;
         this.list = list;
         this.find = find;
     }
@@ -50,9 +60,25 @@ class NumberingRuleController {
 
     @PutMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE + "')")
-    ResponseEntity<Void> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request) {
-        configure.execute(documentType, request.pattern(), parse(request.resetPolicy()), request.startValue());
+    ResponseEntity<Void> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request, Principal caller) {
+        configure.execute(documentType, request.pattern(), parse(request.resetPolicy()), request.startValue(), user(caller));
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(path = "/{documentType}:confirm")
+    @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE + "')")
+    NumberingRuleResponse confirm(@PathVariable DocumentType documentType, Principal caller) {
+        return NumberingRuleResponse.from(confirm.execute(documentType, user(caller)));
+    }
+
+    @PostMapping(path = "/{documentType}:confirm-finance")
+    @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE + "')")
+    NumberingRuleResponse confirmByFinance(@PathVariable DocumentType documentType, Principal caller) {
+        return NumberingRuleResponse.from(confirmByFinance.execute(documentType, user(caller)));
+    }
+
+    private static UserId user(Principal caller) {
+        return new UserId(Long.parseLong(caller.getName()));
     }
 
     private static ResetPolicy parse(String resetPolicy) {
