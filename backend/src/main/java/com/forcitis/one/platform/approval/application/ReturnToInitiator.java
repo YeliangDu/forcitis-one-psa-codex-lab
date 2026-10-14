@@ -16,8 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * An approver sends the approval back to its initiator (RULE-275). A reason is required and the node's BEFORE hook must
- * allow it; the approval stays alive, parked at the initiator, who resubmits by deciding the initiator task (I-5).
- * Nothing is deleted and no result is announced to the business module yet (RULE-293).
+ * allow it. A return ends the round: the instance ends as "returned", the business module is told (ApprovalCompleted with
+ * RETURNED), and the initiator - and only the initiator of that round (I-5) - starts a new round by submitting again.
+ * Nothing is deleted: the history of every round stays.
  */
 @Service
 public class ReturnToInitiator {
@@ -39,10 +40,6 @@ public class ReturnToInitiator {
     @Transactional
     public DecisionResult execute(ApprovalTaskId taskId, UserId actor, String reason) {
         TaskView task = guard.requireActor(taskId, actor, "return");
-        if (task.initiatorNode()) {
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_INITIATOR_TASK_RESUBMIT_ONLY,
-                    "The initiator's own task cannot be returned to the initiator");
-        }
         if (reason == null || reason.isBlank()) {
             throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED, "A return needs a reason");
         }
@@ -55,6 +52,6 @@ public class ReturnToInitiator {
             lifecycle.claim(current, actor);
         }
         audit.record(new AuditEntry("platform.approval.task.return", actor, null, "approval-task:" + taskId.value(), reason));
-        return new DecisionResult(current.instanceId().value(), lifecycle.returnToInitiator(request, current, actor, reason).name());
+        return new DecisionResult(current.instanceId().value(), lifecycle.returned(request, current, actor, reason).name());
     }
 }

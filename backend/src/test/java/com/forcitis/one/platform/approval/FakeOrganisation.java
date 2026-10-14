@@ -83,6 +83,11 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     @Override
+    public Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId) {
         return people.values().stream().filter(p -> wecomUserId.value().equals(p.wecom())).findFirst()
                 .flatMap(p -> findEmployee(new UserId(p.id())));

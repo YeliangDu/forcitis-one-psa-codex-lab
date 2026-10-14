@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import static com.forcitis.one.organization.workforce.domain.Fixtures.ROOT;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.apply;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.first;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
@@ -18,16 +17,16 @@ import org.junit.jupiter.api.Test;
 /** Reconciliation queries of the exit criterion "组织零差异": employed people, org units, reporting relations. */
 class OrgReconciliationTest {
 
-    private static SourceSnapshot a8() {
+    private static SourceSnapshot sourceSnapshot() {
         return tree(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 1L), member(4, 2, 100L, null, null, null));
     }
 
     @Test
-    @DisplayName("组织零差异: a snapshot synced from A8 reconciles with no difference in counts or reporting relations")
+    @DisplayName("组织零差异: a snapshot synced from the source reconciles with no difference in counts or reporting relations")
     void freshSnapshotHasZeroDifference() {
-        OrgSnapshot synced = apply(OrgSnapshot.empty(), first(a8()));
+        OrgSnapshot synced = apply(OrgSnapshot.empty(), first(sourceSnapshot()));
 
-        OrgReconciliationReport report = OrgReconciliation.compare(a8(), synced);
+        OrgReconciliationReport report = OrgReconciliation.compare(sourceSnapshot(), synced);
 
         assertThat(report.isZeroDifference()).isTrue();
         assertThat(report.sourceEmployedCount()).isEqualTo(3).isEqualTo(report.snapshotEmployedCount());
@@ -35,10 +34,10 @@ class OrgReconciliationTest {
     }
 
     @Test
-    @DisplayName("组织零差异: revoked units in the snapshot are not part of what A8 returns")
+    @DisplayName("组织零差异: revoked units in the snapshot are not part of what the source returns")
     void revokedUnitsAreIgnored() {
-        OrgSnapshot synced = apply(OrgSnapshot.empty(), first(a8()));
-        SourceSnapshot smaller = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001")), List.of(), List.of(post(100), post(101)),
+        OrgSnapshot synced = apply(OrgSnapshot.empty(), first(sourceSnapshot()));
+        SourceSnapshot smaller = source(List.of(unit(1, null), unit(2, 1L)), List.of(), List.of(post(100), post(101)),
                 List.of(member(1, 2, 100L, null)));
         OrgSnapshot afterRevoke = apply(synced, SnapshotReconciler.reconcile(synced, smaller));
 
@@ -48,14 +47,14 @@ class OrgReconciliationTest {
     @Test
     @DisplayName("组织零差异: drift is found - a changed direct leader, a changed parent, a missing and an unexpected employee")
     void driftIsReported() {
-        OrgSnapshot synced = apply(OrgSnapshot.empty(), first(a8()));
+        OrgSnapshot synced = apply(OrgSnapshot.empty(), first(sourceSnapshot()));
         StaffMember two = Fixtures.staff(synced, 2);
         StaffMember drifted = new StaffMember(two.employee(), new Assignment(two.employee().userId(), two.assignment().orgUnitId(),
                 two.assignment().positionId(), Fixtures.user(3)));
         StaffMember leaver = Fixtures.staff(synced, 4);
         StaffMember stillEmployed = new StaffMember(leaver.employee().withEmploymentStatus(EmploymentStatus.EMPLOYED), leaver.assignment());
         List<OrgUnit> units = synced.orgUnits().stream()
-                .map(u -> u.orgUnitId().value() == 3 ? new OrgUnit(u.orgUnitId(), u.code(), u.name(), Fixtures.unitId(1), u.path(),
+                .map(u -> u.orgUnitId().value() == 3 ? new OrgUnit(u.orgUnitId(), u.code(), u.name(), Fixtures.unitId(1),
                         u.sortOrder(), u.status(), u.headEmployeeId(), u.regionalReceivablesManagerId(), u.regionCategory(),
                         u.deliveryUnit(), u.shortName()) : u).toList();
         List<StaffMember> staff = synced.staff().stream()
@@ -63,7 +62,7 @@ class OrgReconciliationTest {
                 .map(s -> s.userId().value() == 2 ? drifted : s.userId().value() == 4 ? stillEmployed : s).toList();
         OrgSnapshot stored = new OrgSnapshot(units, synced.positions(), staff);
 
-        OrgReconciliationReport report = OrgReconciliation.compare(a8(), stored);
+        OrgReconciliationReport report = OrgReconciliation.compare(sourceSnapshot(), stored);
 
         assertThat(report.isZeroDifference()).isFalse();
         assertThat(report.reportingLineMismatches()).containsExactly("employee:2");

@@ -9,7 +9,6 @@ import com.forcitis.one.platform.approval.domain.NodePolicy;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -41,11 +40,8 @@ class FlowableApprovalEngine implements ApprovalEngine {
 
     static final String VARIABLE_INITIATOR = "initiatorId";
     static final String VARIABLE_BUSINESS_KEY = "businessKey";
-    static final String VARIABLE_RETURNED = "returned";
     /** Task-local variable: epoch milliseconds at which the task was assigned. */
     static final String VARIABLE_ASSIGNED_AT = "assignedAtMillis";
-    /** Flowable only evaluates skipExpression on a node when this variable is true. */
-    private static final String SKIP_EXPRESSION_ENABLED = "_FLOWABLE_SKIP_EXPRESSION_ENABLED";
 
     private final RuntimeService runtime;
     private final TaskService tasks;
@@ -66,8 +62,6 @@ class FlowableApprovalEngine implements ApprovalEngine {
         Map<String, Object> engine = new LinkedHashMap<>(EngineVariables.toEngine(variables));
         engine.put(VARIABLE_INITIATOR, String.valueOf(initiator.value()));
         engine.put(VARIABLE_BUSINESS_KEY, businessKey);
-        engine.put(VARIABLE_RETURNED, Boolean.FALSE);
-        engine.put(SKIP_EXPRESSION_ENABLED, Boolean.TRUE);
         return new ApprovalInstanceId(runtime.startProcessInstanceByKey(processKey.key(), businessKey, engine).getId());
     }
 
@@ -117,24 +111,12 @@ class FlowableApprovalEngine implements ApprovalEngine {
         if (task == null) {
             throw new IllegalStateException("Task " + taskId.value() + " is gone");
         }
-        if (nodeOf(task).initiatorNode()) {
-            runtime.setVariable(task.getProcessInstanceId(), VARIABLE_RETURNED, Boolean.FALSE);
-        }
         tasks.complete(taskId.value());
     }
 
     @Override
-    public void returnToInitiator(ApprovalInstanceId instanceId) {
-        List<Task> open = tasks.createTaskQuery().processInstanceId(instanceId.value()).list();
-        if (open.isEmpty()) {
-            throw new IllegalStateException("Instance " + instanceId.value() + " has no open task to return");
-        }
-        Definition definition = definition(open.getFirst().getProcessDefinitionId());
-        String initiatorNode = initiatorNodeKey(definition.model());
-        List<String> from = open.stream().map(Task::getTaskDefinitionKey).distinct().toList();
-        runtime.createChangeActivityStateBuilder().processInstanceId(instanceId.value())
-                .moveActivityIdsToSingleActivityId(from, initiatorNode)
-                .processVariable(VARIABLE_RETURNED, Boolean.TRUE).changeState();
+    public void endAsReturned(ApprovalInstanceId instanceId) {
+        runtime.deleteProcessInstance(instanceId.value(), "RETURNED");
     }
 
     @Override
@@ -167,7 +149,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 definition.processKey(), String.valueOf(variables.get(VARIABLE_BUSINESS_KEY)), task.getTaskDefinitionKey(),
                 task.getName(), new UserId(Long.parseLong(String.valueOf(variables.get(VARIABLE_INITIATOR)))),
                 task.getAssignee() == null ? null : new UserId(Long.parseLong(task.getAssignee())), candidates,
-                createdAt(task), node.getSubProcess() != null, policy.initiatorNode(), policy.beforeHookKey());
+                createdAt(task), node.getSubProcess() != null, policy.beforeHookKey());
     }
 
     /** Time the task was assigned, written by the assignment listener (no java.util.Date in this code base). */
@@ -186,19 +168,5 @@ class FlowableApprovalEngine implements ApprovalEngine {
             ProcessDefinition definition = repository.getProcessDefinition(id);
             return new Definition(ProcessKey.valueOf(definition.getKey().toUpperCase(Locale.ROOT)), repository.getBpmnModel(id));
         });
-    }
-
-    /** The one rework node of a process (verified at startup); where a return parks the approval. */
-    static String initiatorNodeKey(BpmnModel model) {
-        List<String> found = new ArrayList<>();
-        model.getMainProcess().findFlowElementsOfType(UserTask.class).forEach(task -> {
-            if (NodePolicyReader.read(task).initiatorNode()) {
-                found.add(task.getId());
-            }
-        });
-        if (found.size() != 1) {
-            throw new IllegalStateException("A process needs exactly one initiator node (initiatorNode=\"true\"), found " + found);
-        }
-        return found.getFirst();
     }
 }

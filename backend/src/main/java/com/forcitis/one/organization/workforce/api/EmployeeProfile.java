@@ -5,8 +5,8 @@ import com.forcitis.one.kernel.WecomUserId;
 import java.util.Objects;
 
 /**
- * Snapshot of one employee. wecomUserId is null when A8 has none (RULE-374 data-quality report).
- * feeEarner is the A8 HR classification only; billability is decided by the new system (§9a).
+ * Snapshot of one employee. wecomUserId is null when the source has none (RULE-374 data-quality report).
+ * feeEarner is the source HR classification only; billability is decided by the new system (§9a).
  */
 public record EmployeeProfile(UserId userId, String name, OrgUnitId orgUnitId, WecomUserId wecomUserId,
                               EmploymentStatus employmentStatus, boolean feeEarner) {

@@ -47,7 +47,7 @@ class RoleTest {
                 e -> assertThat(e.violation()).isEqualTo(RoleViolation.BLANK_NAME));
         assertThatThrownBy(() -> Role.newCustom(new RoleCode("ok"), "x", Set.of("no:such:permission")))
                 .isInstanceOfSatisfying(RoleRuleException.class, e -> assertThat(e.violation()).isEqualTo(RoleViolation.UNKNOWN_PERMISSION));
-        assertThat(Role.newCustom(new RoleCode("BU-002"), "Department director", Set.of()).code().value()).isEqualTo("BU-002");
+        assertThat(Role.newCustom(new RoleCode("reviewer"), "Reviewer", Set.of()).code().value()).isEqualTo("reviewer");
     }
 
     @Test
@@ -96,9 +96,9 @@ class RoleTest {
     @Test
     @DisplayName("RULE-342 role-code check: any of the codes; an empty list passes; super_admin always passes")
     void roleCodeCheck() {
-        AccessProfile profile = AccessProfile.of(List.of(custom("BU-002", Set.of())));
+        AccessProfile profile = AccessProfile.of(List.of(custom("reviewer", Set.of())));
 
-        assertThat(profile.hasAnyRole(List.of(new RoleCode("BU-002"), new RoleCode("PMO")))).isTrue();
+        assertThat(profile.hasAnyRole(List.of(new RoleCode("reviewer"), new RoleCode("PMO")))).isTrue();
         assertThat(profile.hasAnyRole(List.of(new RoleCode("PMO")))).isFalse();
         assertThat(profile.hasAnyRole(List.of())).isTrue();
         assertThat(AccessProfile.of(List.of(system("super_admin", Set.of()))).hasAnyRole(List.of(new RoleCode("PMO")))).isTrue();

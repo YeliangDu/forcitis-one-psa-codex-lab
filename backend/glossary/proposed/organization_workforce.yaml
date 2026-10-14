@@ -207,12 +207,12 @@ terms:
   status: proposed
   note: ''
 - id: workforce__login_name
-  zh: A8 登录名
+  zh: 登录名
   en: LoginName
   snake: login_name
   kind: value
   bc: organization.workforce
-  definition: 员工在 A8 的登录名（手机号）；没有即离职（RULE-363）
+  definition: 员工在组织源的登录名（手机号）；没有即离职（RULE-363）
   standard_ref:
   - RULE-363
   confidence: high

@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * OrgReconciliationIT (exit criterion "组织零差异"): people count, org unit count and reporting relations of the stored
- * snapshot against A8 now. Named *Test so Surefire runs it in the default build.
+ * snapshot against the source now. Named *Test so Surefire runs it in the default build.
  */
 class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
 
@@ -23,9 +23,9 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
     ReconcileOrgSnapshot reconcile;
 
     @Test
-    @DisplayName("组织零差异: after a sync the stored snapshot equals A8 in people, org units and reporting relations")
+    @DisplayName("组织零差异: after a sync the stored snapshot equals the source in people, org units and reporting relations")
     void zeroDifferenceAfterSync() {
-        a8.snapshot = tree(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 1L), member(4, 2, 100L, null, null, null));
+        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 1L), member(4, 2, 100L, null, null, null));
         sync.execute(SyncTrigger.SCHEDULED, false);
 
         OrgReconciliationReport report = reconcile.execute();
@@ -38,12 +38,12 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("组织零差异: a change in A8 that is not synced yet, and a hand edit of the snapshot, both show up as differences")
+    @DisplayName("组织零差异: a change in the source that is not synced yet, and a hand edit of the snapshot, both show up as differences")
     void driftIsVisible() {
-        a8.snapshot = tree(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 1L));
+        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 1L));
         sync.execute(SyncTrigger.SCHEDULED, false);
 
-        a8.snapshot = tree(member(1, 2, 100L, null), member(2, 3, 101L, 3L), member(3, 3, 101L, 1L), member(4, 2, 100L, null));
+        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 3, 101L, 3L), member(3, 3, 101L, 1L), member(4, 2, 100L, null));
         OrgReconciliationReport beforeNextSync = reconcile.execute();
         assertThat(beforeNextSync.isZeroDifference()).isFalse();
         assertThat(beforeNextSync.missingInSnapshot()).containsExactly("employee:4");

@@ -28,10 +28,10 @@ public class GetTaskDetail {
         TaskView task = engine.findTask(taskId).filter(t -> isParticipant(t, viewer)).orElseThrow(
                 () -> new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND,
                         "Task " + taskId.value() + " does not exist"));
-        List<Long> candidates = task.candidates().stream().map(UserId::value).sorted(Comparator.naturalOrder()).toList();
+        List<String> candidates = task.candidates().stream().map(UserId::value).sorted(Comparator.naturalOrder()).map(String::valueOf).toList();
         return new TaskDetail(task.taskId().value(), task.instanceId().value(), task.processKey().name(), task.businessKey(),
-                task.nodeKey(), task.nodeName(), task.initiator().value(), task.assignee() == null ? null : task.assignee().value(),
-                candidates, task.createdAt(), task.initiatorNode(), TaskActors.mayAct(task, viewer));
+                task.nodeKey(), task.nodeName(), String.valueOf(task.initiator().value()), task.assignee() == null ? null : String.valueOf(task.assignee().value()),
+                candidates, task.createdAt(), TaskActors.mayAct(task, viewer));
     }
 
     private static boolean isParticipant(TaskView task, UserId viewer) {

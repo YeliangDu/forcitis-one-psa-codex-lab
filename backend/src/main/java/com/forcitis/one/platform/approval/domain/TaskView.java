@@ -13,7 +13,7 @@ import java.util.Set;
  */
 public record TaskView(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey, String businessKey,
                        String nodeKey, String nodeName, UserId initiator, UserId assignee, Set<UserId> candidates,
-                       Instant createdAt, boolean insideSubProcess, boolean initiatorNode, String beforeHookKey) {
+                       Instant createdAt, boolean insideSubProcess, String beforeHookKey) {
 
     public TaskView {
         candidates = Set.copyOf(candidates);

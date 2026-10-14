@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.domain;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import java.util.List;
 import java.util.Optional;
 
 /** Port for approval_requests and start_rounds (JDBC in infrastructure.persistence). */
@@ -19,6 +20,9 @@ public interface ApprovalRequestRepository {
 
     /** Records round number {@code round} with its instance (start_rounds unique on type, key, round) and sets RUNNING. */
     void beginRound(ProcessKey processKey, String businessKey, int round, UserId initiator, ApprovalInstanceId instanceId);
+
+    /** Every round of the document, oldest first: who started it and which instance ran it (history is kept round by round). */
+    List<ApprovalRound> rounds(ProcessKey processKey, String businessKey);
 
     void updateStatus(ApprovalInstanceId instanceId, ApprovalStatus status, String reason);
 }

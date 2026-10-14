@@ -37,7 +37,7 @@ class PersistRegisteredEmployee {
         snapshots.saveStaffMember(member, null, clock.instant());
         audit.getObject().record(new AuditEntry("organization.workforce.employee.registered-on-login", null, null,
                 "employee:" + member.userId().value(),
-                "first login before the next sync: person found in the A8 view and registered"));
+                "first login before the next sync: person found in the organisation source and registered"));
         events.publishEvent(new OrgSnapshotChanged(List.of(member.userId()), List.of(), List.of()));
     }
 }

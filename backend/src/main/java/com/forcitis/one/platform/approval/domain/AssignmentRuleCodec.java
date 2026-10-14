@@ -1,45 +1,48 @@
 package com.forcitis.one.platform.approval.domain;
 
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.RoleCode;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-/**
- * The vocabulary of assignment rules outside Java: the same type names are written in BPMN (forcitis:assignmentRule type=...)
- * and in TIMESHEET replay exports. An unknown type or a missing required attribute is a configuration error and fails
- * loudly (RULE-300): a misconfigured node is never silently skipped.
- */
+/** The vocabulary of assignment rules outside Java: the same type names are written in BPMN (forcitis:assignmentRule type=...) and in TIMESHEET replay exports. */
 public final class AssignmentRuleCodec {
+
+    /** Types that exist in the rule cards but are not built yet; a process that uses one does not deploy. */
+    public static final Set<String> DEFERRED_TYPES = Set.of("REGIONAL_RECEIVABLES_MANAGER", "DEPARTMENT_DIRECTOR",
+            "FORM_FIELD_USER_SUPERVISORS");
+    /** Types that are not built at all (decision 2026-10-14); a role or a form field takes their place. */
+    public static final Set<String> NOT_BUILT_TYPES = Set.of("NAMED_USERS", "PROCESS_VARIABLE_USERS");
 
     private AssignmentRuleCodec() {
     }
 
-    /**
-     * @param type  ROLE, DEPARTMENT_HEAD, INITIATOR_SUPERVISOR, NAMED_USERS, REGIONAL_RECEIVABLES_MANAGER, DEPARTMENT_DIRECTOR,
-     *              FORM_FIELD_USERS, FORM_FIELD_USER_SUPERVISORS, PROCESS_VARIABLE_USERS or INITIATOR
-     * @param attribute reads an attribute of the rule element (role, department, level, users, field, variable); null when absent
-     */
+    /** @param type ROLE, DEPARTMENT_HEAD, INITIATOR_SUPERVISOR or FORM_FIELD_USERS @param attribute reads an attribute of the rule element (role, department, level, field); null when absent */
     public static AssignmentRule parse(String type, Function<String, String> attribute) {
         if (type == null || type.isBlank()) {
             throw new IllegalStateException("Assignment rule without a type");
         }
+        if (DEFERRED_TYPES.contains(type)) {
+            throw new IllegalStateException("Assignment rule type " + type + " is deferred to a later phase and cannot be used yet");
+        }
+        if (NOT_BUILT_TYPES.contains(type)) {
+            throw new IllegalStateException("Assignment rule type " + type + " is not offered; use a ROLE or a FORM_FIELD_USERS node");
+        }
         return switch (type) {
             case "ROLE" -> new AssignmentRule.Role(new RoleCode(required(type, attribute, "role")));
             case "DEPARTMENT_HEAD" -> new AssignmentRule.DepartmentHead(attribute.apply("department"));
-            case "INITIATOR_SUPERVISOR" -> new AssignmentRule.InitiatorSupervisor(Integer.parseInt(required(type, attribute, "level")));
-            case "NAMED_USERS" -> new AssignmentRule.NamedUsers(users(required(type, attribute, "users")));
-            case "REGIONAL_RECEIVABLES_MANAGER" -> new AssignmentRule.RegionalReceivablesOwner(attribute.apply("department"));
-            case "DEPARTMENT_DIRECTOR" -> new AssignmentRule.DepartmentDirector(attribute.apply("department"));
+            case "INITIATOR_SUPERVISOR" -> new AssignmentRule.InitiatorSupervisor(level(type, attribute));
             case "FORM_FIELD_USERS" -> new AssignmentRule.FormFieldUsers(required(type, attribute, "field"));
-            case "FORM_FIELD_USER_SUPERVISORS" -> new AssignmentRule.FormFieldUserSupervisors(required(type, attribute, "field"));
-            case "PROCESS_VARIABLE_USERS" -> new AssignmentRule.ProcessVariableUsers(required(type, attribute, "variable"));
-            case "INITIATOR" -> new AssignmentRule.Initiator();
             default -> throw new IllegalStateException("Unknown assignment rule type " + type);
         };
+    }
+
+    private static int level(String type, Function<String, String> attribute) {
+        String raw = required(type, attribute, "level");
+        try {
+            return Integer.parseInt(raw);
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Assignment rule " + type + ": level must be 1 or 2, was " + raw);
+        }
     }
 
     private static String required(String type, Function<String, String> attribute, String name) {
@@ -48,10 +51,5 @@ public final class AssignmentRuleCodec {
             throw new IllegalStateException("Assignment rule " + type + " needs the attribute " + name);
         }
         return value.trim();
-    }
-
-    private static Set<UserId> users(String csv) {
-        return Arrays.stream(csv.split(",")).map(String::trim).filter(s -> !s.isEmpty())
-                .map(s -> new UserId(Long.parseLong(s))).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }

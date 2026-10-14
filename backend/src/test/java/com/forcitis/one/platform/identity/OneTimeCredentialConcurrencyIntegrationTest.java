@@ -1,14 +1,11 @@
 package com.forcitis.one.platform.identity;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.identity.domain.SignedTicket;
+import com.forcitis.one.platform.integration.api.SsoVerdict;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -62,14 +59,13 @@ class OneTimeCredentialConcurrencyIntegrationTest extends IdentityIntegrationTes
     }
 
     @Test
-    @DisplayName("I-9 / RULE-320 the same Seeyon ticket presented by many requests at once logs in exactly once")
-    void seeyonTicket() throws Exception {
-        OA.stubFor(get(urlPathEqualTo("/seeyon/thirdpartyController.do")).withQueryParam("ticket", equalTo("RACE"))
-                .willReturn(aResponse().withStatus(200).withBody("13800000000")));
+    @DisplayName("I-9 / RULE-320 the same portal ticket presented by many requests at once logs in exactly once")
+    void portalTicket() throws Exception {
+        when(ssoVerifier.verify("RACE")).thenReturn(new SsoVerdict.LoginName("13800000000"));
         var employee = knownEmployee(1001, EmploymentStatus.EMPLOYED);
-        when(loginNames.findEmployeeByLoginName("13800000000")).thenReturn(Optional.of(employee));
+        when(orgDirectory.findEmployeeByLoginName("13800000000")).thenReturn(Optional.of(employee));
 
-        List<Integer> statuses = race(() -> postJson(SeeyonLoginIntegrationTest.LOGIN, "{\"ticket\":\"RACE\"}").getResponse().getStatus());
+        List<Integer> statuses = race(() -> postJson(SsoLoginIntegrationTest.LOGIN, "{\"ticket\":\"RACE\"}").getResponse().getStatus());
 
         assertExactlyOneSucceeded(statuses);
     }

@@ -3,7 +3,7 @@ package com.forcitis.one.organization.workforce.domain;
 /** Data exceptions found while syncing (reported to data stewards, never silently dropped). */
 public enum IssueKind {
     NULL_FLAG,
-    DUPLICATE_PATH,
+    DUPLICATE_UNIT,
     MULTIPLE_HEADS,
     MULTIPLE_REGIONAL_MANAGERS,
     HEAD_NOT_FOUND,
