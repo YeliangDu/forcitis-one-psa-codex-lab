@@ -9,7 +9,10 @@ import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
+import com.forcitis.one.platform.identity.domain.AccountRepository;
+import com.forcitis.one.platform.identity.domain.UserAccount;
 import java.time.Clock;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,8 +24,11 @@ public class ConfirmAuthorizationRequest {
     private final AuthorizationRequestRepository requests;
     private final DomainEvents events;
     private final Clock clock;
+    private final AccountRepository accounts;
 
-    ConfirmAuthorizationRequest(CurrentUser currentUser, AuthorizationRequestRepository requests, DomainEvents events, Clock clock) {
+    ConfirmAuthorizationRequest(CurrentUser currentUser, AuthorizationRequestRepository requests, DomainEvents events, Clock clock,
+            AccountRepository accounts) {
+        this.accounts = accounts;
         this.currentUser = currentUser;
         this.requests = requests;
         this.events = events;
@@ -34,7 +40,7 @@ public class ConfirmAuthorizationRequest {
         AuthorizationRequest request = requests.find(id).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_FOUND,
                 ErrorKind.NOT_FOUND, "no such authorization request"));
         UserId by = currentUser.userId();
-        request.confirm(by, clock.instant());
+        request.confirm(by, clock.instant(), accounts.find(by).map(UserAccount::roles).orElse(Set.of()));
         requests.save(request);
         events.publish(request);
     }

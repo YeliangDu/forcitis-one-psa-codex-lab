@@ -93,10 +93,15 @@ public final class AuthorizationRequest extends AggregateRoot {
     }
 
     public void confirm(UserId by, Instant at) {
+        confirm(by, at, Set.of());
+    }
+
+    /** A holder of the role whose definition is changed gains from the change as well, so is no second person either. */
+    public void confirm(UserId by, Instant at, Set<RoleId> rolesHeldByConfirmer) {
         requirePending();
-        if (by.equals(requestedBy) || by.equals(subjectUser)) {
+        if (by.equals(requestedBy) || by.equals(subjectUser) || (roleId != null && rolesHeldByConfirmer.contains(roleId))) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED, ErrorKind.FORBIDDEN,
-                    "the requester and the person who would receive the roles cannot confirm");
+                    "the requester, the person who would receive the roles and a holder of the role being changed cannot confirm");
         }
         this.status = MACHINE.require(status, AuthorizationRequestStatus.CONFIRMED, IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING);
         this.decidedBy = by;

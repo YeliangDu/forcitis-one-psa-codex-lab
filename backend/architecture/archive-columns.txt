@@ -13,6 +13,6 @@ event_id | ARCHIVE | INTERNAL | the domain event that caused the entry, the idem
 correlation_id | ARCHIVE | INTERNAL | ties the entry to the request or job run
 created_at | ARCHIVE | INTERNAL | when the audited fact happened
 updated_at | EXCLUDE | INTERNAL | always equal to created_at (the row is never updated)
-source_address | EXCLUDE | SENSITIVE | the client address of a login is personal data; it stays in the online table and is not copied to the archive store
+source_address | ARCHIVE | SENSITIVE | the client address of a login or session end, kept for tracing a security incident after the online period (user decision 2026-10-15); personal data, so the archive store is access-controlled like the audit trail
 outcome_kind | ARCHIVE | INTERNAL | whether the login or the session end succeeded or failed
 login_method_kind | ARCHIVE | INTERNAL | which way the person logged in (WeCom, SSO, ticket, emergency)

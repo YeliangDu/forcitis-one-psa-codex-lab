@@ -59,7 +59,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("a separated person loses every role (super_admin included) with one audit entry each, the emergency account and every session")
+    @DisplayName("B1-M3 a separated person loses every role (super_admin included) with one audit entry each, the emergency account and every session")
     void separationRemovesRolesEmergencyAccountAndSessions() throws Exception {
         String victim = loginWithWecom(1001);
         String other = loginWithWecom(1002);

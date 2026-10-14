@@ -208,7 +208,7 @@ class AuditLogIT {
     }
 
     @Test
-    @DisplayName("looking into the audit trail is an audit entry of its own: who, with which filter, how many matches (intent 152)")
+    @DisplayName("B1-M9 looking into the audit trail is an audit entry of its own: who, with which filter, how many matches (intent 152)")
     void searchesAreAudited() throws Exception {
         String subject = unique("subject");
 

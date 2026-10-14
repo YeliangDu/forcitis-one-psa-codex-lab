@@ -43,7 +43,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     static final String KIND = "audit";
     static final int BATCH = 5000;
     /** The columns the archive carries; architecture/archive-columns.txt names every column of the table as archived or excluded and AuditArchiveColumnsTest keeps both equal. */
-    static final List<String> COLUMNS = List.of("id", "action", "actor_id", "on_behalf_of_id", "subject_key", "detail", "event_id", "correlation_id", "outcome_kind", "login_method_kind", "created_at");
+    static final List<String> COLUMNS = List.of("id", "action", "actor_id", "on_behalf_of_id", "subject_key", "detail", "event_id", "correlation_id", "source_address", "outcome_kind", "login_method_kind", "created_at");
 
     @ConfigurationProperties("forcitis.platform.audit.archive")
     record Policy(Period onlinePeriod) {

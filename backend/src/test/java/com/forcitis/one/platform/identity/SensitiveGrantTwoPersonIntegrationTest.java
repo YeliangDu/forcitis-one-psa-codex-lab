@@ -150,4 +150,37 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
         assertThat(decide(second, requestId, "confirm").getResponse().getStatus()).isEqualTo(409);
         assertThat(holds(1001, "security_auditor")).isFalse();
     }
+
+    @Test
+    @DisplayName("B1-R1 separation-hold 敏感: a custom role carrying separation-hold:approve waits for a second person like any sensitive permission")
+    void separationHoldApproveIsSensitive() throws Exception {
+        String first = administratorSession(9);
+
+        MvcResult created = createRole(first, "hold-approver", "organization.workforce:separation-hold:approve");
+
+        requestIdOf(created);
+        assertThat(jdbc.sql("select count(*) from platform_identity.roles where code = 'hold-approver'").query(Long.class).single()).isZero();
+        assertThat(com.forcitis.one.platform.identity.domain.SensitivePermissions.CODES).contains("organization.workforce:separation-hold:approve");
+    }
+
+    @Test
+    @DisplayName("B1-R1 a holder of the role being changed cannot confirm adding a sensitive permission to it; a third administrator can")
+    void aHolderOfTheRoleCannotConfirmItsChange() throws Exception {
+        String first = administratorSession(9);
+        String holder = administratorSession(10);
+        String third = administratorSession(11);
+        assertThat(createRole(first, "reader3", "platform.approval:task:read").getResponse().getStatus()).isEqualTo(201);
+        long role = jdbc.sql("select role_id from platform_identity.roles where code = 'reader3'").query(Long.class).single();
+        createAccount(10, "reader3");
+        accessCache.evictAll();
+
+        String requestId = requestIdOf(mvc.perform(put("/api/v1/platform/roles/" + role).with(xsrf()).cookie(new Cookie("SESSION", first))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"reader3\",\"enabled\":true,\"permissionCodes\":[\"platform.numbering:numbering-rule:approve\"]}")).andReturn());
+
+        MvcResult byHolder = decide(holder, requestId, "confirm");
+        assertThat(byHolder.getResponse().getStatus()).isEqualTo(403);
+        assertThat(body(byHolder).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED");
+        assertThat(decide(third, requestId, "confirm").getResponse().getStatus()).isEqualTo(204);
+    }
 }

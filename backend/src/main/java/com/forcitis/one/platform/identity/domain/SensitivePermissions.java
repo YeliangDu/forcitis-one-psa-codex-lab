@@ -12,7 +12,8 @@ public final class SensitivePermissions {
             Permission.Codes.PLATFORM_AUDIT_ENTRY_READ,
             Permission.Codes.PLATFORM_AUDIT_ENTRY_EXPORT,
             Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE,
-            Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE);
+            Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE,
+            Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
 
     private SensitivePermissions() {
     }
