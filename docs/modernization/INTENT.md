@@ -99,3 +99,6 @@
 | OA 盘点：ADR-0021「采纳；6a–6c 并入 Phase 4 前 (Recommended)」；应付与付款「新建「应付与付款」BC (Recommended)」；非项目采购、员工借还款、合伙人注资退回「都算，都进新系统 (Recommended)」 | ADR-0021 已采纳；6a–6c 为 Phase 4 出口前置；新建应付与付款 BC（蓝图编号由 psa-gl-scope 统一）；三类事实列入权责事实矩阵 |
 | 「现代化后，我想完善其他子域和 BC，想把 OA 上的业务过程迁到新系统，应该怎么做？」（2026-10-14，经 psa-coordinator 派给 psa-oa-inventory） | OA_PROCESS_INVENTORY.md；ADR-0021（提议） |
 | 「是，同意只读查询」（2026-10-14，psa-coordinator 当面确认，用于 OA 流程盘点的生产只读查询） | runtime/a8_*.tsv、u8c_voucher_sources.tsv（只取元数据与计数）；OA_PROCESS_INVENTORY.md §1 |
+| main 分支保护「只要求 CI 三项通过 (Recommended)」；用语确认「开一个会话集中确认 (Recommended)」（2026-10-14，psa-coordinator 询问） | main 已设保护：必须 backend / frontend / gitleaks 三项通过，管理员同样受限，禁止强推与删除，不要求人工批准；新会话 psa-terms-review 集中确认 58 条提议术语与 OA 20 项叫法 |
+| 给 psa-gl-scope 补充（2026-10-14）：「U8C 除了蒸馏，还要①导出最近两个已结期间的科目余额表和三大报表作为黄金基线（只放本机）；②把结转模板、报表公式、凭证科目映射整理成规则交财务评审；③检查 U8C 有无二次开发或插件；④统计科目和辅助核算的实际使用面。」 | 基线存 ~/.modernize/psa/u8c-baseline/（仓库外，仓库只记清单与校验和）；GL 规则卡交财务评审；U8C 二开 / 插件清单；科目与辅助核算使用面统计（U8C_GL_PRACTICE.md） |
+| 给 psa-gl-scope 补充（二，2026-10-14）：「盘点 U8C 实际启用的模块、功能和近一年使用量，以及角色权限分工；把凭证流转、账簿查询、出纳与银行对账、往来核销、年结与期初、打印与会计档案、审计轨迹、GB/T 24589 数据接口逐项归类（第一步需要 / 第二步前需要 / 不迁移 / 留外部）；按《会计软件基本功能和服务规范》列出合规清单。」 | U8C 模块与使用量、角色权限分工、能力归类表、合规清单（U8C_GL_PRACTICE.md 或拆分文件）；法定账切换阶段入口「按规范逐条验收」的依据 |
