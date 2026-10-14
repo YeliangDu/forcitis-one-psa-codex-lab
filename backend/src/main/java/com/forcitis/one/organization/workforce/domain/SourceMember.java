@@ -1,0 +1,22 @@
+package com.forcitis.one.organization.workforce.domain;
+
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import java.util.Objects;
+
+/**
+ * One person as read from the A8 view and interpreted by the shared mapper (bulk sync and single-person lookup use
+ * the same mapper). positionId, leaderId, loginName, wecomUserId may be null. loginName is trimmed; blank means none.
+ */
+public record SourceMember(UserId userId, String employeeCode, String displayName, OrgUnitId orgUnitId,
+                           PositionId positionId, UserId leaderId, String loginName, String email, Gender gender,
+                           WecomUserId wecomUserId, boolean feeEarner) {
+
+    public SourceMember {
+        Objects.requireNonNull(userId, "userId");
+        Objects.requireNonNull(employeeCode, "employeeCode");
+        Objects.requireNonNull(displayName, "displayName");
+        Objects.requireNonNull(orgUnitId, "orgUnitId");
+    }
+}

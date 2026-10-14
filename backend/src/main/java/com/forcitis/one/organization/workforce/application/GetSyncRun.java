@@ -1,0 +1,26 @@
+package com.forcitis.one.organization.workforce.application;
+
+import com.forcitis.one.organization.workforce.domain.SyncRunId;
+import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
+import java.util.Optional;
+import org.springframework.stereotype.Service;
+
+/** One sync run with the differences and data exceptions it found. */
+@Service
+public class GetSyncRun {
+
+    private final SyncRunRepository runs;
+
+    GetSyncRun(SyncRunRepository runs) {
+        this.runs = runs;
+    }
+
+    public Optional<SyncRunDetailView> execute(long syncRunId) {
+        if (syncRunId <= 0) {
+            return Optional.empty();
+        }
+        SyncRunId id = new SyncRunId(syncRunId);
+        return runs.find(id).map(run -> new SyncRunDetailView(SyncRunView.of(run),
+                runs.findDiffs(id).stream().map(SyncDiffView::of).toList()));
+    }
+}

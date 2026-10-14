@@ -1,0 +1,196 @@
+package com.forcitis.one.organization.workforce.application;
+
+import static com.forcitis.one.organization.workforce.domain.Fixtures.ROOT;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.unitId;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.user;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
+import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
+import com.forcitis.one.organization.workforce.domain.SourceOrgUnit;
+import com.forcitis.one.organization.workforce.domain.SyncTrigger;
+import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
+import com.forcitis.one.platform.audit.api.AuditEntry;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.event.ApplicationEvents;
+
+/** The OrgDirectory contract over a synced snapshot, including the single-person lookup at login. */
+class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
+
+    @Autowired
+    OrgDirectory directory;
+
+    @Autowired
+    SyncOrgSnapshot sync;
+
+    @Autowired
+    ApplicationEvents events;
+
+    private void synced() {
+        a8.snapshot = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001"), unit(3, ROOT + "00010001"),
+                        new SourceOrgUnit(unitId(4), "C4", "Stopped", ROOT + "0002", 4, OrgUnitStatus.DISABLED, List.of(), null, null, false)),
+                List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
+                List.of(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 2L)));
+        sync.execute(SyncTrigger.SCHEDULED, false);
+    }
+
+    @Test
+    @DisplayName("RULE-322/324 an employee is found by the exact WeCom user id from the snapshot, without asking A8")
+    void findsByWecomUserIdFromTheSnapshot() {
+        synced();
+
+        Optional<EmployeeProfile> found = directory.findEmployeeByWecomUserId(new WecomUserId("wx-2"));
+
+        assertThat(found).isPresent();
+        assertThat(found.get().userId()).isEqualTo(user(2));
+        assertThat(found.get().orgUnitId()).isEqualTo(unitId(3));
+        assertThat(found.get().wecomUserId()).isEqualTo(new WecomUserId("wx-2"));
+        assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
+        assertThat(a8.singleLookups.get()).isZero();
+        assertThat(directory.findEmployee(user(2))).isPresent();
+        assertThat(directory.findEmployee(user(999))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("login miss: an unknown WeCom user id asks the same A8 view for this one person, registers them and audits it")
+    void loginMissRegistersTheNewHire() {
+        synced();
+        a8.singleLookupResult = List.of(member(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
+
+        Optional<EmployeeProfile> found = directory.findEmployeeByWecomUserId(new WecomUserId("wx-new-hire"));
+
+        assertThat(found).isPresent();
+        assertThat(found.get().userId()).isEqualTo(user(3001));
+        assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
+        assertThat(count("employees")).isEqualTo(4);
+        assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3001").query(Long.class).single()).isEqualTo(1L);
+        verify(audit).record(argThat((AuditEntry e) -> e.action().equals("organization.workforce.employee.registered-on-login")
+                && e.subjectKey().equals("employee:3001")));
+        assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.changedEmployees().contains(user(3001)))).hasSize(1);
+
+        assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-new-hire"))).isPresent();
+        assertThat(a8.singleLookups.get()).as("the second login is answered by the snapshot").isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("login miss: the same checks as the sync - unknown org unit or position, ambiguity and a down A8 all answer 'unknown'")
+    void loginMissFailsClosed() {
+        synced();
+
+        a8.singleLookupResult = List.of(member(3002, 99, 100L, null, "13900003002", "wx-no-unit"));
+        assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-no-unit"))).isEmpty();
+
+        a8.singleLookupResult = List.of(member(3003, 2, 555L, null, "13900003003", "wx-no-post"));
+        assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-no-post"))).isEmpty();
+
+        a8.singleLookupResult = List.of(member(3004, 2, 100L, null, "13900003004", "wx-twice"), member(3005, 2, 100L, null, "13900003005", "wx-twice"));
+        assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-twice"))).isEmpty();
+
+        assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-nobody"))).isEmpty();
+
+        a8.singleLookupResult = List.of(member(3006, 2, 100L, null, "13900003006", "wx-while-down"));
+        a8.unavailable = true;
+        assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-while-down"))).isEmpty();
+
+        assertThat(count("employees")).isEqualTo(3);
+        verify(audit, never()).record(argThat((AuditEntry e) -> e.action().contains("registered-on-login")));
+    }
+
+    @Test
+    @DisplayName("login miss: a person without a login name is registered as separated, so the login check refuses them")
+    void loginMissRegistersALeaverAsSeparated() {
+        synced();
+        a8.singleLookupResult = List.of(member(3007, 2, 100L, null, null, "wx-leaver"));
+
+        Optional<EmployeeProfile> found = directory.findEmployeeByWecomUserId(new WecomUserId("wx-leaver"));
+
+        assertThat(found).isPresent();
+        assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.SEPARATED);
+    }
+
+    @Test
+    @DisplayName("login miss: a leader who is unknown or not employed is not stored (RULE-372)")
+    void loginMissValidatesTheLeader() {
+        synced();
+        a8.singleLookupResult = List.of(member(3008, 2, 100L, 99999L, "13900003008", "wx-bad-leader"));
+
+        assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-bad-leader"))).isPresent();
+
+        assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3008").query(Long.class).optional()).isEmpty();
+        assertThat(directory.findDirectLeader(user(3008))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("RULE-372 the direct leader is the person-level leader; empty when none or not employed")
+    void directLeader() {
+        synced();
+
+        assertThat(directory.findDirectLeader(user(3))).contains(user(2));
+        assertThat(directory.findDirectLeader(user(2))).contains(user(1));
+        assertThat(directory.findDirectLeader(user(1))).isEmpty();
+
+        jdbc.sql("update organization_workforce.employees set employment_status = 'SEPARATED' where id = 2").update();
+        assertThat(directory.findDirectLeader(user(3))).as("leader separated since the last sync").isEmpty();
+        assertThat(directory.findDirectLeader(user(2))).as("the person themselves is not employed").isEmpty();
+    }
+
+    @Test
+    @DisplayName("RULE-356 org unit head and regional receivables manager come from A8; empty when none")
+    void headAndManager() {
+        synced();
+
+        assertThat(directory.findOrgUnitHead(unitId(2))).contains(user(1));
+        assertThat(directory.findRegionalReceivablesManager(unitId(2))).contains(user(2));
+        assertThat(directory.findOrgUnitHead(unitId(3))).isEmpty();
+        assertThat(directory.findRegionalReceivablesManager(unitId(3))).isEmpty();
+        assertThat(directory.findOrgUnitHead(unitId(404))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("RULE-355 an org unit profile is active only while A8 keeps it enabled; disabled and revoked are not active")
+    void orgUnitProfileActiveFlag() {
+        synced();
+
+        assertThat(directory.findOrgUnit(unitId(2))).get().satisfies(u -> {
+            assertThat(u.active()).isTrue();
+            assertThat(u.parentOrgUnitId()).isEqualTo(unitId(1));
+            assertThat(u.name()).isEqualTo("Unit 2");
+        });
+        assertThat(directory.findOrgUnit(unitId(4))).get().satisfies(u -> assertThat(u.active()).isFalse());
+
+        a8.snapshot = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001"), unit(3, ROOT + "00010001")),
+                List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
+                List.of(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 2L)));
+        sync.execute(SyncTrigger.SCHEDULED, false);
+        assertThat(jdbc.sql("select status from organization_workforce.org_units where id = 4").query(String.class).single()).isEqualTo("REVOKED");
+        assertThat(directory.findOrgUnit(unitId(4))).get().satisfies(u -> assertThat(u.active()).isFalse());
+        assertThat(directory.findOrgUnit(unitId(404))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("RULE-360 ancestors come nearest first and exclude the unit itself")
+    void ancestorsNearestFirst() {
+        synced();
+
+        assertThat(directory.findAncestors(unitId(3))).containsExactly(unitId(2), unitId(1));
+        assertThat(directory.findAncestors(unitId(2))).containsExactly(unitId(1));
+        assertThat(directory.findAncestors(unitId(1))).isEmpty();
+        assertThat(directory.findAncestors(unitId(404))).isEmpty();
+    }
+}
