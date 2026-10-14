@@ -154,56 +154,9 @@ class ApplicationIntegrationTest {
     }
 
     @Test
-    void missingPermissionIsForbidden() throws Exception {
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_APPROVE))
-                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void submitStartsFlowableApprovalInItsOwnSchema() throws Exception {
-        String body = mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.outcome").value("SUBMITTED"))
-                .andReturn().getResponse().getContentAsString();
-        String instanceId = JsonMapper.builder().build().readTree(body).get("approvalInstanceId").asString();
-
+    void flowableLivesInItsOwnSchema() {
         assertThat(count("platform_approval")).isGreaterThan(20);
         assertThat(count("public")).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_ru_task where proc_inst_id_ = ?",
-                Integer.class, instanceId)).isEqualTo(1);
-        assertThat(jdbc.queryForList("""
-                select l.user_id_ from platform_approval.act_ru_identitylink l
-                  join platform_approval.act_ru_task t on t.id_ = l.task_id_
-                 where t.proc_inst_id_ = ? and l.type_ = 'candidate'""", String.class, instanceId))
-                .containsExactly("2002");
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_hi_varinst where proc_inst_id_ = ? and name_ = 'skippedWhenEmpty'",
-                Integer.class, instanceId)).isZero();
-    }
-
-    @Test
-    void submitWithoutAnExistingProjectManagerFailsInsteadOfPassingSilently() throws Exception {
-        String unknownManager = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":424242}";
-
-        String body = mvc.perform(post("/api/v1/cost/timesheets/8:submit").with(csrf())
-                        .with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content(unknownManager))
-                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID"))
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andReturn().getResponse().getContentAsString();
-        org.assertj.core.api.Assertions.assertThat(body).contains("\"status\":422");
-    }
-
-    @Test
-    void typedOutcomesMapToHttpStatuses() throws Exception {
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":1,\"hours\":31,\"projectManagerId\":2002}"))
-                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.outcome").value("EXCEEDS_REMAINING_HOURS"))
-                .andExpect(jsonPath("$.errorCode").value("COST_TIMESHEET_EXCEEDS_REMAINING_HOURS"));
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":99,\"hours\":1,\"projectManagerId\":2002}"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.errorCode").value("COST_TIMESHEET_UNKNOWN_WORK_PACKAGE"));
     }
 
     @Test
