@@ -14,7 +14,8 @@
 | `one_dev_app` 加 `work_mem = 16MB`；`one_dev_readonly` 加只读事务、60 s 语句超时、`work_mem = 8MB` | 清单 C-3 与 ADR-0025 第 2 条要求按角色设超时与 work_mem；数值为**建议**，C-1 后按实例规格调整 |
 | `one_dev_migrator` 加 `lock_timeout = 10s` | 同实例共用，迁移拿不到锁时尽快失败，不长时间挡住 IT 服务门户 |
 | 增加 STEP 0 的库存在、连接预算查询与 V1–V8 校验 | 执行前后可核对 |
-| 增加 `cost_timesheet` schema 及其授权（2026-10-15 one-ops-1a） | 工时迁移 `V20261014140000` 起在该 schema 建表；不预建时 Flyway 会自行建出（属主 one_dev_owner），但运行角色没有 USAGE 与默认权限，工时接口在运行时报权限错误。`delivery_execution` 不预建：修复批的迁移先建后删，由迁移自己处理 |
+| 增加 `platform_idempotency` schema 及其授权、预建 `btree_gist`（2026-10-15 one-ops，R-3a 复核发现） | 幂等键模块的基线迁移在该 schema 建表；不预建时 Flyway 自行建出，运行角色没有 USAGE 与默认权限，带幂等键的写请求报权限错误。`btree_gist` 与 `one_db_roles_schemas.sql` 对齐预建。另新增 `sql/c3_dev_db_after_migrations.sql`（§4b：每次迁移后撤销运行角色对版本表的 DELETE、TRUNCATE）。验证：`sql/c3_dev_db_check.sh` 在本机临时 postgres:18 容器里建库建角色、以迁移角色执行全部基线迁移、再以运行角色检查 8 项（修复前幂等表读写被拒、版本表可删除；修复后 8 项全部通过） |
+| 增加 `cost_timesheet` schema 及其授权（2026-10-15 one-ops-1a） | 工时迁移 `V20261014140000` 起在该 schema 建表；不预建时 Flyway 会自行建出（属主 one_dev_owner），但运行角色没有 USAGE 与默认权限，工时接口在运行时报权限错误。迁移基线合并（R-3a，#103）后 `delivery_execution` 已退役，不再有对应迁移与 schema。 |
 
 ## 执行前确认点
 
@@ -32,6 +33,14 @@
 psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f sql/c3_dev_db.sql
 psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_dev -f sql/c3_dev_db_verify.sql | tee c3-verify-$(date +%F).txt
 ```
+
+每次发布迁移之后（首次部署起）执行一次，幂等：
+
+```bash
+psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_dev -f sql/c3_dev_db_after_migrations.sql
+```
+
+改脚本后先在本机验证（需要 docker，临时 postgres:18 容器用完即删，口令运行时生成）：`sql/c3_dev_db_check.sh`。
 
 STEP 0 / STEP 2 的冲突检查有任何一行返回即停止（`ON_ERROR_STOP` 不会因查询有结果而停，须人工看输出；用 DMS 时逐段执行）。
 
