@@ -88,7 +88,7 @@ erDiagram
 - `USER_ACCOUNT.id` 与 `EMPLOYEE.id` 沿用 A8 `ORG_MEMBER.ID`（有符号 bigint，生产存在负数）；`ORG_UNIT.id` 沿用 `ORG_UNIT.ID`。ID 沿用只为身份连续性；新系统不向 A8 写任何业务数据，也不为老 OA 存储过程（`oa-quotation-sync`、`oa-cuvalue-sync` 等，把权责事实写进 A8）供数，它们随所服务的 OA 流程按阶段下线（§9a，`phase1a/A8_ACCESS_REGISTER.md`）。
 - `APPROVAL_REQUEST` 唯一键（流程类型, 单据 ID）+（流程类型, 单据 ID, 轮次）（RULE-266/278 修正）。
 - `INBOX_ITEM` 是读模型：新引擎任务 + 老系统 `bpm_task_ext` 只读投影，带来源标记。
-- 内核值对象（ADR-0016）：`Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId`；1a 实际使用 `LegalEntityId`（编号、数据范围）。
+- 内核值对象（ADR-0016）：`Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId`；1a 实际使用 `LegalEntityId`（编号、数据范围）。`ProjectCoordinate` 先用最小形态「项目 + 可选 WBS 节点」，Phase 2 由业务确认是否增加维度（用户 2026-10-14：「先用最小形态，Phase 2 再定 (Recommended)」）。法人代码由 `organization.workforce.legal_entities` 维护（用户：「新系统维护法人小表 (Recommended)」）。
 
 ---
 
@@ -170,7 +170,7 @@ paths:
   /platform/approval/requests/{id}/cancel: { post: {} }
   /platform/numbering/numbering-rules/{documentType}:
     put: { description: "权限 platform.numbering:numbering-rule:update（ADR-0010）" }
-  /platform/numbering/legacy-numbers: { get: { description: "原编号检索与对照" } }
+  /platform/legacy-numbers: { get: { description: "原编号检索与对照；权限 platform.numbering:legacy-number:read（实际路径 /api/v1/platform/legacy-numbers，G41）" } }
 ```
 
 ```yaml

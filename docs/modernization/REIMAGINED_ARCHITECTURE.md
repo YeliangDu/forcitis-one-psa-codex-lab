@@ -61,11 +61,27 @@ C4Container
 platform.integration ->
 platform.audit ->
 platform.scheduling ->
-organization.workforce -> platform.audit
+organization.workforce -> platform.audit, platform.integration
 platform.identity -> organization.workforce, platform.integration, platform.audit
-platform.numbering -> platform.identity
+platform.numbering -> platform.identity, organization.workforce
 platform.approval -> platform.identity, organization.workforce, platform.integration, platform.audit
 ```
+
+### 2.1 检查点 2 之后的修订（用户决定，2026-10-14）
+
+上表中凡与本节冲突处，以本节为准。
+
+| 修订 | 用户决定（原话） | 落点 |
+|---|---|---|
+| **外部系统适配器集中到 `platform.integration`**（推翻上文「防腐层放进使用它的模块」） | 「G46 为什么新系统要放 A8 这类旧系统的名称？」→「改名并移到 integration」 | <ul><li>致远 / A8 视图读取：`platform.integration.infrastructure.seeyon`，api 端口 `OrgSource`。</li><li>致远验票：同一适配器，端口 `SsoTicketVerifier`。</li><li>老库组织短名：`platform.integration.infrastructure.legacy`，端口 `OrgShortNames`。</li><li>workforce 与 identity 只经端口取数，领域模块的类、包、配置键、表、事件里不出现 a8 / seeyon / u8c / yudao（LegacyShapeTest）。</li><li>致远登录在 identity 中称为通用 SSO（`sessions:sso-login`）。</li><li>例外：老待办视图仍由 `platform.approval.infrastructure.legacy` 读取（按角色命名 legacy，无供应商名）。</li><li>依赖新增 `organization.workforce -> platform.integration`。</li></ul> |
+| 组织快照是过渡态，来源可替换 | 「主数据全部进新系统」「自建整个 hrm」 | `OrgSource` 端口后换实现即可。PATH 编码只在 seeyon 适配器内换算为父 id，快照表与接口不含 path |
+| **法人小表**放在 `organization.workforce` | 「新系统维护法人小表 (Recommended)」 | <ul><li>`legal_entities`（法人代码如 FST）由管理员维护，不从外部同步。</li><li>numbering 的 `{LE}` 渲染法人代码，例如 `QT-FST-202610-0001`。</li><li>依赖新增 `platform.numbering -> organization.workforce`；正式词表中 LegalEntity 归属 organization.workforce。</li></ul> |
+| 原编号检索单独授权 | 「单独设 legacy-number:read (Recommended)」 | `platform.numbering:legacy-number:read` |
+| **退回即结束本轮**（取代 §3.4 的发起人节点与令牌回移） | 「退回即结束本轮，重提开新一轮 (Recommended)」 | <ul><li>退回（含子流程内驳回）以 RETURNED 结束本轮实例。</li><li>重提在同一单据上开新一轮（`start_rounds`）。</li><li>只有上一轮发起人能开新一轮。</li><li>INITIATOR 指派类型删除。</li><li>RULE_REVIEWS「实现方式变更」记录 RULE-275/287。</li></ul> |
+| **指派规则类型** | 「按建议：保留 5 种、推迟 3 种、不建 2 种」 | <ul><li>实现：ROLE、DEPARTMENT_HEAD、INITIATOR_SUPERVISOR、FORM_FIELD_USERS（第 5 种 INITIATOR 随上一条删除）。</li><li>推迟：区域应收负责人，见 1b OPP_QUOTATION 与 Phase 2 PM_BUDGET；表单用户的上级，见 Phase 2/4 PM_ETC、PM_REVENUE；部门总监，生产无使用，按新角色体系再定义。</li><li>不建：NAMED_USERS、PROCESS_VARIABLE_USERS。</li><li>由 BpmnRuleConventionsTest 守护；说明见 `phase1a/TIMESHEET_REPLAY.md`。</li></ul> |
+| TIMESHEET 与生产当前版本（v15）对齐 | ——（依据 `runtime/prod_bpm.tsv` ##13） | <ul><li>节点：项目经理 `projectManagerId`；售前分支的区域负责人 `regionalHeadId`，路由标记 `preSalesHours`；发起人一级上级。</li><li>老变量名只在回放转换表中出现。</li><li>节点顺序与子流程范围**待用户确认**。</li></ul> |
+| 列名 `is_fee_earner`（原文 `fee_earner_flag`） | ——（DdlNamingTest：布尔列以 is_ 开头，禁用 flag） | `organization_workforce.employees.is_fee_earner` |
+| `event_publication` 归 `platform_integration` schema | psa-coordinator 同意 | Flyway 创建，关闭自动建表 |
 
 无环要点：integration 不认识 PSA 用户；企业微信 userid 由 workforce 快照持有，identity 在登录时按 userid 查 workforce 的 api（取消 `external_identities` 表，评审 #8）；通知时 approval 从 workforce 取收件人的 userid，再调 integration 发送；审计由各模块调用 audit 的 api。各模块 api 方法数 ≤ 12（`ArchitectureRulesTest`）。
 
@@ -93,7 +109,7 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 - **§9a 的机器守护**（architecture-critic §9a 专项核对，2026-10-14）：
   - **视图列白名单入库**：`organization/workforce/seeyon-view-columns.yaml` 列出视图名、列名、来源表与列、分类（组织 / 身份），启动时校验 `INFORMATION_SCHEMA.COLUMNS` 与白名单**完全相等**（不只是「所需列存在」）。DBA 脚本只授予视图 SELECT，对 `a8_db` 基表显式 DENY；A8 账号无 INSERT / UPDATE / EXEC，并由集成测试断言写操作被拒绝。
   - **1a 白名单范围**：`ORG_UNIT`、`ORG_RELATIONSHIP`（负责人、区域 AR 两种关系类型）、`ADDRESSBOOK` 扩展属性 32 / 33 与 `CTP_ENUM*` 显示值、`ORG_POST`、`ORG_MEMBER`、`ORG_PRINCIPAL.LOGIN_NAME`，以及 `formmain_0307` 的 3 列（企业邮箱、性别、收费员工标识）。生日（`EXT_ATTR_21`，敏感信息）、银行卡等不进 1a 视图。
-  - **收费员工标识**：A8 `FIELD0244` 在新系统中命名为 `employees.fee_earner_flag`（不叫 `is_billable`），只是人事分类。可计费性由新系统判定，这个标识只是输入之一；以后凡是用到它的权责事实，都要把当时的值和同步批次号一并快照。
+  - **收费员工标识**：A8 `FIELD0244` 在新系统中命名为 `employees.is_fee_earner`（不叫 `is_billable`），只是人事分类。可计费性由新系统判定，这个标识只是输入之一；以后凡是用到它的权责事实，都要把当时的值和同步批次号一并快照。
   - **单一路径**：批量同步与登录未命中时的单人查询共用同一视图、同一映射器，只是查询条件不同。
   - **ArchUnit**：只有 `organization.workforce.infrastructure..` 能使用 A8 数据源；只有 `platform.identity.infrastructure..` 能使用致远验票客户端。
   - **源码扫描测试**：`src/main` 与 Flyway 中禁止出现 `formmain_`、`formson_`、`a8_db`、`LEXMIS`、`T_U8C_`（白名单视图名除外）。
