@@ -61,6 +61,12 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     }
 
     @Override
+    public boolean hasCounterFor(long legalEntityId) {
+        return jdbc.sql("select exists (select 1 from platform_numbering.numbering_counters where legal_entity_id = :le)")
+                .param("le", legalEntityId).query(Boolean.class).single();
+    }
+
+    @Override
     public void save(NumberingRule rule) {
         jdbc.sql("""
                         insert into platform_numbering.numbering_rules (document_type, pattern, reset_policy, start_value, confirmation_status)
