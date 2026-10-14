@@ -1,5 +1,5 @@
 -- 审批任务并入审批请求聚合：任务不再有自己的版本与事件序号，随请求加锁、保存；补认领 / 办理时刻、办理结果与意见、提醒时点（数据打分卡 K5、K6）。
--- 不给旧行补猜测的值：新增的必填列没有默认值、收紧的约束校验全部既有行，库里若已有审批任务则迁移失败。1a 未上线、没有生产数据；dev 库先清空审批与工时单业务表再部署（PREDEPLOY_CHECKLIST B-10）。
+-- 不给旧行补猜测的值：新增的必填列没有默认值、收紧的约束校验全部既有行，库里若已有审批任务则迁移失败。1a 未上线、没有生产数据；dev 库先清空审批与工时单业务表再部署（PREDEPLOY_CHECKLIST B-11）。
 ALTER TABLE platform_approval.approval_requests ADD COLUMN summary_text text NOT NULL;
 COMMENT ON COLUMN platform_approval.approval_requests.summary_text IS '业务摘要：发起时由拥有单据的业务模块给出，卡片显示它而不回查单据（本轮）';
 COMMENT ON COLUMN platform_approval.approval_requests.event_count IS '事件序号：该聚合已记录的领域事件数，每个事件加一，下一个事件取其加一作信封的聚合版本；与乐观锁版本 version（每次保存加一）是两个计数';
