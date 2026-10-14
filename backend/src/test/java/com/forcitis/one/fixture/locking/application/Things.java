@@ -64,4 +64,34 @@ public final class Things {
             return things.find(id);
         }
     }
+
+    public interface Fetcher {
+        Object fetch(long id);
+    }
+
+    public static class LockingFetcher implements Fetcher {
+        private final ThingRepository things;
+
+        public LockingFetcher(ThingRepository things) {
+            this.things = things;
+        }
+
+        @Override
+        public Object fetch(long id) {
+            return things.findForUpdate(id);
+        }
+    }
+
+    public static class ListThroughInterface {
+        private final Fetcher fetcher;
+
+        public ListThroughInterface(Fetcher fetcher) {
+            this.fetcher = fetcher;
+        }
+
+        @Transactional(readOnly = true)
+        public Object execute(long id) {
+            return fetcher.fetch(id);
+        }
+    }
 }

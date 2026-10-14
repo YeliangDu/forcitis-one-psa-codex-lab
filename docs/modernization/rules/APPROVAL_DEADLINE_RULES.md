@@ -2,12 +2,12 @@
 
 Scope: Phase 1a `platform.approval`, the generic node deadline (T+1 in the first use: timesheets). These are rules of FORCITIS one itself, decided by the user on 2026-10-14; they have no counterpart in the old system, which only had a manual reminder. The numbers are fixed by the user decisions D-1a-110..117 and live as attributes of the node in the process file (`deadlineWorkdays`, `escalationWorkdays`, always together; D-1a-100: no decision table in 1a), not in code; a new version of the process file applies to the approvals started after it is deployed. D-1a-111/112/113 supersede the wording of RULE-377..381 where they differ: T is the workday the task is created in, the deadline is 23:59, the reminder is 09:00 of the next workday, the escalation 09:00 of the m-th workday after the reminder, a claimed task goes to the claimant's superior and an unclaimed one to the process administrator.
 
-User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 审批完毕……" — T counts from the submission day, +1 counts in workdays (needs the work calendar); remind when late, escalate to the superior, count toward timeliness statistics, never approve automatically.
+User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 审批完毕……" — T is the workday the task is created in (D-1a-111), +1 counts in workdays (needs the work calendar); remind when late, escalate to the superior, count toward timeliness statistics, never approve automatically.
 
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|
-| RULE-377 | approval | A task's deadline is the end of the n-th workday after the submission day, in the legal entity's calendar | P0 | No |
-| RULE-378 | approval | The number of workdays and the escalation interval of a node come from the node's decision table | P0 | No |
+| RULE-377 | approval | A task's deadline is 23:59 of the n-th workday after the workday the task is created in, in the legal entity's calendar | P0 | No |
+| RULE-378 | approval | The number of workdays and the escalation interval of a node are attributes of the node in the process file | P0 | No |
 | RULE-379 | approval | A task that is still unhandled at its deadline is recorded as overdue once and its holders are reminded | P0 | No |
 | RULE-380 | approval | Still unhandled after the escalation point, the task goes to the holders' superiors | P0 | No |
 | RULE-381 | approval | With no superior known, an overdue task goes to the process administrator and raises an alert | P0 | No |
@@ -15,38 +15,39 @@ User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 �
 | RULE-383 | approval | A calendar that cannot answer fails the submission | P0 | No |
 | RULE-384 | approval | Overdue and escalation are events with the task's own event number, counted for timeliness statistics | P1 | No |
 
-### RULE-377: A task's deadline is the end of the n-th workday after the submission day, in the legal entity's calendar
+### RULE-377: A task's deadline is 23:59 of the n-th workday after the workday the task is created in, in the legal entity's calendar
 **Category:** Calculation
 **Priority:** P0
-**Source:** user decision 2026-10-14 (REIMAGINED_ARCHITECTURE.md §2.1); `organization.attendance.api.WorkCalendar.endOfWorkdayAfter`
-**Plain English:** The submission day is the business date (Asia/Shanghai) of the round start; it never counts. The deadline of every task of that round is the end (24:00 business zone) of the n-th workday after it, counted with the work calendar of the document's legal entity: weekends and public holidays do not count, make-up workdays do. Tasks created later in the same round (a later node) keep the deadline of the submission day.
+**Source:** user decisions D-1a-110/111 (REIMAGINED_ARCHITECTURE.md §2.1); `organization.attendance.api.WorkCalendar`
+**Plain English:** T is the workday the task is created in (when that day is not a workday, the next workday); it is neither the work date nor the day the document was submitted. The deadline of the task is 23:59 (business zone Asia/Shanghai) of the n-th workday after T, counted with the work calendar of the document's legal entity: weekends and public holidays do not count, make-up workdays do. Every task has its own T: a task of a later node, created days later, gets a later deadline.
 **Specification:**
-  Given a timesheet submitted on Friday 2026-10-16 and n = 1
-  When its first task is created
-  Then the deadline is the end of Monday 2026-10-19 (Tuesday 00:00)
+  Given a task created on Friday 2026-10-16 and n = 1
+  Then T is Friday and the deadline is 23:59 on Monday 2026-10-19
   Given Monday 2026-10-19 is a public holiday
-  Then the deadline is the end of Tuesday 2026-10-20
-  Given Saturday 2026-10-17 is a make-up workday
-  Then the deadline is the end of Saturday 2026-10-17
+  Then the deadline is 23:59 on Tuesday 2026-10-20
+  Given a task created on Saturday 2026-10-17 that is a rest day
+  Then T is the next workday, Monday 2026-10-19, and the deadline 23:59 on Tuesday 2026-10-20
+  Given the document's work date is two weeks before the task is created
+  Then the work date plays no part in the deadline
 **Parameters:** n from RULE-378; the calendar is maintained by an administrator (default calendar for every legal entity, a legal-entity calendar is reserved).
-**Edge cases handled:** Submission on a holiday or weekend counts from that date as well: the first workday after it is day 1.
-**Tests:** `ApprovalDeadlineIT` (weekend, holiday, make-up workday).
+**Edge cases handled:** A task created on a rest day starts counting from the next workday.
+**Tests:** `ApprovalDeadlineIT` (weekend, holiday, make-up workday, creation day instead of work date).
 **Confidence:** High.
 
-### RULE-378: The number of workdays and the escalation interval of a node come from the node's decision table
+### RULE-378: The number of workdays and the escalation interval of a node are attributes of the node in the process file
 **Category:** Policy
 **Priority:** P0
-**Source:** user decision 2026-10-14 ("B 决策表管业务判断")
-**Plain English:** The decision table `{process key}_nodes` answers, per node and per routing facts, the deadline in workdays and the interval (also in workdays, counted from the deadline's day) until the escalation. A node whose answer has no deadline has none. The shipped values (1 and 1) are placeholders for TIMESHEET until the old-system practice is checked. The table version deployed when the approval starts applies to that approval.
+**Source:** user decision D-1a-100 (no decision table in 1a); the node attributes `deadlineWorkdays` and `escalationWorkdays`
+**Plain English:** The deadline in workdays (n) and the interval in workdays from the reminder day to the escalation (m) are two attributes of the node's rule element in the process file, always given together and both at least 1. A node without them has no deadline. The process file version deployed when the approval starts applies to that approval.
 **Specification:**
-  Given the shipped table gives deadline 1 and escalation 1 for the node
+  Given a node carries deadlineWorkdays = 1 and escalationWorkdays = 1
   When a task of the node is created on Friday
-  Then due = end of the next workday and escalate-at = end of the workday after that
-  Given a newer table version gives 3 and 2
+  Then due = 23:59 of the next workday, remind = 09:00 of the workday after that, escalate = 09:00 one workday after the reminder day
+  Given a newer process file version sets 3 and 2
   Then approvals started afterwards use 3 and 2, approvals already running keep 1 and 1
-**Parameters:** `deadlineWorkdays`, `escalationWorkdays` outputs of the table.
-**Edge cases handled:** A node the table has no rule for fails the start (G-1); a deadline without an interval, or the reverse, is refused.
-**Tests:** `NodeDecisionIT`, `ApprovalDeadlineIT.numbersComeFromTheDecisionTable`.
+**Parameters:** `deadlineWorkdays`, `escalationWorkdays`.
+**Edge cases handled:** One of the two alone, or a value below 1, makes the node configuration invalid and the start fails with an error, nothing is guessed.
+**Tests:** `ApprovalDeadlineIT`, `NodeRoutingIT`.
 **Confidence:** High.
 
 ### RULE-379: A task that is still unhandled at its deadline is recorded as overdue once and its holders are reminded

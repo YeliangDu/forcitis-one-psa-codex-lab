@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * DDD-9 / review M-1: looking at something must never wait for the person who is changing it. A use case called Get*, List* or Check*
  * runs in a read-only transaction and reaches no repository method that locks (named *ForUpdate or lock*), however many components
- * it goes through.
+ * it goes through, including a call through an interface, which is followed into every implementation.
  */
 class ReadPathsDoNotLockTest {
 
@@ -63,8 +63,19 @@ class ReadPathsDoNotLockTest {
                             + "." + call.getName() + " (through " + method.getOwner().getSimpleName() + "." + method.getName() + ")");
                 }
                 call.getTarget().resolveMember().ifPresent(target -> {
-                    if (target.getOwner().getPackageName().startsWith(ROOT) && !target.getOwner().isInterface()) {
+                    JavaClass owner = target.getOwner();
+                    if (!owner.getPackageName().startsWith(ROOT)) {
+                        return;
+                    }
+                    if (!owner.isInterface()) {
                         todo.push(target);
+                        return;
+                    }
+                    for (JavaClass implementation : owner.getAllSubclasses()) {
+                        if (!implementation.isInterface()) {
+                            implementation.getAllMethods().stream().filter(m -> m.getName().equals(target.getName())
+                                    && m.getRawParameterTypes().equals(target.getRawParameterTypes())).forEach(todo::push);
+                        }
                     }
                 });
             }
@@ -90,6 +101,7 @@ class ReadPathsDoNotLockTest {
 
         assertThat(problems).anyMatch(p -> p.contains("GetThing") && p.contains("not readOnly"));
         assertThat(problems).anyMatch(p -> p.contains("ListThings") && p.contains("findForUpdate"));
+        assertThat(problems).anyMatch(p -> p.contains("ListThroughInterface") && p.contains("findForUpdate"));
         assertThat(problems).noneMatch(p -> p.contains("CheckThing"));
     }
 }

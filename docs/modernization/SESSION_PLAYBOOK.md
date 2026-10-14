@@ -247,3 +247,4 @@
 
 **已登记的例外**（psa-coordinator 2026-10-14 接受）：
 - 第 1 项：`organization.workforce` 的 `BeginSyncRun` / `ApplySourceSnapshot` 在开始新的同步运行时，会在同一事务内放行被取代的 HELD 记录、关闭被遗弃的 RUNNING 记录（涉及多条 `SyncRun`）。理由：这些都是同一类型的运维记录，拆成异步会留下「两条同步同时运行」的并发窗口。
+- 第 1 项：`cost.timesheet` 的 `SubmitTimesheet` 在工时单首次提交时，同一事务内创建工时单并向编号服务取号（涉及 `Timesheet` 与 `NumberingRule` 的计数器）。理由：编号与单据同生同灭，拆开会留下空号或重号；被改的计数器只有一次原子取号，事件信封的 `relatedAggregates` 列出它，登记在 `architecture/multi-aggregate-exceptions.txt`，由 `SingleAggregateGuardTest` 守护。

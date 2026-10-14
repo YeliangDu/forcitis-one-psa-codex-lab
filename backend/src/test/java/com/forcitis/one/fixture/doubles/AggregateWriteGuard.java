@@ -28,6 +28,7 @@ public class AggregateWriteGuard {
     static final Path EXCEPTIONS = Path.of("architecture/multi-aggregate-exceptions.txt");
     private static final List<String> VIOLATIONS = new CopyOnWriteArrayList<>();
     private final ThreadLocal<Set<String>> savedInTransaction = new ThreadLocal<>();
+    private final ThreadLocal<Set<String>> namedByEvents = new ThreadLocal<>();
 
     public static List<String> violations() {
         return List.copyOf(VIOLATIONS);
@@ -44,12 +45,20 @@ public class AggregateWriteGuard {
             if (savedInTransaction.get() == null) {
                 Set<String> kinds = new LinkedHashSet<>();
                 savedInTransaction.set(kinds);
+                Set<String> named = new LinkedHashSet<>();
+                namedByEvents.set(named);
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override
                     public void afterCompletion(int status) {
                         savedInTransaction.remove();
+                        namedByEvents.remove();
                         if (kinds.size() > 1 && !registered(kinds)) {
                             VIOLATIONS.add("a transaction saved " + new TreeSet<>(kinds) + " and that set is not in " + EXCEPTIONS);
+                        } else if (kinds.size() > 1 && !named.containsAll(kinds)) {
+                            Set<String> missing = new TreeSet<>(kinds);
+                            missing.removeAll(named);
+                            VIOLATIONS.add("a transaction saved " + new TreeSet<>(kinds) + " but its events do not name " + missing
+                                    + " as the aggregate or in relatedAggregates (DDD-1)");
                         }
                     }
                 });
@@ -57,6 +66,16 @@ public class AggregateWriteGuard {
             savedInTransaction.get().add(call.getArgs()[0].getClass().getSimpleName());
         }
         return result;
+    }
+
+    /** The aggregates the events of the running transaction name: their own, and the ones they say were touched together. */
+    @org.springframework.context.event.EventListener
+    public void observe(com.forcitis.one.kernel.event.DomainEvent event) {
+        Set<String> named = namedByEvents.get();
+        if (named != null) {
+            named.add(event.envelope().aggregateType());
+            event.envelope().relatedAggregates().forEach(related -> named.add(related.aggregateType()));
+        }
     }
 
     static boolean registered(Set<String> aggregates) {

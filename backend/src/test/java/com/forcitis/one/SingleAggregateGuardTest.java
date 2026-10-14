@@ -2,7 +2,21 @@ package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.fixture.aggregates.domain.SampleRepository;
+import com.forcitis.one.fixture.aggregates.domain.Samples;
 import com.forcitis.one.fixture.doubles.AggregateWriteGuard;
+import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
+import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.event.AggregateReference;
+import com.forcitis.one.kernel.event.DomainEvent;
+import com.forcitis.one.kernel.event.EventDraft;
+import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.kernel.event.EventSource;
+import com.forcitis.one.kernel.event.SourceSystem;
+import java.time.LocalDate;
+import java.util.Arrays;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,5 +50,57 @@ class SingleAggregateGuardTest {
         List<Set<String>> registered = AggregateWriteGuard.entries(Files.readAllLines(EXCEPTIONS));
         assertThat(registered).anyMatch(set -> set.containsAll(Set.of("Timesheet", "NumberingRule")));
         assertThat(registered).noneMatch(set -> set.containsAll(Set.of("ApprovalRequest", "Timesheet")));
+    }
+
+    private static List<String> transactionSaving(java.util.function.Consumer<AggregateWriteGuard> events, Object... aggregates) {
+        AggregateWriteGuard guard = new AggregateWriteGuard();
+        org.springframework.aop.aspectj.annotation.AspectJProxyFactory factory = new org.springframework.aop.aspectj.annotation.AspectJProxyFactory(
+                (SampleRepository) aggregate -> {
+                });
+        factory.addAspect(guard);
+        SampleRepository repository = factory.getProxy();
+        AggregateWriteGuard.forget();
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            for (Object aggregate : aggregates) {
+                repository.save(aggregate);
+            }
+            events.accept(guard);
+            TransactionSynchronizationManager.getSynchronizations().forEach(synchronization -> synchronization.afterCompletion(
+                    TransactionSynchronization.STATUS_COMMITTED));
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+        List<String> found = AggregateWriteGuard.violations();
+        AggregateWriteGuard.forget();
+        return found;
+    }
+
+    private static DomainEvent eventNaming(String... related) {
+        EventEnvelope envelope = new TestEventEnvelopes().wrap(new EventDraft("cost.timesheet.TimesheetSubmitted", 1, "Timesheet", "7", 1,
+                new LegalEntityId(1), LocalDate.of(2026, 10, 14), new EventSource(SourceSystem.ONE, null),
+                Arrays.stream(related).map(type -> new AggregateReference(type, "x")).toList()));
+        return () -> envelope;
+    }
+
+    @Test
+    @DisplayName("DDD-1 driven through the real aspect: two aggregates in one transaction outside the register are a violation")
+    void theAspectCatchesAnUnregisteredPair() {
+        List<String> found = transactionSaving(guard -> {
+        }, new Samples.Alpha(), new Samples.Beta());
+
+        assertThat(found).singleElement().asString().contains("Alpha").contains("Beta").contains("not in");
+    }
+
+    @Test
+    @DisplayName("DDD-1 a registered pair must also be named by the events of its transaction in relatedAggregates; naming it passes, silence is a violation")
+    void aRegisteredPairMustBeNamedByTheEvents() {
+        Object timesheet = new Samples.Timesheet();
+        Object counter = new Samples.NumberingRule();
+
+        assertThat(transactionSaving(guard -> {
+        }, timesheet, counter)).singleElement().asString().contains("NumberingRule").contains("relatedAggregates");
+        assertThat(transactionSaving(guard -> guard.observe(eventNaming()), timesheet, counter)).hasSize(1);
+        assertThat(transactionSaving(guard -> guard.observe(eventNaming("NumberingRule")), timesheet, counter)).isEmpty();
     }
 }
