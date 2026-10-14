@@ -11,7 +11,7 @@ CREATE TABLE platform_identity.user_accounts (
     version            bigint      NOT NULL DEFAULT 0
 );
 COMMENT ON TABLE platform_identity.user_accounts IS '用户账号：身份侧的启用开关与最近登录；员工姓名、部门、在职状态归组织人事模块（不在此冗余）';
-COMMENT ON COLUMN platform_identity.user_accounts.user_id IS '用户 ID：与员工 ID（A8 人员 ID，有符号 bigint）相同';
+COMMENT ON COLUMN platform_identity.user_accounts.user_id IS '用户 ID：与员工 ID（沿用组织源人员 ID，有符号 bigint）相同';
 COMMENT ON COLUMN platform_identity.user_accounts.status IS '账号状态：ENABLED / DISABLED；登录与每次解析会话时都与在职状态一起检查（RULE-326/338）';
 COMMENT ON COLUMN platform_identity.user_accounts.last_login_at IS '最近一次登录成功时间（RULE-330）';
 COMMENT ON COLUMN platform_identity.user_accounts.last_login_address IS '最近一次登录成功的客户端地址（RULE-330）';

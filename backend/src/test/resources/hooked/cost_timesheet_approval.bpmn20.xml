@@ -6,19 +6,13 @@
              targetNamespace="https://forcitis.com/psa/approval">
   <process id="cost_timesheet_approval" name="Timesheet approval (hooks)" isExecutable="true">
     <startEvent id="start"/>
-    <sequenceFlow id="toInitiatorRework" sourceRef="start" targetRef="initiatorRework"/>
-    <userTask id="initiatorRework" name="Initiator rework" flowable:skipExpression="${!returned}">
-      <extensionElements>
-        <forcitis:assignmentRule type="INITIATOR" initiatorNode="true"/>
-      </extensionElements>
-    </userTask>
-    <sequenceFlow id="toReviewStage" sourceRef="initiatorRework" targetRef="reviewStage"/>
+    <sequenceFlow id="toReviewStage" sourceRef="start" targetRef="reviewStage"/>
     <subProcess id="reviewStage" name="Manager review">
       <startEvent id="reviewStart"/>
       <sequenceFlow id="toApproverReview" sourceRef="reviewStart" targetRef="approverReview"/>
       <userTask id="approverReview" name="Approver review">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="manager_id"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
         </extensionElements>
       </userTask>
       <sequenceFlow id="toReviewEnd" sourceRef="approverReview" targetRef="reviewEnd"/>

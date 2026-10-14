@@ -2,7 +2,7 @@ package com.forcitis.one.organization.workforce.api;
 
 import com.forcitis.one.kernel.ValueObject;
 
-/** Typed id of an org unit; same value as A8 ORG_UNIT.ID (signed bigint). */
+/** Typed id of an org unit; same value as the organisation source (signed bigint). */
 @ValueObject
 public record OrgUnitId(long value) {
 

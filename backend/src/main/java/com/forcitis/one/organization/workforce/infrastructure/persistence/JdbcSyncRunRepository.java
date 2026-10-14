@@ -58,7 +58,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
     @Override
     public void markSucceeded(SyncRunId syncRunId, Instant now, RunStats stats) {
         writeStats(syncRunId, now, stats, "SUCCEEDED", null);
-        // A8 is back to normal figures: older holds are obsolete (no administrator needed, no user recorded).
+        // the source is back to normal figures: older holds are obsolete (no administrator needed, no user recorded).
         jdbc.sql("""
                 update organization_workforce.sync_runs set status = 'RELEASED', released_at = :now,
                        released_by_run_id = :run, updated_at = :now

@@ -66,11 +66,6 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
                     problems.add(key + ": " + e.getMessage());
                 }
             }
-            try {
-                FlowableApprovalEngine.initiatorNodeKey(model);
-            } catch (IllegalStateException e) {
-                problems.add(key + ": " + e.getMessage());
-            }
         }
         if (!problems.isEmpty()) {
             throw new IllegalStateException("Invalid approval process definitions:\n  " + String.join("\n  ", problems));

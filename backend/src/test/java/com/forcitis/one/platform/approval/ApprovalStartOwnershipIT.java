@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -59,7 +60,7 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
 
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(new ApprovalRequest(
                 ProcessKey.COST_TIMESHEET_APPROVAL, documentOfB, new UserId(userA), Set.of("needs-seal"),
-                List.of(new ApprovalField("manager_id", List.of(String.valueOf(userA))))))))
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(userA))))))))
                 .isInstanceOf(AccessDeniedException.class);
 
         assertThat(variablesOf(instanceOfB)).isEqualTo(before);
@@ -74,36 +75,39 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("I-5 and RULE-267/287 after B's approval was returned, A cannot restart it, cannot decide B's initiator task; B resubmits the SAME instance")
-    void anotherUserCannotResubmitAReturnedApproval() {
+    @DisplayName("I-5 and RULE-287 after B's round was returned, A cannot open the next round; B does, and it is round 2 with a new instance")
+    void anotherUserCannotOpenTheNextRound() {
         long userA = newId();
         long userB = newId();
         long manager = newId();
         organisation.person(userA, 1, null).person(userB, 1, null).person(manager, 1, null);
         String documentOfB = newKey("ownership");
-        ApprovalInstanceId instanceOfB = start(documentOfB, userB, manager);
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instanceOfB), DecisionOutcome.REJECT, "fix it")));
-        ApprovalTaskId reworkOfB = openTaskId(instanceOfB);
+        ApprovalInstanceId round1 = start(documentOfB, userB, manager);
+        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(round1), DecisionOutcome.REJECT, "fix it")));
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
-        Map<String, Object> before = variablesOf(instanceOfB);
-
-        assertThatThrownBy(() -> decideTasks.execute(new UserId(userA), List.of(new TaskDecision(reworkOfB, DecisionOutcome.APPROVE, "mine"))))
-                .isInstanceOf(AccessDeniedException.class);
+        assertThat(taskService.createTaskQuery().processInstanceId(round1.value()).count()).as("nothing is parked at the initiator").isZero();
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL,
                 documentOfB, new UserId(userA), Set.of(), List.of()))))
                 .isInstanceOf(AccessDeniedException.class);
 
-        assertThat(openTaskId(instanceOfB)).isEqualTo(reworkOfB);
-        assertThat(taskService.createTaskQuery().taskId(reworkOfB.value()).singleResult().getAssignee()).isNull();
-        assertThat(variablesOf(instanceOfB)).isEqualTo(before);
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where business_key = ?", Integer.class,
+                documentOfB)).isEqualTo(1);
+        verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
+                && entry.actorId().equals(new UserId(userA))));
 
-        // the owner's module resubmits through start: the SAME instance continues, with the fresh values (RULE-266/267)
-        ApprovalInstanceId resumed = start(documentOfB, userB, manager);
-        assertThat(resumed).isEqualTo(instanceOfB);
+        // the owner's module starts again through start: round 2 with a NEW instance, the fresh values
+        ApprovalInstanceId round2 = start(documentOfB, userB, manager);
+        assertThat(round2).isNotEqualTo(round1);
         assertThat(requestStatus(documentOfB)).isEqualTo("RUNNING");
-        assertThat(openTask(instanceOfB).getTaskDefinitionKey()).isEqualTo("approverReview");
-        assertThat(instancesOf(documentOfB)).isEqualTo(1);
+        assertThat(openTask(round2).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
+        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where business_key = ?",
+                Integer.class, documentOfB)).isEqualTo(2);
+        assertThat(instancesOf(documentOfB)).as("round 1 has ended, only round 2 runs").isEqualTo(1);
+        // a repeated call of the same start returns the running round instead of opening round 3
+        assertThat(start(documentOfB, userB, manager)).isEqualTo(round2);
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where business_key = ?", Integer.class,
+                documentOfB)).isEqualTo(2);
     }
 
     @Test

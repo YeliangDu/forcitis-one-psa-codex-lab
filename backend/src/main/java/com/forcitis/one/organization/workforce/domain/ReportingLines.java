@@ -14,7 +14,7 @@ import java.util.function.Function;
 /**
  * Validation of the person-level direct leader (RULE-372): the leader must exist, be employed, not be the person
  * themselves, and the chain must not loop. Invalid leaders are not written (empty reporting line) and reported to the
- * data stewards; valid ones, including an explicit "no leader" from A8, are synced as they are (RULE-365).
+ * data stewards; valid ones, including an explicit "no leader" from the source, are synced as they are (RULE-365).
  */
 final class ReportingLines {
 
@@ -22,7 +22,7 @@ final class ReportingLines {
     }
 
     /**
-     * @param claimed     employed people with the leader A8 names (non-null leaders only)
+     * @param claimed     employed people with the leader the source names (non-null leaders only)
      * @param statusOf    employment status of every person known after this run
      * @param storedSupervisor leader of people this run does not touch (their stored leader keeps chains continuous)
      * @param diffs       receives one ISSUE per rejected leader

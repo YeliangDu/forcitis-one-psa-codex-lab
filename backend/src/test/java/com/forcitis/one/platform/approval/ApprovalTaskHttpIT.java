@@ -40,8 +40,8 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
                 .andExpect(jsonPath("$.items[0].source").value("NEW")).andExpect(jsonPath("$.items[0].taskId").value(task))
                 .andExpect(jsonPath("$.items[0].claimed").value(false));
         mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(approve)).andExpect(status().isNoContent());
-        mvc.perform(get(BASE + "/" + task).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.assignee").value(manager))
-                .andExpect(jsonPath("$.nodeKey").value("approverReview")).andExpect(jsonPath("$.canAct").value(true));
+        mvc.perform(get(BASE + "/" + task).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.assignee").value(String.valueOf(manager)))
+                .andExpect(jsonPath("$.nodeKey").value("projectManagerReview")).andExpect(jsonPath("$.canAct").value(true));
         // a repeated claim by the claimer is harmless
         mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(approve)).andExpect(status().isNoContent());
         mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(approve).contentType(MediaType.APPLICATION_JSON)
@@ -49,7 +49,7 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RUNNING"))
                 .andExpect(jsonPath("$.instanceId").value(instance.value()));
         mvc.perform(get(BASE).with(as(head, Permission.Codes.PLATFORM_APPROVAL_TASK_READ))).andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].nodeName").value("Department review"));
+                .andExpect(jsonPath("$.items[0].nodeName").value("Supervisor review"));
     }
 
     @Test

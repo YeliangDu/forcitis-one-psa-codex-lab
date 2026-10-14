@@ -108,10 +108,6 @@ public class DecideTasks {
                 throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_DECISION_SINGLE_ONLY,
                         "Node " + task.nodeKey() + " takes exactly one decision per submission");
             }
-            if (task.initiatorNode() && decision.outcome() != DecisionOutcome.APPROVE) {
-                throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_INITIATOR_TASK_RESUBMIT_ONLY,
-                        "The initiator's task can only be resubmitted");
-            }
             boolean hookDecidesReason = task.beforeHookKey() != null && !task.beforeHookKey().isBlank();
             if (decision.outcome() == DecisionOutcome.REJECT && isBlank(decision.reason()) && !hookDecidesReason) {
                 throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED,
@@ -130,13 +126,10 @@ public class DecideTasks {
         if (decision.outcome() == DecisionOutcome.APPROVE) {
             engine.completeTask(task.taskId());
             lifecycle.publishTaskResult(task, actor, TaskOutcome.APPROVED, reason);
-            if (task.initiatorNode()) {
-                lifecycle.resumed(request);
-            }
             return lifecycle.finishIfDone(request, ApprovalStatus.RUNNING);
         }
         return task.insideSubProcess()
-                ? lifecycle.returnToInitiator(request, task, actor, reason)
+                ? lifecycle.returned(request, task, actor, reason)
                 : lifecycle.reject(request, task, actor, reason);
     }
 

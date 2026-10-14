@@ -76,7 +76,7 @@ terms:
   snake: ticket_issuer
   kind: entity
   bc: platform.identity
-  definition: 被允许签发签名票据的外部系统（KM、A8 门户、YD 门户、BI），每方一把密钥，默认关闭
+  definition: 被允许签发签名票据的外部系统（KM、组织门户、YD 门户、BI），每方一把密钥，默认关闭
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
   confidence: medium
@@ -105,20 +105,6 @@ terms:
   kind: value
   bc: platform.identity
   definition: 签名票据头部携带的密钥标识，一个签发方一把密钥
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: seeyon
-  zh: 致远
-  en: Seeyon
-  snake: seeyon
-  kind: system
-  bc: platform.identity
-  definition: 致远 A8 OA；单点登录验票的外部系统
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
   confidence: medium

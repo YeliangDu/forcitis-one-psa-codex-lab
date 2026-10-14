@@ -7,7 +7,7 @@ public enum LoginMethod {
     WECOM_WORKBENCH,
     WECOM_MINI_PROGRAM,
     WECOM_QR_CODE_LOGIN,
-    SEEYON,
+    SSO,
     SIGNED_TICKET,
     EMERGENCY;
 
