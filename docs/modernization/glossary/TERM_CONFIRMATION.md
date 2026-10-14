@@ -17,9 +17,9 @@
 | A3 | 待签项目投入（来源：在用报表：交付中心汇报 5.1–5.2） | 无合同风险敞口 / `UncontractedExposure` | `contract.riskdelivery` | FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
 | A4 | 收费工时（来源：在用报表：运营看板人效情况） | 可计费工时 / `BillableHours` | `cost.timesheet` | PSA 行业通行写法（Kantata / Certinia / Deltek 等） | 方言 |  |
 | A5 | 委外费（来源：在用报表：损益表、现金流量表（外包或分包待确认）） | 外包成本 / `OutsourcingCost` | `cost.costing` | FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
-| A6 | 本年度未开票（来源：在用报表：交付中心汇报 3.1（本年口径，不得与全量合同资产相加）） | 未开票在制（WIP） / `UnbilledWip` | `receivables.wip` | PSA 行业通行写法（Kantata / Certinia / Deltek 等）；FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
-| A7 | 已确认未开票（来源：在用报表：交付中心汇报、运营看板立项明细） | 合同资产 / `ContractAsset` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
-| A8 | 存量资产（来源：在用报表：交付中心汇报区域健康度） | 合同资产 / `ContractAsset` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
+| A6 | 已确认未开票（来源：在用报表：交付中心汇报、运营看板立项明细） | 合同资产 / `ContractAsset` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
+| A7 | 存量资产（来源：在用报表：交付中心汇报区域健康度） | 合同资产 / `ContractAsset` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
+| A8 | 本年度未开票（来源：在用报表：交付中心汇报 3.1（本年形成的已确认未开票，即合同资产的「形成期间」切片，不得与全量相加；见 r0 基线 M-17、GL-024）） | 合同资产 / `ContractAsset` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
 | A9 | 开票收入（来源：在用报表：损益表（开票收入（含税））） | 开票 / `InvoiceIssued` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号） | 方言 |  |
 | A10 | 已开票未回款（来源：在用报表：应收账款分析底表） | 应收账款 / `AccountsReceivable` | `receivables.collection` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；企业会计准则第 22 号——金融工具确认和计量（预期信用损失） | 方言 |  |
 | A11 | 回款收入（来源：在用报表：损益表区域表（含现金、保理、商票、工抵）） | 回款 / `CashReceived` | `receivables.collection` | FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
