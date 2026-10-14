@@ -21,7 +21,7 @@
 ## 在途工作会话
 | 会话 | 在做 | 下一步 |
 |---|---|---|
-| psa-1a-platform-bridge-reimagine | 修复批六路（A 审批/工时、B1 身份授权、B2 数据架构、B2b 事件指标、B3 平台约定、C 前端）；A、C、B2b 可整合，B2 终核中，B1、B3 修复中；已按 §6.1 改为滚动整合、复核按严重度分流 | 整合分支逐路并入 → 整体 opus 复审 → 我核对合并 → 删除 status/blockers/080。紧接下一批（首次部署前必须）：全部聚合主键 UUIDv7（用户已定，B3 曾擅自推迟）、84 项改名、迁移基线（含「只增不删」守护）、OneApplication main 与 spring-boot-maven-plugin（ZIP layout，回放命令走 PropertiesLauncher）、G-T1..G-T4 守护。下一批按 §6.1 七条派工 |
+| one-1a-next | 1a 下一批（NEXT_BATCH_PLAN）。已合并：W0 #97（基线开放标记、版本单调、验收测试守护）、文档更正 #91。ADR-0030 #93、0032 #94、0031 #95 用户已批准（2026-10-15），待其改状态行后合并；ADR-0029 #96 等 one-ops 生产只读计数 | W1：R-3a 纯合并基线（sonnet，opus 复核 pg_dump diff 为空）→ R-1 UUIDv7 → R-2 改名 → R-4；冻结窗口不派功能代理。再 W2 K-1..K-3、W3 F-1..F-14、W4 单独 PR 删基线标记 |
 | one-ops | 运维线长期会话。已做：C-3 dev 库与角色（one_admin 先建后轮换，builtin C.UTF-8）、B-5 A8 与老系统只读视图、C-4（Temurin 25、证书目录新布局、TLS 收紧、出站白名单、单元已装未启用）、C-6 角色与日历导出（回放导出进行中）、C-7 证书检查定时器、SLS 开通 | PR：C-3 / C-6 工具、nginx 模板、install-enable（#67 待解冲突）；DEV_DEPLOY_REMAINING 并入 #59 的 R-0..R-12；C-2 备份窗口改 02:00–03:00（先核门户夜间负载）；RDS PG verify-full（CA 链） |
 | forcitis-one-psa-36（design-sync 预演） | 已交 #64（字体令牌、预演项目同步） | 遗留：品牌字体入库、SelectField 出错样式、token 与 VI 标准色（#CF000E / #595757、Montserrat）对齐；正本同步前做 |
 
@@ -38,15 +38,16 @@
 | GitHub | environments release / dev / prod、签名私钥 secret（release）、v* 标签规则（仓库级，组织级待用户定）、immutable releases | 长期 | one-ops | — |
 
 ## 重要阻塞
-- 1a 修复批合并前禁止部署任何环境（status/blockers/080）。修复批合并前须 opus 复审。
-- 首次发布前：OneApplication 无 main（build.sh 拒绝打包），由下一批修。
+- 部署门禁只剩 status/blockers/090（数据范围整套，F-1）。基线开放标记存在时 deploy_gate 也拒绝部署（W4 单独 PR 删除）。
+- 生产前（不阻塞 dev）：C-11 关单人模式（ADR-0030，进 PROD_PREREQUISITES）、C-12 四眼与财务确认、CODEOWNERS 再定。
 
 ## 本机设施
-- CI：本机自托管 runner mac-one-1..4（`~/actions-runners/one-N`，标签 forcitis-one）。部署 runner mac-one-deploy 已从 GitHub 注销，待用户执行 R-0 重建（/opt/forcitis-one-runner、root 所有、hook、--disableupdate，用户 forcitis-deploy 已建）。发布打包与签名在 GitHub 托管机。
+- CI：本机自托管 runner mac-one-1..4（`~/actions-runners/one-N`，标签 forcitis-one）。部署 runner mac-one-deploy 已重建（/opt/forcitis-one-runner、LaunchDaemon、用户 forcitis-deploy、pre-job hook）。main 分支保护已开 strict（2026-10-15 用户「开启」）：合并前须 `gh pr update-branch <n>` 并等 CI 重跑。发布打包与签名在 GitHub 托管机。
 - 代码 PR 合并前须有 opus 复审结论；文档 PR 凭 CI 合并。
 
 ## 待合并 PR
-- #67 安装器首次 enable（one-ops 解冲突中）。已合并：#51–#61、#63–#66、#68（#62 与 #64 重复已关闭）。
+- #93、#94、#95（ADR，待 one-1a-next 改状态行）；#96（ADR-0029，待取证）。已合并至 #97（#62 重复已关闭；#73 随 #89 合入）。
+- 改守护文件（acceptance 守护、迁移守护、ci.yml、基线标记、ADR-0032 快照与迁移例外清单）的 PR：在 PR 审核中单列，须有 opus 复审（CODEOWNERS 生产前再定）。
 
 ## 采纳的规则待落地
 - §6.1 修复批流程七条（2026-10-15）：滚动整合与复核分流已用于本批，其余下一批启用；记录复审轮次与耗时作对比。
@@ -63,6 +64,11 @@
 - 财务：确认单 v2（`~/.modernize/psa/finance/FINANCE_CONFIRM_v2.html`，FQ-01..FQ-22 + 7 份 ADR），答复用 `r0/import_finance_answers.py` 导入；G1 开工前必须。FQ-18 需先跑 U8C 分类查询另行发送。
 - 用户：B1–B5 与经营问题清单（`~/.modernize/psa/bi-inputs/questions/`）；OAT 4 个文件在 ddd-theory 提交后改引提交号；确认单末尾「会计类新术语由财务逐条确认」是否保留（未答）。
 - 生产前：Phase 2 / 4 出口停用生产 SQL Agent 作业（A8_ACCESS_REGISTER #28–#31），属运维动作须用户批准。
+
+## 已登记的现有事实（one-1a-next 2026-10-15 报告，待修）
+- 生产主机上身份运维命令的「见证人」只是自报文本，有 shell 权限即可单人执行 → 生产前项，交 one-ops 写入 PREDEPLOY_CHECKLIST（与 C-11 同批定方案）。
+- 运维手册用 `--spring.profiles.active=identity-operations` 会顶掉 dev/prod，生产运维命令跳过 VERIFIED_SERVER 校验 → 缺陷，随 ADR-0030 实现（F-12）改为 include 写法，加回归测试；one-ops 同步改手册。
+- ADR-0028 第 1 条「可用超管少于 2 名即暂停」未实现（ApplySourceSnapshot 只在离职名单含超管 / 审计员时暂停）；第 4 条的运维放行命令不存在 → 缺陷卡，one-1a-next 按 §6.1 手术式修复。
 
 ## 排定的后续
 - 第三轮用语确认（复用 psa-terms-review）：1a 下一批交付后启动；合并 1a 全部提议术语（按业务 / 技术分组）、R0 的 TERMS_ROUND3_INPUT（A 组 19、新词约 45、NRPM 与「人工成本产出倍数」对齐）、前端用语（含同步 / 放行 / 被中止与 held_run 重叠、待办与 todo / inbox 重叠）、工时类别（项目 / 售前 / OH，OH 疑似方言）、legacy_system（老系统，方言为旧名称）、TS / JV 单据类型代码。ADR-0018：阶段结束时不得留有会计类提议术语。
