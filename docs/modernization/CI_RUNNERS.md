@@ -74,4 +74,4 @@ sudo launchctl bootstrap system /Library/LaunchDaemons/actions.runner.forcitis-o
 
 重新注册：按 RELEASE.md §7 R-0 第 1–8 步（令牌在 Settings → Actions → Runners 生成，一小时有效，勿写入仓库），注册后做第 8 步的演练。
 
-部署时 ECS 以只读令牌自取 GitHub Release（不经 OSS 中转），部署作业只建 GitHub 部署记录并触发 ECS，最后一跳推荐云助手固定命令（RELEASE.md §8），不需要 ECS 开入方向端口；若改用 SSH 方式，runner 所在网络须有固定公网出口 IP，ECS 安全组 22 端口只对它开放。
+部署作业经 GitHub OIDC 换取阿里云临时凭据（runner 上不存任何阿里云或 GitHub 长期凭据），把安装请求与四个 Release 附件的短期签名地址写进该环境的 OOS 参数，再调用无参数的云助手固定命令；ECS 以实例角色读回请求，直接从 GitHub 下载附件并验签（RELEASE.md §3、§8）。不需要 ECS 开入方向端口，也不需要 runner 有固定出口 IP；SSH 触发方式已删除。

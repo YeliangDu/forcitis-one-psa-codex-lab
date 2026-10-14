@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploy job, after the release was verified: resolves the four release assets of v<version> to GitHub's short-lived signed download
-# links, takes temporary Aliyun credentials for this job through GitHub OIDC (STS AssumeRoleWithOIDC), invokes the fixed Cloud Assistant
-# command with the install request as its only parameter, and waits for the installer's result.
+# links, takes temporary Aliyun credentials for this job through GitHub OIDC (STS AssumeRoleWithOIDC), writes the install request into
+# this environment's fixed OOS parameters, invokes the fixed, parameterless Cloud Assistant command, and waits for the installer's result.
 # Runbook: RELEASE.md §3, §8 among the Phase 1a infra runbooks.
 #
 #   scripts/release/ship.sh <dev|prod> <version>
@@ -10,6 +10,9 @@
 # ACTIONS_ID_TOKEN_REQUEST_URL / _TOKEN (id-token: write), ALIYUN_CLI_VERSION (toolchain.sh), and the environment variables
 # ALIBABA_CLOUD_ROLE_ARN, ALIBABA_CLOUD_OIDC_PROVIDER_ARN, ECS_REGION, ECS_INSTANCE_ID, ECS_COMMAND_ID.
 set -euo pipefail
+umask 077
+# Workflow commands (::add-mask::) must reach the job log even from inside command substitutions
+exec 3>&1
 
 env="${1:?usage: ship.sh <dev|prod> <version>}"
 version="${2:?usage: ship.sh <dev|prod> <version>}"
@@ -21,8 +24,11 @@ need() {
 }
 
 INVOCATION_TIMEOUT_SECONDS=2700
-# Same limit and hosts as the installer (remote_install.sh)
-MAX_REQUEST_BYTES=16384
+POLL_SECONDS=10
+MAX_POLL_FAILURES=6
+# Same names, limit and hosts as the installer (remote_install.sh)
+REQUEST_PARAMETER_PREFIX=forcitis-one-deploy-request
+MAX_PARAMETER_CHARS=4096
 ASSET_HOSTS='objects.githubusercontent.com release-assets.githubusercontent.com'
 OIDC_AUDIENCE=sts.aliyuncs.com
 STS_ENDPOINT=https://sts.aliyuncs.com
@@ -38,116 +44,134 @@ need GH_TOKEN GITHUB_REPOSITORY GITHUB_RUN_ID GITHUB_RUN_ATTEMPT ACTIONS_ID_TOKE
 installed_cli="$(aliyun version 2>/dev/null || true)"
 [ "$installed_cli" = "$ALIYUN_CLI_VERSION" ] || fail "aliyun CLI $ALIYUN_CLI_VERSION required, found '${installed_cli:-none}'"
 
-work="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/forcitis-one-ship.XXXXXX")"
-chmod 700 "$work"
-trap 'rm -rf "$work"' EXIT
-
-# Every token and the signed links go through files in $work, never onto a command line
-(umask 077 && printf 'Authorization: Bearer %s\n' "$GH_TOKEN" > "$work/github-header")
-
+# Tokens, credentials and signed links stay in pipes and shell variables: never in a file, and tokens never on a command line. The
+# signed links do appear on the aliyun command line when written to OOS (RELEASE.md §10).
 top="forcitis-one-$version"
 asset_ids="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$version" | python3 -I -c '
 import json, sys
 release, top = json.load(sys.stdin), sys.argv[1]
 if release.get("draft") is not False:
     sys.exit("the release is a draft or missing")
-for name in (f"{top}.tar.gz", f"{top}.tar.gz.sha256", f"{top}.release", f"{top}.release.sig"):
-    found = [a for a in release.get("assets", []) if a.get("name") == name and a.get("state") == "uploaded"]
+for key, suffix in (("bundle", ".tar.gz"), ("bundle-sha256", ".tar.gz.sha256"), ("statement", ".release"), ("statement-sig", ".release.sig")):
+    found = [a for a in release.get("assets", []) if a.get("name") == top + suffix and a.get("state") == "uploaded"]
     if len(found) != 1 or type(found[0].get("id")) is not int:
-        sys.exit(f"release has {len(found)} uploaded assets named {name}, expected exactly one")
-    print(name, found[0]["id"])' "$top")" || fail "release v$version does not have the four assets"
+        sys.exit(f"release has {len(found)} uploaded assets named {top + suffix}, expected exactly one")
+    print(key, found[0]["id"])' "$top")" || fail "release v$version does not have the four assets"
 
 # The asset API answers 302 with the signed link; it is read from Location and never followed here
-: > "$work/links"
-while read -r name id; do
-  status="$(curl -sS --proto '=https' --tlsv1.2 --max-time 60 --max-redirs 0 -H @"$work/github-header" \
-    -H 'Accept: application/octet-stream' -H 'X-GitHub-Api-Version: 2022-11-28' -o /dev/null -D "$work/headers" -w '%{http_code}' \
-    "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$id")" || fail "asset API request for $name failed"
-  [ "$status" = 302 ] || fail "asset API answered $status for $name, expected a redirect to a signed link"
-  python3 -I - "$work/headers" "$name" "$ASSET_HOSTS" >> "$work/links" <<'PY' || fail "no acceptable signed link for $name"
-import sys
+asset_keys=() asset_links=()
+while read -r key id; do
+  link="$(printf 'Authorization: Bearer %s\n' "$GH_TOKEN" \
+    | curl -q -g -sS --proto '=https' --tlsv1.2 --max-time 60 --max-redirs 0 -H @- -H 'Accept: application/octet-stream' \
+        -H 'X-GitHub-Api-Version: 2022-11-28' -o /dev/null -D - "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$id" \
+    | python3 -I -c '
+import re, sys
 from urllib.parse import parse_qs, urlsplit
-headers, name, hosts = sys.argv[1], sys.argv[2], sys.argv[3].split()
-locations = [line.split(":", 1)[1].strip() for line in open(headers, encoding="latin-1") if line.lower().startswith("location:")]
+key, hosts, max_chars = sys.argv[1], sys.argv[2].split(), int(sys.argv[3])
+lines = sys.stdin.buffer.read().decode("latin-1").splitlines()
+statuses = [l.split()[1] for l in lines if l.startswith("HTTP/") and len(l.split()) > 1]
+answered = statuses[-1] if statuses else "nothing"
+if answered != "302":
+    sys.exit(f"{key}: asset API answered {answered}, expected a redirect to a signed link")
+locations = [l.split(":", 1)[1].strip() for l in lines if l.lower().startswith("location:")]
 if len(locations) != 1:
-    sys.exit(f"{name}: {len(locations)} Location headers")
+    sys.exit(f"{key}: {len(locations)} Location headers")
 url = locations[0]
 parts = urlsplit(url)
 if parts.scheme != "https" or parts.netloc not in hosts or parts.port is not None or parts.username is not None:
-    sys.exit(f"{name}: signed link is not https on {' or '.join(hosts)} (host {parts.netloc!r})")
+    sys.exit(f"{key}: signed link is not https on {chr(32).join(hosts)} (host {parts.netloc!r})")
+if len(url) > max_chars or not re.fullmatch(r"[!-~]+", url) or any(c in url for c in "\"\\{}[]"):
+    sys.exit(f"{key}: signed link has {len(url)} characters or characters the installer refuses")
 expires = parse_qs(parts.query).get("se", ["not stated"])[0]
-print(f"{name}: signed link on {parts.netloc}, valid until {expires}", file=sys.stderr)
-print(name, url)
-PY
+print(f"{key}: signed link on {parts.netloc}, {len(url)} characters, valid until {expires}", file=sys.stderr)
+print(url)' "$key" "$ASSET_HOSTS" "$MAX_PARAMETER_CHARS")" || fail "no acceptable signed link for $key"
+  asset_keys+=("$key")
+  asset_links+=("$link")
 done <<< "$asset_ids"
-rm -f "$work/github-header" "$work/headers"
+[ "${#asset_keys[@]}" -eq 4 ] || fail "resolved ${#asset_keys[@]} signed links, expected 4"
 
-python3 -I - "$work/links" "$version" "$env" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$MAX_REQUEST_BYTES" > "$work/parameters" <<'PY' \
-  || fail "could not build the install request"
-import base64, json, sys
-links, version, env, run_id, run_attempt, max_bytes = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5]), int(sys.argv[6])
-assets = dict(line.split(" ", 1) for line in open(links).read().splitlines())
-request = {"version": version, "environment": env, "run_id": run_id, "run_attempt": run_attempt, "assets": assets}
-encoded = base64.b64encode(json.dumps(request, separators=(",", ":")).encode("utf-8")).decode("ascii")
-if len(encoded) > max_bytes:
-    sys.exit(f"install request is {len(encoded)} characters, the installer takes at most {max_bytes}")
-print(f"install request: {len(encoded)} characters", file=sys.stderr)
-json.dump({"request": encoded}, sys.stdout)
-PY
-
-# GitHub OIDC token for this job (sub names repository, environment and deploy.yml on main), exchanged for temporary STS credentials
-(umask 077 && printf 'Authorization: Bearer %s\n' "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" > "$work/oidc-header")
-curl -fsS --proto '=https' --tlsv1.2 --max-time 60 -H @"$work/oidc-header" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$OIDC_AUDIENCE" \
-  | python3 -I -c 'import json,sys; t=json.load(sys.stdin)["value"]; print("::add-mask::" + t); open(sys.argv[1], "w").write(t)' "$work/oidc-token" \
-  || fail "could not obtain the GitHub OIDC token (the job needs permissions: id-token: write)"
-rm -f "$work/oidc-header"
-curl -sS --proto '=https' --tlsv1.2 --max-time 60 -o "$work/sts.json" -w '%{http_code}' \
-  "$STS_ENDPOINT/?Action=AssumeRoleWithOIDC&Version=2015-04-01&Format=JSON&Timestamp=$(date -u +%Y-%m-%dT%H%%3A%M%%3A%SZ)" \
-  --data-urlencode "RoleArn=$ALIBABA_CLOUD_ROLE_ARN" --data-urlencode "OIDCProviderArn=$ALIBABA_CLOUD_OIDC_PROVIDER_ARN" \
-  --data-urlencode "OIDCToken@$work/oidc-token" --data-urlencode "RoleSessionName=deploy-$env-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
-  --data-urlencode "DurationSeconds=$SESSION_SECONDS" > "$work/sts.status" || fail "STS AssumeRoleWithOIDC request failed"
-rm -f "$work/oidc-token"
-# Only the error code and message of a refusal are shown; a successful answer holds credentials and is never printed
-python3 -I - "$work/sts.json" "$(cat "$work/sts.status")" "$work/sts.env" <<'PY' || fail "STS refused the OIDC token (check the RAM role's trust policy, RELEASE.md §8.2)"
+request="$(python3 -I -c '
 import json, sys
-path, status, out = sys.argv[1], sys.argv[2], sys.argv[3]
+print(json.dumps({"version": sys.argv[1], "environment": sys.argv[2], "run_id": int(sys.argv[3]), "run_attempt": int(sys.argv[4])},
+                 separators=(",", ":")))' "$version" "$env" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT")" || fail "could not build the install request"
+
+# GitHub OIDC token for this job (sub names repository, environment and deploy.yml on main), exchanged for temporary STS credentials in
+# one pipeline; only the error code and message of a refusal are shown
+credentials="$(printf 'Authorization: Bearer %s\n' "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+  | curl -q -g -fsS --proto '=https' --tlsv1.2 --max-time 60 -H @- "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$OIDC_AUDIENCE" \
+  | python3 -I -c '
+import json, os, sys
+token = json.load(sys.stdin)["value"]
+os.write(3, ("::add-mask::" + token + "\n").encode())
+sys.stdout.write(token)' \
+  | curl -q -g -sS --proto '=https' --tlsv1.2 --max-time 60 \
+      "$STS_ENDPOINT/?Action=AssumeRoleWithOIDC&Version=2015-04-01&Format=JSON&Timestamp=$(date -u +%Y-%m-%dT%H%%3A%M%%3A%SZ)" \
+      --data-urlencode "RoleArn=$ALIBABA_CLOUD_ROLE_ARN" --data-urlencode "OIDCProviderArn=$ALIBABA_CLOUD_OIDC_PROVIDER_ARN" \
+      --data-urlencode "OIDCToken@-" --data-urlencode "RoleSessionName=deploy-$env-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+      --data-urlencode "DurationSeconds=$SESSION_SECONDS" \
+  | python3 -I -c '
+import json, os, sys
 try:
-    answer = json.load(open(path))
+    answer = json.load(sys.stdin)
 except ValueError:
-    sys.exit(f"STS answered HTTP {status} without JSON")
-credentials = answer.get("Credentials") if status == "200" else None
+    sys.exit("STS answered without JSON")
+credentials = answer.get("Credentials")
 if not isinstance(credentials, dict):
-    sys.exit(f"STS answered HTTP {status}: {answer.get('Code')} {answer.get('Message')} (request {answer.get('RequestId')})")
+    sys.exit("STS refused: %s %s (request %s)" % (answer.get("Code"), answer.get("Message"), answer.get("RequestId")))
 values = [credentials.get(k) for k in ("AccessKeyId", "AccessKeySecret", "SecurityToken")]
 if not all(isinstance(v, str) and v and "\n" not in v for v in values):
     sys.exit("STS answer lacks credentials")
 for value in values:
-    print("::add-mask::" + value)
-with open(out, "w") as f:
-    f.write("\n".join(values) + "\n")
-print(f"STS session for {answer.get('AssumedRoleUser', {}).get('Arn')} until {credentials.get('Expiration')}", file=sys.stderr)
-PY
-rm -f "$work/sts.json"
-{ read -r ALIBABA_CLOUD_ACCESS_KEY_ID; read -r ALIBABA_CLOUD_ACCESS_KEY_SECRET; read -r ALIBABA_CLOUD_SECURITY_TOKEN; } < "$work/sts.env"
-rm -f "$work/sts.env"
+    os.write(3, ("::add-mask::" + value + "\n").encode())
+role = (answer.get("AssumedRoleUser") or {}).get("Arn")
+print("STS session for %s until %s" % (role, credentials.get("Expiration")), file=sys.stderr)
+print("\n".join(values))')" \
+  || fail "could not obtain temporary Aliyun credentials (id-token: write, the RAM role's trust policy, RELEASE.md §8.2)"
+ALIBABA_CLOUD_ACCESS_KEY_ID="${credentials%%$'\n'*}"
+credentials="${credentials#*$'\n'}"
+ALIBABA_CLOUD_ACCESS_KEY_SECRET="${credentials%%$'\n'*}"
+ALIBABA_CLOUD_SECURITY_TOKEN="${credentials#*$'\n'}"
+unset credentials
 # Credentials reach aliyun only through this process's environment; never `aliyun configure`, which would write them to disk
 unset ALIBABA_CLOUD_ROLE_ARN ALIBABA_CLOUD_OIDC_PROVIDER_ARN ALIBABA_CLOUD_OIDC_TOKEN_FILE
 export ALIBABA_CLOUD_ACCESS_KEY_ID ALIBABA_CLOUD_ACCESS_KEY_SECRET ALIBABA_CLOUD_SECURITY_TOKEN
 
-invoke_id="$(aliyun ecs InvokeCommand --RegionId "$ECS_REGION" --CommandId "$ECS_COMMAND_ID" --InstanceId.1 "$ECS_INSTANCE_ID" \
-  --Parameters "$(cat "$work/parameters")" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["InvokeId"])')" \
+# The links first and the request last, so the installer never meets a fresh request next to links of an earlier run
+parameter="$REQUEST_PARAMETER_PREFIX-$env"
+for i in 0 1 2 3; do
+  aliyun oos UpdateParameter --region "$ECS_REGION" --RegionId "$ECS_REGION" --Name "$parameter-${asset_keys[$i]}" \
+    --Value "${asset_links[$i]}" > /dev/null || fail "could not write OOS parameter $parameter-${asset_keys[$i]}"
+done
+aliyun oos UpdateParameter --region "$ECS_REGION" --RegionId "$ECS_REGION" --Name "$parameter" --Value "$request" > /dev/null \
+  || fail "could not write OOS parameter $parameter"
+echo "install request in OOS $parameter: $request"
+
+invoke_id="$(aliyun ecs InvokeCommand --region "$ECS_REGION" --RegionId "$ECS_REGION" --CommandId "$ECS_COMMAND_ID" \
+  --InstanceId.1 "$ECS_INSTANCE_ID" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["InvokeId"])')" \
   || fail "InvokeCommand failed"
-rm -f "$work/parameters"
 echo "Cloud Assistant invocation $invoke_id of $ECS_COMMAND_ID"
 deadline=$((SECONDS + INVOCATION_TIMEOUT_SECONDS + 120))
+failures=0
 while :; do
-  result="$(aliyun ecs DescribeInvocationResults --RegionId "$ECS_REGION" --InvokeId "$invoke_id" --InstanceId "$ECS_INSTANCE_ID")"
-  status="$(printf '%s' "$result" | python3 -I -c 'import json,sys; r=json.load(sys.stdin)["Invocation"]["InvocationResults"]["InvocationResult"]; print(r[0]["InvocationStatus"] if r else "Pending")')"
-  case "$status" in
-    Success|Failed|Error|Timeout|Cancelled|Terminated|Invalid|Aborted) break ;;
-  esac
+  if result="$(aliyun ecs DescribeInvocationResults --region "$ECS_REGION" --RegionId "$ECS_REGION" --InvokeId "$invoke_id" \
+       --InstanceId "$ECS_INSTANCE_ID")" \
+     && status="$(printf '%s' "$result" | python3 -I -c '
+import json, sys
+r = json.load(sys.stdin)["Invocation"]["InvocationResults"]["InvocationResult"]
+print(r[0]["InvocationStatus"] if r else "Pending")')"; then
+    failures=0
+    case "$status" in
+      Success|Failed|Error|Timeout|Cancelled|Terminated|Invalid|Aborted|Stopped) break ;;
+    esac
+  else
+    failures=$((failures + 1))
+    echo "ship.sh: DescribeInvocationResults for $invoke_id failed ($failures of $MAX_POLL_FAILURES in a row)" >&2
+    [ "$failures" -lt "$MAX_POLL_FAILURES" ] \
+      || fail "cannot read the result of invocation $invoke_id; the installation may still be running: check it in the Cloud Assistant console and with forcitis-one-release status"
+    status=unknown
+  fi
   [ "$SECONDS" -lt "$deadline" ] || fail "invocation $invoke_id still $status after the timeout"
-  sleep 10
+  sleep "$POLL_SECONDS"
 done
 printf '%s' "$result" | python3 -I -c '
 import base64, json, sys

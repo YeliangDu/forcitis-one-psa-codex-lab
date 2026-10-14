@@ -2,11 +2,12 @@ name: deploy
 run-name: deploy ${{ inputs.version }} to ${{ inputs.environment }}
 
 # Deploys a published release to dev or prod: the bundle's signed release statement and checksums are verified, the four release assets
-# are resolved to GitHub's short-lived signed download links, and the fixed Cloud Assistant command on the ECS is invoked with an install
-# request (version, environment, this run and attempt, the links) as its only parameter. Aliyun credentials are temporary: the job's
-# GitHub OIDC token is exchanged through STS AssumeRoleWithOIDC for a RAM role that trusts only this workflow on main for this
-# environment. The ECS checks the request, downloads the assets, verifies the signed statement against its own signer key and installs
-# (scripts/release/ship.sh, scripts/release/remote_install.sh). This job never holds the release signing key or a long-lived secret.
+# are resolved to GitHub's short-lived signed download links, the install request (version, environment, this run and attempt, the
+# links) is written to this environment's fixed OOS parameters, and the fixed, parameterless Cloud Assistant command on the ECS is invoked.
+# Aliyun credentials are temporary: the job's GitHub OIDC token is exchanged through STS AssumeRoleWithOIDC for a RAM role that trusts only
+# this workflow on main for this environment. The ECS reads the request back with its instance role, checks it, downloads the assets,
+# verifies the signed statement against its own signer key and installs (scripts/release/ship.sh, scripts/release/remote_install.sh).
+# This job never holds the release signing key or a long-lived secret.
 # Blocked while a docs/modernization/status/blockers/ entry carries `blocks: deploy`; prod also needs the Phase 1a exit conditions and C-9.
 # Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
 on:

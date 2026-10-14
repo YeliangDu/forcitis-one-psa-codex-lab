@@ -27,7 +27,7 @@
 
 ## 3. 最小权限
 
-用 RAM 自定义策略，绑在 ECS 实例 RAM 角色上（RELEASE.md R-4 计划建的那个角色；本 bucket 的策略单独建一份，不并入部署策略），不发 AccessKey。
+用 RAM 自定义策略，绑在 ECS 实例 RAM 角色 `forcitis-one-ecs-archive` 上（本 bucket 的策略单独建一份，不并入部署策略；同一实例角色另挂部署请求的只读策略 `forcitis-one-deploy-request-reader`，RELEASE.md R-4、§8.2——该实例角色承载归档写入与部署请求读取两份最小策略），不发 AccessKey。
 
 写入方策略 `forcitis-one-archive-writer`（只能经 VPC 内、HTTPS 写，不能读、删、改配置）：
 

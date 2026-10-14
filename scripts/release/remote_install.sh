@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # FORCITIS one release installer on the ECS. Installed as /usr/local/sbin/forcitis-one-release (root:root 0755) by the one-time setup in
-# RELEASE.md (Phase 1a infra runbooks). Run as root by a fixed Cloud Assistant command whose only parameter is the install request. Only
-# the deploy job of deploy.yml on main for this environment can invoke that command (Aliyun OIDC trust policy, RELEASE.md §8.2), so the
-# request names what to install; it is still checked strictly, the environment comes from this server's own configuration, and the
-# release is installed only when its signed statement verifies against the signer key on this server and names the requested version.
+# RELEASE.md (Phase 1a infra runbooks). Run as root by a fixed, parameterless Cloud Assistant command. The install request is not passed
+# through the command: Cloud Assistant substitutes parameters into the script text, so a crafted value could run as root. The deploy job
+# writes the request into fixed OOS parameters (only its RAM role may update them, and only deploy.yml on main for this environment may
+# assume that role, RELEASE.md §8.2); this installer reads them back with the instance RAM role, checks them strictly, and installs only a
+# release whose signed statement verifies against the signer key on this server and names the requested version.
 #
-#   install-pending --request <base64 JSON>   install the requested release (request contract: RELEASE.md §3)
-#   rollback [<version>]                       back to the previous release, or to <version> (local only, no network)
+#   install-pending              install the release named by this environment's OOS request parameters (contract: RELEASE.md §3)
+#   rollback [<version>]         back to the previous release, or to <version> (local only, no network)
 #   status
 #
 # Every step fails loudly; a release that does not report healthy is switched back to the release that ran before.
@@ -20,7 +21,12 @@ MIGRATION_CREDENTIALS="$ETC/migrate"
 RELEASE_SIGNERS="$ETC/release-signers"
 # root 0644: ENVIRONMENT (dev|prod), optional WECOM_VERIFY_FILE (a pinned file that must exist)
 RELEASE_SOURCE="$ETC/release-source"
-MAX_REQUEST_BYTES=16384
+# OOS parameters <prefix>-<env> (the request) and <prefix>-<env>-<asset> (one signed link each; four links exceed one 4096-character value)
+REQUEST_PARAMETER_PREFIX=forcitis-one-deploy-request
+REQUEST_ASSET_PARAMETERS='bundle bundle-sha256 statement statement-sig'
+MAX_PARAMETER_CHARS=4096
+METADATA_URL=http://100.100.100.200
+OOS_ENDPOINT='https://oos.{region}.aliyuncs.com'
 # GitHub serves release assets from these hosts as short-lived signed URLs; the deploy job resolves them, nothing else is fetched
 ASSET_HOSTS='objects.githubusercontent.com release-assets.githubusercontent.com'
 # Every request taken up, keyed <run_id>:<run_attempt>, with its outcome (root 0600, appended only); a key listed here is never installed again
@@ -54,7 +60,7 @@ FIRST_INSTALL_ONLY='^(spring\.datasource\..+|flowable\.database-schema-update)$'
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
 fail() {
   log "FAILED: $*"
-  [ -z "${request_in_progress:-}" ] || record_request "$request_in_progress" failed "$*"
+  [ -z "${request_in_progress:-}" ] || record_request "$request_in_progress" failed "$*" || log "could not record request $request_in_progress as failed"
   exit 1
 }
 
@@ -69,16 +75,25 @@ current_link="$BASE/current"
 previous_link="$BASE/previous"
 
 valid_version() { [[ "$1" =~ $VERSION_PATTERN ]]; }
-# True when $1 is a lower version than $2 (MAJOR.MINOR.PATCH, a -rc.N pre-release before its release)
+# True when $1 is a lower version than $2 (MAJOR.MINOR.PATCH, a -rc.N pre-release before its release); a malformed name fails
 version_lower() {
-  python3 -I - "$1" "$2" <<'PY'
+  local rc=0
+  python3 -I - "$1" "$2" <<'PY' || rc=$?
 import re, sys
 def key(v):
-    m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:-rc\.(\d+))?", v)
+    m = re.fullmatch(r"([0-9]+)\.([0-9]+)\.([0-9]+)(?:-rc\.([0-9]+))?", v)
+    if not m:
+        print(f"cannot compare the version name {v!r}", file=sys.stderr)
+        sys.exit(2)
     major, minor, patch, rc = m.groups()
     return (int(major), int(minor), int(patch), int(rc) if rc else float("inf"))
 sys.exit(0 if key(sys.argv[1]) < key(sys.argv[2]) else 1)
 PY
+  case "$rc" in
+    0) return 0 ;;
+    1) return 1 ;;
+    *) fail "cannot compare versions '$1' and '$2' (see $releases and the current link)" ;;
+  esac
 }
 env_value() {
   local key="$1" line
@@ -270,25 +285,80 @@ read_release_source() {
     || fail "$RELEASE_SOURCE: WECOM_VERIFY_FILE must name a WW_verify_*.txt file or be absent"
 }
 
-# Decodes and checks the install request; on success prints "<version> <run_id> <run_attempt>", then one "<asset name> <url>" line per
-# asset. URLs never reach the log: they are signed download links.
-request_check() {
+# Reads this environment's request parameters from OOS with the instance RAM role (metadata service in hardened mode: a session token
+# first) and checks them; on success prints "<version> <run_id> <run_attempt>", then one "<asset name> <url>" line per asset. Credentials
+# and signed links stay inside this process and its stdout pipe: never printed, written to disk or put on a command line.
+request_read() {
   python3 -I - "$@" <<'PY'
-import base64, binascii, json, re, sys
-from urllib.parse import urlsplit
+import base64, datetime, hashlib, hmac, json, re, sys, uuid
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote, urlencode, urlsplit
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
-encoded, env, version_pattern, max_bytes, hosts = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5].split()
+metadata, oos_endpoint, env, version_pattern, max_chars, hosts, prefix, asset_keys = (
+    sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]), sys.argv[6].split(), sys.argv[7], sys.argv[8].split())
 def die(message):
     sys.exit("install request: " + message)
 
-if not encoded or len(encoded) > max_bytes:
-    die(f"must be 1..{max_bytes} characters of base64, got {len(encoded)}")
-if not re.fullmatch(r"[A-Za-z0-9+/]+={0,2}", encoded) or len(encoded) % 4:
-    die("is not standard base64 without line breaks")
+class NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, *args):
+        return None
+# No proxy: the metadata service must be reached directly, and no other hop should see the credentials
+opener = build_opener(ProxyHandler({}), NoRedirect())
+
+def call(method, url, headers, what):
+    try:
+        with opener.open(Request(url, method=method, headers=headers), timeout=15) as response:
+            return response.status, response.read(65536 + 1)
+    except HTTPError as error:
+        return error.code, error.read(65536 + 1)
+    except (URLError, OSError) as error:
+        die(f"{what} unreachable ({type(error).__name__})")
+
+status, token = call("PUT", metadata + "/latest/api/token", {"X-aliyun-ecs-metadata-token-ttl-seconds": "60"}, "metadata token")
+if status != 200 or not re.fullmatch(rb"[!-~]{1,1024}", token):
+    die(f"metadata service gave no session token (HTTP {status})")
+token_header = {"X-aliyun-ecs-metadata-token": token.decode()}
+def metadata_get(path, what):
+    status, body = call("GET", metadata + path, token_header, what)
+    if status != 200:
+        die(f"metadata service refused {what} (HTTP {status})")
+    return body.decode("utf-8", "replace")
+region = metadata_get("/latest/meta-data/region-id", "the region").strip()
+if not re.fullmatch(r"[a-z0-9-]{1,64}", region):
+    die("metadata service returned no region")
+roles = metadata_get("/latest/meta-data/ram/security-credentials/", "the instance role").split()
+if len(roles) != 1 or not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", roles[0]):
+    die(f"this instance must have exactly one RAM role, found {len(roles)}")
 try:
-    text = base64.b64decode(encoded, validate=True).decode("utf-8")
-except (binascii.Error, UnicodeDecodeError):
-    die("is not base64 of UTF-8 text")
+    credentials = json.loads(metadata_get("/latest/meta-data/ram/security-credentials/" + roles[0], "the role credentials"))
+except ValueError:
+    die("role credentials are not JSON")
+if credentials.get("Code") != "Success" or not all(isinstance(credentials.get(k), str) and credentials[k]
+                                                    for k in ("AccessKeyId", "AccessKeySecret", "SecurityToken")):
+    die(f"role credentials unavailable (Code {credentials.get('Code')!r})")
+
+def encode(value):
+    return quote(value, safe="-_.~")
+def get_parameter(name):
+    query = {"Action": "GetParameter", "Version": "2019-06-01", "Format": "JSON", "RegionId": region, "Name": name,
+             "AccessKeyId": credentials["AccessKeyId"], "SecurityToken": credentials["SecurityToken"],
+             "SignatureMethod": "HMAC-SHA1", "SignatureVersion": "1.0", "SignatureNonce": uuid.uuid4().hex,
+             "Timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    canonical = "&".join(f"{encode(k)}={encode(v)}" for k, v in sorted(query.items()))
+    to_sign = "GET&%2F&" + encode(canonical)
+    signature = base64.b64encode(hmac.new((credentials["AccessKeySecret"] + "&").encode(), to_sign.encode(), hashlib.sha1).digest()).decode()
+    status, body = call("GET", oos_endpoint.format(region=region) + "/?" + canonical + "&Signature=" + encode(signature), {}, "OOS")
+    try:
+        answer = json.loads(body)
+    except ValueError:
+        die(f"OOS answered HTTP {status} without JSON for {name}")
+    value = (answer.get("Parameter") or {}).get("Value") if status == 200 else None
+    if not isinstance(value, str):
+        die(f"cannot read OOS parameter {name}: HTTP {status} {answer.get('Code')} (request {answer.get('RequestId')})")
+    if not 0 < len(value) <= max_chars or not re.fullmatch(r"[ -~]+", value):
+        die(f"OOS parameter {name} is not 1..{max_chars} printable ASCII characters")
+    return value
 
 def no_duplicates(pairs):
     keys = [k for k, _ in pairs]
@@ -298,11 +368,10 @@ def no_duplicates(pairs):
 def no_constants(name):
     die(f"has the non-JSON constant {name}")
 try:
-    request = json.loads(text, object_pairs_hook=no_duplicates, parse_constant=no_constants)
+    request = json.loads(get_parameter(f"{prefix}-{env}"), object_pairs_hook=no_duplicates, parse_constant=no_constants)
 except ValueError:
     die("is not JSON")
-
-expected = {"version", "environment", "run_id", "run_attempt", "assets"}
+expected = {"version", "environment", "run_id", "run_attempt"}
 if not isinstance(request, dict) or set(request) != expected:
     keys = sorted(request) if isinstance(request, dict) else type(request).__name__
     die(f"must be an object with exactly the keys {sorted(expected)}, got {keys}")
@@ -319,16 +388,13 @@ for key in ("run_id", "run_attempt"):
         die(f"{key} must be a positive integer")
 
 top = f"forcitis-one-{version}"
-names = [f"{top}.tar.gz", f"{top}.tar.gz.sha256", f"{top}.release", f"{top}.release.sig"]
-assets = request["assets"]
-if not isinstance(assets, dict) or set(assets) != set(names):
-    keys = sorted(assets) if isinstance(assets, dict) else type(assets).__name__
-    die(f"assets must name exactly {names}, got {keys}")
+asset_names = dict(zip(asset_keys, (f"{top}.tar.gz", f"{top}.tar.gz.sha256", f"{top}.release", f"{top}.release.sig")))
 lines = [f"{version} {request['run_id']} {request['run_attempt']}"]
-for name in names:
-    url = assets[name]
-    if not isinstance(url, str) or not 0 < len(url) <= 4096 or not re.fullmatch(r"[!-~]+", url) or "\\" in url:
-        die(f"asset {name}: URL is not one printable ASCII string of at most 4096 characters")
+for key, name in asset_names.items():
+    url = get_parameter(f"{prefix}-{env}-{key}")
+    # No quotes, backslashes, braces or brackets: the link goes into a curl config line, and curl must not glob it
+    if not re.fullmatch(r"[!-~]+", url) or re.search(r'["\\{}\[\]]', url):
+        die(f"asset {name}: URL holds whitespace or one of the characters \" \\ {{ }} [ ]")
     try:
         parts = urlsplit(url)
         port = parts.port
@@ -345,17 +411,30 @@ PY
 }
 
 # Sets version, run_id, run_attempt and asset_names / asset_links (same order) from the request, after every check passed
-parse_request() {
-  local encoded="$1" out name url
-  out="$(request_check "$encoded" "$target_env" "$VERSION_PATTERN" "$MAX_REQUEST_BYTES" "$ASSET_HOSTS")" || fail "install request refused"
-  asset_names=() asset_links=()
-  {
-    read -r version run_id run_attempt
-    while read -r name url; do asset_names+=("$name"); asset_links+=("$url"); done
-  } <<< "$out"
+read_request() {
+  local out line i
+  local -a lines
+  out="$(request_read "$METADATA_URL" "$OOS_ENDPOINT" "$target_env" "$VERSION_PATTERN" "$MAX_PARAMETER_CHARS" "$ASSET_HOSTS" \
+    "$REQUEST_PARAMETER_PREFIX" "$REQUEST_ASSET_PARAMETERS")" || fail "install request could not be read or was refused"
+  # Split in memory: a here-string could be backed by a temporary file, and these lines hold the signed links
+  lines=()
+  while [ -n "$out" ]; do
+    line="${out%%$'\n'*}"
+    lines+=("$line")
+    [ "$line" != "$out" ] || break
+    out="${out#*$'\n'}"
+  done
+  [ "${#lines[@]}" -eq 5 ] || fail "install request has ${#lines[@]} lines, expected 5"
+  version="${lines[0]%% *}"
+  run_attempt="${lines[0]##* }"
+  run_id="${lines[0]#* }"; run_id="${run_id%% *}"
   valid_version "$version" || fail "invalid version '$version'"
   [[ "$run_id" =~ ^[1-9][0-9]*$ && "$run_attempt" =~ ^[1-9][0-9]*$ ]] || fail "invalid run id or attempt"
-  [ "${#asset_names[@]}" -eq 4 ] || fail "install request names ${#asset_names[@]} assets, expected 4"
+  asset_names=() asset_links=()
+  for i in 1 2 3 4; do
+    asset_names+=("${lines[$i]%% *}")
+    asset_links+=("${lines[$i]#* }")
+  done
   log "install request: v$version for $target_env from deploy run $run_id attempt $run_attempt"
 }
 
@@ -366,7 +445,7 @@ processed_check() {
   [ "$(owner_mode "$STATE_DIR")" = "root 700" ] || fail "$STATE_DIR must be root-owned 0700"
   if [ -e "$PROCESSED" ]; then
     [ "$(owner_mode "$PROCESSED")" = "root 600" ] || fail "$PROCESSED must be root-owned 0600"
-    if awk -F'\t' -v key="$key" '$1 == key { found = 1 } END { exit !found }' "$PROCESSED"; then
+    if awk -F'\t' -v key="$key" '$1 == key { found = 1 } END { exit !found }' "$PROCESSED" 2>/dev/null; then
       fail "request $key (deploy run:attempt) was already taken up (see $PROCESSED); start a new deploy run"
     fi
   else
@@ -375,21 +454,21 @@ processed_check() {
 }
 
 record_request() {
-  printf '%s\t%s\t%s\t%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "${3:-}" >> "$PROCESSED" || log "could not record request $1 as $2"
+  printf '%s\t%s\t%s\t%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "${3:-}" >> "$PROCESSED"
 }
 
-# No redirect is followed and no credential is sent: the URL already is GitHub's final signed download link
+# No redirect is followed and no credential is sent: the URL already is GitHub's final signed download link. It reaches curl through a
+# config on stdin (-K -), not the command line; -q first so no curlrc applies, -g so nothing in it is globbed.
 download_asset() {
   local name="$1" out="$2" i url=""
   for i in "${!asset_names[@]}"; do
     [ "${asset_names[$i]}" != "$name" ] || url="${asset_links[$i]}"
   done
   [ -n "$url" ] || fail "install request has no URL for $name"
-  timeout "$DOWNLOAD_TIMEOUT_SECONDS" curl -fsS --proto '=https' --proto-redir '=https' --tlsv1.2 -L --max-redirs 0 \
-    --max-filesize "$MAX_BUNDLE_BYTES" -o "$out" "$url" \
+  printf 'url = "%s"\n' "$url" | timeout "$DOWNLOAD_TIMEOUT_SECONDS" curl -q -g -fsS --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    -L --max-redirs 0 --max-filesize "$MAX_BUNDLE_BYTES" -o "$out" -K - \
     || fail "could not download release asset $name (the signed link may have expired; start a new deploy run)"
 }
-
 # Downloads the requested release into a new directory under releases/ and verifies it; sets staged (the unpacked bundle) and commit
 fetch_release() {
   local version="$1" incoming archive top expected_sha
@@ -544,14 +623,15 @@ lock() {
   flock -n 9 || fail "another release operation is running"
 }
 
-# Takes up the install-pending arguments for target_env: sets version, run_id, run_attempt and the asset URLs, records the request as started
+# Takes up this environment's request for target_env: sets version, run_id, run_attempt and the asset URLs, records the request as started
 accept_request() {
   local running
-  [ "$#" -eq 2 ] && [ "$1" = --request ] || fail "install-pending takes exactly: --request <base64 JSON> (RELEASE.md §3)"
-  parse_request "$2"
+  [ "$#" -eq 0 ] || fail "install-pending takes no arguments; the request is read from OOS (RELEASE.md §3)"
+  read_request
   processed_check "$run_id:$run_attempt"
-  # Taken up before anything is installed, so a crash half-way is never replayed by the same request
-  record_request "$run_id:$run_attempt" started "v$version"
+  # Taken up before anything is installed, so a crash half-way is never replayed by the same request; without that record, no install
+  record_request "$run_id:$run_attempt" started "v$version" \
+    || fail "could not record request $run_id:$run_attempt as started in $PROCESSED; not installing without replay protection"
   request_in_progress="$run_id:$run_attempt"
 
   [[ "$target_env" != prod || "$version" != *-* ]] || fail "prod takes released versions only, not the pre-release $version"
@@ -592,7 +672,7 @@ cmd_install_pending() {
   fi
   migrate "$version" "$first_install"
   activate "$version"
-  record_request "$run_id:$run_attempt" succeeded "v$version $commit"
+  record_request "$run_id:$run_attempt" succeeded "v$version $commit" || log "could not record request $run_id:$run_attempt as succeeded"
   request_in_progress=""
   prune
 }
@@ -629,7 +709,7 @@ main() {
     install-pending) cmd_install_pending "$@" ;;
     rollback) cmd_rollback "$@" ;;
     status) [ "$#" -eq 0 ] || fail "status takes no arguments"; cmd_status ;;
-    *) fail "usage: install-pending --request <base64 JSON> | rollback [<version>] | status" ;;
+    *) fail "usage: install-pending | rollback [<version>] | status" ;;
   esac
 }
 
