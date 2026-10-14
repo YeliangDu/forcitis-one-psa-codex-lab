@@ -130,6 +130,7 @@
 | F-10 利润中心标识 | sonnet | workforce 新增利润中心标识版本表（只追加，带生效区间）；`COLUMN_OWNERSHIP` 与注册表登记为新系统所有 | 利润中心标识维护（组织数据管理员） | 标识指定 / 结束；失效提醒待办 | `organization.workforce` 中利润中心部分；组织同步不得覆盖（守护） | K-2 |
 | F-13 复职重授 employee（INT-M12，应交付未做） | sonnet | — | — | 复用账号授予事件 | `platform.identity` 的 `AccountProvisioning` 与 `HandleOrgSnapshotChange` 复职路径；D-1a-17：只重授基础角色，其余由管理员重新分配；写审计 | W1；W3 首批 |
 | F-14 离职者在途待办重新取人（INT-M13，应交付未做） | sonnet 执行，opus 复审 | approval 按需要 | — | 消费离职事件 | `platform.approval` 新增离职监听：D-1a-18 / 108 / 168，重新取人，取不到转流程管理员并告警、审计 | W1；W3 首批 |
+| F-15 登录页 ICP 备案号（用户「需要，页脚展示 ICP 备案号。」） | sonnet；测试代理先写验收（页脚出现、链接正确、配置缺失失败） | — | — | — | PC 与 H5 登录页页脚显示 ICP 备案号，链接 `https://beian.miit.gov.cn/`（新窗口）；只显示 ICP 号，不显示公安备案号；号码作为按环境的部署配置，走 F-3 的运行时配置，不写死在组件里；缺失时启动或构建失败并告警；界面文字「ICP 备案号」先查 terms.yaml，查不到登记提议术语。生产号码「苏ICP备12028598号-4」（one-ops 核对官网页脚，主体弗思特建筑科技有限公司，用户已确认备案完成），按环境配置 | 与 F-3 同一代理顺序做（同改登录页与运行时配置），F-3 之后 |
 | F-9 ADR-0029 | opus 起草，`architecture-critic` opus 评审 | — | — | — | `adr/src/ADR-0029.md`（提议） | 无；**批准前不实现** |
 | F-11 业务单据锁定、红冲、修正 | opus 起草，`architecture-critic` opus 评审 | — | — | — | `adr/src/ADR-0031.md`（提议），与 ADR-0016:23、ADR-0022:32、CC-N05 衔接 | 无；1a 只定设计，Phase 2 实现 |
 | F-12 非生产环境单人运维例外 ★ | ADR-0030 已采纳；sonnet 实现、opus 复审 | 不新增表；审计记录标注 single-operator | — | — | `adr/src/ADR-0030.md`（提议）。批准后实现：只在非生产 profile 下由显式配置（暂名 `forcitis.security.single-operator-dev`，以 terms.yaml 为准）开启。开启后：①两人确认可由一人完成，照常写审计；②超管与应急账号下限降为 1；③同步锁死阈值相应调整。**生产 profile 下该配置存在即启动失败**：`ProductionConfigSanityTest` 加守护，部署流水线对 prod 再校验一次。生产部署前清单（PREDEPLOY_CHECKLIST）加一项：关闭单人例外，启用第二名超管与第二个应急账号。 | 用户 2026-10-15「dev 白名单把我也加上……这些安全措施等到生产部署前再真正落实」（one-ops 已记 intent）。该例外放宽的规则散见于已采纳的 ADR-0026 / 0027 / 0028（敏感权限两人确认、编号四眼确认、至少 2 名超管与 2 个应急账号、同步锁死在可用超管少于 2 时 HELD、放行人不得在离职名单中），按 §12.1 须新 ADR 取代对应条款的适用范围。实现时会碰到 F-1（敏感权限授予）与 B1 已交付的确认流程，所以排在 F-1 合并之后，并以同一个配置开关接入 |
@@ -161,6 +162,11 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
 - **ADR28-1**：ADR-0028 第 1 条「同步会使可用 `super_admin` 少于 2 名时暂停」未实现——`ApplySourceSnapshot.java:85` 只在离职名单含超管或安全审计员时进入 HELD，人数不足只写进原因文本（`AdministratorSeparationReview.java:47-51`）。回归测试 `ADR28-1 可用超管将少于下限时同步暂停`；下限按 ADR-0030 在单人运维模式下为 1。
 - **ADR28-2**：ADR-0028 第 4 条所说「放行后超管将为 0 时只能走运维命令」的运维放行命令不存在（`OperationsCommands` 无 release）。回归测试 `ADR28-2 运维命令放行同步暂停（带见证人，审计）`。
 - **FLW-1 Flowable 引擎时间来源**（one-coordinator 2026-10-15 登记，**首次部署前须有结论**）：`act_*` 由引擎自建，不在 R-4 范围；须核实引擎内部时间（任务创建、到期、计时器）是否取注入的 Clock（`ProcessEngineConfiguration` 的 clock / Spring `Clock` bean），以及审批时限、超期提醒与升级（D-1a 时限细则）、F-14 改派、ADR-0032 待办 5 个工作日升级用到的时刻从哪里取。结论写进规则卡与 INFRA_RUNBOOK；若需改动按缺陷卡手术式修复，回归测试 `FLW-1 引擎时间取注入 Clock，固定 Clock 下任务创建与到期时刻确定`。opus 核实（判断类）。
+
+- **R-6 删除 `numbering_rules` 旧列**（R-3a opus 复核 M-1）：基线保留了 `pattern`、`reset_policy`、`start_value`、`confirmation_status` 四个旧列（纯合并须保留，`NumberingVersionMigrationIT` 断言其可空）。基线开放期内核实无读写方后删除（直接改基线，附预期表结构 diff），同步改该断言并在 PR 单列理由；排在 R-2 之后、R-5 之前，可与 R-2 同批（同属表结构清理）。
+- **OSS-1 实例元数据加固模式**（one-ops 2026-10-15，经 one-coordinator）：归档 ECS 的实例元数据服务为加固模式（须先取元数据令牌再取实例角色凭据）。归档写入方（审计归档、流程归档）实现时核对所用阿里云 SDK 默认凭证链版本支持该模式，并加启动自检（取不到凭据即失败并告警）或集成测试说明。
+- **OSS-2 归档只写不读**（同上）：写入方 RAM 策略显式拒绝 GetObject；`INFRA_RUNBOOK` §5 所写 `oss:GetObjectMetadata` 未授予且是否为有效动作名待核。核对 `OssObjectStore` 探针与写入后校验实际调用的接口：不得写后回读，校验用上传返回的 ETag / CRC；探针若需读元信息，把实际接口名告诉 one-ops 补授权。WORM 在第一个写入方上线前由用户决定再锁。
+OSS-1、OSS-2 在首次部署前须有结论（归档作业随 dev 部署启用）；按缺陷卡手术式处理，回归测试 `OSS-1 …`、`OSS-2 归档校验不读对象`。
 
 ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先写失败测试、一卡一最小改动、小 PR），排在 W3 与 F-12 同期（都动 `platform.identity` 运维命令，与 F-12 不并行，F-12 之后做）。
 
