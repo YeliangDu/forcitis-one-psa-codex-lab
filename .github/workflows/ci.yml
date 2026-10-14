@@ -145,6 +145,12 @@ jobs:
           python3 -I scripts/release/ci_passed.py --self-test
           python3 -I scripts/release/manifest.py --self-test
           python3 -I scripts/release/deploy_gate.py --self-test
+      # 建库脚本（C-3 / C-9）与参考 DDL、迁移模块目录的 schema 清单和版本表清单须一致（人工同步易漂移）；前面步骤失败也照跑
+      - name: database scripts aligned
+        if: ${{ !cancelled() }}
+        run: |
+          python3 -I scripts/ci/db_scripts_aligned.py --self-test
+          python3 -I scripts/ci/db_scripts_aligned.py
 
   assertion-drift:
     name: assertion drift (warning only)

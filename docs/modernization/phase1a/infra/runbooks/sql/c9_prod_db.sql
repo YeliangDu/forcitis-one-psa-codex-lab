@@ -18,10 +18,13 @@ REVOKE ALL ON DATABASE forcitis_one_prod FROM PUBLIC;
 
 \connect forcitis_one_prod
 
+-- 法人归属期间表的 EXCLUDE 约束需要 btree_gist（受信任扩展）；迁移里也有 IF NOT EXISTS，这里预建，避免迁移角色无权建扩展
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 -- ===== STEP 2 schema 冲突检查（新库内，应为 0 行）=====
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'cost_timesheet', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet', 'one_migration');
 
 -- ===== STEP 3 角色 =====
 CREATE ROLE one_prod_owner NOLOGIN;
@@ -60,13 +63,14 @@ CREATE SCHEMA platform_scheduling     AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_workforce  AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_attendance AUTHORIZATION one_prod_owner;
 CREATE SCHEMA cost_timesheet          AUTHORIZATION one_prod_owner;
+CREATE SCHEMA platform_idempotency    AUTHORIZATION one_prod_owner;
 
 -- ===== STEP 5 授权（默认权限覆盖 one_prod_owner 以后建出的对象）=====
 DO $$
 DECLARE s text;
 BEGIN
   FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering',
-                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'cost_timesheet']
+                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_prod_app, one_prod_readonly', s);
     EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_prod_app', s);
@@ -81,7 +85,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT 
 ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT SELECT ON TABLES TO one_prod_readonly;
 
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
-                        platform_scheduling, organization_workforce, organization_attendance, cost_timesheet, one_migration
+                        platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration
   FROM one_prod_app, one_prod_readonly;
 
--- 下一步：c9_prod_db_verify.sql；之后在 RDS 控制台为 one_prod_migrator、one_prod_app、one_prod_readonly 设口令（≥24 位随机）。
+-- 下一步：c9_prod_db_verify.sql；每次迁移之后执行 c9_prod_db_after_migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_prod_migrator、one_prod_app、one_prod_readonly 设口令（≥24 位随机）。
