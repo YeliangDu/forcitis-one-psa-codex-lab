@@ -6,7 +6,7 @@ import { ORG_UNIT_STATUS_LABELS, type OrgUnitNode, buildOrgTree } from '../model
 
 const COLUMNS: DataColumn<OrgUnitNode>[] = [
   { key: 'name', title: '组织单元', render: (unit) => unit.name },
-  { key: 'short', title: '简称', render: (unit) => unit.shortName ?? '—' },
+  { key: 'short', title: '部门简称', render: (unit) => unit.shortName ?? '—' },
   { key: 'code', title: '编码', render: (unit) => unit.code ?? '—' },
   { key: 'delivery', title: '交付单元', render: (unit) => (unit.deliveryUnit === true ? '是' : '否') },
   {

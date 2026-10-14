@@ -31,7 +31,7 @@ describe('同步记录页', () => {
 
     await screen.findByText('被中止');
     await waitFor(() => expect(screen.queryByRole('button', { name: '放行' })).not.toBeInTheDocument());
-    expect(screen.getAllByRole('button', { name: '查看差异' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: '查看同步差异' })).toHaveLength(2);
   });
 
   it('放行：确认后请求放行该同步', async () => {
@@ -63,7 +63,7 @@ describe('同步记录页', () => {
     expect(await screen.findByText('该同步记录当前不是被中止状态，无法放行')).toBeInTheDocument();
   });
 
-  it('查看差异：显示这次同步的变化', async () => {
+  it('查看同步差异：显示这次同步的变化', async () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ]) },
       'GET sync-runs/11': { body: { syncRun: RUNS[1], diffs: [{ entityKind: 'EMPLOYEE', subjectKey: '1001', changeKind: 'UPDATED', changedFields: ['部门'], detail: '部门变更' }] } },
@@ -73,7 +73,7 @@ describe('同步记录页', () => {
 
     await screen.findByText('成功');
     const row = screen.getByText('成功').closest('tr') as HTMLElement;
-    await userEvent.click(within(row).getByRole('button', { name: '查看差异' }));
+    await userEvent.click(within(row).getByRole('button', { name: '查看同步差异' }));
 
     expect(await screen.findByText('部门变更')).toBeInTheDocument();
   });
