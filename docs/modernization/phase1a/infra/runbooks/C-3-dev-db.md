@@ -13,13 +13,14 @@
 | `one_dev_app` 加 `work_mem = 16MB`；`one_dev_readonly` 加只读事务、60 s 语句超时、`work_mem = 8MB` | 清单 C-3 与 ADR-0025 第 2 条要求按角色设超时与 work_mem；数值为**建议**，C-1 后按实例规格调整 |
 | `one_dev_migrator` 加 `lock_timeout = 10s` | 同实例共用，迁移拿不到锁时尽快失败，不长时间挡住 IT 服务门户 |
 | 增加 STEP 0 的库存在、连接预算查询与 V1–V8 校验 | 执行前后可核对 |
+| 增加 `cost_timesheet` schema 及其授权（2026-10-15 one-ops-1a） | 工时迁移 `V20261014140000` 起在该 schema 建表；不预建时 Flyway 会自行建出（属主 one_dev_owner），但运行角色没有 USAGE 与默认权限，工时接口在运行时报权限错误。`delivery_execution` 不预建：修复批的迁移先建后删，由迁移自己处理 |
 
 ## 执行前确认点
 
 1. C-1 已完成（或用户明确先在现规格上建 dev 库）；`SHOW max_connections` 已记录。
 2. 连接预算：`one_dev_*` 合计 45（app 40、migrator 2、readonly 3），加上 it_portal 与以后的 `one_prod_*`，合计须小于 `max_connections` 减保留；不满足时先由用户决定下调哪一方。
 3. 排序规则：`SELECT collname FROM pg_collation WHERE collname IN ('C.utf8','C.UTF-8','ucs_basic');` 有 `C.UTF-8` 或 `C.utf8`；没有则把 STEP 1 的 `LC_COLLATE` / `LC_CTYPE` 改为实例支持的 `C`，并回报。
-4. 执行账号是 RDS 高权限账号；执行环境可连 RDS 内网地址（ECS 上 `dnf -y install postgresql` 取 psql，或用 DMS）。
+4. 执行账号是 RDS 高权限账号（本实例唯一的高权限账号是 IT 服务门户的 `portal_migrator`，口令不在任何服务器上，由用户保管）；执行环境可连 RDS 内网地址（ECS 已装发行版 `postgresql` 15 客户端，2026-10-15）。高权限口令只能经用户提供的安全通道到 ECS（例如用 ECS 上临时 RSA 公钥加密后传入），不经聊天、命令行参数或日志。
 5. 1a 修复批已合并（status/blockers/080）——**建库可先做，但首次 Flyway 迁移与应用启动须等修复批合并**。
 
 ## 步骤
@@ -31,7 +32,7 @@ psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_o
 
 STEP 0 / STEP 2 的冲突检查有任何一行返回即停止（`ON_ERROR_STOP` 不会因查询有结果而停，须人工看输出；用 DMS 时逐段执行）。
 
-设口令：RDS 控制台「账号管理」为 `one_dev_migrator`、`one_dev_app`、`one_dev_readonly` 重置口令（≥ 24 位随机，用密码管理器生成）。`one_dev_app` 写入 `/etc/forcitis-one/one.env` 的 `SPRING_DATASOURCE_PASSWORD`；`one_dev_migrator` 写入 `/etc/forcitis-one/migrate/spring.flyway.user` 与 `spring.flyway.password`（目录 root 700、文件 root 600，只由安装器的迁移步骤经 `LoadCredential` 读取，见 RELEASE.md §4）；`one_dev_readonly` 存运维密码管理器。
+设口令（在 ECS 上生成，不经本机与聊天）：`openssl rand` 生成 ≥ 32 位随机口令，在 ECS 上算出 SCRAM-SHA-256 校验值后执行 `ALTER ROLE … PASSWORD 'SCRAM-SHA-256$…'`（服务器与日志只见校验值，不见原文；`psql` 的 `\password` 同理但要交互）。`one_dev_app` 写入 `/etc/forcitis-one/one.env` 的 `SPRING_DATASOURCE_PASSWORD`；`one_dev_migrator` 写入 `/etc/forcitis-one/migrate/spring.flyway.user` 与 `spring.flyway.password`（目录 root 700、文件 root 600，只由安装器的迁移步骤经 `LoadCredential` 读取，见 RELEASE.md §4）；`one_dev_readonly` 存运维密码管理器。
 
 另需（RDS 控制台）：开启 SSL 并下载 CA 证书到 `/etc/forcitis-one/rds-ca.pem`（`0644`），否则 `sslmode=verify-full` 连不上。
 

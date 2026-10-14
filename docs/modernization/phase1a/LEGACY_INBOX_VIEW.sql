@@ -32,7 +32,8 @@ SELECT t.assignee_user_id                                                       
        CAST((t.create_time AT TIME ZONE 'China Standard Time') AT TIME ZONE 'UTC' AS datetime2(3)) AS created_at
   FROM dbo.bpm_task_ext t
   JOIN dbo.ACT_RU_TASK a
-    ON a.ID_ = t.task_id
+    -- 生产库两列排序规则不同（ID_ 为 Chinese_PRC_90_CI_AI，task_id 为 Chinese_PRC_CI_AS），不显式指定会报 468
+    ON a.ID_ = t.task_id COLLATE DATABASE_DEFAULT
   LEFT JOIN dbo.bpm_process_instance_ext p
     ON p.process_instance_id = t.process_instance_id
    AND p.deleted = '0'

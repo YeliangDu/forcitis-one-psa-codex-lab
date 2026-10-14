@@ -19,7 +19,7 @@
 
 1. 用户已确认本次执行 C-4（以及是否包含 `dnf -y update`，它会升级内核，需重启）。
 2. `lsblk` 确认 200 GB 数据盘设备名（通常 `/dev/vdb`）未分区、未挂载、无文件系统——脚本会再次检查，有文件系统则拒绝格式化。
-3. Java 包：确认来源与固定版本（Temurin 25 与 CI 一致；若用 Dragonwell 25 先在 dev 跑完整测试），作为 `--java-pkg` 传入。不从未经确认的地址下载。
+3. Java 包：确认来源与固定版本（Temurin 25 与 CI 一致；若用 Dragonwell 25 先在 dev 跑完整测试），作为 `--java-pkg` 传入。不从未经确认的地址下载。**实测（2026-10-15）**：Alibaba Cloud Linux 4 自带源（alinux4-os / plus / updates）只有 `java-21-alibaba-dragonwell`，没有任何 Java 25 包；须由用户确认外部来源（Adoptium 的 RPM 源，或 Dragonwell 25 官方发行包）后才能做 E-4。
 4. B-4（DNS、证书）未完成时，跳过 E-9 并保持 nginx 未启用。
 
 ## 步骤
@@ -41,7 +41,7 @@ reboot                                                              # 若 E-2 �
 | E-3 | 系统用户 `forcitis`（运行）与 `forcitis-migrate`（迁移，主组 forcitis），均 nologin | 用户存在且 nologin | `userdel forcitis-migrate forcitis` |
 | E-4 | Java 25，`dnf versionlock` 固定 | `java -version` 为 25 | `dnf remove` |
 | E-5 | `/data/forcitis-one` 与 `releases` **root:forcitis** 750（安装器以 root 在其中操作，应用用户不得可写）；`logs`、`tmp` forcitis 750；nginx 对前两层只有穿过（`--x`）ACL；`/etc/forcitis-one` root:forcitis 750；`/etc/forcitis-one/migrate` root 700（迁移凭据，RELEASE.md §4）；one.env 0640 | 属主与权限、ACL；one.env 无迁移凭据且 `SPRING_FLYWAY_ENABLED=false` | 删目录 |
-| E-6 | 安装单元并 enable（不启动） | enabled；User=forcitis 与加固项 | `systemctl disable`、删单元 |
+| E-6 | 安装单元与 logrotate（不启动）；**首次部署时再 enable**：发布包放好之前 enable，重启后 jar 不存在，单元按 `Restart=on-failure` 每 10 秒重启一次、不会停 | 首次部署前：单元已安装、disabled；部署后：enabled（`remote_install.sh` 只 `restart` 不 `enable`，首次部署后由运维 `systemctl enable forcitis-one`）；User=forcitis 与加固项 | `systemctl disable`、删单元 |
 | E-7 | one.env：`SERVER_ADDRESS=127.0.0.1`、`MANAGEMENT_SERVER_PORT=8081`、`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,prometheus` | 8080 / 8081 只在 127.0.0.1；非本机地址只 80 / 443；管理端点只 health、prometheus | 改 one.env |
 | E-8 | nginx：80→301、TLS 1.2/1.3、HSTS、覆盖 XFF、20m、屏蔽 `/actuator` `/v3/api-docs` `/swagger-ui`、`Referrer-Policy: no-referrer`、日志不记查询串 | `nginx -t`；日志格式；屏蔽规则；`--public-check` | 删 `/etc/nginx/conf.d/one.conf`，`systemctl reload nginx` |
 | E-9 | 证书放 `/etc/nginx/tls/`，600（B-4）。**已装 certbot（`certbot-renew.timer`）的现状**：`/etc/nginx/tls/one.forcitis.com.pem`、`.key` 做成指向 `/etc/letsencrypt/live/one.forcitis.com/fullchain.pem`、`privkey.pem` 的软链，nginx 模板不变；若用 webroot 方式续期，`/etc/letsencrypt/renewal/one.forcitis.com.conf` 的 `webroot_path` 改为 `/data/forcitis-one/static-pinned`（ACME 校验已移出发布目录），续期后 `systemctl reload nginx`（`--deploy-hook`），改完 `certbot renew --dry-run` | 私钥 600（软链看目标）；30 天内不过期；certbot 定时器启用、webroot 指向 static-pinned | 删证书文件 / 还原 renewal 配置 |

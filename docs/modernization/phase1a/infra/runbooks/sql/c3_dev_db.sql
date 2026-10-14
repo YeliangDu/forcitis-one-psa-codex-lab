@@ -21,7 +21,7 @@ REVOKE ALL ON DATABASE forcitis_one_dev FROM PUBLIC;
 -- ===== STEP 2 schema 冲突检查（新库内，应为 0 行）=====
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'cost_timesheet', 'one_migration');
 
 -- ===== STEP 3 角色 =====
 CREATE ROLE one_dev_owner NOLOGIN;
@@ -59,13 +59,14 @@ CREATE SCHEMA platform_numbering      AUTHORIZATION one_dev_owner;
 CREATE SCHEMA platform_scheduling     AUTHORIZATION one_dev_owner;
 CREATE SCHEMA organization_workforce  AUTHORIZATION one_dev_owner;
 CREATE SCHEMA organization_attendance AUTHORIZATION one_dev_owner;
+CREATE SCHEMA cost_timesheet          AUTHORIZATION one_dev_owner;
 
 -- ===== STEP 5 授权（默认权限覆盖 one_dev_owner 以后建出的对象）=====
 DO $$
 DECLARE s text;
 BEGIN
   FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering',
-                           'platform_scheduling', 'organization_workforce', 'organization_attendance']
+                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_dev_app, one_dev_readonly', s);
     EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_dev_app', s);
@@ -80,7 +81,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT U
 ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT SELECT ON TABLES TO one_dev_readonly;
 
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
-                        platform_scheduling, organization_workforce, organization_attendance, one_migration
+                        platform_scheduling, organization_workforce, organization_attendance, cost_timesheet, one_migration
   FROM one_dev_app, one_dev_readonly;
 
 -- 下一步：c3_dev_db_verify.sql；之后在 RDS 控制台为 one_dev_migrator、one_dev_app、one_dev_readonly 设口令（≥24 位随机）。
