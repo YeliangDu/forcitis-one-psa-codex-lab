@@ -4,8 +4,12 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
+import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
+import com.forcitis.one.platform.approval.events.TaskTransferred;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -17,7 +21,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
-/** Recipients are exact WeCom user ids, never a broadcast (I-6); the dedup key approval-task:{taskId} makes at-least-once sending idempotent. */
+/** Recipients are exact WeCom user ids, never a broadcast (I-6); the dedup key per card makes at-least-once sending idempotent. */
 @Component
 @EnableConfigurationProperties(NotificationProperties.class)
 class TaskNotifier {
@@ -38,37 +42,56 @@ class TaskNotifier {
 
     @ApplicationModuleListener
     void onTaskAssigned(TaskAssigned event) {
-        List<WecomUserId> recipients = new ArrayList<>();
-        for (UserId candidate : event.candidates()) {
-            WecomUserId wecomUserId = org.findEmployee(candidate).map(EmployeeProfile::wecomUserId).orElse(null);
-            if (wecomUserId == null) {
-                log.warn("Approval task {}: candidate {} has no WeCom user id, no card sent", event.taskId().value(), candidate.value());
-                meters.counter("platform.approval.notification.skipped").increment();
-            } else {
-                recipients.add(wecomUserId);
-            }
-        }
-        if (recipients.isEmpty()) {
-            return;
-        }
         String initiatorName = org.findEmployee(event.initiator()).map(EmployeeProfile::name).orElse("");
-        wecom.send(new WecomCard(recipients, "审批待办：" + event.nodeName(),
-                event.processName() + " 单据 " + documentIdOf(event.businessKey()) + (initiatorName.isEmpty() ? "" : "，发起人 " + initiatorName),
-                properties.taskUrlTemplate().replace("{taskId}", event.taskId().value()), dedupKey(event.taskId().value())));
+        send(event.taskId(), event.candidates(), "审批待办：" + event.nodeName(),
+                event.processName() + " 单据 " + event.document().documentId().value()
+                        + (initiatorName.isEmpty() ? "" : "，发起人 " + initiatorName), dedupKey(event.taskId()));
     }
 
     @ApplicationModuleListener
     void onTaskClaimed(TaskClaimed event) {
         String name = org.findEmployee(event.claimedBy()).map(EmployeeProfile::name).orElse("同事");
-        wecom.markHandled(dedupKey(event.taskId().value()), "已由 " + name + " 处理");
+        wecom.markHandled(dedupKey(event.taskId()), "已由 " + name + " 处理");
     }
 
-    /** Phase 1a shows the document id carried by the business key ("timesheet:123" gives 123) until documents have numbers of their own. */
-    private static String documentIdOf(String businessKey) {
-        return businessKey.substring(businessKey.lastIndexOf(':') + 1);
+    @ApplicationModuleListener
+    void onTaskTransferred(TaskTransferred event) {
+        String name = org.findEmployee(event.from()).map(EmployeeProfile::name).orElse("同事");
+        send(event.taskId(), List.of(event.to()), "审批待办（转交）：" + event.nodeKey(),
+                "单据 " + event.document().documentId().value() + "，由 " + name + " 转交给你", dedupKey(event.taskId()) + ":transfer:" + event.envelope().eventId());
     }
 
-    private static String dedupKey(String taskId) {
-        return "approval-task:" + taskId;
+    @ApplicationModuleListener
+    void onTaskOverdue(ApprovalTaskOverdue event) {
+        send(event.taskId(), event.holders(), "审批已超时：" + event.nodeKey(),
+                "单据 " + event.document().documentId().value() + " 的审批已超过时限，请尽快处理", dedupKey(event.taskId()) + ":overdue");
+    }
+
+    @ApplicationModuleListener
+    void onTaskEscalated(ApprovalTaskEscalated event) {
+        send(event.taskId(), event.escalatedTo(), "审批升级：" + event.nodeKey(),
+                "单据 " + event.document().documentId().value() + " 的审批超时未处理，已升级给你"
+                        + (event.toProcessAdministrator() ? "（流程管理员）" : ""), dedupKey(event.taskId()) + ":escalated");
+    }
+
+    private void send(ApprovalTaskId taskId, List<UserId> recipients, String title, String description, String dedupKey) {
+        List<WecomUserId> wecomIds = new ArrayList<>();
+        for (UserId recipient : recipients) {
+            WecomUserId wecomUserId = org.findEmployee(recipient).map(EmployeeProfile::wecomUserId).orElse(null);
+            if (wecomUserId == null) {
+                log.warn("Approval task {}: {} has no WeCom user id, no card sent", taskId.value(), recipient.value());
+                meters.counter("platform.approval.notification.skipped").increment();
+            } else {
+                wecomIds.add(wecomUserId);
+            }
+        }
+        if (wecomIds.isEmpty()) {
+            return;
+        }
+        wecom.send(new WecomCard(wecomIds, title, description, properties.taskUrlTemplate().replace("{taskId}", taskId.value()), dedupKey));
+    }
+
+    private static String dedupKey(ApprovalTaskId taskId) {
+        return "approval-task:" + taskId.value();
     }
 }

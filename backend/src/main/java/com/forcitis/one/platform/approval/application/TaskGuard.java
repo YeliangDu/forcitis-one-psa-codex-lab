@@ -38,6 +38,15 @@ class TaskGuard {
         }
     }
 
+    /** Only the person who holds the task may hand it over; a mere candidate has to claim it first. */
+    TaskView requireHandler(ApprovalTaskId taskId, UserId actor, String action) {
+        TaskView task = requireTask(taskId);
+        if (!task.assignee().map(actor::equals).orElse(false)) {
+            deny(task, actor, action);
+        }
+        return task;
+    }
+
     void deny(TaskView task, UserId actor, String action) {
         audit.record(new AuditEntry("platform.approval.task.denied", actor, null,
                 "approval-task:" + task.taskId().value(), action));

@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.approval.domain;
+package com.forcitis.one.platform.approval.api;
 
 /** Stored by name; never inferred from wording. RETURNED ends the round, the initiator starts a new one. */
 public enum ApprovalStatus {

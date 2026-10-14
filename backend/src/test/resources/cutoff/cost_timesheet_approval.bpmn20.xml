@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test-only variant of the timesheet process with three nodes in a row; the middle one is a cut-off node (RULE-309): once it has a finished
+     task the initiator can no longer withdraw or cancel. RetractionIT deploys it as a newer version and deletes it again. -->
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:forcitis="https://forcitis.com/psa/approval/extension"
+             targetNamespace="https://forcitis.com/psa/approval">
+  <process id="cost_timesheet_approval" name="Timesheet approval (cut-off)" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="toFirst" sourceRef="start" targetRef="firstReview"/>
+    <userTask id="firstReview" name="First review">
+      <extensionElements>
+        <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toSecond" sourceRef="firstReview" targetRef="cutoffReview"/>
+    <userTask id="cutoffReview" name="Cut-off review">
+      <extensionElements>
+        <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" cutoff="true"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toThird" sourceRef="cutoffReview" targetRef="lastReview"/>
+    <userTask id="lastReview" name="Last review">
+      <extensionElements>
+        <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toEnd" sourceRef="lastReview" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>

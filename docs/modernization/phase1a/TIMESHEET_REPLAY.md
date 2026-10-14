@@ -128,6 +128,8 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
 | `NAMED_USERS` | 生产当前版本无使用；用角色代替，符合 RULE-249「候选组」结论 |
 | `PROCESS_VARIABLE_USERS` | 老流程变量不得成为模块契约（H2）；生产中类型 60 的取人统一由 `FORM_FIELD_USERS` 加词表字段名承担 |
 
+决策表与回放分支表的一致性：`TimesheetApproverReplayIT.branchTableEqualsTheProcess`（路由标记 ↔ 节点 ↔ 指派规则）。
+
 BPMN 守护：`BpmnRuleConventionsTest` 检查每个流程文件（含测试变体）不出现这五种类型，也不出现发起人节点（`initiatorNode`、`skipExpression`）。
 
 老类型 20（部门成员）、22（岗位）、40（用户组）在生产 TIMESHEET 里没有使用（`runtime/prod_bpm.tsv` ##13），回放工具不支持；
@@ -161,8 +163,8 @@ BPMN 守护：`BpmnRuleConventionsTest` 检查每个流程文件（含测试变�
 | 分支 1 | 工时行有类型 0（项目工时）→「项目经理审批」，规则类型 60，取变量 `manager_id` | 路由标记 `projectHours` → `projectManagerReview`，`FORM_FIELD_USERS` 字段 `projectManagerId` |
 | 分支 2 | 有类型 1（售前工时）→「区域负责人审批」，规则类型 60，取变量 `area_leader` | 路由标记 `preSalesHours` → `regionalHeadReview`，`FORM_FIELD_USERS` 字段 `regionalHeadId` |
 | 分支 3 | 有类型 2（OH 工时）→「一级汇报人审批」，脚本 20（发起人的一级上级） | 路由标记 `overheadHours` → `supervisorReview`，`INITIATOR_SUPERVISOR` `level=1` |
-| 分支条件 | 老表达式按工时行类型判断（只作证据，不照搬） | 业务模块预先算好的路由标记，BPMN 只读（RULE-262） |
-| 任务形态 | 并行多实例会签：按审批人列表展开，每个不同的审批人一个任务；完成条件是全部完成或有人驳回 | 候选组认领：一个节点一个任务，候选人中任一人办理（见「与生产仍存在的差异」） |
+| 分支条件 | 老表达式按工时行类型判断（只作证据，不照搬） | 业务模块预先算好的路由标记交给决策表，决策表答出每个节点「走不走」，BPMN 的网关只读答案（`routed_<节点键>`）（RULE-262） |
+| 任务形态 | 并行多实例会签：按审批人列表展开，每个不同的审批人一个任务；完成条件是全部完成或有人驳回 | 同为并行多实例会签（集合表达式 `approverResolution`，每个不同的审批人一个任务） |
 | 驳回 | 汇合处只要有驳回，错误结束事件 `Error_REJECT` 被子流程边界事件捕获，回到发起人 | 子流程内驳回即退回：任务全部撤销，以 `RETURNED` 结束本轮，重新提交时开新一轮 |
 | 取不到人 | 三个节点 `skip_when_empty=1`、`row_approval=0` | 三个节点显式配置 `skipWhenEmpty="true"`；只有显式允许、字段齐全且值有效、确实没有人时才跳过；三路全部跳过也报错（RULE-300 评审修正） |
 
@@ -187,7 +189,7 @@ SELECT r.task_definition_key, r.type, r.options, r.row_approval, r.skip_when_emp
 
 | 差异 | 影响 | 处理 |
 |---|---|---|
-| **会签语义推迟**：生产是并行多实例，每个不同的审批人一个任务，全部通过才算通过；1a 的引擎封装不支持多实例，保留候选组认领（候选人中任一人办理即完成该节点） | 一个节点有多个审批人时，生产要全部通过，新系统任一人通过即可 | 推迟到 1b（RULE-248 每个不同的审批人一个任务；RULE-273 加签人的驳回只是建议）。回放只比对审批人候选集，此差异不影响回放；上线前对多审批人节点需用户确认 |
+| **会签已实现**：生产是并行多实例，每个不同的审批人一个任务，全部通过才算通过 | 新流程的三路节点同为多实例并行会签（`approverResolution`），与生产一致；一路里任一人正式驳回即结束本轮（退回），加签人的驳回只作建议 | 无；回放只比对审批人候选集，不受影响 |
 | 驳回的目的地：生产回到发起人任务，新系统结束本轮并以 `RETURNED` 通知业务模块 | 发起人重新提交时开新一轮（`start_rounds`） | 用户决定 M3 |
 | 取不到人时：生产 `skip_when_empty=1` 直接跳过，包括配置错误造成的「空」 | 新系统只在字段齐全、值有效但确实没有人时跳过；字段缺失或值无效则失败并告警（G-1 已修复）。回放中老系统「因字段缺失而跳过」的节点会记为 `DEFECT`，需要先查数据 | 无 |
 | 节点内 `row_approval=0`（不按行审批）与 `reapprove_on_return` | 1a 不做行级审批；退回后整轮重来，不存在「退回后是否重审」的开关 | Phase 2 工时审批再议 |
@@ -205,7 +207,7 @@ SELECT r.task_definition_key, r.type, r.options, r.row_approval, r.skip_when_emp
 | # | 缺口 | 应有行为 | 期限 |
 |---|---|---|---|
 | G-1 | **已修复**（提交 3f3a12b）：只有字段齐全、值有效但确实没有人时，节点才可跳过；字段缺失、值无效（指向的人不存在、不是 ID）或解析异常，一律失败并告警（`platform.approval.assignee.invalid.input`、`platform.approval.assignee.resolution.failed`）。三路全部被跳过也失败并告警（`platform.approval.all.nodes.skipped`），三个路由标记全为 false 在发起时以业务错误 `PLATFORM_APPROVAL_NO_ROUTE` 拒绝 | 测试：`AssigneeResolverTest`、`TimesheetBranchesIT` | 已完成 |
-| G-2 | 会签（RULE-248/273）未实现，1a 由候选组中任意一人认领后办理 | 按生产口径：每位不同的审批人各生成一个任务，全部通过才算通过，任一人驳回即结束本路 | 1b |
+| G-2 | **已实现**（RULE-248/273）：三路都是并行多实例会签，每位不同的审批人各生成一个任务，全部通过才算通过，任一人正式驳回即结束本轮，加签人的驳回只记意见 | 同上 | 测试：`CountersignIT`、`BpmnRuleConventionsTest` | 已完成 |
 
 ## 与无效交付工时（A8_ACCESS_REGISTER #31）的关系
 

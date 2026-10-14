@@ -405,6 +405,12 @@ class ApplicationIntegrationTest {
         if (type == java.time.Instant.class) {
             return java.time.Instant.parse("2026-10-14T00:00:00Z");
         }
+        if (type == java.util.UUID.class) {
+            return java.util.UUID.fromString("00000000-0000-7000-8000-000000000001");
+        }
+        if (type == com.forcitis.one.kernel.AccountingPeriod.class) {
+            return com.forcitis.one.kernel.AccountingPeriod.of(2026, 10);
+        }
         if (type == java.util.Currency.class) {
             return java.util.Currency.getInstance("CNY");
         }
