@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # FORCITIS one · C-3 · 在本机临时 postgres:18 容器里验证 c3_dev_db.sql：建库建角色 → 以迁移角色按版本执行全部基线迁移 →
-# c3_dev_db_after_migrations.sql → 以运行角色检查各模块可用、版本表与审计表只追加。容器用完即删；口令运行时生成。
+# c3_dev_db_after_migrations.sql → 以运行角色与只读角色检查各模块可用、版本表与审计表只追加。容器用完即删；口令运行时生成。
 # 用法：c3_dev_db_check.sh   （需要本机 docker；退出码 0 全部通过，1 有检查未过）
 set -euo pipefail
 
@@ -8,7 +8,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/../../../../../.." && pwd)"
 migrations="$repo/backend/src/main/resources/db/migration"
 name="one-c3-check-$$"
-superpw="$(openssl rand -hex 16)"; migpw="$(openssl rand -hex 16)"; apppw="$(openssl rand -hex 16)"
+superpw="$(openssl rand -hex 16)"; migpw="$(openssl rand -hex 16)"; apppw="$(openssl rand -hex 16)"; ropw="$(openssl rand -hex 16)"
 trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
 
 docker run -d --rm --name "$name" -e POSTGRES_PASSWORD="$superpw" postgres:18 >/dev/null
@@ -19,7 +19,7 @@ q() { local user="$1" pw="$2" db="$3"; shift 3; docker exec -i -e PGPASSWORD="$p
 # RDS's high-privilege account is a member of rds_superuser and may grant on schemas it does not own; a plain CREATEROLE role
 # may not, so the container runs the script as its superuser (the script itself ran on RDS as one_admin on 2026-10-15)
 q postgres "$superpw" postgres -f - < "$here/c3_dev_db.sql" >/dev/null
-q postgres "$superpw" postgres -c "ALTER ROLE one_dev_migrator PASSWORD '$migpw'" -c "ALTER ROLE one_dev_app PASSWORD '$apppw'"
+q postgres "$superpw" postgres -c "ALTER ROLE one_dev_migrator PASSWORD '$migpw'" -c "ALTER ROLE one_dev_app PASSWORD '$apppw'" -c "ALTER ROLE one_dev_readonly PASSWORD '$ropw'"
 
 while IFS= read -r file; do
   q one_dev_migrator "$migpw" forcitis_one_dev -f - < "$file" >/dev/null
@@ -27,17 +27,25 @@ done < <(find "$migrations" -name 'V*__*.sql' | awk -F/ '{print $NF "\t" $0}' | 
 q postgres "$superpw" forcitis_one_dev -f - < "$here/c3_dev_db_after_migrations.sql" >/dev/null
 
 failed=0
+# ok = the statement succeeded; denied = it failed with insufficient_privilege (42501); anything else (e.g. a missing table) is an error
 check() {
-  local label="$1" sql="$2" expect="$3" out
-  if out="$(q one_dev_app "$apppw" forcitis_one_dev -At -c "$sql" 2>&1)"; then out="ok"; else out="denied"; fi
+  local label="$1" role="$2" pw="$3" sql="$4" expect="$5" out
+  if out="$(q "$role" "$pw" forcitis_one_dev -At -v VERBOSITY=verbose -c "$sql" 2>&1)"; then out="ok"
+  elif grep -q '42501' <<< "$out"; then out="denied"
+  else out="error: $(head -1 <<< "$out")"; fi
   if [ "$out" = "$expect" ]; then echo "PASS  $label"; else echo "FAIL  $label (expected $expect, got $out)"; failed=1; fi
 }
-check "idempotency table readable"           "SELECT count(*) FROM platform_idempotency.idempotent_responses" ok
-check "idempotency table writable"           "BEGIN; DELETE FROM platform_idempotency.idempotent_responses WHERE false; ROLLBACK" ok
-check "approval schema readable"             "SELECT count(*) FROM platform_approval.approval_requests" ok
-check "timesheet schema readable"            "SELECT count(*) FROM cost_timesheet.timesheets" ok
-check "no table creation in module schemas"  "CREATE TABLE platform_idempotency.not_allowed (id bigint)" denied
-check "version table delete refused"         "DELETE FROM organization_workforce.legal_entity_versions WHERE false" denied
-check "version table truncate refused"       "TRUNCATE organization_workforce.org_unit_versions" denied
-check "audit delete refused"                 "DELETE FROM platform_audit.audit_entries WHERE false" denied
+app() { check "$1" one_dev_app "$apppw" "$2" "$3"; }
+ro() { check "$1" one_dev_readonly "$ropw" "$2" "$3"; }
+app "idempotency table readable"           "SELECT count(*) FROM platform_idempotency.idempotent_responses" ok
+app "idempotency insert / update / delete" "BEGIN; INSERT INTO platform_idempotency.idempotent_responses (user_id, idempotency_key, request_hash, expires_at) VALUES (1, 'check', 'h', now()); UPDATE platform_idempotency.idempotent_responses SET response_number = 200 WHERE user_id = 1; DELETE FROM platform_idempotency.idempotent_responses WHERE user_id = 1; ROLLBACK" ok
+app "approval schema readable"             "SELECT count(*) FROM platform_approval.approval_requests" ok
+app "timesheet schema readable"            "SELECT count(*) FROM cost_timesheet.timesheets" ok
+app "no table creation in module schemas"  "CREATE TABLE platform_idempotency.not_allowed (id bigint)" denied
+app "version table delete refused"         "DELETE FROM organization_workforce.legal_entity_versions WHERE false" denied
+app "version table has no TRUNCATE grant"  "DO \$\$ BEGIN IF has_table_privilege('organization_workforce.org_unit_versions', 'TRUNCATE') THEN RAISE insufficient_privilege; END IF; END \$\$" ok
+app "audit delete refused"                 "DELETE FROM platform_audit.audit_entries WHERE false" denied
+ro  "readonly reads idempotency table"     "SELECT count(*) FROM platform_idempotency.idempotent_responses" ok
+# The readonly role's sessions default to read-only; opening a read-write transaction tests the grant itself
+ro  "readonly has no write grant"          "BEGIN READ WRITE; INSERT INTO platform_idempotency.idempotent_responses (user_id, idempotency_key, request_hash, expires_at) VALUES (1, 'x', 'h', now()); ROLLBACK" denied
 exit "$failed"

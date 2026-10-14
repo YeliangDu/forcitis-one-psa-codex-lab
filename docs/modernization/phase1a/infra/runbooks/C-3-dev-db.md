@@ -68,6 +68,20 @@ CA 证书：实例 SSL 已开启（阿里云签发，`ApsaraDB cn-hangzhou regio
 | verify-full | 三个角色与 `one_admin` 均以 `sslmode=verify-full` 连通（TLS 1.3，t-hz0701ffbczsglc）；改用 IP 连接时证书校验失败，主机名校验生效 |
 | 安全事件 | 查 SSL 状态时直接打印了 `DescribeDBInstanceSSL` 的返回，实例证书私钥进入会话记录。影响：须能截获 VPC 内网流量才可利用。处置：用户决定「和生产前维护一并做」——生产前维护窗口重签证书（必要时重启，与 IT 门户协调）；已加「不得调用会返回密钥的接口」注意事项 |
 
+### 2026-10-15 对已建 dev 库执行的增量（以 one_admin 在 forcitis_one_dev 执行，云助手 t-hz070246r8f8074）
+
+```sql
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE SCHEMA IF NOT EXISTS platform_idempotency AUTHORIZATION one_dev_owner;
+GRANT USAGE ON SCHEMA platform_idempotency TO one_dev_app, one_dev_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_idempotency GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_dev_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_idempotency GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO one_dev_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_idempotency GRANT SELECT ON TABLES TO one_dev_readonly;
+REVOKE CREATE ON SCHEMA platform_idempotency FROM one_dev_app, one_dev_readonly;
+```
+
+须由当初执行 c3 的同一个高权限账号执行（它持有 one_dev_owner 的 SET 成员关系且是库属主）。执行后 `c3_dev_db_verify.sql` 期望：V3 为 11 行；默认权限由 18 行变为 20 行。
+
 ## 回滚
 
 `sql/c3_dev_db_rollback.sql`（删库与 4 个角色；只在无须保留的数据时）。不影响 `forcitis_one` 库与 it_portal 角色。
