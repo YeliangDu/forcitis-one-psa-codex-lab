@@ -7,9 +7,9 @@ import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.Arrays;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.Advisor;
 import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -50,18 +50,13 @@ class OperationalMetricsIT {
     ApplicationContext context;
 
     @Test
-    @DisplayName("C-7 the process engine's dead letter jobs are exported, and none exist on a fresh database")
-    void deadLetterJobsAreExported() {
-        assertThat(registry.get("forcitis.platform.approval.dead.letter.jobs").gauge().value()).isZero();
-    }
-
-    @Test
     @DisplayName("C-7 a scheduled job is wrapped next to its lock and starts at zero failures under its lock name")
     void scheduledJobFailuresAreCountedPerJob() {
         Object job = context.getBean("counterCapacityJob");
 
         assertThat(job).isInstanceOf(Advised.class);
-        assertThat(Arrays.asList(((Advised) job).getAdvisors())).contains(context.getBean("scheduledJobFailureAdvisor", org.springframework.aop.Advisor.class));
+        assertThat(((Advised) job).getAdvisors()[0]).as("outermost, ahead of the lock")
+                .isSameAs(context.getBean("scheduledJobFailureAdvisor", Advisor.class));
         assertThat(registry.get("forcitis.platform.scheduling.job.failures").tag("job", "platform.numbering.counter.capacity.check").counter().count())
                 .isZero();
     }

@@ -2,6 +2,7 @@ package com.forcitis.one.kernel.event;
 
 import com.forcitis.one.fixture.doubles.CatalogueBusinessDates;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /** Envelopes for unit tests of aggregates: fixed time, SYSTEM actor "test". */
@@ -18,7 +19,7 @@ public final class TestEnvelopes {
     public static EventEnvelope of(String eventType, String aggregateType, String aggregateId) {
         return new EventEnvelope(UUID.randomUUID(), eventType, 1, Instant.parse("2026-10-14T02:00:00Z"), aggregateType, aggregateId, 1,
                 UUID.randomUUID(), null, ActorType.SYSTEM, "test", null, null, new EventSource(SourceSystem.ONE, null), null,
-                java.util.List.of());
+                List.of());
     }
 
     private TestEnvelopes() {

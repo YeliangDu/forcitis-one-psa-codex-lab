@@ -104,7 +104,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("B2b-H2 a run that crosses Shanghai midnight dates its event and its history rows with the same day: the one the source was read on")
     void snapshotDayIsTheSameForTheEventAndTheHistoryRowsAcrossMidnight() {
         ZoneId shanghai = ZoneId.of("Asia/Shanghai");
-        Instant nextMidnight = java.time.LocalDate.now(shanghai).plusDays(1).atStartOfDay(shanghai).toInstant();
+        Instant nextMidnight = LocalDate.now(shanghai).plusDays(1).atStartOfDay(shanghai).toInstant();
         clock.advance(Duration.between(Instant.now(), nextMidnight.minusSeconds(60)));
         LocalDate readDay = LocalDate.ofInstant(clock.instant(), shanghai);
         orgSource.snapshot = tree(person(1, 2, 100L, null));

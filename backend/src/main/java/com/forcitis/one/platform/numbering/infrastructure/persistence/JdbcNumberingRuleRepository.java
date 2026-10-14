@@ -8,6 +8,7 @@ import com.forcitis.one.platform.numbering.domain.NumberingPattern;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -52,7 +53,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
         return NumberingRule.restore(DocumentType.valueOf(rs.getString("document_type")),
                 new NumberingPattern(rs.getString("pattern"), ResetPolicy.valueOf(rs.getString("reset_policy"))),
                 rs.getLong("start_value"), rs.getString("confirmation_status"), rs.getLong("rule_version_number"),
-                rs.getObject("effective_from_date", java.time.LocalDate.class), rs.getLong("version"), rs.getLong("event_count"));
+                rs.getObject("effective_from_date", LocalDate.class), rs.getLong("version"), rs.getLong("event_count"));
     }
 
     @Override

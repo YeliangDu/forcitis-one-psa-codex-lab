@@ -6,6 +6,8 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.LegacyNumberEntry;
 import com.forcitis.one.platform.numbering.domain.LegacyNumberRepository;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.RowMapper;
@@ -19,7 +21,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
             new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(Long.toString(rs.getLong("document_id")))),
             rs.getString("legacy_number"), legalEntity(rs), rs.getString("import_batch"));
 
-    private static Optional<LegalEntityId> legalEntity(java.sql.ResultSet rs) throws java.sql.SQLException {
+    private static Optional<LegalEntityId> legalEntity(ResultSet rs) throws SQLException {
         long value = rs.getLong("legal_entity_id");
         return rs.wasNull() ? Optional.empty() : Optional.of(new LegalEntityId(value));
     }

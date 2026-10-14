@@ -17,13 +17,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.MethodIntrospector;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.ClassUtils;
 
 /**
  * Counts the runs of every scheduled job that ended in an exception, tagged with the job name (its @SchedulerLock name, G46). A job that
- * is skipped because another node holds its lock throws nothing and is not counted.
+ * is skipped because another node holds its lock throws nothing and is not counted. The advisor is outermost, so a run that never
+ * started because the lock store failed (a LockException from the lock library) is counted too: for the alert it is a job that did not run.
  */
 @Configuration
 class ScheduledJobMetrics implements ApplicationListener<ContextRefreshedEvent> {
@@ -45,7 +47,9 @@ class ScheduledJobMetrics implements ApplicationListener<ContextRefreshedEvent> 
                 throw failure;
             }
         };
-        return new DefaultPointcutAdvisor(new AnnotationMatchingPointcut(null, SchedulerLock.class, true), countFailures);
+        DefaultPointcutAdvisor advisor = new DefaultPointcutAdvisor(new AnnotationMatchingPointcut(null, SchedulerLock.class, true), countFailures);
+        advisor.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return advisor;
     }
 
     /** A counter that does not exist yet cannot be rated: every scheduled job starts at zero so its first failure is visible. */
