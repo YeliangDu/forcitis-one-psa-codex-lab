@@ -2,7 +2,7 @@
 
 收件人：用户（bucket 与 RAM 由用户创建；运维会话不建 RAM 用户 / AccessKey）。依据：用户决定「一个 10 年的 bucket」（国内、与 ECS 同地域、归档存储），保留期「锁约 7 年（2557 天）」——数据先在线保存 3 年，再进本 bucket 归档 7 年，从产生算满 10 年（one-coordinator 2026-10-15 转达）。时点：不阻塞首次 dev 部署；第一个写入方上线前建好。编号 B-11（PR #59 的 B-10 是发布与部署一次性设置）。
 
-与发布流水线的 OSS bucket（RELEASE.md R-3，法兰克福，30 天过期）是两个不同的 bucket，不要合用。
+发布流水线不用 OSS（RELEASE.md R-3 已取消，ECS 自取 GitHub Release），本 bucket 只作归档。
 
 ## 1. 建 bucket（OSS 控制台，华东 1 杭州）
 

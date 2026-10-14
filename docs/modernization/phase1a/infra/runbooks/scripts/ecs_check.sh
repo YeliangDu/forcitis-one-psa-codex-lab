@@ -12,6 +12,20 @@ bad()    { echo "FAIL   $1"; failed=$((failed + 1)); }
 manual() { echo "MANUAL $1"; }
 check()  { local name="$1"; shift; if eval "$@" >/dev/null 2>&1; then ok "$name"; else bad "$name"; fi; }
 
+release_source_ok() {
+  local source=/etc/forcitis-one/release-source profile
+  [[ $(stat -c '%U %a' "$source") == 'root 644' ]] || return 1
+  grep -qx 'GITHUB_REPOSITORY=FORCITIS/forcitis-one-psa' "$source" || return 1
+  profile=$(grep -E '^SPRING_PROFILES_ACTIVE=' /etc/forcitis-one/one.env | tail -1 | cut -d= -f2 | tr -d "'\"")
+  grep -qx "ENVIRONMENT=${profile}" "$source"
+}
+release_token_ok() {
+  local token=/etc/forcitis-one/github-release-token expires
+  [[ $(stat -c '%U %a' "$token") == 'root 600' && $(stat -c '%U %a' "$token.expires") == 'root 644' ]] || return 1
+  expires=$(tr -d '[:space:]' < "$token.expires")
+  [[ $expires =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && $(date -u +%F) < $expires ]]
+}
+
 check "E-1 /data 已挂载且为 xfs"            "findmnt -n -o FSTYPE /data | grep -qx xfs"
 check "E-1 fstab 以 UUID 挂载 /data 且含 nofail" "grep -E '^UUID=[^ ]+ +/data +xfs +[^ ]*nofail' /etc/fstab"
 check "E-2 时区 Asia/Shanghai"              "timedatectl show -p Timezone --value | grep -qx Asia/Shanghai"
@@ -24,8 +38,9 @@ check "E-5 releases 属 root:forcitis、750"  "[[ \$(stat -c '%U:%G %a' /data/fo
 check "E-5 logs、tmp 属 forcitis、750"      "[[ \$(stat -c '%U %a' /data/forcitis-one/logs) == 'forcitis 750' && \$(stat -c '%U %a' /data/forcitis-one/tmp) == 'forcitis 750' ]]"
 check "E-5 nginx 可穿过发布目录"            "getfacl -p /data/forcitis-one /data/forcitis-one/releases 2>/dev/null | grep -c '^user:nginx:--x' | grep -qx 2"
 check "E-5 发布签名公钥 root 0644 且非空" "[[ -s /etc/forcitis-one/release-signers && \$(stat -c '%U %a' /etc/forcitis-one/release-signers) == 'root 644' ]]"
-check "E-5 发布来源配置 root 0644"         "[[ \$(stat -c '%U %a' /etc/forcitis-one/release-source) == 'root 644' ]] && grep -q '^OSS_BUCKET=.' /etc/forcitis-one/release-source"
-check "E-5 aliyun CLI 归 root 且以实例角色读 OSS" "[[ \$(stat -c '%U %a' /usr/local/bin/aliyun) == 'root 755' ]] && aliyun configure get --profile forcitis-release 2>/dev/null | grep -q EcsRamRole"
+check "E-5 发布来源配置 root 0644，仓库正确、环境与 one.env 一致" release_source_ok
+check "E-5 GitHub 只读令牌 root 0600、到期日 root 0644 且未过期" release_token_ok
+check "E-5 令牌到期检查定时器启用"          "systemctl is-enabled --quiet one-release-token-check.timer"
 check "E-5 安装器 root 0755"                "[[ \$(stat -c '%U %a' /usr/local/sbin/forcitis-one-release) == 'root 755' ]]"
 check "E-5 迁移凭据目录 root 700"           "[[ \$(stat -c '%U %a' /etc/forcitis-one/migrate) == 'root 700' ]]"
 check "E-5 /etc/forcitis-one 属 root:forcitis、750" "[[ \$(stat -c '%U:%G %a' /etc/forcitis-one) == 'root:forcitis 750' ]]"

@@ -1,6 +1,6 @@
 # 首次 dev 部署前运维剩余事项（按依赖排序）
 
-维护：one-ops。更新：2026-10-15（第二轮：C-3、C-4、C-6 已执行项，并入 RELEASE.md R-0..R-12）。依据：`PREDEPLOY_CHECKLIST.md`、`CROSSCHECK.md`、`DECISIONS_A.md`、各剧本，以及 2026-10-15 对阿里云的只读查询。本表只列**首次 dev 部署之前**还要做的事；生产前事项见清单「生产前」时点。
+维护：one-ops。更新：2026-10-15（第二轮：C-3、C-4、C-6 已执行项，并入 RELEASE.md R-0..R-12；发布通路改为 ECS 自取 GitHub Release，R-3 取消、R-13 新增）。依据：`PREDEPLOY_CHECKLIST.md`、`CROSSCHECK.md`、`DECISIONS_A.md`、各剧本，以及 2026-10-15 对阿里云的只读查询。本表只列**首次 dev 部署之前**还要做的事；生产前事项见清单「生产前」时点。
 
 「谁」：**ops** = one-ops（或 one-coordinator 派的运维子代理）；**用户** = 只能用户本人做或决定；**1a** = 1a 代码会话；**DBA** = 老系统 / A8 的数据库管理员（A-2 人选未定）。「花钱」：否 / 是（付费项编号见 C-7「落地方案」与本表）/ 按量（已开通服务的小额用量）。耗时是动手时间，不含等人。
 
@@ -26,7 +26,7 @@
 | 1-8 | C-7 证书到期检查安装（`one_cert_check.sh` + 定时器） | ops | 否 | 0.5 h | ✅ 2026-10-15 已安装（t-hz0701b833ib7r4）；告警经 `one_alert_send` 推送到运维群 |
 | 1-9 | 付费决定 | 用户 | 是 | — | ✅ 用户选开 P-1、P-2、P-4、P-5，P-3 不开；P-4 快照策略已存在（含系统盘，保留现状）；P-5 无超额；P-1 / P-2 已开通（SLS 按使用功能计费、指标走 SLS Prometheus 指标库） |
 | 1-10 | B-3 在 A8「第三方应用」新建「FORCITIS one」单点登录入口（仿照未启用的「`FORCITIS PSA`」，页面地址 `https://one.forcitis.com/login/sso`） | 用户 / A8 管理员（A8 后台） | 否 | 0.5 h | ops 已查清：老系统现用的「数字运营平台」关联系统只 POST `memberId`、不验票，不可照搬；票据方式见 `handoff/B-3`；A8 验票根地址 `https://bpm.forcitis.com`，ECS 可达；`one.env` 已设 `SEEYON_OA_BASE_URL`、`FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED=true`、`LEGACY_LOGIN_URL` |
-| 1-12 | C-3 `one_admin` 口令轮换：R-4 实例 RAM 角色就绪后在 ECS 上生成新口令并经接口重置（用户「先建后轮换」） | ops | 否 | 0.5 h | 依赖 R-4 |
+| 1-12 | C-3 `one_admin` 口令轮换：实例 RAM 角色就绪后在 ECS 上生成新口令并经接口重置（用户「先建后轮换」） | ops | 否 | 0.5 h | 依赖实例 RAM 角色；发布已不需要该角色（RELEASE.md R-4），建不建、何时建随 1-12 / B-11 另定 |
 | 1-11 | B-2 余项：企业可信 IP 47.114.56.157；H5 工作台入口（依赖 1a 改 H5 子路径，CROSSCHECK 第 4 条） | 用户（企业微信后台） | 否 | — | 可信 IP ✅ 2026-10-15（用户配置；ECS 出口 47.114.56.157 调 message/send 得 81013 而非 60020，IP 检查已通过，未发出消息）；H5 入口待 1a |
 
 ## 第 2 层：代码侧前置（1a）
@@ -46,16 +46,17 @@
 | R-0 | 专用部署 runner 重建（`/opt/forcitis-one-runner` 归 root、hook、LaunchDaemon、`--disableupdate`、演练） | 用户（需 Mac 管理员密码与一次性注册令牌） | 否 | 1.5 h | ✅ 2026-10-15：`mac-one-deploy` 在线（`scripts/release/runner_rebuild.sh`）；第 8 步拒绝演练通过（分支工作流与伪造变量均被 hook 拒绝），放行路径在首次 dev 部署时验证 |
 | R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15 |
 | R-2 | 仓库级 Actions variables：8 个构建期变量 | 用户 | 否 | 0.2 h | B-2、B-3 完成后填 |
-| R-3 | 发布用 OSS bucket（法兰克福，30 天过期） | 用户 | 按量 | 0.3 h | 用户定首次 dev 部署前再建；与 B-11 归档 bucket 不同 |
-| R-4 | RAM：每环境部署子账号与 AccessKey；ECS 实例 RAM 角色 | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.5 h | 1-12 口令轮换、B-11 写入方策略也绑在该实例角色上 |
+| R-3 | ~~发布用 OSS bucket~~ | — | — | — | **不再需要**：改为 ECS 自取 GitHub Release（用户「先测 GitHub 直拉，可行就用 (Recommended)」；ECS 夜间实测约 9 MB/s） |
+| R-4 | RAM：每环境部署子账号与 AccessKey，策略只许对该命令与该实例 `ecs:InvokeCommand`、`ecs:DescribeInvocationResults`、`ecs:DescribeInvocations`（RELEASE.md §8.2） | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.3 h | 发布不需要实例 RAM 角色（1-12、B-11 另定） |
 | R-5 | 各 environment 的 secrets（含 `RELEASE_SIGNING_KEY`） | 用户 | 否 | 0.2 h | R-4、R-12 |
-| R-6 | 各 environment 的 variables（`OSS_*`、`DEPLOY_TRIGGER`、`WECOM_VERIFY_FILE`、`ECS_*`） | 用户 | 否 | 0.2 h | R-3、R-7；校验文件名为 static-pinned 中现有那一个 |
-| R-7 | ECS：安装器、签名公钥、`release-source`、aliyun CLI 与实例角色配置、云助手固定命令 | ops | 否 | 1 h | R-4、R-12；E-3 / E-9 / E-10 部分已完成 |
+| R-6 | 各 environment 的 variables（`DEPLOY_TRIGGER=cloud-assistant`、`ECS_REGION`、`ECS_INSTANCE_ID`、`ECS_COMMAND_ID`） | 用户 | 否 | 0.1 h | R-7；不再有 `OSS_*`；企业微信校验文件名改在 ECS 的 `release-source`（R-7） |
+| R-7 | ECS：安装器、签名公钥、`release-source`（`ENVIRONMENT`、`GITHUB_REPOSITORY`、`WECOM_VERIFY_FILE`）、令牌文件与到期日、令牌到期检查定时器、云助手固定命令（无参数 `install-pending`） | ops | 否 | 1 h | R-12、R-13；E-3 / E-9 / E-10 部分已完成；ECS 上不再需要 aliyun CLI 与实例角色配置 |
 | R-8 | 标签规则 `v*` | 用户 | 否 | 0.1 h | ✅ 2026-10-15（只限更新与删除，见 RELEASE.md R-8） |
 | R-9 | 启用 immutable releases；确认 Actions 权限与托管 runner | 用户 | 否 | 0.1 h | ✅ 2026-10-15 |
 | R-10 | `one.env` 补 `SPRING_FLYWAY_ENABLED=false`；`/etc/forcitis-one/migrate/` 迁移凭据 | ops | 否 | — | ✅ 两项都已就位（one-ops-1a；迁移凭据由 C-3 写入）；首次 Flowable 安装项待首次部署 |
-| R-11 | bucket 建好后的连通演练（不部署） | ops | 否 | 0.5 h | R-3、R-4、R-7 |
+| R-11 | 连通演练（不部署）：ECS 以令牌读部署记录、下载一个 Release 附件并记速度（白天补测）、云助手触发固定命令应以「没有待部署」失败 | ops | 否 | 0.5 h | R-4、R-7、R-13 |
 | R-12 | 发布签名密钥：可信机器生成，私钥进 secret，公钥经 PR 写入 `allowed_signers` 并装到 ECS | 用户生成；ops 装 ECS 公钥 | 否 | 0.3 h | ✅ 2026-10-15；ECS 公钥随 R-7 安装 |
+| R-13 | **GitHub 只读令牌**（每环境一个，fine-grained：仅 `forcitis-one-psa`，Contents / Deployments / Actions / Metadata 只读，≤ 90 天）：用户在 github.com 生成，只经 one-ops 安全输入窗口交运维写入 ECS；到期前 14 天 P2、3 天 P1 告警后轮换（RELEASE.md R-13） | 用户生成；ops 写入 ECS 与装检查 | 否 | 0.3 h | 用户步骤；R-7 前 |
 
 ## 第 4 层：部署当日与部署后（出口前）
 

@@ -1,9 +1,12 @@
 name: deploy
+# The installer on the ECS matches this title against the deployment it is asked to install (remote_install.sh)
+run-name: deploy ${{ inputs.version }} to ${{ inputs.environment }}
 
-# Deploys a published release to dev or prod: the bundle's signed release statement and checksums are verified, it is staged in the Frankfurt OSS
-# bucket with a deploy request, and the ECS fetches it with its own RAM role, verifies the statement again and installs it
-# (scripts/release/ship.sh, then scripts/release/remote_install.sh on the server), triggered by a fixed Cloud Assistant command or a
-# restricted SSH key. The deploy job never holds the release signing key.
+# Deploys a published release to dev or prod: the bundle's signed release statement and checksums are verified, a GitHub deployment
+# naming the tag, this run and the tag's commit is created, and the ECS is triggered through a fixed Cloud Assistant command (or a
+# restricted SSH key). The ECS checks the deployment and this run against the GitHub API with its own read-only token, downloads the
+# release assets from GitHub, verifies the statement again and installs (scripts/release/ship.sh, scripts/release/remote_install.sh).
+# This job then sets the deployment's final status. It never holds the release signing key.
 # Blocked while a docs/modernization/status/blockers/ entry carries `blocks: deploy`; prod also needs the Phase 1a exit conditions and C-9.
 # Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
 on:
@@ -66,6 +69,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      deployments: write
     env:
       TARGET_ENV: ${{ inputs.environment }}
       VERSION: ${{ inputs.version }}
@@ -126,15 +130,30 @@ jobs:
             python3 -I scripts/release/deploy_gate.py approval "$VERSION" "$COMMIT" "$(cut -d' ' -f1 "$archive.sha256")"
           fi
 
-      - name: stage in OSS and install on the server
+      - name: deployment request for the server
+        id: deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ steps.release.outputs.commit }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 -I -c '
+          import json, os, sys
+          version = os.environ["VERSION"]
+          json.dump({"ref": "v" + version, "environment": os.environ["TARGET_ENV"], "auto_merge": False, "required_contexts": [],
+                     "payload": {"version": version, "run_id": int(os.environ["RUN_ID"]), "commit": os.environ["COMMIT"]},
+                     "description": "FORCITIS one " + version}, sys.stdout)' > "$RUNNER_TEMP/deployment.json"
+          id="$(gh api -X POST "repos/$GITHUB_REPOSITORY/deployments" --input "$RUNNER_TEMP/deployment.json" -q .id)"
+          [[ "$id" =~ ^[0-9]+$ ]] || { echo "could not create the deployment" >&2; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "deployment $id: v$VERSION ($COMMIT) to $TARGET_ENV, run $RUN_ID"
+
+      - name: install on the server
+        id: ship
         env:
           ALIBABA_CLOUD_ACCESS_KEY_ID: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_ID }}
           ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_SECRET }}
-          OSS_BUCKET: ${{ vars.OSS_BUCKET }}
-          OSS_REGION: ${{ vars.OSS_REGION }}
-          OSS_PREFIX: ${{ vars.OSS_PREFIX }}
           DEPLOY_TRIGGER: ${{ vars.DEPLOY_TRIGGER }}
-          WECOM_VERIFY_FILE: ${{ vars.WECOM_VERIFY_FILE }}
           ECS_REGION: ${{ vars.ECS_REGION }}
           ECS_INSTANCE_ID: ${{ vars.ECS_INSTANCE_ID }}
           ECS_COMMAND_ID: ${{ vars.ECS_COMMAND_ID }}
@@ -143,8 +162,21 @@ jobs:
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-          COMMIT: ${{ steps.release.outputs.commit }}
-        run: scripts/release/ship.sh "$RUNNER_TEMP/deploy/forcitis-one-$VERSION.tar.gz" "$TARGET_ENV" "$COMMIT"
+        run: scripts/release/ship.sh "$TARGET_ENV"
+
+      # The server's token is read-only, so the outcome is recorded here
+      - name: deployment status
+        if: always() && steps.deployment.outputs.id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ID: ${{ steps.deployment.outputs.id }}
+          OUTCOME: ${{ steps.ship.outcome }}
+        run: |
+          state=failure
+          if [ "$OUTCOME" = success ]; then state=success; fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" -f state="$state" \
+            -f log_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" -f description="install $OUTCOME" > /dev/null
+          echo "deployment $DEPLOYMENT_ID: $state"
 
       - if: always()
-        run: rm -rf "$RUNNER_TEMP/deploy"
+        run: rm -rf "$RUNNER_TEMP/deploy" "$RUNNER_TEMP/deployment.json"

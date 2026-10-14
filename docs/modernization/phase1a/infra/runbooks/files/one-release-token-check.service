@@ -1,0 +1,10 @@
+[Unit]
+Description=FORCITIS one GitHub release token expiry check (RELEASE.md R-13)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/one_release_token_check.sh
+PrivateTmp=true
+ProtectHome=true
+NoNewPrivileges=true
