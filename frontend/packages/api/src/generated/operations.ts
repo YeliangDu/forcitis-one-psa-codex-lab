@@ -2,8 +2,17 @@
 import { type Call, type Result, request } from '../runtime';
 import type { paths } from './schema';
 
+export const getCostTimesheetsById = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}']['get']>) =>
+  request<Result<paths['/api/v1/cost/timesheets/{id}']['get']>>('get', '/api/v1/cost/timesheets/{id}', args, options);
+
+export const postCostTimesheetsByIdCancel = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}:cancel']['post']>) =>
+  request<Result<paths['/api/v1/cost/timesheets/{id}:cancel']['post']>>('post', '/api/v1/cost/timesheets/{id}:cancel', args, options);
+
 export const postCostTimesheetsByIdSubmit = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}:submit']['post']>) =>
   request<Result<paths['/api/v1/cost/timesheets/{id}:submit']['post']>>('post', '/api/v1/cost/timesheets/{id}:submit', args, options);
+
+export const postCostTimesheetsByIdWithdraw = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}:withdraw']['post']>) =>
+  request<Result<paths['/api/v1/cost/timesheets/{id}:withdraw']['post']>>('post', '/api/v1/cost/timesheets/{id}:withdraw', args, options);
 
 export const getOrganizationLegalEntities = (...[args, options]: Call<paths['/api/v1/organization/legal-entities']['get']>) =>
   request<Result<paths['/api/v1/organization/legal-entities']['get']>>('get', '/api/v1/organization/legal-entities', args, options);
@@ -43,6 +52,9 @@ export const postPlatformApprovalTasksByTaskIdDecide = (...[args, options]: Call
 
 export const postPlatformApprovalTasksByTaskIdReturn = (...[args, options]: Call<paths['/api/v1/platform/approval-tasks/{taskId}:return']['post']>) =>
   request<Result<paths['/api/v1/platform/approval-tasks/{taskId}:return']['post']>>('post', '/api/v1/platform/approval-tasks/{taskId}:return', args, options);
+
+export const postPlatformApprovalTasksByTaskIdTransfer = (...[args, options]: Call<paths['/api/v1/platform/approval-tasks/{taskId}:transfer']['post']>) =>
+  request<Result<paths['/api/v1/platform/approval-tasks/{taskId}:transfer']['post']>>('post', '/api/v1/platform/approval-tasks/{taskId}:transfer', args, options);
 
 export const getPlatformAuditEntries = (...[args, options]: Call<paths['/api/v1/platform/audit-entries']['get']>) =>
   request<Result<paths['/api/v1/platform/audit-entries']['get']>>('get', '/api/v1/platform/audit-entries', args, options);

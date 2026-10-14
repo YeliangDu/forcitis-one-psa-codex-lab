@@ -1,5 +1,37 @@
 // Generated from packages/api/openapi.json by scripts/generate-api.mjs. Do not edit by hand.
 export interface paths {
+    "/api/v1/cost/timesheets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cost/timesheets/{id}:cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cost/timesheets/{id}:submit": {
         parameters: {
             query?: never;
@@ -10,6 +42,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cost/timesheets/{id}:withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["withdraw"];
         delete?: never;
         options?: never;
         head?: never;
@@ -202,6 +250,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["returnTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/approval-tasks/{taskId}:transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["transfer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -485,25 +549,34 @@ export interface components {
             outcome?: "APPROVE" | "REJECT";
             reason?: string;
         };
-        DecisionResult: {
-            instanceId?: string;
-            status?: string;
+        DecisionResponse: {
+            instanceId: string;
+            status: string;
         };
         EmergencyLoginRequest: {
             loginName?: string;
             password?: string;
             totpCode?: string;
         };
-        InboxItem: {
-            claimed?: boolean;
+        InboxItemResponse: {
+            claimed: boolean;
             /** Format: date-time */
             createdAt?: string;
             detailUrl?: string;
             nodeName?: string;
-            /** @enum {string} */
-            source?: "NEW" | "LEGACY";
-            taskId?: string;
-            title?: string;
+            source: string;
+            taskId: string;
+            title: string;
+        };
+        InboxResponse: {
+            items: components["schemas"]["InboxItemResponse"][];
+            legacyAvailable: boolean;
+            /** Format: int32 */
+            legacyCount: number;
+            /** Format: int32 */
+            newCount: number;
+            /** Format: int32 */
+            totalCount: number;
         };
         LegacyNumberResponse: {
             documentId: string;
@@ -521,16 +594,6 @@ export interface components {
         LoginStateRequest: {
             /** @enum {string} */
             entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
-        };
-        MergedInbox: {
-            items?: components["schemas"]["InboxItem"][];
-            legacyAvailable?: boolean;
-            /** Format: int32 */
-            legacyCount?: number;
-            /** Format: int32 */
-            newCount?: number;
-            /** Format: int32 */
-            totalCount?: number;
         };
         NavigationResponse: {
             children: components["schemas"]["NavigationResponse"][];
@@ -580,6 +643,9 @@ export interface components {
         };
         ReplaceRolesRequest: {
             roleCodes?: string[];
+        };
+        RetractTimesheetRequest: {
+            reason?: string;
         };
         ReturnTaskRequest: {
             reason?: string;
@@ -667,22 +733,35 @@ export interface components {
             syncRunId: string;
             trigger: string;
         };
-        TaskDetail: {
+        TaskDetailResponse: {
             assignee?: string;
-            businessKey?: string;
-            canAct?: boolean;
-            candidates?: string[];
+            canAct: boolean;
+            candidates: string[];
             /** Format: date-time */
-            createdAt?: string;
-            initiator?: string;
-            instanceId?: string;
-            nodeKey?: string;
-            nodeName?: string;
-            processKey?: string;
-            taskId?: string;
+            createdAt: string;
+            documentId: string;
+            documentType: string;
+            initiator: string;
+            instanceId: string;
+            nodeKey: string;
+            nodeName: string;
+            processKey: string;
+            taskId: string;
         };
         TicketLoginRequest: {
             ticket?: string;
+        };
+        TimesheetResponse: {
+            approvalInstanceId?: string;
+            canWithdraw: boolean;
+            /** Format: int32 */
+            round: number;
+            status: string;
+            timesheetId: string;
+        };
+        TransferTaskRequest: {
+            /** Format: int64 */
+            assigneeId?: number;
         };
         UpdateLegalEntityRequest: {
             name?: string;
@@ -703,6 +782,52 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TimesheetResponse"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetractTimesheetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     submit: {
         parameters: {
             query?: never;
@@ -726,6 +851,30 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["SubmitTimesheetResponse"];
                 };
+            };
+        };
+    };
+    withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetractTimesheetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -924,7 +1073,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["MergedInbox"];
+                    "*/*": components["schemas"]["InboxResponse"];
                 };
             };
         };
@@ -946,7 +1095,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TaskDetail"];
+                    "*/*": components["schemas"]["TaskDetailResponse"];
                 };
             };
         };
@@ -992,7 +1141,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["DecisionResult"];
+                    "*/*": components["schemas"]["DecisionResponse"];
                 };
             };
         };
@@ -1018,8 +1167,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["DecisionResult"];
+                    "*/*": components["schemas"]["DecisionResponse"];
                 };
+            };
+        };
+    };
+    transfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

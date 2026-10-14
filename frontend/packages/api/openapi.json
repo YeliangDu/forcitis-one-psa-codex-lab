@@ -54,7 +54,7 @@
         },
         "type" : "object"
       },
-      "DecisionResult" : {
+      "DecisionResponse" : {
         "properties" : {
           "instanceId" : {
             "type" : "string"
@@ -63,6 +63,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "instanceId", "status" ],
         "type" : "object"
       },
       "EmergencyLoginRequest" : {
@@ -79,7 +80,7 @@
         },
         "type" : "object"
       },
-      "InboxItem" : {
+      "InboxItemResponse" : {
         "properties" : {
           "claimed" : {
             "type" : "boolean"
@@ -95,7 +96,6 @@
             "type" : "string"
           },
           "source" : {
-            "enum" : [ "NEW", "LEGACY" ],
             "type" : "string"
           },
           "taskId" : {
@@ -105,6 +105,34 @@
             "type" : "string"
           }
         },
+        "required" : [ "claimed", "source", "taskId", "title" ],
+        "type" : "object"
+      },
+      "InboxResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/InboxItemResponse"
+            },
+            "type" : "array"
+          },
+          "legacyAvailable" : {
+            "type" : "boolean"
+          },
+          "legacyCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "newCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "totalCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "totalCount" ],
         "type" : "object"
       },
       "LegacyNumberResponse" : {
@@ -151,32 +179,6 @@
           "entry" : {
             "enum" : [ "WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN" ],
             "type" : "string"
-          }
-        },
-        "type" : "object"
-      },
-      "MergedInbox" : {
-        "properties" : {
-          "items" : {
-            "items" : {
-              "$ref" : "#/components/schemas/InboxItem"
-            },
-            "type" : "array"
-          },
-          "legacyAvailable" : {
-            "type" : "boolean"
-          },
-          "legacyCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "newCount" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "totalCount" : {
-            "format" : "int32",
-            "type" : "integer"
           }
         },
         "type" : "object"
@@ -327,6 +329,14 @@
             },
             "type" : "array",
             "uniqueItems" : true
+          }
+        },
+        "type" : "object"
+      },
+      "RetractTimesheetRequest" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -561,12 +571,9 @@
         "required" : [ "startedAt", "status", "syncRunId", "trigger" ],
         "type" : "object"
       },
-      "TaskDetail" : {
+      "TaskDetailResponse" : {
         "properties" : {
           "assignee" : {
-            "type" : "string"
-          },
-          "businessKey" : {
             "type" : "string"
           },
           "canAct" : {
@@ -580,6 +587,12 @@
           },
           "createdAt" : {
             "format" : "date-time",
+            "type" : "string"
+          },
+          "documentId" : {
+            "type" : "string"
+          },
+          "documentType" : {
             "type" : "string"
           },
           "initiator" : {
@@ -601,12 +614,44 @@
             "type" : "string"
           }
         },
+        "required" : [ "canAct", "candidates", "createdAt", "documentId", "documentType", "initiator", "instanceId", "nodeKey", "nodeName", "processKey", "taskId" ],
         "type" : "object"
       },
       "TicketLoginRequest" : {
         "properties" : {
           "ticket" : {
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "TimesheetResponse" : {
+        "properties" : {
+          "approvalInstanceId" : {
+            "type" : "string"
+          },
+          "canWithdraw" : {
+            "type" : "boolean"
+          },
+          "round" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "timesheetId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "canWithdraw", "round", "status", "timesheetId" ],
+        "type" : "object"
+      },
+      "TransferTaskRequest" : {
+        "properties" : {
+          "assigneeId" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         },
         "type" : "object"
@@ -645,6 +690,63 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/cost/timesheets/{id}" : {
+      "get" : {
+        "operationId" : "get_5",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TimesheetResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
+    "/api/v1/cost/timesheets/{id}:cancel" : {
+      "post" : {
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RetractTimesheetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
     "/api/v1/cost/timesheets/{id}:submit" : {
       "post" : {
         "operationId" : "submit",
@@ -676,6 +778,36 @@
                 }
               }
             },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
+    "/api/v1/cost/timesheets/{id}:withdraw" : {
+      "post" : {
+        "operationId" : "withdraw",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RetractTimesheetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
             "description" : "OK"
           }
         },
@@ -916,7 +1048,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/MergedInbox"
+                  "$ref" : "#/components/schemas/InboxResponse"
                 }
               }
             },
@@ -942,7 +1074,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/TaskDetail"
+                  "$ref" : "#/components/schemas/TaskDetailResponse"
                 }
               }
             },
@@ -997,7 +1129,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/DecisionResult"
+                  "$ref" : "#/components/schemas/DecisionResponse"
                 }
               }
             },
@@ -1033,10 +1165,39 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/DecisionResult"
+                  "$ref" : "#/components/schemas/DecisionResponse"
                 }
               }
             },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
+    "/api/v1/platform/approval-tasks/{taskId}:transfer" : {
+      "post" : {
+        "operationId" : "transfer",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TransferTaskRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
             "description" : "OK"
           }
         },
