@@ -414,12 +414,14 @@ terms:
   confidence: high
   aliases:
   - name: 销售合同
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「销售合同新增 / 归档」、档案「销售合同档案」
-  forbidden: []
+  forbidden:
+  - 销售合同
   status: approved
   note: CAS 14 / IFRS 15 第一步「识别与客户订立的合同」；收入合同
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: contract_type
   zh: 合同形态
   en: ContractType
@@ -617,12 +619,14 @@ terms:
   confidence: medium
   aliases:
   - name: 付款条件档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_1321（PSA 报价条款同步）
-  forbidden: []
+  forbidden:
+  - 付款条件档案
   status: approved
   note: IFRS 15 重大融资成分判断需读付款条件
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: import_legacy_contract_baseline
   zh: 历史合同导入
   en: ImportLegacyContractBaseline
@@ -1181,12 +1185,14 @@ terms:
     type: standard-en
     deprecated: false
   - name: 销售合同变更
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
-  forbidden: []
+  forbidden:
+  - 销售合同变更
   status: approved
   note: 国标「工程变更」，FIDIC Cl.13 Variation；进入核算时对应 CAS 14 / IFRS 15「合同变更」(contract modification)
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: change_order_draft
   zh: 变更意向
   en: ChangeOrderDraft
@@ -2238,15 +2244,17 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 项目工时填报单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板（2026-04-30 起停用）
   forbidden:
   - ManHour
   - TimeSheet
   - WorkHour
+  - 项目工时填报单
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: effective_hours
   zh: 有效工时
   en: EffectiveHours
@@ -2459,11 +2467,13 @@ terms:
   confidence: medium
   aliases:
   - name: 项目委外
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「项目委外采购申请 / 采购合同 / 交付确认单」
-  forbidden: []
+  forbidden:
+  - 项目委外
   status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: cost_accumulated
   zh: 成本归集
   en: CostAccumulated
@@ -2525,12 +2535,14 @@ terms:
   confidence: high
   aliases:
   - name: BU岗位人天单价
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_1176
-  forbidden: []
+  forbidden:
+  - BU岗位人天单价
   status: approved
   change_ref: G-3
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: rate_card_version
   zh: 费率版本
   en: RateCardVersion
@@ -3034,12 +3046,14 @@ terms:
   confidence: medium
   aliases:
   - name: 发票档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_0428
-  forbidden: []
+  forbidden:
+  - 发票档案
   status: approved
   note: 开票 ≠ 收入；开票时合同资产转应收账款（或冲合同负债）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: billing_request
   zh: 开票申请
   en: BillingRequest
@@ -3055,16 +3069,19 @@ terms:
     type: legacy-code
     deprecated: true
   - name: 项目开票申请
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
   - name: 首付款开票申请
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
-  forbidden: []
+  forbidden:
+  - 项目开票申请
+  - 首付款开票申请
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: invoice_eligibility_confirmed
   zh: 开票准入
   en: InvoiceEligibilityConfirmed
@@ -3147,6 +3164,9 @@ terms:
     type: dialect
     deprecated: true
     source: A8 档案 formmain_0581
+  - name: ProgressRecognition
+    type: old-code
+    deprecated: true
   forbidden:
   - CuValue
   - Cuvalue
@@ -3158,6 +3178,7 @@ terms:
   - 收入确认准备（产值）
   - 客户产值确认单
   - 客户产值确认档案
+  - ProgressRecognition
   status: approved
   change_ref: G-12
   note: 用户 2026-10-14 裁定：「产值确认单就是收入确认单，系统用收入确认这个语言，现在的叫法可以归为方言」。ACC-R01：客户价值确认是确认收入的唯一触发点。事件名 RevenueRecognized
@@ -3238,11 +3259,13 @@ terms:
   confidence: high
   aliases:
   - name: 回款单档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_0569
-  forbidden: []
+  forbidden:
+  - 回款单档案
   status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: receipt_claiming
   zh: 到账认领
   en: ReceiptClaiming
@@ -3297,11 +3320,13 @@ terms:
   confidence: high
   aliases:
   - name: 应收坏账申请
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「应收坏账申请流程」；计提还是核销待财务确认
-  forbidden: []
+  forbidden:
+  - 应收坏账申请
   status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: aging
   zh: 账龄
   en: Aging
@@ -3556,18 +3581,19 @@ terms:
     type: old-code
     deprecated: true
   - name: 项目结算
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「项目结算申请」
   forbidden:
   - SettlementRecord
   - 结算单
+  - 项目结算
   status: approved
   change_ref: G-19
   note: 国标「竣工结算」，FIDIC Cl.14.11 Final Statement / Final Payment Certificate；Settlement 在英语里多指款项结清，且与 ClaimSettled / IntercompanySettlement 冲突
   old_codes: []
   core: null
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: final_account_discount
   zh: 结算折让
   en: FinalAccountDiscount
@@ -3917,14 +3943,16 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 报价档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_0366
   forbidden:
   - BaoJia
   - Quotation
+  - 报价档案
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: cost_estimate_node
   zh: 成本估算树
   en: CostEstimateNode
@@ -4060,20 +4088,22 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 项目立项
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「项目立项申请」
   - name: 项目档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「项目档案变更」、档案「项目档案底表」
   forbidden:
   - PmProject
+  - 项目立项
+  - 项目档案
   status: approved
   change_ref: G-29
   note: PSA 行业中与客户的整体合作也称 Engagement；本系统 Engagement 仅用于客户侧 EngagementHistory，不作项目别名
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: project_budget
   zh: 项目预算（WBS 预算）
   en: ProjectBudget
@@ -4092,14 +4122,18 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 项目预算编制
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
-  forbidden: []
+  - name: Budget
+    type: old-code
+    deprecated: true
+  forbidden:
+  - 项目预算编制
   status: approved
   change_ref: G-29
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: expense_claim
   zh: 报销单
   en: ExpenseClaim
@@ -4118,16 +4152,19 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 日常费用报销单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
   - name: 业务招待费用报销单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
-  forbidden: []
+  forbidden:
+  - 日常费用报销单
+  - 业务招待费用报销单
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: travel_expense
   zh: 差旅
   en: TravelExpense
@@ -4146,12 +4183,14 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 差旅费用报销单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
-  forbidden: []
+  forbidden:
+  - 差旅费用报销单
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: legal_entity
   zh: 法人主体
   en: LegalEntity
@@ -4499,7 +4538,14 @@ terms:
   - name: system_operate_log, infra_api_access_log
     type: legacy-table
     deprecated: true
-  forbidden: []
+  - name: AuditTrail
+    type: old-code
+    deprecated: true
+  - name: 审计轨迹
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 审计轨迹
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
@@ -4523,17 +4569,18 @@ terms:
     type: old-code
     deprecated: true
   - name: 预收款单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「预收款单新增」
   forbidden:
   - DeferredRevenue
   - AdvanceReceipt
   - 预收款
   - 递延收入
+  - 预收款单
   status: approved
   change_ref: G-11
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: performance_obligation
   zh: 履约义务
   en: PerformanceObligation
@@ -5060,6 +5107,864 @@ terms:
   status: approved
   change_ref: G-2
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+- id: hours
+  zh: 小时数
+  en: Hours
+  snake: hours
+  kind: value_object
+  bc: kernel
+  definition: 非负、保留 2 位小数的小时数。
+  standard_ref:
+  - NAMING_STANDARD.md#G23
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#hours）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: submitted_hours
+  zh: 填报工时
+  en: SubmittedHours
+  snake: submitted_hours
+  kind: attribute
+  bc: cost.timesheet
+  definition: 员工在工时单上申报的小时数，审批前不计入实际工时。
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: DeclaredHours
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#declared-hours）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: work_date
+  zh: 工作日期
+  en: WorkDate
+  snake: work_date
+  kind: attribute
+  bc: cost.timesheet
+  definition: 工时发生的业务日期（决定费率与期间，不是填报日期）。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#work-date）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: planned_hours
+  zh: 计划工时
+  en: PlannedHours
+  snake: planned_hours
+  kind: attribute
+  bc: delivery.execution
+  definition: 工作包预算的小时数。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#planned-hours）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: actual_hours
+  zh: 实际工时
+  en: ActualHours
+  snake: actual_hours
+  kind: attribute
+  bc: delivery.execution
+  definition: 已审批通过、计入工作包的小时数。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#actual-hours）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: remaining_hours
+  zh: 剩余工时
+  en: RemainingHours
+  snake: remaining_hours
+  kind: attribute
+  bc: delivery.execution
+  definition: 计划工时减实际工时，最小为 0。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#remaining-hours）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: delivery
+  zh: 项目交付
+  en: Delivery
+  snake: delivery
+  kind: subdomain
+  bc: delivery
+  definition: 项目交付子域（含执行 BC）。
+  standard_ref:
+  - GLOSSARY.md
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#delivery）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: document
+  zh: 单据
+  en: Document
+  snake: document
+  kind: concept
+  bc: platform.numbering
+  definition: 需要业务编号的业务单据（报价单、工时单、凭证……）。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#document）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: document_type
+  zh: 单据类型
+  en: DocumentType
+  snake: document_type
+  kind: enum
+  bc: platform.numbering
+  definition: 需要编号的单据种类，决定使用哪条编号规则。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#document-type）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: document_number
+  zh: 单据编号
+  en: DocumentNumber
+  snake: document_number
+  kind: value_object
+  bc: platform.numbering
+  definition: 按编号规则发出的业务编号，1..64 字符。
+  standard_ref: []
+  confidence: high
+  aliases:
+  - name: 业务编号
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 业务编号
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#document-number）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: numbering_rule
+  zh: 编号规则
+  en: NumberingRule
+  snake: numbering_rule
+  kind: aggregate
+  bc: platform.numbering
+  definition: 每种单据一条，由编号模板、重置周期、起始流水号组成。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#numbering-rule）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: numbering_pattern
+  zh: 编号模板
+  en: NumberingPattern
+  snake: numbering_pattern
+  kind: value_object
+  bc: platform.numbering
+  definition: 含 {yyyy} {MM} {seq:N} 等占位符的编号格式。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#numbering-pattern）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: numbering_counter
+  zh: 编号计数器
+  en: NumberingCounter
+  snake: numbering_counter
+  kind: entity
+  bc: platform.numbering
+  definition: 按单据类型 × 法人 × 周期计数的流水号。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#numbering-counter）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: reset_policy
+  zh: 流水号重置周期
+  en: ResetPolicy
+  snake: reset_policy
+  kind: enum
+  bc: platform.numbering
+  definition: 流水号归零的周期：不重置 / 年 / 月 / 日。
+  standard_ref: []
+  confidence: high
+  aliases:
+  - name: 重置周期
+    type: standard-zh
+    deprecated: false
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#reset-policy）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: period_key
+  zh: 周期键
+  en: PeriodKey
+  snake: period_key
+  kind: attribute
+  bc: platform.numbering
+  definition: 重置周期对应的键值，如 2026、202610。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#period-key）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: approval_instance
+  zh: 审批实例
+  en: ApprovalInstance
+  snake: approval_instance
+  kind: entity
+  bc: platform.approval
+  definition: 一次具体的审批流程运行。
+  standard_ref: []
+  confidence: high
+  aliases:
+  - name: 流程实例
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 流程实例
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#approval-instance）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: approval_process
+  zh: 审批流程
+  en: ApprovalProcess
+  snake: approval_process
+  kind: concept
+  bc: platform.approval
+  definition: 审批流程定义（BPMN）。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#approval-process）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: process_key
+  zh: 流程标识
+  en: ProcessKey
+  snake: process_key
+  kind: enum
+  bc: platform.approval
+  definition: 审批流程定义的唯一键。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#process-key）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: business_key
+  zh: 业务键
+  en: BusinessKey
+  snake: business_key
+  kind: attribute
+  bc: platform.approval
+  definition: 审批实例关联的业务单据标识。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#business-key）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: initiator
+  zh: 发起人
+  en: Initiator
+  snake: initiator
+  kind: role
+  bc: platform.approval
+  definition: 发起审批的用户。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#initiator）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: approver
+  zh: 审批人
+  en: Approver
+  snake: approver
+  kind: role
+  bc: platform.approval
+  definition: 处理审批任务的用户。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#approver）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: approval_task
+  zh: 审批任务
+  en: ApprovalTask
+  snake: approval_task
+  kind: entity
+  bc: platform.approval
+  definition: 审批实例中待某人处理的一步。
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: Task
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#task）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: routing_flag
+  zh: 路由标记
+  en: RoutingFlag
+  snake: routing_flag
+  kind: attribute
+  bc: platform.approval
+  definition: 决定审批走哪条分支的业务标记。
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#routing-flag）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: money
+  zh: 金额
+  en: Money
+  snake: money
+  kind: value_object
+  bc: kernel
+  definition: 数额 + 币种；ADR-0001。
+  standard_ref:
+  - ADR-0001
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#money）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: amount
+  zh: 数额
+  en: Amount
+  snake: amount
+  kind: attribute
+  bc: kernel
+  definition: 金额的数值部分，必须与币种成对出现。
+  standard_ref:
+  - ADR-0001
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#amount）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: currency
+  zh: 币种
+  en: Currency
+  snake: currency
+  kind: attribute
+  bc: kernel
+  definition: ISO 4217 币种。
+  standard_ref:
+  - ISO 4217
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#currency）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: business_date
+  zh: 业务日期
+  en: BusinessDate
+  snake: business_date
+  kind: attribute
+  bc: kernel
+  definition: 业务发生日期（不是系统当前日期）。
+  standard_ref: []
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#business-date）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: cost
+  zh: 成本
+  en: Cost
+  snake: cost
+  kind: subdomain
+  bc: cost
+  definition: 成本子域（含工时、成本核算 BC）；URL 第二段与权限码、流程标识的前缀。
+  standard_ref:
+  - GLOSSARY.md
+  - NAMING_STANDARD.md§2.3
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#cost）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: error_code
+  zh: 错误码
+  en: ErrorCode
+  snake: error_code
+  kind: value_object
+  bc: kernel
+  definition: 返回给调用方的稳定业务错误标识，格式 {SUBDOMAIN}_{BC}_{REASON}（G48）。
+  standard_ref:
+  - NAMING_STANDARD.md§2.3
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#error-code）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: numbering_capacity
+  zh: 编号容量
+  en: NumberingCapacity
+  snake: numbering_capacity
+  kind: attribute
+  bc: platform.numbering
+  definition: 编号模板 {seq:N} 能容纳的最大流水号（10^N - 1），超出即无法发号。
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: Capacity
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#capacity）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: scheduler_lock
+  zh: 调度锁
+  en: SchedulerLock
+  snake: scheduler_lock
+  kind: entity
+  bc: platform.scheduling
+  definition: 定时作业的集群互斥锁（ShedLock），锁名即作业名 {subdomain}.{bc}.{name}。
+  standard_ref:
+  - ADR-0002
+  confidence: high
+  aliases:
+  - name: 作业锁
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 作业锁
+  status: approved
+  note: 用语确认第二轮转正式（原提议 template-carryover.yaml#scheduler-lock）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: wecom
+  zh: 企业微信
+  en: Wecom
+  snake: wecom
+  kind: system
+  bc: platform.integration
+  definition: 腾讯企业微信；登录（OAuth）与审批通知的外部系统
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#wecom）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: wecom_entry
+  zh: 企业微信登录入口
+  en: WecomEntry
+  snake: wecom_entry
+  kind: value
+  bc: platform.integration
+  definition: 企业微信 OAuth code 的来源：工作台网页、小程序、PC 扫码
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#wecom_entry）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: workbench
+  zh: 企业微信工作台
+  en: Workbench
+  snake: workbench
+  kind: value
+  bc: platform.integration
+  definition: 企业微信工作台中的自建应用网页（老系统称 H5）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases:
+  - name: H5
+    type: dialect
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#workbench）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: mini_program
+  zh: 小程序
+  en: MiniProgram
+  snake: mini_program
+  kind: value
+  bc: platform.integration
+  definition: 企业微信小程序（RULE-323 保留）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#mini_program）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: qr_code_login
+  zh: 扫码登录
+  en: QrCodeLogin
+  snake: qr_code_login
+  kind: value
+  bc: platform.integration
+  definition: PC 端企业微信扫码登录
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases:
+  - name: WebScan
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#web_scan）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: identity
+  zh: 身份
+  en: Identity
+  snake: identity
+  kind: module
+  bc: platform.identity
+  definition: 登录、会话、权限与数据范围
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#identity）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: organization
+  zh: 组织
+  en: Organization
+  snake: organization
+  kind: subdomain
+  bc: organization
+  definition: 组织人事子域
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#organization）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: workforce
+  zh: 组织人事
+  en: Workforce
+  snake: workforce
+  kind: module
+  bc: organization.workforce
+  definition: 组织人事 BC：组织单元、员工、岗位、汇报线
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#workforce）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: employment_status
+  zh: 在职状态
+  en: EmploymentStatus
+  snake: employment_status
+  kind: value
+  bc: organization.workforce
+  definition: 员工在职或离职（A8 登录名为空即离职，RULE-363）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#employment_status）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: employed
+  zh: 在职
+  en: Employed
+  snake: employed
+  kind: value
+  bc: organization.workforce
+  definition: 在职状态取值
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#employed）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: separated
+  zh: 离职
+  en: Separated
+  snake: separated
+  kind: value
+  bc: organization.workforce
+  definition: 在职状态取值；离职即吊销会话（RULE-338/363）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#separated）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: fee_earner
+  zh: 收费员工标识
+  en: FeeEarner
+  snake: fee_earner
+  kind: attribute
+  bc: organization.workforce
+  definition: A8 员工档案中的人事分类（FIELD0244）；不是可计费性判定，只是输入之一（GUIDING_PRINCIPLES §9a）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#fee_earner）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: supervisor
+  zh: 直属上级
+  en: Supervisor
+  snake: supervisor
+  kind: role
+  bc: organization.workforce
+  definition: 人员级汇报对象（A8 ORG_MEMBER.EXT_ATTR_37，RULE-372）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases:
+  - name: DirectLeader
+    type: old-code
+    deprecated: true
+  - name: 直属领导
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 直属领导
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#direct_leader）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: org_unit_head
+  zh: 部门负责人
+  en: OrgUnitHead
+  snake: org_unit_head
+  kind: role
+  bc: organization.workforce
+  definition: A8 关系表中的部门负责人（RULE-356/257）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#org_unit_head）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: regional_receivables_manager
+  zh: 区域应收负责人
+  en: RegionalReceivablesManager
+  snake: regional_receivables_manager
+  kind: role
+  bc: organization.workforce
+  definition: A8 关系表中的部门「区域 AR」（RULE-255/356）；职责角色，不是应收事实
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases:
+  - name: 区域 AR
+    type: dialect
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#regional_receivables_manager）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: ancestor
+  zh: 上级组织链
+  en: Ancestor
+  snake: ancestor
+  kind: attribute
+  bc: organization.workforce
+  definition: 组织单元的全部上级，近者在前
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#ancestor）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: employee_profile
+  zh: 员工概况
+  en: EmployeeProfile
+  snake: employee_profile
+  kind: value
+  bc: organization.workforce
+  definition: 组织快照中一名员工的只读视图
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases:
+  - name: 员工快照
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 员工快照
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#employee_profile）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: org_unit_profile
+  zh: 组织单元概况
+  en: OrgUnitProfile
+  snake: org_unit_profile
+  kind: value
+  bc: organization.workforce
+  definition: 组织快照中一个组织单元的只读视图
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases:
+  - name: 组织单元快照
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 组织单元快照
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#org_unit_profile）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: org_snapshot
+  zh: 组织快照
+  en: OrgSnapshot
+  snake: org_snapshot
+  kind: entity
+  bc: organization.workforce
+  definition: 从 A8 只读同步得到的组织数据
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#org_snapshot）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: sync_run
+  zh: 同步记录
+  en: SyncRun
+  snake: sync_run
+  kind: entity
+  bc: organization.workforce
+  definition: 一次组织同步及其差异记录；缩水保护中止时可人工放行（RULE-358）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases:
+  - name: 同步运行
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 同步运行
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#sync_run）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: role_holder
+  zh: 角色持有人
+  en: RoleHolder
+  snake: role_holder
+  kind: role
+  bc: platform.identity
+  definition: 持有某角色的启用账号（在职员工）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#role_holder）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: actor
+  zh: 操作人
+  en: Actor
+  snake: actor
+  kind: role
+  bc: platform.audit
+  definition: 执行动作的用户；系统作业为空
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#actor）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: on_behalf_of
+  zh: 被代理人
+  en: OnBehalfOf
+  snake: on_behalf_of
+  kind: role
+  bc: platform.audit
+  definition: 显式代理操作中被代理的用户（RULE-270）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#on_behalf_of）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+- id: audit_subject
+  zh: 审计对象
+  en: AuditSubject
+  snake: audit_subject
+  kind: attribute
+  bc: platform.audit
+  definition: 被审计的业务对象，键形如 {type}:{id}
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases:
+  - name: Subject
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#subject）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 common_words:
 - Id
 - Uuid

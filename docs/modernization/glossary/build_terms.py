@@ -7,7 +7,7 @@ Inputs : glossary/source_terms.json (parsed 03-通用语言.md, 385 terms)
 Output : glossary/terms.yaml
 Run    : cd analysis/psa && python3 glossary/build_terms.py
 """
-import json, re, collections, yaml
+import json, re, collections, yaml, glob, os
 
 SRC = json.load(open("glossary/source_terms.json", encoding="utf-8"))
 
@@ -593,6 +593,21 @@ if _os.path.exists("glossary/oa_aliases.json"):
         _t = _byid[_a["term"]]
         if all(al["name"] != _a["name"] for al in _t.get("aliases") or []):
             _t.setdefault("aliases", []).append({"name": _a["name"], "type": "zh-internal", "deprecated": False, "source": _a["source"]})
+# 用语确认第二轮（2026-10-14，用语确认页，见 glossary/decisions-round2-2026-10-14.json）：A 组 = OA 盘点登记的 A8 叫法
+DEC2 = json.load(open("glossary/decisions-round2-2026-10-14.json", encoding="utf-8")) if os.path.exists("glossary/decisions-round2-2026-10-14.json") else {}
+for t in terms:
+    for k, al in enumerate(t.get("aliases") or []):
+        dk = DEC2.get(f"R2-A-{t['id']}-{k}")
+        if not dk:
+            continue
+        if dk["choice"] == "dialect":
+            al["type"], al["deprecated"] = "zh-internal", True   # 下方统一转为 dialect 并列入禁用
+        elif dk["choice"] == "formal":
+            al["type"], al["deprecated"] = "standard-zh", False
+        if dk.get("note") or dk.get("renameTo"):
+            al["decision_note"] = " ".join(x for x in (dk.get("renameTo"), dk.get("note")) if x)
+        t["confirmed"] = "2026-10-14（业务 Admin，用语确认页第二轮）"
+
 for t in terms:
     for al in t.get("aliases") or []:
         if al.get("type") == "zh-internal" and any(w in al["name"] for w in DECIDED_DIALECT):
@@ -608,6 +623,59 @@ for t in terms:
                 al["type"] = "standard-zh"   # 叫法与正式用语相同
             else:
                 al["type"] = "undetermined"
+# 用语确认第二轮 P 组：backend/glossary/proposed/*.yaml 的模块提议术语，按 glossary/round2-proposals.yaml 的建议与用户确认转为正式。
+# 需改代码的旧写法（code 非「无」）在 1a 会话改名前仍由 backend/glossary/proposed/pending-renames.yaml 登记；改完后删除该文件，并把 forbid_en 写入禁用。
+PROP2 = yaml.safe_load(open("glossary/round2-proposals.yaml", encoding="utf-8"))
+CODE_RENAMED = set(PROP2.get("code_renamed") or [])   # 1a 改名完成后在 round2-proposals.yaml 中登记 id
+_byid = {t["id"]: t for t in terms}
+_cjk = lambda s: re.fullmatch(r"[一-鿿（）]+", s) is not None   # 只把纯中文叫法列入禁用：含字母的（H5、区域 AR）拆词后会误伤 ar、h 等
+for _f in sorted(glob.glob("glossary/round2-source/*.yaml"), reverse=True):
+    for _t in yaml.safe_load(open(_f, encoding="utf-8"))["terms"]:
+        _p, _d = PROP2["P"].get(_t["id"]), DEC2.get(f"R2-P-{_t['id']}")
+        if not _p or not _d:
+            continue
+        _conf = "2026-10-14（业务 Admin，用语确认页第二轮）"
+        if _d["choice"] == "rename":
+            print("P rename needs manual handling:", _t["id"], _d.get("renameTo"))
+            continue
+        _sug = "approve" if _d["choice"] == "keep" else _p["sug"]
+        _forbid = [x for x in _p.get("forbid_en") or [] if _t["id"] in CODE_RENAMED or not _p.get("code") or _p["code"].startswith("无")]
+        if _sug == "merge":
+            _tgt = _byid[_p["into"]]
+            _al = _tgt.setdefault("aliases", [])
+            if _t["en"] not in [a["name"] for a in _al]:
+                _al.append({"name": _t["en"], "type": "old-code", "deprecated": True})
+            for _z in _p.get("dialect") or []:
+                if _z not in [a["name"] for a in _al]:
+                    _al.append({"name": _z, "type": "dialect", "deprecated": True})
+            _fb = _tgt.setdefault("forbidden", [])
+            _fb += [x for x in _forbid + [z for z in _p.get("dialect") or [] if _cjk(z)] if x not in _fb]
+            continue
+        _en = _p.get("en", _t["en"]) if _sug == "change" else _t["en"]
+        _sn = "_".join(w.lower() for w in re.findall(r"[A-Z][a-z0-9]*", _en))
+        _e = collections.OrderedDict(
+            id=_sn, zh=_p.get("zh", _t["zh"]) if _sug == "change" else _t["zh"], en=_en, snake=_sn, kind=_t["kind"], bc=_t["bc"],
+            definition=_p.get("definition", _t["definition"]) if _sug == "change" else _t["definition"],
+            standard_ref=list(_t.get("standard_ref") or []), confidence=_t.get("confidence", "high"), aliases=[], forbidden=list(_t.get("forbidden") or []),
+            status="approved", note=f"用语确认第二轮转正式（原提议 {os.path.basename(_f)}#{_t['id']}）", confirmed=_conf)
+        for _a in _t.get("aliases") or []:
+            _n = _a["name"] if isinstance(_a, dict) else _a
+            if _n != _e["zh"] and _n not in (_p.get("dialect") or []):
+                _e["aliases"].append({"name": _n, "type": "standard-zh", "deprecated": False})
+        if _e["en"] != _t["en"]:
+            _e["aliases"].append({"name": _t["en"], "type": "old-code", "deprecated": True})
+        if _e["zh"] != _t["zh"] and _t["zh"] not in [x["zh"] for x in terms]:
+            _e["aliases"].append({"name": _t["zh"], "type": "dialect", "deprecated": True})
+            if _cjk(_t["zh"]):
+                _e["forbidden"].append(_t["zh"])
+        for _z in _p.get("dialect") or []:
+            if _z not in [a["name"] for a in _e["aliases"]]:
+                _e["aliases"].append({"name": _z, "type": "dialect", "deprecated": True})
+            if _cjk(_z) and _z not in _e["forbidden"]:
+                _e["forbidden"].append(_z)
+        _e["forbidden"] += [x for x in _forbid if x not in _e["forbidden"]]
+        terms.append(_e)
+
 out = collections.OrderedDict(meta=meta, terms=[dict(t) for t in terms], common_words=COMMON)
 
 class D(yaml.SafeDumper): pass
