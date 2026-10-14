@@ -102,7 +102,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("RULE-345 system roles are frozen: no update, no delete; custom roles can be changed and deleted with their links")
+    @DisplayName("RULE-345 system roles are frozen: no update, no delete; custom roles can be changed, and deleted once no account holds them")
     void systemRolesAreFrozen() throws Exception {
         long employee = roleId("employee");
         long superAdmin = roleId("super_admin");
@@ -125,11 +125,17 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 .query(String.class).list()).as("the permission set is replaced as a whole (RULE-346)")
                 .containsExactly("platform.approval:task:approve");
 
+        MvcResult held = mvc.perform(delete(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin)).andReturn();
+        assertThat(held.getResponse().getStatus()).isEqualTo(409);
+        assertThat(errorCode(held)).isEqualTo("PLATFORM_IDENTITY_ROLE_IN_USE");
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles where role_id = :id").param("id", analyst)
+                .query(Long.class).single()).as("a role held by an account is not deleted and its link stays").isEqualTo(1);
+
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(admin)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andReturn().getResponse().getStatus()).isEqualTo(204);
         assertThat(mvc.perform(delete(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(204);
         assertThat(jdbc.sql("select count(*) from platform_identity.role_permissions where role_id = :id").param("id", analyst)
                 .query(Long.class).single()).isZero();
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles where role_id = :id").param("id", analyst)
-                .query(Long.class).single()).as("RULE-345: links go with the role").isZero();
     }
 
     @Test

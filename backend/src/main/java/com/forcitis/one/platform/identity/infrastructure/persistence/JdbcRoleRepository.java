@@ -90,8 +90,13 @@ class JdbcRoleRepository implements RoleRepository {
 
     @Override
     public void delete(Role role) {
-        int removed = jdbc.sql("delete from platform_identity.roles where role_id = :id and version = :version")
-                .param("id", role.roleId().value()).param("version", role.version()).update();
+        int removed;
+        try {
+            removed = jdbc.sql("delete from platform_identity.roles where role_id = :id and version = :version")
+                    .param("id", role.roleId().value()).param("version", role.version()).update();
+        } catch (org.springframework.dao.DataIntegrityViolationException held) {
+            throw IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE.refusal("role " + role.roleId().value() + " is still held by accounts");
+        }
         if (removed != 1) {
             throw staleRole(role);
         }
