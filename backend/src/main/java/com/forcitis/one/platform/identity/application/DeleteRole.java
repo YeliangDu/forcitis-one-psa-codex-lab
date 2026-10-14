@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.RoleId;
@@ -18,9 +18,9 @@ public class DeleteRole {
     private final RoleRepository roles;
     private final AccessCache cache;
     private final CurrentUser currentUser;
-    private final AuditTrail audit;
+    private final AuditLog audit;
 
-    DeleteRole(RoleRepository roles, AccessCache cache, CurrentUser currentUser, AuditTrail audit) {
+    DeleteRole(RoleRepository roles, AccessCache cache, CurrentUser currentUser, AuditLog audit) {
         this.roles = roles;
         this.cache = cache;
         this.currentUser = currentUser;

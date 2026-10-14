@@ -57,7 +57,7 @@ public final class AssigneeResolver {
             if (!others.isEmpty()) {
                 candidates = others;
             } else {
-                Set<UserId> leader = org.findDirectLeader(initiator).filter(l -> !l.equals(initiator))
+                Set<UserId> leader = org.findSupervisor(initiator).filter(l -> !l.equals(initiator))
                         .map(l -> employed(Set.of(l))).orElse(Set.of());
                 candidates = leader;
                 kind = ResolutionKind.ESCALATED_SELF_APPROVAL;
@@ -87,7 +87,7 @@ public final class AssigneeResolver {
             case AssignmentRule.Role role -> Collected.of(roles.findRoleHolders(role.role()));
             case AssignmentRule.DepartmentHead head -> Collected.of(departmentOf(head.departmentVariable(), initiator, variables)
                     .flatMap(this::nearestHead).map(Set::of).orElse(Set.of()));
-            case AssignmentRule.InitiatorLeader leader -> initiatorLeader(initiator, leader.level());
+            case AssignmentRule.InitiatorSupervisor leader -> initiatorSupervisor(initiator, leader.level());
             case AssignmentRule.NamedUsers named -> Collected.of(named.users());
             case AssignmentRule.RegionalReceivablesOwner manager -> Collected.of(
                     departmentOf(blankTo(manager.departmentVariable(), DEFAULT_DEPARTMENT_VARIABLE), initiator, variables)
@@ -96,7 +96,7 @@ public final class AssigneeResolver {
                     departmentOf(blankTo(director.departmentVariable(), DEFAULT_DEPARTMENT_VARIABLE), initiator, variables)
                             .map(this::directorsOf).orElse(Set.of()));
             case AssignmentRule.FormFieldUsers field -> Collected.of(ProcessVariables.parseUsers(variables.formField(field.field())));
-            case AssignmentRule.FormFieldUserLeaders field -> Collected.of(leadersOf(ProcessVariables.parseUsers(variables.formField(field.field()))));
+            case AssignmentRule.FormFieldUserSupervisors field -> Collected.of(leadersOf(ProcessVariables.parseUsers(variables.formField(field.field()))));
             case AssignmentRule.ProcessVariableUsers variable -> Collected.of(ProcessVariables.parseUsers(variables.variable(variable.variable())));
             case AssignmentRule.Initiator ignored -> Collected.of(Set.of(initiator));
         };
@@ -144,12 +144,12 @@ public final class AssigneeResolver {
     }
 
     /** RULE-250: level n leader; an incomplete line pushes up to the nearest department head not already on the line. */
-    private Collected initiatorLeader(UserId initiator, int level) {
+    private Collected initiatorSupervisor(UserId initiator, int level) {
         Set<UserId> line = new LinkedHashSet<>();
         line.add(initiator);
         UserId current = initiator;
         for (int i = 0; i < level; i++) {
-            Optional<UserId> next = org.findDirectLeader(current).filter(l -> !line.contains(l)).filter(this::isEmployed);
+            Optional<UserId> next = org.findSupervisor(current).filter(l -> !line.contains(l)).filter(this::isEmployed);
             if (next.isEmpty()) {
                 Optional<UserId> pushed = org.findEmployee(current).map(EmployeeProfile::orgUnitId)
                         .flatMap(unit -> headFrom(unit, line));
@@ -174,7 +174,7 @@ public final class AssigneeResolver {
     private Set<UserId> leadersOf(Set<UserId> people) {
         Set<UserId> leaders = new LinkedHashSet<>();
         for (UserId person : people) {
-            org.findDirectLeader(person).ifPresent(leaders::add);
+            org.findSupervisor(person).ifPresent(leaders::add);
         }
         return leaders;
     }

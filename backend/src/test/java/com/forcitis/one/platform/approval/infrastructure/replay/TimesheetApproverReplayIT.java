@@ -117,8 +117,8 @@ class TimesheetApproverReplayIT {
     @Test
     @DisplayName("the old-system exporter vocabulary is exactly the rule codec's: all ten rule types are accepted")
     void ruleVocabulary() {
-        for (String type : List.of("ROLE", "DEPARTMENT_HEAD", "INITIATOR_LEADER", "NAMED_USERS", "REGIONAL_RECEIVABLES_MANAGER",
-                "DEPARTMENT_DIRECTOR", "FORM_FIELD_USERS", "FORM_FIELD_USER_LEADERS", "PROCESS_VARIABLE_USERS", "INITIATOR")) {
+        for (String type : List.of("ROLE", "DEPARTMENT_HEAD", "INITIATOR_SUPERVISOR", "NAMED_USERS", "REGIONAL_RECEIVABLES_MANAGER",
+                "DEPARTMENT_DIRECTOR", "FORM_FIELD_USERS", "FORM_FIELD_USER_SUPERVISORS", "PROCESS_VARIABLE_USERS", "INITIATOR")) {
             assertThat(com.forcitis.one.platform.approval.domain.AssignmentRuleCodec.parse(type,
                     name -> switch (name) {
                         case "role" -> "R";

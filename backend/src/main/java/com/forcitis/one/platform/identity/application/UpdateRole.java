@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.domain.Role;
@@ -24,9 +24,9 @@ public class UpdateRole {
     private final PrivilegeCeiling ceiling;
     private final AccessCache cache;
     private final CurrentUser currentUser;
-    private final AuditTrail audit;
+    private final AuditLog audit;
 
-    UpdateRole(RoleRepository roles, PrivilegeCeiling ceiling, AccessCache cache, CurrentUser currentUser, AuditTrail audit) {
+    UpdateRole(RoleRepository roles, PrivilegeCeiling ceiling, AccessCache cache, CurrentUser currentUser, AuditLog audit) {
         this.roles = roles;
         this.ceiling = ceiling;
         this.cache = cache;

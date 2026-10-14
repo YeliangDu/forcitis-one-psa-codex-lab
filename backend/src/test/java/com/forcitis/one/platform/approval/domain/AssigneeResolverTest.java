@@ -82,20 +82,20 @@ class AssigneeResolverTest {
 
     @Test
     @DisplayName("RULE-250 initiator leader level 1 and level 2 follow the reporting line")
-    void initiatorLeaders() {
-        assertThat(resolve(new AssignmentRule.InitiatorLeader(1), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(2));
-        assertThat(resolve(new AssignmentRule.InitiatorLeader(2), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(3));
+    void initiatorSupervisors() {
+        assertThat(resolve(new AssignmentRule.InitiatorSupervisor(1), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(2));
+        assertThat(resolve(new AssignmentRule.InitiatorSupervisor(2), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(3));
     }
 
     @Test
     @DisplayName("RULE-250 an incomplete reporting line pushes up to a department head (no NPE, no silent skip)")
     void incompleteReportingLinePushesUp() {
         // initiator 2's leader is 3, whose line ends: level 2 has nobody -> head of person 3's unit (root, head 101)
-        Resolution r = resolve(new AssignmentRule.InitiatorLeader(2), 2, ProcessVariables.empty());
+        Resolution r = resolve(new AssignmentRule.InitiatorSupervisor(2), 2, ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(101));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ESCALATED_REPORTING_LINE);
         // person 3 has no leader at all: level 1 pushes up from person 3's unit (root head 101)
-        assertThat(resolve(new AssignmentRule.InitiatorLeader(1), 3, ProcessVariables.empty()).candidates()).isEqualTo(ids(101));
+        assertThat(resolve(new AssignmentRule.InitiatorSupervisor(1), 3, ProcessVariables.empty()).candidates()).isEqualTo(ids(101));
     }
 
     @Test
@@ -103,12 +103,12 @@ class AssigneeResolverTest {
     void nothingFoundGoesToAdministrator() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
         Resolution r = new AssigneeResolver(lonely, lonely, new UserId(ADMIN))
-                .resolve(new AssignmentRule.InitiatorLeader(1), false, new UserId(5), ProcessVariables.empty());
+                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new UserId(5), ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(ADMIN));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
 
         Resolution none = new AssigneeResolver(lonely, lonely, null)
-                .resolve(new AssignmentRule.InitiatorLeader(1), false, new UserId(5), ProcessVariables.empty());
+                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new UserId(5), ProcessVariables.empty());
         assertThat(none.candidates()).isEmpty();
         assertThat(none.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
     }
@@ -159,9 +159,9 @@ class AssigneeResolverTest {
 
     @Test
     @DisplayName("RULE-259/260 the direct leaders of the people in a form field, resolved per value and unioned")
-    void formFieldUserLeaders() {
+    void formFieldUserSupervisors() {
         org.person(20, 10, 110L).person(21, 10, 101L);
-        Resolution r = resolve(new AssignmentRule.FormFieldUserLeaders("manager_id"), 1, fields("manager_id", "20", "21", "999"));
+        Resolution r = resolve(new AssignmentRule.FormFieldUserSupervisors("manager_id"), 1, fields("manager_id", "20", "21", "999"));
         assertThat(r.candidates()).isEqualTo(ids(110, 101));
     }
 
@@ -185,13 +185,13 @@ class AssigneeResolverTest {
 
     @Test
     @DisplayName("RULE-307 only when the initiator is the sole candidate does the task escalate to the direct leader")
-    void selfApprovalEscalatesToLeaderOnlyWhenAlone() {
+    void selfApprovalEscalatesToSupervisorOnlyWhenAlone() {
         Resolution r = resolve(new AssignmentRule.FormFieldUsers("manager_id"), 1, fields("manager_id", "1"));
         assertThat(r.candidates()).isEqualTo(ids(2));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ESCALATED_SELF_APPROVAL);
         // no leader either -> administrator, never the initiator
-        Resolution noLeader = resolve(new AssignmentRule.FormFieldUsers("manager_id"), 3, fields("manager_id", "3"));
-        assertThat(noLeader.candidates()).isEqualTo(ids(ADMIN));
+        Resolution noSupervisor = resolve(new AssignmentRule.FormFieldUsers("manager_id"), 3, fields("manager_id", "3"));
+        assertThat(noSupervisor.candidates()).isEqualTo(ids(ADMIN));
     }
 
     @Test
@@ -224,7 +224,7 @@ class AssigneeResolverTest {
         assertThatThrownBy(() -> AssignmentRuleCodec.parse("RANDOM_PERSON", n -> null)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> AssignmentRuleCodec.parse("ROLE", n -> null)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> AssignmentRuleCodec.parse(null, n -> null)).isInstanceOf(IllegalStateException.class);
-        assertThat(AssignmentRuleCodec.parse("INITIATOR_LEADER", n -> n.equals("level") ? "2" : null))
-                .isEqualTo(new AssignmentRule.InitiatorLeader(2));
+        assertThat(AssignmentRuleCodec.parse("INITIATOR_SUPERVISOR", n -> n.equals("level") ? "2" : null))
+                .isEqualTo(new AssignmentRule.InitiatorSupervisor(2));
     }
 }

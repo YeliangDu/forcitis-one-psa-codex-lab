@@ -91,12 +91,12 @@ class EmployeeSyncRulesTest {
     @DisplayName("RULE-365 A8-authoritative columns are synced by value, an emptied leader and e-mail are written as empty")
     void explicitNullsAreWritten() {
         SourceMember boss = member(1000, 2, 100L, null);
-        SourceMember withLeader = member(2001, 2, 100L, 1000L);
-        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(boss, withLeader)));
+        SourceMember withSupervisor = member(2001, 2, 100L, 1000L);
+        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(boss, withSupervisor)));
         assertThat(staff(v1, 2001).assignment().reportsToEmployeeId()).isEqualTo(user(1000));
 
-        SourceMember cleared = new SourceMember(user(2001), "E2001", "Person 2001", withLeader.orgUnitId(), withLeader.positionId(), null,
-                withLeader.loginName(), null, withLeader.gender(), withLeader.wecomUserId(), false);
+        SourceMember cleared = new SourceMember(user(2001), "E2001", "Person 2001", withSupervisor.orgUnitId(), withSupervisor.positionId(), null,
+                withSupervisor.loginName(), null, withSupervisor.gender(), withSupervisor.wecomUserId(), false);
         OrgSnapshot v2 = apply(v1, SnapshotReconciler.reconcile(v1, tree(boss, cleared)));
 
         assertThat(staff(v2, 2001).assignment().reportsToEmployeeId()).isNull();
@@ -171,15 +171,15 @@ class EmployeeSyncRulesTest {
     @DisplayName("RULE-372 a leader must exist, be employed, not be the person and not close a loop; failures are reported and not written")
     void leadersAreValidated() {
         SourceMember self = member(1, 2, 100L, 1L);
-        SourceMember unknownLeader = member(2, 2, 100L, 99L);
-        SourceMember leaverLeader = member(3, 2, 100L, 4L);
+        SourceMember unknownSupervisor = member(2, 2, 100L, 99L);
+        SourceMember leaverSupervisor = member(3, 2, 100L, 4L);
         SourceMember leaver = member(4, 2, 100L, null, null, null);
         SourceMember loopA = member(5, 2, 100L, 6L);
         SourceMember loopB = member(6, 2, 100L, 5L);
         SourceMember fine = member(7, 2, 100L, 8L);
         SourceMember boss = member(8, 2, 100L, null);
 
-        Reconciliation changes = first(tree(self, unknownLeader, leaverLeader, leaver, loopA, loopB, fine, boss));
+        Reconciliation changes = first(tree(self, unknownSupervisor, leaverSupervisor, leaver, loopA, loopB, fine, boss));
         OrgSnapshot snapshot = apply(OrgSnapshot.empty(), changes);
 
         assertThat(staff(snapshot, 1).assignment().reportsToEmployeeId()).isNull();
@@ -188,8 +188,8 @@ class EmployeeSyncRulesTest {
         assertThat(staff(snapshot, 5).assignment().reportsToEmployeeId()).isNull();
         assertThat(staff(snapshot, 6).assignment().reportsToEmployeeId()).isNull();
         assertThat(staff(snapshot, 7).assignment().reportsToEmployeeId()).isEqualTo(user(8));
-        assertThat(issues(changes)).containsExactlyInAnyOrder(IssueKind.LEADER_IS_SELF, IssueKind.LEADER_NOT_FOUND,
-                IssueKind.LEADER_SEPARATED, IssueKind.LEADER_CYCLE, IssueKind.LEADER_CYCLE);
+        assertThat(issues(changes)).containsExactlyInAnyOrder(IssueKind.SUPERVISOR_IS_SELF, IssueKind.SUPERVISOR_NOT_FOUND,
+                IssueKind.SUPERVISOR_SEPARATED, IssueKind.SUPERVISOR_CYCLE, IssueKind.SUPERVISOR_CYCLE);
     }
 
     // ---------------------------------------------------------------- WeCom id (RULE-322 / 362 / 374)

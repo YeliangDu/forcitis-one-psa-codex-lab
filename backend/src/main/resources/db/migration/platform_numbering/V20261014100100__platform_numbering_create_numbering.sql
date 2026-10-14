@@ -1,5 +1,5 @@
 CREATE SCHEMA IF NOT EXISTS platform_numbering;
-COMMENT ON SCHEMA platform_numbering IS '业务编号（权限流程与集成平台 BC · 平台配置）';
+COMMENT ON SCHEMA platform_numbering IS '单据编号（权限流程与集成平台 BC · 平台配置）';
 
 CREATE TABLE platform_numbering.numbering_rules (
     document_type text        PRIMARY KEY,

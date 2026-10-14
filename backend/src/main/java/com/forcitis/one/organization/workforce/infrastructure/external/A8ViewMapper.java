@@ -106,7 +106,7 @@ final class A8ViewMapper {
             return Optional.empty();
         }
         Long post = longOrNull(rs, "POST_ID");
-        Long leader = longOrNull(rs, "LEADER_MEMBER_ID");
+        Long leader = longOrNull(rs, "SUPERVISOR_MEMBER_ID");
         String wecom = text(rs, "WE_COM_ID");
         String feeEarnerEnum = text(rs, "FEE_EARNER_ENUM_ID");
         return Optional.of(new SourceMember(new UserId(id), code, name, new OrgUnitId(orgUnit),

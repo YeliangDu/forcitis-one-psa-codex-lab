@@ -197,7 +197,7 @@ class A8ViewsMssqlIT {
         assertThat(snapshot.members()).extracting(m -> m.userId().value()).as("one row per person, in scope only")
                 .containsExactlyInAnyOrder(8001L, 8002L, 8003L);
         SourceMember worker = snapshot.members().stream().filter(m -> m.userId().equals(new UserId(8002))).findFirst().orElseThrow();
-        assertThat(worker.leaderId()).isEqualTo(new UserId(8001));
+        assertThat(worker.supervisorId()).isEqualTo(new UserId(8001));
         assertThat(worker.loginName()).isEqualTo("13900008002");
         assertThat(worker.email()).isEqualTo("worker@example.test");
         assertThat(worker.feeEarner()).isTrue();

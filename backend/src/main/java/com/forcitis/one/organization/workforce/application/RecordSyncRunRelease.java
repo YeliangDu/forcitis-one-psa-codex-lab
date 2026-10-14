@@ -4,7 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.domain.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import java.time.Clock;
 import java.time.Instant;
 import org.springframework.beans.factory.ObjectProvider;
@@ -16,10 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 class RecordSyncRunRelease {
 
     private final SyncRunRepository runs;
-    private final ObjectProvider<AuditTrail> audit;
+    private final ObjectProvider<AuditLog> audit;
     private final Clock clock;
 
-    RecordSyncRunRelease(SyncRunRepository runs, ObjectProvider<AuditTrail> audit, ObjectProvider<Clock> clock) {
+    RecordSyncRunRelease(SyncRunRepository runs, ObjectProvider<AuditLog> audit, ObjectProvider<Clock> clock) {
         this.runs = runs;
         this.audit = audit;
         this.clock = Clocks.from(clock);

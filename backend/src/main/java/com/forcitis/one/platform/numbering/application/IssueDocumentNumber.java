@@ -27,6 +27,6 @@ class IssueDocumentNumber implements DocumentNumbers {
                 .orElseThrow(() -> new IllegalStateException("No active numbering rule for " + type));
         String periodKey = rule.pattern().resetPolicy().periodKey(businessDate);
         long sequence = rules.reserveNext(type, legalEntity, periodKey, rule.startValue());
-        return new DocumentNumber(rule.pattern().render(legalEntity, businessDate, sequence));
+        return new DocumentNumber(rule.pattern().render(type.code().orElse(null), legalEntity, businessDate, sequence));
     }
 }

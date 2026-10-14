@@ -1,6 +1,6 @@
 CREATE TABLE platform_identity.login_states (
     state_hash text        PRIMARY KEY,
-    entry      text        NOT NULL CHECK (entry IN ('WORKBENCH', 'MINI_PROGRAM', 'WEB_SCAN')),
+    entry      text        NOT NULL CHECK (entry IN ('WORKBENCH', 'MINI_PROGRAM', 'QR_CODE_LOGIN')),
     expires_at timestamptz NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()

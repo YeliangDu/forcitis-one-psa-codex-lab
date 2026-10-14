@@ -11,7 +11,7 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.application.AccessCache;
 import com.forcitis.one.platform.identity.application.LoginNameDirectory;
 import com.forcitis.one.platform.integration.api.WecomEntry;
@@ -109,7 +109,7 @@ abstract class IdentityIntegrationTest {
     WecomGateway wecomGateway;
 
     @MockitoBean
-    AuditTrail auditTrail;
+    AuditLog auditLog;
 
     @MockitoBean
     LoginNameDirectory loginNames;
@@ -237,13 +237,13 @@ abstract class IdentityIntegrationTest {
 
     List<AuditEntry> recorded() {
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);
-        Mockito.verify(auditTrail, Mockito.atLeast(0)).record(captor.capture());
+        Mockito.verify(auditLog, Mockito.atLeast(0)).record(captor.capture());
         return captor.getAllValues();
     }
 
     List<AuditEntry> recordedIndependently() {
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);
-        Mockito.verify(auditTrail, Mockito.atLeast(0)).recordIndependently(captor.capture());
+        Mockito.verify(auditLog, Mockito.atLeast(0)).recordIndependently(captor.capture());
         return captor.getAllValues();
     }
 

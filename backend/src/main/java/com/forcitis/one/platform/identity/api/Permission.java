@@ -34,7 +34,7 @@ public enum Permission {
     public interface Codes {
         String TIMESHEET_SUBMIT = "cost.timesheet:timesheet:submit";
         String TIMESHEET_APPROVE = "cost.timesheet:timesheet:approve";
-        String DELIVERY_BUDGET_UPDATE = "delivery.execution:budget:update";
+        String DELIVERY_BUDGET_UPDATE = "delivery.execution:project-budget:update";
         String PLATFORM_NUMBERING_RULE_UPDATE = "platform.numbering:numbering-rule:update";
         String PLATFORM_NUMBERING_RULE_READ = "platform.numbering:numbering-rule:read";
         /** Read the merged inbox and approval details. */

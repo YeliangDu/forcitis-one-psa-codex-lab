@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.numbering.infrastructure.persistence;
 
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
 import com.forcitis.one.platform.numbering.api.DocumentType;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
@@ -23,27 +24,28 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     @Override
     public Optional<NumberingRule> findActive(DocumentType type) {
         return jdbc.sql("""
-                        select document_type, pattern, reset_policy, start_value
+                        select document_type, pattern, reset_policy, start_value, confirmation_status
                           from platform_numbering.numbering_rules
                          where document_type = :type and is_active
                         """)
                 .param("type", type.name())
                 .query((rs, n) -> new NumberingRule(DocumentType.valueOf(rs.getString("document_type")),
                         new NumberingPattern(rs.getString("pattern"), ResetPolicy.valueOf(rs.getString("reset_policy"))),
-                        rs.getLong("start_value")))
+                        rs.getLong("start_value"), ConfirmationStatus.valueOf(rs.getString("confirmation_status"))))
                 .optional();
     }
 
     @Override
     public List<NumberingRule> findAllActive() {
         return jdbc.sql("""
-                        select document_type, pattern, reset_policy, start_value
+                        select document_type, pattern, reset_policy, start_value, confirmation_status
                           from platform_numbering.numbering_rules
                          where is_active
+                         order by document_type
                         """)
                 .query((rs, n) -> new NumberingRule(DocumentType.valueOf(rs.getString("document_type")),
                         new NumberingPattern(rs.getString("pattern"), ResetPolicy.valueOf(rs.getString("reset_policy"))),
-                        rs.getLong("start_value")))
+                        rs.getLong("start_value"), ConfirmationStatus.valueOf(rs.getString("confirmation_status"))))
                 .list();
     }
 
@@ -62,17 +64,18 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     @Override
     public void save(NumberingRule rule) {
         jdbc.sql("""
-                        insert into platform_numbering.numbering_rules (document_type, pattern, reset_policy, start_value)
-                        values (:type, :pattern, :reset, :start)
+                        insert into platform_numbering.numbering_rules (document_type, pattern, reset_policy, start_value, confirmation_status)
+                        values (:type, :pattern, :reset, :start, :confirmation)
                         on conflict (document_type) do update
                            set pattern = excluded.pattern, reset_policy = excluded.reset_policy,
-                               start_value = excluded.start_value, updated_at = now(),
+                               start_value = excluded.start_value, confirmation_status = excluded.confirmation_status, updated_at = now(),
                                version = platform_numbering.numbering_rules.version + 1
                         """)
                 .param("type", rule.documentType().name())
                 .param("pattern", rule.pattern().value())
                 .param("reset", rule.pattern().resetPolicy().name())
                 .param("start", rule.startValue())
+                .param("confirmation", rule.confirmation().name())
                 .update();
     }
 

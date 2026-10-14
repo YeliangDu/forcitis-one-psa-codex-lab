@@ -96,3 +96,10 @@
 | RULE-374 | 正确 | 2026-10-14 11:00 | WeCom message recipients are resolved through `we_com_id` | 正确+修（整批同意评审建议）：按 we_com_id 解析收件人保留；所有发送处空值安全（缺失只告警跳过）；输出「在职但无 we_com_id」数据质量报告。 |
 | RULE-375 | 正确 | 2026-10-14 11:00 | Non-production task messages go to one hard-coded person; agentId chosen by environment | 正确+修（整批同意评审建议）：非生产环境重定向保留；测试收件人改为配置的白名单，agentId 按环境配置，不写死个人。 |
 | RULE-376 | 错误 | 2026-10-14 11:00 | WeCom card callback takes the acting user from the button key, not from FromUserName | 错误（整批同意评审建议）：操作人按 FromUserName → we_com_id → 用户确定，且必须是该任务处理人；回调 token 与 AES key 移到配置并轮换（SEC-006）。 |
+
+## 实现方式变更（不改结论）
+
+| Rule | 日期 | 用户决定（原话） | 实现方式 |
+|---|---|---|---|
+| RULE-275 | 2026-10-14 | 「退回即结束本轮，重提开新一轮 (Recommended)」（Phase 1a 复审 M3，经 psa-coordinator 询问） | 退回发起人＝以「已退回」结束本轮审批（仍要求原因、仍经 BEFORE 钩子）；不再使用发起人假首节点与令牌回移 |
+| RULE-287 | 2026-10-14 | 同上 | 重提＝在同一单据上开新一轮（`start_rounds` 轮次 +1，幂等键含轮次）；审批历史按轮次保留，可逐轮查看 |

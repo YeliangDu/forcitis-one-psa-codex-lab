@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.audit.api;
 
 /** Append-only audit trail. */
-public interface AuditTrail {
+public interface AuditLog {
 
     /** Joins the caller's transaction: the entry exists only if the business change commits. */
     void record(AuditEntry entry);

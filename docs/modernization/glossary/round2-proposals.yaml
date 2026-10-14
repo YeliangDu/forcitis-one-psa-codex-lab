@@ -6,7 +6,7 @@
 # 判断：主会话（Opus 5.5）依据 ADR-0018 用语优先级与 NAMING_STANDARD；未派子代理。
 
 # 1a 会话改完代码后在此登记 P 组 id（如 audit_trail），build_terms.py 随即把该条的 forbid_en 写入禁用。
-code_renamed: []
+code_renamed: [declared-hours, web_scan, direct_leader, audit_trail]
 
 P:
   # ---------- template-carryover.yaml（架构守护模板带来的 33 条，含评估遗留的 cost / error-code / capacity / scheduler-lock） ----------

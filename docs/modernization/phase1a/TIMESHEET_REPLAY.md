@@ -94,9 +94,9 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
 | `ROLE` | `role`（角色编码） | 规则类型 10 |
 | `NAMED_USERS` | `users`（逗号分隔 ID） | 规则类型 30；类型 70（空节点）导出为老管理员 ID |
 | `FORM_FIELD_USERS` | `field` | 类型 60（`options` 的第一个字段）；脚本 9（`scriptField`） |
-| `FORM_FIELD_USER_LEADERS` | `field` | 脚本 33 |
+| `FORM_FIELD_USER_SUPERVISORS` | `field` | 脚本 33 |
 | `INITIATOR` | — | 脚本 10 |
-| `INITIATOR_LEADER` | `level`（1 或 2） | 脚本 20 / 21 |
+| `INITIATOR_SUPERVISOR` | `level`（1 或 2） | 脚本 20 / 21 |
 | `REGIONAL_RECEIVABLES_MANAGER` | `department`（变量名，缺省 `deliveryDeptId`） | 脚本 30 |
 | `DEPARTMENT_HEAD` | `department`（变量名；缺省为发起人所在部门） | 脚本 31 |
 | `DEPARTMENT_DIRECTOR` | `department` | 脚本 32 |

@@ -2,7 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,9 +13,9 @@ public class Logout {
 
     private final CurrentUser currentUser;
     private final SessionRegistry sessions;
-    private final AuditTrail audit;
+    private final AuditLog audit;
 
-    Logout(CurrentUser currentUser, SessionRegistry sessions, AuditTrail audit) {
+    Logout(CurrentUser currentUser, SessionRegistry sessions, AuditLog audit) {
         this.currentUser = currentUser;
         this.sessions = sessions;
         this.audit = audit;

@@ -11,7 +11,7 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskResulted;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.time.Duration;
 import java.util.List;
@@ -42,7 +42,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * Shared set-up of the platform.approval integration tests: one PostgreSQL 18 container for the whole test JVM, the full
  * application context (cached across the test classes), Flowable's schema created by the engine (tests set
  * flowable.database-schema-update=true; production does not), and doubles for what other modules provide: a synthetic
- * organisation (OrgDirectory + RoleDirectory), WecomGateway and AuditTrail. No real system is contacted.
+ * organisation (OrgDirectory + RoleDirectory), WecomGateway and AuditLog. No real system is contacted.
  */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=" + ApprovalIntegrationSupport.ADMINISTRATOR,
@@ -102,7 +102,7 @@ public abstract class ApprovalIntegrationSupport {
     protected WecomGateway wecom;
 
     @MockitoBean
-    protected AuditTrail audit;
+    protected AuditLog audit;
 
     @Autowired
     protected ApprovalProcesses approvals;

@@ -20,9 +20,9 @@ public sealed interface AssignmentRule {
     }
 
     /** The initiator's 1st or 2nd level direct leader; an incomplete reporting line pushes up (RULE-250). */
-    record InitiatorLeader(int level) implements AssignmentRule {
+    record InitiatorSupervisor(int level) implements AssignmentRule {
 
-        public InitiatorLeader {
+        public InitiatorSupervisor {
             if (level != 1 && level != 2) {
                 throw new IllegalArgumentException("level must be 1 or 2, was " + level);
             }
@@ -50,7 +50,7 @@ public sealed interface AssignmentRule {
     }
 
     /** The direct leaders of the people named in a business form field (RULE-259/260). */
-    record FormFieldUserLeaders(String field) implements AssignmentRule {
+    record FormFieldUserSupervisors(String field) implements AssignmentRule {
     }
 
     /** The people named in an engine or hook variable. */

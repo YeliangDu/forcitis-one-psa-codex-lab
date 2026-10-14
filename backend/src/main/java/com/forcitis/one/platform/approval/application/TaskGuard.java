@@ -6,7 +6,7 @@ import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.TaskActors;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -19,9 +19,9 @@ import org.springframework.stereotype.Component;
 class TaskGuard {
 
     private final ApprovalEngine engine;
-    private final AuditTrail audit;
+    private final AuditLog audit;
 
-    TaskGuard(ApprovalEngine engine, AuditTrail audit) {
+    TaskGuard(ApprovalEngine engine, AuditLog audit) {
         this.engine = engine;
         this.audit = audit;
     }

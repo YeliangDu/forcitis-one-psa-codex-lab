@@ -122,15 +122,15 @@ public final class SnapshotReconciler {
 
         Map<UserId, UserId> claimed = new LinkedHashMap<>();
         valid.forEach((id, m) -> {
-            if (MemberChecks.employmentOf(m) == EmploymentStatus.EMPLOYED && m.leaderId() != null) {
-                claimed.put(id, m.leaderId());
+            if (MemberChecks.employmentOf(m) == EmploymentStatus.EMPLOYED && m.supervisorId() != null) {
+                claimed.put(id, m.supervisorId());
             }
         });
-        Function<UserId, UserId> storedLeader = id -> {
+        Function<UserId, UserId> storedSupervisor = id -> {
             StaffMember s = currentStaff.get(id);
             return s == null ? null : s.assignment().reportsToEmployeeId();
         };
-        Map<UserId, UserId> acceptedLeaders = ReportingLines.accept(claimed, statusAfter, storedLeader, diffs);
+        Map<UserId, UserId> acceptedSupervisors = ReportingLines.accept(claimed, statusAfter, storedSupervisor, diffs);
 
         List<StaffMember> changed = new ArrayList<>();
         List<UserId> changedEmployees = new ArrayList<>();
@@ -140,7 +140,7 @@ public final class SnapshotReconciler {
         valid.forEach((id, m) -> {
             Employee employee = MemberChecks.toEmployee(m, keepWecom.contains(id));
             boolean employed = employee.employmentStatus() == EmploymentStatus.EMPLOYED;
-            UserId leader = employed ? acceptedLeaders.get(id) : (id.equals(m.leaderId()) ? null : m.leaderId());
+            UserId leader = employed ? acceptedSupervisors.get(id) : (id.equals(m.supervisorId()) ? null : m.supervisorId());
             StaffMember desired = new StaffMember(employee, new Assignment(id, m.orgUnitId(), m.positionId(), leader));
             StaffMember before = currentStaff.get(id);
             String subject = "employee:" + id.value();

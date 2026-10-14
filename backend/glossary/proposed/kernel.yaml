@@ -1,0 +1,101 @@
+# kernel 提议术语（proposed，待业务评审，ADR-0018）。单词级术语：服务于 AccountingPeriod / ProjectCoordinate 等内核值对象的标识命名守护。
+terms:
+- id: contain
+  zh: 包含
+  en: Contain
+  snake: contain
+  kind: value
+  bc: kernel
+  definition: 会计期间是否涵盖某个业务日期
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干（共享内核）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: containing
+  zh: 所属
+  en: Containing
+  snake: containing
+  kind: value
+  bc: kernel
+  definition: 业务日期所属的会计期间（AccountingPeriod.containing）
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干（共享内核）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: coordinate
+  zh: 坐标
+  en: Coordinate
+  snake: coordinate
+  kind: value
+  bc: kernel
+  definition: 事实归属的项目 / WBS 位置（ProjectCoordinate）：项目，可选 WBS 节点
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干（共享内核）
+  - PMI Practice Standard for Work Breakdown Structures
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: followed
+  zh: 紧随
+  en: Followed
+  snake: followed
+  kind: value
+  bc: kernel
+  definition: 一个会计期间是否紧接在另一个之后（isFollowedBy）
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干（共享内核）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: negate
+  zh: 取反
+  en: Negate
+  snake: negate
+  kind: command
+  bc: kernel
+  definition: 金额符号取反，币种不变（Money.negate）
+  standard_ref:
+  - ADR-0001 金额 = 数额 + 币种
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: positive
+  zh: 为正
+  en: Positive
+  snake: positive
+  kind: value
+  bc: kernel
+  definition: 金额大于零（Money.isPositive）
+  standard_ref:
+  - ADR-0001 金额 = 数额 + 币种
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: whole
+  zh: 整体
+  en: Whole
+  snake: whole
+  kind: value
+  bc: kernel
+  definition: 项目坐标不指向 WBS 节点，即指向项目整体（isWholeProject）
+  standard_ref:
+  - ADR-0016 权责发生制业财一体主干（共享内核）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''

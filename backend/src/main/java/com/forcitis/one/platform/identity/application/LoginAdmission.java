@@ -4,7 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -23,13 +23,13 @@ class LoginAdmission {
 
     private final AccountProvisioning provisioning;
     private final AccountRepository accounts;
-    private final AuditTrail audit;
+    private final AuditLog audit;
     private final SessionRegistry sessions;
     private final ClientOrigin origin;
     private final Clock clock;
     private final MeterRegistry meters;
 
-    LoginAdmission(AccountProvisioning provisioning, AccountRepository accounts, AuditTrail audit, SessionRegistry sessions,
+    LoginAdmission(AccountProvisioning provisioning, AccountRepository accounts, AuditLog audit, SessionRegistry sessions,
             ClientOrigin origin, Clock clock, MeterRegistry meters) {
         this.provisioning = provisioning;
         this.accounts = accounts;

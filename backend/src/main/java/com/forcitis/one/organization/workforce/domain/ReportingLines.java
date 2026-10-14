@@ -24,30 +24,30 @@ final class ReportingLines {
     /**
      * @param claimed     employed people with the leader A8 names (non-null leaders only)
      * @param statusOf    employment status of every person known after this run
-     * @param storedLeader leader of people this run does not touch (their stored leader keeps chains continuous)
+     * @param storedSupervisor leader of people this run does not touch (their stored leader keeps chains continuous)
      * @param diffs       receives one ISSUE per rejected leader
      * @return the accepted leader per person
      */
     static Map<UserId, UserId> accept(Map<UserId, UserId> claimed, Map<UserId, EmploymentStatus> statusOf,
-                                      Function<UserId, UserId> storedLeader, List<SyncDiff> diffs) {
+                                      Function<UserId, UserId> storedSupervisor, List<SyncDiff> diffs) {
         Map<UserId, UserId> candidates = new LinkedHashMap<>();
         claimed.forEach((person, leader) -> {
             String subject = "employee:" + person.value();
             if (person.equals(leader)) {
-                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, subject, IssueKind.LEADER_IS_SELF, "direct leader is the person themselves"));
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, subject, IssueKind.SUPERVISOR_IS_SELF, "direct leader is the person themselves"));
             } else if (!statusOf.containsKey(leader)) {
-                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, subject, IssueKind.LEADER_NOT_FOUND, "direct leader " + leader.value() + " does not exist"));
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, subject, IssueKind.SUPERVISOR_NOT_FOUND, "direct leader " + leader.value() + " does not exist"));
             } else if (statusOf.get(leader) != EmploymentStatus.EMPLOYED) {
-                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, subject, IssueKind.LEADER_SEPARATED, "direct leader " + leader.value() + " has separated"));
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, subject, IssueKind.SUPERVISOR_SEPARATED, "direct leader " + leader.value() + " has separated"));
             } else {
                 candidates.put(person, leader);
             }
         });
-        Set<UserId> inCycle = findCycles(candidates, claimed.keySet(), storedLeader);
+        Set<UserId> inCycle = findCycles(candidates, claimed.keySet(), storedSupervisor);
         Map<UserId, UserId> accepted = new LinkedHashMap<>();
         candidates.forEach((person, leader) -> {
             if (inCycle.contains(person)) {
-                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + person.value(), IssueKind.LEADER_CYCLE,
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + person.value(), IssueKind.SUPERVISOR_CYCLE,
                         "direct leader chain of the person loops"));
             } else {
                 accepted.put(person, leader);
@@ -57,12 +57,12 @@ final class ReportingLines {
     }
 
     private static Set<UserId> findCycles(Map<UserId, UserId> candidates, Set<UserId> claimedPeople,
-                                          Function<UserId, UserId> storedLeader) {
+                                          Function<UserId, UserId> storedSupervisor) {
         Function<UserId, UserId> next = person -> {
             if (candidates.containsKey(person)) {
                 return candidates.get(person);
             }
-            return claimedPeople.contains(person) ? null : storedLeader.apply(person);
+            return claimedPeople.contains(person) ? null : storedSupervisor.apply(person);
         };
         Map<UserId, Integer> state = new HashMap<>();
         Set<UserId> inCycle = new HashSet<>();

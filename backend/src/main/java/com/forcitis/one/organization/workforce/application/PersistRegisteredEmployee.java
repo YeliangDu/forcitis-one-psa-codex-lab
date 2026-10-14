@@ -4,7 +4,7 @@ import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
 import com.forcitis.one.organization.workforce.domain.StaffMember;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import java.time.Clock;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
@@ -20,11 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 class PersistRegisteredEmployee {
 
     private final OrgSnapshotRepository snapshots;
-    private final ObjectProvider<AuditTrail> audit;
+    private final ObjectProvider<AuditLog> audit;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
-    PersistRegisteredEmployee(OrgSnapshotRepository snapshots, ObjectProvider<AuditTrail> audit,
+    PersistRegisteredEmployee(OrgSnapshotRepository snapshots, ObjectProvider<AuditLog> audit,
                               ApplicationEventPublisher events, ObjectProvider<Clock> clock) {
         this.snapshots = snapshots;
         this.audit = audit;

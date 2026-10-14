@@ -36,7 +36,7 @@ final class A8ViewSql {
 
     static final String POSITIONS = "SELECT ID, CODE, NAME, SORT_ID, STATUS, IS_DELETED FROM " + SCHEMA + "." + ORG_POST_VIEW;
 
-    private static final String MEMBER_SELECT = "SELECT ID, NAME, CODE, ORG_UNIT_ID, ORG_UNIT_PATH, POST_ID, LEADER_MEMBER_ID, "
+    private static final String MEMBER_SELECT = "SELECT ID, NAME, CODE, ORG_UNIT_ID, ORG_UNIT_PATH, POST_ID, SUPERVISOR_MEMBER_ID, "
             + "WE_COM_ID, IS_INTERNAL, LOGIN_NAME, ENTERPRISE_EMAIL, GENDER, FEE_EARNER_ENUM_ID FROM " + SCHEMA + "." + ORG_MEMBER_VIEW;
 
     /** Same scope for bulk and single lookup: internal people with a code and an org unit inside the root subtree (RULE-361). */
@@ -68,7 +68,7 @@ final class A8ViewSql {
                 "CATEGORY", "DELIVERY_FLAG_ENUM_ID"));
         views.put(ORG_RELATIONSHIP_VIEW, List.of("SOURCE_MEMBER_ID", "ORG_UNIT_ID", "RELATIONSHIP_TYPE_ID", "MEMBER_IS_DELETED"));
         views.put(ORG_POST_VIEW, List.of("ID", "CODE", "NAME", "SORT_ID", "STATUS", "IS_DELETED"));
-        views.put(ORG_MEMBER_VIEW, List.of("ID", "NAME", "CODE", "ORG_UNIT_ID", "ORG_UNIT_PATH", "POST_ID", "LEADER_MEMBER_ID",
+        views.put(ORG_MEMBER_VIEW, List.of("ID", "NAME", "CODE", "ORG_UNIT_ID", "ORG_UNIT_PATH", "POST_ID", "SUPERVISOR_MEMBER_ID",
                 "WE_COM_ID", "IS_INTERNAL", "LOGIN_NAME", "ENTERPRISE_EMAIL", "GENDER", "FEE_EARNER_ENUM_ID"));
         return java.util.Collections.unmodifiableMap(views);
     }

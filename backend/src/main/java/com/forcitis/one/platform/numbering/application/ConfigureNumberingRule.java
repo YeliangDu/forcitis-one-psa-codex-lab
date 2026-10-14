@@ -20,7 +20,7 @@ public class ConfigureNumberingRule {
 
     @Transactional
     public NumberingRule execute(DocumentType type, String pattern, ResetPolicy resetPolicy, long startValue) {
-        NumberingRule rule = new NumberingRule(type, new NumberingPattern(pattern, resetPolicy), startValue);
+        NumberingRule rule = NumberingRule.confirmed(type, new NumberingPattern(pattern, resetPolicy), startValue);
         rules.save(rule);
         return rule;
     }
