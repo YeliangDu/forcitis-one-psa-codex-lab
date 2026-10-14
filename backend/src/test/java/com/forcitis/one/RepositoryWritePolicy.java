@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  * SQL string literals of the adapters; the table structure comes from the migrations.
  */
 final class RepositoryWritePolicy {
-    record Write(String verb, String table, String method, int line) {
+    record Write(String verb, String table, String method, int line, boolean versionConditional) {
     }
 
     static final Set<String> AGGREGATE_METHOD_PREFIXES = Set.of("save", "insert", "update", "upsert", "delete");
@@ -21,6 +21,8 @@ final class RepositoryWritePolicy {
     private static final Pattern STRING = Pattern.compile("\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);
     private static final Pattern STATEMENT = Pattern.compile(
             "^\\s*(insert\\s+into|update|delete\\s+from)\\s+([a-z0-9_]+\\.[a-z0-9_]+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern VERSION_CONDITION = Pattern.compile("\\bversion\\s*=\\s*:", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TYPE_DECLARATION = Pattern.compile("^\\s*(?:(?:private|protected|static|final)\\s+)*(?:record|class|enum|interface)\\s");
     private static final Pattern INSERT_COLUMNS = Pattern.compile("^\\s*insert\\s+into\\s+[a-z0-9_.]+\\s*\\(([^)]*)\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern METHOD = Pattern.compile(
             "(?m)^ {4}(?:(?:public|private|protected|static|final|default|synchronized)\\s+)*[\\w<>\\[\\],.? ]+?\\s+(\\w+)\\s*\\([^;{]*\\)\\s*(?:throws [\\w., ]+)?\\s*\\{");
@@ -34,7 +36,7 @@ final class RepositoryWritePolicy {
         List<String> names = new ArrayList<>();
         Matcher method = METHOD.matcher(code);
         while (method.find()) {
-            if (CONTROL_FLOW.contains(method.group(1))) {
+            if (CONTROL_FLOW.contains(method.group(1)) || TYPE_DECLARATION.matcher(method.group()).find()) {
                 continue;
             }
             methods.add(new int[] {method.start()});
@@ -50,7 +52,8 @@ final class RepositoryWritePolicy {
             }
             String verb = statement.group(1).toLowerCase(Locale.ROOT).startsWith("insert") ? "insert"
                     : statement.group(1).toLowerCase(Locale.ROOT).startsWith("update") ? "update" : "delete";
-            writes.add(new Write(verb, statement.group(2).toLowerCase(Locale.ROOT), enclosing(methods, names, string.start()), line(code, string.start())));
+            writes.add(new Write(verb, statement.group(2).toLowerCase(Locale.ROOT), enclosing(methods, names, string.start()), line(code, string.start()),
+                    VERSION_CONDITION.matcher(sql).find()));
         }
         return writes;
     }

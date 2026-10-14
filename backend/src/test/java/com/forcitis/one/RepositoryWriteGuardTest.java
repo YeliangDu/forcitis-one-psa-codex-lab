@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 class RepositoryWriteGuardTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Path METHOD_EXCEPTIONS = Path.of("architecture/repository-write-exceptions.txt");
+    static final Path UNCONDITIONAL_EXCEPTIONS = Path.of("architecture/versioned-table-unconditional-writes.txt");
     static final Path UNVERSIONED_EXCEPTIONS = Path.of("architecture/unversioned-table-writes.txt");
 
     static List<Path> persistenceFiles() throws IOException {
@@ -75,15 +76,12 @@ class RepositoryWriteGuardTest {
     }
 
     @Test
-    @DisplayName("a repository changes state only in save / insert / update / upsert / delete methods; any other write is registered with its reason")
+    @DisplayName("a persistence adapter changes state only in save / insert / update / upsert / delete methods; any other write is registered with its reason")
     void repositoryWritesAreTheAggregatesSave() throws IOException {
         Set<String> allowed = exceptionKeys(METHOD_EXCEPTIONS);
         Set<String> found = new TreeSet<>();
         List<String> problems = new ArrayList<>();
         for (Path file : persistenceFiles()) {
-            if (!file.getFileName().toString().endsWith("Repository.java")) {
-                continue;
-            }
             String name = MAIN.relativize(file).toString();
             for (RepositoryWritePolicy.Write write : RepositoryWritePolicy.writes(Files.readString(file))) {
                 if (RepositoryWritePolicy.aggregateMethod(write.method())) {
@@ -99,6 +97,33 @@ class RepositoryWriteGuardTest {
         }
         assertThat(problems).isEmpty();
         assertThat(allowed).as("an exception that is no longer needed must be deleted from " + METHOD_EXCEPTIONS).isEqualTo(found);
+    }
+
+    @Test
+    @DisplayName("an UPDATE or DELETE of a table with a version column states the version it expects; any other is registered once per method with its reason")
+    void writesOfVersionedTablesAreConditional() throws IOException {
+        Map<String, DdlNamingTest.Table> tables = tables();
+        Set<String> allowed = exceptionKeys(UNCONDITIONAL_EXCEPTIONS);
+        Set<String> found = new TreeSet<>();
+        List<String> problems = new ArrayList<>();
+        for (Path file : persistenceFiles()) {
+            String name = MAIN.relativize(file).toString();
+            for (RepositoryWritePolicy.Write write : RepositoryWritePolicy.writes(Files.readString(file))) {
+                DdlNamingTest.Table model = tables.get(write.table());
+                if (write.verb().equals("insert") || write.versionConditional() || model == null
+                        || DdlNamingTest.FRAMEWORK_TABLES.contains(write.table()) || !model.columns.containsKey("version")) {
+                    continue;
+                }
+                String key = name + "#" + write.method() + "#" + write.table();
+                found.add(key);
+                if (!allowed.contains(key)) {
+                    problems.add(name + ":" + write.line() + ": " + write.verb() + " " + write.table() + " in " + write.method()
+                            + "() does not state 'version = :...'; add the condition or register the write in " + UNCONDITIONAL_EXCEPTIONS);
+                }
+            }
+        }
+        assertThat(problems).isEmpty();
+        assertThat(allowed).as("an exception that is no longer needed must be deleted from " + UNCONDITIONAL_EXCEPTIONS).isEqualTo(found);
     }
 
     @Test
@@ -153,6 +178,14 @@ class RepositoryWriteGuardTest {
         assertThat(RepositoryWritePolicy.insertsWithoutStatus("T.java", source, t -> statusColumns(tables, t))).singleElement()
                 .asString().contains("leaves out status");
         assertThat(RepositoryWritePolicy.writes(source)).extracting(RepositoryWritePolicy.Write::method).containsExactly("insert", "claim", "saveAll");
+        assertThat(RepositoryWritePolicy.writes("""
+                class JdbcThingRepository {
+                    void update(Thing t) {
+                        jdbc.sql("update s.things set name = :n where id = :id and version = :version").update();
+                        jdbc.sql("update s.things set name = :n where id = :id").update();
+                    }
+                }
+                """)).extracting(RepositoryWritePolicy.Write::versionConditional).containsExactly(true, false);
         assertThat(RepositoryWritePolicy.aggregateMethod("claim")).isFalse();
         assertThat(RepositoryWritePolicy.aggregateMethod("saveHandled")).isTrue();
     }
