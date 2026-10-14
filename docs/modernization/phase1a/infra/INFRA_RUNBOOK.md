@@ -19,7 +19,7 @@
 | D-1 | 环境划分 | **已定**（用户 2026-10-14：「同实例分库，生产前再定」）：dev 用同实例独立库 `forcitis_one_dev` + `one_dev_*` 角色；生产前再决定是否另开生产 RDS（若同实例，另建库与 `one_prod_*` 角色） |
 | D-2 | dev 部署位置 | **已定**（同上）：dev 部署在 forcitis-one-production（i-bp122xlpar8w2uylmal2）；切生产时换配置与库 |
 | D-3（部署前再问） | `one.forcitis.com` 的 DNS 与证书由谁办理 | 证书建议用阿里云 SSL 证书服务（或 ACME），DNS 由域名管理员添加 A 记录指向 47.114.56.157 |
-| D-4（部署前再问） | A8 库（SQL Server）与老 PSA 库（SQL Server RDS）的只读视图和账号由谁建 | 见 §4。需要 A8 管理员和老 RDS 的 DBA 分别执行，并把 172.16.89.86 加入两库白名单 |
+| D-4（部署前再问） | A8 库（SQL Server）与老系统库（SQL Server RDS）的只读视图和账号由谁建 | 见 §4。需要 A8 管理员和老 RDS 的 DBA 分别执行，并把 172.16.89.86 加入两库白名单 |
 | D-5（部署前再问） | 应急管理员开通方式 | 见 §6，建议使用一次性运维命令，不提供 HTTP 接口 |
 
 ## 2. PostgreSQL（`forcitis_one_dev`）
@@ -57,7 +57,7 @@
 | E-11 | 日志接 SLS | 安装 Logtail；采集 `/data/forcitis-one/logs/*.json`（应用输出结构化 JSON）和 nginx access / error 日志；Project 与门户分开或按 Logstore 区分 | SLS 能检索到日志 |
 | E-12 | 指标接 ARMS | 方案 A：ARMS Prometheus 抓取 `127.0.0.1:8081/actuator/prometheus`。方案 B：ARMS Java 探针，需先核实对 Java 25 的支持，不支持就用方案 A | ARMS 看板有数据 |
 | E-13 | 四类告警 | 在 ARMS / SLS 中配置以下四类，并在 dev 上用故障注入演练（出口条件）：<br>• 组织同步延迟：`organization.workforce.sync.*` 指标，或缩水保护中止<br>• 未完成事件发布：event_publication 中超过 10 分钟仍未完成，或出站投递进入死信<br>• 作业失败：定时任务观测指标，或 Flowable 死信任务数<br>• 登录失败率：5 分钟内失败率超过 20 % 且失败数 ≥ 20 | 演练记录 |
-| E-14 | 出站网络 | 安全组出方向放行：RDS 5432（同 VPC）、`qyapi.weixin.qq.com:443`、致远 OA 验票地址、A8 SQL Server、老 PSA SQL Server（经白名单）；其余出站按需收紧 | |
+| E-14 | 出站网络 | 安全组出方向放行：RDS 5432（同 VPC）、`qyapi.weixin.qq.com:443`、致远 OA 验票地址、A8 SQL Server、老系统 SQL Server（经白名单）；其余出站按需收紧 | |
 | E-15 | 企业微信 | 在企业微信后台为新应用配置：可信域名 `one.forcitis.com`、扫码登录回调域、企业可信 IP 47.114.56.157；工作台**新增**「FORCITIS one」入口，**不替换**老 H5（切换手册 §3.11） | 登录冒烟 |
 | E-16 | 致远 | 由 A8 管理员登记新系统的验票回跳地址，**不替换**老 SSO | 登录冒烟 |
 | E-17 | 备份 | RDS 自动备份保留 ≥7 天；ECS 数据盘设快照策略；日志在 SLS 中保留 30 天 | |
@@ -67,8 +67,8 @@
 | 库 | 对象 | 账号 | 授权 | 脚本 |
 |---|---|---|---|---|
 | A8（a8_db） | 组织视图（只含白名单列） | 只读，专用 | 只授予视图 SELECT，基表 DENY，无 EXEC | `phase1a/SEEYON_VIEWS.sql`，重构完成前名为 `A8_VIEWS.sql` |
-| 老 PSA（ruoyi-vue-pro） | 老待办视图 | 只读，专用 | 只授予视图 SELECT，**令牌表不授权**（I-1）；应用启动时校验能 SELECT 的对象恰好只有这一个 | `phase1a/LEGACY_INBOX_VIEW.sql` |
-| 老 PSA | 组织短名视图 | 同上或另设 | 同上 | 随重构给出 |
+| 老系统（ruoyi-vue-pro） | 老待办视图 | 只读，专用 | 只授予视图 SELECT，**令牌表不授权**（I-1）；应用启动时校验能 SELECT 的对象恰好只有这一个 | `phase1a/LEGACY_INBOX_VIEW.sql` |
+| 老系统 | 组织短名视图 | 同上或另设 | 同上 | 随重构给出 |
 
 两库都要把 172.16.89.86 加入白名单。账号口令只写入 `/etc/forcitis-one/one.env` 或 KMS。
 
@@ -101,7 +101,7 @@
 | `A8_DB_URL` / `A8_DB_USERNAME` / `A8_DB_PASSWORD` | A8 视图只读连接（第 4 节的专用账号） | 启用时 |
 | `INTEGRATION_SEEYON_VALIDATE_ON_STARTUP` | 启动时校验 A8 账号只能读视图（默认 true） | 否 |
 | `A8_HEAD_RELATIONSHIP_TYPE_ID`、`A8_REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID`、`A8_DELIVERY_UNIT_YES_ENUM_ID`、`A8_FEE_EARNER_YES_ENUM_ID` | A8 中关系类型与枚举的编号（有默认值，与 A8 实例不一致时覆盖） | 否 |
-| `INTEGRATION_LEGACY_ENABLED` | 老 PSA 待办视图读取开关（默认 false） | 否 |
+| `INTEGRATION_LEGACY_ENABLED` | 老系统待办视图读取开关（默认 false） | 否 |
 | `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 老库只读连接（第 4 节的专用账号） | 启用时 |
 | `INTEGRATION_LEGACY_VALIDATE_ON_STARTUP` | 启动时校验老库账号只能读那一个视图（默认 true） | 否 |
 | `WORKFORCE_SYNC_ENABLED` | 从 A8 视图同步组织与人员的定时任务开关（默认 false） | 否 |
