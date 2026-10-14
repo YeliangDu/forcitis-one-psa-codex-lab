@@ -347,7 +347,7 @@
       "verdict": "wrong",
       "at": "2026-10-14T11:00:28+02:00",
       "title": "Refresh revokes sibling access tokens but never rotates the refresh token",
-      "note": "错误（整批同意评审建议）：新系统无刷新令牌；登录时轮换会话 ID；过渡期对老令牌只读校验后换发新会话（C1a-06）。"
+      "note": "错误（整批同意评审建议）：新系统无刷新令牌；登录时轮换会话 ID；新系统不读、不写、不校验老令牌表（C1a-06 已删除，用户『取消桥接』）。"
     },
     "RULE-335": {
       "verdict": "wrong",
