@@ -1,0 +1,74 @@
+# FORCITIS one · C-7 四类告警（Prometheus 规则格式，导入 ARMS Prometheus 告警；SLS 日志告警见 C-7-alerts.md）
+# 指标名为 Micrometer 导出到 Prometheus 后的名字（点换下划线，计数器加 _total）。
+# 通知渠道：labels.channel 对应 ARMS 通知策略中的联系人组，变量名见 C-7-alerts.md（ONE_ALERT_P1_*、ONE_ALERT_P2_*）。
+groups:
+  - name: forcitis-one-exit-alerts
+    rules:
+      # 1 登录失败率（P1）：5 分钟内失败率 > 20 % 且失败 ≥ 20 次
+      - alert: OneLoginFailureRateHigh
+        expr: |
+          (
+            sum(increase(forcitis_platform_identity_login_total{outcome="failure"}[5m]))
+            / clamp_min(sum(increase(forcitis_platform_identity_login_total[5m])), 1)
+          ) > 0.2
+          and sum(increase(forcitis_platform_identity_login_total{outcome="failure"}[5m])) >= 20
+        labels: { severity: P1, channel: ONE_ALERT_P1 }
+        annotations:
+          summary: 登录失败率超过 20 %
+          runbook: 按 method 标签看是哪个入口；查 SLS 中 platform.identity.login.failed 的 reason
+
+      # 2 未完成事件发布 / 死信（P2）
+      - alert: OneEventPublicationStale
+        expr: max(forcitis_platform_integration_event_publications_stale) > 0
+        for: 1m
+        labels: { severity: P2, channel: ONE_ALERT_P2 }
+        annotations:
+          summary: 有事件发布超过 10 分钟仍未完成
+          runbook: INFRA_RUNBOOK §9「人工处理用尽次数的发布」
+      - alert: OneEventPublicationExhausted
+        expr: max(forcitis_platform_integration_event_publications_exhausted) > 0
+        labels: { severity: P2, channel: ONE_ALERT_P2 }
+        annotations:
+          summary: 有事件发布用尽重投次数
+      - alert: OneOutboundDeadLetters
+        expr: max(forcitis_platform_integration_deliveries_dead_letters) > 0
+        labels: { severity: P2, channel: ONE_ALERT_P2 }
+        annotations:
+          summary: 出站投递（企业微信卡片）进入死信
+
+      # 3 组织同步延迟或中止（P2）：超过 2 个周期（10 分钟）无成功，或缩水保护挂起
+      - alert: OneWorkforceSyncLagging
+        expr: max(forcitis_organization_workforce_sync_lag_seconds) > 600
+        labels: { severity: P2, channel: ONE_ALERT_P2 }
+        annotations:
+          summary: 组织同步超过 10 分钟没有成功
+      - alert: OneWorkforceSyncHeld
+        expr: max(forcitis_organization_workforce_sync_held_runs) > 0
+        labels: { severity: P2, channel: ONE_ALERT_P2 }
+        annotations:
+          summary: 组织同步被缩水保护挂起，等待组织数据管理员放行
+
+      # 4 作业失败（P3，只进看板与 P2 群汇总）：Spring 定时任务观测；Flowable 死信任务数暂无指标（CROSSCHECK 第 13 条）
+      - alert: OneScheduledTaskFailed
+        expr: sum by (code_function) (increase(tasks_scheduled_execution_seconds_count{outcome="ERROR"}[15m])) > 0
+        labels: { severity: P3, channel: ONE_ALERT_P2 }
+        annotations:
+          summary: 定时作业执行失败
+      - alert: OneApprovalDeadlineJobFailed
+        expr: sum(increase(forcitis_platform_approval_deadline_failed_total[15m])) > 0
+        labels: { severity: P3, channel: ONE_ALERT_P2 }
+        annotations:
+          summary: 审批时限作业失败
+      - alert: OneWorkCalendarUnmaintained
+        expr: sum(increase(forcitis_organization_attendance_calendar_unmaintained_total[1h])) > 0
+        labels: { severity: P2, channel: ONE_ALERT_P2 }
+        annotations:
+          summary: 有计算用到了未维护年份的工作日历（B-7）
+
+      # 平台自身
+      - alert: OneTargetDown
+        expr: up{job="forcitis-one"} == 0
+        for: 2m
+        labels: { severity: P1, channel: ONE_ALERT_P1 }
+        annotations:
+          summary: 应用指标端点不可达（进程停止或卡死）
