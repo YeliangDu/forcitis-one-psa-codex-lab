@@ -88,7 +88,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         String hash = jdbc.sql("select password_hash from platform_identity.emergency_admins").query(String.class).single();
         String sealed = jdbc.sql("select totp_secret_encrypted from platform_identity.emergency_admins").query(String.class).single();
 
-        assertThat(hash).startsWith("$argon2id$").doesNotContain(PASSWORD);
+        assertThat(hash).startsWith("$argon2id$v=19$m=19456,t=2,p=1$").doesNotContain(PASSWORD);
         assertThat(sealed).doesNotContain(Totp.toBase32(secret));
         assertThat(vault.open(sealed)).isEqualTo(secret);
     }
@@ -129,6 +129,27 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(login("breakglass", PASSWORD, code()).getResponse().getStatus()).as("16 minutes later").isEqualTo(200);
         assertThat(jdbc.sql("select failed_attempts from platform_identity.emergency_admins").query(Integer.class).single()).isZero();
         assertThat(recordedIndependently()).extracting(AuditEntry::action).contains("platform.identity.login.failed");
+    }
+
+    @Test
+    @DisplayName("RULE-316 the attempt is counted before the credentials are checked: twenty parallel guesses get exactly five tries")
+    void parallelGuessesCannotSlipPastTheLimit() throws Exception {
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(20);
+        try {
+            var attempts = new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+            for (int i = 0; i < 20; i++) {
+                attempts.add(pool.submit(() -> admins.reserveAttempt(new UserId(7), clock.instant(), 5, Duration.ofMinutes(15))));
+            }
+            int allowed = 0;
+            for (var attempt : attempts) {
+                allowed += attempt.get() ? 1 : 0;
+            }
+
+            assertThat(allowed).isEqualTo(5);
+            assertThat(jdbc.sql("select failed_attempts from platform_identity.emergency_admins").query(Integer.class).single()).isEqualTo(5);
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test

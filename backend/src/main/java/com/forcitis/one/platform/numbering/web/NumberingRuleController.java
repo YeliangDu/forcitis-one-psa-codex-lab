@@ -14,6 +14,8 @@ import com.forcitis.one.platform.numbering.application.ConfirmNumberingRuleByFin
 import com.forcitis.one.platform.numbering.application.FindNumberingRule;
 import com.forcitis.one.platform.numbering.application.ListNumberingRules;
 import java.security.Principal;
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -85,7 +87,7 @@ class NumberingRuleController {
         return new RuleVersion(request.templateVersion());
     }
 
-    private static java.time.LocalDate required(java.time.LocalDate effectiveFrom) {
+    private static LocalDate required(LocalDate effectiveFrom) {
         if (effectiveFrom == null) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, "effectiveFrom, the day the template starts, is required");
         }
@@ -101,7 +103,7 @@ class NumberingRuleController {
             return ResetPolicy.valueOf(resetPolicy);
         } catch (IllegalArgumentException | NullPointerException unknown) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE,
-                    "reset policy must be one of " + java.util.Arrays.toString(ResetPolicy.values()));
+                    "reset policy must be one of " + Arrays.toString(ResetPolicy.values()));
         }
     }
 }

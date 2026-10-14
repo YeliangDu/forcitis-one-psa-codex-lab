@@ -1,20 +1,21 @@
 package com.forcitis.one.platform.numbering.infrastructure.persistence;
 
+import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
-import com.forcitis.one.platform.numbering.api.NumberingError;
-import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.numbering.api.NumberingError;
+import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
 import com.forcitis.one.platform.numbering.domain.TemplateVersion;
 import com.forcitis.one.platform.numbering.domain.VersionStatus;
-import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -65,7 +66,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                 .param("type", type)
                 .query((rs, n) -> new TemplateVersion(rs.getInt("version_number"),
                         new NumberingPattern(rs.getString("template_text"), ResetPolicy.valueOf(rs.getString("reset_policy"))), rs.getLong("start_value"),
-                        rs.getObject("effective_from_date", java.time.LocalDate.class), user(rs, "author_id"), rs.getObject("authored_at", OffsetDateTime.class).toInstant(), VersionStatus.valueOf(rs.getString("status")),
+                        rs.getObject("effective_from_date", LocalDate.class), user(rs, "author_id"), rs.getObject("authored_at", OffsetDateTime.class).toInstant(), VersionStatus.valueOf(rs.getString("status")),
                         user(rs, "confirmed_by"), instant(rs, "confirmed_at"), user(rs, "finance_confirmed_by"), instant(rs, "finance_confirmed_at")))
                 .list();
     }

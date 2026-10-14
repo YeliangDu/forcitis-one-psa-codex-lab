@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -16,11 +17,17 @@ import com.forcitis.one.platform.identity.application.AccessCache;
 import com.forcitis.one.platform.integration.api.SsoTicketVerifier;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.forcitis.one.platform.integration.api.WecomGateway;
+import jakarta.servlet.http.Cookie;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -31,12 +38,15 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -52,12 +62,12 @@ import tools.jackson.databind.json.JsonMapper;
         "forcitis.platform.identity.sso.legacy-login-url=https://legacy.example.invalid/login",
         "FORCITIS_TICKET_KEY_SHORT=too-short"})
 @AutoConfigureMockMvc
-@org.springframework.test.context.event.RecordApplicationEvents
+@RecordApplicationEvents
 @Import(IdentityIntegrationTest.ClockConfiguration.class)
 abstract class IdentityIntegrationTest {
 
-    @org.springframework.beans.factory.annotation.Autowired
-    org.springframework.test.context.event.ApplicationEvents recordedEvents;
+    @Autowired
+    ApplicationEvents recordedEvents;
 
     /** Throw-away key per test run (no key literal in the repo). */
     static final String TOTP_KEY = Base64.getEncoder().encodeToString(randomBytes(32));
@@ -102,14 +112,14 @@ abstract class IdentityIntegrationTest {
 
     /** Sees every domain event on the thread that publishes it, including the asynchronous listeners' own threads. */
     static class DomainEventRecorder {
-        private final java.util.List<com.forcitis.one.kernel.event.DomainEvent> seen = new java.util.concurrent.CopyOnWriteArrayList<>();
+        private final List<DomainEvent> seen = new CopyOnWriteArrayList<>();
 
-        @org.springframework.context.event.EventListener
-        void on(com.forcitis.one.kernel.event.DomainEvent event) {
+        @EventListener
+        void on(DomainEvent event) {
             seen.add(event);
         }
 
-        <T extends com.forcitis.one.kernel.event.DomainEvent> java.util.List<T> of(Class<T> type) {
+        <T extends DomainEvent> List<T> of(Class<T> type) {
             return seen.stream().filter(type::isInstance).map(type::cast).toList();
         }
 
@@ -151,9 +161,9 @@ abstract class IdentityIntegrationTest {
     /** Not spring-security-test's csrf(): that swaps the CSRF repository of the whole shared context. */
     static RequestPostProcessor xsrf() {
         return request -> {
-            request.setCookies(java.util.stream.Stream.concat(
-                    request.getCookies() == null ? java.util.stream.Stream.<jakarta.servlet.http.Cookie>empty() : java.util.Arrays.stream(request.getCookies()),
-                    java.util.stream.Stream.of(new jakarta.servlet.http.Cookie("XSRF-TOKEN", "test-xsrf-token"))).toArray(jakarta.servlet.http.Cookie[]::new));
+            request.setCookies(Stream.concat(
+                    request.getCookies() == null ? Stream.<Cookie>empty() : Arrays.stream(request.getCookies()),
+                    Stream.of(new Cookie("XSRF-TOKEN", "test-xsrf-token"))).toArray(Cookie[]::new));
             request.addHeader("X-XSRF-TOKEN", "test-xsrf-token");
             return request;
         };
@@ -211,7 +221,7 @@ abstract class IdentityIntegrationTest {
         return mvc.perform(post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn();
     }
 
-    final java.util.Map<String, String> bindings = new java.util.concurrent.ConcurrentHashMap<>();
+    final Map<String, String> bindings = new ConcurrentHashMap<>();
 
     /** Asks for a login state as a browser would and keeps the binding cookie that came with it. */
     String newLoginState(String entry) throws Exception {
@@ -226,7 +236,7 @@ abstract class IdentityIntegrationTest {
         var request = post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body);
         String binding = state == null ? null : bindings.get(state);
         if (binding != null) {
-            request = request.cookie(new jakarta.servlet.http.Cookie("loginBinding", binding));
+            request = request.cookie(new Cookie("loginBinding", binding));
         }
         return mvc.perform(request).andReturn();
     }
@@ -269,8 +279,8 @@ abstract class IdentityIntegrationTest {
         String code = "reverify-" + personProvedByTheCode + "-" + System.nanoTime();
         wecomAccepts(code, WecomEntry.WORKBENCH, personProvedByTheCode);
         String state = newLoginState("WORKBENCH");
-        return mvc.perform(post(ENTER_ADMINISTRATOR_MODE).with(xsrf()).cookie(new jakarta.servlet.http.Cookie("SESSION", session))
-                .cookie(new jakarta.servlet.http.Cookie("loginBinding", bindings.get(state))).contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post(ENTER_ADMINISTRATOR_MODE).with(xsrf()).cookie(new Cookie("SESSION", session))
+                .cookie(new Cookie("loginBinding", bindings.get(state))).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"" + code + "\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}")).andReturn();
     }
 

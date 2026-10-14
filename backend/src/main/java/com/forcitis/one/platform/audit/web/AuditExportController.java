@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.application.AuditExport;
 import com.forcitis.one.platform.audit.application.AuditSearch;
 import com.forcitis.one.platform.audit.application.ExportAuditEntries;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.time.Instant;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -37,7 +38,7 @@ class AuditExportController {
                                   Principal caller) {
         AuditExport result = export.execute(new AuditSearch(actorId, action, subjectKey, from, to, 0, 1), new UserId(Long.parseLong(caller.getName())));
         return ResponseEntity.ok()
-                .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename("audit-entries.csv").build().toString())
                 .cacheControl(CacheControl.noStore())
                 .body(result.csv());

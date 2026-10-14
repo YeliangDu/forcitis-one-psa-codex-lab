@@ -10,6 +10,7 @@ import jakarta.servlet.http.Cookie;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 @DisplayName("OrgDataAdminRole, AccessDeniedAudit and PrivilegedRequestAudit: ADR-0027 section 2 item 1, ADR-0026 section 5 item 4 and section 6 item 5")
 class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
@@ -61,7 +62,7 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
 
         mvc.perform(get("/api/v1/platform/roles").cookie(new Cookie("SESSION", administrator))).andReturn();
         mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", administrator))).andReturn();
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/platform/user-accounts/404:disable").with(xsrf())
+        mvc.perform(MockMvcRequestBuilders.post("/api/v1/platform/user-accounts/404:disable").with(xsrf())
                 .cookie(new Cookie("SESSION", administrator))).andReturn();
 
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.privileged.request"))

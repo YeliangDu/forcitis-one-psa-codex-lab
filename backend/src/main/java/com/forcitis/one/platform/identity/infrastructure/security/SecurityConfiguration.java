@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.application.SessionSettings;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
@@ -27,10 +28,10 @@ class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain apiSecurity(HttpSecurity http, PublicEndpointRegistry publicEndpoints, CachedSessionPrincipals principals,
-            SessionSettings sessionSettings, Clock clock, CookieCsrfTokenRepository csrfTokenRepository) throws Exception {
+            SessionSettings sessionSettings, Clock clock, CookieCsrfTokenRepository csrfTokenRepository, AuditLog audit) throws Exception {
         http.csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository).csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
-                .addFilterAfter(new SessionGuardFilter(principals, sessionSettings, clock), SecurityContextHolderFilter.class)
+                .addFilterAfter(new SessionGuardFilter(principals, sessionSettings, clock, audit), SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(requests -> {
                     requests.requestMatchers("/actuator/health").permitAll();
                     publicEndpoints.entries().forEach(entry -> requests

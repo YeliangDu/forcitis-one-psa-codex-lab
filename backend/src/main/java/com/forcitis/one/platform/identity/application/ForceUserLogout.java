@@ -31,9 +31,11 @@ public class ForceUserLogout {
     private final AccessCache cache;
     private final AuditLog audit;
     private final MeterRegistry meters;
+    private final ClientOrigin origin;
 
     ForceUserLogout(CurrentUser currentUser, AccountRepository accounts, SessionRegistry sessions, AccessCache cache, AuditLog audit,
-            MeterRegistry meters) {
+            MeterRegistry meters, ClientOrigin origin) {
+        this.origin = origin;
         this.currentUser = currentUser;
         this.accounts = accounts;
         this.sessions = sessions;
@@ -62,7 +64,7 @@ public class ForceUserLogout {
         sessions.revokeAll(target);
         cache.evict(target);
         audit.record(new AuditEntry("platform.identity.session.revoked", actor, null, "user-account:" + targetUserId,
-                "forced logout: " + cleaned).withTrace(null, AuditOutcome.SUCCEEDED, null));
+                "forced logout: " + cleaned).withTrace(origin.address(), AuditOutcome.SUCCEEDED, null));
         if (held.isAdministrator() || held.roleCodes().contains(Role.SECURITY_AUDITOR)) {
             meters.counter("forcitis.platform.identity.administrator.logouts").increment();
             log.error("ALERT platform.identity user {} ended the sessions of user {}, who holds {}: {}", actor.value(), targetUserId,

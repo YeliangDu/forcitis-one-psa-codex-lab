@@ -90,8 +90,9 @@ class ServletSessionRegistry implements SessionRegistry, SessionContext {
     @Override
     public void endAdministratorMode() {
         ServletRequestAttributes attributes = currentRequest();
-        IdentityAuthentication current = currentAuthentication();
-        store(current.withAdministratorModeUntil(null), attributes.getRequest(), attributes.getResponse());
+        IdentityAuthentication ordinary = currentAuthentication().withAdministratorModeUntil(null);
+        rotation.onAuthentication(ordinary, attributes.getRequest(), attributes.getResponse());
+        store(ordinary, attributes.getRequest(), attributes.getResponse());
     }
 
     @Override

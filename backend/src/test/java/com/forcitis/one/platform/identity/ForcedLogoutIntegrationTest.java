@@ -56,6 +56,7 @@ class ForcedLogoutIntegrationTest extends IdentityIntegrationTest {
             assertThat(entry.actorId().value()).isEqualTo(9);
             assertThat(entry.subjectKey()).isEqualTo("user-account:1001");
             assertThat(entry.detail()).contains("lost phone");
+            assertThat(entry.sourceAddress()).as("who did it, from where").isEqualTo("127.0.0.1");
             assertThat(entry.outcome()).isEqualTo(AuditOutcome.SUCCEEDED);
         });
     }

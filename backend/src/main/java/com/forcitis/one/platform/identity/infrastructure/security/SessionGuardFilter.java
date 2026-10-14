@@ -1,5 +1,9 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.identity.application.SessionKind;
 import com.forcitis.one.platform.identity.application.SessionMode;
 import com.forcitis.one.platform.identity.application.SessionPrincipal;
@@ -12,6 +16,8 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -21,14 +27,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /** Not a Spring bean on purpose: Boot would also register a bean Filter in the servlet container. */
 final class SessionGuardFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(SessionGuardFilter.class);
+    private static final String EXPIRY_AUDITED = SessionGuardFilter.class.getName() + ".expiryAudited";
+
     private final CachedSessionPrincipals principals;
     private final SessionSettings settings;
     private final Clock clock;
+    private final AuditLog audit;
 
-    SessionGuardFilter(CachedSessionPrincipals principals, SessionSettings settings, Clock clock) {
+    SessionGuardFilter(CachedSessionPrincipals principals, SessionSettings settings, Clock clock, AuditLog audit) {
         this.principals = principals;
         this.settings = settings;
         this.clock = clock;
+        this.audit = audit;
     }
 
     @Override
@@ -37,6 +48,7 @@ final class SessionGuardFilter extends OncePerRequestFilter {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof IdentityAuthentication identity) {
             Instant now = clock.instant();
+            auditNaturalExpiry(identity, request, now);
             if (identity.loginAt().plus(settings.absoluteTimeout()).isBefore(now) || emergencySessionOver(identity, now)) {
                 terminate(request);
             } else {
@@ -53,6 +65,20 @@ final class SessionGuardFilter extends OncePerRequestFilter {
             }
         }
         chain.doFilter(request, response);
+    }
+
+    /** Without it the end of the mode would leave no trace: the exit audit is written once per mode, by the first request after the end. */
+    private void auditNaturalExpiry(IdentityAuthentication identity, HttpServletRequest request, Instant now) {
+        Instant until = identity.administratorModeUntil();
+        HttpSession session = request.getSession(false);
+        if (until == null || now.isBefore(until) || session == null || until.equals(session.getAttribute(EXPIRY_AUDITED))) {
+            return;
+        }
+        session.setAttribute(EXPIRY_AUDITED, until);
+        audit.recordIndependently(new AuditEntry("platform.identity.administrator-mode.exited", new UserId(identity.userIdValue()), null,
+                "user-account:" + identity.userIdValue(), "expired at " + until).withTrace(request.getRemoteAddr(), AuditOutcome.SUCCEEDED,
+                identity.loginMethod().name()));
+        log.error("ALERT platform.identity administrator mode of user {} expired at {}", identity.userIdValue(), until);
     }
 
     private static boolean emergencySessionOver(IdentityAuthentication identity, Instant now) {

@@ -20,8 +20,11 @@ public interface EmergencyAdminRepository {
     /** Applies only to the version and status the admin was loaded with; otherwise a DomainException (CONFLICT). */
     void save(EmergencyAdmin admin);
 
-    /** One atomic statement, so concurrent guesses cannot slip past the limit. */
-    void recordFailure(UserId userId, Instant now, int maxAttempts, Duration lock);
+    /**
+     * Checks that the account is not locked and counts the attempt in one atomic statement, before the credentials are looked at, so
+     * concurrent guesses cannot slip past the limit. False when it is locked. The counter is reset by recordSuccess.
+     */
+    boolean reserveAttempt(UserId userId, Instant now, int maxAttempts, Duration lock);
 
     void recordSuccess(UserId userId);
 

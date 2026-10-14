@@ -25,6 +25,7 @@ import com.forcitis.one.platform.identity.domain.TotpSecretVault;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.SourcePerson;
 import jakarta.servlet.http.Cookie;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -98,7 +99,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     }
 
     private void awaitListeners() {
-        long deadline = System.nanoTime() + java.time.Duration.ofSeconds(20).toNanos();
+        long deadline = System.nanoTime() + Duration.ofSeconds(20).toNanos();
         while (jdbc.sql("select count(*) from platform_integration.event_publication").query(Integer.class).single() > 0) {
             if (System.nanoTime() > deadline) {
                 throw new AssertionError("event listeners still running after 20 s");

@@ -13,6 +13,7 @@ import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
+import com.forcitis.one.platform.identity.events.RoleCreated;
 import jakarta.servlet.http.Cookie;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,7 +77,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(result).path("kind").asString()).isEqualTo("CUSTOM");
         assertThat(body(result).path("enabled").asBoolean()).isTrue();
         assertThat(jdbc.sql("select access_scope from platform_identity.roles where code = 'analyst'").query(String.class).single()).isEqualTo("SELF");
-        assertThat(recordedEvents.stream(com.forcitis.one.platform.identity.events.RoleCreated.class)).hasSize(1);
+        assertThat(recordedEvents.stream(RoleCreated.class)).hasSize(1);
     }
 
     @Test

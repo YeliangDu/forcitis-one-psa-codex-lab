@@ -20,6 +20,7 @@ import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -106,7 +107,7 @@ class NumberingRuleFourEyesIT {
     }
 
     private static LocalDate today() {
-        return LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+        return LocalDate.now(ZoneId.of("Asia/Shanghai"));
     }
 
     private static LocalDate tomorrow() {

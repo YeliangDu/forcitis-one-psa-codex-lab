@@ -11,8 +11,14 @@ import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.time.Clock;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
-/** Who a WeCom code proves: the OAuth state is consumed atomically first (I-9); the person is found by exact WeCom user id only. */
+/**
+ * Who a WeCom code proves: the OAuth state is consumed atomically first (I-9), in a transaction of its own so that a refusal later in
+ * the request cannot give it back; the person is found by exact WeCom user id only.
+ */
 @Component
 class WecomIdentification {
 
@@ -31,8 +37,12 @@ class WecomIdentification {
     private final WecomGateway wecom;
     private final OrgDirectory directory;
     private final Clock clock;
+    private final TransactionTemplate independent;
 
-    WecomIdentification(OneTimeCredentials credentials, WecomGateway wecom, OrgDirectory directory, Clock clock) {
+    WecomIdentification(OneTimeCredentials credentials, WecomGateway wecom, OrgDirectory directory, Clock clock,
+            PlatformTransactionManager transactions) {
+        this.independent = new TransactionTemplate(transactions);
+        this.independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.credentials = credentials;
         this.wecom = wecom;
         this.directory = directory;
@@ -63,7 +73,8 @@ class WecomIdentification {
         if (isBlank(state) || state.length() > MAX_STATE_LENGTH || isBlank(binding) || binding.length() > MAX_STATE_LENGTH) {
             return false;
         }
-        Optional<WecomEntry> issuedFor = credentials.consumeLoginState(Digests.sha256Hex(state), Digests.sha256Hex(binding), clock.instant());
+        Optional<WecomEntry> issuedFor = independent.execute(
+                status -> credentials.consumeLoginState(Digests.sha256Hex(state), Digests.sha256Hex(binding), clock.instant()));
         return issuedFor.isPresent() && issuedFor.get() == entry;
     }
 

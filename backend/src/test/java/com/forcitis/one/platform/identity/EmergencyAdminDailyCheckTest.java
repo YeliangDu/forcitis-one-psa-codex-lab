@@ -11,6 +11,7 @@ import com.forcitis.one.platform.identity.domain.PasswordHasher;
 import com.forcitis.one.platform.identity.domain.Totp;
 import com.forcitis.one.platform.identity.domain.TotpSecretVault;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +43,7 @@ class EmergencyAdminDailyCheckTest extends IdentityIntegrationTest {
         admins.insertIfAbsent(EmergencyAdmin.register(new UserId(userId), name, hasher.hash("Str0ng!Passphrase#42"), vault.seal(Totp.newSecret())));
     }
 
-    private java.util.List<String> run() {
+    private List<String> run() {
         return tx.execute(status -> check.execute());
     }
 

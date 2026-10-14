@@ -12,6 +12,7 @@ import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /**
@@ -33,7 +34,7 @@ class OwnAttributionGuard {
             return;
         }
         audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.refused", actor, null,
-                "legal-entity-attribution:" + subject.kind().name().toLowerCase(java.util.Locale.ROOT) + ":" + subject.subjectKey(),
+                "legal-entity-attribution:" + subject.kind().name().toLowerCase(Locale.ROOT) + ":" + subject.subjectKey(),
                 "own legal entity attribution"));
         throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN, ErrorKind.FORBIDDEN,
                 "the legal entity of your own employee entry, department or a department above it cannot be changed by you");

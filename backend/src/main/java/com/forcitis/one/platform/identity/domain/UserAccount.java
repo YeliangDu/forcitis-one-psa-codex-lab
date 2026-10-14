@@ -12,6 +12,7 @@ import com.forcitis.one.platform.identity.events.AccountDisabled;
 import com.forcitis.one.platform.identity.events.AccountEnabled;
 import com.forcitis.one.platform.identity.events.AccountOpened;
 import com.forcitis.one.platform.identity.events.AccountRolesReplaced;
+import com.forcitis.one.platform.identity.events.AccountSeparated;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -108,9 +109,13 @@ public final class UserAccount extends AggregateRoot {
         record((envelopes, version) -> new AccountRolesReplaced(envelopes.wrap(draft("AccountRolesReplaced", version)), userId, ordered));
     }
 
-    /** The person is no longer with the company: no role stays, whatever the roles were. */
-    public void revokeAllRoles() {
+    /** The person is no longer with the company: no role stays, whatever the roles were. An account without roles has nothing to record. */
+    public void recordSeparation() {
+        if (roles.isEmpty()) {
+            return;
+        }
         replaceRoles(Set.of());
+        record((envelopes, version) -> new AccountSeparated(envelopes.wrap(draft("AccountSeparated", version)), userId));
     }
 
     private List<RoleId> orderedRoles() {

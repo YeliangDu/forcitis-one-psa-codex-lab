@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -102,7 +103,7 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
         long decided = rs.getLong("decided_by");
         boolean notDecided = rs.wasNull();
         OffsetDateTime decidedAt = rs.getObject("decided_at", OffsetDateTime.class);
-        return AuthorizationRequest.restore(new AuthorizationRequestId(rs.getObject("request_id", java.util.UUID.class)),
+        return AuthorizationRequest.restore(new AuthorizationRequestId(rs.getObject("request_id", UUID.class)),
                 AuthorizationRequestKind.valueOf(rs.getString("request_kind")), new UserId(rs.getLong("requested_by")),
                 rs.getObject("requested_at", OffsetDateTime.class).toInstant(), noSubject ? null : new UserId(subject), noRole ? null : new RoleId(role),
                 strings(rs, "role_codes"), draft, rs.getString("request_status"), notDecided ? null : new UserId(decided),

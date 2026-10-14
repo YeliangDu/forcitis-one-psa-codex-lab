@@ -5,11 +5,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.identity.domain.Totp;
 import com.forcitis.one.platform.identity.application.OperationsCommands;
+import com.forcitis.one.platform.identity.domain.Totp;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +47,7 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
 
     private String[] with(String operation, String... more) {
         String[] base = {"--operation=" + operation, "--operator=alice", "--witness=bob"};
-        String[] all = java.util.Arrays.copyOf(base, base.length + more.length);
+        String[] all = Arrays.copyOf(base, base.length + more.length);
         System.arraycopy(more, 0, all, base.length, more.length);
         return all;
     }
@@ -160,7 +162,7 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
         assertThat(count("sessions")).as("the person's sessions end").isZero();
         assertThat(emergencyLogin("breakglass", oldPassword, Totp.code(Totp.fromBase32(oldSecret), Totp.stepAt(clock.instant()) + 1)).getResponse().getStatus())
                 .isEqualTo(401);
-        clock.advance(java.time.Duration.ofMinutes(20));
+        clock.advance(Duration.ofMinutes(20));
         assertThat(emergencyLogin("breakglass", newPassword, Totp.code(Totp.fromBase32(newSecret), Totp.stepAt(clock.instant()))).getResponse().getStatus())
                 .isEqualTo(200);
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.operations.emergency-admin.credentials-reset");

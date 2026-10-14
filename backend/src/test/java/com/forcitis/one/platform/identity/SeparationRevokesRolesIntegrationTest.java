@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.identity.api.EmergencyAdminDisableCause;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
 import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
 import com.forcitis.one.platform.identity.domain.PasswordHasher;
@@ -16,12 +17,14 @@ import com.forcitis.one.platform.identity.domain.Totp;
 import com.forcitis.one.platform.identity.domain.TotpSecretVault;
 import com.forcitis.one.platform.identity.events.AccountRolesReplaced;
 import com.forcitis.one.platform.identity.events.EmergencyAdminDisabled;
+import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @DisplayName("SeparationRevokesRoles: ADR-0027 section 1 item 6 (RULE-363)")
@@ -68,6 +71,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         publish(List.of(), List.of(new UserId(1001)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1001)).isZero());
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
         assertThat(roleCount(1002)).as("nobody else is touched").isEqualTo(1);
         assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = 1001").query(Boolean.class).single()).isFalse();
         assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = 1002").query(Boolean.class).single()).isTrue();
@@ -85,7 +89,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         });
         assertThat(domainEvents.of(EmergencyAdminDisabled.class)).singleElement().satisfies(e -> {
             assertThat(e.userId()).isEqualTo(new UserId(1001));
-            assertThat(e.cause()).isEqualTo(com.forcitis.one.platform.identity.api.EmergencyAdminDisableCause.SEPARATION);
+            assertThat(e.cause()).isEqualTo(EmergencyAdminDisableCause.SEPARATION);
         });
         assertThat(mvcStatus(victim)).isEqualTo(401);
         assertThat(mvcStatus(other)).isEqualTo(200);
@@ -116,7 +120,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
                 assertThat(recorded().stream().filter(e -> e.action().equals("platform.identity.session.revoked")).count()).isEqualTo(2));
         assertThat(recorded().stream().filter(e -> e.action().equals("platform.identity.account.role.revoked")).count())
                 .as("the roles were removed once").isEqualTo(1);
-        assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1);
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
     }
 
     @Test
@@ -130,7 +134,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     }
 
     private int mvcStatus(String session) throws Exception {
-        return mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(SessionLifecycleIntegrationTest.CURRENT)
-                .cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn().getResponse().getStatus();
+        return mvc.perform(MockMvcRequestBuilders.get(SessionLifecycleIntegrationTest.CURRENT)
+                .cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus();
     }
 }

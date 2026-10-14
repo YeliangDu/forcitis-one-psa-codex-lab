@@ -13,6 +13,7 @@ import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.SensitivePermissions;
 import com.forcitis.one.platform.identity.domain.UserAccount;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -63,7 +64,7 @@ public class ReplaceAccountRoles {
                     "nobody changes their own roles"));
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN);
         }
-        List<Role> wanted = new java.util.ArrayList<>();
+        List<Role> wanted = new ArrayList<>();
         for (String code : roleCodes) {
             Optional<Role> role = roles.findByCode(new RoleCode(code));
             if (role.isEmpty()) {
@@ -108,7 +109,7 @@ public class ReplaceAccountRoles {
         if (found.isEmpty()) {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND);
         }
-        List<Role> wanted = new java.util.ArrayList<>();
+        List<Role> wanted = new ArrayList<>();
         for (String code : roleCodes) {
             Optional<Role> role = roles.findByCode(new RoleCode(code));
             if (role.isEmpty()) {

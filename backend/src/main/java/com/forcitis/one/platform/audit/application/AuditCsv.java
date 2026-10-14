@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit.application;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.domain.AuditRecord;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -8,6 +9,7 @@ import java.util.stream.Stream;
 /** A cell that a spreadsheet would read as a formula is prefixed with an apostrophe (CSV injection). */
 final class AuditCsv {
 
+    private static final String TRIGGERS = "=+-@\t\r\uFF1D\uFF0B\uFF0D\uFF20";
     private static final String HEADER = "entryId,createdAt,action,actorId,onBehalfOfId,subjectKey,detail,sourceAddress,outcome,loginMethod";
 
     private AuditCsv() {
@@ -23,15 +25,27 @@ final class AuditCsv {
                 cell(row.loginMethod())).collect(Collectors.joining(","));
     }
 
-    private static String id(com.forcitis.one.kernel.UserId userId) {
+    private static String id(UserId userId) {
         return userId == null ? "" : String.valueOf(userId.value());
+    }
+
+    /** The first character that is not a space decides, and the full-width forms of the trigger characters count as well. */
+    private static boolean readAsFormula(String value) {
+        if (!value.isEmpty() && TRIGGERS.indexOf(value.charAt(0)) >= 0) {
+            return true;
+        }
+        int first = 0;
+        while (first < value.length() && (Character.isWhitespace(value.charAt(first)) || Character.isSpaceChar(value.charAt(first)))) {
+            first++;
+        }
+        return first < value.length() && TRIGGERS.indexOf(value.charAt(first)) >= 0;
     }
 
     static String cell(String value) {
         if (value == null) {
             return "";
         }
-        String safe = !value.isEmpty() && "=+-@\t\r".indexOf(value.charAt(0)) >= 0 ? "'" + value : value;
+        String safe = readAsFormula(value) ? "'" + value : value;
         return safe.contains(",") || safe.contains("\"") || safe.contains("\n") || safe.contains("\r") || safe.startsWith("'")
                 ? "\"" + safe.replace("\"", "\"\"") + "\"" : safe;
     }

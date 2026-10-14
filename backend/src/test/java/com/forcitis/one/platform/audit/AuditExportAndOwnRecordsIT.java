@@ -169,6 +169,19 @@ class AuditExportAndOwnRecordsIT {
     }
 
     @Test
+    @DisplayName("a formula that starts with spaces or with a full-width trigger character is neutralised as well")
+    void spacedAndFullWidthFormulasAreNeutralisedToo() throws Exception {
+        record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:1", " =cmd"));
+        record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:2", "\u3000+1"));
+        record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:3", "\uFF1Dcmd"));
+        record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:4", "plain text"));
+
+        String csv = mvc.perform(get(EXPORT).param("action", "platform.test.formula-wide").with(AUDITOR)).andReturn().getResponse().getContentAsString();
+
+        assertThat(csv).contains("\"' =cmd\"", "\"'\u3000+1\"", "\"'\uFF1Dcmd\"").contains(",plain text,").doesNotContain("'plain");
+    }
+
+    @Test
     @DisplayName("a filter matching more than the limit is refused instead of cut off, and writes no export entry")
     void tooManyRowsAreRefused() throws Exception {
         mvc.perform(get(EXPORT).with(AUDITOR))

@@ -69,19 +69,19 @@ public class LoginAsEmergencyAdmin {
         }
         EmergencyAdmin admin = found.get();
         Instant now = clock.instant();
-        if (!admin.enabled() || admin.isLockedAt(now)) {
+        if (!admin.enabled() || !admins.reserveAttempt(admin.userId(), now, settings.maxAttempts(), settings.lockDuration())) {
             hasher.spendVerificationTime(password);
-            return rejectCredentials(admin, admin.enabled() ? "locked until " + admin.lockedUntil() : "disabled");
+            return rejectCredentials(admin, admin.enabled() ? "locked" : "disabled");
         }
         if (!hasher.matches(password, admin.passwordHash())) {
-            return failed(admin, now, "wrong password");
+            return rejectCredentials(admin, "wrong password");
         }
         OptionalLong step = verifiedStep(admin, command.totpCode(), now);
         if (step.isEmpty()) {
-            return failed(admin, now, "wrong one-time code");
+            return rejectCredentials(admin, "wrong one-time code");
         }
         if (!admins.acceptTotpStep(admin.userId(), step.getAsLong())) {
-            return failed(admin, now, "one-time code already used");
+            return rejectCredentials(admin, "one-time code already used");
         }
         admins.recordSuccess(admin.userId());
         Optional<UserAccount> account = accounts.find(admin.userId());
@@ -106,11 +106,6 @@ public class LoginAsEmergencyAdmin {
             // fail closed: no key or an unreadable secret gives the same answer as a wrong code
             return OptionalLong.empty();
         }
-    }
-
-    private LoginResult failed(EmergencyAdmin admin, Instant now, String reason) {
-        admins.recordFailure(admin.userId(), now, settings.maxAttempts(), settings.lockDuration());
-        return rejectCredentials(admin, reason);
     }
 
     private LoginResult rejectCredentials(EmergencyAdmin admin, String reason) {

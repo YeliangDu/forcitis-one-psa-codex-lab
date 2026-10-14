@@ -6,9 +6,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** One node a day (ShedLock). On unless a deployment says otherwise; the tests switch it off. */
+/** One node a day (ShedLock). On unless the job's own switch or the global job switch says otherwise; the tests switch it off. */
 @Component
-@ConditionalOnProperty(prefix = "forcitis.platform.identity.emergency.check", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = {"forcitis.platform.scheduling.jobs-enabled", "forcitis.platform.identity.emergency.check.enabled"},
+        havingValue = "true", matchIfMissing = true)
 class EmergencyAdminCheckJob {
 
     private final CheckEmergencyAdmins check;

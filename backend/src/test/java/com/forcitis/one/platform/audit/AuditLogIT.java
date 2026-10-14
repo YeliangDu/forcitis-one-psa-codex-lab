@@ -206,4 +206,15 @@ class AuditLogIT {
         mvc.perform(get(ENTRIES).param("from", "2026-02-01T00:00:00Z").param("to", "2026-01-01T00:00:00Z").with(READER))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("looking into the audit trail is an audit entry of its own: who, with which filter, how many matches (intent 152)")
+    void searchesAreAudited() throws Exception {
+        String subject = unique("subject");
+
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).with(READER)).andExpect(status().isOk());
+
+        assertThat(jdbc.sql("select actor_id || '|' || detail from platform_audit.audit_entries where action = 'platform.audit.audit-entry.searched' and detail like :d")
+                .param("d", "%subjectKey=" + subject + "%").query(String.class).single()).startsWith("7|matches=0 page=0 filter=subjectKey=" + subject);
+    }
 }

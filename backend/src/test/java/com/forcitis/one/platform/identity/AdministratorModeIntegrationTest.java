@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.JsonNode;
 
 @DisplayName("AdminModeBoundary: ADR-0026 5, ADR-0027 2.5 the administrator mode holds the platform permissions only")
 class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
@@ -30,7 +31,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
     @Autowired
     MeterRegistry meters;
 
-    private tools.jackson.databind.JsonNode me(String session) throws Exception {
+    private JsonNode me(String session) throws Exception {
         return body(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn());
     }
 
@@ -61,6 +62,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
         createAccount(9, "super_admin", "employee");
         String session = loginWithWecom(9);
 
+        double entriesBefore = meters.counter("forcitis.platform.identity.administrator.mode.entries").count();
         Instant before = clock.instant();
         MvcResult entered = enterAdministratorMode(session, 9);
         Instant after = clock.instant();
@@ -77,7 +79,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
         assertThat(status("/api/v1/platform/roles", elevated)).isEqualTo(200);
         assertThat(status("/api/v1/platform/audit-entries", elevated)).as("no audit viewing in the administrator mode").isEqualTo(403);
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.administrator-mode.entered");
-        assertThat(meters.counter("forcitis.platform.identity.administrator.mode.entries").count()).isEqualTo(1.0);
+        assertThat(meters.counter("forcitis.platform.identity.administrator.mode.entries").count()).isEqualTo(entriesBefore + 1.0);
     }
 
     @Test
@@ -105,7 +107,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
         MvcResult left = mvc.perform(post(EXIT).with(xsrf()).cookie(new Cookie("SESSION", elevated))).andReturn();
 
         assertThat(left.getResponse().getStatus()).isEqualTo(204);
-        assertThat(me(elevated).path("mode").asString()).isEqualTo("ORDINARY");
+        assertThat(me(cookie(left, "SESSION")).path("mode").asString()).isEqualTo("ORDINARY");
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.administrator-mode.exited");
     }
 
@@ -136,5 +138,42 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
         clock.advance(Duration.ofSeconds(61));
 
         assertThat(status("/api/v1/platform/roles", elevated)).isEqualTo(401);
+    }
+
+    @Test
+    @DisplayName("a refused entry to the administrator mode still uses up the OAuth state, so it cannot be tried again")
+    void aRefusedEntryConsumesTheState() throws Exception {
+        createAccount(1100, "employee");
+        String session = loginWithWecom(1100);
+
+        MvcResult refused = enterAdministratorMode(session, 1100);
+
+        assertThat(refused.getResponse().getStatus()).isEqualTo(403);
+        assertThat(count("login_states")).isZero();
+    }
+
+    @Test
+    @DisplayName("when the hour ends by itself the exit is audited once and alerts, like a manual exit")
+    void naturalExpiryIsAudited() throws Exception {
+        createAccount(9, "super_admin", "employee");
+        String elevated = cookie(enterAdministratorMode(loginWithWecom(9), 9), "SESSION");
+
+        clock.advance(Duration.ofMinutes(61));
+        me(elevated);
+        me(elevated);
+
+        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.administrator-mode.exited"))
+                .singleElement().satisfies(entry -> assertThat(entry.detail()).startsWith("expired at "));
+    }
+
+    @Test
+    @DisplayName("leaving the mode by hand changes the session id")
+    void leavingRotatesTheSessionId() throws Exception {
+        createAccount(9, "super_admin", "employee");
+        String elevated = cookie(enterAdministratorMode(loginWithWecom(9), 9), "SESSION");
+
+        MvcResult left = mvc.perform(post(EXIT).with(xsrf()).cookie(new Cookie("SESSION", elevated))).andReturn();
+
+        assertThat(cookie(left, "SESSION")).isNotBlank().isNotEqualTo(elevated);
     }
 }

@@ -2,6 +2,8 @@ package com.forcitis.one.platform.audit.web;
 
 import com.forcitis.one.platform.audit.application.AuditSearch;
 import com.forcitis.one.platform.audit.application.SearchAuditEntries;
+import com.forcitis.one.kernel.UserId;
+import java.security.Principal;
 import java.time.Instant;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +29,10 @@ class AuditEntryController {
                            @RequestParam(required = false) String subjectKey,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
-                           @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int limit) {
+                           @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int limit, Principal caller) {
         try {
-            return ResponseEntity.ok(AuditEntryPageResponse.of(search.execute(new AuditSearch(actorId, action, subjectKey, from, to, page, limit))));
+            return ResponseEntity.ok(AuditEntryPageResponse.of(search.execute(new AuditSearch(actorId, action, subjectKey, from, to, page, limit),
+                    new UserId(Long.parseLong(caller.getName())))));
         } catch (IllegalArgumentException invalid) {
             return ResponseEntity.badRequest().body(invalid.getMessage());
         }

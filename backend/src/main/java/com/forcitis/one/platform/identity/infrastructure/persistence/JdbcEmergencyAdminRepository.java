@@ -94,17 +94,17 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
     }
 
     @Override
-    public void recordFailure(UserId userId, Instant now, int maxAttempts, Duration lock) {
+    public boolean reserveAttempt(UserId userId, Instant now, int maxAttempts, Duration lock) {
         String newCount = "case when locked_until is not null and locked_until <= :now then 1 else failed_attempts + 1 end";
-        jdbc.sql("""
+        return jdbc.sql("""
                         update platform_identity.emergency_admins
                            set failed_attempts = %s,
                                locked_until = case when (%s) >= :max then :until else null end,
                                updated_at = now()
-                         where user_id = :id
+                         where user_id = :id and (locked_until is null or locked_until <= :now)
                         """.formatted(newCount, newCount))
                 .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).param("max", maxAttempts)
-                .param("until", OffsetDateTime.ofInstant(now.plus(lock), ZoneOffset.UTC)).param("id", userId.value()).update();
+                .param("until", OffsetDateTime.ofInstant(now.plus(lock), ZoneOffset.UTC)).param("id", userId.value()).update() == 1;
     }
 
     @Override

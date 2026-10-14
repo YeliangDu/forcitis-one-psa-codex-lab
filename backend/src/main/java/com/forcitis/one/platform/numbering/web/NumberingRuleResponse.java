@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.numbering.api.NumberingRuleView;
 import com.forcitis.one.platform.numbering.api.NumberingTemplateView;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -12,9 +13,9 @@ import org.jspecify.annotations.Nullable;
  * (confirmationStatus tells which); pending is the version waiting for confirmation. Ids are strings, as everywhere.
  */
 record NumberingRuleResponse(String documentType, @Nullable String documentTypeCode, long version, String pattern, String resetPolicy, long startValue,
-        long capacity, String confirmationStatus, int templateVersion, java.time.LocalDate effectiveFrom, boolean requiresFinanceConfirmation, @Nullable PendingTemplate pending) {
+        long capacity, String confirmationStatus, int templateVersion, LocalDate effectiveFrom, boolean requiresFinanceConfirmation, @Nullable PendingTemplate pending) {
 
-    record PendingTemplate(int templateVersion, String pattern, String resetPolicy, long startValue, java.time.LocalDate effectiveFrom, long capacity, @Nullable String authorId,
+    record PendingTemplate(int templateVersion, String pattern, String resetPolicy, long startValue, LocalDate effectiveFrom, long capacity, @Nullable String authorId,
             Instant authoredAt, @Nullable String confirmedBy, @Nullable String financeConfirmedBy) {
 
         static PendingTemplate of(NumberingTemplateView template) {
