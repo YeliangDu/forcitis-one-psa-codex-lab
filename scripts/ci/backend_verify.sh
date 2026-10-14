@@ -7,7 +7,7 @@ cd "$(dirname "$0")/../../backend"
 
 unit_log=$(mktemp)
 integration_log=$(mktemp)
-./mvnw -B surefire:test "$@" >"$unit_log" 2>&1 &
+./mvnw -B surefire:test@export-openapi surefire:test "$@" >"$unit_log" 2>&1 &
 unit_pid=$!
 ./mvnw -B failsafe:integration-test failsafe:verify "$@" >"$integration_log" 2>&1 &
 integration_pid=$!

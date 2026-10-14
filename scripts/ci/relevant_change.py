@@ -3,8 +3,10 @@
 $GITHUB_OUTPUT. Everything is relevant except documentation: docs/ outside the paths the tests read, and root *.md.
 Usage: relevant_change.py <base-ref>  |  relevant_change.py --self-test"""
 import os
+import re
 import subprocess
 import sys
+from pathlib import Path
 
 READ_BY_BUILDS = (
     "docs/modernization/glossary/",
@@ -26,7 +28,37 @@ def changed_files(base):
     return out.stdout.splitlines()
 
 
+SCANNED = ("backend/src", "frontend", "scripts")
+SKIPPED_DIRS = {"node_modules", "dist", ".pnpm", "target"}
+SOURCE_SUFFIXES = {".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".json", ".yaml", ".yml", ".py", ".sh", ".properties", ".xml", ".sql"}
+LITERAL = re.compile(r"docs/modernization(?:/[\w.*{}-]+)*")
+SEGMENTS = re.compile(r"""['"]docs['"]\s*,\s*['"]modernization['"]((?:\s*,\s*['"][\w.*-]+['"])*)""")
+
+
+def is_covered(path):
+    return path.startswith(READ_BY_BUILDS) or (path + "/").startswith(READ_BY_BUILDS)
+
+
+def referenced_docs_paths(root):
+    for scanned in SCANNED:
+        for file in Path(root, scanned).rglob("*"):
+            if not file.is_file() or file.suffix not in SOURCE_SUFFIXES or SKIPPED_DIRS & set(file.parts) or file.name == Path(__file__).name:
+                continue
+            text = file.read_text(errors="ignore")
+            for match in LITERAL.finditer(text):
+                yield file, match.group(0)
+            for match in SEGMENTS.finditer(text):
+                tail = re.findall(r"['\"]([\w.*-]+)['\"]", match.group(1))
+                yield file, "/".join(["docs/modernization", *tail])
+
+
+def uncovered_reads(root):
+    return sorted({f"{file.relative_to(root)}: {path}" for file, path in referenced_docs_paths(root) if not is_covered(path)})
+
+
 def self_test():
+    missing = uncovered_reads(Path(__file__).resolve().parents[2])
+    assert not missing, "builds read docs paths that READ_BY_BUILDS does not list (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(missing)
     assert is_relevant("backend/pom.xml")
     assert is_relevant(".github/workflows/ci.yml")
     assert is_relevant("scripts/ci/relevant_change.py")

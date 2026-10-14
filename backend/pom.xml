@@ -65,7 +65,20 @@
       <!-- *IT classes (Testcontainers) run in the integration-test phase; surefire only runs *Test (Boot parent) - added by platform.approval -->
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine></configuration></plugin>
       <!-- every test class owns its Testcontainers database, so classes run in parallel JVMs: ./mvnw verify -Dtest.forks=1 restores serial runs -->
-      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><configuration><forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine></configuration></plugin>
+      <!-- OpenApiExportTest rewrites frontend/packages/api/openapi.json and LegacyShapeTest scans it: the export runs alone and first, never beside the scan -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine>
+          <excludes><exclude>**/OpenApiExportTest.java</exclude></excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <id>export-openapi</id><phase>process-test-classes</phase><goals><goal>test</goal></goals>
+            <configuration><test>OpenApiExportTest</test><forkCount>1</forkCount></configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <profiles>
