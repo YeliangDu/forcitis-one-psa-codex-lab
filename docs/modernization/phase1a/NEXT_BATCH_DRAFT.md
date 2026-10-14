@@ -30,4 +30,10 @@
 
 整合复审中定级为 Medium / Low 的条目，复审结束后逐条追加，格式：`复审编号 | 文件:行 | 一句话 | 回归测试名`。
 
-（待整合复审结束后填写）
+| 复审编号 | 文件:行 | 一句话 | 回归测试名 |
+|---|---|---|---|
+| B1-scope-M1 | `platform/identity/.../OrgUnitScopes`、`OrgUnitScopeIntegrationTest` | 调用人在组织中找不到部门时，显式处理（按本部门类授予跳过或明确 403，写入规则卡），不再靠 `AccessGrant` 的空指针兜底；改正测试显示名 | `B1-scope 无部门调用人…` |
+| B1-scope-M2 | `backend/architecture/module-dependencies.txt`、`REIMAGINED_ARCHITECTURE.md` §2.2 | 登记 kernel 端口 `OrgUnitAccess`；F-1 下沉 `OrgUnitId` 时端口改为类型化 id，去掉 `NOT_USED = new LegalEntityId(1)` | 随 F-1 |
+| B1-scope-N1 | `LegalEntityController.java:31-32`、`data-access-registry.yaml` | 法人列表登记为 GLOBAL；部门响应的 `parentOrgUnitId` 对范围外上级裁剪 | 随 F-1 |
+
+（整合复审结束后继续追加）
