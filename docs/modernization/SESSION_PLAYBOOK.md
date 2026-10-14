@@ -238,6 +238,8 @@
 
 拿不准属于哪一类时按更严的一类处理（配置 < 代码 < ADR）。
 
+**修订已有评审结论**：`RULE_REVIEWS.json` 条目的原字段 `verdict`、`at`、`title`、`note` 不改；决定变化时在该条目可选数组 `revisions` 末尾追加 `{verdict, at, note, quote, source}`（`quote` 为用户原话，`source` 为 ADR 编号或 intent 文件名的数组，至少一个）。当前结论取最后一条修订，`rules/build_brief.py` 在 brief 中标注「已修订」与出处。`rules/review_revisions.py` 校验：`at` 严格递增且不早于原 `at`、`verdict` 取值同原字段、`quote` 与 `source` 必填；`build_all.py --check` 另将原字段与 HEAD 及与 `origin/main` 的合并基点比对，原字段被改写、条目或已有修订被删改即失败（git 不可用时只告警）。
+
 **首次部署前的迁移基线**（用户 2026-10-14 对 1a 大修原因分析的五条建议答「采纳」）：「已应用」指已在任一环境（dev、生产）执行过。在本系统首次部署任何环境之前，基线保持开放（用户 2026-10-15 对迁移基线写法答「开放期内直接改基线 (Recommended)」）：
   1. 先把已合入的迁移合并为每个 schema 一份基线迁移（纯合并，不改表结构），用两个空库分别执行合并前后的迁移，`pg_dump --schema-only` 对比 diff 为空，证据写进 PR，opus 复审确认。
   2. 开放期内，表结构改动直接改基线文件，不再追加迁移；每个这样的 PR 附「预期表结构 diff」——两个空库分别执行改动前后的基线，`pg_dump --schema-only` 的差异只能是 PR 声明的改动——由 opus 核对。

@@ -122,6 +122,9 @@ jobs:
       # 记录与 ADR 由片段生成：ADR、brief 与已提交产物不一致即失败；INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成
       - name: generated docs match fragments
         run: python3 docs/modernization/build_all.py --check
+      # 规则评审修订记录的校验规则自测（原结论不得改写，见 SESSION_PLAYBOOK §12.2）
+      - name: rule review revisions self-test
+        run: python3 docs/modernization/rules/review_revisions.py --self-test
       # 文档不得用「PSA」指代系统（用户 2026-10-14）；例外规则见脚本说明
       - name: no legacy system name in docs
         run: python3 docs/modernization/check_legacy_name.py

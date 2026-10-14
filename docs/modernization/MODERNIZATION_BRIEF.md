@@ -262,7 +262,7 @@ Exit criteria:
 行为契约取自 `BUSINESS_RULES.md` 与 `rules/IDENTITY_ORG_RULES.md` 的 **226 条 P0 规则**（全部 376 条）。它们构成回归测试集：每条在其所属阶段上线前，都必须证明等价，或以 `RULE_REVIEWS.json` 中的业务决定为准证明「按决定修正」。
 
 - **已定行为（103 条）**：置信度 High 且无疑似缺陷（身份与组织域以抽取时的 Review=No 为准），按老系统行为复刻。
-- **阻塞项（123 条，已评审 73 条）**：置信度低于 High，或抽取时发现疑似缺陷（老行为看起来有误，或与文档不一致）。按用户要求「顺手修已知 bug、行为现代化」，这些规则**在所属阶段开工前必须经 `/code-modernization:modernize-review psa` 由业务逐条决定**：保持原行为、按修正行为实现，或列入讨论。未决定的规则阻塞该阶段的入口条件。已评审的条目按 `RULE_REVIEWS.json` 呈现：**不复刻** = 新系统按「新系统做法」实现，老行为不作为基准；「修正：」= 规则保留、按修正实现；「已评审」= 按老行为复刻。
+- **阻塞项（123 条，已评审 73 条）**：置信度低于 High，或抽取时发现疑似缺陷（老行为看起来有误，或与文档不一致）。按用户要求「顺手修已知 bug、行为现代化」，这些规则**在所属阶段开工前必须经 `/code-modernization:modernize-review psa` 由业务逐条决定**：保持原行为、按修正行为实现，或列入讨论。未决定的规则阻塞该阶段的入口条件。已评审的条目按 `RULE_REVIEWS.json` 呈现：**不复刻** = 新系统按「新系统做法」实现，老行为不作为基准；「修正：」= 规则保留、按修正实现；「已评审」= 按老行为复刻。条目带 `revisions` 时以最后一条修订为当前结论，并标注「已修订」与出处，原结论仍保留在 `RULE_REVIEWS.json`。
 
 | 域 | 阶段 | 已定（P0） | 阻塞（P0，需评审） | 其中已评审 |
 |---|---|---|---|---|
@@ -424,7 +424,7 @@ Exit criteria:
 - [x] RULE-356 A8 is authoritative for dept leader, regional AR, category and delivery flag（`SyncServiceImpl.java:184-221`，置信度 High） — 修正：A8 为部门负责人、区域 AR、类别、交付标识的权威来源；关系类型 ID 等改为配置并在启动时校验；多名负责人时取 ID 最小者并告警给数据管理员（确定性、不阻塞）。（已评审 2026-10-14）
 - [x] RULE-357 Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive（`DeptServiceImpl.java:200-305`，置信度 High） — 修正：A8 部门随 A8 新增、更新、撤销、恢复；FORCITIS one 不再有手工部门（D-06）；FORCITIS one 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。（已评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-361 A8 user sync scope uses a substring match, unlike the dept prefix rule（`A8UserMapper.java:24-40`，置信度 High） → 新系统做法：人员同步范围改用与部门同步相同的前缀规则（PATH 以 00000001 开头），人员不指向未同步部门。（不复刻；评审 2026-10-14）
-- [x] RULE-362 A new A8 person becomes a legacy-system user with username = phone and a default password（`SyncServiceImpl.java:299-340`，置信度 High） — 修正：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。（已评审 2026-10-14）
+- [x] RULE-362 A new A8 person becomes a legacy-system user with username = phone and a default password（`SyncServiceImpl.java:299-340`，置信度 High） — 修正：A8 新人照旧建档，员工与用户账号各用自有 UUIDv7（user_accounts.user_id 不等于员工 ID，另有唯一的 employee_id），A8 人员 ID 只登记在来源对照；不设本地口令不变；企业微信 userid 创建时写入 external_identities，不写员工快照。（已评审 2026-10-15）（已修订 2026-10-15，出处 ADR-0033、2026-10-15-005616-one-coordinator-问人员-部门-岗位-任职主键继续.md、2026-10-15-005633-one-coordinator-主键决定后补充-主键统一.md；原结论见 RULE_REVIEWS.json）
 - [x] RULE-363 Resignation = A8 login name is null → legacy-system user soft-deleted（`SyncServiceImpl.java:359-369`，置信度 High） — 修正：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。（已评审 2026-10-14）
 - [x] RULE-364 Rehire and phone change restore and re-enable the legacy-system user（`SyncServiceImpl.java:380-398`，置信度 High） — 修正：复职（A8 重新有登录名）时恢复；换手机号不覆盖 FORCITIS one 的手工停用（启用状态由 FORCITIS one 拥有）；用户名跟随 A8 登录名同步。（已评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-365 Per-field update semantics in user sync are asymmetric（`SyncServiceImpl.java:342-441`，置信度 High） → 新系统做法：A8 权威列按值同步并显式写 NULL（汇报线清空也同步）；单行缺部门或岗位时隔离该行并告警，不中断整批。（不复刻；评审 2026-10-14）
