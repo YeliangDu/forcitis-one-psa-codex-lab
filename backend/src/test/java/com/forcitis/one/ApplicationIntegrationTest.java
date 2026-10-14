@@ -165,13 +165,27 @@ class ApplicationIntegrationTest {
 
     @Test
     void submitStartsFlowableApprovalInItsOwnSchema() throws Exception {
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
+        String body = mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.outcome").value("SUBMITTED"));
+                .andExpect(jsonPath("$.outcome").value("SUBMITTED"))
+                .andReturn().getResponse().getContentAsString();
+        String instanceId = JsonMapper.builder().build().readTree(body).get("approvalInstanceId").asString();
+
         assertThat(count("platform_approval")).isGreaterThan(20);
         assertThat(count("public")).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_hi_procinst", Integer.class)).isGreaterThanOrEqualTo(1);
+        // The skeleton timesheet routes project hours only and carries no project manager: that single branch is skipped.
+        assertThat(jdbc.queryForList("""
+                select t.task_def_key_ from platform_approval.act_hi_taskinst t
+                  join platform_approval.act_hi_varinst v on v.task_id_ = t.id_ and v.name_ = 'skippedWhenEmpty'
+                 where t.proc_inst_id_ = ?""", String.class, instanceId))
+                .containsExactly("projectManagerReview");
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_hi_taskinst where proc_inst_id_ = ?",
+                Integer.class, instanceId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_ru_task where proc_inst_id_ = ?",
+                Integer.class, instanceId)).isZero();
+        assertThat(jdbc.queryForObject("select end_time_ is not null from platform_approval.act_hi_procinst where id_ = ?",
+                Boolean.class, instanceId)).isTrue();
     }
 
     @Test

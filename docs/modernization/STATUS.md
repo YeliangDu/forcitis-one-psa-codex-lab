@@ -25,6 +25,8 @@
 
 ## 阻塞与待用户决定
 
+- 已知缺口（Phase 1a 会话登记，1b 前必须修复，详见 `phase1a/TIMESHEET_REPLAY.md`「已知缺口」）：G-1 审批节点「取不到人」与「字段缺失 / 值无效」无法区分，缺失或无效时应失败并告警，不能静默跳过（RULE-300）；G-2 会签（RULE-248/273）未实现。
+
 - 老系统安全缺陷（含 SEC-116 验证码固定 9999）按用户决定不处理；新系统按 `phase1a/SECURITY_INVARIANTS.md` I-1..I-9 保证不继承。brief Phase 1a 入口条件「老系统已止血」需按 `Proposed revision:` 追加说明（psa-coordinator）。
 - 运维事项：收窄 48088 安全组与 nginx 拒绝免密端点（SEC-001 网络层止血）、删除 `/other-api`（SEC-107）、Nacos 内部令牌、凭据轮换；RDS PG 18 高可用、ARMS、SLS 已开通（2026-10-14，见 aliyun 仓库 evidence/pg-upgrade-20261014）；RDS 已开通自动续费（用户 2026-10-14）；FORCITIS one 专用 ECS 已开通（2026-10-14）。
 - 业务编号新格式的各单据模板，在 Phase 1a 由管理员确认。
