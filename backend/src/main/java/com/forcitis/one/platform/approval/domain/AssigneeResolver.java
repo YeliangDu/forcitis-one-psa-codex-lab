@@ -6,7 +6,6 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
-import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -27,11 +26,6 @@ import java.util.Set;
  */
 public final class AssigneeResolver {
 
-    /** Role of the department director (RULE-256). */
-    static final RoleCode DIRECTOR_ROLE = new RoleCode("BU-002");
-    /** Default variable naming the delivery unit (RULE-255/256/257). */
-    static final String DEFAULT_DEPARTMENT_VARIABLE = "deliveryDeptId";
-
     private final OrgDirectory org;
     private final RoleDirectory roles;
     private final UserId administrator;
@@ -44,10 +38,6 @@ public final class AssigneeResolver {
     }
 
     public Resolution resolve(AssignmentRule rule, boolean selfApprovalAllowed, UserId initiator, ProcessVariables variables) {
-        if (rule instanceof AssignmentRule.Initiator) {
-            Set<UserId> self = employed(Set.of(initiator));
-            return self.isEmpty() ? fallback() : new Resolution(self, ResolutionKind.RESOLVED);
-        }
         Collected collected = collect(rule, initiator, variables);
         Set<UserId> candidates = employed(collected.users());
         ResolutionKind kind = collected.escalated() ? ResolutionKind.ESCALATED_REPORTING_LINE : ResolutionKind.RESOLVED;
@@ -87,18 +77,8 @@ public final class AssigneeResolver {
             case AssignmentRule.Role role -> Collected.of(roles.findRoleHolders(role.role()));
             case AssignmentRule.DepartmentHead head -> Collected.of(departmentOf(head.departmentVariable(), initiator, variables)
                     .flatMap(this::nearestHead).map(Set::of).orElse(Set.of()));
-            case AssignmentRule.InitiatorLeader leader -> initiatorLeader(initiator, leader.level());
-            case AssignmentRule.NamedUsers named -> Collected.of(named.users());
-            case AssignmentRule.RegionalReceivablesOwner manager -> Collected.of(
-                    departmentOf(blankTo(manager.departmentVariable(), DEFAULT_DEPARTMENT_VARIABLE), initiator, variables)
-                            .flatMap(org::findRegionalReceivablesManager).map(Set::of).orElse(Set.of()));
-            case AssignmentRule.DepartmentDirector director -> Collected.of(
-                    departmentOf(blankTo(director.departmentVariable(), DEFAULT_DEPARTMENT_VARIABLE), initiator, variables)
-                            .map(this::directorsOf).orElse(Set.of()));
+            case AssignmentRule.InitiatorSupervisor supervisor -> initiatorSupervisor(initiator, supervisor.level());
             case AssignmentRule.FormFieldUsers field -> Collected.of(ProcessVariables.parseUsers(variables.formField(field.field())));
-            case AssignmentRule.FormFieldUserLeaders field -> Collected.of(leadersOf(ProcessVariables.parseUsers(variables.formField(field.field()))));
-            case AssignmentRule.ProcessVariableUsers variable -> Collected.of(ProcessVariables.parseUsers(variables.variable(variable.variable())));
-            case AssignmentRule.Initiator ignored -> Collected.of(Set.of(initiator));
         };
     }
 
@@ -143,8 +123,8 @@ public final class AssigneeResolver {
         return Optional.empty();
     }
 
-    /** RULE-250: level n leader; an incomplete line pushes up to the nearest department head not already on the line. */
-    private Collected initiatorLeader(UserId initiator, int level) {
+    /** RULE-250: level n supervisor; an incomplete line pushes up to the nearest department head not already on the line. */
+    private Collected initiatorSupervisor(UserId initiator, int level) {
         Set<UserId> line = new LinkedHashSet<>();
         line.add(initiator);
         UserId current = initiator;
@@ -161,24 +141,6 @@ public final class AssigneeResolver {
         return Collected.of(Set.of(current));
     }
 
-    private Set<UserId> directorsOf(OrgUnitId unit) {
-        Set<UserId> found = new LinkedHashSet<>();
-        for (UserId holder : roles.findRoleHolders(DIRECTOR_ROLE)) {
-            if (org.findEmployee(holder).map(e -> e.orgUnitId().equals(unit)).orElse(false)) {
-                found.add(holder);
-            }
-        }
-        return found;
-    }
-
-    private Set<UserId> leadersOf(Set<UserId> people) {
-        Set<UserId> leaders = new LinkedHashSet<>();
-        for (UserId person : people) {
-            org.findDirectLeader(person).ifPresent(leaders::add);
-        }
-        return leaders;
-    }
-
     private Set<UserId> employed(Set<UserId> users) {
         Set<UserId> kept = new LinkedHashSet<>();
         for (UserId user : users) {
@@ -191,9 +153,5 @@ public final class AssigneeResolver {
 
     private boolean isEmployed(UserId user) {
         return org.findEmployee(user).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
-    }
-
-    private static String blankTo(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
     }
 }

@@ -17,7 +17,7 @@ class TaskPolicyTest {
 
     static TaskView task(UserId assignee, Set<UserId> candidates) {
         return new TaskView(new ApprovalTaskId("t1"), new ApprovalInstanceId("i1"), ProcessKey.COST_TIMESHEET_APPROVAL, "doc-1",
-                "approverReview", "Approver review", new UserId(1), assignee, candidates, Instant.EPOCH, true, false, null);
+                "approverReview", "Approver review", new UserId(1), assignee, candidates, Instant.EPOCH, true, null);
     }
 
     @Test

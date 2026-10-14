@@ -4,5 +4,7 @@ package com.forcitis.one.platform.approval.api;
 public enum ApprovalOutcome {
     APPROVED,
     REJECTED,
+    /** The round was sent back by an approver: it is over; the initiator starts a new round (RULE-271/275). */
+    RETURNED,
     CANCELLED
 }

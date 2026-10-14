@@ -4,6 +4,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -15,6 +16,17 @@ import java.util.Set;
 public final class OrgHierarchy {
 
     private OrgHierarchy() {
+    }
+
+    /** Parents before children (depth along the parent chain), then display order, then id. Cycle-safe. */
+    public static List<OrgUnit> parentsFirst(Collection<OrgUnit> units) {
+        Map<OrgUnitId, OrgUnit> byId = new LinkedHashMap<>();
+        units.forEach(u -> byId.put(u.orgUnitId(), u));
+        return units.stream()
+                .sorted(Comparator.comparingInt((OrgUnit u) -> ancestors(byId, u.orgUnitId()).size())
+                        .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder())
+                        .thenComparingLong(u -> u.orgUnitId().value()))
+                .toList();
     }
 
     /** Ancestors, nearest first, excluding the unit itself; revoked ancestors are still part of the structure. */

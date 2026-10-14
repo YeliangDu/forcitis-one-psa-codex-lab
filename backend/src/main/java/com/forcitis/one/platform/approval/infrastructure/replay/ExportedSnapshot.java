@@ -46,8 +46,13 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
     }
 
     @Override
+    public Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<UserId> findDirectLeader(UserId userId) {
-        return Optional.ofNullable(employees.get(userId.value())).map(ReplayExport.EmployeeRecord::leaderUserId)
+        return Optional.ofNullable(employees.get(userId.value())).map(ReplayExport.EmployeeRecord::supervisorUserId)
                 .filter(this::employed).map(UserId::new);
     }
 

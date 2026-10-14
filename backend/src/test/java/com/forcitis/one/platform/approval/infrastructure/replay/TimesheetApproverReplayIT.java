@@ -2,6 +2,7 @@ package com.forcitis.one.platform.approval.infrastructure.replay;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.platform.approval.domain.AssignmentRuleCodec;
 import com.forcitis.one.platform.approval.domain.ResolutionKind;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,7 +48,7 @@ class TimesheetApproverReplayIT {
         assertThat(report.differences()).hasSize(5 + 1);
         assertThat(report.differences()).filteredOn(d -> d.verdict() == ReplayVerdict.DEFECT).singleElement().satisfies(d -> {
             assertThat(d.instanceId()).isEqualTo("SYN-7");
-            assertThat(d.nodeKey()).isEqualTo("directorReview");
+            assertThat(d.nodeKey()).isEqualTo("roleReview");
             assertThat(d.ruleType()).isEqualTo("ROLE");
             assertThat(d.candidates()).containsExactly(110L, 112L);
             assertThat(d.actualApprovers()).containsExactly(105L);
@@ -115,18 +116,72 @@ class TimesheetApproverReplayIT {
     }
 
     @Test
-    @DisplayName("the old-system exporter vocabulary is exactly the rule codec's: all ten rule types are accepted")
+    @DisplayName("the exporter vocabulary is exactly the rule codec's: the four types of the 1a catalogue are accepted, deferred and not-offered types are refused")
     void ruleVocabulary() {
-        for (String type : List.of("ROLE", "DEPARTMENT_HEAD", "INITIATOR_LEADER", "NAMED_USERS", "REGIONAL_RECEIVABLES_MANAGER",
-                "DEPARTMENT_DIRECTOR", "FORM_FIELD_USERS", "FORM_FIELD_USER_LEADERS", "PROCESS_VARIABLE_USERS", "INITIATOR")) {
-            assertThat(com.forcitis.one.platform.approval.domain.AssignmentRuleCodec.parse(type,
-                    name -> switch (name) {
-                        case "role" -> "R";
-                        case "level" -> "1";
-                        case "users" -> "1";
-                        case "field", "variable" -> "f";
-                        default -> null;
-                    })).as(type).isNotNull();
+        java.util.function.Function<String, String> attributes = name -> switch (name) {
+            case "role" -> "R";
+            case "level" -> "1";
+            case "field" -> "f";
+            default -> null;
+        };
+        for (String type : List.of("ROLE", "DEPARTMENT_HEAD", "INITIATOR_SUPERVISOR", "FORM_FIELD_USERS")) {
+            assertThat(AssignmentRuleCodec.parse(type, attributes)).as(type).isNotNull();
         }
+        for (String type : java.util.stream.Stream.concat(AssignmentRuleCodec.DEFERRED_TYPES.stream(), AssignmentRuleCodec.NOT_BUILT_TYPES.stream()).toList()) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> AssignmentRuleCodec.parse(type, attributes)).as(type)
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    private static <T> java.util.Map<T, T> inverse(java.util.Map<T, T> table) {
+        java.util.Map<T, T> inverse = new java.util.LinkedHashMap<>();
+        table.forEach((oldName, newName) -> inverse.put(newName, oldName));
+        return inverse;
+    }
+
+    private static java.util.Map<String, java.util.List<String>> rename(java.util.Map<String, java.util.List<String>> values,
+            java.util.Map<String, String> names) {
+        java.util.Map<String, java.util.List<String>> out = new java.util.LinkedHashMap<>();
+        values.forEach((name, list) -> out.put(names.getOrDefault(name, name), list));
+        return out;
+    }
+
+    @Test
+    @DisplayName("H2 an export that still spells the old names (field, variable, rule type, rework node) replays exactly like the same export in the new names")
+    void oldNamesAreTranslatedByTheTable() throws IOException {
+        ReplayExport current = fixture();
+        java.util.Map<String, String> oldFields = inverse(LegacyVocabulary.FIELD_NAMES);
+        java.util.Map<String, String> oldTypes = inverse(LegacyVocabulary.RULE_TYPES);
+        List<ReplayExport.InstanceRecord> spelledOld = current.instances().stream().map(i -> {
+            List<ReplayExport.NodeRecord> nodes = new java.util.ArrayList<>();
+            nodes.add(new ReplayExport.NodeRecord("rework", java.util.Map.of("type", LegacyVocabulary.REWORK_RULE_TYPE), false, List.of(i.initiatorId())));
+            i.nodes().forEach(n -> {
+                java.util.Map<String, String> rule = new java.util.LinkedHashMap<>(n.rule());
+                rule.computeIfPresent("type", (k, v) -> oldTypes.getOrDefault(v, v));
+                for (String attribute : List.of("field", "department", "variable")) {
+                    rule.computeIfPresent(attribute, (k, v) -> oldFields.getOrDefault(v, v));
+                }
+                nodes.add(new ReplayExport.NodeRecord(n.nodeKey(), rule, n.selfApprovalAllowed(), n.actualApprovers()));
+            });
+            return new ReplayExport.InstanceRecord(i.instanceId(), i.initiatorId(), rename(i.formFields(), oldFields),
+                    rename(i.variables(), oldFields), nodes);
+        }).toList();
+        ReplayExport old = new ReplayExport(current.formatVersion(), current.processKey(), current.processAdministratorUserId(),
+                current.legacyFallbackUserIds(), current.snapshot(), spelledOld);
+
+        assertThat(oldFields).isNotEmpty();
+        assertThat(TimesheetApproverReplay.replay(old)).isEqualTo(TimesheetApproverReplay.replay(current));
+        assertThat(old.instances().getFirst().formFields().keySet()).doesNotContain(
+                com.forcitis.one.cost.timesheet.api.TimesheetApprovalField.PROJECT_MANAGER.fieldName());
+    }
+
+    @Test
+    @DisplayName("H2 the old employee key of the supervisor is read as supervisorUserId; the new key reads the same")
+    void supervisorKeyAlias() throws Exception {
+        String old = "{\"userId\":1,\"orgUnitId\":2,\"" + LegacyVocabulary.SUPERVISOR_KEY + "\":3,\"employed\":true}";
+        String current = "{\"userId\":1,\"orgUnitId\":2,\"supervisorUserId\":3,\"employed\":true}";
+
+        assertThat(MAPPER.readValue(old, ReplayExport.EmployeeRecord.class).supervisorUserId()).isEqualTo(3L);
+        assertThat(MAPPER.readValue(current, ReplayExport.EmployeeRecord.class).supervisorUserId()).isEqualTo(3L);
     }
 }

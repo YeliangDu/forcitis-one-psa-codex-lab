@@ -45,7 +45,7 @@ class HookGateTest {
 
     static TaskView task(String hookKey) {
         return new TaskView(new ApprovalTaskId("t"), new ApprovalInstanceId("i"), ProcessKey.COST_TIMESHEET_APPROVAL, "doc", "node", "Node",
-                new UserId(1), null, Set.of(new UserId(2)), Instant.EPOCH, false, false, hookKey);
+                new UserId(1), null, Set.of(new UserId(2)), Instant.EPOCH, false, hookKey);
     }
 
     @Test

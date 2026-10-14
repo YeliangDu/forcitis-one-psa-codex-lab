@@ -31,7 +31,7 @@ class PendingApprovalRulesTest {
     @Disabled("pending RULE-252: Phase 2 first consumer (per-row approver resolution; the non-row part is RULE-249 and done)")
     @DisplayName("RULE-252 row tasks resolve their own approver per row from the row's field value")
     void perRowApproverResolution() {
-        // Given a SCRIPT 31 rule with scriptField=deptId, rows r1 {deptId:15} and r2 {deptId:16}; Then r1 and r2 go to their department heads.
+        // Given a department-head rule whose department field names the unit per row, rows r1 {unit:15} and r2 {unit:16}; Then r1 and r2 go to their department heads.
     }
 
     @Test
@@ -172,7 +172,7 @@ class PendingApprovalRulesTest {
     }
 
     @Test
-    @Disabled("pending RULE-315: Phase 2 (psa_process_to_be_sent is replaced by idempotent starts plus transactional events)")
+    @Disabled("pending RULE-315: Phase 2 (the old to-be-sent table is replaced by idempotent starts plus transactional events)")
     @DisplayName("RULE-315 asynchronous timesheet process creation")
     void asynchronousTimesheetStart() {
     }

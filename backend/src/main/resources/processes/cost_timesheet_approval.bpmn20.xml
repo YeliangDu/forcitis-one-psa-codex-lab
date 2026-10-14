@@ -7,43 +7,56 @@
 
     Assignment rules live in the forcitis:assignmentRule extension element of each user task, exactly one per task
     (RULE-262). The Java AssigneeResolver evaluates them; BPMN holds no scripts and no business rules.
-      type    ROLE | DEPARTMENT_HEAD | INITIATOR_LEADER | NAMED_USERS | REGIONAL_RECEIVABLES_MANAGER | DEPARTMENT_DIRECTOR
-              | FORM_FIELD_USERS | FORM_FIELD_USER_LEADERS | PROCESS_VARIABLE_USERS | INITIATOR
-      initiatorNode="true"      the rework node the initiator resubmits from; skipped on the first pass (RULE-267/301)
+      type    ROLE | DEPARTMENT_HEAD | INITIATOR_SUPERVISOR | FORM_FIELD_USERS
+              (role / department / level / field attributes as the type needs; department is optional and defaults to
+              the initiator's own unit. Other types are deferred or not offered: AssignmentRuleCodec refuses them.)
       selfApproval="allowed"    exempts the node from the self-approval guard (RULE-307)
       beforeHook="KEY"          names the BEFORE hook the node runs inside the decide transaction (RULE-277/283)
 
-    A user task INSIDE the sub-process returns to the initiator when it is rejected; a top-level user task ends the
-    approval when it is rejected (RULE-271/290). Timesheet shape of the old system: manager_id nodes in a sub-process,
-    then the department head.
+    A user task INSIDE the sub-process returns to the initiator when it is rejected: the round ends and the initiator
+    starts a new round (RULE-271/290); a top-level user task ends the approval when it is rejected.
+
+    Field names and the routing flag are the ones the owning module publishes in cost.timesheet.api
+    (TimesheetApprovalField, TimesheetRoutingFlag); a test keeps this file and those enums equal.
+
+    Shape of the current production process (docs/modernization/runtime/prod_bpm.tsv, TIMESHEET:15): the project manager
+    named on the timesheet reviews first; for pre-sales hours the regional head reviews too; the initiator's direct
+    supervisor decides last. The old rework node of the initiator has no counterpart: a return ends the round.
   -->
   <process id="cost_timesheet_approval" name="Timesheet approval" isExecutable="true">
     <startEvent id="start"/>
-    <sequenceFlow id="toInitiatorRework" sourceRef="start" targetRef="initiatorRework"/>
-    <userTask id="initiatorRework" name="Initiator rework" flowable:skipExpression="${!returned}">
-      <extensionElements>
-        <forcitis:assignmentRule type="INITIATOR" initiatorNode="true"/>
-      </extensionElements>
-    </userTask>
-    <sequenceFlow id="toReviewStage" sourceRef="initiatorRework" targetRef="reviewStage"/>
-    <subProcess id="reviewStage" name="Manager review">
+    <sequenceFlow id="toReviewStage" sourceRef="start" targetRef="reviewStage"/>
+    <subProcess id="reviewStage" name="Review by the project side">
       <startEvent id="reviewStart"/>
-      <sequenceFlow id="toApproverReview" sourceRef="reviewStart" targetRef="approverReview"/>
-      <userTask id="approverReview" name="Approver review">
+      <sequenceFlow id="toProjectManagerReview" sourceRef="reviewStart" targetRef="projectManagerReview"/>
+      <userTask id="projectManagerReview" name="Project manager review">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="manager_id"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
         </extensionElements>
       </userTask>
-      <sequenceFlow id="toReviewEnd" sourceRef="approverReview" targetRef="reviewEnd"/>
+      <sequenceFlow id="toPreSalesCheck" sourceRef="projectManagerReview" targetRef="preSalesCheck"/>
+      <exclusiveGateway id="preSalesCheck" name="Pre-sales hours?" default="skipRegionalHead"/>
+      <sequenceFlow id="toRegionalHeadReview" sourceRef="preSalesCheck" targetRef="regionalHeadReview">
+        <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${vars:getOrDefault('preSalesHours', false)}</conditionExpression>
+      </sequenceFlow>
+      <sequenceFlow id="skipRegionalHead" sourceRef="preSalesCheck" targetRef="reviewJoin"/>
+      <userTask id="regionalHeadReview" name="Regional head review">
+        <extensionElements>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId"/>
+        </extensionElements>
+      </userTask>
+      <sequenceFlow id="toReviewJoin" sourceRef="regionalHeadReview" targetRef="reviewJoin"/>
+      <exclusiveGateway id="reviewJoin"/>
+      <sequenceFlow id="toReviewEnd" sourceRef="reviewJoin" targetRef="reviewEnd"/>
       <endEvent id="reviewEnd"/>
     </subProcess>
-    <sequenceFlow id="toDepartmentReview" sourceRef="reviewStage" targetRef="departmentReview"/>
-    <userTask id="departmentReview" name="Department review">
+    <sequenceFlow id="toSupervisorReview" sourceRef="reviewStage" targetRef="supervisorReview"/>
+    <userTask id="supervisorReview" name="Supervisor review">
       <extensionElements>
-        <forcitis:assignmentRule type="DEPARTMENT_HEAD"/>
+        <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1"/>
       </extensionElements>
     </userTask>
-    <sequenceFlow id="toEnd" sourceRef="departmentReview" targetRef="end"/>
+    <sequenceFlow id="toEnd" sourceRef="supervisorReview" targetRef="end"/>
     <endEvent id="end"/>
   </process>
 </definitions>

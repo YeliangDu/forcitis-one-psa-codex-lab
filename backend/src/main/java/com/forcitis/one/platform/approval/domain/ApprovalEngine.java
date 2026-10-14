@@ -29,8 +29,8 @@ public interface ApprovalEngine {
 
     void completeTask(ApprovalTaskId taskId);
 
-    /** Moves the live instance to its initiator node (RULE-271/275); the instance stays alive. */
-    void returnToInitiator(ApprovalInstanceId instanceId);
+    /** Ends the live instance as "returned" (RULE-271/275): the round is over, the initiator starts a new one; history stays (RULE-288). */
+    void endAsReturned(ApprovalInstanceId instanceId);
 
     /** Ends the instance for good (top-level reject, RULE-271/290); history stays (RULE-288). */
     void terminate(ApprovalInstanceId instanceId, String reason);

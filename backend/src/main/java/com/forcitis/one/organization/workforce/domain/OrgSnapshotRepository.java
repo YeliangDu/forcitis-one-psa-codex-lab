@@ -28,6 +28,9 @@ public interface OrgSnapshotRepository {
     /** Prefers the employed person; empty when the id is unknown. */
     Optional<StaffMember> findStaffByWecomUserId(WecomUserId wecomUserId);
 
+    /** Exact login name; only employed people carry one (RULE-363). Empty when unknown. */
+    Optional<StaffMember> findStaffByLoginName(String loginName);
+
     Optional<OrgUnit> findOrgUnit(OrgUnitId orgUnitId);
 
     List<OrgUnit> findAllOrgUnits();

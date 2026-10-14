@@ -10,7 +10,7 @@ import org.flowable.bpmn.model.UserTask;
 
 /**
  * Reads the assignment rule written in a user task's extension element
- * {@code <forcitis:assignmentRule type="ROLE" role="BU-002" selfApproval="allowed" initiatorNode="true" beforeHook="KEY"/>}.
+ * {@code <forcitis:assignmentRule type="ROLE" role="reviewer" selfApproval="allowed" beforeHook="KEY"/>}.
  * RULE-262: a node has exactly one rule; none or several is a hard error and no task is created.
  */
 final class NodePolicyReader {
@@ -34,7 +34,7 @@ final class NodePolicyReader {
         ExtensionElement element = rules.getFirst();
         try {
             return new NodePolicy(AssignmentRuleCodec.parse(attribute(element, "type"), name -> attribute(element, name)),
-                    "allowed".equals(attribute(element, "selfApproval")), "true".equals(attribute(element, "initiatorNode")),
+                    "allowed".equals(attribute(element, "selfApproval")),
                     attribute(element, "beforeHook"));
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw new IllegalStateException("Node " + node.getId() + ": " + e.getMessage(), e);

@@ -13,11 +13,9 @@ import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditTrail;
 import com.forcitis.one.platform.identity.application.AccessCache;
-import com.forcitis.one.platform.identity.application.LoginNameDirectory;
+import com.forcitis.one.platform.integration.api.SsoTicketVerifier;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.forcitis.one.platform.integration.api.WecomGateway;
-import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -47,15 +45,14 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Shared set-up of the identity integration tests: one PostgreSQL 18 container and one WireMock server (standing in for the
- * Seeyon OA) for the whole test run, so the Spring context is built once. WeCom, the organisation directory and the audit trail
- * belong to other modules and are doubles; nothing real is contacted.
+ * Shared set-up of the identity integration tests: one PostgreSQL 18 container for the whole test run, so the Spring context is
+ * built once. WeCom, the portal ticket check, the organisation directory and the audit trail belong to other modules and are
+ * doubles; nothing real is contacted.
  */
 @SpringBootTest(properties = {
         "flowable.async-executor-activate=false",
-        "forcitis.platform.identity.seeyon.enabled=true",
-        "forcitis.platform.identity.seeyon.timeout=1s",
-        "forcitis.platform.identity.seeyon.legacy-login-url=https://legacy.example.invalid/login",
+        "forcitis.platform.identity.sso.enabled=true",
+        "forcitis.platform.identity.sso.legacy-login-url=https://legacy.example.invalid/login",
         "FORCITIS_TICKET_KEY_SHORT=too-short"})
 @AutoConfigureMockMvc
 @Import(IdentityIntegrationTest.ClockConfiguration.class)
@@ -74,12 +71,9 @@ abstract class IdentityIntegrationTest {
 
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
-    static final WireMockServer OA = new WireMockServer(WireMockConfiguration.options().dynamicPort());
 
     static {
         POSTGRES.start();
-        OA.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(OA::stop));
     }
 
     @DynamicPropertySource
@@ -87,7 +81,6 @@ abstract class IdentityIntegrationTest {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("forcitis.platform.identity.seeyon.base-url", OA::baseUrl);
         registry.add("forcitis.platform.identity.emergency.totp-encryption-key", () -> TOTP_KEY);
         registry.add("FORCITIS_TICKET_KEY_KM", () -> KM_KEY);
     }
@@ -112,7 +105,7 @@ abstract class IdentityIntegrationTest {
     AuditTrail auditTrail;
 
     @MockitoBean
-    LoginNameDirectory loginNames;
+    SsoTicketVerifier ssoVerifier;
 
     @Autowired
     MockMvc mvc;
@@ -147,7 +140,7 @@ abstract class IdentityIntegrationTest {
     void cleanDatabase() {
         clock.reset();
         accessCache.evictAll();
-        OA.resetAll();
+        Mockito.reset(ssoVerifier);
         jdbc.sql("delete from platform_identity.sessions").update();
         jdbc.sql("delete from platform_identity.login_states").update();
         jdbc.sql("delete from platform_identity.sso_ticket_uses").update();

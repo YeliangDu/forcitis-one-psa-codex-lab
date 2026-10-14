@@ -1,0 +1,60 @@
+# A8 只读视图列白名单（REIMAGINED_ARCHITECTURE §3.3「§9a 的机器守护」）。
+#
+# 新系统只通过 A8 管理员建立的这四个视图读取 A8，且只读这里列出的列：组织主数据（部门、人员、岗位、汇报线、负责人）
+# 与身份（登录名、企业微信 userid、企业邮箱）。合同、产值 / 收入确认、成本、费用、开票、回款、分包、付款等权责事实
+# 不在白名单内，生日（ORG_MEMBER.EXT_ATTR_21，敏感信息）、银行卡等也不进 1a 视图。
+#
+# 守护：
+#   - 启动时校验 INFORMATION_SCHEMA.COLUMNS 与本清单「完全相等」（多一列、少一列、多一个视图，都拒绝启动）；
+#   - SeeyonViewColumnWhitelistTest 保证本文件与代码常量 SeeyonViewSql.VIEW_COLUMNS 一致；
+#   - docs/modernization/phase1a/SEEYON_VIEWS.sql 是给 DBA 的视图 DDL 与授权提议，与本文件逐列对应。
+# 变更本文件需 CODEOWNERS 评审（与 module-dependencies.txt 同等对待）。
+#
+# 字段：name = 视图列；source = 来源表.列（A8 基表；「经」表示经哪一列关联）；category = 组织 | 身份。
+schema: forcitis_one
+views:
+  v_org_unit:
+    description: 组织单元（部门）；总部/区域类别与交付部门标识在视图内取自部门扩展属性
+    columns:
+      - { name: ID, source: ORG_UNIT.ID, category: 组织 }
+      - { name: CODE, source: ORG_UNIT.CODE, category: 组织 }
+      - { name: NAME, source: ORG_UNIT.NAME, category: 组织 }
+      - { name: SORT_ID, source: ORG_UNIT.SORT_ID, category: 组织 }
+      - { name: PATH, source: ORG_UNIT.PATH, category: 组织 }
+      - { name: IS_DELETED, source: ORG_UNIT.IS_DELETED, category: 组织 }
+      - { name: IS_INTERNAL, source: ORG_UNIT.IS_INTERNAL, category: 组织 }
+      - { name: IS_ENABLE, source: ORG_UNIT.IS_ENABLE, category: 组织 }
+      - { name: CATEGORY, source: CTP_ENUM_ITEM.SHOWVALUE（经 ADDRESSBOOK.EXT_ATTR_33）, category: 组织 }
+      - { name: DELIVERY_FLAG_ENUM_ID, source: ADDRESSBOOK.EXT_ATTR_32, category: 组织 }
+  v_org_relationship:
+    description: 人员与部门的关系，仅负责人、区域 AR 两种类型
+    columns:
+      - { name: SOURCE_MEMBER_ID, source: ORG_RELATIONSHIP.SOURCE_ID, category: 组织 }
+      - { name: ORG_UNIT_ID, source: ORG_RELATIONSHIP.OBJECTIVE0_ID, category: 组织 }
+      - { name: RELATIONSHIP_TYPE_ID, source: ORG_RELATIONSHIP.OBJECTIVE1_ID, category: 组织 }
+      - { name: MEMBER_IS_DELETED, source: ORG_MEMBER.IS_DELETED, category: 组织 }
+  v_org_post:
+    description: 岗位（含已停用、已删除，以便同步状态）
+    columns:
+      - { name: ID, source: ORG_POST.ID, category: 组织 }
+      - { name: CODE, source: ORG_POST.CODE, category: 组织 }
+      - { name: NAME, source: ORG_POST.NAME, category: 组织 }
+      - { name: SORT_ID, source: ORG_POST.SORT_ID, category: 组织 }
+      - { name: STATUS, source: ORG_POST.STATUS, category: 组织 }
+      - { name: IS_DELETED, source: ORG_POST.IS_DELETED, category: 组织 }
+  v_org_member:
+    description: 人员；登录名、企业微信 userid、企业邮箱属身份，其余属组织；不含生日
+    columns:
+      - { name: ID, source: ORG_MEMBER.ID, category: 组织 }
+      - { name: NAME, source: ORG_MEMBER.NAME, category: 组织 }
+      - { name: CODE, source: ORG_MEMBER.CODE, category: 组织 }
+      - { name: ORG_UNIT_ID, source: ORG_MEMBER.ORG_DEPARTMENT_ID, category: 组织 }
+      - { name: ORG_UNIT_PATH, source: ORG_UNIT.PATH, category: 组织 }
+      - { name: POST_ID, source: ORG_MEMBER.ORG_POST_ID, category: 组织 }
+      - { name: LEADER_MEMBER_ID, source: ORG_MEMBER.EXT_ATTR_37, category: 组织 }
+      - { name: WE_COM_ID, source: ORG_MEMBER.we_com_id, category: 身份 }
+      - { name: IS_INTERNAL, source: ORG_MEMBER.IS_INTERNAL, category: 组织 }
+      - { name: LOGIN_NAME, source: ORG_PRINCIPAL.LOGIN_NAME, category: 身份 }
+      - { name: ENTERPRISE_EMAIL, source: formmain_0307.field0234, category: 身份 }
+      - { name: GENDER, source: formmain_0307.field0284, category: 组织 }
+      - { name: FEE_EARNER_ENUM_ID, source: formmain_0307.FIELD0244, category: 组织 }

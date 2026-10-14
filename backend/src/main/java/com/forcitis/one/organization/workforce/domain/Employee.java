@@ -6,8 +6,8 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import java.util.Objects;
 
 /**
- * One employee of the snapshot. loginName is empty when A8 has none, which means separated (RULE-363).
- * feeEarner is the A8 HR classification only (billability is decided elsewhere); no birthday (sensitive, not in the view).
+ * One employee of the snapshot. loginName is empty when the source has none, which means separated (RULE-363).
+ * feeEarner is the source HR classification only (billability is decided elsewhere); no birthday (sensitive, not in the view).
  */
 public record Employee(UserId userId, String employeeCode, String displayName, String loginName, String email,
                        Gender gender, WecomUserId wecomUserId, EmploymentStatus employmentStatus, boolean feeEarner) {

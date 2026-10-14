@@ -20,18 +20,13 @@ import java.util.stream.Collectors;
 /**
  * Pure computation of what a sync run changes: current snapshot + one full read of the source = changed rows,
  * report rows, event content and figures. No I/O, no clock; the same function builds the expected state for the
- * reconciliation against A8. Rules: RULE-354..356, 360..367, 372, 373 (see the tests named after them).
+ * reconciliation against the source. Rules: RULE-354..356, 360..367, 372, 373 (see the tests named after them).
  */
 public final class SnapshotReconciler {
-
-    /** A8 root path of the sync scope and the length of one path level (RULE-354). */
-    public static final String ROOT_PATH = "00000001";
-    public static final int PATH_LEVEL_LENGTH = 4;
 
     private SnapshotReconciler() {
     }
 
-    /** @throws BrokenOrgTreeException when a parent PATH is missing (nothing may be written then, RULE-354) */
     public static Reconciliation reconcile(OrgSnapshot current, SourceSnapshot source) {
         List<SyncDiff> diffs = new ArrayList<>();
         List<Position> changedPositions = reconcilePositions(current, source, diffs);
@@ -227,22 +222,12 @@ public final class SnapshotReconciler {
 
     private static Units reconcileOrgUnits(OrgSnapshot current, SourceSnapshot source,
                                            Map<UserId, EmploymentStatus> statusAfter, List<SyncDiff> diffs) {
-        List<SourceOrgUnit> sorted = source.orgUnits().stream()
-                .sorted(Comparator.comparingInt((SourceOrgUnit u) -> u.path().length())
-                        .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder())
-                        .thenComparingLong(u -> u.orgUnitId().value()))
-                .toList();
-        Map<String, SourceOrgUnit> byPath = new LinkedHashMap<>();
+        List<SourceOrgUnit> sorted = parentsFirst(source.orgUnits());
         for (SourceOrgUnit unit : sorted) {
-            SourceOrgUnit existing = byPath.get(unit.path());
-            if (existing == null) {
-                byPath.put(unit.path(), unit);
-                continue;
-            }
-            diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, "org-unit:" + unit.orgUnitId().value(), IssueKind.DUPLICATE_PATH,
-                    "path " + unit.path() + " is also used by org unit " + existing.orgUnitId().value() + "; the active one is the parent candidate"));
-            if (existing.status() != OrgUnitStatus.ACTIVE && unit.status() == OrgUnitStatus.ACTIVE) {
-                byPath.put(unit.path(), unit);
+            if (unit.duplicateOfUnitId() != null) {
+                diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, "org-unit:" + unit.orgUnitId().value(), IssueKind.DUPLICATE_UNIT,
+                        "the place in the org tree is also used by org unit " + unit.duplicateOfUnitId().value()
+                                + "; the active one is the parent candidate"));
             }
         }
         Map<OrgUnitId, UserId> heads = pickSmallest(source, RelationshipKind.HEAD, IssueKind.MULTIPLE_HEADS, diffs);
@@ -255,7 +240,7 @@ public final class SnapshotReconciler {
         for (SourceOrgUnit unit : sorted) {
             sourceIds.add(unit.orgUnitId());
             String subject = "org-unit:" + unit.orgUnitId().value();
-            OrgUnitId parent = parentOf(unit, byPath);
+            OrgUnitId parent = unit.parentOrgUnitId();
             if (!unit.nullFlags().isEmpty()) {
                 diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, subject, IssueKind.NULL_FLAG,
                         "flags " + unit.nullFlags() + " are NULL in the source; treated as valid"));
@@ -268,7 +253,7 @@ public final class SnapshotReconciler {
             UserId manager = known(managers.get(unit.orgUnitId()), statusAfter, subject,
                     IssueKind.REGIONAL_MANAGER_NOT_FOUND, "regional receivables manager", diffs);
             OrgUnit old = before.get(unit.orgUnitId());
-            OrgUnit desired = new OrgUnit(unit.orgUnitId(), unit.code(), unit.name(), parent, unit.path(), unit.sortOrder(),
+            OrgUnit desired = new OrgUnit(unit.orgUnitId(), unit.code(), unit.name(), parent, unit.sortOrder(),
                     unit.status(), head, manager, unit.regionCategory(), unit.deliveryUnit(), old == null ? null : old.shortName());
             if (old == null) {
                 changed.add(desired);
@@ -292,22 +277,29 @@ public final class SnapshotReconciler {
         return new Units(changed);
     }
 
-    private static OrgUnitId parentOf(SourceOrgUnit unit, Map<String, SourceOrgUnit> byPath) {
-        String path = unit.path();
-        if (!path.startsWith(ROOT_PATH) || (path.length() - ROOT_PATH.length()) % PATH_LEVEL_LENGTH != 0) {
-            throw new BrokenOrgTreeException("org unit " + unit.orgUnitId().value() + " has path " + path
-                    + ", which is not below the sync root " + ROOT_PATH);
+    /** Parents before children (depth along the parent chain, cycle-safe), then display order, then id. */
+    private static List<SourceOrgUnit> parentsFirst(List<SourceOrgUnit> units) {
+        Map<OrgUnitId, SourceOrgUnit> byId = new HashMap<>();
+        units.forEach(u -> byId.putIfAbsent(u.orgUnitId(), u));
+        return units.stream()
+                .sorted(Comparator.comparingInt((SourceOrgUnit u) -> depth(u, byId))
+                        .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder())
+                        .thenComparingLong(u -> u.orgUnitId().value()))
+                .toList();
+    }
+
+    private static int depth(SourceOrgUnit unit, Map<OrgUnitId, SourceOrgUnit> byId) {
+        int depth = 0;
+        Set<OrgUnitId> seen = new HashSet<>();
+        SourceOrgUnit at = unit;
+        while (at.parentOrgUnitId() != null && seen.add(at.orgUnitId())) {
+            at = byId.get(at.parentOrgUnitId());
+            if (at == null) {
+                break;
+            }
+            depth++;
         }
-        if (path.equals(ROOT_PATH)) {
-            return null;
-        }
-        String parentPath = path.substring(0, path.length() - PATH_LEVEL_LENGTH);
-        SourceOrgUnit parent = byPath.get(parentPath);
-        if (parent == null) {
-            throw new BrokenOrgTreeException("org unit " + unit.orgUnitId().value() + " (path " + path
-                    + ") has no parent with path " + parentPath);
-        }
-        return parent.orgUnitId();
+        return depth;
     }
 
     private static UserId known(UserId person, Map<UserId, EmploymentStatus> statusAfter, String subject,

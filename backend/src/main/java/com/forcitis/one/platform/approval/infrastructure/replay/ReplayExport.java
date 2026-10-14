@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.replay;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.List;
 import java.util.Map;
 import tools.jackson.databind.DeserializationFeature;
@@ -33,8 +34,9 @@ record ReplayExport(int formatVersion, String processKey, Long processAdministra
         }
     }
 
-    /** employed = false for a disabled or separated user; leaderUserId is the person-level direct leader (RULE-372). */
-    record EmployeeRecord(long userId, long orgUnitId, Long leaderUserId, boolean employed) {
+    /** employed = false for a disabled or separated user; supervisorUserId is the person-level supervisor (RULE-372). */
+    record EmployeeRecord(long userId, long orgUnitId,
+                          @JsonAlias(LegacyVocabulary.SUPERVISOR_KEY) Long supervisorUserId, boolean employed) {
     }
 
     record OrgUnitRecord(long orgUnitId, Long parentOrgUnitId, Long headUserId, Long regionalReceivablesManagerId, boolean active) {

@@ -45,6 +45,10 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
 
 **导出文件含真实人员，只存本机 `~/.modernize/psa/`，不进仓库。** 生产只读导出需用户授权（Q-4）。
 
+导出文件说**新词汇**（词表术语）；老系统的名字只出现在下面的「老名 → 新名」转换表和回放代码里的同一张表
+（`platform/approval/infrastructure/replay/LegacyVocabulary`，LegacyShapeTest 的例外清单只登记这一个文件）。
+回放读入时按转换表翻译：表里有的老名被换成新名，不在表里的原样通过，所以直接按新名导出也能回放。
+
 ```json
 {
   "formatVersion": 1,
@@ -52,19 +56,19 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
   "processAdministratorUserId": 900,
   "legacyFallbackUserIds": [500],
   "snapshot": {
-    "employees": [{"userId": 111, "orgUnitId": 10, "leaderUserId": 110, "employed": true}],
+    "employees": [{"userId": 111, "orgUnitId": 10, "supervisorUserId": 110, "employed": true}],
     "orgUnits":  [{"orgUnitId": 10, "parentOrgUnitId": 1, "headUserId": 110,
                    "regionalReceivablesManagerId": null, "active": true}],
-    "roleHolders": {"BU-002": [110, 112]}
+    "roleHolders": {"reviewer": [110, 112]}
   },
   "instances": [{
     "instanceId": "…",
     "initiatorId": 201,
-    "formFields": {"manager_id": ["111"]},
-    "variables":  {"deliveryDeptId": ["11"]},
+    "formFields": {"projectManagerId": ["111"]},
+    "variables":  {},
     "nodes": [{
-      "nodeKey": "managerReview",
-      "rule": {"type": "FORM_FIELD_USERS", "field": "manager_id"},
+      "nodeKey": "projectManagerReview",
+      "rule": {"type": "FORM_FIELD_USERS", "field": "projectManagerId"},
       "selfApprovalAllowed": false,
       "actualApprovers": [111]
     }]
@@ -76,34 +80,74 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
 |---|---|
 | `processAdministratorUserId` | 当时（或将来）的流程管理员；不给则取不到人时结果为 `UNRESOLVED`，该节点落入 `DEFECT` |
 | `legacyFallbackUserIds` | 老代码里写死的兜底个人（RULE-254），用于识别 `REVIEWED_HARDCODED_FALLBACK` |
-| `snapshot.employees` | **老 `system_users` 当时的快照**：`employed=false` 表示停用 / 已删 / 离职；`leaderUserId` 是人员级直属领导（RULE-372） |
-| `snapshot.orgUnits` | **老 `system_dept` 当时的快照**：负责人、区域应收负责人（`ar_user_id`）、上级、是否有效 |
-| `snapshot.roleHolders` | 角色编码到持有人（`BU-002` 等；导出时把老 role id 换成角色编码） |
-| `instances[].formFields` | 业务表单字段（指派规则的 `field` 从这里取，如 `manager_id`） |
-| `instances[].variables` | 其余流程变量（指派规则的 `variable` / `department` 从这里取，如 `deliveryDeptId`） |
+| `snapshot.employees` | **老用户表当时的快照**：`employed=false` 表示停用 / 已删 / 离职；`supervisorUserId` 是人员级直属上级（RULE-372） |
+| `snapshot.orgUnits` | **老部门表当时的快照**：负责人、区域应收负责人、上级、是否有效 |
+| `snapshot.roleHolders` | 角色编码到持有人（导出时把老角色 id 换成新系统的角色编码；回放不写死任何老角色码） |
+| `instances[].formFields` | 业务表单字段（指派规则的 `field` 从这里取，如 `projectManagerId`） |
+| `instances[].variables` | 其余流程变量（指派规则的 `department` 可选地从这里取） |
 | `nodes[].rule` | 该节点的**唯一**指派规则（RULE-262）：`type` 加各类型的属性，词汇见下表 |
 | `nodes[].selfApprovalAllowed` | 老节点标了「员工活动」的写 `true`（RULE-307 豁免） |
-| `nodes[].actualApprovers` | 实际办理该节点的人（会签多人则都列出）；取自 `bpm_task_ext` 的办理人 |
+| `nodes[].actualApprovers` | 实际办理该节点的人（会签多人则都列出）；取自老系统任务扩展表的办理人 |
 
 缺省的布尔值按 `false` 处理，缺省的列表按空处理。
 
 ### 规则类型词汇（与 BPMN `forcitis:assignmentRule` 完全相同）
 
-| `type` | 属性 | 老系统对应 |
+1a 的目录只有四种，用户 2026-10-14 决定「保留 5 种、推迟 3 种、不建 2 种」（保留的第 5 种发起人节点随退回机制取消，见下）：
+
+| `type` | 属性 | 老系统对应 | 状态 |
+|---|---|---|---|
+| `ROLE` | `role`（角色编码） | 规则类型 10 | 保留 |
+| `FORM_FIELD_USERS` | `field`（词表字段名） | 类型 60（`options` 的第一个字段）；脚本 9 | 保留 |
+| `INITIATOR_SUPERVISOR` | `level`（1 或 2） | 脚本 20 / 21 | 保留 |
+| `DEPARTMENT_HEAD` | `department`（变量名，**可选**；不写 = 发起人所在组织单元） | 脚本 31 | 保留 |
+| `INITIATOR` | — | 脚本 10（发起人重做节点） | **已删**：「退回即结束本轮，重提开新一轮」，新系统没有发起人节点（M3） |
+
+**推迟**（实现与解析已删，规则卡保留；码表拒绝并报「deferred」，启动或部署失败）。时点依据 `runtime/prod_bpm.tsv` ##13 中生产当前版本的使用情况：
+
+| `type` | 规则卡 | 为什么推迟 / 何时建 |
 |---|---|---|
-| `ROLE` | `role`（角色编码） | 规则类型 10 |
-| `NAMED_USERS` | `users`（逗号分隔 ID） | 规则类型 30；类型 70（空节点）导出为老管理员 ID |
-| `FORM_FIELD_USERS` | `field` | 类型 60（`options` 的第一个字段）；脚本 9（`scriptField`） |
-| `FORM_FIELD_USER_LEADERS` | `field` | 脚本 33 |
-| `INITIATOR` | — | 脚本 10 |
-| `INITIATOR_LEADER` | `level`（1 或 2） | 脚本 20 / 21 |
-| `REGIONAL_RECEIVABLES_MANAGER` | `department`（变量名，缺省 `deliveryDeptId`） | 脚本 30 |
-| `DEPARTMENT_HEAD` | `department`（变量名；缺省为发起人所在部门） | 脚本 31 |
-| `DEPARTMENT_DIRECTOR` | `department` | 脚本 32 |
-| `PROCESS_VARIABLE_USERS` | `variable` | 引擎或钩子写入的变量 |
+| `REGIONAL_RECEIVABLES_MANAGER` | RULE-255 | 1a 不建。1b 报价（OPP_QUOTATION）与 Phase 2（PM_BUDGET）按规格建 |
+| `FORM_FIELD_USER_SUPERVISORS` | RULE-259/260 | 1a 不建。随 PM_ETC 所在的 Phase 2、PM_REVENUE 所在的 Phase 2/4（收入确认部分在 Phase 4）建 |
+| `DEPARTMENT_DIRECTOR` | RULE-256 | 生产中没有流程使用。需要时按新角色体系重新定义，不写死任何老角色码 |
+
+**不建**（码表拒绝并报「not offered」）：
+
+| `type` | 为什么不建 |
+|---|---|
+| `NAMED_USERS` | 生产当前版本无使用；用角色代替，符合 RULE-249「候选组」结论 |
+| `PROCESS_VARIABLE_USERS` | 老流程变量不得成为模块契约（H2）；生产中类型 60 的取人统一由 `FORM_FIELD_USERS` 加词表字段名承担 |
+
+BPMN 守护：`BpmnRuleConventionsTest` 检查每个流程文件（含测试变体）不出现这五种类型，也不出现发起人节点（`initiatorNode`、`skipExpression`）。
 
 老类型 20（部门成员）、22（岗位）、40（用户组）在生产 TIMESHEET 里没有使用（`runtime/prod_bpm.tsv` ##13），回放工具不支持；
 类型 21 按固定部门指派在 TIMESHEET 里也没有使用，出现时需要先扩充规则词汇。
+
+### 老名 → 新名转换表（回放读入时套用）
+
+| 老名 | 新名 | 位置 |
+|---|---|---|
+| `manager_id` | `projectManagerId` | 表单字段 / 规则的 `field`（项目经理；常量在 `cost.timesheet` 的 api：`TimesheetApprovalField.PROJECT_MANAGER`） |
+| `area_leader` | `regionalHeadId` | 同上（区域负责人；`TimesheetApprovalField.REGIONAL_HEAD`） |
+| `deliveryDeptId` | `deliveryUnitId` | 流程变量 / 规则的 `department` |
+| `INITIATOR_LEADER` | `INITIATOR_SUPERVISOR` | 规则类型 |
+| `leaderUserId` | `supervisorUserId` | 快照里员工的人员级直属上级 |
+| 规则类型 `INITIATOR`（脚本 10，发起人重做节点） | （不回放） | 该节点整个跳过，不计入节点数 |
+
+### TIMESHEET 当前生产版本与新流程（核对）
+
+生产当前定义 TIMESHEET:15（`runtime/prod_bpm.tsv` ##13）有 4 个节点；新流程 `cost_timesheet_approval` 的对应：
+
+| 老节点 | 老规则 | 新节点 | 新规则 |
+|---|---|---|---|
+| `Activity_19wn7op` | 脚本 10（发起人重做） | 无 | 退回即结束本轮，重提开新一轮 |
+| `Activity_0g7oxfy` | 类型 60，变量 `manager_id` | `projectManagerReview` | `FORM_FIELD_USERS`，字段 `projectManagerId` |
+| `Activity_01vbv92` | 类型 60，变量 `area_leader`（售前工时分支） | `regionalHeadReview` | `FORM_FIELD_USERS`，字段 `regionalHeadId`，仅当路由标记 `preSalesHours` 为真 |
+| `Activity_0hwqdkm` | 脚本 20（发起人的一级上级） | `supervisorReview` | `INITIATOR_SUPERVISOR`，`level=1` |
+
+老分支条件 `containsAny('manHourTypeList.type', 0)`（含售前类工时）在新 BPMN 中不照搬：由业务模块预先算好路由标记
+`preSalesHours`（`TimesheetRoutingFlag.PRE_SALES_HOURS`），BPMN 只读它。当前 BPMN 里的 `DEPARTMENT_HEAD` 节点与生产不符，已移除。
+节点顺序（项目经理 → 售前分支的区域负责人 → 一级上级）取自生产定义里节点的出现顺序，等用户确认。
 
 ## 执行步骤（本会话，Q-4 授权后）
 

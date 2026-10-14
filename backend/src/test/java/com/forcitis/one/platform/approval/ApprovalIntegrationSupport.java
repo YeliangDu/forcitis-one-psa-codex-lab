@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalHook;
@@ -144,7 +145,7 @@ public abstract class ApprovalIntegrationSupport {
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager) {
         return tx.execute(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, businessKey,
-                new UserId(initiator), Set.of(), List.of(new ApprovalField("manager_id", List.of(String.valueOf(manager)))))));
+                new UserId(initiator), Set.of(), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
     }
 
     protected Task openTask(ApprovalInstanceId instance) {

@@ -16,17 +16,20 @@ import org.springframework.stereotype.Component;
 
 /**
  * The read side other modules use. Every method is a plain read of the snapshot, except that an unknown WeCom user id
- * falls back to the single-person A8 lookup (RegisterEmployeeOnLogin). Implements the fixed OrgDirectory contract.
+ * falls back to the single-person source lookup (RegisterEmployeeOnLogin). Implements the fixed OrgDirectory contract.
  */
 @Component
 class OrgDirectoryService implements OrgDirectory {
 
     private final OrgSnapshotRepository snapshots;
     private final RegisterEmployeeOnLogin registerOnLogin;
+    private final RegisterEmployeeOnLoginName registerOnLoginName;
 
-    OrgDirectoryService(OrgSnapshotRepository snapshots, RegisterEmployeeOnLogin registerOnLogin) {
+    OrgDirectoryService(OrgSnapshotRepository snapshots, RegisterEmployeeOnLogin registerOnLogin,
+                        RegisterEmployeeOnLoginName registerOnLoginName) {
         this.snapshots = snapshots;
         this.registerOnLogin = registerOnLogin;
+        this.registerOnLoginName = registerOnLoginName;
     }
 
     @Override
@@ -38,6 +41,17 @@ class OrgDirectoryService implements OrgDirectory {
     public Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId) {
         return snapshots.findStaffByWecomUserId(wecomUserId)
                 .or(() -> registerOnLogin.execute(wecomUserId))
+                .map(OrgDirectoryService::profile);
+    }
+
+    @Override
+    public Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
+        if (loginName == null || loginName.isBlank()) {
+            return Optional.empty();
+        }
+        String key = loginName.trim();
+        return snapshots.findStaffByLoginName(key)
+                .or(() -> registerOnLoginName.execute(key))
                 .map(OrgDirectoryService::profile);
     }
 

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -7,6 +8,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.application.ApprovalError;
 import com.forcitis.one.platform.approval.application.ApprovalOperationException;
@@ -16,6 +18,7 @@ import com.forcitis.one.platform.approval.application.DecisionOutcome;
 import com.forcitis.one.platform.approval.application.DecisionResult;
 import com.forcitis.one.platform.approval.application.ReturnToInitiator;
 import com.forcitis.one.platform.approval.application.TaskDecision;
+import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import java.util.List;
 import org.flowable.engine.HistoryService;
 import org.flowable.task.api.Task;
@@ -38,6 +41,9 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
     @Autowired
     HistoryService history;
 
+    @Autowired
+    ApprovalRequestRepository requests;
+
     record Staff(long initiator, long manager, long head) {
     }
 
@@ -46,7 +52,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         long head = newId();
         long initiator = newId();
         long manager = newId();
-        organisation.unit(unit, null, head).person(head, unit, null).person(initiator, unit, null).person(manager, unit, null);
+        organisation.unit(unit, null, head).person(head, unit, null).person(initiator, unit, head).person(manager, unit, null);
         return new Staff(initiator, manager, head);
     }
 
@@ -63,10 +69,10 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         String key = newKey("lifecycle");
         ApprovalInstanceId instance = tx.execute(status -> approvals.start(new com.forcitis.one.platform.approval.api.ApprovalRequest(
                 com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(s.initiator()),
-                java.util.Set.of(), List.of(new com.forcitis.one.platform.approval.api.ApprovalField("manager_id",
+                java.util.Set.of(), List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
                         List.of(String.valueOf(s.manager()), String.valueOf(second)))))));
         Task task = openTask(instance);
-        assertThat(task.getTaskDefinitionKey()).isEqualTo("approverReview");
+        assertThat(task.getTaskDefinitionKey()).isEqualTo("projectManagerReview");
         assertThat(task.getAssignee()).isNull();
         assertThat(taskService.getIdentityLinksForTask(task.getId()).stream().map(l -> l.getUserId()).toList())
                 .containsExactlyInAnyOrder(String.valueOf(s.manager()), String.valueOf(second));
@@ -87,7 +93,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         assertThat(afterReview.status()).isEqualTo("RUNNING");
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
         Task department = openTask(instance);
-        assertThat(department.getTaskDefinitionKey()).isEqualTo("departmentReview");
+        assertThat(department.getTaskDefinitionKey()).isEqualTo("supervisorReview");
         assertThat(taskService.getIdentityLinksForTask(department.getId()).stream().map(l -> l.getUserId()).toList())
                 .containsExactly(String.valueOf(s.head()));
 
@@ -110,31 +116,43 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-271 a reject inside the sub-process returns to the initiator; RULE-267/301 the initiator resubmits and the approval continues")
-    void rejectInsideSubProcessReturnsToInitiator() {
+    @DisplayName("RULE-271 and M3 a reject inside the sub-process returns the approval: the round ends RETURNED, a resubmission opens round 2 with a new instance")
+    void rejectInsideSubProcessEndsTheRound() {
         Staff s = staff();
         String key = newKey("lifecycle");
-        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
+        ApprovalInstanceId first = start(key, s.initiator(), s.manager());
 
-        DecisionResult returned = decide(s.manager(), openTaskId(instance), DecisionOutcome.REJECT, "hours are wrong");
+        DecisionResult returned = decide(s.manager(), openTaskId(first), DecisionOutcome.REJECT, "hours are wrong");
         assertThat(returned.status()).isEqualTo("RETURNED");
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
-        assertThat(approvals.isFinished(instance)).isFalse();
-        Task rework = openTask(instance);
-        assertThat(rework.getTaskDefinitionKey()).isEqualTo("initiatorRework");
-        assertThat(taskService.getIdentityLinksForTask(rework.getId()).stream().map(l -> l.getUserId()).toList())
-                .containsExactly(String.valueOf(s.initiator()));
+        assertThat(approvals.isFinished(first)).as("the round is over").isTrue();
+        assertThat(taskService.createTaskQuery().processInstanceId(first.value()).count()).isZero();
+        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(first.value()).singleResult().getDeleteReason())
+                .isEqualTo("RETURNED");
+        eventually(() -> {
+            assertThat(events.resulted()).anySatisfy(e -> {
+                assertThat(e.businessKey()).isEqualTo(key);
+                assertThat(e.outcome()).isEqualTo(TaskOutcome.RETURNED);
+                assertThat(e.reason()).isEqualTo("hours are wrong");
+            });
+            assertThat(events.completed()).anySatisfy(e -> {
+                assertThat(e.businessKey()).isEqualTo(key);
+                assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
+                assertThat(e.round()).isEqualTo(1);
+                assertThat(e.reason()).isEqualTo("hours are wrong");
+            });
+        });
 
-        DecisionResult resumed = decide(s.initiator(), new ApprovalTaskId(rework.getId()), DecisionOutcome.APPROVE, "fixed");
-        assertThat(resumed.status()).isEqualTo("RUNNING");
+        ApprovalInstanceId second = start(key, s.initiator(), s.manager());
+
+        assertThat(second).isNotEqualTo(first);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
-        assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("approverReview");
-        eventually(() -> assertThat(events.resulted()).anySatisfy(e -> {
-            assertThat(e.businessKey()).isEqualTo(key);
-            assertThat(e.outcome()).isEqualTo(TaskOutcome.RETURNED);
-            assertThat(e.reason()).isEqualTo("hours are wrong");
-        }));
-        assertThat(events.completed()).noneMatch(e -> e.businessKey().equals(key));
+        assertThat(openTask(second).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
+        assertThat(requests.rounds(ProcessKey.COST_TIMESHEET_APPROVAL, key)).extracting(r -> r.round(), r -> r.instanceId())
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(1, first), org.assertj.core.groups.Tuple.tuple(2, second));
+        // the history of round 1 is still there, round by round
+        assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(first.value()).count()).isEqualTo(1);
+        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(first.value()).count()).isEqualTo(1);
     }
 
     @Test
@@ -158,7 +176,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-275 return to initiator needs a reason; with a reason the approval is parked at the initiator, alive")
+    @DisplayName("RULE-275 return to initiator needs a reason; with a reason the round ends RETURNED and nothing is parked")
     void returnNeedsAReason() {
         Staff s = staff();
         String key = newKey("lifecycle");
@@ -168,12 +186,17 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         assertThatThrownBy(() -> returnToInitiator.execute(review, new UserId(s.manager()), " "))
                 .isInstanceOfSatisfying(ApprovalOperationException.class,
                         e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
-        assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("approverReview");
+        assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
 
         DecisionResult result = returnToInitiator.execute(review, new UserId(s.manager()), "missing attachment");
         assertThat(result.status()).isEqualTo("RETURNED");
-        assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("initiatorRework");
+        assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).count()).isZero();
+        assertThat(approvals.isFinished(instance)).isTrue();
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
+        eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
+            assertThat(e.businessKey()).isEqualTo(key);
+            assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
+        }));
     }
 
     @Test
@@ -204,22 +227,6 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-272 the initiator's rework task can only be resubmitted, never rejected")
-    void initiatorTaskOnlyResubmits() {
-        Staff s = staff();
-        ApprovalInstanceId instance = start(newKey("lifecycle"), s.initiator(), s.manager());
-        decide(s.manager(), openTaskId(instance), DecisionOutcome.REJECT, "again");
-        ApprovalTaskId rework = openTaskId(instance);
-
-        assertThatThrownBy(() -> decide(s.initiator(), rework, DecisionOutcome.REJECT, "no"))
-                .isInstanceOfSatisfying(ApprovalOperationException.class,
-                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_INITIATOR_TASK_RESUBMIT_ONLY));
-        assertThatThrownBy(() -> returnToInitiator.execute(rework, new UserId(s.initiator()), "no"))
-                .isInstanceOfSatisfying(ApprovalOperationException.class,
-                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_INITIATOR_TASK_RESUBMIT_ONLY));
-    }
-
-    @Test
     @DisplayName("RULE-295/303/304/312 a failing listener leaves the publication incomplete; resubmitting delivers it again (at least once)")
     void resultEventsAreDeliveredAtLeastOnce(@Autowired org.springframework.modulith.events.IncompleteEventPublications incomplete) {
         Staff s = staff();
@@ -230,7 +237,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
 
         eventually(() -> assertThat(events.failedOnce()).contains(key));
         assertThat(events.completed()).noneMatch(e -> e.businessKey().equals(key));
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.event_publication where completion_date is null",
+        assertThat(jdbc.queryForObject("select count(*) from platform_integration.event_publication where completion_date is null",
                 Integer.class)).isGreaterThanOrEqualTo(1);
 
         incomplete.resubmitIncompletePublications(p -> true);

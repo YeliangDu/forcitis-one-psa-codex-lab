@@ -6,7 +6,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.Objects;
 
 /**
- * One person as read from the A8 view and interpreted by the shared mapper (bulk sync and single-person lookup use
+ * One person as read from the source view and interpreted by the shared mapper (bulk sync and single-person lookup use
  * the same mapper). positionId, leaderId, loginName, wecomUserId may be null. loginName is trimmed; blank means none.
  */
 public record SourceMember(UserId userId, String employeeCode, String displayName, OrgUnitId orgUnitId,

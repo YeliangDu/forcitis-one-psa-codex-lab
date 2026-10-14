@@ -14,7 +14,7 @@ import org.springframework.test.context.event.RecordApplicationEvents;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Whole-application context on PostgreSQL 18 with in-memory A8 / old-system stand-ins and a mocked audit trail
+ * Whole-application context on PostgreSQL 18 with in-memory the source / old-system stand-ins and a mocked audit trail
  * (platform.audit is a separate module). One container for all workforce integration tests: they share one
  * Spring context, and every test starts from empty snapshot tables.
  */
@@ -44,7 +44,7 @@ public abstract class WorkforceIntegrationSupport {
     protected JdbcClient jdbc;
 
     @Autowired
-    protected FakeOrgSource a8;
+    protected FakeOrgSource orgSource;
 
     @Autowired
     protected FakeShortNameSource oldSystem;
@@ -56,9 +56,10 @@ public abstract class WorkforceIntegrationSupport {
                        organization_workforce.assignments, organization_workforce.employees,
                        organization_workforce.org_units, organization_workforce.positions restart identity cascade
                 """).update();
-        a8.unavailable = false;
-        a8.singleLookupResult = java.util.List.of();
-        a8.singleLookups.set(0);
+        orgSource.unavailable = false;
+        orgSource.failure = null;
+        orgSource.singleLookupResult = java.util.List.of();
+        orgSource.singleLookups.set(0);
         oldSystem.unavailable = false;
         oldSystem.names = java.util.Map.of();
     }

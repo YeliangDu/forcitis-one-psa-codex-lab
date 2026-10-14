@@ -23,7 +23,7 @@ public final class OrgReconciliation {
         Map<OrgUnitId, OrgUnit> expectedUnits = new OrgSnapshot(expected.orgUnits(), List.of(), List.of()).orgUnitsById();
         Map<UserId, StaffMember> expectedStaff = new OrgSnapshot(List.of(), List.of(), expected.staff()).staffById();
 
-        // The snapshot keeps revoked units; they are not part of what A8 returns.
+        // The snapshot keeps revoked units; they are not part of what the source returns.
         Map<OrgUnitId, OrgUnit> actualUnits = new java.util.LinkedHashMap<>();
         snapshot.orgUnits().stream().filter(u -> u.status() != OrgUnitStatus.REVOKED).forEach(u -> actualUnits.put(u.orgUnitId(), u));
         Map<UserId, StaffMember> actualStaff = snapshot.staffById();

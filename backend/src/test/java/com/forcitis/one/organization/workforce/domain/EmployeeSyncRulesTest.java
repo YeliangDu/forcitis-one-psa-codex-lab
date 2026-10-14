@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import static com.forcitis.one.organization.workforce.domain.Fixtures.ROOT;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.apply;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.employed;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.first;
@@ -26,7 +25,7 @@ class EmployeeSyncRulesTest {
     // ---------------------------------------------------------------- RULE-362 / 363 / 364
 
     @Test
-    @DisplayName("RULE-362 a new A8 person is registered with the A8 id and the WeCom user id from the first sync")
+    @DisplayName("RULE-362 a new person is registered with the source id and the WeCom user id from the first sync")
     void newPersonIsCreatedWithWecomUserId() {
         Reconciliation changes = first(tree(member(2001, 2, 100L, null, "13900000000", "wx-2001")));
 
@@ -72,7 +71,7 @@ class EmployeeSyncRulesTest {
     }
 
     @Test
-    @DisplayName("RULE-364 rehire: A8 gives a login name again, the employee is employed again")
+    @DisplayName("RULE-364 rehire: the source gives a login name again, the employee is employed again")
     void rehireRestoresTheEmployee() {
         OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(member(2001, 2, 100L, null, null, "wx-2001"))));
         assertThat(employed(staff(v1, 2001))).isFalse();
@@ -88,7 +87,7 @@ class EmployeeSyncRulesTest {
     // ---------------------------------------------------------------- RULE-365
 
     @Test
-    @DisplayName("RULE-365 A8-authoritative columns are synced by value, an emptied leader and e-mail are written as empty")
+    @DisplayName("RULE-365 source-authoritative columns are synced by value, an emptied leader and e-mail are written as empty")
     void explicitNullsAreWritten() {
         SourceMember boss = member(1000, 2, 100L, null);
         SourceMember withLeader = member(2001, 2, 100L, 1000L);
@@ -131,7 +130,7 @@ class EmployeeSyncRulesTest {
     // ---------------------------------------------------------------- RULE-366
 
     @Test
-    @DisplayName("RULE-366 an employee who drops out of the A8 result set is a leaver candidate and is separated once")
+    @DisplayName("RULE-366 an employee who drops out of the source result set is a leaver candidate and is separated once")
     void missingPersonBecomesSeparated() {
         OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(member(1, 2, 100L, null), member(2001, 2, 100L, null))));
 
@@ -149,12 +148,12 @@ class EmployeeSyncRulesTest {
     // ---------------------------------------------------------------- RULE-367
 
     @Test
-    @DisplayName("RULE-367 positions: new ones are added, disabled and deleted ones follow A8, ones no longer returned are deleted")
-    void positionStatusFollowsA8() {
+    @DisplayName("RULE-367 positions: new ones are added, disabled and deleted ones follow the source, ones no longer returned are deleted")
+    void positionStatusFollowsTheSource() {
         OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree()));
         assertThat(v1.positionsById().get(new PositionId(100)).status()).isEqualTo(PositionStatus.ACTIVE);
 
-        SourceSnapshot next = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001"), unit(3, ROOT + "00010001")), List.of(),
+        SourceSnapshot next = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(),
                 List.of(post(100, PositionStatus.DISABLED), post(102)), List.of());
         Reconciliation changes = SnapshotReconciler.reconcile(v1, next);
         OrgSnapshot v2 = apply(v1, changes);
@@ -239,14 +238,14 @@ class EmployeeSyncRulesTest {
     @DisplayName("RULE-373 a unit's head change reaches the event; revocation is announced once and never repeated")
     void orgUnitEventsAreNotRepeated() {
         OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(member(801, 2, 100L, null))));
-        SourceSnapshot withHead = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001"), unit(3, ROOT + "00010001")),
+        SourceSnapshot withHead = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)),
                 List.of(Fixtures.head(2, 801)), List.of(post(100), post(101)), List.of(member(801, 2, 100L, null)));
 
         Reconciliation headChange = SnapshotReconciler.reconcile(v1, withHead);
         assertThat(headChange.changedOrgUnits()).containsExactly(Fixtures.unitId(2));
 
         OrgSnapshot v2 = apply(v1, headChange);
-        SourceSnapshot gone = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001")), List.of(Fixtures.head(2, 801)),
+        SourceSnapshot gone = source(List.of(unit(1, null), unit(2, 1L)), List.of(Fixtures.head(2, 801)),
                 List.of(post(100), post(101)), List.of(member(801, 2, 100L, null)));
         Reconciliation revoke = SnapshotReconciler.reconcile(v2, gone);
         assertThat(revoke.changedOrgUnits()).containsExactly(Fixtures.unitId(3));

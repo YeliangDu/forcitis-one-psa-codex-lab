@@ -1,0 +1,342 @@
+package com.forcitis.one.platform.integration.infrastructure.seeyon;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.forcitis.one.kernel.ExternalSourceBrokenException;
+import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.SourceGender;
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+import com.forcitis.one.platform.integration.api.SourceOrgUnit;
+import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.platform.integration.api.SourcePersonId;
+import com.forcitis.one.platform.integration.api.SourceRecordState;
+import com.forcitis.one.platform.integration.api.SourceRegionKind;
+import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
+import com.forcitis.one.platform.integration.api.SourceUnitId;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * The Seeyon anti-corruption layer against stand-in tables that carry the view names (PostgreSQL). The SQL constants are
+ * ANSI enough to run here; no real Seeyon database is ever contacted. The SQL Server specifics (INFORMATION_SCHEMA
+ * permissions, ownership chaining, write denial) are covered by SeeyonViewsMssqlIT under the legacy-it profile.
+ */
+@Testcontainers
+class SeeyonViewsOnPostgresTest {
+
+    static final String HEAD_TYPE = "-1726439953579618944";
+    static final String MANAGER_TYPE = "-8187907605834545337";
+    static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "YES-DELIVERY", "YES-FEE");
+
+    @Container
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18");
+
+    static JdbcClient admin;
+    static ReadOnlyConnection connection;
+    static SeeyonOrgSource source;
+
+    @BeforeAll
+    static void connect() {
+        admin = JdbcClient.create(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
+        connection = ReadOnlyConnection.open("test-seeyon", postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        source = new SeeyonOrgSource(connection.jdbc(), MAPPING);
+    }
+
+    @AfterAll
+    static void close() {
+        connection.close();
+    }
+
+    @BeforeEach
+    void createStandInViews() {
+        admin.sql("drop schema if exists forcitis_one cascade").update();
+        admin.sql("create schema forcitis_one").update();
+        admin.sql("""
+                create table forcitis_one.v_org_unit (ID bigint, CODE varchar(32), NAME varchar(64), SORT_ID int, PATH varchar(64),
+                    IS_DELETED int, IS_INTERNAL int, IS_ENABLE int, CATEGORY varchar(32), DELIVERY_FLAG_ENUM_ID varchar(32))
+                """).update();
+        admin.sql("create table forcitis_one.v_org_relationship (SOURCE_MEMBER_ID bigint, ORG_UNIT_ID bigint, RELATIONSHIP_TYPE_ID bigint, MEMBER_IS_DELETED int)").update();
+        admin.sql("create table forcitis_one.v_org_post (ID bigint, CODE varchar(32), NAME varchar(64), SORT_ID int, STATUS int, IS_DELETED int)").update();
+        admin.sql("""
+                create table forcitis_one.v_org_member (ID bigint, NAME varchar(64), CODE varchar(32), ORG_UNIT_ID bigint,
+                    ORG_UNIT_PATH varchar(64), POST_ID bigint, LEADER_MEMBER_ID bigint, WE_COM_ID varchar(64), IS_INTERNAL int,
+                    LOGIN_NAME varchar(64), ENTERPRISE_EMAIL varchar(128), GENDER varchar(8), FEE_EARNER_ENUM_ID varchar(32))
+                """).update();
+    }
+
+    private void unit(long id, String path, Integer deleted, Integer internal, Integer enabled, String category, String delivery) {
+        admin.sql("insert into forcitis_one.v_org_unit values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                .params(id, "C" + id, "Unit " + id, 1, path, deleted, internal, enabled, category, delivery).update();
+    }
+
+    private void member(long id, Long unit, String path, String code, Integer internal, String login, String wecom) {
+        admin.sql("insert into forcitis_one.v_org_member values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                .params(id, "Person " + id, code, unit, path, 100L, null, wecom, internal, login, "p@example.test", "男", "YES-FEE").update();
+    }
+
+    @Test
+    @DisplayName("RULE-355 NULL flags count as valid and are named by role; deleted, not internal or not enabled disable")
+    void flagsDecideActiveOrDisabled() {
+        unit(1, "00000001", 0, 1, 1, null, null);
+        unit(2, "000000010001", 1, 1, 1, null, null);
+        unit(3, "000000010002", 0, 0, 1, null, null);
+        unit(4, "000000010003", 0, 1, 0, null, null);
+        unit(5, "000000010004", null, null, null, null, null);
+
+        Map<Long, SourceOrgUnit> units = byId(source.readSnapshot().units());
+
+        assertThat(units.get(1L).state()).isEqualTo(SourceRecordState.ACTIVE);
+        assertThat(units.get(2L).state()).isEqualTo(SourceRecordState.DISABLED);
+        assertThat(units.get(3L).state()).isEqualTo(SourceRecordState.DISABLED);
+        assertThat(units.get(4L).state()).isEqualTo(SourceRecordState.DISABLED);
+        assertThat(units.get(5L).state()).isEqualTo(SourceRecordState.ACTIVE);
+        assertThat(units.get(5L).emptyFlags()).containsExactly("deleted", "internal", "enabled");
+        assertThat(units.get(1L).emptyFlags()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("RULE-354 the hierarchy encoding stays inside: the adapter hands out parent ids, root first, children after parents")
+    void parentIdsReplaceThePaths() {
+        unit(3, "000000010001", 0, 1, 1, null, null);
+        unit(2, "00000001", 0, 1, 1, null, null);
+        unit(4, "0000000100010001", 0, 1, 1, null, null);
+
+        List<SourceOrgUnit> units = source.readSnapshot().units();
+
+        assertThat(units).extracting(u -> u.unitId().value()).containsExactly(2L, 3L, 4L);
+        assertThat(units).extracting(u -> u.parentUnitId() == null ? null : u.parentUnitId().value()).containsExactly(null, 2L, 3L);
+    }
+
+    @Test
+    @DisplayName("RULE-354 a unit whose parent is missing breaks the tree: the whole read is rejected, nothing is handed out")
+    void brokenTreeIsRejected() {
+        unit(2, "00000001", 0, 1, 1, null, null);
+        unit(4, "0000000100010001", 0, 1, 1, null, null);
+
+        assertThatThrownBy(source::readSnapshot).isInstanceOf(ExternalSourceBrokenException.class)
+                .hasMessageContaining("org unit 4").hasMessageContaining("no parent");
+    }
+
+    @Test
+    @DisplayName("RULE-354 only the subtree below the root is read; RULE-361 people use the same prefix rule")
+    void scopeIsThePathPrefixForUnitsAndPeople() {
+        unit(1, "00000001", 0, 1, 1, null, null);
+        unit(2, "00000002", 0, 1, 1, null, null);
+        member(10, 1L, "00000001", "E10", 1, "13900000010", "wx-10");
+        member(11, 2L, "00000002", "E11", 1, "13900000011", "wx-11");
+        member(12, 1L, "00000001", "E12", 0, "13900000012", "wx-12");
+        member(13, 1L, "00000001", "", 1, "13900000013", "wx-13");
+        member(14, 1L, "00000001", null, 1, "13900000014", "wx-14");
+        member(15, null, null, "E15", 1, "13900000015", "wx-15");
+
+        SourceOrgSnapshot snapshot = source.readSnapshot();
+
+        assertThat(snapshot.units()).extracting(u -> u.unitId().value()).containsExactly(1L);
+        assertThat(snapshot.staff()).extracting(m -> m.personId().value()).containsExactly(10L);
+    }
+
+    @Test
+    @DisplayName("RULE-356 only the configured relationship types are read; the type ids are configuration, not code")
+    void relationshipTypesComeFromConfiguration() {
+        unit(1, "00000001", 0, 1, 1, null, null);
+        admin.sql("insert into forcitis_one.v_org_relationship values (801, 1, " + HEAD_TYPE + ", 0)").update();
+        admin.sql("insert into forcitis_one.v_org_relationship values (802, 1, " + MANAGER_TYPE + ", 0)").update();
+        admin.sql("insert into forcitis_one.v_org_relationship values (803, 1, 12345, 0)").update();
+        admin.sql("insert into forcitis_one.v_org_relationship values (804, 1, " + HEAD_TYPE + ", 1)").update();
+
+        var relationships = source.readSnapshot().relationships();
+
+        assertThat(relationships).extracting(r -> r.personId().value()).containsExactlyInAnyOrder(801L, 802L, 804L);
+        assertThat(relationships).filteredOn(r -> r.personId().value() == 801).singleElement()
+                .satisfies(r -> assertThat(r.kind()).isEqualTo(SourceRelationshipKind.UNIT_HEAD));
+        assertThat(relationships).filteredOn(r -> r.personId().value() == 802).singleElement()
+                .satisfies(r -> assertThat(r.kind()).isEqualTo(SourceRelationshipKind.REGIONAL_RECEIVABLES_MANAGER));
+        assertThat(relationships).filteredOn(r -> r.personId().value() == 804).singleElement()
+                .satisfies(r -> assertThat(r.personDeleted()).isTrue());
+
+        SeeyonOrgSource otherInstance = new SeeyonOrgSource(connection.jdbc(), new SeeyonMapping(1, 2, "x", "y"));
+        assertThat(otherInstance.readSnapshot().relationships()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("RULE-356 region kind, delivery marker and fee-earner marker are resolved with the configured enum ids")
+    void markersUseConfiguredEnumIds() {
+        unit(1, "00000001", 0, 1, 1, "总部", "YES-DELIVERY");
+        unit(2, "000000010001", 0, 1, 1, "区域", "other");
+        unit(3, "000000010002", 0, 1, 1, "somewhere", null);
+        member(10, 1L, "00000001", "E10", 1, "13900000010", "wx-10");
+        admin.sql("update forcitis_one.v_org_member set FEE_EARNER_ENUM_ID = 'NO'").update();
+
+        SourceOrgSnapshot snapshot = source.readSnapshot();
+        Map<Long, SourceOrgUnit> units = byId(snapshot.units());
+
+        assertThat(units.get(1L).regionKind()).isEqualTo(SourceRegionKind.HEADQUARTERS);
+        assertThat(units.get(1L).deliveryUnit()).isTrue();
+        assertThat(units.get(2L).regionKind()).isEqualTo(SourceRegionKind.REGIONAL);
+        assertThat(units.get(2L).deliveryUnit()).isFalse();
+        assertThat(units.get(3L).regionKind()).isNull();
+        assertThat(units.get(3L).rawRegion()).isEqualTo("somewhere");
+        assertThat(snapshot.staff().getFirst().feeEarner()).isFalse();
+    }
+
+    @Test
+    @DisplayName("RULE-367 deleted and disabled positions are read too, so the snapshot can follow them")
+    void positionsIncludeDeletedAndDisabled() {
+        admin.sql("insert into forcitis_one.v_org_post values (1, 'P1', 'Active', 1, 0, 0)").update();
+        admin.sql("insert into forcitis_one.v_org_post values (2, 'P2', 'Disabled', 2, 1, 0)").update();
+        admin.sql("insert into forcitis_one.v_org_post values (3, 'P3', 'Deleted', 3, 0, 1)").update();
+        admin.sql("insert into forcitis_one.v_org_post values (4, 'P4', 'No flags', 4, null, null)").update();
+
+        var positions = source.readSnapshot().positions();
+
+        assertThat(positions).extracting(p -> p.positionId().value(), p -> p.state())
+                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple(1L, SourceRecordState.ACTIVE),
+                        org.assertj.core.groups.Tuple.tuple(2L, SourceRecordState.DISABLED),
+                        org.assertj.core.groups.Tuple.tuple(3L, SourceRecordState.DELETED),
+                        org.assertj.core.groups.Tuple.tuple(4L, SourceRecordState.ACTIVE));
+    }
+
+    @Test
+    @DisplayName("single-person lookups (by WeCom id and by login name) and the full read share one view, one scope and one mapper")
+    void singleLookupsUseTheSameMapperAndScope() {
+        unit(1, "00000001", 0, 1, 1, null, null);
+        member(10, 1L, "00000001", "E10", 1, "13900000010", "wx-10");
+        member(11, 1L, "00000001", "E11", 1, null, "wx-11");
+        member(12, 1L, "00000001", "E12", 0, "13900000012", "wx-12");
+
+        SourceOrgSnapshot all = source.readSnapshot();
+        List<SourcePerson> byWecom = source.findStaffByWecomUserId(new WecomUserId("wx-10"));
+        List<SourcePerson> byLogin = source.findStaffByLoginName("13900000010");
+
+        SourcePerson expected = all.staff().stream().filter(m -> m.personId().equals(new SourcePersonId(10))).findFirst().orElseThrow();
+        assertThat(byWecom).singleElement().isEqualTo(expected);
+        assertThat(byLogin).singleElement().isEqualTo(expected);
+        assertThat(byWecom.getFirst().gender()).isEqualTo(SourceGender.MALE);
+        assertThat(byWecom.getFirst().unitId()).isEqualTo(new SourceUnitId(1));
+        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-11"))).singleElement()
+                .satisfies(m -> assertThat(m.loginName()).isNull());
+        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-12"))).as("out of scope: not internal").isEmpty();
+        assertThat(source.findStaffByLoginName("13900000012")).as("out of scope: not internal").isEmpty();
+        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-none"))).isEmpty();
+        assertThat(source.findStaffByLoginName("nobody")).isEmpty();
+    }
+
+    // ---------------------------------------------------------------- the startup check (columns EQUAL the whitelist)
+
+    private static SeeyonSchemaInspector inspector(List<String> excessive) {
+        JdbcSeeyonSchemaInspector real = new JdbcSeeyonSchemaInspector(connection.jdbc());
+        return new SeeyonSchemaInspector() {
+            @Override
+            public Map<String, Set<String>> viewColumns() {
+                return real.viewColumns();
+            }
+
+            @Override
+            public int countRelationshipsOfType(long relationshipTypeId) {
+                return real.countRelationshipsOfType(relationshipTypeId);
+            }
+
+            @Override
+            public int countDeliveryUnitsMarked(String enumId) {
+                return real.countDeliveryUnitsMarked(enumId);
+            }
+
+            @Override
+            public int countFeeEarnersMarked(String enumId) {
+                return real.countFeeEarnersMarked(enumId);
+            }
+
+            @Override
+            public List<String> excessivePermissions() {
+                return excessive;
+            }
+        };
+    }
+
+    private void seedValidData() {
+        unit(1, "00000001", 0, 1, 1, "总部", "YES-DELIVERY");
+        member(10, 1L, "00000001", "E10", 1, "13900000010", "wx-10");
+        admin.sql("insert into forcitis_one.v_org_relationship values (801, 1, " + HEAD_TYPE + ", 0)").update();
+        admin.sql("insert into forcitis_one.v_org_relationship values (802, 1, " + MANAGER_TYPE + ", 0)").update();
+    }
+
+    @Test
+    @DisplayName("§9a the columns visible in the view schema equal the whitelist: the check passes only then")
+    void startupCheckPassesWhenColumnsEqualTheWhitelist() {
+        seedValidData();
+
+        assertThat(new SeeyonStartupCheck(inspector(List.of()), MAPPING).problems()).isEmpty();
+        new SeeyonStartupCheck(inspector(List.of()), MAPPING).afterSingletonsInstantiated();
+    }
+
+    @Test
+    @DisplayName("§9a an extra column (say a birthday) is refused, not tolerated")
+    void startupCheckRefusesAnExtraColumn() {
+        seedValidData();
+        admin.sql("alter table forcitis_one.v_org_member add column BIRTHDAY date").update();
+
+        SeeyonStartupCheck check = new SeeyonStartupCheck(inspector(List.of()), MAPPING);
+
+        assertThat(check.problems()).anyMatch(p -> p.contains("V_ORG_MEMBER") && p.contains("outside the whitelist") && p.contains("BIRTHDAY"));
+        assertThatThrownBy(check::afterSingletonsInstantiated).isInstanceOf(IllegalStateException.class).hasMessageContaining("BIRTHDAY");
+    }
+
+    @Test
+    @DisplayName("§9a a missing column, a missing view and an extra object in the view schema are all refused")
+    void startupCheckRefusesMissingAndExtraObjects() {
+        seedValidData();
+        admin.sql("alter table forcitis_one.v_org_unit drop column PATH").update();
+        admin.sql("drop table forcitis_one.v_org_post").update();
+        admin.sql("create table forcitis_one.contract_values (ID bigint)").update();
+
+        List<String> problems = new SeeyonStartupCheck(inspector(List.of()), MAPPING).problems();
+
+        assertThat(problems).anyMatch(p -> p.contains("V_ORG_UNIT") && p.contains("lacks") && p.contains("PATH"));
+        assertThat(problems).anyMatch(p -> p.contains("V_ORG_POST") && p.contains("is missing"));
+        assertThat(problems).anyMatch(p -> p.contains("CONTRACT_VALUES") && p.contains("not a whitelisted view"));
+    }
+
+    @Test
+    @DisplayName("RULE-356 configured relationship type ids and enum ids that do not exist in the data stop the start-up")
+    void startupCheckVerifiesTheConfiguredIds() {
+        seedValidData();
+
+        List<String> problems = new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(1, 2, "NO-SUCH-DELIVERY", "NO-SUCH-FEE")).problems();
+
+        assertThat(problems).anyMatch(p -> p.contains("configured head type 1"));
+        assertThat(problems).anyMatch(p -> p.contains("regional receivables manager type 2"));
+        assertThat(problems).anyMatch(p -> p.contains("delivery-unit 'yes' enum id"));
+        assertThat(problems).anyMatch(p -> p.contains("fee-earner 'yes' enum id"));
+        assertThat(new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(0, 0, "", null)).problems())
+                .anyMatch(p -> p.contains("head-relationship-type-id is not configured"))
+                .anyMatch(p -> p.contains("delivery-unit-yes-enum-id is not configured"));
+    }
+
+    @Test
+    @DisplayName("§9a an account with write or database-wide read permissions stops the start-up")
+    void startupCheckRefusesAnAccountThatCanWrite() {
+        seedValidData();
+
+        assertThat(new SeeyonStartupCheck(inspector(List.of("INSERT", "SELECT")), MAPPING).problems())
+                .anyMatch(p -> p.contains("must not have") && p.contains("INSERT"));
+    }
+
+    private static Map<Long, SourceOrgUnit> byId(List<SourceOrgUnit> units) {
+        Map<Long, SourceOrgUnit> byId = new HashMap<>();
+        units.forEach(u -> byId.put(u.unitId().value(), u));
+        return byId;
+    }
+}
