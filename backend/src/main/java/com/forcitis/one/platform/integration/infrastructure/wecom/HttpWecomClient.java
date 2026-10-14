@@ -12,6 +12,7 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
+import com.forcitis.one.kernel.WorkContext;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -169,7 +170,10 @@ class HttpWecomClient implements WecomClient {
         return URI.create(out.toString());
     }
 
-    private JsonNode execute(HttpRequest request) {
+    private JsonNode execute(HttpRequest original) {
+        HttpRequest.Builder traced = HttpRequest.newBuilder(original, (name, value) -> true);
+        WorkContext.correlationId().ifPresent(id -> traced.header(WorkContext.HEADER, id.toString()));
+        HttpRequest request = traced.build();
         try {
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() != 200) {

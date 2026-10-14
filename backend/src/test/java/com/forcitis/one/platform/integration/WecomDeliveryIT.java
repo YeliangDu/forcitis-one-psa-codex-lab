@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -423,14 +424,32 @@ class WecomDeliveryIT {
 
         assertThat(first.attemptCount()).isEqualTo(1);
         assertThat(second.attemptCount()).isEqualTo(2);
-        assertThat(repository.markSent(first, "stale-code", now)).isFalse();
-        assertThat(repository.markRetry(first, now, "stale")).isFalse();
-        assertThat(repository.markDeadLetter(first, "stale")).isFalse();
-        assertThat(repository.markSkipped(first, "stale")).isFalse();
+        first.markSent("stale-code", now);
+        assertThat(repository.save(first)).isFalse();
+        var retried = repository.findByKey("approval-task:18").orElseThrow();
+        assertThat(retried.attemptCount()).isEqualTo(2);
+        var staleRetry = claimedAs(first);
+        staleRetry.scheduleRetry(now, "stale");
+        assertThat(repository.save(staleRetry)).isFalse();
+        var staleDead = claimedAs(first);
+        staleDead.deadLetter("stale");
+        assertThat(repository.save(staleDead)).isFalse();
+        var staleSkip = claimedAs(first);
+        staleSkip.skip("stale");
+        assertThat(repository.save(staleSkip)).isFalse();
         assertThat(row("approval-task:18")).containsEntry("status", "PENDING").containsEntry("attempt_count", 2);
-        assertThat(repository.markSent(second, "rc-18", now)).isTrue();
-        assertThat(repository.markSent(second, "again", now)).as("already sent").isFalse();
+        second.markSent("rc-18", now);
+        assertThat(repository.save(second)).isTrue();
+        var again = repository.findByKey("approval-task:18").orElseThrow();
+        assertThatThrownBy(() -> again.markSent("again", now)).as("already sent").isInstanceOf(DomainException.class);
         assertThat(row("approval-task:18")).containsEntry("status", "SENT").containsEntry("response_code", "rc-18");
+    }
+
+    private static com.forcitis.one.platform.integration.domain.OutboundDelivery claimedAs(
+            com.forcitis.one.platform.integration.domain.OutboundDelivery claim) {
+        return com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(claim.deliveryId(), claim.deduplicationKey(),
+                claim.recipients(), claim.title(), claim.description(), claim.targetUrl(), "PENDING", claim.attemptCount(), null, null,
+                claim.kind(), claim.targetKey(), claim.correlationId(), claim.version());
     }
 
     @Test

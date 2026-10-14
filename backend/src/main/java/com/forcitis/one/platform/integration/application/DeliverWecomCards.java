@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.integration.application;
 
+import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.integration.domain.DeliveryKind;
 import com.forcitis.one.platform.integration.domain.OutboundDelivery;
 import com.forcitis.one.platform.integration.domain.OutboundDeliveryRepository;
@@ -10,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -48,6 +51,13 @@ public class DeliverWecomCards {
     }
 
     private void deliver(OutboundDelivery delivery) {
+        UUID correlationId = delivery.correlationId() != null ? delivery.correlationId() : Uuids.timeOrdered(clock);
+        try (WorkContext.Scope scope = WorkContext.enter(correlationId, null, WorkContext.systemActor().orElse("platform.integration.wecom.delivery"))) {
+            deliverInContext(delivery);
+        }
+    }
+
+    private void deliverInContext(OutboundDelivery delivery) {
         try {
             if (delivery.kind() == DeliveryKind.HANDLED_NOTE) {
                 replaceCard(delivery);
@@ -61,16 +71,18 @@ public class DeliverWecomCards {
 
     private void sendCard(OutboundDelivery delivery) {
         if (delivery.handledNote() != null) {
+            delivery.skip("handled before it was delivered");
             transaction.executeWithoutResult(status -> {
-                if (deliveries.markSkipped(delivery, "handled before it was delivered")) {
+                if (deliveries.save(delivery)) {
                     deliveries.recordHandledResult(delivery.deduplicationKey(), "NOT_APPLIED: handled before it was delivered");
                 }
             });
             return;
         }
         Optional<String> responseCode = wecom.sendCard(delivery);
+        delivery.markSent(responseCode.orElse(null), clock.instant());
         transaction.executeWithoutResult(status -> {
-            if (deliveries.markSent(delivery, responseCode.orElse(null), clock.instant())) {
+            if (deliveries.save(delivery)) {
                 handled.afterSent(delivery.deduplicationKey());
             } else {
                 staleClaim(delivery);
@@ -81,16 +93,18 @@ public class DeliverWecomCards {
     private void replaceCard(OutboundDelivery delivery) {
         OutboundDelivery card = deliveries.findByKey(delivery.targetKey()).orElse(null);
         if (card == null || card.responseCode() == null) {
+            delivery.skip("the card to replace has no response code");
             transaction.executeWithoutResult(status -> {
-                if (deliveries.markSkipped(delivery, "the card to replace has no response code")) {
+                if (deliveries.save(delivery)) {
                     deliveries.recordHandledResult(delivery.targetKey(), "NOT_APPLIED: the card has no response code");
                 }
             });
             return;
         }
         wecom.replaceWithHandledNote(card, delivery.description());
+        delivery.markSent(null, clock.instant());
         transaction.executeWithoutResult(status -> {
-            if (deliveries.markSent(delivery, null, clock.instant())) {
+            if (deliveries.save(delivery)) {
                 deliveries.recordHandledResult(delivery.targetKey(), "UPDATED");
             } else {
                 staleClaim(delivery);
@@ -104,14 +118,16 @@ public class DeliverWecomCards {
         if (next.isPresent()) {
             log.warn("WeCom delivery {} attempt {} failed, retry at {}: {}", delivery.deduplicationKey(), delivery.attemptCount(),
                     next.get(), error);
-            if (!deliveries.markRetry(delivery, next.get(), error)) {
+            delivery.scheduleRetry(next.get(), error);
+            if (!deliveries.save(delivery)) {
                 staleClaim(delivery);
             }
             return;
         }
         log.error("WeCom delivery {} is a dead letter after {} attempts: {}", delivery.deduplicationKey(), delivery.attemptCount(), error);
+        delivery.deadLetter(error);
         transaction.executeWithoutResult(status -> {
-            if (deliveries.markDeadLetter(delivery, error)) {
+            if (deliveries.save(delivery)) {
                 if (delivery.kind() == DeliveryKind.HANDLED_NOTE) {
                     deliveries.recordHandledResult(delivery.targetKey(), "FAILED: " + error);
                 }
