@@ -114,6 +114,19 @@ class AssigneeResolverTest {
     }
 
     @Test
+    @DisplayName("RULE-300 a node that may be skipped is skipped only when nobody is found; a node that may not be skipped goes to the administrator")
+    void skipOnlyWhenEmptyAndAllowed() {
+        ProcessVariables none = ProcessVariables.empty();
+        Resolution skipped = resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), false, true, new UserId(1), none);
+        assertThat(skipped.kind()).isEqualTo(ResolutionKind.SKIPPED);
+        assertThat(skipped.candidates()).isEmpty();
+        assertThat(resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), false, false, new UserId(1), none).kind())
+                .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
+        assertThat(resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), false, true, new UserId(1),
+                fields("projectManagerId", "2")).kind()).isEqualTo(ResolutionKind.RESOLVED);
+    }
+
+    @Test
     @DisplayName("RULE-258/260 form field users: every distinct value is a candidate; blanks and garbage are ignored")
     void formFieldUsers() {
         org.person(-4000000000000000001L, 10, null);

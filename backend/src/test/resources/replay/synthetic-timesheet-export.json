@@ -91,17 +91,15 @@
         "active": true
       }
     ],
-    "roleHolders": {
-      "reviewer": [
-        110,
-        112
-      ]
-    }
+    "roleHolders": {}
   },
   "instances": [
     {
       "instanceId": "SYN-1",
       "initiatorId": 201,
+      "legacyHourTypes": [
+        0
+      ],
       "formFields": {
         "projectManagerId": [
           "111"
@@ -110,14 +108,34 @@
       "variables": {},
       "nodes": [
         {
-          "nodeKey": "reworkNode",
+          "nodeKey": "projectManagerReview",
           "rule": {
-            "type": "INITIATOR"
+            "type": "FORM_FIELD_USERS",
+            "field": "projectManagerId"
           },
           "actualApprovers": [
-            201
+            111
           ]
-        },
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-2",
+      "initiatorId": 201,
+      "legacyHourTypes": [
+        0,
+        1
+      ],
+      "formFields": {
+        "projectManagerId": [
+          "111"
+        ],
+        "regionalHeadId": [
+          "112"
+        ]
+      },
+      "variables": {},
+      "nodes": [
         {
           "nodeKey": "projectManagerReview",
           "rule": {
@@ -129,6 +147,56 @@
           ]
         },
         {
+          "nodeKey": "regionalHeadReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "regionalHeadId"
+          },
+          "actualApprovers": [
+            112
+          ]
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-3",
+      "initiatorId": 201,
+      "legacyHourTypes": [
+        0,
+        1,
+        2
+      ],
+      "formFields": {
+        "projectManagerId": [
+          "111"
+        ],
+        "regionalHeadId": [
+          "110"
+        ]
+      },
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "projectManagerReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "projectManagerId"
+          },
+          "actualApprovers": [
+            111
+          ]
+        },
+        {
+          "nodeKey": "regionalHeadReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "regionalHeadId"
+          },
+          "actualApprovers": [
+            110
+          ]
+        },
+        {
           "nodeKey": "supervisorReview",
           "rule": {
             "type": "INITIATOR_SUPERVISOR",
@@ -137,21 +205,15 @@
           "actualApprovers": [
             111
           ]
-        },
-        {
-          "nodeKey": "departmentReview",
-          "rule": {
-            "type": "DEPARTMENT_HEAD"
-          },
-          "actualApprovers": [
-            110
-          ]
         }
       ]
     },
     {
-      "instanceId": "SYN-2",
+      "instanceId": "SYN-4",
       "initiatorId": 202,
+      "legacyHourTypes": [
+        2
+      ],
       "formFields": {},
       "variables": {},
       "nodes": [
@@ -168,8 +230,11 @@
       ]
     },
     {
-      "instanceId": "SYN-3",
+      "instanceId": "SYN-5",
       "initiatorId": 201,
+      "legacyHourTypes": [
+        0
+      ],
       "formFields": {
         "projectManagerId": [
           "301"
@@ -190,8 +255,11 @@
       ]
     },
     {
-      "instanceId": "SYN-4",
+      "instanceId": "SYN-6",
       "initiatorId": 201,
+      "legacyHourTypes": [
+        0
+      ],
       "formFields": {},
       "variables": {},
       "nodes": [
@@ -208,8 +276,11 @@
       ]
     },
     {
-      "instanceId": "SYN-5",
+      "instanceId": "SYN-7",
       "initiatorId": 111,
+      "legacyHourTypes": [
+        0
+      ],
       "formFields": {
         "projectManagerId": [
           "111"
@@ -230,9 +301,16 @@
       ]
     },
     {
-      "instanceId": "SYN-6",
+      "instanceId": "SYN-8",
       "initiatorId": 201,
-      "formFields": {},
+      "legacyHourTypes": [
+        1
+      ],
+      "formFields": {
+        "regionalHeadId": [
+          "110"
+        ]
+      },
       "variables": {},
       "nodes": [
         {
@@ -248,53 +326,36 @@
       ]
     },
     {
-      "instanceId": "SYN-7",
+      "instanceId": "SYN-9",
       "initiatorId": 201,
+      "legacyHourTypes": [
+        0
+      ],
       "formFields": {},
       "variables": {},
-      "nodes": [
-        {
-          "nodeKey": "roleReview",
-          "rule": {
-            "type": "ROLE",
-            "role": "reviewer"
-          },
-          "actualApprovers": [
-            105
-          ]
-        }
-      ]
+      "nodes": []
     },
     {
-      "instanceId": "SYN-8",
-      "initiatorId": 201,
+      "instanceId": "SYN-10",
+      "initiatorId": 101,
+      "legacyHourTypes": [
+        0
+      ],
       "formFields": {
         "projectManagerId": [
-          "111",
-          "110"
+          "101"
         ]
       },
       "variables": {},
       "nodes": [
         {
-          "nodeKey": "roleReview",
-          "rule": {
-            "type": "ROLE",
-            "role": "reviewer"
-          },
-          "actualApprovers": [
-            112
-          ]
-        },
-        {
-          "nodeKey": "countersign",
+          "nodeKey": "projectManagerReview",
           "rule": {
             "type": "FORM_FIELD_USERS",
             "field": "projectManagerId"
           },
           "actualApprovers": [
-            111,
-            110
+            105
           ]
         }
       ]

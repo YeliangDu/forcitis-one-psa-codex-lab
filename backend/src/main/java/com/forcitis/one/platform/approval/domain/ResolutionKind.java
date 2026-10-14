@@ -10,6 +10,8 @@ public enum ResolutionKind {
     ESCALATED_SELF_APPROVAL,
     /** Nobody could be found: the process administrator takes the task and an alert is raised (RULE-250/254). */
     ADMINISTRATOR_FALLBACK,
+    /** Nobody found and the node says it may be skipped (RULE-300). */
+    SKIPPED,
     /** Nobody found and no administrator configured: the caller must fail loudly. */
     UNRESOLVED
 }

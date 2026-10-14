@@ -7,6 +7,14 @@
 回放工具读入「当时」老系统的组织快照、每个节点的指派规则、流程变量和**实际办理的审批人**，用新系统的 `AssigneeResolver`
 （与线上待办分配同一份代码）逐节点算出候选集，按「**老审批人 ∈ 新候选集**」比对（RULE-249 把随机选人改成了候选组，所以不再比较「是同一个人」）。
 
+比对口径有两层：
+
+1. **节点集合**：老工时行类型 0 / 1 / 2 按转换表映射为路由标记 `projectHours` / `preSalesHours` / `overheadHours`，每个标记对应新流程的一个分支节点；
+   新流程应当启动的节点集合必须等于老系统实际出现任务的节点集合。老系统因「取不到人时跳过」而没有任务的节点，新规则也必须取不到人（`SKIPPED`）。
+2. **每个节点的候选集**：老审批人 ∈ 新候选集。三路分支是并行的，**不比较先后顺序**。
+
+节点集合不一致、老规则与新节点规则不一致，都记为 `DEFECT`（报告里的 `note` 列说明原因）。
+
 这是**步骤 (a) 引擎等价**：输入全部来自老系统同一时刻的快照，所以差异只可能来自新旧规则的差别，不含数据源漂移。
 **步骤 (b) 数据源差异**（A8 与老表之间的漂移，RULE-365）单独出报告，不进本工具。
 
@@ -14,7 +22,7 @@
 
 | verdict | 含义 | 处理 |
 |---|---|---|
-| `MATCH` | 实际办理的每个人都在新候选集内 | 通过 |
+| `MATCH` | 节点集合一致，且实际办理的每个人都在新候选集内（老系统跳过的节点，新规则也跳过） | 通过 |
 | `REVIEWED_DISABLED_APPROVER` | 老审批人当时已停用 / 离职；新候选集排除这类人（RULE-253） | 按类别由用户接受 |
 | `REVIEWED_HARDCODED_FALLBACK` | 老审批人是写死的兜底个人（`legacyFallbackUserIds`）；新规则转流程管理员（RULE-254） | 按类别由用户接受 |
 | `REVIEWED_REPORTING_LINE` | 老汇报线不完整；新规则上推到部门负责人（RULE-250） | 按类别由用户接受 |
@@ -38,7 +46,7 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
 输出目录里生成 `replay-report.json`（机器可读）和 `replay-report.md`（汇总表加差异清单）。报告只含人员 ID，不含姓名。
 有 `DEFECT` 时命令以退出状态 1 结束（异常信息指向报告）。
 
-验收测试：`TimesheetApproverReplayIT`（合成数据 `src/test/resources/replay/synthetic-timesheet-export.json`，其中不含任何真实人员或组织；
+验收测试：`TimesheetApproverReplayIT`（合成数据 `src/test/resources/replay/synthetic-timesheet-export.json`，其中不含任何真实人员或组织，覆盖「只有项目工时」「项目加售前」「三类都有」三种情形；
 测试里也运行了上面这条命令行）。
 
 ## 导出文件（JSON，`formatVersion` = 1）
@@ -64,6 +72,7 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
   "instances": [{
     "instanceId": "…",
     "initiatorId": 201,
+    "legacyHourTypes": [0, 1],
     "formFields": {"projectManagerId": ["111"]},
     "variables":  {},
     "nodes": [{
@@ -83,6 +92,7 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
 | `snapshot.employees` | **老用户表当时的快照**：`employed=false` 表示停用 / 已删 / 离职；`supervisorUserId` 是人员级直属上级（RULE-372） |
 | `snapshot.orgUnits` | **老部门表当时的快照**：负责人、区域应收负责人、上级、是否有效 |
 | `snapshot.roleHolders` | 角色编码到持有人（导出时把老角色 id 换成新系统的角色编码；回放不写死任何老角色码） |
+| `instances[].legacyHourTypes` | 该单据工时行的老类型集合（0 项目、1 售前、2 OH）；按转换表映射为路由标记，决定新流程应启动哪些分支 |
 | `instances[].formFields` | 业务表单字段（指派规则的 `field` 从这里取，如 `projectManagerId`） |
 | `instances[].variables` | 其余流程变量（指派规则的 `department` 可选地从这里取） |
 | `nodes[].rule` | 该节点的**唯一**指派规则（RULE-262）：`type` 加各类型的属性，词汇见下表 |
@@ -132,27 +142,67 @@ BPMN 守护：`BpmnRuleConventionsTest` 检查每个流程文件（含测试变�
 | `deliveryDeptId` | `deliveryUnitId` | 流程变量 / 规则的 `department` |
 | `INITIATOR_LEADER` | `INITIATOR_SUPERVISOR` | 规则类型 |
 | `leaderUserId` | `supervisorUserId` | 快照里员工的人员级直属上级 |
+| 工时行类型 `0` / `1` / `2` | `projectHours` / `preSalesHours` / `overheadHours` | 路由标记（`cost.timesheet` 的 api：`TimesheetRoutingFlag`） |
+| 任务名 `项目经理审批` / `区域负责人审批` / `一级汇报人审批` | `projectManagerReview` / `regionalHeadReview` / `supervisorReview` | 节点键 |
 | 规则类型 `INITIATOR`（脚本 10，发起人重做节点） | （不回放） | 该节点整个跳过，不计入节点数 |
 
-### TIMESHEET 当前生产版本与新流程（核对）
+## 生产核实结果（2026-10-14，v15）
 
-生产当前定义 TIMESHEET:15（`runtime/prod_bpm.tsv` ##13）有 4 个节点；新流程 `cost_timesheet_approval` 的对应：
+生产 TIMESHEET 当前版本是 v15。2026-10-14 经用户授权只读核实流程定义，结构如下，以此为准（取代此前依据 `runtime/prod_bpm.tsv` ##13 的推定）。
 
-| 老节点 | 老规则 | 新节点 | 新规则 |
-|---|---|---|---|
-| `Activity_19wn7op` | 脚本 10（发起人重做） | 无 | 退回即结束本轮，重提开新一轮 |
-| `Activity_0g7oxfy` | 类型 60，变量 `manager_id` | `projectManagerReview` | `FORM_FIELD_USERS`，字段 `projectManagerId` |
-| `Activity_01vbv92` | 类型 60，变量 `area_leader`（售前工时分支） | `regionalHeadReview` | `FORM_FIELD_USERS`，字段 `regionalHeadId`，仅当路由标记 `preSalesHours` 为真 |
-| `Activity_0hwqdkm` | 脚本 20（发起人的一级上级） | `supervisorReview` | `INITIATOR_SUPERVISOR`，`level=1` |
+**核实方式**：经云助手只读通道，只读流程定义（流程定义表、定义文件字节、指派规则表），不读业务数据和个人信息；凭据不出服务器进程；临时目录已删除。
 
-老分支条件 `containsAny('manHourTypeList.type', 0)`（含售前类工时）在新 BPMN 中不照搬：由业务模块预先算好路由标记
-`preSalesHours`（`TimesheetRoutingFlag.PRE_SALES_HOURS`），BPMN 只读它。当前 BPMN 里的 `DEPARTMENT_HEAD` 节点与生产不符，已移除。
-节点顺序（项目经理 → 售前分支的区域负责人 → 一级上级）取自生产定义里节点的出现顺序，等用户确认。
+### 新旧对照
+
+| | 生产 v15 | 新流程 `cost_timesheet_approval` |
+|---|---|---|
+| 顶层 | 开始 → 发起人任务 → 子流程 → 结束 | 开始 → 子流程 → 结束；无发起人节点（M3：退回即结束本轮，重提开新一轮） |
+| 子流程 | 开始 → 包容网关分三路 → 三路汇合到第二个包容网关 | 包容网关分三路，汇合到第二个包容网关，然后结束 |
+| 分支 1 | 工时行有类型 0（项目工时）→「项目经理审批」，规则类型 60，取变量 `manager_id` | 路由标记 `projectHours` → `projectManagerReview`，`FORM_FIELD_USERS` 字段 `projectManagerId` |
+| 分支 2 | 有类型 1（售前工时）→「区域负责人审批」，规则类型 60，取变量 `area_leader` | 路由标记 `preSalesHours` → `regionalHeadReview`，`FORM_FIELD_USERS` 字段 `regionalHeadId` |
+| 分支 3 | 有类型 2（OH 工时）→「一级汇报人审批」，脚本 20（发起人的一级上级） | 路由标记 `overheadHours` → `supervisorReview`，`INITIATOR_SUPERVISOR` `level=1` |
+| 分支条件 | 老表达式按工时行类型判断（只作证据，不照搬） | 业务模块预先算好的路由标记，BPMN 只读（RULE-262） |
+| 任务形态 | 并行多实例会签：按审批人列表展开，每个不同的审批人一个任务；完成条件是全部完成或有人驳回 | 候选组认领：一个节点一个任务，候选人中任一人办理（见「与生产仍存在的差异」） |
+| 驳回 | 汇合处只要有驳回，错误结束事件 `Error_REJECT` 被子流程边界事件捕获，回到发起人 | 子流程内驳回即退回：任务全部撤销，以 `RETURNED` 结束本轮，重新提交时开新一轮 |
+| 取不到人 | 三个节点 `skip_when_empty=1`、`row_approval=0` | 三个节点显式配置 `skipWhenEmpty="true"`；只有显式允许且确实没有人时才跳过，配置错误或异常一律报错（RULE-300 评审修正） |
+
+### 与原推定不一致之处（已改正）
+
+| 原推定 | 实际（v15） | 改正 |
+|---|---|---|
+| 三个审批节点串行：项目经理 → 售前分支的区域负责人 → 一级上级 | 子流程内的**包容网关**并行三路，不比较先后 | BPMN 改为包容网关分叉 / 汇合；回放不比较顺序 |
+| 一级上级在顶层 | 一级汇报人审批在子流程内，驳回即退回 | 三个节点都在子流程内 |
+| 缺少 OH 工时分支 | 有类型 2（OH 工时）分支 | 新增路由标记 `overheadHours` 与对应分支 |
+| 售前分支是项目经理之后的可选一步 | 三路各由工时行类型独立触发 | 三路条件互相独立，由三个路由标记各自控制 |
+
+### 核实所用 SQL（只读）
+
+```
+SELECT TOP 3 p.KEY_, p.VERSION_, p.ID_, p.DEPLOYMENT_ID_, p.RESOURCE_NAME_, p.SUSPENSION_STATE_ FROM ACT_RE_PROCDEF p WHERE p.KEY_ = 'TIMESHEET' ORDER BY p.VERSION_ DESC
+SELECT b.NAME_, DATALENGTH(b.BYTES_) AS len, b.BYTES_ FROM ACT_GE_BYTEARRAY b JOIN ACT_RE_PROCDEF p ON b.DEPLOYMENT_ID_ = p.DEPLOYMENT_ID_ AND b.NAME_ = p.RESOURCE_NAME_ WHERE p.KEY_ = 'TIMESHEET' AND p.VERSION_ = (SELECT MAX(VERSION_) FROM ACT_RE_PROCDEF WHERE KEY_ = 'TIMESHEET')
+SELECT r.task_definition_key, r.type, r.options, r.row_approval, r.skip_when_empty, r.reapprove_on_return, r.script_field FROM bpm_task_assign_rule r WHERE r.process_definition_id COLLATE DATABASE_DEFAULT = (SELECT TOP 1 p.ID_ COLLATE DATABASE_DEFAULT FROM ACT_RE_PROCDEF p WHERE p.KEY_ = 'TIMESHEET' ORDER BY p.VERSION_ DESC) AND r.deleted = '0'
+```
+
+### 与生产仍存在的差异
+
+| 差异 | 影响 | 处理 |
+|---|---|---|
+| **会签语义推迟**：生产是并行多实例，每个不同的审批人一个任务，全部通过才算通过；1a 的引擎封装不支持多实例，保留候选组认领（候选人中任一人办理即完成该节点） | 一个节点有多个审批人时，生产要全部通过，新系统任一人通过即可 | 推迟到 1b（RULE-248 每个不同的审批人一个任务；RULE-273 加签人的驳回只是建议）。回放只比对审批人候选集，此差异不影响回放；上线前对多审批人节点需用户确认 |
+| 驳回的目的地：生产回到发起人任务，新系统结束本轮并以 `RETURNED` 通知业务模块 | 发起人重新提交时开新一轮（`start_rounds`） | 用户决定 M3 |
+| 取不到人时：生产 `skip_when_empty=1` 直接跳过，包括配置错误造成的「空」 | 新系统在字段缺失与「确实没有人」之间无法区分，字段值全部是无效 ID 时也按「没有人」跳过 | 业务模块启动审批时负责校验字段；待用户确认是否要求字段键必须存在 |
+| 节点内 `row_approval=0`（不按行审批）与 `reapprove_on_return` | 1a 不做行级审批；退回后整轮重来，不存在「退回后是否重审」的开关 | Phase 2 工时审批再议 |
 
 ## 执行步骤（本会话，Q-4 授权后）
 
 1. 经用户授权，在生产做只读导出：近期、**当前定义版本**的 TIMESHEET 实例样本；同时导出当时的 `system_users` / `system_dept` 快照、
-   `bpm_task_assign_rule`、流程变量快照与实际审批人序列，按上面的格式写成一个 JSON，存 `~/.modernize/psa/`。
+   `bpm_task_assign_rule`、流程变量快照、各单据的工时行类型集合与实际审批人序列，按上面的格式写成一个 JSON，存 `~/.modernize/psa/`。
 2. 运行命令行，读 `replay-report.md`。
 3. 各 `REVIEWED_*` 类别请用户逐类接受；每条 `DEFECT` 修复并重跑，直到没有 `DEFECT`。
 4. 另出步骤 (b) 的数据源差异报告（A8 与老表）。
+
+## 已知缺口（1b 前必须修复）
+
+| # | 缺口 | 应有行为 | 期限 |
+|---|---|---|---|
+| G-1 | 「取不到人」与「字段缺失 / 值无效」无法区分，都按「允许跳过」处理，静默通过 | 只有字段齐全、值有效但确实没有人时，才允许跳过；字段缺失或值无效（例如 projectManagerId 未传、指向的人不存在）一律失败并告警，不得静默跳过（RULE-300 评审修正） | 1b 报价首个真实单据接入前 |
+| G-2 | 会签（RULE-248/273）未实现，1a 由候选组中任意一人认领后办理 | 按生产口径：每位不同的审批人各生成一个任务，全部通过才算通过，任一人驳回即结束本路 | 1b |

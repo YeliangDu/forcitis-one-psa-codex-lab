@@ -144,7 +144,27 @@ class BpmnRuleConventionsTest {
         }
 
         assertThat(fields).containsExactlyInAnyOrder(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), TimesheetApprovalField.REGIONAL_HEAD.fieldName());
-        assertThat(xml).contains("getOrDefault('" + TimesheetRoutingFlag.PRE_SALES_HOURS.flagName() + "', false)");
+        for (TimesheetRoutingFlag flag : TimesheetRoutingFlag.values()) {
+            assertThat(xml).contains("getOrDefault('" + flag.flagName() + "', false)");
+        }
+    }
+
+    @Test
+    @DisplayName("RULE-300 every node of the timesheet process says explicitly that it may be skipped when nobody is found")
+    void timesheetNodesAllowSkipping() throws Exception {
+        try (InputStream in = getClass().getResourceAsStream("/processes/cost_timesheet_approval.bpmn20.xml")) {
+            BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);
+            List<UserTask> nodes = model.getMainProcess().findFlowElementsOfType(UserTask.class);
+            assertThat(nodes).hasSize(3);
+            nodes.forEach(node -> assertThat(NodePolicyReader.read(node).skipWhenEmpty()).as(node.getId()).isTrue());
+        }
+    }
+
+    @Test
+    @DisplayName("RULE-300 a node without skipWhenEmpty does not skip")
+    void skippingIsOptIn() {
+        assertThat(NodePolicyReader.read(review(parse(
+                "<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\"/></extensionElements>"))).skipWhenEmpty()).isFalse();
     }
 
     @Test

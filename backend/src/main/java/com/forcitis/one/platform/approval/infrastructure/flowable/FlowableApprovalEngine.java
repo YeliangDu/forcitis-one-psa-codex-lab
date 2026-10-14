@@ -40,6 +40,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
 
     static final String VARIABLE_INITIATOR = "initiatorId";
     static final String VARIABLE_BUSINESS_KEY = "businessKey";
+    static final String VARIABLE_SKIPPED = "skippedWhenEmpty";
     /** Task-local variable: epoch milliseconds at which the task was assigned. */
     static final String VARIABLE_ASSIGNED_AT = "assignedAtMillis";
 
@@ -62,7 +63,9 @@ class FlowableApprovalEngine implements ApprovalEngine {
         Map<String, Object> engine = new LinkedHashMap<>(EngineVariables.toEngine(variables));
         engine.put(VARIABLE_INITIATOR, String.valueOf(initiator.value()));
         engine.put(VARIABLE_BUSINESS_KEY, businessKey);
-        return new ApprovalInstanceId(runtime.startProcessInstanceByKey(processKey.key(), businessKey, engine).getId());
+        String instanceId = runtime.startProcessInstanceByKey(processKey.key(), businessKey, engine).getId();
+        completeSkippedTasks(instanceId);
+        return new ApprovalInstanceId(instanceId);
     }
 
     @Override
@@ -112,6 +115,19 @@ class FlowableApprovalEngine implements ApprovalEngine {
             throw new IllegalStateException("Task " + taskId.value() + " is gone");
         }
         tasks.complete(taskId.value());
+        completeSkippedTasks(task.getProcessInstanceId());
+    }
+
+    private void completeSkippedTasks(String instanceId) {
+        List<Task> skipped = skippedTasks(instanceId);
+        while (!skipped.isEmpty()) {
+            skipped.forEach(task -> tasks.complete(task.getId()));
+            skipped = skippedTasks(instanceId);
+        }
+    }
+
+    private List<Task> skippedTasks(String instanceId) {
+        return tasks.createTaskQuery().processInstanceId(instanceId).taskVariableValueEquals(VARIABLE_SKIPPED, Boolean.TRUE).list();
     }
 
     @Override
