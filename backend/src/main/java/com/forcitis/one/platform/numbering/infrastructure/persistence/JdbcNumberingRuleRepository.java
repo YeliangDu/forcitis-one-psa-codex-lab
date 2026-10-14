@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.numbering.infrastructure.persistence;
 
-import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
 import com.forcitis.one.platform.numbering.api.DocumentType;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
@@ -80,7 +79,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     }
 
     @Override
-    public long reserveNext(DocumentType type, LegalEntityId legalEntity, String periodKey, long startValue) {
+    public long reserveNext(DocumentType type, long counterScope, String periodKey, long startValue) {
         return jdbc.sql("""
                         insert into platform_numbering.numbering_counters (document_type, legal_entity_id, period_key, last_value)
                         values (:type, :le, :period, :start)
@@ -89,7 +88,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                         returning last_value
                         """)
                 .param("type", type.name())
-                .param("le", legalEntity.value())
+                .param("le", counterScope)
                 .param("period", periodKey)
                 .param("start", startValue)
                 .query(Long.class)

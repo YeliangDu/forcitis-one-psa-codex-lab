@@ -150,6 +150,8 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
 
         assertThat(directory.findCode(new LegalEntityId(1))).contains(new LegalEntityCode("FST"));
         assertThat(directory.findCode(new LegalEntityId(2))).isEmpty();
+        assertThat(directory.findActiveCode(new LegalEntityId(1))).isEmpty();
+        assertThat(directory.findActiveCode(new LegalEntityId(2))).isEmpty();
     }
 
     @Test

@@ -149,15 +149,41 @@ class NumberingRulesIT {
     }
 
     @Test
-    @DisplayName("{LE} renders the legal entity code; an unknown legal entity (no code) is an error, and a template without {LE} needs none")
-    void legalEntityCodeIsRequiredByTheTemplate() {
+    @DisplayName("an unknown legal entity cannot take a number, whatever the template")
+    void unknownLegalEntityCannotIssue() {
         LocalDate day = LocalDate.of(2027, 3, 3);
 
         assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(99), day))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("99");
-        assertThat(issue(DocumentType.TIMESHEET, new LegalEntityId(99), day)).startsWith("TS20270303");
-        jdbc.sql("update organization_workforce.legal_entities set name = 'Renamed', status = 'INACTIVE' where id = 2").update();
-        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2), day)).startsWith("QT-FIT-202703-");
+        assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(99), day))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("99");
+    }
+
+    @Test
+    @DisplayName("a deactivated legal entity cannot take a new number")
+    void deactivatedLegalEntityCannotIssue() {
+        LocalDate day = LocalDate.of(2027, 4, 4);
+        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (3, 'FOT', 'Synthetic three', 'INACTIVE') on conflict (id) do update set status = 'INACTIVE'").update();
+        try {
+            assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(3), day))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("3");
+            assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(3), day))
+                    .isInstanceOf(IllegalStateException.class);
+        } finally {
+            jdbc.sql("delete from organization_workforce.legal_entities where id = 3").update();
+        }
+    }
+
+    @Test
+    @DisplayName("two legal entities taking a TIMESHEET number on the same day never get the same number (template has no {LE})")
+    void templateWithoutLegalEntityTokenSharesOneCounter() {
+        LocalDate day = LocalDate.of(2027, 5, 6);
+
+        String first = issue(DocumentType.TIMESHEET, LE1, day);
+        String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
+
+        assertThat(first).isEqualTo("TS202705060001");
+        assertThat(second).isEqualTo("TS202705060002");
     }
 
     @Test
