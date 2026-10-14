@@ -127,9 +127,33 @@
         },
         "type" : "object"
       },
+      "HandledTaskPageResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/HandledTaskResponse"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items", "nextCursor" ],
+        "type" : "object"
+      },
       "HandledTaskResponse" : {
         "properties" : {
-          "completedAt" : {
+          "action" : {
+            "type" : "string"
+          },
+          "actorId" : {
+            "type" : "string"
+          },
+          "actorName" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
             "format" : "date-time",
             "type" : "string"
           },
@@ -139,14 +163,17 @@
           "documentType" : {
             "type" : "string"
           },
-          "effect" : {
+          "instanceId" : {
             "type" : "string"
           },
           "nodeKey" : {
             "type" : "string"
           },
-          "outcome" : {
+          "nodeName" : {
             "type" : "string"
+          },
+          "onBehalfOfName" : {
+            "type" : [ "string", "null" ]
           },
           "processKey" : {
             "type" : "string"
@@ -154,11 +181,18 @@
           "reason" : {
             "type" : [ "string", "null" ]
           },
+          "recordId" : {
+            "type" : "string"
+          },
+          "round" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "taskId" : {
             "type" : "string"
           }
         },
-        "required" : [ "completedAt", "documentId", "documentType", "effect", "nodeKey", "outcome", "processKey", "reason", "taskId" ],
+        "required" : [ "action", "actorId", "actorName", "decidedAt", "documentId", "documentType", "instanceId", "nodeKey", "nodeName", "onBehalfOfName", "processKey", "reason", "recordId", "round", "taskId" ],
         "type" : "object"
       },
       "HistoryEntry" : {
@@ -218,10 +252,6 @@
           "documentId" : {
             "type" : [ "string", "null" ]
           },
-          "dueAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
-          },
           "nodeName" : {
             "type" : [ "string", "null" ]
           },
@@ -241,7 +271,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "category", "claimed", "createdAt", "deadlineAt", "detailUrl", "documentId", "dueAt", "nodeName", "overdue", "processKey", "source", "taskId", "title" ],
+        "required" : [ "category", "claimed", "createdAt", "deadlineAt", "detailUrl", "documentId", "nodeName", "overdue", "processKey", "source", "taskId", "title" ],
         "type" : "object"
       },
       "InboxResponse" : {
@@ -263,12 +293,19 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          },
+          "noticeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "totalCount" : {
             "format" : "int32",
             "type" : "integer"
           }
         },
-        "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "totalCount" ],
+        "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "nextCursor", "noticeCount", "totalCount" ],
         "type" : "object"
       },
       "LegacyNumberResponse" : {
@@ -1696,15 +1733,28 @@
     "/api/v1/platform/approval-task-records" : {
       "get" : {
         "operationId" : "list_5",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/HandledTaskResponse"
-                  },
-                  "type" : "array"
+                  "$ref" : "#/components/schemas/HandledTaskPageResponse"
                 }
               }
             },
@@ -1941,6 +1991,22 @@
     "/api/v1/platform/approval-tasks" : {
       "get" : {
         "operationId" : "list_4",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {

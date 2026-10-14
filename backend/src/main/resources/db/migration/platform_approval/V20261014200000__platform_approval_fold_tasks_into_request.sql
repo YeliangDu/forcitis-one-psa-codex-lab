@@ -1,5 +1,5 @@
 -- 审批任务并入审批请求聚合：任务不再有自己的版本与事件序号，随请求加锁、保存；补认领 / 办理时刻、办理结果与意见、提醒时点（数据打分卡 K5、K6）。
--- 新增的必填列没有默认值：库里若已有行则迁移失败，而不是给旧行补一个猜测的值（1a 修复批前不部署）。
+-- 不给旧行补猜测的值：新增的必填列没有默认值、收紧的约束校验全部既有行，库里若已有审批任务则迁移失败。1a 未上线、没有生产数据；dev 库先清空审批与工时单业务表再部署（PREDEPLOY_CHECKLIST B-10）。
 ALTER TABLE platform_approval.approval_requests ADD COLUMN summary_text text NOT NULL;
 COMMENT ON COLUMN platform_approval.approval_requests.summary_text IS '业务摘要：发起时由拥有单据的业务模块给出，卡片显示它而不回查单据（本轮）';
 COMMENT ON COLUMN platform_approval.approval_requests.event_count IS '事件序号：该聚合已记录的领域事件数，每个事件加一，下一个事件取其加一作信封的聚合版本；与乐观锁版本 version（每次保存加一）是两个计数';
@@ -17,7 +17,6 @@ ALTER TABLE platform_approval.approval_tasks DROP COLUMN event_count;
 ALTER TABLE platform_approval.approval_tasks DROP COLUMN legal_entity_id;
 ALTER TABLE platform_approval.approval_tasks DROP COLUMN document_type;
 ALTER TABLE platform_approval.approval_tasks ADD COLUMN remind_at timestamptz;
-UPDATE platform_approval.approval_tasks SET remind_at = due_at WHERE due_at IS NOT NULL;
 ALTER TABLE platform_approval.approval_tasks ADD COLUMN claimed_at timestamptz;
 ALTER TABLE platform_approval.approval_tasks ADD COLUMN completed_at timestamptz;
 ALTER TABLE platform_approval.approval_tasks ADD COLUMN outcome_kind text CHECK (outcome_kind IN ('APPROVED', 'REJECTED', 'RETURNED'));
@@ -29,7 +28,7 @@ ALTER TABLE platform_approval.approval_tasks ADD CONSTRAINT ck_approval_tasks_de
 ALTER TABLE platform_approval.approval_tasks ADD CONSTRAINT ck_approval_tasks_claimed
     CHECK (status <> 'CLAIMED' OR (assignee_id IS NOT NULL AND claimed_at IS NOT NULL));
 ALTER TABLE platform_approval.approval_tasks ADD CONSTRAINT ck_approval_tasks_completed
-    CHECK (status <> 'COMPLETED' OR (completed_at IS NOT NULL AND outcome_kind IS NOT NULL AND effect_kind IS NOT NULL)) NOT VALID;
+    CHECK (status <> 'COMPLETED' OR (completed_at IS NOT NULL AND outcome_kind IS NOT NULL AND effect_kind IS NOT NULL));
 ALTER TABLE platform_approval.approval_tasks ADD CONSTRAINT fk_approval_tasks_document_key FOREIGN KEY (process_key, document_key)
     REFERENCES platform_approval.approval_requests (process_key, document_key);
 

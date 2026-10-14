@@ -59,13 +59,15 @@ class ApprovalTaskStateMachineTest {
     static final ApprovalTaskId TASK = new ApprovalTaskId("t-1");
     static final ApprovalInstanceId INSTANCE = new ApprovalInstanceId("i-1");
     static final NodeKey NODE = new NodeKey("projectManagerReview");
+    static final com.forcitis.one.platform.approval.api.NodeName NODE_NAME = new com.forcitis.one.platform.approval.api.NodeName("项目经理审批");
+    static final UserId ADMIN = new UserId(1);
     static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));
     static final DeadlinePlan PLAN = new DeadlinePlan(DUE, REMIND_AT, ESCALATE_AT);
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
     static ApprovalTask taskIn(ApprovalTaskStatus status, Instant overdueAt) {
         boolean held = status == ApprovalTaskStatus.CLAIMED || status == ApprovalTaskStatus.COMPLETED;
-        return ApprovalTask.restore(TASK, INSTANCE, NODE, status, held ? HOLDER : null, Instant.parse("2026-10-16T02:00:00Z"), PLAN,
+        return ApprovalTask.restore(TASK, INSTANCE, NODE, NODE_NAME, status, held ? HOLDER : null, Instant.parse("2026-10-16T02:00:00Z"), PLAN,
                 status == ApprovalTaskStatus.CLAIMED ? Instant.parse("2026-10-16T03:00:00Z") : null,
                 status == ApprovalTaskStatus.COMPLETED ? Instant.parse("2026-10-16T04:00:00Z") : null, overdueAt, null,
                 status == ApprovalTaskStatus.COMPLETED ? TaskOutcome.APPROVED : null,
@@ -98,7 +100,7 @@ class ApprovalTaskStateMachineTest {
                         ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.CLOSED)
                 .operation("transfer", r -> r.transferTask(TASK, HOLDER, OTHER, new Reason("on leave"), NOW), ApprovalTaskStatus.CLAIMED,
                         ApprovalTaskStatus.CLAIMED)
-                .operation("reassign", r -> r.reassignTask(TASK, OTHER, new Reason("covering"), NOW), ApprovalTaskStatus.PENDING,
+                .operation("reassign", r -> r.reassignTask(TASK, ADMIN, OTHER, new Reason("covering"), NOW), ApprovalTaskStatus.PENDING,
                         ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.CLAIMED)
                 .verify();
         assertThat(tried).hasSize(6 * ApprovalTaskStatus.values().length);
@@ -137,7 +139,7 @@ class ApprovalTaskStateMachineTest {
     @Test
     @DisplayName("platform.approval deadline: a task without a deadline is never overdue")
     void noDeadlineNoOverdue() {
-        ApprovalTask task = ApprovalTask.restore(TASK, INSTANCE, NODE, ApprovalTaskStatus.PENDING, null, Instant.EPOCH, null, null, null, null,
+        ApprovalTask task = ApprovalTask.restore(TASK, INSTANCE, NODE, NODE_NAME, ApprovalTaskStatus.PENDING, null, Instant.EPOCH, null, null, null, null,
                 null, null, null, null, null);
         assertThatThrownBy(() -> requestWith(task).markTaskOverdue(TASK, List.of(HOLDER), NOW)).isInstanceOf(DomainException.class);
     }
@@ -224,7 +226,7 @@ class ApprovalTaskStateMachineTest {
         request.escalateTask(TASK, List.of(OTHER), false, NOW);
         request.claimTask(TASK, OTHER, NOW);
         request.transferTask(TASK, OTHER, new UserId(22), new Reason("on leave"), NOW);
-        request.reassignTask(TASK, new UserId(23), new Reason("covering"), NOW);
+        request.reassignTask(TASK, ADMIN, new UserId(23), new Reason("covering"), NOW);
         request.releaseTask(TASK, new UserId(23), NOW);
         request.claimTask(TASK, HOLDER, NOW);
         request.completeTask(TASK, HOLDER, TaskOutcome.APPROVED, false, null, new ContentHash("d"), NOW);
@@ -278,9 +280,9 @@ class ApprovalTaskStateMachineTest {
         assertThat(request.task(TASK).assignee()).contains(OTHER);
 
         ApprovalRequest pending = in(ApprovalTaskStatus.PENDING);
-        assertThatThrownBy(() -> pending.reassignTask(TASK, OTHER, null, NOW)).isInstanceOfSatisfying(DomainException.class,
+        assertThatThrownBy(() -> pending.reassignTask(TASK, ADMIN, OTHER, null, NOW)).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
-        pending.reassignTask(TASK, OTHER, new Reason("covering"), NOW);
+        pending.reassignTask(TASK, ADMIN, OTHER, new Reason("covering"), NOW);
         assertThat(pending.task(TASK).status()).isEqualTo(ApprovalTaskStatus.CLAIMED);
         assertThat(pending.task(TASK).assignee()).contains(OTHER);
     }

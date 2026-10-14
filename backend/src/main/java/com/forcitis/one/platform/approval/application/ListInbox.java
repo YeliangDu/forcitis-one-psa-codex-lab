@@ -34,7 +34,7 @@ public class ListInbox {
     }
 
     @Transactional(readOnly = true)
-    public MergedInbox execute(UserId user) {
+    public MergedInbox execute(UserId user, ListPage page) {
         List<InboxItem> items = new ArrayList<>();
         List<TaskView> open = engine.findOpenTasksFor(user);
         Map<ApprovalTaskId, Instant> deadlines = tasks.dueAtOf(open.stream().map(TaskView::taskId).toList());
@@ -53,7 +53,18 @@ public class ListInbox {
             items.add(new InboxItem(InboxSource.LEGACY, todo.taskKey(), todo.title(), Optional.ofNullable(todo.nodeName()),
                     Optional.ofNullable(todo.createdAt()), false, Optional.ofNullable(todo.detailUrl()), Optional.empty(), false, Optional.empty(), Optional.empty(), InboxCategory.TODO));
         }
-        items.sort(Comparator.comparing((InboxItem i) -> i.createdAt().orElse(Instant.MIN)).reversed());
-        return new MergedInbox(items, newCount, merged.size(), newCount + merged.size(), old.available());
+        items.sort(Comparator.comparing((InboxItem i) -> i.createdAt().orElse(Instant.MIN)).thenComparing(InboxItem::taskId).reversed());
+        int notices = (int) items.stream().filter(item -> item.category() == InboxCategory.NOTICE).count();
+        List<InboxItem> after = items.stream().filter(item -> page.cursor().map(position -> comesAfter(item, position)).orElse(true)).toList();
+        boolean more = after.size() > page.limit();
+        List<InboxItem> shown = more ? after.subList(0, page.limit()) : after;
+        Optional<String> next = more ? Optional.of(ListPage.cursorAfter(shown.getLast().createdAt().orElse(Instant.MIN), shown.getLast().taskId()))
+                : Optional.empty();
+        return new MergedInbox(shown, newCount, merged.size(), notices, newCount + merged.size(), old.available(), next);
+    }
+
+    private static boolean comesAfter(InboxItem item, ListPage.Position position) {
+        int byTime = item.createdAt().orElse(Instant.MIN).compareTo(position.at());
+        return byTime < 0 || (byTime == 0 && item.taskId().compareTo(position.id()) < 0);
     }
 }

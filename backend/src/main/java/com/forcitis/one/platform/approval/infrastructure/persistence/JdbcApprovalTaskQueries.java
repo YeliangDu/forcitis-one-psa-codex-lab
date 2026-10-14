@@ -9,6 +9,10 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.NodeName;
+import com.forcitis.one.platform.approval.api.TaskRecordAction;
+import com.forcitis.one.platform.approval.api.TaskRecordId;
+import com.forcitis.one.platform.approval.domain.TaskHandling;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
@@ -25,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -57,13 +62,33 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     }
 
     @Override
-    public List<TaskRecord> handledBy(UserId user, int limit) {
-        return jdbc.sql(RECORD + """
-                 WHERE t.assignee_id = :user AND t.status = 'COMPLETED' AND t.outcome_kind IS NOT NULL
-                 ORDER BY t.completed_at DESC, t.task_id DESC
+    public List<TaskHandling> handledBy(UserId user, Optional<Instant> after, Optional<UUID> afterId, int limit) {
+        return jdbc.sql("""
+                SELECT r.record_id, r.process_key, q.document_type, r.document_key, r.round_number, r.task_id, r.instance_id, r.node_key,
+                       r.node_name, r.action_kind, r.actor_id, r.on_behalf_of_id, r.assignee_id, r.record_reason, r.decided_at
+                  FROM platform_approval.approval_task_records r
+                  JOIN platform_approval.approval_requests q ON q.process_key = r.process_key AND q.document_key = r.document_key
+                 WHERE r.actor_id = :user
+                   AND r.action_kind IN ('APPROVED', 'REJECTED', 'RETURNED', 'ADVISED', 'PASSED_AUTOMATICALLY')
+                   AND (CAST(:after AS timestamptz) IS NULL OR (r.decided_at, r.record_id) < (CAST(:after AS timestamptz), CAST(:afterId AS uuid)))
+                 ORDER BY r.decided_at DESC, r.record_id DESC
                  LIMIT :limit
                 """)
-                .param("user", user.value()).param("limit", limit).query((rs, n) -> read(rs)).list();
+                .param("user", user.value()).param("after", after.map(JdbcApprovalTaskQueries::at).orElse(null))
+                .param("afterId", afterId.orElse(null)).param("limit", limit).query((rs, n) -> readHandling(rs)).list();
+    }
+
+    private static TaskHandling readHandling(ResultSet rs) throws SQLException {
+        long onBehalfOf = rs.getLong("on_behalf_of_id");
+        Optional<UserId> onBehalf = rs.wasNull() ? Optional.empty() : Optional.of(new UserId(onBehalfOf));
+        long assignee = rs.getLong("assignee_id");
+        Optional<UserId> assigneeId = rs.wasNull() ? Optional.empty() : Optional.of(new UserId(assignee));
+        return new TaskHandling(new TaskRecordId(rs.getObject("record_id", UUID.class)), ProcessKey.valueOf(rs.getString("process_key")),
+                new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(rs.getString("document_key"))),
+                rs.getInt("round_number"), new ApprovalTaskId(rs.getString("task_id")), new ApprovalInstanceId(rs.getString("instance_id")),
+                new NodeKey(rs.getString("node_key")), new NodeName(rs.getString("node_name")),
+                TaskRecordAction.valueOf(rs.getString("action_kind")), new UserId(rs.getLong("actor_id")), onBehalf, assigneeId,
+                Optional.ofNullable(rs.getString("record_reason")).map(Reason::new), JdbcApprovalRequestRepository.instant(rs, "decided_at"));
     }
 
     @Override

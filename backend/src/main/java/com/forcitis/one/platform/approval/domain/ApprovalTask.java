@@ -9,6 +9,7 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.NodeName;
 import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
 import java.time.Instant;
@@ -26,6 +27,7 @@ public final class ApprovalTask {
     private final ApprovalTaskId taskId;
     private final ApprovalInstanceId instanceId;
     private final NodeKey nodeKey;
+    private final NodeName nodeName;
     private final Instant createdAt;
     private final DeadlinePlan deadline;
     private final boolean isNew;
@@ -41,11 +43,12 @@ public final class ApprovalTask {
     private Reason resultReason;
     private ContentHash approvedHash;
 
-    private ApprovalTask(ApprovalTaskId taskId, ApprovalInstanceId instanceId, NodeKey nodeKey, Instant createdAt, DeadlinePlan deadline,
-            ApprovalTaskStatus status, boolean isNew) {
+    private ApprovalTask(ApprovalTaskId taskId, ApprovalInstanceId instanceId, NodeKey nodeKey, NodeName nodeName, Instant createdAt,
+            DeadlinePlan deadline, ApprovalTaskStatus status, boolean isNew) {
         this.taskId = Objects.requireNonNull(taskId, "taskId");
         this.instanceId = Objects.requireNonNull(instanceId, "instanceId");
         this.nodeKey = Objects.requireNonNull(nodeKey, "nodeKey");
+        this.nodeName = Objects.requireNonNull(nodeName, "nodeName");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
         this.deadline = deadline;
         this.status = Objects.requireNonNull(status, "status");
@@ -54,12 +57,12 @@ public final class ApprovalTask {
     }
 
     static ApprovalTask assigned(TaskAssignment assignment, Instant at) {
-        return new ApprovalTask(assignment.taskId(), assignment.instanceId(), assignment.nodeKey(), at,
+        return new ApprovalTask(assignment.taskId(), assignment.instanceId(), assignment.nodeKey(), assignment.nodeName(), at,
                 assignment.deadline().orElse(null), ApprovalTaskStatus.PENDING, true);
     }
 
     static ApprovalTask passedBySystem(TaskAssignment assignment, UserId approver, Instant at) {
-        ApprovalTask task = new ApprovalTask(assignment.taskId(), assignment.instanceId(), assignment.nodeKey(), at, null,
+        ApprovalTask task = new ApprovalTask(assignment.taskId(), assignment.instanceId(), assignment.nodeKey(), assignment.nodeName(), at, null,
                 ApprovalTaskStatus.COMPLETED, true);
         task.assignee = approver;
         task.completedAt = at;
@@ -68,10 +71,10 @@ public final class ApprovalTask {
         return task;
     }
 
-    public static ApprovalTask restore(ApprovalTaskId taskId, ApprovalInstanceId instanceId, NodeKey nodeKey, ApprovalTaskStatus status,
+    public static ApprovalTask restore(ApprovalTaskId taskId, ApprovalInstanceId instanceId, NodeKey nodeKey, NodeName nodeName, ApprovalTaskStatus status,
             UserId assignee, Instant createdAt, DeadlinePlan deadline, Instant claimedAt, Instant completedAt, Instant overdueAt,
             Instant escalatedAt, TaskOutcome outcome, TaskEffect effect, Reason resultReason, ContentHash approvedHash) {
-        ApprovalTask task = new ApprovalTask(taskId, instanceId, nodeKey, createdAt, deadline, status, false);
+        ApprovalTask task = new ApprovalTask(taskId, instanceId, nodeKey, nodeName, createdAt, deadline, status, false);
         task.assignee = assignee;
         task.claimedAt = claimedAt;
         task.completedAt = completedAt;
@@ -178,6 +181,10 @@ public final class ApprovalTask {
 
     public NodeKey nodeKey() {
         return nodeKey;
+    }
+
+    public NodeName nodeName() {
+        return nodeName;
     }
 
     public ApprovalTaskStatus status() {

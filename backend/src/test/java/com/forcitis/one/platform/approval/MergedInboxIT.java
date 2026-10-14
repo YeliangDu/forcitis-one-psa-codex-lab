@@ -72,7 +72,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         legacyRow(me, "done", "P3-" + me, "N1", "2026-10-03T01:00:00Z", 2);
         legacyRow(colleague, "c1", "P9-" + colleague, "N1", "2026-10-03T01:00:00Z", 1);
 
-        MergedInbox inbox = listInbox.execute(new UserId(me));
+        MergedInbox inbox = listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(inbox.newCount()).isEqualTo(2);
         assertThat(inbox.legacyCount()).isEqualTo(3);
         assertThat(inbox.totalCount()).isEqualTo(5);
@@ -84,7 +84,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(me))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.newCount").value(2)).andExpect(jsonPath("$.legacyCount").value(3))
                 .andExpect(jsonPath("$.totalCount").value(5)).andExpect(jsonPath("$.legacyAvailable").value(true));
-        MergedInbox colleagueInbox = listInbox.execute(new UserId(colleague));
+        MergedInbox colleagueInbox = listInbox.execute(new UserId(colleague), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(colleagueInbox.newCount()).isEqualTo(1);
         assertThat(colleagueInbox.legacyCount()).isEqualTo(1);
         assertThat(colleagueInbox.totalCount()).isEqualTo(2);
@@ -96,7 +96,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         long me = newId();
         organisation.person(me, 1, null);
         legacyRow(me, "t-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
-        MergedInbox inbox = listInbox.execute(new UserId(me));
+        MergedInbox inbox = listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(inbox.items()).singleElement().satisfies(item -> {
             assertThat(item.source().name()).isEqualTo("LEGACY");
             assertThat(item.detailUrl()).contains("https://legacy.example.test/bpm/detail?instance=P-" + me + "&task=t-1");
@@ -111,13 +111,13 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     void theOldViewIsReadLiveEveryTime() {
         long me = newId();
         organisation.person(me, 1, null);
-        assertThat(listInbox.execute(new UserId(me)).legacyCount()).isZero();
+        assertThat(listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isZero();
         legacyRow(me, "live-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
-        assertThat(listInbox.execute(new UserId(me)).legacyCount()).isEqualTo(1);
+        assertThat(listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
         legacyRow(me, "live-2", "Q-" + me, "N1", "2026-10-02T01:00:00Z", 1);
-        assertThat(listInbox.execute(new UserId(me)).legacyCount()).isEqualTo(2);
+        assertThat(listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(2);
         jdbc.update("update legacy_fixture.todo_rows set result = 2 where task_id = 'live-1'");
-        assertThat(listInbox.execute(new UserId(me)).legacyCount()).isEqualTo(1);
+        assertThat(listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
     }
 
     @Test
@@ -129,15 +129,40 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         organisation.person(first, 1, null).person(second, 1, null).person(initiator, 1, null);
         ApprovalInstanceId instance = newTaskFor(initiator, newKey("inbox"), first, second);
 
-        assertThat(listInbox.execute(new UserId(first)).newCount()).isEqualTo(1);
-        assertThat(listInbox.execute(new UserId(second)).newCount()).isEqualTo(1);
-        assertThat(listInbox.execute(new UserId(first)).items().getFirst().claimed()).isFalse();
+        assertThat(listInbox.execute(new UserId(first), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
+        assertThat(listInbox.execute(new UserId(second), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
+        assertThat(listInbox.execute(new UserId(first), com.forcitis.one.platform.approval.application.ListPage.first()).items().getFirst().claimed()).isFalse();
 
         claimTask.execute(openTaskId(instance), new UserId(first), java.util.OptionalLong.empty());
 
-        assertThat(listInbox.execute(new UserId(first)).newCount()).isEqualTo(1);
-        assertThat(listInbox.execute(new UserId(first)).items().getFirst().claimed()).isTrue();
-        assertThat(listInbox.execute(new UserId(second)).newCount()).isZero();
-        assertThat(listInbox.execute(new UserId(initiator)).newCount()).isZero();
+        assertThat(listInbox.execute(new UserId(first), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
+        assertThat(listInbox.execute(new UserId(first), com.forcitis.one.platform.approval.application.ListPage.first()).items().getFirst().claimed()).isTrue();
+        assertThat(listInbox.execute(new UserId(second), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isZero();
+        assertThat(listInbox.execute(new UserId(initiator), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("the inbox is paged by cursor: the counts are of the whole inbox, nextCursor leads to the rest, a bad cursor is 400")
+    void theInboxIsPaged() throws Exception {
+        long me = newId();
+        long initiator = newId();
+        organisation.person(me, 1, null).person(initiator, 1, null);
+        for (int i = 0; i < 3; i++) {
+            newTaskFor(initiator, newKey("paged"), me);
+        }
+
+        String first = mvc.perform(get("/api/v1/platform/approval-tasks").param("limit", "2").with(reader(me))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2)).andExpect(jsonPath("$.newCount").value(3))
+                .andExpect(jsonPath("$.totalCount").value(3)).andExpect(jsonPath("$.noticeCount").value(0))
+                .andExpect(jsonPath("$.nextCursor").exists()).andReturn().getResponse().getContentAsString();
+        String cursor = com.jayway.jsonpath.JsonPath.read(first, "$.nextCursor");
+        String second = mvc.perform(get("/api/v1/platform/approval-tasks").param("limit", "2").param("cursor", cursor).with(reader(me)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.nextCursor").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+
+        List<String> firstIds = com.jayway.jsonpath.JsonPath.read(first, "$.items[*].taskId");
+        List<String> secondIds = com.jayway.jsonpath.JsonPath.read(second, "$.items[*].taskId");
+        assertThat(firstIds).doesNotContainAnyElementsOf(secondIds);
+        mvc.perform(get("/api/v1/platform/approval-tasks").param("cursor", "garbage").with(reader(me))).andExpect(status().isBadRequest());
     }
 }

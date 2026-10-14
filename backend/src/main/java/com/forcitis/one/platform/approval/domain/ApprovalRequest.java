@@ -39,6 +39,11 @@ import com.forcitis.one.platform.approval.events.TaskReleased;
 import com.forcitis.one.platform.approval.events.TaskResulted;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
+import com.forcitis.one.platform.approval.api.TaskRecordAction;
+import com.forcitis.one.platform.approval.api.TaskRecordId;
+import com.forcitis.one.kernel.Uuids;
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -72,6 +77,7 @@ public final class ApprovalRequest extends AggregateRoot {
     private final int loadedRound;
     private final boolean isNew;
     private final List<ApprovalTask> tasks;
+    private final List<TaskHandling> handlings = new ArrayList<>();
     private int round;
     private ApprovalInstanceId instanceId;
     private ApprovalStatus status;
@@ -150,7 +156,9 @@ public final class ApprovalRequest extends AggregateRoot {
 
     public void passAutomatically(TaskAssignment assignment, UserId approver, Moment now) {
         requireOpenRound(assignment);
-        tasks.add(ApprovalTask.passedBySystem(assignment, approver, now.at()));
+        ApprovalTask passed = ApprovalTask.passedBySystem(assignment, approver, now.at());
+        tasks.add(passed);
+        note(passed, TaskRecordAction.PASSED_AUTOMATICALLY, approver, null, null, null, now);
         emitResult(assignment.taskId(), assignment.instanceId(), assignment.nodeKey(), approver, TaskOutcome.APPROVED, TaskEffect.AUTOMATIC,
                 null, now);
     }
@@ -158,6 +166,7 @@ public final class ApprovalRequest extends AggregateRoot {
     public void claimTask(ApprovalTaskId taskId, UserId by, Moment now) {
         ApprovalTask task = task(taskId);
         task.claim(by, now.at());
+        note(task, TaskRecordAction.CLAIMED, by, null, null, null, now);
         ApprovalInstanceId instance = task.instanceId();
         emit("TaskClaimed", now, envelope -> new TaskClaimed(envelope, taskId, instance, document, by));
     }
@@ -165,6 +174,7 @@ public final class ApprovalRequest extends AggregateRoot {
     public void releaseTask(ApprovalTaskId taskId, UserId by, Moment now) {
         ApprovalTask task = task(taskId);
         task.release(by);
+        note(task, TaskRecordAction.RELEASED, by, null, null, null, now);
         ApprovalInstanceId instance = task.instanceId();
         NodeKey node = task.nodeKey();
         emit("TaskReleased", now, envelope -> new TaskReleased(envelope, taskId, instance, document, node, by));
@@ -174,16 +184,18 @@ public final class ApprovalRequest extends AggregateRoot {
         requireReason(reason, "A transfer");
         ApprovalTask task = task(taskId);
         task.transfer(from, to);
+        note(task, TaskRecordAction.TRANSFERRED, from, null, to, reason, now);
         ApprovalInstanceId instance = task.instanceId();
         NodeKey node = task.nodeKey();
         emit("TaskTransferred", now, envelope -> new TaskTransferred(envelope, taskId, instance, document, node, from, to, reason));
     }
 
-    public void reassignTask(ApprovalTaskId taskId, UserId to, Reason reason, Moment now) {
+    public void reassignTask(ApprovalTaskId taskId, UserId by, UserId to, Reason reason, Moment now) {
         requireReason(reason, "A reassignment");
         ApprovalTask task = task(taskId);
         UserId previous = task.assignee().orElse(null);
         task.reassign(to, now.at());
+        note(task, TaskRecordAction.REASSIGNED, by, previous, to, reason, now);
         ApprovalInstanceId instance = task.instanceId();
         NodeKey node = task.nodeKey();
         emit("TaskReassigned", now, envelope -> new TaskReassigned(envelope, taskId, instance, document, node, previous, to, reason));
@@ -193,6 +205,7 @@ public final class ApprovalRequest extends AggregateRoot {
             ContentHash digest, Moment now) {
         ApprovalTask task = task(taskId);
         task.complete(by, outcome, advisory, reason, digest, now.at());
+        note(task, advisory ? TaskRecordAction.ADVISED : TaskRecordAction.valueOf(outcome.name()), by, null, null, reason, now);
         emitResult(taskId, task.instanceId(), task.nodeKey(), by, outcome, advisory ? TaskEffect.ADVISORY : TaskEffect.BINDING, reason, now);
     }
 
@@ -282,6 +295,19 @@ public final class ApprovalRequest extends AggregateRoot {
         ApprovalInstanceId instance = task.instanceId();
         NodeKey node = task.nodeKey();
         emit("TaskClosed", now, envelope -> new TaskClosed(envelope, id, instance, document, node));
+    }
+
+    private void note(ApprovalTask task, TaskRecordAction action, UserId actor, UserId onBehalfOf, UserId assignee, Reason reason, Moment now) {
+        handlings.add(new TaskHandling(new TaskRecordId(Uuids.timeOrdered(Clock.fixed(now.at(), ZoneOffset.UTC))), processKey, document, round, task.taskId(),
+                task.instanceId(), task.nodeKey(), task.nodeName(), action, actor, Optional.ofNullable(onBehalfOf), Optional.ofNullable(assignee),
+                Optional.ofNullable(reason), now.at()));
+    }
+
+    /** What the repository appends to the trail in the save that follows; asking twice gives nothing the second time. */
+    public List<TaskHandling> drainHandlings() {
+        List<TaskHandling> drained = List.copyOf(handlings);
+        handlings.clear();
+        return drained;
     }
 
     private void emitResult(ApprovalTaskId taskId, ApprovalInstanceId instance, NodeKey node, UserId by, TaskOutcome outcome,

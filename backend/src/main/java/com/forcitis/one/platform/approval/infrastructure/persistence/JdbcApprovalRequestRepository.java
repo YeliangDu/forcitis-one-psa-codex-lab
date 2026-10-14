@@ -13,6 +13,7 @@ import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.NodeName;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
@@ -22,6 +23,7 @@ import com.forcitis.one.platform.approval.domain.ApprovalRound;
 import com.forcitis.one.platform.approval.domain.ApprovalTask;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.platform.approval.domain.DeadlinePlan;
+import com.forcitis.one.platform.approval.domain.TaskHandling;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -39,7 +41,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
 
     private static final String REQUEST_COLUMNS = "process_key, document_type, document_key, legal_entity_id, initiator_id, current_round,"
             + " current_instance_id, status, result_reason, summary_text, event_count, version";
-    private static final String TASK_COLUMNS = "task_id, instance_id, node_key, status, assignee_id, created_at, due_at, remind_at,"
+    private static final String TASK_COLUMNS = "task_id, instance_id, node_key, node_name, status, assignee_id, created_at, due_at, remind_at,"
             + " escalate_at, claimed_at, completed_at, overdue_at, escalated_at, outcome_kind, effect_kind, result_reason, approved_hash";
 
     private final JdbcClient jdbc;
@@ -110,6 +112,24 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
                 update(task);
             }
         }
+        request.drainHandlings().forEach(this::insert);
+    }
+
+    private void insert(TaskHandling handling) {
+        jdbc.sql("""
+                INSERT INTO platform_approval.approval_task_records (record_id, process_key, document_key, round_number, task_id, instance_id,
+                       node_key, node_name, action_kind, actor_id, on_behalf_of_id, assignee_id, record_reason, decided_at)
+                VALUES (:id, :processKey, :documentKey, :round, :task, :instance, :node, :nodeName, :action, :actor, :onBehalfOf, :assignee,
+                        :reason, :decidedAt)
+                """)
+                .param("id", handling.recordId().value()).param("processKey", handling.processKey().name())
+                .param("documentKey", handling.document().documentId().value()).param("round", handling.round())
+                .param("task", handling.taskId().value()).param("instance", handling.instanceId().value())
+                .param("node", handling.nodeKey().value()).param("nodeName", handling.nodeName().value())
+                .param("action", handling.action().name()).param("actor", handling.actor().value())
+                .param("onBehalfOf", handling.onBehalfOf().map(UserId::value).orElse(null))
+                .param("assignee", handling.assignee().map(UserId::value).orElse(null))
+                .param("reason", handling.reason().map(Reason::value).orElse(null)).param("decidedAt", at(handling.decidedAt())).update();
     }
 
     private void insert(ApprovalRequest request) {
@@ -152,15 +172,15 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
 
     private void insert(ApprovalRequest request, ApprovalTask task) {
         jdbc.sql("""
-                INSERT INTO platform_approval.approval_tasks (task_id, instance_id, process_key, document_key, node_key, status, assignee_id,
+                INSERT INTO platform_approval.approval_tasks (task_id, instance_id, process_key, document_key, node_key, node_name, status, assignee_id,
                        created_at, due_at, remind_at, escalate_at, claimed_at, completed_at, overdue_at, escalated_at, outcome_kind,
                        effect_kind, result_reason, approved_hash)
-                VALUES (:id, :instance, :processKey, :documentKey, :node, :status, :assignee, :created, :due, :remind, :escalate, :claimed,
+                VALUES (:id, :instance, :processKey, :documentKey, :node, :nodeName, :status, :assignee, :created, :due, :remind, :escalate, :claimed,
                         :completed, :overdue, :escalated, :outcome, :effect, :reason, :hash)
                 """)
                 .param("id", task.taskId().value()).param("instance", task.instanceId().value())
                 .param("processKey", request.processKey().name()).param("documentKey", request.document().documentId().value())
-                .param("node", task.nodeKey().value()).param("status", task.status().name())
+                .param("node", task.nodeKey().value()).param("nodeName", task.nodeName().value()).param("status", task.status().name())
                 .param("assignee", task.assignee().map(UserId::value).orElse(null)).param("created", at(task.createdAt()))
                 .param("due", task.deadline().map(plan -> at(plan.dueAt())).orElse(null))
                 .param("remind", task.deadline().map(plan -> at(plan.remindAt())).orElse(null))
@@ -244,7 +264,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
         String reason = rs.getString("result_reason");
         String hash = rs.getString("approved_hash");
         return ApprovalTask.restore(new ApprovalTaskId(rs.getString("task_id")), new ApprovalInstanceId(rs.getString("instance_id")),
-                new NodeKey(rs.getString("node_key")), ApprovalTaskStatus.valueOf(rs.getString("status")), assigneeId,
+                new NodeKey(rs.getString("node_key")), new NodeName(rs.getString("node_name")), ApprovalTaskStatus.valueOf(rs.getString("status")), assigneeId,
                 instant(rs, "created_at"), plan, instant(rs, "claimed_at"), instant(rs, "completed_at"), instant(rs, "overdue_at"),
                 instant(rs, "escalated_at"), outcome == null ? null : TaskOutcome.valueOf(outcome),
                 effect == null ? null : TaskEffect.valueOf(effect), reason == null ? null : new Reason(reason),

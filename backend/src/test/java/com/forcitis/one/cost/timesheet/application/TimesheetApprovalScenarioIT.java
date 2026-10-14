@@ -168,7 +168,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     List<com.forcitis.one.platform.approval.application.InboxItem> inboxOf(TimesheetId id) {
-        return listInbox.execute(new UserId(manager)).items().stream()
+        return listInbox.execute(new UserId(manager), com.forcitis.one.platform.approval.application.ListPage.first()).items().stream()
                 .filter(item -> item.documentId().filter(String.valueOf(id.value())::equals).isPresent()).toList();
     }
 

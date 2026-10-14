@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /** Reads without locking: the tasks live inside the request aggregate, and these questions never change one. */
 public interface ApprovalTaskQueries {
@@ -17,8 +18,8 @@ public interface ApprovalTaskQueries {
 
     Optional<ApprovalInstanceId> instanceOf(ApprovalTaskId taskId);
 
-    /** Most recently decided first. */
-    List<TaskRecord> handledBy(UserId user, int limit);
+    /** What the person decided, newest first, starting after the given place; one more than the limit when there is a next page. */
+    List<TaskHandling> handledBy(UserId user, Optional<Instant> after, Optional<UUID> afterId, int limit);
 
     /** Every open task, or only those past their deadline at {@code overdueAt}: the administrator's overview (D-1a-139). */
     List<TaskRecord> openTasks(Optional<Instant> overdueAt);

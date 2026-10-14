@@ -55,7 +55,7 @@ public class ReassignTask {
                     "Reassignment target " + to.value() + " is not an employed person other than the initiator");
         }
         engine.reassignTask(taskId, to);
-        request.reassignTask(taskId, to, Reason.ofNullable(reason), time.moment());
+        request.reassignTask(taskId, actor, to, Reason.ofNullable(reason), time.moment());
         approvals.save(request);
     }
 }
