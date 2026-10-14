@@ -97,7 +97,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 3. **服务器文件一致**（新装的版本）：已安装的安装器、systemd 单元、nginx 配置、logrotate 与发布包中 `deploy/` 的同名文件逐字节相同，`one.env` 含模板中的每个键；不一致即失败并列出（§5）。
 4. 放到 `/data/forcitis-one/releases/<版本>/`（root:forcitis，目录 750、文件 640），`web` 软链指向 `web-<环境>`，给 nginx 用户只读 ACL。已装过且内容一致的版本直接复用，不改 `web` 软链；装给另一环境的同版本拒绝。
 5. 迁移（§4），**每次部署都运行**：有新迁移时应用它们，没有时由 Flyway 校验已应用的迁移与本版本一致。
-6. 原子切换 `current` 软链，`systemctl restart forcitis-one`，经本机回环取 `http://127.0.0.1:<MANAGEMENT_SERVER_PORT>/actuator/health`，解析 JSON 顶层 `status` 为 `UP`；并且 `/data/forcitis-one/static-pinned/` 下每个企业微信校验文件经本机 nginx（`https://one.forcitis.com/<文件名>`）返回原文（最长 180 秒）。部署请求给出校验文件名时，切换前还要求该文件存在。
+6. 单元若尚未 enabled（首次安装），先 `systemctl enable forcitis-one`，失败即安装失败；再原子切换 `current` 软链，`systemctl restart forcitis-one`（此后每次安装只重启），经本机回环取 `http://127.0.0.1:<MANAGEMENT_SERVER_PORT>/actuator/health`，解析 JSON 顶层 `status` 为 `UP`；并且 `/data/forcitis-one/static-pinned/` 下每个企业微信校验文件经本机 nginx（`https://one.forcitis.com/<文件名>`）返回原文（最长 180 秒）。部署请求给出校验文件名时，切换前还要求该文件存在。
 7. 不健康：自动切回原来的 `current` 并重启，原版本健康则以「已回切」报错退出，原版本也不健康则报「需人工处理」；首次部署没有上一版本时停止服务并报错。
 8. 健康：上一版本记为 `previous`；保留最近 5 个版本（`current`、`previous` 之外），更旧的删除；每次结果追加到 `releases/HISTORY`。
 
