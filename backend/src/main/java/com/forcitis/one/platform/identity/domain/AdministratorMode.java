@@ -16,6 +16,13 @@ public final class AdministratorMode {
             Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE,
             Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
 
+    /** What only the administrator mode may hold: no role carries these into an ordinary session (separation-hold:approve may, ADR-0028). */
+    public static final Set<String> PLATFORM_ONLY = Set.of(
+            Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
+            Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+            Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE,
+            Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE);
+
     private AdministratorMode() {
     }
 }

@@ -560,6 +560,20 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_identity_permission_administrator_mode_only
+  zh: 该权限只在管理模式
+  en: PlatformIdentityPermissionAdministratorModeOnly
+  snake: platform_identity_permission_administrator_mode_only
+  kind: error_code
+  bc: platform.identity
+  definition: 角色定义、账号授权、强制下线这类平台权限只在管理模式里有，自定义角色不能带（422，ADR-0026 第 5 项、ADR-0027 第 2 项）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - decided
 - sensitive

@@ -306,6 +306,30 @@ abstract class IdentityIntegrationTest {
         return cookie(entered, "SESSION");
     }
 
+    @Autowired
+    com.forcitis.one.platform.identity.domain.EmergencyAdminRepository emergencyAdmins;
+
+    @Autowired
+    com.forcitis.one.platform.identity.domain.PasswordHasher hasher;
+
+    @Autowired
+    com.forcitis.one.platform.identity.domain.TotpSecretVault vault;
+
+    /** A session started by the emergency login of a new emergency account bound to super_admin holder userId. */
+    String emergencySession(long userId) throws Exception {
+        createAccount(userId, "super_admin");
+        byte[] secret = com.forcitis.one.platform.identity.domain.Totp.newSecret();
+        emergencyAdmins.insertIfAbsent(com.forcitis.one.platform.identity.domain.EmergencyAdmin.register(new UserId(userId), "breakglass-" + userId,
+                hasher.hash("Str0ng!Passphrase#42"), vault.seal(secret)));
+        MvcResult login = mvc.perform(post("/api/v1/platform/sessions:emergency-login").with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(
+                "{\"loginName\":\"breakglass-" + userId + "\",\"password\":\"Str0ng!Passphrase#42\",\"totpCode\":\""
+                        + com.forcitis.one.platform.identity.domain.Totp.code(secret, com.forcitis.one.platform.identity.domain.Totp.stepAt(clock.instant())) + "\"}")).andReturn();
+        if (login.getResponse().getStatus() != 200) {
+            throw new AssertionError("emergency login failed: " + login.getResponse().getContentAsString());
+        }
+        return cookie(login, "SESSION");
+    }
+
     List<AuditEntry> recorded() {
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);
         Mockito.verify(auditLog, Mockito.atLeast(0)).record(captor.capture());

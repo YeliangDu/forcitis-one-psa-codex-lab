@@ -191,4 +191,26 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
         assertThat(system.get().path("children").valueStream().map(n -> n.path("routePath").asString()).toList()).containsExactly("/admin/roles");
         assertThat(me(loginWithWecom(9)).path("navigation").valueStream().map(n -> n.path("name").asString())).doesNotContain("\u7cfb\u7edf\u7ba1\u7406");
     }
+
+    @Test
+    @DisplayName("INT-SEC-H1 administratorModeCannotHandleApprovals: neither the administrator mode nor an emergency session sees or handles approval tasks (I-11)")
+    void administratorModeCannotHandleApprovals() throws Exception {
+        String administrator = administratorSession(9);
+        String emergency = emergencySession(8);
+        String ordinary = loginWithWecom(1600);
+        String base = "/api/v1/platform/approval-tasks";
+
+        assertThat(status(base, ordinary)).as("an ordinary session still has its inbox").isEqualTo(200);
+        for (String session : List.of(administrator, emergency)) {
+            assertThat(status(base, session)).isEqualTo(403);
+            assertThat(status(base + "/some-task", session)).isEqualTo(403);
+            assertThat(status("/api/v1/platform/approval-task-records", session)).isEqualTo(403);
+            assertThat(status("/api/v1/platform/approval-task-overviews", session)).isEqualTo(403);
+            String body = "{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"assigneeId\":1}";
+            for (String action : List.of(":claim", ":release", ":decide", ":return", ":transfer", ":reassign")) {
+                assertThat(mvc.perform(post(base + "/some-task" + action).with(xsrf()).cookie(new Cookie("SESSION", session))
+                        .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getStatus()).as(action).isEqualTo(403);
+            }
+        }
+    }
 }

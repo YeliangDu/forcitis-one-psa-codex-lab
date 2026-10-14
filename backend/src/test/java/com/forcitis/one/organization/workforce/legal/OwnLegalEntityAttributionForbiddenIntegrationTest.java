@@ -7,6 +7,7 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -79,9 +80,10 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     }
 
     private int attributeOrgUnit(String actor, long orgUnit) throws Exception {
-        return mvc.perform(put(ORG_UNITS + orgUnit).header("If-Match", "\"0\"").with(csrf()).with(maintainer(actor))
-                        .contentType(MediaType.APPLICATION_JSON).content(body()))
-                .andReturn().getResponse().getStatus();
+        var response = mvc.perform(put(ORG_UNITS + orgUnit).header("If-Match", "\"0\"").with(csrf()).with(maintainer(actor))
+                        .contentType(MediaType.APPLICATION_JSON).content(body())).andReturn().getResponse();
+        lastEtag = response.getHeader("ETag");
+        return response.getStatus();
     }
 
     @Test
@@ -126,5 +128,29 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
         assertThat(attributeOrgUnit("1", 4)).as("an unrelated department").isEqualTo(200);
         assertThat(attributeOrgUnit("9001", 2)).as("someone who is not in the organisation snapshot").isEqualTo(200);
         verify(audit, never()).recordIndependently(argThat((AuditEntry entry) -> entry.action().equals("organization.workforce.legal-entity-attribution.refused")));
+    }
+
+    private int correct(String url, String etag, String actor) throws Exception {
+        String body = "{\"periodFrom\":\"" + zone.today(clock) + "\",\"effectiveTo\":\"" + zone.today(clock).plusDays(5) + "\",\"reason\":\"typed the wrong end day\"}";
+        return mvc.perform(post(url + ":correct").header("If-Match", etag).with(csrf())
+                .with(user(actor).authorities(() -> "organization.workforce:legal-entity-attribution-correction:create"))
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getStatus();
+    }
+
+    @Test
+    @DisplayName("INT-ADR-H1 nobody corrects their own attribution either: the own employee entry and the own department chain are 403, audited, and write no correction")
+    void correctingOwnAttributionIsRefused() throws Exception {
+        assertThat(attributeEmployee("9001", 1)).isEqualTo(200);
+        String employeeEtag = lastEtag;
+        assertThat(attributeOrgUnit("9001", 2)).isEqualTo(200);
+        String unitEtag = lastEtag;
+
+        assertThat(correct(EMPLOYEES + 1, employeeEtag, "1")).as("own employee entry").isEqualTo(403);
+        assertThat(correct(ORG_UNITS + 2, unitEtag, "1")).as("own department").isEqualTo(403);
+        assertThat(correct(ORG_UNITS + 2, unitEtag, "2")).as("own department of the other person").isEqualTo(403);
+
+        assertThat(count("legal_entity_attribution_corrections")).isZero();
+        verify(audit, atLeastOnce()).recordIndependently(argThat((AuditEntry entry) -> entry.action().equals("organization.workforce.legal-entity-attribution.refused")
+                && entry.actorId().value() == 1));
     }
 }

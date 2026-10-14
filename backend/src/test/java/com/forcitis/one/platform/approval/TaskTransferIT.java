@@ -7,7 +7,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -152,12 +152,12 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         String url = "/api/v1/platform/approval-tasks/" + s.task().value() + ":transfer";
         String body = "{\"assigneeId\":" + s.colleague() + ",\"reason\":\"on leave\"}";
 
-        mvc.perform(post(url).with(csrf()).with(currentEtag()).with(user(String.valueOf(s.other())).authorities(() -> Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE))
+        mvc.perform(post(url).with(csrf()).with(currentEtag()).with(user(String.valueOf(s.other())).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE)))
                 .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isNotFound());
-        mvc.perform(post(url).with(csrf()).with(currentEtag()).with(user(String.valueOf(s.handler())).authorities(() -> Permission.Codes.PLATFORM_APPROVAL_TASK_READ))
+        mvc.perform(post(url).with(csrf()).with(currentEtag()).with(user(String.valueOf(s.handler())).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ)))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"assigneeId\":" + s.colleague() + ",\"reason\":\" \"}"))
                 .andExpect(status().isUnprocessableContent());
-        mvc.perform(post(url).with(csrf()).with(currentEtag()).with(user(String.valueOf(s.handler())).authorities(() -> Permission.Codes.PLATFORM_APPROVAL_TASK_READ))
+        mvc.perform(post(url).with(csrf()).with(currentEtag()).with(user(String.valueOf(s.handler())).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ)))
                 .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isNoContent());
         assertThat(openTask(s.instance()).getAssignee()).isEqualTo(String.valueOf(s.colleague()));
     }

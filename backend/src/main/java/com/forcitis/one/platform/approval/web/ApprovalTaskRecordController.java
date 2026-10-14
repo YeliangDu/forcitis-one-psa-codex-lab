@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.web;
 import com.forcitis.one.platform.approval.application.ListHandledTasks;
 import com.forcitis.one.platform.approval.application.ListPage;
 import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.platform.identity.api.SessionAuthorities;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,7 +24,7 @@ class ApprovalTaskRecordController {
     }
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('" + SessionAuthorities.ORDINARY + "')")
     HandledTaskPageResponse list(@RequestParam(required = false) String cursor, @RequestParam(required = false) Integer limit) {
         return HandledTaskPageResponse.of(listHandledTasks.execute(currentUser.userId(), ListPage.of(cursor, limit)));
     }

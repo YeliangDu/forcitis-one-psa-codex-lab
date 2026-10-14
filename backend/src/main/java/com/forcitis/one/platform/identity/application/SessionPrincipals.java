@@ -5,12 +5,14 @@ import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.domain.AccessProfile;
+import com.forcitis.one.platform.identity.domain.AdministratorMode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
 import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,7 +54,8 @@ public class SessionPrincipals {
         if (employee.get().employmentStatus() != EmploymentStatus.EMPLOYED) {
             return refused(Eligibility.EMPLOYEE_SEPARATED);
         }
-        return new SessionPrincipal(Eligibility.ACTIVE, profile.permissionCodes());
+        return new SessionPrincipal(Eligibility.ACTIVE, profile.permissionCodes().stream()
+                .filter(code -> !AdministratorMode.PLATFORM_ONLY.contains(code)).collect(Collectors.toUnmodifiableSet()));
     }
 
     private SessionPrincipal administrator(UserId userId, SessionKind kind, AccessProfile profile) {

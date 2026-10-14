@@ -6,6 +6,7 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.domain.AccessProfile;
+import com.forcitis.one.platform.identity.domain.AdministratorMode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.NavigationNode;
 import com.forcitis.one.platform.identity.domain.NavigationRepository;
@@ -13,6 +14,7 @@ import com.forcitis.one.platform.identity.domain.NavigationTree;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +46,8 @@ public class GetCurrentUserProfile {
         boolean confirmed = sessions.identityConfirmed();
         AccessProfile profile = AccessProfile.of(confirmed ? accounts.findEnabledRoles(userId) : List.of());
         SessionMode mode = session.mode();
-        Set<String> permissions = mode == SessionMode.ADMINISTRATOR ? profile.administratorModePermissionCodes() : profile.permissionCodes();
+        Set<String> permissions = mode == SessionMode.ADMINISTRATOR ? profile.administratorModePermissionCodes()
+                : profile.permissionCodes().stream().filter(code -> !AdministratorMode.PLATFORM_ONLY.contains(code)).collect(Collectors.toUnmodifiableSet());
         List<NavigationEntry> menu = confirmed ? NavigationTree.visibleTo(permissions, navigation.findEnabled())
                 .stream().map(GetCurrentUserProfile::entry).toList() : List.of();
         return new CurrentUserView(userId.value(), employee.map(EmployeeProfile::name).orElse(""),
