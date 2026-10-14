@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@forcitis/api": "workspace:*",
+    "@forcitis/core": "workspace:*",
     "@forcitis/design-system": "workspace:*",
     "@forcitis/ui": "workspace:*",
     "@tanstack/react-query": "^5.104.2",

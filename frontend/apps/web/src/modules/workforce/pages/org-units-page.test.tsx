@@ -1,8 +1,8 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { buildOrgTree } from '../model/org-unit';
 import { OrgUnitsPage } from './org-units-page';
 
