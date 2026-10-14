@@ -197,10 +197,11 @@ class ApplicationIntegrationTest {
     @Test
     void numbersFollowTheRuleResetYearlyAndAreSeparatePerLegalEntity() {
         LocalDate day = LocalDate.of(2026, 10, 14);
-        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("PSAQU202600103");
-        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("PSAQU202600104");
-        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2L), day)).isEqualTo("PSAQU202600103");
-        assertThat(issue(DocumentType.QUOTE, LE1, LocalDate.of(2027, 1, 2))).isEqualTo("PSAQU202700103");
+        // unified new format (ADR-0010 decision 5): {TYPE}-{LE}-{yyyyMM}-{seq:4}, reset monthly
+        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-1-202610-0001");
+        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-1-202610-0002");
+        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2L), day)).isEqualTo("QT-2-202610-0001");
+        assertThat(issue(DocumentType.QUOTE, LE1, LocalDate.of(2026, 11, 2))).isEqualTo("QT-1-202611-0001");
         assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, day)).isEqualTo("JV-1-202610-000001");
     }
 

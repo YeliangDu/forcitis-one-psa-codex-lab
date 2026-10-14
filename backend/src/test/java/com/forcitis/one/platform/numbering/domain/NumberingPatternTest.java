@@ -1,0 +1,67 @@
+package com.forcitis.one.platform.numbering.domain;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
+import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import java.time.LocalDate;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+class NumberingPatternTest {
+
+    static final LocalDate DAY = LocalDate.of(2026, 10, 14);
+
+    @Test
+    @DisplayName("ADR-0010 decision 5: the default template renders {type code}-{LE}-{yyyyMM}-{seq:4}")
+    void defaultTemplateRendersTheUnifiedFormat() {
+        NumberingPattern pattern = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
+
+        assertThat(pattern.usesTypeCode()).isTrue();
+        assertThat(pattern.render("QT", new LegalEntityId(3), DAY, 1)).isEqualTo("QT-3-202610-0001");
+        assertThat(pattern.render("QT", new LegalEntityId(3), DAY, 9999)).isEqualTo("QT-3-202610-9999");
+        assertThat(pattern.capacity()).isEqualTo(9999);
+    }
+
+    @Test
+    void sequenceOverflowIsRefusedInsteadOfTruncated() {
+        NumberingPattern pattern = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
+
+        assertThatThrownBy(() -> pattern.render("QT", new LegalEntityId(3), DAY, 10_000)).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void theDefaultTemplateOnlyResetsMonthlyOrFinerBecauseItNamesYearAndMonth() {
+        assertThatThrownBy(() -> new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.DAILY))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.YEARLY).value())
+                .isEqualTo(NumberingPattern.DEFAULT_TEMPLATE);
+    }
+
+    @Test
+    void renderingWithoutATypeCodeIsRefusedWhenTheTemplateNeedsOne() {
+        NumberingPattern pattern = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
+
+        assertThatThrownBy(() -> pattern.render(null, new LegalEntityId(1), DAY, 1)).isInstanceOf(IllegalStateException.class);
+        assertThat(new NumberingPattern("JV-{LE}-{yyyyMM}-{seq:6}", ResetPolicy.MONTHLY).usesTypeCode()).isFalse();
+    }
+
+    @Test
+    void aRuleWhoseTemplateUsesTheTypeCodeNeedsARegisteredCode() {
+        NumberingPattern pattern = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
+
+        assertThatThrownBy(() -> NumberingRule.confirmed(DocumentType.TIMESHEET, pattern, 1))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("no registered code");
+        assertThat(new NumberingRule(DocumentType.QUOTE, pattern, 1, ConfirmationStatus.PENDING_CONFIRMATION).confirmation())
+                .isEqualTo(ConfirmationStatus.PENDING_CONFIRMATION);
+    }
+
+    @Test
+    void stillRejectsUnknownTokensAndMissingSequences() {
+        assertThatThrownBy(() -> new NumberingPattern("{TYPO}-{seq:4}", ResetPolicy.NEVER)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new NumberingPattern("{TYPE}-{yyyyMM}", ResetPolicy.MONTHLY)).isInstanceOf(IllegalArgumentException.class);
+    }
+}

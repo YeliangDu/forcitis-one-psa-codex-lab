@@ -40,8 +40,25 @@ public record Money(BigDecimal amount, Currency currency) {
         return new Money(amount.multiply(Objects.requireNonNull(factor, "factor")), currency);
     }
 
+    public Money negate() {
+        return new Money(amount.negate(), currency);
+    }
+
     public boolean isNegative() {
         return amount.signum() < 0;
+    }
+
+    public boolean isZero() {
+        return amount.signum() == 0;
+    }
+
+    public boolean isPositive() {
+        return amount.signum() > 0;
+    }
+
+    /** Orders amounts of the same currency; comparing different currencies is refused. */
+    public int compareTo(Money other) {
+        return amount.compareTo(sameCurrency(other).amount);
     }
 
     private Money sameCurrency(Money other) {
