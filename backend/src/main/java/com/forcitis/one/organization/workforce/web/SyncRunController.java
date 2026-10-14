@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/{version}/organization/sync-runs")
+@RequestMapping("/api/v1/organization/sync-runs")
 class SyncRunController {
     private final ListSyncRuns listSyncRuns;
     private final GetSyncRun getSyncRun;
@@ -29,13 +29,13 @@ class SyncRunController {
         this.releaseSyncRun = releaseSyncRun;
     }
 
-    @GetMapping(version = "1")
+    @GetMapping
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.SYNC_RUN_READ + "')")
     List<SyncRunResponse> list(@RequestParam(defaultValue = "50") int limit) {
         return listSyncRuns.execute(limit).stream().map(SyncRunResponse::of).toList();
     }
 
-    @GetMapping(path = "/{syncRunId}", version = "1")
+    @GetMapping(path = "/{syncRunId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.SYNC_RUN_READ + "')")
     ResponseEntity<SyncRunDetailResponse> get(@PathVariable long syncRunId) {
         return getSyncRun.execute(syncRunId).map(SyncRunDetailResponse::of)
@@ -43,7 +43,7 @@ class SyncRunController {
     }
 
     /** The actor is the authenticated session user, never a request field. */
-    @PostMapping(path = "/{syncRunId}:release", version = "1")
+    @PostMapping(path = "/{syncRunId}:release")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.SYNC_RUN_EXECUTE + "')")
     ResponseEntity<ReleaseResponse> release(@PathVariable long syncRunId, Principal caller) {
         ReleaseResult result = releaseSyncRun.execute(syncRunId, Long.parseLong(caller.getName()));

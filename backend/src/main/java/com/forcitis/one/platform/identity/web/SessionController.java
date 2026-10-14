@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** No request carries a user id: who logs in is decided by the proof, who is calling by the session only (I-3). */
 @RestController
-@RequestMapping("/api/{version}/platform")
+@RequestMapping("/api/v1/platform")
 class SessionController {
 
     private final BeginWecomLogin beginWecomLogin;
@@ -47,7 +47,7 @@ class SessionController {
         this.ssoSettings = ssoSettings;
     }
 
-    @PostMapping(path = "/login-states", version = "1")
+    @PostMapping(path = "/login-states")
     @PublicEndpoint(reason = "One-time OAuth state for the WeCom login redirect; creates no session. ADR-0009 §3, RULE-322/324, I-9")
     ResponseEntity<?> beginWecomLogin(@RequestBody LoginStateRequest request) {
         if (request.entry() == null) {
@@ -56,38 +56,38 @@ class SessionController {
         return ResponseEntity.ok(new LoginStateResponse(beginWecomLogin.execute(request.entry())));
     }
 
-    @PostMapping(path = "/sessions:wecom-login", version = "1")
+    @PostMapping(path = "/sessions:wecom-login")
     @PublicEndpoint(reason = "WeCom OAuth login (workbench, mini program, PC scan): identity proven by the WeCom code and a one-time state. ADR-0009 §3, RULE-322/323/324/326/327, I-3, I-9")
     ResponseEntity<?> loginWithWecom(@RequestBody WecomLoginRequest request) {
         return respond(loginWithWecom.execute(new WecomLoginCommand(request.code(), request.state(), request.entry())), null);
     }
 
-    @PostMapping(path = "/sessions:sso-login", version = "1")
+    @PostMapping(path = "/sessions:sso-login")
     @PublicEndpoint(reason = "Portal single sign-on: the server checks the one-time ticket against the portal. ADR-0009 §3, RULE-320/321, I-3, I-9")
     ResponseEntity<?> loginWithSso(@RequestBody TicketLoginRequest request) {
         return respond(loginWithSso.execute(request.ticket()), emptyToNull(ssoSettings.legacyLoginUrl()));
     }
 
-    @PostMapping(path = "/sessions:ticket-login", version = "1")
+    @PostMapping(path = "/sessions:ticket-login")
     @PublicEndpoint(reason = "Signed one-time ticket from an allow-listed external system (HMAC, at most 60 s, nonce used once). ADR-0009 §3, RULE-318, C1a-03, I-2, I-3, I-9")
     ResponseEntity<?> loginWithSignedTicket(@RequestBody TicketLoginRequest request) {
         return respond(loginWithSignedTicket.execute(request.ticket()), null);
     }
 
-    @PostMapping(path = "/sessions:emergency-login", version = "1")
+    @PostMapping(path = "/sessions:emergency-login")
     @PublicEndpoint(reason = "Break-glass administrator: Argon2id password plus TOTP, internal network only, locked after 5 failures. ADR-0009 §3, RULE-316/317, C1a-04, I-3")
     ResponseEntity<?> loginAsEmergencyAdmin(@RequestBody EmergencyLoginRequest request) {
         return respond(loginAsEmergencyAdmin.execute(new EmergencyLoginCommand(request.loginName(), request.password(), request.totpCode())), null);
     }
 
-    @PostMapping(path = "/sessions:logout", version = "1")
+    @PostMapping(path = "/sessions:logout")
     @PreAuthorize("isAuthenticated()")
     ResponseEntity<Void> logout() {
         logout.execute();
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping(path = "/sessions:current", version = "1")
+    @GetMapping(path = "/sessions:current")
     @PreAuthorize("isAuthenticated()")
     CurrentUserResponse current() {
         return CurrentUserResponse.of(getCurrentUserProfile.execute());

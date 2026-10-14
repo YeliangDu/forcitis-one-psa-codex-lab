@@ -84,7 +84,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                     (m.name().equals("GET") ? reads : writes).add(m.name() + " " + p);
                 })));
 
-        assertThat(writes).containsExactly("POST /api/{version}/organization/sync-runs/{syncRunId}:release");
+        assertThat(writes).containsExactly("POST /api/v1/organization/sync-runs/{syncRunId}:release");
         assertThat(reads).hasSize(4);
     }
 

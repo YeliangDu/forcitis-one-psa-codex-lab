@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Assigning roles and switching an account on or off use the role update permission (no separate account permission yet). */
 @RestController
-@RequestMapping("/api/{version}/platform")
+@RequestMapping("/api/v1/platform")
 class RoleController {
 
     private static final String READ = "hasAuthority('" + Permission.Codes.PLATFORM_IDENTITY_ROLE_READ + "')";
@@ -53,20 +53,20 @@ class RoleController {
         this.changeAccountStatus = changeAccountStatus;
     }
 
-    @GetMapping(path = "/roles", version = "1")
+    @GetMapping(path = "/roles")
     @PreAuthorize(READ)
     List<RoleResponse> list() {
         return listRoles.execute().stream().map(RoleResponse::of).toList();
     }
 
-    @GetMapping(path = "/roles/{roleId}", version = "1")
+    @GetMapping(path = "/roles/{roleId}")
     @PreAuthorize(READ)
     ResponseEntity<?> get(@PathVariable long roleId) {
         return getRole.execute(roleId).<ResponseEntity<?>>map(role -> ResponseEntity.ok(RoleResponse.of(role)))
                 .orElseGet(() -> IdentityResponses.error(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND, null));
     }
 
-    @PostMapping(path = "/roles", version = "1")
+    @PostMapping(path = "/roles")
     @PreAuthorize(UPDATE)
     ResponseEntity<?> create(@RequestBody RoleRequest request) {
         AdminOutcome<RoleView> outcome = createRole.execute(command(request));
@@ -77,7 +77,7 @@ class RoleController {
         };
     }
 
-    @PutMapping(path = "/roles/{roleId}", version = "1")
+    @PutMapping(path = "/roles/{roleId}")
     @PreAuthorize(UPDATE)
     ResponseEntity<?> update(@PathVariable long roleId, @RequestBody RoleRequest request) {
         AdminOutcome<RoleView> outcome = updateRole.execute(roleId, command(request));
@@ -87,26 +87,26 @@ class RoleController {
         };
     }
 
-    @DeleteMapping(path = "/roles/{roleId}", version = "1")
+    @DeleteMapping(path = "/roles/{roleId}")
     @PreAuthorize(UPDATE)
     ResponseEntity<?> delete(@PathVariable long roleId) {
         return noContent(deleteRole.execute(roleId));
     }
 
-    @PostMapping(path = "/user-accounts/{userId}:replace-roles", version = "1")
+    @PostMapping(path = "/user-accounts/{userId}:replace-roles")
     @PreAuthorize(UPDATE)
     ResponseEntity<?> replaceRoles(@PathVariable long userId, @RequestBody ReplaceRolesRequest request) {
         Set<String> codes = request.roleCodes() == null ? Set.of() : request.roleCodes();
         return noContent(replaceAccountRoles.execute(userId, codes));
     }
 
-    @PostMapping(path = "/user-accounts/{userId}:enable", version = "1")
+    @PostMapping(path = "/user-accounts/{userId}:enable")
     @PreAuthorize(UPDATE)
     ResponseEntity<?> enable(@PathVariable long userId) {
         return noContent(changeAccountStatus.execute(userId, true));
     }
 
-    @PostMapping(path = "/user-accounts/{userId}:disable", version = "1")
+    @PostMapping(path = "/user-accounts/{userId}:disable")
     @PreAuthorize(UPDATE)
     ResponseEntity<?> disable(@PathVariable long userId) {
         return noContent(changeAccountStatus.execute(userId, false));

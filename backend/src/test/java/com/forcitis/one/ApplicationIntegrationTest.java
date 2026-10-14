@@ -121,7 +121,7 @@ class ApplicationIntegrationTest {
         for (Map.Entry<RequestMappingInfo, HandlerMethod> mapped : handlerMapping.getHandlerMethods().entrySet()) {
             PublicEndpoint publicEndpoint = mapped.getValue().getMethodAnnotation(PublicEndpoint.class);
             for (String pattern : mapped.getKey().getPatternValues()) {
-                String url = pattern.replace("{version}", "v1").replaceAll("\\{[^}]+}", "1");
+                String url = pattern.replaceAll("\\{[^}]+}", "1");
                 for (var method : mapped.getKey().getMethodsCondition().getMethods()) {
                     var request = request(HttpMethod.valueOf(method.name()), url).with(csrf())
                             .contentType(MediaType.APPLICATION_JSON).content("{}");

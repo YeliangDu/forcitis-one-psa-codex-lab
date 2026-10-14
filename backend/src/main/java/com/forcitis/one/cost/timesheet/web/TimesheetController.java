@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/{version}/cost/timesheets")
+@RequestMapping("/api/v1/cost/timesheets")
 class TimesheetController {
 
     private final SubmitTimesheet submitTimesheet;
@@ -27,7 +27,7 @@ class TimesheetController {
         this.submitTimesheet = submitTimesheet;
     }
 
-    @PostMapping(path = "/{id}:submit", version = "1")
+    @PostMapping(path = "/{id}:submit")
     @PreAuthorize("hasAuthority('" + Permission.Codes.TIMESHEET_SUBMIT + "')")
     ResponseEntity<SubmitTimesheetResponse> submit(@PathVariable long id, @RequestBody SubmitTimesheetRequest request) {
         SubmissionResult result = submitTimesheet.execute(new SubmitTimesheetCommand(

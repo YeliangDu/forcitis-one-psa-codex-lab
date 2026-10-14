@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** The caller is always the session user, no request carries an identity (G33); there is no start endpoint (I-5). */
 @RestController
-@RequestMapping("/api/{version}/platform/approval-tasks")
+@RequestMapping("/api/v1/platform/approval-tasks")
 class ApprovalTaskController {
 
     private final ListInbox listInbox;
@@ -44,33 +44,33 @@ class ApprovalTaskController {
         this.currentUser = currentUser;
     }
 
-    @GetMapping(path = "", version = "1")
+    @GetMapping(path = "")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "')")
     MergedInbox list() {
         return listInbox.execute(currentUser.userId());
     }
 
-    @GetMapping(path = "/{taskId}", version = "1")
+    @GetMapping(path = "/{taskId}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "')")
     TaskDetail get(@PathVariable String taskId) {
         return getTaskDetail.execute(new ApprovalTaskId(taskId), currentUser.userId());
     }
 
-    @PostMapping(path = "/{taskId}:claim", version = "1")
+    @PostMapping(path = "/{taskId}:claim")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
     ResponseEntity<Void> claim(@PathVariable String taskId) {
         claimTask.execute(new ApprovalTaskId(taskId), currentUser.userId());
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(path = "/{taskId}:decide", version = "1")
+    @PostMapping(path = "/{taskId}:decide")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
     DecisionResult decide(@PathVariable String taskId, @RequestBody DecideTaskRequest request) {
         return decideTasks.execute(currentUser.userId(),
                 List.of(new TaskDecision(new ApprovalTaskId(taskId), request.outcome(), request.reason())));
     }
 
-    @PostMapping(path = "/{taskId}:return", version = "1")
+    @PostMapping(path = "/{taskId}:return")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
     DecisionResult returnTask(@PathVariable String taskId, @RequestBody ReturnTaskRequest request) {
         return returnToInitiator.execute(new ApprovalTaskId(taskId), currentUser.userId(), request.reason());

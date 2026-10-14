@@ -127,9 +127,9 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
             }
         }
         assertThat(approvalRoutes.keySet()).containsExactlyInAnyOrder(
-                "/api/{version}/platform/approval-tasks", "/api/{version}/platform/approval-tasks/{taskId}",
-                "/api/{version}/platform/approval-tasks/{taskId}:claim", "/api/{version}/platform/approval-tasks/{taskId}:decide",
-                "/api/{version}/platform/approval-tasks/{taskId}:return");
+                "/api/v1/platform/approval-tasks", "/api/v1/platform/approval-tasks/{taskId}",
+                "/api/v1/platform/approval-tasks/{taskId}:claim", "/api/v1/platform/approval-tasks/{taskId}:decide",
+                "/api/v1/platform/approval-tasks/{taskId}:return");
     }
 
     int instancesOf(String businessKey) {

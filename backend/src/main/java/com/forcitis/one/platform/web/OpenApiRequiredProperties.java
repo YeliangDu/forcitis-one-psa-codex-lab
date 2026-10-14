@@ -1,4 +1,4 @@
-package com.forcitis.one;
+package com.forcitis.one.platform.web;
 
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;

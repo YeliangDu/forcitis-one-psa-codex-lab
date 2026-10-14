@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/{version}/platform/numbering-rules")
+@RequestMapping("/api/v1/platform/numbering-rules")
 class NumberingRuleController {
 
     private final ConfigureNumberingRule configure;
@@ -30,13 +30,13 @@ class NumberingRuleController {
         this.find = find;
     }
 
-    @GetMapping(version = "1")
+    @GetMapping
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_READ + "')")
     List<NumberingRuleResponse> list() {
         return list.execute().stream().map(NumberingRuleResponse::from).toList();
     }
 
-    @GetMapping(path = "/{documentType}", version = "1")
+    @GetMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_READ + "')")
     ResponseEntity<NumberingRuleResponse> get(@PathVariable DocumentType documentType) {
         return find.execute(documentType)
@@ -45,7 +45,7 @@ class NumberingRuleController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping(path = "/{documentType}", version = "1")
+    @PutMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE + "')")
     ResponseEntity<String> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request) {
         try {

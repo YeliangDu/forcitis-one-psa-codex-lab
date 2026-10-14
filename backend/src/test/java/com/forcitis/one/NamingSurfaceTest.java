@@ -71,7 +71,7 @@ class NamingSurfaceTest {
     static final Pattern DOTTED = Pattern.compile("([a-z]+)\\.([a-z]+)(\\.[a-z][a-z0-9]*)+");
 
     static final Pattern HTTP_PATH = Pattern.compile(
-            "/api/\\{version}/(?<slug>[^/]+)/(?<resource>[^/:{}]+)(?:/\\{(?<id>[^}]+)})?(?::(?<action>[^/]+))?");
+            "/api/v1/(?<slug>[^/]+)/(?<resource>[^/:{}]+)(?:/\\{(?<id>[^}]+)})?(?::(?<action>[^/]+))?");
 
     @Test
     void httpPathsAreApiVersionSubdomainSlugPluralGlossaryResourceOptionalIdAndAction() {
@@ -91,10 +91,6 @@ class NamingSurfaceTest {
                     continue;
                 }
                 String where = type.getSimpleName() + "." + m.getName() + "()";
-                String version = !onMethod.version().isEmpty() ? onMethod.version() : onClass == null ? "" : onClass.version();
-                if (!version.matches("\\d+")) {
-                    problems.add(where + ": declare version = \"<n>\" so the path is /api/v<n>/... (was '" + version + "')");
-                }
                 List<String> paths = onMethod.path().length == 0 ? List.of("") : List.of(onMethod.path());
                 for (String base : bases) {
                     for (String path : paths) {
@@ -103,14 +99,14 @@ class NamingSurfaceTest {
                 }
             }
         }
-        fail("G41 HTTP path must be /api/v{n}/{subdomain}/{plural-kebab-resource}[/{id}][:{action}] (NAMING_STANDARD.md §2.3)", problems);
+        fail("G41 HTTP path must start with /api/v1/ and be /api/v1/{subdomain}/{plural-kebab-resource}[/{id}][:{action}] (NAMING_STANDARD.md §2.3)", problems);
     }
 
     private static void checkHttpPath(String where, String full, String module, String subdomain, List<String> problems) {
         String at = where + " " + full + ": ";
         Matcher p = HTTP_PATH.matcher(full);
         if (!p.matches()) {
-            problems.add(at + "does not match /api/{version}/{subdomain}/{resources}[/{id}][:{action}]");
+            problems.add(at + "does not match /api/v1/{subdomain}/{resources}[/{id}][:{action}]");
             return;
         }
         if (!p.group("slug").equals(subdomain)) {
@@ -371,6 +367,14 @@ class NamingSurfaceTest {
     }
 
     private static void checkConfigKey(String where, String key, String module, Map<String, String> known, List<String> problems) {
+        if (key.startsWith("forcitis.kernel.")) {
+            String rest = key.substring("forcitis.kernel.".length());
+            if (!KEBAB.matcher(rest).matches()) {
+                problems.add(where + ": must be forcitis.kernel.{kebab-case}");
+            }
+            words(where + ": ", rest, problems);
+            return;
+        }
         if (key.startsWith("forcitis.")) {
             Matcher k = OWN_KEY.matcher(key);
             if (!k.matches()) {
