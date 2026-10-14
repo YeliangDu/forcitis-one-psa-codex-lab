@@ -2,13 +2,13 @@ package com.forcitis.one.platform.identity.infrastructure.security;
 
 import com.forcitis.one.platform.identity.application.SessionSettings;
 import java.time.Clock;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.savedrequest.NullRequestCache;
@@ -27,7 +27,8 @@ class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain apiSecurity(HttpSecurity http, PublicEndpointRegistry publicEndpoints, CachedSessionPrincipals principals,
-            SessionSettings sessionSettings, Clock clock, CookieCsrfTokenRepository csrfTokenRepository) throws Exception {
+            SessionSettings sessionSettings, Clock clock, CookieCsrfTokenRepository csrfTokenRepository,
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) throws Exception {
         http.csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository).csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .addFilterAfter(new SessionGuardFilter(principals, sessionSettings, clock), SecurityContextHolderFilter.class)
@@ -38,7 +39,9 @@ class SecurityConfiguration {
                             .permitAll());
                     requests.anyRequest().authenticated();
                 })
-                .exceptionHandling(errors -> errors.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .exceptionHandling(errors -> errors
+                        .authenticationEntryPoint((request, response, failure) -> exceptionResolver.resolveException(request, response, null, failure))
+                        .accessDeniedHandler((request, response, failure) -> exceptionResolver.resolveException(request, response, null, failure)))
                 // An API never replays a saved request after login; the default cache would create a session row for every anonymous 401.
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()))
                 .httpBasic(basic -> basic.disable())

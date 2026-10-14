@@ -56,6 +56,9 @@ class AuditLogIT {
     static final RequestPostProcessor READER = user("7").authorities(() -> Permission.Codes.PLATFORM_AUDIT_ENTRY_READ);
 
     @Autowired
+    tools.jackson.databind.json.JsonMapper json;
+
+    @Autowired
     AuditLog audit;
 
     @Autowired
@@ -152,28 +155,30 @@ class AuditLogIT {
 
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).with(READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.matchCount").value(4))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist())
                 .andExpect(jsonPath("$.items.length()").value(4))
                 .andExpect(jsonPath("$.items[0].createdAt").value("2026-01-04T08:00:00Z"))
                 .andExpect(jsonPath("$.items[0].actorId").doesNotExist())
                 .andExpect(jsonPath("$.items[3].actorId").value("41"))
                 .andExpect(jsonPath("$.items[3].subjectKey").value(subject));
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("actorId", "41").with(READER))
-                .andExpect(jsonPath("$.matchCount").value(3));
+                .andExpect(jsonPath("$.items.length()").value(3));
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("actorId", "42").with(READER))
-                .andExpect(jsonPath("$.matchCount").value(1));
+                .andExpect(jsonPath("$.items.length()").value(1));
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("from", "2026-01-02T00:00:00Z").param("to", "2026-01-04T00:00:00Z").with(READER))
-                .andExpect(jsonPath("$.matchCount").value(2))
+                .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].createdAt").value("2026-01-03T08:00:00Z"))
                 .andExpect(jsonPath("$.items[1].createdAt").value("2026-01-02T08:00:00Z"));
-        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("page", "1").param("limit", "3").with(READER))
-                .andExpect(jsonPath("$.matchCount").value(4))
-                .andExpect(jsonPath("$.page").value(1))
-                .andExpect(jsonPath("$.limit").value(3))
+        String cursor = json.readTree(mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("limit", "3").with(READER))
+                .andExpect(jsonPath("$.items.length()").value(3))
+                .andExpect(jsonPath("$.items[2].createdAt").value("2026-01-02T08:00:00Z"))
+                .andExpect(jsonPath("$.nextCursor").isNotEmpty())
+                .andReturn().getResponse().getContentAsString()).path("nextCursor").asString();
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("limit", "3").param("cursor", cursor).with(READER))
                 .andExpect(jsonPath("$.items.length()").value(1))
-                .andExpect(jsonPath("$.items[0].createdAt").value("2026-01-01T08:00:00Z"));
+                .andExpect(jsonPath("$.items[0].createdAt").value("2026-01-01T08:00:00Z"))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
         mvc.perform(get(ENTRIES).param("subjectKey", unique("subject")).with(READER))
-                .andExpect(jsonPath("$.matchCount").value(0))
                 .andExpect(jsonPath("$.items.length()").value(0));
     }
 
@@ -203,7 +208,8 @@ class AuditLogIT {
     void badPagingIsRefused() throws Exception {
         mvc.perform(get(ENTRIES).param("limit", "0").with(READER)).andExpect(status().isBadRequest());
         mvc.perform(get(ENTRIES).param("limit", "201").with(READER)).andExpect(status().isBadRequest());
-        mvc.perform(get(ENTRIES).param("page", "-1").with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(get(ENTRIES).param("cursor", "not-a-cursor").with(READER)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_CURSOR_INVALID"));
         mvc.perform(get(ENTRIES).param("from", "2026-02-01T00:00:00Z").param("to", "2026-01-01T00:00:00Z").with(READER))
                 .andExpect(status().isBadRequest());
     }

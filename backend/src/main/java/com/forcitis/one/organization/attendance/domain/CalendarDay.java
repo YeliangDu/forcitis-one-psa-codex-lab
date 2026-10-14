@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.attendance.domain;
 
+import com.forcitis.one.organization.attendance.api.DayKind;
 import com.forcitis.one.kernel.ValueObject;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;

@@ -26,25 +26,21 @@ public class CreateRole {
     }
 
     @Transactional
-    public AdminOutcome<RoleView> execute(SaveRoleCommand command) {
-        try {
-            if (command.code() == null || command.code().isBlank()) {
-                throw new RoleRuleException(RoleViolation.INVALID_CODE);
-            }
-            Role role = Role.newCustom(new RoleCode(command.code().strip()), command.name(), command.permissionCodes());
-            if (command.accessScope() != null) {
-                role.revise(role.name(), command.accessScope(), role.permissionCodes());
-            }
-            role.declareEnabled(command.enabled());
-            if (!ceiling.mayGrant(role.permissionCodes(), false)) {
-                return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
-            }
-            Role stored = roles.insert(role);
-            events.publish(stored);
-            cache.evictAll();
-            return new AdminOutcome.Done<>(RoleView.of(stored));
-        } catch (RoleRuleException refused) {
-            return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
+    public RoleView execute(SaveRoleCommand command) {
+        if (command.code() == null || command.code().isBlank()) {
+            throw new RoleRuleException(RoleViolation.INVALID_CODE);
         }
+        Role role = Role.newCustom(new RoleCode(command.code().strip()), command.name(), command.permissionCodes());
+        if (command.accessScope() != null) {
+            role.revise(role.name(), command.accessScope(), role.permissionCodes());
+        }
+        role.declareEnabled(command.enabled());
+        if (!ceiling.mayGrant(role.permissionCodes(), false)) {
+            throw IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED.refusal("the caller may not grant these permissions");
+        }
+        Role stored = roles.insert(role);
+        events.publish(stored);
+        cache.evictAll();
+        return RoleView.of(stored);
     }
 }

@@ -14,6 +14,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -139,11 +140,16 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
         mvc.perform(get(SYNC_RUNS).with(READ_RUNS))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].syncRunId").value("2"))
-                .andExpect(jsonPath("$[0].status").value("SUCCEEDED"))
-                .andExpect(jsonPath("$[1].isolatedRowCount").value(1))
-                .andExpect(jsonPath("$[1].employedWithoutWecomCount").value(0));
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].syncRunId").value("2"))
+                .andExpect(jsonPath("$.items[0].status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.items[1].isolatedRowCount").value(1))
+                .andExpect(jsonPath("$.items[1].employedWithoutWecomCount").value(0))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
+        mvc.perform(get(SYNC_RUNS).param("limit", "1").with(READ_RUNS))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.nextCursor").isNotEmpty());
         mvc.perform(get(SYNC_RUNS + "/1").with(READ_RUNS))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.syncRun.trigger").value("SCHEDULED"))
@@ -170,9 +176,8 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
         mvc.perform(post(path).with(csrf()).with(EXECUTE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.outcome").value("RELEASED"))
-                .andExpect(jsonPath("$.syncRun.trigger").value("MANUAL"))
-                .andExpect(jsonPath("$.syncRun.status").value("SUCCEEDED"));
+                .andExpect(jsonPath("$.trigger").value("MANUAL"))
+                .andExpect(jsonPath("$.status").value("SUCCEEDED"));
         assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
             assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
             assertThat(e.envelope().actorId()).isEqualTo("9001");
@@ -181,10 +186,11 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
         mvc.perform(post(path).with(csrf()).with(EXECUTE))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.outcome").value("NOT_HELD"));
+                .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL"))
+                .andExpect(header().string("Content-Type", "application/problem+json"));
         mvc.perform(post(SYNC_RUNS + "/777:release").with(csrf()).with(EXECUTE))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.outcome").value("NOT_FOUND"));
+                .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND"));
     }
 
     @Test
@@ -202,7 +208,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.unavailable = true;
         mvc.perform(post(SYNC_RUNS + "/" + held.syncRunId().value() + ":release").with(csrf()).with(EXECUTE))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.outcome").value("NOT_APPLIED"));
+                .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED"));
 
         assertThat(jdbc.sql("select status from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value()).query(String.class).single())
                 .isEqualTo("HELD");

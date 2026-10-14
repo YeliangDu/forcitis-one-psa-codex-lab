@@ -1,4 +1,6 @@
 package com.forcitis.one.platform.numbering.web;
 
-record NumberingRuleRequest(String pattern, String resetPolicy, long startValue) {
+import com.forcitis.one.platform.numbering.api.ResetPolicy;
+
+record NumberingRuleRequest(String pattern, ResetPolicy resetPolicy, long startValue) {
 }

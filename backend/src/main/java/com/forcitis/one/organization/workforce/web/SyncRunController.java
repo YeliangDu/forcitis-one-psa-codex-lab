@@ -1,12 +1,15 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.kernel.CursorPage;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.organization.workforce.application.GetSyncRun;
 import com.forcitis.one.organization.workforce.application.ListSyncRuns;
-import com.forcitis.one.organization.workforce.application.ReleaseResult;
 import com.forcitis.one.organization.workforce.application.ReleaseSyncRun;
+import com.forcitis.one.organization.workforce.application.SyncRunView;
 import java.security.Principal;
-import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,31 +34,22 @@ class SyncRunController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.SYNC_RUN_READ + "')")
-    List<SyncRunResponse> list(@RequestParam(defaultValue = "50") int limit) {
-        return listSyncRuns.execute(limit).stream().map(SyncRunResponse::of).toList();
+    CursorPage<SyncRunResponse> list(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+        CursorPage<SyncRunView> page = listSyncRuns.execute(PageRequest.of(limit, cursor, "sync-runs"));
+        return CursorPage.of(page.items().stream().map(SyncRunResponse::of).toList(), page.nextCursor());
     }
 
     @GetMapping(path = "/{syncRunId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.SYNC_RUN_READ + "')")
-    ResponseEntity<SyncRunDetailResponse> get(@PathVariable long syncRunId) {
-        return getSyncRun.execute(syncRunId).map(SyncRunDetailResponse::of)
-                .map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    SyncRunDetailResponse get(@PathVariable long syncRunId) {
+        return getSyncRun.execute(syncRunId).map(SyncRunDetailResponse::of).orElseThrow(() -> new DomainException(
+                WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND, ErrorKind.NOT_FOUND, "no sync run " + syncRunId));
     }
 
     /** The actor is the authenticated session user, never a request field. */
     @PostMapping(path = "/{syncRunId}:release")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.SYNC_RUN_EXECUTE + "')")
-    ResponseEntity<ReleaseResponse> release(@PathVariable long syncRunId, Principal caller) {
-        ReleaseResult result = releaseSyncRun.execute(syncRunId, Long.parseLong(caller.getName()));
-        return switch (result) {
-            case ReleaseResult.Released released -> ResponseEntity.ok(
-                    new ReleaseResponse("RELEASED", null, SyncRunResponse.of(released.releasedRun())));
-            case ReleaseResult.NotFound notFound -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ReleaseResponse("NOT_FOUND", null, null));
-            case ReleaseResult.NotHeld notHeld -> ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new ReleaseResponse("NOT_HELD", "the run is " + notHeld.currentStatus() + ", only a HELD run can be released", null));
-            case ReleaseResult.NotApplied notApplied -> ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new ReleaseResponse("NOT_APPLIED", notApplied.reason(), null));
-        };
+    SyncRunResponse release(@PathVariable long syncRunId, Principal caller) {
+        return SyncRunResponse.of(releaseSyncRun.execute(syncRunId, Long.parseLong(caller.getName())));
     }
 }

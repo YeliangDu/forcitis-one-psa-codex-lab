@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.attendance.domain;
 
+import com.forcitis.one.organization.attendance.api.DayKind;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -58,8 +59,11 @@ public final class WorkCalendarYear extends AggregateRoot {
         return WorkdayRules.isWorkday(date, exceptions);
     }
 
-    /** Replaces the whole year: what the administrator saves is the complete list of exceptions. */
-    public void maintain(List<CalendarDay> days) {
+    /**
+     * Replaces the whole year: what the administrator saves is the complete list of exceptions. A change to a day before today
+     * moves deadlines already worked out, so it is refused unless the maintainer confirmed that (lockedDaysConfirmed).
+     */
+    public void maintain(List<CalendarDay> days, LocalDate today, boolean lockedDaysConfirmed) {
         Map<LocalDate, DayKind> next = new TreeMap<>();
         for (CalendarDay day : days) {
             if (day.calendarDate().getYear() != key.calendarYear()) {
@@ -71,9 +75,19 @@ public final class WorkCalendarYear extends AggregateRoot {
                         day.calendarDate() + " is listed twice");
             }
         }
+        List<LocalDate> changed = new java.util.ArrayList<>();
+        java.util.Set<LocalDate> touched = new java.util.TreeSet<>(exceptions.keySet());
+        touched.addAll(next.keySet());
+        touched.stream().filter(day -> !java.util.Objects.equals(exceptions.get(day), next.get(day))).forEach(changed::add);
+        List<LocalDate> locked = changed.stream().filter(day -> day.isBefore(today)).toList();
+        if (!locked.isEmpty() && !lockedDaysConfirmed) {
+            throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED, ErrorKind.UNPROCESSABLE,
+                    "days before " + today + " change: " + locked);
+        }
         this.exceptions = Map.copyOf(next);
         record((envelopes, version) -> new WorkCalendarYearMaintained(envelopes.wrap(new EventDraft(
                 "organization.attendance.WorkCalendarYearMaintained", 1, "WorkCalendarYear", key.asText(), version,
-                key.legalEntityId(), null, new EventSource(SourceSystem.ONE, null), List.of())), Year.of(key.calendarYear())));
+                key.legalEntityId(), today, new EventSource(SourceSystem.ONE, null), List.of())), Year.of(key.calendarYear()), changed,
+                locked));
     }
 }

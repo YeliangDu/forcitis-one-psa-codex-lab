@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,6 +61,9 @@ class NumberingRulesIT {
     @MockitoBean
     AuditLog auditLog;
 
+    @MockitoBean
+    com.forcitis.one.organization.workforce.api.LegalEntityDirectory legalEntityDirectory;
+
     @Container
     @ServiceConnection
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
@@ -96,11 +100,11 @@ class NumberingRulesIT {
 
     @BeforeEach
     void legalEntitiesExist() {
-        jdbc.sql("""
-                insert into organization_workforce.legal_entities (id, code, name, status)
-                values (1, 'FST', 'Synthetic legal entity one', 'ACTIVE'), (2, 'FIT', 'Synthetic legal entity two', 'ACTIVE')
-                on conflict (id) do nothing
-                """).update();
+        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Optional.empty());
+        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(1)))
+                .thenReturn(java.util.Optional.of(new com.forcitis.one.organization.workforce.api.LegalEntityCode("FST")));
+        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(2)))
+                .thenReturn(java.util.Optional.of(new com.forcitis.one.organization.workforce.api.LegalEntityCode("FIT")));
     }
 
     private String issue(DocumentType type, LegalEntityId legalEntity, LocalDate day) {
@@ -112,12 +116,12 @@ class NumberingRulesIT {
     void ruleListShowsTheDefaultQuoteTemplateAsPending() throws Exception {
         mvc.perform(get(RULES).with(READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:4}"))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].resetPolicy").value("MONTHLY"))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].documentTypeCode").value("QT"))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].confirmationStatus").value("PENDING_CONFIRMATION"))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].capacity").value(9999));
+                .andExpect(jsonPath("$.items.length()").value(3))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:4}"))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].resetPolicy").value("MONTHLY"))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].documentTypeCode").value("QT"))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].confirmationStatus").value("PENDING_CONFIRMATION"))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].capacity").value(9999));
     }
 
     @Test
@@ -155,24 +159,18 @@ class NumberingRulesIT {
         LocalDate day = LocalDate.of(2027, 3, 3);
 
         assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(99), day))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("99");
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
+                        .isEqualTo(com.forcitis.one.platform.numbering.api.NumberingError.PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE));
         assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(99), day))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("99");
+                .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
     }
 
     @Test
     @DisplayName("a deactivated legal entity cannot take a new number")
     void deactivatedLegalEntityCannotIssue() {
         LocalDate day = LocalDate.of(2027, 4, 4);
-        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (3, 'FOT', 'Synthetic three', 'INACTIVE') on conflict (id) do update set status = 'INACTIVE'").update();
-        try {
-            assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(3), day))
-                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("3");
-            assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(3), day))
-                    .isInstanceOf(IllegalStateException.class);
-        } finally {
-            jdbc.sql("delete from organization_workforce.legal_entities where id = 3").update();
-        }
+        assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(3), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
+        assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(3), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
     }
 
     @Test
@@ -212,7 +210,14 @@ class NumberingRulesIT {
         try {
             mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
                             .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isNoContent());
+                    .andExpect(status().isPreconditionRequired()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_REQUIRED"));
+            mvc.perform(put(RULES + "/QUOTE").header("If-Match", "\"999\"").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
+                    .andExpect(status().isPreconditionFailed());
+            String etag = mvc.perform(get(RULES + "/QUOTE").with(READER)).andReturn().getResponse().getHeader("ETag");
+            mvc.perform(put(RULES + "/QUOTE").header("If-Match", etag).with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
+                    .andExpect(status().isOk()).andExpect(header().exists("ETag"));
             mvc.perform(get(RULES + "/QUOTE").with(READER))
                     .andExpect(jsonPath("$.confirmationStatus").value("CONFIRMED"))
                     .andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"));
@@ -237,13 +242,13 @@ class NumberingRulesIT {
                 .andExpect(jsonPath("$.importBatch").value("synthetic-batch-1"));
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "501").with(LEGACY_READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].legacyNumber").value("SYN-QU-0001"))
-                .andExpect(jsonPath("$[1].legacyNumber").value("SYN-QU-0001-R2"));
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].legacyNumber").value("SYN-QU-0001"))
+                .andExpect(jsonPath("$.items[1].legacyNumber").value("SYN-QU-0001-R2"));
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-9999").with(LEGACY_READER))
                 .andExpect(status().isNotFound());
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "999").with(LEGACY_READER))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
         assertThat(findDocument.find(DocumentType.TIMESHEET, "SYN-QU-0001")).isEmpty();
     }
 

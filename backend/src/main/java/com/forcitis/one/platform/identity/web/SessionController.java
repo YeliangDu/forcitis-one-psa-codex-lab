@@ -1,6 +1,8 @@
 package com.forcitis.one.platform.identity.web;
 
 import com.forcitis.one.kernel.PublicEndpoint;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.application.BeginWecomLogin;
 import com.forcitis.one.platform.identity.application.ClientOrigin;
@@ -63,13 +65,11 @@ class SessionController {
 
     @PostMapping(path = "/login-states")
     @PublicEndpoint(reason = "One-time OAuth state for the WeCom login redirect; creates no session. ADR-0009 §3, RULE-322/324, I-9")
-    ResponseEntity<?> beginWecomLogin(@RequestBody LoginStateRequest request) {
+    ResponseEntity<LoginStateResponse> beginWecomLogin(@RequestBody LoginStateRequest request) {
         if (request.entry() == null) {
-            return ResponseEntity.badRequest().body(new ErrorResponse("PLATFORM_IDENTITY_STATE_INVALID", null));
+            throw new DomainException(IdentityError.PLATFORM_IDENTITY_STATE_INVALID, ErrorKind.INVALID, "no entry");
         }
-        if (!throttle.allows("login-states", clientOrigin.address())) {
-            return rateLimited();
-        }
+        throttle("login-states");
         LoginStateIssue issued = beginWecomLogin.execute(request.entry());
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE,
                 LoginStateCookie.issue(issued.binding(), sessionSettings.secureCookie(), issued.lifetime()).toString())
@@ -78,31 +78,28 @@ class SessionController {
 
     @PostMapping(path = "/sessions:wecom-login")
     @PublicEndpoint(reason = "WeCom OAuth login (workbench, mini program, PC scan): identity proven by the WeCom code and a one-time state. ADR-0009 §3, RULE-322/323/324/326/327, I-3, I-9")
-    ResponseEntity<?> loginWithWecom(@RequestBody WecomLoginRequest request,
+    ResponseEntity<LoginResponse> loginWithWecom(@RequestBody WecomLoginRequest request,
             @CookieValue(name = LoginStateCookie.NAME, required = false) String binding) {
-        if (!throttle.allows("wecom-login", clientOrigin.address())) {
-            return rateLimited();
-        }
-        ResponseEntity<?> response = respond(loginWithWecom.execute(new WecomLoginCommand(request.code(), request.state(), binding, request.entry())), null);
-        return ResponseEntity.status(response.getStatusCode()).headers(response.getHeaders())
-                .header(HttpHeaders.SET_COOKIE, LoginStateCookie.clear(sessionSettings.secureCookie()).toString()).body(response.getBody());
+        throttle("wecom-login");
+        LoginResponse response = respond(loginWithWecom.execute(new WecomLoginCommand(request.code(), request.state(), binding, request.entry())), null);
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, LoginStateCookie.clear(sessionSettings.secureCookie()).toString()).body(response);
     }
 
     @PostMapping(path = "/sessions:sso-login")
     @PublicEndpoint(reason = "Portal single sign-on: the server checks the one-time ticket against the portal. ADR-0009 §3, RULE-320/321, I-3, I-9")
-    ResponseEntity<?> loginWithSso(@RequestBody TicketLoginRequest request) {
+    LoginResponse loginWithSso(@RequestBody TicketLoginRequest request) {
         return respond(loginWithSso.execute(request.ticket()), emptyToNull(ssoSettings.legacyLoginUrl()));
     }
 
     @PostMapping(path = "/sessions:ticket-login")
     @PublicEndpoint(reason = "Signed one-time ticket from an allow-listed external system (HMAC, at most 60 s, nonce used once). ADR-0009 §3, RULE-318, C1a-03, I-2, I-3, I-9")
-    ResponseEntity<?> loginWithSignedTicket(@RequestBody TicketLoginRequest request) {
+    LoginResponse loginWithSignedTicket(@RequestBody TicketLoginRequest request) {
         return respond(loginWithSignedTicket.execute(request.ticket()), null);
     }
 
     @PostMapping(path = "/sessions:emergency-login")
     @PublicEndpoint(reason = "Break-glass administrator: Argon2id password plus TOTP, internal network only, locked after 5 failures. ADR-0009 §3, RULE-316/317, C1a-04, I-3")
-    ResponseEntity<?> loginAsEmergencyAdmin(@RequestBody EmergencyLoginRequest request) {
+    LoginResponse loginAsEmergencyAdmin(@RequestBody EmergencyLoginRequest request) {
         return respond(loginAsEmergencyAdmin.execute(new EmergencyLoginCommand(request.loginName(), request.password(), request.totpCode())), null);
     }
 
@@ -119,14 +116,19 @@ class SessionController {
         return CurrentUserResponse.of(getCurrentUserProfile.execute());
     }
 
-    private static ResponseEntity<?> rateLimited() {
-        return IdentityResponses.error(IdentityError.PLATFORM_IDENTITY_LOGIN_RATE_LIMITED, null);
+    private void throttle(String kind) {
+        if (!throttle.allows(kind, clientOrigin.address())) {
+            throw IdentityError.PLATFORM_IDENTITY_LOGIN_RATE_LIMITED.refusal("too many " + kind + " requests from " + clientOrigin.address());
+        }
     }
 
-    private static ResponseEntity<?> respond(LoginResult result, String legacyLoginUrl) {
+    private static LoginResponse respond(LoginResult result, String legacyLoginUrl) {
         return switch (result) {
-            case LoginResult.Authenticated ok -> ResponseEntity.ok(new LoginResponse(String.valueOf(ok.userId()), ok.absoluteExpiresAt()));
-            case LoginResult.Rejected rejected -> IdentityResponses.error(rejected.error(), legacyLoginUrl);
+            case LoginResult.Authenticated ok -> new LoginResponse(String.valueOf(ok.userId()), ok.absoluteExpiresAt(), null);
+            case LoginResult.Rejected rejected -> {
+                DomainException refusal = rejected.error().refusal("login refused");
+                throw legacyLoginUrl == null ? refusal : refusal.withExtension("legacyLoginUrl", legacyLoginUrl);
+            }
         };
     }
 

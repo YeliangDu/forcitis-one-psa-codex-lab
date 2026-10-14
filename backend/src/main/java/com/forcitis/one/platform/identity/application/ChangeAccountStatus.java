@@ -5,7 +5,6 @@ import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
-import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +24,11 @@ public class ChangeAccountStatus {
     }
 
     @Transactional
-    public AdminOutcome<Void> execute(long userId, boolean enable) {
-        Optional<UserAccount> found = userId == 0 ? Optional.empty() : accounts.find(new UserId(userId));
-        if (found.isEmpty()) {
-            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND);
+    public void execute(long userId, boolean enable) {
+        UserAccount account = userId == 0 ? null : accounts.find(new UserId(userId)).orElse(null);
+        if (account == null) {
+            throw IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account " + userId);
         }
-        UserAccount account = found.get();
         account.declareEnabled(enable);
         if (account.hasPendingEvents()) {
             accounts.save(account);
@@ -40,6 +38,5 @@ public class ChangeAccountStatus {
             sessions.revokeAll(account.userId());
         }
         cache.evict(account.userId());
-        return new AdminOutcome.Done<>(null);
     }
 }

@@ -61,6 +61,11 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
         jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
     }
 
+    private String version(long id) {
+        return "\"" + jdbc.sql("select coalesce(max(version), 1) from organization_workforce.legal_entities where id = :id").param("id", id)
+                .query(Long.class).single() + "\"";
+    }
+
     private void create(String code, String name) throws Exception {
         mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"" + code + "\",\"name\":\"" + name + "\"}")).andExpect(status().isCreated());
@@ -116,17 +121,17 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     void updateLegalEntity() throws Exception {
         create("FST", "One");
 
-        mvc.perform(put(LEGAL_ENTITIES + "/1").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"One renamed\",\"status\":\"INACTIVE\",\"code\":\"XXX\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("XXX"))
                 .andExpect(jsonPath("$.name").value("One renamed"))
                 .andExpect(jsonPath("$.status").value("INACTIVE"));
-        mvc.perform(put(LEGAL_ENTITIES + "/404").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/404").header("If-Match", version(404)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"x\",\"status\":\"ACTIVE\"}")).andExpect(status().isNotFound());
-        mvc.perform(put(LEGAL_ENTITIES + "/1").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"x\",\"status\":\"GONE\"}")).andExpect(status().isUnprocessableContent());
-        mvc.perform(put(LEGAL_ENTITIES + "/1").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"\",\"status\":\"ACTIVE\"}")).andExpect(status().isUnprocessableContent());
 
         assertThat(events.stream(LegalEntityCodeCorrected.class)).singleElement()
@@ -146,24 +151,24 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
         create("QQQ", "Two");
         jdbc.sql("insert into platform_numbering.numbering_counters (document_type, legal_entity_id, period_key, last_value) values ('QUOTE', 1, '202610', 1)").update();
 
-        mvc.perform(put(LEGAL_ENTITIES + "/1").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"FSTX\",\"name\":\"One\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED"));
         assertThat(directory.findCode(new LegalEntityId(1))).contains(new LegalEntityCode("FST"));
         assertThat(events.stream(LegalEntityCodeCorrected.class)).isEmpty();
 
-        mvc.perform(put(LEGAL_ENTITIES + "/1").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"FST\",\"name\":\"One renamed\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("FST"));
-        mvc.perform(put(LEGAL_ENTITIES + "/2").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/2").header("If-Match", version(2)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"QQQX\",\"name\":\"Two\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("QQQX"));
-        mvc.perform(put(LEGAL_ENTITIES + "/2").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/2").header("If-Match", version(2)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"FST\",\"name\":\"Two\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN"));
-        mvc.perform(put(LEGAL_ENTITIES + "/2").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/2").header("If-Match", version(2)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"bad\",\"name\":\"Two\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isUnprocessableContent());
     }
@@ -176,9 +181,10 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
 
         mvc.perform(get(LEGAL_ENTITIES).with(READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].code").value("AAA"))
-                .andExpect(jsonPath("$[1].code").value("QQQ"));
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].code").value("AAA"))
+                .andExpect(jsonPath("$.items[1].code").value("QQQ"))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
 
         mvc.perform(get(LEGAL_ENTITIES)).andExpect(status().isUnauthorized());
         mvc.perform(get(LEGAL_ENTITIES).with(MAINTAINER)).andExpect(status().isForbidden());
@@ -195,13 +201,13 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("the directory gives numbering the code of a legal entity, also a deactivated one, and nothing for an unknown id")
     void directoryFindsTheCode() throws Exception {
         create("FST", "One");
-        mvc.perform(put(LEGAL_ENTITIES + "/1").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"One\",\"status\":\"INACTIVE\"}")).andExpect(status().isOk());
 
         assertThat(directory.findCode(new LegalEntityId(1))).contains(new LegalEntityCode("FST"));
         assertThat(directory.findCode(new LegalEntityId(2))).isEmpty();
-        assertThat(directory.findActiveCode(new LegalEntityId(1))).isEmpty();
-        assertThat(directory.findActiveCode(new LegalEntityId(2))).isEmpty();
+        assertThat(directory.lockActiveCode(new LegalEntityId(1))).isEmpty();
+        assertThat(directory.lockActiveCode(new LegalEntityId(2))).isEmpty();
     }
 
     @Test

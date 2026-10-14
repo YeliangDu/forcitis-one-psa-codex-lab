@@ -31,8 +31,9 @@ class JdbcSyncRunQueries implements SyncRunQueries {
     }
 
     @Override
-    public List<SyncRunRecord> findRecent(int limit) {
-        return jdbc.sql(SyncRunRows.SELECT + " order by started_at desc, id desc limit :limit").param("limit", limit)
+    public List<SyncRunRecord> findBefore(Long beforeId, int limit) {
+        return jdbc.sql(SyncRunRows.SELECT + " where (cast(:before as bigint) is null or id < :before) order by id desc limit :limit")
+                .param("before", beforeId, java.sql.Types.BIGINT).param("limit", limit)
                 .query((rs, n) -> SyncRunRows.record(rs)).list();
     }
 

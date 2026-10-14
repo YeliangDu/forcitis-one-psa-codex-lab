@@ -1,8 +1,9 @@
 package com.forcitis.one.platform.numbering.application;
 
+import com.forcitis.one.kernel.CursorPage;
+import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.platform.numbering.api.NumberingRuleView;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
-import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +16,8 @@ public class ListNumberingRules {
     }
 
     @Transactional(readOnly = true)
-    public List<NumberingRuleView> execute() {
-        return rules.findAllActive().stream().map(NumberingRuleViews::of).toList();
+    public CursorPage<NumberingRuleView> execute(PageRequest page) {
+        return page.slice(rules.findAllActive().stream().map(NumberingRuleViews::of).toList(), view -> view.documentType().name(),
+                "numbering-rules");
     }
 }

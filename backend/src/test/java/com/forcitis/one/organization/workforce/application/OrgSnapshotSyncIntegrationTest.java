@@ -13,6 +13,7 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.unitId;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.user;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -32,6 +33,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.kernel.WorkContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -201,9 +204,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        ReleaseResult released = release.execute(held.syncRunId().value(), 9001L);
+        SyncRunView released = release.execute(held.syncRunId().value(), 9001L);
 
-        assertThat(released).isInstanceOf(ReleaseResult.Released.class);
+        assertThat(released.status()).isEqualTo("SUCCEEDED");
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(3);
         assertThat(jdbc.sql("select status || ':' || released_by from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value())
                 .query(String.class).single()).isEqualTo("RELEASED:9001");
@@ -214,8 +217,10 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
-        assertThat(release.execute(held.syncRunId().value(), 9001L)).isInstanceOf(ReleaseResult.NotHeld.class);
-        assertThat(release.execute(424242L, 9001L)).isInstanceOf(ReleaseResult.NotFound.class);
+        assertThatThrownBy(() -> release.execute(held.syncRunId().value(), 9001L)).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL));
+        assertThatThrownBy(() -> release.execute(424242L, 9001L)).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND));
     }
 
     @Test

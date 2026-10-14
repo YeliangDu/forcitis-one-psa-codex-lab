@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.LegalEntityNumberUsage;
@@ -25,12 +26,13 @@ public class UpdateLegalEntity {
     }
 
     @Transactional
-    public LegalEntityView execute(long legalEntityId, String code, String name, String status) {
+    public LegalEntityView execute(long legalEntityId, ExpectedVersion expected, String code, String name, String status) {
         if (legalEntityId <= 0) {
             throw notFound(legalEntityId);
         }
         LegalEntityId id = new LegalEntityId(legalEntityId);
-        LegalEntity legalEntity = legalEntities.find(id).orElseThrow(() -> notFound(legalEntityId));
+        LegalEntity legalEntity = legalEntities.findForUpdate(id).orElseThrow(() -> notFound(legalEntityId));
+        expected.check(legalEntity.version());
         if (code != null) {
             var corrected = CreateLegalEntity.parse(code);
             legalEntity.correctCode(corrected, !corrected.equals(legalEntity.code()) && numberUsage.hasIssuedNumbers(id));

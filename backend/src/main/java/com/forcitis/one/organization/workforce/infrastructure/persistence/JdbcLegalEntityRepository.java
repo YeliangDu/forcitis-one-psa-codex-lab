@@ -22,7 +22,16 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
 
     @Override
     public Optional<LegalEntity> find(LegalEntityId legalEntityId) {
-        return jdbc.sql("select id, code, name, status, version, event_count from organization_workforce.legal_entities where id = :id")
+        return load(legalEntityId, "");
+    }
+
+    @Override
+    public Optional<LegalEntity> findForUpdate(LegalEntityId legalEntityId) {
+        return load(legalEntityId, " for update");
+    }
+
+    private Optional<LegalEntity> load(LegalEntityId legalEntityId, String lock) {
+        return jdbc.sql("select id, code, name, status, version, event_count from organization_workforce.legal_entities where id = :id" + lock)
                 .param("id", legalEntityId.value())
                 .query((rs, n) -> LegalEntity.restore(new LegalEntityId(rs.getLong("id")), new LegalEntityCode(rs.getString("code")),
                         rs.getString("name"), rs.getString("status"), rs.getLong("version"), rs.getLong("event_count")))

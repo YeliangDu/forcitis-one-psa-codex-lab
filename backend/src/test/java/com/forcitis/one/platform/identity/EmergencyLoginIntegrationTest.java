@@ -92,12 +92,16 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(login("breakglass", PASSWORD, code).getResponse().getStatus()).isEqualTo(401);
     }
 
+    private static String withoutCorrelation(String body) {
+        return body.replaceAll("\"correlationId\":\"[^\"]*\"", "");
+    }
+
     @Test
     @DisplayName("RULE-316 unknown login name, wrong password and wrong code give the same answer")
     void sameErrorEverywhere() throws Exception {
-        String unknown = login("nobody", PASSWORD, code()).getResponse().getContentAsString();
-        String wrongPassword = login("breakglass", "Wrong!Passphrase#42", code()).getResponse().getContentAsString();
-        String wrongCode = login("breakglass", PASSWORD, "000000").getResponse().getContentAsString();
+        String unknown = withoutCorrelation(login("nobody", PASSWORD, code()).getResponse().getContentAsString());
+        String wrongPassword = withoutCorrelation(login("breakglass", "Wrong!Passphrase#42", code()).getResponse().getContentAsString());
+        String wrongCode = withoutCorrelation(login("breakglass", PASSWORD, "000000").getResponse().getContentAsString());
 
         assertThat(unknown).isEqualTo(wrongPassword).isEqualTo(wrongCode).contains("PLATFORM_IDENTITY_CREDENTIALS_INVALID");
         assertThat(login("nobody", PASSWORD, code()).getResponse().getStatus()).isEqualTo(401);

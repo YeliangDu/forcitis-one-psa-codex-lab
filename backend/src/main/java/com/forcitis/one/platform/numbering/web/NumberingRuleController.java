@@ -1,22 +1,26 @@
 package com.forcitis.one.platform.numbering.web;
 
-import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.PageRequest;
+import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.numbering.api.NumberingError;
+import com.forcitis.one.platform.numbering.api.NumberingRuleView;
 import com.forcitis.one.platform.numbering.application.ConfigureNumberingRule;
 import com.forcitis.one.platform.numbering.application.FindNumberingRule;
 import com.forcitis.one.platform.numbering.application.ListNumberingRules;
-import com.forcitis.one.platform.numbering.api.ResetPolicy;
-import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -35,32 +39,28 @@ class NumberingRuleController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_READ + "')")
-    List<NumberingRuleResponse> list() {
-        return list.execute().stream().map(NumberingRuleResponse::from).toList();
+    CursorPage<NumberingRuleResponse> list(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+        CursorPage<NumberingRuleView> page = list.execute(PageRequest.of(limit, cursor, "numbering-rules"));
+        return CursorPage.of(page.items().stream().map(NumberingRuleResponse::from).toList(), page.nextCursor());
     }
 
     @GetMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_READ + "')")
     ResponseEntity<NumberingRuleResponse> get(@PathVariable DocumentType documentType) {
-        return find.execute(documentType)
-                .map(NumberingRuleResponse::from)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        NumberingRuleView rule = find.execute(documentType).orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_FOUND,
+                ErrorKind.NOT_FOUND, "no numbering rule for " + documentType));
+        return ResponseEntity.ok().eTag(ExpectedVersion.etag(rule.version())).body(NumberingRuleResponse.from(rule));
     }
 
     @PutMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE + "')")
-    ResponseEntity<Void> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request) {
-        configure.execute(documentType, request.pattern(), parse(request.resetPolicy()), request.startValue());
-        return ResponseEntity.noContent().build();
-    }
-
-    private static ResetPolicy parse(String resetPolicy) {
-        try {
-            return ResetPolicy.valueOf(resetPolicy);
-        } catch (IllegalArgumentException | NullPointerException unknown) {
-            throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE,
-                    "reset policy must be one of " + java.util.Arrays.toString(ResetPolicy.values()));
+    ResponseEntity<NumberingRuleResponse> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch) {
+        if (request.resetPolicy() == null) {
+            throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, "the reset policy is missing");
         }
+        NumberingRuleView rule = configure.execute(documentType, ExpectedVersion.fromHeaders(ifMatch, null), request.pattern(),
+                request.resetPolicy(), request.startValue());
+        return ResponseEntity.ok().eTag(ExpectedVersion.etag(rule.version())).body(NumberingRuleResponse.from(rule));
     }
 }

@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.attendance.domain.CalendarDay;
-import com.forcitis.one.organization.attendance.domain.DayKind;
+import com.forcitis.one.organization.attendance.api.DayKind;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarYear;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 class EventSequenceContinuityTest {
     private static final Instant NOW = Instant.parse("2026-10-14T02:00:00Z");
     private static final int UNITS = 40;
+    private static final LocalDate TODAY = LocalDate.of(2026, 1, 1);
 
     private static <A extends AggregateRoot> void check(long seed, Supplier<A> fresh, List<Consumer<A>> operations) {
         Random random = new Random(seed);
@@ -110,8 +111,8 @@ class EventSequenceContinuityTest {
     @DisplayName("WorkCalendarYear: events are numbered 1..n")
     void workCalendarYear() {
         checkMany(() -> WorkCalendarYear.unmaintained(WorkCalendarKey.defaultFor(2026)), List.of(
-                y -> y.maintain(List.of()), y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY))),
-                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)))));
+                y -> y.maintain(List.of(), TODAY, true), y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY)), TODAY, true),
+                y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)), TODAY, true)));
     }
 
     @Test

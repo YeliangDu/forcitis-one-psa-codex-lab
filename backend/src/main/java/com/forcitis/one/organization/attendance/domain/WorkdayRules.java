@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.attendance.domain;
 
+import com.forcitis.one.organization.attendance.api.DayKind;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.Map;

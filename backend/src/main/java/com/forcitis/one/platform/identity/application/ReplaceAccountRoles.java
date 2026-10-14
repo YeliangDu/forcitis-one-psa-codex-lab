@@ -37,10 +37,10 @@ public class ReplaceAccountRoles {
     }
 
     @Transactional
-    public AdminOutcome<Void> execute(long userId, Set<String> roleCodes) {
+    public void execute(long userId, Set<String> roleCodes) {
         Optional<UserAccount> found = userId == 0 ? Optional.empty() : accounts.find(new UserId(userId));
         if (found.isEmpty()) {
-            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND);
+            throw IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account " + userId);
         }
         UserAccount account = found.get();
         UserId target = account.userId();
@@ -51,7 +51,7 @@ public class ReplaceAccountRoles {
         for (String code : roleCodes) {
             Optional<Role> role = roles.findByCode(new RoleCode(code));
             if (role.isEmpty()) {
-                return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
+                throw IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND.refusal("no role " + code);
             }
             wanted.add(role.get().roleId());
             if (!alreadyHeld.contains(role.get().code())) {
@@ -60,13 +60,12 @@ public class ReplaceAccountRoles {
             }
         }
         if (!ceiling.mayGrant(wantedPermissions, administrative)) {
-            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
+            throw IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED.refusal("the caller may not grant these roles");
         }
         account.replaceRoles(wanted);
         accounts.save(account);
         events.publish(account);
         sessions.revokeAll(target);
         cache.evict(target);
-        return new AdminOutcome.Done<>(null);
     }
 }

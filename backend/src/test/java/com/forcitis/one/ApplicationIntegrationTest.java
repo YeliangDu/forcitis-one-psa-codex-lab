@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.forcitis.one.kernel.LegalEntityId;
@@ -92,6 +93,9 @@ class ApplicationIntegrationTest {
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
+
+    /** HTTP header names are fixed by RFC 9110 and the Idempotency-Key convention; they are not JSON names. */
+    static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key");
 
     static final LegalEntityId LE1 = new LegalEntityId(1L);
 
@@ -287,15 +291,19 @@ class ApplicationIntegrationTest {
                 .isInstanceOf(IllegalTransactionStateException.class);
     }
 
+    private String ruleVersion(String documentType) {
+        return "\"" + jdbc.queryForObject("select version from platform_numbering.numbering_rules where document_type = ?", Long.class, documentType) + "\"";
+    }
+
     @Test
     void adminCanRedefineRulesButInvalidPatternsAreRejected() throws Exception {
         var admin = user("9").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
-        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin)
+        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin).header("If-Match", ruleVersion("JOURNAL_VOUCHER"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"JV-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
                 .andExpect(status().isUnprocessableContent());
-        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin)
+        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin).header("If-Match", ruleVersion("JOURNAL_VOUCHER"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500}"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk()).andExpect(header().exists("ETag"));
         assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZFST-202611-00500");
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(user("8").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1}"))
@@ -322,6 +330,9 @@ class ApplicationIntegrationTest {
             for (Map.Entry<String, JsonNode> operation : path.getValue().properties()) {
                 for (JsonNode parameter : operation.getValue().path("parameters")) {
                     String name = parameter.path("name").asString();
+                    if ("header".equals(parameter.path("in").asString()) && STANDARD_HEADERS.contains(name)) {
+                        continue;
+                    }
                     camelCase(operation.getKey().toUpperCase() + " " + path.getKey() + " " + parameter.path("in").asString()
                             + " parameter '" + name + "'", name, problems);
                 }

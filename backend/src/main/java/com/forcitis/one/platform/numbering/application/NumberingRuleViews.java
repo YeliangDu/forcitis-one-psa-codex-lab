@@ -10,6 +10,6 @@ final class NumberingRuleViews {
 
     static NumberingRuleView of(NumberingRule rule) {
         return new NumberingRuleView(rule.documentType(), rule.documentType().code(), rule.pattern().value(),
-                rule.pattern().resetPolicy(), rule.startValue(), rule.pattern().capacity(), rule.confirmation());
+                rule.pattern().resetPolicy(), rule.startValue(), rule.pattern().capacity(), rule.confirmation(), rule.version());
     }
 }

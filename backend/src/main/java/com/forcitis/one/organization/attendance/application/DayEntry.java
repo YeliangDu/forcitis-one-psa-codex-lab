@@ -4,7 +4,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
 import com.forcitis.one.organization.attendance.domain.CalendarDay;
-import com.forcitis.one.organization.attendance.domain.DayKind;
+import com.forcitis.one.organization.attendance.api.DayKind;
 import java.time.LocalDate;
 
 public record DayEntry(LocalDate calendarDate, String dayKind) {

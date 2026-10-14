@@ -55,6 +55,10 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         return body(result).path("errorCode").asString();
     }
 
+    private String versionOf(long roleId) {
+        return "\"" + jdbc.sql("select version from platform_identity.roles where role_id = :id").param("id", roleId).query(Long.class).single() + "\"";
+    }
+
     @Test
     @DisplayName("RULE-345 reading roles needs platform.identity:role:read; changing them needs platform.identity:role:update")
     void permissions() throws Exception {
@@ -103,16 +107,16 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         long employee = roleId("employee");
         long superAdmin = roleId("super_admin");
         for (long id : new long[] {employee, superAdmin}) {
-            assertThat(mvc.perform(put(ROLES + "/" + id).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+            assertThat(mvc.perform(put(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
                     .content("{\"name\":\"Renamed\",\"enabled\":false,\"permissionCodes\":[]}")).andReturn().getResponse().getStatus())
                     .isEqualTo(409);
-            assertThat(mvc.perform(delete(ROLES + "/" + id).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(409);
+            assertThat(mvc.perform(delete(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(409);
         }
 
         createRole("analyst", "Analyst", "\"platform.approval:task:read\"", null);
         long analyst = roleId("analyst");
         createAccount(1001, "analyst");
-        MvcResult renamed = mvc.perform(put(ROLES + "/" + analyst).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+        MvcResult renamed = mvc.perform(put(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Senior analyst\",\"enabled\":true,\"accessScope\":\"OWN_ORG_UNIT_SUBTREE\",\"permissionCodes\":[\"platform.approval:task:approve\"]}"))
                 .andReturn();
         assertThat(renamed.getResponse().getStatus()).isEqualTo(200);
@@ -121,7 +125,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 .query(String.class).list()).as("the permission set is replaced as a whole (RULE-346)")
                 .containsExactly("platform.approval:task:approve");
 
-        assertThat(mvc.perform(delete(ROLES + "/" + analyst).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(204);
+        assertThat(mvc.perform(delete(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(204);
         assertThat(jdbc.sql("select count(*) from platform_identity.role_permissions where role_id = :id").param("id", analyst)
                 .query(Long.class).single()).isZero();
         assertThat(jdbc.sql("select count(*) from platform_identity.account_roles where role_id = :id").param("id", analyst)
@@ -136,7 +140,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         String session = loginWithWecom(1001);
         assertThat(permissionsOf(session)).contains("platform.numbering:numbering-rule:read");
 
-        MvcResult disabled = mvc.perform(put(ROLES + "/" + roleId("analyst")).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+        MvcResult disabled = mvc.perform(put(ROLES + "/" + roleId("analyst")).header("If-Match", versionOf(roleId("analyst"))).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Analyst\",\"enabled\":false,\"permissionCodes\":[\"platform.numbering:numbering-rule:read\"]}")).andReturn();
         assertThat(disabled.getResponse().getStatus()).isEqualTo(200);
 

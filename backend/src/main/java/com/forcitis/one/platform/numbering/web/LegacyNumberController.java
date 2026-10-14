@@ -6,6 +6,11 @@ import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
+import com.forcitis.one.kernel.CursorPage;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.platform.numbering.api.NumberingError;
+import com.forcitis.one.kernel.PageRequest;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,12 +36,16 @@ class LegacyNumberController {
         return findDocument.find(documentType, legacyNumber)
                 .map(LegacyNumberResponse::from)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND, ErrorKind.NOT_FOUND,
+                        "no document carries " + legacyNumber));
     }
 
     @GetMapping(params = "documentId")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
-    List<LegacyNumberResponse> byDocument(@RequestParam DocumentType documentType, @RequestParam long documentId) {
-        return findLegacyNumbers.find(new DocumentReference(documentType, new DocumentId(Long.toString(documentId)))).stream().map(LegacyNumberResponse::from).toList();
+    CursorPage<LegacyNumberResponse> byDocument(@RequestParam DocumentType documentType, @RequestParam long documentId,
+            @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+        List<LegacyNumberResponse> all = findLegacyNumbers.find(new DocumentReference(documentType, new DocumentId(Long.toString(documentId))))
+                .stream().map(LegacyNumberResponse::from).toList();
+        return PageRequest.of(limit, cursor, "legacy-numbers").slice(all, LegacyNumberResponse::legacyNumber, "legacy-numbers");
     }
 }

@@ -8,5 +8,5 @@ import java.util.Optional;
 /** capacity is the highest sequence the template can hold. */
 @ValueObject
 public record NumberingRuleView(DocumentType documentType, Optional<String> typeCode, String pattern, ResetPolicy resetPolicy,
-        long startValue, long capacity, ConfirmationStatus confirmation) {
+        long startValue, long capacity, ConfirmationStatus confirmation, long version) {
 }

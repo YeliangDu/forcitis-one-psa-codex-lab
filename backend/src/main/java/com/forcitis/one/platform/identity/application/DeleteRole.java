@@ -1,12 +1,11 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
-import com.forcitis.one.platform.identity.domain.RoleRuleException;
-import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,19 +23,15 @@ public class DeleteRole {
     }
 
     @Transactional
-    public AdminOutcome<Void> execute(long roleId) {
-        Optional<Role> existing = roleId <= 0 ? Optional.empty() : roles.findById(new RoleId(roleId));
-        if (existing.isEmpty()) {
-            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
+    public void execute(long roleId, ExpectedVersion expected) {
+        Role role = roleId <= 0 ? null : roles.findById(new RoleId(roleId)).orElse(null);
+        if (role == null) {
+            throw IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND.refusal("no role " + roleId);
         }
-        try {
-            existing.get().delete();
-        } catch (RoleRuleException refused) {
-            return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
-        }
-        roles.delete(existing.get());
-        events.publish(existing.get());
+        expected.check(role.version());
+        role.delete();
+        roles.delete(role);
+        events.publish(role);
         cache.evictAll();
-        return new AdminOutcome.Done<>(null);
     }
 }

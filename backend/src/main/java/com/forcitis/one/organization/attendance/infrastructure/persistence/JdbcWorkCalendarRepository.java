@@ -5,7 +5,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
 import com.forcitis.one.organization.attendance.domain.CalendarDay;
-import com.forcitis.one.organization.attendance.domain.DayKind;
+import com.forcitis.one.organization.attendance.api.DayKind;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarRepository;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarYear;

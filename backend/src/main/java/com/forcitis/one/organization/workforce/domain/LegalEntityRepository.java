@@ -7,6 +7,9 @@ import java.util.Optional;
 public interface LegalEntityRepository {
     Optional<LegalEntity> find(LegalEntityId legalEntityId);
 
+    /** Takes the exclusive lock first, so that it waits for the shared locks of the numbers being issued. */
+    Optional<LegalEntity> findForUpdate(LegalEntityId legalEntityId);
+
     /** Returns the stored legal entity with its id and its registration event recorded. */
     LegalEntity insert(LegalEntity unsaved);
 

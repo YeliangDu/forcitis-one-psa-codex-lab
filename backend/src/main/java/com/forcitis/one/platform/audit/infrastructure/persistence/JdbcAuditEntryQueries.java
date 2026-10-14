@@ -50,18 +50,27 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
             params.put("to", Timestamp.from(query.to()));
         }
         String where = conditions.isEmpty() ? "" : " where " + String.join(" and ", conditions);
-        long matchCount = jdbc.sql("select count(*) from platform_audit.audit_entries" + where).params(params).query(Long.class).single();
+        if (query.after() != null) {
+            where += (where.isEmpty() ? " where " : " and ") + "(created_at, id) < (:afterAt, :afterId)";
+            params.put("afterAt", Timestamp.from(query.after().createdAt()));
+            params.put("afterId", query.after().entryId().value());
+        }
         List<AuditRecord> items = jdbc.sql("""
                         select id, created_at, action, actor_id, on_behalf_of_id, subject_key, detail
                           from platform_audit.audit_entries
                         """ + where + """
 
                          order by created_at desc, id desc
-                         limit :limit offset :offset
+                         limit :limit
                         """)
-                .params(params).param("limit", query.limit()).param("offset", (long) query.page() * query.limit())
+                .params(params).param("limit", query.limit() + 1)
                 .query((rs, n) -> row(rs)).list();
-        return new AuditPage(items, query.page(), query.limit(), matchCount);
+        if (items.size() <= query.limit()) {
+            return new AuditPage(items, null);
+        }
+        List<AuditRecord> page = items.subList(0, query.limit());
+        AuditRecord last = page.getLast();
+        return new AuditPage(page, new AuditQuery.Position(last.createdAt(), last.entryId()));
     }
 
     private static AuditRecord row(ResultSet rs) throws SQLException {

@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -89,14 +90,14 @@ class WorkCalendarIT {
     static final RequestPostProcessor READ = caller("organization.attendance:work-calendar:read");
 
     static final String BODY_2026 = """
-            {"days": [{"calendarDate": "2026-10-10", "dayKind": "MAKE_UP_WORKDAY"}, {"calendarDate": "2026-10-12", "dayKind": "HOLIDAY"}]}
+            {"lockedDaysConfirmed": true, "days": [{"calendarDate": "2026-10-10", "dayKind": "MAKE_UP_WORKDAY"}, {"calendarDate": "2026-10-12", "dayKind": "HOLIDAY"}]}
             """;
 
     @Test
     @DisplayName("an administrator saves a year; the answers of WorkCalendar follow it and the save publishes WorkCalendarYearMaintained")
     void maintainThenAsk() throws Exception {
-        mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
-                .andExpect(status().isOk())
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
+                .andExpect(status().isOk()).andExpect(header().string("ETag", "\"1\""))
                 .andExpect(jsonPath("$.calendarYear").value(2026))
                 .andExpect(jsonPath("$.days.length()").value(2));
 
@@ -114,14 +115,15 @@ class WorkCalendarIT {
     @Test
     @DisplayName("saving the same year again replaces its days and moves the version")
     void maintainTwice() throws Exception {
-        mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026)).andExpect(status().isOk());
-        mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"days\": []}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.days.length()").value(0));
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026)).andExpect(status().isOk());
+        mvc.perform(put(CALENDARS + "/2026").header("If-Match", "\"1\"").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"lockedDaysConfirmed\": true, \"days\": []}"))
+                .andExpect(status().isOk()).andExpect(header().string("ETag", "\"2\"")).andExpect(jsonPath("$.days.length()").value(0));
 
         assertThat(jdbc.sql("select count(*) from organization_attendance.work_calendar_days").query(Integer.class).single()).isZero();
         assertThat(jdbc.sql("select version from organization_attendance.work_calendar_years").query(Long.class).single()).isEqualTo(2L);
-        mvc.perform(get(CALENDARS).with(READ)).andExpect(status().isOk()).andExpect(jsonPath("$[0]").value(2026));
-        mvc.perform(get(CALENDARS + "/2026").with(READ)).andExpect(status().isOk()).andExpect(jsonPath("$.days.length()").value(0));
+        mvc.perform(get(CALENDARS).with(READ)).andExpect(status().isOk()).andExpect(jsonPath("$.items[0].calendarYear").value(2026));
+        mvc.perform(get(CALENDARS + "/2026").with(READ)).andExpect(status().isOk()).andExpect(header().string("ETag", "\"2\""))
+                .andExpect(jsonPath("$.days.length()").value(0));
     }
 
     @Test
@@ -138,12 +140,15 @@ class WorkCalendarIT {
     void invalidInput() throws Exception {
         for (String day : new String[] {"{\"calendarDate\": \"2026-10-09\", \"dayKind\": \"MAKE_UP_WORKDAY\"}",
                 "{\"calendarDate\": \"2027-01-01\", \"dayKind\": \"HOLIDAY\"}",
-                "{\"calendarDate\": \"2026-10-01\", \"dayKind\": \"PARTY\"}"}) {
-            mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"days\": [" + day + "]}"))
+                }) {
+            mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"lockedDaysConfirmed\": true, \"days\": [" + day + "]}"))
                     .andExpect(status().isUnprocessableContent());
         }
-        mvc.perform(put(CALENDARS + "/1900").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"days\": []}"))
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"days\": [{\"calendarDate\": \"2026-10-01\", \"dayKind\": \"PARTY\"}]}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID"));
+        mvc.perform(put(CALENDARS + "/1900").header("If-None-Match", "*").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"days\": []}"))
                 .andExpect(status().isUnprocessableContent());
     }
 
@@ -152,7 +157,37 @@ class WorkCalendarIT {
     void permissions() throws Exception {
         mvc.perform(get(CALENDARS)).andExpect(status().isUnauthorized());
         mvc.perform(get(CALENDARS).with(UPDATE)).andExpect(status().isForbidden());
-        mvc.perform(put(CALENDARS + "/2026").with(READ).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"days\": []}"))
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(READ).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"days\": []}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("writes without a version are refused with 428; a stale version with 412; a never-maintained year needs If-None-Match: *")
+    void versionPreconditions() throws Exception {
+        mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
+                .andExpect(status().isPreconditionRequired()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_REQUIRED"));
+        mvc.perform(put(CALENDARS + "/2026").header("If-Match", "\"1\"").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
+                .andExpect(status().isPreconditionFailed()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_MISMATCH"));
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
+                .andExpect(status().isOk());
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
+                .andExpect(status().isPreconditionFailed());
+        mvc.perform(put(CALENDARS + "/2026").header("If-Match", "\"7\"").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
+                .andExpect(status().isPreconditionFailed());
+    }
+
+    @Test
+    @DisplayName("T2 a change to a day before today is refused until the maintainer confirms it; the audit event names the locked days")
+    void lockedDays() throws Exception {
+        String unconfirmed = "{\"days\": [{\"calendarDate\": \"2026-10-12\", \"dayKind\": \"HOLIDAY\"}]}";
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(unconfirmed))
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED"));
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
+                .andExpect(status().isOk());
+
+        assertThat(events.stream(WorkCalendarYearMaintained.class)).singleElement().satisfies(e -> {
+            assertThat(e.lockedDatesChanged()).containsExactly(LocalDate.parse("2026-10-10"), LocalDate.parse("2026-10-12"));
+            assertThat(e.changedDates()).hasSize(2);
+        });
     }
 }

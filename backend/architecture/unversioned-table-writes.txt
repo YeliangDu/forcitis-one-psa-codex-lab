@@ -15,3 +15,4 @@ com/forcitis/one/platform/identity/infrastructure/persistence/JdbcRoleRepository
 com/forcitis/one/platform/numbering/infrastructure/persistence/JdbcLegacyNumberRepository.java#platform_numbering.legacy_numbers  # insert-only lineage of migrated numbers; the unique key makes a repeat idempotent
 com/forcitis/one/platform/numbering/infrastructure/persistence/JdbcNumberingRuleRepository.java#platform_numbering.numbering_counters  # counters are allocated by one atomic upsert (see repository-write-exceptions.txt)
 com/forcitis/one/cost/timesheet/infrastructure/persistence/JdbcConsumedEvents.java#cost_timesheet.consumed_events  # idempotency record of handled events: insert-only, the unique key is the check
+com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#platform_idempotency.idempotent_responses  # one row per signed-in user and key: claimed by the insert, finished once, deleted on expiry; no concurrent writers of the same row
