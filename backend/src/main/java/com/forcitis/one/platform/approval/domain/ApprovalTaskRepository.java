@@ -9,7 +9,6 @@ import java.util.Optional;
 
 public interface ApprovalTaskRepository {
 
-    /** The row stays locked (FOR UPDATE) until the transaction ends. */
     Optional<ApprovalTask> find(ApprovalTaskId taskId);
 
     /** Read without a lock, so the caller can lock the request first and the task second, the order every use case follows. */
@@ -23,6 +22,5 @@ public interface ApprovalTaskRepository {
     /** Open tasks whose due or escalation time has come and whose reminder or escalation has not been recorded yet. */
     List<ApprovalTaskId> findDue(Instant now);
 
-    /** Same version and status condition as the request repository. */
     void save(ApprovalTask task);
 }

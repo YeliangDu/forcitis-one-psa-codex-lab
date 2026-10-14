@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-/** The engine task as the approval module sees it: the status and the event sequence live here, the candidates stay in the engine. */
 public final class ApprovalTask {
 
     private static final String AGGREGATE_TYPE = "ApprovalTask";

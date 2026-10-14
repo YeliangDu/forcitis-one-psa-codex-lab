@@ -29,6 +29,6 @@ public class CancelTimesheet {
         if (!timesheet.employee().equals(currentUser.userId())) {
             throw new AccessDeniedException("Timesheet " + id.value() + " belongs to another employee");
         }
-        approvals.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, timesheet.document(), currentUser.userId(), reason);
+        Transitions.require(approvals.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, timesheet.document(), currentUser.userId(), reason));
     }
 }

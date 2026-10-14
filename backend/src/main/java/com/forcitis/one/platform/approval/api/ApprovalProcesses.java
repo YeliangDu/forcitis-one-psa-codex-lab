@@ -15,8 +15,8 @@ public interface ApprovalProcesses {
     WithdrawCheck checkWithdraw(ProcessKey processKey, DocumentReference document, UserId actor);
 
     /** Ends the round as RETURNED; the initiator may start a new one. Needs a reason. */
-    void withdraw(ProcessKey processKey, DocumentReference document, UserId actor, String reason);
+    RetractionResult withdraw(ProcessKey processKey, DocumentReference document, UserId actor, String reason);
 
     /** Ends the round as CANCELLED, keeping the history. Needs a reason. */
-    void cancel(ProcessKey processKey, DocumentReference document, UserId actor, String reason);
+    RetractionResult cancel(ProcessKey processKey, DocumentReference document, UserId actor, String reason);
 }

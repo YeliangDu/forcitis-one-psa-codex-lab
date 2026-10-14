@@ -6,6 +6,7 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import org.springframework.stereotype.Component;
@@ -45,12 +46,12 @@ class ApprovalProcessesFacade implements ApprovalProcesses {
     }
 
     @Override
-    public void withdraw(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
-        withdrawApproval.execute(processKey, document, actor, reason);
+    public RetractionResult withdraw(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
+        return withdrawApproval.execute(processKey, document, actor, reason);
     }
 
     @Override
-    public void cancel(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
-        cancelApproval.execute(processKey, document, actor, reason);
+    public RetractionResult cancel(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
+        return cancelApproval.execute(processKey, document, actor, reason);
     }
 }

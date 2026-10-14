@@ -6,7 +6,6 @@ import java.util.List;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-/** Wraps what an aggregate recorded and hands it to the event publication registry in the caller's transaction. */
 @Component
 class ApprovalEvents {
 

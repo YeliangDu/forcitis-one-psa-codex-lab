@@ -126,15 +126,15 @@ public class DecideTasks {
         audit.record(new AuditEntry("platform.approval.task." + decision.outcome().name().toLowerCase(Locale.ROOT),
                 actor, null, "approval-task:" + view.taskId().value(), reason));
         if (decision.outcome() == DecisionOutcome.APPROVE) {
-            engine.completeTask(view.taskId());
             Transitions.run(() -> task.complete(actor, TaskOutcome.APPROVED, false, reason, view.contentDigest(), time.today()));
             aggregates.save(task);
+            engine.completeTask(view.taskId());
             return lifecycle.finishIfDone(request);
         }
         if (view.advisory()) {
-            engine.completeTask(view.taskId());
             Transitions.run(() -> task.complete(actor, TaskOutcome.REJECTED, true, reason, view.contentDigest(), time.today()));
             aggregates.save(task);
+            engine.completeTask(view.taskId());
             return lifecycle.finishIfDone(request);
         }
         TaskOutcome outcome = view.insideSubProcess() ? TaskOutcome.RETURNED : TaskOutcome.REJECTED;

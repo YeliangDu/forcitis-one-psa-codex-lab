@@ -80,3 +80,5 @@ common_words:
 - retract
 - revert
 - digest
+- unknown
+- unmatched

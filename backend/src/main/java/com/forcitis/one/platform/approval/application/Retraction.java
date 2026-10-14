@@ -4,12 +4,14 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import java.util.Optional;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -37,43 +39,64 @@ class Retraction {
     }
 
     WithdrawCheck check(ProcessKey processKey, DocumentReference document, UserId actor) {
-        ApprovalRequest request = find(processKey, document);
-        return request.checkWithdraw(actor, cutoffPassed(request));
+        return requests.find(processKey, document).map(request -> request.checkWithdraw(actor, cutoffPassed(request)))
+                .orElse(WithdrawCheck.NOT_RUNNING);
     }
 
-    void withdraw(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
-        ApprovalRequest request = begin(processKey, document, actor);
+    RetractionResult withdraw(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
+        Optional<ApprovalRequest> found = requests.find(processKey, document);
+        if (found.isEmpty()) {
+            return RetractionResult.NOT_RUNNING;
+        }
+        ApprovalRequest request = found.get();
+        requireInitiator(request, actor);
         boolean cutoff = cutoffPassed(request);
+        RetractionResult refusal = refusal(request, actor, cutoff, reason);
+        if (refusal != null) {
+            return refusal;
+        }
         Transitions.run(() -> request.withdraw(actor, cutoff, reason, time.today()));
         engine.endAsReturned(request.instanceId());
         aggregates.save(request);
         lifecycle.closeOpenTasks(request.instanceId());
         audit.record(new AuditEntry("platform.approval.request.withdraw", actor, null, "approval-request:" + request.aggregateId(), reason));
+        return RetractionResult.DONE;
     }
 
-    void cancel(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
-        ApprovalRequest request = begin(processKey, document, actor);
+    RetractionResult cancel(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
+        Optional<ApprovalRequest> found = requests.find(processKey, document);
+        if (found.isEmpty()) {
+            return RetractionResult.NOT_RUNNING;
+        }
+        ApprovalRequest request = found.get();
+        requireInitiator(request, actor);
         boolean cutoff = cutoffPassed(request);
+        RetractionResult refusal = refusal(request, actor, cutoff, reason);
+        if (refusal != null) {
+            return refusal;
+        }
         Transitions.run(() -> request.cancel(actor, cutoff, reason, time.today()));
         engine.terminate(request.instanceId(), "CANCELLED");
         aggregates.save(request);
         lifecycle.closeOpenTasks(request.instanceId());
         audit.record(new AuditEntry("platform.approval.request.cancel", actor, null, "approval-request:" + request.aggregateId(), reason));
+        return RetractionResult.DONE;
     }
 
-    private ApprovalRequest begin(ProcessKey processKey, DocumentReference document, UserId actor) {
-        ApprovalRequest request = find(processKey, document);
+    private static RetractionResult refusal(ApprovalRequest request, UserId actor, boolean cutoff, String reason) {
+        return switch (request.checkWithdraw(actor, cutoff)) {
+            case NOT_RUNNING -> RetractionResult.NOT_RUNNING;
+            case CUTOFF_PASSED -> RetractionResult.CUTOFF_PASSED;
+            case NOT_INITIATOR, ALLOWED -> reason == null || reason.isBlank() ? RetractionResult.REASON_REQUIRED : null;
+        };
+    }
+
+    private void requireInitiator(ApprovalRequest request, UserId actor) {
         if (!request.initiator().equals(actor)) {
             denials.record(new AuditEntry("platform.approval.request.denied", actor, null, "approval-request:" + request.aggregateId(),
                     "not the initiator"));
             throw new AccessDeniedException("User " + actor.value() + " did not start the approval of " + request.aggregateId());
         }
-        return request;
-    }
-
-    private ApprovalRequest find(ProcessKey processKey, DocumentReference document) {
-        return requests.find(processKey, document).orElseThrow(() -> new ApprovalOperationException(
-                ApprovalError.PLATFORM_APPROVAL_REQUEST_NOT_FOUND, "No approval request for " + document.documentId().value()));
     }
 
     private boolean cutoffPassed(ApprovalRequest request) {

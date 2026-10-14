@@ -8,10 +8,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
-/** Loads a timesheet (locked), saves it once per use case and publishes what it recorded in the same transaction. */
 @Component
 class Timesheets {
 
@@ -25,6 +25,10 @@ class Timesheets {
         this.repository = repository;
         this.events = events;
         this.clock = clock;
+    }
+
+    Optional<Timesheet> find(TimesheetId id) {
+        return repository.find(id);
     }
 
     Timesheet require(TimesheetId id) {

@@ -2,7 +2,6 @@ package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.platform.approval.domain.ApprovalTransitionException;
 
-/** Domain refusals become application errors here, so the web layer only ever sees ApprovalOperationException. */
 final class Transitions {
 
     private Transitions() {

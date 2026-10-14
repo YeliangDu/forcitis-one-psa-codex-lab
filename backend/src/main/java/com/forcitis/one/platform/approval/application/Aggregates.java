@@ -9,7 +9,6 @@ import com.forcitis.one.platform.approval.domain.ApprovalTaskRepository;
 import com.forcitis.one.platform.approval.domain.StaleAggregateException;
 import org.springframework.stereotype.Component;
 
-/** Loads aggregates (locked), saves them once per use case and publishes what they recorded in the same transaction. */
 @Component
 class Aggregates {
 

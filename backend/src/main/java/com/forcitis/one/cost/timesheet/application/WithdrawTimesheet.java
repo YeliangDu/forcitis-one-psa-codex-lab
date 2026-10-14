@@ -29,6 +29,6 @@ public class WithdrawTimesheet {
         if (!timesheet.employee().equals(currentUser.userId())) {
             throw new AccessDeniedException("Timesheet " + id.value() + " belongs to another employee");
         }
-        approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, timesheet.document(), currentUser.userId(), reason);
+        Transitions.require(approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, timesheet.document(), currentUser.userId(), reason));
     }
 }

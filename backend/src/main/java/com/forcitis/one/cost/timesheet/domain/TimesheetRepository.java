@@ -5,7 +5,6 @@ import java.util.Optional;
 
 public interface TimesheetRepository {
 
-    /** The row stays locked (FOR UPDATE) until the transaction ends. */
     Optional<Timesheet> find(TimesheetId timesheetId);
 
     /** Serialises the first submissions of one timesheet number until the transaction ends. */

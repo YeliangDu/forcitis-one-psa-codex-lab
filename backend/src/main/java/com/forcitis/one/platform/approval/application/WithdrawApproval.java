@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.application;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.RetractionResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +18,7 @@ public class WithdrawApproval {
     }
 
     @Transactional
-    public void execute(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
-        retraction.withdraw(processKey, document, actor, reason);
+    public RetractionResult execute(ProcessKey processKey, DocumentReference document, UserId actor, String reason) {
+        return retraction.withdraw(processKey, document, actor, reason);
     }
 }
