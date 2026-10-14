@@ -2,18 +2,7 @@
 
 基线为 1606d45。下面逐项列出被删除、反转或改写的断言；新增的测试不在此列。集成 PR 引用本文。
 
-## 编号对照
-
-本文用复审报告的编号，条目一律加前缀 `C-`（例如 C-M2）。C 内部（本分支的工作消息）的编号与复审编号的对照如下；表里没有的内部编号，我手上没有复审报告的对应号，写作「内部 X（复审编号待核对）」，请协调员核对后补。
-
-| C 内部编号 | 复审编号 | 内容 |
-|---|---|---|
-| M-6 | C-M1 | React 版本：core 与 h5 禁用 React 19 的 API，打包检测不止一份 React |
-| M-1 | C-M2 | 错误码与成功应答里的枚举宽松解析，未知值保留并上报 |
-| M-2 | C-M3 | 收件箱有数据时刷新失败只在列表上方提示，轮询只拉第一页 |
-| M-8 | C-M4 | 结构守护去掉空白和注释再比对，并纳入 packages/core/src |
-| M-9 | C-M5 | 删除没有调用方的导出 |
-| 其余（H-1、H-2、H-3、H-4、M-4、M-5、Nit 等） | 待核对 | 见下文各行 |
+编号 C-H1、C-M2 等见 docs/modernization/phase1a/review/REVIEW_fix-c.md；REVIEW_b12f1df 开头的是上一份复审报告的编号。
 
 ## 1. 办理按钮不再看权限码（反转）
 
@@ -47,27 +36,27 @@
 | `http.test.ts` 401 | 错误体 `{ errorCode: 'X' }`，`code` 为 `'X'` | 错误体为合法的 ProblemDetail，`code` 为 `PLATFORM_WEB_UNAUTHENTICATED` | 错误响应按 ProblemDetail 校验，任意字符串不再被当作错误码 |
 | `http.test.ts` 409 | 错误体 `{ errorCode, message }` | 合法的 ProblemDetail | 同上 |
 | `http.test.ts` | 错误体 `{ outcome: … }` 也能读出 code | 不是 ProblemDetail 的错误体只剩状态码，`code` 与 `problem` 均为 undefined | 同上；旧的 `outcome` 形状随契约取消 |
-| `http.test.ts` | 读过资源后，版本由客户端全局记住（同资源的 `:action` 共用） | 版本随读到的数据走（`versionOf(data)`），由调用方显式传 `ifMatch`；没有全局记忆 | 内部 H-1（复审编号待核对）：隐式版本缓存会把旧版本发给别的数据 |
-| `ApiError.malformedProblem` 的三条断言 | 错误体不合规时为真 | 删除，该属性已删除 | C-M5：没有调用方 |
-| 错误码未知时 | 错误体不合规，丢弃 | 保留整个错误体（含 `legacyLoginUrl`），`code` 为 undefined，并上报一次 | C-M2 |
+| `http.test.ts` | 读过资源后，版本由客户端全局记住（同资源的 `:action` 共用） | 版本随读到的数据走（`versionOf(data)`），由调用方显式传 `ifMatch`；没有全局记忆 | C-H1：隐式版本缓存会把旧版本发给别的数据 |
+| `ApiError.malformedProblem` 的三条断言 | 错误体不合规时为真 | 删除，该属性已删除 | C-M9：没有调用方 |
+| 错误码未知时 | 错误体不合规，丢弃 | 保留整个错误体（含 `legacyLoginUrl`），`code` 为 undefined，并上报一次 | C-M1 |
 
 ## 5. 其他被改写或删除的断言
 
 | 位置 | 变化 | 理由 |
 |---|---|---|
 | core `pure.test.ts`（原 web `lib.test.ts`）`safeExternalUrl('http://old.example.com/')` | 原断言放行 `http:`，现归入被拒绝的一组 | C-Nit：外部链接只允许 https |
-| `paging.test.ts` | 删除 `collectPages` 的两条测试 | `collectPages` 没有调用方，已删除（C-M5） |
+| `paging.test.ts` | 删除 `collectPages` 的两条测试 | `collectPages` 没有调用方，已删除（C-M9） |
 | core `failure.test.ts` | 删除「文案表的键等于 `ERROR_CODES`」 | `ERROR_CODES` 已删除；穷尽性由 `Record<ErrorCode, …>` 的类型检查和 `expectTypeOf` 保证 |
 | web `numbering-rules-page.test.tsx` 422 | 服务端 body 为字符串，页面显示「…不符合规则（原文）」 | 服务端为 ProblemDetail，页面只显示固定文案，不展示服务端的英文说明 | 界面文案由前端用语守护控制 |
 | web/h5 `inbox-page.test.tsx` | 夹具里的标题由服务端给出（「工时单审批 TS…」） | 夹具给 `processKey`、`documentId`，标题由前端拼 | REVIEW_b12f1df M-16：待办标题按 `processKey` 映射 |
 | web `sync-runs-page.test.tsx` 409 | 错误体 `{ outcome: 'NOT_HELD' }` | ProblemDetail，`ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL` | 同第 4 节，旧 `outcome` 取消 |
-| web `task-detail-page.test.tsx`「办理时别人已经改过任务（412）」 | 期望只读取一次任务 | 期望 412 之后立即再读一次，拿到新版本 | 内部 M-5（复审编号待核对）：412 后让对应查询失效 |
+| web `task-detail-page.test.tsx`「办理时别人已经改过任务（412）」 | 期望只读取一次任务 | 期望 412 之后立即再读一次，拿到新版本 | C-M5：412 后让对应查询失效 |
 | 所有页面测试的桩 | 按「地址包含片段」匹配，先到先得 | 按路径末尾在段边界精确匹配 | C-Nit：避免 `approval-tasks` 误匹配 `approval-tasks/t-1` |
 | `businessToday` 的断言（原在工时单模型测试与工作日历模型测试各一份） | 迁移到 `packages/core/src/business-day.test.ts`：上海时间的跨日、跨年各一条；工作日历模型测试里的那一条随函数一起移走，没有删减 | 函数移到 core（C-Nit），断言随函数走 |
 | web `work-calendar-page.test.tsx`「保存时日历已被别人修改（412）」 | 期望页面上的修改保留 | 期望重新读到不同内容后草稿被丢弃并提示「已载入最新内容，你的修改未保存」；内容相同只是版本变了时草稿保留（新增一条） | C-H1 的守护：版本变化时不能带着旧基础保存 |
 | 工时单页面的全部测试与 `timesheet.test.ts` | 删除 | 契约 D-1a-107：1a 不对外暴露工时提交，页面已撤掉 |
 
-## 6. 已恢复的断言（内部 H-4，复审编号待核对）
+## 6. 已恢复的断言（C-H4）
 
 - web `model/paths.test.ts`、h5 `model/paths.test.ts`：`taskPath` 对 `a/b c` 的编码。
 - core `approval/model.test.ts`：新旧待办编号相同时 `inboxRowId` 不同。
