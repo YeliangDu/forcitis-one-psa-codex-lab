@@ -42,8 +42,10 @@ class ConsumedEventsPurgeJob {
     @Scheduled(cron = "${forcitis.cost.timesheet.consumed-events.cron}")
     @SchedulerLock(name = "cost.timesheet.consumed.events.purge", lockAtMostFor = "PT30M")
     void purge() {
-        int removed = jdbc.sql("DELETE FROM cost_timesheet.consumed_events WHERE consumed_at < :cutoff")
-                .param("cutoff", Timestamp.from(clock.instant().minus(keepPeriod))).update();
-        LOG.info("cost.timesheet removed {} handled-event records older than {}", removed, keepPeriod);
+        LOG.info("cost.timesheet removed {} handled-event records older than {}", deleteOlderThan(clock.instant().minus(keepPeriod)), keepPeriod);
+    }
+
+    private int deleteOlderThan(java.time.Instant cutoff) {
+        return jdbc.sql("DELETE FROM cost_timesheet.consumed_events WHERE consumed_at < :cutoff").param("cutoff", Timestamp.from(cutoff)).update();
     }
 }
