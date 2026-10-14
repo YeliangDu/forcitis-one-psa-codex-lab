@@ -1,0 +1,76 @@
+{
+  "projectId": "a034f375-1434-4d8e-a2ed-2d19510fb108",
+  "shape": "package",
+  "pkg": "@forcitis/ui",
+  "globalName": "ForcitisOneUI",
+  "buildCmd": "frontend/packages/ui/node_modules/.bin/tsc -p .design-sync/tsconfig.dts.json && frontend/packages/ui/node_modules/.bin/vite build -c .design-sync/vite.lib.config.mjs",
+  "cssEntry": "dist/ui.css",
+  "provider": {
+    "component": "DesignSystemProvider"
+  },
+  "docsMap": {
+    "AppShell": "../../../.design-sync/docs/AppShell.md",
+    "PageTitle": "../../../.design-sync/docs/PageTitle.md",
+    "Button": "../../../.design-sync/docs/Button.md",
+    "TextLink": "../../../.design-sync/docs/TextLink.md",
+    "DataTable": "../../../.design-sync/docs/DataTable.md",
+    "DescriptionList": "../../../.design-sync/docs/DescriptionList.md",
+    "StatusBadge": "../../../.design-sync/docs/StatusBadge.md",
+    "InboxList": "../../../.design-sync/docs/InboxList.md",
+    "Dialog": "../../../.design-sync/docs/Dialog.md",
+    "EmptyState": "../../../.design-sync/docs/EmptyState.md",
+    "LoadingState": "../../../.design-sync/docs/LoadingState.md",
+    "Notice": "../../../.design-sync/docs/Notice.md",
+    "ResultPage": "../../../.design-sync/docs/ResultPage.md",
+    "SelectField": "../../../.design-sync/docs/SelectField.md",
+    "TextAreaField": "../../../.design-sync/docs/TextAreaField.md",
+    "TextField": "../../../.design-sync/docs/TextField.md",
+    "LoginPanel": "../../../.design-sync/docs/LoginPanel.md"
+  },
+  "componentSrcMap": {
+    "DataTable": "src/data-display.tsx",
+    "DescriptionList": "src/data-display.tsx",
+    "Dialog": "src/feedback.tsx",
+    "EmptyState": "src/feedback.tsx",
+    "LoadingState": "src/feedback.tsx",
+    "Notice": "src/feedback.tsx",
+    "SelectField": "src/form-fields.tsx",
+    "TextAreaField": "src/form-fields.tsx",
+    "TextField": "src/form-fields.tsx"
+  },
+  "overrides": {
+    "Dialog": {
+      "cardMode": "single",
+      "viewport": "760x420"
+    },
+    "AppShell": {
+      "cardMode": "single",
+      "viewport": "1200x600"
+    },
+    "DataTable": {
+      "cardMode": "column"
+    },
+    "LoginPanel": {
+      "cardMode": "column"
+    },
+    "ResultPage": {
+      "cardMode": "column"
+    },
+    "LoadingState": {
+      "cardMode": "column"
+    },
+    "Notice": {
+      "cardMode": "column"
+    },
+    "SelectField": {
+      "cardMode": "column"
+    },
+    "TextAreaField": {
+      "cardMode": "column"
+    },
+    "TextField": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

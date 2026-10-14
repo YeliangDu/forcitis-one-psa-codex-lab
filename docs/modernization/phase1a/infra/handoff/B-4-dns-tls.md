@@ -50,3 +50,28 @@ echo | openssl s_client -connect one.forcitis.com:443 -tls1_1 2>&1 | grep -c "Ci
 ## 4. 回传
 
 不回传任何机密。回报 one-coordinator：所选方式（A / B）、证书到期日、DNS 生效时间。
+
+## 5. 余项（one-ops，2026-10-15）
+
+### ICP 备案主体（只读）
+
+- 公司官网 `https://www.forcitis.com/` 页脚：「弗思特建筑科技有限公司 版权所有」与备案号 `苏ICP备12028598号-4`（页面另有一段嵌入内容带其他单位的备案号，与本公司无关）。
+- 间接证据：`one.forcitis.com` 解析到杭州 ECS，80 / 443 自 2026-10-14 起一直可访问；阿里云对境内节点上未在阿里云接入备案的域名会拦截 80 / 443，未被拦截说明 `forcitis.com` 已接入备案。子域名随主域名备案，无须另备。
+- **未完成的直接核验**：工信部查询页（beian.miit.gov.cn）有人机验证，不由代理操作。请用户在该页或阿里云「ICP 备案」控制台按域名 `forcitis.com` 查一次，确认主体为本公司、网站备案号以 `-4` 结尾的那条对应 `forcitis.com`。确认后本项完成。
+
+### TLS 配置（本机 OpenSSL 3.6.3 只读探测）
+
+| 项 | 结果 |
+|---|---|
+| TLS 1.0 / 1.1 | 拒绝 |
+| TLS 1.2 / 1.3 | 接受；1.3 协商 `TLS_AES_256_GCM_SHA384` |
+| 证书 | ECDSA P-256，签发者 Let's Encrypt YE2，SAN 仅 `one.forcitis.com`，到期 2027-01-12，链校验通过 |
+| HSTS | `max-age=31536000` |
+| OCSP 装订 | 无（Let's Encrypt 已停止 OCSP 服务，不扣分） |
+| TLS 1.2 套件 | 除 AEAD 外仍接受 CBC 套件（例如 `ECDHE-ECDSA-AES128-SHA`、`ECDHE-ECDSA-AES256-SHA384`）：nginx 未设 `ssl_ciphers`，用的是 OpenSSL 默认 |
+
+判断：按 SSL Labs 现行评级规则大概率为 A；CBC 套件会被标为 WEAK，但不封顶。建议（随 C-4 的 nginx 模板一起改，执行前确认）：TLS 1.2 只留 ECDHE + AEAD，`ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305;`。另：现网证书在 `/etc/letsencrypt/live/one.forcitis.com/`，`files/nginx-one.conf` 模板仍写 `/etc/nginx/tls/…`，模板须对齐现网（C-4 负责的会话处理）。
+
+### SSL Labs 评级（未执行，需确认）
+
+SSL Labs 是第三方（Qualys）对外扫描：它会从境外向 `one.forcitis.com` 发起数十次 TLS 握手，并在评测结束后在公共列表中短时显示主机名（可用 `hideResults=on` 不公开）。要做的话，建议在上面的套件收紧之后跑一次，带 `hideResults=on`；不做的话，以上本机探测作为 E-8 的替代证据。
