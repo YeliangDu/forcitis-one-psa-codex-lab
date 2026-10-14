@@ -1,69 +1,5 @@
 # Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-0018）
 # 新词一律 status: proposed；通用技术词放 common_words，业务概念放 terms。
-common_words:
-  - accept
-  - after
-  - begin
-  - below
-  - compare
-  - content
-  - disabled
-  - display
-  - drop
-  - duplicate
-  - empty
-  - evaluate
-  - failed
-  - failure
-  - female
-  - fetch
-  - field
-  - for
-  - found
-  - include
-  - incoming
-  - isolation
-  - latest
-  - limit
-  - load
-  - lag
-  - male
-  - manual
-  - message
-  - mismatch
-  - missing
-  - multiple
-  - not
-  - 'null'
-  - path
-  - previous
-  - raw
-  - reader
-  - recent
-  - reconcile
-  - reconciler
-  - refresh
-  - region
-  - rehired
-  - released
-  - report
-  - revived
-  - running
-  - scheduled
-  - seconds
-  - self
-  - started
-  - stat
-  - succeeded
-  - synced
-  - text
-  - trigger
-  - unavailable
-  - unexpected
-  - verdict
-  - with
-  - without
-  - write
 terms:
 - id: workforce__assignment
   zh: 任职
@@ -290,3 +226,67 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+common_words:
+- accept
+- after
+- begin
+- below
+- compare
+- content
+- disabled
+- display
+- drop
+- duplicate
+- empty
+- evaluate
+- failed
+- failure
+- female
+- fetch
+- field
+- for
+- found
+- include
+- incoming
+- isolation
+- lag
+- latest
+- limit
+- load
+- male
+- manual
+- message
+- mismatch
+- missing
+- multiple
+- not
+- 'null'
+- path
+- previous
+- raw
+- reader
+- recent
+- reconcile
+- reconciler
+- refresh
+- region
+- rehired
+- released
+- report
+- revived
+- running
+- scheduled
+- seconds
+- self
+- started
+- stat
+- succeeded
+- synced
+- text
+- trigger
+- unavailable
+- unexpected
+- verdict
+- with
+- without
+- write
