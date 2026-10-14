@@ -28,7 +28,7 @@ Let's Encrypt 已不发到期提醒邮件，ACME 账号也没填邮箱（session
 | 检查 | ① 续期后的证书文件剩余天数；② nginx 实际下发的证书剩余天数（经 127.0.0.1:443，防止续期成功但没 reload）；③ 两者不一致；④ `certbot-renew.service` 上次结果；⑤ `certbot-renew.timer` 是否启用 |
 | 级别 | 剩余 < 20 天 → P2；< 7 天或读不到证书 → P1；③④⑤ → P2。阈值可用环境变量 `ONE_CERT_WARN_DAYS` / `ONE_CERT_CRIT_DAYS` 调 |
 | 输出 | 一行 JSON 写 journal（标签 `one-cert-check`）与 `/data/forcitis-one/logs/ops/cert-check.json`；告警行 `message` 以 `ALERT P1` / `ALERT P2` 开头，可被下面的 SLS 兜底规则捕获（Logtail 采集路径加上 `logs/ops/*.json`） |
-| 推送 | `/etc/forcitis-one/ops-alert.env`（root 0600，键 `ONE_ALERT_P1_WEBHOOK`、`ONE_ALERT_P2_WEBHOOK`；P1 未配时退回 P2）存在时直接推企业微信群机器人；Webhook 经 stdin 交给 curl，不出现在进程列表 |
+| 推送 | 告警时调用 `/usr/local/sbin/one_alert_send`（`scripts/one_alert_send.py`）：`/etc/forcitis-one/ops-alert.env`（root 0600）有 `ONE_ALERT_WEBHOOK` 时发到「FORCITIS one 运维」群机器人（A-5 现行渠道），否则以 FORCITIS one 应用消息发给 `ONE_ALERT_WECOM_USERID`；直接调企业微信接口，不依赖业务服务，不打印凭据 |
 | 退出码 | 0 正常；1 告警；2 检查本身失败。systemd 中单元为 failed 也能从 `systemctl --failed` 看到 |
 
 已安装（2026-10-15，one-coordinator 在授权内同意；云助手 t-hz0701b833ib7r4）：脚本 SHA256 校验通过，首次运行 `Result=success`，定时器下次 09:14。此前的验证（云助手 t-hz0701ank3nqvb4，在 ECS 临时目录运行、用后删除）：正常 89 天 → 退出 0；阈值调到 200 天分别得到 P2 / P1、退出 1；证书文件不存在 → P1、退出 2。
@@ -42,7 +42,7 @@ systemctl daemon-reload && systemctl enable --now one-cert-check.timer
 systemctl start one-cert-check.service; journalctl -u one-cert-check.service -n 3 --no-pager
 ```
 
-群机器人建好后（A-5）：`install -o root -g root -m 0600 /dev/null /etc/forcitis-one/ops-alert.env`，经云助手（`KeepCommand=false`）写入两个 Webhook；用 `ONE_CERT_WARN_DAYS=200 /usr/local/sbin/one_cert_check.sh` 演练一次，群里收到即可。
+**推送已接通（2026-10-15）**：群机器人 Webhook 经运维机上的安全输入窗口（隐藏输入，不经聊天、不落本机）由云助手 SendFile（f-hz0701pprrskhz4）写入 `ops-alert.env`（root 0600）；`one_alert_send` 与新版 `one_cert_check.sh` 已安装；测试消息（t-hz0701ppx0ee0w0）企业微信返回成功，用户在群里确认收到。告警演练：`ONE_CERT_WARN_DAYS=200 /usr/local/sbin/one_cert_check.sh`（会向群里发一条 P2）。
 
 回滚：`systemctl disable --now one-cert-check.timer`，删除两个单元文件与脚本。
 
@@ -92,7 +92,7 @@ systemctl start one-cert-check.service; journalctl -u one-cert-check.service -n 
 | 采集器 | ECS 安装 LoongCollector 3.3.10（阿里云杭州内网安装脚本，SHA256 652b42bc…f918），用户标识 `/etc/ilogtail/user_defined_id` = `forcitis-one-production`，账号文件 `/etc/ilogtail/users/<主账号 ID>`；机器组 `forcitis-one-production`（自定义标识）心跳正常 |
 | 采集配置 | `one-app`、`one-ops`、`one-nginx-access`、`one-nginx-error`、`one-metrics`，均应用到机器组 |
 | 验证 | 证书检查日志与 nginx 日志可在 SLS 查到；`app` 为空、指标抓不到目标（应用未部署，符合「未部署前不接业务数据」） |
-| 告警 | 未配：通知渠道等 A-5 群机器人；届时按「规则定义」在 SLS 上配 PromQL 告警与 `ALERT*` 日志告警 |
+| 告警 | 未配：应用未部署，规则无数据可判。部署后按「规则定义」在 SLS 上配 PromQL 告警与 `ALERT*` 日志告警，通知走 SLS 行动策略中的同一群机器人 Webhook（届时再经安全输入窗口录入，不经聊天） |
 
 回退：删除 5 个采集配置与机器组（`DeleteLogtailPipelineConfig`、`DeleteMachineGroup`）→ ECS 上 `loongcollector.sh uninstall`（或 `/etc/init.d/loongcollectord stop` 后删 `/usr/local/ilogtail`），删 `/etc/ilogtail/user_defined_id` 与账号文件 → 删除 Project（数据随之删除，不再计费）。
 
@@ -100,16 +100,14 @@ systemctl start one-cert-check.service; journalctl -u one-cert-check.service -n 
 
 | 变量 | 内容 | 来源 |
 |---|---|---|
-| `ONE_ALERT_P1_WEBHOOK` | 「FORCITIS one 运维」企业微信群机器人 Webhook（含 key，**机密**，存 KMS） | A-5 |
-| `ONE_ALERT_P1_SMS` | P1 短信接收人（ARMS 联系人，按人登记手机号，不进仓库） | A-5 |
-| `ONE_ALERT_P2_WEBHOOK` | P2 企业微信群机器人 Webhook（机密） | A-5 |
+| `ONE_ALERT_WEBHOOK` | 「FORCITIS one 运维」企业微信群机器人 Webhook（含 key，**机密**；ECS `ops-alert.env` root 0600，C-8 后迁 KMS） | A-5 |
 | `ONE_ALERT_ONCALL` | 值班表（谁、何时） | A-5 |
 
-ARMS 中建两个通知策略：`ONE_ALERT_P1`（群机器人 + 短信，24 × 7）、`ONE_ALERT_P2`（群机器人，工作时间；夜间合并到次日 09:00）。
+SLS 中建两个行动策略：`ONE_ALERT_P1`（群机器人，24 × 7）、`ONE_ALERT_P2`（群机器人，工作时间；夜间合并到次日 09:00）。P1 不加短信（A-5 变更，用户「只发应用消息 (Recommended)」）。
 
 ## 执行前确认点
 
-1. A-5 已定（群、短信接收人、值班）；群机器人已建，Webhook 已存 KMS。
+1. A-5 已定：「FORCITIS one 运维」群机器人（已接通，Webhook 在 ECS `ops-alert.env`；C-8 后迁 KMS），值班安排待定。
 2. E-12 已完成，ARMS 中能查询到 `forcitis_` 指标；规则中的指标名先在 ARMS 查询页逐个查到再导入。
 3. 作业失败依赖 Spring 定时任务观测指标 `tasks_scheduled_execution_*`：先在 dev 的 prometheus 端点确认存在；不存在则回报代码会话补指标。Flowable 死信任务数目前没有指标（`CROSSCHECK.md` 第 13 条），本规则先不含。
 
@@ -117,7 +115,7 @@ ARMS 中建两个通知策略：`ONE_ALERT_P1`（群机器人 + 短信，24 × 7
 
 | 类 | 故障注入 | 期望 | 恢复 |
 |---|---|---|---|
-| 登录失败率 | 用脚本对 `POST /api/v1/platform/sessions:wecom-login` 发 25 次无效 code（来源为测试机） | 5 分钟内 P1 群与短信收到 | 停止脚本 |
+| 登录失败率 | 用脚本对 `POST /api/v1/platform/sessions:wecom-login` 发 25 次无效 code（来源为测试机） | 5 分钟内运维群收到 P1 | 停止脚本 |
 | 未完成发布 | 在 dev 临时把 `WECOM_BASE_URL` 指向不可达地址并触发一条审批通知，等待超过 10 分钟 | stale > 0 告警；用尽后 exhausted / 死信告警 | 改回地址并重启；按 INFRA_RUNBOOK §9 处理残留 |
 | 组织同步 | dev 中把 `A8_DB_URL` 指向不可达地址并重启（或 DBA 临时撤销视图账号 CONNECT） | 10 分钟后 lag 告警 | 恢复配置 |
 | 缩水保护 | 在 dev 把 `A8_ROOT_PATH` 临时改为一个很小的子单位路径 | held > 0 告警，组织数据管理员收到企业微信 | 恢复配置，放行或等待自动恢复 |
