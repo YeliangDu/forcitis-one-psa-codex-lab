@@ -15,7 +15,7 @@ SELECT roles.role_id, grants.permission_code
       ('org_data_admin', 'organization.workforce:legal-entity:update'),
       ('org_data_admin', 'organization.attendance:work-calendar:read'),
       ('org_data_admin', 'organization.attendance:work-calendar:update'),
-      ('org_data_admin', 'organization.attendance:locked-work-calendar-day:update'),
+      ('org_data_admin', 'organization.attendance:locked-day:update'),
       ('org_data_admin', 'platform.numbering:numbering-rule:read'),
       ('org_data_admin', 'platform.numbering:numbering-rule:update'),
       ('business_admin', 'platform.numbering:numbering-rule:read'),
