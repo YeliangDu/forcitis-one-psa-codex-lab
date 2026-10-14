@@ -286,8 +286,14 @@ ADR-0016 后果中「A8 产值同步在新系统中作为防腐层输入」与 b
 | 34 | 脚本 `oa-invoice-term-link-backfill`（写 A8） | 改发票、回款明细的条款关联 | 开票、回款与条款挂钩 | **是** | 6b |
 | 35 | 脚本 `oa-project-budget-city-backfill`（写 A8） | 改 `formmain_0051.field0642` | 项目预算所属城市 | 否 | 6a 随项目档案 |
 | 36 | 脚本 `import-oa-employee-transfer-*`（写 A8） | 写员工异动 `formson_0812` | 员工异动导入 | 否 | 6e 随 HRM 迁入 |
+| 37 | 生产 SQL Agent「同步成本明细到PSA」（无仓库脚本） | 读 `formmain_0051`、`formson_0640`、`formson_1226` 与 BI 视图 `T_FST_PAY`，写 `psa_pm_pay` | 项目已发生成本 | **是** | Phase 4 / 6c |
+| 38 | 生产 SQL Agent「同步项目档案到PSA」（无仓库脚本） | 读 `formmain_0051` 等 7 张表与 `T_FST_PROJECT`，写 `psa_pm_project` | 项目档案（合同基线属性） | **是**（参照） | Phase 2 / 6a |
+| 39 | 生产 SQL Agent「同步项目预算到PSA」（无仓库脚本） | 读 `formmain_0051`、`formmain_0574` 与 A8 库内 `T_FST_PSA_BUDGET_WORKS*`，写 `psa_pm_budget*` | 项目成本预算（双入口） | 相关（不过账） | Phase 2 |
+| 40 | 生产 SQL Agent「同步工时档案」（无仓库脚本） | 读 BI 视图 `T_FST_INVALID_DELIVERY`（A8 派生），写 `psa_time_sheet_works_end` | 无效交付工时归类 | **是** | Phase 2 |
 
 另有 3 处只有实体映射、没有有效查询（`SalaryMapper`、`CustomerAndSupplierMapper`、`UnitPriceOfWorkingHoursDO`），以及 6 个读取上述视图的 Java 读取方（如 `BudgetSourceArchiveTermFinder`、`ManHourPostingCheckServiceImpl`）。合计权责相关 26 处，非权责 10 处（组织主数据 7 处 6e 后反转，其余随主数据迁入）。
+
+**补充（R0 Q11，2026-10-14）**：第 37–40 行是只存在于生产 SQL Agent、仓库里没有脚本的通道，盘点时未覆盖，由 BI 审计元数据查询发现。详见 `phase1a/A8_ACCESS_REGISTER.md` #28–#32（含预发布环境的 2 个作业）与 `r0/BI_USAGE_SUMMARY.md` §3。计入后权责相关为 29 处（另有预算 1 处相关、不过账）。§4 矩阵中「工时与成本」「费用」「合同签订与付款条款」各行的老路径，均须加上这些作业的停用作为阶段出口条件。
 
 **注意**：PSA 今天不仅读 A8，还**写** A8（第 28–36 行，含生产 DML）。新系统的规则是：A8 交互只在 `platform.integration` 防腐层，单向所有权；凡写 A8 的权责数据通道，在对应阶段出口前删除。
 

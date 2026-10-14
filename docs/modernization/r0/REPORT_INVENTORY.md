@@ -89,7 +89,7 @@ R1 与 R2 的大部分数字可在 R3、R5、R6 中找到同名指标。三份 E
 | 剩余合同额 / backlog / 合约储备 | R1、R3、R6 | C | 剩余履约义务 / `remaining_performance_obligation` | RPO、BACKLOG_NR_* | |
 | 待签合约 | R1、R2 | C | 候选 合同草案 / `contract_draft` | PIPE（近似） | |
 | 已确认未开票 / 合同资产 / 存量资产 | R2、R6 | C | 合同资产 / `contract_asset` | CA | 与「本年度未开票」不可相加 |
-| 本年度未开票 / 未开票产值 | R2 | C | 未开票在制 / `unbilled_wip` | WIP | |
+| 本年度未开票 / 未开票产值 | R2 | C | 合同资产 / `contract_asset`（形成期间切片，M-17） | CA | 本年形成部分，不得与全量相加 |
 | 超期应收 / 逾期金额 > 90 天 | R1、R5 | C | 候选「账龄超 90 天应收」 | — | 「逾期」只指过了到期日（Q6②） |
 | 坏账准备 / 坏账 | R1、R2、R5 | C | 减值分录 / `impairment_booked`；坏账核销 / `ar_written_off` | IMP、WO | |
 | DSO / 滚动 DSO / 当年 DSO | R1、R3、R5 | D | 候选 应收周转天数 | DSO | 三种天数基准，见 K7 |
