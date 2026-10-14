@@ -1,6 +1,6 @@
-# psa-coordinator 调度台账
+# one-coordinator 调度台账（原 psa-coordinator）
 
-调度会话的工作记忆。会话被压缩或重开时，先读本文件、`python3 docs/modernization/build_all.py` 生成的 STATUS.md（或 generated-docs 分支）、SESSION_PLAYBOOK §11–§14。只记「正在进行」的东西，完成即删；历史在 intent/、session-log/ 与 git 记录里。本文件只由调度会话维护，不拆片段。
+调度会话的工作记忆。会话被压缩或重开时，先读本文件（调度会话名为 one-coordinator；工作会话向它报告）、`python3 docs/modernization/build_all.py` 生成的 STATUS.md（或 generated-docs 分支）、SESSION_PLAYBOOK §11–§14。只记「正在进行」的东西，完成即删；历史在 intent/、session-log/ 与 git 记录里。本文件只由调度会话维护，不拆片段。
 
 更新：2026-10-14（第一个调度会话交接前）
 
@@ -15,21 +15,23 @@
 - 非生成文件冲突：退回给作者会话合并（不要替作者手工合并业务文档）；作者推到本地分支后，由调度会话 `git push origin <commit>:refs/heads/<PR 分支>`（先确认是快进）。
 - zsh 中 `"$H:claude/..."` 会被当成修饰符，写成 `"${H}:refs/heads/..."`。
 - 审核要点：与 main 是否冲突；gitleaks 全历史；build_all --check；文档不含金额与个人信息；不得修改已合入的迁移（CI 有 migrations_immutable）；文档不用「PSA」指代系统（CI 有 check_legacy_name）。
+- 代码 PR 在工作会话的 opus 复审结论出来之前不合并（#50 教训）；只有文档 PR 可凭 CI 合并。
 - CI 偶发失败先看是否与 PR 内容无关（如测试抖动），`gh run rerun <id> --failed`，并让 1a 修成确定性。
 
 ## 在途工作会话
 | 会话 | 在做 | 下一步 |
 |---|---|---|
 | psa-1a-platform-bridge-reimagine | A+B 整合已交（PR #50）；opus 复审本批中；起草下一批派工；5 个事件补 businessDate（OLAP 结论）未做 | 复审结论后派下一批三路：下一批三路：A 审批 / TIMESHEET / 待办通知；B 组织 / 登录 / 编号 / 审计 / 数据权限（ADR-0026/0027）/ 平台约定 / 84 项命名改名；C 前端（共用包、工作日历录入页、H5 与 PC 差异）；完成后 opus 按 §14 复审 |
-| psa-olap-architecture | 1a 数据架构逐表打分卡（34 表，OLTP / OLAP 准备 / DAMA）与守护规格、数据架构检查清单 | 报告后开 PR；要改的转 1a，取舍问用户 |
 | psa-repo-fragments | 记录类产物不入仓：INTENT / SESSION_LOG / STATUS 移出仓库，main 合并后 Action 生成到 generated-docs 分支 | 报告后开 PR；合并前通知各会话不再提交这三个文件 |
 
-已完成、可复用：psa-terms-review（第三轮用语确认待启动）、psa-1a-process-review、psa-authz-model、one-docs-naming、psa-gl-finance-review、psa-review-*。
+已完成、可复用：psa-olap-architecture、psa-terms-review（第三轮用语确认待启动）、psa-1a-process-review、psa-authz-model、one-docs-naming、psa-gl-finance-review、psa-review-*。
+
+## 重要阻塞
+- 1a 修复批合并前禁止部署任何环境（status/blockers/080）：#50 在 opus 复审前被合并；复审 1 Blocker + 7 High + 18 Medium，修复批已派（H-1 用户定事件解耦；H-6 工作日期由用户填写、T 仍为提交日）。修复批合并前须 opus 复审。
 
 ## 待合并 PR
-- #47 ADR-0027（已采纳）——已合 main，等 CI。
-- #48 Phase 1a 入口条件核对与部署前清单——已合 main，等 CI。
-- #50 1a A+B 整合（状态机、事件、错误链、工作日历、审批时限、会签等；surefire 718 / failsafe 203）——等 CI。调度会话已同意：意见字段进任务详情与已办、工时提交错误统一 ProblemDetail（下一批 A）；ExportedSnapshot 状态写入例外接受；effect / opinion / binding / nullable 交第三轮用语。
+- #51 Phase 1a 数据架构打分卡（K1–K15、T1–T5、D1–D10，§14.1）——等 CI。K、D 与 T 的用户决定已转 1a 下一批 B（T1 现在建组织版本表；T2 过去日期日历锁定；T3 consumed_events 90 天、ACT_HI_* 在线 3 年归档满 10 年、separation_date；T4 Phase 2 定）。
+- #50 已合并（1a A+B 整合）。调度会话已同意：意见字段进任务详情与已办、工时提交错误统一 ProblemDetail（下一批 A）；ExportedSnapshot 例外接受；effect / opinion / binding / nullable 交第三轮用语。
 
 ## 待用户 / 财务 / 运维决定
 - 部署前清单：`docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md`（A 需用户决定 8 项、B 只能用户或运维执行 9 项、C 执行前须确认 9 项、D 出口验证 9 项）。已发给用户；A 类人选与群名需用户直接回复；建议用户先做 B-1 `/design-sync` 与 B-2 新开企业微信应用。

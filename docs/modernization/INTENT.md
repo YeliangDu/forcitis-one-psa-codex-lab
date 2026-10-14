@@ -224,3 +224,4 @@
 | 问「1a 还有哪些设计需要现在考虑？所有表命名是否有标准？需要借鉴 dama 的标准吗」，选「全部在 1a 做 (Recommended)」（2026-10-14，psa-coordinator 当面询问） | NAMING_STANDARD §2.4（列名类别词、约束与索引命名）、§2.5（列级敏感分级）；backend DdlNamingTest、architecture/ddl-naming-baseline.txt、data-classification.txt；GUIDING_PRINCIPLES §6（主数据、数据安全、1a 表保留期建议值、ID 策略待定）；1a 改名清单交 psa-coordinator |
 | 命名标准两处改动（_number 代替 _no、补充的类别词）与 1a 表保留期建议值：「都认可 (Recommended)」（2026-10-14，psa-coordinator 当面询问） | NAMING_STANDARD §2.4 维持（已认可）；GUIDING_PRINCIPLES §6「Phase 1a 表的保留与归档」改为已决定；删除对应 STATUS 阻塞 |
 | 问「这些表符合olap、oltp、dama的核心思想吗？这么检查对吗？」后选「做，并把能自动化的变成守护 (Recommended)」（2026-10-14，经 psa-coordinator 转达） | phase1a/DATA_SCORECARD.md：1a 全部表逐表按 OLTP / OLAP 准备 / DAMA 检查；可自动化项给出守护规格（由 1a 实现）；数据架构检查清单并入 SESSION_PLAYBOOK §14 |
+| 换one-coordinator？ | 调度会话改名为 one-coordinator：SESSION_PLAYBOOK §4、§11、§12 表与 CLAUDE.md 的报告对象改为 one-coordinator；原会话改名 psa-coordinator-1（已交接） |
