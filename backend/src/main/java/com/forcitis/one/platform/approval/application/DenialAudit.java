@@ -26,7 +26,7 @@ class DenialAudit {
             audit.recordIndependently(entry);
         } catch (RuntimeException failed) {
             log.error("Audit entry {} for {} could not be written: {}", entry.action(), entry.subjectKey(), failed.toString());
-            meters.counter("platform.approval.denial.audit.failed").increment();
+            meters.counter("platform.approval.audit.failed").increment();
         }
     }
 }

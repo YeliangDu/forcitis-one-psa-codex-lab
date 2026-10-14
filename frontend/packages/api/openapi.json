@@ -63,7 +63,6 @@
             "type" : "string"
           }
         },
-        "required" : [ "instanceId", "status" ],
         "type" : "object"
       },
       "EmergencyLoginRequest" : {
@@ -106,7 +105,6 @@
             "type" : "string"
           }
         },
-        "required" : [ "claimed", "source", "taskId", "title" ],
         "type" : "object"
       },
       "LegacyNumberResponse" : {
@@ -181,7 +179,6 @@
             "type" : "integer"
           }
         },
-        "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "totalCount" ],
         "type" : "object"
       },
       "NavigationResponse" : {
@@ -600,7 +597,6 @@
             "type" : "string"
           }
         },
-        "required" : [ "businessKey", "canAct", "candidates", "createdAt", "initiator", "instanceId", "nodeKey", "nodeName", "processKey", "taskId" ],
         "type" : "object"
       },
       "TicketLoginRequest" : {

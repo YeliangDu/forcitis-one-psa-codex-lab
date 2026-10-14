@@ -13,7 +13,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.PublicEndpoint;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -66,7 +70,7 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 @Testcontainers
 class ApplicationIntegrationTest {
-    // Empty doubles stand in for approver resolution: every task goes to the process administrator.
+    // Doubles stand in for the organisation: only the project manager 2002 exists.
     @MockitoBean
     OrgDirectory orgDirectory;
 
@@ -88,7 +92,7 @@ class ApplicationIntegrationTest {
     static final LegalEntityId LE1 = new LegalEntityId(1L);
 
     static final String SUBMIT = "/api/v1/cost/timesheets/7:submit";
-    static final String BODY = "{\"workPackageId\":1,\"hours\":8}";
+    static final String BODY = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":2002}";
 
     @Autowired
     MockMvc mvc;
@@ -166,28 +170,35 @@ class ApplicationIntegrationTest {
 
         assertThat(count("platform_approval")).isGreaterThan(20);
         assertThat(count("public")).isZero();
-        // The skeleton timesheet routes project hours only and carries no project manager: that single branch is skipped.
-        assertThat(jdbc.queryForList("""
-                select t.task_def_key_ from platform_approval.act_hi_taskinst t
-                  join platform_approval.act_hi_varinst v on v.task_id_ = t.id_ and v.name_ = 'skippedWhenEmpty'
-                 where t.proc_inst_id_ = ?""", String.class, instanceId))
-                .containsExactly("projectManagerReview");
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_hi_taskinst where proc_inst_id_ = ?",
-                Integer.class, instanceId)).isEqualTo(1);
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_ru_task where proc_inst_id_ = ?",
+                Integer.class, instanceId)).isEqualTo(1);
+        assertThat(jdbc.queryForList("""
+                select l.user_id_ from platform_approval.act_ru_identitylink l
+                  join platform_approval.act_ru_task t on t.id_ = l.task_id_
+                 where t.proc_inst_id_ = ? and l.type_ = 'candidate'""", String.class, instanceId))
+                .containsExactly("2002");
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_hi_varinst where proc_inst_id_ = ? and name_ = 'skippedWhenEmpty'",
                 Integer.class, instanceId)).isZero();
-        assertThat(jdbc.queryForObject("select end_time_ is not null from platform_approval.act_hi_procinst where id_ = ?",
-                Boolean.class, instanceId)).isTrue();
+    }
+
+    @Test
+    void submitWithoutAnExistingProjectManagerFailsInsteadOfPassingSilently() throws Exception {
+        String unknownManager = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":424242}";
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> mvc.perform(post("/api/v1/cost/timesheets/8:submit").with(csrf())
+                        .with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
+                        .contentType(MediaType.APPLICATION_JSON).content(unknownManager)))
+                .hasStackTraceContaining("missing or invalid");
     }
 
     @Test
     void typedOutcomesMapToHttpStatuses() throws Exception {
         mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":1,\"hours\":31}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":1,\"hours\":31,\"projectManagerId\":2002}"))
                 .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.outcome").value("EXCEEDS_REMAINING_HOURS"))
                 .andExpect(jsonPath("$.errorCode").value("COST_TIMESHEET_EXCEEDS_REMAINING_HOURS"));
         mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":99,\"hours\":1}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":99,\"hours\":1,\"projectManagerId\":2002}"))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.errorCode").value("COST_TIMESHEET_UNKNOWN_WORK_PACKAGE"));
     }
 
@@ -203,6 +214,12 @@ class ApplicationIntegrationTest {
         mvc.perform(post("/api/1/cost/timesheets/7:submit").with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isBadRequest());
+    }
+
+    @BeforeEach
+    void projectManagerExists() {
+        org.mockito.Mockito.when(orgDirectory.findEmployee(new UserId(2002))).thenReturn(java.util.Optional.of(new EmployeeProfile(
+                new UserId(2002), "person-2002", new OrgUnitId(1), null, EmploymentStatus.EMPLOYED, false)));
     }
 
     @BeforeEach
