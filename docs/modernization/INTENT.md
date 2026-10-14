@@ -82,3 +82,5 @@
 | 「整个改造过程会话管理很重要，需要明确的方案。」 | ADR-0020；SESSION_PLAYBOOK.md；STATUS.md；SESSION_LOG.md |
 | 定栈剩余 9 项（运行时、框架、JdbcClient、事件登记表、作业租约 + ShedLock、Caffeine + KMS、可观测性、独立部署、数据过渡）：「全部定稿」 | STACK_DECISION 全部已采纳；ADR-0002 已采纳 |
 | 「待决问题给我建议选项，批准」 | brief 审批范围：批准 Phase 1a 和 1b；SEC-001 先网络层再补丁；SEC-003 按已有页面权限自动授权；立即删除 `/other-api`；批准现有 BC slug；自建 ETL；独立 ECS + RDS PG 18 高可用 + ARMS/SLS；规则按阶段分批评审；业务编号统一新格式；BI 负责人业务 Admin 都业梁；ADR-0020 采纳并把分析产物移入新仓库 |
+| 规则评审第一批（审批 28 条）逐条作答：RULE-248「正确」；RULE-249「错误，改成候选组认领」；RULE-250「正确+修，汇报线不完整时往上推一级；一直找不到就转给流程管理员并告警。不能空指针，也不能静默跳过」；RULE-252「正确+修。行级类型照旧。非行级类型不再取 HashSet里的「第一个」，和节点级用同一种解析方式（候选组）」 | RULE_REVIEWS.json / .md；BRIEF §5 审批域勾选 |
+| 「建议已经发到 psa-review-approval 会话的收件箱，你读一下，不要一条一条问了」；对评估会话 23 条建议：「整批同意」；RULE-293：「按建议：改为「已退回」」 | RULE_REVIEWS.json / .md（RULE-253..311）；BRIEF §5 审批域勾选 |

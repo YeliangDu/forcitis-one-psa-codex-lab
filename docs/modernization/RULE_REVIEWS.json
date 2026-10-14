@@ -1,0 +1,173 @@
+{
+  "system": "psa",
+  "version": 1,
+  "reviews": {
+    "RULE-248": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:24:30+02:00",
+      "title": "Countersign/or-sign nodes create one task per distinct approver"
+    },
+    "RULE-249": {
+      "verdict": "wrong",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "A single-approver node picks one candidate at random",
+      "note": "错误，改成候选组认领"
+    },
+    "RULE-250": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:24:30+02:00",
+      "title": "Initiator-leader scripts pick the 1st or 2nd reporting-line leader",
+      "note": "正确+修，汇报线不完整时往上推一级；一直找不到就转给流程管理员并告警。不能空指针，也不能静默跳过"
+    },
+    "RULE-252": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:24:30+02:00",
+      "title": "Per-row approver resolution",
+      "note": "正确+修。行级类型照旧。非行级类型不再取 HashSet里的「第一个」，和节点级用同一种解析方式（候选组）"
+    },
+    "RULE-253": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Approvers are resolved from the node's assignment-rule type",
+      "note": "正确+修（整批同意评估会话建议）：排除停用/离职人员；部门无负责人时取上级部门负责人；候选集永不含空值。"
+    },
+    "RULE-254": {
+      "verdict": "wrong",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "\"Custom data\" approvers come from form fields, with a hard-coded fallback person",
+      "note": "错误（整批同意评估会话建议）：去掉写死的个人兜底，取不到人转流程管理员并告警；删 System.out。"
+    },
+    "RULE-265": {
+      "verdict": "wrong",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "The initiator of a customized OA process is the caller-supplied `creator`, otherwise the logged-in user",
+      "note": "错误（整批同意评估会话建议）：发起人只能是当前登录用户（ADR-0009、G33）；老系统已由 SEC-005 补丁修复。"
+    },
+    "RULE-266": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Duplicate-start guard: one live process per business document, reused on resubmission",
+      "note": "正确+修（整批同意评估会话建议）：唯一键改为（流程类型，单据 ID），数据库唯一约束保证。"
+    },
+    "RULE-267": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "A resubmission after a return must belong to the current return round",
+      "note": "正确（整批同意评估会话建议）：所有续跑入口都执行该检查。"
+    },
+    "RULE-269": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Withdraw to initiator: initiator only, before cutoff, single-instance current node, not already at initiator",
+      "note": "正确+修（整批同意评估会话建议）：「能否撤回」的显示与实际执行用同一判断。"
+    },
+    "RULE-270": {
+      "verdict": "wrong",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Batch approve acts on every user's pending tasks in each assignee's name",
+      "note": "错误（整批同意评估会话建议）：只能批量处理本人待办；管理员代办须显式「代理」，审计记录操作人与被代理人。"
+    },
+    "RULE-276": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Only the assigned approver may act on a task",
+      "note": "正确（整批同意评估会话建议）：与 249 配套，先认领再处理，各入口口径统一。"
+    },
+    "RULE-278": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Approval start rounds: a monotonic round number per (processKey, businessId) defines the idempotency key",
+      "note": "正确+修（整批同意评估会话建议）：加唯一约束（流程类型，单据 ID，轮次）消除并发重号。"
+    },
+    "RULE-279": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Process-result handling is idempotent per instance and status (reference: quotation)",
+      "note": "正确+修（整批同意评估会话建议）：幂等保留；发起人撤销后单据回到草稿，不记为驳回。"
+    },
+    "RULE-280": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Unified approve: ownership gate before any field write, fail-closed field permission, default reasons",
+      "note": "正确+修（整批同意评估会话建议）：字段写入与任务完成同一事务（单体+单库可做到）。"
+    },
+    "RULE-288": {
+      "verdict": "wrong",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Initiator cancels the whole process",
+      "note": "错误（整批同意评估会话建议）：撤销不删历史，原审批人仍可见单据与审批记录。"
+    },
+    "RULE-289": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Process-instance status and result lifecycle",
+      "note": "正确+修（整批同意评估会话建议）：生命周期保留，结果用枚举（已通过/已驳回/已撤销），不靠文案。"
+    },
+    "RULE-291": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "A rejection by an added co-signer is advisory only",
+      "note": "正确+修（整批同意评估会话建议）：补偿任务不得把建议当正式驳回发出。"
+    },
+    "RULE-292": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Row approval: any rejected row rejects the whole submission, but all rows still finish",
+      "note": "正确+修（整批同意评估会话建议）：加签人在行节点上的驳回同样只算建议（与 291 一致）。"
+    },
+    "RULE-293": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Return to initiator using the `rejected` flag",
+      "note": "按建议：改为「已退回」——退回发起人后其余未审行统一改为「已退回」，重提时整单重新审批（用户亲自决定）。"
+    },
+    "RULE-295": {
+      "verdict": "wrong",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Reliable delivery task lifecycle (psa_reliable_delivery_task)",
+      "note": "错误（整批同意评估会话建议）：新系统用 Modulith 事件发布登记表，重试有默认次数与退避。"
+    },
+    "RULE-300": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "\"Skip when empty\" bypasses a node that has no approver",
+      "note": "正确+修（整批同意评估会话建议）：仅在节点显式配置「允许跳过」且确实无人时跳过；配置错误或脚本异常一律报错告警，不静默放行。"
+    },
+    "RULE-302": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Repeat approver on the same node is auto-approved, except on rework or \"reapprove on return\"",
+      "note": "正确+修（整批同意评估会话建议）：行内容在上次审批后有变化（按内容比对）则必须重审。"
+    },
+    "RULE-303": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Outbox redelivery, backoff and dead-letter",
+      "note": "正确（整批同意评估会话建议）：新系统由事件发布登记表承担，消费方必须幂等。"
+    },
+    "RULE-304": {
+      "verdict": "wrong",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Reconcile job re-sends missed results from the bpm records",
+      "note": "错误（整批同意评估会话建议）：投递由事件发布登记表保证，不再从引擎记录反推（老做法会把自动跳过、加签建议当结果发出）。"
+    },
+    "RULE-307": {
+      "verdict": "confirmed",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "Anti-self-approval escalates to the initiator's direct leader",
+      "note": "正确+修（整批同意评估会话建议）：只有在没有其他非发起人候选时才升级。"
+    },
+    "RULE-308": {
+      "verdict": "wrong",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "End-of-process write-back of approve_status to the business table",
+      "note": "错误（整批同意评估会话建议）：各业务模块通过类型化结果事件自行处理，去掉按表名拼 SQL 的通用回写。"
+    },
+    "RULE-311": {
+      "verdict": "wrong",
+      "at": "2026-10-14T10:29:26+02:00",
+      "title": "The task-result consumer routes by business key, and a hook replaces the handler",
+      "note": "错误（整批同意评估会话建议）：统一为钩子与业务处理都执行、顺序固定，与流程结果处理一致。"
+    }
+  }
+}
