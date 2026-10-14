@@ -15,7 +15,7 @@ CREATE TABLE organization_attendance.work_calendar_years (
 CREATE UNIQUE INDEX uk_work_calendar_years_legal_entity_id_year_number
     ON organization_attendance.work_calendar_years (COALESCE(legal_entity_id, 0), year_number);
 COMMENT ON TABLE organization_attendance.work_calendar_years IS '工作日历年度：某个日历的一个已维护年份；没有这一行的年份视为未维护，依赖它的计算会失败';
-COMMENT ON COLUMN organization_attendance.work_calendar_years.legal_entity_id IS '法人 ID；为空表示默认日历';
+COMMENT ON COLUMN organization_attendance.work_calendar_years.legal_entity_id IS '法人主体 ID；为空表示默认日历';
 COMMENT ON COLUMN organization_attendance.work_calendar_years.year_number IS '日历年份';
 
 CREATE TABLE organization_attendance.work_calendar_days (
@@ -31,6 +31,6 @@ CREATE TABLE organization_attendance.work_calendar_days (
     CONSTRAINT uk_work_calendar_days_work_calendar_year_id_calendar_date UNIQUE (work_calendar_year_id, calendar_date)
 );
 COMMENT ON TABLE organization_attendance.work_calendar_days IS '工作日历日期：周一至周五上班、周末休息之外的例外日期';
-COMMENT ON COLUMN organization_attendance.work_calendar_days.work_calendar_year_id IS '所属工作日历年度';
+COMMENT ON COLUMN organization_attendance.work_calendar_days.work_calendar_year_id IS '工作日历年度 ID：所属的已维护年份';
 COMMENT ON COLUMN organization_attendance.work_calendar_days.calendar_date IS '例外日期';
 COMMENT ON COLUMN organization_attendance.work_calendar_days.day_kind IS '类型：HOLIDAY 节假日 / MAKE_UP_WORKDAY 调休上班日（必须是周六或周日）';

@@ -51,7 +51,7 @@ public class DeliverWecomCards {
     }
 
     private void deliver(OutboundDelivery delivery) {
-        UUID correlationId = delivery.correlationId() != null ? delivery.correlationId() : Uuids.timeOrdered(clock);
+        UUID correlationId = delivery.correlation() != null ? delivery.correlation() : Uuids.timeOrdered(clock);
         try (WorkContext.Scope scope = WorkContext.enter(correlationId, null, WorkContext.systemActor().orElse("platform.integration.wecom.delivery"))) {
             deliverInContext(delivery);
         }

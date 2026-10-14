@@ -79,7 +79,7 @@ class OutboundDeliveryStateMachineTest {
         assertThat(mixed.recipients()).containsExactly(ALICE);
         assertThat(mixed.skippedRecipients()).containsExactly(BOB);
         assertThat(mixed.nextAttemptAt()).isEqualTo(NOW);
-        assertThat(mixed.correlationId()).isEqualTo(correlation);
+        assertThat(mixed.correlation()).isEqualTo(correlation);
     }
 
     @Test

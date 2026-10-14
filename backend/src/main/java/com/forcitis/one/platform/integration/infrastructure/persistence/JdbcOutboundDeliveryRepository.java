@@ -52,7 +52,7 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                 .param("reason", unsaved.lastError(), Types.VARCHAR)
                 .param("kind", unsaved.kind().name())
                 .param("target", unsaved.targetKey(), Types.VARCHAR)
-                .param("correlation", unsaved.correlationId(), Types.OTHER)
+                .param("correlation", unsaved.correlation(), Types.OTHER)
                 .param("now", Timestamp.from(now))
                 .update() > 0;
     }

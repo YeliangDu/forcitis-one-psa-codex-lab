@@ -18,13 +18,13 @@ import java.util.TreeMap;
 
 /** One maintained year of one calendar. A year with no exception is still maintained: saving it says "this year has been checked". */
 public final class WorkCalendarYear extends AggregateRoot {
-    private final Long persistedId;
+    private final Long storedRow;
     private final WorkCalendarKey key;
     private Map<LocalDate, DayKind> exceptions;
 
-    private WorkCalendarYear(Long persistedId, WorkCalendarKey key, Map<LocalDate, DayKind> exceptions, long version) {
+    private WorkCalendarYear(Long storedRow, WorkCalendarKey key, Map<LocalDate, DayKind> exceptions, long version) {
         super(version);
-        this.persistedId = persistedId;
+        this.storedRow = storedRow;
         this.key = Objects.requireNonNull(key, "key");
         this.exceptions = Map.copyOf(exceptions);
     }
@@ -33,14 +33,14 @@ public final class WorkCalendarYear extends AggregateRoot {
         return new WorkCalendarYear(null, key, Map.of(), 0);
     }
 
-    public static WorkCalendarYear restore(long persistedId, WorkCalendarKey key, List<CalendarDay> days, long version) {
+    public static WorkCalendarYear restore(long storedRow, WorkCalendarKey key, List<CalendarDay> days, long version) {
         Map<LocalDate, DayKind> restored = new TreeMap<>();
         days.forEach(day -> restored.put(day.calendarDate(), day.dayKind()));
-        return new WorkCalendarYear(persistedId, key, restored, version);
+        return new WorkCalendarYear(storedRow, key, restored, version);
     }
 
-    public Long persistedId() {
-        return persistedId;
+    public Long storedRow() {
+        return storedRow;
     }
 
     public WorkCalendarKey key() {

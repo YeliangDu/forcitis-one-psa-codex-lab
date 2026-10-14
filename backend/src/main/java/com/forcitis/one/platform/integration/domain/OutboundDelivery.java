@@ -32,7 +32,7 @@ public final class OutboundDelivery extends AggregateRoot {
     private final String handledNote;
     private final DeliveryKind kind;
     private final String targetKey;
-    private final UUID correlationId;
+    private final UUID correlation;
     private DeliveryStatus status;
     private String responseCode;
     private Instant nextAttemptAt;
@@ -58,7 +58,7 @@ public final class OutboundDelivery extends AggregateRoot {
         this.handledNote = handledNote;
         this.kind = Objects.requireNonNull(kind, "kind");
         this.targetKey = targetKey;
-        this.correlationId = correlationId;
+        this.correlation = correlationId;
         this.nextAttemptAt = nextAttemptAt;
         this.lastError = lastError;
     }
@@ -153,8 +153,8 @@ public final class OutboundDelivery extends AggregateRoot {
         return targetKey;
     }
 
-    public UUID correlationId() {
-        return correlationId;
+    public UUID correlation() {
+        return correlation;
     }
 
     public Instant nextAttemptAt() {

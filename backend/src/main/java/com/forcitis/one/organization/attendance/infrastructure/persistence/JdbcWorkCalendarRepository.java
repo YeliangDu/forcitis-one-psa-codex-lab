@@ -56,7 +56,7 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
     public void save(WorkCalendarYear calendarYear) {
         WorkCalendarKey key = calendarYear.key();
         long id;
-        if (calendarYear.persistedId() == null) {
+        if (calendarYear.storedRow() == null) {
             try {
                 id = jdbc.sql("""
                                 insert into organization_attendance.work_calendar_years (legal_entity_id, year_number, version)
@@ -69,7 +69,7 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
                 throw conflict(key);
             }
         } else {
-            id = calendarYear.persistedId();
+            id = calendarYear.storedRow();
             int updated = jdbc.sql("""
                             update organization_attendance.work_calendar_years set version = :next, updated_at = now()
                              where id = :id and version = :version
