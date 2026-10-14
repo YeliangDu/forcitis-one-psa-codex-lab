@@ -132,6 +132,7 @@ Exit criteria:
 - [ ] 回滚演练：撤销 nginx 路由后，老系统登录和审批不受影响
 - [ ] 首次 `/design-sync` 完成：正本由 `shared/ui` 同步生成，原有全部组件逐个比对预览无缺失，`_ds_sync.json` 锚点已写入；1a 的差距（合并待办收件箱、登录页、权限不足 / 会话过期页）已补入正本
 - [ ] 「在职但无企业微信 ID」清单为 0（确无企业微信的人逐个登记原因）（用户 2026-10-14：「加 (Recommended)」，D-1a-35）
+  Proposed revision:（用户 2026-10-15 提交的业财架构核查清单，经 one-coordinator 转达；矩阵 CC-B11）追加出口条件「平台穿刺：一张演示单据从发起、取号、审批、领域事件、审计到 L1 读模型走通一遍，法人、业务日期、单据编号、来源标记、规则版本在每一环都可追溯；穿刺用例作为集成测试保留」
 
 #### Phase 1b — 报价
 Command: /code-modernization:modernize-reimagine
@@ -180,6 +181,7 @@ Exit criteria:
 - [ ] 工时保存和提交的 p95 延迟不高于基线
 - [ ] 老成本归集读取反向同步后的 `psa_time_sheet_works_end` 时，结果与切换前一致
 - [ ] 回滚演练通过
+  Proposed revision:（同上；矩阵 CC-B11）追加出口条件「1 小时工时业财穿刺：一名员工填报 1 小时项目工时，经审批、按锁定费率形成人工成本、过账到 `operations.facts`（带法人、期间、利润中心、项目、专业），出现在项目成本、利润中心损益与 L2 期间快照中，各层金额逐分一致；再冲销一次，各层同步归零」
   Proposed revision（草稿，待用户决定；同上）：追加出口条件「生产 SQL Agent 中对应的 A8 / BI → 老 PSA 作业（A8_ACCESS_REGISTER #29、#30、#31）已停用，并在登记表中改为『已停用 / 已迁入』；切换完成前 BI 视图 T_FST_PROJECT、T_FST_INVALID_DELIVERY 不改为过渡镜像、不废弃」。
 
 #### Phase 3 — 差旅报销（分贝通）
