@@ -24,13 +24,13 @@ class SyncMetrics {
         this.runs = runs;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
         this.startedAt = this.clock.instant();
-        Gauge.builder("organization.workforce.sync.lag.seconds", this, SyncMetrics::lagSeconds)
+        Gauge.builder("forcitis.organization.workforce.sync.lag.seconds", this, SyncMetrics::lagSeconds)
                 .description("Seconds since the last successful org snapshot sync (since start-up if there was none)")
                 .register(registry);
-        Gauge.builder("organization.workforce.sync.held.runs", this, SyncMetrics::heldRuns)
+        Gauge.builder("forcitis.organization.workforce.sync.held.runs", this, SyncMetrics::heldRuns)
                 .description("Sync runs held by the shrink guard and waiting for an administrator")
                 .register(registry);
-        Gauge.builder("organization.workforce.employees.without.wecom", this, SyncMetrics::employedWithoutWecom)
+        Gauge.builder("forcitis.organization.workforce.employees.without.wecom", this, SyncMetrics::employedWithoutWecom)
                 .description("Employed people without a WeCom user id after the latest successful sync")
                 .register(registry);
     }

@@ -17,7 +17,7 @@
 SELECT rolname FROM pg_roles WHERE rolname LIKE 'one\_dev\_%';
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering',
-                   'platform_scheduling', 'organization_workforce', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'one_migration');
 -- it_portal 现有对象一览（供核对，不修改）
 SELECT nspname, pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname NOT LIKE 'pg\_%' AND nspname <> 'information_schema';
 
@@ -64,7 +64,7 @@ DO $$
 DECLARE s text;
 BEGIN
   FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering',
-                           'platform_scheduling', 'organization_workforce']
+                           'platform_scheduling', 'organization_workforce', 'organization_attendance']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_dev_app, one_dev_readonly', s);
     EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_dev_app', s);

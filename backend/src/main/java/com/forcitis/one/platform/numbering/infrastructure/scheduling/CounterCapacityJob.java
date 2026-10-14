@@ -21,7 +21,7 @@ class CounterCapacityJob {
             @Value("${forcitis.platform.numbering.capacity-check.warning-ratio}") BigDecimal warningRatio) {
         this.checkCounterCapacity = checkCounterCapacity;
         this.warningRatio = warningRatio;
-        Gauge.builder("platform.numbering.counters.near.capacity", countersNearCapacity, AtomicLong::get)
+        Gauge.builder("forcitis.platform.numbering.counters.near.capacity", countersNearCapacity, AtomicLong::get)
                 .description("Document types whose counter reached the warning ratio of the {seq:N} capacity")
                 .register(registry);
     }

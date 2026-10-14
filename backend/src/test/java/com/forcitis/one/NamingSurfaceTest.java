@@ -1,5 +1,7 @@
 package com.forcitis.one;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.forcitis.one.kernel.ErrorCode;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -321,17 +323,28 @@ class NamingSurfaceTest {
                 if (!arg.matches("\"[^\"]*\"")) {
                     problems.add(where + ": " + b.group(1) + ".builder(" + arg + ") - pass the meter name as a string literal so it can be checked");
                 } else {
-                    checkDottedName(where + " metric " + arg, arg.substring(1, arg.length() - 1), module, problems);
+                    checkMetricName(where + " metric " + arg, arg.substring(1, arg.length() - 1), module, problems);
                 }
             }
             for (Pattern p : List.of(METER_SHORTCUT, METER_ANNOTATION)) {
                 Matcher s = p.matcher(source);
                 while (s.find()) {
-                    checkDottedName(where + " metric \"" + s.group(2) + "\"", s.group(2), module, problems);
+                    checkMetricName(where + " metric \"" + s.group(2) + "\"", s.group(2), module, problems);
                 }
             }
         }
         fail("G46 Micrometer meter names must be {subdomain}.{bc}.{name} of the declaring module (dot-separated lower case)", problems);
+    }
+
+    @Test
+    void metricNameGuardCatchesAMissingPrefixAnAlienModuleAndTheWrongOwner() {
+        List<String> problems = new ArrayList<>();
+        checkMetricName("A", "platform.numbering.counters", "platform.numbering", problems);
+        checkMetricName("B", "forcitis.platform.nothing.counters", "platform.nothing", problems);
+        checkMetricName("C", "forcitis.platform.audit.entries", "platform.numbering", problems);
+        checkMetricName("D", "forcitis.platform.numbering.counters.near.capacity", "platform.numbering", problems);
+        assertThat(problems).hasSize(3);
+        assertThat(problems.getFirst()).contains("forcitis.");
     }
 
     @Test
@@ -421,6 +434,20 @@ class NamingSurfaceTest {
 
     private static String normalize(String key) {
         return key.replace("-", "").replace("_", "").toLowerCase(Locale.ROOT);
+    }
+
+    /** platform.approval is renamed by its own work stream; remove the entry when that merges. */
+    static final String PENDING_METRIC_RENAME = "platform/approval/";
+
+    static void checkMetricName(String where, String name, String module, List<String> problems) {
+        if (where.contains(PENDING_METRIC_RENAME)) {
+            return;
+        }
+        if (!name.startsWith("forcitis.")) {
+            problems.add(where + ": a metric name starts with forcitis. (forcitis.{subdomain}.{bc}.{name})");
+            return;
+        }
+        checkDottedName(where, name.substring("forcitis.".length()), module, problems);
     }
 
     private static void checkDottedName(String where, String name, String module, List<String> problems) {

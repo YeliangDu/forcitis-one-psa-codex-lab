@@ -261,7 +261,7 @@ class WecomDeliveryIT {
     @DisplayName("ARCH 3.7/3.9 after 8 failed attempts the card is a dead letter and the dead-letter metric rises")
     void exhaustedRetriesEndInTheDeadLetters() {
         wecom.stubFor(post(urlPathEqualTo(SEND_PATH)).willReturn(okJson("{\"errcode\":60020,\"errmsg\":\"not allow to access from your ip\"}")));
-        double deadBefore = gauge("platform.integration.deliveries.dead.letters");
+        double deadBefore = gauge("forcitis.platform.integration.deliveries.dead.letters");
         queue(card("approval-task:10", ALICE));
 
         for (int attempt = 1; attempt <= 8; attempt++) {
@@ -272,7 +272,7 @@ class WecomDeliveryIT {
         }
 
         assertThat(row("approval-task:10").get("last_error").toString()).contains("60020");
-        assertThat(gauge("platform.integration.deliveries.dead.letters")).isEqualTo(deadBefore + 1);
+        assertThat(gauge("forcitis.platform.integration.deliveries.dead.letters")).isEqualTo(deadBefore + 1);
         makeDue("approval-task:10");
         assertThat(deliver.execute()).as("a dead letter is never picked up again").isZero();
         wecom.verify(8, postRequestedFor(urlPathEqualTo(SEND_PATH)));
@@ -282,15 +282,15 @@ class WecomDeliveryIT {
     @DisplayName("ARCH 3.9 a card still pending 10 minutes after it was queued shows in the overdue metric until it is sent")
     void overdueMetricCountsStalePendingCards() {
         sendSucceeds("");
-        double before = gauge("platform.integration.deliveries.pending.overdue");
+        double before = gauge("forcitis.platform.integration.deliveries.pending.overdue");
         queue(card("approval-task:11", ALICE));
-        assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before);
+        assertThat(gauge("forcitis.platform.integration.deliveries.pending.overdue")).isEqualTo(before);
 
         jdbc.sql("update platform_integration.outbound_deliveries set created_at = now() - interval '11 minutes'").update();
-        assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before + 1);
+        assertThat(gauge("forcitis.platform.integration.deliveries.pending.overdue")).isEqualTo(before + 1);
 
         deliver.execute();
-        assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before);
+        assertThat(gauge("forcitis.platform.integration.deliveries.pending.overdue")).isEqualTo(before);
     }
 
     private void markHandled(String key, String note) {

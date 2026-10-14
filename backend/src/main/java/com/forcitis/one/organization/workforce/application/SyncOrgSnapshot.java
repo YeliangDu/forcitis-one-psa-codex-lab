@@ -46,7 +46,7 @@ public class SyncOrgSnapshot {
             runs.markFailed(run, clock.instant(), reason);
             result = new SyncResult(run, SyncRunStatus.FAILED, reason);
         }
-        Counter.builder("organization.workforce.sync.runs")
+        Counter.builder("forcitis.organization.workforce.sync.runs")
                 .description("Org snapshot sync runs by result")
                 .tag("status", result.status().name())
                 .register(registry).increment();

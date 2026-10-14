@@ -22,10 +22,10 @@ class DeliveryMetrics {
     DeliveryMetrics(OutboundDeliveryRepository deliveries, MeterRegistry registry, ObjectProvider<Clock> clock) {
         this.deliveries = deliveries;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
-        Gauge.builder("platform.integration.deliveries.pending.overdue", this, DeliveryMetrics::pendingOverdue)
+        Gauge.builder("forcitis.platform.integration.deliveries.pending.overdue", this, DeliveryMetrics::pendingOverdue)
                 .description("Deliveries still pending more than 10 minutes after they were queued")
                 .register(registry);
-        Gauge.builder("platform.integration.deliveries.dead.letters", this, DeliveryMetrics::deadLetters)
+        Gauge.builder("forcitis.platform.integration.deliveries.dead.letters", this, DeliveryMetrics::deadLetters)
                 .description("Deliveries that used up their attempts and wait for an operator")
                 .register(registry);
     }

@@ -166,7 +166,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(down.note()).contains("ExternalSystemUnavailableException");
         assertThat(count("employees")).isEqualTo(1);
         assertThat(up.status()).isEqualTo(SyncRunStatus.SUCCEEDED);
-        assertThat(registry.get("organization.workforce.sync.runs").tag("status", "FAILED").counter().count()).isGreaterThanOrEqualTo(1);
+        assertThat(registry.get("forcitis.organization.workforce.sync.runs").tag("status", "FAILED").counter().count()).isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -184,9 +184,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(heldAgain.syncRunId()).as("the stuck hold is refreshed, not duplicated").isEqualTo(held.syncRunId());
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'EMPLOYED'").query(Integer.class).single()).isEqualTo(10);
         assertThat(count("sync_runs")).isEqualTo(2);
-        assertThat(registry.get("organization.workforce.sync.held.runs").gauge().value()).isEqualTo(1.0);
-        assertThat(registry.get("organization.workforce.sync.runs").tag("status", "HELD").counter().count()).isGreaterThanOrEqualTo(2);
-        assertThat(registry.get("organization.workforce.sync.lag.seconds").gauge().value()).isBetween(0.0, 120.0);
+        assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(1.0);
+        assertThat(registry.get("forcitis.organization.workforce.sync.runs").tag("status", "HELD").counter().count()).isGreaterThanOrEqualTo(2);
+        assertThat(registry.get("forcitis.organization.workforce.sync.lag.seconds").gauge().value()).isBetween(0.0, 120.0);
         assertThat(events.stream(OrgSnapshotChanged.class)).hasSize(1);
     }
 
@@ -207,7 +207,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         verify(audit).record(argThat((AuditEntry e) -> e.action().equals("organization.workforce.sync-run.released")
                 && e.actorId().equals(user(9001)) && e.subjectKey().equals("sync-run:" + held.syncRunId().value())));
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
-        assertThat(registry.get("organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
+        assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
         assertThat(release.execute(held.syncRunId().value(), 9001L)).isInstanceOf(ReleaseResult.NotHeld.class);
         assertThat(release.execute(424242L, 9001L)).isInstanceOf(ReleaseResult.NotFound.class);
@@ -227,7 +227,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(recovered.status()).isEqualTo(SyncRunStatus.SUCCEEDED);
         assertThat(jdbc.sql("select status from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value()).query(String.class).single())
                 .isEqualTo("RELEASED");
-        assertThat(registry.get("organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
+        assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
         // identity reacts to earlier events asynchronously; what must not appear is a workforce audit entry
         verify(audit, never()).record(argThat((AuditEntry e) -> e.action().startsWith("organization.workforce")));
     }
@@ -254,7 +254,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         sync.execute(SyncTrigger.SCHEDULED, false);
 
         assertThat(jdbc.sql("select employed_without_wecom_count from organization_workforce.sync_runs").query(Integer.class).single()).isEqualTo(1);
-        assertThat(registry.get("organization.workforce.employees.without.wecom").gauge().value()).isEqualTo(1.0);
+        assertThat(registry.get("forcitis.organization.workforce.employees.without.wecom").gauge().value()).isEqualTo(1.0);
     }
 
     @Test
