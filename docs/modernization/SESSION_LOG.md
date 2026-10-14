@@ -299,3 +299,13 @@
 - 未完成与阻塞：保留期待用户决定；ID 策略以 1a 方案为准；web / api 出参不暴露敏感列的守护由 1a 实现；类别词表比派工单多出若干项（见报告），请用户确认。
 - 下一步命令：1a 按 ddl-naming-baseline.txt 用 Flyway 追加迁移改名并删行。
 - 会话 ID：本会话（worktree xin-884358，分支 claude/psa-fragment-naming）
+
+## 2026-10-14 · psa-coordinator · 1a 入口条件核对
+- 目标：用户问「这两个合并后 1a 全部结束了吗？」后同意「先做第 1 步，部署前清单也整理出来」——勾选 brief 中已完成的 Phase 1a 入口条件并附证据。
+- 输入（读过的状态文件、上一条日志）：MODERNIZATION_BRIEF.template.md Phase 1a、PR #3 / #9 / #21、main 分支保护设置。
+- 用户决定（原话）：「好，先做第 1 步，部署前清单也整理出来」
+- 产出（文件 / 提交 / 发布的页面）：勾选 5 条入口条件（brief 获批、骨架与 CI、骨架 verify 全绿、内核值对象、逐列所有权矩阵），每条附证据；部署前清单见 phase1a/infra/PREDEPLOY_CHECKLIST.md。
+- 验证（跑了什么、结果）：build_all --check。
+- 未完成与阻塞：入口仍未满足——设计 token 对齐与正本备份（用户运行 /design-sync）、专用 RDS（扩容待购买确认）；老系统止血按用户决定不再阻塞（Proposed revision）；流程梳理一条随 PR #46 勾选。
+- 下一步命令：合并 1a A+B 整合 PR；下一批三路；第三轮用语确认；部署前清单逐项请用户决定。
+- 会话 ID（用于 claude --resume）：psa-coordinator

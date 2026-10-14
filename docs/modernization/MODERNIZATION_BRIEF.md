@@ -106,18 +106,18 @@ Risk: 高。
 - 风险一：身份桥接出错会影响所有人登录。缓解：新系统只读校验老令牌，不向老库写令牌；会话失败时退回老系统登录页；登录失败率进入告警。
 - 风险二：两套审批引擎并存，待办需要合并。缓解：外壳合并展示新旧待办；新流程只承接 1b 及之后切换的单据；老流程在老 Flowable 上排空。
 Entry criteria:
-- [ ] 本 brief 获批（至少覆盖 Phase 1a 和 1b）
+- [x] 本 brief 获批（至少覆盖 Phase 1a 和 1b）——证据：§8 审批块（用户 2026-10-14「批准 Phase 1a 和 1b」）（psa-coordinator 2026-10-14 核对）
 - [ ] SEC-001 至 SEC-006、SEC-107 已在老系统止血（`security_remediation.patch` 已部署，或网络层止血已生效：48088 不再对 0.0.0.0/0 开放、`/other-api/admin-api/system/auth/` 返回 403），且 `~/.modernize/psa/SECRETS.local.md` 中列出的凭据已全部轮换
   Proposed revision:（用户 2026-10-14：「老系统先不管，确保新系统没有这些缺陷」；SEC-116「仍然完全不处理」）本条不再阻塞 Phase 1a：新系统不信任老系统签发的任何身份，由 `phase1a/SECURITY_INVARIANTS.md` I-1..I-9 及其验收测试保障；老系统缺陷影响的是老系统自身数据，按用户决定暂不处理。
 - [x] 仓库已创建：https://github.com/FORCITIS/forcitis-one-psa（私有，2026-10-14，空仓库）
-- [ ] 骨架已推入 `forcitis-one-psa`，分支保护、CI（verify + 守护 + gitleaks）已配置
-- [ ] 骨架采用 `architecture-guardrails/backend` 和 `frontend`，在 Mac 本机执行 `./mvnw verify` 和 `pnpm verify` 均全绿
+- [x] 骨架已推入 `forcitis-one-psa`，分支保护、CI（verify + 守护 + gitleaks）已配置——证据：PR #9 骨架与 ci.yml；main 分支保护要求 backend / frontend / gitleaks 三项（用户「只要求 CI 三项通过」）（psa-coordinator 2026-10-14 核对）
+- [x] 骨架采用 `architecture-guardrails/backend` 和 `frontend`，在 Mac 本机执行 `./mvnw verify` 和 `pnpm verify` 均全绿——证据：PR #9 起各 PR 的 CI 全绿，1a 会话本机 `./mvnw verify`、`pnpm verify` 报告全绿（psa-coordinator 2026-10-14 核对）
 - [ ] FORCITIS one 专用主机和 FORCITIS one 专用 RDS PostgreSQL 实例已开通
 - [ ] `shared/design-system/tokens.css` 与设计正本「Forcitis One Design System」的 `tokens/palette.css`、`tokens/semantic.css` 逐项一致（正本有更新时重新同步）
 - [ ] 设计正本已完整备份到本地；正本现有组件已取下并作为 `shared/ui`（React）的起点（ADR-0013 第 7 条，代码为源）
-- [ ] 内核值对象 `Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId` 已就位（ADR-0016）
+- [x] 内核值对象 `Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId` 已就位（ADR-0016）——证据：backend kernel 包（PR #21）（psa-coordinator 2026-10-14 核对）
 - [x] 已对 identity、org 两个域补抽规则并完成评审（`RULE_REVIEWS.json` 中有对应记录）——61 条见 `rules/IDENTITY_ORG_RULES.md`，标记的 45 条已评审（正确 16、错误 29，2026-10-14，见 RULE_REVIEWS.md 第三批）
-- [ ] 本阶段涉及的老表（`system_users`、`system_dept`、`bpm_*`、`psa_process_to_be_sent`）已有逐列所有权矩阵
+- [x] 本阶段涉及的老表（`system_users`、`system_dept`、`bpm_*`、`psa_process_to_be_sent`）已有逐列所有权矩阵——证据：phase1a/COLUMN_OWNERSHIP.md（PR #3，14 表 217 列）（psa-coordinator 2026-10-14 核对）
 - [ ] 本阶段涉及流程的流程梳理已完成（`process/1a/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）（Phase 1a 已在实施中，本条为补做）
 Exit criteria:
 - [ ] one.forcitis.com 上线：用企业微信 OAuth 和致远 SSO 登录都能成功；遍历全部接口的匿名访问测试返回 401
