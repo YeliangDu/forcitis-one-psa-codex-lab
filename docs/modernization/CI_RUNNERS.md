@@ -40,3 +40,7 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 ## 注册与移除
 
 注册令牌在 GitHub 仓库 Settings → Actions → Runners 里生成（一小时有效，勿写入仓库）；`./config.sh remove --token <token>` 移除。
+
+## 作业怎样判定可跳过
+
+`scripts/ci/relevant_change.py` 比较 PR 与基线分支：只有 `docs/`（除 `glossary/`、`events/`、`phase1a/SEEYON_VIEWS.sql`，这三处被测试读取）和根目录 `*.md` 的改动才算无关；此时 backend、frontend 作业照常开始并成功结束，只是跳过构建步骤，三项必需检查仍然报告。push 到 main 总是全量运行。
