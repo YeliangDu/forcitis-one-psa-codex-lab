@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>4.1.1</version></parent>
   <groupId>com.forcitis</groupId><artifactId>forcitis-one</artifactId><version>0.0.1</version>
-  <properties><java.version>25</java.version><spring-modulith.version>2.1.1</spring-modulith.version><shedlock.version>7.10.1</shedlock.version><test.forks>6</test.forks><test.jvm>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto</test.jvm></properties>
+  <properties><java.version>25</java.version><spring-modulith.version>2.1.1</spring-modulith.version><shedlock.version>7.10.1</shedlock.version><argLine></argLine><test.forks>4</test.forks><test.jvm>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto</test.jvm></properties>
   <dependencyManagement><dependencies><dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-bom</artifactId><version>${spring-modulith.version}</version><type>pom</type><scope>import</scope></dependency></dependencies></dependencyManagement>
   <dependencies>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>

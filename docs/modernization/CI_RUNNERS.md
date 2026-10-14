@@ -19,7 +19,7 @@ CI（`.github/workflows/ci.yml`、`generated-docs.yml`）全部跑在本机自�
 
 - 一个 PR 有 4 个作业（backend、frontend、gitleaks、assertion drift），正好占满 4 个 runner；两个 PR 同时到会排队。不要把作业再拆细。
 - Maven 用共享的 `~/.m2`，pnpm 用共享的 store（`pnpm install --prefer-offline`）。两者对并发读写安全；依赖变更后的首次运行会下载。不使用 `actions/cache`，本机上传下载更慢。
-- backend 作业运行 `scripts/ci/backend_verify.sh`：先编译，再同时运行 surefire 与 failsafe，各 6 个 fork（`backend/pom.xml` 的 `test.forks`，`-Dtest.forks=1` 恢复串行）。
+- backend 作业运行 `scripts/ci/backend_verify.sh`：先编译，再同时运行 surefire 与 failsafe，各 4 个 fork，不带 jacoco 代理（CI 不读覆盖率，本地 `./mvnw verify` 仍生成报告）（`backend/pom.xml` 的 `test.forks`，`-Dtest.forks=1` 恢复串行）。
 - 测试容器（postgres:18）由 Testcontainers 的 ryuk（`testcontainers/ryuk:0.14.0`）在 JVM 退出时回收；作业开始前若本机没有这两个镜像会先拉取。查残留：`docker ps`，应只剩与 CI 无关的常驻容器。
 
 ## 日常操作
