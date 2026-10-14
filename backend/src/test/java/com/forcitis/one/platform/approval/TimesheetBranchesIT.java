@@ -10,7 +10,7 @@ import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
-import com.forcitis.one.platform.approval.application.ApprovalError;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -59,7 +59,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     }
 
     void approve(long actor, ApprovalInstanceId instance, String node) {
-        decideTasks.execute(new UserId(actor), List.of(new TaskDecision(openTaskId(instance, node), DecisionOutcome.APPROVE, "ok")));
+        decideTasks.execute(new UserId(actor), List.of(new TaskDecision(openTaskId(instance, node), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
     }
 
     @Test
@@ -114,7 +114,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
                 TimesheetRoutingFlag.OVERHEAD_HOURS);
 
         decideTasks.execute(new UserId(s.supervisor()),
-                List.of(new TaskDecision(openTaskId(instance, "supervisorReview"), DecisionOutcome.REJECT, "wrong hours")));
+                List.of(new TaskDecision(openTaskId(instance, "supervisorReview"), DecisionOutcome.REJECT, "wrong hours")), java.util.OptionalLong.empty());
 
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
         assertThat(openNodes(instance)).isEmpty();
@@ -161,7 +161,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         double before = counter("forcitis.platform.approval.assignee.invalid.input");
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(), TimesheetRoutingFlag.PROJECT_HOURS))
-                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
 
         assertThat(counter("forcitis.platform.approval.assignee.invalid.input")).isEqualTo(before + 1);
     }
@@ -172,9 +172,9 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         Staff s = staff();
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers(String.valueOf(newId()))),
-                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
+                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers("not-an-id")),
-                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
+                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
     }
 
     @Test
@@ -191,7 +191,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-300 when every branch is skipped the start fails and an alert is counted; the approval is never passed silently")
+    @DisplayName("RULE-300 when every branch is skipped because the named approver cannot act the start fails with the initiator-fixable code and an alert is counted; the approval is never passed silently")
     void allBranchesSkippedFails() {
         Staff s = staff();
         long gone = newId();
@@ -200,7 +200,8 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s,
                 List.of(new ApprovalField(TimesheetApprovalField.REGIONAL_HEAD.fieldName(), List.of(String.valueOf(gone)))),
-                TimesheetRoutingFlag.PRE_SALES_HOURS)).isInstanceOf(RuntimeException.class).hasStackTraceContaining("found nobody to assign");
+                TimesheetRoutingFlag.PRE_SALES_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
+                        .as("the approver named on the document cannot act: the initiator can put that right").isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
 
         assertThat(counter("forcitis.platform.approval.all.nodes.skipped")).isEqualTo(before + 1);
     }

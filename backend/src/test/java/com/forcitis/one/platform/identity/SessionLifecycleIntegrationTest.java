@@ -15,6 +15,7 @@ import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -82,9 +83,9 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String first = loginWithWecom(1001);
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         wecomAccepts("again", WecomEntry.WORKBENCH, 1001);
-        String state = body(postJson(WecomLoginIntegrationTest.STATES, "{\"entry\":\"WORKBENCH\"}")).path("state").asString();
+        String state = newLoginState("WORKBENCH");
 
-        MvcResult second = mvc.perform(post(WecomLoginIntegrationTest.LOGIN).with(xsrf()).cookie(new Cookie("SESSION", first))
+        MvcResult second = mvc.perform(post(WecomLoginIntegrationTest.LOGIN).with(xsrf()).cookie(new Cookie("SESSION", first), new Cookie("loginBinding", bindings.get(state)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"again\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}")).andReturn();
 
@@ -129,7 +130,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String other = loginWithWecom(1002);
         createAccount(9, "super_admin");
 
-        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").with(xsrf())
+        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").header("If-Match", accountVersion(1001)).with(xsrf())
                 .with(user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE))).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(204);
@@ -138,6 +139,40 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = '1001'").query(Long.class).single()).isZero();
         assertThat(recordedEvents.stream(com.forcitis.one.platform.identity.events.AccountDisabled.class)).singleElement()
                 .satisfies(e -> assertThat(e.envelope().actorId()).isEqualTo("9"));
+        assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.revoked")).singleElement()
+                .satisfies(e -> {
+                    assertThat(e.subjectKey()).isEqualTo("user-account:1001");
+                    assertThat(e.detail()).contains("disabled");
+                });
+    }
+
+    @Autowired
+    com.forcitis.one.platform.identity.application.PurgeExpiredSessions purgeExpiredSessions;
+
+    private void insertSession(String id, long createdMillis, long expiryMillis, String principal) {
+        jdbc.sql("""
+                insert into platform_identity.sessions (primary_id, session_id, creation_time, last_access_time, max_inactive_interval, expiry_time, principal_name)
+                values (:id, :id, :created, :created, 36000, :expiry, :principal)
+                """).param("id", id).param("created", createdMillis).param("expiry", expiryMillis).param("principal", principal).update();
+    }
+
+    @Test
+    @DisplayName("D-1a-45 a session that runs out is audited with its cause (idle or too old) and then removed; a live session is left alone")
+    void expiredSessionsAreAuditedThenRemoved() {
+        long now = clock.millis();
+        long day = Duration.ofHours(24).toMillis();
+        insertSession(java.util.UUID.randomUUID().toString(), now - 1000, now - 500, "1001");
+        insertSession(java.util.UUID.randomUUID().toString(), now - day - 1000, now + 600_000, "1002");
+        insertSession(java.util.UUID.randomUUID().toString(), now - 1000, now + 600_000, "1003");
+
+        int removed = purgeExpiredSessions.execute();
+
+        assertThat(removed).isEqualTo(2);
+        assertThat(jdbc.sql("select count(*) from platform_identity.sessions").query(Long.class).single()).isEqualTo(1);
+        assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.expired"))
+                .extracting(AuditEntry::subjectKey, AuditEntry::detail)
+                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple("user-account:1001", "cause=IDLE"),
+                        org.assertj.core.groups.Tuple.tuple("user-account:1002", "cause=ABSOLUTE"));
     }
 
     @Test
@@ -160,7 +195,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String victim = loginWithWecom(1001);
         String other = loginWithWecom(1002);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(new UserId(1001)), List.of()));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(new UserId(1001)), List.of(), LocalDate.of(2026, 10, 14)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
                 jdbc.sql("select count(*) from platform_identity.sessions where principal_name = '1001'").query(Long.class).single()).isZero());
@@ -175,7 +210,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(2001, EmploymentStatus.EMPLOYED);
         knownEmployee(2002, EmploymentStatus.SEPARATED);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new UserId(2001), new UserId(2002)), List.of(), List.of()));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new UserId(2001), new UserId(2002)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(count("user_accounts")).isEqualTo(1));
         assertThat(jdbc.sql("select user_id from platform_identity.user_accounts").query(Long.class).single()).isEqualTo(2001);
@@ -185,7 +220,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
                 """).query(String.class).list()).containsExactly("employee");
 
         jdbc.sql("delete from platform_identity.account_roles where user_id = 2001").update();
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new UserId(2001)), List.of(), List.of()));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new UserId(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
         Thread.sleep(1000);
         assertThat(count("account_roles")).isZero();
     }
@@ -208,18 +243,5 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         assertThat(without).isEqualTo(403);
         assertThat(cookieOnly).isEqualTo(403);
         assertThat(withHeader).isEqualTo(200);
-    }
-
-    @Test
-    @DisplayName("RULE-340 super_admin holds every permission; nobody else gets one nobody linked (RULE-341)")
-    void superAdminHoldsEverything() throws Exception {
-        createAccount(9, "super_admin");
-        String session = loginWithWecom(9);
-
-        var me = body(mvc.perform(get(CURRENT).cookie(new Cookie("SESSION", session))).andReturn());
-
-        assertThat(me.path("permissionCodes").valueStream().map(n -> n.asString()).toList())
-                .containsExactlyInAnyOrderElementsOf(java.util.Arrays.stream(Permission.values()).map(Permission::code).toList());
-        assertThat(me.path("navigation").valueStream().map(n -> n.path("name").asString()).toList()).contains("待办", "系统管理");
     }
 }

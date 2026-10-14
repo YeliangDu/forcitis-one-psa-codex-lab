@@ -2,7 +2,8 @@ package com.forcitis.one.platform.audit.domain;
 
 import java.util.List;
 
-public record AuditPage(List<AuditRecord> items, int page, int limit, long matchCount) {
+/** next is the position to continue after, null on the last page. */
+public record AuditPage(List<AuditRecord> items, AuditQuery.Position next) {
 
     public AuditPage {
         items = List.copyOf(items);

@@ -1,12 +1,14 @@
 package com.forcitis.one.platform.numbering.api;
 
 import com.forcitis.one.kernel.DocumentType;
-
 import com.forcitis.one.kernel.ValueObject;
 import java.util.Optional;
 
-/** capacity is the highest sequence the template can hold. */
+/**
+ * template is the version in force; while none is confirmed yet it is the version waiting for confirmation, and confirmation says so.
+ * pending is the version waiting for confirmation, if any (a confirmed rule keeps issuing with its version in force meanwhile).
+ */
 @ValueObject
-public record NumberingRuleView(DocumentType documentType, Optional<String> typeCode, String pattern, ResetPolicy resetPolicy,
-        long startValue, long capacity, ConfirmationStatus confirmation) {
+public record NumberingRuleView(DocumentType documentType, Optional<String> typeCode, long version, ConfirmationStatus confirmation,
+        boolean requiresFinanceConfirmation, NumberingTemplateView template, Optional<NumberingTemplateView> pending) {
 }

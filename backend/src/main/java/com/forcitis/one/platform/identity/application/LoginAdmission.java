@@ -6,12 +6,14 @@ import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -29,9 +31,11 @@ class LoginAdmission {
     private final ClientOrigin origin;
     private final Clock clock;
     private final MeterRegistry meters;
+    private final BrowserIdentity browserIdentity;
 
     LoginAdmission(AccountProvisioning provisioning, AccountRepository accounts, AuditLog audit, SessionRegistry sessions,
-            ClientOrigin origin, Clock clock, MeterRegistry meters) {
+            ClientOrigin origin, Clock clock, MeterRegistry meters, BrowserIdentity browserIdentity) {
+        this.browserIdentity = browserIdentity;
         this.provisioning = provisioning;
         this.accounts = accounts;
         this.audit = audit;
@@ -52,20 +56,43 @@ class LoginAdmission {
     }
 
     LoginResult complete(UserId userId, LoginMethod method) {
+        return complete(userId, method, true, null);
+    }
+
+    LoginResult completeFromTicket(UserId userId, LoginMethod method, @Nullable String presentedBrowserIdentifier) {
+        BrowserIdentity.Judgement judgement = browserIdentity.judge(userId, method, presentedBrowserIdentifier);
+        return complete(userId, method, !judgement.confirmationRequired(), judgement.newIdentifier());
+    }
+
+    private LoginResult complete(UserId userId, LoginMethod method, boolean identityConfirmed, @Nullable String browserIdentifier) {
         Instant now = clock.instant();
         accounts.recordLogin(userId, now, origin.address());
         audit.record(new AuditEntry("platform.identity.login.succeeded", userId, null, "user-account:" + userId.value(),
-                describe(method, null)));
-        Instant absoluteExpiresAt = sessions.start(userId, method);
+                describe(method, null)).withTrace(origin.address(), AuditOutcome.SUCCEEDED, method.name()));
+        StartedSession started = sessions.start(userId, method, identityConfirmed);
         meters.counter("forcitis.platform.identity.login", "method", method.name(), "outcome", "success").increment();
-        return new LoginResult.Authenticated(userId.value(), absoluteExpiresAt);
+        if (started.administratorModeExpiresAt() != null) {
+            announceEmergencyLogin(userId, started.administratorModeExpiresAt());
+        }
+        return new LoginResult.Authenticated(userId.value(), started.absoluteExpiresAt(), started.administratorModeExpiresAt(),
+                !identityConfirmed, browserIdentifier);
+    }
+
+    private void announceEmergencyLogin(UserId userId, Instant administratorModeExpiresAt) {
+        audit.record(new AuditEntry("platform.identity.emergency.login", userId, null, "user-account:" + userId.value(),
+                "administrator mode until " + administratorModeExpiresAt).withTrace(origin.address(), AuditOutcome.SUCCEEDED,
+                LoginMethod.EMERGENCY.name()));
+        meters.counter("forcitis.platform.identity.emergency.logins").increment();
+        log.error("ALERT platform.identity emergency login by user {} from {}; administrator mode until {}", userId.value(),
+                origin.address(), administratorModeExpiresAt);
     }
 
     /** reason is for the audit trail only; it never reaches the caller. */
     LoginResult reject(IdentityError error, LoginMethod method, UserId actor, String reason) {
         String subject = actor == null ? "login:" + method.name() : "user-account:" + actor.value();
         try {
-            audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason)));
+            audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason))
+                    .withTrace(origin.address(), AuditOutcome.FAILED, method.name()));
         } catch (RuntimeException failed) {
             log.error("Audit entry for the failed login of {} could not be written: {}", subject, failed.toString());
             meters.counter("forcitis.platform.identity.login.audit.failed").increment();

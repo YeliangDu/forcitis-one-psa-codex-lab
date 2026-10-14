@@ -1,11 +1,11 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
-import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,33 +13,37 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChangeAccountStatus {
 
     private final AccountRepository accounts;
-    private final SessionRegistry sessions;
+    private final SessionRevocation revocation;
     private final AccessCache cache;
     private final DomainEvents events;
+    private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
 
-    ChangeAccountStatus(AccountRepository accounts, SessionRegistry sessions, AccessCache cache, DomainEvents events) {
+    ChangeAccountStatus(AccountRepository accounts, SessionRevocation revocation, AccessCache cache, DomainEvents events,
+            RevokeBrowserIdentifiers revokeBrowserIdentifiers) {
+        this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
         this.accounts = accounts;
-        this.sessions = sessions;
+        this.revocation = revocation;
         this.cache = cache;
         this.events = events;
     }
 
     @Transactional
-    public AdminOutcome<Void> execute(long userId, boolean enable) {
-        Optional<UserAccount> found = userId == 0 ? Optional.empty() : accounts.find(new UserId(userId));
-        if (found.isEmpty()) {
-            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND);
+    public long execute(long userId, boolean enable, ExpectedVersion expected) {
+        UserAccount account = userId == 0 ? null : accounts.find(new UserId(userId)).orElse(null);
+        if (account == null) {
+            throw IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account " + userId);
         }
-        UserAccount account = found.get();
+        expected.check(account.version());
         account.declareEnabled(enable);
         if (account.hasPendingEvents()) {
             accounts.save(account);
             events.publish(account);
         }
         if (!enable) {
-            sessions.revokeAll(account.userId());
+            revocation.revokeAll(account.userId(), "the account was disabled");
+            revokeBrowserIdentifiers.execute(account.userId());
         }
         cache.evict(account.userId());
-        return new AdminOutcome.Done<>(null);
+        return account.version();
     }
 }

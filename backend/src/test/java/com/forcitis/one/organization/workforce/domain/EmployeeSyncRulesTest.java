@@ -40,6 +40,19 @@ class EmployeeSyncRulesTest {
     }
 
     @Test
+    @DisplayName("D-1a-06 a person whose internal flag is NULL is synced as employed and listed as a data issue for the organisation data administrator")
+    void nullInternalFlagIsSyncedAndReported() {
+        SourcePerson base = person(7, 2, 100L, null);
+        SourcePerson unflagged = new SourcePerson(base.personId(), base.employeeCode(), base.displayName(), base.unitId(), base.positionId(),
+                base.supervisorId(), base.loginName(), base.email(), base.gender(), base.wecomUserId(), base.feeEarner(), true);
+
+        Reconciliation changes = first(tree(unflagged));
+
+        assertThat(employed(staff(apply(OrgSnapshot.empty(), changes), 7))).isTrue();
+        assertThat(issues(changes, IssueKind.NULL_FLAG)).singleElement().satisfies(d -> assertThat(d.subjectKey()).isEqualTo("employee:7"));
+    }
+
+    @Test
     @DisplayName("RULE-363 one login test: null, empty and blank login names all mean separated")
     void loginNameTestIsUnified() {
         Reconciliation changes = first(tree(person(1, 2, 100L, null, null, null), person(2, 2, 100L, null, "", null),

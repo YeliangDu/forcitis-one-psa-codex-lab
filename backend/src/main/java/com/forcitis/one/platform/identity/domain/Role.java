@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 public final class Role extends AggregateRoot {
 
     public static final RoleCode SUPER_ADMIN = new RoleCode("super_admin");
+    public static final RoleCode SECURITY_AUDITOR = new RoleCode("security_auditor");
     public static final StateMachine<RoleStatus> MACHINE = StateMachine.of(RoleStatus.class)
             .allow(RoleStatus.ENABLED, RoleStatus.DISABLED)
             .allow(RoleStatus.DISABLED, RoleStatus.ENABLED)
@@ -34,7 +35,7 @@ public final class Role extends AggregateRoot {
     private static final Set<String> KNOWN_PERMISSIONS = Arrays.stream(Permission.values())
             .map(Permission::code).collect(Collectors.toUnmodifiableSet());
 
-    private final RoleId roleId;
+    private RoleId roleId;
     private final RoleCode code;
     private final RoleKind kind;
     private final boolean administrative;
@@ -45,8 +46,8 @@ public final class Role extends AggregateRoot {
     private Set<String> permissionCodes;
 
     private Role(RoleId roleId, RoleCode code, String name, RoleKind kind, RoleStatus status, AccessScopeKind accessScope,
-                 boolean administrative, Set<String> permissionCodes, long version) {
-        super(version);
+                 boolean administrative, Set<String> permissionCodes, long version, long eventSequence) {
+        super(version, eventSequence);
         this.roleId = roleId;
         this.code = Objects.requireNonNull(code, "code");
         this.name = Objects.requireNonNull(name, "name");
@@ -72,19 +73,20 @@ public final class Role extends AggregateRoot {
         }
         requireName(name);
         requireKnown(permissionCodes);
-        return new Role(null, code, name.strip(), RoleKind.CUSTOM, RoleStatus.ENABLED, AccessScopeKind.SELF, false, permissionCodes, 0);
+        Role role = new Role(null, code, name.strip(), RoleKind.CUSTOM, RoleStatus.ENABLED, AccessScopeKind.SELF, false, permissionCodes, 0, 0);
+        role.record((envelopes, version) -> new RoleCreated(envelopes.wrap(role.draft("RoleCreated", version)), role.roleId));
+        return role;
     }
 
     public static Role restore(RoleId roleId, RoleCode code, String name, String kind, String status, AccessScopeKind accessScope,
-                               boolean administrative, Set<String> permissionCodes, long version) {
+                               boolean administrative, Set<String> permissionCodes, long version, long eventSequence) {
         return new Role(Objects.requireNonNull(roleId, "roleId"), code, name, RoleKind.valueOf(kind), RoleStatus.valueOf(status),
-                accessScope, administrative, permissionCodes, version);
+                accessScope, administrative, permissionCodes, version, eventSequence);
     }
 
     public Role withId(RoleId id) {
-        Role saved = new Role(Objects.requireNonNull(id, "id"), code, name, kind, status, accessScope, administrative, permissionCodes, version());
-        saved.record((envelopes, version) -> new RoleCreated(envelopes.wrap(saved.draft("RoleCreated", version)), saved.roleId));
-        return saved;
+        this.roleId = Objects.requireNonNull(id, "id");
+        return this;
     }
 
     public RoleId roleId() {
@@ -183,6 +185,9 @@ public final class Role extends AggregateRoot {
     private static void requireKnown(Set<String> permissionCodes) {
         if (!KNOWN_PERMISSIONS.containsAll(permissionCodes)) {
             throw new RoleRuleException(RoleViolation.UNKNOWN_PERMISSION);
+        }
+        if (permissionCodes.stream().anyMatch(AdministratorMode.PLATFORM_ONLY::contains)) {
+            throw new RoleRuleException(RoleViolation.ADMINISTRATOR_MODE_ONLY);
         }
     }
 

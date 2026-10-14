@@ -1,0 +1,119 @@
+# Phase 1a 修复批 B2（数据架构）新增术语（proposed，待业务评审，ADR-0018）。
+terms:
+- id: error__organization_attendance_locked_day_unconfirmed
+  zh: 修改锁定日期未经确认
+  en: OrganizationAttendanceLockedDayUnconfirmed
+  snake: organization_attendance_locked_day_unconfirmed
+  kind: error_code
+  bc: organization.attendance
+  definition: 工作日历中早于今天的日期被修改而没有经过确认（422，数据打分卡 T2）；确认走组织数据管理员的独立用例
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: archived
+  zh: 已归档
+  en: Archived
+  snake: archived
+  kind: value
+  bc: platform.integration
+  definition: 已写入归档库并经归档库确认的状态或时间
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
+- id: probe
+  zh: 探针
+  en: Probe
+  snake: probe
+  kind: action
+  bc: platform.integration
+  definition: 不留下数据的写入检查：启动时和每天一次检查归档目标是否可用
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
+- id: size
+  zh: 大小
+  en: Size
+  snake: size
+  kind: value
+  bc: platform.integration
+  definition: 归档对象的字节数
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: revision_number
+  zh: 修订序号
+  en: RevisionNumber
+  snake: revision_number
+  kind: value
+  bc: organization.workforce
+  definition: 版本表同一生效日内的修订序号：同日再次变化时关闭当天版本（空区间）并以加 1 的序号追加新行
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
+- id: work_calendar_locked_days_changed
+  zh: 工作日历锁定日期被修改
+  en: WorkCalendarLockedDaysChanged
+  snake: work_calendar_locked_days_changed
+  kind: event
+  bc: organization.attendance
+  definition: 组织数据管理员确认修改了工作日历中早于今天的日期；载荷列出每个被改日期的改前改后类别，进审计
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: keep
+  zh: 保留
+  en: Keep
+  snake: keep
+  kind: action
+  bc: platform.integration
+  definition: 把数据留在在线库或归档库的期限，到期后删除或转归档；与「质保金」无关
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
+- id: worm
+  zh: 一次写入多次读取
+  en: Worm
+  snake: worm
+  kind: concept
+  bc: platform.integration
+  definition: 归档库的合规保留锁：锁定期内对象不能被覆盖或删除
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+

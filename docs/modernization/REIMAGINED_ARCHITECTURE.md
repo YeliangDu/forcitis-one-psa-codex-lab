@@ -46,12 +46,12 @@ C4Container
 
 | 模块 | 职责（Phase 1a） | 规则 / 能力 | 自有 schema 与主要表 |
 |---|---|---|---|
-| `platform.identity` | 登录（企业微信 H5 / 扫码 / 小程序、致远验票、签名票据、应急管理员）；服务端会话与吊销；`CurrentUser`；RBAC（`Permission`、角色、导航）；`AccessScope` 类型与单测；**唯一**配置 Spring Security 的模块（G33）。内部 ACL：致远验票客户端、票据校验 | C1a-01..09；RULE-316..353（已评审） | `platform_identity`：`user_accounts`、`roles`、`role_permissions`、`account_roles`、`navigation_items`、`sso_ticket_uses`、`ticket_issuers`、`emergency_admins`；Spring Session 表（DdlNamingTest 豁免） |
-| `organization.workforce` | A8 组织快照（部门、人员、岗位、任职、汇报线、负责人 / 区域 AR / 类别 / 交付标识、**企业微信 userid**）；同步运行与差异；缩水保护与人工放行；对账查询；单人即时查询（登录未命中时）；`OrgChanged` 事件。内部 ACL：A8 只读视图 | C1a-10、11；RULE-354..373 | `organization_workforce`：`org_units`、`employees`、`positions`、`assignments`、`legal_entities`、`sync_runs`、`sync_diffs` |
+| `platform.identity` | 登录（企业微信 H5 / 扫码 / 小程序、致远验票、签名票据、应急管理员）；服务端会话与吊销；`CurrentUser`；RBAC（`Permission`、角色、导航）；`AccessScope` 类型与单测；**唯一**配置 Spring Security 的模块（G33）。内部 ACL：致远验票客户端、票据校验 | C1a-01..09；RULE-316..353（已评审） | `platform_identity`：`user_accounts`、`roles`、`role_permissions`、`account_roles`、`navigation_items`、`sso_ticket_uses`、`login_states`、`ticket_issuers`、`emergency_admins`、`authorization_requests`（敏感授权的双人确认，ADR-0027 第 3 项）；Spring Session 表（DdlNamingTest 豁免） |
+| `organization.workforce` | A8 组织快照（部门、人员、岗位、任职、汇报线、负责人 / 区域 AR / 类别 / 交付标识、**企业微信 userid**）；同步运行与差异；缩水保护与人工放行；对账查询；单人即时查询（登录未命中时）；`OrgChanged` 事件。内部 ACL：A8 只读视图 | C1a-10、11；RULE-354..373 | `organization_workforce`：`org_units`、`employees`、`positions`、`assignments`、`legal_entities`、`sync_runs`、`sync_diffs`、`sync_run_held_separations`（暂停时的离职名单，ADR-0028） |
 | `platform.approval` | Flowable 8 引擎封装；纯函数 `AssigneeResolver`（引擎与回放共用）；发起 / 认领 / 办理 / 退回发起人；幂等发起与轮次；类型化结果事件；合并待办；通知意图（模块内接口隔离）。内部 ACL：老待办只读视图。**其余生命周期能力范围待 Q-3** | C1a-12..15；RULE-248..314（已评审） | `platform_approval`：`approval_requests`、`start_rounds`；Flowable `ACT_*`（无 `approval_tasks_view`、`hook_registrations`、`assignment_rules`、`legacy_inbox_cache`，评审 #9） |
 | `platform.integration` | 共用企业微信客户端（access_token 缓存、OAuth code 换 userid、发送文本卡片）；`outbound_deliveries`（重试、退避、死信） | C1a-01、15 出站部分 | `platform_integration`：`outbound_deliveries` |
 | `platform.audit` | 只追加审计：登录成功 / 失败、会话吊销、权限变更、代理操作；失败类审计用独立事务（REQUIRES_NEW），触发器保证只追加（G34） | C1a-17 | `platform_audit`：`audit_entries` |
-| `platform.numbering` | 模板已实现；1a 增加编号规则页与 `legacy_numbers`（**范围待 Q-2**） | C1a-16；ADR-0010 | `platform_numbering` |
+| `platform.numbering` | 模板已实现；1a 增加编号规则页与 `legacy_numbers`（**范围待 Q-2**） | C1a-16；ADR-0010 | `platform_numbering`：`numbering_rules`、`numbering_rule_versions`（模板按版本保存、保存后不可变，四眼确认，发号取生效日不晚于业务日期的最高已确认版本）、`numbering_counters`、`legacy_numbers` |
 | `platform.scheduling` | ShedLock（模板已有）；作业失败用 Micrometer 定时任务观测指标，不建表（评审 #13） | C1a-18 | `platform_scheduling` |
 | `kernel` | `Money`、`LegalEntityId`（已有），新增最小形态的 `AccountingPeriod`、`ProjectCoordinate`（类型 + 不变式，不含业务行为，评审 #3） | ADR-0016 入口条件 | — |
 
@@ -118,7 +118,6 @@ flowchart LR
   NM["platform.numbering<br/>单据编号"]
   AU["platform.audit<br/>只追加审计"]
   TS["cost.timesheet"]
-  DE["delivery.execution"]
   EV["platform.eventing<br/>事件信封实现（技术模块）"]
   WB["platform.web<br/>错误链 · 关联号过滤器（技术模块）"]
   ACL -->|"ACL：翻译为 Source* 类型"| WX
@@ -135,13 +134,16 @@ flowchart LR
   AP -->|"Customer-Supplier：WorkCalendar"| AT
   TS --> AP
   TS --> ID
-  TS --> DE
+  TS -->|"Customer-Supplier：EmployeeLegalEntities、OrgDirectory"| WF
+  TS -->|"DocumentNumbers"| NM
   EV -->|"CurrentUser"| ID
   AU -. "订阅全部 DomainEvent（发布语言）" .-> WF
   AU -.-> ID
   AU -.-> NM
   AU -.-> AT
   ID -. "订阅 OrgSnapshotChanged" .-> WF
+  WF -. "向共享内核端口 SeparationReview 询问" .-> K
+  ID -. "实现 kernel.SeparationReview（依赖倒置，避免 workforce 依赖 identity）" .-> K
   WF -. "LegalEntityNumberUsage 由 numbering 实现（依赖倒置，避免环）" .-> NM
   classDef tech fill:#eee,stroke:#999
   class EV,WB tech
@@ -151,6 +153,7 @@ flowchart LR
 - **发布语言**：领域事件的信封与负载约束见 `proposals/EVENT_ANALYTICS_FIELDS.md` §6，目录在 `docs/modernization/events/asyncapi.yaml`（`EventCatalogueTest` 守护）。
 - **防腐层**：外部系统名只出现在 `platform.integration.infrastructure.*`；workforce 直接用 `platform.integration.api` 的 `Source*` 类型，不再有镜像类型。
 - **开放主机服务**：每个模块的 `api` 包（窄接口，`ArchitectureRulesTest` 守护）。
+- **依赖倒置（共享内核端口）**：同步运行要在把人变成离职之前问「会不会让管理员全部离开」，workforce 不能依赖 identity（identity 已依赖 workforce），所以端口 `kernel.SeparationReview` 放在共享内核，由 identity 的 `AdministratorSeparationReview` 实现（ADR-0027 第 1 项、ADR-0028）；`module-dependencies.txt` 因此不增加边。
 - **依赖倒置**：workforce 需要知道某法人是否已发过号，却不能依赖 numbering（numbering 已依赖 workforce）；接口 `LegalEntityNumberUsage` 放在 workforce 的 api，由 numbering 实现。
 - **一致性**：同一事务只改一个聚合；跨聚合协作经事件（至少一次，按 eventId 幂等）或按 ID 查询。
 
@@ -187,7 +190,7 @@ flowchart LR
   - **schema 守护**：`organization_workforce` 不得有金额列；workforce 的 `api` 不暴露 `Money` / `AccountingPeriod`。
   - **跨阶段台账**：老系统对 A8 的全部读写登记在 `phase1a/A8_ACCESS_REGISTER.md`，每个阶段出口时更新状态。
 - 数据源：**A8 只读视图**（由 A8 管理员建立并维护；启动时校验列集合与白名单完全相等；关系类型 ID 等改为配置，RULE-356），不读老 `system_users` / `system_dept`。出口条件「与 A8 零差异」以 A8 为基准。
-- 每 **5 分钟**一次（ShedLock；每次约 1,300 人、367 个部门），全量拉取 → 计算差异 → 单事务写入，并记录 `sync_runs` / `sync_diffs`。源数据缩水超过 20 % 时中止并告警，管理员可在页面人工放行（RULE-358/366，评审 #14）。
+- 每 **5 分钟**一次（ShedLock；每次约 1,300 人、367 个部门），全量拉取 → 计算差异 → 单事务写入，并记录 `sync_runs` / `sync_diffs`。源数据缩水超过 20 % 或本次会让超级管理员、安全审计员离职时中止并告警；暂停按类型记录（缩水保护、管理员离职），各类由有资格的人在页面分别放行，全部放行后才按最新源数据重跑（RULE-358/366，评审 #14，ADR-0028）。
 - A8 权威列按值同步，空值也写入（RULE-365）；单行缺部门或岗位时隔离该行并告警（RULE-365）；`we_com_id` 在建档时写入（RULE-362）；多名负责人时取 ID 最小者并告警（RULE-356）。
 - `short_name`：在新系统的维护页上线前，每天从老表只读刷新一次（评审 #20）。`company_code`：不迁移。
 - **非 A8 账号**：老 `system_users` 中管理员手工建的雪花 ID 账号，新系统不会建档。切换前盘点，逐个决定去留（评审 #14，归入 Q-4）。
@@ -242,21 +245,22 @@ sequenceDiagram
     participant A as platform.approval（ApprovalRequest / ApprovalTask）
     participant R as 事件发布登记表
     participant M as 审批人
-    U->>T: 提交（法人来自会话）
-    T->>A: ApprovalProcesses.start（单据引用 + 法人 + 内容摘要）
-    A-->>R: TaskAssigned（每位会签审批人一个任务）
-    T-->>R: TimesheetSubmitted
+    U->>T: 提交（工作日期由用户填写，法人来自会话）
+    T-->>R: TimesheetSubmitted（只改工时单；带齐发起审批所需的全部信息）
+    R->>A: 异步发起（StartApprovalOnSubmission 调用 ApprovalProcesses.start；按单据 + 轮次 + 触发事件幂等）
+    A-->>R: ApprovalRoundStarted、TaskAssigned（每位会签审批人一个任务）
     M->>A: 认领、办理（服务端校验操作人）
     A-->>R: TaskClaimed、TaskResulted
     A-->>R: ApprovalCompleted（APPROVED / REJECTED / RETURNED / CANCELLED）
     R->>T: ApplyApprovalResult（按 eventId 幂等；轮次不符忽略）
     T-->>R: TimesheetApproved / Returned / Rejected / Cancelled
 ```
+- **一个事务只改一个聚合**：`ApprovalRequest` 聚合含本轮的任务（任务是内部实体，共用请求的版本与事件序号）；提交只改 `Timesheet`，审批由事件异步发起，结果由事件回写。唯一登记的例外是首次提交同事务取号（`architecture/multi-aggregate-exceptions.txt`），其事件的 relatedAggregates 列出 NumberingRule。订阅者放在 cost.timesheet 一侧，是因为模块依赖图里 platform.approval 不能反向依赖业务模块。D-1a-107：1a 不对外开放工时单的提交、撤回、取消，也无只读接口，入口随 Phase 2。
 - 两边只经事件协作：approval 拥有流程状态，业务模块拥有单据状态。事件由聚合记录（`EventDraft`，聚合上的事件计数就是信封的 `aggregateVersion`），应用层在同一事务里用 `EventEnvelopes` 包装后交 Modulith 发布；事件目录条目见 `docs/modernization/events/approval.yaml`、`timesheet.yaml`。
 - **会签**（RULE-248/273，G-2 已做）：TIMESHEET 三路都是 Flowable 多实例并行节点，集合表达式 `approverResolution` 给出去重后的审批人，每人一个任务；全部通过才过节点，任一正式驳回结束本轮（子流程内驳回即退回），加签人的驳回只作建议。
-- **决策表**（用户决定「B 决策表管业务判断」）：每个流程类型一张 DMN 表 `{流程标识}_nodes`，随部署版本生效，开始时求值一次，答案以流程变量带着走：走哪几路、取不到人能否跳过、重复审批人能否自动通过、节点时限与升级间隔。「取谁」仍由 BPMN 上的类型化指派规则决定。
+- **节点属性**（D-1a-100，1a 不用 DMN）：走哪几路（`routingFlag`）、取不到人能否跳过（`skipWhenEmpty`）、重复审批人能否自动通过（`autoApproveRepeat`）、节点时限与升级间隔（`deadlineWorkdays` 与 `escalationWorkdays`，成对出现）都是 BPMN 节点规则元素的属性，随流程文件的部署版本生效。发起时给出的路由标记若没有任何节点声明，发起被拒绝（M-10）。「取谁」由类型化指派规则决定。
 - **重复审批人**（RULE-302）：同一审批人在同一实例的同一节点再次出现，且内容摘要未变，由系统自动通过并记审计；内容变了必须重审。**撤回 / 撤销 / 截止点**（RULE-268/269/309）：「能否撤回」的显示与执行用同一个判断（`ApprovalRequest.checkWithdraw`），截止点是 BPMN 上标了 `cutoff` 的节点，只要有已完成的任务即越过。**转交**（RULE-285）只有当前处理人能做，新处理人要在职、非发起人、不在同节点已有任务。
-- **审批时限**（RULE-377..384）：截止 = 提交日起第 n 个工作日结束（`WorkCalendar`，按法人），到期提醒、再过一个间隔升级给上级（取不到交流程管理员并告警），不自动通过；ShedLock 定时作业 `platform.approval.deadline.enforce`，一任务一事务。
+- **审批时限**（D-1a-110..117，RULE-377..384）：每个任务从创建时起算，T = 创建所在工作日（非工作日顺延），截止 = T 之后第 n 个工作日 23:59（`WorkCalendar`，按法人），截止后下一个工作日 09:00 提醒，提醒日之后第 m 个工作日 09:00 升级：已认领的升给认领人的直属上级（认领人保留为候选），未认领的升给流程管理员，取不到上级也交流程管理员并告警；不自动通过；ShedLock 定时作业 `platform.approval.deadline.enforce`，一任务一事务。
 
 ```mermaid
 flowchart LR

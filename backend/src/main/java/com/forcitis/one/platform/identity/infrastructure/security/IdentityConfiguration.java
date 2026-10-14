@@ -1,8 +1,6 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
 import com.forcitis.one.platform.identity.application.SessionSettings;
-import java.time.Clock;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.session.autoconfigure.DefaultCookieSerializerCustomizer;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
@@ -15,12 +13,6 @@ import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 @EnableAsync
 @ConfigurationPropertiesScan("com.forcitis.one.platform.identity")
 class IdentityConfiguration {
-
-    @Bean
-    @ConditionalOnMissingBean(Clock.class)
-    Clock identityClock() {
-        return Clock.systemUTC();
-    }
 
     /** Boot 4 no longer maps server.servlet.session.cookie.* onto Spring Session's serializer, so the cookie is set here. */
     @Bean

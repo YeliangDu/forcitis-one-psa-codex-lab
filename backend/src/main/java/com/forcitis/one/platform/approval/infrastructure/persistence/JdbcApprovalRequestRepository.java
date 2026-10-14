@@ -4,31 +4,53 @@ import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalStatus;
+import com.forcitis.one.platform.approval.api.ApprovalSummary;
+import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ContentHash;
+import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.NodeName;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.TaskEffect;
+import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import com.forcitis.one.platform.approval.domain.ApprovalRound;
-import com.forcitis.one.platform.approval.api.ApprovalStatus;
-import com.forcitis.one.platform.approval.domain.StaleAggregateException;
+import com.forcitis.one.platform.approval.domain.ApprovalTask;
+import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
+import com.forcitis.one.platform.approval.domain.DeadlinePlan;
+import com.forcitis.one.platform.approval.domain.TaskHandling;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Unique constraints and the version / status condition, not application checks, keep starts idempotent and writes from overwriting each other. */
+/** The version and status conditions of the update, not application checks, keep concurrent writes from overwriting each other. */
 @Repository
 class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
 
-    private static final String COLUMNS = "process_key, document_type, document_key, legal_entity_id, initiator_id, current_round,"
-            + " current_instance_id, status, result_reason, event_count, version";
+    private static final String REQUEST_COLUMNS = "process_key, document_type, document_key, legal_entity_id, initiator_id, current_round,"
+            + " current_instance_id, status, result_reason, summary_text, event_count, version";
+    private static final String TASK_COLUMNS = "task_id, instance_id, node_key, node_name, status, assignee_id, created_at, due_at, remind_at,"
+            + " escalate_at, claimed_at, completed_at, overdue_at, escalated_at, outcome_kind, effect_kind, result_reason, approved_hash";
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcApprovalRequestRepository(JdbcClient jdbc) {
+    JdbcApprovalRequestRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -41,23 +63,34 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
 
     @Override
     public Optional<ApprovalRequest> find(ProcessKey processKey, DocumentReference document) {
-        return jdbc.sql("SELECT " + COLUMNS + """
-                  FROM platform_approval.approval_requests
-                 WHERE process_key = :processKey AND document_type = :type AND document_key = :id
-                   FOR UPDATE
-                """)
+        return select("WHERE process_key = :processKey AND document_type = :type AND document_key = :id", "")
                 .param("processKey", processKey.name()).param("type", document.documentType().name())
-                .param("id", document.documentId().value()).query((rs, n) -> read(rs)).optional();
+                .param("id", document.documentId().value()).query((rs, n) -> readRow(rs)).optional().map(this::restore);
     }
 
     @Override
-    public Optional<ApprovalRequest> findByInstance(ApprovalInstanceId instanceId) {
-        return jdbc.sql("SELECT " + COLUMNS + """
-                  FROM platform_approval.approval_requests
-                 WHERE current_instance_id = :instance
-                   FOR UPDATE
-                """)
-                .param("instance", instanceId.value()).query((rs, n) -> read(rs)).optional();
+    public Optional<ApprovalRequest> findForUpdate(ProcessKey processKey, DocumentReference document) {
+        return select("WHERE process_key = :processKey AND document_type = :type AND document_key = :id", " FOR UPDATE")
+                .param("processKey", processKey.name()).param("type", document.documentType().name())
+                .param("id", document.documentId().value()).query((rs, n) -> readRow(rs)).optional().map(this::restore);
+    }
+
+    @Override
+    public Optional<ApprovalRequest> findByInstanceForUpdate(ApprovalInstanceId instanceId) {
+        return select("WHERE current_instance_id = :instance", " FOR UPDATE")
+                .param("instance", instanceId.value()).query((rs, n) -> readRow(rs)).optional().map(this::restore);
+    }
+
+    @Override
+    public Optional<ApprovalRequest> findByTaskForUpdate(ApprovalTaskId taskId) {
+        return select("WHERE (process_key, document_type, document_key) IN (SELECT t.process_key, r.document_type, t.document_key"
+                + " FROM platform_approval.approval_tasks t JOIN platform_approval.approval_requests r"
+                + " ON r.process_key = t.process_key AND r.document_key = t.document_key WHERE t.task_id = :task)", " FOR UPDATE")
+                .param("task", taskId.value()).query((rs, n) -> readRow(rs)).optional().map(this::restore);
+    }
+
+    private JdbcClient.StatementSpec select(String where, String lock) {
+        return jdbc.sql("SELECT " + REQUEST_COLUMNS + " FROM platform_approval.approval_requests " + where + lock);
     }
 
     @Override
@@ -67,45 +100,127 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
         } else {
             update(request);
         }
-        if (request.isNew() || request.round() != request.loadedRound()) {
+        if (request.startsRound()) {
             jdbc.sql("""
-                    INSERT INTO platform_approval.start_rounds (process_key, document_key, round_number, initiator_id, instance_id)
-                    VALUES (:processKey, :id, :round, :initiator, :instance)
+                    INSERT INTO platform_approval.start_rounds (process_key, document_key, round_number, initiator_id, instance_id,
+                           trigger_event_id)
+                    VALUES (:processKey, :id, :round, :initiator, :instance, :trigger)
                     """)
                     .param("processKey", request.processKey().name()).param("id", request.document().documentId().value())
                     .param("round", request.round()).param("initiator", request.initiator().value())
-                    .param("instance", request.instanceId().value()).update();
+                    .param("instance", request.instanceId().value()).param("trigger", request.trigger().orElseThrow()).update();
         }
+        for (ApprovalTask task : request.tasks()) {
+            if (task.isNew()) {
+                insert(request, task);
+            } else if (task.isChanged()) {
+                update(task);
+            }
+        }
+        request.drainHandlings().forEach(this::insert);
+    }
+
+    private void insert(TaskHandling handling) {
+        jdbc.sql("""
+                INSERT INTO platform_approval.approval_task_records (record_id, process_key, document_key, round_number, task_id, instance_id,
+                       node_key, node_name, action_kind, actor_id, on_behalf_of_id, assignee_id, record_reason, decided_at)
+                VALUES (:id, :processKey, :documentKey, :round, :task, :instance, :node, :nodeName, :action, :actor, :onBehalfOf, :assignee,
+                        :reason, :decidedAt)
+                """)
+                .param("id", handling.recordId().value()).param("processKey", handling.processKey().name())
+                .param("documentKey", handling.document().documentId().value()).param("round", handling.round())
+                .param("task", handling.taskId().value()).param("instance", handling.instanceId().value())
+                .param("node", handling.nodeKey().value()).param("nodeName", handling.nodeName().value())
+                .param("action", handling.action().name()).param("actor", handling.actor().value())
+                .param("onBehalfOf", handling.onBehalfOf().map(UserId::value).orElse(null))
+                .param("assignee", handling.assignee().map(UserId::value).orElse(null))
+                .param("reason", handling.reason().map(Reason::value).orElse(null)).param("decidedAt", at(handling.decidedAt())).update();
     }
 
     private void insert(ApprovalRequest request) {
-        jdbc.sql("""
-                INSERT INTO platform_approval.approval_requests (process_key, document_type, document_key, legal_entity_id, initiator_id,
-                       current_round, current_instance_id, status, result_reason, event_count)
-                VALUES (:processKey, :type, :id, :legalEntity, :initiator, :round, :instance, :status, :reason, :sequence)
-                """)
-                .param("processKey", request.processKey().name()).param("type", request.document().documentType().name())
-                .param("id", request.document().documentId().value()).param("legalEntity", request.legalEntityId().value())
-                .param("initiator", request.initiator().value()).param("round", request.round())
-                .param("instance", request.instanceId().value()).param("status", request.status().name())
-                .param("reason", request.resultReason()).param("sequence", request.eventSequence()).update();
+        try {
+            jdbc.sql("""
+                    INSERT INTO platform_approval.approval_requests (process_key, document_type, document_key, legal_entity_id, initiator_id,
+                           current_round, current_instance_id, status, result_reason, summary_text, event_count, version)
+                    VALUES (:processKey, :type, :id, :legalEntity, :initiator, :round, :instance, :status, :reason, :summary, :sequence, :next)
+                    """)
+                    .param("processKey", request.processKey().name()).param("type", request.document().documentType().name())
+                    .param("id", request.document().documentId().value()).param("legalEntity", request.legalEntityId().value())
+                    .param("initiator", request.initiator().value()).param("round", request.round())
+                    .param("instance", request.instanceId().value()).param("status", request.status().name())
+                    .param("reason", request.resultReason().map(Reason::value).orElse(null))
+                    .param("summary", request.summary().value()).param("sequence", request.eventSequenceAfterSave())
+                    .param("next", request.versionAfterSave()).update();
+        } catch (DuplicateKeyException started) {
+            throw concurrentChange(request);
+        }
     }
 
     private void update(ApprovalRequest request) {
         int updated = jdbc.sql("""
                 UPDATE platform_approval.approval_requests
                    SET current_round = :round, current_instance_id = :instance, status = :status, result_reason = :reason,
-                       event_count = :sequence, updated_at = now(), version = version + 1
+                       summary_text = :summary, event_count = :sequence, updated_at = :updatedAt, version = :next
                  WHERE process_key = :processKey AND document_type = :type AND document_key = :id
                    AND version = :version AND status = :previous
                 """)
                 .param("round", request.round()).param("instance", request.instanceId().value())
-                .param("status", request.status().name()).param("reason", request.resultReason())
-                .param("sequence", request.eventSequence()).param("processKey", request.processKey().name())
+                .param("status", request.status().name()).param("reason", request.resultReason().map(Reason::value).orElse(null))
+                .param("summary", request.summary().value()).param("sequence", request.eventSequenceAfterSave())
+                .param("next", request.versionAfterSave()).param("processKey", request.processKey().name())
                 .param("type", request.document().documentType().name()).param("id", request.document().documentId().value())
-                .param("version", request.loadedVersion()).param("previous", request.loadedStatus().name()).update();
+                .param("version", request.version()).param("previous", request.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
         if (updated != 1) {
-            throw new StaleAggregateException("Approval request " + request.aggregateId() + " was changed by somebody else");
+            throw concurrentChange(request);
+        }
+    }
+
+    private void insert(ApprovalRequest request, ApprovalTask task) {
+        jdbc.sql("""
+                INSERT INTO platform_approval.approval_tasks (task_id, instance_id, process_key, document_key, node_key, node_name, status, assignee_id,
+                       created_at, due_at, remind_at, escalate_at, claimed_at, completed_at, overdue_at, escalated_at, outcome_kind,
+                       effect_kind, result_reason, approved_hash)
+                VALUES (:id, :instance, :processKey, :documentKey, :node, :nodeName, :status, :assignee, :created, :due, :remind, :escalate, :claimed,
+                        :completed, :overdue, :escalated, :outcome, :effect, :reason, :hash)
+                """)
+                .param("id", task.taskId().value()).param("instance", task.instanceId().value())
+                .param("processKey", request.processKey().name()).param("documentKey", request.document().documentId().value())
+                .param("node", task.nodeKey().value()).param("nodeName", task.nodeName().value()).param("status", task.status().name())
+                .param("assignee", task.assignee().map(UserId::value).orElse(null)).param("created", at(task.createdAt()))
+                .param("due", task.deadline().map(plan -> at(plan.dueAt())).orElse(null))
+                .param("remind", task.deadline().map(plan -> at(plan.remindAt())).orElse(null))
+                .param("escalate", task.deadline().map(plan -> at(plan.escalateAt())).orElse(null))
+                .param("claimed", task.claimedAt().map(JdbcApprovalRequestRepository::at).orElse(null))
+                .param("completed", task.completedAt().map(JdbcApprovalRequestRepository::at).orElse(null))
+                .param("overdue", task.overdueAt().map(JdbcApprovalRequestRepository::at).orElse(null))
+                .param("escalated", task.escalatedAt().map(JdbcApprovalRequestRepository::at).orElse(null))
+                .param("outcome", task.outcome().map(TaskOutcome::name).orElse(null))
+                .param("effect", task.effect().map(TaskEffect::name).orElse(null))
+                .param("reason", task.resultReason().map(Reason::value).orElse(null))
+                .param("hash", task.approvedHash().map(ContentHash::value).orElse(null)).update();
+    }
+
+    private void update(ApprovalTask task) {
+        int updated = jdbc.sql("""
+                UPDATE platform_approval.approval_tasks
+                   SET status = :status, assignee_id = :assignee, claimed_at = :claimed, completed_at = :completed, overdue_at = :overdue,
+                       escalated_at = :escalated, outcome_kind = :outcome, effect_kind = :effect, result_reason = :reason,
+                       approved_hash = :hash, updated_at = :updatedAt
+                 WHERE task_id = :id
+                """)
+                .param("status", task.status().name()).param("assignee", task.assignee().map(UserId::value).orElse(null))
+                .param("claimed", task.claimedAt().map(JdbcApprovalRequestRepository::at).orElse(null))
+                .param("completed", task.completedAt().map(JdbcApprovalRequestRepository::at).orElse(null))
+                .param("overdue", task.overdueAt().map(JdbcApprovalRequestRepository::at).orElse(null))
+                .param("escalated", task.escalatedAt().map(JdbcApprovalRequestRepository::at).orElse(null))
+                .param("outcome", task.outcome().map(TaskOutcome::name).orElse(null))
+                .param("effect", task.effect().map(TaskEffect::name).orElse(null))
+                .param("reason", task.resultReason().map(Reason::value).orElse(null))
+                .param("hash", task.approvedHash().map(ContentHash::value).orElse(null)).param("id", task.taskId().value()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
+        if (updated != 1) {
+            throw ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.refusal("Task " + task.taskId().value() + " vanished while it was saved");
         }
     }
 
@@ -120,11 +235,60 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
                         new ApprovalInstanceId(rs.getString("instance_id")))).list();
     }
 
-    private static ApprovalRequest read(ResultSet rs) throws SQLException {
-        return ApprovalRequest.restore(ProcessKey.valueOf(rs.getString("process_key")),
-                new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(rs.getString("document_key"))),
-                new LegalEntityId(rs.getLong("legal_entity_id")), new UserId(rs.getLong("initiator_id")), rs.getInt("current_round"),
-                new ApprovalInstanceId(rs.getString("current_instance_id")), ApprovalStatus.valueOf(rs.getString("status")),
-                rs.getString("result_reason"), rs.getLong("event_count"), rs.getLong("version"));
+    private record Row(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator, int round,
+                       ApprovalInstanceId instance, ApprovalStatus status, Reason reason, ApprovalSummary summary, long version,
+                       long eventCount) {
+    }
+
+    private static Row readRow(ResultSet rs) throws SQLException {
+        String reason = rs.getString("result_reason");
+        return new Row(ProcessKey.valueOf(rs.getString("process_key")), new DocumentReference(DocumentType.valueOf(rs.getString("document_type")),
+                new DocumentId(rs.getString("document_key"))), new LegalEntityId(rs.getLong("legal_entity_id")),
+                new UserId(rs.getLong("initiator_id")), rs.getInt("current_round"), new ApprovalInstanceId(rs.getString("current_instance_id")),
+                ApprovalStatus.valueOf(rs.getString("status")), reason == null ? null : new Reason(reason),
+                new ApprovalSummary(rs.getString("summary_text")), rs.getLong("version"), rs.getLong("event_count"));
+    }
+
+    private ApprovalRequest restore(Row row) {
+        List<ApprovalTask> tasks = jdbc.sql("SELECT " + TASK_COLUMNS + """
+                  FROM platform_approval.approval_tasks
+                 WHERE process_key = :processKey AND document_key = :documentKey AND (instance_id = :instance OR status IN ('PENDING', 'CLAIMED'))
+                 ORDER BY task_id
+                """)
+                .param("processKey", row.processKey().name()).param("documentKey", row.document().documentId().value())
+                .param("instance", row.instance().value()).query((task, n) -> readTask(task)).list();
+        return ApprovalRequest.restore(row.processKey(), row.document(), row.legalEntityId(), row.initiator(), row.round(), row.instance(),
+                row.status(), row.reason(), row.summary(), tasks, row.version(), row.eventCount());
+    }
+
+    private static ApprovalTask readTask(ResultSet rs) throws SQLException {
+        long assignee = rs.getLong("assignee_id");
+        UserId assigneeId = rs.wasNull() ? null : new UserId(assignee);
+        Instant due = instant(rs, "due_at");
+        DeadlinePlan plan = due == null ? null : new DeadlinePlan(due, instant(rs, "remind_at"), instant(rs, "escalate_at"));
+        String outcome = rs.getString("outcome_kind");
+        String effect = rs.getString("effect_kind");
+        String reason = rs.getString("result_reason");
+        String hash = rs.getString("approved_hash");
+        return ApprovalTask.restore(new ApprovalTaskId(rs.getString("task_id")), new ApprovalInstanceId(rs.getString("instance_id")),
+                new NodeKey(rs.getString("node_key")), new NodeName(rs.getString("node_name")), ApprovalTaskStatus.valueOf(rs.getString("status")), assigneeId,
+                instant(rs, "created_at"), plan, instant(rs, "claimed_at"), instant(rs, "completed_at"), instant(rs, "overdue_at"),
+                instant(rs, "escalated_at"), outcome == null ? null : TaskOutcome.valueOf(outcome),
+                effect == null ? null : TaskEffect.valueOf(effect), reason == null ? null : new Reason(reason),
+                hash == null ? null : new ContentHash(hash));
+    }
+
+    private static com.forcitis.one.kernel.DomainException concurrentChange(ApprovalRequest request) {
+        return ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.refusal("Approval request " + request.aggregateId()
+                + " was changed by somebody else");
+    }
+
+    private static OffsetDateTime at(Instant instant) {
+        return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
+    }
+
+    static Instant instant(ResultSet rs, String column) throws SQLException {
+        OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
+        return value == null ? null : value.toInstant();
     }
 }

@@ -7,7 +7,10 @@ public enum ErrorKind {
     FORBIDDEN(403),
     NOT_FOUND(404),
     CONFLICT(409),
+    PRECONDITION_FAILED(412),
     UNPROCESSABLE(422),
+    PRECONDITION_REQUIRED(428),
+    TOO_MANY_REQUESTS(429),
     UNAVAILABLE(503);
 
     private final int status;

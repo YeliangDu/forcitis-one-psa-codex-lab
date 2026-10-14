@@ -48,7 +48,7 @@ class EventingTest {
 
     static ContextualEventEnvelopes envelopes(CurrentUser user) {
         StaticListableBeanFactory factory = user == null ? beans(CLOCK) : beans(CLOCK, user);
-        return new ContextualEventEnvelopes(factory.getBeanProvider(Clock.class), factory.getBeanProvider(CurrentUser.class));
+        return new ContextualEventEnvelopes(CLOCK, factory.getBeanProvider(CurrentUser.class));
     }
 
     static CurrentUser signedIn(long id) {
@@ -154,7 +154,7 @@ class EventingTest {
     void scheduledJobsRunAsSystemUnderTheirLockName() {
         Job target = new Job();
         AspectJProxyFactory factory = new AspectJProxyFactory(target);
-        factory.addAspect(new UnitOfWorkAspect(beans(CLOCK).getBeanProvider(Clock.class)));
+        factory.addAspect(new UnitOfWorkAspect(CLOCK));
         Job proxy = factory.getProxy();
 
         proxy.run();

@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -26,7 +26,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
@@ -71,5 +70,99 @@ class HttpContractIT {
                 .andExpect(status().isNotFound())
                 .andExpect(header().string(WorkContext.HEADER, given.toString()))
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    @DisplayName("a response field that can be null is declared nullable in the contract, a required one is not; a page's nextCursor is nullable")
+    void nullableFieldsAreDeclaredNullable() throws Exception {
+        tools.jackson.databind.JsonNode schemas = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .path("components").path("schemas");
+
+        assertThat(allowsNull(schemas.path("AuditEntryResponse").path("properties").path("detail"))).isTrue();
+        assertThat(schemas.path("AuditEntryResponse").path("required").toString()).doesNotContain("\"detail\"").contains("\"action\"");
+        assertThat(allowsNull(schemas.path("LegalEntityResponse").path("properties").path("accountingOrganizationNumber"))).isTrue();
+        assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("administratorModeExpiresAt"))).isTrue();
+        assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("userId"))).isFalse();
+        assertThat(allowsNull(schemas.path("CursorPageRoleResponse").path("properties").path("nextCursor"))).isTrue();
+        assertThat(schemas.path("CursorPageRoleResponse").path("required").toString()).isEqualTo("[\"items\"]");
+    }
+
+    /** A list that answers a bare array instead of a cursor page, with the reason: the whole tree is needed to draw the hierarchy. */
+    private static final java.util.Map<String, String> UNPAGED_LISTS = java.util.Map.of(
+            "/api/v1/organization/org-units", "the organisation tree is drawn and scoped as a whole and is bounded by the size of the firm",
+            "/api/v1/platform/own-login-records", "the person's own recent login history: the newest records of one person, at most 200, read for a glance");
+
+    @Test
+    @DisplayName("every list endpoint answers a cursor page with limit and cursor parameters, or is an unpaged list with its reason on record")
+    void listsArePagedOrExempt() throws Exception {
+        tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
+        java.util.Set<String> unpaged = new java.util.TreeSet<>();
+        int paged = 0;
+        for (var path : paths.properties()) {
+            String last = path.getKey().substring(path.getKey().lastIndexOf('/') + 1);
+            tools.jackson.databind.JsonNode get = path.getValue().path("get");
+            if (get.isMissingNode() || last.startsWith("{") || last.contains(":")) {
+                continue;
+            }
+            tools.jackson.databind.JsonNode content = get.path("responses").path("200").path("content");
+            tools.jackson.databind.JsonNode schema = content.properties().iterator().next().getValue().path("schema");
+            java.util.Set<String> parameters = new java.util.TreeSet<>();
+            get.path("parameters").forEach(parameter -> parameters.add(parameter.path("name").asString()));
+            if ("array".equals(schema.path("type").asString())) {
+                unpaged.add(path.getKey());
+            } else if (schema.path("$ref").asString().contains("CursorPage")) {
+                assertThat(parameters).as(path.getKey()).contains("limit", "cursor");
+                paged++;
+            }
+        }
+        assertThat(paged).isPositive();
+        assertThat(unpaged).as("a list that returns a bare array needs an entry with its reason").containsExactlyInAnyOrderElementsOf(UNPAGED_LISTS.keySet());
+    }
+
+    @Test
+    @DisplayName("the original-number list declares documentType as required and its two search keys as alternatives; the exact lookup is its own operation")
+    void legacyNumberSearchKeysAreAlternatives() throws Exception {
+        tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
+        java.util.Map<String, Boolean> required = new java.util.TreeMap<>();
+        paths.path("/api/v1/platform/legacy-numbers").path("get").path("parameters").forEach(p -> required.put(p.path("name").asString(), p.path("required").asBoolean()));
+
+        assertThat(required).containsEntry("documentType", true).containsEntry("legacyNumberPrefix", false).containsEntry("documentId", false)
+                .doesNotContainKey("legacyNumber");
+        assertThat(paths.path("/api/v1/platform/legacy-numbers:resolve").path("get").isMissingNode()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Idempotency-Key is offered exactly where the answer is stored: on POSTs, never under /sessions or on the login states, which hand out credentials")
+    void idempotencyKeyIsOfferedExactlyWhereItIsStored() throws Exception {
+        tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
+        int offered = 0;
+        for (var path : paths.properties()) {
+            for (var operation : path.getValue().properties()) {
+                boolean declared = false;
+                for (tools.jackson.databind.JsonNode parameter : operation.getValue().path("parameters")) {
+                    declared |= "Idempotency-Key".equals(parameter.path("name").asString());
+                }
+                String method = operation.getKey().toUpperCase(java.util.Locale.ROOT);
+                assertThat(declared).as(method + " " + path.getKey()).isEqualTo(IdempotencyScope.applies(method, path.getKey()));
+                offered += declared ? 1 : 0;
+            }
+        }
+        assertThat(offered).isPositive();
+        assertThat(IdempotencyScope.applies("POST", "/api/v1/platform/sessions:logout")).isFalse();
+        assertThat(IdempotencyScope.applies("POST", "/api/v1/platform/login-states")).isFalse();
+        assertThat(IdempotencyScope.applies("PUT", "/api/v1/organization/legal-entities/1")).isFalse();
+    }
+
+    private static boolean allowsNull(tools.jackson.databind.JsonNode property) {
+        for (tools.jackson.databind.JsonNode type : property.path("type")) {
+            if ("null".equals(type.asString())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

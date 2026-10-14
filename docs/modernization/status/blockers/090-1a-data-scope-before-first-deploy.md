@@ -1,0 +1,1 @@
+- **首次部署任何环境前须完成 ADR-0026 的 1a 数据范围机制**（`blocks: deploy`，部署守护据此拦截）：用户 2026-10-14「本批堵漏洞，整套放下一批 (Recommended)」。修复批只堵 `org_units` 的 fail-open；整套机制（类型下沉、`CurrentAccess`、授予明细表、直接下属查询、注册表 SCOPED / GLOBAL、`DataAccessRegistryTest` / `onlyRegisteredPersistenceTouchesTheDatabase` / `ScopedRepositoryContract`、部门浏览与人员详情接入范围）为下一批第一项，完成后删除本条。负责：psa-1a-platform-bridge-reimagine。

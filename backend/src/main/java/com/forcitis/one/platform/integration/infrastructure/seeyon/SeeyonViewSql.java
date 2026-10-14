@@ -33,7 +33,7 @@ final class SeeyonViewSql {
             + "WE_COM_ID, IS_INTERNAL, LOGIN_NAME, ENTERPRISE_EMAIL, GENDER, FEE_EARNER_ENUM_ID FROM " + SCHEMA + "." + ORG_MEMBER_VIEW;
 
     /** Same scope for bulk and single lookups. */
-    static final String MEMBER_SCOPE = " WHERE ID IS NOT NULL AND IS_INTERNAL = 1 AND CODE IS NOT NULL AND CODE <> '' "
+    static final String MEMBER_SCOPE = " WHERE ID IS NOT NULL AND (IS_INTERNAL = 1 OR IS_INTERNAL IS NULL) AND CODE IS NOT NULL AND CODE <> '' "
             + "AND ORG_UNIT_ID IS NOT NULL AND ORG_UNIT_PATH LIKE :rootPathPrefix";
 
     static final String MEMBERS = MEMBER_SELECT + MEMBER_SCOPE;

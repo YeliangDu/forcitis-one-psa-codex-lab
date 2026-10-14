@@ -145,6 +145,21 @@ class SeeyonViewsOnPostgresTest {
     }
 
     @Test
+    @DisplayName("D-1a-06 a person whose internal flag is NULL is read as internal and carries the mark for the problem list; 0 stays out")
+    void nullInternalFlagCountsAsInternal() {
+        unit(1, "00000001", 0, 1, 1, null, null);
+        member(10, 1L, "00000001", "E10", 1, "13900000010", "wx-10");
+        member(16, 1L, "00000001", "E16", null, "13900000016", "wx-16");
+        member(12, 1L, "00000001", "E12", 0, "13900000012", "wx-12");
+
+        var staff = source.readSnapshot().staff();
+
+        assertThat(staff).extracting(m -> m.personId().value()).containsExactlyInAnyOrder(10L, 16L);
+        assertThat(staff).filteredOn(m -> m.personId().value() == 16).singleElement().satisfies(m -> assertThat(m.internalFlagMissing()).isTrue());
+        assertThat(staff).filteredOn(m -> m.personId().value() == 10).singleElement().satisfies(m -> assertThat(m.internalFlagMissing()).isFalse());
+    }
+
+    @Test
     @DisplayName("RULE-356 only the configured relationship types are read; the type ids are configuration, not code")
     void relationshipTypesComeFromConfiguration() {
         unit(1, "00000001", 0, 1, 1, null, null);

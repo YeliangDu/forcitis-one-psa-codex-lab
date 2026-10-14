@@ -1,10 +1,9 @@
-# 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
 components:
   messages:
     TimesheetSubmitted:
       name: TimesheetSubmitted
       title: 工时单提交审批（进入新一轮）
-      description: 工时单提交审批，进入新一轮；过程里程碑，不过账。工时单事件的 businessDate 一律取工作日期（work_date），提交、办理的日期不是 businessDate，需要的话由分析层从事件的 occurredAt 或审批事件里取。
+      description: 工时单提交审批，进入新一轮；过程里程碑，不过账。请审批模块发起这一轮审批的是另一个事件 DocumentSubmittedForApproval（H-1），本事件只陈述事实：一个事务只改一个聚合，两者由同一次提交记录。工时单事件的 businessDate 一律取工作日期（work_date）；提交日在 submittedOn。
       payload:
         type: object
         properties:
@@ -31,13 +30,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -51,12 +43,24 @@ components:
               value:
                 type: integer
             description: 轮次，同一单据第几次发起，从 1 起
-          approvalInstanceId:
+          number:
             type: object
             properties:
               value:
                 type: string
-            description: 本轮审批流程实例 ID
+            x-type: DocumentNumber
+            description: 单据编号，创建时取号
+          projectManager:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 项目经理，工时审批第一道审批人
+          submittedOn:
+            type: string
+            format: date
+            description: 提交日：员工提交审批的业务日期；与工作日期是两件事
       x-event:
         eventType: cost.timesheet.TimesheetSubmitted
         version: 1
@@ -71,7 +75,8 @@ components:
         businessDate: 工作日期（work_date）
         audit: audited
         publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
-        noConsumer: 暂无消费方：分析层 L1 的工时提交里程碑将订阅；现在就发布，是因为提交时刻只在发生当时可记录，事后补不回
+        noConsumer: 暂无消费方：分析层 L1 的工时提交时效统计将订阅；现在就发布，是因为提交的时刻只在发生当时可记录，事后补不回
+        relatedAggregates: 首次提交同事务取号时列出 NumberingRule（登记在 architecture/multi-aggregate-exceptions.txt）
     TimesheetApproved:
       name: TimesheetApproved
       title: 工时单审批通过，工时成立
@@ -102,13 +107,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -167,13 +165,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -239,13 +230,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -311,13 +295,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:

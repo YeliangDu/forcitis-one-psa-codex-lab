@@ -15,11 +15,11 @@ import org.junit.jupiter.api.Test;
 class RoleTest {
 
     static Role custom(String code, Set<String> permissions) {
-        return Role.restore(new RoleId(7), new RoleCode(code), code, "CUSTOM", "ENABLED", AccessScopeKind.SELF, false, permissions, 2);
+        return Role.restore(new RoleId(7), new RoleCode(code), code, "CUSTOM", "ENABLED", AccessScopeKind.SELF, false, permissions, 2, 2);
     }
 
     static Role system(String code, Set<String> permissions) {
-        return Role.restore(new RoleId(1), new RoleCode(code), code, "SYSTEM", "ENABLED", AccessScopeKind.ALL, true, permissions, 0);
+        return Role.restore(new RoleId(1), new RoleCode(code), code, "SYSTEM", "ENABLED", AccessScopeKind.ALL, true, permissions, 0, 0);
     }
 
     @Test
@@ -71,7 +71,7 @@ class RoleTest {
     void effectivePermissions() {
         Role enabled = custom("a", Set.of(Permission.Codes.TIMESHEET_SUBMIT));
         Role disabled = Role.restore(new RoleId(8), new RoleCode("b"), "b", "CUSTOM", "DISABLED", AccessScopeKind.SELF, false,
-                Set.of(Permission.Codes.TIMESHEET_APPROVE), 0);
+                Set.of(Permission.Codes.TIMESHEET_APPROVE), 0, 0);
 
         AccessProfile profile = AccessProfile.of(List.of(enabled, disabled));
 
@@ -82,26 +82,43 @@ class RoleTest {
     }
 
     @Test
-    @DisplayName("RULE-340 an enabled super_admin holds every permission and counts as administrator; a disabled one does not")
+    @DisplayName("ADR-0026 5 / ADR-0027 2.5 an enabled super_admin counts as administrator and holds no permission by it, only the platform ones in the administrator mode; a disabled one does not")
     void superAdmin() {
         AccessProfile admin = AccessProfile.of(List.of(system("super_admin", Set.of())));
 
         assertThat(admin.isAdministrator()).isTrue();
-        assertThat(admin.permissionCodes()).hasSize(Permission.values().length);
-        assertThat(admin.hasPermission(Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE)).isTrue();
+        assertThat(admin.permissionCodes()).isEmpty();
+        assertThat(admin.administratorModePermissionCodes()).containsExactlyInAnyOrder(Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
+                Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE,
+                Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
 
-        Role disabledAdmin = Role.restore(new RoleId(1), new RoleCode("super_admin"), "x", "SYSTEM", "DISABLED", AccessScopeKind.ALL, true, Set.of(), 0);
+        Role disabledAdmin = Role.restore(new RoleId(1), new RoleCode("super_admin"), "x", "SYSTEM", "DISABLED", AccessScopeKind.ALL, true, Set.of(), 0, 0);
         assertThat(AccessProfile.of(List.of(disabledAdmin)).isAdministrator()).isFalse();
+        assertThat(AccessProfile.of(List.of(disabledAdmin)).administratorModePermissionCodes()).isEmpty();
     }
 
     @Test
-    @DisplayName("RULE-342 role-code check: any of the codes; an empty list passes; super_admin always passes")
+    @DisplayName("RULE-342 role-code check: any of the codes; an empty list passes; super_admin no longer passes for every code (ADR-0026 5)")
     void roleCodeCheck() {
         AccessProfile profile = AccessProfile.of(List.of(custom("reviewer", Set.of())));
 
         assertThat(profile.hasAnyRole(List.of(new RoleCode("reviewer"), new RoleCode("PMO")))).isTrue();
         assertThat(profile.hasAnyRole(List.of(new RoleCode("PMO")))).isFalse();
         assertThat(profile.hasAnyRole(List.of())).isTrue();
-        assertThat(AccessProfile.of(List.of(system("super_admin", Set.of()))).hasAnyRole(List.of(new RoleCode("PMO")))).isTrue();
+        assertThat(AccessProfile.of(List.of(system("super_admin", Set.of()))).hasAnyRole(List.of(new RoleCode("PMO")))).isFalse();
+    }
+
+    @Test
+    @DisplayName("INT-SEC-H2 customRoleCannotCarryAdministratorModePermission: the platform permissions live in the administrator mode only; separation-hold:approve may be held (ADR-0028)")
+    void customRoleCannotCarryAdministratorModePermission() {
+        for (String code : Set.of(Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+                Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE)) {
+            assertThatThrownBy(() -> Role.newCustom(new RoleCode("ops"), "Ops", Set.of(code))).isInstanceOfSatisfying(RoleRuleException.class,
+                    e -> assertThat(e.violation()).isEqualTo(RoleViolation.ADMINISTRATOR_MODE_ONLY));
+            assertThatThrownBy(() -> custom("analyst", Set.of()).revise("Analyst", AccessScopeKind.SELF, Set.of(code))).isInstanceOfSatisfying(
+                    RoleRuleException.class, e -> assertThat(e.violation()).isEqualTo(RoleViolation.ADMINISTRATOR_MODE_ONLY));
+        }
+        assertThat(Role.newCustom(new RoleCode("hold"), "Hold", Set.of(Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE)).permissionCodes())
+                .containsExactly(Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
     }
 }

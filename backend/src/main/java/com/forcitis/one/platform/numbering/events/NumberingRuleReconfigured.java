@@ -3,6 +3,9 @@ package com.forcitis.one.platform.numbering.events;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.platform.numbering.api.RuleVersion;
+import java.time.LocalDate;
 
-public record NumberingRuleReconfigured(EventEnvelope envelope, DocumentType documentType) implements DomainEvent {
+/** A new version of the template was saved and waits for confirmation. */
+public record NumberingRuleReconfigured(EventEnvelope envelope, DocumentType documentType, RuleVersion ruleVersion, LocalDate effectiveFrom) implements DomainEvent {
 }

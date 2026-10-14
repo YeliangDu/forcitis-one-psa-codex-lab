@@ -295,13 +295,7 @@ class ArchitectureRulesTest {
 
     @Test
     void timeComesFromAnInjectedClock() {
-        noClasses().that().resideInAnyPackage("..domain..", "..application..")
-                .should().callMethod(java.time.LocalDate.class, "now")
-                .orShould().callMethod(java.time.LocalDateTime.class, "now")
-                .orShould().callMethod(java.time.Instant.class, "now")
-                .orShould().callMethod(System.class, "currentTimeMillis")
-                .because("inject java.time.Clock; legacy priced rates at 'today' instead of the business date (rate drift)")
-                .check(CLASSES);
+        TimeSourceGuardTest.noAmbientTime().check(CLASSES);
     }
 
     @Test

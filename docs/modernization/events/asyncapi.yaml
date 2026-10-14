@@ -11,6 +11,11 @@ channels:
     messages:
       ApprovalCompleted:
         $ref: '#/components/messages/ApprovalCompleted'
+  documentSubmittedForApproval:
+    address: platform.approval.DocumentSubmittedForApproval
+    messages:
+      DocumentSubmittedForApproval:
+        $ref: '#/components/messages/DocumentSubmittedForApproval'
   taskAssigned:
     address: platform.approval.TaskAssigned
     messages:
@@ -41,11 +46,36 @@ channels:
     messages:
       ApprovalTaskEscalated:
         $ref: '#/components/messages/ApprovalTaskEscalated'
+  taskReleased:
+    address: platform.approval.TaskReleased
+    messages:
+      TaskReleased:
+        $ref: '#/components/messages/TaskReleased'
+  taskReassigned:
+    address: platform.approval.TaskReassigned
+    messages:
+      TaskReassigned:
+        $ref: '#/components/messages/TaskReassigned'
+  taskClosed:
+    address: platform.approval.TaskClosed
+    messages:
+      TaskClosed:
+        $ref: '#/components/messages/TaskClosed'
+  approvalRoundStarted:
+    address: platform.approval.ApprovalRoundStarted
+    messages:
+      ApprovalRoundStarted:
+        $ref: '#/components/messages/ApprovalRoundStarted'
   workCalendarYearMaintained:
     address: organization.attendance.WorkCalendarYearMaintained
     messages:
       WorkCalendarYearMaintained:
         $ref: '#/components/messages/WorkCalendarYearMaintained'
+  workCalendarLockedDaysChanged:
+    address: organization.attendance.WorkCalendarLockedDaysChanged
+    messages:
+      WorkCalendarLockedDaysChanged:
+        $ref: '#/components/messages/WorkCalendarLockedDaysChanged'
   roleCreated:
     address: platform.identity.RoleCreated
     messages:
@@ -86,6 +116,51 @@ channels:
     messages:
       AccountRolesReplaced:
         $ref: '#/components/messages/AccountRolesReplaced'
+  accountSeparated:
+    address: platform.identity.AccountSeparated
+    messages:
+      AccountSeparated:
+        $ref: '#/components/messages/AccountSeparated'
+  accountOpened:
+    address: platform.identity.AccountOpened
+    messages:
+      AccountOpened:
+        $ref: '#/components/messages/AccountOpened'
+  emergencyAdminRegistered:
+    address: platform.identity.EmergencyAdminRegistered
+    messages:
+      EmergencyAdminRegistered:
+        $ref: '#/components/messages/EmergencyAdminRegistered'
+  emergencyAdminEnabled:
+    address: platform.identity.EmergencyAdminEnabled
+    messages:
+      EmergencyAdminEnabled:
+        $ref: '#/components/messages/EmergencyAdminEnabled'
+  emergencyAdminCredentialsReset:
+    address: platform.identity.EmergencyAdminCredentialsReset
+    messages:
+      EmergencyAdminCredentialsReset:
+        $ref: '#/components/messages/EmergencyAdminCredentialsReset'
+  emergencyAdminDisabled:
+    address: platform.identity.EmergencyAdminDisabled
+    messages:
+      EmergencyAdminDisabled:
+        $ref: '#/components/messages/EmergencyAdminDisabled'
+  authorizationOpened:
+    address: platform.identity.AuthorizationOpened
+    messages:
+      AuthorizationOpened:
+        $ref: '#/components/messages/AuthorizationOpened'
+  authorizationConfirmed:
+    address: platform.identity.AuthorizationConfirmed
+    messages:
+      AuthorizationConfirmed:
+        $ref: '#/components/messages/AuthorizationConfirmed'
+  authorizationRejected:
+    address: platform.identity.AuthorizationRejected
+    messages:
+      AuthorizationRejected:
+        $ref: '#/components/messages/AuthorizationRejected'
   numberingRuleConfirmed:
     address: platform.numbering.NumberingRuleConfirmed
     messages:
@@ -96,6 +171,11 @@ channels:
     messages:
       NumberingRuleReconfigured:
         $ref: '#/components/messages/NumberingRuleReconfigured'
+  numberingRuleConfirmationGiven:
+    address: platform.numbering.NumberingRuleConfirmationGiven
+    messages:
+      NumberingRuleConfirmationGiven:
+        $ref: '#/components/messages/NumberingRuleConfirmationGiven'
   timesheetSubmitted:
     address: cost.timesheet.TimesheetSubmitted
     messages:
@@ -141,6 +221,11 @@ channels:
     messages:
       SyncRunReleased:
         $ref: '#/components/messages/SyncRunReleased'
+  syncRunHoldReleased:
+    address: organization.workforce.SyncRunHoldReleased
+    messages:
+      SyncRunHoldReleased:
+        $ref: '#/components/messages/SyncRunHoldReleased'
   orgSnapshotChanged:
     address: organization.workforce.OrgSnapshotChanged
     messages:
@@ -171,6 +256,31 @@ channels:
     messages:
       LegalEntityCodeCorrected:
         $ref: '#/components/messages/LegalEntityCodeCorrected'
+  employeeRegistered:
+    address: organization.workforce.EmployeeRegistered
+    messages:
+      EmployeeRegistered:
+        $ref: '#/components/messages/EmployeeRegistered'
+  legalEntityAttributed:
+    address: organization.workforce.LegalEntityAttributed
+    messages:
+      LegalEntityAttributed:
+        $ref: '#/components/messages/LegalEntityAttributed'
+  legalEntityAttributionEnded:
+    address: organization.workforce.LegalEntityAttributionEnded
+    messages:
+      LegalEntityAttributionEnded:
+        $ref: '#/components/messages/LegalEntityAttributionEnded'
+  legalEntityAttributionCorrected:
+    address: organization.workforce.LegalEntityAttributionCorrected
+    messages:
+      LegalEntityAttributionCorrected:
+        $ref: '#/components/messages/LegalEntityAttributionCorrected'
+  legalEntityAccountingNumberAssigned:
+    address: organization.workforce.LegalEntityAccountingNumberAssigned
+    messages:
+      LegalEntityAccountingNumberAssigned:
+        $ref: '#/components/messages/LegalEntityAccountingNumberAssigned'
 operations:
   publishApprovalCompleted:
     action: send
@@ -193,6 +303,34 @@ operations:
     summary: cost.timesheet 消费
     messages:
     - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  handleApprovalCompletedInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalCompleted'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  publishDocumentSubmittedForApproval:
+    action: send
+    channel:
+      $ref: '#/channels/documentSubmittedForApproval'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/documentSubmittedForApproval/messages/DocumentSubmittedForApproval'
+  handleDocumentSubmittedForApprovalInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/documentSubmittedForApproval'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/documentSubmittedForApproval/messages/DocumentSubmittedForApproval'
+  handleDocumentSubmittedForApprovalInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/documentSubmittedForApproval'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/documentSubmittedForApproval/messages/DocumentSubmittedForApproval'
   publishTaskAssigned:
     action: send
     channel:
@@ -305,6 +443,76 @@ operations:
     summary: platform.approval 消费
     messages:
     - $ref: '#/channels/approvalTaskEscalated/messages/ApprovalTaskEscalated'
+  publishTaskReleased:
+    action: send
+    channel:
+      $ref: '#/channels/taskReleased'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/taskReleased/messages/TaskReleased'
+  handleTaskReleasedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/taskReleased'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/taskReleased/messages/TaskReleased'
+  handleTaskReleasedInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/taskReleased'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/taskReleased/messages/TaskReleased'
+  publishTaskReassigned:
+    action: send
+    channel:
+      $ref: '#/channels/taskReassigned'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/taskReassigned/messages/TaskReassigned'
+  handleTaskReassignedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/taskReassigned'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/taskReassigned/messages/TaskReassigned'
+  handleTaskReassignedInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/taskReassigned'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/taskReassigned/messages/TaskReassigned'
+  publishTaskClosed:
+    action: send
+    channel:
+      $ref: '#/channels/taskClosed'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/taskClosed/messages/TaskClosed'
+  handleTaskClosedInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/taskClosed'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/taskClosed/messages/TaskClosed'
+  publishApprovalRoundStarted:
+    action: send
+    channel:
+      $ref: '#/channels/approvalRoundStarted'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/approvalRoundStarted/messages/ApprovalRoundStarted'
+  handleApprovalRoundStartedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalRoundStarted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/approvalRoundStarted/messages/ApprovalRoundStarted'
   publishWorkCalendarYearMaintained:
     action: send
     channel:
@@ -319,6 +527,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/workCalendarYearMaintained/messages/WorkCalendarYearMaintained'
+  publishWorkCalendarLockedDaysChanged:
+    action: send
+    channel:
+      $ref: '#/channels/workCalendarLockedDaysChanged'
+    summary: organization.attendance 发布
+    messages:
+    - $ref: '#/channels/workCalendarLockedDaysChanged/messages/WorkCalendarLockedDaysChanged'
+  handleWorkCalendarLockedDaysChangedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/workCalendarLockedDaysChanged'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/workCalendarLockedDaysChanged/messages/WorkCalendarLockedDaysChanged'
   publishRoleCreated:
     action: send
     channel:
@@ -431,6 +653,146 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/accountRolesReplaced/messages/AccountRolesReplaced'
+  publishAccountSeparated:
+    action: send
+    channel:
+      $ref: '#/channels/accountSeparated'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/accountSeparated/messages/AccountSeparated'
+  handleAccountSeparatedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/accountSeparated'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/accountSeparated/messages/AccountSeparated'
+  handleAccountSeparatedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/accountSeparated'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/accountSeparated/messages/AccountSeparated'
+  publishAccountOpened:
+    action: send
+    channel:
+      $ref: '#/channels/accountOpened'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/accountOpened/messages/AccountOpened'
+  handleAccountOpenedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/accountOpened'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/accountOpened/messages/AccountOpened'
+  publishEmergencyAdminRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/emergencyAdminRegistered'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/emergencyAdminRegistered/messages/EmergencyAdminRegistered'
+  handleEmergencyAdminRegisteredInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/emergencyAdminRegistered'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/emergencyAdminRegistered/messages/EmergencyAdminRegistered'
+  publishEmergencyAdminEnabled:
+    action: send
+    channel:
+      $ref: '#/channels/emergencyAdminEnabled'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/emergencyAdminEnabled/messages/EmergencyAdminEnabled'
+  handleEmergencyAdminEnabledInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/emergencyAdminEnabled'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/emergencyAdminEnabled/messages/EmergencyAdminEnabled'
+  publishEmergencyAdminCredentialsReset:
+    action: send
+    channel:
+      $ref: '#/channels/emergencyAdminCredentialsReset'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/emergencyAdminCredentialsReset/messages/EmergencyAdminCredentialsReset'
+  handleEmergencyAdminCredentialsResetInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/emergencyAdminCredentialsReset'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/emergencyAdminCredentialsReset/messages/EmergencyAdminCredentialsReset'
+  publishEmergencyAdminDisabled:
+    action: send
+    channel:
+      $ref: '#/channels/emergencyAdminDisabled'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/emergencyAdminDisabled/messages/EmergencyAdminDisabled'
+  handleEmergencyAdminDisabledInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/emergencyAdminDisabled'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/emergencyAdminDisabled/messages/EmergencyAdminDisabled'
+  publishAuthorizationOpened:
+    action: send
+    channel:
+      $ref: '#/channels/authorizationOpened'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/authorizationOpened/messages/AuthorizationOpened'
+  handleAuthorizationOpenedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/authorizationOpened'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/authorizationOpened/messages/AuthorizationOpened'
+  publishAuthorizationConfirmed:
+    action: send
+    channel:
+      $ref: '#/channels/authorizationConfirmed'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/authorizationConfirmed/messages/AuthorizationConfirmed'
+  handleAuthorizationConfirmedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/authorizationConfirmed'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/authorizationConfirmed/messages/AuthorizationConfirmed'
+  handleAuthorizationConfirmedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/authorizationConfirmed'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/authorizationConfirmed/messages/AuthorizationConfirmed'
+  publishAuthorizationRejected:
+    action: send
+    channel:
+      $ref: '#/channels/authorizationRejected'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/authorizationRejected/messages/AuthorizationRejected'
+  handleAuthorizationRejectedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/authorizationRejected'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/authorizationRejected/messages/AuthorizationRejected'
   publishNumberingRuleConfirmed:
     action: send
     channel:
@@ -459,6 +821,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/numberingRuleReconfigured/messages/NumberingRuleReconfigured'
+  publishNumberingRuleConfirmationGiven:
+    action: send
+    channel:
+      $ref: '#/channels/numberingRuleConfirmationGiven'
+    summary: platform.numbering 发布
+    messages:
+    - $ref: '#/channels/numberingRuleConfirmationGiven/messages/NumberingRuleConfirmationGiven'
+  handleNumberingRuleConfirmationGivenInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/numberingRuleConfirmationGiven'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/numberingRuleConfirmationGiven/messages/NumberingRuleConfirmationGiven'
   publishTimesheetSubmitted:
     action: send
     channel:
@@ -578,6 +954,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/syncRunReleased/messages/SyncRunReleased'
+  publishSyncRunHoldReleased:
+    action: send
+    channel:
+      $ref: '#/channels/syncRunHoldReleased'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/syncRunHoldReleased/messages/SyncRunHoldReleased'
+  handleSyncRunHoldReleasedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/syncRunHoldReleased'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/syncRunHoldReleased/messages/SyncRunHoldReleased'
   publishOrgSnapshotChanged:
     action: send
     channel:
@@ -669,6 +1059,83 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/legalEntityCodeCorrected/messages/LegalEntityCodeCorrected'
+  publishEmployeeRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/employeeRegistered'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
+  handleEmployeeRegisteredInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeRegistered'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
+  handleEmployeeRegisteredInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeRegistered'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
+  publishLegalEntityAttributed:
+    action: send
+    channel:
+      $ref: '#/channels/legalEntityAttributed'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/legalEntityAttributed/messages/LegalEntityAttributed'
+  handleLegalEntityAttributedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/legalEntityAttributed'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/legalEntityAttributed/messages/LegalEntityAttributed'
+  publishLegalEntityAttributionEnded:
+    action: send
+    channel:
+      $ref: '#/channels/legalEntityAttributionEnded'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/legalEntityAttributionEnded/messages/LegalEntityAttributionEnded'
+  handleLegalEntityAttributionEndedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/legalEntityAttributionEnded'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/legalEntityAttributionEnded/messages/LegalEntityAttributionEnded'
+  publishLegalEntityAttributionCorrected:
+    action: send
+    channel:
+      $ref: '#/channels/legalEntityAttributionCorrected'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/legalEntityAttributionCorrected/messages/LegalEntityAttributionCorrected'
+  handleLegalEntityAttributionCorrectedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/legalEntityAttributionCorrected'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/legalEntityAttributionCorrected/messages/LegalEntityAttributionCorrected'
+  publishLegalEntityAccountingNumberAssigned:
+    action: send
+    channel:
+      $ref: '#/channels/legalEntityAccountingNumberAssigned'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/legalEntityAccountingNumberAssigned/messages/LegalEntityAccountingNumberAssigned'
+  handleLegalEntityAccountingNumberAssignedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/legalEntityAccountingNumberAssigned'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/legalEntityAccountingNumberAssigned/messages/LegalEntityAccountingNumberAssigned'
 components:
   schemas:
     EventEnvelope:
@@ -764,7 +1231,7 @@ components:
     ApprovalCompleted:
       name: ApprovalCompleted
       title: 审批结束（已通过 / 已驳回 / 已退回 / 已撤销）
-      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是 单据类型:单据标识，如 TIMESHEET:7；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层 L1 用于审批时效。
+      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是 单据类型:单据标识，如 TIMESHEET:7；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层 L1 用于审批时效。 发起人撤回与审批人退回同形，用 returnSource 区分；platform.approval 的通知监听器据此给发起人发完成卡片（D-1a-135）。
       x-event:
         eventType: platform.approval.ApprovalCompleted
         version: 1
@@ -775,6 +1242,7 @@ components:
         consumers:
         - platform.audit
         - cost.timesheet
+        - platform.approval
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 审批结束当日（Asia/Shanghai）
@@ -790,6 +1258,8 @@ components:
         - round
         - outcome
         - reason
+        - initiator
+        - returnSource
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -842,15 +1312,134 @@ components:
               value:
                 type: string
             description: 驳回、退回、撤销原因；通过时为空（RULE-280）
+          initiator:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 发起人，完成卡片发给他
+          returnSource:
+            type: string
+            enum:
+            - APPROVER
+            - INITIATOR
+            - SYSTEM
+            description: 退回由谁发起：审批人退回，发起人撤回（D-1a-72），或系统因发起人可以自行改正的原因退回；只有退回结果有值
+    DocumentSubmittedForApproval:
+      name: DocumentSubmittedForApproval
+      title: 请求发起一轮审批
+      description: 单据的所有者请审批模块发起一轮审批的发布语言：所有者的聚合记录它，platform.approval 订阅并发起这一轮，带齐发起所需的全部信息，审批模块不回头问所有者。类型归 platform.approval，由申请审批的模块的聚合发布，目前是 cost.timesheet 的 Timesheet；信封里的聚合与法人是所有者的。同一单据同一轮重复收到只发起一次，比当前轮更早的请求忽略；发起时违反业务规则的不重试，本轮以退回结束并写明原因。
+      x-event:
+        eventType: platform.approval.DocumentSubmittedForApproval
+        version: 1
+        class: com.forcitis.one.platform.approval.events.DocumentSubmittedForApproval
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 申请审批的单据的业务日期（工时单取工作日期）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - processKey
+        - document
+        - initiator
+        - round
+        - routingFlags
+        - formFields
+        - contentHash
+        - summary
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          processKey:
+            type: string
+            enum:
+            - COST_TIMESHEET_APPROVAL
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          initiator:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 提交单据的用户，由所有者记录，不取自客户端
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          routingFlags:
+            type: array
+            items:
+              type: object
+              x-type: RoutingFlag
+              properties:
+                name:
+                  type: string
+            description: 审批路由标记，业务模块算好，流程只读
+          formFields:
+            type: array
+            items:
+              type: object
+              x-type: ApprovalField
+              properties:
+                name:
+                  type: string
+                values:
+                  type: array
+                  items:
+                    type: string
+            description: 流程里的审批人规则要读的业务字段
+          contentHash:
+            type: object
+            properties:
+              value:
+                type: string
+            x-type: ContentHash
+            description: 提交内容的摘要：同一审批人同一节点内容未变则自动通过
+          summary:
+            type: object
+            properties:
+              value:
+                type: string
+            x-type: ApprovalSummary
+            description: 业务摘要，审批卡片显示它
     TaskAssigned:
       name: TaskAssigned
       title: 任务已分配（每位会签审批人一个任务）
-      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键 approval-task:{taskId}）。系统自动通过的任务（RULE-302）不发此事件。分析层 L1 以此为审批等待时长的起点。
+      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键 approval-task:{taskId}）。系统自动通过的任务（RULE-302）不发此事件，发 TaskResulted（AUTOMATIC）。分析层 L1 以此为审批等待时长的起点。
       x-event:
         eventType: platform.approval.TaskAssigned
         version: 1
         class: com.forcitis.one.platform.approval.events.TaskAssigned
-        aggregate: ApprovalTask
+        aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
         consumers:
@@ -874,6 +1463,8 @@ components:
         - nodeName
         - initiator
         - candidates
+        - summary
+        - dueAt
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -941,6 +1532,18 @@ components:
                 value:
                   type: integer
                   format: int64
+          summary:
+            type: object
+            properties:
+              value:
+                type: string
+            x-type: ApprovalSummary
+            description: 业务模块在发起时给的业务摘要，卡片显示它而不回查单据
+          dueAt:
+            type: string
+            format: date-time
+            nullable: true
+            description: 截止时刻；节点没有时限则为空
     TaskClaimed:
       name: TaskClaimed
       title: 任务已被候选人认领
@@ -949,7 +1552,7 @@ components:
         eventType: platform.approval.TaskClaimed
         version: 1
         class: com.forcitis.one.platform.approval.events.TaskClaimed
-        aggregate: ApprovalTask
+        aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
         consumers:
@@ -1007,12 +1610,12 @@ components:
     TaskResulted:
       name: TaskResulted
       title: 任务已办理（通过 / 驳回 / 退回）
-      description: 任务已办理（通过、驳回、退回）；过程事实，不过账。系统自动通过与被跳过的节点不发此事件。effect=ADVISORY 是加签人的驳回，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。
+      description: 任务已办理（通过、驳回、退回）；过程事实，不过账。系统自动通过与被跳过的节点不发此事件。effect=ADVISORY 是加签人的驳回，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。 系统自动通过（同一审批人同一节点内容未变，RULE-302）也发本事件，effect 为 AUTOMATIC（D-1a-66）。
       x-event:
         eventType: platform.approval.TaskResulted
         version: 1
         class: com.forcitis.one.platform.approval.events.TaskResulted
-        aggregate: ApprovalTask
+        aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
         consumers:
@@ -1092,6 +1695,7 @@ components:
             enum:
             - BINDING
             - ADVISORY
+            - AUTOMATIC
             description: ADVISORY 是加签人的驳回：只记录意见，不结束本轮（RULE-273、RULE-291）
           reason:
             type: object
@@ -1108,7 +1712,7 @@ components:
         eventType: platform.approval.TaskTransferred
         version: 1
         class: com.forcitis.one.platform.approval.events.TaskTransferred
-        aggregate: ApprovalTask
+        aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
         consumers:
@@ -1119,6 +1723,7 @@ components:
         businessDate: 转交当日（Asia/Shanghai）
         audit: audited
         publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+        title: 当前处理人把任务转交给他人（RULE-285，D-1a-75）
       payload:
         type: object
         required:
@@ -1129,6 +1734,7 @@ components:
         - nodeKey
         - from
         - to
+        - reason
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -1178,6 +1784,13 @@ components:
               value:
                 type: integer
                 format: int64
+          reason:
+            type: object
+            properties:
+              value:
+                type: string
+            x-type: Reason
+            description: 转交原因，必填并审计（D-1a-75）
     ApprovalTaskOverdue:
       name: ApprovalTaskOverdue
       title: 任务超过审批时限仍未处理（只提醒，不自动通过）
@@ -1186,7 +1799,7 @@ components:
         eventType: platform.approval.ApprovalTaskOverdue
         version: 1
         class: com.forcitis.one.platform.approval.events.ApprovalTaskOverdue
-        aggregate: ApprovalTask
+        aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
         consumers:
@@ -1264,7 +1877,7 @@ components:
         eventType: platform.approval.ApprovalTaskEscalated
         version: 1
         class: com.forcitis.one.platform.approval.events.ApprovalTaskEscalated
-        aggregate: ApprovalTask
+        aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
         consumers:
@@ -1336,6 +1949,300 @@ components:
             - SUPERVISOR
             - PROCESS_ADMINISTRATOR
             description: PROCESS_ADMINISTRATOR 表示取不到上级、交给了流程管理员（同时告警）
+    TaskReleased:
+      name: TaskReleased
+      title: 处理人把任务退回候选人
+      description: 任务的处理人把任务退回候选组，候选人可以再次认领（M-6）；过程事实，不过账。
+      x-event:
+        eventType: platform.approval.TaskReleased
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskReleased
+        aggregate: ApprovalRequest
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 退回当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - taskId
+        - instanceId
+        - document
+        - nodeKey
+        - releasedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          releasedBy:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+    TaskReassigned:
+      name: TaskReassigned
+      title: 流程管理员改派任务
+      description: 流程管理员把任务改派给另一个人，填原因并审计（D-1a-61）；过程事实，不过账。通知监听器据此给新处理人发卡片。
+      x-event:
+        eventType: platform.approval.TaskReassigned
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskReassigned
+        aggregate: ApprovalRequest
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 改派当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+        title: 当前处理人把任务转交给他人（RULE-285，D-1a-75）
+      payload:
+        type: object
+        required:
+        - envelope
+        - taskId
+        - instanceId
+        - document
+        - nodeKey
+        - from
+        - to
+        - reason
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          from:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 原处理人，没人持有时为空
+          to:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          reason:
+            type: object
+            properties:
+              value:
+                type: string
+            x-type: Reason
+            description: 改派原因
+    TaskClosed:
+      name: TaskClosed
+      title: 任务因本轮结束而关闭
+      description: 本轮在任务办结前结束（驳回、退回、撤回、撤销），任务关闭，未办理的候选人失去办理权；过程事实，不过账。
+      x-event:
+        eventType: platform.approval.TaskClosed
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskClosed
+        aggregate: ApprovalRequest
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 本轮结束当日（Asia/Shanghai）
+        audit: 'not-audited: 是已审计的审批结束事件的后果，不改变任何人超出该事件的权限'
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - taskId
+        - instanceId
+        - document
+        - nodeKey
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+    ApprovalRoundStarted:
+      name: ApprovalRoundStarted
+      title: 审批开新一轮
+      description: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起（D-1a-78）；过程里程碑，不过账。aggregateId 是 单据类型:单据标识。
+      x-event:
+        eventType: platform.approval.ApprovalRoundStarted
+        version: 1
+        class: com.forcitis.one.platform.approval.events.ApprovalRoundStarted
+        aggregate: ApprovalRequest
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 发起当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalRequestStateMachineTest
+        noConsumer: 暂无消费方：审计之外无人订阅；分析层 L1 以此为审批轮次的起点
+      payload:
+        type: object
+        required:
+        - envelope
+        - document
+        - processKey
+        - instanceId
+        - round
+        - initiator
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          processKey:
+            type: string
+            enum:
+            - COST_TIMESHEET_APPROVAL
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+            description: 本轮流程实例 ID
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          initiator:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 发起人
     WorkCalendarYearMaintained:
       name: WorkCalendarYearMaintained
       title: 工作日历的某一年被维护
@@ -1350,7 +2257,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 无：一次保存可涉及多个日期，取不出唯一的业务日期，被修改的日期在负载 changedDates
         audit: audited
         publisherTest: com.forcitis.one.organization.attendance.domain.WorkCalendarYearTest
         noConsumer: 暂无消费方：审批超时提醒将在日历变更后重算截止时间（approval 依赖 attendance）；现在就发布，是因为日历变更之后已算出的截止时间需要有据可查
@@ -1359,6 +2266,7 @@ components:
         required:
         - envelope
         - calendarYear
+        - changedDates
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -1366,6 +2274,49 @@ components:
             type: integer
             x-type: Year
             description: 日历年份
+          changedDates:
+            type: array
+            items:
+              type: string
+              x-type: LocalDate
+            description: 本次保存新增、删除或改变类型的日期，按日期升序；原样重存时为空
+    WorkCalendarLockedDaysChanged:
+      name: WorkCalendarLockedDaysChanged
+      title: 工作日历中已过去的日期被组织数据管理员确认修改
+      x-event:
+        eventType: organization.attendance.WorkCalendarLockedDaysChanged
+        version: 1
+        class: com.forcitis.one.organization.attendance.events.WorkCalendarLockedDaysChanged
+        aggregate: WorkCalendarYear
+        idempotencyKey: eventId
+        publisher: organization.attendance
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：载荷 changes 列出被改的日期及其改前改后的类别；已算出的审批时效不因此重算
+        audit: audited
+        publisherTest: com.forcitis.one.organization.attendance.domain.WorkCalendarYearTest
+        noConsumer: 暂无消费方：这是对工作日历例外修改的审计留痕；现在就发布，是因为例外修改的操作人与日期事后无法还原
+      payload:
+        type: object
+        required:
+        - envelope
+        - calendarYear
+        - changes
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          calendarYear:
+            type: integer
+            x-type: Year
+            description: 日历年份
+          changes:
+            type: array
+            items:
+              type: object
+              x-type: LockedDayChange
+              description: 被修改的、早于操作当天的日期，及其修改前后的类别（NONE 表示按周一至周五上班、周末休息的常规）
     RoleCreated:
       name: RoleCreated
       title: 角色新增
@@ -1612,9 +2563,308 @@ components:
             items:
               type: string
               x-type: RoleId
+    AccountSeparated:
+      name: AccountSeparated
+      title: 账号因本人离职而收回全部角色
+      x-event:
+        eventType: platform.identity.AccountSeparated
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AccountSeparated
+        aggregate: UserAccount
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        - platform.identity
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：交接离职人员在办事项的流程（B3）将订阅；现在就发布，是因为角色一收回，事实只在这一刻可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    AccountOpened:
+      name: AccountOpened
+      title: 账号开立（含开立时授予的角色）
+      x-event:
+        eventType: platform.identity.AccountOpened
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AccountOpened
+        aggregate: UserAccount
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        - roleIds
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+          roleIds:
+            type: array
+            items:
+              type: string
+              x-type: RoleId
+    EmergencyAdminRegistered:
+      name: EmergencyAdminRegistered
+      title: 应急账号登记
+      x-event:
+        eventType: platform.identity.EmergencyAdminRegistered
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminRegistered
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    EmergencyAdminEnabled:
+      name: EmergencyAdminEnabled
+      title: 应急账号启用
+      x-event:
+        eventType: platform.identity.EmergencyAdminEnabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminEnabled
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    EmergencyAdminCredentialsReset:
+      name: EmergencyAdminCredentialsReset
+      title: 应急账号凭据重置
+      x-event:
+        eventType: platform.identity.EmergencyAdminCredentialsReset
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminCredentialsReset
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    EmergencyAdminDisabled:
+      name: EmergencyAdminDisabled
+      title: 应急账号停用（离职或运维命令）
+      x-event:
+        eventType: platform.identity.EmergencyAdminDisabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminDisabled
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        - cause
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+          cause:
+            type: string
+            enum:
+            - SEPARATION
+            - OPERATIONS
+            x-type: EmergencyAdminDisableCause
+    AuthorizationOpened:
+      name: AuthorizationOpened
+      title: 敏感授权申请开立
+      x-event:
+        eventType: platform.identity.AuthorizationOpened
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AuthorizationOpened
+        aggregate: AuthorizationRequest
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
+        noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - requestId
+        - requestedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
+          requestedBy:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    AuthorizationConfirmed:
+      name: AuthorizationConfirmed
+      title: 敏感授权申请被另一人确认
+      x-event:
+        eventType: platform.identity.AuthorizationConfirmed
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AuthorizationConfirmed
+        aggregate: AuthorizationRequest
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        - platform.identity
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - requestId
+        - confirmedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
+          confirmedBy:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    AuthorizationRejected:
+      name: AuthorizationRejected
+      title: 敏感授权申请被拒绝或撤回
+      x-event:
+        eventType: platform.identity.AuthorizationRejected
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AuthorizationRejected
+        aggregate: AuthorizationRequest
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
+        noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - requestId
+        - rejectedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
+          rejectedBy:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
     NumberingRuleConfirmed:
       name: NumberingRuleConfirmed
-      title: 编号规则确认
+      title: 编号规则的模板版本确认齐全，开始发号
       x-event:
         eventType: platform.numbering.NumberingRuleConfirmed
         version: 1
@@ -1626,7 +2876,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 模板的生效日（effectiveFrom）；种子版本被确认时的事件，businessDate 是 2000-01-01（种子版本的生效日）
         audit: audited
         publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
         noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
@@ -1635,23 +2885,78 @@ components:
         required:
         - envelope
         - documentType
+        - ruleVersion
+        - effectiveFrom
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          documentType: &id001
+          documentType:
             type: string
             enum:
             - QUOTE
             - TIMESHEET
             - JOURNAL_VOUCHER
             x-type: DocumentType
+          ruleVersion:
+            type: integer
+            format: int64
+            x-type: RuleVersion
+            description: 模板版本号，每种单据从 1 递增
+          effectiveFrom:
+            type: string
+            format: date
+            description: 作者提交的生效日；业务日期从这一天起用该版本发号
     NumberingRuleReconfigured:
       name: NumberingRuleReconfigured
-      title: 编号规则的模板或起始值被修改
+      title: 编号规则保存了新的模板版本，等待他人确认
       x-event:
         eventType: platform.numbering.NumberingRuleReconfigured
         version: 1
         class: com.forcitis.one.platform.numbering.events.NumberingRuleReconfigured
+        aggregate: NumberingRule
+        idempotencyKey: eventId
+        publisher: platform.numbering
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 模板的生效日（effectiveFrom）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
+        noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
+      payload:
+        type: object
+        required:
+        - envelope
+        - documentType
+        - ruleVersion
+        - effectiveFrom
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          documentType:
+            type: string
+            enum:
+            - QUOTE
+            - TIMESHEET
+            - JOURNAL_VOUCHER
+            x-type: DocumentType
+          ruleVersion:
+            type: integer
+            format: int64
+            x-type: RuleVersion
+            description: 模板版本号，每种单据从 1 递增
+          effectiveFrom:
+            type: string
+            format: date
+            description: 作者提交的生效日；业务日期从这一天起用该版本发号
+    NumberingRuleConfirmationGiven:
+      name: NumberingRuleConfirmationGiven
+      title: 编号规则的模板版本得到一次确认（业务或财务）
+      x-event:
+        eventType: platform.numbering.NumberingRuleConfirmationGiven
+        version: 1
+        class: com.forcitis.one.platform.numbering.events.NumberingRuleConfirmationGiven
         aggregate: NumberingRule
         idempotencyKey: eventId
         publisher: platform.numbering
@@ -1668,14 +2973,33 @@ components:
         required:
         - envelope
         - documentType
+        - ruleVersion
+        - kind
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          documentType: *id001
+          documentType:
+            type: string
+            enum:
+            - QUOTE
+            - TIMESHEET
+            - JOURNAL_VOUCHER
+            x-type: DocumentType
+          ruleVersion:
+            type: integer
+            format: int64
+            x-type: RuleVersion
+            description: 模板版本号，每种单据从 1 递增
+          kind:
+            type: string
+            enum:
+            - BUSINESS
+            - FINANCE
+            x-type: ConfirmationKind
     TimesheetSubmitted:
       name: TimesheetSubmitted
       title: 工时单提交审批（进入新一轮）
-      description: 工时单提交审批，进入新一轮；过程里程碑，不过账。工时单事件的 businessDate 一律取工作日期（work_date），提交、办理的日期不是 businessDate，需要的话由分析层从事件的 occurredAt 或审批事件里取。
+      description: 工时单提交审批，进入新一轮；过程里程碑，不过账。请审批模块发起这一轮审批的是另一个事件 DocumentSubmittedForApproval（H-1），本事件只陈述事实：一个事务只改一个聚合，两者由同一次提交记录。工时单事件的 businessDate 一律取工作日期（work_date）；提交日在 submittedOn。
       x-event:
         eventType: cost.timesheet.TimesheetSubmitted
         version: 1
@@ -1690,17 +3014,19 @@ components:
         businessDate: 工作日期（work_date）
         audit: audited
         publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
-        noConsumer: 暂无消费方：分析层 L1 的工时提交里程碑将订阅；现在就发布，是因为提交时刻只在发生当时可记录，事后补不回
+        noConsumer: 暂无消费方：分析层 L1 的工时提交时效统计将订阅；现在就发布，是因为提交的时刻只在发生当时可记录，事后补不回
+        relatedAggregates: 首次提交同事务取号时列出 NumberingRule（登记在 architecture/multi-aggregate-exceptions.txt）
       payload:
         type: object
         required:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
-        - approvalInstanceId
+        - number
+        - projectManager
+        - submittedOn
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -1727,13 +3053,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -1747,12 +3066,24 @@ components:
               value:
                 type: integer
             description: 轮次，同一单据第几次发起，从 1 起
-          approvalInstanceId:
+          number:
             type: object
             properties:
               value:
                 type: string
-            description: 本轮审批流程实例 ID
+            x-type: DocumentNumber
+            description: 单据编号，创建时取号
+          projectManager:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 项目经理，工时审批第一道审批人
+          submittedOn:
+            type: string
+            format: date
+            description: 提交日：员工提交审批的业务日期；与工作日期是两件事
     TimesheetApproved:
       name: TimesheetApproved
       title: 工时单审批通过，工时成立
@@ -1778,7 +3109,6 @@ components:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
         properties:
@@ -1807,13 +3137,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -1852,7 +3175,6 @@ components:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
         - reason
@@ -1882,13 +3204,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -1934,7 +3249,6 @@ components:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
         - reason
@@ -1964,13 +3278,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -2016,7 +3323,6 @@ components:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
         - reason
@@ -2046,13 +3352,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -2185,6 +3484,7 @@ components:
         required:
         - envelope
         - syncRunId
+        - reason
         - releasedByRunId
         properties:
           envelope:
@@ -2193,18 +3493,65 @@ components:
             type: string
             x-type: SyncRunId
             description: 稳定 ID 的字符串形式
+          reason:
+            type: string
+            x-type: Reason
+            nullable: true
+            description: 放行人填写的原因；由下一次成功同步自动放行时为空
           releasedByRunId:
             type: string
             x-type: SyncRunId
             description: 稳定 ID 的字符串形式
+    SyncRunHoldReleased:
+      name: SyncRunHoldReleased
+      title: 被暂停的同步的一类暂停已被有权的人解除，另一类仍在时运行保持暂停
+      x-event:
+        eventType: organization.workforce.SyncRunHoldReleased
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.SyncRunHoldReleased
+        aggregate: SyncRun
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
+        noConsumer: 暂无消费方：放行告警（告警通道待用户指定）将订阅；现在就发布，是因为放行只在发生当时有告警价值，事后补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - syncRunId
+        - holdKind
+        - releasedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          syncRunId:
+            type: string
+            x-type: SyncRunId
+            description: 稳定 ID 的字符串形式
+          holdKind:
+            type: string
+            enum:
+            - SHRINK_GUARD
+            - ADMINISTRATOR_SEPARATION
+            x-type: HoldKind
+          releasedBy:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
     OrgSnapshotChanged:
       name: OrgSnapshotChanged
-      title: 组织快照发生变化（同步或首次登录建档）
+      title: 组织快照因同步发生变化
       x-event:
         eventType: organization.workforce.OrgSnapshotChanged
         version: 1
         class: com.forcitis.one.organization.workforce.events.OrgSnapshotChanged
-        aggregate: SyncRun 或 Employee
+        aggregate: SyncRun
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
@@ -2212,7 +3559,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 快照截止日：同步运行开始当天（Asia/Shanghai），即读取组织源快照的业务日；effectiveFrom 在负载
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
       payload:
@@ -2222,6 +3569,7 @@ components:
         - changedEmployees
         - separatedEmployees
         - changedOrgUnits
+        - effectiveFrom
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -2240,6 +3588,10 @@ components:
             items:
               type: string
               x-type: OrgUnitId
+          effectiveFrom:
+            type: string
+            x-type: LocalDate
+            description: 变化从哪一天起生效（含）；组织源不给变更日期，取快照截止日
     LegalEntityRegistered:
       name: LegalEntityRegistered
       title: 法人新增
@@ -2402,3 +3754,192 @@ components:
           newCode:
             type: string
             x-type: LegalEntityCode
+    EmployeeRegistered:
+      name: EmployeeRegistered
+      title: 员工在首次登录时被登记进组织快照
+      x-event:
+        eventType: organization.workforce.EmployeeRegistered
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeRegistered
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.identity
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.RegisteredEmployeeTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    LegalEntityAttributed:
+      name: LegalEntityAttributed
+      title: 部门或员工从某日起归属某法人
+      x-event:
+        eventType: organization.workforce.LegalEntityAttributed
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityAttributed
+        aggregate: LegalEntityAttribution
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 归属的生效日（effectiveFrom）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityAttributionTest
+        noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为归属变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - subject
+        - legalEntityId
+        - effectiveFrom
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          subject:
+            type: string
+            x-type: AttributionSubject
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+          effectiveFrom:
+            type: string
+            x-type: LocalDate
+    LegalEntityAttributionEnded:
+      name: LegalEntityAttributionEnded
+      title: 部门或员工的法人归属在某日结束
+      x-event:
+        eventType: organization.workforce.LegalEntityAttributionEnded
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityAttributionEnded
+        aggregate: LegalEntityAttribution
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 归属的失效日（effectiveTo）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityAttributionTest
+        noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为归属变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - subject
+        - legalEntityId
+        - effectiveTo
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          subject:
+            type: string
+            x-type: AttributionSubject
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+          effectiveTo:
+            type: string
+            x-type: LocalDate
+    LegalEntityAttributionCorrected:
+      name: LegalEntityAttributionCorrected
+      title: 已关闭的法人归属期间的结束日被更正
+      x-event:
+        eventType: organization.workforce.LegalEntityAttributionCorrected
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityAttributionCorrected
+        aggregate: LegalEntityAttribution
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 更正后的结束日（newEffectiveTo）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityAttributionTest
+        noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为更正只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - subject
+        - legalEntityId
+        - periodFrom
+        - previousEffectiveTo
+        - newEffectiveTo
+        - reason
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          subject:
+            type: string
+            x-type: AttributionSubject
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+          periodFrom:
+            type: string
+            x-type: LocalDate
+            description: 被更正期间的生效日
+          previousEffectiveTo:
+            type: string
+            x-type: LocalDate
+          newEffectiveTo:
+            type: string
+            x-type: LocalDate
+          reason:
+            type: string
+            x-type: Reason
+            description: 操作人填写的更正原因
+    LegalEntityAccountingNumberAssigned:
+      name: LegalEntityAccountingNumberAssigned
+      title: 法人取得或更换了核算组织编码
+      x-event:
+        eventType: organization.workforce.LegalEntityAccountingNumberAssigned
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityAccountingNumberAssigned
+        aggregate: LegalEntity
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
+        noConsumer: 暂无消费方：核算对接将按数字编码识别法人；现在就发布，是因为编码变更只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - legalEntityId
+        - accountingOrganizationNumber
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+            description: 稳定 ID 的字符串形式
+          accountingOrganizationNumber:
+            type: integer
+            x-type: AccountingOrganizationNumber

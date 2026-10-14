@@ -156,3 +156,40 @@
 | `business_check` | 业务校验 | BusinessCheck | 办理审批前由业务模块执行的校验，不通过则不能办理 |  |
 | `task_participant` | 参与人 | TaskParticipant | 审批任务的候选审批人或处理人 |  |
 | `account_disabled` | 停用 | AccountDisabled | 账号被管理员停用，停用后不能登录，已有会话随即失效 |  |
+
+## 前端修复批界面用语（`fix-c.yaml`）
+
+状态、列名与提示语中的业务词。前端用语守护要求单字只作连接词，状态词（已通过、待认领等）必须作为完整的词登记。
+
+| id | zh | en | 定义 | 是否疑似方言 |
+|---|---|---|---|---|
+| `ui_done_task` | 已办 | DoneTask | 当前用户已经办理过的审批任务，列出办理结果和意见 |  |
+| `ui_pending_claim` | 待认领 | PendingClaim | 任务有候选审批人但还没有人认领；与「已认领」相对 |  |
+| `ui_approval_record` | 审批记录 | ApprovalRecord | 任务详情中按时间列出的办理记录：节点、办理结果、办理人、办理时间、意见 |  |
+| `ui_task_outcome` | 办理结果 | TaskOutcome | 一次办理的结论：通过、驳回、退回、转交或自动通过 |  |
+| `ui_task_handler` | 办理人 | TaskHandler | 办理了这条任务的人；代理办理时是被代理人以外实际操作的人 |  |
+| `ui_flow_node` | 节点 | FlowNode | 审批流程中的一个环节，每个节点有自己的审批人规则 |  |
+| `ui_approval_running` | 审批中 | ApprovalRunning | 审批已经发起且尚未结束；工时单提交之后即处于此状态 |  |
+| `ui_approval_approved` | 已通过 | ApprovalApproved | 审批以通过结束 |  |
+| `ui_approval_rejected` | 已驳回 | ApprovalRejected | 审批以驳回结束 |  |
+| `ui_approval_returned` | 已退回 | ApprovalReturned | 审批被退回，本轮结束，发起人修改后重提开新一轮 |  |
+| `ui_auto_approved` | 自动通过 | AutoApproved | 系统在同一审批人重复出现等情形下自动给出的通过，办理记录里标注「自动」 |  |
+| `ui_opinion_unfilled` | 未填写意见 | OpinionUnfilled | 通过时没有填写意见；数据里留空，界面显示为「（未填写意见）」，不写入数据 |  |
+| `ui_pending_confirmation_state` | 待确认 | PendingConfirmationState | 编号规则还没有由管理员确认 |  |
+| `ui_confirmed_state` | 已确认 | ConfirmedState | 编号规则已由管理员确认 |  |
+| `ui_released_state` | 已放行 | ReleasedState | 被中止的同步已由管理员放行并生效 |  |
+| `ui_never_reset` | 不重置 | NeverReset | 流水号永不重置，一直递增 |  |
+| `ui_submit` | 提交 | Submit | 把工时单交给审批；提交之后工时单进入审批中，提交接口不返回审批实例 |  |
+| `ui_draft` | 草稿 | Draft | 工时单还没有提交，内容可以修改 |  |
+| `ui_cutoff_time` | 截止时间 | CutoffTime | 工时单可以提交的最后时刻；过了截止时间不能再提交 |  |
+| `ui_locked_day` | 已锁定 | LockedDay | 工作日历中已经过去的日期；修改需要组织数据管理员二次确认 |  |
+| `ui_cc_notice` | 知会 | CcNotice | 只通知、不阻塞流程的审批知会；在合并待办里单列，打开即已读 |  |
+| `ui_business_summary` | 业务摘要 | BusinessSummary | 业务模块在发起审批时随请求提供的单据摘要，待办与通知据此显示，不回查业务单据 |  |
+| `ui_proxy_handling` | 代理 | ProxyHandling | 流程管理员替被代理人办理任务；审批记录同时显示操作人与被代理人 |  |
+| `ui_rest_day` | 休息日 | RestDay | 周末且不是调休上班日的日期 |  |
+| `ui_task_deadline` | 截止时间 | TaskDeadline | 审批任务应办理完的时刻；超过则提醒并升级，待办标出已超时 |  |
+| `ui_external_system` | 外部系统 | ExternalSystem | 本系统之外、通过防腐层接入的系统，如企业微信、致远、组织来源 |  |
+| `ui_maintain` | 维护 | Maintain | 录入和修改工作日历这类基础数据 |  |
+| `ui_calculation` | 计算 | Calculation | 按规则得出日期、时限、编号等的过程 |  |
+| `ui_outcome_result` | 结果 | OutcomeResult | 一次办理或一次计算得出的结论 |  |
+| `ui_advisory_note` | 加签建议 | AdvisoryNote | 加签人给出的参考意见，不算正式的办理结果 |  |

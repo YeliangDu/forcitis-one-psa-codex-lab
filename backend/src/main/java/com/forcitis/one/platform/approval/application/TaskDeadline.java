@@ -2,49 +2,47 @@ package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
+import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import com.forcitis.one.platform.approval.domain.ApprovalTask;
-import com.forcitis.one.platform.approval.domain.ApprovalTaskRepository;
+import com.forcitis.one.platform.approval.domain.Moment;
 import com.forcitis.one.platform.approval.domain.ProcessAdministrator;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * One task per transaction: a late task is reminded once its deadline has passed and, once the escalation point has passed too,
- * handed to the holders' superiors, or to the process administrator when a superior is unknown. It is never approved for anyone.
+ * One task per transaction, under the lock of the request it belongs to: a late task is reminded once its reminder time has come
+ * and, once the escalation time has come too, handed on. A claimed task goes to the claimant's superior (the claimant stays a
+ * candidate); an unclaimed one goes to the process administrator; with no superior known it goes to the administrator and raises an
+ * alert (D-1a-113). It is never approved for anyone (RULE-382).
  */
 @Component
 class TaskDeadline {
 
     private static final Logger log = LoggerFactory.getLogger(TaskDeadline.class);
 
-    private final ApprovalTaskRepository tasks;
-    private final ApprovalLifecycle lifecycle;
-    private final Aggregates aggregates;
+    private final ApprovalRequestRepository requests;
+    private final Approvals approvals;
     private final ApprovalEngine engine;
     private final OrgDirectory org;
     private final ProcessAdministrator administrator;
     private final MeterRegistry meters;
     private final BusinessTime time;
 
-    TaskDeadline(ApprovalTaskRepository tasks, ApprovalLifecycle lifecycle, Aggregates aggregates, ApprovalEngine engine,
-            OrgDirectory org, ProcessAdministrator administrator, MeterRegistry meters, BusinessTime time) {
-        this.tasks = tasks;
-        this.lifecycle = lifecycle;
-        this.aggregates = aggregates;
+    TaskDeadline(ApprovalRequestRepository requests, Approvals approvals, ApprovalEngine engine, OrgDirectory org,
+            ProcessAdministrator administrator, MeterRegistry meters, BusinessTime time) {
+        this.requests = requests;
+        this.approvals = approvals;
         this.engine = engine;
         this.org = org;
         this.administrator = administrator;
@@ -54,60 +52,66 @@ class TaskDeadline {
 
     @Transactional
     public void enforce(ApprovalTaskId taskId) {
-        Optional<ApprovalInstanceId> instance = tasks.instanceOf(taskId);
-        if (instance.isEmpty()) {
+        Optional<ApprovalRequest> found = requests.findByTaskForUpdate(taskId);
+        if (found.isEmpty()) {
             return;
         }
-        ApprovalRequest request = lifecycle.lock(instance.get());
-        ApprovalTask task = aggregates.task(taskId);
-        if (!task.status().isOpen() || !instance.get().equals(request.instanceId())) {
+        ApprovalRequest request = found.get();
+        ApprovalTask task = request.task(taskId);
+        if (!task.status().isOpen()) {
             return;
         }
-        Optional<TaskView> view = engine.findTask(taskId);
+        Moment now = time.moment();
+        Optional<TaskView> view = task.instanceId().equals(request.instanceId()) ? engine.findTask(taskId) : Optional.empty();
         if (view.isEmpty()) {
-            Transitions.run(task::close);
-            aggregates.save(task);
+            request.closeTask(taskId, now);
+            approvals.save(request);
             return;
         }
-        Instant now = time.now();
-        if (task.overdueAt().isEmpty() && task.dueAt().map(due -> !now.isBefore(due)).orElse(false)) {
-            Transitions.run(() -> task.markOverdue(holders(view.get()), now, time.today()));
+        if (task.overdueAt().isEmpty() && task.deadline().map(plan -> !now.at().isBefore(plan.remindAt())).orElse(false)) {
+            request.markTaskOverdue(taskId, holders(view.get()), now);
             meters.counter("forcitis.platform.approval.task.overdue").increment();
         }
-        if (task.overdueAt().isPresent() && task.escalatedAt().isEmpty() && task.escalateAt().map(at -> !now.isBefore(at)).orElse(false)) {
-            escalate(task, view.get(), now);
+        if (task.overdueAt().isPresent() && task.escalatedAt().isEmpty()
+                && task.deadline().map(plan -> !now.at().isBefore(plan.escalateAt())).orElse(false)) {
+            escalate(request, view.get(), now);
         }
-        aggregates.save(task);
+        approvals.save(request);
     }
 
-    private void escalate(ApprovalTask task, TaskView view, Instant now) {
+    private void escalate(ApprovalRequest request, TaskView view, Moment now) {
         List<UserId> holders = holders(view);
-        Set<UserId> superiors = new LinkedHashSet<>();
-        for (UserId holder : holders) {
-            org.findSupervisor(holder).filter(s -> !holders.contains(s) && !s.equals(view.initiator())).ifPresent(superiors::add);
-        }
-        boolean toAdministrator = superiors.isEmpty();
-        if (toAdministrator) {
-            UserId fallback = administrator.current().orElseThrow(() -> {
-                meters.counter("forcitis.platform.approval.task.escalation.unresolved").increment();
-                log.error("Task {} is overdue, none of {} has a superior and no process administrator is configured", task.taskId().value(), holders);
-                return new IllegalStateException("Nobody to escalate task " + task.taskId().value() + " to");
-            });
-            superiors.add(fallback);
-            meters.counter("forcitis.platform.approval.task.escalation.administrator").increment();
-            log.error("Task {} is overdue and none of {} has a superior: handed to the process administrator", task.taskId().value(), holders);
-        }
-        List<UserId> receivers = new ArrayList<>(superiors);
+        UserId superior = view.assignee().flatMap(org::findSupervisor).filter(s -> !holders.contains(s) && !s.equals(view.initiator()))
+                .orElse(null);
+        boolean toAdministrator = superior == null;
+        List<UserId> receivers = toAdministrator ? administratorsFor(view, holders) : List.of(superior);
         if (view.isClaimed()) {
             engine.releaseClaim(view.taskId());
         }
         engine.addCandidates(view.taskId(), receivers);
-        Transitions.run(() -> task.escalate(receivers, toAdministrator, now, time.today()));
+        request.escalateTask(view.taskId(), receivers, toAdministrator, now);
         meters.counter("forcitis.platform.approval.task.escalated").increment();
     }
 
+    private List<UserId> administratorsFor(TaskView view, List<UserId> holders) {
+        List<UserId> fallback = administrator.holders().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
+        if (fallback.isEmpty()) {
+            meters.counter("forcitis.platform.approval.task.escalation.unresolved").increment();
+            log.error("Task {} is overdue and nobody can take it from {}: nobody holds the process administrator role", view.taskId().value(),
+                    holders);
+            throw ApprovalError.PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING.refusal("Nobody to escalate task " + view.taskId().value() + " to");
+        }
+        meters.counter("forcitis.platform.approval.task.escalation.administrator").increment();
+        if (view.isClaimed()) {
+            log.error("Task {} is overdue and its holder {} has no superior: handed to the process administrator", view.taskId().value(),
+                    holders);
+        } else {
+            log.warn("Task {} is overdue and unclaimed: handed to the process administrator", view.taskId().value());
+        }
+        return fallback;
+    }
+
     private static List<UserId> holders(TaskView view) {
-        return view.assignee().map(List::of).orElseGet(() -> view.candidates().stream()
-                .sorted(java.util.Comparator.comparingLong(UserId::value)).toList());
+        return view.assignee().map(List::of).orElseGet(() -> view.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList());
     }
 }

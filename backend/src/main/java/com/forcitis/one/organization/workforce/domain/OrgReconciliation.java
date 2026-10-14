@@ -29,6 +29,8 @@ public final class OrgReconciliation {
         List<String> unexpected = new ArrayList<>();
         List<String> parentMismatches = new ArrayList<>();
         List<String> reportingMismatches = new ArrayList<>();
+        List<String> responsibilityMismatches = new ArrayList<>();
+        List<String> wecomMismatches = new ArrayList<>();
 
         expectedUnits.forEach((id, unit) -> {
             OrgUnit actual = actualUnits.get(id);
@@ -36,6 +38,9 @@ public final class OrgReconciliation {
                 missing.add("org-unit:" + id.value());
             } else if (!Objects.equals(unit.parentOrgUnitId(), actual.parentOrgUnitId())) {
                 parentMismatches.add("org-unit:" + id.value());
+            } else if (!Objects.equals(unit.headEmployeeId(), actual.headEmployeeId())
+                    || !Objects.equals(unit.regionalReceivablesManagerId(), actual.regionalReceivablesManagerId())) {
+                responsibilityMismatches.add("org-unit:" + id.value());
             }
         });
         actualUnits.keySet().stream().filter(id -> !expectedUnits.containsKey(id))
@@ -52,6 +57,8 @@ public final class OrgReconciliation {
                 unexpected.add("employee:" + id.value() + " (separated in snapshot, employed in source)");
             } else if (!Objects.equals(staff.assignment().reportsToEmployeeId(), actual.assignment().reportsToEmployeeId())) {
                 reportingMismatches.add("employee:" + id.value());
+            } else if (!Objects.equals(staff.employee().wecomUserId(), actual.employee().wecomUserId())) {
+                wecomMismatches.add("employee:" + id.value());
             }
         });
         actualStaff.forEach((id, staff) -> {
@@ -67,6 +74,7 @@ public final class OrgReconciliation {
         int sourceActiveUnits = (int) expectedUnits.values().stream().filter(u -> u.status() == OrgUnitStatus.ACTIVE).count();
         int snapshotActiveUnits = (int) actualUnits.values().stream().filter(u -> u.status() == OrgUnitStatus.ACTIVE).count();
         return new OrgReconciliationReport(sourceEmployed, snapshot.employedCount(), expectedUnits.size(), actualUnits.size(),
-                sourceActiveUnits, snapshotActiveUnits, missing, unexpected, parentMismatches, reportingMismatches);
+                sourceActiveUnits, snapshotActiveUnits, missing, unexpected, parentMismatches, reportingMismatches,
+                responsibilityMismatches, wecomMismatches);
     }
 }

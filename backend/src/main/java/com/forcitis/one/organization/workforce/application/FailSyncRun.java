@@ -6,7 +6,6 @@ import com.forcitis.one.organization.workforce.domain.SyncRun;
 import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import java.time.Clock;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,10 +15,10 @@ class FailSyncRun {
     private final DomainEvents events;
     private final Clock clock;
 
-    FailSyncRun(SyncRunRepository runs, DomainEvents events, ObjectProvider<Clock> clock) {
+    FailSyncRun(SyncRunRepository runs, DomainEvents events, Clock clock) {
         this.runs = runs;
         this.events = events;
-        this.clock = Clocks.from(clock);
+        this.clock = clock;
     }
 
     @Transactional

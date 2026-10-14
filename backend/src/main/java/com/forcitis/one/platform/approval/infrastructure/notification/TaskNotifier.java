@@ -1,95 +1,151 @@
 package com.forcitis.one.platform.approval.infrastructure.notification;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.api.EscalationTarget;
+import com.forcitis.one.platform.approval.application.ApprovalTexts;
+import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
+import com.forcitis.one.platform.approval.events.TaskClosed;
+import com.forcitis.one.platform.approval.events.TaskReleased;
+import com.forcitis.one.platform.approval.events.TaskReassigned;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
-/** Recipients are exact WeCom user ids, never a broadcast (I-6); the dedup key per card makes at-least-once sending idempotent. */
+/**
+ * Recipients are exact WeCom user ids, never a broadcast (I-6); the dedup key per card makes at-least-once sending idempotent. A
+ * separated person gets no card (D-1a-141); a card nobody can receive is logged as an error and counted, never dropped quietly.
+ */
 @Component
 @EnableConfigurationProperties(NotificationProperties.class)
 class TaskNotifier {
 
     private static final Logger log = LoggerFactory.getLogger(TaskNotifier.class);
+    private static final DateTimeFormatter MOMENT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final OrgDirectory org;
     private final WecomGateway wecom;
     private final NotificationProperties properties;
+    private final BusinessZone zone;
     private final MeterRegistry meters;
 
-    TaskNotifier(OrgDirectory org, WecomGateway wecom, NotificationProperties properties, MeterRegistry meters) {
+    TaskNotifier(OrgDirectory org, WecomGateway wecom, NotificationProperties properties, BusinessZone zone, MeterRegistry meters) {
         this.org = org;
         this.wecom = wecom;
         this.properties = properties;
+        this.zone = zone;
         this.meters = meters;
     }
 
     @ApplicationModuleListener
     void onTaskAssigned(TaskAssigned event) {
-        String initiatorName = org.findEmployee(event.initiator()).map(EmployeeProfile::name).orElse("");
-        send(event.taskId(), event.candidates(), "审批待办：" + event.nodeName().value(),
-                event.processName().value() + " 单据 " + event.document().documentId().value()
-                        + (initiatorName.isEmpty() ? "" : "，发起人 " + initiatorName), dedupKey(event.taskId()));
+        Optional<EmployeeProfile> initiator = org.findEmployee(event.initiator());
+        String department = initiator.flatMap(profile -> org.findOrgUnit(profile.orgUnitId())).map(OrgUnitProfile::name).orElse(null);
+        send(event.taskId(), event.candidates(), ApprovalTexts.assignedTitle(event.nodeName().value()),
+                ApprovalTexts.assignedBody(event.processName().value(), event.summary().value(), initiator.map(EmployeeProfile::name).orElse(null),
+                        department, moment(event.envelope().occurredAt()), event.dueAt() == null ? null : moment(event.dueAt())),
+                dedupKey(event.taskId()));
     }
 
     @ApplicationModuleListener
     void onTaskClaimed(TaskClaimed event) {
-        String name = org.findEmployee(event.claimedBy()).map(EmployeeProfile::name).orElse("同事");
-        wecom.markHandled(dedupKey(event.taskId()), "已由 " + name + " 处理");
+        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.handledNote(nameOf(event.claimedBy())));
     }
 
     @ApplicationModuleListener
     void onTaskTransferred(TaskTransferred event) {
-        String name = org.findEmployee(event.from()).map(EmployeeProfile::name).orElse("同事");
-        send(event.taskId(), List.of(event.to()), "审批待办（转交）：" + event.nodeKey().value(),
-                "单据 " + event.document().documentId().value() + "，由 " + name + " 转交给你", dedupKey(event.taskId()) + ":transfer:" + event.envelope().eventId());
+        String name = org.findEmployee(event.from()).map(EmployeeProfile::name).orElse(ApprovalTexts.aColleague());
+        send(event.taskId(), List.of(event.to()), ApprovalTexts.transferredTitle(event.document()),
+                ApprovalTexts.transferredBody(name, event.reason().value()), dedupKey(event.taskId()) + ":transfer:" + event.envelope().eventId());
+    }
+
+    @ApplicationModuleListener
+    void onTaskReassigned(TaskReassigned event) {
+        send(event.taskId(), List.of(event.to()), ApprovalTexts.reassignedTitle(event.document()), ApprovalTexts.reassignedBody(event.reason().value()),
+                dedupKey(event.taskId()) + ":reassign:" + event.envelope().eventId());
     }
 
     @ApplicationModuleListener
     void onTaskOverdue(ApprovalTaskOverdue event) {
-        send(event.taskId(), event.holders(), "审批已超时：" + event.nodeKey().value(),
-                "单据 " + event.document().documentId().value() + " 的审批已超过时限，请尽快处理", dedupKey(event.taskId()) + ":overdue");
+        send(event.taskId(), event.holders(), ApprovalTexts.overdueTitle(event.document()), ApprovalTexts.overdueBody(moment(event.dueAt())),
+                dedupKey(event.taskId()) + ":overdue");
     }
 
     @ApplicationModuleListener
     void onTaskEscalated(ApprovalTaskEscalated event) {
-        send(event.taskId(), event.escalatedTo(), "审批升级：" + event.nodeKey().value(),
-                "单据 " + event.document().documentId().value() + " 的审批超时未处理，已升级给你"
-                        + (event.target() == EscalationTarget.PROCESS_ADMINISTRATOR ? "（流程管理员）" : ""), dedupKey(event.taskId()) + ":escalated");
+        send(event.taskId(), event.escalatedTo(), ApprovalTexts.escalatedTitle(event.document()), ApprovalTexts.escalatedBody(event.target()),
+                dedupKey(event.taskId()) + ":escalated");
+        List<String> names = event.escalatedTo().stream().map(this::nameOf).toList();
+        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.escalatedNote(names));
+    }
+
+    @ApplicationModuleListener
+    void onTaskReleased(TaskReleased event) {
+        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.releasedNote(nameOf(event.releasedBy())));
+    }
+
+    @ApplicationModuleListener
+    void onTaskClosed(TaskClosed event) {
+        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.closedNote());
+    }
+
+    @ApplicationModuleListener
+    void onApprovalCompleted(ApprovalCompleted event) {
+        send(null, List.of(event.initiator()), ApprovalTexts.completedTitle(event.outcome()),
+                ApprovalTexts.completedBody(event.processKey(), event.document(), event.round().value(),
+                        event.reason() == null ? null : event.reason().value()),
+                "approval-instance:" + event.instanceId().value() + ":completed");
     }
 
     private void send(ApprovalTaskId taskId, List<UserId> recipients, String title, String description, String dedupKey) {
         List<WecomUserId> wecomIds = new ArrayList<>();
         for (UserId recipient : recipients) {
-            WecomUserId wecomUserId = org.findEmployee(recipient).map(EmployeeProfile::wecomUserId).orElse(null);
-            if (wecomUserId == null) {
-                log.warn("Approval task {}: {} has no WeCom user id, no card sent", taskId.value(), recipient.value());
+            Optional<EmployeeProfile> profile = org.findEmployee(recipient);
+            if (profile.isPresent() && profile.get().employmentStatus() != EmploymentStatus.EMPLOYED) {
+                log.info("Card {}: {} has separated, no card sent", dedupKey, recipient.value());
+                meters.counter("forcitis.platform.approval.notification.skipped").increment();
+            } else if (profile.isEmpty() || profile.get().wecomUserId() == null) {
+                log.warn("Card {}: {} has no WeCom user id, no card sent", dedupKey, recipient.value());
                 meters.counter("forcitis.platform.approval.notification.skipped").increment();
             } else {
-                wecomIds.add(wecomUserId);
+                wecomIds.add(profile.get().wecomUserId());
             }
         }
         if (wecomIds.isEmpty()) {
+            log.error("ALERT card {} reaches nobody: none of {} can receive it", dedupKey, recipients);
+            meters.counter("forcitis.platform.approval.notification.failed").increment();
             return;
         }
-        wecom.send(new WecomCard(wecomIds, title, description, properties.taskUrlTemplate().replace("{taskId}", taskId.value()), dedupKey));
+        String target = taskId == null ? properties.taskUrlTemplate().replace("/{taskId}", "") : properties.taskUrlTemplate().replace("{taskId}", taskId.value());
+        wecom.send(new WecomCard(wecomIds, title, description, target, dedupKey));
+    }
+
+    private String nameOf(UserId user) {
+        return org.findEmployee(user).map(EmployeeProfile::name).orElse(ApprovalTexts.aColleague());
+    }
+
+    private String moment(Instant instant) {
+        return MOMENT.format(instant.atZone(zone.zone()));
     }
 
     private static String dedupKey(ApprovalTaskId taskId) {

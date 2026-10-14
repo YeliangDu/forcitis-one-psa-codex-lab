@@ -10,7 +10,6 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /** A scheduled job starts a correlation of its own; an event handler continues the correlation of the event it handles. */
@@ -18,9 +17,9 @@ import org.springframework.stereotype.Component;
 @Component
 class UnitOfWorkAspect {
 
-    private final ObjectProvider<Clock> clock;
+    private final Clock clock;
 
-    UnitOfWorkAspect(ObjectProvider<Clock> clock) {
+    UnitOfWorkAspect(Clock clock) {
         this.clock = clock;
     }
 
@@ -53,6 +52,6 @@ class UnitOfWorkAspect {
     }
 
     private UUID newCorrelation() {
-        return Uuids.timeOrdered(clock.getIfAvailable(Clock::systemUTC));
+        return Uuids.timeOrdered(clock);
     }
 }

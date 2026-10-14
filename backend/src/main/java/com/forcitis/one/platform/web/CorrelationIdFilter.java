@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.UUID;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -21,9 +20,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 class CorrelationIdFilter extends OncePerRequestFilter {
 
-    private final ObjectProvider<Clock> clock;
+    private final Clock clock;
 
-    CorrelationIdFilter(ObjectProvider<Clock> clock) {
+    CorrelationIdFilter(Clock clock) {
         this.clock = clock;
     }
 
@@ -33,7 +32,7 @@ class CorrelationIdFilter extends OncePerRequestFilter {
         String supplied = request.getHeader(WorkContext.HEADER);
         UUID correlationId;
         if (supplied == null || supplied.isBlank()) {
-            correlationId = Uuids.timeOrdered(clock.getIfAvailable(Clock::systemUTC));
+            correlationId = Uuids.timeOrdered(clock);
         } else {
             try {
                 correlationId = UUID.fromString(supplied.trim());

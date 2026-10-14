@@ -5,9 +5,6 @@
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xmlns:forcitis="https://forcitis.com/psa/approval/extension"
              targetNamespace="https://forcitis.com/psa/approval">
-  <!-- Which routes run, whether a node may be skipped, whether a repeat approver passes automatically and the node deadlines come from the
-       decision table cost_timesheet_approval_nodes (routed_<node> and the other answers are process variables set at the start).
-       Each node is a countersign: one task per distinct approver, all must approve. -->
   <process id="cost_timesheet_approval" name="工时审批（候选组）" isExecutable="true">
     <startEvent id="start"/>
     <sequenceFlow id="toReviewStage" sourceRef="start" targetRef="reviewStage"/>
@@ -26,17 +23,20 @@
       </sequenceFlow>
       <userTask id="projectManagerReview" name="项目经理审批">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" routingFlag="projectHours" skipWhenEmpty="true"
+                                   autoApproveRepeat="true" deadlineWorkdays="1" escalationWorkdays="1"/>
         </extensionElements>
       </userTask>
       <userTask id="regionalHeadReview" name="区域负责人审批">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId" routingFlag="preSalesHours" skipWhenEmpty="true"
+                                   autoApproveRepeat="true" deadlineWorkdays="1" escalationWorkdays="1"/>
         </extensionElements>
       </userTask>
       <userTask id="supervisorReview" name="一级汇报人审批">
         <extensionElements>
-          <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1"/>
+          <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1" routingFlag="overheadHours" skipWhenEmpty="true"
+                                   autoApproveRepeat="true" deadlineWorkdays="1" escalationWorkdays="1"/>
         </extensionElements>
       </userTask>
       <sequenceFlow id="fromProjectManagerReview" sourceRef="projectManagerReview" targetRef="reviewJoin"/>

@@ -11,6 +11,9 @@ public interface LegalEntityQueries {
 
     Optional<LegalEntityRecord> find(LegalEntityId legalEntityId);
 
-    record LegalEntityRecord(LegalEntityId legalEntityId, LegalEntityCode code, String name, LegalEntityStatus status) {
+    /** Holds a shared lock until the surrounding transaction ends. */
+    Optional<LegalEntityRecord> findSharedLocked(LegalEntityId legalEntityId);
+
+    record LegalEntityRecord(LegalEntityId legalEntityId, LegalEntityCode code, String name, LegalEntityStatus status, Long accountingOrganizationNumber, long version) {
     }
 }

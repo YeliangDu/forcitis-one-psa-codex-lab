@@ -1,6 +1,6 @@
+import { logout } from '@forcitis/core';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { logout } from '../api/session-api';
 
 export function useLogout(): () => void {
   const queryClient = useQueryClient();

@@ -38,3 +38,37 @@ FORCITIS one 收到票据后，由服务端向 A8 验票：`GET <A8 地址>/seey
 ## 回滚
 
 在 A8 门户中停用或删除新入口；运维设 `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED=false` 并重启。老系统入口不受影响。
+
+
+## 实测（2026-10-15，one-ops，只读）
+
+- A8 里与老系统有关的两处配置：
+  - 「关联系统」**数字运营平台**（启用，作为空间展示）：POST `https://psa.forcitis.com:48088/admin-api/system/auth/a8-login`，只带参数 `memberId`，**不带票据、不验票**。这正是老系统的身份信任缺陷，新系统不得照搬。
+  - 「第三方应用」`FORCITIS PSA`（**未启用**）：门户配置页面地址为老系统的 `seeyon-sso` 接口，即票据方式：A8 跳转时追加 `ticket`，对方回调 `thirdpartyController.do` 验票。
+- **做法**：在 A8 后台「第三方应用」中，参照「`FORCITIS PSA`」那一条新建「FORCITIS one」：PC 页面地址 `https://one.forcitis.com/login/sso`，认证方式与「`FORCITIS PSA`」相同，启用；可见范围 dev 阶段只放平台负责人。不改「`FORCITIS PSA`」与「数字运营平台」。
+- A8 验票根地址：`https://bpm.forcitis.com`（取自老系统配置中心的 `seeyon-sso.oa-base-url`）。从 ECS 访问 `https://bpm.forcitis.com/seeyon/thirdpartyController.do` 返回 200，假票据得到空响应，可达。
+- 运维侧已写入 `one.env`：`SEEYON_OA_BASE_URL=https://bpm.forcitis.com`、`FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED=true`、`LEGACY_LOGIN_URL=https://psa.forcitis.com`（应用未部署前不生效）。
+- 还缺：A8 门户中新入口的页面地址（`VITE_SSO_PORTAL_URL`，R-2 构建期变量）与入口位置截图，在 A8 中建好入口后取。
+
+## A8 后台操作步骤（给用户或 A8 管理员）
+
+1. 用 A8 系统管理员账号登录 `https://bpm.forcitis.com`，进入「第三方应用」（`FORCITIS PSA` 就在其中，未启用）。
+2. 打开 `FORCITIS PSA` 看它的各项设置（只看不改），按同样的设置新建一个应用：
+   - 应用名称：FORCITIS one
+   - 认证方式：与 `FORCITIS PSA` 相同（票据方式：A8 跳转时追加 `ticket`，对方回调 `/seeyon/thirdpartyController.do` 验票）
+   - PC 页面地址：`https://one.forcitis.com/login/sso`
+   - H5 页面地址：留空（H5 走企业微信工作台入口）
+   - 可见范围：dev 阶段只放平台负责人本人
+   - 启用
+3. 不修改、不停用 `FORCITIS PSA` 与关联系统「数字运营平台」。
+4. 保存后在 A8 门户找到新入口，点一次：浏览器应跳到 `https://one.forcitis.com/login/sso?ticket=…`（应用未部署前会看到占位页或错误页，属正常，只看地址栏里是否带了 `ticket`）。
+
+## 建好后回传（经 one-ops 或 one-coordinator）
+
+| 回传项 | 用途 |
+|---|---|
+| 新入口在 A8 门户中的位置（菜单路径或截图） | 冒烟测试与回滚演练 D-7 |
+| 点击新入口时 A8 先打开的门户页面地址（浏览器地址栏，去掉 `ticket` 等参数） | PC 登录页「致远单点登录」按钮的目标，R-2 构建期变量 `VITE_SSO_PORTAL_URL` |
+| 第 4 步地址栏是否带 `ticket=`（是 / 否，不要回传票据值） | 确认 A8 按票据方式跳转 |
+
+运维侧已就绪：`one.env` 中 `SEEYON_OA_BASE_URL=https://bpm.forcitis.com`、`FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED=true`、`LEGACY_LOGIN_URL=https://psa.forcitis.com`；ECS 到验票接口可达。

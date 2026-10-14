@@ -1,5 +1,5 @@
+import { safeInternalPath } from '@forcitis/core';
 import { useLocation } from 'react-router';
-import { safeInternalPath } from '@/shared/lib/safe-url';
 
 export function useReturnPath(): string {
   const location = useLocation();

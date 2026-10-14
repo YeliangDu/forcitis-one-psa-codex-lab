@@ -1,16 +1,22 @@
 // Generates packages/api/src/generated/{schema,validators,operations}.ts from packages/api/openapi.json (written by the backend's OpenApiExportTest).
 // schema.ts = TypeScript types (openapi-typescript); validators.ts = Zod schemas of every component and of every operation's 200 answer;
-// operations.ts = one function per operation that validates the answer at runtime. The three files always move together (`--check` in `pnpm verify`).
+// operations.ts = one function per operation that validates the answer at runtime and carries its platform traits (If-Match, Idempotency-Key).
+// The three files always move together (`--check` in `pnpm verify`).
+// The document must keep the platform conventions (PHASE1A_PLATFORM_CONVENTIONS): ProblemDetail + ErrorCode components, an error answer on every
+// operation, cursor paging ({items, nextCursor} with cursor/limit, never page/offset), If-Match / Idempotency-Key as the only header parameters.
 //   node scripts/generate-api.mjs           regenerate
 //   node scripts/generate-api.mjs --check   fail when the committed files differ from what openapi.json produces (runs in `pnpm verify`)
+//   --spec <file> --out <dir>                read another document / write another directory (scripts/generate-api.test.mjs)
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import openapiTS, { astToString } from 'openapi-typescript';
+import ts from 'typescript';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'api');
-const specPath = join(root, 'openapi.json');
-const outDir = join(root, 'src', 'generated');
+const valueOf = (flag) => process.argv.find((argument, index, all) => all[index - 1] === flag);
+const specPath = valueOf('--spec') ?? join(root, 'openapi.json');
+const outDir = valueOf('--out') ?? join(root, 'src', 'generated');
 const check = process.argv.includes('--check');
 
 const spec = JSON.parse(readFileSync(specPath, 'utf8'));
@@ -32,6 +38,51 @@ function operationName(method, path) {
   return method + parts.join('');
 }
 
+const IF_MATCH = 'If-Match';
+const IDEMPOTENCY_KEY = 'Idempotency-Key';
+const PAGING_PARAMETERS_FORBIDDEN = new Set(['page', 'size', 'offset', 'pageSize', 'pageNo']);
+
+function requireSchema(name) {
+  if (spec.components?.schemas?.[name] === undefined) {
+    throw new Error(`generate-api: components.schemas.${name} is missing. The backend document must declare it (ProblemDetail and the ErrorCode enum are part of the contract).`);
+  }
+}
+requireSchema('ProblemDetail');
+requireSchema('ErrorCode');
+if (spec.components.schemas.ErrorCode.enum === undefined || spec.components.schemas.ErrorCode.enum.length === 0) {
+  throw new Error('generate-api: components.schemas.ErrorCode must be a non-empty string enum.');
+}
+if (spec.components.schemas.ProblemDetail.properties?.errorCode?.$ref !== '#/components/schemas/ErrorCode') {
+  throw new Error('generate-api: ProblemDetail.errorCode must reference the ErrorCode enum.');
+}
+
+function resolveSchema(node) {
+  return node?.$ref === undefined ? node : spec.components.schemas[refName(node.$ref)];
+}
+
+function checkConventions(operation, where) {
+  const failures = [];
+  const parameters = operation.parameters ?? [];
+  const errorAnswers = Object.entries(operation.responses ?? {}).filter(([status]) => status === 'default' || /^[45]\d\d$/.test(status));
+  const declaresProblem = errorAnswers.some(([, answer]) => answer.content?.['application/problem+json']?.schema?.$ref === '#/components/schemas/ProblemDetail');
+  if (!declaresProblem) failures.push('declares no application/problem+json ProblemDetail error answer');
+  if (errorAnswers.some(([, answer]) => Object.values(answer.content ?? {}).some((media) => media.schema?.$ref !== '#/components/schemas/ProblemDetail'))) {
+    failures.push('has an error answer that is not ProblemDetail');
+  }
+  for (const parameter of parameters) {
+    if (parameter.in === 'query' && PAGING_PARAMETERS_FORBIDDEN.has(parameter.name)) failures.push(`uses the query parameter "${parameter.name}"; lists page by cursor + limit`);
+    if (parameter.in === 'header' && parameter.name !== IF_MATCH && parameter.name !== IDEMPOTENCY_KEY) failures.push(`declares the header parameter "${parameter.name}"; only ${IF_MATCH} and ${IDEMPOTENCY_KEY} are managed by the client`);
+    if (parameter.in === 'header' && parameter.name === IF_MATCH && parameter.required !== true) failures.push('declares an optional If-Match; a versioned update must require it');
+  }
+  const hasCursor = parameters.some((parameter) => parameter.in === 'query' && parameter.name === 'cursor');
+  const answer = resolveSchema(operation.responses?.['200']?.content?.['application/json']?.schema ?? operation.responses?.['200']?.content?.['*/*']?.schema);
+  const paged = answer?.properties?.nextCursor !== undefined;
+  if (hasCursor && !(paged && answer.properties.items?.type === 'array')) failures.push('takes a cursor but its 200 answer is not {items, nextCursor}');
+  if (paged && !hasCursor) failures.push('answers with nextCursor but takes no cursor parameter');
+  if (hasCursor && !parameters.some((parameter) => parameter.in === 'query' && parameter.name === 'limit')) failures.push('takes a cursor but no limit');
+  if (failures.length > 0) throw new Error(`generate-api: ${where}: ${failures.join('; ')}`);
+}
+
 const operations = [];
 const seen = new Set();
 for (const path of Object.keys(spec.paths).sort()) {
@@ -40,7 +91,9 @@ for (const path of Object.keys(spec.paths).sort()) {
     const name = operationName(method, path);
     if (seen.has(name)) throw new Error(`generate-api: two operations would be named ${name}`);
     seen.add(name);
-    operations.push({ name, method, path });
+    checkConventions(spec.paths[path][method], `${method} ${path}`);
+    const headerNames = (spec.paths[path][method].parameters ?? []).filter((parameter) => parameter.in === 'header').map((parameter) => parameter.name);
+    operations.push({ name, method, path, versioned: headerNames.includes(IF_MATCH), idempotent: headerNames.includes(IDEMPOTENCY_KEY) });
   }
 }
 
@@ -77,7 +130,7 @@ function zodOf(node, where) {
   let expression;
   switch (type) {
     case 'string': {
-      expression = node.enum === undefined ? 'z.string()' : `z.enum([${node.enum.map(literal).join(', ')}])`;
+      expression = node.enum === undefined ? 'z.string()' : `lenientEnum(${literal(where)}, [${node.enum.map(literal).join(', ')}])`;
       if (node.pattern !== undefined) expression += `.regex(new RegExp(${literal(node.pattern)}))`;
       break;
     }
@@ -136,8 +189,46 @@ const responseEntries = operations.map(({ name, method, path }) => {
 }).filter((entry) => entry !== undefined);
 
 const HEADER = '// Generated from packages/api/openapi.json by scripts/generate-api.mjs. Do not edit by hand.\n';
-const schema = HEADER + astToString(await openapiTS(spec));
+const isEnum = (node) => node.enum !== undefined || (node.$ref !== undefined && spec.components?.schemas?.[refName(node.$ref)]?.enum !== undefined);
+
+/**
+ * The Zod validators let a value a newer server added pass through (lenientEnum), so the type of an enum-valued property is
+ * `Union | (string & {})`: a table lookup by it does not compile without a fallback (labelOf). The enum components themselves stay closed unions,
+ * so `Record<Union, ...>` tables remain exhaustive.
+ */
+function withoutNull(type) {
+  if (!ts.isUnionTypeNode(type)) return type;
+  const kept = type.types.filter((member) => !(ts.isLiteralTypeNode(member) && member.literal.kind === ts.SyntaxKind.NullKeyword));
+  if (kept.length === type.types.length) return type;
+  return kept.length === 1 ? kept[0] : ts.factory.createUnionTypeNode(kept);
+}
+
+/**
+ * The client removes every null from an answer before it is validated (the server writes an absent optional property as null), so no property is typed `| null`.
+ * Enum-valued properties get the open union described above.
+ */
+function adjustProperty(property, schemaObject) {
+  if (property.type === undefined) return undefined;
+  const type = withoutNull(property.type);
+  const open = ts.factory.createIntersectionTypeNode([ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword), ts.factory.createTypeLiteralNode([])]);
+  const finalType = isEnum(schemaObject) ? ts.factory.createUnionTypeNode([type, open]) : type;
+  if (finalType === property.type) return undefined;
+  return ts.factory.updatePropertySignature(property, property.modifiers, property.name, property.questionToken, finalType);
+}
+
+/** An enum component the backend marked nullable (type ["string", "null"]) is a plain enum for the types: the client removes nulls before anything reads them. */
+const typeSpec = structuredClone(spec);
+for (const component of Object.values(typeSpec.components?.schemas ?? {})) {
+  if (component.enum !== undefined && Array.isArray(component.type)) component.type = component.type.find((candidate) => candidate !== 'null');
+}
+
+const schema = HEADER + astToString(await openapiTS(typeSpec, { transformProperty: adjustProperty }));
+const errorCodeValues = `export const ErrorCodeValues = [${spec.components.schemas.ErrorCode.enum.map(literal).join(', ')}] as const;`;
+
 const validatorsSource = `${HEADER}import { z } from 'zod';
+import { lenientEnum } from '../contract';
+
+${errorCodeValues}
 
 ${componentSource}
 
@@ -147,12 +238,22 @@ ${responseEntries.join('\n')}
 `;
 
 const withResponseSchema = new Set(responseEntries.map((entry) => entry.trim().split(':')[0]));
+function traitsOf({ versioned, idempotent }) {
+  const traits = [versioned ? 'versioned: true' : '', idempotent ? 'idempotent: true' : ''].filter(Boolean);
+  return traits.length === 0 ? '' : `, { ${traits.join(', ')} }`;
+}
+
 const operationsSource = `${HEADER}import { type Call, type Result, request } from '../runtime';
 import type { paths } from './schema';
 import { responseSchemas } from './validators';
 
-${operations.map(({ name, method, path }) => `export const ${name} = (...[args, options]: Call<paths['${path}']['${method}']>) =>
-  request<Result<paths['${path}']['${method}']>>('${method}', '${path}', args, options${withResponseSchema.has(name) ? `, responseSchemas.${name}` : ''});`).join('\n\n')}
+${operations.map((operation) => {
+  const { name, method, path } = operation;
+  const traits = traitsOf(operation);
+  const schemaArgument = withResponseSchema.has(name) ? `responseSchemas.${name}` : 'undefined';
+  return `export const ${name} = (...[args, options]: Call<paths['${path}']['${method}']>) =>
+  request<Result<paths['${path}']['${method}']>>('${method}', '${path}', args, options, ${schemaArgument}${traits});`;
+}).join('\n\n')}
 `;
 
 const files = { 'schema.ts': schema, 'validators.ts': validatorsSource, 'operations.ts': operationsSource };

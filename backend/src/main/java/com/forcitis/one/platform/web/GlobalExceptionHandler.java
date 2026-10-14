@@ -1,6 +1,12 @@
 package com.forcitis.one.platform.web;
 
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.InvalidCursorException;
+import com.forcitis.one.kernel.InvalidRequestException;
+import com.forcitis.one.kernel.VersionMalformedException;
+import com.forcitis.one.kernel.VersionMismatchException;
+import com.forcitis.one.kernel.VersionRequiredException;
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import org.slf4j.Logger;
@@ -30,8 +36,44 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ProblemDetail> refused(DomainException refusal) {
-        HttpStatusCode status = HttpStatusCode.valueOf(refusal.kind().status());
-        return ResponseEntity.status(status).body(ProblemDetails.of(status, refusal.errorCode(), refusal.getMessage()));
+        LOG.info("refused {}: {}", refusal.errorCode().code(), refusal.getMessage());
+        return ResponseEntity.status(refusal.kind().status())
+                .body(ProblemDetails.of(refusal.errorCode(), refusal.kind(), refusal.extensions()));
+    }
+
+    @ExceptionHandler(VersionRequiredException.class)
+    ResponseEntity<ProblemDetail> versionRequired(VersionRequiredException failure) {
+        return refused(new DomainException(WebError.PLATFORM_WEB_VERSION_REQUIRED, ErrorKind.PRECONDITION_REQUIRED, failure.getMessage()));
+    }
+
+    @ExceptionHandler(VersionMismatchException.class)
+    ResponseEntity<ProblemDetail> versionMismatch(VersionMismatchException failure) {
+        return refused(new DomainException(WebError.PLATFORM_WEB_VERSION_MISMATCH, ErrorKind.PRECONDITION_FAILED, failure.getMessage()));
+    }
+
+    @ExceptionHandler(VersionMalformedException.class)
+    ResponseEntity<ProblemDetail> versionMalformed(VersionMalformedException failure) {
+        return refused(new DomainException(WebError.PLATFORM_WEB_VERSION_MALFORMED, ErrorKind.INVALID, failure.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    ResponseEntity<ProblemDetail> invalidRequest(InvalidRequestException failure) {
+        return refused(new DomainException(WebError.PLATFORM_WEB_REQUEST_INVALID, ErrorKind.INVALID, failure.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCursorException.class)
+    ResponseEntity<ProblemDetail> invalidCursor(InvalidCursorException failure) {
+        return refused(new DomainException(WebError.PLATFORM_WEB_CURSOR_INVALID, ErrorKind.INVALID, failure.getMessage()));
+    }
+
+    @ExceptionHandler({AccessDeniedException.class})
+    ResponseEntity<ProblemDetail> denied(AccessDeniedException failure) {
+        return refused(new DomainException(WebError.PLATFORM_WEB_ACCESS_DENIED, ErrorKind.FORBIDDEN, failure.getMessage()));
+    }
+
+    @ExceptionHandler({AuthenticationException.class})
+    ResponseEntity<ProblemDetail> unauthenticated(AuthenticationException failure) {
+        return refused(new DomainException(WebError.PLATFORM_WEB_UNAUTHENTICATED, ErrorKind.UNAUTHENTICATED, failure.getMessage()));
     }
 
     @ExceptionHandler(ExternalSystemUnavailableException.class)
@@ -49,10 +91,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ProblemDetail> unexpected(Exception failure) throws Exception {
-        if (failure instanceof AccessDeniedException || failure instanceof AuthenticationException) {
-            throw failure;
-        }
+    ResponseEntity<ProblemDetail> unexpected(Exception failure) {
         LOG.error("unexpected failure", failure);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ProblemDetails.of(HttpStatus.INTERNAL_SERVER_ERROR,
                 WebError.PLATFORM_WEB_UNEXPECTED, "Unexpected error. Quote the correlation id when reporting it."));

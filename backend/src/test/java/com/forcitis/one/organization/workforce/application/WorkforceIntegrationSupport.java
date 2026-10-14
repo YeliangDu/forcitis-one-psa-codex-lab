@@ -1,7 +1,10 @@
 package com.forcitis.one.organization.workforce.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import com.forcitis.one.platform.integration.api.WecomGateway;
@@ -45,9 +48,24 @@ public abstract class WorkforceIntegrationSupport {
     protected FakeOrgSource orgSource;
 
     @Autowired
+    protected AdjustableClock clock;
+
+    @Autowired
     protected FakeShortNameSource oldSystem;
 
     private WorkContext.Scope acting;
+
+    @BeforeEach
+    protected void startCountingAggregateWrites() {
+        com.forcitis.one.fixture.doubles.AggregateWriteGuard.forget();
+    }
+
+    @AfterEach
+    protected void oneTransactionChangesOneAggregateUnlessRegistered() {
+        List<String> violations = com.forcitis.one.fixture.doubles.AggregateWriteGuard.violations();
+        com.forcitis.one.fixture.doubles.AggregateWriteGuard.forget();
+        assertThat(violations).as("DDD-1 one transaction changes one aggregate").isEmpty();
+    }
 
     @BeforeEach
     protected void actAsTheTestJob() {
@@ -62,13 +80,17 @@ public abstract class WorkforceIntegrationSupport {
     @BeforeEach
     protected void emptySnapshot() {
         awaitEventListeners();
-        jdbc.sql("""
+        VersionTables.truncate(jdbc, """
                 truncate table organization_workforce.sync_diffs, organization_workforce.sync_runs,
+                       organization_workforce.org_unit_legal_entities, organization_workforce.employee_legal_entities, organization_workforce.legal_entity_attributions,
+                       organization_workforce.org_unit_versions, organization_workforce.assignment_versions,
                        organization_workforce.assignments, organization_workforce.employees,
                        organization_workforce.org_units, organization_workforce.positions restart identity cascade
-                """).update();
+                """);
+        clock.reset();
         orgSource.unavailable = false;
         orgSource.failure = null;
+        orgSource.afterRead = () -> { };
         orgSource.singleLookupResult = java.util.List.of();
         orgSource.singleLookups.set(0);
         oldSystem.unavailable = false;
@@ -76,21 +98,31 @@ public abstract class WorkforceIntegrationSupport {
     }
 
     // TRUNCATE takes an exclusive lock: listeners of the previous test's events (identity, audit) must have finished first,
-    // otherwise the two wait on each other (PessimisticLockingFailureException). Archive mode leaves only unfinished rows here.
+    // otherwise the two wait on each other (PessimisticLockingFailureException). Only the events of this module are waited for,
+    // and a timeout names the listeners that did not finish.
     protected void awaitEventListeners() {
         long deadline = System.nanoTime() + java.time.Duration.ofSeconds(20).toNanos();
-        while (jdbc.sql("select count(*) from platform_integration.event_publication").query(Integer.class).single() > 0) {
+        java.util.List<String> unfinished = unfinishedListeners();
+        while (!unfinished.isEmpty()) {
             if (System.nanoTime() > deadline) {
-                throw new AssertionError("event listeners still running after 20 s");
+                throw new AssertionError("event listeners still running after 20 s: " + unfinished);
             }
-            Thread.onSpinWait();
             try {
                 Thread.sleep(20);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new AssertionError(e);
             }
+            unfinished = unfinishedListeners();
         }
+    }
+
+    private java.util.List<String> unfinishedListeners() {
+        return jdbc.sql("""
+                select listener_id || ' <- ' || event_type from platform_integration.event_publication
+                 where completion_date is null and event_type like 'com.forcitis.one.organization.workforce.%'
+                 order by publication_date
+                """).query(String.class).list();
     }
 
     protected int count(String table) {

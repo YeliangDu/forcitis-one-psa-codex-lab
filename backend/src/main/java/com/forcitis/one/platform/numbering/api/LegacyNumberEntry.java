@@ -4,10 +4,14 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.ValueObject;
 import java.util.Objects;
+import java.util.Optional;
 
-/** The numeric part of the document id is what the legacy link table stores; a non-numeric id cannot be linked. */
+/**
+ * The numeric part of the document id is what the legacy link table stores; a non-numeric id cannot be linked. legalEntity is empty
+ * when the import could not work it out: the original number stays searchable.
+ */
 @ValueObject
-public record LegacyNumberEntry(DocumentReference document, String legacyNumber, LegalEntityId legalEntity, String importBatch) {
+public record LegacyNumberEntry(DocumentReference document, String legacyNumber, Optional<LegalEntityId> legalEntity, String importBatch) {
     public static final int MAX_LENGTH = 128;
 
     public LegacyNumberEntry {

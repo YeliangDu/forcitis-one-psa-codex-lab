@@ -2,7 +2,7 @@ package com.forcitis.one.organization.attendance.infrastructure.persistence;
 
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.attendance.domain.CalendarDay;
-import com.forcitis.one.organization.attendance.domain.DayKind;
+import com.forcitis.one.organization.attendance.api.DayKind;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarQueries;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarYearRecord;
@@ -22,13 +22,13 @@ class JdbcWorkCalendarQueries implements WorkCalendarQueries {
     @Override
     public Optional<WorkCalendarYearRecord> find(WorkCalendarKey key) {
         return jdbc.sql("""
-                        select id from organization_attendance.work_calendar_years
+                        select id, version from organization_attendance.work_calendar_years
                          where legal_entity_id is not distinct from :legalEntityId and year_number = :year
                         """)
                 .param("legalEntityId", key.legalEntityId() == null ? null : key.legalEntityId().value(), java.sql.Types.BIGINT)
                 .param("year", key.calendarYear())
-                .query(Long.class).optional()
-                .map(id -> new WorkCalendarYearRecord(key, days(id)));
+                .query((rs, n) -> new long[] {rs.getLong("id"), rs.getLong("version")}).optional()
+                .map(row -> new WorkCalendarYearRecord(key, days(row[0]), row[1]));
     }
 
     private List<CalendarDay> days(long yearId) {

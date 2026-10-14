@@ -1,14 +1,19 @@
 package com.forcitis.one.organization.attendance.domain;
 
+import com.forcitis.one.organization.attendance.api.DayKind;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /** A maintained year as it is stored, for reading; changes go through WorkCalendarYear. */
-public record WorkCalendarYearRecord(WorkCalendarKey key, List<CalendarDay> days) {
+public record WorkCalendarYearRecord(WorkCalendarKey key, List<CalendarDay> days, long version) {
     public WorkCalendarYearRecord {
         days = List.copyOf(days);
+    }
+
+    public WorkCalendarYearRecord(WorkCalendarKey key, List<CalendarDay> days) {
+        this(key, days, 0);
     }
 
     public boolean isWorkday(LocalDate date) {
