@@ -17,7 +17,7 @@
 3. 证据与机器产物目录：rules/raw/、map/、runtime/、u8c/。
 4. 行内字面：反引号内、代码块内、URL 中；「」或“”引号内（用户原话、引用的字面值）；intent 片段「## 原话」一节。
 5. 软件类别：PSA 指 Professional Services Automation 这一类软件时保留。判定：同一行含
-   Kantata / Certinia / Deltek / 行业通行 / 通行指标 / Professional Services Automation，或是术语来源引用（refs）。
+   Kantata / Certinia / Deltek / 行业通行 / 通行指标 / 「PSA 行业」 / Professional Services Automation，或是术语来源引用（refs）。
 6. 显式白名单 glossary/legacy-name-allowlist.txt：每行「路径<Tab>子串」，该路径中含此子串的行不报（用于数据值，如 U8C 摘要前缀「PSA系统」）。
 """
 import os, re, subprocess, sys
@@ -25,7 +25,7 @@ import os, re, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MOD = "docs/modernization/"
 TOKEN = re.compile(r"(?<![A-Za-z0-9_\-/.])PSA(?![A-Za-z0-9_\-])")
-INDUSTRY = re.compile(r"Kantata|Certinia|Deltek|行业通行|通行指标|Professional Services Automation|refs\s*=|\[\s*\"PSA\"")
+INDUSTRY = re.compile(r"Kantata|Certinia|Deltek|行业通行|通行指标|PSA\s*行业|Professional Services Automation|refs\s*=|\[\s*\"PSA\"")
 SKIP_FILES = {MOD + f for f in ("INTENT.md", "STATUS.md", "MODERNIZATION_BRIEF.md", "SESSION_LOG.md", "adr/README.md")}
 SKIP_DIRS = tuple(MOD + d for d in ("session-log/", "rules/raw/", "map/", "runtime/", "u8c/"))
 ADR_BODY = re.compile(r"^docs/modernization/adr/(src/)?ADR-\d{4}\.md$")
