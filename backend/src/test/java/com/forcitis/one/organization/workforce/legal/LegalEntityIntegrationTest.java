@@ -43,6 +43,9 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     static final RequestPostProcessor MAINTAINER = user("9001").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
     static final RequestPostProcessor READER = user("9002").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    com.forcitis.one.organization.workforce.api.LegalEntityNumberUsage numberUsage;
+
     @Autowired
     MockMvc mvc;
 
@@ -57,7 +60,7 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
 
     @BeforeEach
     void noLegalEntities() {
-        jdbc.sql("truncate table platform_numbering.numbering_counters").update();
+        org.mockito.Mockito.when(numberUsage.hasIssuedNumbers(org.mockito.ArgumentMatchers.any())).thenReturn(false);
         jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
     }
 
@@ -149,7 +152,7 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     void codeIsLockedByIssuedNumbers() throws Exception {
         create("FST", "One");
         create("QQQ", "Two");
-        jdbc.sql("insert into platform_numbering.numbering_counters (document_type, legal_entity_id, period_key, last_value) values ('QUOTE', 1, '202610', 1)").update();
+        org.mockito.Mockito.when(numberUsage.hasIssuedNumbers(new LegalEntityId(1))).thenReturn(true);
 
         mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"FSTX\",\"name\":\"One\",\"status\":\"ACTIVE\"}"))

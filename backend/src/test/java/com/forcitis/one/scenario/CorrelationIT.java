@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.eventing;
+package com.forcitis.one.scenario;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;

@@ -122,4 +122,35 @@ class AuditDomainEventsIT {
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf("LegalEntity:603")).hasSize(1));
         assertThat(entriesOf("LegalEntity:601")).isEmpty();
     }
+
+    @Test
+    @DisplayName("one handling leaves one audit entry per event it raised, all with its correlation id, however often the registry redelivers them")
+    void oneHandlingLeavesOneEntryPerEvent() {
+        UUID correlation = UUID.randomUUID();
+        LegalEntityRegistered first = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "701", ActorType.USER, "9001", correlation),
+                new LegalEntityId(701), new LegalEntityCode("ONE"));
+        LegalEntityRegistered second = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "702", ActorType.USER, "9001", correlation),
+                new LegalEntityId(702), new LegalEntityCode("TWO"));
+
+        tx.executeWithoutResult(status -> {
+            publisher.publishEvent(first);
+            publisher.publishEvent(second);
+        });
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+            assertThat(entriesOf("LegalEntity:701")).hasSize(1);
+            assertThat(entriesOf("LegalEntity:702")).hasSize(1);
+        });
+        for (int redelivery = 0; redelivery < 2; redelivery++) {
+            tx.executeWithoutResult(status -> {
+                publisher.publishEvent(first);
+                publisher.publishEvent(second);
+            });
+        }
+        await().pollDelay(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            assertThat(entriesOf("LegalEntity:701")).hasSize(1);
+            assertThat(entriesOf("LegalEntity:702")).hasSize(1);
+        });
+        assertThat(jdbc.sql("select count(*) from platform_audit.audit_entries where correlation_id = :c").param("c", correlation)
+                .query(Long.class).single()).isEqualTo(2L);
+    }
 }

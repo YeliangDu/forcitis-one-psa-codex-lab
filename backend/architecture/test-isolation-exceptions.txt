@@ -1,0 +1,11 @@
+# A test of one module whose SQL names the schema of another: <path under src/test/java/com/forcitis/one>#<schema>  # why.
+# TestIsolationGuardTest fails for a reference outside this list and for a line here that is no longer needed. Framework tables
+# (Spring Session, Modulith event publication, ShedLock) are not another module's data. Cross-module scenarios belong in scenario/.
+# The entries below belong to the approval and timesheet work stream and go when their tests stop reading each other's tables (review H-7).
+cost/timesheet/application/TimesheetApprovalScenarioIT.java#delivery_execution  # to be removed with the timesheet / approval fix batch
+cost/timesheet/application/TimesheetApprovalScenarioIT.java#platform_approval  # to be removed with the timesheet / approval fix batch
+cost/timesheet/web/TimesheetHttpIT.java#delivery_execution  # to be removed with the timesheet / approval fix batch
+platform/approval/AggregateConcurrencyIT.java#delivery_execution  # to be removed with the timesheet / approval fix batch
+platform/approval/AggregateConcurrencyIT.java#cost_timesheet  # to be removed with the timesheet / approval fix batch
+platform/approval/ApprovalIntegrationSupport.java#platform_audit  # to be removed with the timesheet / approval fix batch
+platform/approval/TaskLifecycleIT.java#platform_audit  # to be removed with the timesheet / approval fix batch
