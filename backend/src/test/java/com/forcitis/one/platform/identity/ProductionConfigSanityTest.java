@@ -101,6 +101,17 @@ class ProductionConfigSanityTest {
     }
 
     @Test
+    @DisplayName("release pipeline: the prod profile never migrates by itself; migrations run in the separate migrate step")
+    void productionServiceDoesNotMigrate() throws IOException {
+        Properties prod = new Properties();
+        prod.load(new StringReader(Files.readString(RESOURCES.resolve("application-prod.properties"))));
+        assertThat(prod.getProperty("spring.flyway.enabled")).isEqualTo("false");
+        Properties shared = new Properties();
+        shared.load(new StringReader(Files.readString(RESOURCES.resolve("application.properties"))));
+        assertThat(shared.getProperty("spring.flyway.default-schema")).isEqualTo("one_migration");
+    }
+
+    @Test
     @DisplayName("N-3 the application refuses to start under the prod profile unless the primary database is reached with sslmode=verify-full and a readable CA file")
     void productionVerifiesTheDatabaseServer(@org.junit.jupiter.api.io.TempDir Path directory) throws Exception {
         Class<?> guard = Class.forName("com.forcitis.one.platform.integration.infrastructure.transport.DatabaseTransportConfiguration");

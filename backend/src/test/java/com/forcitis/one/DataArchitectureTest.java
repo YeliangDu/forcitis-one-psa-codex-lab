@@ -45,7 +45,7 @@ class DataArchitectureTest {
             "CONFIG_VERSIONED", "LOG_APPEND_ONLY", "QUEUE", "ONE_TIME", "LINEAGE", "COUNTER", "IDEMPOTENCY", "FRAMEWORK", "PLACEHOLDER");
     static final Set<String> MUTABILITY = Set.of("MUTABLE", "CONDITIONAL_UPDATE", "REPLACE_SET", "APPEND_ONLY", "INSERT_DELETE", "MIGRATION_ONLY", "FRAMEWORK");
     static final Set<String> TIMELESS = Set.of("PERMANENT", "BUSINESS_RECORD", "CURRENT_STATE", "FRAMEWORK");
-    static final Set<String> SOURCES = Set.of("NEW", "A8", "MIGRATION", "FRAMEWORK");
+    static final Set<String> SOURCES = Set.of("NEW", "ORG_SOURCE", "MIGRATION", "FRAMEWORK");
     static final Set<String> TRACES = Set.of("legacy_numbers", "ONE_OFF_IMPORT");
 
     record Column(String name, String type, boolean notNull, String comment) {

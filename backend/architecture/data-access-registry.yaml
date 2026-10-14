@@ -7,7 +7,7 @@
 # mutability   MUTABLE (needs a version column) | CONDITIONAL_UPDATE (needs `condition`) | REPLACE_SET | APPEND_ONLY | INSERT_DELETE |
 #              MIGRATION_ONLY | FRAMEWORK
 # retention    policy PERMANENT | BUSINESS_RECORD | CURRENT_STATE | FRAMEWORK | EXPIRY | <n>d | <n>y; a time-bound policy names the ShedLock job (`job`)
-# lineage      source NEW | A8 | MIGRATION | FRAMEWORK; migrated_from lists the old-system objects, via says how they are traced (legacy_numbers | ONE_OFF_IMPORT)
+# lineage      source NEW | ORG_SOURCE | MIGRATION | FRAMEWORK; migrated_from lists the old-system objects, via says how they are traced (legacy_numbers | ONE_OFF_IMPORT)
 # writers      modules whose code writes the table; readers: modules that only read it. A module outside the schema's own module needs `cross_module`.
 # references   role columns that point at a table of the same schema although the name does not say which (K6)
 # gaps         known violations with an owner: {rule, column?, owner, ref, note}. A gap that is no longer violated fails the test, so it is removed in the
@@ -63,13 +63,13 @@ tables:
     role: SNAPSHOT
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
-    lineage: {source: A8}
+    lineage: {source: ORG_SOURCE}
     writers: [organization.workforce]
   organization_workforce.org_units:
     role: SNAPSHOT
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
-    lineage: {source: A8}
+    lineage: {source: ORG_SOURCE}
     fk_exceptions:
       last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
     references: {regional_receivables_manager_id: organization_workforce.employees}
@@ -78,7 +78,7 @@ tables:
     role: SNAPSHOT
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
-    lineage: {source: A8}
+    lineage: {source: ORG_SOURCE}
     fk_exceptions:
       last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
     writers: [organization.workforce]
@@ -86,13 +86,13 @@ tables:
     role: SNAPSHOT
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
-    lineage: {source: A8}
+    lineage: {source: ORG_SOURCE}
     writers: [organization.workforce]
   organization_workforce.org_unit_versions:
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
-    lineage: {source: A8}
+    lineage: {source: ORG_SOURCE}
     fk_exceptions:
       parent_org_unit_id: a past version points at units and people as they were; snapshot rows are never deleted, but a version carries no key of its own
       head_employee_id: same as parent_org_unit_id
@@ -102,7 +102,7 @@ tables:
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
-    lineage: {source: A8}
+    lineage: {source: ORG_SOURCE}
     fk_exceptions:
       position_id: a past version points at the post as it was; see org_unit_versions
       reports_to_employee_id: same as position_id

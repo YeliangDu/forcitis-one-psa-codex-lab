@@ -84,7 +84,8 @@
 | 变量 | 用途 | 必需 |
 |---|---|---|
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | PG 运行连接 | 是 |
-| `SPRING_FLYWAY_USER` / `_PASSWORD` | 迁移（仅部署） | 部署时 |
+| `SPRING_FLYWAY_URL` / `SPRING_FLYWAY_USER` / `_PASSWORD` | 迁移账号的连接，只给 `migrate` 步骤（缺省 URL 取 `SPRING_DATASOURCE_URL`） | 部署时 |
+| `SPRING_FLYWAY_ENABLED` | 常驻服务必须为 `false`（生产 profile 已默认） | 是 |
 | `APPROVAL_PROCESS_ARCHIVE_DIRECTORY` | 引擎历史归档目录（绝对路径，§5.3）；缺失则启动失败 | 是 |
 | `FLOWABLE_SCHEMA_UPDATE` | 仅引擎安装 / 升级时为 true | 否 |
 | `FLOWABLE_ASYNC_EXECUTOR` | 流程引擎异步执行器开关（默认 true） | 否 |
@@ -171,7 +172,10 @@
 
 1. CI 在 main 上构建 jar 和前端 dist，产物附带版本号与 SHA256。
 2. 经云助手上传到 `/data/forcitis-one/releases/<ver>/`，校验 SHA256。
-3. 迁移：以 one_dev_migrator 运行 Flyway（`--spring.main.web-application-type=none` 的迁移模式）。首次还要以 `FLOWABLE_SCHEMA_UPDATE=true` 建 ACT_*。
+3. 迁移（只迁移后退出）：用迁移账号启动一次，带 profile `migrate`，进程在建立应用上下文之前直接执行 Flyway 迁移并退出，不启动 web、作业、流程引擎和事件监听。迁移成功退出码 0，输出 `MIGRATE-ONLY OK`；失败退出码 1，输出 `MIGRATE-ONLY FAILED: <原因>`，部署在这一步停下。
+   - 命令：`SPRING_PROFILES_ACTIVE=migrate,dev java -jar forcitis-one.jar`（生产用 `migrate,prod`），环境变量只给迁移账号：`SPRING_FLYWAY_URL`（缺省取 `SPRING_DATASOURCE_URL`）、`SPRING_FLYWAY_USER`、`SPRING_FLYWAY_PASSWORD`；schema 与历史表的设置见 §2。连接的 TLS 要求同 §5.1（`dev` / `prod` 同时写上才会检查）。
+   - 首次还要以 `FLOWABLE_SCHEMA_UPDATE=true` 启动常驻服务一次建 `ACT_*`（见 §2）。
+   - **常驻服务不自己迁移**：生产 profile 的 `application-prod.properties` 已设 `spring.flyway.enabled=false`，环境里也写 `SPRING_FLYWAY_ENABLED=false`；常驻进程不持有迁移凭据。
 4. 切换 `current` 软链，`systemctl restart forcitis-one`，检查健康。
 5. 冒烟：匿名访问返回 401；企业微信 / 致远登录；`/me` 正常；组织同步跑一轮，sync_runs 为 SUCCEEDED。
 6. 回滚：`current` 指回上一版本并重启。数据库迁移只做向前兼容的变更，1a 期间不做破坏性迁移。
