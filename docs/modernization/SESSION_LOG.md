@@ -110,6 +110,7 @@
 - 未完成与阻塞：1a 会话改名 6 处（见报告的代码改名清单），改完删除 pending-renames.yaml、在 round2-proposals.yaml 的 code_renamed 登记 id 并重跑 build_terms.py 写入禁用；「坏账准备计提」词条待 6b 起草；新 BC 模块路径由 psa-gl-scope 统一。
 - 下一步命令：1a 会话按改名清单改代码后运行 `cd docs/modernization && python3 glossary/build_terms.py && cd ../../backend && ./mvnw verify`。
 - 会话 ID：本会话（worktree xin-4e9c83，分支 claude/psa-terms-review）
+
 ## 2026-10-14 · psa-gl-scope · 总账纳入新系统与三大报表（范围评估）
 - 目标：从 U8C 只读蒸馏总账做法，起草 ADR-0022（提议）、ADR-0016 第 6 条与 ADR-0017 第 4 条修订稿、brief 新阶段草案与待决问题；补充派工：黄金基线、规则卡交财务评审、二开与插件清单、使用面统计、功能盘点与角色权限、能力归类、合规清单。
 - 输入：SESSION_PLAYBOOK §3–§5、STATUS.md、GUIDING_PRINCIPLES §9a、ADR-0016/0017/0018/0021、brief §3、runtime/README.md、OA_PROCESS_INVENTORY.md；psa 仓库 `docs/design/U8C凭证传递接口文档.md`、过账引擎文档与代码（只读）；aliyun 本地证据。
@@ -131,6 +132,7 @@
 - 未完成与阻塞：ADR-0023 与 BI_SCOPE §6 Q1–Q12 待用户决定；118 个 T_FST_* 只按名称与 6 个已读定义归组，逐个核对留给 R0；ADR-0022 未合入 main，本分支的 build_adrs.py 与 adr/README.md 不含 0022，合并时需人工合并两条。
 - 下一步命令：用户决定后新会话 `psa-r0-metric-baseline` 做 R0。
 - 会话 ID：本会话（worktree xin-e2a79b，分支 claude/psa-bi-scope）
+
 ## 2026-10-14 · psa-gl-finance-review · 总账财务评审（G1 入口前）
 - 目标：按 psa-coordinator 派工，评审 GL_FINANCE_REVIEW ★22 项与 GL_SCOPE_REVISIONS §D；派工补充后范围为 §D 第 3 项（科目表与编码）与新增第 17 项（口径转换规则，首要），§D 第 1、2 项与 GL-109 已由用户决定。
 - 输入：SESSION_PLAYBOOK §3–§5、STATUS.md、SESSION_LOG 上一条（psa-gl-scope）、U8C_GL_PRACTICE.md、u8c/、U8C_CAPABILITY_MAP.md、GL_COMPLIANCE_CHECKLIST.md、rules/GL_RULES.md、ADR-0016/0017/0022、proposals/GL_SCOPE_REVISIONS.md、INTENT.md。
@@ -143,7 +145,6 @@
 - 子代理与模型：评审建议卡与会计口径判断（opus，1 个，续用一次）。
 - 会话 ID：本会话（worktree psa-gl-finance-review-bd1b33，分支 claude/psa-gl-finance-review）
 
-
 ## 2026-10-14 · psa-bi-decisions · 经营分析待决项 Q3–Q12 逐项确认
 - 目标：按 psa-coordinator 派工，对 BI_SCOPE.md §6 的 Q3–Q12 逐项给出选项、推荐与依据，取得用户决定并落档。
 - 输入：BI_SCOPE.md（E1–E14、§2–§5）、ADR-0016/0017/0022/0023、RULE_REVIEWS（RULE-144）、glossary/terms.yaml、OAT 机器主数据（ddd-theory，只读，CM/CMR 条目）、BI-olap analytics ADR-0002/0006/0017（只读）；psa-gl-finance-review 工作树（只读，截至本会话仅有 STATUS 认领，无与 Q6 相关结论，无冲突）；psa-coordinator 分支 claude/coordinator-bi-decisions 的 Q1/Q2 记录（只读）。基线 origin/main 9e6e279。
@@ -154,6 +155,7 @@
 - 未完成与阻塞：F1–F5 待财务、B1–B5 待业务；INTENT 与 coordinator 分支（Q1/Q2 行）同在文件末尾追加，合并时需按时间顺序合两行。
 - 下一步命令：新会话 `psa-r0-metric-baseline` 做 R0。
 - 会话 ID：本会话（worktree xin-a2d389，分支 claude/psa-bi-decisions）
+
 ## 2026-10-14 · psa-change-governance · 变更治理写入会话方案与 ADR 规则
 - 目标：把用户的四条变更治理规则写进 SESSION_PLAYBOOK.md 与 adr/README.md，生成器加校验，盘点现有偏差（psa-coordinator 派工；本会话原为 psa-oa-inventory，复用）。
 - 输入：origin/main 9e6e279；SESSION_PLAYBOOK、adr/build_adrs.py、ADR-0001..0023、proposals/GL_SCOPE_REVISIONS.md、各 ADR 的 git 历史。
@@ -216,6 +218,7 @@
 - 未完成：psa-coordinator 核对 ADR 要点准确性后由用户转财务；FQ-18 的 U8C 只读分类查询未执行。
 - 下一步命令：财务交回答复后运行 `python3 docs/modernization/r0/import_finance_answers.py <答复文件>`。
 - 子代理与模型：ADR 要点改写（opus，1 个，续用一次）。
+
 ## 2026-10-14 · psa-r0-metric-baseline · R0 其余内容与收尾
 - 目标：psa-coordinator 派工——B6–B11 请用户确认、F6–F10 并入待财务清单、Q5 复制 OAT、Q12 问题模板、工具对比、Q11 BI 审计计数、第三轮用语输入；补派：生产 SQL Agent 通道登记。
 - 用户决定（原话）：B6「保留，作为订单前置指标 (Recommended)」；B7「保留五种，其余推导 (Recommended)」；B8「同意两项 (Recommended)」；B9「迁入激励模块并版本化 (Recommended)」；B10「作为外部参考数据集纳入 (Recommended)」；B11「纳入，作为报表包 P8 (Recommended)」（本会话当面询问）；Q11「同意；无权时我另给只读账号」、Q1「C 为主，D 待定为后期可选 (Recommended)」、透视「沿用 AG Grid 企业版」（经 psa-coordinator 转达）。
@@ -225,3 +228,12 @@
 - 下一步命令：R1（reporting 骨架与语义层）入口条件满足后新会话；财务答复到后回填基线。
 - 会话 ID：本会话（worktree xin-e2a79b，分支 claude/psa-r0-seg2）
 
+## 2026-10-14 · psa-repo-fragments · 公共记录片段化（一条记录一个文件 + ADR 拆开）
+- 目标：INTENT / SESSION_LOG / STATUS 与 ADR 源改为一条记录一个文件，消除各会话 PR 在同一文件上的冲突（psa-coordinator 派工；本会话原为 psa-change-governance，复用）。
+- 输入：最新 origin/main（含 #30–#33）；INTENT.md、SESSION_LOG.md、STATUS.md、adr/build_adrs.py、rules/build_brief.py、.github/workflows/ci.yml、SESSION_PLAYBOOK、CLAUDE.md。
+- 用户决定（原话见 INTENT.md）：问「现在合并过程是不是有什么问题？」后选择「一条记录一个文件 + ADR 拆开 (Recommended)」。
+- 产出：intent/、session-log/、status/（units、blockers、头部与当前位置段落）与 build_records.py；adr/src/（每份 ADR 一个源文件 + 3 个 README 片段）与重写的 build_adrs.py（读目录，保留状态集、必备小节、取代校验，新增小节顺序与文件名校验）；build_all.py（--check）；new_intent.py、new_log.py；CI gitleaks job 增加「generated docs match fragments」一步（三个 job 名称不变）；SESSION_PLAYBOOK §1、§3、§4、§6、§7、§8、§12、adr README 规则 4、CLAUDE.md 改为「只改片段，不直接编辑生成产物」。COORDINATOR_LEDGER.md 按调度会话要求保持单文件。
+- 验证：迁移后重新生成的 INTENT.md、ADR-*.md、adr/README.md（除规则 4 的说明更新外）、MODERNIZATION_BRIEF.md 与迁移前逐字节一致；SESSION_LOG.md 与 STATUS.md 只有空白差异（条目或列表之间的多余 / 缺失空行，均为此前手工合并的痕迹，统一后去掉）。负向测试（临时副本）：单元格含竖线、工作单元缺键、日志两个标题、阻塞多行、ADR 缺小节、小节顺序错、状态不合法、新 ADR 缺必备小节、取代未同步标注，均生成失败；build_all.py --check 干净时通过、片段与产物不一致时失败。未使用子代理（迁移与比对脚本由本会话完成，可重复执行）。
+- 未完成与阻塞：无。
+- 下一步命令：合并后由 psa-coordinator 通知在途会话改用片段文件。
+- 会话 ID：本会话（worktree xin-884358，分支 claude/psa-repo-fragments）

@@ -1,0 +1,7 @@
+## 原话
+
+「DDD、DAMA、TOGAF、BPMN、DMN、OLTP、OLAP 的核心思想作为现代化过程中的指导思想」
+
+## 落点
+
+ADR-0014，GUIDING_PRINCIPLES.md
