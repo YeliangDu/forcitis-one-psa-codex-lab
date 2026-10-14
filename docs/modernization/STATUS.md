@@ -4,16 +4,16 @@
 
 ## 当前位置
 
-**评估与定栈已完成，技术栈已定稿，brief 已批准 Phase 1a 与 1b（2026-10-14）。** 分析产物已移入 `FORCITIS/forcitis-one-psa` 的 `docs/modernization/`（2026-10-14，用户确认后首次提交），此后以仓库中的文件为准。规则评审第一批（审批 28 条）、第二批（售前报价 14 条）已完成（2026-10-14）。下一步：Phase 1a。
+**评估与定栈已完成，技术栈已定稿，brief 已批准 Phase 1a 与 1b（2026-10-14）。** 分析产物已移入 `FORCITIS/forcitis-one-psa` 的 `docs/modernization/`（2026-10-14，用户确认后首次提交），此后以仓库中的文件为准。规则评审第一批（审批 28 条）、第二批（售前报价 14 条）、第三批（身份与组织 45 条）已完成（2026-10-14）。下一步：Phase 1a。
 
 | 工作单元 | 状态 | 负责会话 | 入口 / 阻塞 | 下一条命令 |
 |---|---|---|---|---|
 | 评估、地图、规则抽取、定栈、brief | 完成；brief 已批准（Phase 1a、1b，2026-10-14） | — （评估会话已收尾） | — | — |
 | 总调度 | 进行中：派工、核对报告、汇总用户决定（SESSION_PLAYBOOK §11） | psa-coordinator | — | 工作会话结束前向 psa-coordinator 报告（§4 第 7 步） |
-| 规则评审（92 条 P0，按阶段分批） | 第一批完成（审批 28 条：正确 19、错误 9）；第二批完成（售前报价 14 条：正确 11、错误 3，另修订已定 RULE-160；见 RULE_REVIEWS.md）；待讨论 0；其余 50 条未开始；第三批（identity/org 45 条）进行中 | psa-review-identity-org（2026-10-14 认领） | Phase 1b 入口的规则评审已完成；Phase 1a 入口仍需 identity、org 两域补抽规则并评审（brief Phase 1a 入口条件）；其余按阶段（下一批：交付、工时、收入确认，Phase 2 前；RULE-144 毛利口径须与 RULE-182/239 对齐） | Phase 2 前新会话 `psa-review-delivery` 运行 `/code-modernization:modernize-review psa` |
+| 规则评审（92 条 P0，按阶段分批） | 第一批完成（审批 28 条：正确 19、错误 9）；第二批完成（售前报价 14 条：正确 11、错误 3，另修订已定 RULE-160；见 RULE_REVIEWS.md）；待讨论 0；第三批完成（identity/org 45 条：正确 16、错误 29，Phase 1a 入口条件已勾选）；其余 50 条 P0 未开始 | — | Phase 1a、1b 入口的规则评审均已完成；其余按阶段（下一批：交付、工时、收入确认，Phase 2 前；RULE-144 毛利口径须与 RULE-182/239 对齐） | Phase 2 前新会话 `psa-review-delivery` 运行 `/code-modernization:modernize-review psa` |
 | 老系统安全止血 | 补丁 6 轮修订完成，未部署 | — | 运维：Nacos 内部令牌、部署顺序、nginx 删除 `/other-api`、凭据轮换、dev 实测 | 用户安排运维与 dev 实测 |
 | 用语确认 | 完成（197 项） | — | 模板新增 4 个提议词条待下一轮确认 | — |
-| Phase 1a 平台桥接（试点） | 进行中（2026-10-14 派工） | psa-1a-platform-bridge-reimagine | 入口条件见 brief：未满足项含安全止血与凭据轮换、主机与 RDS、骨架与 CI、identity/org 规则补抽评审、老表所有权矩阵 | `/code-modernization:modernize-reimagine`（新会话 `psa-1a-…`） |
+| Phase 1a 平台桥接（试点） | 进行中（2026-10-14 派工） | psa-1a-platform-bridge-reimagine | 入口条件见 brief：未满足项含安全止血与凭据轮换、主机与 RDS、骨架与 CI、老表所有权矩阵 | `/code-modernization:modernize-reimagine`（新会话 `psa-1a-…`） |
 | Phase 1b 报价 | 未开始 | — | Phase 1a 出口 | — |
 | Phase 2 交付 + 工时 | 未开始 | — | Phase 1b 出口 | — |
 | Phase 3 差旅报销 | 未开始 | — | Phase 1a 出口 | — |
