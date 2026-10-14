@@ -11,7 +11,7 @@
 | # | 不变量 | 来源 | 现状 | 验收测试 |
 |---|---|---|---|---|
 | I-1 | 新系统不读取、不写入、不校验老系统令牌（`system_oauth2_*`）。只读账号与视图**不授权**令牌表 | 检查点 2 Q-1；ADR-0009 §6 修订 | 架构已采纳（REIMAGINED_ARCHITECTURE §3.1、§3.6） | `LegacyTokenIsolationTest`（ArchUnit）：任何模块都不访问 `system_oauth2_*`；启动时校验只读账号对令牌表没有权限，有权限则启动失败 |
-| I-2 | **老 PSA 后端不得被配置为签名票据签发方**（C1a-03 的 `ticket_issuers`）。ADR-0009 §6 中「需要时由老后端签发一次性签名票据」的做法，在老系统的免密入口（SEC-001、SEC-116）修复前**不得启用** | 本决定 | 新增 | `TicketIssuerAllowlistTest`：`ticket_issuers` 中只允许评审过的签发方，PSA 老后端不在其中；新增签发方需 CODEOWNERS 评审 |
+| I-2 | **老系统后端不得被配置为签名票据签发方**（C1a-03 的 `ticket_issuers`）。ADR-0009 §6 中「需要时由老后端签发一次性签名票据」的做法，在老系统的免密入口（SEC-001、SEC-116）修复前**不得启用** | 本决定 | 新增 | `TicketIssuerAllowlistTest`：`ticket_issuers` 中只允许评审过的签发方，老系统后端不在其中；新增签发方需 CODEOWNERS 评审 |
 | I-3 | 新系统只接受由自己向身份源核实过的登录方式：企业微信 OAuth（含小程序）、致远 SSO（服务端验票）、外部签名票据、应急管理员 | C1a-01..04 | 已在规格中 | `AnonymousAccessIT` + 公开端点白名单快照（§3.8）：白名单之外不存在任何能建立会话的端点 |
 
 ## 2. 第 7 轮缺陷在新系统中的对应要求

@@ -48,7 +48,7 @@ Reader codes:
 External parties:
 - **A8:** the A8 database `a8_db` (`ORG_MEMBER` / `ORG_UNIT`) is read directly. The sync jobs run inside the old fst service.
 - **OA SPs:** `OPS/oa-quotation-sync/*.sql` and `OPS/oa-cuvalue-sync/*.sql` run in `a8_db` and assume `system_users.id = ORG_MEMBER.id` and `system_dept.id = ORG_UNIT.id` (`OPS/oa-cuvalue-sync/README.md:87`).
-- **BI:** reads the PSA database directly (`docs/modernization/ASSESSMENT.md:27`), but **there is no list of the tables and columns it uses**. Every "BI" cell below is therefore "unconfirmed".
+- **BI:** reads the legacy-system database directly (`docs/modernization/ASSESSMENT.md:27`), but **there is no list of the tables and columns it uses**. Every "BI" cell below is therefore "unconfirmed".
 - **Cron and latency:** the cron expressions for XXL-JOB `syncUserJob` / `syncDeptJob` are not in the repo, so **sync latency is unknown**.
 
 Owner codes:

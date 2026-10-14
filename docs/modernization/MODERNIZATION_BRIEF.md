@@ -1,4 +1,4 @@
-# MODERNIZATION BRIEF — PSA → FORCITIS one
+# MODERNIZATION BRIEF — 老系统 → FORCITIS one
 
 日期：2026-10-14 · 状态：**待审批**
 
@@ -6,7 +6,7 @@
 
 ## 1. Objective
 
-把 PSA 重建为 **FORCITIS one**（one.forcitis.com，ADR-0001）。
+把老系统重建为 **FORCITIS one**（one.forcitis.com，ADR-0001）。
 
 - **从**：yudao 微服务底座 + Java 8 / Spring Boot 2.7 + SQL Server 2016 + Flowable 6.8 + Vue 2。
 - **到**：Spring Modulith 模块化单体，Java 25 / Spring Boot 4.1、PostgreSQL 18（schema 为 `<子域>_<BC>`）、JdbcClient、Flyway、Flowable 8（BPMN + DMN）、API 版本化、默认拒绝的鉴权、可配置的业务编号，前端为 React + Taro + 设计系统。定栈见 `STACK_DECISION.md` 和 `adr/`。
@@ -36,7 +36,7 @@ C4Container
     Container(web, "PC 前端", "React 19 + TS + Vite + Ant Design 5 + TanStack Query + Zod", "设计令牌；OpenAPI 生成客户端")
     Container(h5, "H5 前端", "Taro 4 + React", "企业微信内嵌；与 PC 共用 OpenAPI 客户端、Zod、查询层、令牌 CSS")
     Container(app, "FORCITIS one 应用", "Spring MVC /api/v1 + springdoc", "模块（子域.BC）：platform.identity / approval / integration / audit / numbering、organization.workforce、presales.customer / quoting、delivery.execution / acceptance、cost.timesheet / costing、operations.facts（单一过账管道）、accounting.period / ledger、receivables.wip、expense.spend、reporting")
-    ContainerDb(pg, "PostgreSQL 18（PSA 专用 RDS）", "schema = <子域>_<BC>", "platform_*（含 Flowable ACT_*、事件发布登记、编号）、presales_*、delivery_*、cost_*、operations_facts（明细事实只追加）、accounting_period、accounting_ledger、receivables_wip、expense_spend、reporting（只读视图）")
+    ContainerDb(pg, "PostgreSQL 18（FORCITIS one 专用 RDS）", "schema = <子域>_<BC>", "platform_*（含 Flowable ACT_*、事件发布登记、编号）、presales_*、delivery_*、cost_*、operations_facts（明细事实只追加）、accounting_period、accounting_ledger、receivables_wip、expense_spend、reporting（只读视图）")
   }
   Rel(emp, h5, "HTTPS")
   Rel(pm, web, "HTTPS")
@@ -112,7 +112,7 @@ Entry criteria:
 - [x] 仓库已创建：https://github.com/FORCITIS/forcitis-one-psa（私有，2026-10-14，空仓库）
 - [ ] 骨架已推入 `forcitis-one-psa`，分支保护、CI（verify + 守护 + gitleaks）已配置
 - [ ] 骨架采用 `architecture-guardrails/backend` 和 `frontend`，在 Mac 本机执行 `./mvnw verify` 和 `pnpm verify` 均全绿
-- [ ] FORCITIS one 专用主机和 PSA 专用 RDS PostgreSQL 实例已开通
+- [ ] FORCITIS one 专用主机和 FORCITIS one 专用 RDS PostgreSQL 实例已开通
 - [ ] `shared/design-system/tokens.css` 与设计正本「Forcitis One Design System」的 `tokens/palette.css`、`tokens/semantic.css` 逐项一致（正本有更新时重新同步）
 - [ ] 设计正本已完整备份到本地；正本现有组件已取下并作为 `shared/ui`（React）的起点（ADR-0013 第 7 条，代码为源）
 - [ ] 内核值对象 `Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId` 已就位（ADR-0016）
@@ -280,7 +280,7 @@ Exit criteria:
 
 ### 项目成本与核算（Phase 4）
 
-**已定：** RULE-067 Three-tier project profit and rates、RULE-068 OH tier routing and carry-forward when the labour base is zero、RULE-071 WIP stage on entry and stage advance (POC exactly 100 and contract returned)、RULE-073 Year-end bonus is split to project terms by the person's annual hours (cent-exact largest remainder)、RULE-074 Cost routing chain and how expense nature is set、RULE-075 Timesheet three-element (salary/social/fund) cent rounding anchored to the rounded total、RULE-076 Labour reclass – U8C credit vs PSA landed cost, by department, with tolerance、RULE-077 Labour reclass voucher – reverse U8C credit in full, debit PSA buckets, absorb small differences、RULE-078 Vouchers are aggregated per company × voucher word × department、RULE-081 Write-off voucher amounts and credit account derivation、RULE-091 Period open/close preconditions (sequential opening, month-end done, reconciled)、RULE-092 Full OH allocation: one effective full run per period, never concurrent、RULE-093 Carry draft gate order, and the red-reversal exception、RULE-094 Carry confirm re-checks the gates and dry-runs the vouchers、RULE-098 Labor reclass confirm and deliver must be fresh and follow period order、RULE-100 Landing conservation must balance exactly (zero tolerance)、RULE-101 Collection confirmation gate、RULE-103 Project fees without a contract term never go to the OH pool、RULE-105 Labor reclass differences over ¥1.00 block the voucher、RULE-106 Re-running collection reverses a prior confirmation; it is blocked once allocation is confirmed、RULE-107 Collection cannot start until payroll is complete for everyone who filed timesheets、RULE-116 Full allocation takes effect atomically with pool write-back and step advance、RULE-117 A batch becomes POSTED only when U8C has confirmed every voucher; then the step advances、RULE-118 Creating a carry draft (asynchronous)、RULE-119 Posting phases and the completion condition、RULE-123 WIP stage assignment and advancement、RULE-125 Carry steps are strictly serial: occupy on draft, advance on POSTED, release on cancel、RULE-126 WIP write-off flips the entry from in-WIP to relieved and books a P&L line、RULE-134 A cost dated in a closed period lands in the earliest later open period
+**已定：** RULE-067 Three-tier project profit and rates、RULE-068 OH tier routing and carry-forward when the labour base is zero、RULE-071 WIP stage on entry and stage advance (POC exactly 100 and contract returned)、RULE-073 Year-end bonus is split to project terms by the person's annual hours (cent-exact largest remainder)、RULE-074 Cost routing chain and how expense nature is set、RULE-075 Timesheet three-element (salary/social/fund) cent rounding anchored to the rounded total、RULE-076 Labour reclass – U8C credit vs legacy-system landed cost, by department, with tolerance、RULE-077 Labour reclass voucher – reverse U8C credit in full, debit legacy-system buckets, absorb small differences、RULE-078 Vouchers are aggregated per company × voucher word × department、RULE-081 Write-off voucher amounts and credit account derivation、RULE-091 Period open/close preconditions (sequential opening, month-end done, reconciled)、RULE-092 Full OH allocation: one effective full run per period, never concurrent、RULE-093 Carry draft gate order, and the red-reversal exception、RULE-094 Carry confirm re-checks the gates and dry-runs the vouchers、RULE-098 Labor reclass confirm and deliver must be fresh and follow period order、RULE-100 Landing conservation must balance exactly (zero tolerance)、RULE-101 Collection confirmation gate、RULE-103 Project fees without a contract term never go to the OH pool、RULE-105 Labor reclass differences over ¥1.00 block the voucher、RULE-106 Re-running collection reverses a prior confirmation; it is blocked once allocation is confirmed、RULE-107 Collection cannot start until payroll is complete for everyone who filed timesheets、RULE-116 Full allocation takes effect atomically with pool write-back and step advance、RULE-117 A batch becomes POSTED only when U8C has confirmed every voucher; then the step advances、RULE-118 Creating a carry draft (asynchronous)、RULE-119 Posting phases and the completion condition、RULE-123 WIP stage assignment and advancement、RULE-125 Carry steps are strictly serial: occupy on draft, advance on POSTED, release on cancel、RULE-126 WIP write-off flips the entry from in-WIP to relieved and books a P&L line、RULE-134 A cost dated in a closed period lands in the earliest later open period
 
 **阻塞，需评审：**
 - [ ] RULE-066 OH basis is timesheet (source_type 0) not-tax cost; period 13 uses the full-year base（`AllocationOrchestrator.java:108-146`，置信度 High） — Docs COST-R39/R40 still say "wpt0/1 work-package hours". Code uses source_type = 0 because work_package_type is never populated (#875).
@@ -342,7 +342,7 @@ Exit criteria:
 - [ ] RULE-210 Budget can only be edited while it is unlocked and not awaiting approval（`ProjectBudget.java:438-446`，置信度 High） — The budget write endpoints (`PmProjectBudgetController` `/import`, `/task/*`, `/lock`, `/deliverable*`, `/cost-items`) check only the permission `fst:pm-project:budget` and turn off `@DataPermission`. No use case checks 
 - [ ] RULE-212 Rules for an approver changing the budget tree during approval（`ProjectBudget.java:639-723`，置信度 High） — This path does not run the RULE-02 rate-missing check. An approver can add a task package with hours but no matching rate, and it is locked into the baseline at cost 0.
 - [ ] RULE-213 Total confirmed revenue cannot exceed the clause amount（`RevenueConfirmation.java:64-87`，置信度 High） — Unlike deliverable acceptance (RULE-21), the sign date is not checked against today. A future date is accepted and gives a future revenue period.
-- [ ] RULE-222 Approved revenue writes an append-only revenue fact, after a second quota check（`DecideRevenueConfirmationUseCase.java:36-68`，置信度 High） — When the auto-reject happens, BPM shows the instance as approved while PSA shows it rejected. No notification or BPM correction is visible in the code.
+- [ ] RULE-222 Approved revenue writes an append-only revenue fact, after a second quota check（`DecideRevenueConfirmationUseCase.java:36-68`，置信度 High） — When the auto-reject happens, BPM shows the instance as approved while the legacy system shows it rejected. No notification or BPM correction is visible in the code.
 - [ ] RULE-223 Task package execution states — DOING/REWORK → DONE, DONE → DOING (reopen), LOCKED → REWORK（`DeliverableProgress.java:47-84`，置信度 High） — `FSTConstant.TaskStatus` (0 进行中 / in progress, 1 已保存 / saved, 2 已完成 / completed, 3 已逾期 / overdue, with the comment "TODO 其他两个状态需要完善" / "the other two states need completing") is a separate legacy integer vocabulary. It i
 - [ ] RULE-224 Submitting a deliverable requires all its task packages to be done, and locks them（`DeliverableProgress.java:403-423`，置信度 High） — If the submission is rejected (DRAFT), the packages stay LOCKED. Nothing unlocks them. Resubmission still works because LOCKED is accepted.
 - [ ] RULE-225 Deliverable approval outcome — approved → awaiting customer acceptance; rejected or cancelled → DRAFT（`DeliverableSubmission.java:588-613`，置信度 Medium） — The `StageReviewProcessResultHandler.java:16-17` comment says that when a meeting fails, the director-node handler already set the submission to DRAFT, so a later "approved" end is a no-op. But `recordDirectorReview` (li
@@ -397,7 +397,7 @@ Exit criteria:
 - [x] **不复刻** · 老行为：RULE-324 PC WeCom web login guesses the user from the email local part or an "f-stripped" id（`SocialUserServiceImpl.java:169-194`，置信度 High） → 新系统做法：不按邮箱前缀或去掉 f 猜人，只按 we_com_id 精确映射（与 H5 同一键），未映射拒绝；令牌不进 URL。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-326 Only password and Seeyon logins check the disabled status（`AdminAuthServiceImpl.java:153-216`，置信度 High） → 新系统做法：所有登录入口在建会话前过同一道检查：启用且未删除（identity BC 一处实现）。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-327 Resigned (soft-deleted) users are kept out only by the lookup filter（`AdminAuthServiceImpl.java:153-164`，置信度 Medium） → 新系统做法：显式检查「已离职」并返回明确业务错误，不依赖 ORM 逻辑删除过滤，不抛空指针或越界。（不复刻；评审 2026-10-14）
-- [x] **不复刻** · 老行为：RULE-329 KM token: anonymous caller, memberId used as a mobile number or a PSA id（`AdminAuthServiceImpl.java:253-281`，置信度 High） → 新系统做法：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-329 KM token: anonymous caller, memberId used as a mobile number or a legacy-system id（`AdminAuthServiceImpl.java:253-281`，置信度 High） → 新系统做法：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-331 Every login creates a refresh token and an access token for client "default"（`OAuth2TokenServiceImpl.java:54-62`，置信度 Medium） → 新系统做法：不再签发令牌对，改服务端会话（ADR-0009 §2，Spring Session JDBC + HttpOnly/SameSite Cookie）；时长为配置项（见 332）。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-332 Access-token expiry slides to now + 10 h on every check（`OAuth2TokenServiceImpl.java:95-137`，置信度 High） → 新系统做法：会话时长「空闲 10h + 上限 24h」——10 小时无活动过期，登录 24 小时后无论是否活跃都须重新登录；均为配置项；令牌不打印到日志。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-333 Refresh revokes sibling access tokens but never rotates the refresh token（`OAuth2TokenServiceImpl.java:64-93`，置信度 High） → 新系统做法：新系统无刷新令牌；登录时轮换会话 ID；过渡期对老令牌只读校验后换发新会话（C1a-06）。（不复刻；评审 2026-10-14）
@@ -410,13 +410,13 @@ Exit criteria:
 - [x] RULE-349 Business data scope = union over roles; ALL anywhere means unrestricted（`RoleServiceImpl.java:289-345`，置信度 High） — 修正：各角色并集保留；只计启用角色；自定义部门只在 DEPT_CUSTOM 下生效；排除已离职用户；「本人及下属」只算直接下属（问题「只算直接下属」，与老系统一致）；以显式 AccessScope（法人 × 部门 × 项目角色）表达。（已评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-350 Row filtering applies only to opt-in methods with `@DataOwner` fields（`DataPermissionDatabaseInterceptor.java:68-195`，置信度 High） → 新系统做法：不用注解开启的隐式 SQL 改写；AccessScope 显式传入仓储，异常即拒绝（fail-closed）（ADR-0009 §4、ADR-0019）。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-351 An empty data scope fails open（`DataPermissionDatabaseInterceptor.java:108-112`，置信度 High） → 新系统做法：空数据范围返回零行，不放行。（不复刻；评审 2026-10-14）
-- [x] RULE-355 A8 dept "disabled" test and how it maps to PSA status and deleted（`A8DeptMapper.java:35-48`，置信度 High） — 修正：停用判定保留；NULL 的处理写成显式规则（仍视为有效，同步报告列出 NULL 行，与 A8 负责人确认）；「停用」与「撤销」分为两个状态，不再混同。（已评审 2026-10-14）
+- [x] RULE-355 A8 dept "disabled" test and how it maps to legacy-system status and deleted（`A8DeptMapper.java:35-48`，置信度 High） — 修正：停用判定保留；NULL 的处理写成显式规则（仍视为有效，同步报告列出 NULL 行，与 A8 负责人确认）；「停用」与「撤销」分为两个状态，不再混同。（已评审 2026-10-14）
 - [x] RULE-356 A8 is authoritative for dept leader, regional AR, category and delivery flag（`SyncServiceImpl.java:184-221`，置信度 High） — 修正：A8 为部门负责人、区域 AR、类别、交付标识的权威来源；关系类型 ID 等改为配置并在启动时校验；多名负责人时取 ID 最小者并告警给数据管理员（确定性、不阻塞）。（已评审 2026-10-14）
-- [x] RULE-357 Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive（`DeptServiceImpl.java:200-305`，置信度 High） — 修正：A8 部门随 A8 新增、更新、撤销、恢复；PSA 不再有手工部门（D-06）；PSA 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。（已评审 2026-10-14）
+- [x] RULE-357 Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive（`DeptServiceImpl.java:200-305`，置信度 High） — 修正：A8 部门随 A8 新增、更新、撤销、恢复；FORCITIS one 不再有手工部门（D-06）；FORCITIS one 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。（已评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-361 A8 user sync scope uses a substring match, unlike the dept prefix rule（`A8UserMapper.java:24-40`，置信度 High） → 新系统做法：人员同步范围改用与部门同步相同的前缀规则（PATH 以 00000001 开头），人员不指向未同步部门。（不复刻；评审 2026-10-14）
-- [x] RULE-362 A new A8 person becomes a PSA user with username = phone and a default password（`SyncServiceImpl.java:299-340`，置信度 High） — 修正：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。（已评审 2026-10-14）
-- [x] RULE-363 Resignation = A8 login name is null → PSA user soft-deleted（`SyncServiceImpl.java:359-369`，置信度 High） — 修正：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。（已评审 2026-10-14）
-- [x] RULE-364 Rehire and phone change restore and re-enable the PSA user（`SyncServiceImpl.java:380-398`，置信度 High） — 修正：复职（A8 重新有登录名）时恢复；换手机号不覆盖 PSA 的手工停用（启用状态由 PSA 拥有）；用户名跟随 A8 登录名同步。（已评审 2026-10-14）
+- [x] RULE-362 A new A8 person becomes a legacy-system user with username = phone and a default password（`SyncServiceImpl.java:299-340`，置信度 High） — 修正：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。（已评审 2026-10-14）
+- [x] RULE-363 Resignation = A8 login name is null → legacy-system user soft-deleted（`SyncServiceImpl.java:359-369`，置信度 High） — 修正：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。（已评审 2026-10-14）
+- [x] RULE-364 Rehire and phone change restore and re-enable the legacy-system user（`SyncServiceImpl.java:380-398`，置信度 High） — 修正：复职（A8 重新有登录名）时恢复；换手机号不覆盖 FORCITIS one 的手工停用（启用状态由 FORCITIS one 拥有）；用户名跟随 A8 登录名同步。（已评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-365 Per-field update semantics in user sync are asymmetric（`SyncServiceImpl.java:342-441`，置信度 High） → 新系统做法：A8 权威列按值同步并显式写 NULL（汇报线清空也同步）；单行缺部门或岗位时隔离该行并告警，不中断整批。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-366 Users that drop out of the A8 result set are never deactivated（`SyncServiceImpl.java:283-441`，置信度 Medium） → 新系统做法：不在 A8 结果中的人员视为离职候选，经与部门同步相同的 80% 缩水保护后停用并吊销会话。（不复刻；评审 2026-10-14）
 - [x] RULE-372 Two separate leader concepts: person leader and dept leader（`SyncServiceImpl.java:324-405`，置信度 High） — 修正：「直属领导」（人员 leader）与「部门负责人」两个概念保留，每个流程写明用哪一个；同步时校验存在、在职、非本人、无环，不合格的报告数据管理员；审批取人按 RULE-250 往上推一级。（已评审 2026-10-14）
@@ -468,7 +468,7 @@ Exit criteria:
 - D-1a-29：不迁移；外部调用方改用签名、≤60 s、一次性票据，拒绝管理员角色（用户决定：RULE-318/319 评审；检查点 1「D-01..D-09 全部舍弃」）
 - D-1a-30：先盘点调用方（含查明 customization-login 的调用方）；每个调用方一份切换步骤、一把密钥；签发方由用户逐个批准开启并做安全复审；老端点到 Phase 5 下线（用户决定：intent/2026-10-14-112-1a流程-登录-外部调用方切换.md）
 - D-1a-31：须已登录，KM 身份取自会话，签名票据、HTTPS，密钥进配置并轮换；与入站票据分开（出站方向）（用户决定：RULE-329 评审）
-- D-1a-32：新系统不读、不写、不校验老令牌表；老 PSA 后端不得作为票据签发方；相关文档按此统一（用户决定：「取消桥接 (Recommended)」、检查点 2 Q-1（INTENT））
+- D-1a-32：新系统不读、不写、不校验老令牌表；老系统后端不得作为票据签发方；相关文档按此统一（用户决定：「取消桥接 (Recommended)」、检查点 2 Q-1（INTENT））
 - D-1a-33：新系统不识别老令牌；从合并待办点老待办时，PC 未登录老系统则回老登录页，H5 在企业微信内静默登录老系统（用户决定：Q-1「1a 删除桥接」；REIMAGINED_ARCHITECTURE「1a 可接受」）
 - D-1a-34：三个入口统一按 `we_com_id` 精确映射，未映射拒绝（用户决定：RULE-324 评审）
 - D-1a-35：上线前按「在职但无企业微信 ID」清单由组织数据管理员在 A8 补齐；1a 出口要求该清单为 0（确无企业微信者逐个登记原因）（用户决定：intent/2026-10-14-120-1a流程-登录-企业微信ID覆盖.md）
@@ -587,7 +587,7 @@ Phase 1a 开始前需要决定的事项（逐项勾选）：
 - [x] **前端栈**：PC 采用 React 19 + TS + Vite + Ant Design 5 + TanStack Query + Zod，与 H5 统一为 React（ADR-0013，用户 2026-10-14 决定：「前端就用 React」）
 - [x] **设计正本**：「Forcitis One Design System」（用户 2026-10-14 决定）；「FORCITIS one（Storm）」只作交互参考
 - [x] **权责发生制主干**：已采纳 ADR-0016（用户 2026-10-14）（单一过账管道、事实只追加、(期间, 法人) 期间闸门、新增 `accounting.period`、U8C 本期仍为法定账）
-- [x] **与边界蓝图的关系**：已采纳 ADR-0017（用户 2026-10-14）（模块沿用 PSA 子域划分并登记蓝图 BC 编号；蓝图的财务不变量作为硬约束；技术栈按本项目评估确定、不沿用 DD-8；D11 / D12 / DD-6 不在本 brief 范围）
+- [x] **与边界蓝图的关系**：已采纳 ADR-0017（用户 2026-10-14）（模块沿用老系统子域划分并登记蓝图 BC 编号；蓝图的财务不变量作为硬约束；技术栈按本项目评估确定、不沿用 DD-8；D11 / D12 / DD-6 不在本 brief 范围）
 - [x] **SEC-107**：立即删除生产 nginx 的 `/other-api` location（由运维执行后 reload）（用户 2026-10-14 决定）
 - [x] **用语确认**：2026-10-14 业务 Admin 在用语确认页确认全部 197 项（A 组 4 项为方言、B 组 59 项同意改为标准用语、C 组 134 项确认为正式用语），`terms.yaml` 293 条全部已批准（ADR-0018）
 - [x] **BC slug**：批准 GLOSSARY §1 的现有 slug，含新增 `accounting.period`（用户 2026-10-14 决定）

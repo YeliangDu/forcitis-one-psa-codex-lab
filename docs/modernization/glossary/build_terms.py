@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build glossary/terms.yaml — machine-readable unified language (初版 SSOT) for the PSA modernization.
+"""Build glossary/terms.yaml — machine-readable unified language (初版 SSOT) for the FORCITIS one modernization.
 
 Inputs : glossary/source_terms.json (parsed 03-通用语言.md, 385 terms)
          + the 38 core terms of GLOSSARY.md §2 (CORE below, legacy names copied from build_glossary.py)
@@ -556,7 +556,7 @@ meta = collections.OrderedDict(
         status="approved = 原词表已有且符合标准；proposed = 本次建议改名或新增，待评审（见 change_ref 指向的 G 编号）",
         confidence="standard_ref 对应关系的把握程度；条文号不确定的只写到准则 / 标准名一级",
         id="稳定 slug；同一英文名在多个 BC 同名异义时以 <bc>__ 前缀隔离",
-        aliases="type: dialect（方言：业务口头或旧系统叫法，只用于检索和沟通，禁止进入代码、界面文案、接口文档、列注释）| undetermined（公司叫法，是正式用语还是方言待确认）| old-code（03 词表旧代码名）| legacy-code / legacy-table（老 PSA）| kpi-symbol | abbr | industry | standard-zh / standard-en；deprecated=true 表示新代码禁用",
+        aliases="type: dialect（方言：业务口头或旧系统叫法，只用于检索和沟通，禁止进入代码、界面文案、接口文档、列注释）| undetermined（公司叫法，是正式用语还是方言待确认）| old-code（03 词表旧代码名）| legacy-code / legacy-table（老系统）| kpi-symbol | abbr | industry | standard-zh / standard-en；deprecated=true 表示新代码禁用",
         coverage="38 个核心术语全部 + 财务关键 BC（operations.facts / operations.policy / contract.* / delivery.* / cost.* / receivables.* / accounting.*）的附录术语 + 准则 / EVM 缺位的新增术语",
     ),
 )
@@ -685,7 +685,7 @@ class D(yaml.SafeDumper): pass
 D.add_representer(collections.OrderedDict, lambda d, v: d.represent_dict(v.items()))
 D.ignore_aliases = lambda *a: True
 with open("glossary/terms.yaml", "w", encoding="utf-8") as f:
-    f.write("# terms.yaml — FORCITIS one / PSA 现代化统一语言（单一来源初版，机器可读）\n")
+    f.write("# terms.yaml — FORCITIS one 现代化统一语言（单一来源初版，机器可读）\n")
     f.write("# 生成：python3 glossary/build_terms.py ；人工修改请改生成器，避免与 03-通用语言.md 漂移\n")
     yaml.dump(out, f, Dumper=D, allow_unicode=True, sort_keys=False, width=200)
 

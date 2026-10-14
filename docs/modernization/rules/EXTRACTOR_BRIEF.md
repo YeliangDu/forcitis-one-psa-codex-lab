@@ -1,6 +1,6 @@
 # Business-rule extractor brief (shared by all extractor agents)
 
-System: PSA, a professional-services automation system. Repo root (READ ONLY — never modify): `/Users/yeliang/Projects/FORCITIS/psa`.
+System: the legacy system (formerly PSA), a professional-services automation system. Repo root (READ ONLY — never modify): `/Users/yeliang/Projects/FORCITIS/psa`.
 Never read `/Users/yeliang/Projects/FORCITIS/forcitis-one` (off-limits).
 `F/` below means `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/`.
 `FA/` means `psa-backend/yudao-module-fst/yudao-module-fst-api/src/main/java/cn/iocoder/yudao/module/fst/`.
