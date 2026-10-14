@@ -21,6 +21,12 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
 )
 
+# read only by scripts in the gitleaks job, which runs on every change; registered so the scan below passes without
+# making such docs changes rebuild the backend and frontend
+READ_BY_ALWAYS_RUN_CHECKS = (
+    "docs/modernization/phase1a/infra/runbooks/sql/",
+)
+
 
 def is_relevant(path):
     if path.startswith(READ_BY_BUILDS):
@@ -43,7 +49,8 @@ SEGMENTS = re.compile(r"""['"]docs['"]\s*,\s*['"]modernization['"]((?:\s*,\s*['"
 
 
 def is_covered(path):
-    return path.startswith(READ_BY_BUILDS) or (path + "/").startswith(READ_BY_BUILDS)
+    listed = READ_BY_BUILDS + READ_BY_ALWAYS_RUN_CHECKS
+    return path.startswith(listed) or (path + "/").startswith(listed)
 
 
 def referenced_docs_paths(root):
@@ -76,6 +83,7 @@ def self_test():
     assert not is_relevant("docs/modernization/adr/src/ADR-0001.md")
     assert not is_relevant("docs/modernization/phase1a/INTERFACES.md")
     assert not is_relevant("README.md")
+    assert not is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql")
     assert is_relevant("notes.txt")
 
 
