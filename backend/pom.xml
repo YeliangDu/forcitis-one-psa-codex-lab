@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>4.1.1</version></parent>
-  <groupId>com.forcitis</groupId><artifactId>forcitis-one</artifactId><version>0.0.1</version>
-  <properties><java.version>25</java.version><spring-modulith.version>2.1.1</spring-modulith.version><shedlock.version>7.10.1</shedlock.version><argLine></argLine><test.forks>4</test.forks><test.jvm>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto</test.jvm></properties>
+  <groupId>com.forcitis</groupId><artifactId>forcitis-one</artifactId><version>${revision}</version>
+  <properties><revision>0.0.1</revision><java.version>25</java.version><spring-modulith.version>2.1.1</spring-modulith.version><shedlock.version>7.10.1</shedlock.version><argLine></argLine><test.forks>4</test.forks><test.jvm>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto</test.jvm></properties>
   <dependencyManagement><dependencies><dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-bom</artifactId><version>${spring-modulith.version}</version><type>pom</type><scope>import</scope></dependency></dependencies></dependencyManagement>
   <dependencies>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
@@ -46,9 +46,17 @@
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-test</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.wiremock</groupId><artifactId>wiremock-standalone</artifactId><version>3.13.1</version><scope>test</scope></dependency>
     <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit</artifactId><version>1.4.2</version></dependency>
+    <!-- archunit stays in the runtime: spring-modulith-core depends on it (compile) to detect modules; test scope here would strip it from the jar -->
   </dependencies>
   <build>
     <plugins>
+      <!-- Start-Class is the application even though the replay command also has a main; the ZIP layout (PropertiesLauncher) lets operators run
+           that command offline from the same jar with -Dloader.main (TIMESHEET_REPLAY.md). The release pipeline passes -Drevision. -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration><mainClass>com.forcitis.one.OneApplication</mainClass><layout>ZIP</layout></configuration>
+        <executions><execution><goals><goal>build-info</goal><goal>repackage</goal></goals></execution></executions>
+      </plugin>
       <plugin>
         <groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.14</version>
         <executions>
