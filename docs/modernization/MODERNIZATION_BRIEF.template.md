@@ -166,12 +166,14 @@ Entry criteria:
 - [ ] `operations.facts` 过账管道和 `accounting.period` 已可用（ADR-0016）：明细事实表拒绝 UPDATE / DELETE 的测试通过；向已关闭的 (期间, 法人) 过账被拒绝的测试通过；工时成本（交易类型 TS）是第一个事实生产者
 - [ ] 老过账引擎最近一个已结期间的工时成本过账结果已导出，作为影子比对基线
   Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14）：追加入口条件「工时审批所需的流程字段已有来源：项目经理（`projectManagerId`）、区域负责人（`regionalHeadId`）与工时行类型路由标记（项目 / 售前 / OH）由哪个模块提供已决定（候选：delivery.execution 提供项目经理，organization.workforce 提供区域负责人）」。1a 中 TIMESHEET 只用于回放，不实际发起，取不到人时落流程管理员兜底。
+  Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14，依据 R0 登记的 A8_ACCESS_REGISTER #29–#31）：追加入口条件「无效交付工时规则（生产 SQL Agent 作业第 4 步经 BI 视图 T_FST_INVALID_DELIVERY 回写，#31）已抽取为规则卡并评审；项目档案（#29）与项目预算（#30，与 PSA 预算双入口，RULE-182/239）的 A8 → 老 PSA 通道已在规则卡中登记」。
 Exit criteria:
 - [ ] 影子计算结果：一个完整会计期间内，新旧系统逐行的审批状态、锁定费率、标准成本金额、计费金额、人天、任务包实际工时完全一致，或差异已被接受
 - [ ] 切换发生在会计期间边界；老系统中切换前发起的工时审批实例已全部结束
 - [ ] 工时保存和提交的 p95 延迟不高于基线
 - [ ] 老成本归集读取反向同步后的 `psa_time_sheet_works_end` 时，结果与切换前一致
 - [ ] 回滚演练通过
+  Proposed revision（草稿，待用户决定；同上）：追加出口条件「生产 SQL Agent 中对应的 A8 / BI → 老 PSA 作业（A8_ACCESS_REGISTER #29、#30、#31）已停用，并在登记表中改为『已停用 / 已迁入』；切换完成前 BI 视图 T_FST_PROJECT、T_FST_INVALID_DELIVERY 不改为过渡镜像、不废弃」。
 
 #### Phase 3 — 差旅报销（分贝通）
 Command: /code-modernization:modernize-reimagine
