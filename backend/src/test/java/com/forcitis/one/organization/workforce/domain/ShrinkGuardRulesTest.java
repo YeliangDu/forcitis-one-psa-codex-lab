@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import static com.forcitis.one.organization.workforce.domain.Fixtures.ROOT;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.apply;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.first;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
@@ -22,7 +21,7 @@ class ShrinkGuardRulesTest {
     }
 
     @Test
-    @DisplayName("RULE-358 300 active units and A8 returns 230: the run is held; at 240 it proceeds")
+    @DisplayName("RULE-358 300 active units and the source returns 230: the run is held; at 240 it proceeds")
     void orgUnitShrinkIsHeldBelowEightyPercent() {
         assertThat(ShrinkGuard.evaluate(stats(230, 300, 100, 100), 20).held()).isTrue();
         assertThat(ShrinkGuard.evaluate(stats(240, 300, 100, 100), 20).held()).isFalse();
@@ -53,11 +52,11 @@ class ShrinkGuardRulesTest {
         for (int i = 1; i <= 10; i++) {
             everyone.add(member(i, 1, 100L, null));
         }
-        SourceSnapshot full = source(List.of(unit(1, ROOT)), List.of(), List.of(post(100)), everyone);
+        SourceSnapshot full = source(List.of(unit(1, null)), List.of(), List.of(post(100)), everyone);
         OrgSnapshot stored = apply(OrgSnapshot.empty(), first(full));
 
         Reconciliation shrunk = SnapshotReconciler.reconcile(stored,
-                source(List.of(unit(1, ROOT)), List.of(), List.of(post(100)), everyone.subList(0, 7)));
+                source(List.of(unit(1, null)), List.of(), List.of(post(100)), everyone.subList(0, 7)));
 
         assertThat(shrunk.stats().previousEmployedCount()).isEqualTo(10);
         assertThat(shrunk.stats().incomingEmployedCount()).isEqualTo(7);

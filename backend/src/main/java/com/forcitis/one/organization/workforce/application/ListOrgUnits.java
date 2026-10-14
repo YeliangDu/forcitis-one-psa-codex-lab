@@ -1,9 +1,8 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
-import com.forcitis.one.organization.workforce.domain.OrgUnit;
+import com.forcitis.one.organization.workforce.domain.OrgHierarchy;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
-import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -18,11 +17,9 @@ public class ListOrgUnits {
     }
 
     public List<OrgUnitView> execute(boolean includeRevoked) {
-        return snapshots.findAllOrgUnits().stream()
+        return OrgHierarchy.parentsFirst(snapshots.findAllOrgUnits().stream()
                 .filter(unit -> includeRevoked || unit.status() != OrgUnitStatus.REVOKED)
-                .sorted(Comparator.comparingInt((OrgUnit u) -> u.path().length())
-                        .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder())
-                        .thenComparingLong(u -> u.orgUnitId().value()))
+                .toList()).stream()
                 .map(OrgUnitView::of)
                 .toList();
     }

@@ -10,8 +10,6 @@ import java.util.List;
 /** Small builders for the reconciler tests: org tree 1 > 2 > 3, positions 100 / 101, people 1001... */
 public final class Fixtures {
 
-    public static final String ROOT = "00000001";
-
     private Fixtures() {
     }
 
@@ -23,12 +21,14 @@ public final class Fixtures {
         return new UserId(id);
     }
 
-    public static SourceOrgUnit unit(long id, String path) {
-        return unit(id, path, OrgUnitStatus.ACTIVE);
+    /** An active unit below the unit with id {@code parent} (null = the root). */
+    public static SourceOrgUnit unit(long id, Long parent) {
+        return unit(id, parent, OrgUnitStatus.ACTIVE);
     }
 
-    public static SourceOrgUnit unit(long id, String path, OrgUnitStatus status) {
-        return new SourceOrgUnit(unitId(id), "C" + id, "Unit " + id, path, (int) id, status, List.of(), null, null, false);
+    public static SourceOrgUnit unit(long id, Long parent, OrgUnitStatus status) {
+        return new SourceOrgUnit(unitId(id), "C" + id, "Unit " + id, parent == null ? null : unitId(parent), (int) id, status,
+                List.of(), null, null, false, null);
     }
 
     public static SourcePosition post(long id) {
@@ -65,7 +65,7 @@ public final class Fixtures {
 
     /** Tree 1 > 2 > 3, posts 100 and 101, no people. */
     public static SourceSnapshot tree(SourceMember... members) {
-        return source(List.of(unit(1, ROOT), unit(2, ROOT + "0001"), unit(3, ROOT + "00010001")), List.of(),
+        return source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(),
                 List.of(post(100), post(101)), List.of(members));
     }
 

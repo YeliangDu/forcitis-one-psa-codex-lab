@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.application;
 
-import static com.forcitis.one.organization.workforce.domain.Fixtures.ROOT;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
@@ -43,15 +42,15 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     ApplicationEvents events;
 
     private void synced() {
-        a8.snapshot = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001"), unit(3, ROOT + "00010001"),
-                        new SourceOrgUnit(unitId(4), "C4", "Stopped", ROOT + "0002", 4, OrgUnitStatus.DISABLED, List.of(), null, null, false)),
+        orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L),
+                        new SourceOrgUnit(unitId(4), "C4", "Stopped", unitId(1), 4, OrgUnitStatus.DISABLED, List.of(), null, null, false, null)),
                 List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
                 List.of(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 2L)));
         sync.execute(SyncTrigger.SCHEDULED, false);
     }
 
     @Test
-    @DisplayName("RULE-322/324 an employee is found by the exact WeCom user id from the snapshot, without asking A8")
+    @DisplayName("RULE-322/324 an employee is found by the exact WeCom user id from the snapshot, without asking the source")
     void findsByWecomUserIdFromTheSnapshot() {
         synced();
 
@@ -62,16 +61,16 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(found.get().orgUnitId()).isEqualTo(unitId(3));
         assertThat(found.get().wecomUserId()).isEqualTo(new WecomUserId("wx-2"));
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
-        assertThat(a8.singleLookups.get()).isZero();
+        assertThat(orgSource.singleLookups.get()).isZero();
         assertThat(directory.findEmployee(user(2))).isPresent();
         assertThat(directory.findEmployee(user(999))).isEmpty();
     }
 
     @Test
-    @DisplayName("login miss: an unknown WeCom user id asks the same A8 view for this one person, registers them and audits it")
+    @DisplayName("login miss: an unknown WeCom user id asks the same the source view for this one person, registers them and audits it")
     void loginMissRegistersTheNewHire() {
         synced();
-        a8.singleLookupResult = List.of(member(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
+        orgSource.singleLookupResult = List.of(member(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
 
         Optional<EmployeeProfile> found = directory.findEmployeeByWecomUserId(new WecomUserId("wx-new-hire"));
 
@@ -85,28 +84,85 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.changedEmployees().contains(user(3001)))).hasSize(1);
 
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-new-hire"))).isPresent();
-        assertThat(a8.singleLookups.get()).as("the second login is answered by the snapshot").isEqualTo(1);
+        assertThat(orgSource.singleLookups.get()).as("the second login is answered by the snapshot").isEqualTo(1);
     }
 
     @Test
-    @DisplayName("login miss: the same checks as the sync - unknown org unit or position, ambiguity and a down A8 all answer 'unknown'")
+    @DisplayName("login miss: the same checks as the sync - unknown org unit or position, ambiguity and a down the source all answer 'unknown'")
     void loginMissFailsClosed() {
         synced();
 
-        a8.singleLookupResult = List.of(member(3002, 99, 100L, null, "13900003002", "wx-no-unit"));
+        orgSource.singleLookupResult = List.of(member(3002, 99, 100L, null, "13900003002", "wx-no-unit"));
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-no-unit"))).isEmpty();
 
-        a8.singleLookupResult = List.of(member(3003, 2, 555L, null, "13900003003", "wx-no-post"));
+        orgSource.singleLookupResult = List.of(member(3003, 2, 555L, null, "13900003003", "wx-no-post"));
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-no-post"))).isEmpty();
 
-        a8.singleLookupResult = List.of(member(3004, 2, 100L, null, "13900003004", "wx-twice"), member(3005, 2, 100L, null, "13900003005", "wx-twice"));
+        orgSource.singleLookupResult = List.of(member(3004, 2, 100L, null, "13900003004", "wx-twice"), member(3005, 2, 100L, null, "13900003005", "wx-twice"));
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-twice"))).isEmpty();
 
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-nobody"))).isEmpty();
 
-        a8.singleLookupResult = List.of(member(3006, 2, 100L, null, "13900003006", "wx-while-down"));
-        a8.unavailable = true;
+        orgSource.singleLookupResult = List.of(member(3006, 2, 100L, null, "13900003006", "wx-while-down"));
+        orgSource.unavailable = true;
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-while-down"))).isEmpty();
+
+        assertThat(count("employees")).isEqualTo(3);
+        verify(audit, never()).record(argThat((AuditEntry e) -> e.action().contains("registered-on-login")));
+    }
+
+    @Test
+    @DisplayName("login name: an employed person is found in the snapshot without asking the source")
+    void loginNameIsAnsweredBySnapshot() {
+        synced();
+
+        Optional<EmployeeProfile> found = directory.findEmployeeByLoginName("1392");
+
+        assertThat(found).isPresent();
+        assertThat(found.get().userId()).isEqualTo(user(2));
+        assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
+        assertThat(orgSource.singleLookups.get()).isZero();
+        assertThat(directory.findEmployeeByLoginName("  ")).isEmpty();
+        assertThat(directory.findEmployeeByLoginName(null)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("login miss by login name: an unknown login name asks the source for this one person, registers them and audits it - like the WeCom lookup")
+    void loginNameMissRegistersTheNewHire() {
+        synced();
+        orgSource.singleLookupResult = List.of(member(3101, 2, 100L, 1L, "13900003101", "wx-by-login"));
+
+        Optional<EmployeeProfile> found = directory.findEmployeeByLoginName("13900003101");
+
+        assertThat(found).isPresent();
+        assertThat(found.get().userId()).isEqualTo(user(3101));
+        assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
+        assertThat(count("employees")).isEqualTo(4);
+        verify(audit).record(argThat((AuditEntry e) -> e.action().equals("organization.workforce.employee.registered-on-login")
+                && e.subjectKey().equals("employee:3101")));
+        assertThat(directory.findEmployeeByLoginName("13900003101")).isPresent();
+        assertThat(orgSource.singleLookups.get()).as("the second lookup is answered by the snapshot").isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("login miss by login name: the same checks as the sync - unknown org unit or position, ambiguity and a down source all answer 'unknown'")
+    void loginNameMissFailsClosed() {
+        synced();
+
+        orgSource.singleLookupResult = List.of(member(3102, 99, 100L, null, "13900003102", "wx-a"));
+        assertThat(directory.findEmployeeByLoginName("13900003102")).isEmpty();
+
+        orgSource.singleLookupResult = List.of(member(3103, 2, 555L, null, "13900003103", "wx-b"));
+        assertThat(directory.findEmployeeByLoginName("13900003103")).isEmpty();
+
+        orgSource.singleLookupResult = List.of(member(3104, 2, 100L, null, "same-login", "wx-c"), member(3105, 2, 100L, null, "same-login", "wx-d"));
+        assertThat(directory.findEmployeeByLoginName("same-login")).isEmpty();
+
+        assertThat(directory.findEmployeeByLoginName("nobody")).isEmpty();
+
+        orgSource.singleLookupResult = List.of(member(3106, 2, 100L, null, "13900003106", "wx-e"));
+        orgSource.unavailable = true;
+        assertThat(directory.findEmployeeByLoginName("13900003106")).isEmpty();
 
         assertThat(count("employees")).isEqualTo(3);
         verify(audit, never()).record(argThat((AuditEntry e) -> e.action().contains("registered-on-login")));
@@ -116,7 +172,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("login miss: a person without a login name is registered as separated, so the login check refuses them")
     void loginMissRegistersALeaverAsSeparated() {
         synced();
-        a8.singleLookupResult = List.of(member(3007, 2, 100L, null, null, "wx-leaver"));
+        orgSource.singleLookupResult = List.of(member(3007, 2, 100L, null, null, "wx-leaver"));
 
         Optional<EmployeeProfile> found = directory.findEmployeeByWecomUserId(new WecomUserId("wx-leaver"));
 
@@ -128,7 +184,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("login miss: a leader who is unknown or not employed is not stored (RULE-372)")
     void loginMissValidatesTheSupervisor() {
         synced();
-        a8.singleLookupResult = List.of(member(3008, 2, 100L, 99999L, "13900003008", "wx-bad-leader"));
+        orgSource.singleLookupResult = List.of(member(3008, 2, 100L, 99999L, "13900003008", "wx-bad-leader"));
 
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-bad-leader"))).isPresent();
 
@@ -151,7 +207,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-356 org unit head and regional receivables manager come from A8; empty when none")
+    @DisplayName("RULE-356 org unit head and regional receivables manager come from the source; empty when none")
     void headAndManager() {
         synced();
 
@@ -163,7 +219,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-355 an org unit profile is active only while A8 keeps it enabled; disabled and revoked are not active")
+    @DisplayName("RULE-355 an org unit profile is active only while the source keeps it enabled; disabled and revoked are not active")
     void orgUnitProfileActiveFlag() {
         synced();
 
@@ -174,7 +230,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         });
         assertThat(directory.findOrgUnit(unitId(4))).get().satisfies(u -> assertThat(u.active()).isFalse());
 
-        a8.snapshot = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001"), unit(3, ROOT + "00010001")),
+        orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)),
                 List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
                 List.of(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 2L)));
         sync.execute(SyncTrigger.SCHEDULED, false);

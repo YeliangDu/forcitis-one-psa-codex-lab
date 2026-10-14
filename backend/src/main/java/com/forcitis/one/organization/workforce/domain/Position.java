@@ -2,7 +2,7 @@ package com.forcitis.one.organization.workforce.domain;
 
 import java.util.Objects;
 
-/** One position (A8 ORG_POST). */
+/** One position (the organisation source). */
 public record Position(PositionId positionId, String code, String name, Integer sortOrder, PositionStatus status) {
 
     public Position {

@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Store for credentials that may be used once: OAuth state, Seeyon tickets, signed-ticket nonces (I-9). Every consuming
+ * Store for credentials that may be used once: OAuth state, portal tickets, signed-ticket nonces (I-9). Every consuming
  * operation is a single atomic statement (unique key / delete-returning), so N concurrent replays give exactly one winner.
  * Only hashes are stored.
  */

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Read-only organisation browser: the org tree and one org unit. Org data is owned by A8; there is nothing to edit here. */
+/** Read-only organisation browser: the org tree and one org unit. Org data is owned by the source; there is nothing to edit here. */
 @RestController
 @RequestMapping("/api/{version}/organization/org-units")
 class OrgUnitController {

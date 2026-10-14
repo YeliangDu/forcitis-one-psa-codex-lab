@@ -2,7 +2,7 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.ValueObject;
 
-/** Typed id of a position; same value as A8 ORG_POST.ID (signed bigint). */
+/** Typed id of a position; same value as the organisation source (signed bigint). */
 @ValueObject
 public record PositionId(long value) {
 

@@ -4,7 +4,7 @@ package com.forcitis.one.platform.approval.infrastructure.replay;
  * Result of replaying one node (REIMAGINED_ARCHITECTURE §3.5 (a)). MATCH means every approver who actually acted is in the new
  * candidate set. The REVIEWED_* verdicts are differences that the reviewed rules (RULE_REVIEWS.md) change on purpose, and are
  * accepted by category. DEFECT is anything else: a real defect of the new engine (or of the export), fixed one by one.
- * Differences between A8 and the old tables are step (b) and never appear here.
+ * Differences between the source and the old tables are step (b) and never appear here.
  */
 enum ReplayVerdict {
     MATCH,

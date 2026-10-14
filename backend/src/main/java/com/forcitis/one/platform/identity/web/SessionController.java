@@ -6,11 +6,11 @@ import com.forcitis.one.platform.identity.application.EmergencyLoginCommand;
 import com.forcitis.one.platform.identity.application.GetCurrentUserProfile;
 import com.forcitis.one.platform.identity.application.LoginAsEmergencyAdmin;
 import com.forcitis.one.platform.identity.application.LoginResult;
-import com.forcitis.one.platform.identity.application.LoginWithSeeyon;
+import com.forcitis.one.platform.identity.application.LoginWithSso;
 import com.forcitis.one.platform.identity.application.LoginWithSignedTicket;
 import com.forcitis.one.platform.identity.application.LoginWithWecom;
 import com.forcitis.one.platform.identity.application.Logout;
-import com.forcitis.one.platform.identity.application.SeeyonSettings;
+import com.forcitis.one.platform.identity.application.SsoSettings;
 import com.forcitis.one.platform.identity.application.WecomLoginCommand;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,24 +31,24 @@ class SessionController {
 
     private final BeginWecomLogin beginWecomLogin;
     private final LoginWithWecom loginWithWecom;
-    private final LoginWithSeeyon loginWithSeeyon;
+    private final LoginWithSso loginWithSso;
     private final LoginWithSignedTicket loginWithSignedTicket;
     private final LoginAsEmergencyAdmin loginAsEmergencyAdmin;
     private final Logout logout;
     private final GetCurrentUserProfile getCurrentUserProfile;
-    private final SeeyonSettings seeyonSettings;
+    private final SsoSettings ssoSettings;
 
-    SessionController(BeginWecomLogin beginWecomLogin, LoginWithWecom loginWithWecom, LoginWithSeeyon loginWithSeeyon,
+    SessionController(BeginWecomLogin beginWecomLogin, LoginWithWecom loginWithWecom, LoginWithSso loginWithSso,
             LoginWithSignedTicket loginWithSignedTicket, LoginAsEmergencyAdmin loginAsEmergencyAdmin, Logout logout,
-            GetCurrentUserProfile getCurrentUserProfile, SeeyonSettings seeyonSettings) {
+            GetCurrentUserProfile getCurrentUserProfile, SsoSettings ssoSettings) {
         this.beginWecomLogin = beginWecomLogin;
         this.loginWithWecom = loginWithWecom;
-        this.loginWithSeeyon = loginWithSeeyon;
+        this.loginWithSso = loginWithSso;
         this.loginWithSignedTicket = loginWithSignedTicket;
         this.loginAsEmergencyAdmin = loginAsEmergencyAdmin;
         this.logout = logout;
         this.getCurrentUserProfile = getCurrentUserProfile;
-        this.seeyonSettings = seeyonSettings;
+        this.ssoSettings = ssoSettings;
     }
 
     @PostMapping(path = "/login-states", version = "1")
@@ -66,10 +66,10 @@ class SessionController {
         return respond(loginWithWecom.execute(new WecomLoginCommand(request.code(), request.state(), request.entry())), null);
     }
 
-    @PostMapping(path = "/sessions:seeyon-login", version = "1")
-    @PublicEndpoint(reason = "Seeyon OA single sign-on: the server checks the one-time ticket against OA. ADR-0009 §3, RULE-320/321, I-3, I-9")
-    ResponseEntity<?> loginWithSeeyon(@RequestBody TicketLoginRequest request) {
-        return respond(loginWithSeeyon.execute(request.ticket()), emptyToNull(seeyonSettings.legacyLoginUrl()));
+    @PostMapping(path = "/sessions:sso-login", version = "1")
+    @PublicEndpoint(reason = "Portal single sign-on: the server checks the one-time ticket against the portal. ADR-0009 §3, RULE-320/321, I-3, I-9")
+    ResponseEntity<?> loginWithSso(@RequestBody TicketLoginRequest request) {
+        return respond(loginWithSso.execute(request.ticket()), emptyToNull(ssoSettings.legacyLoginUrl()));
     }
 
     @PostMapping(path = "/sessions:ticket-login", version = "1")

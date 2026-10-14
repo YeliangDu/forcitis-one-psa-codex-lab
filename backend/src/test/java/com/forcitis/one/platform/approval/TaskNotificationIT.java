@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -41,7 +42,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
 
     ApprovalInstanceId startWithManagers(String key, long initiator, long... managers) {
         return tx.execute(s -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), Set.of(),
-                List.of(new ApprovalField("manager_id", java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
     }
 
     static String dedupKey(ApprovalTaskId task) {
@@ -64,7 +65,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         WecomCard card = captor.getAllValues().stream().filter(c -> c.deduplicationKey().equals(dedupKey(task))).findFirst().orElseThrow();
         assertThat(card.wecomUserIds()).containsExactlyInAnyOrder(new WecomUserId(organisation.wecomOf(first)),
                 new WecomUserId(organisation.wecomOf(second)));
-        assertThat(card.title()).contains("Approver review");
+        assertThat(card.title()).contains("Project manager review");
         assertThat(card.targetUrl()).contains(task.value());
         assertThat(card.description()).contains(ProcessKey.COST_TIMESHEET_APPROVAL.name());
     }
@@ -129,18 +130,18 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("the rework task announced after a return goes to the initiator only")
-    void returnNotifiesTheInitiator() {
+    @DisplayName("a return ends the round: no further task exists and no further card is sent")
+    void returnSendsNoFurtherCard() {
         long initiator = newId();
         long manager = newId();
         organisation.person(initiator, 1, null).person(manager, 1, null);
         ApprovalInstanceId instance = startWithManagers(newKey("notify"), initiator, manager);
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.REJECT, "again")));
-        ApprovalTaskId rework = openTaskId(instance);
+        ApprovalTaskId task = openTaskId(instance);
+        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
 
-        verify(wecom, timeout(10_000)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(rework))
-                && card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(initiator))))));
-        verify(wecom, never()).send(argThat(card -> card.deduplicationKey().equals(dedupKey(rework))
-                && card.wecomUserIds().contains(new WecomUserId(organisation.wecomOf(manager)))));
+        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.REJECT, "again")));
+
+        assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).count()).isZero();
+        verify(wecom, after(1_500).never()).send(argThat(card -> card.wecomUserIds().contains(new WecomUserId(organisation.wecomOf(initiator)))));
     }
 }

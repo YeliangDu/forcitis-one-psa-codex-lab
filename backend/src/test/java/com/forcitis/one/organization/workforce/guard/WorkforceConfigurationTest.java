@@ -28,36 +28,13 @@ class WorkforceConfigurationTest {
     }
 
     @Test
-    @DisplayName("credentials and connection settings are environment placeholders, never values")
-    void credentialsAreEnvironmentPlaceholders() throws IOException {
-        Properties p = load();
-        for (String key : p.stringPropertyNames()) {
-            if (key.endsWith(".password") || key.endsWith(".username") || key.endsWith(".jdbc-url")) {
-                assertThat(p.getProperty(key)).as(key).matches("\\$\\{[A-Z0-9_]+:}");
-            }
-        }
-        assertThat(Files.readString(CONFIG)).doesNotContain("jdbc:sqlserver").doesNotContain("jdbc:postgresql");
-    }
-
-    @Test
-    @DisplayName("both external sources are off unless switched on; with A8 on, the start-up check is on by default")
+    @DisplayName("the sync and the short-name refresh are off unless switched on; the connections they read live in platform.integration")
     void safeDefaults() throws IOException {
         Properties p = load();
 
-        assertThat(p.getProperty("forcitis.organization.workforce.a8.enabled")).isEqualTo("${WORKFORCE_A8_ENABLED:false}");
-        assertThat(p.getProperty("forcitis.organization.workforce.legacy.enabled")).isEqualTo("${WORKFORCE_LEGACY_ENABLED:false}");
-        assertThat(p.getProperty("forcitis.organization.workforce.a8.validate-on-startup")).isEqualTo("${WORKFORCE_A8_VALIDATE_ON_STARTUP:true}");
-        assertThat(p.getProperty("forcitis.organization.workforce.legacy.validate-on-startup")).isEqualTo("${WORKFORCE_LEGACY_VALIDATE_ON_STARTUP:true}");
-    }
-
-    @Test
-    @DisplayName("RULE-356 relationship type ids and enum ids are configuration items (with the known values of today's A8 instance)")
-    void a8InstanceIdsAreConfiguration() throws IOException {
-        Properties p = load();
-
-        assertThat(p.stringPropertyNames()).contains("forcitis.organization.workforce.a8.head-relationship-type-id",
-                "forcitis.organization.workforce.a8.regional-receivables-manager-relationship-type-id",
-                "forcitis.organization.workforce.a8.delivery-unit-yes-enum-id", "forcitis.organization.workforce.a8.fee-earner-yes-enum-id");
+        assertThat(p.getProperty("forcitis.organization.workforce.sync.enabled")).isEqualTo("${WORKFORCE_SYNC_ENABLED:false}");
+        assertThat(p.getProperty("forcitis.organization.workforce.short-name.enabled")).isEqualTo("${WORKFORCE_SHORT_NAME_ENABLED:false}");
+        assertThat(Files.readString(CONFIG)).doesNotContain("jdbc:").doesNotContain("password").doesNotContain("username");
     }
 
     @Test

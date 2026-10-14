@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.web;
 
-import static com.forcitis.one.organization.workforce.domain.Fixtures.ROOT;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
@@ -57,7 +56,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     private static final RequestPostProcessor EXECUTE = caller(WorkforcePermissions.SYNC_RUN_EXECUTE);
 
     private void synced() {
-        a8.snapshot = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001"), unit(3, ROOT + "00010001"), unit(4, ROOT + "0002")),
+        orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L), unit(4, 1L)),
                 List.of(head(2, 1)), List.of(post(100)), List.of(member(1, 2, 100L, null), member(2, 3, 100L, 1L)));
         sync.execute(SyncTrigger.SCHEDULED, false);
     }
@@ -130,7 +129,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("sync records: newest first, one record with its differences and data exceptions")
     void syncRuns() throws Exception {
-        a8.snapshot = tree(member(1, 2, 100L, null), member(2, 99, 100L, null));
+        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 99, 100L, null));
         sync.execute(SyncTrigger.SCHEDULED, false);
         sync.execute(SyncTrigger.SCHEDULED, false);
 
@@ -156,9 +155,9 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         for (int i = 1; i <= 10; i++) {
             ten.add(member(i, 2, 100L, null));
         }
-        a8.snapshot = tree(ten.toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(ten.toArray(SourceMember[]::new));
         sync.execute(SyncTrigger.SCHEDULED, false);
-        a8.snapshot = tree(ten.subList(0, 6).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(ten.subList(0, 6).toArray(SourceMember[]::new));
         var held = sync.execute(SyncTrigger.SCHEDULED, false);
         assertThat(held.status()).isEqualTo(SyncRunStatus.HELD);
         String path = SYNC_RUNS + "/" + held.syncRunId().value() + ":release";
@@ -182,18 +181,18 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("a release that cannot be applied (A8 down) keeps the hold and says why")
+    @DisplayName("a release that cannot be applied (the source down) keeps the hold and says why")
     void releaseWhileSourceIsDown() throws Exception {
         List<SourceMember> ten = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
             ten.add(member(i, 2, 100L, null));
         }
-        a8.snapshot = tree(ten.toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(ten.toArray(SourceMember[]::new));
         sync.execute(SyncTrigger.SCHEDULED, false);
-        a8.snapshot = tree(ten.subList(0, 6).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(ten.subList(0, 6).toArray(SourceMember[]::new));
         var held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        a8.unavailable = true;
+        orgSource.unavailable = true;
         mvc.perform(post(SYNC_RUNS + "/" + held.syncRunId().value() + ":release").with(csrf()).with(EXECUTE))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.outcome").value("NOT_APPLIED"));

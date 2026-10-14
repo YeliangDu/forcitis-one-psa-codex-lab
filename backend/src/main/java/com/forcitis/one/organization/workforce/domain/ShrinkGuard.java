@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
 /**
- * Shrink protection (RULE-358/366): when A8 returns clearly fewer active org units or employed people than the
+ * Shrink protection (RULE-358/366): when the source returns clearly fewer active org units or employed people than the
  * snapshot holds, the run is aborted instead of mass-revoking and mass-separating. Integer arithmetic, no rounding.
  */
 public final class ShrinkGuard {
