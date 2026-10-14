@@ -184,11 +184,18 @@ tables:
     readers: [platform.approval]
 
   platform_audit.audit_entries:
-    gaps:
-      - {rule: D4, owner: B2, ref: K7, note: "online 3 years, then archive to object storage until 10 years: the archive job needs the object storage target (open, INFRA_RUNBOOK 5.3) and is due before the first row turns 3 years old (2029-10)"}
     role: LOG_APPEND_ONLY
     mutability: APPEND_ONLY
-    retention: {policy: 3y, job: null}
+    retention: {policy: 3y, job: platform.audit.entry.archive}
+    lineage: {source: NEW}
+    writers: [platform.audit]
+  platform_audit.audit_archive_batches:
+    role: LOG_APPEND_ONLY
+    fk_exceptions:
+      first_entry_id: the batch row marks how far the archive reached and must outlive the online rows if they are ever removed
+      last_entry_id: same as first_entry_id
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.audit]
 

@@ -2,6 +2,11 @@ package com.forcitis.one.platform.approval.infrastructure.archive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,41 +21,32 @@ class ProcessArchivePolicyTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(Enabled.class);
 
-    private static final String[] COMPLETE = {"forcitis.platform.approval.process-archive.online-period=P3Y",
-            "forcitis.platform.approval.process-archive.archive-period=P10Y", "forcitis.platform.approval.process-archive.directory=/data/forcitis-one/archive"};
-
     @Test
-    @DisplayName("T3 the engine history policy is complete: 3 years online, 10 years archived, an archive directory")
-    void completeConfigurationStarts() {
-        runner.withPropertyValues(COMPLETE).run(context -> {
+    @DisplayName("T3 the engine history stays online 3 years; a missing or non-positive period stops the start-up")
+    void onlinePeriodIsRequired() {
+        runner.withPropertyValues("forcitis.platform.approval.process-archive.online-period=P3Y").run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context.getBean(ProcessArchivePolicy.class).onlinePeriod().getYears()).isEqualTo(3);
         });
+        runner.run(context -> assertThat(context).hasFailed());
+        runner.withPropertyValues("forcitis.platform.approval.process-archive.online-period=P0D").run(context -> assertThat(context).hasFailed());
     }
 
     @Test
-    @DisplayName("T3 a missing period or archive directory stops the start-up instead of falling back to a default")
-    void missingValuesFailTheStartup() {
-        for (int missing = 0; missing < COMPLETE.length; missing++) {
-            String[] partial = new String[COMPLETE.length - 1];
-            int at = 0;
-            for (int i = 0; i < COMPLETE.length; i++) {
-                if (i != missing) {
-                    partial[at++] = COMPLETE[i];
-                }
+    @DisplayName("T3 the variables an archive may carry are exactly the ones registered in architecture/archive-variables.txt (data classification)")
+    void archivedVariablesAreRegistered() throws Exception {
+        List<String> registered = new ArrayList<>();
+        for (String line : Files.readAllLines(Path.of("architecture/archive-variables.txt"))) {
+            if (!line.isBlank() && !line.startsWith("#")) {
+                String[] parts = line.split("\\s*\\|\\s*");
+                assertThat(parts).as(line).hasSize(4);
+                registered.add(parts[0] + ":" + parts[1]);
             }
-            runner.withPropertyValues(partial).run(context -> assertThat(context).hasFailed());
         }
-        runner.withPropertyValues("forcitis.platform.approval.process-archive.online-period=P3Y", "forcitis.platform.approval.process-archive.archive-period=P10Y",
-                "forcitis.platform.approval.process-archive.directory=").run(context -> assertThat(context).hasFailed());
-    }
-
-    @Test
-    @DisplayName("T3 the archive must be kept longer than the history stays online, and in an absolute directory")
-    void inconsistentValuesFail() {
-        runner.withPropertyValues("forcitis.platform.approval.process-archive.online-period=P3Y", "forcitis.platform.approval.process-archive.archive-period=P3Y",
-                "forcitis.platform.approval.process-archive.directory=/data/a").run(context -> assertThat(context).hasFailed());
-        runner.withPropertyValues("forcitis.platform.approval.process-archive.online-period=P3Y", "forcitis.platform.approval.process-archive.archive-period=P10Y",
-                "forcitis.platform.approval.process-archive.directory=relative/dir").run(context -> assertThat(context).hasFailed());
+        List<String> inCode = new ArrayList<>();
+        ProcessArchiveJob.PROCESS_VARIABLES.forEach(n -> inCode.add("PROCESS:" + n));
+        inCode.add("PROCESS:" + ProcessArchiveJob.ROUTING_VARIABLE_PREFIX.replace("\\", "") + "*");
+        ProcessArchiveJob.TASK_VARIABLES.forEach(n -> inCode.add("TASK:" + n));
+        assertThat(new TreeSet<>(inCode)).isEqualTo(new TreeSet<>(registered));
     }
 }

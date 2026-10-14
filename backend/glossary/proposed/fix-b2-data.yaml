@@ -14,3 +14,48 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: archived
+  zh: 已归档
+  en: Archived
+  snake: archived
+  kind: value
+  bc: platform.integration
+  definition: 已写入归档库并经归档库确认的状态或时间
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
+- id: probe
+  zh: 探针
+  en: Probe
+  snake: probe
+  kind: action
+  bc: platform.integration
+  definition: 不留下数据的写入检查：启动时和每天一次检查归档目标是否可用
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
+- id: size
+  zh: 大小
+  en: Size
+  snake: size
+  kind: value
+  bc: platform.integration
+  definition: 归档对象的字节数
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
