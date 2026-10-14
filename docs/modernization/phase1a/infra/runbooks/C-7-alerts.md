@@ -53,7 +53,7 @@ systemctl start one-cert-check.service; journalctl -u one-cert-check.service -n 
 | 告警 | 落在哪里 | 费用 | 状态 |
 |---|---|---|---|
 | 证书到期、续期失败 | 本机脚本 + 企业微信群机器人 | 免费 | 脚本已备好，待确认安装 |
-| ECS CPU、内存、磁盘（/data 使用率 > 85 %）、实例状态 | 云监控基础监控阈值告警。2026-10-15 查询：云监控插件 `Status=running`，但操作系统级监控 `OsMonitorStatus=stopped`、`LoongCollectorStatus=NotEnabled`，内存与磁盘使用率须先在 C-4 中启用 | 免费；短信按云监控免费额度，超出另计 | 待 A-5 联系人后配置 |
+| ECS CPU、内存、磁盘（/data 使用率 > 85 %）、实例状态 | 云监控基础监控阈值告警。2026-10-15 查询：云监控插件 `Status=running`，`OsMonitorStatus` 字段显示 stopped，但 2026-10-15 核对 `acs_ecs_dashboard` 的 `memory_usedutilization`、`diskusage_utilization`（含数据盘 `/dev/nvme1n1`）每分钟都有上报，以指标为准 | 免费；短信按云监控免费额度，超出另计 | 待 A-5 联系人后配置 |
 | RDS CPU、连接数、存储使用率（共用实例，阈值须与 it_portal 商定） | 云监控 RDS 基础指标告警 | 免费 | 同上 |
 | 应用不可达（`up == 0`） | ARMS Prometheus 抓取 | 按写入量计费（**付费项 P-1**） | 免费替代：本机 systemd `OnFailure=` + 群机器人，或下面的 SLS 规则 |
 | 四类业务告警（登录失败率、未完成发布 / 死信、组织同步、作业失败）与日历未维护 | ARMS Prometheus 抓 `/actuator/prometheus` 的自定义指标 | 按写入量计费（**付费项 P-1**）；指标约几十个时序，量很小，单价以费用中心为准 | 出口条件 D-6 必需 |
