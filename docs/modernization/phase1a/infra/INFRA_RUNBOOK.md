@@ -89,14 +89,14 @@
 | `SPRING_FLYWAY_ENABLED` | 常驻服务必须为 `false`（生产 profile 已默认） | 是 |
 | `ARCHIVE_STORE_BUCKET` / `_REGION` / `_PREFIX` | 归档库（OSS）的 bucket、地域（只允许国内地域，如 `cn-hangzhou`）和对象前缀（§5.3）；缺任一项启动失败 | 是 |
 | `ARCHIVE_STORE_LOCAL_DIRECTORY` | 本机只留最近一份归档的目录（绝对路径） | 是 |
-| `ARCHIVE_STORE_WORM_LOCK_DAYS` | bucket 必须已锁定的 WORM 保留天数下限（探针核对） | 是 |
-| `ARCHIVE_STORE_ACCESS_KEY_ID` / `_SECRET` | 归档专用 RAM 子账号的密钥，只写入 one.env 或 KMS | 是 |
+| `ARCHIVE_STORE_WORM_LOCK_DAYS` | bucket 必须已锁定的 WORM 保留天数下限，随发行物默认 2557（约 7 年；探针核对桶上已锁定的天数不少于它） | 否 |
+| `ARCHIVE_STORE_ACCESS_KEY_ID` / `_SECRET` | 归档用 RAM 子账号的密钥，只写入 one.env 或 KMS；绑定 ECS RAM 角色时两项都不设，应用走默认凭证链 | 否 |
 | `FLOWABLE_SCHEMA_UPDATE` | 仅引擎安装 / 升级时为 true | 否 |
 | `FLOWABLE_ASYNC_EXECUTOR` | 流程引擎异步执行器开关（默认 true） | 否 |
 | `APPROVAL_PROCESS_ADMINISTRATOR_USER_ID` | 取不到审批人时的兜底人 | 是 |
 | `APPROVAL_TASK_URL_TEMPLATE` | 卡片跳转地址 | 否（有默认值） |
 | `EMERGENCY_TOTP_ENCRYPTION_KEY` | 应急管理员 TOTP 密钥加密（32 字节 Base64） | 是 |
-| 归档专用 RAM 子账号的 AccessKey | one.env / KMS | 不设到期 | 每 90 天在 RAM 控制台新建一把、替换、再停用旧的 |
+| 归档用 RAM 子账号的 AccessKey（只在不用 ECS RAM 角色时存在） | one.env / KMS | 不设到期 | 每 90 天：在 RAM 控制台新建第二把、写入 one.env、重启应用确认归档探针通过，再停用并删除旧的；RAM 角色（STS）无需轮换 |
 | `FORCITIS_TICKET_KEY_<KID>` | 签名票据签发方密钥；签发方默认关闭，当前白名单为空 | 否 |
 | `FORCITIS_TRUSTED_PROXIES` | 只信任 nginx（127.0.0.1） | 是 |
 | `SEEYON_OA_BASE_URL`、`LEGACY_LOGIN_URL` | 致远验票地址；失败时回老系统登录 | 是 |
@@ -160,7 +160,9 @@
 - **归档库**：阿里云 OSS，**与 ECS 同地域的国内地域**（应用只接受国内地域，拒绝 `eu-central-1` 等；归档含个人信息，不得放到法兰克福），存储类型 Archive，开启 WORM 合规保留（保留期不得短于 `ARCHIVE_STORE_WORM_LOCK_DAYS`）。bucket 和 RAM 子账号由用户创建，名字、账号、密钥都不进仓库。RAM 子账号只授予该 bucket 前缀下的写入（`oss:PutObject`、分片上传的发起与中止）和读元数据，不授予删除。
 - **写入方式**：每批一个不可变对象，键为 `<前缀>/<类别>/<年>/<类别>-<UTC 时间>-<SHA-256 前 12 位>.ndjson.gz`；写入前算 SHA-256，上传带 `Content-MD5`、禁止覆盖、归档存储类型，SHA-256 同时写进对象元数据；上传后读回元数据，哈希或大小不符则整批失败，引擎和在线行都不动。多节点下由 ShedLock 保证同一时刻只有一个节点归档，对象名也各不相同。
 - **本机**：数据盘 `ARCHIVE_STORE_LOCAL_DIRECTORY/<类别>/latest.ndjson.gz` 只留最近一份（目录属主 `forcitis`，权限 `0750`，systemd 单元的 `ReadWritePaths` 要加上它）。
-- **到期删除不归应用管**：十年（审计另按会计档案期限）到期由 WORM 与 bucket 生命周期规则处理。审计要满 30 年：WORM 期限可只增不减，建 bucket 时按 10 年锁定，审计前缀的保留期在到期前延长到 30 年（OSS 允许延长），此项由用户在 OSS 控制台办理；与 `GUIDING_PRINCIPLES` §6 的「保留至满 10 年」不一致，已在报告中提出。
+- **保留与到期（单一 bucket）**：流程归档与审计归档共用同一个 bucket，用前缀区分类别，WORM 合规保留 **2557 天（约 7 年）**：依据是在线 3 年加归档 7 年，从数据产生起算满 10 年（用户已定）；以后需要时还可以延长，只增不减。天数是配置项 `ARCHIVE_STORE_WORM_LOCK_DAYS`（`forcitis.platform.integration.archive-store.worm-lock-days`，随发行物默认 2557），总保留期 10 年是另一个配置项 `total-keep-years`；每类数据的「在线保留期 + WORM 天数」必须等于总保留期，不一致则启动失败（`ArchiveVault.requireTotalKeepPeriod`，并有守护测试核对随发行物的配置）。建桶时在控制台按 2557 天锁定。
+- **生命周期**：bucket 配置生命周期规则，对象保留期满（创建后满 WORM 天数）后过期删除；应用不删除归档。过账类单据按 30 年保存，存放另行安排，见 `phase1a/DEFERRED.md`（用户已定，主分支提交 7d5b9d3），不在这个 bucket 的 10 年规则里。
+- **凭证与 RAM 策略**：推荐给 ECS 绑定 RAM 角色（STS 临时凭证），应用走默认凭证链，不配置 AccessKey；不用角色时才配置 `ARCHIVE_STORE_ACCESS_KEY_ID` / `_SECRET`（见 §5.2 的轮换）。策略（草稿，由用户在 RAM 控制台建）：Allow `oss:PutObject`、`oss:InitiateMultipartUpload`、`oss:AbortMultipartUpload`、`oss:GetObjectMetadata`（`oss:GetObject` 仅排障需要，默认不给）、`oss:GetBucketInfo`、`oss:GetBucketWorm`、`oss:GetBucketLocation`，资源限定在该 bucket 及 `<前缀>/*`；**显式 Deny** `oss:DeleteObject*`（含 `DeleteObject`、`DeleteMultipleObjects`、`DeleteObjectVersion`）于同一资源，显式 Deny 优先于任何 Allow。
 - **探针**：应用启动时和每天一次，检查本机目录可写、bucket 在配置的地域、WORM 已锁定且期限足够、有写入权限（发起并中止一次分片上传，不在 WORM 桶里留对象）。失败不阻止启动，记 `ALERT` 日志并计数 `forcitis.platform.approval.archive.probe.failures`、`forcitis.platform.audit.archive.probe.failures`；归档作业本身失败记 `ALERT` 并计数 `forcitis.platform.scheduling.job.failures{job=…}`（所有带锁作业共用）。生产缺少上述配置项则**启动失败**。
 - **归档内容**：流程实例的 ID、流程定义键、版本与部署 ID、业务键、起止时间、发起人、删除原因，任务（办理人、认领、办结、到期时间）、活动、身份关联（候选人、转交、升级追加的人），以及白名单内的变量（`architecture/archive-variables.txt`：`contentDigest`、`routed_*`，任务级 `systemComplete`、`advisory`、`assignedAt`），不含其他流程变量。任务级的结论与理由由审批的只追加办理记录表负责。
 - 一个实例写入归档后引擎删除失败，则跳过、记 `ALERT`、计数 `forcitis.platform.approval.archive.skipped`；下一次运行会再写一遍，读取方按 `instanceId` 去重。
