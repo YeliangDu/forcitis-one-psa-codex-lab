@@ -1,0 +1,44 @@
+name: generated-docs
+
+# main 每次更新后，把由片段生成的记录（INTENT / SESSION_LOG / STATUS）连同 ADR 与 brief 的快照
+# 强制推到不受保护的 generated-docs 孤儿分支，便于不在本地生成也能阅读；不向 main 推送任何内容。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: generated-docs
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: publish generated docs
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 docs/modernization/build_all.py
+      - name: push snapshot to generated-docs
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          out="$(mktemp -d)"
+          src=docs/modernization
+          cp "$src/INTENT.md" "$src/SESSION_LOG.md" "$src/STATUS.md" "$src/MODERNIZATION_BRIEF.md" "$out/"
+          mkdir -p "$out/adr"
+          cp "$src"/adr/ADR-*.md "$src/adr/README.md" "$out/adr/"
+          printf '# 生成文档快照\n\n由 main@%s 的片段生成（docs/modernization/build_all.py），每次 main 更新时整体覆盖。不要在此分支上修改；改片段后合入 main。\n\n- [INTENT.md](INTENT.md)\n- [SESSION_LOG.md](SESSION_LOG.md)\n- [STATUS.md](STATUS.md)\n- [MODERNIZATION_BRIEF.md](MODERNIZATION_BRIEF.md)\n- [adr/README.md](adr/README.md)\n' "$GITHUB_SHA" > "$out/README.md"
+          cd "$out"
+          git init -q -b generated-docs
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "generated from main ${GITHUB_SHA}"
+          auth="$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${auth}" \
+            push -f "https://github.com/${GITHUB_REPOSITORY}.git" generated-docs:generated-docs
