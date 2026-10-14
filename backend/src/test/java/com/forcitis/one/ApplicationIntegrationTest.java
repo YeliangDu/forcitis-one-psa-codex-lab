@@ -79,6 +79,9 @@ class ApplicationIntegrationTest {
     RoleDirectory roleDirectory;
 
     @MockitoBean
+    com.forcitis.one.organization.workforce.api.EmployeeLegalEntities employeeLegalEntities;
+
+    @MockitoBean
     WecomGateway wecomGateway;
 
     @MockitoBean
@@ -177,6 +180,11 @@ class ApplicationIntegrationTest {
     void projectManagerExists() {
         org.mockito.Mockito.when(orgDirectory.findEmployee(new UserId(2002))).thenReturn(java.util.Optional.of(new EmployeeProfile(
                 new UserId(2002), "person-2002", new OrgUnitId(1), null, EmploymentStatus.EMPLOYED, false)));
+    }
+
+    @BeforeEach
+    void everyEmployeeBelongsToLegalEntityOne() {
+        org.mockito.Mockito.when(employeeLegalEntities.on(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(LE1);
     }
 
     @BeforeEach

@@ -26,7 +26,7 @@ class LegalEntityStateMachineTest {
     static final LegalEntityId ID = new LegalEntityId(4);
 
     static LegalEntity at(LegalEntityStatus status) {
-        return LegalEntity.restore(ID, new LegalEntityCode("FST"), "Synthetic", status.name(), 7);
+        return LegalEntity.restore(ID, new LegalEntityCode("FST"), "Synthetic", status.name(), 7, 7);
     }
 
     @Test
@@ -123,7 +123,7 @@ class LegalEntityStateMachineTest {
     }
 
     @Test
-    @DisplayName("several changes in one unit are numbered contiguously after the loaded version")
+    @DisplayName("several changes in one unit are numbered contiguously after the loaded event sequence; the lock version moves once")
     void severalEventsInOneUnit() {
         LegalEntity entity = at(ACTIVE);
         entity.rename("Renamed");
@@ -134,6 +134,7 @@ class LegalEntityStateMachineTest {
 
         assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(8L, 9L, 10L);
         assertThat(events.get(2)).isInstanceOf(LegalEntityActivated.class);
-        assertThat(entity.version()).isEqualTo(10);
+        assertThat(entity.eventSequence()).isEqualTo(10);
+        assertThat(entity.version()).isEqualTo(8);
     }
 }

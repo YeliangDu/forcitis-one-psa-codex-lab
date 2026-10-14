@@ -347,7 +347,7 @@ class DdlNamingTest {
 
     private static void tableConstraint(String table, Table model, String line) {
         String lower = line.toLowerCase(Locale.ROOT);
-        Matcher m = Pattern.compile("constraint ([a-z0-9_]+) (primary key|foreign key|unique|check)").matcher(lower);
+        Matcher m = Pattern.compile("constraint ([a-z0-9_]+) (primary key|foreign key|unique|check|exclude)").matcher(lower);
         String kind;
         String name;
         if (m.find()) {
@@ -368,6 +368,7 @@ class DdlNamingTest {
             case "primary key" -> "pk";
             case "foreign key" -> "fk";
             case "unique" -> "uk";
+            case "exclude" -> "ex";
             default -> "ck";
         }, name, false);
     }
@@ -398,6 +399,7 @@ class DdlNamingTest {
                         case "pk" -> "pk_" + table;
                         case "fk" -> "fk_" + table + "_<column>";
                         case "uk" -> "uk_" + table + "_<column>";
+                        case "ex" -> "ex_" + table + "_<rule>";
                         default -> "ck_" + table + "_<rule>";
                     };
                     boolean ok = c.kind().equals("pk") ? c.name().equals(expected) : c.name().startsWith(expected.replace("<column>", "").replace("<rule>", ""));

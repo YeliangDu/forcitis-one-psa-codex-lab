@@ -21,21 +21,21 @@ public final class WorkCalendarYear extends AggregateRoot {
     private final WorkCalendarKey key;
     private Map<LocalDate, DayKind> exceptions;
 
-    private WorkCalendarYear(Long storedRow, WorkCalendarKey key, Map<LocalDate, DayKind> exceptions, long version) {
-        super(version);
+    private WorkCalendarYear(Long storedRow, WorkCalendarKey key, Map<LocalDate, DayKind> exceptions, long version, long eventSequence) {
+        super(version, eventSequence);
         this.storedRow = storedRow;
         this.key = Objects.requireNonNull(key, "key");
         this.exceptions = Map.copyOf(exceptions);
     }
 
     public static WorkCalendarYear unmaintained(WorkCalendarKey key) {
-        return new WorkCalendarYear(null, key, Map.of(), 0);
+        return new WorkCalendarYear(null, key, Map.of(), 0, 0);
     }
 
-    public static WorkCalendarYear restore(long storedRow, WorkCalendarKey key, List<CalendarDay> days, long version) {
+    public static WorkCalendarYear restore(long storedRow, WorkCalendarKey key, List<CalendarDay> days, long version, long eventSequence) {
         Map<LocalDate, DayKind> restored = new TreeMap<>();
         days.forEach(day -> restored.put(day.calendarDate(), day.dayKind()));
-        return new WorkCalendarYear(storedRow, key, restored, version);
+        return new WorkCalendarYear(storedRow, key, restored, version, eventSequence);
     }
 
     public Long storedRow() {

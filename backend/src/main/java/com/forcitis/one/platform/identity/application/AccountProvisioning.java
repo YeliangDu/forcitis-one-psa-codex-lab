@@ -1,31 +1,37 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
+import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
-import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
-import java.util.Optional;
+import com.forcitis.one.platform.identity.domain.UserAccount;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/** The default role is granted only for the call that created the account, so an administrator's later removal is not overridden. */
+/** The default role is granted only when the account is opened, so an administrator's later removal is not overridden. */
 @Component
 class AccountProvisioning {
 
+    private static final String ACTOR = "platform.identity.account-provisioning";
+
     private final AccountRepository accounts;
     private final RoleRepository roles;
-    private final AuditLog audit;
+    private final DomainEvents events;
     private final String defaultRole;
 
-    AccountProvisioning(AccountRepository accounts, RoleRepository roles, AuditLog audit,
-            @Value("${forcitis.platform.identity.default-role:employee}") String defaultRole) {
+    AccountProvisioning(AccountRepository accounts, RoleRepository roles, DomainEvents events,
+            @Value("${forcitis.platform.identity.default-role}") String defaultRole) {
         this.accounts = accounts;
         this.roles = roles;
-        this.audit = audit;
+        this.events = events;
         this.defaultRole = defaultRole;
     }
 
@@ -33,19 +39,16 @@ class AccountProvisioning {
         if (employee.employmentStatus() != EmploymentStatus.EMPLOYED) {
             return false;
         }
-        if (!accounts.createIfAbsent(employee.userId())) {
+        RoleId initial = roles.findByCode(new RoleCode(defaultRole)).orElseThrow(() -> new DomainException(
+                IdentityError.PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING, ErrorKind.UNAVAILABLE, "the default role " + defaultRole + " does not exist"))
+                .roleId();
+        UserAccount opened = UserAccount.open(employee.userId(), Set.of(initial));
+        if (!accounts.insertIfAbsent(opened)) {
             return false;
         }
-        String subject = "user-account:" + employee.userId().value();
-        audit.record(new AuditEntry("platform.identity.account.created", null, null, subject, "created for an employed person"));
-        Optional<Role> role = defaultRole.isBlank() ? Optional.empty() : roles.findByCode(new RoleCode(defaultRole));
-        if (role.isPresent()) {
-            accounts.grantRole(employee.userId(), role.get().roleId());
-            audit.record(new AuditEntry("platform.identity.role.granted", null, null, subject,
-                    "default role " + defaultRole + ", granted once at creation"));
-        } else {
-            audit.record(new AuditEntry("platform.identity.role.grant.skipped", null, null, subject,
-                    "default role " + defaultRole + " does not exist"));
+        try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
+                ACTOR)) {
+            events.publish(opened);
         }
         return true;
     }

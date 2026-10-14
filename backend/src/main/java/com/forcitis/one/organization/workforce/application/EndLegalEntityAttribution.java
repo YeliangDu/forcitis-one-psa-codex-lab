@@ -1,0 +1,37 @@
+package com.forcitis.one.organization.workforce.application;
+
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.AttributionKind;
+import com.forcitis.one.organization.workforce.api.AttributionSubject;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.domain.LegalEntityAttribution;
+import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionRepository;
+import java.time.LocalDate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class EndLegalEntityAttribution {
+    private final LegalEntityAttributionRepository attributions;
+    private final AttributionSubjects subjects;
+    private final DomainEvents events;
+
+    EndLegalEntityAttribution(LegalEntityAttributionRepository attributions, AttributionSubjects subjects, DomainEvents events) {
+        this.attributions = attributions;
+        this.subjects = subjects;
+        this.events = events;
+    }
+
+    @Transactional
+    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LocalDate effectiveTo) {
+        AttributionSubject subject = subjects.require(kind, subjectId);
+        LegalEntityAttribution attribution = attributions.find(subject).orElseThrow(() -> new DomainException(
+                WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND, ErrorKind.NOT_FOUND, "nothing is attributed to this subject"));
+        attribution.end(effectiveTo);
+        attributions.save(attribution);
+        events.publish(attribution);
+        return LegalEntityAttributionView.of(attribution);
+    }
+}

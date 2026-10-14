@@ -45,8 +45,8 @@ public class LoginWithWecom {
         if (isBlank(command.code()) || command.code().length() > MAX_CODE_LENGTH) {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_WECOM_CODE_INVALID, method, null, "code missing or too long");
         }
-        if (entry != WecomEntry.MINI_PROGRAM && !consumeState(command.state(), entry)) {
-            return admission.reject(IdentityError.PLATFORM_IDENTITY_STATE_INVALID, method, null, "state unknown, used, expired or for another entry");
+        if (entry != WecomEntry.MINI_PROGRAM && !consumeState(command.state(), command.binding(), entry)) {
+            return admission.reject(IdentityError.PLATFORM_IDENTITY_STATE_INVALID, method, null, "state unknown, used, expired, for another entry or not from this browser");
         }
         Optional<WecomUserId> wecomUserId = wecom.resolveWecomUserId(command.code(), entry);
         if (wecomUserId.isEmpty()) {
@@ -64,11 +64,11 @@ public class LoginWithWecom {
         return admission.complete(employee.get().userId(), method);
     }
 
-    private boolean consumeState(String state, WecomEntry entry) {
-        if (isBlank(state) || state.length() > MAX_STATE_LENGTH) {
+    private boolean consumeState(String state, String binding, WecomEntry entry) {
+        if (isBlank(state) || state.length() > MAX_STATE_LENGTH || isBlank(binding) || binding.length() > MAX_STATE_LENGTH) {
             return false;
         }
-        Optional<WecomEntry> issuedFor = credentials.consumeLoginState(Digests.sha256Hex(state), clock.instant());
+        Optional<WecomEntry> issuedFor = credentials.consumeLoginState(Digests.sha256Hex(state), Digests.sha256Hex(binding), clock.instant());
         return issuedFor.isPresent() && issuedFor.get() == entry;
     }
 

@@ -1,6 +1,19 @@
 {
   "components" : {
     "schemas" : {
+      "AttributeLegalEntityRequest" : {
+        "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "legalEntityId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "CalendarDayRequest" : {
         "properties" : {
           "calendarDate" : {
@@ -105,109 +118,29 @@
         },
         "type" : "object"
       },
-      "HandledTaskResponse" : {
+      "EndLegalEntityAttributionRequest" : {
         "properties" : {
-          "completedAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "documentId" : {
-            "type" : "string"
-          },
-          "documentType" : {
-            "type" : "string"
-          },
-          "effect" : {
-            "type" : "string"
-          },
-          "nodeKey" : {
-            "type" : "string"
-          },
-          "outcome" : {
-            "type" : "string"
-          },
-          "processKey" : {
-            "type" : "string"
-          },
-          "reason" : {
-            "type" : [ "string", "null" ]
-          },
-          "taskId" : {
+          "effectiveTo" : {
+            "format" : "date",
             "type" : "string"
           }
         },
-        "required" : [ "completedAt", "documentId", "documentType", "effect", "nodeKey", "outcome", "processKey", "reason", "taskId" ],
-        "type" : "object"
-      },
-      "HistoryEntry" : {
-        "properties" : {
-          "assignee" : {
-            "type" : [ "string", "null" ]
-          },
-          "completedAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
-          },
-          "effect" : {
-            "type" : [ "string", "null" ]
-          },
-          "nodeKey" : {
-            "type" : "string"
-          },
-          "outcome" : {
-            "type" : [ "string", "null" ]
-          },
-          "reason" : {
-            "type" : [ "string", "null" ]
-          },
-          "round" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "status" : {
-            "type" : "string"
-          },
-          "taskId" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "assignee", "completedAt", "effect", "nodeKey", "outcome", "reason", "round", "status", "taskId" ],
         "type" : "object"
       },
       "InboxItemResponse" : {
         "properties" : {
-          "category" : {
-            "type" : "string"
-          },
           "claimed" : {
             "type" : "boolean"
           },
           "createdAt" : {
             "format" : "date-time",
-            "type" : [ "string", "null" ]
-          },
-          "deadlineAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
+            "type" : "string"
           },
           "detailUrl" : {
-            "type" : [ "string", "null" ]
-          },
-          "documentId" : {
-            "type" : [ "string", "null" ]
-          },
-          "dueAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
+            "type" : "string"
           },
           "nodeName" : {
-            "type" : [ "string", "null" ]
-          },
-          "overdue" : {
-            "type" : "boolean"
-          },
-          "processKey" : {
-            "type" : [ "string", "null" ]
+            "type" : "string"
           },
           "source" : {
             "type" : "string"
@@ -219,7 +152,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "category", "claimed", "createdAt", "deadlineAt", "detailUrl", "documentId", "dueAt", "nodeName", "overdue", "processKey", "source", "taskId", "title" ],
+        "required" : [ "claimed", "source", "taskId", "title" ],
         "type" : "object"
       },
       "InboxResponse" : {
@@ -268,6 +201,24 @@
           }
         },
         "required" : [ "documentId", "documentType", "importBatch", "legacyNumber", "legalEntityId" ],
+        "type" : "object"
+      },
+      "LegalEntityAttributionResponse" : {
+        "properties" : {
+          "kind" : {
+            "type" : "string"
+          },
+          "periods" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Period"
+            },
+            "type" : "array"
+          },
+          "subjectId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "kind", "periods", "subjectId" ],
         "type" : "object"
       },
       "LegalEntityResponse" : {
@@ -431,16 +382,21 @@
         "required" : [ "code", "deliveryUnit", "name", "orgUnitId", "status" ],
         "type" : "object"
       },
-      "ReassignTaskRequest" : {
+      "Period" : {
         "properties" : {
-          "assigneeId" : {
-            "format" : "int64",
-            "type" : "integer"
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
           },
-          "reason" : {
+          "effectiveTo" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "legalEntityId" : {
             "type" : "string"
           }
         },
+        "required" : [ "effectiveFrom", "effectiveTo", "legalEntityId" ],
         "type" : "object"
       },
       "ReleaseResponse" : {
@@ -466,6 +422,14 @@
             },
             "type" : "array",
             "uniqueItems" : true
+          }
+        },
+        "type" : "object"
+      },
+      "RetractTimesheetRequest" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -535,6 +499,40 @@
           }
         },
         "required" : [ "accessScope", "administrative", "code", "enabled", "kind", "name", "permissionCodes", "roleId" ],
+        "type" : "object"
+      },
+      "SubmitTimesheetRequest" : {
+        "properties" : {
+          "hours" : {
+            "type" : "number"
+          },
+          "projectManagerId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "workPackageId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "SubmitTimesheetResponse" : {
+        "properties" : {
+          "approvalInstanceId" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "remainingHours" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "outcome" ],
         "type" : "object"
       },
       "SyncDiffResponse" : {
@@ -669,19 +667,10 @@
       "TaskDetailResponse" : {
         "properties" : {
           "assignee" : {
-            "type" : [ "string", "null" ]
-          },
-          "assigneeName" : {
-            "type" : [ "string", "null" ]
+            "type" : "string"
           },
           "canAct" : {
             "type" : "boolean"
-          },
-          "candidateNames" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
           },
           "candidates" : {
             "items" : {
@@ -689,17 +678,9 @@
             },
             "type" : "array"
           },
-          "completedAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
-          },
           "createdAt" : {
             "format" : "date-time",
             "type" : "string"
-          },
-          "deadlineAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
           },
           "documentId" : {
             "type" : "string"
@@ -707,27 +688,8 @@
           "documentType" : {
             "type" : "string"
           },
-          "dueAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
-          },
-          "effect" : {
-            "type" : [ "string", "null" ]
-          },
-          "history" : {
-            "items" : {
-              "$ref" : "#/components/schemas/HistoryEntry"
-            },
-            "type" : "array"
-          },
           "initiator" : {
             "type" : "string"
-          },
-          "initiatorName" : {
-            "type" : "string"
-          },
-          "initiatorOrgUnitName" : {
-            "type" : [ "string", "null" ]
           },
           "instanceId" : {
             "type" : "string"
@@ -736,69 +698,16 @@
             "type" : "string"
           },
           "nodeName" : {
-            "type" : [ "string", "null" ]
-          },
-          "outcome" : {
-            "type" : [ "string", "null" ]
-          },
-          "overdue" : {
-            "type" : "boolean"
+            "type" : "string"
           },
           "processKey" : {
-            "type" : "string"
-          },
-          "reason" : {
-            "type" : [ "string", "null" ]
-          },
-          "status" : {
-            "type" : "string"
-          },
-          "summary" : {
-            "type" : [ "string", "null" ]
-          },
-          "taskId" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "assignee", "assigneeName", "canAct", "candidateNames", "candidates", "completedAt", "createdAt", "deadlineAt", "documentId", "documentType", "dueAt", "effect", "history", "initiator", "initiatorName", "initiatorOrgUnitName", "instanceId", "nodeKey", "nodeName", "outcome", "overdue", "processKey", "reason", "status", "summary", "taskId" ],
-        "type" : "object"
-      },
-      "TaskOverviewResponse" : {
-        "properties" : {
-          "assignee" : {
-            "type" : [ "string", "null" ]
-          },
-          "createdAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "documentId" : {
-            "type" : "string"
-          },
-          "documentType" : {
-            "type" : "string"
-          },
-          "dueAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
-          },
-          "nodeKey" : {
-            "type" : "string"
-          },
-          "overdue" : {
-            "type" : "boolean"
-          },
-          "processKey" : {
-            "type" : "string"
-          },
-          "status" : {
             "type" : "string"
           },
           "taskId" : {
             "type" : "string"
           }
         },
-        "required" : [ "assignee", "createdAt", "documentId", "documentType", "dueAt", "nodeKey", "overdue", "processKey", "status", "taskId" ],
+        "required" : [ "canAct", "candidates", "createdAt", "documentId", "documentType", "initiator", "instanceId", "nodeKey", "nodeName", "processKey", "taskId" ],
         "type" : "object"
       },
       "TicketLoginRequest" : {
@@ -809,14 +718,33 @@
         },
         "type" : "object"
       },
+      "TimesheetResponse" : {
+        "properties" : {
+          "approvalInstanceId" : {
+            "type" : "string"
+          },
+          "canWithdraw" : {
+            "type" : "boolean"
+          },
+          "round" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "timesheetId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "canWithdraw", "round", "status", "timesheetId" ],
+        "type" : "object"
+      },
       "TransferTaskRequest" : {
         "properties" : {
           "assigneeId" : {
             "format" : "int64",
             "type" : "integer"
-          },
-          "reason" : {
-            "type" : "string"
           }
         },
         "type" : "object"
@@ -874,6 +802,229 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/cost/timesheets/{id}" : {
+      "get" : {
+        "operationId" : "get_5",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TimesheetResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
+    "/api/v1/cost/timesheets/{id}:cancel" : {
+      "post" : {
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RetractTimesheetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
+    "/api/v1/cost/timesheets/{id}:submit" : {
+      "post" : {
+        "operationId" : "submit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubmitTimesheetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubmitTimesheetResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
+    "/api/v1/cost/timesheets/{id}:withdraw" : {
+      "post" : {
+        "operationId" : "withdraw",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RetractTimesheetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
+    "/api/v1/organization/employee-legal-entities/{employeeId}" : {
+      "get" : {
+        "operationId" : "ofEmployee",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "employeeId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      },
+      "put" : {
+        "operationId" : "attributeEmployee",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "employeeId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttributeLegalEntityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      }
+    },
+    "/api/v1/organization/employee-legal-entities/{employeeId}:end" : {
+      "post" : {
+        "operationId" : "endEmployee",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "employeeId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EndLegalEntityAttributionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      }
+    },
     "/api/v1/organization/legal-entities" : {
       "get" : {
         "operationId" : "list_1",
@@ -958,9 +1109,108 @@
         "tags" : [ "legal-entity-controller" ]
       }
     },
+    "/api/v1/organization/org-unit-legal-entities/{orgUnitId}" : {
+      "get" : {
+        "operationId" : "ofOrgUnit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orgUnitId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      },
+      "put" : {
+        "operationId" : "attributeOrgUnit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orgUnitId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttributeLegalEntityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      }
+    },
+    "/api/v1/organization/org-unit-legal-entities/{orgUnitId}:end" : {
+      "post" : {
+        "operationId" : "endOrgUnit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orgUnitId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EndLegalEntityAttributionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LegalEntityAttributionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-attribution-controller" ]
+      }
+    },
     "/api/v1/organization/org-units" : {
       "get" : {
-        "operationId" : "list_8",
+        "operationId" : "list_6",
         "parameters" : [ {
           "in" : "query",
           "name" : "includeRevoked",
@@ -1017,7 +1267,7 @@
     },
     "/api/v1/organization/sync-runs" : {
       "get" : {
-        "operationId" : "list_7",
+        "operationId" : "list_5",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -1075,7 +1325,7 @@
     },
     "/api/v1/organization/sync-runs/{syncRunId}:release" : {
       "post" : {
-        "operationId" : "release_1",
+        "operationId" : "release",
         "parameters" : [ {
           "in" : "path",
           "name" : "syncRunId",
@@ -1184,505 +1434,6 @@
         "tags" : [ "work-calendar-controller" ]
       }
     },
-    "/api/v1/platform/approval-task-overviews" : {
-      "get" : {
-        "operationId" : "list_6",
-        "parameters" : [ {
-          "in" : "query",
-          "name" : "overdueOnly",
-          "required" : false,
-          "schema" : {
-            "default" : false,
-            "type" : "boolean"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/TaskOverviewResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
-          }
-        },
-        "tags" : [ "approval-task-overview-controller" ]
-      }
-    },
-    "/api/v1/platform/approval-task-records" : {
-      "get" : {
-        "operationId" : "list_5",
-        "responses" : {
-          "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/HandledTaskResponse"
-                  },
-                  "type" : "array"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
-          }
-        },
-        "tags" : [ "approval-task-record-controller" ]
-      }
-    },
     "/api/v1/platform/approval-tasks" : {
       "get" : {
         "operationId" : "list_4",
@@ -1696,230 +1447,6 @@
               }
             },
             "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -1946,230 +1473,6 @@
               }
             },
             "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -2189,230 +1492,6 @@
         "responses" : {
           "200" : {
             "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -2449,726 +1528,6 @@
               }
             },
             "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
-          }
-        },
-        "tags" : [ "approval-task-controller" ]
-      }
-    },
-    "/api/v1/platform/approval-tasks/{taskId}:reassign" : {
-      "post" : {
-        "operationId" : "reassign",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "taskId",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ReassignTaskRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
-          }
-        },
-        "tags" : [ "approval-task-controller" ]
-      }
-    },
-    "/api/v1/platform/approval-tasks/{taskId}:release" : {
-      "post" : {
-        "operationId" : "release",
-        "parameters" : [ {
-          "in" : "path",
-          "name" : "taskId",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -3205,230 +1564,6 @@
               }
             },
             "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -3458,230 +1593,6 @@
         "responses" : {
           "200" : {
             "description" : "OK"
-          },
-          "400" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request is malformed"
-          },
-          "401" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "Nobody is signed in"
-          },
-          "403" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The caller may not do this"
-          },
-          "404" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "No such task, or the caller may not know it"
-          },
-          "409" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task or the approval is not in a state that allows this"
-          },
-          "412" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The task changed since the caller read it (If-Match)"
-          },
-          "422" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "The request breaks a rule; errorCode says which"
-          },
-          "428" : {
-            "content" : {
-              "application/problem+json" : {
-                "schema" : {
-                  "properties" : {
-                    "detail" : {
-                      "type" : "string"
-                    },
-                    "errorCode" : {
-                      "type" : "string"
-                    },
-                    "instance" : {
-                      "type" : "string"
-                    },
-                    "status" : { },
-                    "title" : {
-                      "type" : "string"
-                    },
-                    "type" : {
-                      "type" : "string"
-                    }
-                  },
-                  "type" : "object"
-                }
-              }
-            },
-            "description" : "If-Match with the ETag of the task as read is required"
           }
         },
         "tags" : [ "approval-task-controller" ]
@@ -4165,6 +2076,14 @@
     "/api/v1/platform/sessions:wecom-login" : {
       "post" : {
         "operationId" : "loginWithWecom",
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "loginBinding",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {

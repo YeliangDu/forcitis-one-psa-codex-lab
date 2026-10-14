@@ -19,7 +19,7 @@ class NumberingRuleStateMachineTest {
     static final NumberingPattern OTHER = new NumberingPattern("{TYPE}-{yyyy}-{seq:5}", ResetPolicy.YEARLY);
 
     static NumberingRule at(ConfirmationStatus status) {
-        return NumberingRule.restore(DocumentType.QUOTE, TEMPLATE, 1, status.name(), 4);
+        return NumberingRule.restore(DocumentType.QUOTE, TEMPLATE, 1, status.name(), 4, 4);
     }
 
     @Test
@@ -40,7 +40,8 @@ class NumberingRuleStateMachineTest {
                 "NumberingRuleConfirmed");
         assertThat(pending.pattern()).isEqualTo(OTHER);
         assertThat(pending.startValue()).isEqualTo(7);
-        assertThat(pending.version()).isEqualTo(6);
+        assertThat(pending.eventSequence()).isEqualTo(6);
+        assertThat(pending.version()).isEqualTo(5);
 
         NumberingRule confirmed = at(CONFIRMED);
         confirmed.reconfigure(OTHER, 7);

@@ -10,13 +10,14 @@ import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.events.AccountDisabled;
 import com.forcitis.one.platform.identity.events.AccountEnabled;
+import com.forcitis.one.platform.identity.events.AccountOpened;
 import com.forcitis.one.platform.identity.events.AccountRolesReplaced;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-/** A login account. Employment is owned by the organisation; this status is the administrator's switch. */
+/** A login account and the roles granted to it. Employment is owned by the organisation; this status is the administrator's switch. */
 public final class UserAccount extends AggregateRoot {
     public static final StateMachine<AccountStatus> MACHINE = StateMachine.of(AccountStatus.class)
             .allow(AccountStatus.ENABLED, AccountStatus.DISABLED)
@@ -25,17 +26,30 @@ public final class UserAccount extends AggregateRoot {
 
     private final UserId userId;
     private final AccountStatus loadedStatus;
+    private final Set<RoleId> loadedRoles;
+    private final boolean stored;
     private AccountStatus status;
+    private Set<RoleId> roles;
 
-    private UserAccount(UserId userId, AccountStatus status, long version) {
-        super(version);
+    private UserAccount(UserId userId, AccountStatus status, Set<RoleId> roles, boolean stored, long version, long eventSequence) {
+        super(version, eventSequence);
         this.userId = Objects.requireNonNull(userId, "userId");
         this.status = Objects.requireNonNull(status, "status");
         this.loadedStatus = status;
+        this.roles = Set.copyOf(roles);
+        this.loadedRoles = this.roles;
+        this.stored = stored;
     }
 
-    public static UserAccount restore(UserId userId, String status, long version) {
-        return new UserAccount(userId, AccountStatus.valueOf(status), version);
+    public static UserAccount open(UserId userId, Set<RoleId> initialRoles) {
+        UserAccount account = new UserAccount(userId, AccountStatus.ENABLED, initialRoles, false, 0, 0);
+        account.record((envelopes, version) -> new AccountOpened(envelopes.wrap(account.draft("AccountOpened", version)), userId,
+                account.orderedRoles()));
+        return account;
+    }
+
+    public static UserAccount restore(UserId userId, String status, Set<RoleId> roles, long version, long eventSequence) {
+        return new UserAccount(userId, AccountStatus.valueOf(status), roles, true, version, eventSequence);
     }
 
     public UserId userId() {
@@ -48,6 +62,18 @@ public final class UserAccount extends AggregateRoot {
 
     public AccountStatus loadedStatus() {
         return loadedStatus;
+    }
+
+    public Set<RoleId> roles() {
+        return roles;
+    }
+
+    public boolean rolesChanged() {
+        return !roles.equals(loadedRoles);
+    }
+
+    public boolean isStored() {
+        return stored;
     }
 
     public boolean isEnabled() {
@@ -77,8 +103,13 @@ public final class UserAccount extends AggregateRoot {
     }
 
     public void replaceRoles(Set<RoleId> roleIds) {
-        List<RoleId> ordered = roleIds.stream().sorted(Comparator.comparingLong(RoleId::value)).toList();
+        this.roles = Set.copyOf(roleIds);
+        List<RoleId> ordered = orderedRoles();
         record((envelopes, version) -> new AccountRolesReplaced(envelopes.wrap(draft("AccountRolesReplaced", version)), userId, ordered));
+    }
+
+    private List<RoleId> orderedRoles() {
+        return roles.stream().sorted(Comparator.comparingLong(RoleId::value)).toList();
     }
 
     private EventDraft draft(String eventName, long version) {

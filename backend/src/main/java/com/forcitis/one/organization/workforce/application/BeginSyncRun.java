@@ -8,7 +8,6 @@ import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +20,10 @@ class BeginSyncRun {
     private final DomainEvents events;
     private final Clock clock;
 
-    BeginSyncRun(SyncRunRepository runs, DomainEvents events, ObjectProvider<Clock> clock) {
+    BeginSyncRun(SyncRunRepository runs, DomainEvents events, Clock clock) {
         this.runs = runs;
         this.events = events;
-        this.clock = Clocks.from(clock);
+        this.clock = clock;
     }
 
     @Transactional
@@ -35,6 +34,6 @@ class BeginSyncRun {
             runs.save(abandoned);
             events.publish(abandoned);
         }
-        return runs.begin(trigger, now).syncRunId();
+        return runs.insertRunning(trigger, now).syncRunId();
     }
 }

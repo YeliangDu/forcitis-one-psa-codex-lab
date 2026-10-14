@@ -82,9 +82,9 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String first = loginWithWecom(1001);
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         wecomAccepts("again", WecomEntry.WORKBENCH, 1001);
-        String state = body(postJson(WecomLoginIntegrationTest.STATES, "{\"entry\":\"WORKBENCH\"}")).path("state").asString();
+        String state = newLoginState("WORKBENCH");
 
-        MvcResult second = mvc.perform(post(WecomLoginIntegrationTest.LOGIN).with(xsrf()).cookie(new Cookie("SESSION", first))
+        MvcResult second = mvc.perform(post(WecomLoginIntegrationTest.LOGIN).with(xsrf()).cookie(new Cookie("SESSION", first), new Cookie("loginBinding", bindings.get(state)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"again\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}")).andReturn();
 

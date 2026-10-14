@@ -86,7 +86,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         List<String> writes = new ArrayList<>();
         List<String> reads = new ArrayList<>();
         handlerMapping.getHandlerMethods().keySet().forEach(info -> info.getPatternValues().stream()
-                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities") && !p.contains("/work-calendars")).forEach(p -> info.getMethodsCondition().getMethods().forEach(m -> {
+                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities") && !p.contains("-legal-entities/") && !p.contains("/work-calendars")).forEach(p -> info.getMethodsCondition().getMethods().forEach(m -> {
                     (m.name().equals("GET") ? reads : writes).add(m.name() + " " + p);
                 })));
 

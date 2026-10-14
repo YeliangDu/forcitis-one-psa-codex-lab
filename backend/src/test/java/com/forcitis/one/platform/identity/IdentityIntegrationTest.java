@@ -48,6 +48,7 @@ import tools.jackson.databind.json.JsonMapper;
 @SpringBootTest(properties = {
         "flowable.async-executor-activate=false",
         "forcitis.platform.identity.sso.enabled=true",
+        "forcitis.platform.identity.login-throttle.max-per-minute=100000",
         "forcitis.platform.identity.sso.legacy-login-url=https://legacy.example.invalid/login",
         "FORCITIS_TICKET_KEY_SHORT=too-short"})
 @AutoConfigureMockMvc
@@ -182,6 +183,26 @@ abstract class IdentityIntegrationTest {
         return mvc.perform(post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn();
     }
 
+    final java.util.Map<String, String> bindings = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Asks for a login state as a browser would and keeps the binding cookie that came with it. */
+    String newLoginState(String entry) throws Exception {
+        MvcResult issued = postJson("/api/v1/platform/login-states", "{\"entry\":\"" + entry + "\"}");
+        String state = body(issued).path("state").asString();
+        bindings.put(state, cookie(issued, "loginBinding"));
+        return state;
+    }
+
+    /** Posts the login with the binding cookie of the browser that obtained the state. */
+    MvcResult postLogin(String url, String body, String state) throws Exception {
+        var request = post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body);
+        String binding = state == null ? null : bindings.get(state);
+        if (binding != null) {
+            request = request.cookie(new jakarta.servlet.http.Cookie("loginBinding", binding));
+        }
+        return mvc.perform(request).andReturn();
+    }
+
     JsonNode body(MvcResult result) throws Exception {
         return json.readTree(result.getResponse().getContentAsString());
     }
@@ -203,9 +224,9 @@ abstract class IdentityIntegrationTest {
         knownEmployee(id, EmploymentStatus.EMPLOYED);
         String code = "code-" + id;
         wecomAccepts(code, WecomEntry.WORKBENCH, id);
-        String state = body(postJson("/api/v1/platform/login-states", "{\"entry\":\"WORKBENCH\"}")).path("state").asString();
-        MvcResult result = postJson("/api/v1/platform/sessions:wecom-login",
-                "{\"code\":\"" + code + "\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}");
+        String state = newLoginState("WORKBENCH");
+        MvcResult result = postLogin("/api/v1/platform/sessions:wecom-login",
+                "{\"code\":\"" + code + "\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}", state);
         if (result.getResponse().getStatus() != 200) {
             throw new AssertionError("login failed: " + result.getResponse().getStatus() + " " + result.getResponse().getContentAsString());
         }

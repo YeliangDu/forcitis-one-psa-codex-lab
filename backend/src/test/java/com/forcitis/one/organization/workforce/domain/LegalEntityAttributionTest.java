@@ -1,0 +1,157 @@
+package com.forcitis.one.organization.workforce.domain;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.DomainEvent;
+import com.forcitis.one.kernel.event.TestEnvelopes;
+import com.forcitis.one.organization.workforce.api.AttributionKind;
+import com.forcitis.one.organization.workforce.api.AttributionSubject;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.events.LegalEntityAttributed;
+import com.forcitis.one.organization.workforce.events.LegalEntityAttributionEnded;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+class LegalEntityAttributionTest {
+    static final LegalEntityId LE1 = new LegalEntityId(1);
+    static final LegalEntityId LE2 = new LegalEntityId(2);
+    static final LocalDate JAN = LocalDate.of(2026, 1, 1);
+    static final LocalDate JUL = LocalDate.of(2026, 7, 1);
+
+    static LegalEntityAttribution unit() {
+        return LegalEntityAttribution.empty(new AttributionSubject(AttributionKind.ORG_UNIT, 3));
+    }
+
+    @Test
+    @DisplayName("ADR-0026 a new attribution closes the open period on its first day, so the periods never overlap")
+    void attributingClosesTheOpenPeriod() {
+        LegalEntityAttribution attribution = unit();
+        attribution.attribute(LE1, JAN);
+        attribution.attribute(LE2, JUL);
+
+        assertThat(attribution.periods()).containsExactly(new AttributionPeriod(LE1, JAN, JUL), new AttributionPeriod(LE2, JUL, null));
+        assertThat(attribution.on(LocalDate.of(2026, 6, 30)).orElseThrow().legalEntityId()).isEqualTo(LE1);
+        assertThat(attribution.on(JUL).orElseThrow().legalEntityId()).isEqualTo(LE2);
+        assertThat(attribution.on(LocalDate.of(2025, 12, 31))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("each attribution and each ending announces its own event, numbered after the stored count, with the legal entity and the day")
+    void events() {
+        LegalEntityAttribution attribution = LegalEntityAttribution.restore(5, new AttributionSubject(AttributionKind.EMPLOYEE, 42),
+                List.of(), 2, 2);
+        attribution.attribute(LE1, JAN);
+        attribution.end(JUL);
+
+        List<DomainEvent> events = attribution.drainEvents(TestEnvelopes.INSTANCE);
+
+        assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(3L, 4L);
+        assertThat(events.get(0)).isInstanceOfSatisfying(LegalEntityAttributed.class, e -> {
+            assertThat(e.effectiveFrom()).isEqualTo(JAN);
+            assertThat(e.envelope().legalEntityId()).isEqualTo(LE1);
+            assertThat(e.envelope().businessDate()).isEqualTo(JAN);
+            assertThat(e.envelope().aggregateId()).isEqualTo("EMPLOYEE:42");
+        });
+        assertThat(events.get(1)).isInstanceOfSatisfying(LegalEntityAttributionEnded.class, e -> {
+            assertThat(e.effectiveTo()).isEqualTo(JUL);
+            assertThat(e.envelope().businessDate()).isEqualTo(JUL);
+        });
+    }
+
+    @Test
+    @DisplayName("asking for the legal entity it already has changes nothing and records nothing")
+    void sameEntityIsANoOp() {
+        LegalEntityAttribution attribution = unit();
+        attribution.attribute(LE1, JAN);
+        attribution.drainEvents(TestEnvelopes.INSTANCE);
+
+        attribution.attribute(LE1, JUL);
+
+        assertThat(attribution.hasPendingEvents()).isFalse();
+        assertThat(attribution.periods()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("history is not rewritten: a new attribution must start after the latest period began; ending needs an open period and a later day")
+    void historyIsNotRewritten() {
+        LegalEntityAttribution attribution = unit();
+        attribution.attribute(LE1, JUL);
+
+        assertThatThrownBy(() -> attribution.attribute(LE2, JAN)).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID));
+        assertThatThrownBy(() -> attribution.attribute(LE2, JUL)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> attribution.end(JUL)).isInstanceOf(DomainException.class);
+        attribution.end(LocalDate.of(2026, 8, 1));
+        assertThatThrownBy(() -> attribution.end(LocalDate.of(2026, 9, 1))).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN));
+    }
+
+    static final class Sources implements LegalEntityResolutionSources {
+        final Map<UserId, LegalEntityId> employees = new HashMap<>();
+        final Map<OrgUnitId, LegalEntityId> units = new HashMap<>();
+        final Map<OrgUnitId, OrgUnitId> parents = new HashMap<>();
+        final Map<UserId, OrgUnitId> assigned = new HashMap<>();
+
+        @Override
+        public Optional<LegalEntityId> employeeAttribution(UserId employee, LocalDate date) {
+            return Optional.ofNullable(employees.get(employee));
+        }
+
+        @Override
+        public Optional<OrgUnitId> assignedUnit(UserId employee, LocalDate date) {
+            return Optional.ofNullable(assigned.get(employee));
+        }
+
+        @Override
+        public Optional<LegalEntityId> orgUnitAttribution(OrgUnitId orgUnit, LocalDate date) {
+            return Optional.ofNullable(units.get(orgUnit));
+        }
+
+        @Override
+        public Optional<OrgUnitId> parentUnit(OrgUnitId orgUnit, LocalDate date) {
+            return Optional.ofNullable(parents.get(orgUnit));
+        }
+    }
+
+    @Test
+    @DisplayName("ADR-0026 resolution: the employee's own attribution wins; else the nearest department up the chain; a cycle or nothing resolves to empty")
+    void resolution() {
+        Sources sources = new Sources();
+        UserId employee = new UserId(7);
+        OrgUnitId leaf = new OrgUnitId(3);
+        OrgUnitId middle = new OrgUnitId(2);
+        OrgUnitId root = new OrgUnitId(1);
+        sources.assigned.put(employee, leaf);
+        sources.parents.put(leaf, middle);
+        sources.parents.put(middle, root);
+
+        assertThat(LegalEntityResolution.resolve(sources, employee, JAN)).as("nothing attributed anywhere").isEmpty();
+
+        sources.units.put(root, LE1);
+        assertThat(LegalEntityResolution.resolve(sources, employee, JAN)).contains(LE1);
+
+        sources.units.put(middle, LE2);
+        assertThat(LegalEntityResolution.resolve(sources, employee, JAN)).as("a subtree overrides its ancestor").contains(LE2);
+
+        sources.employees.put(employee, LE1);
+        assertThat(LegalEntityResolution.resolve(sources, employee, JAN)).as("the employee's own attribution wins").contains(LE1);
+
+        Sources cyclic = new Sources();
+        cyclic.assigned.put(employee, leaf);
+        cyclic.parents.put(leaf, middle);
+        cyclic.parents.put(middle, leaf);
+        assertThat(LegalEntityResolution.resolve(cyclic, employee, JAN)).as("a broken tree does not loop").isEmpty();
+
+        assertThat(LegalEntityResolution.resolve(new Sources(), new UserId(8), JAN)).as("an unknown employee").isEmpty();
+    }
+}

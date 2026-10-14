@@ -25,16 +25,17 @@ public final class NumberingRule extends AggregateRoot {
     private long startValue;
     private ConfirmationStatus confirmation;
 
-    private NumberingRule(DocumentType documentType, NumberingPattern pattern, long startValue, ConfirmationStatus confirmation, long version) {
-        super(version);
+    private NumberingRule(DocumentType documentType, NumberingPattern pattern, long startValue, ConfirmationStatus confirmation, long version, long eventSequence) {
+        super(version, eventSequence);
         this.documentType = Objects.requireNonNull(documentType, "documentType");
         this.confirmation = Objects.requireNonNull(confirmation, "confirmation");
         this.loadedConfirmation = confirmation;
         change(pattern, startValue);
     }
 
-    public static NumberingRule restore(DocumentType documentType, NumberingPattern pattern, long startValue, String confirmation, long version) {
-        return new NumberingRule(documentType, pattern, startValue, ConfirmationStatus.valueOf(confirmation), version);
+    public static NumberingRule restore(DocumentType documentType, NumberingPattern pattern, long startValue, String confirmation, long version,
+                                         long eventSequence) {
+        return new NumberingRule(documentType, pattern, startValue, ConfirmationStatus.valueOf(confirmation), version, eventSequence);
     }
 
     public DocumentType documentType() {

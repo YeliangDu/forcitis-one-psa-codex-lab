@@ -14,6 +14,7 @@ import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.events.AccountDisabled;
 import com.forcitis.one.platform.identity.events.AccountEnabled;
+import com.forcitis.one.platform.identity.events.AccountOpened;
 import com.forcitis.one.platform.identity.events.AccountRolesReplaced;
 import com.forcitis.one.platform.identity.events.RoleCreated;
 import com.forcitis.one.platform.identity.events.RoleDeleted;
@@ -28,11 +29,11 @@ import org.junit.jupiter.api.Test;
 class IdentityStateMachineTest {
 
     static UserAccount account(AccountStatus status) {
-        return UserAccount.restore(new UserId(1001), status.name(), 5);
+        return UserAccount.restore(new UserId(1001), status.name(), Set.of(), 5, 5);
     }
 
     static Role role(RoleStatus status) {
-        return Role.restore(new RoleId(7), new RoleCode("analyst"), "Analyst", "CUSTOM", status.name(), AccessScopeKind.SELF, false, Set.of(), 2);
+        return Role.restore(new RoleId(7), new RoleCode("analyst"), "Analyst", "CUSTOM", status.name(), AccessScopeKind.SELF, false, Set.of(), 2, 2);
     }
 
     @Test
@@ -57,7 +58,7 @@ class IdentityStateMachineTest {
     @DisplayName("a system role is frozen: neither a transition nor a revision nor a deletion is possible, in any status")
     void systemRoleIsFrozen() {
         for (RoleStatus status : RoleStatus.values()) {
-            Role system = Role.restore(new RoleId(1), new RoleCode("employee"), "Employee", "SYSTEM", status.name(), AccessScopeKind.SELF, false, Set.of(), 0);
+            Role system = Role.restore(new RoleId(1), new RoleCode("employee"), "Employee", "SYSTEM", status.name(), AccessScopeKind.SELF, false, Set.of(), 0, 0);
             for (Runnable change : List.<Runnable>of(system::enable, system::disable, system::delete, () -> system.declareEnabled(true),
                     () -> system.revise("x", AccessScopeKind.SELF, Set.of()))) {
                 assertThatThrownBy(change::run).isInstanceOfSatisfying(RoleRuleException.class,
@@ -114,5 +115,18 @@ class IdentityStateMachineTest {
         Role created = Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(11));
         assertThat(created.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(RoleCreated.class,
                 e -> assertThat(e.roleId()).isEqualTo(new RoleId(11)));
+    }
+
+    @Test
+    @DisplayName("opening an account is enabled from the start, holds the given roles and announces AccountOpened")
+    void opening() {
+        UserAccount opened = UserAccount.open(new UserId(2002), Set.of(new RoleId(4), new RoleId(2)));
+
+        assertThat(opened.status()).isEqualTo(ENABLED);
+        assertThat(opened.isStored()).isFalse();
+        assertThat(opened.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(AccountOpened.class, e -> {
+            assertThat(e.roleIds()).containsExactly(new RoleId(2), new RoleId(4));
+            assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
+        });
     }
 }
