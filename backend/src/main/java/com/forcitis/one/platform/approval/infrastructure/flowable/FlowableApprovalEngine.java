@@ -8,6 +8,7 @@ import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.NodePolicy;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.TaskView;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -28,11 +29,15 @@ import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.identitylink.api.IdentityLinkInfo;
 import org.flowable.identitylink.api.IdentityLinkType;
 import org.flowable.task.api.Task;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /** Flowable's own claim / complete check nothing about the actor, so I-7 is decided by the use cases with TaskActors. */
 @Component
 class FlowableApprovalEngine implements ApprovalEngine {
+
+    private static final Logger log = LoggerFactory.getLogger(FlowableApprovalEngine.class);
 
     static final String VARIABLE_INITIATOR = "initiatorId";
     static final String VARIABLE_BUSINESS_KEY = "businessKey";
@@ -42,9 +47,11 @@ class FlowableApprovalEngine implements ApprovalEngine {
     private final RuntimeService runtime;
     private final TaskService tasks;
     private final RepositoryService repository;
+    private final MeterRegistry meters;
     private final Map<String, Definition> definitions = new ConcurrentHashMap<>();
 
-    FlowableApprovalEngine(RuntimeService runtime, TaskService tasks, RepositoryService repository) {
+    FlowableApprovalEngine(RuntimeService runtime, TaskService tasks, RepositoryService repository, MeterRegistry meters) {
+        this.meters = meters;
         this.runtime = runtime;
         this.tasks = tasks;
         this.repository = repository;
@@ -59,6 +66,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
         engine.put(VARIABLE_INITIATOR, String.valueOf(initiator.value()));
         engine.put(VARIABLE_BUSINESS_KEY, businessKey);
         String instanceId = runtime.startProcessInstanceByKey(processKey.key(), businessKey, engine).getId();
+        rejectWhenEveryNodeWasSkipped(instanceId);
         completeSkippedTasks(instanceId);
         return new ApprovalInstanceId(instanceId);
     }
@@ -111,6 +119,15 @@ class FlowableApprovalEngine implements ApprovalEngine {
         }
         tasks.complete(taskId.value());
         completeSkippedTasks(task.getProcessInstanceId());
+    }
+
+    private void rejectWhenEveryNodeWasSkipped(String instanceId) {
+        long open = tasks.createTaskQuery().processInstanceId(instanceId).count();
+        if (open > 0 && skippedTasks(instanceId).size() == open) {
+            log.error("Every node of instance {} was skipped for lack of an approver: the approval is refused, not passed", instanceId);
+            meters.counter("platform.approval.all.nodes.skipped").increment();
+            throw new IllegalStateException("Every node of approval instance " + instanceId + " found nobody to assign");
+        }
     }
 
     private void completeSkippedTasks(String instanceId) {

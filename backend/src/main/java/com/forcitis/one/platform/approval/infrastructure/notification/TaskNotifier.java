@@ -53,7 +53,7 @@ class TaskNotifier {
         }
         String initiatorName = org.findEmployee(event.initiator()).map(EmployeeProfile::name).orElse("");
         wecom.send(new WecomCard(recipients, "审批待办：" + event.nodeName(),
-                event.processKey().name() + " " + event.businessKey() + (initiatorName.isEmpty() ? "" : "，发起人 " + initiatorName),
+                event.processName() + " 单据 " + documentIdOf(event.businessKey()) + (initiatorName.isEmpty() ? "" : "，发起人 " + initiatorName),
                 properties.taskUrlTemplate().replace("{taskId}", event.taskId().value()), dedupKey(event.taskId().value())));
     }
 
@@ -61,6 +61,11 @@ class TaskNotifier {
     void onTaskClaimed(TaskClaimed event) {
         String name = org.findEmployee(event.claimedBy()).map(EmployeeProfile::name).orElse("同事");
         wecom.markHandled(dedupKey(event.taskId().value()), "已由 " + name + " 处理");
+    }
+
+    /** Phase 1a shows the document id carried by the business key ("timesheet:123" gives 123) until documents have numbers of their own. */
+    private static String documentIdOf(String businessKey) {
+        return businessKey.substring(businessKey.lastIndexOf(':') + 1);
     }
 
     private static String dedupKey(String taskId) {
