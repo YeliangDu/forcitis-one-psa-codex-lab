@@ -25,9 +25,17 @@
 | SEC-120 接受 / 拒绝任务不校验处理人 | I-7 **所有任务类操作**（审批的认领、办理、退回、转交、加签，以及 Phase 2 资源任务的接受 / 拒绝）必须由服务端校验：操作人是该任务的当前处理人或候选组成员（认领后只认认领人）。不依赖 Flowable `complete` 自身（它不校验操作人）。代理必须显式（D-07） | 未写明 | `TaskActorAuthorizationIT`：对每种任务操作，非处理人 → 403、任务状态不变；批量操作中只要有一条不属于本人，整批 403 |
 | SEC-121 一次性凭证非原子消费 | I-9 一次性凭证（致远票据、外部签名票据 nonce、OAuth `state`）的消费必须原子：唯一约束或条件更新，并发重放只有一个成功 | 已在架构中（`sso_ticket_uses` 唯一约束、nonce 一次性），无并发测试 | `OneTimeCredentialConcurrencyIT`：同一票据并发提交 N 次 → 恰好 1 次成功 |
 
+## 2a. 授权模型带来的不变量（ADR-0026，用户 2026-10-14 批准）
+
+| # | 不变量 | 验收测试 |
+|---|---|---|
+| I-10 | 数据范围 fail-closed：空范围零行、范围计算异常即拒绝；只有登记在数据访问注册表中的持久化类能访问数据库，触及 `SCOPED` 表的方法必须带 `AccessScope`；越权按 id 读取返回 404 | `DataAccessRegistryTest`、ArchUnit `onlyRegisteredPersistenceTouchesTheDatabase`、`ScopedRepositoryContract` |
+| I-11 | 管理模式与业务权限分离：普通会话中 `super_admin` 持有人没有平台权限；管理模式（再次验证、1 小时）只有登记的平台权限，不含业务、敏感读与审计查看，不能办理审批；应急登录直接进入管理模式 | `AdminModeBoundaryTest` |
+| I-12 | 不能修改自己的角色集合，也不能修改自己持有的任何角色的定义；敏感权限的授予需第二人确认，管理员不豁免 | `SelfGrantForbiddenIT`、`SensitiveGrantTwoPersonIT` |
+
 ## 3. 落地方式
 
-- I-1 至 I-9 加入 Phase 1a 出口条件对应的验收测试（AI_NATIVE_SPEC §5.3）；I-7 中资源任务的部分，以及 I-5 中业务单据的部分，在第一个接入业务单据的阶段（1b 报价）启用。
+- I-1 至 I-12 加入 Phase 1a 出口条件对应的验收测试（AI_NATIVE_SPEC §5.3）；I-7 中资源任务的部分，以及 I-5 中业务单据的部分，在第一个接入业务单据的阶段（1b 报价）启用。
 - 能用 ArchUnit 表达的（I-1、I-2、I-6 的请求体构造入口）放进 `architecture-guardrails/backend`，CI 必跑。
 - Phase 1a 入口条件中「SEC-001 至 SEC-006、SEC-107 已在老系统止血」：按本决定不再阻塞新系统（新系统不信任老系统身份）。brief 按约定以 `Proposed revision:` 追加，不改写原条件（由 psa-coordinator 处理）。
 - 老系统中的这些缺陷仍然存在，影响的是**老系统自身的数据**（包括过渡期仍在老系统中的业务）。用户已决定老系统先不处理（2026-10-14：「老系统先不管，确保新系统没有这些缺陷」）。

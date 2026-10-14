@@ -105,6 +105,7 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 - `Permission` 为类型化常量（`<子域>.<bc>:<资源>:<动作>`，G43）；角色—权限、账号—角色存库，变更时失效缓存，即时生效。
 - 新员工：同步建档时**显式**授予配置项 `forcitis.platform.identity.default-role`（最小权限）一次并写审计；管理员移除后不补回；离职者不授（RULE-344 修正）。新角色默认数据范围 SELF（RULE-345）。
 - `AccessScope`（法人 × 部门子树 × 项目角色；「本人及下属」只算直接下属，RULE-349 用户决定）：1a 只交付类型与单测，`data_scope_grants` 表推迟到第一个使用者 1b（评审 #16）。
+  - **已由 ADR-0026 改变**（用户 2026-10-14 批准）：1a 交付范围授予明细表（`role_scope_grants`）、数据访问注册表与守护、部门浏览和人员详情按范围过滤、「部门 → 法人」与「员工 → 法人」生效区间表、管理模式；法人限定与审批参与访问在 1b。以 ADR-0026「1a 交付范围」为准。
 - 初始授权：一次性 ETL，从老库只读导出角色与菜单权限，按映射表转成新 `Permission`；没有对应的不授予（映射表在实施时给用户确认）。
 
 ### 3.3 组织快照
