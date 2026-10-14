@@ -16,11 +16,13 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * A super_admin holder proves who they are again with a fresh WeCom code, then the same session gets the administrator mode for at
- * most one hour. It is entered anew each time and never extended; every entry is audited and alerts.
+ * most one hour. It is entered anew each time and never extended; every entry is audited and alerts. There is no transaction around
+ * the whole use case on purpose: the OAuth state is used up for good even when the entry is refused.
  */
 @Service
 public class EnterAdministratorMode {
@@ -35,9 +37,12 @@ public class EnterAdministratorMode {
     private final AuditLog audit;
     private final ClientOrigin origin;
     private final MeterRegistry meters;
+    private final TransactionTemplate transaction;
 
     EnterAdministratorMode(CurrentUser currentUser, SessionContext session, SessionRegistry sessions, WecomIdentification identification,
-            AccountRepository accounts, AuditLog audit, ClientOrigin origin, MeterRegistry meters) {
+            AccountRepository accounts, AuditLog audit, ClientOrigin origin, MeterRegistry meters,
+            PlatformTransactionManager transactions) {
+        this.transaction = new TransactionTemplate(transactions);
         this.currentUser = currentUser;
         this.session = session;
         this.sessions = sessions;
@@ -48,7 +53,6 @@ public class EnterAdministratorMode {
         this.meters = meters;
     }
 
-    @Transactional
     public Instant execute(WecomLoginCommand command) {
         UserId userId = currentUser.userId();
         if (session.mode() == SessionMode.ADMINISTRATOR) {
@@ -70,8 +74,8 @@ public class EnterAdministratorMode {
             throw refused(userId, "super_admin is not held");
         }
         Instant until = sessions.beginAdministratorMode();
-        audit.record(new AuditEntry("platform.identity.administrator-mode.entered", userId, null, "user-account:" + userId.value(),
-                "until " + until).withTrace(origin.address(), AuditOutcome.SUCCEEDED, session.loginMethod().name()));
+        transaction.executeWithoutResult(status -> audit.record(new AuditEntry("platform.identity.administrator-mode.entered", userId, null,
+                "user-account:" + userId.value(), "until " + until).withTrace(origin.address(), AuditOutcome.SUCCEEDED, session.loginMethod().name())));
         meters.counter("forcitis.platform.identity.administrator.mode.entries").increment();
         log.error("ALERT platform.identity administrator mode entered by user {} from {}, until {}", userId.value(), origin.address(), until);
         return until;
