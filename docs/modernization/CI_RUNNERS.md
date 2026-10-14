@@ -43,7 +43,7 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 
 ## 作业怎样判定可跳过
 
-`scripts/ci/relevant_change.py` 比较 PR 与基线分支：只有 `docs/`（除 `glossary/`、`events/`、`phase1a/SEEYON_VIEWS.sql`，这三处被测试读取）和根目录 `*.md` 的改动才算无关；此时 backend、frontend 作业照常开始并成功结束，只是跳过构建步骤，三项必需检查仍然报告。push 到 main 总是全量运行。
+`scripts/ci/relevant_change.py` 比较 PR 与基线分支：只有 `docs/`（除 `glossary/`、`events/`、`phase1a/SEEYON_VIEWS.sql`，这三处被测试读取）和根目录 `*.md` 的改动才算无关；此时 backend、frontend 作业照常开始并成功结束，只是跳过构建步骤，三项必需检查仍然报告。push 到 main 总是全量运行。自检会扫描 `scripts/` 等目录中引用的 docs 路径，要求都列入「被读取」清单；`scripts/release/` 例外（ci 不运行这些脚本，自检同时断言 `ci.yml` 不引用它们）。
 
 ## 发布与部署
 

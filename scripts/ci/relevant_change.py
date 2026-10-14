@@ -29,6 +29,8 @@ def changed_files(base):
 
 
 SCANNED = ("backend/src", "frontend", "scripts")
+# Release and deploy scripts read docs (deploy blockers, checklist, runbook files) but no ci job runs them; the self-test keeps it so
+NOT_RUN_BY_CI = ("scripts/release/",)
 SKIPPED_DIRS = {"node_modules", "dist", ".pnpm", "target"}
 SOURCE_SUFFIXES = {".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".json", ".yaml", ".yml", ".py", ".sh", ".properties", ".xml", ".sql"}
 LITERAL = re.compile(r"docs/modernization(?:/[\w.*{}-]+)*")
@@ -44,6 +46,8 @@ def referenced_docs_paths(root):
         for file in Path(root, scanned).rglob("*"):
             if not file.is_file() or file.suffix not in SOURCE_SUFFIXES or SKIPPED_DIRS & set(file.parts) or file.name == Path(__file__).name:
                 continue
+            if file.relative_to(root).as_posix().startswith(NOT_RUN_BY_CI):
+                continue
             text = file.read_text(errors="ignore")
             for match in LITERAL.finditer(text):
                 yield file, match.group(0)
@@ -57,7 +61,10 @@ def uncovered_reads(root):
 
 
 def self_test():
-    missing = uncovered_reads(Path(__file__).resolve().parents[2])
+    root = Path(__file__).resolve().parents[2]
+    ci = (root / ".github/workflows/ci.yml").read_text()
+    assert not any(p in ci for p in NOT_RUN_BY_CI), f"ci.yml runs {NOT_RUN_BY_CI}: their docs reads must be listed in READ_BY_BUILDS"
+    missing = uncovered_reads(root)
     assert not missing, "builds read docs paths that READ_BY_BUILDS does not list (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(missing)
     assert is_relevant("backend/pom.xml")
     assert is_relevant(".github/workflows/ci.yml")
