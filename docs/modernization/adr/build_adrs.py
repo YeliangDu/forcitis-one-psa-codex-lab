@@ -331,7 +331,8 @@ architecture-guardrails/frontend（React 版：修复了 ESLint 配置块互相�
 4. **固定收尾协议**：用户决定写入 INTENT / ADR → 勾选 brief → 追加日志（含下一条命令）→ 更新 `STATUS.md` → 重新生成 brief 与报告 → 清理临时文件、核对无凭据外泄。
 5. **并行**只在互不相交的单元上进行，写代码的会话各用独立 worktree 和分支；会话间用 `SendMessage` 协调。
 6. **必须由用户决定的事**（审批、口径、用语、推送与部署、生产变更、设计正本写入、凭据轮换）一律停下等待，用户原话入档。
-7. **版本化（待确认）**：把 `analysis/psa/` 移入 `FORCITIS/forcitis-one-psa` 的 `docs/modernization/`，每个会话收尾时提交，gitleaks 一并守护。""",
+7. **版本化**：`analysis/psa/` 已移入 `FORCITIS/forcitis-one-psa` 的 `docs/modernization/`（2026-10-14），每个会话收尾时提交，gitleaks 一并守护。
+8. **总调度会话 `psa-coordinator`**（用户 2026-10-14：「新开 psa-coordinator 会话负责调度」）：只做调度，派工、核对、衔接、把需要用户决定的事汇总给用户；建议与用户决定分开标注，不替用户批准（`SESSION_PLAYBOOK.md` §11）。""",
 """- 任何会话都能接上任何上一次会话，不依赖某个会话的记忆。
 - 多一点收尾成本（每个会话几分钟），换来可追溯与可并行。
 - 需要用户确认：是否把分析产物移入新仓库并按会话提交。""",
