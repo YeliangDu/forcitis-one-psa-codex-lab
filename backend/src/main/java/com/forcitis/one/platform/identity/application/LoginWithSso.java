@@ -9,6 +9,7 @@ import com.forcitis.one.platform.identity.domain.Digests;
 import com.forcitis.one.platform.identity.domain.OneTimeCredentials;
 import java.time.Clock;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +38,7 @@ public class LoginWithSso {
     }
 
     @Transactional
-    public LoginResult execute(String ticket) {
+    public LoginResult execute(String ticket, @Nullable String browserIdentifier) {
         LoginMethod method = LoginMethod.SSO;
         if (!settings.enabled()) {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_SSO_UNAVAILABLE, method, null, "single sign-on is switched off");
@@ -67,6 +68,6 @@ public class LoginWithSso {
         if (refused.isPresent()) {
             return admission.reject(refused.get(), method, employee.get().userId(), refused.get().name());
         }
-        return admission.complete(employee.get().userId(), method);
+        return admission.completeFromTicket(employee.get().userId(), method, browserIdentifier);
     }
 }

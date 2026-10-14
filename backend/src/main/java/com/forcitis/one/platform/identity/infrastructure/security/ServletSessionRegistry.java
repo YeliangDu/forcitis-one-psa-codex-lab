@@ -48,7 +48,7 @@ class ServletSessionRegistry implements SessionRegistry {
     }
 
     @Override
-    public Instant start(UserId userId, LoginMethod method) {
+    public Instant start(UserId userId, LoginMethod method, boolean identityConfirmed) {
         ServletRequestAttributes attributes = currentRequest();
         HttpServletRequest request = attributes.getRequest();
         HttpServletResponse response = attributes.getResponse();
@@ -62,7 +62,7 @@ class ServletSessionRegistry implements SessionRegistry {
         SecurityContextHolder.setContext(context);
         contextRepository.saveContext(context, request, response);
         session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, String.valueOf(userId.value()));
-        session.setAttribute(CONFIRMED_ATTRIBUTE, !method.requiresIdentityConfirmation());
+        session.setAttribute(CONFIRMED_ATTRIBUTE, identityConfirmed);
         session.setMaxInactiveInterval((int) settings.idleTimeout().toSeconds());
         return now.plus(settings.absoluteTimeout());
     }
@@ -70,15 +70,18 @@ class ServletSessionRegistry implements SessionRegistry {
     @Override
     public boolean identityConfirmed() {
         HttpSession session = currentRequest().getRequest().getSession(false);
-        return session != null && !Boolean.FALSE.equals(session.getAttribute(CONFIRMED_ATTRIBUTE));
+        return session != null && Boolean.TRUE.equals(session.getAttribute(CONFIRMED_ATTRIBUTE));
     }
 
     @Override
     public void confirmIdentity() {
-        HttpSession session = currentRequest().getRequest().getSession(false);
-        if (session != null) {
-            session.setAttribute(CONFIRMED_ATTRIBUTE, true);
+        ServletRequestAttributes attributes = currentRequest();
+        HttpServletRequest request = attributes.getRequest();
+        if (request.getSession(false) == null) {
+            return;
         }
+        rotation.onAuthentication(SecurityContextHolder.getContext().getAuthentication(), request, attributes.getResponse());
+        request.getSession(false).setAttribute(CONFIRMED_ATTRIBUTE, true);
     }
 
     @Override

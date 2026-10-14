@@ -178,11 +178,18 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
                 .getResponse().getStatus()).as("unconfirmed: no permission").isEqualTo(403);
         assertThat(body(mvc.perform(get("/api/v1/platform/sessions:current").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn())
                 .path("identityConfirmed").asBoolean()).isFalse();
+        MvcResult unconfirmedProfile = mvc.perform(get("/api/v1/platform/sessions:current").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn();
+        assertThat(body(unconfirmedProfile).path("permissionCodes")).as("an unconfirmed session is shown no permission").isEmpty();
+        assertThat(body(unconfirmedProfile).path("navigation")).as("and no menu").isEmpty();
 
-        assertThat(mvc.perform(post("/api/v1/platform/sessions:confirm-identity").with(xsrf()).cookie(new jakarta.servlet.http.Cookie("SESSION", session)))
-                .andReturn().getResponse().getStatus()).isEqualTo(204);
+        MvcResult confirmation = mvc.perform(post("/api/v1/platform/sessions:confirm-identity").with(xsrf()).cookie(new jakarta.servlet.http.Cookie("SESSION", session)))
+                .andReturn();
+        assertThat(confirmation.getResponse().getStatus()).isEqualTo(204);
+        String confirmed = cookie(confirmation, "SESSION");
+        assertThat(confirmed).as("the session id changes with the level of trust").isNotBlank().isNotEqualTo(session);
+        assertThat(cookie(confirmation, "__Host-browserIdentifier")).as("the browser is given an identifier").isNotBlank();
 
-        assertThat(mvc.perform(get("/api/v1/platform/approval-tasks").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn()
+        assertThat(mvc.perform(get("/api/v1/platform/approval-tasks").cookie(new jakarta.servlet.http.Cookie("SESSION", confirmed))).andReturn()
                 .getResponse().getStatus()).as("confirmed: the employee role works").isNotEqualTo(403);
         assertThat(recorded()).extracting(com.forcitis.one.platform.audit.api.AuditEntry::action).contains("platform.identity.session.identity-confirmed");
     }

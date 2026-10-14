@@ -2,6 +2,7 @@ package com.forcitis.one.kernel;
 
 import java.time.Clock;
 import java.time.ZoneId;
+import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,12 @@ class KernelConfiguration {
     @ConditionalOnMissingBean(Clock.class)
     Clock systemClock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(IdGenerator.class)
+    IdGenerator idGenerator() {
+        return UUID::randomUUID;
     }
 
     @Bean

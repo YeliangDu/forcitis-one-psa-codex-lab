@@ -38,12 +38,13 @@ public class GetCurrentUserProfile {
         UserId userId = currentUser.userId();
         Optional<EmployeeProfile> employee = directory.findEmployee(userId);
         Optional<OrgUnitProfile> unit = employee.flatMap(e -> directory.findOrgUnit(e.orgUnitId()));
-        AccessProfile profile = AccessProfile.of(accounts.findEnabledRoles(userId));
-        List<NavigationEntry> menu = NavigationTree.visibleTo(profile.permissionCodes(), navigation.findEnabled())
-                .stream().map(GetCurrentUserProfile::entry).toList();
+        boolean confirmed = sessions.identityConfirmed();
+        AccessProfile profile = AccessProfile.of(confirmed ? accounts.findEnabledRoles(userId) : List.of());
+        List<NavigationEntry> menu = confirmed ? NavigationTree.visibleTo(profile.permissionCodes(), navigation.findEnabled())
+                .stream().map(GetCurrentUserProfile::entry).toList() : List.of();
         return new CurrentUserView(userId.value(), employee.map(EmployeeProfile::name).orElse(""),
                 employee.map(e -> e.orgUnitId().value()).orElse(null), unit.map(OrgUnitProfile::name).orElse(""),
-                profile.permissionCodes().stream().sorted().toList(), menu, sessions.identityConfirmed());
+                profile.permissionCodes().stream().sorted().toList(), menu, confirmed);
     }
 
     private static NavigationEntry entry(NavigationNode node) {

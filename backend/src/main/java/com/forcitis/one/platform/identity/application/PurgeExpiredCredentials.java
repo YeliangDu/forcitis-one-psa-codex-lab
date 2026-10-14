@@ -9,15 +9,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class PurgeExpiredCredentials {
 
     private final OneTimeCredentials credentials;
+    private final BrowserIdentity browserIdentity;
     private final Clock clock;
 
-    PurgeExpiredCredentials(OneTimeCredentials credentials, Clock clock) {
+    PurgeExpiredCredentials(OneTimeCredentials credentials, BrowserIdentity browserIdentity, Clock clock) {
         this.credentials = credentials;
+        this.browserIdentity = browserIdentity;
         this.clock = clock;
     }
 
     @Transactional
     public int execute() {
-        return credentials.purgeExpired(clock.instant());
+        return credentials.purgeExpired(clock.instant()) + browserIdentity.purge();
     }
 }

@@ -17,3 +17,6 @@ com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredent
 com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredentials.java#consumeLoginState  # the atomic delete is the consumption, so a replay finds nothing
 com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredentials.java#markTicketUsed  # the unique key is the replay check
 com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredentials.java#purgeExpired  # removes expired one-time credentials; nothing refers to them
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#replace  # a browser identifier is a credential, not an aggregate: the old value is retired, the other accounts of the browser move to the new value and the new value is recorded in one transaction
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#invalidateAll  # removes every identifier of an account when it is disabled or its person leaves, in the transaction that ends its sessions
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#purge  # removes identifiers past their lifetime; nothing refers to them

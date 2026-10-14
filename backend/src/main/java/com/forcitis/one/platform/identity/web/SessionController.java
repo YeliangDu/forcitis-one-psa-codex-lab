@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.application.BeginWecomLogin;
+import com.forcitis.one.platform.identity.application.BrowserIdentifierSettings;
 import com.forcitis.one.platform.identity.application.ClientOrigin;
 import com.forcitis.one.platform.identity.application.ConfirmIdentity;
 import com.forcitis.one.platform.identity.application.LoginStateIssue;
@@ -20,6 +21,7 @@ import com.forcitis.one.platform.identity.application.LoginWithWecom;
 import com.forcitis.one.platform.identity.application.Logout;
 import com.forcitis.one.platform.identity.application.SsoSettings;
 import com.forcitis.one.platform.identity.application.WecomLoginCommand;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -47,11 +49,13 @@ class SessionController {
     private final LoginThrottle throttle;
     private final ClientOrigin clientOrigin;
     private final SessionSettings sessionSettings;
+    private final BrowserIdentifierSettings identifierSettings;
 
     SessionController(BeginWecomLogin beginWecomLogin, LoginWithWecom loginWithWecom, LoginWithSso loginWithSso,
             LoginWithSignedTicket loginWithSignedTicket, LoginAsEmergencyAdmin loginAsEmergencyAdmin, Logout logout, ConfirmIdentity confirmIdentity,
             GetCurrentUserProfile getCurrentUserProfile, SsoSettings ssoSettings, LoginThrottle throttle, ClientOrigin clientOrigin,
-            SessionSettings sessionSettings) {
+            SessionSettings sessionSettings, BrowserIdentifierSettings identifierSettings) {
+        this.identifierSettings = identifierSettings;
         this.beginWecomLogin = beginWecomLogin;
         this.loginWithWecom = loginWithWecom;
         this.loginWithSso = loginWithSso;
@@ -90,14 +94,16 @@ class SessionController {
 
     @PostMapping(path = "/sessions:sso-login")
     @PublicEndpoint(reason = "Portal single sign-on: the server checks the one-time ticket against the portal. ADR-0009 §3, RULE-320/321, I-3, I-9")
-    LoginResponse loginWithSso(@RequestBody TicketLoginRequest request) {
-        return respond(loginWithSso.execute(request.ticket()), emptyToNull(ssoSettings.legacyLoginUrl()));
+    ResponseEntity<LoginResponse> loginWithSso(@RequestBody TicketLoginRequest request,
+            @Parameter(hidden = true) @CookieValue(name = BrowserIdentifierCookie.NAME, required = false) String browserIdentifier) {
+        return withIdentifierCookie(loginWithSso.execute(request.ticket(), browserIdentifier), emptyToNull(ssoSettings.legacyLoginUrl()));
     }
 
     @PostMapping(path = "/sessions:ticket-login")
     @PublicEndpoint(reason = "Signed one-time ticket from an allow-listed external system (HMAC, at most 60 s, nonce used once). ADR-0009 §3, RULE-318, C1a-03, I-2, I-3, I-9")
-    LoginResponse loginWithSignedTicket(@RequestBody TicketLoginRequest request) {
-        return respond(loginWithSignedTicket.execute(request.ticket()), null);
+    ResponseEntity<LoginResponse> loginWithSignedTicket(@RequestBody TicketLoginRequest request,
+            @Parameter(hidden = true) @CookieValue(name = BrowserIdentifierCookie.NAME, required = false) String browserIdentifier) {
+        return withIdentifierCookie(loginWithSignedTicket.execute(request.ticket(), browserIdentifier), null);
     }
 
     @PostMapping(path = "/sessions:emergency-login")
@@ -115,9 +121,9 @@ class SessionController {
 
     @PostMapping(path = "/sessions:confirm-identity")
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<Void> confirmIdentity() {
-        confirmIdentity.execute();
-        return ResponseEntity.noContent().build();
+    ResponseEntity<Void> confirmIdentity(@Parameter(hidden = true) @CookieValue(name = BrowserIdentifierCookie.NAME, required = false) String browserIdentifier) {
+        String issued = confirmIdentity.execute(browserIdentifier);
+        return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, BrowserIdentifierCookie.issue(issued, identifierSettings.lifetime()).toString()).build();
     }
 
     @GetMapping(path = "/sessions:current")
@@ -130,6 +136,15 @@ class SessionController {
         if (!throttle.allows(kind, clientOrigin.address())) {
             throw IdentityError.PLATFORM_IDENTITY_LOGIN_RATE_LIMITED.refusal("too many " + kind + " requests from " + clientOrigin.address());
         }
+    }
+
+    private ResponseEntity<LoginResponse> withIdentifierCookie(LoginResult result, String legacyLoginUrl) {
+        LoginResponse response = respond(result, legacyLoginUrl);
+        ResponseEntity.BodyBuilder ok = ResponseEntity.ok();
+        if (result instanceof LoginResult.Authenticated authenticated && authenticated.browserIdentifier() != null) {
+            ok.header(HttpHeaders.SET_COOKIE, BrowserIdentifierCookie.issue(authenticated.browserIdentifier(), identifierSettings.lifetime()).toString());
+        }
+        return ok.body(response);
     }
 
     private static LoginResponse respond(LoginResult result, String legacyLoginUrl) {
