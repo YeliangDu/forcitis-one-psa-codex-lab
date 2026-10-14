@@ -12,6 +12,7 @@ public class FakeOrgSource implements OrgSource {
     public volatile SourceOrgSnapshot snapshot = new SourceOrgSnapshot(List.of(), List.of(), List.of(), List.of());
     public volatile boolean unavailable;
     public volatile RuntimeException failure;
+    public volatile Runnable afterRead = () -> { };
     public volatile List<SourcePerson> singleLookupResult = List.of();
     public final AtomicInteger singleLookups = new AtomicInteger();
 
@@ -23,6 +24,7 @@ public class FakeOrgSource implements OrgSource {
         if (failure != null) {
             throw failure;
         }
+        afterRead.run();
         return snapshot;
     }
 

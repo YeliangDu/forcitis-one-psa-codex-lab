@@ -16,6 +16,7 @@ import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,7 @@ public class ApplySourceSnapshot {
         Reconciliation changes = SnapshotReconciler.reconcile(current, source);
         ShrinkGuard.Verdict verdict = ShrinkGuard.evaluate(changes.stats(), maxDropPercent);
         Instant now = clock.instant();
+        LocalDate snapshotDate = businessZone.dateOf(run.startedAt());
         if (verdict.held() && !bypassShrinkGuard) {
             return hold(run, changes, verdict.reason(), now);
         }
@@ -61,9 +63,9 @@ public class ApplySourceSnapshot {
             LOG.warn("organization.workforce sync {} runs with the shrink guard bypassed by an administrator: {}",
                     syncRunId.value(), verdict.reason());
         }
-        snapshots.save(changes, syncRunId, now);
+        snapshots.save(changes, syncRunId, now, snapshotDate);
         runs.saveDiffs(syncRunId, changes.diffs());
-        run.succeed(now, changes.stats(), changes.change(), businessZone.dateOf(run.startedAt()));
+        run.succeed(now, changes.stats(), changes.change(), snapshotDate);
         runs.save(run);
         events.publish(run);
         if (run.trigger() == SyncTrigger.SCHEDULED) {
