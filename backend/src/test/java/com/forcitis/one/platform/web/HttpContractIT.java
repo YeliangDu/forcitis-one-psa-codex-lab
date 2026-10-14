@@ -89,6 +89,38 @@ class HttpContractIT {
         assertThat(schemas.path("CursorPageRoleResponse").path("required").toString()).isEqualTo("[\"items\"]");
     }
 
+    /** A list that answers a bare array instead of a cursor page, with the reason: the whole tree is needed to draw the hierarchy. */
+    private static final java.util.Map<String, String> UNPAGED_LISTS = java.util.Map.of(
+            "/api/v1/organization/org-units", "the organisation tree is drawn and scoped as a whole and is bounded by the size of the firm");
+
+    @Test
+    @DisplayName("every list endpoint answers a cursor page with limit and cursor parameters, or is an unpaged list with its reason on record")
+    void listsArePagedOrExempt() throws Exception {
+        tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
+        java.util.Set<String> unpaged = new java.util.TreeSet<>();
+        int paged = 0;
+        for (var path : paths.properties()) {
+            String last = path.getKey().substring(path.getKey().lastIndexOf('/') + 1);
+            tools.jackson.databind.JsonNode get = path.getValue().path("get");
+            if (get.isMissingNode() || last.startsWith("{") || last.contains(":")) {
+                continue;
+            }
+            tools.jackson.databind.JsonNode content = get.path("responses").path("200").path("content");
+            tools.jackson.databind.JsonNode schema = content.properties().iterator().next().getValue().path("schema");
+            java.util.Set<String> parameters = new java.util.TreeSet<>();
+            get.path("parameters").forEach(parameter -> parameters.add(parameter.path("name").asString()));
+            if ("array".equals(schema.path("type").asString())) {
+                unpaged.add(path.getKey());
+            } else if (schema.path("$ref").asString().contains("CursorPage")) {
+                assertThat(parameters).as(path.getKey()).contains("limit", "cursor");
+                paged++;
+            }
+        }
+        assertThat(paged).isPositive();
+        assertThat(unpaged).as("a list that returns a bare array needs an entry with its reason").containsExactlyInAnyOrderElementsOf(UNPAGED_LISTS.keySet());
+    }
+
     @Test
     @DisplayName("Idempotency-Key is offered exactly where the answer is stored: on POSTs, never under /sessions or on the login states, which hand out credentials")
     void idempotencyKeyIsOfferedExactlyWhereItIsStored() throws Exception {

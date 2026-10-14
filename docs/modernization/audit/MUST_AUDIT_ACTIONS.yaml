@@ -1,0 +1,79 @@
+# 必记审计动作清单（D-1a-174，用户决定见 intent/2026-10-14-154）。
+# 守护 MustAuditActionsTest：代码里每个 new AuditEntry("…") 的动作、事件目录里每个 audit: audited 的事件，都必须登记在某个类别下；
+# 登记了却不存在的动作也不行。尚未实现的动作写成 planned，并写明为什么现在没有。新增审计动作时先在这里选类别。
+categories:
+- name: 登录
+  actions:
+  - platform.identity.browser-identifier.replayed
+  - platform.identity.login.failed
+  - platform.identity.login.identity-check
+  - platform.identity.login.succeeded
+  - platform.identity.logout
+  - platform.identity.session.identity-confirmed
+- name: 会话
+  actions:
+  - platform.identity.session.expired
+  - platform.identity.session.revoked
+  - planned: platform.identity.session.force-revoked | 业务管理员强制某用户下线并填原因（ADR-0027 管理模式的强制下线权限，由身份与授权批次实现）
+- name: 权限与角色
+  actions:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- name: 代理
+  actions:
+  - planned: platform.approval.proxy.acted | 显式代理动作（RULE-270，D-07）随代理功能一起做，1a 没有代理入口
+- name: 放行
+  actions:
+  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SyncRunFailed
+  - organization.workforce.SyncRunHeld
+  - organization.workforce.SyncRunReleased
+- name: 法人
+  actions:
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.LegalEntityAccountingNumberAssigned
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.legal-entity-attribution.correction-refused
+- name: 编号规则
+  actions:
+  - platform.numbering.NumberingRuleConfirmed
+  - platform.numbering.NumberingRuleReconfigured
+- name: 审批
+  actions:
+  - platform.approval.ApprovalCompleted
+  - platform.approval.ApprovalTaskEscalated
+  - platform.approval.TaskAssigned
+  - platform.approval.TaskClaimed
+  - platform.approval.TaskResulted
+  - platform.approval.TaskTransferred
+  - platform.approval.request.denied
+  - platform.approval.start.denied
+  - platform.approval.task.auto-approve
+  - platform.approval.task.denied
+- name: 应急账号
+  actions:
+  - planned: platform.identity.emergency-admin.registered | 应急账号开通与停用（ADR-0027），由身份与授权批次实现；应急登录本身已记在登录类别（method=EMERGENCY）
+- name: 配置变更
+  actions:
+  - organization.attendance.WorkCalendarYearMaintained
+- name: 工时单
+  actions:
+  - cost.timesheet.TimesheetApproved
+  - cost.timesheet.TimesheetCancelled
+  - cost.timesheet.TimesheetRejected
+  - cost.timesheet.TimesheetReturned
+  - cost.timesheet.TimesheetSubmitted
