@@ -1,6 +1,8 @@
 # FORCITIS one 现代化 ADR
 
-本目录记录 PSA → FORCITIS one 现代化中的架构决策。STACK_DECISION.md、NAMING_STANDARD.md、GUIDING_PRINCIPLES.md、MODERNIZATION_BRIEF.md 只引用这里的决定，不另立结论。参照文档：forcitis-one `docs/adr/0001-tech-stack.md`（只参照文本，不参照代码）。
+本目录记录 FORCITIS one 现代化中的架构决策。STACK_DECISION.md、NAMING_STANDARD.md、GUIDING_PRINCIPLES.md、MODERNIZATION_BRIEF.md 只引用这里的决定，不另立结论。参照文档：forcitis-one `docs/adr/0001-tech-stack.md`（只参照文本，不参照代码）。
+
+名称：ADR 正文中的「PSA」指老系统；已采纳 ADR 正文冻结不改（SESSION_PLAYBOOK §12.1），新文档与新 ADR 一律写 FORCITIS one / 老系统（用户 2026-10-14，守护 `check_legacy_name.py`）。
 
 | ADR | 标题 | 状态 |
 |---|---|---|
@@ -62,7 +64,7 @@
 | ADR | 改动 | 提交 | 原因与用户原话 | 处置 |
 |---|---|---|---|---|
 | ADR-0009 第 6 条 | 划线删除「只读校验老系统令牌（身份桥接）」，改为签名票据 | 5a9c69c | Phase 1a 检查点 2，用户：Q-1「1a 删除桥接 (Recommended)」 | 承认既成事实 |
-| ADR-0009 第 6 条 | 追加「补充」：老 PSA 后端在免密入口修复前不得作为签名票据签发方 | 2517ef3 | 用户：「老系统先不管，确保新系统没有这些缺陷」；「取消桥接 (Recommended)」 | 承认既成事实 |
+| ADR-0009 第 6 条 | 追加「补充」：老系统后端在免密入口修复前不得作为签名票据签发方 | 2517ef3 | 用户：「老系统先不管，确保新系统没有这些缺陷」；「取消桥接 (Recommended)」 | 承认既成事实 |
 | ADR-0016 后果第 4 条之后 | 追加「修订提议」段（收入确认单不设双源期） | 1cd7219 | 用户 H-1：「迁入新系统，不设双源期 (Recommended)」 | 由 ADR-0024 部分取代；ADR-0024 采纳时同一提交删除该段并标注 |
 | ADR-0018 决定第 2 条 | 追加用语确认第二轮的记录（P / N / A 组结论） | 507b9bd、8d6f9d0 | 用户：用语确认「开一个会话集中确认 (Recommended)」，在确认页上逐组确认 | 承认既成事实（属于记录，不改变决定） |
 | ADR-0020 第 7 条、第 8 条 | 第 7 条由「版本化（待确认）」改为已移入新仓库；新增第 8 条总调度会话 | 62da1fc | 用户：「采纳并移入新仓库」；「新开 psa-coordinator 会话负责调度」 | 承认既成事实 |

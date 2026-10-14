@@ -4,14 +4,14 @@
 - 用户决定（经 psa-coordinator 转达，原话）：
   - 先前：「现代化负责 reporting 数据层、KPI 语义层（按 OAT）和 BI 过渡不中断；BI 工具和看板由 BI 项目负责。」
   - 现在（覆盖先前的边界）：「BI 要重构，不满足经营管理需要。经营分析纳入现代化：经营子域 4 个 BC、reporting 与语义层纳入，BI 重构同步规划。暂停 BI 迁移会话在老数据源上的新建模，现有报表照常运行。」
-- 方法：只读。BI、BI-olap、BI-release 三个仓库的源码、文档、git 历史与 GitHub issue / PR；BI 迁移相关会话的标题与 PR；OAT 机器主数据与 KPI 体系设计；本仓库的 ADR、词表、OA 盘点、psa-gl-scope 的 ADR-0022 初稿（其工作树只读）。**没有访问任何生产库**：BI 的使用量来自 BI 仓库中 2026-10-10 的调研文档（由 BI 生产库审计表聚合，只含计数），本次未复算（复算需要访问 BI 生产库，不在已授权的 PSA 只读通道内，见 §6 Q11）。
+- 方法：只读。BI、BI-olap、BI-release 三个仓库的源码、文档、git 历史与 GitHub issue / PR；BI 迁移相关会话的标题与 PR；OAT 机器主数据与 KPI 体系设计；本仓库的 ADR、词表、OA 盘点、psa-gl-scope 的 ADR-0022 初稿（其工作树只读）。**没有访问任何生产库**：BI 的使用量来自 BI 仓库中 2026-10-10 的调研文档（由 BI 生产库审计表聚合，只含计数），本次未复算（复算需要访问 BI 生产库，不在已授权的老系统只读通道内，见 §6 Q11）。
 - 子代理与模型：仓库与数据源清点 2 个（haiku）；OAT / 词表 / BI 语义层口径映射 1 个（sonnet）；BC 划分、分层设计、过渡方案与 ADR 由本会话完成（opus）。
 - ADR-0023 已采纳；§6 各项的用户决定见 §6.1。正文中标「建议」的条目，以 §6.1 的决定和 ADR-0023 为准。
 
 ## 0. 结论
 
 1. **现有 BI 有两套，都不在 FORCITIS one 的事实上**：
-   - 老 BI（`BI`，Express + Vue，约 133 页 + 12 个小程序页）在运行，经 BI 库 118 个 `T_FST_*` 视图跨库读取 A8（`a8_db`）和老 PSA（`ruoyi-vue-pro`），还直接写 A8 表 8 处。
+   - 老 BI（`BI`，Express + Vue，约 133 页 + 12 个小程序页）在运行，经 BI 库 118 个 `T_FST_*` 视图跨库读取 A8（`a8_db`）和老系统（`ruoyi-vue-pro`），还直接写 A8 表 8 处。
    - 新经营分析（`BI-olap` 的 `analytics/`，PG + 语义层 + React）是 2026-10-10 至 10-11 两天内建成的读模型：11 个事实、64 个指标，与老视图对账多数 0 差异，但**没有上线**，叠层 PR #50–#58 未合并，生产 0 个数据集发布。
    - 两套都**不读 U8C**，因而经营结果无法与财务结果勾稽。
 2. **经营管理需要满足不了的证据**（§1.5）集中在五类：
@@ -36,7 +36,7 @@
    - 两边共用期间、法人、项目维度与关账事件；
    - 差异由 `operations.policy` 的口径差异清单月结勾稽。
 6. **过渡不中断**（§4）：
-   - PSA 自有表在切换期靠反向同步（ADR-0011），老 BI 视图不受影响。
+   - 老系统自有表在切换期靠反向同步（ADR-0011），老 BI 视图不受影响。
    - A8 表单来源在 6a–6f 一次切换、不设双源期（ADR-0021），A8 表停止增长后对应视图会**静默过期**。
    - 建议在每个切换日前，把受影响的 `T_FST_*` 视图改为读「过渡镜像」：由 FORCITIS one `reporting` 生成、形状与老视图一致、回填到 BI 库，老 BI 代码不改。
 7. **BI 重构的工具**有四个选项（§5.1），由用户定。阶段草案 R0–R6（§5.2）：
@@ -59,7 +59,7 @@
 |---|---|---|
 | BI 库（SQL Server） | 118 个 `T_FST_*` 视图 + 1 张表；本地表 `employees`、`department`、`attendance`、`api_audit_logs`、`export_audit_logs`、`marketing_target_scope` | 只作对账基线，不装载 |
 | A8（同实例 `a8_db`） | 直读 45 张表（117 行代码）；**直接写 8 处**：`T_FST_CALENDAR`、`ORG_MEMBER.we_com_id`、存储过程 `UpdateAttendanceBatch`、`formmain_0348`、`formmain_0051.field0639`（KM 目录号）、`formmain_0238`（商机）、`formson_0296`（合同条款）、`formmain_0428`（开票） | 11 个业务过程的源：开票 `formmain_0428`、回款 `formson_0601`、合同 `formmain_0374/formson_0375`、条款 `formson_0296` 等、产值 `formmain_0581/formson_0583`、商机 `formmain_0238`、项目档案 `formmain_0051`、费用六类单据、考勤 `formmain_0792`、组织人员 |
-| 老 PSA（`ruoyi-vue-pro`） | 经 BI 库视图间接读（工时 `psa_term_work` 等） | 工时 `psa_time_sheet_works_end`（人员、部门 ID 与 A8 一致） |
+| 老系统（`ruoyi-vue-pro`） | 经 BI 库视图间接读（工时 `psa_term_work` 等） | 工时 `psa_time_sheet_works_end`（人员、部门 ID 与 A8 一致） |
 | U8C | 无 | 无 |
 | 其他 | DSM（MySQL，解密日志）、企业微信、KM、致远 REST、Redis；12 个定时任务（`tasks/scheduler.js`，含考勤加工、企业微信同步、KM 建目录回写 A8） | 财务手工汇率 CSV |
 
@@ -130,7 +130,7 @@
 | `operations.facts` 经营事实与归属 | BC-08 Posting | 单一过账管道（ADR-0016）；九维归属（`BusinessFactAttributed`、`PrimaryAttribution`，主归属唯一、辅助归属比例守恒）；经营期间；重述（`BusinessFactRestated`，只追加） | 已在范围 | 所有触账 BC 的过账候选：工时成本、费用、收入确认、开票、回款、付款、分包、薪酬、手工分录（ADR-0016、ADR-0021、ADR-0022） | 已归属的明细事实流（事件）；经营台账 `BusinessFactLedger` 是读模型，**物理上落在 reporting 集成层**（建议） | 事实侧原语：REV、BILL、DL、DE、DC、PTC、OH、IMP、WO、PAID、HRS 等；OAT 的 `fact_owner_bc` 由事实源契约解析 |
 | `operations.policy` 经营口径与勾稽 | BC-09 Reconciliation | **口径主权**：经营口径 `Policy` 与口径版本 `PolicyVersion`（按期版本化、审批留痕）；指标定义 `MetricDefinition`；OAT 登记（标准原语、经营扩展原语）；经营勾稽与勾稽差异案；口径差异清单 `BasisDifferenceList`（与核算共维护） | 已在范围；**新增承担语义层的指标目录**（建议） | 不产生事实；读 reporting 的聚合结果做勾稽 | 版本化的指标目录（语义层 L3 的唯一定义来源）；勾稽结果事实 | OAT 245 条的 `metric_owner_bc` 全部是本 BC |
 | `operations.planning` 战略与经营计划 | 蓝图未覆盖 | 战略目标、经营计划与计划基线、计划周期；承诺目标（项目组 / 营销人员 / 交付中心 / 客户中心）；销售承诺（CommitCall）；滚动预测（13 周、现金流预测）；经营复盘与经营动作；目标偏差 | **由「6f 视情况」改为纳入**（本次用户决定） | A8 模板 #90–#95、#97（`OA_PROCESS_INVENTORY.md` §3）；老 BI 目标表 `T_FST_DEPARTMENTKPI`、`MANAGERKPI`、`SALESKPI`、`ZONEKPI`、`COMMITCALL*`、`OPPFORECAST`；实际值取自 reporting | 计划目标事实（版本化）；预测事实 | PLAN_TARGET_VALUE、ACTUAL_STRATEGIC_TARGET_VALUE；BACKLOG、PIPE 的预测值 |
-| `operations.budgeting` 预算管控 | 蓝图未覆盖 | 预算基线、预算编制与分解、预算主体、占用 / 释放 / 消耗、可用额度、预算调整、超预算审批、预算冻结 | **由「6f 视情况」改为纳入** | A8 模板 #99–#102（预算目标）；PSA 项目预算（`delivery.execution`，RULE-182 / 239）；费用、付款单据的额度占用（6c） | 预算执行事实（占用 / 消耗 / 可用，期间快照） | BURN；预算偏差（DC、OH 预算偏差） |
+| `operations.budgeting` 预算管控 | 蓝图未覆盖 | 预算基线、预算编制与分解、预算主体、占用 / 释放 / 消耗、可用额度、预算调整、超预算审批、预算冻结 | **由「6f 视情况」改为纳入** | A8 模板 #99–#102（预算目标）；老系统项目预算（`delivery.execution`，RULE-182 / 239）；费用、付款单据的额度占用（6c） | 预算执行事实（占用 / 消耗 / 可用，期间快照） | BURN；预算偏差（DC、OH 预算偏差） |
 
 要点：
 - **目标值与额度控制分开**（建议）：A8 的「预算目标新增」实质是目标值，归 `operations.planning`（`BudgetTarget` 在词表附录中就属于 planning）；`operations.budgeting` 只管会占用额度、会拦截单据的预算。两者在 OA 盘点中被一并归为 6f，需要用户确认划分（§6 Q4）。
@@ -178,7 +178,7 @@ flowchart TB
 | 层 | 内容 | 规则 |
 |---|---|---|
 | L0 记录系统 | 各 BC 自有数据；过账管道的明细事实 | 唯一事实来源；分析侧不回写（ADR-0016 第 7 条） |
-| L1 集成层 | 一致性维度 + 一业务过程一事实表（总线矩阵，见 §3.2）；粒度写进表注释与 ADR | 由 Modulith 事件发布登记表增量构建（GUIDING_PRINCIPLES §8），**不再从 A8 / 老 PSA 库采集**（老源只用于过渡镜像的对账，见 §4）；维度按生效期保留历史（组织归属、项目属性），未知成员显式挂键；金额带币种 |
+| L1 集成层 | 一致性维度 + 一业务过程一事实表（总线矩阵，见 §3.2）；粒度写进表注释与 ADR | 由 Modulith 事件发布登记表增量构建（GUIDING_PRINCIPLES §8），**不再从 A8 / 老系统库采集**（老源只用于过渡镜像的对账，见 §4）；维度按生效期保留历史（组织归属、项目属性），未知成员显式挂键；金额带币种 |
 | L2 期间快照 | 月结时由 `accounting.period` 的关账事件触发，按 (期间, 法人) 生成并冻结 | 快照不改；关账后的更正走重述，生成新版本并标原期间（与 ADR-0016 第 2 条一致） |
 | L3 语义层 | 指标目录（定义）+ 查询服务（执行） | **定义在 `operations.policy`、执行在 `reporting`**（建议）：指标的公式、来源映射、维度适用、口径版本只有一个来源；查询服务按授权范围先过滤后聚合；页面、导出、BI 工具、AI 只经语义层或 L1 / L2 只读视图取数，不自带算法（直接解决 E1–E3） |
 | L4 消费 | 见 §5.1 工具选项 | 导出是全员行为（166 人），新方案须有对等能力 |
@@ -276,13 +276,13 @@ ADR-0018 记录的缺口「OAT 正本不在本机」由此可以补上，但它�
 依赖链：老 BI（页面、小程序、导出）→ BI 库 118 个 `T_FST_*` 视图 + SQL Agent 作业 → `a8_db`、`ruoyi-vue-pro`。用户决定「现有报表照常运行」，GUIDING_PRINCIPLES §8 要求「过渡期 `reporting` 视图的形状与老表一致」。由此得出三条规则：
 1. 每个迁移阶段切换前，受影响的每个 `T_FST_*` 对象都要有形状一致（列名、类型、粒度、编码值）的过渡来源，并通过对账（行数、金额与切换前一致）。
 2. 老 BI 代码在过渡期不改。
-3. 过渡来源只读 FORCITIS one 的 `reporting`，不得写回 A8（ADR-0021：PSA→A8 的权责写通道在对应阶段删除，A8 不得作为权责事实的存放地）。
+3. 过渡来源只读 FORCITIS one 的 `reporting`，不得写回 A8（ADR-0021：老系统→A8 的权责写通道在对应阶段删除，A8 不得作为权责事实的存放地）。
 
 ### 4.2 三类来源、三种做法
 
 | 来源 | 切换后会怎样 | 做法 |
 |---|---|---|
-| 老 PSA 自有表（工时、项目预算、报价、收入确认单 `psa_*`） | Phase 1b–4 期间由反向同步（ADR-0011 逐列所有权）保持写入 | **不动**：视图照常可用；brief Phase 1b 出口「BI 查询在反向同步后的 SQL Server 上结果不变」按阶段推广为契约测试 |
+| 老系统自有表（工时、项目预算、报价、收入确认单 `psa_*`） | Phase 1b–4 期间由反向同步（ADR-0011 逐列所有权）保持写入 | **不动**：视图照常可用；brief Phase 1b 出口「BI 查询在反向同步后的 SQL Server 上结果不变」按阶段推广为契约测试 |
 | A8 表单（合同、条款、收入确认、开票、回款、费用、付款、人事、商机、目标） | 6a–6f 一次切换、不设双源期，切换日后 A8 表不再增长，对应视图**静默过期** | **过渡镜像**（建议）：FORCITIS one `reporting` 提供与老视图同形状的过渡视图（`reporting_compat`），由同步作业按小时回填到 BI 库的镜像表；切换日把该 `T_FST_*` 视图改为读「A8 历史（切换日前）∪ 镜像（切换日起）」，或在历史迁入后整张改读镜像 |
 | BI 自己的写入（数据更新 6 页、A8 表 8 处 UPDATE、营销目标配置） | 权责类写入违反 §9a；切换后写 A8 已无意义 | **迁入对应 BC 的界面**，随该阶段切换停用 BI 的写入入口：条款进度 → `contract.baseline`（6a）；开票字段、应收催收跟进 → `receivables.*`（6b）；商机跟进 → `presales`（6f）；营销目标负责人配置、岗位理论值 → `operations.planning`（R4）；KM 目录号回写 → `platform.integration`；考勤加工与 `UpdateAttendanceBatch` → `organization.attendance`（6e） |
 
@@ -298,11 +298,11 @@ ADR-0018 记录的缺口「OAT 正本不在本机」由此可以补上，但它�
 
 | `T_FST_*` 对象组 | 当前源 | 新事实 BC | 切换阶段 | 过渡做法 |
 |---|---|---|---|---|
-| `ACTUALHOURS*`、`DAILY_RATE`、`CONTRIBUTION`（工时、费率、贡献度） | 老 PSA 工时 | `cost.timesheet` | Phase 2 | 反向同步 |
-| `PROJECTBUDGET`、`QUOTAION` | 老 PSA | `delivery.execution`、`presales.quoting` | Phase 1b / 2 | 反向同步 |
+| `ACTUALHOURS*`、`DAILY_RATE`、`CONTRIBUTION`（工时、费率、贡献度） | 老系统工时 | `cost.timesheet` | Phase 2 | 反向同步 |
+| `PROJECTBUDGET`、`QUOTAION` | 老系统 | `delivery.execution`、`presales.quoting` | Phase 1b / 2 | 反向同步 |
 | `CONTRACT`、`SIGNCONTRACT*`、`CONTTRACTTERMS`、`PROJECT`、`CUVALUE*`、`TOBCUVALUE`、`BADCUVALUE`、`INVOICING_CUVALUE`、`INVALID_DELIVERY`、`COMMITDELIVERY`、`TOSING_CONSTATUS` | A8 合同、项目档案、收入确认单 | `contract.*`、`receivables.wip`、`delivery.*` | 6a | 过渡镜像 |
 | `INVOICING`、`COLLECTION`、`ACCOUNTREC`、`RECEIVABLE`、`BILL_RECEIVABLE`、`BADDEBT`、`COMMITINVOICING`、`NOTINVOICEREASON` | A8 开票、回款、应收 | `receivables.wip`、`receivables.collection` | 6b | 过渡镜像；应收以单一口径替代 E1 的四套算法（老页面读到的数随之改变，须在切换前由财务确认，§6 Q6） |
-| `PAY`、`PAY_DAILY`、`PAY_TRAVEL`、`PAY_SPECIAL`、`PAY_PAYMENTAPPLICATION`、`INFOFEE`、`INVENTORY` | A8 报销、付款（存货视图关联老 PSA 工时） | `expense.spend`、`payables.payment`、`cost.costing` | 6c（差旅在 Phase 3） | 过渡镜像 |
+| `PAY`、`PAY_DAILY`、`PAY_TRAVEL`、`PAY_SPECIAL`、`PAY_PAYMENTAPPLICATION`、`INFOFEE`、`INVENTORY` | A8 报销、付款（存货视图关联老系统 工时） | `expense.spend`、`payables.payment`、`cost.costing` | 6c（差旅在 Phase 3） | 过渡镜像 |
 | `PAY_SALARY*`、`EMPLOYEE*`、`EMPLOYEESALARY`、`EMPLOYEEPAY`、`DEPARTMENT`、`POST`、`USER`、`LEAVE`、`ATTENDANCE*`、`CALENDAR` | A8 人事、组织、假勤；BI 本地考勤表 | `organization.*`（自建 HRM）；工作日历归 `organization.attendance`（1a 建，ADR-0025） | 6e（组织主数据在 6e 前仍以 A8 为源；`CALENDAR` 随 1a 的工作日历迁入） | 过渡镜像；BI 的考勤加工作业停用 |
 | `OPPORTUNITY*`、`LEADS*`、`CUSTOMERVISIT`、`CUSTOMERCONTACTS`、`GROUPS`、`RISKCUSTOMER*`、`SATISFACTION`、`COMMITCALL*`、`OPPFORECAST` | A8 营销 | `presales.*`、`operations.planning` | 6f（客商主档随 6b / 6c 先行） | 过渡镜像 |
 | `DEPARTMENTKPI`、`MANAGERKPI`、`SALESKPI`、`ZONEKPI`、`*KPITYPE` | A8 目标表单 | `operations.planning` | R4 | 过渡镜像 |
@@ -323,7 +323,7 @@ ADR-0018 记录的缺口「OAT 正本不在本机」由此可以补上，但它�
 | 选项 | 做法 | 好处 | 代价与风险 |
 |---|---|---|---|
 | A 保留老 BI，只换数据源 | Vue + Express 不动，过渡结束后改读 `reporting` | 用户无感；最省 | 指标算法仍写在约 420 个接口里，口径分裂（E1–E3）不会消失；技术栈与 FORCITIS one 不同；安全问题（E14）延续；不解决「不满足经营管理需要」 |
-| B 以新经营分析（BI-olap analytics）为基础 | 保留其 PG 星型、语义层、React + AG Grid 前端，数据源从 A8 / 老 PSA 改为 FORCITIS one 的 `reporting` 与 `operations.policy` 指标目录；独立部署 | 已有 20 份口径 ADR、11 份对账、权限模型与规模测试；前端同为 React | 语义引擎在 Node / TypeScript，与 Java 单体是两套技术；指标目录要从 policy 同步过去；AG Grid 企业版许可待定；两个部署单元、两套身份接入 |
+| B 以新经营分析（BI-olap analytics）为基础 | 保留其 PG 星型、语义层、React + AG Grid 前端，数据源从 A8 / 老系统改为 FORCITIS one 的 `reporting` 与 `operations.policy` 指标目录；独立部署 | 已有 20 份口径 ADR、11 份对账、权限模型与规模测试；前端同为 React | 语义引擎在 Node / TypeScript，与 Java 单体是两套技术；指标目录要从 policy 同步过去；AG Grid 企业版许可待定；两个部署单元、两套身份接入 |
 | C 并入 FORCITIS one | `reporting` 模块（Java）提供语义查询 API；经营分析页面放进 FORCITIS one 的 React 前端（ADR-0013，设计正本补界面）；新经营分析的模型、口径 ADR 与对账作为设计输入 | 一个系统、一套身份、一个设计正本；指标目录与执行同仓守护；与 ADR-0004 / 0018 的守护一体 | 需要重写语义查询引擎；单体承担分析查询负载（可用只读实例缓解）；工作量最大 |
 | D 引入 BI 工具 | 开源（Superset、Metabase）或商用（FineBI、Quick BI、Power BI）接 L1 / L2 只读视图；指标由语义层或工具自带模型承接 | 自助分析、拖拽看板、移动端现成 | 工具自带的指标模型容易成为第二个口径来源（必须锁定只用语义层或只读视图）；许可费用；与企业微信、OA 身份的集成；界面不在设计正本内 |
 
@@ -334,8 +334,8 @@ ADR-0018 记录的缺口「OAT 正本不在本机」由此可以补上，但它�
 | 阶段 | 内容 | 入口（草稿） | 出口（草稿） |
 |---|---|---|---|
 | **R0 口径与语言基线** | OAT 正本入库（经用户同意）；经营指标目录初稿：老 BI 151 个在用接口 + 新经营分析 64 个指标 + KPI 体系设计 → 每个指标的 OAT 映射、词表词条、口径冲突清单；`terms.yaml` 登记（§3.3）；118 个 `T_FST_*` 逐个核对定义与形状；复核使用量 | 本 ADR 获批；可与 Phase 1a 并行 | 指标目录中每个指标有 OAT 声明与词表词条；口径冲突（§3.3）全部由财务 / 业务 Admin 裁决并入档；`T_FST_*` 对象清单与归属阶段确认 |
-| **R1 reporting 骨架与语义层** | `reporting` 模块与 schema；一致性维度（期间、法人、组织、人员、项目、客户）；`operations.policy` 的口径版本与指标定义、OAT 声明守护；语义查询服务与授权（先授权后聚合）；工具选型落地 | Phase 1a 出口（身份、组织、审批可用）；R0 出口；§6 Q1 已决定 | 维度与 A8 / 老 PSA 主数据对账一致；守护生效（缺 OAT 声明、方言即构建失败）；授权测试覆盖公司 / 部门 / 个人 / 指定部门四种范围 |
-| **R2 PSA 自有事实入模** | 报价、工时、项目预算、差旅事实表；对应期间快照 | 随 Phase 1b、2、3 各自出口 | 与老 `T_FST_ACTUALHOURS*`、`PROJECTBUDGET` 对账 0 差异；老 BI 不受影响（反向同步契约测试通过） |
+| **R1 reporting 骨架与语义层** | `reporting` 模块与 schema；一致性维度（期间、法人、组织、人员、项目、客户）；`operations.policy` 的口径版本与指标定义、OAT 声明守护；语义查询服务与授权（先授权后聚合）；工具选型落地 | Phase 1a 出口（身份、组织、审批可用）；R0 出口；§6 Q1 已决定 | 维度与 A8 / 老系统主数据对账一致；守护生效（缺 OAT 声明、方言即构建失败）；授权测试覆盖公司 / 部门 / 个人 / 指定部门四种范围 |
+| **R2 FORCITIS one 自有事实入模** | 报价、工时、项目预算、差旅事实表；对应期间快照 | 随 Phase 1b、2、3 各自出口 | 与老 `T_FST_ACTUALHOURS*`、`PROJECTBUDGET` 对账 0 差异；老 BI 不受影响（反向同步契约测试通过） |
 | **R3 合同、收入、开票、回款、费用、付款** | 对应事实、累积快照、期间快照（合同资产 / 未开票在制、应收账龄、剩余履约义务）；各 `T_FST_*` 过渡镜像；应收单一口径 | 6a、6b、6c 各自的切换日之前就绪（作为这三个阶段的入口条件之一） | 每个切换日后，受影响的老报表与切换前对数一致（或差异经财务签字）；BI 对应写入入口停用；新经营分析的对账证据作为基线 |
 | **R4 经营计划与预算** | `operations.planning`、`operations.budgeting` 建设；A8 目标、承诺、预算、预测模板（#90–#102）迁入；计划—实际偏差指标；预算占用接入费用、付款单据 | R1 出口；预算占用依赖 6c | 目标与预算只在新系统维护；目标类 `T_FST_*` 改读镜像；KPI 完成看板与项目目标看板合一 |
 | **R5 财务勾稽** | `accounting.reporting` 的期间结果进入语义层（引用不重算）；口径差异清单月结检查 | G1（管理口径三大报表）出口 | 连续 N 个期间经营口径与法定口径差异全部有解释（N 由财务定） |
@@ -345,7 +345,7 @@ ADR-0018 记录的缺口「OAT 正本不在本机」由此可以补上，但它�
 flowchart LR
   P1a["Phase 1a"] --> R1
   R0["R0 口径与语言基线"] --> R1["R1 reporting 骨架与语义层"]
-  R1 --> R2["R2 PSA 自有事实"]
+  R1 --> R2["R2 FORCITIS one 自有事实"]
   P1b["1b / 2 / 3"] --> R2
   R1 --> R3["R3 合同 / 收入 / 开票 / 回款 / 费用 / 付款"]
   R3 -. 镜像就绪是入口 .-> P6abc["6a / 6b / 6c 切换"]
@@ -397,7 +397,7 @@ Q1、Q2 由 psa-coordinator 询问并记入 INTENT；Q3–Q12 由 psa-bi-decisio
 | Q6 ①–⑤ | 「整批同意 (Recommended)」 | ① 两个指标：「费用（权责，按发生期间）」「费用支付（按支付日）」；② 「逾期」只指过了到期日，开票超 90 / 45 天改称「账龄超 N 天」；③ 理论工时按法人 / 日历参数化，不再硬编码 7.5 小时；④ 「人均」除数统一为平均在册人数；⑤ 应收改为单一口径后老 BI 页面读数会变，接受，6b 切换前由财务确认差异 | 待财务 F3–F5；待业务 B1、B2 |
 | Q7 | 「过渡镜像回填 BI 库 (Recommended)」 | §4.2 过渡镜像（`reporting_compat` → BI 库镜像表，按小时回填）；老 BI 代码不改；受影响 `T_FST_*` 镜像就绪并对账作为 6a–6c 入口条件（由 psa-coordinator 并入 brief） | — |
 | Q8 | 「同意，随阶段迁入并停用 (Recommended)」 | 按 §4.2 迁入对应 BC，随阶段停用 BI 写入入口（含直接 UPDATE A8 的 8 处） | 待业务 B5 |
-| Q9 | 「不例外，先不管 (Recommended)」 | 与老 PSA、U8C 一致，老 BI 安全问题（E14）不处理、不派工，风险由用户承担；8 处 UPDATE A8 随 Q8 停用；新 `reporting` 与新 BI 必须先授权后聚合、不暴露公网（沿用 phase1a/SECURITY_INVARIANTS） | — |
+| Q9 | 「不例外，先不管 (Recommended)」 | 与老系统、U8C 一致，老 BI 安全问题（E14）不处理、不派工，风险由用户承担；8 处 UPDATE A8 随 Q8 停用；新 `reporting` 与新 BI 必须先授权后聚合、不暴露公网（沿用 phase1a/SECURITY_INVARIANTS） | — |
 | Q10 | 「按生效期保留历史 (Recommended)」 | 新系统内维度（组织归属、项目属性等）按生效期（SCD2）建，事实挂业务日期当时的版本；迁入的只有当前值的历史数据，首版从最早日期生效（沿用 BI-olap ADR-0006 的近似）并在维度上标注；BI-olap ADR-0017 的类型 1 做法不沿用 | — |
 | Q11 | 「同意，放在 R0 做 (Recommended)」 | 授权只读、只取计数（不取用户明细）；本会话不执行。R0 会话执行前须先把访问方式报 psa-coordinator，与 118 个 `T_FST_*` 元数据核对一起做 | — |
 | Q12 | 「需要，R0 列清单 (Recommended)」 | R0 由会话按管理层级（集团、BU / 交付中心、项目经理、销售总监 / 经理、财务）起草问题模板，业务 Admin（都业梁）补充删改；作为 R0 输入与 R6 验收清单 | 待业务 B4 |

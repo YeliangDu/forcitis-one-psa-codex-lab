@@ -18,7 +18,7 @@ Credentials are masked as `***`. Already-covered rules (not repeated): RULE-250,
 | RULE-326 | identity | Only password and Seeyon logins check the disabled status | P0 | Yes |
 | RULE-327 | identity | Resigned (soft-deleted) users are kept out only by the lookup filter | P0 | Yes |
 | RULE-328 | identity | SMS login: the code must be valid and the mobile must exist | P2 | Yes |
-| RULE-329 | identity | KM token: anonymous caller, memberId used as a mobile number or a PSA id | P0 | Yes |
+| RULE-329 | identity | KM token: anonymous caller, memberId used as a mobile number or a legacy-system id | P0 | Yes |
 | RULE-330 | identity | Every login attempt is logged; success stamps last-login IP and time | P1 | No |
 | RULE-331 | identity | Every login creates a refresh token and an access token for client "default" | P0 | Yes |
 | RULE-332 | identity | Access-token expiry slides to now + 10 h on every check | P0 | Yes |
@@ -44,16 +44,16 @@ Credentials are masked as `***`. Already-covered rules (not repeated): RULE-250,
 | RULE-352 | identity | A second, different data-scope engine guards system user and dept writes | P1 | Yes |
 | RULE-353 | identity | Dept dropdown narrows to own dept when exactly one visible user | P2 | No |
 | RULE-354 | org | A8 dept tree: prefix scope, parent from PATH, fail on a broken tree | P0 | No |
-| RULE-355 | org | A8 dept "disabled" test and how it maps to PSA status and deleted | P0 | Yes |
+| RULE-355 | org | A8 dept "disabled" test and how it maps to legacy-system status and deleted | P0 | Yes |
 | RULE-356 | org | A8 is authoritative for dept leader, regional AR, category and delivery flag | P0 | Yes |
 | RULE-357 | org | Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive | P0 | Yes |
 | RULE-358 | org | Dept sync aborts if A8 returns < 80 % of active depts | P0 | No |
 | RULE-359 | org | Manual dept edits: parent valid, no cycles, unique name, no delete with children | P1 | Yes |
 | RULE-360 | org | "Dept and below" = recursive children from a cache that includes deleted depts | P1 | Yes |
 | RULE-361 | org | A8 user sync scope uses a substring match, unlike the dept prefix rule | P0 | Yes |
-| RULE-362 | org | A new A8 person becomes a PSA user with username = phone and a default password | P0 | Yes |
-| RULE-363 | org | Resignation = A8 login name is null → PSA user soft-deleted | P0 | Yes |
-| RULE-364 | org | Rehire and phone change restore and re-enable the PSA user | P0 | Yes |
+| RULE-362 | org | A new A8 person becomes a legacy-system user with username = phone and a default password | P0 | Yes |
+| RULE-363 | org | Resignation = A8 login name is null → legacy-system user soft-deleted | P0 | Yes |
+| RULE-364 | org | Rehire and phone change restore and re-enable the legacy-system user | P0 | Yes |
 | RULE-365 | org | Per-field update semantics in user sync are asymmetric | P0 | Yes |
 | RULE-366 | org | Users that drop out of the A8 result set are never deactivated | P0 | Yes |
 | RULE-367 | org | Post sync only adds and renames | P1 | Yes |
@@ -117,9 +117,9 @@ Credentials are masked as `***`. Already-covered rules (not repeated): RULE-250,
 ### RULE-319: A8 login trusts the memberId in the request and redirects with tokens in the URL
 **Domain:** identity · **Category:** Policy · **Priority:** P0 · **SEC:** SEC-001, SEC-019
 **Source:** `psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/controller/admin/auth/AuthController.java:104-117`
-**Plain English:** `a8-login` takes `memberId` (the PSA user id, which equals the A8 member id) from the request. It logs that user in without any proof and redirects to the PSA home page with both tokens in the query string.
+**Plain English:** `a8-login` takes `memberId` (the legacy-system user id, which equals the A8 member id) from the request. It logs that user in without any proof and redirects to the legacy-system home page with both tokens in the query string.
 **Specification:**
-  Given A8 member 1001 = PSA user 1001
+  Given A8 member 1001 = legacy-system user 1001
   When POST `/system/auth/a8-login?memberId=1001`
   Then redirect to `http://psa.forcitis.com/index?accessToken=…&refreshToken=…`.
 **Parameters:** Service `AdminAuthServiceImpl.java:206-216`; redirect target is hard-coded over http.
@@ -129,14 +129,14 @@ Credentials are masked as `***`. Already-covered rules (not repeated): RULE-250,
 ### RULE-320: Seeyon (A8 portal) SSO: server-side ticket check, one use per ticket, enabled users only
 **Domain:** identity · **Category:** Validation · **Priority:** P0
 **Source:** `psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceImpl.java:218-251`
-**Plain English:** The OA ticket is checked back against OA from the server. Only the login name OA returns is trusted, and each ticket can mint a token once. The login name must match a PSA username exactly, and the user must be enabled.
+**Plain English:** The OA ticket is checked back against OA from the server. Only the login name OA returns is trusted, and each ticket can mint a token once. The login name must match a legacy-system username exactly, and the user must be enabled.
 **Specification:**
   Given SSO is enabled and OA resolves ticket "T1" to login name "13800000000", a user with that username exists, and its status is 0
   When GET `/system/auth/seeyon-sso?ticket=T1`
   Then a token pair is issued and the browser is redirected to the configured URL.
   When "T1" is presented again within 7 days
   Then it is rejected (AUTH_SEEYON_SSO_TICKET_INVALID) and a BAD_CREDENTIALS log is written.
-  Given the login name has no PSA user
+  Given the login name has no legacy-system user
   Then AUTH_SEEYON_SSO_USER_NOT_EXISTS is returned. A disabled user gets AUTH_LOGIN_USER_DISABLED.
 **Parameters:** Replay key prefix `seeyon_sso:ticket:`; TTL `ticketReplayTtl` = 7 days; no fuzzy matching.
 **Edge cases handled:** OA down gives AUTH_SEEYON_SSO_OA_UNAVAILABLE. The replay mark is set before the user lookup, so a ticket for an unknown user is also burned.
@@ -176,7 +176,7 @@ Credentials are masked as `***`. Already-covered rules (not repeated): RULE-250,
 ### RULE-323: WeCom mini-program login (jscode2session) uses the same `we_com_id` mapping
 **Domain:** identity · **Category:** Validation · **Priority:** P1
 **Source:** `psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceImpl.java:461-541`
-**Plain English:** Same as RULE-322, but the code is exchanged through `miniprogram/jscode2session` with the PSA secret, and the `userid` field is read.
+**Plain English:** Same as RULE-322, but the code is exchanged through `miniprogram/jscode2session` with the legacy-system secret, and the `userid` field is read.
 **Specification:**
   Given js_code resolves to userid "zhangsan" bound to user 1001
   When POST `/system/auth/qy-wechat/login?code=…`
@@ -189,7 +189,7 @@ Credentials are masked as `***`. Already-covered rules (not repeated): RULE-250,
 ### RULE-324: PC WeCom web login guesses the user from the email local part or an "f-stripped" id
 **Domain:** identity · **Category:** Calculation · **Priority:** P0 · **SEC:** SEC-019
 **Source:** `psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/social/SocialUserServiceImpl.java:169-194`
-**Plain English:** For the PC `social-login-get` flow (`AdminAuthServiceImpl.java:371-397`), the WeCom userid is not looked up in `we_com_id`. If it contains "@", the user whose email local part matches (case-insensitive) is chosen. Otherwise every letter "f" is removed and the remainder is compared with the PSA user id. The first match in cache order wins, and deleted users are included.
+**Plain English:** For the PC `social-login-get` flow (`AdminAuthServiceImpl.java:371-397`), the WeCom userid is not looked up in `we_com_id`. If it contains "@", the user whose email local part matches (case-insensitive) is chosen. Otherwise every letter "f" is removed and the remainder is compared with the legacy-system user id. The first match in cache order wins, and deleted users are included.
 **Specification:**
   Given WeCom userid "Zhang.San@forcitis.com" and user 1001 with email "zhang.san@corp.cn"
   When the PC user logs in through WeCom web
@@ -249,19 +249,19 @@ Credentials are masked as `***`. Already-covered rules (not repeated): RULE-250,
 **Confidence:** High.
 **Review needed:** Yes. **Suggested fix:** Do not migrate (ADR-0019).
 
-### RULE-329: KM token: anonymous caller, memberId used as a mobile number or a PSA id
+### RULE-329: KM token: anonymous caller, memberId used as a mobile number or a legacy-system id
 **Domain:** identity · **Category:** Policy · **Priority:** P0 · **SEC:** SEC-002
 **Source:** `psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/auth/AdminAuthServiceImpl.java:253-281`
-**Plain English:** The anonymous `/login/KM` endpoint takes `memberId`. If it is longer than 11 characters it is treated as a PSA user id and replaced by that user's mobile; otherwise it is used directly as the KM login name. PSA then asks KM for a token using a shared integration key and a fixed IP "1.1.1.1", and redirects to the KM jump page over http with the token in the URL (`AuthController.java:134-146`).
+**Plain English:** The anonymous `/login/KM` endpoint takes `memberId`. If it is longer than 11 characters it is treated as a legacy-system user id and replaced by that user's mobile; otherwise it is used directly as the KM login name. The legacy system then asks KM for a token using a shared integration key and a fixed IP "1.1.1.1", and redirects to the KM jump page over http with the token in the URL (`AuthController.java:134-146`).
 **Specification:**
   Given memberId "13800000000" (11 characters)
   When POST `/system/auth/login/KM?memberId=13800000000`
   Then KM is asked for that login name's token, and the browser goes to `http://km…/jump.html?token=…`.
   Given memberId "1001234567890123" (> 11 characters)
-  Then that PSA user's mobile is used.
+  Then that legacy-system user's mobile is used.
 **Parameters:** integrationKey = `***` (`CommonConstants.SecretKey.KM`); KM result code 0 = success.
 **Confidence:** High.
-**Review needed:** Yes. **Suggested fix:** Require a logged-in PSA session and derive the KM identity from it; move the key to configuration and rotate it; use HTTPS.
+**Review needed:** Yes. **Suggested fix:** Require a logged-in legacy-system session and derive the KM identity from it; move the key to configuration and rotate it; use HTTPS.
 
 ### RULE-330: Every login attempt is logged; success stamps last-login IP and time
 **Domain:** identity · **Category:** Policy · **Priority:** P1
@@ -576,27 +576,27 @@ It is applied only to UPDATE and DELETE; the SELECT rewrite is commented out (`D
 **Confidence:** High.
 **Review needed:** No.
 
-### RULE-355: A8 dept "disabled" test and how it maps to PSA status and deleted
+### RULE-355: A8 dept "disabled" test and how it maps to legacy-system status and deleted
 **Domain:** org · **Category:** Calculation · **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/dal/mysql/a8/A8DeptMapper.java:35-48`
-**Plain English:** An A8 dept is disabled when `IS_DELETED = 1 OR IS_INTERNAL != 1 OR IS_ENABLE != 1` (NULLs fall to "active"). PSA status = that flag (0 active, 1 disabled) (`SyncServiceImpl.java:171-172`), and PSA deleted = (status ≠ 0) (`DeptServiceImpl.java:180-198`). A disabled A8 dept is therefore also soft-deleted in PSA.
+**Plain English:** An A8 dept is disabled when `IS_DELETED = 1 OR IS_INTERNAL != 1 OR IS_ENABLE != 1` (NULLs fall to "active"). Legacy-system status = that flag (0 active, 1 disabled) (`SyncServiceImpl.java:171-172`), and legacy-system deleted = (status ≠ 0) (`DeptServiceImpl.java:180-198`). A disabled A8 dept is therefore also soft-deleted in the legacy system.
 **Specification:**
   Given an A8 dept with IS_ENABLE = 0
-  Then PSA status = 1 and deleted = true.
+  Then legacy-system status = 1 and deleted = true.
   Given IS_INTERNAL = NULL
-  Then PSA status = 0 (active).
+  Then legacy-system status = 0 (active).
 **Confidence:** High.
 **Review needed:** Yes. NULL-as-active is accidental, and "disabled" and "deleted" are conflated. **Suggested fix:** Decide NULL handling explicitly with the A8 owner, and keep disabled vs dissolved as separate states.
 
 ### RULE-356: A8 is authoritative for dept leader, regional AR, category and delivery flag
 **Domain:** org · **Category:** Calculation · **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/sync/SyncServiceImpl.java:184-221`
-**Plain English:** The dept leader and regional AR come from A8 `ORG_RELATIONSHIP` rows of a fixed relation type whose person is not deleted (`A8DeptMapper.java:50-98`). A dept with no relation gets NULL (the PSA value is cleared). With several relations, the first by person id wins and a warning is logged. Category (总部/区域) comes from the ADDRESSBOOK enum. The delivery flag is 1 if any ADDRESSBOOK row marks it, else 0.
+**Plain English:** The dept leader and regional AR come from A8 `ORG_RELATIONSHIP` rows of a fixed relation type whose person is not deleted (`A8DeptMapper.java:50-98`). A dept with no relation gets NULL (the legacy-system value is cleared). With several relations, the first by person id wins and a warning is logged. Category (总部/区域) comes from the ADDRESSBOOK enum. The delivery flag is 1 if any ADDRESSBOOK row marks it, else 0.
 **Specification:**
   Given A8 dept 15 with leaders 801 and 805
-  Then PSA leader = 801 (the lower id first by sort order).
+  Then legacy-system leader = 801 (the lower id first by sort order).
   Given A8 removes dept 15's AR
-  Then PSA `ar_user_id` becomes NULL.
+  Then legacy-system `ar_user_id` becomes NULL.
 **Parameters:** Relation type ids and the ADDRESSBOOK "yes" enum id are hard-coded per A8 instance (`DEPT_LEADER_RELATIONSHIP_TYPE_ID`, `DEPT_AR_RELATIONSHIP_TYPE_ID`, `ADDRESSBOOK_FLAG_YES`).
 **Suspected defect:** If the A8 instance changes, all leaders, ARs and delivery flags silently become NULL or 0. "First by id" is an arbitrary tie-break.
 **Confidence:** High.
@@ -608,24 +608,24 @@ It is applied only to UPDATE and DELETE; the SELECT rewrite is commented out (`D
 **Plain English:**
 - A new id is inserted.
 - An existing id is updated only when one of the 10 sync fields differs (code, name, parent_id, sort, status, deleted, leader_user_id, ar_user_id, category, delivery_flag). All 10 are written explicitly, including NULLs.
-- Every PSA dept not returned by A8 (except root 0 and already-deleted rows) is soft-deleted.
+- Every legacy-system dept not returned by A8 (except root 0 and already-deleted rows) is soft-deleted.
 - Deleted rows that A8 returns again are revived.
 - Other columns (short_name, final_dept, phone, email) are never touched.
 Caches refresh only if something changed.
 **Specification:**
-  Given PSA has depts {15, 16, 99} (99 created manually in PSA) and A8 returns {15, 16}
+  Given the legacy system has depts {15, 16, 99} (99 created manually in the legacy system) and A8 returns {15, 16}
   Then 99 is soft-deleted.
   Given A8 later returns 99
   Then it is revived.
 **Confidence:** High.
-**Review needed:** Yes. **Suggested fix:** Mark row and column ownership (ADR-0011): A8-owned depts follow A8; PSA-owned depts or columns are never auto-deleted.
+**Review needed:** Yes. **Suggested fix:** Mark row and column ownership (ADR-0011): A8-owned depts follow A8; FORCITIS one-owned depts or columns are never auto-deleted.
 
 ### RULE-358: Dept sync aborts if A8 returns < 80 % of active depts
 **Domain:** org · **Category:** Validation · **Priority:** P0
 **Source:** `psa-backend/yudao-module-system/yudao-module-system-biz/src/main/java/cn/iocoder/yudao/module/system/service/dept/DeptServiceImpl.java:253-271`
-**Plain English:** Before writing, if incoming rows × 100 < active PSA depts × 80, the run is aborted with no writes. An empty PSA table skips the check.
+**Plain English:** Before writing, if incoming rows × 100 < active legacy-system depts × 80, the run is aborted with no writes. An empty legacy-system table skips the check.
 **Specification:**
-  Given 300 active PSA depts and A8 returns 230
+  Given 300 active legacy-system depts and A8 returns 230
   Then the sync aborts (230 < 240).
   Given A8 returns 240
   Then the sync proceeds.
@@ -647,7 +647,7 @@ Caches refresh only if something changed.
   Then the error is DEPT_PARENT_IS_CHILD.
 **Suspected defect:** Delete does not check for users still in the dept. Every manual edit to an A8 dept is overwritten by the next sync, and manual depts are soft-deleted (RULE-357).
 **Confidence:** High.
-**Review needed:** Yes. **Suggested fix:** Make the dept master read-only in PSA (A8-owned), or define PSA-owned dept types explicitly.
+**Review needed:** Yes. **Suggested fix:** Make the dept master read-only in FORCITIS one (A8-owned), or define FORCITIS one-owned dept types explicitly.
 
 ### RULE-360: "Dept and below" = recursive children from a cache that includes deleted depts
 **Domain:** org · **Category:** Calculation · **Priority:** P1
@@ -671,10 +671,10 @@ Caches refresh only if something changed.
 **Confidence:** High.
 **Review needed:** Yes. **Suggested fix:** Use the same prefix rule as RULE-354 so that users never point at unsynced depts.
 
-### RULE-362: A new A8 person becomes a PSA user with username = phone and a default password
+### RULE-362: A new A8 person becomes a legacy-system user with username = phone and a default password
 **Domain:** org · **Category:** Lifecycle · **Priority:** P0 · **SEC:** SEC-011
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/sync/SyncServiceImpl.java:299-340`
-**Plain English:** An A8 member id not yet in PSA is created with:
+**Plain English:** An A8 member id not yet in the legacy system is created with:
 - id = A8 id, dept, nickname, employee code
 - username = A8 login name (phone), or the code if there is no phone; mobile = phone
 - status enabled; deleted = (no phone)
@@ -683,7 +683,7 @@ Caches refresh only if something changed.
 `we_com_id` is not set on creation.
 **Specification:**
   Given A8 member 2001 with phone 13900000000 and code E001
-  Then PSA user 2001 is created: username 13900000000, enabled, password = `***` (default).
+  Then legacy-system user 2001 is created: username 13900000000, enabled, password = `***` (default).
   Given no phone
   Then the user is created already soft-deleted.
 **Parameters:** `CommonConstants.DEFAULT_PASSWORD` = `***`.
@@ -691,12 +691,12 @@ Caches refresh only if something changed.
 **Confidence:** High.
 **Review needed:** Yes. **Suggested fix:** No usable local password for synced users; write `we_com_id` at creation.
 
-### RULE-363: Resignation = A8 login name is null → PSA user soft-deleted
+### RULE-363: Resignation = A8 login name is null → legacy-system user soft-deleted
 **Domain:** org · **Category:** Lifecycle · **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/sync/SyncServiceImpl.java:359-369`
-**Plain English:** For an existing user whose A8 login name (phone) is null: if PSA already marks the user deleted, the whole row is skipped (no other field is updated). Otherwise the user is marked deleted and soft-deleted through `deleteBatchIds` (`AdminUserApiImpl.java:182-207`). Role links and posts are kept; tokens are not revoked (RULE-338).
+**Plain English:** For an existing user whose A8 login name (phone) is null: if the legacy system already marks the user deleted, the whole row is skipped (no other field is updated). Otherwise the user is marked deleted and soft-deleted through `deleteBatchIds` (`AdminUserApiImpl.java:182-207`). Role links and posts are kept; tokens are not revoked (RULE-338).
 **Specification:**
-  Given PSA user 2001 (active) and A8 login name now NULL
+  Given legacy-system user 2001 (active) and A8 login name now NULL
   Then 2001 becomes deleted = 1 and an org-change DELETED event is published.
 **Suspected defect:**
 - The update path tests `phone == null`, while the create path tests empty. An empty-string phone is treated as present, so the user is not deleted, and the mobile is set to "".
@@ -704,18 +704,18 @@ Caches refresh only if something changed.
 **Confidence:** High.
 **Review needed:** Yes. **Suggested fix:** One normalised "has login" test; on resignation revoke sessions and roles; keep updating HR fields for history.
 
-### RULE-364: Rehire and phone change restore and re-enable the PSA user
+### RULE-364: Rehire and phone change restore and re-enable the legacy-system user
 **Domain:** org · **Category:** Lifecycle · **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/sync/SyncServiceImpl.java:380-398`
-**Plain English:** If A8 has a phone and either the phone differs from the PSA mobile or PSA marks the user deleted, the user is set to status 0 (enabled) and deleted = 0. The restore runs before the field update (`AdminUserApiImpl.java:186-205`, `AdminUserServiceImpl.java:374-399`).
+**Plain English:** If A8 has a phone and either the phone differs from the legacy-system mobile or the legacy system marks the user deleted, the user is set to status 0 (enabled) and deleted = 0. The restore runs before the field update (`AdminUserApiImpl.java:186-205`, `AdminUserServiceImpl.java:374-399`).
 **Specification:**
-  Given PSA user 2001 was disabled manually (status 1) and A8 changes their phone
+  Given legacy-system user 2001 was disabled manually (status 1) and A8 changes their phone
   Then 2001 is re-enabled.
-  Given PSA user 2001 is soft-deleted and A8 has a phone again
+  Given legacy-system user 2001 is soft-deleted and A8 has a phone again
   Then 2001 is restored and a CREATED event is published.
 **Suspected defect:** A phone change silently overrides a manual disable. The username is not updated when the phone changes, so password and Seeyon login (username = OA login name) can break.
 **Confidence:** High.
-**Review needed:** Yes. **Suggested fix:** Keep the enable/disable status PSA-owned and separate from A8 identity changes; keep username in step with the A8 login name.
+**Review needed:** Yes. **Suggested fix:** Keep the enable/disable status FORCITIS one-owned and separate from A8 identity changes; keep username in step with the A8 login name.
 
 ### RULE-365: Per-field update semantics in user sync are asymmetric
 **Domain:** org · **Category:** Calculation · **Priority:** P0
@@ -725,14 +725,14 @@ Caches refresh only if something changed.
 - email only when A8 is non-null;
 - leader only when A8 is non-null (an A8 clear is ignored);
 - `we_com_id` only when A8 is non-null;
-- the post set is replaced by the single A8 primary post when it differs (extra PSA posts are lost);
+- the post set is replaced by the single A8 primary post when it differs (extra legacy-system posts are lost);
 - billing is overwritten even with null;
 - birthday only when non-null.
 Only changed fields are sent.
 **Specification:**
-  Given A8 removes 2001's leader (NULL) while PSA has leader 1001
-  Then PSA keeps 1001.
-  Given PSA user 2001 has posts {5, 9} and A8 primary post 5
+  Given A8 removes 2001's leader (NULL) while the legacy system has leader 1001
+  Then the legacy system keeps 1001.
+  Given legacy-system user 2001 has posts {5, 9} and A8 primary post 5
   Then the posts are reset to {5}.
 **Suspected defect:** Stale reporting lines after A8 clears a leader. A null A8 dept or post id throws a NullPointerException and aborts the whole run.
 **Confidence:** High.
@@ -741,20 +741,20 @@ Only changed fields are sent.
 ### RULE-366: Users that drop out of the A8 result set are never deactivated
 **Domain:** org · **Category:** Lifecycle · **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/sync/SyncServiceImpl.java:283-441`
-**Plain English:** The user sync only iterates A8 rows. A PSA user whose A8 row is no longer returned (marked external, CODE blanked, moved out of scope, physically deleted) is left exactly as it was: active and able to log in.
+**Plain English:** The user sync only iterates A8 rows. A legacy-system user whose A8 row is no longer returned (marked external, CODE blanked, moved out of scope, physically deleted) is left exactly as it was: active and able to log in.
 **Specification:**
-  Given PSA user 2001 is active and A8 sets IS_INTERNAL = 0
-  Then 2001 stays active in PSA.
+  Given legacy-system user 2001 is active and A8 sets IS_INTERNAL = 0
+  Then 2001 stays active in the legacy system.
 **Confidence:** Medium. The rule is inferred from missing logic; nothing else in the repo deactivates users.
 **Review needed:** Yes. **Suggested fix:** Treat absent users as resignation candidates, protected by a shrink guard like RULE-358.
 
 ### RULE-367: Post sync only adds and renames
 **Domain:** org · **Category:** Lifecycle · **Priority:** P1
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/service/sync/SyncServiceImpl.java:444-487`
-**Plain English:** A8 posts with `IS_DELETED = 0` (`A8PostMapper.java:19-22`) that are new to PSA are inserted with A8 status (null → 0) and sort. For existing posts only code and name are updated. Posts deleted in A8 are never removed or disabled in PSA, and status and sort changes are ignored.
+**Plain English:** A8 posts with `IS_DELETED = 0` (`A8PostMapper.java:19-22`) that are new to the legacy system are inserted with A8 status (null → 0) and sort. For existing posts only code and name are updated. Posts deleted in A8 are never removed or disabled in the legacy system, and status and sort changes are ignored.
 **Specification:**
   Given A8 disables post 5 (STATUS = 1)
-  Then PSA post 5 stays enabled.
+  Then legacy-system post 5 stays enabled.
 **Confidence:** High.
 **Review needed:** Yes. **Suggested fix:** Sync status and deletion, so that the "post must be enabled" check in RULE-368 stays meaningful.
 
@@ -812,7 +812,7 @@ New users start enabled with a 4–16 character password (lines 126-154). Deleti
 **Specification:**
   Given user 2001 with leader_user_id = 1001, and dept 15's leader = 1005
   Then the approval "initiator leader" is 1001 (RULE-250) while the "dept leader" script gives 1005 (RULE-257).
-**Suspected defect:** No validation that the leader exists, is active, is not the user themself, or that there is no cycle. A cleared leader in A8 is not cleared in PSA (RULE-365).
+**Suspected defect:** No validation that the leader exists, is active, is not the user themself, or that there is no cycle. A cleared leader in A8 is not cleared in the legacy system (RULE-365).
 **Confidence:** High.
 **Review needed:** Yes. **Suggested fix:** Validate reporting lines on sync (exists, active, no self, no cycle) and document which leader each process uses.
 
@@ -823,7 +823,7 @@ New users start enabled with a 4–16 character password (lines 126-154). Deleti
 **Specification:**
   Given A8 changes dept 15's leader only
   Then the dept table is updated (RULE-357), but no UPDATED event is emitted.
-  Given a PSA-only dept that was soft-deleted earlier
+  Given a legacy-system-only dept that was soft-deleted earlier
   Then every sync run emits DELETED for it again.
 **Confidence:** High.
 **Review needed:** Yes. **Suggested fix:** Derive event fields from the same SYNC_FIELDS list; exclude already-deleted rows from the "gone" set.

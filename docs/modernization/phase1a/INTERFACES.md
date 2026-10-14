@@ -78,7 +78,7 @@
 
 | # | 名称 | 方向 | 路径 / 主题 | 载荷 | 鉴权 | 频率 / SLA | 源码 |
 |---|---|---|---|---|---|---|---|
-| A1 | **A8 登录到 PSA** | 入站 REST | `POST /admin-api/system/auth/a8-login?memberId=` | memberId 为 PSA 用户 ID（与 A8 ORG_MEMBER.ID 同源）→ **302 到 `http://${PSA_WEB_ORIGIN}/index?accessToken&refreshToken`** | **permitAll，不做任何校验** | — | `AuthController.java:104-117`；`AdminAuthServiceImpl.java:207-216` |
+| A1 | **A8 登录到老系统** | 入站 REST | `POST /admin-api/system/auth/a8-login?memberId=` | memberId 为老系统用户 ID（与 A8 ORG_MEMBER.ID 同源）→ **302 到 `http://${PSA_WEB_ORIGIN}/index?accessToken&refreshToken`** | **permitAll，不做任何校验** | — | `AuthController.java:104-117`；`AdminAuthServiceImpl.java:207-216` |
 | A2 | **致远 SSO（验票）** | 入站 REST | `GET /admin-api/system/auth/seeyon-sso?ticket=` | ticket（不超过 256 字符）→ 服务端验票 → Redis `seeyon_sso:ticket:<t>` SETNX 防重放（保留 7 天）→ 302 到配置项 `redirect-url?accessToken&refreshToken` | **permitAll**；身份只认 OA 回验结果；`psa.seeyon-sso.enabled` 默认 false | 验票超时 5 秒 | `AuthController.java:119-132`；`AdminAuthServiceImpl.java:218-251`；`SYS/framework/seeyon/SeeyonSsoProperties.java:18-39`；`application.yaml:196-199` |
 | A3 | OA 验票 | 出站 HTTP | `GET ${SEEYON_OA_BASE_URL}/seeyon/thirdpartyController.do?ticket=` | → `text/plain`，内容是 URL 编码的登录名（无效票据返回空串） | 无（凭 ticket） | 超时 5 秒；非 200 返回 OA 不可用错误 | `SYS/framework/seeyon/SeeyonSsoTicketClient.java:34-70` |
 | A4 | 门户单点（YD） | 入站 REST | `GET /admin-api/system/auth/singleSignOn/YD-get?memberId=` | → 302 到 `https://${PSA_WEB_ORIGIN}?accessToken&refreshToken` | **permitAll，不做校验** | 已有报告的统计：15,281 次 | `AuthController.java:266-280` |
@@ -515,6 +515,6 @@ channels:
   - 各接口的调用量。已有报告只给出 4 个免密端点的统计。
 - **想问 SME 的问题：**
   1. 门户端"YD"指什么系统？
-  2. A8 是否需要接收 PSA 待办（目前完全没有）？
+  2. A8 是否需要接收老系统待办（目前完全没有）？
   3. `psa_process_to_be_sent` 在新平台归 bpm 还是 fst？
   4. `customization-login` 的真实调用方是谁？

@@ -1,10 +1,10 @@
-# ASSESSMENT — psa
+# ASSESSMENT — FORCITIS one
 
 日期：2026-10-14 · 源码：`legacy/psa` → `/Users/yeliang/Projects/FORCITIS/psa`（软链）· 运行时数据：生产库只读探查（`runtime/prod_usage.tsv`）+ 生产 ECS 与安全组配置
 
 ## Executive Summary
 
-PSA 是 FORCITIS 的项目型业务运营系统，覆盖报价、合同、项目交付、工时、项目成本核算、差旅报销和审批。它基于 yudao（ruoyi-vue-pro）微服务底座：Java 8 / Spring Boot 2.7 / Spring Cloud Alibaba，SQL Server 2016，Flowable 6.8，前端为 Vue 2.7 PC 端和 Taro React H5。主代码约 **40 万行**（后端 Java 24 万行），但生产实际使用面明显更小：近 180 天 **335 个活跃用户、约 176 万次 API 调用，只用到 817 个端点中的 405 个（50%）**，启用并授权的页面只有 89 个。
+老系统是 FORCITIS 的项目型业务运营系统，覆盖报价、合同、项目交付、工时、项目成本核算、差旅报销和审批。它基于 yudao（ruoyi-vue-pro）微服务底座：Java 8 / Spring Boot 2.7 / Spring Cloud Alibaba，SQL Server 2016，Flowable 6.8，前端为 Vue 2.7 PC 端和 Taro React H5。主代码约 **40 万行**（后端 Java 24 万行），但生产实际使用面明显更小：近 180 天 **335 个活跃用户、约 176 万次 API 调用，只用到 817 个端点中的 405 个（50%）**，启用并授权的页面只有 89 个。
 
 整体风险**高**，主要来自三方面：
 - **生产安全漏洞**：存在公网可利用的免密登录（SEC-001），且密钥明文入库。
@@ -24,7 +24,7 @@ PSA 是 FORCITIS 的项目型业务运营系统，覆盖报价、合同、项目
 | 数据 | SQL Server 2016（RDS `ruoyi-vue-pro` 库）。370 张表，236 张有数据，共 3,524 万行，最大的是 Flowable 历史表和成本 / WIP 明细表；第二数据源直连 A8 OA 库（`a8_db.dbo.*`，30 处跨库查询） | 生产 `sys.partitions`；技术债报告 |
 | 接口 | 175 个 Controller，817 个端点（静态统计）；SQL 写在 528 个 MyBatis 注解里（只有 1 个 mapper XML）；28 个 Feign 客户端 | grep；`live_code.py` |
 | 异步 | RocketMQ（Spring Cloud Stream）：bpm 发出 4 个审批主题，system 发组织变更，fst 有 4 个成本批处理主题；27 个 XXL-JOB 处理器 | 领域分析报告 |
-| 外部集成 | 分贝通（差旅，HTTP 出站 + webhook 入站）、用友 U8C（凭证、客商）、致远 A8（直接读库 + SSO）、企业微信（OAuth、消息、回调）、KM 门户（SSO）、BI（直接读 PSA 库，并通过 48080 端口做 SSO） | 领域分析报告；安全组规则 |
+| 外部集成 | 分贝通（差旅，HTTP 出站 + webhook 入站）、用友 U8C（凭证、客商）、致远 A8（直接读库 + SSO）、企业微信（OAuth、消息、回调）、KM 门户（SSO）、BI（直接读老系统库，并通过 48080 端口做 SSO） | 领域分析报告；安全组规则 |
 | 版本 | Boot 2.7.7（2023-11 已停止 OSS 支持）、Spring Cloud 2021.0.5、Flowable 6.8.0、MyBatis-Plus 3.5.3.1、XXL-JOB 2.3.1、Vue 2.7.0（2023-12 EOL）、Element UI 2.15.10、axios 0.27.2 | poms；package.json |
 
 ## Architecture at a Glance
@@ -130,7 +130,7 @@ PSA 是 FORCITIS 的项目型业务运营系统，覆盖报价、合同、项目
 2. **审批定制层**：`CustomizedBpmOAServiceImpl` 按表名回写、workflowhook / workflowform 双向 Feign、4 个 MQ 主题的语义和幂等保证，都只能从代码推断。
 3. **外部 SSO 契约**：BI、A8、KM 依赖的 `customization-login` / `singleSignOn` 调用方、调用频率和预期安全模型没有文档。这是修复 SEC-001 的前置条件。
 4. **WIP / 结转运行手册**：期间状态（例如「结转中」）卡住后如何恢复、批处理 MQ 加锁的语义，没有运维文档。
-5. **数据所有权**：哪个服务拥有哪张表、BI 读哪些表、`psa_crm_*` 和 `psa_biget_*` 由谁写入（PSA 内部只读），都没有文档。
+5. **数据所有权**：哪个服务拥有哪张表、BI 读哪些表、`psa_crm_*` 和 `psa_biget_*` 由谁写入（老系统内部只读），都没有文档。
 
 ## Relative Scale
 

@@ -24,8 +24,8 @@
 psa 是**独立仓库**（monorepo，三个子项目同仓），**出站依赖**：无（`legacy/psa` 是仓库根，不依赖仓外源码）。
 
 **入站消费者（影响范围）**——用户确认「外部仅读库/接口」，源码中可见：
-- `BI-olap`（55 个文件命中 PSA 表名或接口特征）、`BI` / `BI-release`（各 4 个）：直接读 PSA SQL Server 表，例如 `psa_term_work`、`psa_time_sheet_works_end`。
-- `forcitis-it-service-portal`（3 个文件）：调用 PSA 接口或引用 PSA 数据。
+- `BI-olap`（55 个文件命中老系统表名或接口特征）、`BI` / `BI-release`（各 4 个）：直接读老系统 SQL Server 表，例如 `psa_term_work`、`psa_time_sheet_works_end`。
+- `forcitis-it-service-portal`（3 个文件）：调用老系统接口或引用老系统数据。
 
 → 换库（SQL Server → PostgreSQL）或改表结构，都会打断这些只读消费者。`brief` 必须为每个消费者明确过渡决策：保留只读兼容视图或同步副本、迁移消费者，或者排期中断。
 
