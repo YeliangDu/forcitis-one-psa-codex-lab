@@ -90,7 +90,7 @@
   - 外部引用写 `<对象>_id`；审计列为 `created_at`、`created_by`、`updated_at`、`updated_by`、`version`；布尔列以 `is_` / `has_` 开头。
   - 金额成对存放 `<名>_amount` + `<名>_currency`；状态存枚举名（`text` + `CHECK`）。
   - Flyway 脚本放在各模块目录下，命名为 `V{yyyyMMddHHmmss}__{module}_{描述}.sql`，描述用英文 snake_case（中文说明写在脚本首行注释）。
-- **HTTP**：路径为 `/api/v{n}/{subdomain}/{复数资源}`（ADR-0008，例如 `/api/v1/cost/timesheets`；第二段是**子域** slug，不是 BC 或功能名），用 kebab-case；动作写成 `:submit` / `:approve`；**所有 JSON（接口、领域事件载荷、外部投递）字段一律 camelCase**，snake_case 只用于数据库；错误码按模块分段。
+- **HTTP**：路径为 `/api/v{n}/{subdomain}/{复数资源}`（ADR-0008，例如 `/api/v1/cost/timesheets`；第二段是**子域** slug，不是 BC 或功能名），用 kebab-case；动作写成 `:submit` / `:approve`；**所有 JSON（接口、领域事件载荷、外部投递）字段一律 camelCase**，snake_case 只用于数据库；错误码按模块分段；跨模块通用的错误（状态转换不合法、被他人同时修改、必须填写原因、已过撤回截止点、未登录等）只在公共基础 `kernel` 定义一次，各模块直接使用，模块只定义本模块特有的错误（用户 2026-10-15 对抽规则答「通用错误码只在公共基础定义」）。
   - 更正（2026-10-14）：原示例 `/api/v1/timesheet/timesheets` 把 BC 当成子域，原规则「事件载荷 snake_case」与接口 camelCase 不一致，均已统一。
 - **前端**：`src/modules/<module>/{pages,components,hooks,api}`；API 客户端由 OpenAPI 生成（禁止手写 URL）；TypeScript strict；组件用 PascalCase，hook 用 `useXxx`，文件名用 kebab-case。
 
@@ -229,7 +229,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G45 | 业务编号单据类型枚举与种子行一一对应，大写下划线且已登记 | 编号规则代码与代码不一致 | `NamingSurfaceTest` |
 | G46 | `@Scheduled` 作业必须有 `{module}.{name}` 的 ShedLock 锁；指标名为字面量且按模块前缀；`job_type` 受检；配置键以 `forcitis.{module}.` 开头或为框架已知键 | 作业互踩、指标和配置命名混乱 | `NamingSurfaceTest` |
 | G47 | 流程 / 决策 id 为 `{子域}_{BC}_{snake}`，文件名同 id，`ProcessKey` 与流程一一对应，用户任务 id camelCase | 流程键与代码脱节 | `NamingSurfaceTest` |
-| G48 | 错误码：每个模块一个实现 `kernel.ErrorCode` 的枚举，格式 `{SUBDOMAIN}_{BC}_{REASON}` | 错误码散落为字符串 | `NamingSurfaceTest` |
+| G48 | 错误码：每个模块一个实现 `kernel.ErrorCode` 的枚举，格式 `{SUBDOMAIN}_{BC}_{REASON}`；通用错误只在 `kernel` 定义，模块枚举不得与之或彼此同义（中文名唯一，R-5 守护） | 错误码散落为字符串；同义错误码各模块各一份 | `NamingSurfaceTest` |
 | D1 | 模块依赖必须在 `architecture/module-dependencies.txt` 中登记 | 随手引入新依赖 | `ModuleDependencyTest` |
 | D2 | DDL：文件名规范、只建本 schema 的表、snake_case、禁用老名和空泛词、审计列、金额带币种、状态 `CHECK`、布尔 `is_` / `has_`、每列有 COMMENT；列名类别词与类型、约束与索引命名（§2.4）；敏感列登记（§2.5） | 数据字典混乱 | `DdlNamingTest` |
 | D3 | 数据字典从数据库元数据生成，每张表、每个字段必须有注释 | 字段无说明 | `ApplicationIntegrationTest.everyTableAndColumnIsDocumented…` |
