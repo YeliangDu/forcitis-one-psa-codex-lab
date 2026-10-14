@@ -227,3 +227,4 @@
 | 数据打分卡 T2：「禁止修改，例外由组织数据管理员操作并审计 (Recommended)」 | 工作日历今天之前的日期不可改；例外入口限组织数据管理员、必审计；已算出的审批时效不重算（下一批 B） |
 | 数据打分卡 T3 / ACT_HI_* / T5：「三项都按建议 (Recommended)」 | consumed_events 保留 90 天并有清理作业；ACT_HI_* 在线 3 年、归档至满 10 年；员工加 separation_date（A8 视图能提供时；不能提供则报 psa-coordinator）（下一批 B） |
 | 数据打分卡 T4：「Phase 2 定：删除或登记为可重算投影 (Recommended)」 | phase1a/DEFERRED.md（工作包属交付模块，1a 只是骨架） |
+| 事件解耦：提交只改工时单，审批订阅后发起 (Recommended) | H-1：审批请求与任务合为一个聚合（任务为内部实体，共用 version 与事件序号）；工时单发布 TimesheetSubmitted，审批订阅后发起；提交接口不再同步返回 approvalInstanceId，前端看工时单状态 |
