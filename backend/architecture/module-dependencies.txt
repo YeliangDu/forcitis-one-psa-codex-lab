@@ -2,6 +2,7 @@
 # Format: <module> -> <module>, <module>   (module = <subdomain>.<bc>; "kernel" is always allowed and omitted)
 # A module may only use the api / events of the modules listed here; anything else fails ModuleDependencyTest.
 # Phase 1a additions: REIMAGINED_ARCHITECTURE.md §2 (approved at checkpoint 2, 2026-10-14).
+# Kernel ports (no module edge): kernel.SeparationReview is asked by organization.workforce and implemented by platform.identity (REIMAGINED_ARCHITECTURE.md §2.2, ADR-0028).
 cost.timesheet -> organization.workforce, platform.approval, platform.identity, platform.numbering
 organization.attendance -> platform.audit
 organization.workforce -> platform.audit, platform.integration

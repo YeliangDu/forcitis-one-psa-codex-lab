@@ -25,7 +25,10 @@ import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
+import com.forcitis.one.platform.numbering.domain.TemplateVersion;
+import com.forcitis.one.platform.numbering.domain.VersionStatus;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import com.forcitis.one.platform.numbering.api.RuleVersion;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -119,9 +122,11 @@ class EventSequenceContinuityTest {
     @DisplayName("NumberingRule: events are numbered 1..n")
     void numberingRule() {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);
-        checkMany(() -> NumberingRule.restore(DocumentType.QUOTE, pattern, 1, "PENDING_CONFIRMATION", 1, null, 0, 0), List.of(
-                r -> r.confirm(LocalDate.of(2026, 10, 14)), r -> r.reconfigure(pattern, 5, LocalDate.of(2026, 10, 15)),
-                r -> r.reconfigure(pattern, 0, LocalDate.of(2026, 10, 16))));
+        TemplateVersion seeded = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, NOW, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
+        checkMany(() -> NumberingRule.restore(DocumentType.QUOTE, List.of(seeded), 0, 0), List.of(
+                r -> r.confirm(new UserId(2), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(1)), r -> r.propose(pattern, 5, LocalDate.of(2026, 10, 16), new UserId(3), NOW),
+                r -> r.propose(pattern, 0, LocalDate.of(2026, 10, 16), new UserId(3), NOW),
+                r -> r.confirm(new UserId(3), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2)), r -> r.confirm(new UserId(4), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2))));
     }
 
     @Test

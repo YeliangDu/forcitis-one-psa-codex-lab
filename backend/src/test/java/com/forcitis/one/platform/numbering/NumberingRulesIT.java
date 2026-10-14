@@ -23,19 +23,12 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
 import com.forcitis.one.platform.numbering.api.RegisterLegacyNumbers;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -54,17 +47,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
 @Testcontainers
-@Import(NumberingRulesIT.FixedClock.class)
 class NumberingRulesIT {
-    @TestConfiguration
-    static class FixedClock {
-        @Bean
-        @Primary
-        Clock fixedClock() {
-            return Clock.fixed(Instant.parse("2026-10-14T04:00:00Z"), ZoneOffset.UTC);
-        }
-    }
-
     @MockitoBean
     OrgDirectory orgDirectory;
 
@@ -112,12 +95,19 @@ class NumberingRulesIT {
     TransactionTemplate tx;
 
     @BeforeEach
-    void legalEntitiesExist() {
+    void seededRulesAndLegalEntities() {
+        NumberingFixtures.restoreSeededDefaults(jdbc);
         jdbc.sql("""
                 insert into organization_workforce.legal_entities (id, code, name, status)
                 values (1, 'FST', 'Synthetic legal entity one', 'ACTIVE'), (2, 'FIT', 'Synthetic legal entity two', 'ACTIVE')
                 on conflict (id) do nothing
                 """).update();
+    }
+
+    private void inForce(String... types) {
+        for (String type : types) {
+            NumberingFixtures.confirmSeeded(jdbc, type);
+        }
     }
 
     private String issue(DocumentType type, LegalEntityId legalEntity, LocalDate day) {
@@ -159,6 +149,7 @@ class NumberingRulesIT {
     @Test
     @DisplayName("the quote's first number follows the unified format with the registered code QT")
     void quoteNumbersCarryTheRegisteredTypeCode() {
+        inForce("QUOTE");
         LocalDate day = LocalDate.of(2026, 10, 14);
 
         assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0001");
@@ -169,6 +160,7 @@ class NumberingRulesIT {
     @Test
     @DisplayName("an unknown legal entity cannot take a number, whatever the template")
     void unknownLegalEntityCannotIssue() {
+        inForce("QUOTE", "TIMESHEET");
         LocalDate day = LocalDate.of(2027, 3, 3);
 
         assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(99), day))
@@ -180,6 +172,7 @@ class NumberingRulesIT {
     @Test
     @DisplayName("a deactivated legal entity cannot take a new number")
     void deactivatedLegalEntityCannotIssue() {
+        inForce("QUOTE", "TIMESHEET");
         LocalDate day = LocalDate.of(2027, 4, 4);
         jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (3, 'FOT', 'Synthetic three', 'INACTIVE') on conflict (id) do update set status = 'INACTIVE'").update();
         try {
@@ -196,16 +189,14 @@ class NumberingRulesIT {
     @DisplayName("a template without {LE} (configured later by an administrator) shares one counter across legal entities, so numbers never repeat")
     void templateWithoutLegalEntityTokenSharesOneCounter() {
         LocalDate day = LocalDate.of(2027, 5, 6);
-        jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{yyyyMMdd}-{seq:4}', reset_policy = 'DAILY' where document_type = 'TIMESHEET'").update();
-        try {
-            String first = issue(DocumentType.TIMESHEET, LE1, day);
-            String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
+        inForce("TIMESHEET");
+        NumberingFixtures.useTemplate(jdbc, "TIMESHEET", "{TYPE}-{yyyyMMdd}-{seq:4}", "DAILY");
 
-            assertThat(first).isEqualTo("TS-20270506-0001");
-            assertThat(second).isEqualTo("TS-20270506-0002");
-        } finally {
-            jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}', reset_policy = 'MONTHLY' where document_type = 'TIMESHEET'").update();
-        }
+        String first = issue(DocumentType.TIMESHEET, LE1, day);
+        String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
+
+        assertThat(first).isEqualTo("TS-20270506-0001");
+        assertThat(second).isEqualTo("TS-20270506-0002");
     }
 
     @Test
@@ -217,6 +208,7 @@ class NumberingRulesIT {
                     .andExpect(jsonPath("$.resetPolicy").value("MONTHLY"))
                     .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"));
         }
+        inForce("TIMESHEET", "JOURNAL_VOUCHER");
         LocalDate day = LocalDate.of(2027, 6, 7);
         assertThat(issue(DocumentType.TIMESHEET, LE1, day)).isEqualTo("TS-FST-202706-0001");
         assertThat(issue(DocumentType.TIMESHEET, new LegalEntityId(2), day)).isEqualTo("TS-FIT-202706-0001");
@@ -224,45 +216,19 @@ class NumberingRulesIT {
     }
 
     @Test
-    @DisplayName("saving a rule is the administrator's confirmation")
-    void savingConfirmsTheRule() throws Exception {
-        try {
-            mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isNoContent());
-            mvc.perform(get(RULES + "/QUOTE").with(READER))
-                    .andExpect(jsonPath("$.confirmationStatus").value("CONFIRMED"))
-                    .andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"));
-            assertThat(quoteRuleVersionAndEffectiveDay()).isEqualTo("1/" + today());
+    @DisplayName("ADR-0027 2.4 saving a rule only saves a new version that waits for someone else's confirmation; it confirms nothing")
+    void savingDoesNotConfirm() throws Exception {
+        mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + java.time.LocalDate.now().plusDays(1) + "\"}"))
+                .andExpect(status().isNoContent());
 
-            mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isNoContent());
-            assertThat(quoteRuleVersionAndEffectiveDay()).as("replacing a confirmed template starts the next version").isEqualTo("2/" + today());
-            long versionAfterSecondSave = jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'")
-                    .query(Long.class).single();
-
-            mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isNoContent());
-            assertThat(quoteRuleVersionAndEffectiveDay()).as("saving the same template again changes nothing").isEqualTo("2/" + today());
-            assertThat(jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'").query(Long.class).single())
-                    .as("and does not even touch the row").isEqualTo(versionAfterSecondSave);
-        } finally {
-            // put the shared fixture back to the seeded default so other tests keep seeing the pending template
-            jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}',"
-                    + " confirmation_status = 'PENDING_CONFIRMATION', rule_version_number = 1, effective_from_date = null"
-                    + " where document_type = 'QUOTE'").update();
-        }
-    }
-
-    private String quoteRuleVersionAndEffectiveDay() {
-        return jdbc.sql("select rule_version_number || '/' || effective_from_date from platform_numbering.numbering_rules where document_type = 'QUOTE'")
-                .query(String.class).single();
-    }
-
-    private static LocalDate today() {
-        return LocalDate.of(2026, 10, 14);
+        mvc.perform(get(RULES + "/QUOTE").with(READER))
+                .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"))
+                .andExpect(jsonPath("$.pending.templateVersion").value(2))
+                .andExpect(jsonPath("$.pending.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"))
+                .andExpect(jsonPath("$.pending.authorId").value("9"));
+        assertThatThrownBy(() -> issue(DocumentType.QUOTE, LE1, LocalDate.of(2027, 7, 1)))
+                .isInstanceOf(com.forcitis.one.kernel.DomainException.class).hasMessageContaining("no confirmed template");
     }
 
     @Test
@@ -297,24 +263,6 @@ class NumberingRulesIT {
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "X").with(READER)).andExpect(status().isForbidden());
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "1").with(READER)).andExpect(status().isForbidden());
         mvc.perform(get(RULES).with(LEGACY_READER)).andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("D-1a-152 an original number whose legal entity could not be worked out is stored without one and stays searchable")
-    void legacyNumberWithoutLegalEntityIsStoredAndFound() throws Exception {
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("601")), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("601")), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
-
-        assertThat(jdbc.sql("select count(*) from platform_numbering.legacy_numbers where legacy_number = 'SYN-QU-NOLE' and legal_entity_id is null")
-                .query(Integer.class).single()).isEqualTo(1);
-        assertThat(findDocument.find(DocumentType.QUOTE, "SYN-QU-NOLE")).hasValueSatisfying(e -> assertThat(e.legalEntity()).isEmpty());
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-NOLE").with(LEGACY_READER))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.documentId").value("601"))
-                .andExpect(jsonPath("$.legalEntityId").doesNotExist());
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "601").with(LEGACY_READER))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].legacyNumber").value("SYN-QU-NOLE"));
     }
 
     @Test

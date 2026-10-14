@@ -1,11 +1,14 @@
 package com.forcitis.one.platform.audit.infrastructure.persistence;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.domain.AuditEntryId;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
 import com.forcitis.one.platform.audit.domain.AuditPage;
 import com.forcitis.one.platform.audit.domain.AuditQuery;
 import com.forcitis.one.platform.audit.domain.AuditRecord;
+import com.forcitis.one.platform.audit.domain.OwnLoginRecord;
+import com.forcitis.one.platform.audit.domain.OwnLoginRecords;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -19,6 +22,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcAuditEntryQueries implements AuditEntryQueries {
 
+    private static final String COLUMNS = "id, created_at, action, actor_id, on_behalf_of_id, subject_key, detail, source_address, outcome_kind, login_method_kind";
+
     private final JdbcClient jdbc;
 
     JdbcAuditEntryQueries(JdbcClient jdbc) {
@@ -27,8 +32,50 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
 
     @Override
     public AuditPage findPage(AuditQuery query) {
-        List<String> conditions = new ArrayList<>();
         Map<String, Object> params = new HashMap<>();
+        String where = where(query, params);
+        long matchCount = jdbc.sql("select count(*) from platform_audit.audit_entries" + where).params(params).query(Long.class).single();
+        List<AuditRecord> items = jdbc.sql("select " + COLUMNS + " from platform_audit.audit_entries" + where + """
+
+                         order by created_at desc, id desc
+                         limit :limit offset :offset
+                        """)
+                .params(params).param("limit", query.limit()).param("offset", (long) query.page() * query.limit())
+                .query((rs, n) -> row(rs)).list();
+        return new AuditPage(items, query.page(), query.limit(), matchCount);
+    }
+
+    @Override
+    public long count(AuditQuery filters) {
+        Map<String, Object> params = new HashMap<>();
+        return jdbc.sql("select count(*) from platform_audit.audit_entries" + where(filters, params)).params(params).query(Long.class).single();
+    }
+
+    @Override
+    public List<AuditRecord> findAll(AuditQuery filters, int maxRows) {
+        Map<String, Object> params = new HashMap<>();
+        return jdbc.sql("select " + COLUMNS + " from platform_audit.audit_entries" + where(filters, params)
+                + " order by created_at desc, id desc limit :maxRows")
+                .params(params).param("maxRows", maxRows).query((rs, n) -> row(rs)).list();
+    }
+
+    @Override
+    public List<OwnLoginRecord> findOwnLoginRecords(UserId subject, int limit) {
+        return jdbc.sql("""
+                        select created_at, action, outcome_kind, source_address, login_method_kind
+                          from platform_audit.audit_entries
+                         where subject_key = :subject and action in (:actions)
+                         order by created_at desc, id desc
+                         limit :limit
+                        """)
+                .param("subject", "user-account:" + subject.value()).param("actions", OwnLoginRecords.ACTIONS).param("limit", limit)
+                .query((rs, n) -> new OwnLoginRecord(rs.getTimestamp("created_at").toInstant(), rs.getString("action"), outcome(rs),
+                        rs.getString("source_address"), rs.getString("login_method_kind")))
+                .list();
+    }
+
+    private static String where(AuditQuery query, Map<String, Object> params) {
+        List<String> conditions = new ArrayList<>();
         if (query.actorId() != null) {
             conditions.add("actor_id = :actor");
             params.put("actor", query.actorId().value());
@@ -49,24 +96,18 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
             conditions.add("created_at < :to");
             params.put("to", Timestamp.from(query.to()));
         }
-        String where = conditions.isEmpty() ? "" : " where " + String.join(" and ", conditions);
-        long matchCount = jdbc.sql("select count(*) from platform_audit.audit_entries" + where).params(params).query(Long.class).single();
-        List<AuditRecord> items = jdbc.sql("""
-                        select id, created_at, action, actor_id, on_behalf_of_id, subject_key, detail
-                          from platform_audit.audit_entries
-                        """ + where + """
-
-                         order by created_at desc, id desc
-                         limit :limit offset :offset
-                        """)
-                .params(params).param("limit", query.limit()).param("offset", (long) query.page() * query.limit())
-                .query((rs, n) -> row(rs)).list();
-        return new AuditPage(items, query.page(), query.limit(), matchCount);
+        return conditions.isEmpty() ? "" : " where " + String.join(" and ", conditions);
     }
 
     private static AuditRecord row(ResultSet rs) throws SQLException {
         return new AuditRecord(new AuditEntryId(rs.getLong("id")), rs.getTimestamp("created_at").toInstant(), rs.getString("action"),
-                userId(rs, "actor_id"), userId(rs, "on_behalf_of_id"), rs.getString("subject_key"), rs.getString("detail"));
+                userId(rs, "actor_id"), userId(rs, "on_behalf_of_id"), rs.getString("subject_key"), rs.getString("detail"),
+                rs.getString("source_address"), outcome(rs), rs.getString("login_method_kind"));
+    }
+
+    private static AuditOutcome outcome(ResultSet rs) throws SQLException {
+        String value = rs.getString("outcome_kind");
+        return value == null ? null : AuditOutcome.valueOf(value);
     }
 
     private static UserId userId(ResultSet rs, String column) throws SQLException {

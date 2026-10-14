@@ -129,4 +129,18 @@ class IdentityStateMachineTest {
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
         });
     }
+
+    @Test
+    @DisplayName("separating an account takes every role away and records the fact; an account without roles records nothing")
+    void separationRecordsTheFact() {
+        UserAccount withRoles = UserAccount.restore(new UserId(1001), ENABLED.name(), Set.of(new RoleId(3)), 5, 5);
+        withRoles.recordSeparation();
+        assertThat(withRoles.roles()).isEmpty();
+        assertThat(withRoles.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.getClass().getSimpleName())
+                .containsExactly("AccountRolesReplaced", "AccountSeparated");
+
+        UserAccount bare = account(ENABLED);
+        bare.recordSeparation();
+        assertThat(bare.hasPendingEvents()).isFalse();
+    }
 }

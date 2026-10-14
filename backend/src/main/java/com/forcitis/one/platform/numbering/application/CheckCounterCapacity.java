@@ -18,7 +18,10 @@ public class CheckCounterCapacity {
     public long execute(BigDecimal warningRatio) {
         long nearCapacity = 0;
         for (NumberingRule rule : rules.findAllActive()) {
-            BigDecimal threshold = BigDecimal.valueOf(rule.pattern().capacity()).multiply(warningRatio);
+            if (rule.inForce().isEmpty()) {
+                continue;
+            }
+            BigDecimal threshold = BigDecimal.valueOf(rule.inForce().get().pattern().capacity()).multiply(warningRatio);
             if (BigDecimal.valueOf(rules.maxLastValue(rule.documentType())).compareTo(threshold) >= 0) {
                 nearCapacity++;
             }

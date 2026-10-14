@@ -45,7 +45,7 @@ class RoleSeparatedDeploymentIT {
     static final String[] JOBS_OFF = {"forcitis.platform.integration.archive-store.enabled=false", "forcitis.platform.approval.process-archive.enabled=false",
             "forcitis.platform.audit.archive.enabled=false", "forcitis.cost.timesheet.consumed-events.enabled=false",
             "forcitis.organization.workforce.sync-purge.enabled=false", "forcitis.platform.integration.outbound-purge.enabled=false",
-            "forcitis.platform.integration.event-publication.jobs-enabled=false"};
+            "forcitis.platform.integration.event-publication.jobs-enabled=false", "forcitis.platform.identity.sso.enabled=false"};
 
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18").withDatabaseName(DATABASE)
             .withCommand("sh", "-c", "openssl req -new -x509 -days 1 -nodes -subj /CN=localhost -out /var/lib/postgresql/server.crt -keyout /var/lib/postgresql/server.key"

@@ -1,6 +1,16 @@
 {
   "components" : {
     "schemas" : {
+      "AdministratorModeResponse" : {
+        "properties" : {
+          "administratorModeExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "administratorModeExpiresAt" ],
+        "type" : "object"
+      },
       "AttributeLegalEntityRequest" : {
         "properties" : {
           "effectiveFrom" : {
@@ -8,6 +18,48 @@
             "type" : "string"
           },
           "legalEntityId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "AuthorizationRequestView" : {
+        "properties" : {
+          "kind" : {
+            "type" : "string"
+          },
+          "permissionCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "requestedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "requestedBy" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "roleCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "roleId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "roleName" : {
+            "type" : "string"
+          },
+          "subjectUserId" : {
             "format" : "int64",
             "type" : "integer"
           }
@@ -39,6 +91,15 @@
         "required" : [ "calendarDate", "dayKind" ],
         "type" : "object"
       },
+      "ConfirmNumberingRuleRequest" : {
+        "properties" : {
+          "templateVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "CreateLegalEntityRequest" : {
         "properties" : {
           "code" : {
@@ -52,7 +113,14 @@
       },
       "CurrentUserResponse" : {
         "properties" : {
+          "administratorModeExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
           "displayName" : {
+            "type" : "string"
+          },
+          "mode" : {
             "type" : "string"
           },
           "navigation" : {
@@ -77,7 +145,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "displayName", "navigation", "permissionCodes", "userId" ],
+        "required" : [ "displayName", "mode", "navigation", "permissionCodes", "userId" ],
         "type" : "object"
       },
       "DecideTaskRequest" : {
@@ -122,6 +190,14 @@
         "properties" : {
           "effectiveTo" : {
             "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ForcedLogoutRequest" : {
+        "properties" : {
+          "reason" : {
             "type" : "string"
           }
         },
@@ -414,6 +490,10 @@
       },
       "NumberingRuleRequest" : {
         "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
           "pattern" : {
             "type" : "string"
           },
@@ -442,8 +522,18 @@
           "documentTypeCode" : {
             "type" : "string"
           },
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
           "pattern" : {
             "type" : "string"
+          },
+          "pending" : {
+            "$ref" : "#/components/schemas/PendingTemplate"
+          },
+          "requiresFinanceConfirmation" : {
+            "type" : "boolean"
           },
           "resetPolicy" : {
             "type" : "string"
@@ -451,9 +541,17 @@
           "startValue" : {
             "format" : "int64",
             "type" : "integer"
+          },
+          "templateVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "version" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         },
-        "required" : [ "capacity", "confirmationStatus", "documentType", "pattern", "resetPolicy", "startValue" ],
+        "required" : [ "capacity", "confirmationStatus", "documentType", "effectiveFrom", "pattern", "requiresFinanceConfirmation", "resetPolicy", "startValue", "templateVersion", "version" ],
         "type" : "object"
       },
       "OrgUnitDetailResponse" : {
@@ -517,6 +615,69 @@
         "required" : [ "code", "deliveryUnit", "name", "orgUnitId", "status" ],
         "type" : "object"
       },
+      "OwnLoginRecordResponse" : {
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "loginMethod" : {
+            "type" : "string"
+          },
+          "occurredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "sourceAddress" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "occurredAt" ],
+        "type" : "object"
+      },
+      "PendingTemplate" : {
+        "properties" : {
+          "authorId" : {
+            "type" : "string"
+          },
+          "authoredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "capacity" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "confirmedBy" : {
+            "type" : "string"
+          },
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "financeConfirmedBy" : {
+            "type" : "string"
+          },
+          "pattern" : {
+            "type" : "string"
+          },
+          "resetPolicy" : {
+            "type" : "string"
+          },
+          "startValue" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "templateVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "authoredAt", "capacity", "effectiveFrom", "pattern", "resetPolicy", "startValue", "templateVersion" ],
+        "type" : "object"
+      },
       "Period" : {
         "properties" : {
           "effectiveFrom" : {
@@ -540,6 +701,14 @@
             "format" : "int64",
             "type" : "integer"
           },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ReleaseRequest" : {
+        "properties" : {
           "reason" : {
             "type" : "string"
           }
@@ -702,6 +871,18 @@
           "heldReason" : {
             "type" : "string"
           },
+          "heldSeparations" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "holdKinds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "incomingActiveOrgUnitCount" : {
             "format" : "int32",
             "type" : "integer"
@@ -744,6 +925,12 @@
           "releasedByRunId" : {
             "type" : "string"
           },
+          "releasedKinds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "sourceEmployeeCount" : {
             "format" : "int32",
             "type" : "integer"
@@ -766,7 +953,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "startedAt", "status", "syncRunId", "trigger" ],
+        "required" : [ "heldSeparations", "holdKinds", "releasedKinds", "startedAt", "status", "syncRunId", "trigger" ],
         "type" : "object"
       },
       "TaskDetailResponse" : {
@@ -1276,7 +1463,7 @@
     },
     "/api/v1/organization/org-units" : {
       "get" : {
-        "operationId" : "list_8",
+        "operationId" : "list_9",
         "parameters" : [ {
           "in" : "query",
           "name" : "includeRevoked",
@@ -1333,7 +1520,7 @@
     },
     "/api/v1/organization/sync-runs" : {
       "get" : {
-        "operationId" : "list_7",
+        "operationId" : "list_8",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -1342,6 +1529,13 @@
             "default" : 50,
             "format" : "int32",
             "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -1401,6 +1595,16 @@
             "type" : "integer"
           }
         } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReleaseRequest"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "200" : {
             "content" : {
@@ -1502,7 +1706,7 @@
     },
     "/api/v1/platform/approval-task-overviews" : {
       "get" : {
-        "operationId" : "list_6",
+        "operationId" : "list_7",
         "parameters" : [ {
           "in" : "query",
           "name" : "overdueOnly",
@@ -1768,7 +1972,7 @@
     },
     "/api/v1/platform/approval-task-records" : {
       "get" : {
-        "operationId" : "list_5",
+        "operationId" : "list_6",
         "parameters" : [ {
           "in" : "query",
           "name" : "cursor",
@@ -2026,7 +2230,7 @@
     },
     "/api/v1/platform/approval-tasks" : {
       "get" : {
-        "operationId" : "list_4",
+        "operationId" : "list_5",
         "parameters" : [ {
           "in" : "query",
           "name" : "cursor",
@@ -4088,7 +4292,7 @@
     },
     "/api/v1/platform/audit-entries" : {
       "get" : {
-        "operationId" : "list_3",
+        "operationId" : "list_4",
         "parameters" : [ {
           "in" : "query",
           "name" : "actorId",
@@ -4159,6 +4363,125 @@
           }
         },
         "tags" : [ "audit-entry-controller" ]
+      }
+    },
+    "/api/v1/platform/audit-entries:export" : {
+      "get" : {
+        "operationId" : "export",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "actorId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "action",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "subjectKey",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "audit-export-controller" ]
+      }
+    },
+    "/api/v1/platform/authorization-requests" : {
+      "get" : {
+        "operationId" : "pending",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AuthorizationRequestView"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "authorization-request-controller" ]
+      }
+    },
+    "/api/v1/platform/authorization-requests/{requestId}:confirm" : {
+      "post" : {
+        "operationId" : "confirm_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "requestId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "authorization-request-controller" ]
+      }
+    },
+    "/api/v1/platform/authorization-requests/{requestId}:reject" : {
+      "post" : {
+        "operationId" : "reject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "requestId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "authorization-request-controller" ]
       }
     },
     "/api/v1/platform/legacy-numbers" : {
@@ -4240,7 +4563,7 @@
     },
     "/api/v1/platform/numbering-rules" : {
       "get" : {
-        "operationId" : "list_2",
+        "operationId" : "list_3",
         "responses" : {
           "200" : {
             "content" : {
@@ -4312,6 +4635,111 @@
           }
         },
         "tags" : [ "numbering-rule-controller" ]
+      }
+    },
+    "/api/v1/platform/numbering-rules/{documentType}:confirm" : {
+      "post" : {
+        "operationId" : "confirm",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "documentType",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmNumberingRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NumberingRuleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "numbering-rule-controller" ]
+      }
+    },
+    "/api/v1/platform/numbering-rules/{documentType}:confirm-finance" : {
+      "post" : {
+        "operationId" : "confirmByFinance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "documentType",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmNumberingRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NumberingRuleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "numbering-rule-controller" ]
+      }
+    },
+    "/api/v1/platform/own-login-records" : {
+      "get" : {
+        "operationId" : "list_2",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OwnLoginRecordResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "own-login-record-controller" ]
       }
     },
     "/api/v1/platform/roles" : {
@@ -4494,6 +4922,53 @@
         "tags" : [ "session-controller" ]
       }
     },
+    "/api/v1/platform/sessions:enter-administrator-mode" : {
+      "post" : {
+        "operationId" : "enter",
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "loginBinding",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WecomLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdministratorModeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "administrator-mode-controller" ]
+      }
+    },
+    "/api/v1/platform/sessions:exit-administrator-mode" : {
+      "post" : {
+        "operationId" : "exit",
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "administrator-mode-controller" ]
+      }
+    },
     "/api/v1/platform/sessions:logout" : {
       "post" : {
         "operationId" : "logout",
@@ -4649,6 +5124,36 @@
           }
         },
         "tags" : [ "role-controller" ]
+      }
+    },
+    "/api/v1/platform/user-accounts/{userId}:force-logout" : {
+      "post" : {
+        "operationId" : "forceLogout",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ForcedLogoutRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "forced-logout-controller" ]
       }
     },
     "/api/v1/platform/user-accounts/{userId}:replace-roles" : {

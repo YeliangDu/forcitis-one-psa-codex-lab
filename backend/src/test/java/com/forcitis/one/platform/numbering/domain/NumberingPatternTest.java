@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
-import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -67,9 +69,27 @@ class NumberingPatternTest {
     void aRuleWhoseTemplateUsesTheTypeCodeIsAcceptedForARegisteredCode() {
         NumberingPattern pattern = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
 
-        assertThat(NumberingRule.restore(DocumentType.TIMESHEET, pattern, 1, "CONFIRMED", 1, LocalDate.of(2026, 10, 14), 0, 0).confirmation()).isEqualTo(ConfirmationStatus.CONFIRMED);
-        assertThat(NumberingRule.restore(DocumentType.QUOTE, pattern, 1, "PENDING_CONFIRMATION", 1, null, 0, 0).confirmation())
-                .isEqualTo(ConfirmationStatus.PENDING_CONFIRMATION);
+        Instant at = Instant.parse("2026-10-14T08:00:00Z");
+        TemplateVersion confirmed = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, at, VersionStatus.CONFIRMED, new UserId(2), at, null, null);
+        TemplateVersion waiting = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, at, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
+        assertThat(NumberingRule.restore(DocumentType.TIMESHEET, List.of(confirmed), 0, 0).inForce()).isPresent();
+        assertThat(NumberingRule.restore(DocumentType.QUOTE, List.of(waiting), 0, 0).inForce()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("ADR-0027 5.1 the placeholder set is exactly {TYPE} {LE} {yyyy} {yy} {MM} {dd} {yyyyMM} {yyyyMMdd} {yyMMdd} and {seq:N} with N from 1 to 12")
+    void thePlaceholderSetIsExactlyTheDocumentedOne() {
+        for (String token : new String[] {"TYPE", "LE", "yyyy", "yy", "MM", "dd", "yyyyMM", "yyyyMMdd", "yyMMdd"}) {
+            String template = "{" + token + "}-{seq:4}";
+            ResetPolicy reset = ResetPolicy.NEVER;
+            assertThat(new NumberingPattern(template, reset).value()).as(token).isEqualTo(template);
+        }
+        for (int width = 1; width <= 12; width++) {
+            assertThat(new NumberingPattern("{seq:" + width + "}", ResetPolicy.NEVER).capacity()).isEqualTo((long) Math.pow(10, width) - 1);
+        }
+        for (String token : new String[] {"seq:0", "seq:13", "seq", "yyyyM", "MMdd", "type", "le", "YYYY", "HH", ""}) {
+            assertThatThrownBy(() -> new NumberingPattern("{" + token + "}-{seq:4}", ResetPolicy.NEVER)).as(token).isInstanceOf(IllegalArgumentException.class);
+        }
     }
 
     @Test

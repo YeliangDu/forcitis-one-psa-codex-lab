@@ -120,6 +120,7 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 | `APPROVAL_PROCESS_ADMINISTRATOR_USER_ID` | 取不到审批人时的兜底人 | 是 |
 | `APPROVAL_TASK_URL_TEMPLATE` | 卡片跳转地址 | 否（有默认值） |
 | `EMERGENCY_TOTP_ENCRYPTION_KEY` | 应急管理员 TOTP 密钥加密（32 字节 Base64） | 是 |
+| `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED` | 致远单点登录开关（`true` / `false`）；**没有默认值，缺失则应用启动失败**（部署前清单 C-10） | 是 |
 | 归档用 RAM 子账号的 AccessKey（只在不用 ECS RAM 角色时存在） | one.env / KMS | 不设到期 | 每 90 天：在 RAM 控制台新建第二把、写入 one.env、重启应用确认归档探针通过，再停用并删除旧的；RAM 角色（STS）无需轮换 |
 | `FORCITIS_TICKET_KEY_<KID>` | 签名票据签发方密钥；签发方默认关闭，当前白名单为空 | 否 |
 | `FORCITIS_TRUSTED_PROXIES` | 只信任 nginx（127.0.0.1） | 是 |
@@ -202,18 +203,27 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 - 一个实例写入归档后引擎删除失败，则跳过、记 `ALERT`、计数 `forcitis.platform.approval.archive.skipped`，并记入只追加表 `platform_approval.process_archive_skips`，之后不再重复归档；仍在引擎里的每次运行结束时再告警一次，直到人工处理。
 - 审计 3 年归档按 id 前缀成批，进度记在 `platform_audit.audit_archive_batches`。
 
-## 6. 应急管理员开通（设计，执行需用户确认）
+## 6. 应急管理员与首批持有人开通（运维命令，已实现；执行需用户确认）
 
-- 不提供 HTTP 开通接口（设计如此）。
-- **尚未实现**（代码中无运维命令入口，随 ADR-0027 下一批实现）；剧本见 `runbooks/C-5-first-admins.md`。
-- 由应用提供一次性运维命令，例如 `java -jar forcitis-one.jar --forcitis.ops.command=register-emergency-admin`，经云助手在服务器上执行。执行流程：
-  1. 从标准输入读取账号名和初始口令，不经命令行参数，避免进入进程列表和历史；
-  2. 校验口令强度（≥12 位并有复杂度要求，RULE-317）；
-  3. 生成 TOTP 密钥，用 `EMERGENCY_TOTP_ENCRYPTION_KEY` 加密后入库；
-  4. 只输出一次 TOTP 绑定二维码 / URI，供管理员当场绑定；
-  5. 写审计记录，然后退出，不启动 Web。
-- 只能从内网段登录，失败 5 次锁 15 分钟（已实现）。
-- 开通人和被开通人都记入审计；首次登录后强制改口令（待实现）。
+- 不提供 HTTP 开通接口（设计如此）。入口是同一个 jar 以档案 `identity-operations` 启动，**一次只做一个命令，做完进程结束**：
+
+  ```
+  java -jar forcitis-one.jar --spring.profiles.active=identity-operations --operation=<命令> --user-id=<人员 ID> \
+       [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人> --witness=<见证人>
+  ```
+
+  - 命令：`register-emergency-admin`（需 `--login-name`）、`reset-emergency-admin-credentials`、`disable-emergency-admin`、`enable-emergency-admin`、`grant-role`（需 `--role-code`，用于首批超级管理员、业务管理员、组织数据管理员）。
+  - **双人在场**：`--operator` 与 `--witness` 必填且必须是两个不同的人（比较前去掉首尾空白、折叠空格、不分大小写、全角按半角），两人都记入审计；缺一或相同则命令拒绝，什么也不做。
+  - 口令与 TOTP 密钥由命令**生成**，只在这一次输出里显示（口令、base32 密钥、认证器链接），库里只存口令的 Argon2id 哈希与加密后的密钥；不要把输出复制进文件或聊天。口令强度与密钥长度由代码保证，不经命令行参数传入。
+  - 档案关闭所有定时任务（`forcitis.platform.scheduling.jobs-enabled=false` 及各任务自己的开关），Web 部分只监听本机随机端口，几秒钟后随进程结束；命令发布的事件若监听器没来得及处理，仍留在事件发布登记表里，由常驻应用的重投作业接手（§9）。
+  - 退出码：0 成功（含「已是该状态，未改变」）；1 被拒绝（错误码在标准错误输出）；2 用法错误。
+  - 注册后若可用应急账号少于 2 个，命令输出 `WARNING`；必须有至少 2 个、绑定不同的超级管理员持有人。
+- 应急账号只能从内网段登录，失败 5 次锁 15 分钟；检查与计数在凭据验证之前一步完成，并发猜测也只有 5 次机会。应急登录直接进入管理模式，1 小时后会话结束。
+- 每日核对：任务 `platform.identity.emergency.admin.check`（ShedLock，每天一次，`forcitis.platform.identity.emergency.check.cron`）核对应急账号数量与可用性，少于 2 个可用即告警；总开关 `forcitis.platform.scheduling.jobs-enabled`（默认 true），本任务另有 `forcitis.platform.identity.emergency.check.enabled`。
+- **告警走 C-7 的日志告警规则**：本节与管理模式的告警都是一行 `ALERT platform.identity …` 的日志（结构化日志，见 §8），由 SLS 按 `ALERT` 关键字匹配后发往 A-5 指定的接收人；应用本身不直接发消息。涉及的告警：进入管理模式、退出或自然到期、应急登录、结束超级管理员或安全审计员的会话、应急账号因离职被停用、同步放行（`ALERT organization.workforce sync run …`）。
+- 同步因管理员离职而暂停时（ADR-0028）：留任的超级管理员在管理模式、或安全审计员在普通会话，通过 `POST /api/v1/organization/sync-runs/{id}:release` 写明理由放行；放行后将没有可用超级管理员时页面拒绝，只能用本节命令先授予角色。
+- 开通人和被开通人都记入审计（`platform.identity.operations.*`）。
+- 剧本见 `runbooks/C-5-first-admins.md`（待按本节对齐）。
 
 ## 7. 首次部署步骤（dev）
 

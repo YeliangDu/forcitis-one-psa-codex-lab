@@ -76,8 +76,8 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         mvc.perform(get(ORG_UNITS).with(READ_RUNS)).andExpect(status().isForbidden());
         mvc.perform(get(SYNC_RUNS).with(READ_ORG)).andExpect(status().isForbidden());
         mvc.perform(post(SYNC_RUNS + "/1:release").with(csrf())).andExpect(status().isUnauthorized());
-        mvc.perform(post(SYNC_RUNS + "/1:release").with(csrf()).with(READ_RUNS)).andExpect(status().isForbidden());
-        mvc.perform(post(SYNC_RUNS + "/1:release").with(EXECUTE)).andExpect(status().isForbidden());
+        mvc.perform(post(SYNC_RUNS + "/1:release").with(csrf()).with(READ_RUNS).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}")).andExpect(status().isForbidden());
+        mvc.perform(post(SYNC_RUNS + "/1:release").with(EXECUTE).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}")).andExpect(status().isForbidden());
     }
 
     @Test
@@ -166,9 +166,9 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(held.status()).isEqualTo(SyncRunStatus.HELD);
         String path = SYNC_RUNS + "/" + held.syncRunId().value() + ":release";
 
-        mvc.perform(post(path).with(EXECUTE)).andExpect(status().isForbidden());
+        mvc.perform(post(path).with(EXECUTE).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"headcount change is real\"}")).andExpect(status().isForbidden());
 
-        mvc.perform(post(path).with(csrf()).with(EXECUTE))
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"headcount change is real\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.outcome").value("RELEASED"))
                 .andExpect(jsonPath("$.syncRun.trigger").value("MANUAL"))
@@ -179,10 +179,10 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         });
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(4);
 
-        mvc.perform(post(path).with(csrf()).with(EXECUTE))
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"headcount change is real\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.outcome").value("NOT_HELD"));
-        mvc.perform(post(SYNC_RUNS + "/777:release").with(csrf()).with(EXECUTE))
+        mvc.perform(post(SYNC_RUNS + "/777:release").with(csrf()).with(EXECUTE).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"headcount change is real\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.outcome").value("NOT_FOUND"));
     }
@@ -200,7 +200,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         var held = sync.execute(SyncTrigger.SCHEDULED, false);
 
         orgSource.unavailable = true;
-        mvc.perform(post(SYNC_RUNS + "/" + held.syncRunId().value() + ":release").with(csrf()).with(EXECUTE))
+        mvc.perform(post(SYNC_RUNS + "/" + held.syncRunId().value() + ":release").with(csrf()).with(EXECUTE).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"reason\":\"headcount change is real\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.outcome").value("NOT_APPLIED"));
 

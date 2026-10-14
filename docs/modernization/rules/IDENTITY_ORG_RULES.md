@@ -395,6 +395,7 @@ Credentials are masked as `***`. Already-covered rules (not repeated): RULE-250,
 **Parameters:** `RoleCodeEnum.SUPER_ADMIN = "super_admin"` (`psa-backend/yudao-module-system/yudao-module-system-api/src/main/java/cn/iocoder/yudao/module/system/enums/permission/RoleCodeEnum.java:14-29`).
 **Confidence:** High.
 **Review needed:** No (keep as break-glass; see SEC-102 for refusing external SSO into super admin).
+**Superseded:** by ADR-0026 D-7 (user approved 2026-10-14): `super_admin` no longer bypasses any check and holds no business permission; in an ordinary session it grants nothing, and the administrator mode carries a fixed list of platform permissions only (ADR-0027 section 2, ADR-0028). The old behaviour above is evidence, not a requirement.
 
 ### RULE-341: A function permission is granted when an enabled role links a menu with that permission string
 **Domain:** identity · **Category:** Validation · **Priority:** P0
