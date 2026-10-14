@@ -34,10 +34,6 @@ public class StartApproval {
 
     @Transactional
     public ApprovalInstanceId execute(ApprovalRequest request) {
-        if (request.processKey().routingFlagRequired() && request.routingFlags().isEmpty()) {
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_NO_ROUTE,
-                    "No routing flag is set: " + request.processKey() + " would route nowhere");
-        }
         ApprovalRequestRecord record = requests.lockOrCreate(request.processKey(), request.businessKey(), request.initiator());
         if (!record.created()) {
             if (!record.initiator().equals(request.initiator())) {
@@ -48,6 +44,10 @@ public class StartApproval {
             if (record.status() == ApprovalStatus.RUNNING) {
                 return record.instanceId();
             }
+        }
+        if (request.processKey().routingFlagRequired() && request.routingFlags().isEmpty()) {
+            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_NO_ROUTE,
+                    "No routing flag is set: " + request.processKey() + " would route nowhere");
         }
         return startRound(record, request);
     }

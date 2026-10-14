@@ -403,6 +403,10 @@
           "hours" : {
             "type" : "number"
           },
+          "projectManagerId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
           "workPackageId" : {
             "format" : "int64",
             "type" : "integer"
