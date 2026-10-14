@@ -26,7 +26,7 @@ import java.util.UUID;
  * One archive object is written once: archive storage class, no overwrite, Content-MD5 checked by OSS and the SHA-256 kept as user
  * metadata, then read back from the object's metadata. The probe starts and aborts a multipart upload, so it needs write permission
  * and leaves nothing behind (a WORM bucket cannot delete what was written), and checks that the bucket is in the configured region and
- * under a locked WORM policy of at least the configured period.
+ * under a locked WORM policy of exactly the configured number of days.
  */
 final class OssObjectStore implements ObjectStore {
     static final String SHA256 = "sha256";
@@ -78,9 +78,9 @@ final class OssObjectStore implements ObjectStore {
                 throw new ExternalSystemUnavailableException("the archive bucket is in " + location + ", not oss-" + properties.region());
             }
             GetBucketWormResult worm = client.getBucketWorm(properties.bucket());
-            if (!"Locked".equals(worm.getWormState()) || worm.getRetentionPeriodInDays() < properties.wormLockDays()) {
+            if (!"Locked".equals(worm.getWormState()) || worm.getRetentionPeriodInDays() != properties.wormLockDays()) {
                 throw new ExternalSystemUnavailableException("the archive bucket has WORM " + worm.getWormState() + " for " + worm.getRetentionPeriodInDays()
-                        + " days; Locked and at least " + properties.wormLockDays() + " days are required");
+                        + " days; Locked and exactly " + properties.wormLockDays() + " days are required: change worm-lock-days and total-keep-years together with the bucket");
             }
             String probeKey = properties.prefix() + "/probe/" + UUID.randomUUID();
             String uploadId = client.initiateMultipartUpload(new InitiateMultipartUploadRequest(properties.bucket(), probeKey)).getUploadId();

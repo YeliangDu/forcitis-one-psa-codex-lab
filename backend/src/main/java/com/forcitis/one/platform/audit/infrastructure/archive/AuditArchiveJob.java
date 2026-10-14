@@ -16,6 +16,7 @@ import java.time.Period;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,8 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     private static final Logger LOG = LoggerFactory.getLogger(AuditArchiveJob.class);
     static final String KIND = "audit";
     static final int BATCH = 5000;
+    /** The columns the archive carries; architecture/archive-columns.txt names every column of the table as archived or excluded and AuditArchiveColumnsTest keeps both equal. */
+    static final List<String> COLUMNS = List.of("id", "action", "actor_id", "on_behalf_of_id", "subject_key", "detail", "event_id", "correlation_id", "created_at");
 
     @ConfigurationProperties("forcitis.platform.audit.archive")
     record Policy(Period onlinePeriod) {
@@ -101,7 +104,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         int total = 0;
         while (true) {
             long last = jdbc.sql("select coalesce(max(last_entry_id), 0) from platform_audit.audit_archive_batches").query(Long.class).single();
-            List<Map<String, Object>> entries = jdbc.sql("select * from platform_audit.audit_entries where id > :last order by id limit :batch")
+            List<Map<String, Object>> entries = jdbc.sql("select " + String.join(", ", COLUMNS) + " from platform_audit.audit_entries where id > :last order by id limit :batch")
                     .param("last", last).param("batch", BATCH).query((rs, n) -> row(rs)).list();
             int due = 0;
             while (due < entries.size() && Instant.parse((String) entries.get(due).get("created_at")).isBefore(cutoff)) {
@@ -120,7 +123,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         }
     }
 
-    /** Every column of the table, whatever columns it has by the time this runs: a column added later is archived without touching this class. */
+    /** Only the listed columns, only types whose JSON form is unambiguous; any other type is a failure, not a toString. */
     private static Map<String, Object> row(ResultSet rs) throws SQLException {
         ResultSetMetaData columns = rs.getMetaData();
         Map<String, Object> row = new LinkedHashMap<>();
@@ -128,11 +131,16 @@ class AuditArchiveJob implements SmartInitializingSingleton {
             Object value = rs.getObject(i);
             row.put(columns.getColumnName(i), switch (value) {
                 case null -> null;
-                case Number number -> number;
+                case Long number -> number;
+                case Integer number -> number;
+                case Short number -> number;
                 case Boolean flag -> flag;
+                case String text -> text;
+                case UUID id -> id.toString();
                 case Timestamp time -> time.toInstant().toString();
                 case OffsetDateTime time -> time.toInstant().toString();
-                default -> value.toString();
+                default -> throw new IllegalStateException("audit_entries." + columns.getColumnName(i) + " is a " + value.getClass().getName()
+                        + ": the archive does not know how to write that type; extend the job deliberately");
             });
         }
         return row;

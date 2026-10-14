@@ -105,7 +105,7 @@ class OssObjectStoreTest {
     }
 
     @Test
-    @DisplayName("the probe fails for another region, a WORM policy that is not locked or too short")
+    @DisplayName("the probe fails for another region, a WORM policy that is not locked, shorter or longer than the configured days")
     void probeRefusesAWrongBucket() {
         GetBucketWormResult worm = new GetBucketWormResult();
         worm.setWormState("InProgress");
@@ -119,6 +119,8 @@ class OssObjectStoreTest {
         worm.setWormState("Locked");
         worm.setRetentionPeriodInDays(365);
         assertThatThrownBy(store::probe).hasMessageContaining("2557");
+        worm.setRetentionPeriodInDays(3650);
+        assertThatThrownBy(store::probe).as("longer is not accepted either: the lock and the configuration change together").hasMessageContaining("exactly 2557");
     }
 
     @Configuration

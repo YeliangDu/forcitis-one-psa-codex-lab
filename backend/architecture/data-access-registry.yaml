@@ -10,7 +10,8 @@
 # lineage      source NEW | ORG_SOURCE | MIGRATION | FRAMEWORK; migrated_from lists the old-system objects, via says how they are traced (legacy_numbers | ONE_OFF_IMPORT)
 # writers      modules whose code writes the table; readers: modules that only read it. A module outside the schema's own module needs `cross_module`.
 # references   role columns that point at a table of the same schema although the name does not say which (K6)
-# optional     the table exists only on one side of a pending integration; the entry is checked when the table is there and then removed or made required
+# optional     the table exists only on one side of a pending integration; the entry is checked when the table is there and then removed or made required.
+#              An optional entry carries a due date (due) and fails once it has passed.
 # gaps         known violations with an owner: {rule, column?, due, owner, ref, note}. Only D3 and D4 may leave out the column; a gap past its due date fails the test. A gap that is no longer violated fails the test, so it is removed in the
 #              same change that fixes it. Gaps are handed over to the owner named; none may be added to hide a new violation.
 tables:
@@ -144,6 +145,7 @@ tables:
     writers: [organization.workforce]
   organization_workforce.legal_entity_attribution_periods:
     optional: true
+    due: "2026-11-30"
     role: DIMENSION_VERSIONED
     aggregate: LegalEntityAttribution
     mutability: APPEND_ONLY
@@ -153,6 +155,7 @@ tables:
 
   organization_workforce.org_unit_legal_entities:
     optional: true
+    due: "2026-11-30"
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
@@ -160,6 +163,7 @@ tables:
     writers: [organization.workforce]
   organization_workforce.employee_legal_entities:
     optional: true
+    due: "2026-11-30"
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}

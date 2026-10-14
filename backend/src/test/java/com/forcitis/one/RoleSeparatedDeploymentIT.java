@@ -142,6 +142,8 @@ class RoleSeparatedDeploymentIT {
             Thread.sleep(100);
         }
         assertThat(jdbc.sql("select current_user").query(String.class).single()).isEqualTo(RUNTIME);
+        assertThat(jdbc.sql("select count(*) from platform_approval.approval_requests").query(Long.class).single()).as("the approval schema is readable").isZero();
+        assertThat(jdbc.sql("select count(*) from platform_approval.act_ru_task").query(Long.class).single()).as("so are the engine tables").isZero();
     }
 
     @Test

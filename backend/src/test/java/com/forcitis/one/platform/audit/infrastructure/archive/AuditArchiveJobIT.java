@@ -97,17 +97,15 @@ class AuditArchiveJobIT {
     }
 
     @Test
-    @DisplayName("T3 the archive carries every column of audit_entries, including event id and correlation id and any column added later")
-    void everyColumnIsArchived() {
+    @DisplayName("T3 the archive carries the columns listed as ARCHIVE, including event id and correlation id, and nothing else")
+    void archivedColumnsAreTheListedOnes() {
         jdbc.sql("insert into platform_audit.audit_entries (action, subject_key, event_id, correlation_id, created_at) values ('old.one', 'x:1', gen_random_uuid(), gen_random_uuid(), now() - interval '1200 days')").update();
 
         job.run();
 
-        List<String> columns = jdbc.sql("select column_name from information_schema.columns where table_schema = 'platform_audit' and table_name = 'audit_entries'")
-                .query(String.class).list();
         String line = vault.lines().getFirst();
-        assertThat(columns).isNotEmpty().allSatisfy(column -> assertThat(line).contains("\"" + column + "\":"));
-        assertThat(line).doesNotContain("\"event_id\":null").doesNotContain("\"correlation_id\":null");
+        assertThat(AuditArchiveJob.COLUMNS).allSatisfy(column -> assertThat(line).contains("\"" + column + "\":"));
+        assertThat(line).doesNotContain("\"updated_at\"").doesNotContain("\"event_id\":null").doesNotContain("\"correlation_id\":null");
     }
 
     @Test

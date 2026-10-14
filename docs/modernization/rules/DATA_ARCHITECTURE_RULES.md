@@ -24,5 +24,5 @@
 **Source:** 复审 B2-M5 / N5。**Specification:** 法人归属的期间表只追加：开放期间只能被关闭，已关闭的期间不再改；因此新的归属必须从最近一段的结束日起（在其结束日之前开始会被拒绝，ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID）。**更正路径:** 归属被过早结束，则追加一个新期间，从结束日起重新归属同一法人；归属被过晚结束，已关闭的期间不能缩短，1a 没有更正路径，只能在结束日之后追加（要缩短需要新的规则与审计设计）。**需负责人确认:** 这是对原来「新归属可缩短已关闭期间」行为的收紧，是否接受「过晚结束无法更正」这一限制。
 
 ### DATA-RULE-08: 归档保留期等于在线期加 WORM 期
-**Source:** 用户决定 2026-10-15（WORM 约 7 年，2557 天）。**Specification:** 流程引擎历史与审计的总保留期都是 10 年，来自同一个配置项 `forcitis.platform.integration.archive-store.total-keep-years`；每类数据的「在线保留期 + WORM 天数」必须等于它（3 年 + 2557 天 ≈ 10 年），不一致则启动失败。探针核对桶上已锁定的 WORM 天数不少于配置值。**Verified by:** `ArchiveKeepPeriodTest`（含随发行物的配置）、各归档作业的启动校验。
+**Source:** 用户决定 2026-10-15（WORM 约 7 年，2557 天）。**Specification:** 流程引擎历史与审计的总保留期都是 10 年，来自同一个配置项 `forcitis.platform.integration.archive-store.total-keep-years`；每类数据的「在线保留期 + WORM 天数」必须等于它（3 年 + 2557 天 ≈ 10 年），不一致则启动失败。探针核对桶上已锁定的 WORM 天数**等于**配置值（不是不少于）；以后要延长保留期，`worm-lock-days` 和 `total-keep-years` 必须与桶上的锁定天数一起改。**Verified by:** `ArchiveKeepPeriodTest`（含随发行物的配置）、各归档作业的启动校验。
 

@@ -513,6 +513,12 @@ class DataArchitectureTest {
         }
         registry.forEach((name, entry) -> {
             boolean wildcard = name.endsWith("*");
+            if (Boolean.TRUE.equals(entry.raw().get("optional"))) {
+                Object due = entry.raw().get("due");
+                if (due == null || LocalDate.parse(String.valueOf(due)).isBefore(LocalDate.now())) {
+                    problems.add(name + ": an optional entry has a due date (due) that has not passed: it is removed or made required at the integration");
+                }
+            }
             if (!wildcard && !tables.containsKey(name) && !Boolean.TRUE.equals(entry.raw().get("optional"))) {
                 problems.add("registry entry " + name + " has no table");
             }
@@ -684,5 +690,32 @@ class DataArchitectureTest {
             }
         });
         assertThat(revoked).isEqualTo(registered);
+    }
+
+    @Test
+    @DisplayName("N9 every column of audit_entries is named in archive-columns.txt as archived or excluded, and no RESTRICTED column is archived")
+    void auditArchiveColumnsAreDeliberate() throws IOException {
+        Map<String, String> decided = new TreeMap<>();
+        for (String line : Files.readAllLines(Path.of("architecture/archive-columns.txt"))) {
+            if (!line.isBlank() && !line.startsWith("#")) {
+                String[] parts = line.split("\\s*\\|\\s*", 4);
+                assertThat(parts).as(line).hasSize(4);
+                assertThat(parts[1]).as(line).isIn("ARCHIVE", "EXCLUDE");
+                assertThat(parts[3]).as("a reason: " + line).isNotBlank();
+                decided.put(parts[0], parts[1]);
+            }
+        }
+        Map<String, String> classification = DdlNamingTest.readClassification();
+        List<String> problems = new ArrayList<>();
+        for (String column : tables.get("platform_audit.audit_entries").columns.keySet()) {
+            if (!decided.containsKey(column)) {
+                problems.add("audit_entries." + column + " is not in architecture/archive-columns.txt: decide whether the archive carries it");
+            } else if ("ARCHIVE".equals(decided.get(column)) && "RESTRICTED".equals(classification.get("platform_audit.audit_entries." + column))) {
+                problems.add("audit_entries." + column + " is RESTRICTED and cannot be archived");
+            }
+        }
+        decided.keySet().stream().filter(c -> !tables.get("platform_audit.audit_entries").columns.containsKey(c))
+                .forEach(c -> problems.add("archive-columns.txt names " + c + ", which audit_entries does not have"));
+        assertThat(problems).isEmpty();
     }
 }

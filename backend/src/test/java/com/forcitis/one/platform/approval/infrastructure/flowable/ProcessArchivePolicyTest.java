@@ -44,15 +44,14 @@ class ProcessArchivePolicyTest {
             }
         }
         List<String> inCode = new ArrayList<>();
-        inCode.add("PROCESS:" + FlowableApprovalEngine.VARIABLE_CONTENT_DIGEST);
-        inCode.add("PROCESS:" + FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY);
-        inCode.add("PROCESS:" + FlowableApprovalEngine.VARIABLE_SUBMITTED_ON);
-        inCode.add("PROCESS:" + NodeDecisions.ROUTED + "*");
-        inCode.add("TASK:" + FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE);
-        inCode.add("TASK:" + FlowableApprovalEngine.VARIABLE_ADVISORY);
-        inCode.add("TASK:" + FlowableApprovalEngine.VARIABLE_ASSIGNED_AT);
-        assertThat(new TreeSet<>(ProcessArchiveJob.PROCESS_VARIABLES)).isEqualTo(new TreeSet<>(List.of(FlowableApprovalEngine.VARIABLE_CONTENT_DIGEST,
-                FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY, FlowableApprovalEngine.VARIABLE_SUBMITTED_ON)));
+        ProcessArchiveJob.PROCESS_VARIABLES.forEach(name -> inCode.add("PROCESS:" + name));
+        inCode.add("PROCESS:" + ProcessArchiveJob.ROUTING_VARIABLE_PREFIX + "*");
+        ProcessArchiveJob.TASK_VARIABLES.forEach(name -> inCode.add("TASK:" + name));
+        assertThat(ProcessArchiveJob.PROCESS_VARIABLES).as("process variables are the engine's constants").containsExactly(FlowableApprovalEngine.VARIABLE_CONTENT_DIGEST,
+                FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY, FlowableApprovalEngine.VARIABLE_SUBMITTED_ON);
+        assertThat(ProcessArchiveJob.ROUTING_VARIABLE_PREFIX).as("the routing prefix is the engine's").isEqualTo(NodeDecisions.ROUTED);
+        assertThat(ProcessArchiveJob.TASK_VARIABLES).as("task variables are the engine's constants").containsExactly(FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE,
+                FlowableApprovalEngine.VARIABLE_ADVISORY, FlowableApprovalEngine.VARIABLE_ASSIGNED_AT);
         assertThat(new TreeSet<>(inCode)).isEqualTo(new TreeSet<>(registered));
     }
 
