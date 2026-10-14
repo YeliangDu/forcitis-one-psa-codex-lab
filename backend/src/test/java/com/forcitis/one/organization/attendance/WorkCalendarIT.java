@@ -197,7 +197,7 @@ class WorkCalendarIT {
     void lockedDaysNeedTheirOwnPermission() throws Exception {
         mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE_WITHOUT_LOCKED_DAYS).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_ACCESS_DENIED"));
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.errorCode").value("ORGANIZATION_ATTENDANCE_LOCKED_DAY_FORBIDDEN"));
         mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE_WITHOUT_LOCKED_DAYS).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"days\": [{\"calendarDate\": \"2026-12-25\", \"dayKind\": \"HOLIDAY\"}]}"))
                 .andExpect(status().isOk());

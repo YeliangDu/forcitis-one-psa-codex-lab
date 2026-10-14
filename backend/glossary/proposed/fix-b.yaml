@@ -686,6 +686,20 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__organization_attendance_locked_day_forbidden
+  zh: 无权修改已过日期
+  en: OrganizationAttendanceLockedDayForbidden
+  snake: organization_attendance_locked_day_forbidden
+  kind: error_code
+  bc: organization.attendance
+  definition: "改动今天以前的工作日历日期需要单独的权限（403）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - opened
 - clock
@@ -732,3 +746,4 @@ common_words:
 - known
 - retired
 - timeout
+- caller
