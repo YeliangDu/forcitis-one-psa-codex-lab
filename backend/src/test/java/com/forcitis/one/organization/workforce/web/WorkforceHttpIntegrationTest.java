@@ -59,6 +59,18 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     private static final RequestPostProcessor READ_RUNS = caller(WorkforcePermissions.SYNC_RUN_READ);
     private static final RequestPostProcessor EXECUTE = caller(WorkforcePermissions.SYNC_RUN_EXECUTE);
 
+    @org.junit.jupiter.api.BeforeEach
+    void theCallerIsTheOrganisationDataAdministrator() {
+        jdbc.sql("insert into platform_identity.user_accounts (user_id) values (9001) on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) select 9001, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void removeTheCallerAccount() {
+        jdbc.sql("delete from platform_identity.account_roles where user_id = 9001").update();
+        jdbc.sql("delete from platform_identity.user_accounts where user_id = 9001").update();
+    }
+
     private void synced() {
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L), unit(4, 1L)),
                 List.of(head(2, 1)), List.of(post(100)), List.of(person(1, 2, 100L, null), person(2, 3, 100L, 1L)));
