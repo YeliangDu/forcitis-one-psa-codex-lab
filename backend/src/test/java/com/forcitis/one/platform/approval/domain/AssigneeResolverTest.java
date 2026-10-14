@@ -160,10 +160,11 @@ class AssigneeResolverTest {
     @Test
     @DisplayName("RULE-258/260 form field users: every distinct value is a candidate; blanks and garbage are ignored")
     void formFieldUsers() {
-        org.person(-4000000000000000001L, 10, null);
+        long negativeBigId = Long.MIN_VALUE / 2;
+        org.person(negativeBigId, 10, null);
         Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1,
-                fields("projectManagerId", "2", "3", "2", " ", "x", "-4000000000000000001"));
-        assertThat(r.candidates()).isEqualTo(ids(2, 3, -4000000000000000001L));
+                fields("projectManagerId", "2", "3", "2", " ", "x", String.valueOf(negativeBigId)));
+        assertThat(r.candidates()).isEqualTo(ids(2, 3, negativeBigId));
     }
 
     @Test
@@ -253,6 +254,6 @@ class AssigneeResolverTest {
                 "FORM_FIELD_USER_SUPERVISORS");
         assertThat(AssignmentRuleCodec.NOT_BUILT_TYPES).containsExactlyInAnyOrder("NAMED_USERS", "PROCESS_VARIABLE_USERS");
         assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR", n -> null)).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR_LEADER", n -> "1")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> AssignmentRuleCodec.parse("SUPERVISOR_OF_INITIATOR", n -> "1")).isInstanceOf(IllegalStateException.class);
     }
 }

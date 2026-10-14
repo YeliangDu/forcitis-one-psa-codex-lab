@@ -178,13 +178,13 @@ class NumberingRulesIT {
     @DisplayName("a template without {LE} (configured later by an administrator) shares one counter across legal entities, so numbers never repeat")
     void templateWithoutLegalEntityTokenSharesOneCounter() {
         LocalDate day = LocalDate.of(2027, 5, 6);
-        jdbc.sql("update platform_numbering.numbering_rules set pattern = 'TS{yyyyMMdd}{seq:4}', reset_policy = 'DAILY' where document_type = 'TIMESHEET'").update();
+        jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{yyyyMMdd}-{seq:4}', reset_policy = 'DAILY' where document_type = 'TIMESHEET'").update();
         try {
             String first = issue(DocumentType.TIMESHEET, LE1, day);
             String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
 
-            assertThat(first).isEqualTo("TS202705060001");
-            assertThat(second).isEqualTo("TS202705060002");
+            assertThat(first).isEqualTo("TS-20270506-0001");
+            assertThat(second).isEqualTo("TS-20270506-0002");
         } finally {
             jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}', reset_policy = 'MONTHLY' where document_type = 'TIMESHEET'").update();
         }

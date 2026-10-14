@@ -54,13 +54,13 @@ class NumberingPatternTest {
     @DisplayName("a template with {LE} cannot be rendered without a legal entity code; one without {LE} needs none")
     void theLegalEntityCodeIsRequiredOnlyWhenTheTemplateUsesIt() {
         NumberingPattern withLegalEntity = new NumberingPattern("JV-{LE}-{yyyyMM}-{seq:6}", ResetPolicy.MONTHLY);
-        NumberingPattern without = new NumberingPattern("TS{yyyyMMdd}{seq:4}", ResetPolicy.DAILY);
+        NumberingPattern without = new NumberingPattern("{TYPE}-{yyyyMMdd}-{seq:4}", ResetPolicy.DAILY);
 
         assertThat(withLegalEntity.usesLegalEntityCode()).isTrue();
         assertThat(withLegalEntity.render(null, FST, DAY, 7)).isEqualTo("JV-FST-202610-000007");
         assertThatThrownBy(() -> withLegalEntity.render(null, null, DAY, 7)).isInstanceOf(IllegalStateException.class);
         assertThat(without.usesLegalEntityCode()).isFalse();
-        assertThat(without.render(null, null, DAY, 7)).isEqualTo("TS202610140007");
+        assertThat(without.render("TS", null, DAY, 7)).isEqualTo("TS-20261014-0007");
     }
 
     @Test
