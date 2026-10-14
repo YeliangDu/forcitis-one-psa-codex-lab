@@ -6,7 +6,7 @@ terms:
   snake: organization_workforce_employee_legal_entity_unresolved
   kind: error_code
   bc: organization.workforce
-  definition: 该日期没有适用于该员工的法人归属（422）
+  definition: "该日期没有适用于该员工的法人归属（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium
@@ -20,7 +20,7 @@ terms:
   snake: organization_workforce_attribution_date_invalid
   kind: error_code
   bc: organization.workforce
-  definition: 新的法人归属须晚于最近一段归属的生效日，结束日须晚于生效日（422）
+  definition: "新的法人归属须晚于最近一段归属的生效日，结束日须晚于生效日（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium
@@ -34,7 +34,7 @@ terms:
   snake: organization_workforce_attribution_not_open
   kind: error_code
   bc: organization.workforce
-  definition: 对象没有仍在生效的法人归属，无法结束（409）
+  definition: "对象没有仍在生效的法人归属，无法结束（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium
@@ -48,7 +48,7 @@ terms:
   snake: organization_workforce_attribution_not_found
   kind: error_code
   bc: organization.workforce
-  definition: 对象没有任何法人归属（404）
+  definition: "对象没有任何法人归属（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium
@@ -62,7 +62,7 @@ terms:
   snake: organization_workforce_attribution_subject_not_found
   kind: error_code
   bc: organization.workforce
-  definition: 部门或员工不存在（404）
+  definition: "部门或员工不存在（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium
@@ -76,7 +76,7 @@ terms:
   snake: platform_identity_default_role_missing
   kind: error_code
   bc: platform.identity
-  definition: 配置的默认角色不存在，无法开立账号（503）
+  definition: "配置的默认角色不存在，无法开立账号（503）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium
@@ -90,7 +90,525 @@ terms:
   snake: platform_identity_not_signed_in
   kind: error_code
   bc: platform.identity
-  definition: 请求没有已登录的用户（401）
+  definition: "请求没有已登录的用户（401）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_attendance_locked_day_unconfirmed
+  zh: 过去日期变更未确认
+  en: OrganizationAttendanceLockedDayUnconfirmed
+  snake: organization_attendance_locked_day_unconfirmed
+  kind: error_code
+  bc: organization.attendance
+  definition: "修改今天之前的日期须由维护人确认（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_org_unit_not_found
+  zh: 组织单元不存在
+  en: OrganizationWorkforceOrgUnitNotFound
+  snake: organization_workforce_org_unit_not_found
+  kind: error_code
+  bc: organization.workforce
+  definition: "按 ID 找不到组织单元（404）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_sync_run_apply_failed
+  zh: 同步放行未能应用
+  en: OrganizationWorkforceSyncRunApplyFailed
+  snake: organization_workforce_sync_run_apply_failed
+  kind: error_code
+  bc: organization.workforce
+  definition: "放行时重新同步未成功，保持扣留状态（409）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_audit_query_invalid
+  zh: 审计查询条件无效
+  en: PlatformAuditQueryInvalid
+  snake: platform_audit_query_invalid
+  kind: error_code
+  bc: platform.audit
+  definition: "时间范围颠倒等查询条件不合法（400）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_account_disabled
+  zh: 账号已停用
+  en: PlatformIdentityAccountDisabled
+  snake: platform_identity_account_disabled
+  kind: error_code
+  bc: platform.identity
+  definition: "账号被管理员停用（403）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_account_not_found
+  zh: 账号不存在
+  en: PlatformIdentityAccountNotFound
+  snake: platform_identity_account_not_found
+  kind: error_code
+  bc: platform.identity
+  definition: "按用户 ID 找不到账号（404）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_credentials_invalid
+  zh: 凭据无效
+  en: PlatformIdentityCredentialsInvalid
+  snake: platform_identity_credentials_invalid
+  kind: error_code
+  bc: platform.identity
+  definition: "登录凭据不对；对外不区分原因（401）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_employee_separated
+  zh: 员工已离职
+  en: PlatformIdentityEmployeeSeparated
+  snake: platform_identity_employee_separated
+  kind: error_code
+  bc: platform.identity
+  definition: "离职员工不能登录（403）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_login_name_unknown
+  zh: 登录名未知
+  en: PlatformIdentityLoginNameUnknown
+  snake: platform_identity_login_name_unknown
+  kind: error_code
+  bc: platform.identity
+  definition: "致远票据中的登录名找不到员工（401）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_login_rate_limited
+  zh: 登录请求过多
+  en: PlatformIdentityLoginRateLimited
+  snake: platform_identity_login_rate_limited
+  kind: error_code
+  bc: platform.identity
+  definition: "同一客户端地址的登录请求超过每分钟限额（429）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_network_denied
+  zh: 网络不允许
+  en: PlatformIdentityNetworkDenied
+  snake: platform_identity_network_denied
+  kind: error_code
+  bc: platform.identity
+  definition: "应急登录只允许来自内网（403）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_permission_unknown
+  zh: 权限码未知
+  en: PlatformIdentityPermissionUnknown
+  snake: platform_identity_permission_unknown
+  kind: error_code
+  bc: platform.identity
+  definition: "角色中含有不存在的权限码（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_role_blank_name
+  zh: 角色名称为空
+  en: PlatformIdentityRoleBlankName
+  snake: platform_identity_role_blank_name
+  kind: error_code
+  bc: platform.identity
+  definition: "角色名称为空或过长（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_role_duplicate_code
+  zh: 角色编码重复
+  en: PlatformIdentityRoleDuplicateCode
+  snake: platform_identity_role_duplicate_code
+  kind: error_code
+  bc: platform.identity
+  definition: "角色编码已存在（409）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_role_duplicate_name
+  zh: 角色名称重复
+  en: PlatformIdentityRoleDuplicateName
+  snake: platform_identity_role_duplicate_name
+  kind: error_code
+  bc: platform.identity
+  definition: "角色名称已存在（409）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_role_invalid_code
+  zh: 角色编码非法
+  en: PlatformIdentityRoleInvalidCode
+  snake: platform_identity_role_invalid_code
+  kind: error_code
+  bc: platform.identity
+  definition: "角色编码格式不对（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_role_not_allowed
+  zh: 角色授予超出上限
+  en: PlatformIdentityRoleNotAllowed
+  snake: platform_identity_role_not_allowed
+  kind: error_code
+  bc: platform.identity
+  definition: "授予的权限超出操作人自己的权限（403）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_role_not_found
+  zh: 角色不存在
+  en: PlatformIdentityRoleNotFound
+  snake: platform_identity_role_not_found
+  kind: error_code
+  bc: platform.identity
+  definition: "按 ID 或编码找不到角色（404）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_role_reserved_code
+  zh: 角色编码保留
+  en: PlatformIdentityRoleReservedCode
+  snake: platform_identity_role_reserved_code
+  kind: error_code
+  bc: platform.identity
+  definition: "super_admin 只能由迁移建立（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_role_system_frozen
+  zh: 系统角色不可改
+  en: PlatformIdentityRoleSystemFrozen
+  snake: platform_identity_role_system_frozen
+  kind: error_code
+  bc: platform.identity
+  definition: "系统角色不能修改、停用或删除（409）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_sso_unavailable
+  zh: 单点登录不可用
+  en: PlatformIdentitySsoUnavailable
+  snake: platform_identity_sso_unavailable
+  kind: error_code
+  bc: platform.identity
+  definition: "致远验票不可用或单点登录未开启（503）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_state_invalid
+  zh: 登录状态无效
+  en: PlatformIdentityStateInvalid
+  snake: platform_identity_state_invalid
+  kind: error_code
+  bc: platform.identity
+  definition: "state 未知、已用、已过期、属于另一入口或不是本浏览器发起的（401）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_ticket_invalid
+  zh: 票据无效
+  en: PlatformIdentityTicketInvalid
+  snake: platform_identity_ticket_invalid
+  kind: error_code
+  bc: platform.identity
+  definition: "票据签名、有效期或来源不对（401）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_ticket_replayed
+  zh: 票据已使用
+  en: PlatformIdentityTicketReplayed
+  snake: platform_identity_ticket_replayed
+  kind: error_code
+  bc: platform.identity
+  definition: "一次性票据被重放（401）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_wecom_code_invalid
+  zh: 企业微信授权码无效
+  en: PlatformIdentityWecomCodeInvalid
+  snake: platform_identity_wecom_code_invalid
+  kind: error_code
+  bc: platform.identity
+  definition: "企业微信不接受该授权码（401）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_wecom_not_bound
+  zh: 企业微信未绑定员工
+  en: PlatformIdentityWecomNotBound
+  snake: platform_identity_wecom_not_bound
+  kind: error_code
+  bc: platform.identity
+  definition: "该企业微信账号没有对应的员工（401）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_integration_concurrent_update
+  zh: 投递并发修改
+  en: PlatformIntegrationConcurrentUpdate
+  snake: platform_integration_concurrent_update
+  kind: error_code
+  bc: platform.integration
+  definition: "外发投递在标记已处理时被他人改动（409）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_legacy_number_not_found
+  zh: 老单据编号未登记
+  en: PlatformNumberingLegacyNumberNotFound
+  snake: platform_numbering_legacy_number_not_found
+  kind: error_code
+  bc: platform.numbering
+  definition: "没有单据登记过这个老编号（404）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_legal_entity_unavailable
+  zh: 法人不可用于发号
+  en: PlatformNumberingLegalEntityUnavailable
+  snake: platform_numbering_legal_entity_unavailable
+  kind: error_code
+  bc: platform.numbering
+  definition: "法人不存在或已停用，不能发号（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_access_denied
+  zh: 无权访问
+  en: PlatformWebAccessDenied
+  snake: platform_web_access_denied
+  kind: error_code
+  bc: platform.web
+  definition: "已登录但没有所需权限，或缺少 CSRF 令牌（403）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_cursor_invalid
+  zh: 游标无效
+  en: PlatformWebCursorInvalid
+  snake: platform_web_cursor_invalid
+  kind: error_code
+  bc: platform.web
+  definition: "游标不是本服务签发的，或属于另一个列表，或 limit 超出范围（400）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_idempotency_in_progress
+  zh: 幂等请求处理中
+  en: PlatformWebIdempotencyInProgress
+  snake: platform_web_idempotency_in_progress
+  kind: error_code
+  bc: platform.web
+  definition: "同一幂等键的第一次请求仍在处理（409）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_idempotency_key_reused
+  zh: 幂等键被复用
+  en: PlatformWebIdempotencyKeyReused
+  snake: platform_web_idempotency_key_reused
+  kind: error_code
+  bc: platform.web
+  definition: "同一幂等键带了不同的请求（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_unauthenticated
+  zh: 未登录
+  en: PlatformWebUnauthenticated
+  snake: platform_web_unauthenticated
+  kind: error_code
+  bc: platform.web
+  definition: "请求没有有效会话（401）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_version_mismatch
+  zh: 版本不一致
+  en: PlatformWebVersionMismatch
+  snake: platform_web_version_mismatch
+  kind: error_code
+  bc: platform.web
+  definition: "写请求所依据的版本已过期，资源已被他人修改（412）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_version_required
+  zh: 缺少版本
+  en: PlatformWebVersionRequired
+  snake: platform_web_version_required
+  kind: error_code
+  bc: platform.web
+  definition: "写请求必须带 If-Match（首次创建带 If-None-Match: *）（428）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_legacy_number_taken
+  zh: 老编号已被占用
+  en: PlatformNumberingLegacyNumberTaken
+  snake: platform_numbering_legacy_number_taken
+  kind: error_code
+  bc: platform.numbering
+  definition: "同一单据类型的老编号已登记给另一张单据（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium
