@@ -6,12 +6,15 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.junit.jupiter.Container;
@@ -40,6 +43,9 @@ class SchemaPlacementIT {
     @Autowired
     JdbcClient jdbc;
 
+    @Autowired
+    Environment environment;
+
     @Test
     @DisplayName("INFRA_RUNBOOK section 2: the Flyway history table is in one_migration and every engine table is in platform_approval")
     void historyAndEngineTablesLandInTheirOwnSchemas() {
@@ -59,6 +65,17 @@ class SchemaPlacementIT {
         assertThat(inMigration).containsExactly("flyway_schema_history");
         assertThat(schemasOf("timesheets")).containsExactly("cost_timesheet");
         assertThat(schemasOf("employees")).containsExactly("organization_workforce");
+    }
+
+    @Test
+    @DisplayName("R-3a: spring.flyway.schemas lists no retired module schema, and the migrated database holds none")
+    void retiredSchemasAreNeitherConfiguredNorCreated() throws IOException {
+        List<String> configured = Arrays.asList(environment.getRequiredProperty("spring.flyway.schemas").split(","));
+        List<String> existing = jdbc.sql("select schema_name from information_schema.schemata").query(String.class).list();
+        assertThat(NamingSurfaceTest.retiredSchemas()).isNotEmpty().allSatisfy(retired -> {
+            assertThat(configured).as("spring.flyway.schemas").doesNotContain(retired);
+            assertThat(existing).as("schemas in the migrated database").doesNotContain(retired);
+        });
     }
 
     private List<String> schemasOf(String table) {

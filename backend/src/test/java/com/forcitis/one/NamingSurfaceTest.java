@@ -230,10 +230,12 @@ class NamingSurfaceTest {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<String> retired = retiredSchemas();
         schemas.addAll(retired);
+        boolean baselineOpen = Files.exists(Path.of("architecture/migration-baseline-open"));
         for (String schema : retired) {
             List<Path> inFolder = files(MIGRATIONS.resolve(schema), ".sql").stream().sorted().toList();
-            if (inFolder.isEmpty() || !Files.readString(inFolder.get(inFolder.size() - 1)).contains("DROP SCHEMA " + schema + ";")) {
-                problems.add("architecture/retired-module-schemas.txt: the last migration in " + schema + " must drop the schema");
+            boolean dropped = !inFolder.isEmpty() && Files.readString(inFolder.get(inFolder.size() - 1)).contains("DROP SCHEMA " + schema + ";");
+            if (inFolder.isEmpty() ? !baselineOpen : !dropped) {
+                problems.add("architecture/retired-module-schemas.txt: a retired module's migration folder " + schema + " must end with a migration that drops the schema, or not exist while the baseline is open");
             }
         }
         for (Path file : files(MIGRATIONS, ".sql")) {
