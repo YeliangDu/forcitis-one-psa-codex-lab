@@ -40,4 +40,12 @@
 | B1-scope-N2 | `OrgUnitScopeIntegrationTest` | 越权与不存在两种响应改为比较整个响应体，而不只比 errorCode | `B1-scope 越权与不存在响应完全相同` |
 | B1-scope-N3 | `GetLegalEntityAttribution`、`GetOrgUnit`、`OwnAttributionGuard` | 审计主体键统一写法（`org_unit:` / `org-unit:` / `legal-entity-attribution:org_unit:` 三种并存） | 审计检索测试 |
 
+| B3-R2 | `RepositoryWritePolicy`、`RepositoryWriteGuardTest` | 仓储写入守护堵口：例外理由必填；版本条件须在 WHERE 中而非整条 SQL 匹配；检查 `INSERT … ON CONFLICT DO UPDATE`；识别拼接 SQL | `B3-R2 …` |
+| B3-R3 | `IdempotencyFilter.java:94-96`；接管逻辑 | 抢占失败且查询为空时不执行业务（重新抢占或 409）；超时接管加防护令牌，旧请求不得写入或删除新占有者的行 | `B3-R3 …` |
+| B3-R4 | `GrantRoleByOperations`、应急管理员停用与重置凭据 | 吊销会话的三条运维路径补 `session.revoked` 审计 | `B3-R4 …` |
+| B3-R5 | `MustAuditActionsTest` | 必记动作守护从「动作字符串出现过」加强为「改状态的用例必写审计」 | `B3-R5 …` |
+| B3-R6 | `WorkCalendarController`、RUNBOOK、OpenAPI | `lockedDaysConfirmed=true` 无 locked-day 权限返回 403 的 HTTP 测试；文档与 OpenAPI 写明该标志需要的权限 | `B3-R6 …` |
+| B3-R7 | `scripts/ci/` | CI 加迁移版本单调性检查：新增迁移的版本号不得低于 main 上已有的最高版本 | 脚本 self-test |
+| B3-R8 | B3 的 Medium 测试 | M2、M3、M5–M7、M9–M13 对应测试的 DisplayName 补复审编号 | — |
+
 （整合复审结束后继续追加）
