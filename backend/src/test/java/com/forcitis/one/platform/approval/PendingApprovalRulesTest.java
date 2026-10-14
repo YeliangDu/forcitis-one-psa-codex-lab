@@ -19,7 +19,7 @@ class PendingApprovalRulesTest {
     @Disabled("pending RULE-251: Phase 2 first consumer (timesheet row-level approval)")
     @DisplayName("RULE-251 a row reaches a node when its routing value activates a path to it")
     void rowReachability() {
-        // Given a gateway flow containsAny('manHourType', '2') to node areaSupervisor, rows r1 [2] and r2 [1]; Then only r1 reaches areaSupervisor.
+        // Given a gateway flow routed by the overheadHours flag to node supervisorReview, rows r1 [overheadHours] and r2 [projectHours]; Then only r1 reaches supervisorReview.
     }
 
     @Test
@@ -130,12 +130,6 @@ class PendingApprovalRulesTest {
     @Disabled("pending RULE-299: 1b first consumer (notify nodes become unread to-dos until the detail is opened)")
     @DisplayName("RULE-299 a notify task completes automatically with result NOTIFY and shows as unread until the detail page is opened")
     void notifyTasks() {
-    }
-
-    @Test
-    @Disabled("pending RULE-300: 1b first consumer (skip-when-empty only when the node is configured to; misconfiguration fails loudly)")
-    @DisplayName("RULE-300 a node configured allowSkip with nobody to assign is skipped; any error or missing rule is reported, never skipped silently")
-    void skipWhenEmpty() {
     }
 
     @Test

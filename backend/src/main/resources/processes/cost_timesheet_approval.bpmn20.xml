@@ -3,16 +3,11 @@
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xmlns:forcitis="https://forcitis.com/psa/approval/extension"
              targetNamespace="https://forcitis.com/psa/approval">
-  <!--
-    One forcitis:assignmentRule per user task (RULE-262). skipWhenEmpty="true" lets a node pass when its rule finds nobody
-    (RULE-300); every other failure is an error. Branch conditions and field names are the ones cost.timesheet.api publishes
-    (TimesheetRoutingFlag, TimesheetApprovalField); BpmnRuleConventionsTest keeps them equal.
-    A rejection inside the sub-process returns the timesheet and ends the round.
-  -->
-  <process id="cost_timesheet_approval" name="Timesheet approval" isExecutable="true">
+  <!-- Branch conditions and field names are the ones cost.timesheet.api publishes; BpmnRuleConventionsTest keeps them equal. -->
+  <process id="cost_timesheet_approval" name="工时审批" isExecutable="true">
     <startEvent id="start"/>
     <sequenceFlow id="toReviewStage" sourceRef="start" targetRef="reviewStage"/>
-    <subProcess id="reviewStage" name="Review">
+    <subProcess id="reviewStage" name="审核">
       <startEvent id="reviewStart"/>
       <sequenceFlow id="toReviewFork" sourceRef="reviewStart" targetRef="reviewFork"/>
       <inclusiveGateway id="reviewFork"/>
@@ -25,17 +20,17 @@
       <sequenceFlow id="toSupervisorReview" sourceRef="reviewFork" targetRef="supervisorReview">
         <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('overheadHours', false)}</conditionExpression>
       </sequenceFlow>
-      <userTask id="projectManagerReview" name="Project manager review">
+      <userTask id="projectManagerReview" name="项目经理审批">
         <extensionElements>
           <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" skipWhenEmpty="true"/>
         </extensionElements>
       </userTask>
-      <userTask id="regionalHeadReview" name="Regional head review">
+      <userTask id="regionalHeadReview" name="区域负责人审批">
         <extensionElements>
           <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId" skipWhenEmpty="true"/>
         </extensionElements>
       </userTask>
-      <userTask id="supervisorReview" name="Supervisor review">
+      <userTask id="supervisorReview" name="一级汇报人审批">
         <extensionElements>
           <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1" skipWhenEmpty="true"/>
         </extensionElements>

@@ -3,7 +3,6 @@ package com.forcitis.one.organization.workforce.web;
 import com.forcitis.one.organization.workforce.application.OrgUnitView;
 import org.jspecify.annotations.Nullable;
 
-/** Ids are strings: signed 64-bit ids exceed JavaScript's exact number range. */
 record OrgUnitResponse(String orgUnitId, String code, String name, @Nullable String parentOrgUnitId, @Nullable Integer sortOrder,
                        String status, @Nullable String headEmployeeId, @Nullable String regionalReceivablesManagerId, @Nullable String regionCategory,
                        boolean deliveryUnit, @Nullable String shortName) {

@@ -331,7 +331,11 @@
       "legacyHourTypes": [
         0
       ],
-      "formFields": {},
+      "formFields": {
+        "projectManagerId": [
+          "301"
+        ]
+      },
       "variables": {},
       "nodes": []
     },

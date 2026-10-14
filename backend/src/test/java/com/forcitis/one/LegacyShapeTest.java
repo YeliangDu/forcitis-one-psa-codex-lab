@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -53,7 +52,10 @@ class LegacyShapeTest {
         OLD_FIELD_NAME("old field or variable name"),
         OLD_ROLE_CODE("old role code BU-nnn"),
         OLD_RULE_TYPE_NUMBER("old assignment rule type number in a switch"),
-        EXTERNAL_SYSTEM_NAME("external system name in a domain module (a8 / seeyon / u8c / fenbeitong / yudao)");
+        EXTERNAL_SYSTEM_NAME("external system name in a domain module (a8 / seeyon / u8c / fenbeitong / yudao / weixin / feishu / lexmis, or a Member class)"),
+        OLD_FRONTEND_SHAPE("old front-end shape: Vuex / mixins / pageNo / pageSize / nickname / deptId / /bpm/ / /system/ / dictionaries / wrapped result"),
+        OLD_DOCUMENT_FORMAT("old document number format PSAxx or TS{yyyyMMdd}"),
+        INSTANCE_ID_LITERAL("an 18 to 19 digit literal: an id of one external instance, allowed only in platform_integration.properties and the Seeyon adapters");
 
         final String description;
 
@@ -62,7 +64,7 @@ class LegacyShapeTest {
         }
     }
 
-    enum Kind { JAVA, SQL, OTHER }
+    enum Kind { JAVA, SQL, FRONTEND, OTHER }
 
     record Hit(String file, Rule rule, int line, String excerpt) {
         @Override
@@ -87,22 +89,58 @@ class LegacyShapeTest {
             Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
     static final Pattern TABLE_PREFIX = Pattern.compile("(?<![A-Za-z0-9_])(psa_|system_|bpm_|infra_|fst_)[a-z0-9_]+");
     static final Pattern NUMERIC_STATUS_COLUMN = Pattern.compile(
-            "^\\s*(\\w*status)\\s+(int|integer|smallint|tinyint|bigint|numeric|decimal)\\b", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
+            "^\\s*(\\w*(?:status|state|type|kind|flag))\\s+(int|integer|smallint|tinyint|bigint|numeric|decimal)\\b",
+            Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
     static final Pattern FRAMEWORK_NAME = Pattern.compile("yudao|ruoyi|iocoder", Pattern.CASE_INSENSITIVE);
     static final Pattern FIELD_NAME = Pattern.compile(
-            "(?<![A-Za-z0-9_])(paramsId|dataStamp|scriptField|deliveryDeptId|deptId|arUserId|leaderUserId|startUserId|taskDefKey|manager_id)(?![A-Za-z0-9_])");
+            "(?<![A-Za-z0-9_])(paramsId|dataStamp|scriptField|deliveryDeptId|deptId|arUserId|leaderUserId|startUserId|taskDefKey|manager_id"
+                    + "|area_leader|leader_user_id|dept_id|post_ids|manHourType|manhour|man_hour|tsheet|hourType|hour_type|bizType|startUserNickname"
+                    + "|INITIATOR_LEADER)(?![A-Za-z0-9_])");
     static final Pattern ROLE_CODE = Pattern.compile("BU-\\d{3}");
     static final Pattern RULE_TYPE_NUMBER = Pattern.compile("\\bcase\\s+(?:\\d+\\s*,\\s*)*(?:9|10|20|21|22|30|31|32|33|40|50|60|70)\\b\\s*(?:->|:|,)");
-    static final Pattern EXTERNAL_NAME = Pattern.compile("a8|seeyon|u8c|fenbeitong|yudao", Pattern.CASE_INSENSITIVE);
+    static final Pattern EXTERNAL_NAME = Pattern.compile("a8|seeyon|u8c|fenbeitong|yudao|weixin|feishu|lexmis", Pattern.CASE_INSENSITIVE);
+    static final Pattern EXTERNAL_CLASS_NAME = Pattern.compile("Member");
+    static final Pattern FRONTEND_SHAPE = Pattern.compile("this\\.\\$store|mapGetters|mapActions|mixins\\s*:|\\bpageNo\\b|\\bpageSize\\b|\\bnickname\\b"
+            + "|\\bdeptId\\b|/bpm/|/system/|getDicts|dict_type|res\\.data\\.data|code\\s*===\\s*0");
+    static final Pattern DOCUMENT_FORMAT = Pattern.compile("PSA[A-Z]{2}|TS\\{yyyyMMdd\\}");
+    static final Pattern INSTANCE_ID = Pattern.compile("-?\\d{18,19}L?");
 
-    /** Guard tests spell what they forbid; they are no module code. */
-    static final Pattern GUARD_TEST = Pattern.compile("src/test/java/com/forcitis/one/[^/]+\\.java");
+    static final List<String> INSTANCE_ID_AREAS = List.of("src/main/resources/config/platform_integration.properties",
+            "src/main/java/com/forcitis/one/platform/integration/infrastructure/seeyon/",
+            "src/test/java/com/forcitis/one/platform/integration/infrastructure/seeyon/");
+
+    /** Guard tests spell what they forbid; they are no module code. A new guard test is added here by name. */
+    static final Set<String> GUARD_TESTS = Set.of(
+            "src/test/java/com/forcitis/one/ArchitectureRulesTest.java",
+            "src/test/java/com/forcitis/one/DdlNamingTest.java",
+            "src/test/java/com/forcitis/one/Glossary.java",
+            "src/test/java/com/forcitis/one/GlossaryTest.java",
+            "src/test/java/com/forcitis/one/LegacyShapeTest.java",
+            "src/test/java/com/forcitis/one/ModularityTest.java",
+            "src/test/java/com/forcitis/one/ModuleDependencyTest.java",
+            "src/test/java/com/forcitis/one/NamingSurfaceTest.java",
+            "src/test/java/com/forcitis/one/SecurityInvariantsTest.java");
+
+    /** Domain files that keep an external-system word until the user decides (review M6); each entry goes when the file is renamed. */
+    static final List<Allowed> PENDING_DECISION = List.of(
+            pending("src/main/java/com/forcitis/one/organization/workforce/domain/SourceMember.java"),
+            pending("src/main/java/com/forcitis/one/organization/workforce/domain/StaffMember.java"),
+            pending("src/main/java/com/forcitis/one/organization/workforce/domain/MemberChecks.java"));
+
+    /** Files that carry an external name on purpose and permanently. */
+    static final List<Allowed> STANDING = List.of(new Allowed("src/main/java/com/forcitis/one/kernel/WecomUserId.java",
+            Set.of(Rule.EXTERNAL_SYSTEM_NAME), "企业微信 userid 是全系统共用的外部标识"));
+
+    private static Allowed pending(String file) {
+        return new Allowed(file, Set.of(Rule.EXTERNAL_SYSTEM_NAME), "待用户决定（复审 M6）");
+    }
 
     static final Pattern COMMENT_ON_LINE = Pattern.compile("(?im)^\\s*COMMENT\\s+ON\\b.*$");
 
     static final List<String> SCAN_ROOTS = List.of("src/main/java", "src/test/java", "src/main/resources/db/migration",
             "src/main/resources/processes", "src/main/resources/config", "src/test/resources");
     static final List<String> SCAN_FILES = List.of("src/main/resources/application.properties");
+    static final String FRONTEND = "../frontend/";
 
     static List<Path> filesOf(Path project) {
         List<Path> files = new ArrayList<>();
@@ -121,12 +159,37 @@ class LegacyShapeTest {
                 files.add(project.resolve(file));
             }
         }
+        files.addAll(frontendFiles(project.resolve(FRONTEND)));
         files.sort(null);
         return files;
     }
 
+    static List<Path> frontendFiles(Path frontend) {
+        List<Path> files = new ArrayList<>();
+        for (String group : List.of("apps", "packages")) {
+            Path groupDir = frontend.resolve(group);
+            if (!Files.isDirectory(groupDir)) {
+                continue;
+            }
+            try (Stream<Path> children = Files.list(groupDir)) {
+                for (Path source : children.map(child -> child.resolve("src")).filter(Files::isDirectory).toList()) {
+                    try (Stream<Path> walk = Files.walk(source)) {
+                        walk.filter(Files::isRegularFile).filter(f -> !f.startsWith(source.resolve("generated"))).forEach(files::add);
+                    }
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        Path contract = frontend.resolve("packages/api/openapi.json");
+        if (Files.isRegularFile(contract)) {
+            files.add(contract);
+        }
+        return files;
+    }
+
     static Kind kindOf(String file) {
-        return file.endsWith(".java") ? Kind.JAVA : file.endsWith(".sql") ? Kind.SQL : Kind.OTHER;
+        return file.startsWith(FRONTEND) ? Kind.FRONTEND : file.endsWith(".java") ? Kind.JAVA : file.endsWith(".sql") ? Kind.SQL : Kind.OTHER;
     }
 
     static String moduleOf(String file) {
@@ -154,7 +217,7 @@ class LegacyShapeTest {
         List<Hit> hits = new ArrayList<>();
         for (Path path : filesOf(project)) {
             String relative = project.relativize(path).toString().replace('\\', '/');
-            if (relative.endsWith("/LegacyShapeTest.java") || GUARD_TEST.matcher(relative).matches()) {
+            if (GUARD_TESTS.contains(relative)) {
                 continue;
             }
             String text;
@@ -180,6 +243,13 @@ class LegacyShapeTest {
         collect(hits, file, Rule.OLD_FRAMEWORK_NAME, FRAMEWORK_NAME, text);
         collect(hits, file, Rule.OLD_FIELD_NAME, FIELD_NAME, text);
         collect(hits, file, Rule.OLD_ROLE_CODE, ROLE_CODE, text);
+        collect(hits, file, Rule.OLD_DOCUMENT_FORMAT, DOCUMENT_FORMAT, text);
+        if (INSTANCE_ID_AREAS.stream().noneMatch(file::startsWith)) {
+            collect(hits, file, Rule.INSTANCE_ID_LITERAL, INSTANCE_ID, text);
+        }
+        if (kind == Kind.FRONTEND) {
+            collect(hits, file, Rule.OLD_FRONTEND_SHAPE, FRONTEND_SHAPE, text);
+        }
         if (kind == Kind.JAVA) {
             collect(hits, file, Rule.OLD_RULE_TYPE_NUMBER, RULE_TYPE_NUMBER, text);
             Matcher classes = CLASS_DECLARATION.matcher(code(text));
@@ -190,6 +260,9 @@ class LegacyShapeTest {
                 }
                 if (WORKFLOW_CLASS.matcher(name).find()) {
                     hits.add(new Hit(file, Rule.OLD_WORKFLOW_CLASS, lineOf(text, name), name));
+                }
+                if (!moduleOf(file).equals("platform.integration") && EXTERNAL_CLASS_NAME.matcher(name).find()) {
+                    hits.add(new Hit(file, Rule.EXTERNAL_SYSTEM_NAME, lineOf(text, name), "class " + name));
                 }
             }
             String simple = file.substring(file.lastIndexOf('/') + 1).replace(".java", "");
@@ -205,7 +278,7 @@ class LegacyShapeTest {
             collect(hits, file, Rule.OLD_DDL_COLUMN, DDL_COLUMN, text);
             collect(hits, file, Rule.NUMERIC_STATUS, NUMERIC_STATUS_COLUMN, text);
         }
-        if (!moduleOf(file).equals("platform.integration")) {
+        if (!moduleOf(file).equals("platform.integration") && kind != Kind.FRONTEND) {
             String named = kind == Kind.JAVA ? code(text) : text;
             collect(hits, file, Rule.EXTERNAL_SYSTEM_NAME, EXTERNAL_NAME, named);
             Matcher inPath = EXTERNAL_NAME.matcher(file);
@@ -309,7 +382,7 @@ class LegacyShapeTest {
 
     static List<Hit> violations(List<Hit> hits, List<Allowed> exceptions) {
         Map<String, Set<Rule>> allowed = new LinkedHashMap<>();
-        exceptions.forEach(e -> allowed.merge(e.file(), e.rules(), (a, b) -> {
+        Stream.of(exceptions, PENDING_DECISION, STANDING).flatMap(List::stream).forEach(e -> allowed.merge(e.file(), e.rules(), (a, b) -> {
             Set<Rule> merged = new LinkedHashSet<>(a);
             merged.addAll(b);
             return merged;
@@ -344,6 +417,18 @@ class LegacyShapeTest {
                 assertThat(hitRules.getOrDefault(e.file(), Set.of())).as("%s needs the exception for %s (stale entries are removed)", e.file(), rule)
                         .contains(rule);
             }
+        }
+        for (Allowed pending : PENDING_DECISION) {
+            assertThat(Files.isRegularFile(Path.of(pending.file()))).as("%s exists (remove the entry when it is renamed)", pending.file()).isTrue();
+            assertThat(hitRules.getOrDefault(pending.file(), Set.of())).as("%s still needs its pending exception", pending.file())
+                    .contains(Rule.EXTERNAL_SYSTEM_NAME);
+        }
+        for (Allowed standing : STANDING) {
+            assertThat(Files.isRegularFile(Path.of(standing.file()))).as("%s exists", standing.file()).isTrue();
+            assertThat(standing.reason()).isNotBlank();
+        }
+        for (String guard : GUARD_TESTS) {
+            assertThat(Files.isRegularFile(Path.of(guard))).as("%s exists (remove it from GUARD_TESTS when deleted)", guard).isTrue();
         }
         assertThat(exceptions.stream().map(Allowed::file).distinct().count()).as("one line per file").isEqualTo(exceptions.size());
         assertThat(exceptions.stream().flatMap(e -> e.rules().stream()).collect(Collectors.toSet()))
@@ -382,12 +467,56 @@ class LegacyShapeTest {
         samples.put(Rule.OLD_RULE_TYPE_NUMBER, Map.of(pkg + "Types.java",
                 "package com.forcitis.one.cost.timesheet.application;\nclass Types { String f(int t) { return switch (t) { case 60 -> \"x\"; default -> \"y\"; }; } }\n"));
         samples.put(Rule.EXTERNAL_SYSTEM_NAME, Map.of(pkg + "Sync.java",
-                "package com.forcitis.one.cost.timesheet.application;\nclass Sync { static final String Q = \"select * from a8_view\"; }\n"));
+                "package com.forcitis.one.cost.timesheet.application;\nclass Sync { static final String Q = \"select * from a8_view\"; }\n",
+                pkg + "StaffMember.java", "package com.forcitis.one.cost.timesheet.application;\nclass StaffMember { }\n"));
+        samples.put(Rule.OLD_FRONTEND_SHAPE, Map.of("../frontend/apps/web/src/list.ts", "export const query = { pageNo: 1, pageSize: 20 };\n"));
+        samples.put(Rule.OLD_DOCUMENT_FORMAT, Map.of(pkg + "Numbers.java",
+                "package com.forcitis.one.cost.timesheet.application;\nclass Numbers { static final String N = \"PSAQU2026\"; }\n"));
+        samples.put(Rule.INSTANCE_ID_LITERAL, Map.of(pkg + "Ids.java",
+                "package com.forcitis.one.cost.timesheet.application;\nclass Ids { static final long HEAD = -1726439953579618944L; }\n"));
+        return samples;
+    }
+
+    static final Map<Rule, Map<String, String>> CLEAN_SAMPLES = cleanSamples();
+
+    private static Map<Rule, Map<String, String>> cleanSamples() {
+        Map<Rule, Map<String, String>> samples = new EnumMap<>(Rule.class);
+        String pkg = "src/main/java/com/forcitis/one/cost/timesheet/application/";
+        String head = "package com.forcitis.one.cost.timesheet.application;\n";
+        String sql = "src/main/resources/db/migration/cost_timesheet/V20260101000000__cost_timesheet_create_rows.sql";
+        samples.put(Rule.OLD_URL_PREFIX, Map.of(pkg + "Paths.java", head + "class Paths { static final String P = \"/api/v1/platform/users\"; }\n"));
+        samples.put(Rule.OLD_BASE_TYPE, Map.of(pkg + "Reply.java", head + "class Reply { int pageIndex; String page; }\n"));
+        samples.put(Rule.OLD_CLASS_SUFFIX, Map.of(pkg + "RowTranslator.java", head + "class RowTranslator { }\n"));
+        samples.put(Rule.OLD_PACKAGE, Map.of(pkg + "Rows.java", head + "class Rows { }\n"));
+        samples.put(Rule.OLD_WORKFLOW_CLASS, Map.of(pkg + "BpmnReader.java", head + "class BpmnReader { }\n"));
+        samples.put(Rule.OLD_MESSAGING, Map.of(pkg + "Outbox.java", head + "class Outbox { String s = \"outbox\"; }\n"));
+        samples.put(Rule.OLD_DDL_COLUMN, Map.of(sql, "CREATE TABLE cost_timesheet.rows (\n    id bigint PRIMARY KEY,\n    created_at timestamptz,\n    updated_at timestamptz\n);\n"));
+        samples.put(Rule.OLD_TABLE_PREFIX, Map.of(sql, "CREATE TABLE cost_timesheet.timesheet_rows (\n    id bigint PRIMARY KEY\n);\n"));
+        samples.put(Rule.NUMERIC_STATUS, Map.of(sql, "CREATE TABLE cost_timesheet.rows (\n    id bigint PRIMARY KEY,\n    status text NOT NULL,\n"
+                + "    row_type text NOT NULL,\n    attempt_count integer NOT NULL\n);\n"));
+        samples.put(Rule.OLD_FRAMEWORK_NAME, Map.of(pkg + "Imports.java", head + "import java.util.List;\nclass Imports { }\n"));
+        samples.put(Rule.OLD_FIELD_NAME, Map.of("src/main/resources/processes/cost_timesheet_approval.bpmn20.xml",
+                "<process><userTask id=\"a\"><x field=\"projectManagerId\"/></userTask><y n=\"legacyHourTypes\"/></process>\n"));
+        samples.put(Rule.OLD_ROLE_CODE, Map.of("src/main/resources/processes/cost_timesheet_approval.bpmn20.xml",
+                "<process><userTask id=\"a\"><x type=\"ROLE\" role=\"reviewer\"/></userTask></process>\n"));
+        samples.put(Rule.OLD_RULE_TYPE_NUMBER, Map.of(pkg + "Types.java",
+                head + "class Types { String f(int t) { return switch (t) { case 1 -> \"x\"; default -> \"y\"; }; } }\n"));
+        samples.put(Rule.EXTERNAL_SYSTEM_NAME, Map.of(pkg + "Remember.java", head + "class Remember { String s = \"remember\"; }\n",
+                "../frontend/apps/web/src/login.ts", "export const loginUrl = 'https://login.work.weixin.qq.com';\n",
+                "src/main/java/com/forcitis/one/platform/integration/infrastructure/wecom/Endpoint.java",
+                "package com.forcitis.one.platform.integration.infrastructure.wecom;\nclass Endpoint { String s = \"qyapi.weixin.qq.com\"; }\n"));
+        samples.put(Rule.OLD_FRONTEND_SHAPE, Map.of("../frontend/apps/web/src/list.ts", "export const query = { page: 1, size: 20 };\n",
+                "../frontend/packages/api/src/generated/client.ts", "export const old = { pageNo: 1 };\n"));
+        samples.put(Rule.OLD_DOCUMENT_FORMAT, Map.of(pkg + "Numbers.java", head + "class Numbers { static final String N = \"{TYPE}-{LE}-{yyyyMM}-{seq:4}\"; String t = \"PSA team\"; }\n"));
+        samples.put(Rule.INSTANCE_ID_LITERAL, Map.of(pkg + "Ids.java", head + "class Ids { static final long SHORT = 12345678901234567L; static final long SMALL = 42L; }\n",
+                "src/main/java/com/forcitis/one/platform/integration/infrastructure/seeyon/Ids.java",
+                "package com.forcitis.one.platform.integration.infrastructure.seeyon;\nclass Ids { static final long HEAD = -1726439953579618944L; }\n",
+                "src/main/resources/config/platform_integration.properties", "forcitis.x.head-type-id=-1726439953579618944\n"));
         return samples;
     }
 
     static void write(Path root, String relative, String content) throws IOException {
-        Path file = root.resolve(relative);
+        Path file = root.resolve(relative).normalize();
         Files.createDirectories(file.getParent());
         Files.writeString(file, content);
     }
@@ -397,7 +526,7 @@ class LegacyShapeTest {
     void everyRuleFailsOnItsSample(@TempDir Path root) throws IOException {
         assertThat(SAMPLES.keySet()).as("a sample for every rule").containsExactlyInAnyOrder(Rule.values());
         for (Map.Entry<Rule, Map<String, String>> sample : SAMPLES.entrySet()) {
-            Path project = Files.createTempDirectory(root, sample.getKey().name().toLowerCase(Locale.ROOT));
+            Path project = backendIn(Files.createTempDirectory(root, sample.getKey().name().toLowerCase(Locale.ROOT)));
             for (Map.Entry<String, String> file : sample.getValue().entrySet()) {
                 write(project, file.getKey(), file.getValue());
             }
@@ -410,9 +539,63 @@ class LegacyShapeTest {
         }
     }
 
+    static Path backendIn(Path root) throws IOException {
+        return Files.createDirectories(root.resolve("backend"));
+    }
+
+    @Test
+    @DisplayName("every rule has a counter-example that must NOT hit it")
+    void everyRuleLeavesItsCounterExampleAlone(@TempDir Path root) throws IOException {
+        assertThat(CLEAN_SAMPLES.keySet()).as("a counter-example for every rule").containsExactlyInAnyOrder(Rule.values());
+        for (Map.Entry<Rule, Map<String, String>> sample : CLEAN_SAMPLES.entrySet()) {
+            Path project = backendIn(Files.createTempDirectory(root, sample.getKey().name().toLowerCase(Locale.ROOT)));
+            for (Map.Entry<String, String> file : sample.getValue().entrySet()) {
+                write(project, file.getKey(), file.getValue());
+            }
+
+            List<Hit> hits = scan(project);
+
+            assertThat(hits.stream().map(Hit::rule)).as("counter-example of %s: %s", sample.getKey(), hits).doesNotContain(sample.getKey());
+        }
+    }
+
+    @Test
+    @DisplayName("the front end is scanned (apps and packages src, the API contract) except generated code")
+    void frontEndScope(@TempDir Path root) throws IOException {
+        Path project = backendIn(root);
+        write(project, "../frontend/apps/web/src/a.ts", "const a = { pageNo: 1 };\n");
+        write(project, "../frontend/apps/h5/src/b.ts", "const b = { deptId: 1 };\n");
+        write(project, "../frontend/packages/ui/src/c.tsx", "const c = mapGetters;\n");
+        write(project, "../frontend/packages/api/openapi.json", "{\"x\": \"/system/user\"}\n");
+        write(project, "../frontend/packages/api/src/generated/d.ts", "const d = { pageNo: 1 };\n");
+        write(project, "../frontend/apps/web/node_modules/e.ts", "const e = { pageNo: 1 };\n");
+
+        assertThat(scan(project)).extracting(Hit::file).contains("../frontend/apps/web/src/a.ts", "../frontend/apps/h5/src/b.ts",
+                        "../frontend/packages/ui/src/c.tsx", "../frontend/packages/api/openapi.json")
+                .doesNotContain("../frontend/packages/api/src/generated/d.ts").doesNotContain("../frontend/apps/web/node_modules/e.ts");
+    }
+
+    @Test
+    @DisplayName("an 18 to 19 digit id literal is allowed only in platform_integration.properties and the Seeyon adapters")
+    void instanceIdsStayInTheirAreas(@TempDir Path root) throws IOException {
+        Path project = backendIn(root);
+        String literal = "-1726439953579618944";
+        write(project, "src/main/resources/config/platform_integration.properties", "k=" + literal + "\n");
+        write(project, "src/main/resources/config/platform_identity.properties", "k=" + literal + "\n");
+        write(project, "src/test/java/com/forcitis/one/platform/integration/infrastructure/seeyon/T.java",
+                "package com.forcitis.one.platform.integration.infrastructure.seeyon;\nclass T { long a = " + literal + "L; }\n");
+        write(project, "src/main/java/com/forcitis/one/platform/integration/infrastructure/legacy/L.java",
+                "package com.forcitis.one.platform.integration.infrastructure.legacy;\nclass L { long a = " + literal + "L; }\n");
+
+        assertThat(scan(project)).filteredOn(h -> h.rule() == Rule.INSTANCE_ID_LITERAL).extracting(Hit::file).containsExactlyInAnyOrder(
+                "src/main/resources/config/platform_identity.properties",
+                "src/main/java/com/forcitis/one/platform/integration/infrastructure/legacy/L.java");
+    }
+
     @Test
     @DisplayName("a clean tree passes, COMMENT ON lines and Java comments are not matched by the names rule, platform.integration may name external systems")
-    void cleanTreeAndAllowances(@TempDir Path project) throws IOException {
+    void cleanTreeAndAllowances(@TempDir Path root) throws IOException {
+        Path project = backendIn(root);
         write(project, "src/main/java/com/forcitis/one/cost/timesheet/application/Clean.java",
                 "package com.forcitis.one.cost.timesheet.application;\n// reads the a8 views through the port (comment)\n/** seeyon in a comment */\nclass Clean { }\n");
         write(project, "src/main/resources/db/migration/cost_timesheet/V20260101000000__cost_timesheet_create_rows.sql",
@@ -425,18 +608,22 @@ class LegacyShapeTest {
     }
 
     @Test
-    @DisplayName("the guard tests directly in com.forcitis.one are not scanned (they spell what they forbid); module tests are")
-    void guardTestsAreNotScannedButModuleTestsAre(@TempDir Path project) throws IOException {
-        write(project, "src/test/java/com/forcitis/one/SomeGuardTest.java", "package com.forcitis.one;\nclass SomeGuardTest { String s = \"yudao\"; }\n");
+    @DisplayName("only the named guard tests are not scanned (they spell what they forbid); other tests in com.forcitis.one and module tests are")
+    void guardTestsAreNotScannedButModuleTestsAre(@TempDir Path root) throws IOException {
+        Path project = backendIn(root);
+        write(project, "src/test/java/com/forcitis/one/DdlNamingTest.java", "package com.forcitis.one;\nclass DdlNamingTest { String s = \"yudao\"; }\n");
+        write(project, "src/test/java/com/forcitis/one/SomeNewTest.java", "package com.forcitis.one;\nclass SomeNewTest { String s = \"yudao\"; }\n");
         write(project, "src/test/java/com/forcitis/one/cost/timesheet/SomeTest.java",
                 "package com.forcitis.one.cost.timesheet;\nclass SomeTest { String s = \"yudao\"; }\n");
 
-        assertThat(scan(project)).extracting(Hit::file).containsOnly("src/test/java/com/forcitis/one/cost/timesheet/SomeTest.java");
+        assertThat(scan(project)).extracting(Hit::file).containsOnly("src/test/java/com/forcitis/one/SomeNewTest.java",
+                "src/test/java/com/forcitis/one/cost/timesheet/SomeTest.java");
     }
 
     @Test
     @DisplayName("an exception covers exactly one file and exactly its listed rules: other files and other rules still fail")
-    void exceptionsAreNarrow(@TempDir Path project) throws IOException {
+    void exceptionsAreNarrow(@TempDir Path root) throws IOException {
+        Path project = backendIn(root);
         String adapter = "src/main/java/com/forcitis/one/platform/approval/infrastructure/legacy/Reader.java";
         String other = "src/main/java/com/forcitis/one/platform/approval/application/Reader.java";
         String content = "package com.forcitis.one.platform.approval.%s;\nclass Reader { String a = \"manager_id\"; String b = \"BU-002\"; }\n";
@@ -465,10 +652,5 @@ class LegacyShapeTest {
         });
         Files.writeString(file, "src/a/B.java | NO_SUCH_RULE | because\n");
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> exceptions(file)).isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @SuppressWarnings("unused")
-    private static Collection<Rule> allRules() {
-        return List.of(Rule.values());
     }
 }

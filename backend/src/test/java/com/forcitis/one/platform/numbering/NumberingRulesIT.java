@@ -149,24 +149,65 @@ class NumberingRulesIT {
     }
 
     @Test
-    @DisplayName("{LE} renders the legal entity code; an unknown legal entity (no code) is an error, and a template without {LE} needs none")
-    void legalEntityCodeIsRequiredByTheTemplate() {
+    @DisplayName("an unknown legal entity cannot take a number, whatever the template")
+    void unknownLegalEntityCannotIssue() {
         LocalDate day = LocalDate.of(2027, 3, 3);
 
         assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(99), day))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("99");
-        assertThat(issue(DocumentType.TIMESHEET, new LegalEntityId(99), day)).startsWith("TS20270303");
-        jdbc.sql("update organization_workforce.legal_entities set name = 'Renamed', status = 'INACTIVE' where id = 2").update();
-        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2), day)).startsWith("QT-FIT-202703-");
+        assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(99), day))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("99");
     }
 
     @Test
-    @DisplayName("saving a rule is the administrator's confirmation; a {TYPE} template for a type without a code is refused (422)")
-    void savingConfirmsAndTypeCodesAreChecked() throws Exception {
-        String body = "{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:4}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}";
-        mvc.perform(put(RULES + "/TIMESHEET").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isUnprocessableContent());
+    @DisplayName("a deactivated legal entity cannot take a new number")
+    void deactivatedLegalEntityCannotIssue() {
+        LocalDate day = LocalDate.of(2027, 4, 4);
+        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (3, 'FOT', 'Synthetic three', 'INACTIVE') on conflict (id) do update set status = 'INACTIVE'").update();
+        try {
+            assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(3), day))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("3");
+            assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(3), day))
+                    .isInstanceOf(IllegalStateException.class);
+        } finally {
+            jdbc.sql("delete from organization_workforce.legal_entities where id = 3").update();
+        }
+    }
 
+    @Test
+    @DisplayName("a template without {LE} (configured later by an administrator) shares one counter across legal entities, so numbers never repeat")
+    void templateWithoutLegalEntityTokenSharesOneCounter() {
+        LocalDate day = LocalDate.of(2027, 5, 6);
+        jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{yyyyMMdd}-{seq:4}', reset_policy = 'DAILY' where document_type = 'TIMESHEET'").update();
+        try {
+            String first = issue(DocumentType.TIMESHEET, LE1, day);
+            String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
+
+            assertThat(first).isEqualTo("TS-20270506-0001");
+            assertThat(second).isEqualTo("TS-20270506-0002");
+        } finally {
+            jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}', reset_policy = 'MONTHLY' where document_type = 'TIMESHEET'").update();
+        }
+    }
+
+    @Test
+    @DisplayName("the timesheet and the journal voucher start on the unified template with their registered codes, pending confirmation")
+    void timesheetAndVoucherUseTheUnifiedTemplate() throws Exception {
+        for (String type : new String[] {"TIMESHEET", "JOURNAL_VOUCHER"}) {
+            mvc.perform(get(RULES + "/" + type).with(READER))
+                    .andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:4}"))
+                    .andExpect(jsonPath("$.resetPolicy").value("MONTHLY"))
+                    .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"));
+        }
+        LocalDate day = LocalDate.of(2027, 6, 7);
+        assertThat(issue(DocumentType.TIMESHEET, LE1, day)).isEqualTo("TS-FST-202706-0001");
+        assertThat(issue(DocumentType.TIMESHEET, new LegalEntityId(2), day)).isEqualTo("TS-FIT-202706-0001");
+        assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, day)).isEqualTo("JV-FST-202706-0001");
+    }
+
+    @Test
+    @DisplayName("saving a rule is the administrator's confirmation")
+    void savingConfirmsTheRule() throws Exception {
         try {
             mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
                             .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))

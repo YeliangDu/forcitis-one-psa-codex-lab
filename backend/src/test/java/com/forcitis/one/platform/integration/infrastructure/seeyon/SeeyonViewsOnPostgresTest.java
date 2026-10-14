@@ -35,7 +35,7 @@ class SeeyonViewsOnPostgresTest {
 
     static final String HEAD_TYPE = "-1726439953579618944";
     static final String MANAGER_TYPE = "-8187907605834545337";
-    static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "YES-DELIVERY", "YES-FEE");
+    static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "YES-DELIVERY", "YES-FEE", "00000001");
 
     @Container
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18");
@@ -163,7 +163,7 @@ class SeeyonViewsOnPostgresTest {
         assertThat(relationships).filteredOn(r -> r.personId().value() == 804).singleElement()
                 .satisfies(r -> assertThat(r.personDeleted()).isTrue());
 
-        SeeyonOrgSource otherInstance = new SeeyonOrgSource(connection.jdbc(), new SeeyonMapping(1, 2, "x", "y"));
+        SeeyonOrgSource otherInstance = new SeeyonOrgSource(connection.jdbc(), new SeeyonMapping(1, 2, "x", "y", "00000001"));
         assertThat(otherInstance.readSnapshot().relationships()).isEmpty();
     }
 
@@ -239,6 +239,11 @@ class SeeyonViewsOnPostgresTest {
             }
 
             @Override
+            public int countUnitsAtPath(String path) {
+                return real.countUnitsAtPath(path);
+            }
+
+            @Override
             public int countRelationshipsOfType(long relationshipTypeId) {
                 return real.countRelationshipsOfType(relationshipTypeId);
             }
@@ -308,15 +313,28 @@ class SeeyonViewsOnPostgresTest {
     void startupCheckVerifiesTheConfiguredIds() {
         seedValidData();
 
-        List<String> problems = new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(1, 2, "NO-SUCH-DELIVERY", "NO-SUCH-FEE")).problems();
+        List<String> problems = new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(1, 2, "NO-SUCH-DELIVERY", "NO-SUCH-FEE", "00000001")).problems();
 
         assertThat(problems).anyMatch(p -> p.contains("configured head type 1"));
         assertThat(problems).anyMatch(p -> p.contains("regional receivables manager type 2"));
         assertThat(problems).anyMatch(p -> p.contains("delivery-unit 'yes' enum id"));
         assertThat(problems).anyMatch(p -> p.contains("fee-earner 'yes' enum id"));
-        assertThat(new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(0, 0, "", null)).problems())
+        assertThat(new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(0, 0, "", null, "")).problems())
                 .anyMatch(p -> p.contains("head-relationship-type-id is not configured"))
                 .anyMatch(p -> p.contains("delivery-unit-yes-enum-id is not configured"));
+    }
+
+    @Test
+    @DisplayName("M7 a root path that is malformed, or that no org unit sits at, stops the start-up")
+    void startupCheckVerifiesTheRootPath() {
+        seedValidData();
+
+        assertThat(new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(MAPPING.headRelationshipTypeId(),
+                MAPPING.regionalReceivablesManagerRelationshipTypeId(), "YES-DELIVERY", "YES-FEE", "0000009")).problems())
+                .anyMatch(p -> p.contains("root-path must be digits"));
+        assertThat(new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(MAPPING.headRelationshipTypeId(),
+                MAPPING.regionalReceivablesManagerRelationshipTypeId(), "YES-DELIVERY", "YES-FEE", "00000009")).problems())
+                .anyMatch(p -> p.contains("no org unit sits at the configured root path 00000009"));
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.domain;
 
-/** Integer arithmetic, no rounding. */
 public final class ShrinkGuard {
     private ShrinkGuard() {
     }

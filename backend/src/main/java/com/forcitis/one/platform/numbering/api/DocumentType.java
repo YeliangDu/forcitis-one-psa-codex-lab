@@ -5,8 +5,8 @@ import java.util.Optional;
 /** A type's code feeds {TYPE} (ADR-0010 decision 5) and must be a glossary word (DocumentTypeCodeTest). */
 public enum DocumentType {
     QUOTE("QT"),
-    TIMESHEET(null),
-    JOURNAL_VOUCHER(null);
+    TIMESHEET("TS"),
+    JOURNAL_VOUCHER("JV");
 
     private final String code;
 

@@ -27,14 +27,14 @@ final class SeeyonOrgSource implements OrgSource {
     @Override
     public SourceOrgSnapshot readSnapshot() {
         try {
-            List<OrgUnitRow> rows = present(jdbc.sql(SeeyonViewSql.ORG_UNITS).query((rs, n) -> mapper.orgUnit(rs)).list());
+            List<OrgUnitRow> rows = present(jdbc.sql(SeeyonViewSql.ORG_UNITS).param("rootPathPrefix", mapping.rootPathPrefix()).query((rs, n) -> mapper.orgUnit(rs)).list());
             List<SourceRelationship> relationships = present(jdbc.sql(SeeyonViewSql.RELATIONSHIPS)
                     .param("leaderTypeId", mapping.headRelationshipTypeId())
                     .param("managerTypeId", mapping.regionalReceivablesManagerRelationshipTypeId())
                     .query((rs, n) -> mapper.relationship(rs)).list());
             List<SourcePosition> positions = present(jdbc.sql(SeeyonViewSql.POSITIONS).query((rs, n) -> mapper.position(rs)).list());
-            List<SourcePerson> people = present(jdbc.sql(SeeyonViewSql.MEMBERS).query((rs, n) -> mapper.person(rs)).list());
-            return new SourceOrgSnapshot(SeeyonOrgTree.resolve(rows), relationships, positions, people);
+            List<SourcePerson> people = present(jdbc.sql(SeeyonViewSql.MEMBERS).param("rootPathPrefix", mapping.rootPathPrefix()).query((rs, n) -> mapper.person(rs)).list());
+            return new SourceOrgSnapshot(SeeyonOrgTree.resolve(rows, mapping.rootPath()), relationships, positions, people);
         } catch (DataAccessException unreachable) {
             throw unavailable(unreachable);
         }
@@ -44,6 +44,7 @@ final class SeeyonOrgSource implements OrgSource {
     public List<SourcePerson> findStaffByWecomUserId(WecomUserId wecomUserId) {
         try {
             return present(jdbc.sql(SeeyonViewSql.MEMBERS_BY_WECOM_USER_ID)
+                    .param("rootPathPrefix", mapping.rootPathPrefix())
                     .param("wecomUserId", wecomUserId.value())
                     .query((rs, n) -> mapper.person(rs)).list());
         } catch (DataAccessException unreachable) {
@@ -55,6 +56,7 @@ final class SeeyonOrgSource implements OrgSource {
     public List<SourcePerson> findStaffByLoginName(String loginName) {
         try {
             return present(jdbc.sql(SeeyonViewSql.MEMBERS_BY_LOGIN_NAME)
+                    .param("rootPathPrefix", mapping.rootPathPrefix())
                     .param("loginName", loginName)
                     .query((rs, n) -> mapper.person(rs)).list());
         } catch (DataAccessException unreachable) {

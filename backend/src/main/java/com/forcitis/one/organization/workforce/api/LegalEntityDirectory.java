@@ -6,4 +6,7 @@ import java.util.Optional;
 public interface LegalEntityDirectory {
     /** A deactivated legal entity keeps its code. */
     Optional<LegalEntityCode> findCode(LegalEntityId legalEntityId);
+
+    /** Empty for an unknown or deactivated legal entity. */
+    Optional<LegalEntityCode> findActiveCode(LegalEntityId legalEntityId);
 }

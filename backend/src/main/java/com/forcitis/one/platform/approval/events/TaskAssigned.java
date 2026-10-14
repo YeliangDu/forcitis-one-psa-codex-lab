@@ -7,7 +7,7 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.util.List;
 
 /** Drives the WeCom card: one card per candidate (Q-3). */
-public record TaskAssigned(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey, String businessKey,
+public record TaskAssigned(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey, String processName, String businessKey,
                            String nodeKey, String nodeName, UserId initiator, List<UserId> candidates) {
 
     public TaskAssigned {
