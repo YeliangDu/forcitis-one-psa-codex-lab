@@ -72,7 +72,7 @@
 
 | 事项 | 谁 | 花钱 | 说明 |
 |---|---|---|---|
-| B-13 归档 OSS bucket（在线 3 年 + 归档 7 年） | 用户建；ops 演练 | 是：归档存储按量 | [`handoff/B-13-archive-oss-bucket.md`](handoff/B-13-archive-oss-bucket.md)：创建步骤、WORM 2557 天、写入方 / 调阅方最小权限策略、演练 |
+| B-13 归档 OSS bucket（在线 3 年 + 归档 7 年） | ops | 归档存储按量（空 bucket 不计费） | ✅ 2026-10-15 已建（bucket、写入方角色、演练通过），WORM 未锁定；第一个写入方上线前重新初始化并锁定（PREDEPLOY B-13）。[`handoff/B-13-archive-oss-bucket.md`](handoff/B-13-archive-oss-bucket.md) |
 | C-1 RDS 扩容 | 用户 | 是 | 用户「现在还在开发阶段，生产阶段可以扩容的现在不做」：移到生产前 |
 | C-8 KMS、C-9 生产库、A-6 云安全中心付费版 | 用户 / ops | C-8、A-6 是 | 生产前 |
 | 生产前：维护窗口开启 SQL Server 实例 `rm-bp1690ep53t9778dp` 的 SSL，生产连接强制校验证书 | 用户定时间；ops | 否 | 用户「dev 先信任服务器证书，生产前开 SSL (Recommended)」；开 SSL 会重启承载 A8 与老系统的实例 |
