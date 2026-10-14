@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.numbering.domain;
 
-import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import com.forcitis.one.kernel.ValueObject;
 import java.time.LocalDate;
@@ -42,7 +42,7 @@ public record NumberingPattern(String value, ResetPolicy resetPolicy) {
                     throw new IllegalArgumentException("{seq:N} width must be 1..12");
                 }
                 sequences++;
-            } else if (token.equals("LE") || token.equals(TYPE_TOKEN)) {
+            } else if (token.equals(LEGAL_ENTITY_TOKEN) || token.equals(TYPE_TOKEN)) {
                 continue;
             } else if (token.matches("(yyyy|yy|MM|dd|yyyyMM|yyyyMMdd|yyMMdd)")) {
                 hasYear |= token.contains("yy");
@@ -84,8 +84,17 @@ public record NumberingPattern(String value, ResetPolicy resetPolicy) {
         return TOKEN.matcher(value).results().anyMatch(m -> m.group(1).equals(TYPE_TOKEN));
     }
 
-    /** @param typeCode the registered code of the document type; may be null only when the template has no {TYPE} */
-    public String render(String typeCode, LegalEntityId legalEntity, LocalDate date, long sequence) {
+    public static final String LEGAL_ENTITY_TOKEN = "LE";
+
+    public boolean usesLegalEntityCode() {
+        return TOKEN.matcher(value).results().anyMatch(m -> m.group(1).equals(LEGAL_ENTITY_TOKEN));
+    }
+
+    /**
+     * @param typeCode the registered code of the document type; may be null only when the template has no {TYPE}
+     * @param legalEntityCode may be null only when the template has no {LE}
+     */
+    public String render(String typeCode, LegalEntityCode legalEntityCode, LocalDate date, long sequence) {
         Matcher m = TOKEN.matcher(value);
         StringBuilder out = new StringBuilder();
         while (m.find()) {
@@ -99,8 +108,11 @@ public record NumberingPattern(String value, ResetPolicy resetPolicy) {
                     throw new IllegalStateException("Sequence " + sequence + " overflows {seq:" + width + "} in " + value);
                 }
                 replacement = "0".repeat(width - digits.length()) + digits;
-            } else if (token.equals("LE")) {
-                replacement = Long.toString(legalEntity.value());
+            } else if (token.equals(LEGAL_ENTITY_TOKEN)) {
+                if (legalEntityCode == null) {
+                    throw new IllegalStateException("Pattern " + value + " needs a legal entity code but none is given");
+                }
+                replacement = legalEntityCode.value();
             } else if (token.equals(TYPE_TOKEN)) {
                 if (typeCode == null) {
                     throw new IllegalStateException("Pattern " + value + " needs a document type code but none is registered");
