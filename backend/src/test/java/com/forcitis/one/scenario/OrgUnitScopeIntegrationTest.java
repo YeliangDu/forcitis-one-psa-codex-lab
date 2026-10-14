@@ -1,5 +1,6 @@
-package com.forcitis.one.platform.identity;
+package com.forcitis.one.scenario;
 
+import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;

@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.approval;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -18,8 +18,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
 
     static RequestPostProcessor as(long id, String... permissions) {
-        return user(String.valueOf(id)).authorities(java.util.Arrays.stream(permissions)
-                .map(p -> (org.springframework.security.core.GrantedAuthority) () -> p).toList());
+        return user(String.valueOf(id)).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(permissions));
     }
 
     static final String BASE = "/api/v1/platform/approval-tasks";

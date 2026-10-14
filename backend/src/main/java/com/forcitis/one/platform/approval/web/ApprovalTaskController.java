@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.OptionalLong;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import com.forcitis.one.platform.identity.api.SessionRoles;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,13 +32,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * The caller is always the session user, no request carries an identity (G33); there is no start endpoint (I-5). Acting on a task
- * needs to be its handler or candidate, nothing else (D-1a-179): the use cases decide that, so a signed-in session is enough here.
+ * needs to be its handler or candidate, nothing else (D-1a-179): the use cases decide that, so an ordinary session is enough here: the administrator mode and an emergency session handle no approvals (I-11).
  */
 @RestController
 @RequestMapping("/api/v1/platform/approval-tasks")
 class ApprovalTaskController {
 
-    private static final String SIGNED_IN = "isAuthenticated()";
+    private static final String SIGNED_IN = "hasRole('" + SessionRoles.ORDINARY + "')";
 
     private final ListInbox listInbox;
     private final GetTaskDetail getTaskDetail;

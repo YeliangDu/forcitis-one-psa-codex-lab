@@ -107,4 +107,18 @@ class RoleTest {
         assertThat(profile.hasAnyRole(List.of())).isTrue();
         assertThat(AccessProfile.of(List.of(system("super_admin", Set.of()))).hasAnyRole(List.of(new RoleCode("PMO")))).isFalse();
     }
+
+    @Test
+    @DisplayName("INT-SEC-H2 customRoleCannotCarryAdministratorModePermission: the platform permissions live in the administrator mode only; separation-hold:approve may be held (ADR-0028)")
+    void customRoleCannotCarryAdministratorModePermission() {
+        for (String code : Set.of(Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+                Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE)) {
+            assertThatThrownBy(() -> Role.newCustom(new RoleCode("ops"), "Ops", Set.of(code))).isInstanceOfSatisfying(RoleRuleException.class,
+                    e -> assertThat(e.violation()).isEqualTo(RoleViolation.ADMINISTRATOR_MODE_ONLY));
+            assertThatThrownBy(() -> custom("analyst", Set.of()).revise("Analyst", AccessScopeKind.SELF, Set.of(code))).isInstanceOfSatisfying(
+                    RoleRuleException.class, e -> assertThat(e.violation()).isEqualTo(RoleViolation.ADMINISTRATOR_MODE_ONLY));
+        }
+        assertThat(Role.newCustom(new RoleCode("hold"), "Hold", Set.of(Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE)).permissionCodes())
+                .containsExactly(Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
+    }
 }

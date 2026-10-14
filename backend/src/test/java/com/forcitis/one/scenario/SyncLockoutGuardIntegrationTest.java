@@ -1,5 +1,6 @@
-package com.forcitis.one.platform.identity;
+package com.forcitis.one.scenario;
 
+import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
@@ -54,15 +55,6 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
 
     @Autowired
     SyncOrgSnapshot sync;
-
-    @Autowired
-    EmergencyAdminRepository emergencyAdmins;
-
-    @Autowired
-    PasswordHasher hasher;
-
-    @Autowired
-    TotpSecretVault vault;
 
     private List<SourcePerson> everyone;
 
@@ -126,7 +118,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     }
 
     private void sourceNowSays(long... leaving) {
-        when(orgSource.readSnapshot()).thenReturn(source(List.of(unit(1, null), unit(2, 1L)), List.of(head(2, 1)), List.of(post(100)), without(leaving)));
+        org.mockito.Mockito.doReturn(source(List.of(unit(1, null), unit(2, 1L)), List.of(head(2, 1)), List.of(post(100)), without(leaving))).when(orgSource).readSnapshot();
     }
 
     private String employment(long userId) {
@@ -148,16 +140,6 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
 
     private String ordinarySession(long id) throws Exception {
         return loginWithWecom(id);
-    }
-
-    private String emergencySession(long userId) throws Exception {
-        createAccount(userId, "super_admin");
-        byte[] secret = Totp.newSecret();
-        emergencyAdmins.insertIfAbsent(EmergencyAdmin.register(new UserId(userId), "breakglass-" + userId, hasher.hash("Str0ng!Passphrase#42"), vault.seal(secret)));
-        MvcResult login = mvc.perform(post("/api/v1/platform/sessions:emergency-login").with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(
-                "{\"loginName\":\"breakglass-" + userId + "\",\"password\":\"Str0ng!Passphrase#42\",\"totpCode\":\"" + Totp.code(secret, Totp.stepAt(clock.instant())) + "\"}")).andReturn();
-        assertThat(login.getResponse().getStatus()).as(login.getResponse().getContentAsString()).isEqualTo(200);
-        return cookie(login, "SESSION");
     }
 
     @Test
@@ -355,5 +337,27 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     void theAuditorRoleCarriesThePermission() {
         assertThat(jdbc.sql("select r.code from platform_identity.role_permissions p join platform_identity.roles r on r.role_id = p.role_id where p.permission_code = 'organization.workforce:separation-hold:approve'")
                 .query(String.class).list()).containsExactly("security_auditor");
+    }
+
+    @Test
+    @DisplayName("INT-ADR-H2 aFailedRerunTakesTheLiftsBack: when the source cannot be read at release time the held run keeps nothing half lifted, and the same person can release it again")
+    void aFailedRerunTakesTheLiftsBack() throws Exception {
+        long held = syncWith(without(1)).syncRunId().value();
+        String administrator = administratorSession(2);
+
+        when(orgSource.readSnapshot()).thenThrow(new IllegalStateException("source is down"));
+        MvcResult failed = release(administrator, held, "leaver confirmed by HR");
+
+        assertThat(failed.getResponse().getStatus()).isEqualTo(409);
+        assertThat(status(held)).isEqualTo("HELD");
+        assertThat(jdbc.sql("select released_kind_codes::text from organization_workforce.sync_runs where id = :id").param("id", held).query(String.class).single())
+                .isEqualTo("{}");
+
+        sourceNowSays(1);
+        MvcResult again = release(administrator, held, "leaver confirmed by HR");
+
+        assertThat(again.getResponse().getStatus()).as(again.getResponse().getContentAsString()).isEqualTo(200);
+        assertThat(body(again).path("outcome").asString()).isEqualTo("RELEASED");
+        assertThat(employment(1)).isEqualTo("SEPARATED");
     }
 }

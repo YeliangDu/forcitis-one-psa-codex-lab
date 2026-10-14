@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -149,7 +149,7 @@ class ErrorContractIT {
     @Test
     @DisplayName("401, 403 and the refusals of a permitted caller are application/problem+json with errorCode on every endpoint")
     void everyRefusalIsAProblem() throws Exception {
-        List<GrantedAuthority> all = Arrays.stream(Permission.values()).<GrantedAuthority>map(p -> p::code).toList();
+        List<GrantedAuthority> all = com.forcitis.one.platform.approval.OrdinarySessions.with(Arrays.stream(Permission.values()).map(Permission::code).toArray(String[]::new));
         List<String> problems = new ArrayList<>();
         List<Endpoint> endpoints = endpoints();
         assertThat(endpoints).as("the test must see the controllers").hasSizeGreaterThan(20);

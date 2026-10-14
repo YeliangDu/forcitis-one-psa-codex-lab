@@ -198,6 +198,8 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         jdbc.sql("insert into platform_identity.roles (code, name) values ('role-editor', 'Role editor')").update();
         jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'role-editor'")
                 .param("p", Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE).update();
+        jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'role-editor'")
+                .param("p", Permission.Codes.PLATFORM_APPROVAL_TASK_READ).update();
         createAccount(5, "role-editor");
         createAccount(1001);
         RequestPostProcessor editor = user("5").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
@@ -208,7 +210,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(editor)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"role-editor\",\"super_admin\"]}")).andReturn();
         MvcResult within = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"code\":\"small\",\"name\":\"Small\",\"permissionCodes\":[\"" + Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE + "\"]}")).andReturn();
+                .content("{\"code\":\"small\",\"name\":\"Small\",\"permissionCodes\":[\"" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "\"]}")).andReturn();
 
         assertThat(broad.getResponse().getStatus()).isEqualTo(403);
         assertThat(errorCode(broad)).isEqualTo("PLATFORM_IDENTITY_ROLE_NOT_ALLOWED");
@@ -300,5 +302,28 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(jdbc.sql("select version, event_count from platform_identity.user_accounts where user_id = 1001")
                 .query((rs, n) -> List.of(rs.getLong(1), rs.getLong(2))).single()).as("roles replaced, disabled").isEqualTo(List.of(2L, 2L));
+    }
+
+    @Test
+    @DisplayName("INT-SEC-H2 platformPermissionsStayInTheAdministratorMode: a custom role cannot be created or revised with a platform permission, and one that already holds it gives none in an ordinary session")
+    void platformPermissionsStayInTheAdministratorMode() throws Exception {
+        MvcResult created = createRole("ops", "Ops", "\"" + Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE + "\"", null);
+        assertThat(created.getResponse().getStatus()).isEqualTo(422);
+        assertThat(errorCode(created)).isEqualTo("PLATFORM_IDENTITY_PERMISSION_ADMINISTRATOR_MODE_ONLY");
+        assertThat(createRole("hold", "Hold", "\"" + Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE + "\"", null).getResponse().getStatus())
+                .as("separation-hold:approve is allowed outside the administrator mode (ADR-0028)").isNotEqualTo(422);
+
+        jdbc.sql("insert into platform_identity.roles (code, name) values ('legacy-editor', 'Legacy editor')").update();
+        for (String code : new String[] {Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE,
+                Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE, Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_APPROVAL_TASK_READ}) {
+            jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'legacy-editor'")
+                    .param("p", code).update();
+        }
+        createAccount(1001, "employee", "legacy-editor");
+        String session = loginWithWecom(1001);
+
+        assertThat(permissionsOf(session)).contains(Permission.Codes.PLATFORM_APPROVAL_TASK_READ).doesNotContain(Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+                Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE, Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
+        assertThat(mvc.perform(get(ROLES).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus()).isEqualTo(403);
     }
 }

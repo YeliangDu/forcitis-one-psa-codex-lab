@@ -25,6 +25,7 @@ public class RoleRuleException extends DomainException {
             case DUPLICATE_NAME -> IdentityError.PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME;
             case SYSTEM_FROZEN -> IdentityError.PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN;
             case UNKNOWN_PERMISSION -> IdentityError.PLATFORM_IDENTITY_PERMISSION_UNKNOWN;
+            case ADMINISTRATOR_MODE_ONLY -> IdentityError.PLATFORM_IDENTITY_PERMISSION_ADMINISTRATOR_MODE_ONLY;
         };
     }
 }

@@ -9,7 +9,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -50,11 +50,11 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     ReturnToInitiator returnToInitiator;
 
     static RequestPostProcessor approver(long id) {
-        return user(String.valueOf(id)).authorities(() -> Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE);
+        return user(String.valueOf(id)).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE));
     }
 
     static RequestPostProcessor reader(long id) {
-        return user(String.valueOf(id)).authorities(() -> Permission.Codes.PLATFORM_APPROVAL_TASK_READ);
+        return user(String.valueOf(id)).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
     }
 
     record Scene(String key, ApprovalInstanceId instance, ApprovalTaskId task, long initiator, long candidate, long otherCandidate,

@@ -3,7 +3,7 @@ package com.forcitis.one.platform.approval;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,7 +41,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     ClaimTask claimTask;
 
     static RequestPostProcessor reader(long id) {
-        return user(String.valueOf(id)).authorities(() -> Permission.Codes.PLATFORM_APPROVAL_TASK_READ);
+        return user(String.valueOf(id)).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
     }
 
     void legacyRow(long user, String task, String instance, String node, String when, int result) {

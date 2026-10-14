@@ -68,7 +68,7 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 @RecordApplicationEvents
 @Import(IdentityIntegrationTest.ClockConfiguration.class)
-abstract class IdentityIntegrationTest {
+public abstract class IdentityIntegrationTest {
 
     @Autowired
     ApplicationEvents recordedEvents;
@@ -133,37 +133,37 @@ abstract class IdentityIntegrationTest {
     }
 
     @Autowired
-    DomainEventRecorder domainEvents;
+    protected DomainEventRecorder domainEvents;
 
     @MockitoBean
-    OrgDirectory orgDirectory;
+    protected OrgDirectory orgDirectory;
 
     @MockitoBean
-    WecomGateway wecomGateway;
+    protected WecomGateway wecomGateway;
 
     @MockitoBean
-    AuditLog auditLog;
+    protected AuditLog auditLog;
 
     @MockitoBean
-    SsoTicketVerifier ssoVerifier;
+    protected SsoTicketVerifier ssoVerifier;
 
     @Autowired
-    MockMvc mvc;
+    protected MockMvc mvc;
 
     @Autowired
-    JdbcClient jdbc;
+    protected JdbcClient jdbc;
 
     @Autowired
-    JsonMapper json;
+    protected JsonMapper json;
 
     @Autowired
-    MutableClock clock;
+    protected MutableClock clock;
 
     @Autowired
-    AccessCache accessCache;
+    protected AccessCache accessCache;
 
     /** Not spring-security-test's csrf(): that swaps the CSRF repository of the whole shared context. */
-    static RequestPostProcessor xsrf() {
+    protected static RequestPostProcessor xsrf() {
         return request -> {
             request.setCookies(Stream.concat(
                     request.getCookies() == null ? Stream.<Cookie>empty() : Arrays.stream(request.getCookies()),
@@ -189,11 +189,11 @@ abstract class IdentityIntegrationTest {
         jdbc.sql("delete from platform_identity.roles where kind = 'CUSTOM'").update();
     }
 
-    static EmployeeProfile profile(long id, EmploymentStatus status) {
+    protected static EmployeeProfile profile(long id, EmploymentStatus status) {
         return new EmployeeProfile(new UserId(id), "Employee " + id, new OrgUnitId(10), new WecomUserId("wx" + id), status, false);
     }
 
-    EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
+    protected EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
         EmployeeProfile profile = profile(id, status);
         when(orgDirectory.findEmployee(profile.userId())).thenReturn(Optional.of(profile));
         when(orgDirectory.findEmployeeByWecomUserId(profile.wecomUserId())).thenReturn(Optional.of(profile));
@@ -201,11 +201,11 @@ abstract class IdentityIntegrationTest {
         return profile;
     }
 
-    void wecomAccepts(String code, WecomEntry entry, long id) {
+    protected void wecomAccepts(String code, WecomEntry entry, long id) {
         when(wecomGateway.resolveWecomUserId(code, entry)).thenReturn(Optional.of(new WecomUserId("wx" + id)));
     }
 
-    void createAccount(long id, String... roleCodes) {
+    protected void createAccount(long id, String... roleCodes) {
         jdbc.sql("insert into platform_identity.user_accounts (user_id) values (:id) on conflict do nothing").param("id", id).update();
         for (String code : roleCodes) {
             jdbc.sql("""
@@ -217,26 +217,26 @@ abstract class IdentityIntegrationTest {
         }
     }
 
-    String accountVersion(long id) {
+    protected String accountVersion(long id) {
         return "\"" + jdbc.sql("select version from platform_identity.user_accounts where user_id = :id").param("id", id).query(Long.class).optional().orElse(0L) + "\"";
     }
 
-    String roleVersion(long roleId) {
+    protected String roleVersion(long roleId) {
         return "\"" + jdbc.sql("select version from platform_identity.roles where role_id = :id").param("id", roleId).query(Long.class).single() + "\"";
     }
 
-    long count(String table) {
+    protected long count(String table) {
         return jdbc.sql("select count(*) from platform_identity." + table).query(Long.class).single();
     }
 
-    MvcResult postJson(String url, String body) throws Exception {
+    protected MvcResult postJson(String url, String body) throws Exception {
         return mvc.perform(post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn();
     }
 
-    final Map<String, String> bindings = new ConcurrentHashMap<>();
+    protected final Map<String, String> bindings = new ConcurrentHashMap<>();
 
     /** Asks for a login state as a browser would and keeps the binding cookie that came with it. */
-    String newLoginState(String entry) throws Exception {
+    protected String newLoginState(String entry) throws Exception {
         MvcResult issued = postJson("/api/v1/platform/login-states", "{\"entry\":\"" + entry + "\"}");
         String state = body(issued).path("state").asString();
         bindings.put(state, cookie(issued, "loginBinding"));
@@ -244,7 +244,7 @@ abstract class IdentityIntegrationTest {
     }
 
     /** Posts the login with the binding cookie of the browser that obtained the state. */
-    MvcResult postLogin(String url, String body, String state) throws Exception {
+    protected MvcResult postLogin(String url, String body, String state) throws Exception {
         var request = post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body);
         String binding = state == null ? null : bindings.get(state);
         if (binding != null) {
@@ -253,11 +253,11 @@ abstract class IdentityIntegrationTest {
         return mvc.perform(request).andReturn();
     }
 
-    JsonNode body(MvcResult result) throws Exception {
+    protected JsonNode body(MvcResult result) throws Exception {
         return json.readTree(result.getResponse().getContentAsString());
     }
 
-    static String cookie(MvcResult result, String name) {
+    protected static String cookie(MvcResult result, String name) {
         for (String header : result.getResponse().getHeaders("Set-Cookie")) {
             if (header.startsWith(name + "=")) {
                 return header.substring(name.length() + 1, header.indexOf(';') < 0 ? header.length() : header.indexOf(';'));
@@ -266,11 +266,11 @@ abstract class IdentityIntegrationTest {
         return null;
     }
 
-    static String setCookieHeader(MvcResult result, String name) {
+    protected static String setCookieHeader(MvcResult result, String name) {
         return result.getResponse().getHeaders("Set-Cookie").stream().filter(h -> h.startsWith(name + "=")).findFirst().orElse(null);
     }
 
-    String loginWithWecom(long id) throws Exception {
+    protected String loginWithWecom(long id) throws Exception {
         knownEmployee(id, EmploymentStatus.EMPLOYED);
         String code = "code-" + id;
         wecomAccepts(code, WecomEntry.WORKBENCH, id);
@@ -283,10 +283,10 @@ abstract class IdentityIntegrationTest {
         return cookie(result, "SESSION");
     }
 
-    static final String ENTER_ADMINISTRATOR_MODE = "/api/v1/platform/sessions:enter-administrator-mode";
+    protected static final String ENTER_ADMINISTRATOR_MODE = "/api/v1/platform/sessions:enter-administrator-mode";
 
     /** The person's session asks for the administrator mode, proving themselves with a fresh WeCom code of person personProvedByTheCode. */
-    MvcResult enterAdministratorMode(String session, long personProvedByTheCode) throws Exception {
+    protected MvcResult enterAdministratorMode(String session, long personProvedByTheCode) throws Exception {
         knownEmployee(personProvedByTheCode, EmploymentStatus.EMPLOYED);
         String code = "reverify-" + personProvedByTheCode + "-" + System.nanoTime();
         wecomAccepts(code, WecomEntry.WORKBENCH, personProvedByTheCode);
@@ -297,7 +297,7 @@ abstract class IdentityIntegrationTest {
     }
 
     /** A session in the administrator mode for a super_admin holder who is employed. */
-    String administratorSession(long id) throws Exception {
+    protected String administratorSession(long id) throws Exception {
         createAccount(id, "super_admin", "employee");
         MvcResult entered = enterAdministratorMode(loginWithWecom(id), id);
         if (entered.getResponse().getStatus() != 200) {
@@ -306,19 +306,43 @@ abstract class IdentityIntegrationTest {
         return cookie(entered, "SESSION");
     }
 
-    List<AuditEntry> recorded() {
+    @Autowired
+    protected com.forcitis.one.platform.identity.domain.EmergencyAdminRepository emergencyAdmins;
+
+    @Autowired
+    protected com.forcitis.one.platform.identity.domain.PasswordHasher hasher;
+
+    @Autowired
+    protected com.forcitis.one.platform.identity.domain.TotpSecretVault vault;
+
+    /** A session started by the emergency login of a new emergency account bound to super_admin holder userId. */
+    protected String emergencySession(long userId) throws Exception {
+        createAccount(userId, "super_admin");
+        byte[] secret = com.forcitis.one.platform.identity.domain.Totp.newSecret();
+        emergencyAdmins.insertIfAbsent(com.forcitis.one.platform.identity.domain.EmergencyAdmin.register(new UserId(userId), "breakglass-" + userId,
+                hasher.hash("Str0ng!Passphrase#42"), vault.seal(secret)));
+        MvcResult login = mvc.perform(post("/api/v1/platform/sessions:emergency-login").with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(
+                "{\"loginName\":\"breakglass-" + userId + "\",\"password\":\"Str0ng!Passphrase#42\",\"totpCode\":\""
+                        + com.forcitis.one.platform.identity.domain.Totp.code(secret, com.forcitis.one.platform.identity.domain.Totp.stepAt(clock.instant())) + "\"}")).andReturn();
+        if (login.getResponse().getStatus() != 200) {
+            throw new AssertionError("emergency login failed: " + login.getResponse().getContentAsString());
+        }
+        return cookie(login, "SESSION");
+    }
+
+    protected List<AuditEntry> recorded() {
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);
         Mockito.verify(auditLog, Mockito.atLeast(0)).record(captor.capture());
         return captor.getAllValues();
     }
 
-    List<AuditEntry> recordedIndependently() {
+    protected List<AuditEntry> recordedIndependently() {
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);
         Mockito.verify(auditLog, Mockito.atLeast(0)).recordIndependently(captor.capture());
         return captor.getAllValues();
     }
 
-    static String responseText(MvcResult result) throws Exception {
+    protected static String responseText(MvcResult result) throws Exception {
         MockHttpServletResponse response = result.getResponse();
         return response.getContentAsString();
     }

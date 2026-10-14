@@ -29,9 +29,11 @@ public class CorrectLegalEntityAttribution {
     private final DomainEvents events;
     private final CallerPermissions caller;
     private final AuditLog audit;
+    private final OwnAttributionGuard ownAttribution;
 
     CorrectLegalEntityAttribution(LegalEntityAttributionRepository attributions, AttributionSubjects subjects, DomainEvents events,
-            CallerPermissions caller, AuditLog audit) {
+            CallerPermissions caller, AuditLog audit, OwnAttributionGuard ownAttribution) {
+        this.ownAttribution = ownAttribution;
         this.attributions = attributions;
         this.subjects = subjects;
         this.events = events;
@@ -60,6 +62,7 @@ public class CorrectLegalEntityAttribution {
                     "a correction names the period and its new end");
         }
         AttributionSubject subject = subjects.require(kind, subjectId);
+        ownAttribution.requireNotOwn(subject, correctedBy);
         LegalEntityAttribution attribution = attributions.find(subject).orElseThrow(() -> new DomainException(
                 WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND, ErrorKind.NOT_FOUND, "nothing is attributed to this subject"));
         expected.check(attribution.version());

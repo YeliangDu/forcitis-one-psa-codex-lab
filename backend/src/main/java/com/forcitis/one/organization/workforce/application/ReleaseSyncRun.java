@@ -30,8 +30,11 @@ public class ReleaseSyncRun {
     private final SyncOrgSnapshot sync;
     private final ReleaseSyncRunHolds lift;
     private final RecordSyncRunRelease record;
+    private final WithdrawSyncRunReleases withdraw;
 
-    ReleaseSyncRun(SyncRunRepository runs, SyncRunQueries queries, SyncOrgSnapshot sync, ReleaseSyncRunHolds lift, RecordSyncRunRelease record) {
+    ReleaseSyncRun(SyncRunRepository runs, SyncRunQueries queries, SyncOrgSnapshot sync, ReleaseSyncRunHolds lift, RecordSyncRunRelease record,
+            WithdrawSyncRunReleases withdraw) {
+        this.withdraw = withdraw;
         this.runs = runs;
         this.queries = queries;
         this.sync = sync;
@@ -62,6 +65,7 @@ public class ReleaseSyncRun {
         }
         SyncResult result = sync.release(SyncTrigger.MANUAL, actor);
         if (result.status() != SyncRunStatus.SUCCEEDED) {
+            withdraw.execute(held);
             return new ReleaseResult.NotApplied(result.note() == null ? result.status().name() : result.note());
         }
         String detail = "reason: " + reason.strip() + "; session mode: " + (lifted.review().sessionMode().isEmpty() ? "none" : lifted.review().sessionMode()) + "; held: "

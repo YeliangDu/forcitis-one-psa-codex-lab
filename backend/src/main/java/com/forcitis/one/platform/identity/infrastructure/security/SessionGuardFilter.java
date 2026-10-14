@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
@@ -16,6 +17,7 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,8 +61,11 @@ final class SessionGuardFilter extends OncePerRequestFilter {
                     HttpSession session = request.getSession(false);
                     boolean unconfirmed = session == null || !Boolean.TRUE.equals(session.getAttribute(ServletSessionRegistry.CONFIRMED_ATTRIBUTE));
                     SecurityContext refreshed = SecurityContextHolder.createEmptyContext();
-                    refreshed.setAuthentication(identity.withAuthorities(unconfirmed ? List.of()
-                            : principal.authorities().stream().map(SimpleGrantedAuthority::new).toList(), !unconfirmed));
+                    List<SimpleGrantedAuthority> granted = new ArrayList<>(principal.authorities().stream().map(SimpleGrantedAuthority::new).toList());
+                    if (kind.mode() == SessionMode.ORDINARY) {
+                        granted.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
+                    }
+                    refreshed.setAuthentication(identity.withAuthorities(unconfirmed ? List.of() : granted, !unconfirmed));
                     SecurityContextHolder.setContext(refreshed);
                 } else {
                     terminate(request);

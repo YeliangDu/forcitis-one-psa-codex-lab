@@ -186,6 +186,9 @@ public final class Role extends AggregateRoot {
         if (!KNOWN_PERMISSIONS.containsAll(permissionCodes)) {
             throw new RoleRuleException(RoleViolation.UNKNOWN_PERMISSION);
         }
+        if (permissionCodes.stream().anyMatch(AdministratorMode.PLATFORM_ONLY::contains)) {
+            throw new RoleRuleException(RoleViolation.ADMINISTRATOR_MODE_ONLY);
+        }
     }
 
     private EventDraft draft(String eventName, long version) {
