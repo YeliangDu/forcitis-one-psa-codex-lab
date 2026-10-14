@@ -59,6 +59,9 @@ class TaskAssignmentListener implements FlowableEventListener {
         } else {
             Resolution resolution = assignment.resolve(node, task.getProcessInstanceId(), task.getVariables());
             if (NodeAssignment.isSkipped(resolution)) {
+                if (resolution.namedApproverInvalid()) {
+                    task.setVariable(FlowableApprovalEngine.VARIABLE_APPROVER_INVALID, Boolean.TRUE);
+                }
                 task.setVariableLocal(FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE, Boolean.TRUE);
                 return;
             }

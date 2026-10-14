@@ -36,7 +36,9 @@ public final class AssigneeResolver {
         Collected collected = collect(rule, initiator, variables);
         Set<UserId> candidates = employed(collected.users());
         if (skipWhenEmpty && candidates.isEmpty()) {
-            return new Resolution(Set.of(), collected.invalidInput() ? ResolutionKind.INVALID_INPUT : ResolutionKind.SKIPPED);
+            boolean namedButInvalid = rule instanceof AssignmentRule.FormFieldUsers && !collected.users().isEmpty();
+            return new Resolution(Set.of(), collected.invalidInput() ? ResolutionKind.INVALID_INPUT : ResolutionKind.SKIPPED,
+                    !collected.invalidInput() && namedButInvalid);
         }
         ResolutionKind kind = collected.escalated() ? ResolutionKind.ESCALATED_REPORTING_LINE : ResolutionKind.RESOLVED;
         if (!selfApprovalAllowed && candidates.contains(initiator)) {

@@ -191,7 +191,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-300 when every branch is skipped the start fails and an alert is counted; the approval is never passed silently")
+    @DisplayName("RULE-300 when every branch is skipped because the named approver cannot act the start fails with the initiator-fixable code and an alert is counted; the approval is never passed silently")
     void allBranchesSkippedFails() {
         Staff s = staff();
         long gone = newId();
@@ -200,7 +200,8 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s,
                 List.of(new ApprovalField(TimesheetApprovalField.REGIONAL_HEAD.fieldName(), List.of(String.valueOf(gone)))),
-                TimesheetRoutingFlag.PRE_SALES_HOURS)).isInstanceOf(RuntimeException.class).hasStackTraceContaining("found nobody to assign");
+                TimesheetRoutingFlag.PRE_SALES_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
+                        .as("the approver named on the document cannot act: the initiator can put that right").isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
 
         assertThat(counter("forcitis.platform.approval.all.nodes.skipped")).isEqualTo(before + 1);
     }

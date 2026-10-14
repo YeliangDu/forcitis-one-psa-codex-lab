@@ -26,9 +26,9 @@ public class CancelTimesheet {
 
     @Transactional
     public void execute(TimesheetId id, String reason, java.util.OptionalLong expectedVersion) {
-        Timesheet timesheet = timesheets.find(id).orElseThrow(() -> TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No timesheet " + id.value()));
+        Timesheet timesheet = timesheets.find(id).orElseThrow(() -> TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet"));
         if (!timesheet.employee().equals(currentUser.userId())) {
-            throw TimesheetError.COST_TIMESHEET_NOT_OWNER.refusal("Timesheet " + id.value() + " belongs to another employee");
+            throw TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet");
         }
         SubmitTimesheet.requireExpectedVersion(timesheet, expectedVersion);
         Retractions.require(approvals.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, timesheet.document(), currentUser.userId(), reason));

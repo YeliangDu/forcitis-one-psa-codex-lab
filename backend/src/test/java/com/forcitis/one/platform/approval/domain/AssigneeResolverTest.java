@@ -112,12 +112,17 @@ class AssigneeResolverTest {
     }
 
     @Test
-    @DisplayName("RULE-300 a node that may be skipped is skipped only when its input is complete and valid and nobody is left; a node that may not be skipped goes to the administrator")
+    @DisplayName("RULE-300 a node that may be skipped is skipped only when its input is complete and valid and nobody is left; a node that may not be skipped goes to the administrator; a node that may not be skipped goes to the administrator")
     void skipOnlyWhenEmptyAndAllowed() {
         AssignmentRule.FormFieldUsers rule = new AssignmentRule.FormFieldUsers("projectManagerId");
         Resolution skipped = resolver.resolve(rule, false, true, new UserId(1), fields("projectManagerId", "120"));
         assertThat(skipped.kind()).isEqualTo(ResolutionKind.SKIPPED);
+        assertThat(skipped.namedApproverInvalid()).as("the document names an approver who cannot act: remembered, so that an approval whose every node was skipped like this goes back to the initiator").isTrue();
         assertThat(skipped.candidates()).isEmpty();
+        Resolution nobody = resolver.resolve(new AssignmentRule.Role(new com.forcitis.one.platform.identity.api.RoleCode("nobody-holds-this")), false, true,
+                new UserId(1), ProcessVariables.empty());
+        assertThat(nobody.kind()).isEqualTo(ResolutionKind.SKIPPED);
+        assertThat(nobody.namedApproverInvalid()).as("a rule that finds nobody by itself is a set-up matter").isFalse();
         assertThat(resolver.resolve(rule, false, false, new UserId(1), fields("projectManagerId", "120")).kind())
                 .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
         assertThat(resolver.resolve(rule, false, false, new UserId(1), ProcessVariables.empty()).kind())

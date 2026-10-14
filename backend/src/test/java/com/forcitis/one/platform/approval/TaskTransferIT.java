@@ -33,7 +33,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.AccessDeniedException;
 
 /** RULE-285: only the person holding a task hands it over; the new handler is checked, the operation is audited and the new handler is told. */
 class TaskTransferIT extends ApprovalIntegrationSupport {
@@ -78,7 +77,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         assertThat(jdbc.queryForObject("select assignee_id from platform_approval.approval_tasks where task_id = ?", Long.class, s.task().value()))
                 .isEqualTo(s.colleague());
         assertThatThrownBy(() -> decideTasks.execute(new UserId(s.handler()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty()))
-                .isInstanceOf(AccessDeniedException.class);
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
         assertThat(events.of(TaskTransferred.class)).singleElement().satisfies(event -> {
             assertThat(event.from()).isEqualTo(new UserId(s.handler()));
             assertThat(event.to()).isEqualTo(new UserId(s.colleague()));
@@ -98,12 +97,12 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         Scene s = scene();
 
         assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new UserId(s.colleague()), "r", java.util.OptionalLong.empty()))
-                .as("a candidate that has not claimed it").isInstanceOf(AccessDeniedException.class);
+                .as("a candidate that has not claimed it").isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
         claimTask.execute(s.task(), new UserId(s.handler()), java.util.OptionalLong.empty());
         assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.other()), new UserId(s.colleague()), "r", java.util.OptionalLong.empty()))
-                .as("a stranger").isInstanceOf(AccessDeniedException.class);
+                .as("a stranger").isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
         assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.initiator()), new UserId(s.colleague()), "r", java.util.OptionalLong.empty()))
-                .as("the initiator").isInstanceOf(AccessDeniedException.class);
+                .as("the initiator").isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
 
         assertThat(openTask(s.instance()).getAssignee()).isEqualTo(String.valueOf(s.handler()));
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.task.denied")
@@ -146,7 +145,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-285 D-1a-179 over HTTP the caller is the session user: the holder gets 204 whatever permission codes the session has, anybody else 403, the body names the new handler and the reason")
+    @DisplayName("RULE-285 D-1a-179 over HTTP the caller is the session user: the holder gets 204 whatever permission codes the session has, anybody else 404, the body names the new handler and the reason")
     void overHttp() throws Exception {
         Scene s = scene();
         claimTask.execute(s.task(), new UserId(s.handler()), java.util.OptionalLong.empty());
@@ -154,7 +153,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         String body = "{\"assigneeId\":" + s.colleague() + ",\"reason\":\"on leave\"}";
 
         mvc.perform(post(url).with(csrf()).with(currentEtag()).with(user(String.valueOf(s.other())).authorities(() -> Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE))
-                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isNotFound());
         mvc.perform(post(url).with(csrf()).with(currentEtag()).with(user(String.valueOf(s.handler())).authorities(() -> Permission.Codes.PLATFORM_APPROVAL_TASK_READ))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"assigneeId\":" + s.colleague() + ",\"reason\":\" \"}"))
                 .andExpect(status().isUnprocessableContent());

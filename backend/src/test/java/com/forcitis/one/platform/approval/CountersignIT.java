@@ -106,7 +106,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
         Task secondsTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(String.valueOf(s.second()))).findFirst().orElseThrow();
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> decide(s.first(), secondsTask, DecisionOutcome.APPROVE, null))
-                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
         assertThat(openTasks(instance)).hasSize(2);
     }
 

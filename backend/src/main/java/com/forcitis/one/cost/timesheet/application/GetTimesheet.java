@@ -28,9 +28,9 @@ public class GetTimesheet {
 
     @Transactional(readOnly = true)
     public TimesheetView execute(TimesheetId id) {
-        Timesheet timesheet = timesheets.find(id).orElseThrow(() -> TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No timesheet " + id.value()));
+        Timesheet timesheet = timesheets.find(id).orElseThrow(() -> TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet"));
         if (!timesheet.employee().equals(currentUser.userId())) {
-            throw TimesheetError.COST_TIMESHEET_NOT_OWNER.refusal("Timesheet " + id.value() + " belongs to another employee");
+            throw TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet");
         }
         boolean canWithdraw = timesheet.status() == TimesheetStatus.SUBMITTED && approvals.checkWithdraw(
                 ProcessKey.COST_TIMESHEET_APPROVAL, timesheet.document(), currentUser.userId()) == WithdrawCheck.ALLOWED;

@@ -378,11 +378,31 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         signInAs(stranger);
 
         assertThatThrownBy(() -> submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("1"),
-                new UserId(manager)))).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_OWNER));
-        assertThatThrownBy(() -> withdrawTimesheet.execute(id, "mine", java.util.OptionalLong.empty())).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_OWNER));
-        assertThatThrownBy(() -> cancelTimesheet.execute(id, "mine", java.util.OptionalLong.empty())).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_OWNER));
-        assertThatThrownBy(() -> getTimesheet.execute(id)).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_OWNER));
+                new UserId(manager)))).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_FOUND));
+        assertThatThrownBy(() -> withdrawTimesheet.execute(id, "mine", java.util.OptionalLong.empty())).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_FOUND));
+        assertThatThrownBy(() -> cancelTimesheet.execute(id, "mine", java.util.OptionalLong.empty())).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_FOUND));
+        assertThatThrownBy(() -> getTimesheet.execute(id)).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_FOUND));
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.SUBMITTED);
+    }
+
+    @Test
+    @DisplayName("M-12 someone else's timesheet and a timesheet that does not exist are answered the same: same code, same text")
+    void foreignAndMissingTimesheetsAreIndistinguishable() {
+        TimesheetId id = newTimesheet();
+        submit(id, "2");
+        long stranger = newId();
+        organisation.person(stranger, 1, null);
+        signInAs(stranger);
+
+        Throwable foreign = org.assertj.core.api.Assertions.catchThrowable(() -> getTimesheet.execute(id));
+        Throwable missing = org.assertj.core.api.Assertions.catchThrowable(() -> getTimesheet.execute(newTimesheet()));
+        Throwable foreignCancel = org.assertj.core.api.Assertions.catchThrowable(() -> cancelTimesheet.execute(id, "x", java.util.OptionalLong.empty()));
+        Throwable missingCancel = org.assertj.core.api.Assertions.catchThrowable(() -> cancelTimesheet.execute(newTimesheet(), "x", java.util.OptionalLong.empty()));
+
+        domainError(foreign, TimesheetError.COST_TIMESHEET_NOT_FOUND);
+        domainError(missing, TimesheetError.COST_TIMESHEET_NOT_FOUND);
+        assertThat(foreign.getMessage()).isEqualTo(missing.getMessage());
+        assertThat(foreignCancel.getMessage()).isEqualTo(missingCancel.getMessage()).isEqualTo(missing.getMessage());
     }
 
     @Test

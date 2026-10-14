@@ -117,7 +117,7 @@ public class SubmitTimesheet {
 
     private static void requireOwner(Timesheet timesheet, UserId employee) {
         if (!timesheet.employee().equals(employee)) {
-            throw TimesheetError.COST_TIMESHEET_NOT_OWNER.refusal("Timesheet " + timesheet.timesheetId().value() + " belongs to another employee");
+            throw TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet");
         }
     }
 

@@ -59,6 +59,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
     static final String VARIABLE_LEGAL_ENTITY = "legalEntityId";
     static final String VARIABLE_CONTENT_HASH = "contentHash";
     static final String VARIABLE_SYSTEM_COMPLETE = "systemComplete";
+    static final String VARIABLE_APPROVER_INVALID = "approverInvalid";
     static final String VARIABLE_ASSIGNED_AT = "assignedAtMillis";
     static final String VARIABLE_ADVISORY = "advisory";
 
@@ -224,6 +225,12 @@ class FlowableApprovalEngine implements ApprovalEngine {
         if (nothingEverAssigned || (open > 0 && systemTasks(instanceId).size() == open)) {
             log.error("Every node of instance {} was skipped for lack of an approver: the approval is refused, not passed", instanceId);
             meters.counter("forcitis.platform.approval.all.nodes.skipped").increment();
+            boolean initiatorCanFix = !history.createHistoricVariableInstanceQuery().processInstanceId(instanceId)
+                    .variableName(VARIABLE_APPROVER_INVALID).list().isEmpty();
+            if (initiatorCanFix) {
+                throw ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID.refusal("Every node of approval instance " + instanceId
+                        + " was skipped because the approver named on the document cannot act");
+            }
             throw ApprovalError.PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND.refusal("Every node of approval instance " + instanceId + " found nobody to assign");
         }
     }
