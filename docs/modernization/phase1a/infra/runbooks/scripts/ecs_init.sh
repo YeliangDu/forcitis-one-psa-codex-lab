@@ -45,7 +45,7 @@ if wanted E-1; then
     fail "$DATA_DISK 已有文件系统，拒绝格式化；人工确认后再处理"
   fi
   if lsblk -no MOUNTPOINT "$DATA_DISK" | grep -q .; then fail "$DATA_DISK 已挂载"; fi
-  run "mkfs.xfs -L forcitis-data $DATA_DISK"
+  run "mkfs.xfs -L one-data $DATA_DISK"
   run "mkdir -p /data"
   run "echo \"UUID=\$(blkid -o value -s UUID $DATA_DISK) /data xfs defaults,nofail 0 2\" >> /etc/fstab"
   run "systemctl daemon-reload && mount /data"
