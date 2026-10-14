@@ -1,5 +1,0 @@
-/* Business-module CSS: semantic tokens only (stylelint F14). */
-.time-entry-row {
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-subtle);
-}
