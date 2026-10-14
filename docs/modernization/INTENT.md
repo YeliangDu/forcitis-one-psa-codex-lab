@@ -129,3 +129,5 @@
 | 变更治理后续（2026-10-14，psa-coordinator 当面询问）：历史偏差「只补必要的，其余承认既成事实 (Recommended)」（用户在本会话中复述：「按建议：补开 ADR-0024，其余维持现状」）；部分取代写法「认可 (Recommended)」；ADR-0022 必备小节「要，补齐后再拿来审批」 | ADR-0024（提议，部分取代 ADR-0016 后果第 4 条）；adr/README.md「历史偏差（规则生效前）」与第 6 条；ADR-0022 补齐由 psa-gl-finance-review 负责 |
 | 「给 agent 一个写代码的规则，代码注释能不写就不写。」（2026-10-14） | SESSION_PLAYBOOK §5「代码注释能不写就不写」；仓库根 CLAUDE.md |
 | 「批准 ADR-0024」（2026-10-14，psa-coordinator 当面） | ADR-0024 已采纳；ADR-0016 状态标「后果第 4 条已被 ADR-0024 取代」并删除 1cd7219 追加的修订提议段；brief Phase 4 入口相应 Proposed revision 转为正文 |
+| ADR-0022 对抗性评审（2026-10-14，psa-gl-finance-review 弹窗作答，architecture-critic 意见 C-1..C-15）：C-1「收付推送前移到 6a (Recommended)」；C-6「共同科目沿用收付编码 (Recommended)」；C-9「解耦 (Recommended)」；C-12「先留 U8C，逐家再定 (Recommended)」；C-5「待财务 (Recommended)」；C-8「红字 (Recommended)」；此前用户：「提交」（在 #23、#24 合并前提交 ADR-0022 补齐） | ADR-0022 决定第 1、2、8、10 条与迁移、回滚、守护小节；proposals/ADR-0022_CRITIC.md；GL_FINANCE_DECISIONS GL-123（C-9 修正适用范围）、D17-6（C-5 待财务） |
+| ADR-0022 审批（2026-10-14，psa-coordinator 当面）：「批准」 | ADR-0022 已采纳；同一提交标注 ADR-0016 第 6 条、ADR-0017 第 4 条及对照表 accounting.ledger 行、ADR-0023 L2 对总账的适用已被 ADR-0022 取代 |
