@@ -19,6 +19,7 @@
 | 经营分析范围评估（经营子域 4 个 BC、reporting 与 KPI 语义层、BI 重构规划） | 完成，**ADR-0023 已采纳**（用户 2026-10-14：「批准 ADR-0023」）：BI_SCOPE.md；**§6 Q1–Q12 已全部有用户决定**（Q1/Q2 经 psa-coordinator，Q3–Q12 经 psa-bi-decisions 逐项确认，见 BI_SCOPE §6.1） | — （psa-bi-decisions 已收尾） | 待财务 F1–F5、待业务 B1–B5（BI_SCOPE §6.1）；R 编号与 6a–6c 入口修订（镜像就绪）由 psa-coordinator 统一；Q11 生产只读计数在 R0 执行前须先报访问方式 | 新会话 `psa-r0-metric-baseline` 做 R0（OAT 入库 glossary/oat/、指标目录与 OAT 映射、T_FST 逐个核对、api_audit_logs 计数、工具对比、Q12 问题清单模板、词表登记） |
 | 总账财务评审（G1 入口前：口径转换规则 D17、科目表与编码 D3、★ 项） | 完成，待财务（2026-10-14）：28 项全部由用户作答——已定 23、已定但有待财务问题 5；12 个问题待财务（关账日、受限货币资金、履约义务时段 / 时点须审计师确认、期初签字人、单账簿凭证分类等）；D3 用户选「两账各一张科目表、权责新编一套」，ADR-0022 第 2、5、9 条修订提议见 GL_SCOPE_REVISIONS §E | — （psa-gl-finance-review 已收尾） | 待用户转财务答复 GL_FINANCE_DECISIONS.md「待财务清单」；D17-12 需 U8C 只读分类查询（只取计数，须 psa-coordinator 安排）；ADR-0022 已补齐（财务评审结论与 §A、§B、§E 并入正文，声明取代 ADR-0016 第 6 条与 ADR-0017 第 4 条，四个必备小节齐全），仍为提议，待用户审批；GL_FINANCE_REVIEW 第二至四节 83 项按阶段另排 | 用户把 `r0/FINANCE_CONFIRM.html`（财务确认单第 2 版：7 份 ADR 整体确认 + FQ-01..FQ-22）转财务；交回后运行 `python3 r0/import_finance_answers.py <答复文件>` |
 | 变更治理（ADR 生命周期、规则调整三类、已过账事实只能冲销） | 完成（2026-10-14）：SESSION_PLAYBOOK §12；adr/README.md「ADR 生命周期与变更规则」与「历史偏差」；build_adrs.py 校验；CONFIG_CHANGELOG.md；ADR-0024（提议） | — （psa-change-governance 已收尾） | 待用户审批 ADR-0024（采纳时同一提交删除 ADR-0016 追加段并标注部分取代） | — |
+| 公共记录片段化（INTENT / SESSION_LOG / STATUS / ADR 一条记录一个文件） | 完成（2026-10-14）：intent/、session-log/、status/、adr/src/ 片段与生成器；build_all.py；CI 生成一致性检查；CLAUDE.md 与 SESSION_PLAYBOOK 改为只改片段；迁移后产物除空白外逐字节一致 | — （psa-repo-fragments 已收尾） | — | 各会话改用 new_intent.py / new_log.py 与 status/ 片段，改完运行 build_all.py 并连同产物提交 |
 | R0 指标口径基线 | 完成（2026-10-14）：在用报表盘点与指标基线草稿（r0/）；B6–B11、Q1（C 为主，D 后期可选，AG Grid 企业版）、Q5（OAT 入 glossary/oat/）、Q11（BI 使用量与 T_FST 元数据，生产只读）、Q12（问题模板）已完成；待财务 FQ-01..20（r0/FINANCE_QUESTIONS.md）；第三轮用语输入（r0/TERMS_ROUND3_INPUT.md）；新登记生产 SQL Agent 通道 A8_ACCESS_REGISTER #28–#32 | — （psa-r0-metric-baseline 已收尾） | 待用户：B1–B5、问题清单（~/.modernize/psa/bi-inputs/questions/）；待财务：FQ-01..20；第三轮用语确认 | R1 入口条件草稿见 r0/TOOL_COMPARISON.md §7；财务答复回填基线（r0/FINANCE_ANSWERS.json） |
 | Phase 1b 报价 | 未开始 | — | Phase 1a 出口 | — |
 | Phase 2 交付 + 工时 | 未开始 | — | Phase 1b 出口 | — |
@@ -29,7 +30,6 @@
 ## 阻塞与待用户决定
 
 - 已知缺口（Phase 1a 会话登记，1b 前必须修复，详见 `phase1a/TIMESHEET_REPLAY.md`「已知缺口」）：G-1 审批节点「取不到人」与「字段缺失 / 值无效」无法区分，缺失或无效时应失败并告警，不能静默跳过（RULE-300）；G-2 会签（RULE-248/273）未实现。
-
 - 老系统安全缺陷（含 SEC-116 验证码固定 9999）按用户决定不处理；新系统按 `phase1a/SECURITY_INVARIANTS.md` I-1..I-9 保证不继承。brief Phase 1a 入口条件「老系统已止血」需按 `Proposed revision:` 追加说明（psa-coordinator）。
 - 运维事项：收窄 48088 安全组与 nginx 拒绝免密端点（SEC-001 网络层止血）、删除 `/other-api`（SEC-107）、Nacos 内部令牌、凭据轮换；RDS PG 18 高可用、ARMS、SLS 已开通（2026-10-14，见 aliyun 仓库 evidence/pg-upgrade-20261014）；RDS 已开通自动续费（用户 2026-10-14）；FORCITIS one 专用 ECS 已开通（2026-10-14）。
 - 业务编号新格式的各单据模板，在 Phase 1a 由管理员确认。
