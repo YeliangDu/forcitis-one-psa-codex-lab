@@ -532,6 +532,34 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_approval_node_config_invalid
+  zh: 节点配置无效
+  en: PlatformApprovalNodeConfigInvalid
+  snake: platform_approval_node_config_invalid
+  kind: error_code
+  bc: platform.approval
+  definition: 流程文件里节点的指派规则或时限配置缺失或不合法，该节点无法创建任务（503）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_page_invalid
+  zh: 翻页参数无效
+  en: PlatformApprovalPageInvalid
+  snake: platform_approval_page_invalid
+  kind: error_code
+  bc: platform.approval
+  definition: 列表的游标不是本模块给出的，或每页条数超出范围（400）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - advised
 - cursor

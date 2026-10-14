@@ -392,6 +392,13 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/taskReleased/messages/TaskReleased'
+  handleTaskReleasedInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/taskReleased'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/taskReleased/messages/TaskReleased'
   publishTaskReassigned:
     action: send
     channel:
@@ -418,6 +425,13 @@ operations:
     channel:
       $ref: '#/channels/taskClosed'
     summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/taskClosed/messages/TaskClosed'
+  handleTaskClosedInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/taskClosed'
+    summary: platform.approval 消费
     messages:
     - $ref: '#/channels/taskClosed/messages/TaskClosed'
   publishApprovalRoundStarted:
@@ -1686,13 +1700,12 @@ components:
         publisher: platform.approval
         consumers:
         - platform.audit
+        - platform.approval
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 退回当日（Asia/Shanghai）
         audit: audited
         publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
-        title: 当前处理人把任务转交给他人（RULE-285，D-1a-75）
-        noConsumer: 暂无消费方：审计之外无人订阅；分析层 L1 统计认领等待时长要用释放时刻，事后补不回，所以现在就发布
       payload:
         type: object
         required:
@@ -1844,14 +1857,13 @@ components:
         aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
-        consumers: []
+        consumers:
+        - platform.approval
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 本轮结束当日（Asia/Shanghai）
         audit: 'not-audited: 是已审计的审批结束事件的后果，不改变任何人超出该事件的权限'
         publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
-        title: 当前处理人把任务转交给他人（RULE-285，D-1a-75）
-        noConsumer: 暂无消费方：分析层 L1 据此区分「办结」与「被关闭」的任务，审批时效统计要用，所以现在就发布
       payload:
         type: object
         required:

@@ -14,6 +14,8 @@ import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
+import com.forcitis.one.platform.approval.events.TaskClosed;
+import com.forcitis.one.platform.approval.events.TaskReleased;
 import com.forcitis.one.platform.approval.events.TaskReassigned;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import com.forcitis.one.platform.integration.api.WecomCard;
@@ -67,8 +69,7 @@ class TaskNotifier {
 
     @ApplicationModuleListener
     void onTaskClaimed(TaskClaimed event) {
-        String name = org.findEmployee(event.claimedBy()).map(EmployeeProfile::name).orElse(ApprovalTexts.aColleague());
-        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.handledNote(name));
+        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.handledNote(nameOf(event.claimedBy())));
     }
 
     @ApplicationModuleListener
@@ -94,6 +95,18 @@ class TaskNotifier {
     void onTaskEscalated(ApprovalTaskEscalated event) {
         send(event.taskId(), event.escalatedTo(), ApprovalTexts.escalatedTitle(event.document()), ApprovalTexts.escalatedBody(event.target()),
                 dedupKey(event.taskId()) + ":escalated");
+        List<String> names = event.escalatedTo().stream().map(this::nameOf).toList();
+        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.escalatedNote(names));
+    }
+
+    @ApplicationModuleListener
+    void onTaskReleased(TaskReleased event) {
+        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.releasedNote(nameOf(event.releasedBy())));
+    }
+
+    @ApplicationModuleListener
+    void onTaskClosed(TaskClosed event) {
+        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.closedNote());
     }
 
     @ApplicationModuleListener
@@ -125,6 +138,10 @@ class TaskNotifier {
         }
         String target = taskId == null ? properties.taskUrlTemplate().replace("/{taskId}", "") : properties.taskUrlTemplate().replace("{taskId}", taskId.value());
         wecom.send(new WecomCard(wecomIds, title, description, target, dedupKey));
+    }
+
+    private String nameOf(UserId user) {
+        return org.findEmployee(user).map(EmployeeProfile::name).orElse(ApprovalTexts.aColleague());
     }
 
     private String moment(Instant instant) {

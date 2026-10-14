@@ -54,6 +54,12 @@ public class ReassignTask {
             throw ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
                     "Reassignment target " + to.value() + " is not an employed person other than the initiator");
         }
+        boolean alreadyOnTheNode = engine.findOpenTasksFor(to).stream().anyMatch(other -> other.instanceId().equals(task.instanceId())
+                && other.nodeKey().equals(task.nodeKey()) && !other.taskId().equals(taskId));
+        if (alreadyOnTheNode) {
+            throw ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
+                    "Reassignment target " + to.value() + " already has a task on node " + task.nodeKey() + " of this approval");
+        }
         engine.reassignTask(taskId, to);
         request.reassignTask(taskId, actor, to, Reason.ofNullable(reason), time.moment());
         approvals.save(request);

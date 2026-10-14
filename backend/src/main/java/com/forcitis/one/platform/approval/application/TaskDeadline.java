@@ -84,22 +84,23 @@ class TaskDeadline {
         UserId superior = view.assignee().flatMap(org::findSupervisor).filter(s -> !holders.contains(s) && !s.equals(view.initiator()))
                 .orElse(null);
         boolean toAdministrator = superior == null;
-        UserId receiver = toAdministrator ? administratorFor(view, holders) : superior;
+        List<UserId> receivers = toAdministrator ? administratorsFor(view, holders) : List.of(superior);
         if (view.isClaimed()) {
             engine.releaseClaim(view.taskId());
         }
-        engine.addCandidates(view.taskId(), List.of(receiver));
-        request.escalateTask(view.taskId(), List.of(receiver), toAdministrator, now);
+        engine.addCandidates(view.taskId(), receivers);
+        request.escalateTask(view.taskId(), receivers, toAdministrator, now);
         meters.counter("forcitis.platform.approval.task.escalated").increment();
     }
 
-    private UserId administratorFor(TaskView view, List<UserId> holders) {
-        UserId fallback = administrator.current().orElseThrow(() -> {
+    private List<UserId> administratorsFor(TaskView view, List<UserId> holders) {
+        List<UserId> fallback = administrator.holders().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
+        if (fallback.isEmpty()) {
             meters.counter("forcitis.platform.approval.task.escalation.unresolved").increment();
-            log.error("Task {} is overdue and nobody can take it from {}: no process administrator is configured", view.taskId().value(),
+            log.error("Task {} is overdue and nobody can take it from {}: nobody holds the process administrator role", view.taskId().value(),
                     holders);
-            return ApprovalError.PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING.refusal("Nobody to escalate task " + view.taskId().value() + " to");
-        });
+            throw ApprovalError.PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING.refusal("Nobody to escalate task " + view.taskId().value() + " to");
+        }
         meters.counter("forcitis.platform.approval.task.escalation.administrator").increment();
         if (view.isClaimed()) {
             log.error("Task {} is overdue and its holder {} has no superior: handed to the process administrator", view.taskId().value(),

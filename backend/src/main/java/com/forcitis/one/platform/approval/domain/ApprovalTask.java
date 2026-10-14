@@ -113,10 +113,12 @@ public final class ApprovalTask {
         if (!status.isOpen()) {
             throw illegal("reassign");
         }
-        status = ApprovalTaskStatus.CLAIMED;
+        if (status == ApprovalTaskStatus.CLAIMED) {
+            move(ApprovalTaskStatus.PENDING);
+        }
+        move(ApprovalTaskStatus.CLAIMED);
         assignee = Objects.requireNonNull(to, "to");
         claimedAt = at;
-        changed = true;
     }
 
     void complete(UserId by, TaskOutcome result, boolean advisory, Reason reason, ContentHash digest, Instant at) {
@@ -149,7 +151,7 @@ public final class ApprovalTask {
         }
         escalatedAt = now;
         if (status == ApprovalTaskStatus.CLAIMED) {
-            status = ApprovalTaskStatus.PENDING;
+            move(ApprovalTaskStatus.PENDING);
             assignee = null;
             claimedAt = null;
         }

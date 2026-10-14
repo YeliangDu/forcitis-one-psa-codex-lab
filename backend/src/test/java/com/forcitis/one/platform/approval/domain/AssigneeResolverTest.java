@@ -29,7 +29,7 @@ class AssigneeResolverTest {
                 .person(101, 1, null).person(110, 10, null).separated(120, 12, null).person(130, 13, null).person(131, 10, null)
                 .person(1, 11, 2L).person(2, 10, 3L).person(3, 1, null)
                 .person(ADMIN, 1, null);
-        resolver = new AssigneeResolver(org, org, new UserId(ADMIN));
+        resolver = new AssigneeResolver(org, org, java.util.Set.of(new UserId(ADMIN)));
     }
 
     Resolution resolve(AssignmentRule rule, long initiator, ProcessVariables variables) {
@@ -100,12 +100,12 @@ class AssigneeResolverTest {
     @DisplayName("RULE-250 nothing found anywhere goes to the process administrator; without one the result is UNRESOLVED")
     void nothingFoundGoesToAdministrator() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
-        Resolution r = new AssigneeResolver(lonely, lonely, new UserId(ADMIN))
+        Resolution r = new AssigneeResolver(lonely, lonely, java.util.Set.of(new UserId(ADMIN)))
                 .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new UserId(5), ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(ADMIN));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
 
-        Resolution none = new AssigneeResolver(lonely, lonely, null)
+        Resolution none = new AssigneeResolver(lonely, lonely, java.util.Set.of())
                 .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new UserId(5), ProcessVariables.empty());
         assertThat(none.candidates()).isEmpty();
         assertThat(none.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
@@ -147,7 +147,7 @@ class AssigneeResolverTest {
     @DisplayName("RULE-300 a complete, valid input with really nobody (no supervisor, no head, no role holder) is SKIPPED")
     void reallyNobodyIsSkipped() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
-        AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, new UserId(ADMIN));
+        AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, java.util.Set.of(new UserId(ADMIN)));
 
         assertThat(lonelyResolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new UserId(5), ProcessVariables.empty())
                 .kind()).isEqualTo(ResolutionKind.SKIPPED);

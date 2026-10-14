@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.domain.AssignmentRuleCodec;
 import com.forcitis.one.platform.approval.domain.NodeDeadline;
 import com.forcitis.one.platform.approval.domain.NodePolicy;
@@ -27,10 +28,10 @@ final class NodePolicyReader {
         List<ExtensionElement> rules = node.getExtensionElements().getOrDefault(ELEMENT, List.of()).stream()
                 .filter(e -> NAMESPACE.equals(e.getNamespace())).toList();
         if (rules.isEmpty()) {
-            throw new IllegalStateException("Node " + node.getId() + " has no forcitis:assignmentRule (RULE-262: exactly one)");
+            throw ApprovalError.PLATFORM_APPROVAL_NODE_CONFIG_INVALID.refusal("Node " + node.getId() + " has no forcitis:assignmentRule (RULE-262: exactly one)");
         }
         if (rules.size() > 1) {
-            throw new IllegalStateException("Node " + node.getId() + " has " + rules.size()
+            throw ApprovalError.PLATFORM_APPROVAL_NODE_CONFIG_INVALID.refusal("Node " + node.getId() + " has " + rules.size()
                     + " forcitis:assignmentRule elements (RULE-262: exactly one)");
         }
         ExtensionElement element = rules.getFirst();
@@ -44,7 +45,7 @@ final class NodePolicyReader {
                     flag(element, "autoApproveRepeat"),
                     deadline(element));
         } catch (IllegalStateException | IllegalArgumentException e) {
-            throw new IllegalStateException("Node " + node.getId() + ": " + e.getMessage(), e);
+            throw ApprovalError.PLATFORM_APPROVAL_NODE_CONFIG_INVALID.refusal("Node " + node.getId() + ": " + e.getMessage());
         }
     }
 

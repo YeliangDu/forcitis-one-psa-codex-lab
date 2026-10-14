@@ -8,7 +8,7 @@ ALTER TABLE cost_timesheet.timesheets DROP COLUMN approval_instance_id;
 
 COMMENT ON TABLE cost_timesheet.timesheets IS '工时单：聚合根；粒度：每张工时单一行；状态机在聚合内，审批结果经审批完成事件回写';
 COMMENT ON COLUMN cost_timesheet.timesheets.timesheet_number IS '单据编号：创建时由编号服务取号（TIMESHEET），全局唯一；事件信封的单据编号落在业务行上';
-COMMENT ON COLUMN cost_timesheet.timesheets.org_unit_id IS '组织单元（组织单元 ID）：创建时填报人所在的部门；业务事实归属于事实发生时的部门，调岗后不漂移';
+COMMENT ON COLUMN cost_timesheet.timesheets.org_unit_id IS '组织单元（组织单元 ID）：创建工时单时填报人当前所在的部门，取自组织快照，不按工作日期回溯到当日的部门；创建之后不随调岗改变';
 COMMENT ON COLUMN cost_timesheet.timesheets.submitted_date IS '提交日：员工提交审批的业务日期（Asia/Shanghai）；重新提交时更新；与工作日期是两件事，空表示从未提交';
 COMMENT ON COLUMN cost_timesheet.timesheets.work_date IS '工作日期：员工填写的、工时发生的那一天；创建时校验不得晚于今天，之后不再改写；事件的业务日期取它';
 COMMENT ON COLUMN cost_timesheet.timesheets.event_count IS '事件序号：该聚合已记录的领域事件数，每个事件加一，下一个事件取其加一作信封的聚合版本；与乐观锁版本 version（每次保存加一）是两个计数';

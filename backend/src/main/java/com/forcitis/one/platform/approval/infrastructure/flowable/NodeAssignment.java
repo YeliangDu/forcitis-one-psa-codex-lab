@@ -48,7 +48,7 @@ class NodeAssignment {
 
         Resolution resolution;
         try {
-            resolution = new AssigneeResolver(org, roles, administrator.current().orElse(null))
+            resolution = new AssigneeResolver(org, roles, administrator.holders())
                     .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
         } catch (RuntimeException failed) {
             log.error("Resolving the assignees of node {} (instance {}) failed: {}", node.getId(), instanceId, failed.toString());
@@ -68,8 +68,7 @@ class NodeAssignment {
                         + " is not an employed person");
             }
             case UNRESOLVED -> throw ApprovalError.PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND.refusal("Nobody can handle node " + node.getId()
-                    + " of instance " + instanceId + " and no process administrator is configured"
-                    + " (forcitis.platform.approval.assignment.process-administrator-user-id)");
+                    + " of instance " + instanceId + " and nobody holds the process administrator role");
             case RESOLVED -> {
             }
             default -> {

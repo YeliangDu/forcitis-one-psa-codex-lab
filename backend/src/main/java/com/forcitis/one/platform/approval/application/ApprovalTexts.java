@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.EscalationTarget;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import java.util.List;
 
 /**
  * Every word the approval module shows a person outside the screens: card titles and bodies, the inbox title of a task. They live
@@ -93,6 +94,18 @@ public final class ApprovalTexts {
 
     public static String handledNote(String name) {
         return "已由 " + name + " 处理";
+    }
+
+    public static String escalatedNote(List<String> names) {
+        return "已超时，已升级给 " + String.join("、", names);
+    }
+
+    public static String releasedNote(String name) {
+        return name + " 已释放，等待重新认领";
+    }
+
+    public static String closedNote() {
+        return "审批已结束，无需处理";
     }
 
     public static String aColleague() {

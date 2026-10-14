@@ -92,12 +92,16 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     }
 
     @Override
-    public List<TaskRecord> openTasks(Optional<Instant> overdueAt) {
+    public List<TaskRecord> openTasks(Optional<Instant> overdueAt, Optional<Instant> after, Optional<ApprovalTaskId> afterId, int limit) {
         return jdbc.sql(RECORD + """
                  WHERE t.status IN ('PENDING', 'CLAIMED') AND (CAST(:overdueAt AS timestamptz) IS NULL OR t.due_at < CAST(:overdueAt AS timestamptz))
+                   AND (CAST(:after AS timestamptz) IS NULL OR (t.created_at, t.task_id) > (CAST(:after AS timestamptz), CAST(:afterId AS text)))
                  ORDER BY t.created_at, t.task_id
+                 LIMIT :limit
                 """)
-                .param("overdueAt", overdueAt.map(JdbcApprovalTaskQueries::at).orElse(null)).query((rs, n) -> read(rs)).list();
+                .param("overdueAt", overdueAt.map(JdbcApprovalTaskQueries::at).orElse(null))
+                .param("after", after.map(JdbcApprovalTaskQueries::at).orElse(null)).param("afterId", afterId.map(ApprovalTaskId::value).orElse(null))
+                .param("limit", limit).query((rs, n) -> read(rs)).list();
     }
 
     @Override

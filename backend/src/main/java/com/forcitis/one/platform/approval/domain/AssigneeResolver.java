@@ -18,13 +18,13 @@ public final class AssigneeResolver {
 
     private final OrgDirectory org;
     private final RoleDirectory roles;
-    private final UserId administrator;
+    private final Set<UserId> administrators;
 
-    /** administrator may be null: then an empty candidate set is UNRESOLVED instead of routed. */
-    public AssigneeResolver(OrgDirectory org, RoleDirectory roles, UserId administrator) {
+    /** administrators may be empty: then an empty candidate set is UNRESOLVED instead of routed. */
+    public AssigneeResolver(OrgDirectory org, RoleDirectory roles, Set<UserId> administrators) {
         this.org = org;
         this.roles = roles;
-        this.administrator = administrator;
+        this.administrators = Set.copyOf(administrators);
     }
 
     public Resolution resolve(AssignmentRule rule, boolean selfApprovalAllowed, UserId initiator, ProcessVariables variables) {
@@ -58,10 +58,10 @@ public final class AssigneeResolver {
     }
 
     private Resolution fallback() {
-        if (administrator == null) {
+        if (administrators.isEmpty()) {
             return new Resolution(Set.of(), ResolutionKind.UNRESOLVED);
         }
-        return new Resolution(Set.of(administrator), ResolutionKind.ADMINISTRATOR_FALLBACK);
+        return new Resolution(administrators, ResolutionKind.ADMINISTRATOR_FALLBACK);
     }
 
     /** invalidInput: what the rule reads is missing or points at nobody who exists, so "no candidates" would not mean "nobody is responsible". */

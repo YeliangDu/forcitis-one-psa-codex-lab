@@ -294,19 +294,24 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("D-1a-113 an unclaimed candidate group escalates to the process administrator, who may then decide")
+    @DisplayName("D-1a-113 D-1a-61 an unclaimed candidate group escalates to every holder of the process administrator role, any of whom may then decide")
     void anUnclaimedTaskEscalatesToTheAdministrator() {
         Scene s = scene(true);
+        long secondAdministrator = newId();
+        organisation.person(secondAdministrator, 1, null).role("process_administrator", ADMINISTRATOR, secondAdministrator);
         double before = meters.counter("forcitis.platform.approval.task.escalation.administrator").count();
         clock.set(escalateAtOf(s).plusSeconds(1));
 
         enforceDeadlines.execute();
 
-        assertThat(candidatesOf(s)).containsExactlyInAnyOrder(String.valueOf(s.manager()), String.valueOf(ADMINISTRATOR));
+        assertThat(candidatesOf(s)).containsExactlyInAnyOrder(String.valueOf(s.manager()), String.valueOf(ADMINISTRATOR),
+                String.valueOf(secondAdministrator));
         ApprovalTaskEscalated escalated = events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow();
         assertThat(escalated.target()).isEqualTo(EscalationTarget.PROCESS_ADMINISTRATOR);
-        assertThat(escalated.escalatedTo()).containsExactly(new UserId(ADMINISTRATOR));
+        assertThat(escalated.escalatedTo()).containsExactlyInAnyOrder(new UserId(ADMINISTRATOR), new UserId(secondAdministrator));
         assertThat(meters.counter("forcitis.platform.approval.task.escalation.administrator").count()).isEqualTo(before + 1);
+        org.mockito.Mockito.verify(wecom, org.mockito.Mockito.timeout(10_000)).markHandled(org.mockito.ArgumentMatchers.eq("approval-task:" + s.task().value()),
+                org.mockito.ArgumentMatchers.argThat(note -> note.contains("已超时，已升级给")));
         decideTasks.execute(new UserId(ADMINISTRATOR), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
         assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
     }

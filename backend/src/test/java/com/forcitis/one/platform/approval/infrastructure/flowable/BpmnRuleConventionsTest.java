@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
+import com.forcitis.one.kernel.DomainException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -63,7 +64,7 @@ class BpmnRuleConventionsTest {
     @DisplayName("RULE-262 a node without a rule is a hard error, not a silent skip")
     void noRuleFails() {
         assertThatThrownBy(() -> NodePolicyReader.read(review(parse(""))))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("no forcitis:assignmentRule");
+                .isInstanceOf(DomainException.class).hasMessageContaining("no forcitis:assignmentRule");
     }
 
     @Test
@@ -71,7 +72,7 @@ class BpmnRuleConventionsTest {
     void twoRulesFail() {
         assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements>"
                 + "<forcitis:assignmentRule type=\"ROLE\" role=\"a\"/><forcitis:assignmentRule type=\"ROLE\" role=\"b\"/></extensionElements>"))))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("2 forcitis:assignmentRule");
+                .isInstanceOf(DomainException.class).hasMessageContaining("2 forcitis:assignmentRule");
     }
 
     @Test
@@ -79,10 +80,10 @@ class BpmnRuleConventionsTest {
     void invalidRuleNamesTheNode() {
         assertThatThrownBy(() -> NodePolicyReader.read(review(parse(
                 "<extensionElements><forcitis:assignmentRule type=\"PICK_ONE_AT_RANDOM\"/></extensionElements>"))))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("review").hasMessageContaining("PICK_ONE_AT_RANDOM");
+                .isInstanceOf(DomainException.class).hasMessageContaining("review").hasMessageContaining("PICK_ONE_AT_RANDOM");
         assertThatThrownBy(() -> NodePolicyReader.read(review(parse(
                 "<extensionElements><forcitis:assignmentRule type=\"FORM_FIELD_USERS\"/></extensionElements>"))))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("field");
+                .isInstanceOf(DomainException.class).hasMessageContaining("field");
     }
 
     @Test
@@ -103,11 +104,11 @@ class BpmnRuleConventionsTest {
         for (String type : Stream.concat(AssignmentRuleCodec.DEFERRED_TYPES.stream(), AssignmentRuleCodec.NOT_BUILT_TYPES.stream()).toList()) {
             assertThatThrownBy(() -> NodePolicyReader.read(review(parse(
                     "<extensionElements><forcitis:assignmentRule type=\"" + type + "\" role=\"r\" field=\"f\" users=\"1\" variable=\"v\"/></extensionElements>"))))
-                    .as(type).isInstanceOf(IllegalStateException.class).hasMessageContaining("review").hasMessageContaining(type);
+                    .as(type).isInstanceOf(DomainException.class).hasMessageContaining("review").hasMessageContaining(type);
         }
         assertThatThrownBy(() -> NodePolicyReader.read(review(parse(
                 "<extensionElements><forcitis:assignmentRule type=\"INITIATOR\"/></extensionElements>"))))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("INITIATOR");
+                .isInstanceOf(DomainException.class).hasMessageContaining("INITIATOR");
     }
 
     @Test
@@ -183,13 +184,13 @@ class BpmnRuleConventionsTest {
                 .deadline()).isEmpty();
         for (String unpaired : List.of("deadlineWorkdays=\"1\"", "escalationWorkdays=\"1\"")) {
             assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\" "
-                    + unpaired + "/></extensionElements>")))).as(unpaired).isInstanceOf(IllegalStateException.class)
+                    + unpaired + "/></extensionElements>")))).as(unpaired).isInstanceOf(DomainException.class)
                     .hasMessageContaining("review").hasMessageContaining("pair");
         }
         for (String bad : List.of("deadlineWorkdays=\"0\" escalationWorkdays=\"1\"", "deadlineWorkdays=\"1\" escalationWorkdays=\"-2\"",
                 "deadlineWorkdays=\"x\" escalationWorkdays=\"1\"", "deadlineWorkdays=\"1.5\" escalationWorkdays=\"1\"")) {
             assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\" "
-                    + bad + "/></extensionElements>")))).as(bad).isInstanceOf(IllegalStateException.class).hasMessageContaining("review");
+                    + bad + "/></extensionElements>")))).as(bad).isInstanceOf(DomainException.class).hasMessageContaining("review");
         }
     }
 
@@ -198,7 +199,7 @@ class BpmnRuleConventionsTest {
     void aFlagMustBeTrueOrFalse() {
         for (String attribute : List.of("skipWhenEmpty", "autoApproveRepeat", "cutoff")) {
             assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\" "
-                    + attribute + "=\"yes\"/></extensionElements>")))).as(attribute).isInstanceOf(IllegalStateException.class)
+                    + attribute + "=\"yes\"/></extensionElements>")))).as(attribute).isInstanceOf(DomainException.class)
                     .hasMessageContaining(attribute);
         }
         NodePolicy policy = NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\""

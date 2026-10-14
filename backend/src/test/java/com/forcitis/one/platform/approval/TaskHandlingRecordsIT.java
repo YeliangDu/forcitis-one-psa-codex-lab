@@ -120,4 +120,29 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         mvc.perform(get(RECORDS).param("limit", "0").with(user(String.valueOf(manager)))).andExpect(status().isBadRequest());
         mvc.perform(get(RECORDS).with(user(String.valueOf(initiator)))).andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
     }
+
+    @Test
+    @DisplayName("a reassignment to somebody who already has a task on the same node of the approval is refused; the overview is paged and only for the administrator")
+    void reassignmentAndOverview() throws Exception {
+        long unit = newId();
+        long initiator = newId();
+        long first = newId();
+        long second = newId();
+        organisation.unit(unit, null, null).person(initiator, unit, null).person(first, unit, null).person(second, unit, null);
+        String key = newKey("cosign");
+        tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator),
+                java.util.Set.of(com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+                List.of(new com.forcitis.one.platform.approval.api.ApprovalField(
+                        com.forcitis.one.cost.timesheet.api.TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(first), String.valueOf(second)))))));
+        ApprovalTaskId task = new ApprovalTaskId(taskService.createTaskQuery().processInstanceBusinessKey("TIMESHEET:" + key)
+                .taskCandidateOrAssigned(String.valueOf(first)).singleResult().getId());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, new UserId(ADMINISTRATOR), new UserId(second), "swap", OptionalLong.empty()))
+                .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
+
+        String overview = "/api/v1/platform/approval-task-overviews";
+        mvc.perform(get(overview).param("limit", "1").with(user(String.valueOf(ADMINISTRATOR)))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.nextCursor").exists());
+        mvc.perform(get(overview).with(user(String.valueOf(first)))).andExpect(status().isForbidden());
+    }
 }

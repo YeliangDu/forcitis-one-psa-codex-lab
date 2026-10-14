@@ -857,6 +857,21 @@
         "required" : [ "assignee", "assigneeName", "canAct", "candidateNames", "candidates", "completedAt", "createdAt", "deadlineAt", "documentId", "documentType", "dueAt", "effect", "history", "initiator", "initiatorName", "initiatorOrgUnitName", "instanceId", "nodeKey", "nodeName", "outcome", "overdue", "processKey", "reason", "status", "summary", "taskId" ],
         "type" : "object"
       },
+      "TaskOverviewPageResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TaskOverviewResponse"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items", "nextCursor" ],
+        "type" : "object"
+      },
       "TaskOverviewResponse" : {
         "properties" : {
           "assignee" : {
@@ -1487,16 +1502,28 @@
             "default" : false,
             "type" : "boolean"
           }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
         } ],
         "responses" : {
           "200" : {
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "items" : {
-                    "$ref" : "#/components/schemas/TaskOverviewResponse"
-                  },
-                  "type" : "array"
+                  "$ref" : "#/components/schemas/TaskOverviewPageResponse"
                 }
               }
             },

@@ -42,14 +42,6 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        if (properties.processAdministratorUserId() == null && environment.acceptsProfiles(Profiles.of("prod"))) {
-            throw new IllegalStateException("forcitis.platform.approval.assignment.process-administrator-user-id must be set in production: "
-                    + "a task nobody can be found for would otherwise have nowhere to go (D-1a-61)");
-        }
-        if (properties.processAdministratorUserId() == null) {
-            log.warn("forcitis.platform.approval.assignment.process-administrator-user-id is not set: a task nobody can be found for "
-                    + "will fail its approval instead of going to the process administrator (RULE-250/254)");
-        }
         verifyDefinitions();
         engine.getProcessEngineConfiguration().getEventDispatcher().addEventListener(listener, FlowableEngineEventType.TASK_CREATED);
     }

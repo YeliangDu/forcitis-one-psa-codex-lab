@@ -7,6 +7,8 @@ import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import java.time.Instant;
 import java.util.List;
+import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.domain.TaskRecord;
 import java.util.Optional;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -31,7 +33,7 @@ public class ListAllTasks {
     }
 
     @Transactional(readOnly = true)
-    public List<TaskOverview> execute(UserId actor, boolean overdueOnly) {
+    public TaskOverviewPage execute(UserId actor, boolean overdueOnly, ListPage page) {
         if (!administrator.isAdministrator(actor)) {
             denials.record(new AuditEntry("platform.approval.task.denied", actor, null, "approval-task:all", "list"));
             throw new AccessDeniedException("User " + actor.value() + " is not the process administrator");
@@ -39,9 +41,15 @@ public class ListAllTasks {
         audit.recordIndependently(new AuditEntry("platform.approval.task.list-all", actor, null, "approval-task:all",
                 overdueOnly ? "overdue only" : null));
         Instant now = time.now();
-        return tasks.openTasks(overdueOnly ? Optional.of(now) : Optional.empty()).stream()
+        List<TaskRecord> rows = tasks.openTasks(overdueOnly ? Optional.of(now) : Optional.empty(), page.cursor().map(ListPage.Position::at),
+                page.cursor().map(position -> new ApprovalTaskId(position.id())), page.limit() + 1);
+        boolean more = rows.size() > page.limit();
+        List<TaskRecord> shown = more ? rows.subList(0, page.limit()) : rows;
+        List<TaskOverview> items = shown.stream()
                 .map(record -> new TaskOverview(record.taskId(), record.processKey(), record.document(), record.nodeKey(), record.status(),
                         record.assignee(), record.createdAt(), record.dueAt(), record.dueAt().map(now::isAfter).orElse(false)))
                 .toList();
+        return new TaskOverviewPage(items, more ? Optional.of(ListPage.cursorAfter(shown.getLast().createdAt(), shown.getLast().taskId().value()))
+                : Optional.empty());
     }
 }

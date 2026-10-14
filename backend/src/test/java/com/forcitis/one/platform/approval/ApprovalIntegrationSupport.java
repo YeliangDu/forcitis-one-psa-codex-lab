@@ -58,7 +58,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** One PostgreSQL 18 container per test JVM and a cached application context; the Flowable schema is created by the engine only in tests; other modules' dependencies are doubles. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "forcitis.platform.approval.deadline.enabled=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=" + ApprovalIntegrationSupport.ADMINISTRATOR,
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
@@ -181,7 +180,7 @@ public abstract class ApprovalIntegrationSupport {
         org.mockito.Mockito.when(employeeLegalEntities.on(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(LEGAL_ENTITY);
         com.forcitis.one.fixture.doubles.AggregateWriteGuard.forget();
         events = new Events(recorded);
-        organisation.person(ADMINISTRATOR, 1, null);
+        organisation.person(ADMINISTRATOR, 1, null).role("process_administrator", ADMINISTRATOR);
         org.mockito.Mockito.when(numbers.next(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .thenAnswer(call -> new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()));
     }

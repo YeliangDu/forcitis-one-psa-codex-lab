@@ -21,8 +21,11 @@ public interface ApprovalTaskQueries {
     /** What the person decided, newest first, starting after the given place; one more than the limit when there is a next page. */
     List<TaskHandling> handledBy(UserId user, Optional<Instant> after, Optional<UUID> afterId, int limit);
 
-    /** Every open task, or only those past their deadline at {@code overdueAt}: the administrator's overview (D-1a-139). */
-    List<TaskRecord> openTasks(Optional<Instant> overdueAt);
+    /**
+     * Open tasks oldest first, or only those past their deadline at {@code overdueAt}: the administrator's overview (D-1a-139). A page
+     * starts after the given creation time and task id; the limit is the number of rows asked for.
+     */
+    List<TaskRecord> openTasks(Optional<Instant> overdueAt, Optional<Instant> after, Optional<ApprovalTaskId> afterId, int limit);
 
     /** Every task of one document, oldest first, whichever round it is from: the history shown next to a task. */
     List<TaskRecord> historyOf(ProcessKey processKey, String documentKey);
