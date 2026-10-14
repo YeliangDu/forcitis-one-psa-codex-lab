@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # FORCITIS one · C-7 · 证书到期与续期检查（只读）。由 one-cert-check.timer 每日以 root 运行。
 # 结果写一行 JSON 到 journal（标签 one-cert-check）与 /data/forcitis-one/logs/ops/cert-check.json（Logtail 采集）。
-# /etc/forcitis-one/ops-alert.env（root 0600）存在时，告警同时推送企业微信群机器人；不存在只记日志。
+# /etc/forcitis-one/ops-alert.env（root 0600）与 one_alert_send 都在时，告警同时以企业微信应用消息发给平台负责人；否则只记日志。
 # 退出码：0 正常；1 告警；2 检查本身失败（文件缺失、命令失败），按告警处理。
 set -uo pipefail
 
@@ -11,6 +11,7 @@ WARN_DAYS="${ONE_CERT_WARN_DAYS:-20}"
 CRIT_DAYS="${ONE_CERT_CRIT_DAYS:-7}"
 LOG_DIR="${ONE_OPS_LOG_DIR:-/data/forcitis-one/logs/ops}"
 ALERT_ENV=/etc/forcitis-one/ops-alert.env
+ALERT_SENDER=/usr/local/sbin/one_alert_send
 
 now=$(date +%s)
 days_left() { local end; end=$(openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2) || return 1; [[ -n "$end" ]] || return 1; echo $(( ($(date -d "$end" +%s) - now) / 86400 )); }
@@ -45,15 +46,9 @@ echo "$json"
 
 [[ $level == OK ]] && exit 0
 
-if [[ -r "$ALERT_ENV" ]]; then
-  webhook=$(grep -E "^ONE_ALERT_${level}_WEBHOOK=" "$ALERT_ENV" | head -1 | cut -d= -f2-)
-  [[ -z "$webhook" ]] && webhook=$(grep -E '^ONE_ALERT_P2_WEBHOOK=' "$ALERT_ENV" | head -1 | cut -d= -f2-)
-  if [[ -n "$webhook" ]]; then
-    body=$(printf '{"msgtype":"text","text":{"content":"%s"}}' "$message")
-    # The webhook URL carries the robot key; pass it on stdin so it never appears in the process list.
-    printf 'url = "%s"\n' "$webhook" | curl -sS --max-time 10 -H 'Content-Type: application/json' -d "$body" --config - >/dev/null \
-      || logger -t one-cert-check -- "ALERT P2 one.cert: webhook delivery failed"
-  fi
+# Delivery to the platform owner as a WeCom application message (one_alert_send); without it the alert stays in the logs only.
+if [[ -x "$ALERT_SENDER" && -r "$ALERT_ENV" ]]; then
+  "$ALERT_SENDER" "$level" "$message" >/dev/null || logger -t one-cert-check -- "ALERT P2 one.cert: alert delivery failed"
 fi
 [[ -z "$file_days" || -z "$served_days" ]] && exit 2
 exit 1
