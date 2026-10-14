@@ -1,0 +1,79 @@
+# A8 凭证插件（LEXMISCIF_VOUCHER / AUDITEDBILL）：A8 表单直接生成 U8C 凭证（生产只读，2026-10-14，只含计数）
+section	form	booktype_or_state	source_or_mode	voucher_rows	distinct_oa_bills	last_180d	first	last
+voucher	发票退票申请	1	1	2700	802	588	2024-03-29	2026-10-08
+voucher	回款单新增	1	1	15756	2839	3992	2024-02-01	2026-10-08
+voucher	业务招待费用报销单	1	1	14149	2442	3380	2024-02-01	2026-09-30
+voucher	预付款核销申请	1	1	10986	670	2364	2024-02-28	2026-10-08
+voucher	付款申请单-人事	1	1	32093	897	6848	2024-02-23	2026-10-08
+voucher	首付款开票申请	1	1	3237	971	573	2024-02-02	2026-10-08
+voucher	付款申请单-财务	1	1	2562	18	1248	2025-03-03	2026-09-29
+voucher	(未识别 0)	1	1	784	26	641	2024-02-28	2026-10-10
+voucher	项目开票申请	1	1	14574	4494	2802	2024-02-01	2026-10-08
+voucher	差旅费用报销单	1	1	159154	8726	39652	2024-02-04	2026-09-30
+voucher	BU预提费用明细表	1	1	4696	190	1210	2025-02-07	2026-10-10
+voucher	客户产值确认单	1	1	7560	2520	2283	2025-02-14	2026-09-20
+voucher	借款单新增	1	1	222	61	40	2024-02-22	2026-09-28
+voucher	日常费用报销单	1	1	72038	5648	19902	2024-02-01	2026-09-30
+voucher	付款申请单	1	1	61552	1972	13620	2024-02-22	2026-09-30
+voucher	还款单新增	1	1	222	63	36	2024-02-28	2026-09-28
+audited_bill	还款单新增	1	0	63		7		2026-09-24
+audited_bill	回款单新增	0	0	40		24		2026-10-14
+audited_bill	预付款核销申请	0	0	32		20		2026-10-12
+audited_bill	首付款开票申请	0	0	24		16		2026-10-14
+audited_bill	付款申请单-人事	0	0	138		50		2026-10-12
+audited_bill	付款申请单-财务	3	0	7		0		2025-12-10
+audited_bill	项目开票申请	0	0	75		48		2026-10-14
+audited_bill	发票退票申请	0	0	33		23		2026-10-13
+audited_bill	付款申请单-财务	1	0	18		9		2026-09-10
+audited_bill	借款单新增	1	0	61		6		2026-09-24
+audited_bill	付款申请单	1	0	1972		345		2026-09-28
+audited_bill	日常费用报销单	0	0	6		0		2025-12-31
+audited_bill	BU预提费用明细表	1	0	190		44		2026-10-10
+audited_bill	差旅费用报销单	0	0	2		0		2025-12-31
+audited_bill	回款单新增	3	0	180		1		2026-08-03
+audited_bill	付款申请单	3	0	233		14		2026-09-24
+audited_bill	还款单新增	3	0	10		0		2025-09-17
+audited_bill	BU预提费用明细表	3	0	6		1		2026-05-27
+audited_bill	项目开票申请	3	0	77		0		2026-01-30
+audited_bill	预付款核销申请	3	0	75		7		2026-09-24
+audited_bill	日常费用报销单	1	0	5648		1284		2026-09-24
+audited_bill	客户产值确认单	1	0	2520		741		2026-08-31
+audited_bill	日常费用报销单	3	0	55		2		2026-04-30
+audited_bill	客户产值确认单	3	0	14		1		2026-04-27
+audited_bill	发票退票申请	1	0	802		181		2026-09-30
+audited_bill	借款单新增	0	0	3		3		2026-10-12
+audited_bill	首付款开票申请	1	0	971		182		2026-09-30
+audited_bill	付款申请单	0	0	96		41		2026-10-12
+audited_bill	回款单新增	1	0	2839		552		2026-10-08
+audited_bill	项目开票申请	1	0	4494		879		2026-09-30
+audited_bill	预付款核销申请	1	0	670		130		2026-10-08
+audited_bill	还款单新增	0	0	3		2		2026-06-24
+audited_bill	付款申请单-人事	1	0	897		110		2026-09-23
+audited_bill	借款单新增	3	0	9		0		2025-10-10
+audited_bill	客户产值确认单	0	0	434		178		2026-10-13
+audited_bill	业务招待费用报销单	1	0	2442		428		2026-09-27
+audited_bill	差旅费用报销单	1	0	8726		1665		2026-09-28
+audited_bill	付款申请单-人事	3	0	151		0		2026-02-05
+audited_bill	首付款开票申请	3	0	26		0		2025-12-30
+audited_bill	付款申请单-财务	0	0	6		2		2026-07-14
+audited_bill	差旅费用报销单	3	0	108		0		2025-09-16
+audited_bill	发票退票申请	3	0	78		1		2026-06-16
+audited_bill	业务招待费用报销单	3	0	16		0		2025-01-22
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	电子专票	openstate=0 invstate=0	year=	6				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=0 invstate=0	year=	897				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电普票	openstate=2 invstate=0	year=2026	1				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=2 invstate=1	year=2025	147				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=2 invstate=1	year=	127				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=0 invstate=0	year=2025	688				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电普票	openstate=0 invstate=0	year=	6				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电普票	openstate=2 invstate=1	year=2025	1				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=2 invstate=0	year=2025	887				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=0 invstate=0	year=2026	720				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电普票	openstate=2 invstate=0	year=2025	4				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=2 invstate=1	year=2026	139				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=2 invstate=0	year=	1494				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电普票	openstate=0 invstate=0	year=2025	6				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电普票	openstate=2 invstate=0	year=	7				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=3 invstate=0	year=2026	1				
+invoice_issue(LEXMISCIVOUT_OPENMAIN)	数电专票	openstate=2 invstate=0	year=2026	825				
+invoice_issue_last_180d				1143		1143		2026-10-14

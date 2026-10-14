@@ -585,6 +585,14 @@ for t in terms:
                 al["type"], al["deprecated"] = "zh-internal", True
     if DEC.get(f"B-{t['id']}") or DEC.get(f"C-{t['id']}") or any(k.startswith(f"A-{t['id']}-") for k in DEC):
         t["confirmed"] = "2026-10-14（业务 Admin，用语确认页）"
+# OA 流程盘点（2026-10-14，放在已有确认之后，不受已确认改名的连带）：A8 表单与流程中的叫法登记为待确认别名，不定为正式用语（ADR-0018）
+import os as _os
+if _os.path.exists("glossary/oa_aliases.json"):
+    _byid = {t["id"]: t for t in terms}
+    for _a in json.load(open("glossary/oa_aliases.json", encoding="utf-8"))["aliases"]:
+        _t = _byid[_a["term"]]
+        if all(al["name"] != _a["name"] for al in _t.get("aliases") or []):
+            _t.setdefault("aliases", []).append({"name": _a["name"], "type": "zh-internal", "deprecated": False, "source": _a["source"]})
 for t in terms:
     for al in t.get("aliases") or []:
         if al.get("type") == "zh-internal" and any(w in al["name"] for w in DECIDED_DIALECT):
