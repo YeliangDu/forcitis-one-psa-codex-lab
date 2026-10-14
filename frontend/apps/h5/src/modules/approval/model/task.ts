@@ -42,6 +42,13 @@ export function canConfirm(action: ReasonAction, reason: string): boolean {
   return !REASON_RULES[action].required || reason.trim() !== '';
 }
 
+export const EMPTY_OPINION = '（未填写意见）';
+
+/** Display only: an empty opinion stays empty in the data (RULE-280). */
+export function opinionText(opinion: string | undefined): string {
+  return opinion === undefined || opinion.trim() === '' ? EMPTY_OPINION : opinion;
+}
+
 export const PROCESS_LABELS: Readonly<Record<string, string>> = {
   COST_TIMESHEET_APPROVAL: '工时单审批',
 };

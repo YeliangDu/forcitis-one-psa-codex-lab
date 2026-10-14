@@ -325,3 +325,16 @@ terms:
   forbidden: []
   status: proposed
   note: 扫描前端界面文案发现；登录失败提示用语；与「已撤销」（组织单元）是两个不同状态
+- id: opinion
+  zh: 意见
+  en: Opinion
+  snake: opinion
+  kind: value
+  bc: platform.approval
+  definition: 办理人随办理结果留下的文字说明；通过时可以留空，留空如实保存为空，界面显示为「（未填写意见）」（RULE-280）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 界面文案；输入框沿用「理由」，与 platform-approval 的 reason 指同一内容，第三轮用语确认时合并

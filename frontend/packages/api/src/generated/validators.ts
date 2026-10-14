@@ -1,6 +1,16 @@
 // Generated from packages/api/openapi.json by scripts/generate-api.mjs. Do not edit by hand.
 import { z } from 'zod';
 
+export const CalendarDayRequestSchema = z.object({
+  calendarDate: z.string().optional(),
+  dayKind: z.string().optional(),
+});
+
+export const CalendarDayResponseSchema = z.object({
+  calendarDate: z.string(),
+  dayKind: z.string(),
+});
+
 export const CreateLegalEntityRequestSchema = z.object({
   code: z.string().optional(),
   name: z.string().optional(),
@@ -66,6 +76,10 @@ export const LegalEntityResponseSchema = z.object({
 
 export const LoginStateRequestSchema = z.object({
   entry: z.enum(["WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN"]).optional(),
+});
+
+export const MaintainWorkCalendarRequestSchema = z.object({
+  get days() { return z.array(CalendarDayRequestSchema).optional(); },
 });
 
 export const NavigationResponseSchema = z.object({
@@ -231,6 +245,7 @@ export const TransferTaskRequestSchema = z.object({
 });
 
 export const UpdateLegalEntityRequestSchema = z.object({
+  code: z.string().optional(),
   name: z.string().optional(),
   status: z.string().optional(),
 });
@@ -241,17 +256,25 @@ export const WecomLoginRequestSchema = z.object({
   state: z.string().optional(),
 });
 
+export const WorkCalendarYearResponseSchema = z.object({
+  calendarYear: z.number().int(),
+  get days() { return z.array(CalendarDayResponseSchema); },
+});
+
 export const responseSchemas = {
   getCostTimesheetsById: TimesheetResponseSchema,
   postCostTimesheetsByIdSubmit: SubmitTimesheetResponseSchema,
   getOrganizationLegalEntities: z.array(LegalEntityResponseSchema),
-  postOrganizationLegalEntities: z.unknown(),
-  putOrganizationLegalEntitiesByLegalEntityId: z.unknown(),
+  postOrganizationLegalEntities: LegalEntityResponseSchema,
+  putOrganizationLegalEntitiesByLegalEntityId: LegalEntityResponseSchema,
   getOrganizationOrgUnits: z.array(OrgUnitResponseSchema),
   getOrganizationOrgUnitsByOrgUnitId: OrgUnitDetailResponseSchema,
   getOrganizationSyncRuns: z.array(SyncRunResponseSchema),
   getOrganizationSyncRunsBySyncRunId: SyncRunDetailResponseSchema,
   postOrganizationSyncRunsBySyncRunIdRelease: ReleaseResponseSchema,
+  getOrganizationWorkCalendars: z.array(z.number().int()),
+  getOrganizationWorkCalendarsByCalendarYear: WorkCalendarYearResponseSchema,
+  putOrganizationWorkCalendarsByCalendarYear: WorkCalendarYearResponseSchema,
   getPlatformApprovalTasks: InboxResponseSchema,
   getPlatformApprovalTasksByTaskId: TaskDetailResponseSchema,
   postPlatformApprovalTasksByTaskIdDecide: DecisionResponseSchema,
@@ -261,7 +284,6 @@ export const responseSchemas = {
   postPlatformLoginStates: z.unknown(),
   getPlatformNumberingRules: z.array(NumberingRuleResponseSchema),
   getPlatformNumberingRulesByDocumentType: NumberingRuleResponseSchema,
-  putPlatformNumberingRulesByDocumentType: z.string(),
   getPlatformRoles: z.array(RoleResponseSchema),
   postPlatformRoles: z.unknown(),
   getPlatformRolesByRoleId: z.unknown(),
