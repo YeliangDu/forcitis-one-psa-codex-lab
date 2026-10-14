@@ -1,16 +1,20 @@
 // Terminology guard for what users read (JSX text, button / title / notice / placeholder / aria-label strings, message tables).
 // Every Chinese text in production source must be made of registered terms (docs/modernization/glossary/terms.yaml, backend/glossary/terms.yaml,
 // backend/glossary/proposed/*.yaml) and the allow list of non-business words (scripts/copy-allow-list.yaml); a forbidden dialect fails outright.
+// A single-character allowed word (的, 和, 已 ...) is only a connector: it must sit between two words, never start, end or stand next to another one,
+// otherwise any Chinese text could be spelled from connectors and registered fragments. A state such as 已认领 is registered as a term, not assembled.
 // Tests, test helpers and generated code are not user-facing and are skipped.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import ts from 'typescript';
 import { parse } from 'yaml';
 
 const CHINESE = /[一-鿿]+/g;
 const HAS_CHINESE = /[一-鿿]/;
 const SKIPPED_FILE = /(\.test\.tsx?|\.d\.ts)$/;
-const SKIPPED_DIRECTORY = new Set(['node_modules', 'dist', 'generated', 'testing', 'test']);
+const SKIPPED_DIRECTORY = new Set(['node_modules', 'dist', 'generated']);
+/** Test helper folders, only at the place the layout puts them (relative to a scanned source root); a production folder that happens to be called testing is scanned. */
+const TEST_SUPPORT_DIRECTORIES = new Set(['test', 'testing', 'shared/testing']);
 
 function readYaml(path) {
   if (!existsSync(path)) throw new Error(`copy glossary: ${path} is missing. Without the vocabulary nothing can be checked (G-1).`);
@@ -42,11 +46,15 @@ export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory,
     chineseChunks(term.zh).forEach((chunk) => vocabulary.add(chunk));
   }
 
-  const allowed = readYaml(allowList).words ?? [];
+  const allowFile = readYaml(allowList);
+  const allowed = allowFile.words ?? [];
+  const standalone = new Set(allowFile.standalone ?? []);
   const registeredWords = new Set(vocabulary);
+  const connectors = new Set();
   for (const word of allowed) {
     if (typeof word !== 'string' || !/^[一-鿿]+$/.test(word)) problems.push(`allow list: "${word}" must be Chinese characters only`);
     else if (registeredWords.has(word)) problems.push(`allow list: "${word}" is already a registered term; remove it from the allow list`);
+    else if (word.length === 1) connectors.add(word);
     else vocabulary.add(word);
   }
 
@@ -62,24 +70,44 @@ export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory,
       if (!termZh.has(phrase)) forbidden.push({ phrase, term: term.zh, id: term.id });
     }
   }
-  return { vocabulary, forbidden, termZh: [...termZh], problems, longest: Math.max(1, ...[...vocabulary].map((word) => word.length)) };
+  return { vocabulary, connectors, standalone, forbidden, termZh: [...termZh], problems, longest: Math.max(1, ...[...vocabulary].map((word) => word.length)) };
 }
 
-/** Smallest set of uncovered pieces when `run` is cut into vocabulary words (dynamic programming over positions). */
-function uncoveredPieces(run, { vocabulary, longest }) {
-  const best = Array.from({ length: run.length + 1 }, () => ({ missing: Number.POSITIVE_INFINITY, from: -1, covered: false }));
-  best[0] = { missing: 0, from: -1, covered: true };
-  for (let end = 1; end <= run.length; end += 1) {
-    best[end] = { missing: best[end - 1].missing + 1, from: end - 1, covered: false };
-    for (let start = Math.max(0, end - longest); start < end; start += 1) {
-      if (vocabulary.has(run.slice(start, end)) && best[start].missing < best[end].missing) best[end] = { missing: best[start].missing, from: start, covered: true };
+const START = 0;
+const GAP = 1;
+const WORD = 2;
+const CONNECTOR = 3;
+const STATES = [START, GAP, WORD, CONNECTOR];
+
+/**
+ * Smallest set of uncovered pieces when `run` is cut into vocabulary words and connectors (dynamic programming over position and the kind of the last piece).
+ * A connector must have something on both sides: it cannot be the first or last character of a text or sit next to another connector.
+ * A neighbour that is itself uncovered counts, because that neighbour is reported anyway.
+ */
+function uncoveredPieces(run, { vocabulary, connectors, longest }) {
+  const unreachable = { missing: Number.POSITIVE_INFINITY };
+  const best = Array.from({ length: run.length + 1 }, () => STATES.map(() => unreachable));
+  best[0][START] = { missing: 0 };
+  const reach = (position, state, missing, from, fromState, covered) => {
+    if (missing < best[position][state].missing) best[position][state] = { missing, from, fromState, covered };
+  };
+  for (let at = 0; at < run.length; at += 1) {
+    for (const state of STATES) {
+      const here = best[at][state];
+      if (here.missing === Number.POSITIVE_INFINITY) continue;
+      reach(at + 1, GAP, here.missing + 1, at, state, false);
+      for (let end = at + 1; end <= Math.min(run.length, at + longest); end += 1) {
+        if (vocabulary.has(run.slice(at, end))) reach(end, WORD, here.missing, at, state, true);
+      }
+      if ((state === WORD || state === GAP) && connectors.has(run[at])) reach(at + 1, CONNECTOR, here.missing, at, state, true);
     }
   }
+  const last = best[run.length];
+  let state = [START, GAP, WORD].reduce((winner, candidate) => (last[candidate].missing < last[winner].missing ? candidate : winner));
   const pieces = [];
-  let end = run.length;
   let open = '';
-  while (end > 0) {
-    const step = best[end];
+  for (let end = run.length; end > 0;) {
+    const step = best[end][state];
     const piece = run.slice(step.from, end);
     if (step.covered) {
       if (open !== '') pieces.unshift(open);
@@ -88,6 +116,7 @@ function uncoveredPieces(run, { vocabulary, longest }) {
       open = piece + open;
     }
     end = step.from;
+    state = step.fromState;
   }
   if (open !== '') pieces.unshift(open);
   return pieces;
@@ -96,6 +125,7 @@ function uncoveredPieces(run, { vocabulary, longest }) {
 /** Problems of one user-visible text: Chinese pieces no registered term or allowed word explains, and forbidden dialects. */
 export function problemsOfText(text, glossary) {
   const problems = [];
+  if (glossary.standalone.has(text.trim())) return problems;
   const termSpans = [];
   for (const zh of glossary.termZh) {
     for (let at = text.indexOf(zh); at >= 0; at = text.indexOf(zh, at + 1)) termSpans.push([at, at + zh.length]);
@@ -138,17 +168,18 @@ export function textsOf(source, fileName) {
 
 export function sourceFiles(roots) {
   const found = [];
-  const walk = (directory) => {
+  const walk = (root, directory) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name);
       if (entry.isDirectory()) {
-        if (!SKIPPED_DIRECTORY.has(entry.name)) walk(path);
+        const fromRoot = relative(root, path).split(sep).join('/');
+        if (!SKIPPED_DIRECTORY.has(entry.name) && !TEST_SUPPORT_DIRECTORIES.has(fromRoot)) walk(root, path);
       } else if (/\.tsx?$/.test(entry.name) && !SKIPPED_FILE.test(entry.name)) {
         found.push(path);
       }
     }
   };
-  roots.filter((root) => existsSync(root)).forEach(walk);
+  roots.filter((root) => existsSync(root)).forEach((root) => walk(root, root));
   return found.sort();
 }
 
