@@ -756,6 +756,20 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__organization_workforce_attribution_correction_forbidden
+  zh: 无权更正归属期间
+  en: OrganizationWorkforceAttributionCorrectionForbidden
+  snake: organization_workforce_attribution_correction_forbidden
+  kind: error_code
+  bc: organization.workforce
+  definition: "更正已关闭的归属期间需要单独的权限，拒绝时记入审计（403）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - opened
 - clock

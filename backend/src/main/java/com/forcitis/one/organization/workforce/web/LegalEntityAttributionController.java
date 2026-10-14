@@ -81,7 +81,7 @@ class LegalEntityAttributionController {
     }
 
     @PostMapping("/org-unit-legal-entities/{orgUnitId}:correct")
-    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE + "')")
+    @PreAuthorize("isAuthenticated()")
     ResponseEntity<LegalEntityAttributionResponse> correctOrgUnit(@PathVariable long orgUnitId, @RequestBody CorrectLegalEntityAttributionRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, Principal caller) {
         return answer(correct.execute(AttributionKind.ORG_UNIT, orgUnitId, request.periodFrom(), request.effectiveTo(), request.reason(),
@@ -89,7 +89,7 @@ class LegalEntityAttributionController {
     }
 
     @PostMapping("/employee-legal-entities/{employeeId}:correct")
-    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE + "')")
+    @PreAuthorize("isAuthenticated()")
     ResponseEntity<LegalEntityAttributionResponse> correctEmployee(@PathVariable long employeeId, @RequestBody CorrectLegalEntityAttributionRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, Principal caller) {
         return answer(correct.execute(AttributionKind.EMPLOYEE, employeeId, request.periodFrom(), request.effectiveTo(), request.reason(),

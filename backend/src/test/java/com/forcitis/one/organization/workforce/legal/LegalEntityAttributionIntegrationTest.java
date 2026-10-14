@@ -292,6 +292,8 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         correct(url, "\"99\"", ok, CORRECTOR, 412);
         correct(url, etag, ok, MAINTAINER, 403);
         correct(url, etag, ok, READER, 403);
+        org.mockito.Mockito.verify(audit, org.mockito.Mockito.times(2)).recordIndependently(org.mockito.ArgumentMatchers.argThat(
+                entry -> entry.action().equals("organization.workforce.legal-entity-attribution.correction-refused")));
         assertThat(jdbc.sql("select count(*) from organization_workforce.legal_entity_attribution_corrections").query(Long.class).single()).isZero();
     }
 }

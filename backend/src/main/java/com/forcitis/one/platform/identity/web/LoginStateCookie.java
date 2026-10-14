@@ -3,7 +3,7 @@ package com.forcitis.one.platform.identity.web;
 import java.time.Duration;
 import org.springframework.http.ResponseCookie;
 
-/** Ties a login state to the browser that asked for it: HttpOnly, SameSite=Lax, sent only to the login endpoints. */
+/** Ties a login state to the browser that asked for it: HttpOnly, SameSite=Lax; the path covers the whole platform API, but only the login endpoints read it. */
 final class LoginStateCookie {
     static final String NAME = "loginBinding";
     private static final String PATH = "/api/v1/platform";

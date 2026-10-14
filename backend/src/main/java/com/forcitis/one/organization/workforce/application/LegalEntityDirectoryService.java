@@ -23,8 +23,9 @@ class LegalEntityDirectoryService implements LegalEntityDirectory {
         return legalEntities.find(legalEntityId).map(LegalEntityRecord::code);
     }
 
+    /** The share lock lasts to the end of the caller's transaction; without one it would protect nothing, so none is started here. */
     @Override
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public Optional<LegalEntityCode> lockActiveCode(LegalEntityId legalEntityId) {
         return legalEntities.findSharedLocked(legalEntityId).filter(e -> e.status() == LegalEntityStatus.ACTIVE).map(LegalEntityRecord::code);
     }

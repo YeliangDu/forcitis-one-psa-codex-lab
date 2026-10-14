@@ -147,6 +147,7 @@
 - **重投作业**（`platform.integration.event.republish`，ShedLock 互斥）：每 `republish-interval`（默认 1 分钟）重投超过 `minimum-age`（默认 1 分钟）仍未完成的发布，最多 `maximum-attempts`（默认 8）次。
 - **告警**：用尽次数仍未完成的发布数 → 指标 `forcitis.platform.integration.event.publications.exhausted` 与每分钟一条 `ALERT` 日志；未完成超过 10 分钟的发布数 → `forcitis.platform.integration.event.publications.stale`。两者对应方案中的 P2 告警（未完成事件发布 / 死信）。
 - **清理作业**（`platform.integration.event.cleanup`，每日 04:30）：删除归档中超过 30 天的行。
+- 定时作业总开关：环境变量 `FORCITIS_JOBS_ENABLED` **必须设置**（`true` 或 `false`），没有默认值，缺失时应用启动失败；多个实例同时设为 `true` 没有问题，ShedLock 保证每个作业同一时刻只在一个实例上运行。
 - 开关：环境变量 `EVENT_PUBLICATION_JOBS_ENABLED`（默认 true）；其余参数见 `config/platform_integration.properties` 的 `forcitis.platform.integration.event-publication.*`。
 - 人工处理用尽次数的发布：先看 `event_publication` 里该行的 `listener_id` 与应用日志中同一 `correlationId` 的错误，修复原因后把 `completion_attempts` 清零，重投作业会再次接手。
 
@@ -172,3 +173,9 @@
 - 新增指标：`forcitis.organization.workforce.reconciliation.differences`（每日对账差异数，非零为 P2）。
 - 新增限流：登录类请求按「客户端地址 + 请求类别」每分钟计数，超出返回 429；类别与配置项为 `forcitis.platform.identity.login-throttle.limits.<类别>`，类别包括 `login-states`、`wecom-login`、`sso-login`、`ticket-login`、`emergency-login`，没有默认值，缺一个启动失败；计数器在单个节点内，多节点部署时总额 = 节点数 × 限额。
 - **限额依据办公室出口地址**：全所人员常经同一个出口 IP 上网，上班时段短时间内集中登录，所以人人都要用的 `login-states`（600）和 `wecom-login`（300）取数百，单人使用的取较低值。上线前用生产反向代理访问日志实测：取工作日早高峰最忙一分钟内「同一出口地址的 `login-states` 与 `wecom-login` 请求数」的最大值，限额至少取其 2 倍；若各分所出口地址不同，按最大的那个算。命中 429 时先查日志中的客户端地址与请求类别，再决定调限额，不要整体关闭限流。
+
+## 12. 登录失败的排查：默认角色缺失
+- 现象：所有人登录都返回 503，错误码 `PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING`。
+- 原因：新员工首次登录时系统按配置项 `forcitis.platform.identity.default-role`（当前为 `employee`）授予默认角色；该角色在库里不存在或已被停用时，不能给新账号授权，登录按「服务不可用」拒绝，而不是放进一个没有权限的账号。
+- 处理：在角色管理中确认该编码的角色存在且启用（系统预置角色不可删除；自定义角色被误删或停用时重建或启用）；不要为了让人登进来而把配置改成别的角色。已有账号不受影响。
+
