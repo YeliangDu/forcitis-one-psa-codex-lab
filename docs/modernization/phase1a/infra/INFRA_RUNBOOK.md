@@ -85,6 +85,7 @@
 |---|---|---|
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | PG 运行连接 | 是 |
 | `SPRING_FLYWAY_USER` / `_PASSWORD` | 迁移（仅部署） | 部署时 |
+| `APPROVAL_PROCESS_ARCHIVE_DIRECTORY` | 引擎历史归档目录（绝对路径，§5.3）；缺失则启动失败 | 是 |
 | `FLOWABLE_SCHEMA_UPDATE` | 仅引擎安装 / 升级时为 true | 否 |
 | `FLOWABLE_ASYNC_EXECUTOR` | 流程引擎异步执行器开关（默认 true） | 否 |
 | `APPROVAL_PROCESS_ADMINISTRATOR_USER_ID` | 取不到审批人时的兜底人 | 是 |
@@ -139,6 +140,20 @@
 
 - 轮换到点由运维日历提醒；任何一项逾期 7 天按 P2 报告 psa-coordinator。
 - 口令只在服务器受保护文件或 KMS 中出现，轮换过程不经聊天、工单和仓库。
+
+### 5.3 数据保留作业与引擎历史的归档去向（数据打分卡 T3）
+
+| 数据 | 在线保留 | 到期后 | 作业（ShedLock 名） | 配置项（缺失则启动失败） |
+|---|---|---|---|---|
+| `cost_timesheet.consumed_events` | 90 天 | 删除 | `cost.timesheet.consumed.events.purge`，每日 04:20 | `forcitis.cost.timesheet.consumed-events.keep-period`、`.cron` |
+| 引擎历史 `ACT_HI_*`（已结束的流程实例及其任务、活动） | 3 年 | 写入归档文件后从引擎删除；归档满 10 年删除文件 | `platform.approval.process.archive`，每日 03:40 | `forcitis.platform.approval.process-archive.online-period`、`.archive-period`、`.directory`（环境变量 `APPROVAL_PROCESS_ARCHIVE_DIRECTORY`）、`.cron` |
+
+- 两个作业都能用 `...enabled=false` 关闭（测试用）；生产不要关。
+- **归档去向**：ECS 数据盘 `/data/forcitis-one/archive/process/`（目录属主 `forcitis`，权限 `0750`，systemd 单元的 `ReadWritePaths` 要加上它），每个完成年份一个文件 `act_hi-<年>.ndjson.gz`，每行一个流程实例（实例 ID、流程定义键、业务键、起止时间、发起人、删除原因，及其任务与活动的时间和办理人），不含流程变量：审批结论与内容在审批表和审计里。
+- **异地副本**（提议，须经用户确认后由运维配置）：每日把该目录同步到阿里云 OSS 专用 Bucket（开启版本控制与 10 年保留策略），ECS 盘损坏也不丢归档；Bucket 名和账号由用户指定，仓库里不记。
+- 同一实例写入后、删除前作业中断，下一次会再写一遍，读取方按 `instanceId` 去重。
+- 归档文件在其完成年份结束后满 10 年才删除（例如 2026 年完成的，到 2037-01-01 删）。
+- 审计表 `audit_entries` 在线 3 年后的归档作业尚未实现，到期前（第 3 年）补；见数据访问注册表。
 
 ## 6. 应急管理员开通（设计，执行需用户确认）
 
