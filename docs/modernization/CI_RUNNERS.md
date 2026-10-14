@@ -74,4 +74,4 @@ sudo launchctl bootstrap system /Library/LaunchDaemons/actions.runner.forcitis-o
 
 重新注册：按 RELEASE.md §7 R-0 第 1–8 步（令牌在 Settings → Actions → Runners 生成，一小时有效，勿写入仓库），注册后做第 8 步的演练。
 
-部署走法兰克福 OSS 中转，最后一跳推荐云助手固定命令（RELEASE.md §8），不需要 ECS 开入方向端口；若改用 SSH 方式，runner 所在网络须有固定公网出口 IP，ECS 安全组 22 端口只对它开放。
+部署时 ECS 以只读令牌自取 GitHub Release（不经 OSS 中转），部署作业只建 GitHub 部署记录并触发 ECS，最后一跳推荐云助手固定命令（RELEASE.md §8），不需要 ECS 开入方向端口；若改用 SSH 方式，runner 所在网络须有固定公网出口 IP，ECS 安全组 22 端口只对它开放。

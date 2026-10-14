@@ -97,11 +97,16 @@ if [ -n "$caches" ]; then
   maven_cache=("-Dmaven.repo.local=$caches/m2")
   pnpm_cache=(--store-dir "$caches/pnpm-store")
 fi
-(cd backend && ./mvnw -B -q -DskipTests ${maven_cache[@]+"${maven_cache[@]}"} "${maven_goals[@]}")
-jar="$(find backend/target -maxdepth 1 -name 'forcitis-one-*.jar' ! -name '*-sources.jar' ! -name '*.original' | head -1)"
-[ -n "$jar" ] || fail "backend/target has no forcitis-one-*.jar"
+(cd backend && ./mvnw -B -q -DskipTests "-Drevision=${version}" ${maven_cache[@]+"${maven_cache[@]}"} "${maven_goals[@]}")
+# Exactly one application jar: test builds leave other forcitis-one-* jars (e.g. forcitis-one-arch-proof-*.jar) in target
+jars=()
+while IFS= read -r found; do jars+=("$found"); done < <(find backend/target -maxdepth 1 -name 'forcitis-one-[0-9]*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' ! -name '*-tests.jar' | sort)
+[ "${#jars[@]}" -eq 1 ] || fail "backend/target must hold exactly one forcitis-one-[0-9]*.jar, found ${#jars[@]}: ${jars[*]-}"
+jar="${jars[0]}"
+[ "$(basename "$jar")" = "forcitis-one-${version}.jar" ] || fail "built $(basename "$jar"), expected forcitis-one-${version}.jar (-Drevision not applied?)"
 cp "$jar" "$bundle/forcitis-one.jar"
 release_check_jar_runnable "$bundle/forcitis-one.jar" "$staging/jar-check" || exit 1
+release_check_jar_version "$bundle/forcitis-one.jar" "$version" || exit 1
 
 echo "== frontend"
 # Dependency install scripts never run: the build has been checked to work without them (RELEASE.md §10)

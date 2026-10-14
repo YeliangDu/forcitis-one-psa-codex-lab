@@ -10,7 +10,7 @@ User=forcitis
 Group=forcitis
 EnvironmentFile=/etc/forcitis-one/one.env
 WorkingDirectory=/data/forcitis-one/current
-ExecStart=/usr/bin/java -XX:MaxRAMPercentage=60 -XX:+ExitOnOutOfMemoryError -Djava.io.tmpdir=/data/forcitis-one/tmp -jar /data/forcitis-one/current/forcitis-one.jar
+ExecStart=/usr/bin/java -Duser.timezone=UTC -XX:MaxRAMPercentage=60 -XX:+ExitOnOutOfMemoryError -Djava.io.tmpdir=/data/forcitis-one/tmp -jar /data/forcitis-one/current/forcitis-one.jar
 StandardOutput=append:/data/forcitis-one/logs/forcitis-one.json
 StandardError=append:/data/forcitis-one/logs/forcitis-one.stderr.log
 Restart=on-failure

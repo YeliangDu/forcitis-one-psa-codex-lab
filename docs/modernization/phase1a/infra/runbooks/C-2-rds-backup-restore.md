@@ -27,7 +27,7 @@
 | 项 | 结果 |
 |---|---|
 | 备份窗口 | 原为 UTC 02:00–03:00（北京 10:00–11:00，工作时间）。one-coordinator 定改到北京 02:00–03:00（免费）。改前核对：实例近 7 天 CPU 峰值夜间（01:00–04:00）0.1 %、全天 0.3 %，IT 门户无夜间批处理迹象。已改为 UTC 18:00–19:00；数据备份保留 7 天、日志备份开启、日志备份保留 7 天不变。注意与可维护时间段（UTC 18:00–22:00）重叠 |
-| 续费 | 自动续费已开（每次 1 个月），实例 2026-10-18 到期；账户现金余额充足、无信用额度依赖。到期前一天（10-17）再核对一次扣款结果 |
+| 续费 | 自动续费已开（每次 1 个月），实例 2026-10-18 到期；账户现金余额充足、无信用额度依赖。用户「续费不用管」：续费由用户自理，运维不核对 |
 | 付费项 P-5 | 日志备份已开启；备份总量约 36 GB，`PaidBackupSize=0`，未超免费额度 |
 | RPO | 日志备份频率不能经接口设置（`LogBackupFrequency` 为空、`archive_timeout` 不可改），实测 7 天 71 个日志文件、平均约 2.4 小时一个。用户决定「你在控制台查频率选项，查不到再接受 (Recommended)」：用户在控制台「备份恢复 › 备份设置」查。**查到**则按 RPO ≤ 5 分钟设置；**查不到**则平台约定改为「主机故障不丢数据（高可用）；误操作恢复精度取决于日志备份频率（实测约 2.4 小时），生产前再评估」，并列为生产前复核项 |
 | RPO 结论（2026-10-15） | 官方文档：`LogBackupFrequency` 仅适用于 SQL Server，PostgreSQL 没有日志备份频率选项（[ModifyBackupPolicy](https://help.aliyun.com/zh/rds/developer-reference/api-rds-2014-08-15-modifybackuppolicy)）。按用户决定「你在控制台查频率选项，查不到再接受 (Recommended)」接受现状，平台约定改为：**主机故障不丢数据（高可用）；误操作恢复精度取决于日志备份频率（实测约 2.4 小时），生产前再评估**。生产前可选：PostgreSQL 高频快照备份（`BackupInterval`，云盘实例、开启秒级备份，按快照存储计费，[高频快照](https://help.aliyun.com/en/rds/apsaradb-rds-for-postgresql/use-the-high-frequency-snapshot-backup-feature-for-an-apsaradb-rds-for-postgresql-instance)），由用户届时决定 |
@@ -57,7 +57,7 @@
    # 口令经 EnvironmentFile 传入，不出现在命令行参数
    install -o root -g root -m 0600 /etc/forcitis-one/one.env /root/drill.env   # 然后编辑上面几项
    systemd-run --unit=one-drill --uid=forcitis --gid=forcitis -p EnvironmentFile=/root/drill.env \
-     /usr/bin/java -jar /data/forcitis-one/current/forcitis-one.jar
+     /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/current/forcitis-one.jar
    ```
    另用只读角色执行关键表核对：
    ```sql

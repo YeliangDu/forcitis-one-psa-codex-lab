@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # FORCITIS one release installer on the ECS. Installed as /usr/local/sbin/forcitis-one-release (root:root 0755) by the one-time setup in
 # RELEASE.md (Phase 1a infra runbooks). Run as root by a fixed, parameterless Cloud Assistant command, or through a deploy key whose
-# forced command is this script (the key never gets a shell). It takes nothing from its caller but the environment name: what to install
-# is the deploy request the deploy job left in OSS, read with this instance's RAM role, and is only installed when the release statement
-# it names verifies against the signer key on this server.
+# forced command is this script (the key never gets a shell). It takes nothing from its caller: the environment comes from this server's
+# own configuration, what to install is the newest pending GitHub deployment that a deploy.yml run on main created for that environment,
+# read with a read-only token, and the release is fetched from GitHub by this server and only installed when its signed statement
+# verifies against the signer key on this server.
 #
-#   install-pending <dev|prod>   install the release named in <prefix>/requests/<env>.json
-#   rollback [<version>]         back to the previous release, or to <version>
+#   install-pending              install the release of the newest pending deployment for this server's environment
+#   rollback [<version>]         back to the previous release, or to <version> (local only, no GitHub access)
 #   status
 #
 # Every step fails loudly; a release that does not report healthy is switched back to the release that ran before.
@@ -18,10 +19,19 @@ BASE=/data/forcitis-one
 ETC=/etc/forcitis-one
 MIGRATION_CREDENTIALS="$ETC/migrate"
 RELEASE_SIGNERS="$ETC/release-signers"
-# Where the deploy job stages releases (root 0644, keys OSS_BUCKET, OSS_ENDPOINT, OSS_PREFIX, ALIYUN_PROFILE); the profile uses the
-# instance RAM role, so no credential is stored on this server
+# root 0644: ENVIRONMENT (dev|prod), GITHUB_REPOSITORY (owner/name), optional WECOM_VERIFY_FILE (a pinned file that must exist)
 RELEASE_SOURCE="$ETC/release-source"
-ALIYUN=/usr/local/bin/aliyun
+# Fine-grained read-only GitHub token (root 0600) and its expiry date YYYY-MM-DD (root 0644), RELEASE.md §7 R-13
+GITHUB_TOKEN_FILE="$ETC/github-release-token"
+GITHUB_TOKEN_EXPIRES="$ETC/github-release-token.expires"
+GITHUB_API=https://api.github.com
+DEPLOY_WORKFLOW_PATH=.github/workflows/deploy.yml
+DEPLOYMENT_CREATOR='github-actions[bot]'
+API_TIMEOUT_SECONDS=60
+# Every deployment id taken up, with its outcome (root 0600, appended only); an id listed here is never installed again
+STATE_DIR=/var/lib/forcitis-one-release
+PROCESSED="$STATE_DIR/processed-deployments"
+RUN_DIR=/run/forcitis-one-release
 # Files nginx serves outside the releases, untouched by any deployment (WeCom trusted-domain verification, C-4 E-10)
 PINNED="$BASE/static-pinned"
 PINNED_PATTERN='^WW_verify_[A-Za-z0-9]{1,64}\.txt$'
@@ -41,22 +51,24 @@ MAX_BUNDLE_BYTES=$((1024 * 1024 * 1024))
 DOWNLOAD_TIMEOUT_SECONDS=1200
 HEALTH_TIMEOUT_SECONDS=180
 MIGRATION_TIMEOUT_SECONDS=900
+# The application refuses to start unless the JVM default zone is UTC (kernel.UtcJvm); every java launch here passes it
+JVM_TIMEZONE=-Duser.timezone=UTC
 KEEP_RELEASES=5
 # Property files a migration may only see on the very first installation (Flowable engine tables, see RELEASE.md §4)
 FIRST_INSTALL_ONLY='^(spring\.datasource\..+|flowable\.database-schema-update)$'
 
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
-fail() { log "FAILED: $*"; exit 1; }
+fail() {
+  log "FAILED: $*"
+  [ -z "${deployment_in_progress:-}" ] || record_deployment "$deployment_in_progress" failed "$*"
+  exit 1
+}
 
-if [ "$(id -u)" -ne 0 ]; then
-  [ -n "${SSH_ORIGINAL_COMMAND:-}" ] || fail "run as root, or through the deploy key"
-  read -r -a words <<< "$SSH_ORIGINAL_COMMAND"
-  [[ "${#words[@]}" -ge 1 && "${#words[@]}" -le 2 ]] || fail "unexpected command"
-  for word in "${words[@]}"; do
-    [[ "$word" =~ ^[A-Za-z0-9.+-]{1,64}$ ]] || fail "unexpected command"
-  done
-  exec sudo -n "$SELF" "${words[@]}"
-fi
+cleanup_paths=()
+cleanup() { [ "${#cleanup_paths[@]}" -eq 0 ] || rm -rf "${cleanup_paths[@]}"; }
+trap cleanup EXIT
+
+owner_mode() { stat -c '%U %a' "$1"; }
 
 releases="$BASE/releases"
 current_link="$BASE/current"
@@ -228,6 +240,8 @@ check_server_files() {
   cmp -s "$dir/deploy/nginx-one.conf" /etc/nginx/conf.d/one.conf || drift+=(/etc/nginx/conf.d/one.conf)
   cmp -s "$dir/deploy/forcitis-one.logrotate" /etc/logrotate.d/forcitis-one || drift+=(/etc/logrotate.d/forcitis-one)
   [ "${#drift[@]}" -eq 0 ] || fail "server files differ from this release; apply them as in RELEASE.md §5 first: ${drift[*]}"
+  grep -Eq "^ExecStart=/usr/bin/java .*${JVM_TIMEZONE}( |$)" /etc/systemd/system/forcitis-one.service \
+    || fail "forcitis-one.service does not start the JVM with ${JVM_TIMEZONE}; the application would refuse to start"
 
   local missing=() key
   while IFS= read -r key; do
@@ -248,31 +262,226 @@ source_value() {
   printf '%s' "${line#*=}"
 }
 
-# Copies oss://<bucket>/<prefix>/<key> to <out> with the instance RAM role
-oss_get() {
-  local key="$1" out="$2" bucket endpoint prefix profile
-  bucket="$(source_value OSS_BUCKET)"; endpoint="$(source_value OSS_ENDPOINT)"
-  prefix="$(source_value OSS_PREFIX)"; profile="$(source_value ALIYUN_PROFILE)"
-  [[ "$bucket" =~ ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$ && "$endpoint" =~ ^[a-z0-9.-]+\.aliyuncs\.com$ \
-     && "$prefix" =~ ^[a-z0-9][a-z0-9/_-]*[a-z0-9]$ && "$profile" =~ ^[a-z0-9-]+$ ]] \
-    || fail "$RELEASE_SOURCE must set OSS_BUCKET, OSS_ENDPOINT, OSS_PREFIX and ALIYUN_PROFILE (RELEASE.md §7)"
-  timeout "$DOWNLOAD_TIMEOUT_SECONDS" "$ALIYUN" --profile "$profile" oss cp "oss://$bucket/$prefix/$key" "$out" \
-    --endpoint "$endpoint" -f >/dev/null || fail "could not fetch $prefix/$key from OSS"
+# Sets target_env, repo and pinned_expected from this server's release configuration
+read_release_source() {
+  [ -s "$RELEASE_SOURCE" ] && [ "$(owner_mode "$RELEASE_SOURCE")" = "root 644" ] \
+    || fail "$RELEASE_SOURCE must exist, root-owned 0644 (RELEASE.md §7 R-7)"
+  target_env="$(source_value ENVIRONMENT)"
+  repo="$(source_value GITHUB_REPOSITORY)"
+  pinned_expected="$(source_value WECOM_VERIFY_FILE)"
+  case "$target_env" in dev|prod) ;; *) fail "$RELEASE_SOURCE must set ENVIRONMENT to dev or prod" ;; esac
+  [ "$repo" = "${RELEASE_WORKFLOW%%/.github/*}" ] \
+    || fail "$RELEASE_SOURCE must set GITHUB_REPOSITORY to ${RELEASE_WORKFLOW%%/.github/*}, the repository whose release workflow signs"
+  [[ -z "$pinned_expected" || "$pinned_expected" =~ $PINNED_PATTERN ]] \
+    || fail "$RELEASE_SOURCE: WECOM_VERIFY_FILE must name a WW_verify_*.txt file or be absent"
+}
+
+# Writes the Authorization header to a root-only file for curl -H @file, so the token never reaches a command line or the log
+github_auth() {
+  local expires token=""
+  [ -f "$GITHUB_TOKEN_FILE" ] && [ "$(owner_mode "$GITHUB_TOKEN_FILE")" = "root 600" ] \
+    || fail "$GITHUB_TOKEN_FILE must exist, root-owned 0600 (RELEASE.md §7 R-13)"
+  [ -f "$GITHUB_TOKEN_EXPIRES" ] && [ "$(owner_mode "$GITHUB_TOKEN_EXPIRES")" = "root 644" ] \
+    || fail "$GITHUB_TOKEN_EXPIRES must exist, root-owned 0644 (RELEASE.md §7 R-13)"
+  expires="$(tr -d '[:space:]' < "$GITHUB_TOKEN_EXPIRES")"
+  [[ "$expires" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || fail "$GITHUB_TOKEN_EXPIRES must hold the token's expiry date as YYYY-MM-DD"
+  [[ "$(date -u +%Y-%m-%d)" < "$expires" ]] \
+    || fail "the GitHub release token expired on $expires; rotate it (RELEASE.md §7 R-13)"
+  IFS= read -r token < "$GITHUB_TOKEN_FILE" || true
+  [[ "$token" =~ ^github_pat_[A-Za-z0-9_]{20,255}$ ]] || fail "$GITHUB_TOKEN_FILE does not hold a fine-grained token"
+  [ -d "$RUN_DIR" ] || mkdir -m 0700 "$RUN_DIR"
+  github_headers="$(mktemp "$RUN_DIR/headers.XXXXXX")"
+  cleanup_paths+=("$github_headers")
+  printf 'Authorization: Bearer %s\n' "$token" > "$github_headers"
+}
+
+github_get() {
+  local path="$1" out="$2"
+  curl -fsS --proto '=https' --tlsv1.2 --max-time "$API_TIMEOUT_SECONDS" -H @"$github_headers" \
+    -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' -o "$out" "$GITHUB_API$path" \
+    || fail "GitHub API GET $path failed"
+}
+
+# The asset API answers with a redirect to a short-lived signed URL; curl sends -H Authorization only to the original host
+github_download() {
+  local url="$1" out="$2"
+  timeout "$DOWNLOAD_TIMEOUT_SECONDS" curl -fsS --proto '=https' --proto-redir '=https' --tlsv1.2 -L --max-redirs 3 \
+    --max-filesize "$MAX_BUNDLE_BYTES" -H @"$github_headers" -H 'Accept: application/octet-stream' -o "$out" "$url" \
+    || fail "could not download $url"
+}
+
+# Checks on GitHub API responses; each mode prints what the next step needs or exits non-zero with the reason
+github_check() {
+  python3 -I - "$@" <<'PY'
+import json, re, sys
+mode, args = sys.argv[1], sys.argv[2:]
+def load(path):
+    with open(path) as f:
+        return json.load(f)
+def die(message):
+    sys.exit(message)
+
+if mode == "newest":
+    deployments = load(args[0])
+    if not isinstance(deployments, list) or not deployments:
+        die(f"no deployment for environment {args[1]}; deployments are created by deploy.yml")
+    print(max(deployments, key=lambda d: d["id"])["id"])
+
+elif mode == "deployment":
+    deployments, statuses = load(args[0]), load(args[1])
+    deployment_id, env, version_pattern, expected_creator = int(args[2]), args[3], args[4], args[5]
+    d = next(d for d in deployments if d["id"] == deployment_id)
+    if statuses:
+        state = statuses[0].get("state")
+        if state in ("success", "failure", "error", "inactive"):
+            die(f"nothing to deploy: the newest deployment {deployment_id} for {env} is already {state}")
+    if d.get("environment") != env:
+        die(f"deployment {deployment_id} is for environment {d.get('environment')!r}, this server is {env}")
+    creator = d.get("creator") or {}
+    if creator.get("login") != expected_creator or creator.get("type") != "Bot":
+        die(f"deployment {deployment_id} was created by {creator.get('login')!r}, not by a workflow run")
+    ref = d.get("ref")
+    if not isinstance(ref, str) or not ref.startswith("v") or not re.fullmatch(version_pattern.lstrip("^").rstrip("$"), ref[1:]):
+        die(f"deployment {deployment_id} has ref {ref!r}, not a release tag v<version>")
+    payload = d.get("payload")
+    if not isinstance(payload, dict):
+        die(f"deployment {deployment_id} has no payload object")
+    version, run_id, commit = payload.get("version"), payload.get("run_id"), payload.get("commit")
+    if version != ref[1:]:
+        die(f"deployment {deployment_id}: payload version {version!r} differs from its ref {ref}")
+    if type(run_id) is not int or run_id <= 0:
+        die(f"deployment {deployment_id}: payload run_id is missing or not a run id")
+    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+        die(f"deployment {deployment_id}: payload commit is missing or not a full sha")
+    if d.get("sha") != commit:
+        die(f"deployment {deployment_id}: payload commit {commit} differs from the deployment's commit {d.get('sha')}")
+    # One deploy run creates exactly one deployment; a second one naming the same run was not made by that run's deploy job
+    same_run = [o["id"] for o in deployments if isinstance(o.get("payload"), dict) and o["payload"].get("run_id") == run_id]
+    if len(same_run) != 1:
+        die(f"deployments {same_run} all name run {run_id}; a deploy run creates one, start a new run instead of re-running")
+    print(deployment_id, version, run_id, commit)
+
+elif mode == "run":
+    run, run_id, repo, workflow_path, version, env = load(args[0]), int(args[1]), args[2], args[3], args[4], args[5]
+    # display_title is deploy.yml's run-name, which carries the run's inputs: the run must be deploying this version to this environment
+    expected = {"id": run_id, "path": workflow_path, "head_branch": "main", "event": "workflow_dispatch", "status": "in_progress",
+                "display_title": f"deploy {version} to {env}"}
+    for key, value in expected.items():
+        if run.get(key) != value:
+            die(f"workflow run {run_id}: {key} is {run.get(key)!r}, expected {value!r}")
+    for key in ("repository", "head_repository"):
+        if (run.get(key) or {}).get("full_name") != repo:
+            die(f"workflow run {run_id}: {key} is not {repo}")
+
+elif mode == "ref":
+    ref, expected = load(args[0]), args[1]
+    if ref.get("ref") != expected:
+        die(f"{expected} does not exist")
+    print(ref["object"]["type"], ref["object"]["sha"])
+
+elif mode == "tag":
+    tag = load(args[0])
+    print(tag["object"]["type"], tag["object"]["sha"])
+
+elif mode == "release":
+    release, version, repo, max_bytes = load(args[0]), args[1], args[2], int(args[3])
+    if release.get("tag_name") != f"v{version}" or release.get("draft") is not False:
+        die(f"release v{version} is missing or still a draft")
+    top = f"forcitis-one-{version}"
+    asset_url = re.compile(rf"https://api\.github\.com/repos/{re.escape(repo)}/releases/assets/[0-9]+")
+    for name in (f"{top}.tar.gz", f"{top}.tar.gz.sha256", f"{top}.release", f"{top}.release.sig"):
+        found = [a for a in release.get("assets", []) if a.get("name") == name]
+        if len(found) != 1:
+            die(f"release v{version} has {len(found)} assets named {name}, expected exactly one")
+        asset = found[0]
+        if asset.get("state") != "uploaded" or not isinstance(asset.get("size"), int) or asset["size"] > max_bytes:
+            die(f"release asset {name} is not uploaded or larger than {max_bytes} bytes")
+        if not isinstance(asset.get("url"), str) or not asset_url.fullmatch(asset["url"]):
+            die(f"release asset {name} has an unexpected url")
+        print(name, asset["url"])
+
+else:
+    die(f"unknown check {mode}")
+PY
+}
+
+# Sets deployment_id, version, run_id and commit from the newest deployment for target_env, after every check passed
+validate_deployment() {
+  local work out ref_type ref_sha depth
+  work="$(mktemp -d)"
+  cleanup_paths+=("$work")
+  github_get "/repos/$repo/deployments?environment=$target_env&per_page=5" "$work/deployments.json"
+  deployment_id="$(github_check newest "$work/deployments.json" "$target_env")" || fail "no deployment to install"
+  github_get "/repos/$repo/deployments/$deployment_id/statuses?per_page=1" "$work/statuses.json"
+  out="$(github_check deployment "$work/deployments.json" "$work/statuses.json" "$deployment_id" "$target_env" "$VERSION_PATTERN" "$DEPLOYMENT_CREATOR")" \
+    || fail "deployment $deployment_id is not acceptable"
+  read -r deployment_id version run_id commit <<< "$out"
+  valid_version "$version" || fail "invalid version '$version'"
+
+  github_get "/repos/$repo/actions/runs/$run_id" "$work/run.json"
+  github_check run "$work/run.json" "$run_id" "$repo" "$DEPLOY_WORKFLOW_PATH" "$version" "$target_env" \
+    || fail "deployment $deployment_id does not come from a running deploy.yml run on main"
+
+  github_get "/repos/$repo/git/ref/tags/v$version" "$work/ref.json"
+  out="$(github_check ref "$work/ref.json" "refs/tags/v$version")" || fail "tag v$version cannot be resolved"
+  read -r ref_type ref_sha <<< "$out"
+  depth=0
+  while [ "$ref_type" = tag ]; do
+    depth=$((depth + 1))
+    [ "$depth" -le 3 ] || fail "tag v$version is nested too deeply"
+    [[ "$ref_sha" =~ ^[0-9a-f]{40}$ ]] || fail "tag v$version points at a malformed object"
+    github_get "/repos/$repo/git/tags/$ref_sha" "$work/tag.json"
+    out="$(github_check tag "$work/tag.json")" || fail "tag object $ref_sha cannot be read"
+    read -r ref_type ref_sha <<< "$out"
+  done
+  [ "$ref_type" = commit ] || fail "tag v$version does not point at a commit"
+  [ "$ref_sha" = "$commit" ] || fail "tag v$version points at $ref_sha, the deployment names $commit"
+  log "deployment $deployment_id: v$version ($commit) for $target_env from deploy run $run_id"
+}
+
+# Refuses a deployment id that was taken up before
+processed_check() {
+  local id="$1"
+  [ -d "$STATE_DIR" ] || mkdir -m 0700 "$STATE_DIR"
+  [ "$(owner_mode "$STATE_DIR")" = "root 700" ] || fail "$STATE_DIR must be root-owned 0700"
+  if [ -e "$PROCESSED" ]; then
+    [ "$(owner_mode "$PROCESSED")" = "root 600" ] || fail "$PROCESSED must be root-owned 0600"
+    if awk -F'\t' -v id="$id" '$1 == id { found = 1 } END { exit !found }' "$PROCESSED"; then
+      fail "deployment $id was already taken up (see $PROCESSED); every deploy run creates a new deployment"
+    fi
+  else
+    (umask 077 && : > "$PROCESSED")
+  fi
+}
+
+record_deployment() {
+  printf '%s\t%s\t%s\t%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "${3:-}" >> "$PROCESSED" || log "could not record deployment $1 as $2"
 }
 
 place() {
-  local version="$1" env="$2" expected_sha="$3" commit="$4" incoming archive top staged existing
+  local version="$1" env="$2" commit="$3" incoming archive top staged existing assets name url out expected_sha
   incoming="$(mktemp -d "$releases/.incoming.XXXXXX")"
-  trap 'rm -rf "$incoming"' EXIT
+  cleanup_paths+=("$incoming")
   top="forcitis-one-$version"
   archive="$incoming/bundle.tar.gz"
-  log "fetching $top from OSS"
-  oss_get "$version/$top.tar.gz" "$archive"
-  oss_get "$version/$top.release" "$incoming/statement"
-  oss_get "$version/$top.release.sig" "$incoming/statement.sig"
+  log "fetching $top from the GitHub release v$version"
+  github_get "/repos/$repo/releases/tags/v$version" "$incoming/release.json"
+  assets="$(github_check release "$incoming/release.json" "$version" "$repo" "$MAX_BUNDLE_BYTES")" || fail "release v$version cannot be installed"
+  while read -r name url; do
+    case "$name" in
+      "$top.tar.gz") out="$archive" ;;
+      "$top.tar.gz.sha256") out="$incoming/bundle.sha256" ;;
+      "$top.release") out="$incoming/statement" ;;
+      "$top.release.sig") out="$incoming/statement.sig" ;;
+      *) fail "unexpected release asset $name" ;;
+    esac
+    github_download "$url" "$out"
+  done <<< "$assets"
   [ "$(stat -c %s "$archive")" -le "$MAX_BUNDLE_BYTES" ] || fail "bundle larger than $MAX_BUNDLE_BYTES bytes"
   log "fetched $(stat -c %s "$archive") bytes"
-  [ "$(sha256sum "$archive" | cut -d' ' -f1)" = "$expected_sha" ] || fail "bundle sha256 differs from the deploy request"
+  expected_sha="$(cut -d' ' -f1 "$incoming/bundle.sha256")"
+  [[ "$expected_sha" =~ ^[0-9a-f]{64}$ ]] || fail "cannot read the bundle's .sha256 asset"
+  [ "$(sha256sum "$archive" | cut -d' ' -f1)" = "$expected_sha" ] || fail "bundle sha256 differs from the release's .sha256 asset"
 
   verify_statement "$archive" "$incoming/statement" "$version" "$commit"
   check_tar_entries "$archive" "$top"
@@ -301,7 +510,6 @@ place() {
     grant_static_read "$existing"
   fi
   rm -rf "$incoming"
-  trap - EXIT
 }
 
 # Prints the migration files of <new> that <old> does not have; fails when a file both know changed (migrations are append-only).
@@ -354,7 +562,7 @@ migrate() {
     systemd-run --wait --collect --unit="$unit" --uid="$MIGRATION_USER" --gid="$APP_USER" --working-directory="$release" \
       -p EnvironmentFile="$ETC/one.env" "${credentials[@]}" "${unset_env[@]}" -p PrivateTmp=yes -p NoNewPrivileges=yes \
       -p RuntimeMaxSec="$MIGRATION_TIMEOUT_SECONDS" -p StandardOutput="append:$log_file" -p StandardError="append:$log_file" \
-      /usr/bin/java -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" --spring.profiles.include=migrate "${args[@]}" \
+      /usr/bin/java "$JVM_TIMEZONE" -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" --spring.profiles.include=migrate "${args[@]}" \
       || fail "migrations of $version failed or timed out; result unknown, check one_migration.flyway_schema_history and $log_file"
     log "migrations of $version applied (migrate mode exited 0)"
     return
@@ -366,7 +574,7 @@ migrate() {
   systemd-run --unit="$unit" --uid="$MIGRATION_USER" --gid="$APP_USER" --working-directory="$release" \
     -p EnvironmentFile="$ETC/one.env" "${credentials[@]}" "${unset_env[@]}" -p PrivateTmp=yes -p NoNewPrivileges=yes \
     -p StandardOutput="append:$log_file" -p StandardError="append:$log_file" \
-    /usr/bin/java -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" "${args[@]}"
+    /usr/bin/java "$JVM_TIMEZONE" -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" "${args[@]}"
   deadline=$((SECONDS + MIGRATION_TIMEOUT_SECONDS))
   started=false
   while [ "$SECONDS" -lt "$deadline" ]; do
@@ -407,44 +615,32 @@ lock() {
 }
 
 cmd_install_pending() {
-  local env="${1:-}" request version sha commit pinned_expected profile running new first_install=false
-  case "$env" in dev|prod) ;; *) fail "environment must be dev or prod" ;; esac
+  [ "$#" -eq 0 ] || fail "install-pending takes no arguments; the environment comes from $RELEASE_SOURCE"
+  local target_env repo pinned_expected profile running new first_install=false deployment_id version run_id commit
+  read_release_source
   profile="$(env_value SPRING_PROFILES_ACTIVE)"
-  [ "$profile" = "$env" ] || fail "this server is configured for '$profile' (SPRING_PROFILES_ACTIVE), not '$env'"
-  [ -s "$RELEASE_SOURCE" ] && [ "$(stat -c '%U %a' "$RELEASE_SOURCE")" = "root 644" ] || fail "$RELEASE_SOURCE must exist, root-owned 0644"
-  [ -x "$ALIYUN" ] || fail "$ALIYUN is missing (RELEASE.md §7)"
-  request="$(mktemp)"
-  oss_get "requests/$env.json" "$request"
-  # Every field is checked here; the request only chooses among releases whose statements verify below
-  read -r version sha commit pinned_expected < <(python3 -I - "$request" <<'PY'
-import json, re, sys
-r = json.load(open(sys.argv[1]))
-checks = {"version": r"[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?", "bundleSha256": r"[0-9a-f]{64}", "commit": r"[0-9a-f]{40}",
-          "wecomVerifyFile": r"-|WW_verify_[A-Za-z0-9]{1,64}\.txt"}
-for key, pattern in checks.items():
-    if not isinstance(r.get(key), str) or not re.fullmatch(pattern, r[key]):
-        sys.exit(f"deploy request field {key} is missing or malformed")
-print(r["version"], r["bundleSha256"], r["commit"], r["wecomVerifyFile"])
-PY
-) || fail "the deploy request is not valid"
-  rm -f "$request"
-  valid_version "$version" || fail "invalid version '$version'"
-  [[ "$env" != prod || "$version" != *-* ]] || fail "prod takes released versions only, not the pre-release $version"
-  running="$(linked_version "$current_link")"
-  if [ -n "$running" ] && version_lower "$version" "$running"; then
-    fail "$version is lower than the running $running; going back is an explicit operator rollback (forcitis-one-release rollback), never a deploy request"
-  fi
-  log "deploy request: $version ($commit) for $env"
-  if [ "$pinned_expected" != "-" ]; then
-    [[ "$pinned_expected" =~ $PINNED_PATTERN ]] || fail "deploy request field wecomVerifyFile must name a WW_verify_*.txt file or be -"
-    [ -s "$PINNED/$pinned_expected" ] || fail "deploy request field wecomVerifyFile names $pinned_expected, missing in $PINNED; WeCom would drop the trusted domain (C-4 E-10)"
-  fi
+  [ "$profile" = "$target_env" ] || fail "$RELEASE_SOURCE says '$target_env', but one.env SPRING_PROFILES_ACTIVE is '$profile'"
   # An older manual setup kept static files in a real current/ directory; switching would discard them
   [[ ! -e "$current_link" || -L "$current_link" ]] \
     || fail "$current_link is a directory, not the release link; move pinned files to $PINNED and remove it first (C-4 E-10)"
   assert_root_owned "$BASE" "$releases"
   lock
-  place "$version" "$env" "$sha" "$commit"
+  github_auth
+  validate_deployment
+  processed_check "$deployment_id"
+  # Taken up before anything is installed, so a crash half-way is never replayed by the same deployment
+  record_deployment "$deployment_id" started "v$version $commit run $run_id"
+  deployment_in_progress="$deployment_id"
+
+  [[ "$target_env" != prod || "$version" != *-* ]] || fail "prod takes released versions only, not the pre-release $version"
+  running="$(linked_version "$current_link")"
+  if [ -n "$running" ] && version_lower "$version" "$running"; then
+    fail "$version is lower than the running $running; going back is an explicit operator rollback (forcitis-one-release rollback), never a deployment"
+  fi
+  if [ -n "$pinned_expected" ]; then
+    [ -s "$PINNED/$pinned_expected" ] || fail "WECOM_VERIFY_FILE names $pinned_expected, missing in $PINNED; WeCom would drop the trusted domain (C-4 E-10)"
+  fi
+  place "$version" "$target_env" "$commit"
   running="$(linked_version "$current_link")"
   [ -n "$running" ] || first_install=true
   if [ -n "$running" ] && [ "$running" != "$version" ]; then
@@ -461,6 +657,8 @@ PY
   fi
   migrate "$version" "$first_install"
   activate "$version"
+  record_deployment "$deployment_id" succeeded "v$version"
+  deployment_in_progress=""
   prune
 }
 
@@ -484,13 +682,31 @@ cmd_status() {
   echo "installed releases:"
   find "$releases" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '  %f\n' | sort
   [ ! -f "$releases/HISTORY" ] || { echo "recent history:"; tail -5 "$releases/HISTORY"; }
+  [ ! -f "$PROCESSED" ] || { echo "recent deployments:"; tail -5 "$PROCESSED"; }
 }
 
-command="${1:-}"
-shift || true
-case "$command" in
-  install-pending) cmd_install_pending "$@" ;;
-  rollback) cmd_rollback "$@" ;;
-  status) cmd_status ;;
-  *) fail "usage: install-pending <dev|prod> | rollback [<version>] | status" ;;
-esac
+main() {
+  if [ "$(id -u)" -ne 0 ]; then
+    [ -n "${SSH_ORIGINAL_COMMAND:-}" ] || fail "run as root, or through the deploy key"
+    local -a words
+    read -r -a words <<< "$SSH_ORIGINAL_COMMAND"
+    [[ "${#words[@]}" -ge 1 && "${#words[@]}" -le 2 ]] || fail "unexpected command"
+    for word in "${words[@]}"; do
+      [[ "$word" =~ ^[A-Za-z0-9.+-]{1,64}$ ]] || fail "unexpected command"
+    done
+    exec sudo -n "$SELF" "${words[@]}"
+  fi
+  local command="${1:-}"
+  shift || true
+  case "$command" in
+    install-pending) cmd_install_pending "$@" ;;
+    rollback) cmd_rollback "$@" ;;
+    status) cmd_status ;;
+    *) fail "usage: install-pending | rollback [<version>] | status" ;;
+  esac
+}
+
+# Sourcing defines the functions only (the request checks are exercised that way); running the file acts
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
+fi

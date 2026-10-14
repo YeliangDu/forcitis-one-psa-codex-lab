@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily FORCITIS one GitHub release token check (RELEASE.md R-13)
+
+[Timer]
+OnCalendar=*-*-* 09:20:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

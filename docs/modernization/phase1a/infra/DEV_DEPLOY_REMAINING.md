@@ -1,6 +1,6 @@
 # 首次 dev 部署前运维剩余事项（按依赖排序）
 
-维护：one-ops。更新：2026-10-15（第二轮：C-3、C-4、C-6 已执行项，并入 RELEASE.md R-0..R-12）。依据：`PREDEPLOY_CHECKLIST.md`、`CROSSCHECK.md`、`DECISIONS_A.md`、各剧本，以及 2026-10-15 对阿里云的只读查询。本表只列**首次 dev 部署之前**还要做的事；生产前事项见清单「生产前」时点。
+维护：one-ops。更新：2026-10-15（第二轮：C-3、C-4、C-6 已执行项，并入 RELEASE.md R-0..R-12；发布通路改为 ECS 自取 GitHub Release，R-3 取消、R-13 新增）。依据：`PREDEPLOY_CHECKLIST.md`、`CROSSCHECK.md`、`DECISIONS_A.md`、各剧本，以及 2026-10-15 对阿里云的只读查询。本表只列**首次 dev 部署之前**还要做的事；生产前事项见清单「生产前」时点。
 
 「谁」：**ops** = one-ops（或 one-coordinator 派的运维子代理）；**用户** = 只能用户本人做或决定；**1a** = 1a 代码会话；**DBA** = 老系统 / A8 的数据库管理员（A-2 人选未定）。「花钱」：否 / 是（付费项编号见 C-7「落地方案」与本表）/ 按量（已开通服务的小额用量）。耗时是动手时间，不含等人。
 
@@ -17,7 +17,7 @@
 | # | 事项 | 谁 | 花钱 | 耗时 | 状态 / 依赖 |
 |---|---|---|---|---|---|
 | 1-1 | C-3 建 `forcitis_one_dev` 与 `one_dev_*` 角色；RDS SSL 与 CA（N-3） | ops | 否 | — | ✅ 建库建角色与 verify（t-hz0701ctw0hn3eo）；三个登录角色口令在 ECS 上生成、只交 SCRAM 校验值；建库用内置 provider 的 `C.UTF-8`。实例 SSL 本已开启，CA 已装 `/etc/forcitis-one/rds-ca.pem`，三个角色 `verify-full` 实连通过 |
-| 1-2 | C-2 免费部分 | ops | 否 | — | ✅ 备份窗口改到北京 02:00–03:00（改前核对夜间 CPU 峰值 0.1 %）；自动续费已开、余额充足（10-17 再核对扣款）；删除保护对包年包月不可开。RPO：PostgreSQL 无日志备份频率选项，按用户决定接受现状（C-2「RPO 结论」） |
+| 1-2 | C-2 免费部分 | ops | 否 | — | ✅ 备份窗口改到北京 02:00–03:00（改前核对夜间 CPU 峰值 0.1 %）；自动续费已开；续费用户自理，运维不核对（用户「续费不用管」）；删除保护对包年包月不可开。RPO：PostgreSQL 无日志备份频率选项，按用户决定接受现状（C-2「RPO 结论」） |
 | 1-3 | B-5 A8 与老系统只读视图和账号 | ops | 否 | — | ✅ A8（one-ops-1a）；老系统（one-ops 重跑：verify 全符合、真实登录 8 项越权全拒、`one.env` 已写） |
 | 1-4 | B-6 在职但无企业微信 ID 的只读计数 | ops | 否 | — | ✅ 在职 304、无 ID 0（2026-10-15T01:33:35+08:00） |
 | 1-5 | C-4 余项 | ops | 否 | — | ✅ E-3 用户与目录、E-4 Temurin 25.0.4.1、E-8 / E-9 / E-10 新布局（TLS 软链、static-pinned、续期 webroot、套件收紧，续期演练通过）、E-11 / E-12 SLS 与指标采集、E-14 出站白名单；服务单元已装未启用；云监控操作系统级指标（内存、磁盘使用率含数据盘）已在上报（接口状态字段 `OsMonitorStatus` 显示 stopped 与实际不符，以指标为准） |
@@ -44,18 +44,19 @@
 | # | 事项 | 谁 | 花钱 | 耗时 | 状态 / 依赖 |
 |---|---|---|---|---|---|
 | R-0 | 专用部署 runner 重建（`/opt/forcitis-one-runner` 归 root、hook、LaunchDaemon、`--disableupdate`、演练） | 用户（需 Mac 管理员密码与一次性注册令牌） | 否 | 1.5 h | ✅ 2026-10-15：`mac-one-deploy` 在线（`scripts/release/runner_rebuild.sh`）；第 8 步拒绝演练通过（分支工作流与伪造变量均被 hook 拒绝），放行路径在首次 dev 部署时验证 |
-| R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15 |
+| R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15；dev / prod 另加 `v*` 标签部署策略（用户「允许，首次部署前加上 (Recommended)」） |
 | R-2 | 仓库级 Actions variables：8 个构建期变量 | 用户 | 否 | 0.2 h | B-2、B-3 完成后填 |
-| R-3 | 发布用 OSS bucket（法兰克福，30 天过期） | 用户 | 按量 | 0.3 h | 用户定首次 dev 部署前再建；与 B-11 归档 bucket 不同 |
-| R-4 | RAM：每环境部署子账号与 AccessKey；ECS 实例 RAM 角色 | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.5 h | 1-12 口令轮换、B-11 写入方策略也绑在该实例角色上 |
+| R-3 | ~~发布用 OSS bucket~~ | — | — | — | **不再需要**：改为 ECS 自取 GitHub Release（用户「先测 GitHub 直拉，可行就用 (Recommended)」；ECS 夜间实测约 9 MB/s） |
+| R-4 | RAM：每环境部署子账号与 AccessKey，策略只许对该命令与该实例 `ecs:InvokeCommand`、`ecs:DescribeInvocationResults`、`ecs:DescribeInvocations`（RELEASE.md §8.2） | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.3 h | 发布不需要实例 RAM 角色（1-12、B-11 另定） |
 | R-5 | 各 environment 的 secrets（含 `RELEASE_SIGNING_KEY`） | 用户 | 否 | 0.2 h | R-4、R-12 |
-| R-6 | 各 environment 的 variables（`OSS_*`、`DEPLOY_TRIGGER`、`WECOM_VERIFY_FILE`、`ECS_*`） | 用户 | 否 | 0.2 h | R-3、R-7；校验文件名为 static-pinned 中现有那一个 |
-| R-7 | ECS：安装器、签名公钥、`release-source`、aliyun CLI 与实例角色配置、云助手固定命令 | ops | 否 | 1 h | R-4、R-12；E-3 / E-9 / E-10 部分已完成 |
+| R-6 | 各 environment 的 variables（`DEPLOY_TRIGGER=cloud-assistant`、`ECS_REGION`、`ECS_INSTANCE_ID`、`ECS_COMMAND_ID`） | 用户 | 否 | 0.1 h | R-7；不再有 `OSS_*`；企业微信校验文件名改在 ECS 的 `release-source`（R-7） |
+| R-7 | ECS：安装器、签名公钥、`release-source`（`ENVIRONMENT`、`GITHUB_REPOSITORY`、`WECOM_VERIFY_FILE`）、令牌文件与到期日、令牌到期检查定时器、云助手固定命令（无参数 `install-pending`） | ops | 否 | 1 h | R-12、R-13；E-3 / E-9 / E-10 部分已完成；ECS 上不再需要 aliyun CLI 与实例角色配置 |
 | R-8 | 标签规则 `v*` | 用户 | 否 | 0.1 h | ✅ 2026-10-15（只限更新与删除，见 RELEASE.md R-8） |
 | R-9 | 启用 immutable releases；确认 Actions 权限与托管 runner | 用户 | 否 | 0.1 h | ✅ 2026-10-15 |
 | R-10 | `one.env` 补 `SPRING_FLYWAY_ENABLED=false`；`/etc/forcitis-one/migrate/` 迁移凭据 | ops | 否 | — | ✅ 两项都已就位（one-ops-1a；迁移凭据由 C-3 写入）；首次 Flowable 安装项待首次部署 |
-| R-11 | bucket 建好后的连通演练（不部署） | ops | 否 | 0.5 h | R-3、R-4、R-7 |
+| R-11 | 连通演练（不部署）：ECS 以令牌读部署记录、下载一个 Release 附件并记速度（白天补测）、云助手触发固定命令应以「没有待部署」失败 | ops | 否 | 0.5 h | R-4、R-7、R-13 |
 | R-12 | 发布签名密钥：可信机器生成，私钥进 secret，公钥经 PR 写入 `allowed_signers` 并装到 ECS | 用户生成；ops 装 ECS 公钥 | 否 | 0.3 h | ✅ 2026-10-15；ECS 公钥随 R-7 安装 |
+| R-13 | **GitHub 只读令牌**（每环境一个，fine-grained：仅 `forcitis-one-psa`，Contents / Deployments / Actions / Metadata 只读，≤ 90 天）：用户在 github.com 生成，只经 one-ops 安全输入窗口交运维写入 ECS；到期前 14 天 P2、3 天 P1 告警后轮换（RELEASE.md R-13） | 用户生成；ops 写入 ECS 与装检查 | 否 | 0.3 h | 用户步骤；R-7 前 |
 
 ## 第 4 层：部署当日与部署后（出口前）
 
