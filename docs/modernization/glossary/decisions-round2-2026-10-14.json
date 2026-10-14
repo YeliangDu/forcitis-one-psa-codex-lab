@@ -1,4 +1,184 @@
 {
+ "R2-A-ar_written_off-0": {
+  "at": "2026-10-14T10:06:50.958Z",
+  "choice": "dialect",
+  "en": "ArWrittenOff",
+  "item": "A11",
+  "note": "",
+  "renameTo": "",
+  "zh": "坏账核销"
+ },
+ "R2-A-billing_request-1": {
+  "at": "2026-10-14T10:06:45.025Z",
+  "choice": "dialect",
+  "en": "BillingRequest",
+  "item": "A8",
+  "note": "",
+  "renameTo": "",
+  "zh": "开票申请"
+ },
+ "R2-A-billing_request-2": {
+  "at": "2026-10-14T10:06:47.250Z",
+  "choice": "dialect",
+  "en": "BillingRequest",
+  "item": "A9",
+  "note": "",
+  "renameTo": "",
+  "zh": "开票申请"
+ },
+ "R2-A-cash_receipt-0": {
+  "at": "2026-10-14T10:06:49.083Z",
+  "choice": "dialect",
+  "en": "CashReceipt",
+  "item": "A10",
+  "note": "",
+  "renameTo": "",
+  "zh": "回款单"
+ },
+ "R2-A-change_order-3": {
+  "at": "2026-10-14T10:06:39.125Z",
+  "choice": "dialect",
+  "en": "ChangeOrder",
+  "item": "A3",
+  "note": "",
+  "renameTo": "",
+  "zh": "变更"
+ },
+ "R2-A-contract-0": {
+  "at": "2026-10-14T10:06:36.958Z",
+  "choice": "dialect",
+  "en": "Contract",
+  "item": "A1",
+  "note": "",
+  "renameTo": "",
+  "zh": "合同"
+ },
+ "R2-A-contract_liability-2": {
+  "at": "2026-10-14T10:07:03.700Z",
+  "choice": "dialect",
+  "en": "ContractLiability",
+  "item": "A20",
+  "note": "",
+  "renameTo": "",
+  "zh": "合同负债"
+ },
+ "R2-A-expense_claim-2": {
+  "at": "2026-10-14T10:07:00.483Z",
+  "choice": "dialect",
+  "en": "ExpenseClaim",
+  "item": "A17",
+  "note": "",
+  "renameTo": "",
+  "zh": "报销单"
+ },
+ "R2-A-expense_claim-3": {
+  "at": "2026-10-14T10:07:01.258Z",
+  "choice": "dialect",
+  "en": "ExpenseClaim",
+  "item": "A18",
+  "note": "",
+  "renameTo": "",
+  "zh": "报销单"
+ },
+ "R2-A-final_account-2": {
+  "at": "2026-10-14T10:06:53.300Z",
+  "choice": "dialect",
+  "en": "FinalAccount",
+  "item": "A12",
+  "note": "",
+  "renameTo": "",
+  "zh": "竣工结算"
+ },
+ "R2-A-invoice_issued-0": {
+  "at": "2026-10-14T10:06:44.083Z",
+  "choice": "dialect",
+  "en": "InvoiceIssued",
+  "item": "A7",
+  "note": "",
+  "renameTo": "",
+  "zh": "开票"
+ },
+ "R2-A-payment_term_item-0": {
+  "at": "2026-10-14T10:06:38.058Z",
+  "choice": "dialect",
+  "en": "PaymentTermItem",
+  "item": "A2",
+  "note": "",
+  "renameTo": "",
+  "zh": "付款条件项"
+ },
+ "R2-A-project-2": {
+  "at": "2026-10-14T10:06:55.983Z",
+  "choice": "dialect",
+  "en": "Project",
+  "item": "A14",
+  "note": "",
+  "renameTo": "",
+  "zh": "项目"
+ },
+ "R2-A-project-3": {
+  "at": "2026-10-14T10:06:57.601Z",
+  "choice": "dialect",
+  "en": "Project",
+  "item": "A15",
+  "note": "",
+  "renameTo": "",
+  "zh": "项目"
+ },
+ "R2-A-project_budget-2": {
+  "at": "2026-10-14T10:06:58.475Z",
+  "choice": "dialect",
+  "en": "ProjectBudget",
+  "item": "A16",
+  "note": "",
+  "renameTo": "",
+  "zh": "项目预算（WBS 预算）"
+ },
+ "R2-A-quote-2": {
+  "at": "2026-10-14T10:06:55.074Z",
+  "choice": "dialect",
+  "en": "Quote",
+  "item": "A13",
+  "note": "",
+  "renameTo": "",
+  "zh": "报价单"
+ },
+ "R2-A-standard_cost_rate_card-0": {
+  "at": "2026-10-14T10:06:42.400Z",
+  "choice": "dialect",
+  "en": "StandardCostRateCard",
+  "item": "A6",
+  "note": "",
+  "renameTo": "",
+  "zh": "标准费率"
+ },
+ "R2-A-subcontract_cost-0": {
+  "at": "2026-10-14T10:06:41.516Z",
+  "choice": "dialect",
+  "en": "SubcontractCost",
+  "item": "A5",
+  "note": "",
+  "renameTo": "",
+  "zh": "分包成本"
+ },
+ "R2-A-timesheet-2": {
+  "at": "2026-10-14T10:06:40.050Z",
+  "choice": "dialect",
+  "en": "Timesheet",
+  "item": "A4",
+  "note": "",
+  "renameTo": "",
+  "zh": "工时单"
+ },
+ "R2-A-travel_expense-2": {
+  "at": "2026-10-14T10:07:02.083Z",
+  "choice": "dialect",
+  "en": "TravelExpense",
+  "item": "A19",
+  "note": "",
+  "renameTo": "",
+  "zh": "差旅"
+ },
  "R2-N-attendance": {
   "at": "2026-10-14T09:53:48.284Z",
   "choice": "approve",

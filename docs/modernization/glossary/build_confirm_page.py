@@ -14,7 +14,7 @@ items = []
 
 # P: module proposed terms
 n = 0
-for f in sorted(glob.glob(f"{PROPOSED_DIR}/*.yaml"), reverse=True):   # template-carryover first, then platform-contracts
+for f in sorted(glob.glob("glossary/round2-source/*.yaml"), reverse=True):   # template-carryover first, then platform-contracts
     for t in yaml.safe_load(open(f, encoding="utf-8"))["terms"]:
         p = PROP["P"][t["id"]]
         n += 1

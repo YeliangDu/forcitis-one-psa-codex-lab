@@ -5,6 +5,9 @@
 # code：需要 1a 会话改的代码（本会话不改 backend 代码）；为空表示无需改代码。
 # 判断：主会话（Opus 5.5）依据 ADR-0018 用语优先级与 NAMING_STANDARD；未派子代理。
 
+# 1a 会话改完代码后在此登记 P 组 id（如 audit_trail），build_terms.py 随即把该条的 forbid_en 写入禁用。
+code_renamed: []
+
 P:
   # ---------- template-carryover.yaml（架构守护模板带来的 33 条，含评估遗留的 cost / error-code / capacity / scheduler-lock） ----------
   hours:

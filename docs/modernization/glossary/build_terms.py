@@ -629,7 +629,7 @@ PROP2 = yaml.safe_load(open("glossary/round2-proposals.yaml", encoding="utf-8"))
 CODE_RENAMED = set(PROP2.get("code_renamed") or [])   # 1a 改名完成后在 round2-proposals.yaml 中登记 id
 _byid = {t["id"]: t for t in terms}
 _cjk = lambda s: re.fullmatch(r"[一-鿿（）]+", s) is not None   # 只把纯中文叫法列入禁用：含字母的（H5、区域 AR）拆词后会误伤 ar、h 等
-for _f in sorted(glob.glob("../../backend/glossary/proposed/*.yaml"), reverse=True):
+for _f in sorted(glob.glob("glossary/round2-source/*.yaml"), reverse=True):
     for _t in yaml.safe_load(open(_f, encoding="utf-8"))["terms"]:
         _p, _d = PROP2["P"].get(_t["id"]), DEC2.get(f"R2-P-{_t['id']}")
         if not _p or not _d:

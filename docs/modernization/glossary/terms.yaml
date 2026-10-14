@@ -414,12 +414,14 @@ terms:
   confidence: high
   aliases:
   - name: 销售合同
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「销售合同新增 / 归档」、档案「销售合同档案」
-  forbidden: []
+  forbidden:
+  - 销售合同
   status: approved
   note: CAS 14 / IFRS 15 第一步「识别与客户订立的合同」；收入合同
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: contract_type
   zh: 合同形态
   en: ContractType
@@ -617,12 +619,14 @@ terms:
   confidence: medium
   aliases:
   - name: 付款条件档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_1321（PSA 报价条款同步）
-  forbidden: []
+  forbidden:
+  - 付款条件档案
   status: approved
   note: IFRS 15 重大融资成分判断需读付款条件
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: import_legacy_contract_baseline
   zh: 历史合同导入
   en: ImportLegacyContractBaseline
@@ -1181,12 +1185,14 @@ terms:
     type: standard-en
     deprecated: false
   - name: 销售合同变更
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
-  forbidden: []
+  forbidden:
+  - 销售合同变更
   status: approved
   note: 国标「工程变更」，FIDIC Cl.13 Variation；进入核算时对应 CAS 14 / IFRS 15「合同变更」(contract modification)
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: change_order_draft
   zh: 变更意向
   en: ChangeOrderDraft
@@ -2238,15 +2244,17 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 项目工时填报单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板（2026-04-30 起停用）
   forbidden:
   - ManHour
   - TimeSheet
   - WorkHour
+  - 项目工时填报单
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: effective_hours
   zh: 有效工时
   en: EffectiveHours
@@ -2459,11 +2467,13 @@ terms:
   confidence: medium
   aliases:
   - name: 项目委外
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「项目委外采购申请 / 采购合同 / 交付确认单」
-  forbidden: []
+  forbidden:
+  - 项目委外
   status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: cost_accumulated
   zh: 成本归集
   en: CostAccumulated
@@ -2525,12 +2535,14 @@ terms:
   confidence: high
   aliases:
   - name: BU岗位人天单价
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_1176
-  forbidden: []
+  forbidden:
+  - BU岗位人天单价
   status: approved
   change_ref: G-3
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: rate_card_version
   zh: 费率版本
   en: RateCardVersion
@@ -3034,12 +3046,14 @@ terms:
   confidence: medium
   aliases:
   - name: 发票档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_0428
-  forbidden: []
+  forbidden:
+  - 发票档案
   status: approved
   note: 开票 ≠ 收入；开票时合同资产转应收账款（或冲合同负债）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: billing_request
   zh: 开票申请
   en: BillingRequest
@@ -3055,16 +3069,19 @@ terms:
     type: legacy-code
     deprecated: true
   - name: 项目开票申请
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
   - name: 首付款开票申请
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
-  forbidden: []
+  forbidden:
+  - 项目开票申请
+  - 首付款开票申请
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: invoice_eligibility_confirmed
   zh: 开票准入
   en: InvoiceEligibilityConfirmed
@@ -3242,11 +3259,13 @@ terms:
   confidence: high
   aliases:
   - name: 回款单档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_0569
-  forbidden: []
+  forbidden:
+  - 回款单档案
   status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: receipt_claiming
   zh: 到账认领
   en: ReceiptClaiming
@@ -3301,11 +3320,13 @@ terms:
   confidence: high
   aliases:
   - name: 应收坏账申请
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「应收坏账申请流程」；计提还是核销待财务确认
-  forbidden: []
+  forbidden:
+  - 应收坏账申请
   status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: aging
   zh: 账龄
   en: Aging
@@ -3560,18 +3581,19 @@ terms:
     type: old-code
     deprecated: true
   - name: 项目结算
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「项目结算申请」
   forbidden:
   - SettlementRecord
   - 结算单
+  - 项目结算
   status: approved
   change_ref: G-19
   note: 国标「竣工结算」，FIDIC Cl.14.11 Final Statement / Final Payment Certificate；Settlement 在英语里多指款项结清，且与 ClaimSettled / IntercompanySettlement 冲突
   old_codes: []
   core: null
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: final_account_discount
   zh: 结算折让
   en: FinalAccountDiscount
@@ -3921,14 +3943,16 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 报价档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 档案 formmain_0366
   forbidden:
   - BaoJia
   - Quotation
+  - 报价档案
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: cost_estimate_node
   zh: 成本估算树
   en: CostEstimateNode
@@ -4064,20 +4088,22 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 项目立项
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「项目立项申请」
   - name: 项目档案
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「项目档案变更」、档案「项目档案底表」
   forbidden:
   - PmProject
+  - 项目立项
+  - 项目档案
   status: approved
   change_ref: G-29
   note: PSA 行业中与客户的整体合作也称 Engagement；本系统 Engagement 仅用于客户侧 EngagementHistory，不作项目别名
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: project_budget
   zh: 项目预算（WBS 预算）
   en: ProjectBudget
@@ -4096,17 +4122,18 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 项目预算编制
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
   - name: Budget
     type: old-code
     deprecated: true
-  forbidden: []
+  forbidden:
+  - 项目预算编制
   status: approved
   change_ref: G-29
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: expense_claim
   zh: 报销单
   en: ExpenseClaim
@@ -4125,16 +4152,19 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 日常费用报销单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
   - name: 业务招待费用报销单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
-  forbidden: []
+  forbidden:
+  - 日常费用报销单
+  - 业务招待费用报销单
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: travel_expense
   zh: 差旅
   en: TravelExpense
@@ -4153,12 +4183,14 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 差旅费用报销单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板
-  forbidden: []
+  forbidden:
+  - 差旅费用报销单
   status: approved
   core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: legal_entity
   zh: 法人主体
   en: LegalEntity
@@ -4537,17 +4569,18 @@ terms:
     type: old-code
     deprecated: true
   - name: 预收款单
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: A8 模板「预收款单新增」
   forbidden:
   - DeferredRevenue
   - AdvanceReceipt
   - 预收款
   - 递延收入
+  - 预收款单
   status: approved
   change_ref: G-11
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
 - id: performance_obligation
   zh: 履约义务
   en: PerformanceObligation
