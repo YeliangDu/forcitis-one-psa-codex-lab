@@ -18,7 +18,8 @@ import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.LegacyNumberEntry;
-import com.forcitis.one.platform.numbering.api.DocumentId;
+import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
 import com.forcitis.one.platform.numbering.api.RegisterLegacyNumbers;
@@ -225,9 +226,9 @@ class NumberingRulesIT {
     @Test
     @DisplayName("C1a-16 an original number finds the new document, and the new document finds its original numbers")
     void legacyNumbersAreSearchableBothWays() throws Exception {
-        register.register(new LegacyNumberEntry(DocumentType.QUOTE, "SYN-QU-0001", new DocumentId(501), LE1, "synthetic-batch-1"));
-        register.register(new LegacyNumberEntry(DocumentType.QUOTE, "SYN-QU-0001-R2", new DocumentId(501), LE1, "synthetic-batch-1"));
-        register.register(new LegacyNumberEntry(DocumentType.QUOTE, "SYN-QU-0002", new DocumentId(502), new LegalEntityId(2), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001", LE1, "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001-R2", LE1, "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("502")), "SYN-QU-0002", new LegalEntityId(2), "synthetic-batch-1"));
 
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-0001").with(LEGACY_READER))
                 .andExpect(status().isOk())
@@ -259,15 +260,15 @@ class NumberingRulesIT {
     @Test
     @DisplayName("(document type, original number) is unique: re-running an import is a no-op, a second owner is refused")
     void legacyNumberIsUniquePerDocumentType() {
-        LegacyNumberEntry first = new LegacyNumberEntry(DocumentType.TIMESHEET, "SYN-TS-1", new DocumentId(11), LE1, "synthetic-batch-2");
+        LegacyNumberEntry first = new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("11")), "SYN-TS-1", LE1, "synthetic-batch-2");
         register.register(first);
         register.register(first);
 
         assertThat(jdbc.sql("select count(*) from platform_numbering.legacy_numbers where legacy_number = 'SYN-TS-1'")
                 .query(Integer.class).single()).isEqualTo(1);
-        assertThatThrownBy(() -> register.register(new LegacyNumberEntry(DocumentType.TIMESHEET, "SYN-TS-1", new DocumentId(12), LE1, "synthetic-batch-3")))
+        assertThatThrownBy(() -> register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("12")), "SYN-TS-1", LE1, "synthetic-batch-3")))
                 .isInstanceOf(IllegalStateException.class);
-        register.register(new LegacyNumberEntry(DocumentType.JOURNAL_VOUCHER, "SYN-TS-1", new DocumentId(12), LE1, "synthetic-batch-3"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.JOURNAL_VOUCHER, new DocumentId("12")), "SYN-TS-1", LE1, "synthetic-batch-3"));
         assertThat(findDocument.find(DocumentType.JOURNAL_VOUCHER, "SYN-TS-1")).isPresent();
     }
 
@@ -282,9 +283,9 @@ class NumberingRulesIT {
 
     @Test
     void entriesValidateThemselves() {
-        assertThatThrownBy(() -> new LegacyNumberEntry(DocumentType.QUOTE, " ", new DocumentId(1), LE1, "b")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(DocumentType.QUOTE, "X", new DocumentId(0), LE1, "b")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(DocumentType.QUOTE, "X", new DocumentId(1), LE1, "")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(DocumentType.QUOTE, "x".repeat(129), new DocumentId(1), LE1, "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), " ", LE1, "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("0")), "X", LE1, "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "X", LE1, "")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "x".repeat(129), LE1, "b")).isInstanceOf(IllegalArgumentException.class);
     }
 }

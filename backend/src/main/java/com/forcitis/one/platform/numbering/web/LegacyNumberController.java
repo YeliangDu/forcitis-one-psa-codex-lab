@@ -2,7 +2,8 @@ package com.forcitis.one.platform.numbering.web;
 
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.kernel.DocumentType;
-import com.forcitis.one.platform.numbering.api.DocumentId;
+import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
 import java.util.List;
@@ -36,6 +37,6 @@ class LegacyNumberController {
     @GetMapping(params = "documentId")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
     List<LegacyNumberResponse> byDocument(@RequestParam DocumentType documentType, @RequestParam long documentId) {
-        return findLegacyNumbers.find(documentType, new DocumentId(documentId)).stream().map(LegacyNumberResponse::from).toList();
+        return findLegacyNumbers.find(new DocumentReference(documentType, new DocumentId(Long.toString(documentId)))).stream().map(LegacyNumberResponse::from).toList();
     }
 }
