@@ -1,0 +1,242 @@
+package com.forcitis.one.platform.approval;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalOutcome;
+import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.TaskOutcome;
+import com.forcitis.one.platform.approval.application.ApprovalError;
+import com.forcitis.one.platform.approval.application.ApprovalOperationException;
+import com.forcitis.one.platform.approval.application.ClaimTask;
+import com.forcitis.one.platform.approval.application.DecideTasks;
+import com.forcitis.one.platform.approval.application.DecisionOutcome;
+import com.forcitis.one.platform.approval.application.DecisionResult;
+import com.forcitis.one.platform.approval.application.ReturnToInitiator;
+import com.forcitis.one.platform.approval.application.TaskDecision;
+import java.util.List;
+import org.flowable.engine.HistoryService;
+import org.flowable.task.api.Task;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+/** The 1a task lifecycle on the real engine and database: candidates, claim, decide, return, reject, resubmit, results. */
+class TaskLifecycleIT extends ApprovalIntegrationSupport {
+
+    @Autowired
+    ClaimTask claimTask;
+
+    @Autowired
+    DecideTasks decideTasks;
+
+    @Autowired
+    ReturnToInitiator returnToInitiator;
+
+    @Autowired
+    HistoryService history;
+
+    record Staff(long initiator, long manager, long head) {
+    }
+
+    Staff staff() {
+        long unit = newId();
+        long head = newId();
+        long initiator = newId();
+        long manager = newId();
+        organisation.unit(unit, null, head).person(head, unit, null).person(initiator, unit, null).person(manager, unit, null);
+        return new Staff(initiator, manager, head);
+    }
+
+    DecisionResult decide(long actor, ApprovalTaskId task, DecisionOutcome outcome, String reason) {
+        return decideTasks.execute(new UserId(actor), List.of(new TaskDecision(task, outcome, reason)));
+    }
+
+    @Test
+    @DisplayName("RULE-249 a node is a candidate group: the resolved people may claim, nobody is picked at random")
+    void candidatesClaimInsteadOfRandomPick() {
+        Staff s = staff();
+        long second = newId();
+        organisation.person(second, 1, null);
+        String key = newKey("lifecycle");
+        ApprovalInstanceId instance = tx.execute(status -> approvals.start(new com.forcitis.one.platform.approval.api.ApprovalRequest(
+                com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(s.initiator()),
+                java.util.Set.of(), List.of(new com.forcitis.one.platform.approval.api.ApprovalField("manager_id",
+                        List.of(String.valueOf(s.manager()), String.valueOf(second)))))));
+        Task task = openTask(instance);
+        assertThat(task.getTaskDefinitionKey()).isEqualTo("approverReview");
+        assertThat(task.getAssignee()).isNull();
+        assertThat(taskService.getIdentityLinksForTask(task.getId()).stream().map(l -> l.getUserId()).toList())
+                .containsExactlyInAnyOrder(String.valueOf(s.manager()), String.valueOf(second));
+    }
+
+    @Test
+    @DisplayName("RULE-276 only the claimer may act after a claim; RULE-280 pass defaults the reason; RULE-289 ends APPROVED with a typed event")
+    void claimDecideAndFinish() {
+        Staff s = staff();
+        String key = newKey("lifecycle");
+        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
+        ApprovalTaskId review = openTaskId(instance);
+
+        claimTask.execute(review, new UserId(s.manager()));
+        assertThat(openTask(instance).getAssignee()).isEqualTo(String.valueOf(s.manager()));
+
+        DecisionResult afterReview = decide(s.manager(), review, DecisionOutcome.APPROVE, "");
+        assertThat(afterReview.status()).isEqualTo("RUNNING");
+        assertThat(requestStatus(key)).isEqualTo("RUNNING");
+        Task department = openTask(instance);
+        assertThat(department.getTaskDefinitionKey()).isEqualTo("departmentReview");
+        assertThat(taskService.getIdentityLinksForTask(department.getId()).stream().map(l -> l.getUserId()).toList())
+                .containsExactly(String.valueOf(s.head()));
+
+        DecisionResult done = decide(s.head(), new ApprovalTaskId(department.getId()), DecisionOutcome.APPROVE, "ok");
+        assertThat(done.status()).isEqualTo("APPROVED");
+        assertThat(requestStatus(key)).isEqualTo("APPROVED");
+        assertThat(approvals.isFinished(instance)).isTrue();
+
+        eventually(() -> {
+            assertThat(events.completed()).anySatisfy(e -> {
+                assertThat(e.businessKey()).isEqualTo(key);
+                assertThat(e.outcome()).isEqualTo(ApprovalOutcome.APPROVED);
+                assertThat(e.round()).isEqualTo(1);
+            });
+            assertThat(events.resulted().stream().filter(e -> e.businessKey().equals(key)).map(e -> e.outcome()).toList())
+                    .containsExactlyInAnyOrder(TaskOutcome.APPROVED, TaskOutcome.APPROVED);
+        });
+        org.mockito.Mockito.verify(audit, org.mockito.Mockito.atLeastOnce()).record(org.mockito.ArgumentMatchers.argThat(
+                entry -> entry.action().equals("platform.approval.task.approve") && "同意".equals(entry.detail())));
+    }
+
+    @Test
+    @DisplayName("RULE-271 a reject inside the sub-process returns to the initiator; RULE-267/301 the initiator resubmits and the approval continues")
+    void rejectInsideSubProcessReturnsToInitiator() {
+        Staff s = staff();
+        String key = newKey("lifecycle");
+        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
+
+        DecisionResult returned = decide(s.manager(), openTaskId(instance), DecisionOutcome.REJECT, "hours are wrong");
+        assertThat(returned.status()).isEqualTo("RETURNED");
+        assertThat(requestStatus(key)).isEqualTo("RETURNED");
+        assertThat(approvals.isFinished(instance)).isFalse();
+        Task rework = openTask(instance);
+        assertThat(rework.getTaskDefinitionKey()).isEqualTo("initiatorRework");
+        assertThat(taskService.getIdentityLinksForTask(rework.getId()).stream().map(l -> l.getUserId()).toList())
+                .containsExactly(String.valueOf(s.initiator()));
+
+        DecisionResult resumed = decide(s.initiator(), new ApprovalTaskId(rework.getId()), DecisionOutcome.APPROVE, "fixed");
+        assertThat(resumed.status()).isEqualTo("RUNNING");
+        assertThat(requestStatus(key)).isEqualTo("RUNNING");
+        assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("approverReview");
+        eventually(() -> assertThat(events.resulted()).anySatisfy(e -> {
+            assertThat(e.businessKey()).isEqualTo(key);
+            assertThat(e.outcome()).isEqualTo(TaskOutcome.RETURNED);
+            assertThat(e.reason()).isEqualTo("hours are wrong");
+        }));
+        assertThat(events.completed()).noneMatch(e -> e.businessKey().equals(key));
+    }
+
+    @Test
+    @DisplayName("RULE-290 a top-level reject ends the approval REJECTED and keeps the history (RULE-288)")
+    void topLevelRejectEndsTheApproval() {
+        Staff s = staff();
+        String key = newKey("lifecycle");
+        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
+        decide(s.manager(), openTaskId(instance), DecisionOutcome.APPROVE, "ok");
+
+        DecisionResult rejected = decide(s.head(), openTaskId(instance), DecisionOutcome.REJECT, "price too low");
+        assertThat(rejected.status()).isEqualTo("REJECTED");
+        assertThat(requestStatus(key)).isEqualTo("REJECTED");
+        assertThat(approvals.isFinished(instance)).isTrue();
+        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value()).count()).isEqualTo(1);
+        eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
+            assertThat(e.businessKey()).isEqualTo(key);
+            assertThat(e.outcome()).isEqualTo(ApprovalOutcome.REJECTED);
+            assertThat(e.reason()).isEqualTo("price too low");
+        }));
+    }
+
+    @Test
+    @DisplayName("RULE-275 return to initiator needs a reason; with a reason the approval is parked at the initiator, alive")
+    void returnNeedsAReason() {
+        Staff s = staff();
+        String key = newKey("lifecycle");
+        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
+        ApprovalTaskId review = openTaskId(instance);
+
+        assertThatThrownBy(() -> returnToInitiator.execute(review, new UserId(s.manager()), " "))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+        assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("approverReview");
+
+        DecisionResult result = returnToInitiator.execute(review, new UserId(s.manager()), "missing attachment");
+        assertThat(result.status()).isEqualTo("RETURNED");
+        assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("initiatorRework");
+        assertThat(requestStatus(key)).isEqualTo("RETURNED");
+    }
+
+    @Test
+    @DisplayName("RULE-272 a rejection needs a reason; tasks of two instances cannot be decided together; nothing changes on refusal")
+    void decideValidation() {
+        Staff s = staff();
+        ApprovalInstanceId first = start(newKey("lifecycle"), s.initiator(), s.manager());
+        ApprovalInstanceId second = start(newKey("lifecycle"), s.initiator(), s.manager());
+        ApprovalTaskId t1 = openTaskId(first);
+        ApprovalTaskId t2 = openTaskId(second);
+
+        assertThatThrownBy(() -> decide(s.manager(), t1, DecisionOutcome.REJECT, " "))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.manager()), List.of(
+                new TaskDecision(t1, DecisionOutcome.APPROVE, "ok"), new TaskDecision(t2, DecisionOutcome.APPROVE, "ok"))))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE));
+        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.manager()), List.of(
+                new TaskDecision(t1, DecisionOutcome.APPROVE, "ok"), new TaskDecision(t1, DecisionOutcome.APPROVE, "ok"))))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK));
+        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.manager()), List.of()))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_DECISION_EMPTY));
+        assertThat(openTaskId(first)).isEqualTo(t1);
+        assertThat(openTaskId(second)).isEqualTo(t2);
+    }
+
+    @Test
+    @DisplayName("RULE-272 the initiator's rework task can only be resubmitted, never rejected")
+    void initiatorTaskOnlyResubmits() {
+        Staff s = staff();
+        ApprovalInstanceId instance = start(newKey("lifecycle"), s.initiator(), s.manager());
+        decide(s.manager(), openTaskId(instance), DecisionOutcome.REJECT, "again");
+        ApprovalTaskId rework = openTaskId(instance);
+
+        assertThatThrownBy(() -> decide(s.initiator(), rework, DecisionOutcome.REJECT, "no"))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_INITIATOR_TASK_RESUBMIT_ONLY));
+        assertThatThrownBy(() -> returnToInitiator.execute(rework, new UserId(s.initiator()), "no"))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_INITIATOR_TASK_RESUBMIT_ONLY));
+    }
+
+    @Test
+    @DisplayName("RULE-295/303/304/312 a failing listener leaves the publication incomplete; resubmitting delivers it again (at least once)")
+    void resultEventsAreDeliveredAtLeastOnce(@Autowired org.springframework.modulith.events.IncompleteEventPublications incomplete) {
+        Staff s = staff();
+        String key = "flaky-" + newId();
+        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
+        decide(s.manager(), openTaskId(instance), DecisionOutcome.APPROVE, "ok");
+        decide(s.head(), openTaskId(instance), DecisionOutcome.APPROVE, "ok");
+
+        eventually(() -> assertThat(events.failedOnce()).contains(key));
+        assertThat(events.completed()).noneMatch(e -> e.businessKey().equals(key));
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.event_publication where completion_date is null",
+                Integer.class)).isGreaterThanOrEqualTo(1);
+
+        incomplete.resubmitIncompletePublications(p -> true);
+        eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
+            assertThat(e.businessKey()).isEqualTo(key);
+            assertThat(e.outcome()).isEqualTo(ApprovalOutcome.APPROVED);
+        }));
+    }
+}

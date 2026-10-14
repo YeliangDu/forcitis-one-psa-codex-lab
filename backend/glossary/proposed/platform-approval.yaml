@@ -1,0 +1,1024 @@
+# platform.approval 提议术语（proposed，待业务评审，ADR-0018）。单词级术语：服务于代码标识、URL、事件键、错误码的命名守护。
+terms:
+- id: act
+  zh: 办理
+  en: Act
+  snake: act
+  kind: command
+  bc: platform.approval
+  definition: 对任务执行认领、通过、驳回、退回等操作
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: advice
+  zh: 异常映射
+  en: Advice
+  snake: advice
+  kind: value
+  bc: platform.approval
+  definition: Spring 控制器通知：把审批用例的业务拒绝映射为状态码与错误码
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: advisory
+  zh: 建议性
+  en: Advisory
+  snake: advisory
+  kind: value
+  bc: platform.approval
+  definition: 加签人的驳回只记录意见、不终止流程（RULE-291，1b）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: allow
+  zh: 放行
+  en: Allow
+  snake: allow
+  kind: value
+  bc: platform.approval
+  definition: 钩子或规则允许操作继续
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: allowed
+  zh: 允许
+  en: Allowed
+  snake: allowed
+  kind: value
+  bc: platform.approval
+  definition: 节点显式允许某事（如发起人自审，RULE-307）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: applicable
+  zh: 适用
+  en: Applicable
+  snake: applicable
+  kind: value
+  bc: platform.approval
+  definition: 钩子对该操作不适用（NOT_APPLICABLE，RULE-277）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: assigned
+  zh: 已分配
+  en: Assigned
+  snake: assigned
+  kind: event
+  bc: platform.approval
+  definition: 任务已分配给候选组（TaskAssigned）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: assignee
+  zh: 处理人
+  en: Assignee
+  snake: assignee
+  kind: role
+  bc: platform.approval
+  definition: 认领后唯一可以办理任务的人（RULE-276，I-7）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: available
+  zh: 可用
+  en: Available
+  snake: available
+  kind: value
+  bc: platform.approval
+  definition: 老系统待办是否读取成功
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: before
+  zh: 办理前
+  en: Before
+  snake: before
+  kind: value
+  bc: platform.approval
+  definition: 办理事务内、完成任务之前执行的钩子（RULE-277）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: begin
+  zh: 开始
+  en: Begin
+  snake: begin
+  kind: command
+  bc: platform.approval
+  definition: 开始一轮发起
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: block
+  zh: 阻止
+  en: Block
+  snake: block
+  kind: command
+  bc: platform.approval
+  definition: 钩子阻止操作
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: claimed
+  zh: 已认领
+  en: Claimed
+  snake: claimed
+  kind: state
+  bc: platform.approval
+  definition: 任务已被候选人认领
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: codec
+  zh: 编解码
+  en: Codec
+  snake: codec
+  kind: value
+  bc: platform.approval
+  definition: 规则类型名与规则对象之间的转换
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: collected
+  zh: 已收集
+  en: Collected
+  snake: collected
+  kind: value
+  bc: platform.approval
+  definition: 规则取到的原始人员集合（内部）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: commit
+  zh: 生效
+  en: Commit
+  snake: commit
+  kind: value
+  bc: platform.approval
+  definition: 钩子结论允许操作生效
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: completed
+  zh: 已完成
+  en: Completed
+  snake: completed
+  kind: event
+  bc: platform.approval
+  definition: 审批已结束（ApprovalCompleted）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: context
+  zh: 上下文
+  en: Context
+  snake: context
+  kind: value
+  bc: platform.approval
+  definition: 传给钩子的服务端重建的操作上下文
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: decide
+  zh: 办理决定
+  en: Decide
+  snake: decide
+  kind: command
+  bc: platform.approval
+  definition: 通过或驳回任务
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: decision
+  zh: 决定
+  en: Decision
+  snake: decision
+  kind: entity
+  bc: platform.approval
+  definition: 对一个任务的通过或驳回
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: department
+  zh: 部门
+  en: Department
+  snake: department
+  kind: entity
+  bc: platform.approval
+  definition: 组织单元；审批规则按部门取负责人、总监、区域应收
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: director
+  zh: 总监
+  en: Director
+  snake: director
+  kind: role
+  bc: platform.approval
+  definition: BU-002 部门总监（RULE-256）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: empty
+  zh: 空
+  en: Empty
+  snake: empty
+  kind: value
+  bc: platform.approval
+  definition: 无内容
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: escalated
+  zh: 已升级
+  en: Escalated
+  snake: escalated
+  kind: value
+  bc: platform.approval
+  definition: 候选集已按规则上推（汇报线不完整、防自审）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: fallback
+  zh: 兜底
+  en: Fallback
+  snake: fallback
+  kind: value
+  bc: platform.approval
+  definition: 取不到人时转流程管理员
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: field
+  zh: 字段
+  en: Field
+  snake: field
+  kind: entity
+  bc: platform.approval
+  definition: 业务表单字段，指派规则可从中取人（RULE-258）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: first
+  zh: 首个
+  en: First
+  snake: first
+  kind: value
+  bc: platform.approval
+  definition: 取第一个值
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: for
+  zh: 针对
+  en: For
+  snake: for
+  kind: value
+  bc: platform.approval
+  definition: 连接词（查询某用户的待办）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: form
+  zh: 表单
+  en: Form
+  snake: form
+  kind: entity
+  bc: platform.approval
+  definition: 业务单据的表单数据
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: hook
+  zh: 钩子
+  en: Hook
+  snake: hook
+  kind: entity
+  bc: platform.approval
+  definition: 节点的 BEFORE 钩子：业务模块在办理事务内校验（RULE-277）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: inbox
+  zh: 待办收件箱
+  en: Inbox
+  snake: inbox
+  kind: entity
+  bc: platform.approval
+  definition: 合并新旧系统待办的列表（RULE-261）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: inside
+  zh: 内部
+  en: Inside
+  snake: inside
+  kind: value
+  bc: platform.approval
+  definition: 位于子流程内部（决定驳回含义，RULE-271）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: live
+  zh: 在途
+  en: Live
+  snake: live
+  kind: state
+  bc: platform.approval
+  definition: 审批仍在进行或退回待重提
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: may
+  zh: 可以
+  en: May
+  snake: may
+  kind: value
+  bc: platform.approval
+  definition: 连接词（mayAct）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: merge
+  zh: 合并
+  en: Merge
+  snake: merge
+  kind: command
+  bc: platform.approval
+  definition: 合并行任务或新旧待办
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: merged
+  zh: 已合并
+  en: Merged
+  snake: merged
+  kind: state
+  bc: platform.approval
+  definition: 新旧系统待办合并后的收件箱
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: merger
+  zh: 合并器
+  en: Merger
+  snake: merger
+  kind: value
+  bc: platform.approval
+  definition: 待办合并的纯函数
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: message
+  zh: 消息
+  en: Message
+  snake: message
+  kind: attribute
+  bc: platform.approval
+  definition: 错误或钩子给出的说明文字
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: named
+  zh: 指名
+  en: Named
+  snake: named
+  kind: value
+  bc: platform.approval
+  definition: 规则直接指名的人员
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: new
+  zh: 新
+  en: New
+  snake: new
+  kind: value
+  bc: platform.approval
+  definition: 新系统
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: can
+  zh: 可否
+  en: Can
+  snake: can
+  kind: value
+  bc: platform.approval
+  definition: 可否办理
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: not
+  zh: 非
+  en: Not
+  snake: not
+  kind: value
+  bc: platform.approval
+  definition: 否定
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: parse
+  zh: 解析
+  en: Parse
+  snake: parse
+  kind: command
+  bc: platform.approval
+  definition: 把文本解析为类型化值
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: refused
+  zh: 被拒绝
+  en: Refused
+  snake: refused
+  kind: state
+  bc: platform.approval
+  definition: 业务规则拒绝了操作
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: reporting
+  zh: 汇报
+  en: Reporting
+  snake: reporting
+  kind: value
+  bc: platform.approval
+  definition: 汇报线
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: resolution
+  zh: 解析结果
+  en: Resolution
+  snake: resolution
+  kind: entity
+  bc: platform.approval
+  definition: 指派规则的解析结果（候选集与解析方式）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: resolved
+  zh: 已解析
+  en: Resolved
+  snake: resolved
+  kind: state
+  bc: platform.approval
+  definition: 规则解析出了在职候选人
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: resolver
+  zh: 解析器
+  en: Resolver
+  snake: resolver
+  kind: value
+  bc: platform.approval
+  definition: 指派规则解析的纯函数（引擎与回放共用）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: resulted
+  zh: 已出结果
+  en: Resulted
+  snake: resulted
+  kind: event
+  bc: platform.approval
+  definition: 一个任务已办理（TaskResulted）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: return
+  zh: 退回
+  en: Return
+  snake: return
+  kind: command
+  bc: platform.approval
+  definition: 退回发起人（RULE-275）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: round
+  zh: 轮次
+  en: Round
+  snake: round
+  kind: entity
+  bc: platform.approval
+  definition: 同一单据第几次发起（RULE-278）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: row
+  zh: 行
+  en: Row
+  snake: row
+  kind: entity
+  bc: platform.approval
+  definition: 行级任务（RULE-261）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: running
+  zh: 进行中
+  en: Running
+  snake: running
+  kind: state
+  bc: platform.approval
+  definition: 审批正在进行
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: self
+  zh: 自己
+  en: Self
+  snake: self
+  kind: value
+  bc: platform.approval
+  definition: 发起人自己（防自审，RULE-307）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: sub
+  zh: 子
+  en: Sub
+  snake: sub
+  kind: value
+  bc: platform.approval
+  definition: 前缀：子流程
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: supplement
+  zh: 补充
+  en: Supplement
+  snake: supplement
+  kind: value
+  bc: platform.approval
+  definition: 钩子要求补充材料
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: terminate
+  zh: 终止
+  en: Terminate
+  snake: terminate
+  kind: command
+  bc: platform.approval
+  definition: 终止流程实例（顶层驳回，RULE-271）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: todo
+  zh: 待办事项
+  en: Todo
+  snake: todo
+  kind: entity
+  bc: platform.approval
+  definition: 待处理任务
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: unavailable
+  zh: 不可用
+  en: Unavailable
+  snake: unavailable
+  kind: value
+  bc: platform.approval
+  definition: 老系统待办不可读
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: unresolved
+  zh: 未解析
+  en: Unresolved
+  snake: unresolved
+  kind: state
+  bc: platform.approval
+  definition: 取不到人且未配置流程管理员
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: warn
+  zh: 警告
+  en: Warn
+  snake: warn
+  kind: value
+  bc: platform.approval
+  definition: 钩子给出警告，不放行
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: found
+  zh: 找到
+  en: Found
+  snake: found
+  kind: value
+  bc: platform.approval
+  definition: 查找结果
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: already
+  zh: 已经
+  en: Already
+  snake: already
+  kind: value
+  bc: platform.approval
+  definition: 连接词
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: cross
+  zh: 跨
+  en: Cross
+  snake: cross
+  kind: value
+  bc: platform.approval
+  definition: 跨实例
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: duplicate
+  zh: 重复
+  en: Duplicate
+  snake: duplicate
+  kind: value
+  bc: platform.approval
+  definition: 重复提交的任务
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: single
+  zh: 单个
+  en: Single
+  snake: single
+  kind: value
+  bc: platform.approval
+  definition: 每节点只允许一个决定（RULE-272）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: only
+  zh: 仅
+  en: Only
+  snake: only
+  kind: value
+  bc: platform.approval
+  definition: 限定词
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: required
+  zh: 必填
+  en: Required
+  snake: required
+  kind: value
+  bc: platform.approval
+  definition: 必须提供
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: resubmit
+  zh: 重新提交
+  en: Resubmit
+  snake: resubmit
+  kind: command
+  bc: platform.approval
+  definition: 退回后由发起人重新提交（I-5）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: blocked
+  zh: 被阻止
+  en: Blocked
+  snake: blocked
+  kind: state
+  bc: platform.approval
+  definition: 钩子阻止了操作
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: registered
+  zh: 已登记
+  en: Registered
+  snake: registered
+  kind: state
+  bc: platform.approval
+  definition: 钩子已登记
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: notification
+  zh: 通知
+  en: Notification
+  snake: notification
+  kind: entity
+  bc: platform.approval
+  definition: 企业微信通知（模块内接口隔离，架构 3.7）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: skipped
+  zh: 已跳过
+  en: Skipped
+  snake: skipped
+  kind: state
+  bc: platform.approval
+  definition: 收件人缺企业微信 ID，跳过并告警（I-6）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''

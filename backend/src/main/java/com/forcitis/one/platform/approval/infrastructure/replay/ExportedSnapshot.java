@@ -1,0 +1,99 @@
+package com.forcitis.one.platform.approval.infrastructure.replay;
+
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
+import com.forcitis.one.platform.identity.api.RoleCode;
+import com.forcitis.one.platform.identity.api.RoleDirectory;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+/**
+ * The exported OLD organisation snapshot, presented through the same read contracts the live system uses, so the very same
+ * AssigneeResolver runs in the replay (REIMAGINED_ARCHITECTURE §3.5 (a)). Read-only and in memory.
+ */
+final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
+
+    private final Map<Long, ReplayExport.EmployeeRecord> employees = new HashMap<>();
+    private final Map<Long, ReplayExport.OrgUnitRecord> units = new HashMap<>();
+    private final Map<String, Set<Long>> roleHolders = new HashMap<>();
+
+    ExportedSnapshot(ReplayExport.Snapshot snapshot) {
+        snapshot.employees().forEach(e -> employees.put(e.userId(), e));
+        snapshot.orgUnits().forEach(u -> units.put(u.orgUnitId(), u));
+        snapshot.roleHolders().forEach((role, holders) -> roleHolders.put(role, new LinkedHashSet<>(holders)));
+    }
+
+    @Override
+    public Optional<EmployeeProfile> findEmployee(UserId userId) {
+        return Optional.ofNullable(employees.get(userId.value())).map(e -> new EmployeeProfile(new UserId(e.userId()), "exported",
+                new OrgUnitId(e.orgUnitId()), null, e.employed() ? EmploymentStatus.EMPLOYED : EmploymentStatus.SEPARATED, false));
+    }
+
+    @Override
+    public Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<UserId> findDirectLeader(UserId userId) {
+        return Optional.ofNullable(employees.get(userId.value())).map(ReplayExport.EmployeeRecord::leaderUserId)
+                .filter(this::employed).map(UserId::new);
+    }
+
+    @Override
+    public Optional<UserId> findOrgUnitHead(OrgUnitId orgUnitId) {
+        return Optional.ofNullable(units.get(orgUnitId.value())).map(ReplayExport.OrgUnitRecord::headUserId).map(UserId::new);
+    }
+
+    @Override
+    public Optional<UserId> findRegionalReceivablesManager(OrgUnitId orgUnitId) {
+        return Optional.ofNullable(units.get(orgUnitId.value())).map(ReplayExport.OrgUnitRecord::regionalReceivablesManagerId)
+                .map(UserId::new);
+    }
+
+    @Override
+    public Optional<OrgUnitProfile> findOrgUnit(OrgUnitId orgUnitId) {
+        return Optional.ofNullable(units.get(orgUnitId.value())).map(u -> new OrgUnitProfile(new OrgUnitId(u.orgUnitId()), "exported",
+                u.parentOrgUnitId() == null ? null : new OrgUnitId(u.parentOrgUnitId()), u.active()));
+    }
+
+    @Override
+    public List<OrgUnitId> findAncestors(OrgUnitId orgUnitId) {
+        List<OrgUnitId> ancestors = new ArrayList<>();
+        Set<Long> seen = new HashSet<>();
+        seen.add(orgUnitId.value());
+        ReplayExport.OrgUnitRecord current = units.get(orgUnitId.value());
+        while (current != null && current.parentOrgUnitId() != null && seen.add(current.parentOrgUnitId())) {
+            ancestors.add(new OrgUnitId(current.parentOrgUnitId()));
+            current = units.get(current.parentOrgUnitId());
+        }
+        return ancestors;
+    }
+
+    @Override
+    public Set<UserId> findRoleHolders(RoleCode roleCode) {
+        Set<UserId> holders = new LinkedHashSet<>();
+        for (Long holder : roleHolders.getOrDefault(roleCode.value(), Set.of())) {
+            if (employed(holder)) {
+                holders.add(new UserId(holder));
+            }
+        }
+        return holders;
+    }
+
+    boolean employed(Long userId) {
+        ReplayExport.EmployeeRecord e = userId == null ? null : employees.get(userId);
+        return e != null && e.employed();
+    }
+}

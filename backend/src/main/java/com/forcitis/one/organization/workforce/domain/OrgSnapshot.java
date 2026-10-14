@@ -1,0 +1,48 @@
+package com.forcitis.one.organization.workforce.domain;
+
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/** The snapshot as stored: every org unit (including revoked ones), position and staff member. */
+public record OrgSnapshot(List<OrgUnit> orgUnits, List<Position> positions, List<StaffMember> staff) {
+
+    public OrgSnapshot {
+        orgUnits = List.copyOf(orgUnits);
+        positions = List.copyOf(positions);
+        staff = List.copyOf(staff);
+    }
+
+    public static OrgSnapshot empty() {
+        return new OrgSnapshot(List.of(), List.of(), List.of());
+    }
+
+    public Map<OrgUnitId, OrgUnit> orgUnitsById() {
+        Map<OrgUnitId, OrgUnit> byId = new LinkedHashMap<>();
+        orgUnits.forEach(u -> byId.put(u.orgUnitId(), u));
+        return byId;
+    }
+
+    public Map<PositionId, Position> positionsById() {
+        Map<PositionId, Position> byId = new LinkedHashMap<>();
+        positions.forEach(p -> byId.put(p.positionId(), p));
+        return byId;
+    }
+
+    public Map<UserId, StaffMember> staffById() {
+        Map<UserId, StaffMember> byId = new LinkedHashMap<>();
+        staff.forEach(s -> byId.put(s.userId(), s));
+        return byId;
+    }
+
+    public int activeOrgUnitCount() {
+        return (int) orgUnits.stream().filter(u -> u.status() == OrgUnitStatus.ACTIVE).count();
+    }
+
+    public int employedCount() {
+        return (int) staff.stream().filter(s -> s.employee().employmentStatus() == EmploymentStatus.EMPLOYED).count();
+    }
+}
