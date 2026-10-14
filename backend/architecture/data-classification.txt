@@ -1,0 +1,15 @@
+# 列级敏感分级（NAMING_STANDARD §2.5，GUIDING_PRINCIPLES §6 数据安全）。DdlNamingTest 检查：
+#   名字像敏感信息的列（口令、密钥、TOTP、银行、工资、日薪、证件、手机、邮箱、生日、性别、地址、会话内容）必须登记为 SENSITIVE 或 RESTRICTED；
+#   登记的列必须存在（改名或删列后同步改这里）。未登记的列默认 INTERNAL。
+# 级别：PUBLIC 公开 | INTERNAL 内部 | SENSITIVE 敏感（个人信息、工资与日薪、银行卡：脱敏展示、按范围授权）| RESTRICTED 高度敏感（口令、密钥、会话：不出库、不进日志与分析层）
+# 格式：<schema.table.column> | <级别> | <理由>。web / api 出参不得直接暴露 SENSITIVE 与 RESTRICTED 列（守护由 1a 会话实现）。
+organization_workforce.employees.email | SENSITIVE | 个人信息：工作邮箱
+organization_workforce.employees.gender | SENSITIVE | 个人信息
+platform_identity.user_accounts.last_login_address | SENSITIVE | 个人信息：最近登录 IP
+platform_identity.emergency_admins.password_hash | RESTRICTED | 口令哈希
+platform_identity.emergency_admins.totp_secret_encrypted | RESTRICTED | TOTP 密钥（加密存放）
+platform_identity.emergency_admins.last_totp_step | SENSITIVE | TOTP 防重放计步，可辅助推断验证码
+platform_identity.login_states.state_hash | SENSITIVE | 一次性登录 state 的摘要
+platform_identity.sso_ticket_uses.ticket_hash | SENSITIVE | 一次性单点登录票据的摘要
+platform_identity.ticket_issuers.key_reference | SENSITIVE | 签名密钥在 KMS 中的引用
+platform_identity.sessions_attributes.attribute_bytes | RESTRICTED | 会话内容
