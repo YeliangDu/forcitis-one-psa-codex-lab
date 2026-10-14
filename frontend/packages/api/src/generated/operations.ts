@@ -4,7 +4,7 @@ import type { paths } from './schema';
 import { responseSchemas } from './validators';
 
 export const getCostTimesheetsById = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}']['get']>) =>
-  request<Result<paths['/api/v1/cost/timesheets/{id}']['get']>>('get', '/api/v1/cost/timesheets/{id}', args, options);
+  request<Result<paths['/api/v1/cost/timesheets/{id}']['get']>>('get', '/api/v1/cost/timesheets/{id}', args, options, responseSchemas.getCostTimesheetsById);
 
 export const postCostTimesheetsByIdCancel = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}:cancel']['post']>) =>
   request<Result<paths['/api/v1/cost/timesheets/{id}:cancel']['post']>>('post', '/api/v1/cost/timesheets/{id}:cancel', args, options);

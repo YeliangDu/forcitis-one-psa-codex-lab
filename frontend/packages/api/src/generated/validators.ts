@@ -20,9 +20,9 @@ export const DecideTaskRequestSchema = z.object({
   reason: z.string().optional(),
 });
 
-export const DecisionResultSchema = z.object({
-  instanceId: z.string().optional(),
-  status: z.string().optional(),
+export const DecisionResponseSchema = z.object({
+  instanceId: z.string(),
+  status: z.string(),
 });
 
 export const EmergencyLoginRequestSchema = z.object({
@@ -31,14 +31,22 @@ export const EmergencyLoginRequestSchema = z.object({
   totpCode: z.string().optional(),
 });
 
-export const InboxItemSchema = z.object({
-  claimed: z.boolean().optional(),
+export const InboxItemResponseSchema = z.object({
+  claimed: z.boolean(),
   createdAt: z.string().optional(),
   detailUrl: z.string().optional(),
   nodeName: z.string().optional(),
-  source: z.enum(["NEW", "LEGACY"]).optional(),
-  taskId: z.string().optional(),
-  title: z.string().optional(),
+  source: z.string(),
+  taskId: z.string(),
+  title: z.string(),
+});
+
+export const InboxResponseSchema = z.object({
+  get items() { return z.array(InboxItemResponseSchema); },
+  legacyAvailable: z.boolean(),
+  legacyCount: z.number().int(),
+  newCount: z.number().int(),
+  totalCount: z.number().int(),
 });
 
 export const LegacyNumberResponseSchema = z.object({
@@ -58,14 +66,6 @@ export const LegalEntityResponseSchema = z.object({
 
 export const LoginStateRequestSchema = z.object({
   entry: z.enum(["WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN"]).optional(),
-});
-
-export const MergedInboxSchema = z.object({
-  get items() { return z.array(InboxItemSchema).optional(); },
-  legacyAvailable: z.boolean().optional(),
-  legacyCount: z.number().int().optional(),
-  newCount: z.number().int().optional(),
-  totalCount: z.number().int().optional(),
 });
 
 export const NavigationResponseSchema = z.object({
@@ -118,6 +118,10 @@ export const ReleaseResponseSchema = z.object({
 
 export const ReplaceRolesRequestSchema = z.object({
   roleCodes: z.array(z.string()).optional(),
+});
+
+export const RetractTimesheetRequestSchema = z.object({
+  reason: z.string().optional(),
 });
 
 export const ReturnTaskRequestSchema = z.object({
@@ -195,22 +199,35 @@ export const SyncRunResponseSchema = z.object({
   trigger: z.string(),
 });
 
-export const TaskDetailSchema = z.object({
+export const TaskDetailResponseSchema = z.object({
   assignee: z.string().optional(),
-  businessKey: z.string().optional(),
-  canAct: z.boolean().optional(),
-  candidates: z.array(z.string()).optional(),
-  createdAt: z.string().optional(),
-  initiator: z.string().optional(),
-  instanceId: z.string().optional(),
-  nodeKey: z.string().optional(),
-  nodeName: z.string().optional(),
-  processKey: z.string().optional(),
-  taskId: z.string().optional(),
+  canAct: z.boolean(),
+  candidates: z.array(z.string()),
+  createdAt: z.string(),
+  documentId: z.string(),
+  documentType: z.string(),
+  initiator: z.string(),
+  instanceId: z.string(),
+  nodeKey: z.string(),
+  nodeName: z.string(),
+  processKey: z.string(),
+  taskId: z.string(),
 });
 
 export const TicketLoginRequestSchema = z.object({
   ticket: z.string().optional(),
+});
+
+export const TimesheetResponseSchema = z.object({
+  approvalInstanceId: z.string().optional(),
+  canWithdraw: z.boolean(),
+  round: z.number().int(),
+  status: z.string(),
+  timesheetId: z.string(),
+});
+
+export const TransferTaskRequestSchema = z.object({
+  assigneeId: z.number().int().optional(),
 });
 
 export const UpdateLegalEntityRequestSchema = z.object({
@@ -225,6 +242,7 @@ export const WecomLoginRequestSchema = z.object({
 });
 
 export const responseSchemas = {
+  getCostTimesheetsById: TimesheetResponseSchema,
   postCostTimesheetsByIdSubmit: SubmitTimesheetResponseSchema,
   getOrganizationLegalEntities: z.array(LegalEntityResponseSchema),
   postOrganizationLegalEntities: z.unknown(),
@@ -234,10 +252,10 @@ export const responseSchemas = {
   getOrganizationSyncRuns: z.array(SyncRunResponseSchema),
   getOrganizationSyncRunsBySyncRunId: SyncRunDetailResponseSchema,
   postOrganizationSyncRunsBySyncRunIdRelease: ReleaseResponseSchema,
-  getPlatformApprovalTasks: MergedInboxSchema,
-  getPlatformApprovalTasksByTaskId: TaskDetailSchema,
-  postPlatformApprovalTasksByTaskIdDecide: DecisionResultSchema,
-  postPlatformApprovalTasksByTaskIdReturn: DecisionResultSchema,
+  getPlatformApprovalTasks: InboxResponseSchema,
+  getPlatformApprovalTasksByTaskId: TaskDetailResponseSchema,
+  postPlatformApprovalTasksByTaskIdDecide: DecisionResponseSchema,
+  postPlatformApprovalTasksByTaskIdReturn: DecisionResponseSchema,
   getPlatformAuditEntries: z.unknown(),
   getPlatformLegacyNumbers: z.union([z.array(LegacyNumberResponseSchema), LegacyNumberResponseSchema]),
   postPlatformLoginStates: z.unknown(),

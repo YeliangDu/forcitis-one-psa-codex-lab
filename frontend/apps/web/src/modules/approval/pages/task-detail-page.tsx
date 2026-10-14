@@ -28,7 +28,7 @@ export function TaskDetailPage() {
       <DescriptionList
         items={[
           { label: '审批流程', value: PROCESS_LABELS[detail.processKey ?? ''] ?? detail.processKey ?? '—' },
-          { label: '业务键', value: detail.businessKey ?? '—' },
+          { label: '单据', value: `${detail.documentType} ${detail.documentId}` },
           { label: '当前节点', value: detail.nodeName ?? detail.nodeKey ?? '—' },
           { label: '发起人', value: detail.initiator ?? '—' },
           { label: '处理人', value: detail.assignee ?? '未认领' },

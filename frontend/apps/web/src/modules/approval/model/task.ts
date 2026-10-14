@@ -2,8 +2,8 @@ import type { Schema } from '@forcitis/api';
 
 export const TASK_APPROVE_PERMISSION = 'platform.approval:task:approve';
 
-export type TaskDetail = Schema<'TaskDetail'>;
-export type DecisionResult = Schema<'DecisionResult'>;
+export type TaskDetail = Schema<'TaskDetailResponse'>;
+export type DecisionResult = Schema<'DecisionResponse'>;
 
 export interface TaskActions {
   claim: boolean;
