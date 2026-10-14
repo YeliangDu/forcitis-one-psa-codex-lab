@@ -110,3 +110,4 @@
 | 新 ECS 云侧加固（2026-10-14）：选「元数据强制加固 + 释放保护」「自动快照策略」「云安全中心客户端与授权」，未选数据盘加密 | 元数据 HttpTokens=required；释放保护不适用包年实例（包年到期前不可释放）；快照策略 sp-bp1b4n9pvexztyhyfrof（每日 03:00，保留 7 天，两块盘）；云安全中心客户端经 OperateAgentClientInstall 安装并绑定授权；数据盘不加密 |
 | OLAP 范围（2026-10-14）：「现代化负责 reporting 数据层、KPI 语义层（按 OAT）和 BI 过渡不中断；BI 工具和看板由 BI 项目负责。请派一个会话 psa-reporting-contract：盘点现有 BI 迁移会话正在建的模型和数据源，与 terms.yaml / OAT 对齐，设计 reporting 层的契约和过渡视图，产出 ADR-0023（提议）。」 | 工作单元「reporting 契约」（psa-reporting-contract）；ADR-0023（提议）；GUIDING_PRINCIPLES §8 的边界以此为准 |
 | 经营分析（2026-10-14，覆盖上一条 OLAP 边界）：「BI 要重构，不满足经营管理需要。经营分析纳入现代化：经营子域 4 个 BC、reporting 与语义层纳入，BI 重构同步规划。暂停 BI 迁移会话在老数据源上的新建模，现有报表照常运行。请派 psa-bi-scope 做经营分析范围评估，产出 ADR-0023（提议）。」 | 已开会话由 psa-reporting-contract 改名为 psa-bi-scope 并扩大范围；BI 会话暂停由用户自行处理；ADR-0023（提议） |
+| 「新系统，为什么会采用旧写法？需要禁止 agent 使用旧代码？」→ 禁止照搬老代码三项「三项都加 (Recommended)」（2026-10-14） | SESSION_PLAYBOOK §5「老代码只作证据，不得照搬」；LegacyShapeTest 守护；每波 opus「老系统形状」复审 |
