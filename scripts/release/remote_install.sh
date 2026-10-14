@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # FORCITIS one release installer on the ECS. Installed as /usr/local/sbin/forcitis-one-release (root:root 0755) by the one-time setup in
-# RELEASE.md (Phase 1a infra runbooks). Run as root by a fixed, parameterless Cloud Assistant command, or through a deploy key whose
-# forced command is this script (the key never gets a shell). It takes nothing from its caller: the environment comes from this server's
-# own configuration, what to install is the newest pending GitHub deployment that a deploy.yml run on main created for that environment,
-# read with a read-only token, and the release is fetched from GitHub by this server and only installed when its signed statement
-# verifies against the signer key on this server.
+# RELEASE.md (Phase 1a infra runbooks). Run as root by a fixed Cloud Assistant command whose only parameter is the install request. Only
+# the deploy job of deploy.yml on main for this environment can invoke that command (Aliyun OIDC trust policy, RELEASE.md §8.2), so the
+# request names what to install; it is still checked strictly, the environment comes from this server's own configuration, and the
+# release is installed only when its signed statement verifies against the signer key on this server and names the requested version.
 #
-#   install-pending              install the release of the newest pending deployment for this server's environment
-#   rollback [<version>]         back to the previous release, or to <version> (local only, no GitHub access)
+#   install-pending --request <base64 JSON>   install the requested release (request contract: RELEASE.md §3)
+#   rollback [<version>]                       back to the previous release, or to <version> (local only, no network)
 #   status
 #
 # Every step fails loudly; a release that does not report healthy is switched back to the release that ran before.
@@ -19,19 +18,14 @@ BASE=/data/forcitis-one
 ETC=/etc/forcitis-one
 MIGRATION_CREDENTIALS="$ETC/migrate"
 RELEASE_SIGNERS="$ETC/release-signers"
-# root 0644: ENVIRONMENT (dev|prod), GITHUB_REPOSITORY (owner/name), optional WECOM_VERIFY_FILE (a pinned file that must exist)
+# root 0644: ENVIRONMENT (dev|prod), optional WECOM_VERIFY_FILE (a pinned file that must exist)
 RELEASE_SOURCE="$ETC/release-source"
-# Fine-grained read-only GitHub token (root 0600) and its expiry date YYYY-MM-DD (root 0644), RELEASE.md §7 R-13
-GITHUB_TOKEN_FILE="$ETC/github-release-token"
-GITHUB_TOKEN_EXPIRES="$ETC/github-release-token.expires"
-GITHUB_API=https://api.github.com
-DEPLOY_WORKFLOW_PATH=.github/workflows/deploy.yml
-DEPLOYMENT_CREATOR='github-actions[bot]'
-API_TIMEOUT_SECONDS=60
-# Every deployment id taken up, with its outcome (root 0600, appended only); an id listed here is never installed again
+MAX_REQUEST_BYTES=16384
+# GitHub serves release assets from these hosts as short-lived signed URLs; the deploy job resolves them, nothing else is fetched
+ASSET_HOSTS='objects.githubusercontent.com release-assets.githubusercontent.com'
+# Every request taken up, keyed <run_id>:<run_attempt>, with its outcome (root 0600, appended only); a key listed here is never installed again
 STATE_DIR=/var/lib/forcitis-one-release
-PROCESSED="$STATE_DIR/processed-deployments"
-RUN_DIR=/run/forcitis-one-release
+PROCESSED="$STATE_DIR/processed-requests"
 # Files nginx serves outside the releases, untouched by any deployment (WeCom trusted-domain verification, C-4 E-10)
 PINNED="$BASE/static-pinned"
 PINNED_PATTERN='^WW_verify_[A-Za-z0-9]{1,64}\.txt$'
@@ -60,7 +54,7 @@ FIRST_INSTALL_ONLY='^(spring\.datasource\..+|flowable\.database-schema-update)$'
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
 fail() {
   log "FAILED: $*"
-  [ -z "${deployment_in_progress:-}" ] || record_deployment "$deployment_in_progress" failed "$*"
+  [ -z "${request_in_progress:-}" ] || record_request "$request_in_progress" failed "$*"
   exit 1
 }
 
@@ -206,20 +200,23 @@ verify_bundle_dir() {
 
 statement_field() { awk -v key="$1:" '$1 == key { print $2; found = 1 } END { exit !found }' "$2"; }
 
-# Same checks as scripts/release/statement.sh verify, against the signer key installed on this server (never one from the bundle)
+# Same checks as scripts/release/statement.sh verify, against the signer key installed on this server (never one from the bundle); the
+# commit is taken from the verified statement and sets commit
 verify_statement() {
-  local archive="$1" statement="$2" version="$3" commit="$4" name="forcitis-one-$3"
-  [ -s "$RELEASE_SIGNERS" ] && [ "$(stat -c '%U %a' "$RELEASE_SIGNERS")" = "root 644" ] \
+  local archive="$1" statement="$2" version="$3" name="forcitis-one-$3" signed_version
+  [ -s "$RELEASE_SIGNERS" ] && [ "$(owner_mode "$RELEASE_SIGNERS")" = "root 644" ] \
     || fail "$RELEASE_SIGNERS must exist, root-owned 0644 (RELEASE.md §7)"
   ssh-keygen -Y verify -f "$RELEASE_SIGNERS" -I "$STATEMENT_NAMESPACE" -n "$STATEMENT_NAMESPACE" -s "$statement.sig" < "$statement" >/dev/null 2>&1 \
     || fail "the release statement's signature does not verify"
   [ "$(statement_field format "$statement")" = "$STATEMENT_FORMAT" ] || fail "unknown release statement format"
-  [ "$(statement_field version "$statement")" = "$version" ] || fail "release statement is for another version"
+  signed_version="$(statement_field version "$statement" || true)"
+  [ "$signed_version" = "$version" ] || fail "the signed release statement is for version '$signed_version', the request names $version"
   [ "$(statement_field bundle "$statement")" = "$name.tar.gz" ] || fail "release statement names another bundle"
-  [ "$(statement_field commit "$statement")" = "$commit" ] || fail "release statement is for another commit"
+  commit="$(statement_field commit "$statement" || true)"
+  [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "release statement names no full commit sha"
   [ "$(statement_field workflow "$statement")" = "$RELEASE_WORKFLOW" ] || fail "release statement was not produced by the release workflow on main"
-  [ "$(statement_field bundle-sha256 "$statement")" = "$(sha256sum "$archive" | cut -d' ' -f1)" ] || fail "bundle differs from the signed release statement"
-  log "bundle matches the release statement signed by release run $(statement_field run "$statement")"
+  [ "$(statement_field bundle-sha256 "$statement")" = "$(sha256sum < "$archive" | cut -d' ' -f1)" ] || fail "bundle differs from the signed release statement"
+  log "bundle matches the release statement for $commit signed by release run $(statement_field run "$statement")"
 }
 
 # After check_tar_entries: the members the statement names
@@ -262,235 +259,168 @@ source_value() {
   printf '%s' "${line#*=}"
 }
 
-# Sets target_env, repo and pinned_expected from this server's release configuration
+# Sets target_env and pinned_expected from this server's release configuration
 read_release_source() {
   [ -s "$RELEASE_SOURCE" ] && [ "$(owner_mode "$RELEASE_SOURCE")" = "root 644" ] \
     || fail "$RELEASE_SOURCE must exist, root-owned 0644 (RELEASE.md §7 R-7)"
   target_env="$(source_value ENVIRONMENT)"
-  repo="$(source_value GITHUB_REPOSITORY)"
   pinned_expected="$(source_value WECOM_VERIFY_FILE)"
   case "$target_env" in dev|prod) ;; *) fail "$RELEASE_SOURCE must set ENVIRONMENT to dev or prod" ;; esac
-  [ "$repo" = "${RELEASE_WORKFLOW%%/.github/*}" ] \
-    || fail "$RELEASE_SOURCE must set GITHUB_REPOSITORY to ${RELEASE_WORKFLOW%%/.github/*}, the repository whose release workflow signs"
   [[ -z "$pinned_expected" || "$pinned_expected" =~ $PINNED_PATTERN ]] \
     || fail "$RELEASE_SOURCE: WECOM_VERIFY_FILE must name a WW_verify_*.txt file or be absent"
 }
 
-# Writes the Authorization header to a root-only file for curl -H @file, so the token never reaches a command line or the log
-github_auth() {
-  local expires token=""
-  [ -f "$GITHUB_TOKEN_FILE" ] && [ "$(owner_mode "$GITHUB_TOKEN_FILE")" = "root 600" ] \
-    || fail "$GITHUB_TOKEN_FILE must exist, root-owned 0600 (RELEASE.md §7 R-13)"
-  [ -f "$GITHUB_TOKEN_EXPIRES" ] && [ "$(owner_mode "$GITHUB_TOKEN_EXPIRES")" = "root 644" ] \
-    || fail "$GITHUB_TOKEN_EXPIRES must exist, root-owned 0644 (RELEASE.md §7 R-13)"
-  expires="$(tr -d '[:space:]' < "$GITHUB_TOKEN_EXPIRES")"
-  [[ "$expires" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || fail "$GITHUB_TOKEN_EXPIRES must hold the token's expiry date as YYYY-MM-DD"
-  [[ "$(date -u +%Y-%m-%d)" < "$expires" ]] \
-    || fail "the GitHub release token expired on $expires; rotate it (RELEASE.md §7 R-13)"
-  IFS= read -r token < "$GITHUB_TOKEN_FILE" || true
-  [[ "$token" =~ ^github_pat_[A-Za-z0-9_]{20,255}$ ]] || fail "$GITHUB_TOKEN_FILE does not hold a fine-grained token"
-  [ -d "$RUN_DIR" ] || mkdir -m 0700 "$RUN_DIR"
-  github_headers="$(mktemp "$RUN_DIR/headers.XXXXXX")"
-  cleanup_paths+=("$github_headers")
-  printf 'Authorization: Bearer %s\n' "$token" > "$github_headers"
-}
-
-github_get() {
-  local path="$1" out="$2"
-  curl -fsS --proto '=https' --tlsv1.2 --max-time "$API_TIMEOUT_SECONDS" -H @"$github_headers" \
-    -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' -o "$out" "$GITHUB_API$path" \
-    || fail "GitHub API GET $path failed"
-}
-
-# The asset API answers with a redirect to a short-lived signed URL; curl sends -H Authorization only to the original host
-github_download() {
-  local url="$1" out="$2"
-  timeout "$DOWNLOAD_TIMEOUT_SECONDS" curl -fsS --proto '=https' --proto-redir '=https' --tlsv1.2 -L --max-redirs 3 \
-    --max-filesize "$MAX_BUNDLE_BYTES" -H @"$github_headers" -H 'Accept: application/octet-stream' -o "$out" "$url" \
-    || fail "could not download $url"
-}
-
-# Checks on GitHub API responses; each mode prints what the next step needs or exits non-zero with the reason
-github_check() {
+# Decodes and checks the install request; on success prints "<version> <run_id> <run_attempt>", then one "<asset name> <url>" line per
+# asset. URLs never reach the log: they are signed download links.
+request_check() {
   python3 -I - "$@" <<'PY'
-import json, re, sys
-mode, args = sys.argv[1], sys.argv[2:]
-def load(path):
-    with open(path) as f:
-        return json.load(f)
+import base64, binascii, json, re, sys
+from urllib.parse import urlsplit
+
+encoded, env, version_pattern, max_bytes, hosts = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5].split()
 def die(message):
-    sys.exit(message)
+    sys.exit("install request: " + message)
 
-if mode == "newest":
-    deployments = load(args[0])
-    if not isinstance(deployments, list) or not deployments:
-        die(f"no deployment for environment {args[1]}; deployments are created by deploy.yml")
-    print(max(deployments, key=lambda d: d["id"])["id"])
+if not encoded or len(encoded) > max_bytes:
+    die(f"must be 1..{max_bytes} characters of base64, got {len(encoded)}")
+if not re.fullmatch(r"[A-Za-z0-9+/]+={0,2}", encoded) or len(encoded) % 4:
+    die("is not standard base64 without line breaks")
+try:
+    text = base64.b64decode(encoded, validate=True).decode("utf-8")
+except (binascii.Error, UnicodeDecodeError):
+    die("is not base64 of UTF-8 text")
 
-elif mode == "deployment":
-    deployments, statuses = load(args[0]), load(args[1])
-    deployment_id, env, version_pattern, expected_creator = int(args[2]), args[3], args[4], args[5]
-    d = next(d for d in deployments if d["id"] == deployment_id)
-    if statuses:
-        state = statuses[0].get("state")
-        if state in ("success", "failure", "error", "inactive"):
-            die(f"nothing to deploy: the newest deployment {deployment_id} for {env} is already {state}")
-    if d.get("environment") != env:
-        die(f"deployment {deployment_id} is for environment {d.get('environment')!r}, this server is {env}")
-    creator = d.get("creator") or {}
-    if creator.get("login") != expected_creator or creator.get("type") != "Bot":
-        die(f"deployment {deployment_id} was created by {creator.get('login')!r}, not by a workflow run")
-    ref = d.get("ref")
-    if not isinstance(ref, str) or not ref.startswith("v") or not re.fullmatch(version_pattern.lstrip("^").rstrip("$"), ref[1:]):
-        die(f"deployment {deployment_id} has ref {ref!r}, not a release tag v<version>")
-    payload = d.get("payload")
-    if not isinstance(payload, dict):
-        die(f"deployment {deployment_id} has no payload object")
-    version, run_id, commit = payload.get("version"), payload.get("run_id"), payload.get("commit")
-    if version != ref[1:]:
-        die(f"deployment {deployment_id}: payload version {version!r} differs from its ref {ref}")
-    if type(run_id) is not int or run_id <= 0:
-        die(f"deployment {deployment_id}: payload run_id is missing or not a run id")
-    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
-        die(f"deployment {deployment_id}: payload commit is missing or not a full sha")
-    if d.get("sha") != commit:
-        die(f"deployment {deployment_id}: payload commit {commit} differs from the deployment's commit {d.get('sha')}")
-    # One deploy run creates exactly one deployment; a second one naming the same run was not made by that run's deploy job
-    same_run = [o["id"] for o in deployments if isinstance(o.get("payload"), dict) and o["payload"].get("run_id") == run_id]
-    if len(same_run) != 1:
-        die(f"deployments {same_run} all name run {run_id}; a deploy run creates one, start a new run instead of re-running")
-    print(deployment_id, version, run_id, commit)
+def no_duplicates(pairs):
+    keys = [k for k, _ in pairs]
+    if len(keys) != len(set(keys)):
+        die("has a duplicate key")
+    return dict(pairs)
+def no_constants(name):
+    die(f"has the non-JSON constant {name}")
+try:
+    request = json.loads(text, object_pairs_hook=no_duplicates, parse_constant=no_constants)
+except ValueError:
+    die("is not JSON")
 
-elif mode == "run":
-    run, run_id, repo, workflow_path, version, env = load(args[0]), int(args[1]), args[2], args[3], args[4], args[5]
-    # display_title is deploy.yml's run-name, which carries the run's inputs: the run must be deploying this version to this environment
-    expected = {"id": run_id, "path": workflow_path, "head_branch": "main", "event": "workflow_dispatch", "status": "in_progress",
-                "display_title": f"deploy {version} to {env}"}
-    for key, value in expected.items():
-        if run.get(key) != value:
-            die(f"workflow run {run_id}: {key} is {run.get(key)!r}, expected {value!r}")
-    for key in ("repository", "head_repository"):
-        if (run.get(key) or {}).get("full_name") != repo:
-            die(f"workflow run {run_id}: {key} is not {repo}")
+expected = {"version", "environment", "run_id", "run_attempt", "assets"}
+if not isinstance(request, dict) or set(request) != expected:
+    keys = sorted(request) if isinstance(request, dict) else type(request).__name__
+    die(f"must be an object with exactly the keys {sorted(expected)}, got {keys}")
+version = request["version"]
+if not isinstance(version, str) or not re.fullmatch(version_pattern.lstrip("^").rstrip("$"), version):
+    die(f"version {version!r} is not MAJOR.MINOR.PATCH[-rc.N]")
+if request["environment"] not in ("dev", "prod"):
+    die(f"environment {request['environment']!r} is not dev or prod")
+if request["environment"] != env:
+    die(f"is for environment {request['environment']}, this server is {env}")
+for key in ("run_id", "run_attempt"):
+    value = request[key]
+    if type(value) is not int or not 0 < value < 2**63:
+        die(f"{key} must be a positive integer")
 
-elif mode == "ref":
-    ref, expected = load(args[0]), args[1]
-    if ref.get("ref") != expected:
-        die(f"{expected} does not exist")
-    print(ref["object"]["type"], ref["object"]["sha"])
-
-elif mode == "tag":
-    tag = load(args[0])
-    print(tag["object"]["type"], tag["object"]["sha"])
-
-elif mode == "release":
-    release, version, repo, max_bytes = load(args[0]), args[1], args[2], int(args[3])
-    if release.get("tag_name") != f"v{version}" or release.get("draft") is not False:
-        die(f"release v{version} is missing or still a draft")
-    top = f"forcitis-one-{version}"
-    asset_url = re.compile(rf"https://api\.github\.com/repos/{re.escape(repo)}/releases/assets/[0-9]+")
-    for name in (f"{top}.tar.gz", f"{top}.tar.gz.sha256", f"{top}.release", f"{top}.release.sig"):
-        found = [a for a in release.get("assets", []) if a.get("name") == name]
-        if len(found) != 1:
-            die(f"release v{version} has {len(found)} assets named {name}, expected exactly one")
-        asset = found[0]
-        if asset.get("state") != "uploaded" or not isinstance(asset.get("size"), int) or asset["size"] > max_bytes:
-            die(f"release asset {name} is not uploaded or larger than {max_bytes} bytes")
-        if not isinstance(asset.get("url"), str) or not asset_url.fullmatch(asset["url"]):
-            die(f"release asset {name} has an unexpected url")
-        print(name, asset["url"])
-
-else:
-    die(f"unknown check {mode}")
+top = f"forcitis-one-{version}"
+names = [f"{top}.tar.gz", f"{top}.tar.gz.sha256", f"{top}.release", f"{top}.release.sig"]
+assets = request["assets"]
+if not isinstance(assets, dict) or set(assets) != set(names):
+    keys = sorted(assets) if isinstance(assets, dict) else type(assets).__name__
+    die(f"assets must name exactly {names}, got {keys}")
+lines = [f"{version} {request['run_id']} {request['run_attempt']}"]
+for name in names:
+    url = assets[name]
+    if not isinstance(url, str) or not 0 < len(url) <= 4096 or not re.fullmatch(r"[!-~]+", url) or "\\" in url:
+        die(f"asset {name}: URL is not one printable ASCII string of at most 4096 characters")
+    try:
+        parts = urlsplit(url)
+        port = parts.port
+    except ValueError:
+        die(f"asset {name}: URL cannot be parsed")
+    # The whole netloc must equal an allowed host: this rules out userinfo, any explicit port (even :443), a trailing dot or other spellings
+    if parts.scheme != "https" or parts.netloc not in hosts or port is not None or parts.username is not None:
+        die(f"asset {name}: URL must be https on {' or '.join(hosts)} without user or port; got scheme {parts.scheme!r}, host {parts.netloc!r}")
+    if not parts.path.startswith("/") or parts.fragment:
+        die(f"asset {name}: URL has no path or carries a fragment")
+    lines.append(f"{name} {url}")
+print("\n".join(lines))
 PY
 }
 
-# Sets deployment_id, version, run_id and commit from the newest deployment for target_env, after every check passed
-validate_deployment() {
-  local work out ref_type ref_sha depth
-  work="$(mktemp -d)"
-  cleanup_paths+=("$work")
-  github_get "/repos/$repo/deployments?environment=$target_env&per_page=5" "$work/deployments.json"
-  deployment_id="$(github_check newest "$work/deployments.json" "$target_env")" || fail "no deployment to install"
-  github_get "/repos/$repo/deployments/$deployment_id/statuses?per_page=1" "$work/statuses.json"
-  out="$(github_check deployment "$work/deployments.json" "$work/statuses.json" "$deployment_id" "$target_env" "$VERSION_PATTERN" "$DEPLOYMENT_CREATOR")" \
-    || fail "deployment $deployment_id is not acceptable"
-  read -r deployment_id version run_id commit <<< "$out"
+# Sets version, run_id, run_attempt and asset_names / asset_links (same order) from the request, after every check passed
+parse_request() {
+  local encoded="$1" out name url
+  out="$(request_check "$encoded" "$target_env" "$VERSION_PATTERN" "$MAX_REQUEST_BYTES" "$ASSET_HOSTS")" || fail "install request refused"
+  asset_names=() asset_links=()
+  {
+    read -r version run_id run_attempt
+    while read -r name url; do asset_names+=("$name"); asset_links+=("$url"); done
+  } <<< "$out"
   valid_version "$version" || fail "invalid version '$version'"
-
-  github_get "/repos/$repo/actions/runs/$run_id" "$work/run.json"
-  github_check run "$work/run.json" "$run_id" "$repo" "$DEPLOY_WORKFLOW_PATH" "$version" "$target_env" \
-    || fail "deployment $deployment_id does not come from a running deploy.yml run on main"
-
-  github_get "/repos/$repo/git/ref/tags/v$version" "$work/ref.json"
-  out="$(github_check ref "$work/ref.json" "refs/tags/v$version")" || fail "tag v$version cannot be resolved"
-  read -r ref_type ref_sha <<< "$out"
-  depth=0
-  while [ "$ref_type" = tag ]; do
-    depth=$((depth + 1))
-    [ "$depth" -le 3 ] || fail "tag v$version is nested too deeply"
-    [[ "$ref_sha" =~ ^[0-9a-f]{40}$ ]] || fail "tag v$version points at a malformed object"
-    github_get "/repos/$repo/git/tags/$ref_sha" "$work/tag.json"
-    out="$(github_check tag "$work/tag.json")" || fail "tag object $ref_sha cannot be read"
-    read -r ref_type ref_sha <<< "$out"
-  done
-  [ "$ref_type" = commit ] || fail "tag v$version does not point at a commit"
-  [ "$ref_sha" = "$commit" ] || fail "tag v$version points at $ref_sha, the deployment names $commit"
-  log "deployment $deployment_id: v$version ($commit) for $target_env from deploy run $run_id"
+  [[ "$run_id" =~ ^[1-9][0-9]*$ && "$run_attempt" =~ ^[1-9][0-9]*$ ]] || fail "invalid run id or attempt"
+  [ "${#asset_names[@]}" -eq 4 ] || fail "install request names ${#asset_names[@]} assets, expected 4"
+  log "install request: v$version for $target_env from deploy run $run_id attempt $run_attempt"
 }
 
-# Refuses a deployment id that was taken up before
+# Refuses a request key that was taken up before
 processed_check() {
-  local id="$1"
+  local key="$1"
   [ -d "$STATE_DIR" ] || mkdir -m 0700 "$STATE_DIR"
   [ "$(owner_mode "$STATE_DIR")" = "root 700" ] || fail "$STATE_DIR must be root-owned 0700"
   if [ -e "$PROCESSED" ]; then
     [ "$(owner_mode "$PROCESSED")" = "root 600" ] || fail "$PROCESSED must be root-owned 0600"
-    if awk -F'\t' -v id="$id" '$1 == id { found = 1 } END { exit !found }' "$PROCESSED"; then
-      fail "deployment $id was already taken up (see $PROCESSED); every deploy run creates a new deployment"
+    if awk -F'\t' -v key="$key" '$1 == key { found = 1 } END { exit !found }' "$PROCESSED"; then
+      fail "request $key (deploy run:attempt) was already taken up (see $PROCESSED); start a new deploy run"
     fi
   else
     (umask 077 && : > "$PROCESSED")
   fi
 }
 
-record_deployment() {
-  printf '%s\t%s\t%s\t%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "${3:-}" >> "$PROCESSED" || log "could not record deployment $1 as $2"
+record_request() {
+  printf '%s\t%s\t%s\t%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "${3:-}" >> "$PROCESSED" || log "could not record request $1 as $2"
 }
 
-place() {
-  local version="$1" env="$2" commit="$3" incoming archive top staged existing assets name url out expected_sha
+# No redirect is followed and no credential is sent: the URL already is GitHub's final signed download link
+download_asset() {
+  local name="$1" out="$2" i url=""
+  for i in "${!asset_names[@]}"; do
+    [ "${asset_names[$i]}" != "$name" ] || url="${asset_links[$i]}"
+  done
+  [ -n "$url" ] || fail "install request has no URL for $name"
+  timeout "$DOWNLOAD_TIMEOUT_SECONDS" curl -fsS --proto '=https' --proto-redir '=https' --tlsv1.2 -L --max-redirs 0 \
+    --max-filesize "$MAX_BUNDLE_BYTES" -o "$out" "$url" \
+    || fail "could not download release asset $name (the signed link may have expired; start a new deploy run)"
+}
+
+# Downloads the requested release into a new directory under releases/ and verifies it; sets staged (the unpacked bundle) and commit
+fetch_release() {
+  local version="$1" incoming archive top expected_sha
   incoming="$(mktemp -d "$releases/.incoming.XXXXXX")"
   cleanup_paths+=("$incoming")
   top="forcitis-one-$version"
   archive="$incoming/bundle.tar.gz"
   log "fetching $top from the GitHub release v$version"
-  github_get "/repos/$repo/releases/tags/v$version" "$incoming/release.json"
-  assets="$(github_check release "$incoming/release.json" "$version" "$repo" "$MAX_BUNDLE_BYTES")" || fail "release v$version cannot be installed"
-  while read -r name url; do
-    case "$name" in
-      "$top.tar.gz") out="$archive" ;;
-      "$top.tar.gz.sha256") out="$incoming/bundle.sha256" ;;
-      "$top.release") out="$incoming/statement" ;;
-      "$top.release.sig") out="$incoming/statement.sig" ;;
-      *) fail "unexpected release asset $name" ;;
-    esac
-    github_download "$url" "$out"
-  done <<< "$assets"
-  [ "$(stat -c %s "$archive")" -le "$MAX_BUNDLE_BYTES" ] || fail "bundle larger than $MAX_BUNDLE_BYTES bytes"
-  log "fetched $(stat -c %s "$archive") bytes"
+  download_asset "$top.tar.gz.sha256" "$incoming/bundle.sha256"
+  download_asset "$top.release" "$incoming/statement"
+  download_asset "$top.release.sig" "$incoming/statement.sig"
+  download_asset "$top.tar.gz" "$archive"
+  [ "$(wc -c < "$archive")" -le "$MAX_BUNDLE_BYTES" ] || fail "bundle larger than $MAX_BUNDLE_BYTES bytes"
+  log "fetched $(wc -c < "$archive" | tr -d ' ') bytes"
   expected_sha="$(cut -d' ' -f1 "$incoming/bundle.sha256")"
   [[ "$expected_sha" =~ ^[0-9a-f]{64}$ ]] || fail "cannot read the bundle's .sha256 asset"
-  [ "$(sha256sum "$archive" | cut -d' ' -f1)" = "$expected_sha" ] || fail "bundle sha256 differs from the release's .sha256 asset"
+  [ "$(sha256sum < "$archive" | cut -d' ' -f1)" = "$expected_sha" ] || fail "bundle sha256 differs from the release's .sha256 asset"
 
-  verify_statement "$archive" "$incoming/statement" "$version" "$commit"
+  verify_statement "$archive" "$incoming/statement" "$version"
   check_tar_entries "$archive" "$top"
   verify_statement_members "$archive" "$incoming/statement" "$version"
   tar -xzf "$archive" -C "$incoming" --no-same-owner --no-same-permissions
   staged="$incoming/$top"
   verify_bundle_dir "$staged"
-  [ "$(manifest_field "$staged/manifest.json" version)" = "$version" ] || fail "manifest.json is not for version $version"
-  [ "$(manifest_field "$staged/manifest.json" gitSha)" = "$commit" ] || fail "manifest.json is not for commit $commit"
+  [ "$(manifest_field "$staged/manifest.json" version)" = "$version" ] || fail "manifest.json is not for the requested version $version"
+  [ "$(manifest_field "$staged/manifest.json" gitSha)" = "$commit" ] || fail "manifest.json is not for commit $commit named by the signed statement"
+}
+
+place() {
+  local version="$1" env="$2" existing
+  fetch_release "$version"
   [ -d "$staged/web-$env" ] || fail "bundle has no static files for $env"
 
   existing="$releases/$version"
@@ -509,7 +439,7 @@ place() {
     mv "$staged" "$existing"
     grant_static_read "$existing"
   fi
-  rm -rf "$incoming"
+  rm -rf "$(dirname "$staged")"
 }
 
 # Prints the migration files of <new> that <old> does not have; fails when a file both know changed (migrations are append-only).
@@ -614,9 +544,25 @@ lock() {
   flock -n 9 || fail "another release operation is running"
 }
 
+# Takes up the install-pending arguments for target_env: sets version, run_id, run_attempt and the asset URLs, records the request as started
+accept_request() {
+  local running
+  [ "$#" -eq 2 ] && [ "$1" = --request ] || fail "install-pending takes exactly: --request <base64 JSON> (RELEASE.md §3)"
+  parse_request "$2"
+  processed_check "$run_id:$run_attempt"
+  # Taken up before anything is installed, so a crash half-way is never replayed by the same request
+  record_request "$run_id:$run_attempt" started "v$version"
+  request_in_progress="$run_id:$run_attempt"
+
+  [[ "$target_env" != prod || "$version" != *-* ]] || fail "prod takes released versions only, not the pre-release $version"
+  running="$(linked_version "$current_link")"
+  if [ -n "$running" ] && version_lower "$version" "$running"; then
+    fail "$version is lower than the running $running; going back is an explicit operator rollback (forcitis-one-release rollback), never a deployment"
+  fi
+}
+
 cmd_install_pending() {
-  [ "$#" -eq 0 ] || fail "install-pending takes no arguments; the environment comes from $RELEASE_SOURCE"
-  local target_env repo pinned_expected profile running new first_install=false deployment_id version run_id commit
+  local target_env pinned_expected profile running new first_install=false version run_id run_attempt commit staged
   read_release_source
   profile="$(env_value SPRING_PROFILES_ACTIVE)"
   [ "$profile" = "$target_env" ] || fail "$RELEASE_SOURCE says '$target_env', but one.env SPRING_PROFILES_ACTIVE is '$profile'"
@@ -625,22 +571,11 @@ cmd_install_pending() {
     || fail "$current_link is a directory, not the release link; move pinned files to $PINNED and remove it first (C-4 E-10)"
   assert_root_owned "$BASE" "$releases"
   lock
-  github_auth
-  validate_deployment
-  processed_check "$deployment_id"
-  # Taken up before anything is installed, so a crash half-way is never replayed by the same deployment
-  record_deployment "$deployment_id" started "v$version $commit run $run_id"
-  deployment_in_progress="$deployment_id"
-
-  [[ "$target_env" != prod || "$version" != *-* ]] || fail "prod takes released versions only, not the pre-release $version"
-  running="$(linked_version "$current_link")"
-  if [ -n "$running" ] && version_lower "$version" "$running"; then
-    fail "$version is lower than the running $running; going back is an explicit operator rollback (forcitis-one-release rollback), never a deployment"
-  fi
+  accept_request "$@"
   if [ -n "$pinned_expected" ]; then
     [ -s "$PINNED/$pinned_expected" ] || fail "WECOM_VERIFY_FILE names $pinned_expected, missing in $PINNED; WeCom would drop the trusted domain (C-4 E-10)"
   fi
-  place "$version" "$target_env" "$commit"
+  place "$version" "$target_env"
   running="$(linked_version "$current_link")"
   [ -n "$running" ] || first_install=true
   if [ -n "$running" ] && [ "$running" != "$version" ]; then
@@ -657,12 +592,13 @@ cmd_install_pending() {
   fi
   migrate "$version" "$first_install"
   activate "$version"
-  record_deployment "$deployment_id" succeeded "v$version"
-  deployment_in_progress=""
+  record_request "$run_id:$run_attempt" succeeded "v$version $commit"
+  request_in_progress=""
   prune
 }
 
 cmd_rollback() {
+  [ "$#" -le 1 ] || fail "rollback takes at most one version"
   local target="${1:-}"
   assert_root_owned "$BASE" "$releases"
   lock
@@ -682,27 +618,18 @@ cmd_status() {
   echo "installed releases:"
   find "$releases" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '  %f\n' | sort
   [ ! -f "$releases/HISTORY" ] || { echo "recent history:"; tail -5 "$releases/HISTORY"; }
-  [ ! -f "$PROCESSED" ] || { echo "recent deployments:"; tail -5 "$PROCESSED"; }
+  [ ! -f "$PROCESSED" ] || { echo "recent install requests:"; tail -5 "$PROCESSED"; }
 }
 
 main() {
-  if [ "$(id -u)" -ne 0 ]; then
-    [ -n "${SSH_ORIGINAL_COMMAND:-}" ] || fail "run as root, or through the deploy key"
-    local -a words
-    read -r -a words <<< "$SSH_ORIGINAL_COMMAND"
-    [[ "${#words[@]}" -ge 1 && "${#words[@]}" -le 2 ]] || fail "unexpected command"
-    for word in "${words[@]}"; do
-      [[ "$word" =~ ^[A-Za-z0-9.+-]{1,64}$ ]] || fail "unexpected command"
-    done
-    exec sudo -n "$SELF" "${words[@]}"
-  fi
+  [ "$(id -u)" -eq 0 ] || fail "run as root (the Cloud Assistant command runs as root)"
   local command="${1:-}"
   shift || true
   case "$command" in
     install-pending) cmd_install_pending "$@" ;;
     rollback) cmd_rollback "$@" ;;
-    status) cmd_status ;;
-    *) fail "usage: install-pending | rollback [<version>] | status" ;;
+    status) [ "$#" -eq 0 ] || fail "status takes no arguments"; cmd_status ;;
+    *) fail "usage: install-pending --request <base64 JSON> | rollback [<version>] | status" ;;
   esac
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Exercises the installer's deployment checks (remote_install.sh: github_auth, validate_deployment, processed_check) against canned
-# GitHub API answers served by a stand-in curl; nothing reaches the network. Runs on macOS and Linux without root.
+# Exercises the installer's request handling (remote_install.sh: accept_request, fetch_release) against release assets built and signed
+# here with a key generated for the run, served by a stand-in curl; nothing reaches the network. Runs on macOS and Linux without root.
 #
 #   scripts/release/install_request_test.sh
 set -euo pipefail
@@ -8,105 +8,137 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
-REPO=FORCITIS/forcitis-one-psa
 COMMIT=0123456789abcdef0123456789abcdef01234567
-TAG_OBJECT=89abcdef0123456789abcdef0123456789abcdef
+WORKFLOW=FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main
+LINK_BASE=https://release-assets.githubusercontent.com/github-production-release-asset/1000
 
 mkdir -p "$scratch/bin"
 cat > "$scratch/bin/curl" <<'CURL'
 #!/usr/bin/env bash
-# Stand-in for curl: answers GitHub API paths from $FAKE_GITHUB, insists on the token arriving through a header file only
-out="" url="" headers=""
+# Stand-in for curl: serves $FAKE_ASSETS/<last path segment>; refuses credentials and any call that could follow a redirect
+out="" url="" no_redirects=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -o) out="$2"; shift ;;
-    -H) case "$2" in @*) headers="${2#@}" ;; esac; shift ;;
-    https://*) url="$1" ;;
+    -H) echo "header sent: $2" >&2; exit 97 ;;
+    --max-redirs) [ "$2" = 0 ] && no_redirects=yes; shift ;;
+    https://*|http://*) url="$1" ;;
   esac
-  case "$1" in *github_pat_*) echo "token on the command line" >&2; exit 99 ;; esac
   shift
 done
-grep -q '^Authorization: Bearer github_pat_' "$headers" 2>/dev/null || { echo "no token header file" >&2; exit 98; }
-case "$url" in
-  */deployments\?*) file=deployments.json ;;
-  */statuses\?*) file=statuses.json ;;
-  */actions/runs/*) file=run.json ;;
-  */git/ref/tags/*) file=ref.json ;;
-  */git/tags/*) file=tag.json ;;
-  *) exit 22 ;;
-esac
-[ -f "$FAKE_GITHUB/$file" ] || exit 22
-cp "$FAKE_GITHUB/$file" "$out"
+[ -n "$no_redirects" ] || { echo "curl called without --max-redirs 0" >&2; exit 96; }
+path="${url%%\?*}"
+file="$FAKE_ASSETS/${path##*/}"
+[ -f "$file" ] || exit 22
+cp "$file" "$out"
 CURL
-chmod +x "$scratch/bin/curl"
+if ! sha256sum --version 2>/dev/null | grep -q GNU; then
+  printf '#!/bin/sh\nexec shasum -a 256 "$@"\n' > "$scratch/bin/sha256sum"
+fi
+command -v timeout >/dev/null 2>&1 || printf '#!/bin/sh\nshift\nexec "$@"\n' > "$scratch/bin/timeout"
+chmod +x "$scratch/bin"/*
 
-# Writes the answers of a valid request into $1, then applies the named change
-canned() {
-  python3 -I - "$1" "$2" "$REPO" "$COMMIT" "$TAG_OBJECT" <<'PY'
-import json, os, sys
-out, change, repo, commit, tag_object = sys.argv[1:]
-deployments = [
-    {"id": 900, "ref": "main", "sha": "f" * 40, "environment": "dev", "creator": {"login": "github-actions[bot]", "type": "Bot"}, "payload": {}},
-    {"id": 901, "ref": "v0.1.0", "sha": commit, "environment": "dev", "creator": {"login": "github-actions[bot]", "type": "Bot"},
-     "payload": {"version": "0.1.0", "run_id": 4242, "commit": commit}},
-]
-statuses = []
-run = {"id": 4242, "display_title": "deploy 0.1.0 to dev", "path": ".github/workflows/deploy.yml", "head_branch": "main", "event": "workflow_dispatch", "status": "in_progress",
-       "repository": {"full_name": repo}, "head_repository": {"full_name": repo}}
-ref = {"ref": "refs/tags/v0.1.0", "object": {"type": "commit", "sha": commit}}
-tag = {"object": {"type": "commit", "sha": commit}}
-newest = deployments[1]
-if change == "annotated-tag":
-    ref["object"] = {"type": "tag", "sha": tag_object}
-elif change == "creator":
-    newest["creator"] = {"login": "someone", "type": "User"}
-elif change == "run-path":
-    run["path"] = ".github/workflows/other.yml"
-elif change == "run-branch":
-    run["head_branch"] = "feature"
-elif change == "run-status":
-    run["status"] = "completed"
-elif change == "run-event":
-    run["event"] = "push"
-elif change == "run-repository":
-    run["repository"] = {"full_name": "someone/fork"}
-elif change == "tag-commit":
-    ref["object"]["sha"] = "e" * 40
-elif change == "annotated-tag-commit":
-    ref["object"] = {"type": "tag", "sha": tag_object}
-    tag["object"]["sha"] = "e" * 40
-elif change == "payload-version":
-    newest["payload"]["version"] = "0.2.0"
-elif change == "ref-not-release-tag":
-    newest["ref"] = "v0.1.0\n"
-    newest["payload"]["version"] = "0.1.0\n"
+ssh-keygen -q -t ed25519 -N '' -C install-request-test -f "$scratch/release_key"
+ssh-keygen -q -t ed25519 -N '' -C install-request-test-other -f "$scratch/other_key"
+printf 'forcitis-one-release namespaces="forcitis-one-release" %s\n' "$(cut -d' ' -f1,2 "$scratch/release_key.pub")" > "$scratch/signers"
+
+sha() { shasum -a 256 | cut -d' ' -f1; }
+
+# Builds the four release assets of <version> into <dir>; the manifest and the signed statement may name other versions
+build_release() {
+  local dir="$1" version="$2" manifest_version="$3" statement_version="$4" key="$5" top work
+  top="forcitis-one-$version"
+  work="$dir/build"
+  mkdir -p "$work/$top/web-dev" "$work/$top/deploy"
+  echo '<!doctype html>' > "$work/$top/web-dev/index.html"
+  echo 'echo installer' > "$work/$top/deploy/remote_install.sh"
+  printf '{"version": "%s", "gitSha": "%s"}\n' "$manifest_version" "$COMMIT" > "$work/$top/manifest.json"
+  (cd "$work/$top" && find . -type f | sed 's|^\./||' | LC_ALL=C sort | while IFS= read -r f; do
+    printf '%s  %s\n' "$(sha < "$f")" "$f"; done > ../sums && mv ../sums SHA256SUMS)
+  COPYFILE_DISABLE=1 tar -czf "$dir/$top.tar.gz" -C "$work" "$top"
+  printf '%s  %s\n' "$(sha < "$dir/$top.tar.gz")" "$top.tar.gz" > "$dir/$top.tar.gz.sha256"
+  {
+    echo "format: forcitis-one-release-statement/1"
+    echo "version: $statement_version"
+    echo "commit: $COMMIT"
+    echo "bundle: $top.tar.gz"
+    echo "bundle-sha256: $(sha < "$dir/$top.tar.gz")"
+    echo "manifest-sha256: $(sha < "$work/$top/manifest.json")"
+    echo "sha256sums-sha256: $(sha < "$work/$top/SHA256SUMS")"
+    echo "workflow: $WORKFLOW"
+    echo "run: 77"
+  } > "$dir/$top.release"
+  ssh-keygen -q -Y sign -f "$key" -n forcitis-one-release "$dir/$top.release" >/dev/null 2>&1
+  rm -rf "$work"
+}
+
+# Prints the base64 install request for 0.1.0 to dev, run 4242 attempt 1, with the named change applied
+request() {
+  python3 -I - "$1" "$LINK_BASE" <<'PY'
+import base64, json, sys
+change, base = sys.argv[1], sys.argv[2]
+def links(version, host="release-assets.githubusercontent.com", scheme="https", prefix=""):
+    top = f"forcitis-one-{version}"
+    return {n: f"{scheme}://{prefix}{host}/github-production-release-asset/1000/{n}?sp=r&se=2026-10-15T00%3A05%3A00Z&sig=x"
+            for n in (f"{top}.tar.gz", f"{top}.tar.gz.sha256", f"{top}.release", f"{top}.release.sig")}
+r = {"version": "0.1.0", "environment": "dev", "run_id": 4242, "run_attempt": 1, "assets": links("0.1.0")}
+raw = None
+if change == "objects-host":
+    r["assets"] = links("0.1.0", host="objects.githubusercontent.com")
+elif change == "rc-version":
+    r["version"] = "0.1.0-rc.1"; r["assets"] = links("0.1.0-rc.1")
+elif change == "prod-rc":
+    r["version"] = "0.1.0-rc.1"; r["assets"] = links("0.1.0-rc.1"); r["environment"] = "prod"
+elif change == "extra-key":
+    r["commit"] = "0" * 40
+elif change == "missing-key":
+    del r["run_attempt"]
+elif change == "duplicate-key":
+    raw = json.dumps(r)[:-1] + ', "run_id": 4243}'
+elif change == "not-object":
+    r = [r]
 elif change == "environment":
-    newest["environment"] = "prod"
-elif change == "run-other-environment":
-    run["display_title"] = "deploy 0.1.0 to prod"
-elif change == "run-other-version":
-    run["display_title"] = "deploy 0.2.0 to dev"
-elif change == "second-deployment-same-run":
-    deployments.insert(1, {"id": 902, "ref": "v0.1.0", "sha": commit, "environment": "dev",
-                           "creator": {"login": "github-actions[bot]", "type": "Bot"},
-                           "payload": {"version": "0.1.0", "run_id": 4242, "commit": commit}})
-elif change == "already-done":
-    statuses = [{"state": "success"}]
+    r["environment"] = "prod"
+elif change == "environment-unknown":
+    r["environment"] = "staging"
+elif change.startswith("version="):
+    r["version"] = change.split("=", 1)[1]
+elif change == "run-id-zero":
+    r["run_id"] = 0
+elif change == "run-id-string":
+    r["run_id"] = "4242"
+elif change == "run-attempt-bool":
+    r["run_attempt"] = True
+elif change == "run-id-float":
+    r["run_id"] = 4242.0
+elif change == "extra-asset":
+    r["assets"]["forcitis-one-0.1.0.extra"] = r["assets"]["forcitis-one-0.1.0.tar.gz"]
+elif change == "asset-other-version":
+    r["assets"] = links("0.2.0")
+elif change.startswith("host="):
+    r["assets"]["forcitis-one-0.1.0.tar.gz"] = links("0.1.0", host=change.split("=", 1)[1])["forcitis-one-0.1.0.tar.gz"]
+elif change == "http":
+    r["assets"]["forcitis-one-0.1.0.release"] = links("0.1.0", scheme="http")["forcitis-one-0.1.0.release"]
+elif change == "userinfo":
+    r["assets"]["forcitis-one-0.1.0.release.sig"] = links("0.1.0", prefix="user:pass@")["forcitis-one-0.1.0.release.sig"]
+elif change == "url-space":
+    r["assets"]["forcitis-one-0.1.0.tar.gz"] += " x"
+elif change == "url-fragment":
+    r["assets"]["forcitis-one-0.1.0.tar.gz"] += "#frag"
 elif change != "none":
     sys.exit(f"unknown change {change}")
-os.makedirs(out, exist_ok=True)
-for name, value in (("deployments", deployments), ("statuses", statuses), ("run", run), ("ref", ref), ("tag", tag)):
-    with open(os.path.join(out, name + ".json"), "w") as f:
-        json.dump(value, f)
+raw = raw or json.dumps(r)
+print(base64.b64encode(raw.encode()).decode())
 PY
 }
 
-# Runs the checks in a subshell; prints the installer's log and returns its status
+# Runs the request handling in a subshell; prints the installer's log and returns its status
 attempt() {
-  local case_dir="$1" token_mode="$2" expires="$3" processed_before="$4"
+  local case_dir="$1" server_env="$2" running="$3" processed_before="$4"
+  shift 4
   (
     PATH="$scratch/bin:$PATH"
-    export FAKE_GITHUB="$case_dir/github"
+    export FAKE_ASSETS="$case_dir/assets"
     # shellcheck source=scripts/release/remote_install.sh
     source "$here/remote_install.sh"
     if stat -c %a / >/dev/null 2>&1; then
@@ -114,73 +146,124 @@ attempt() {
     else
       owner_mode() { stat -f '%Su %Lp' "$1" | sed "s/^$(id -un) /root /"; }
     fi
-    GITHUB_TOKEN_FILE="$case_dir/token"
-    GITHUB_TOKEN_EXPIRES="$case_dir/token.expires"
-    RUN_DIR="$case_dir/run"
+    RELEASE_SIGNERS="$case_dir/signers"
     STATE_DIR="$case_dir/state"
-    PROCESSED="$STATE_DIR/processed-deployments"
-    (umask 077 && printf 'github_pat_%s\n' "$(python3 -I -c 'import secrets; print(secrets.token_hex(20))')" > "$GITHUB_TOKEN_FILE")
-    chmod "$token_mode" "$GITHUB_TOKEN_FILE"
-    echo "$expires" > "$GITHUB_TOKEN_EXPIRES"
-    chmod 0644 "$GITHUB_TOKEN_EXPIRES"
-    if [ "$processed_before" = yes ]; then
-      mkdir -m 0700 "$STATE_DIR" && (umask 077 && printf '901\t2026-10-14T00:00:00Z\tstarted\tv0.1.0\n' > "$PROCESSED")
+    PROCESSED="$STATE_DIR/processed-requests"
+    releases="$case_dir/releases"
+    current_link="$case_dir/current"
+    cp "$scratch/signers" "$RELEASE_SIGNERS" && chmod 0644 "$RELEASE_SIGNERS"
+    mkdir -p "$releases"
+    if [ -n "$running" ]; then
+      mkdir -p "$releases/$running" && ln -s "releases/$running" "$current_link"
     fi
-    target_env=dev
-    repo="$REPO"
-    github_auth
-    validate_deployment
-    processed_check "$deployment_id"
-    echo "ACCEPTED deployment=$deployment_id version=$version run=$run_id commit=$commit"
+    if [ "$processed_before" = yes ]; then
+      mkdir -m 0700 "$STATE_DIR" && (umask 077 && printf '4242:1\t2026-10-14T00:00:00Z\tstarted\tv0.1.0\n' > "$PROCESSED")
+    fi
+    target_env="$server_env"
+    accept_request "$@"
+    fetch_release "$version"
+    echo "ACCEPTED version=$version run=$run_id:$run_attempt commit=$commit staged=$(basename "$staged")"
   ) > "$case_dir/out" 2>&1
 }
 
-future="$(python3 -I -c 'import datetime; print(datetime.date.today() + datetime.timedelta(days=60))')"
-past="$(python3 -I -c 'import datetime; print(datetime.date.today() - datetime.timedelta(days=1))')"
-today="$(date -u +%Y-%m-%d)"
 passed=0 failed=0
 
-# expect: accept, or reject:<text the refusal must contain>
+# check <name> <expect: accept | reject:text> <arguments...>; options before the name through variables:
+# SERVER_ENV (dev), RUNNING (none), PROCESSED_BEFORE (no), RELEASE (version manifest-version statement-version key)
 check() {
-  local name="$1" change="$2" expect="$3" token_mode="${4:-0600}" expires="${5:-$future}" processed_before="${6:-no}" dir status rc
+  local name="$1" expect="$2" dir status rc shown
+  shift 2
   dir="$scratch/$name"
-  mkdir -p "$dir"
-  canned "$dir/github" "$change"
+  mkdir -p "$dir/assets"
+  # shellcheck disable=SC2086
+  build_release "$dir/assets" ${RELEASE:-0.1.0 0.1.0 0.1.0 $scratch/release_key}
   # Not in an if: errexit, which the sourced installer sets, must stay in force inside the attempt
   set +e
-  attempt "$dir" "$token_mode" "$expires" "$processed_before"
+  attempt "$dir" "${SERVER_ENV:-dev}" "${RUNNING:-}" "${PROCESSED_BEFORE:-no}" "$@"
   rc=$?
-  if [ "$rc" -eq 0 ]; then status=accepted; else status=rejected; fi
   set -e
+  if [ "$rc" -eq 0 ]; then status=accepted; else status=rejected; fi
+  if grep -qE 'header sent|without --max-redirs 0' "$dir/out"; then
+    status="unsafe download"
+  fi
   if { [ "$expect" = accept ] && [ "$status" = accepted ]; } \
      || { [ "$expect" != accept ] && [ "$status" = rejected ] && grep -qF -- "${expect#reject:}" "$dir/out"; }; then
-    passed=$((passed + 1)); echo "PASS  $name: $status — $(grep -E 'ACCEPTED|FAILED' "$dir/out" | tail -1 | cut -c1-160)"
+    shown="ACCEPTED"; [ "$expect" = accept ] || shown="${expect#reject:}"
+    passed=$((passed + 1)); echo "PASS  $name: $status — $(grep -m1 -F -- "$shown" "$dir/out" | cut -c1-170)"
   else
     failed=$((failed + 1)); echo "FAIL  $name: $status, expected $expect"; sed 's/^/      /' "$dir/out"
   fi
 }
 
-check valid-request                none                  accept
-check valid-annotated-tag          annotated-tag         accept
-check creator-not-actions-bot      creator               "reject:not by a workflow run"
-check run-not-deploy-yml           run-path              "reject:path is '.github/workflows/other.yml'"
-check run-not-on-main              run-branch            "reject:head_branch is 'feature'"
-check run-not-in-progress          run-status            "reject:status is 'completed'"
-check run-event-push               run-event             "reject:event is 'push'"
-check run-for-other-environment    run-other-environment "reject:display_title is 'deploy 0.1.0 to prod'"
-check run-for-other-version        run-other-version     "reject:display_title is 'deploy 0.2.0 to dev'"
-check two-deployments-same-run     second-deployment-same-run "reject:all name run 4242"
-check run-other-repository         run-repository        "reject:repository is not $REPO"
-check tag-commit-mismatch          tag-commit            "reject:points at eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee, the deployment names"
-check annotated-tag-commit-mismatch annotated-tag-commit "reject:points at eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee, the deployment names"
-check payload-version-not-ref      payload-version       "reject:payload version '0.2.0' differs from its ref v0.1.0"
-check ref-not-release-tag          ref-not-release-tag   "reject:not a release tag v<version>"
-check environment-mismatch        environment           "reject:is for environment 'prod', this server is dev"
-check newest-already-finished      already-done          "reject:nothing to deploy"
-check token-expired                none                  "reject:expired on $past" 0600 "$past"
-check token-expires-today          none                  "reject:expired on $today" 0600 "$today"
-check token-wrong-mode             none                  "reject:must exist, root-owned 0600" 0644
-check deployment-already-processed none                  "reject:deployment 901 was already taken up" 0600 "$future" yes
+check valid-request                 accept --request "$(request none)"
+check valid-objects-host            accept --request "$(request objects-host)"
+RELEASE="0.1.0-rc.1 0.1.0-rc.1 0.1.0-rc.1 $scratch/release_key" \
+check valid-rc-on-dev               accept --request "$(request rc-version)"
+RELEASE="0.1.0-rc.1 0.1.0-rc.1 0.1.0-rc.1 $scratch/release_key" SERVER_ENV=prod \
+check prod-refuses-rc               "reject:prod takes released versions only" --request "$(request prod-rc)"
+check no-arguments                  "reject:install-pending takes exactly: --request"
+check extra-cli-argument            "reject:install-pending takes exactly: --request" --request "$(request none)" extra
+check request-equals-form           "reject:install-pending takes exactly: --request" "--request=$(request none)"
+check other-option-name             "reject:install-pending takes exactly: --request" --req "$(request none)"
+check base64-garbage                "reject:is not standard base64" --request '!!not-base64!!'
+check base64-with-newline           "reject:is not standard base64" --request "$(request none | fold -w 60)"
+check base64-bad-padding            "reject:is not standard base64" --request "$(request none)A"
+check base64-not-utf8               "reject:is not base64 of UTF-8 text" --request "$(printf '\377\376\375' | base64)"
+check base64-not-json               "reject:is not JSON" --request "$(printf 'version=0.1.0' | base64)"
+check empty-request                 "reject:must be 1..16384 characters" --request ""
+check too-long-request              "reject:must be 1..16384 characters" --request "$(python3 -I -c 'print("A" * 16388)')"
+check not-an-object                 "reject:must be an object with exactly the keys" --request "$(request not-object)"
+check extra-json-key                "reject:must be an object with exactly the keys" --request "$(request extra-key)"
+check missing-json-key              "reject:must be an object with exactly the keys" --request "$(request missing-key)"
+check duplicate-json-key            "reject:has a duplicate key" --request "$(request duplicate-key)"
+check environment-mismatch          "reject:is for environment prod, this server is dev" --request "$(request environment)"
+check environment-unknown           "reject:environment 'staging' is not dev or prod" --request "$(request environment-unknown)"
+check version-two-parts             "reject:version '0.1' is not MAJOR.MINOR.PATCH" --request "$(request version=0.1)"
+check version-with-v                "reject:version 'v0.1.0' is not MAJOR.MINOR.PATCH" --request "$(request version=v0.1.0)"
+check version-newline               "reject:is not MAJOR.MINOR.PATCH" --request "$(request "version=0.1.0
+")"
+check version-path                  "reject:is not MAJOR.MINOR.PATCH" --request "$(request version=../0.1.0)"
+check run-id-zero                   "reject:run_id must be a positive integer" --request "$(request run-id-zero)"
+check run-id-string                 "reject:run_id must be a positive integer" --request "$(request run-id-string)"
+check run-id-float                  "reject:run_id must be a positive integer" --request "$(request run-id-float)"
+check run-attempt-bool              "reject:run_attempt must be a positive integer" --request "$(request run-attempt-bool)"
+check extra-asset                   "reject:assets must name exactly" --request "$(request extra-asset)"
+check assets-of-other-version       "reject:assets must name exactly" --request "$(request asset-other-version)"
+check host-evil                     "reject:host 'evil.example'" --request "$(request host=evil.example)"
+check host-suffix-trick             "reject:host 'release-assets.githubusercontent.com.evil.com'" --request "$(request host=release-assets.githubusercontent.com.evil.com)"
+check host-parent-domain            "reject:host 'githubusercontent.com'" --request "$(request host=githubusercontent.com)"
+check host-trailing-dot             "reject:host 'objects.githubusercontent.com.'" --request "$(request host=objects.githubusercontent.com.)"
+check host-upper-case               "reject:host 'Release-Assets.githubusercontent.com'" --request "$(request host=Release-Assets.githubusercontent.com)"
+check host-explicit-port-443        "reject:host 'release-assets.githubusercontent.com:443'" --request "$(request host=release-assets.githubusercontent.com:443)"
+check host-explicit-port-8443       "reject:host 'release-assets.githubusercontent.com:8443'" --request "$(request host=release-assets.githubusercontent.com:8443)"
+check http-scheme                   "reject:got scheme 'http'" --request "$(request http)"
+check userinfo                      "reject:host 'user:pass@release-assets.githubusercontent.com'" --request "$(request userinfo)"
+check url-with-space                "reject:URL is not one printable ASCII string" --request "$(request url-space)"
+check url-with-fragment             "reject:carries a fragment" --request "$(request url-fragment)"
+RELEASE="0.1.0 0.1.0 0.2.0 $scratch/release_key" \
+check statement-version-differs     "reject:signed release statement is for version '0.2.0', the request names 0.1.0" --request "$(request none)"
+RELEASE="0.1.0 0.2.0 0.1.0 $scratch/release_key" \
+check manifest-version-differs      "reject:manifest.json is not for the requested version 0.1.0" --request "$(request none)"
+RELEASE="0.1.0 0.1.0 0.1.0 $scratch/other_key" \
+check statement-other-signer        "reject:signature does not verify" --request "$(request none)"
+RUNNING=0.2.0 \
+check downgrade                     "reject:0.1.0 is lower than the running 0.2.0" --request "$(request none)"
+RUNNING=0.1.0-rc.1 \
+check upgrade-from-rc               accept --request "$(request none)"
+PROCESSED_BEFORE=yes \
+check already-processed             "reject:request 4242:1 (deploy run:attempt) was already taken up" --request "$(request none)"
+
+# A recorded request stays recorded: the accepted request above wrote 'started' before downloading
+if grep -q $'^4242:1\t.*\tstarted\tv0.1.0$' "$scratch/valid-request/state/processed-requests"; then
+  passed=$((passed + 1)); echo "PASS  started-recorded: processed-requests holds 4242:1 started"
+else
+  failed=$((failed + 1)); echo "FAIL  started-recorded: processed-requests lacks 4242:1 started"
+fi
+if grep -q $'^4242:1\t.*\tfailed\t' "$scratch/downgrade/state/processed-requests"; then
+  passed=$((passed + 1)); echo "PASS  failure-recorded: a refused downgrade is recorded as failed"
+else
+  failed=$((failed + 1)); echo "FAIL  failure-recorded: processed-requests lacks the failed downgrade"
+fi
 
 echo "$passed passed, $failed failed"
 [ "$failed" -eq 0 ]

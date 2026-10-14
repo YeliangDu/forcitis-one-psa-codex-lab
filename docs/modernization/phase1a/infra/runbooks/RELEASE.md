@@ -1,6 +1,6 @@
 # 发布与部署（release / deploy 工作流）
 
-整理：one-coordinator 子代理，2026-10-14。补 `PREDEPLOY_CHECKLIST.md` 遗漏项「CI 无发布产物」与 `CROSSCHECK.md` 第 15 条；按 PR #59 的用户决定（专用部署 runner）与 opus 安全复审修订；发布包到 ECS 的通路按用户决定「先测 GitHub 直拉，可行就用 (Recommended)」改为 ECS 自取 GitHub Release，不经 OSS 中转（§8）；组织 FORCITIS 为 **GitHub Team 计划**，各项 GitHub 功能是否可用见 §11，凡需 Enterprise Cloud 的都不假定可用。
+整理：one-coordinator 子代理，2026-10-14。补 `PREDEPLOY_CHECKLIST.md` 遗漏项「CI 无发布产物」与 `CROSSCHECK.md` 第 15 条；按 PR #59 的用户决定（专用部署 runner）与 opus 安全复审修订；发布包到 ECS 的通路按用户决定「先测 GitHub 直拉，可行就用 (Recommended)」改为 ECS 自取 GitHub Release，不经 OSS 中转（§8）；组织 FORCITIS 为 **GitHub Team 计划**，各项 GitHub 功能是否可用见 §11，凡需 Enterprise Cloud 的都不假定可用。2026-10-15 按用户决定「需要我做的，都让ops 会话自己做」改为 GitHub OIDC 换阿里云临时凭据、带一个安装请求参数的固定云助手命令，ECS 不再持有 GitHub 令牌（§3、§7、§8；one-coordinator 批准）。
 
 **当前禁止部署任何环境**（`status/blockers/080`，带 `blocks: deploy` 标记）。`deploy` 工作流在该阻塞存在时直接失败；本文的一次性步骤只是准备，涉及 GitHub 设置、阿里云、ECS 的每一步仍须用户确认后执行（清单 B-10）。
 
@@ -17,10 +17,9 @@
 | `scripts/release/allowed_signers` | 发布签名公钥（`ssh-keygen` allowed_signers 格式）；空文件时部署一律失败 |
 | `scripts/release/runner_job_started.sh` | 部署 runner 的 pre-job hook：只放行 main 上手动运行的 deploy.yml，并与 runner 写下的事件载荷交叉核对 |
 | `docs/…/runbooks/prod-approvals.txt` | prod 部署批准行（经 PR 合入 main），代替 Team 计划下不可用的 required reviewers |
-| `scripts/release/ship.sh` | 部署最后一段：经固定的云助手命令（或受限 SSH）触发 ECS 安装并等待结果；ECS 自行向 GitHub 核对部署记录、下载 Release 附件、验签、安装 |
-| `scripts/release/remote_install.sh` | ECS 上的安装器（装为 `/usr/local/sbin/forcitis-one-release`） |
-| `scripts/release/install_request_test.sh` | 安装器部署记录核对的本地测试：替身 curl 返回预置的 GitHub 应答，不联网、不需 root |
-| `scripts/release/one_release_token_check.sh` | ECS 上 GitHub 只读令牌的到期检查（R-13；`files/one-release-token-check.*` 每日运行） |
+| `scripts/release/ship.sh` | 部署最后一段：把四个 Release 附件解析为 GitHub 的短期签名下载地址，经 GitHub OIDC 换取阿里云临时凭据，以安装请求为唯一参数调用固定的云助手命令并等待结果 |
+| `scripts/release/remote_install.sh` | ECS 上的安装器（装为 `/usr/local/sbin/forcitis-one-release`）：严格校验安装请求、下载附件、验签、安装 |
+| `scripts/release/install_request_test.sh` | 安装器请求处理的本地测试：运行时生成签名密钥、构建并签名测试附件，替身 curl 供给附件，不联网、不需 root（ci 运行） |
 
 ## 1. 版本号
 
@@ -78,31 +77,28 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
    - `docs/modernization/status/blockers/` 中任一条目含 `` `blocks: deploy` `` 标记 → 失败。阻塞片段是单行（`build_records.py` 的格式），标记写在行内而非 front-matter。修复批合并后由调度会话删除该条目或标记。
    - prod：不接受预发布版本；`PREDEPLOY_CHECKLIST.md` D 节（Phase 1a 出口条件，**在 dev 上验收**）每一行状态格恰为 ✅（多一个字也不算），且行数不少于 9；C-9（生产库）为 ✅。表格改了形状时失败而不是放行。
    - prod：版本已列在 `runbooks/prod-approvals.txt`（批准行经 PR 合入 main）。Team 计划的私有仓库没有 environment 的 required reviewers（§11），由这一行代替人工批准。
-2. `deploy` 作业（`environment: dev / prod`，两者的部署分支策略只允许 main）跑在**专用部署 runner**（标签 `forcitis-one-deploy`，macOS 用户 `forcitis-deploy`，只接这一个作业，见 `CI_RUNNERS.md`）；第一步把 `HOME` 与 git 全局配置换成本作业 `$RUNNER_TEMP` 下的新目录；所有 `python3` 都以 `-I` 运行；权限 `contents: read`、`actions: read`、`deployments: write`，checkout 不保存凭据：
+2. `deploy` 作业（`environment: dev / prod`，两者的部署分支策略只允许 main；OIDC 令牌的 `sub` 含该 environment，阿里云角色的信任策略据此只认这一环境）跑在**专用部署 runner**（标签 `forcitis-one-deploy`，macOS 用户 `forcitis-deploy`，只接这一个作业，见 `CI_RUNNERS.md`）；第一步把 `HOME` 与 git 全局配置换成本作业 `$RUNNER_TEMP` 下的新目录；所有 `python3` 都以 `-I` 运行；权限 `contents: read`、`actions: read`、`id-token: write`（不再有 `deployments: write`），checkout 不保存凭据：
    - 工具链（`toolchain.sh deploy`：先核验 PATH 与系统工具；Java 25、gh、aliyun CLI 按 SHA256 下载）；
    - 再跑一次 `deploy_gate.py`（gate 之后 main 可能新增阻塞）；
    - Release 非草稿；标签经 API 解析出的提交满足 `ci_passed.py`；
    - 下载附件 → `statement.sh verify`：用**仓库中**的 `scripts/release/allowed_signers`（main 上的公钥，不取自 Release）验签，声明的版本、提交（等于标签所指提交）、发布包名、构建工作流（`FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main`）、发布包与 `manifest.json`、`SHA256SUMS` 的 SHA256 全部一致 → `verify_bundle.sh` → `manifest.json` 的 `gitSha` 必须等于标签所指提交 → prod：`deploy_gate.py approval` 核对批准行的提交与发布包 SHA256 恰为这一个构建；
-   - **部署记录**：以 `GITHUB_TOKEN` 建一条 GitHub deployment：`ref` 为标签 `v<版本>`，`environment` 为目标环境，`auto_merge=false`、`required_contexts=[]`，`payload` 为 `{"version": "<版本>", "run_id": <本次运行号>, "commit": "<标签所指提交>"}`。GitHub 对绑定 environment 的作业本身也会建一条（`ref` 为 main），它早于这一条，ECS 只取最新的一条，不受影响；
-   - `ship.sh <环境>`（`DEPLOY_TRIGGER`，§8）：调用**预建的、无参数的**云助手命令（`InvokeCommand`，命令内容固定为 `forcitis-one-release install-pending`），或受限 SSH 密钥的强制命令（`ssh -F /dev/null … -l <用户> -- <主机> install-pending`）。调用方不传任何内容；云助手方式轮询执行结果，把安装器输出打回 Actions 日志，失败、超时或退出码非 0 即该步失败；
-   - **部署状态**：无论上一步成败（`always()`），本作业以 `GITHUB_TOKEN` 给这条 deployment 写最终状态 `success` 或 `failure`。ECS 的令牌只读，不写状态；
-   - 阿里云 AccessKey 只来自 environment secret，经环境变量交给 `aliyun` CLI，不执行 `aliyun configure`（会在用户目录留下凭据），不打印；SSH 私钥写入 `ship.sh` 的临时目录，脚本退出时（含失败）由 `trap` 删除。deploy 作业不持有发布签名私钥，也不向 ECS 传送发布包。
+   - `ship.sh <环境> <版本>`（§8）：
+     1. **签名下载地址**：以 `GITHUB_TOKEN`（`contents: read`）读 `v<版本>` 的 Release，四个附件 `forcitis-one-<版本>.tar.gz`、`.tar.gz.sha256`、`.release`、`.release.sig` 各恰好一个且已上传；逐个以 `Accept: application/octet-stream`、`--max-redirs 0` 请求附件 API，必须得到 302，读 `Location`：须为 https、主机恰为 `objects.githubusercontent.com` 或 `release-assets.githubusercontent.com`、无用户信息与端口，否则失败；**从不跟随该地址**，也不打印它（日志只写主机与地址中的到期时间 `se`）。令牌只经 `curl -H @文件` 使用。
+     2. **安装请求**：UTF-8 JSON 对象，恰好五个键——`version`（字符串，`MAJOR.MINOR.PATCH[-rc.N]`）、`environment`（`dev` / `prod`）、`run_id`（本次运行号，正整数）、`run_attempt`（本次尝试号，正整数）、`assets`（恰为上述四个附件名到各自签名地址的对象）；标准 base64、无换行，长度上限 16384 字符（与安装器一致，超出即失败）。
+     3. **阿里云临时凭据**：向 GitHub 取本作业的 OIDC 令牌（audience `sts.aliyuncs.com`），以 STS `AssumeRoleWithOIDC`（`https://sts.aliyuncs.com`，匿名接口）换取 3600 秒的临时凭据，角色与 OIDC 提供商取自 environment 变量 `ALIBABA_CLOUD_ROLE_ARN`、`ALIBABA_CLOUD_OIDC_PROVIDER_ARN`。OIDC 令牌与临时凭据只放在 `ship.sh` 的临时目录（700）与该进程的环境变量中，进入日志前已以 `::add-mask::` 屏蔽，从不打印；STS 拒绝时只显示错误码与说明。不执行 `aliyun configure`（会把凭据写进用户目录）。
+     4. **调用固定命令**：`aliyun ecs InvokeCommand --CommandId <ECS_COMMAND_ID> --InstanceId.1 <ECS_INSTANCE_ID> --Parameters '{"request":"<base64>"}'`，轮询 `DescribeInvocationResults` 至结束，把安装器输出打回 Actions 日志；失败、超时或退出码非 0 即该步失败。
+   - deploy 作业不持有发布签名私钥，不持有任何长期密钥，也不向 ECS 传送发布包；不再建 GitHub deployment、不再写部署状态（GitHub 对绑定 environment 的作业自建的那条记录照旧，与安装无关）。
 
 ### ECS 上的安装器（`remote_install.sh`）
 
-云助手以 root 运行固定命令；SSH 方式下 deploy key 在 `authorized_keys` 中是强制命令，只能运行安装器的 `install-pending`、`rollback`、`status`，拿不到 shell，安装器以 sudo（仅此一个命令）切到 root。`install-pending` 依次：
+云助手以 root 运行固定命令 `/usr/local/sbin/forcitis-one-release install-pending --request '{{request}}'`（R-7）；只有 deploy.yml 在 main 上为该环境运行的 deploy 作业能调用它（阿里云角色的信任策略，§8.2），所以由请求指明装什么。安装器不再访问 GitHub API，ECS 上没有任何 GitHub 令牌。`install-pending` 依次：
 
-1. **本机配置**：`/etc/forcitis-one/release-source`（root 0644）给出 `ENVIRONMENT`（dev / prod）、`GITHUB_REPOSITORY`（须为 `FORCITIS/forcitis-one-psa`，即签名声明中构建工作流所在的仓库）与可选的 `WECOM_VERIFY_FILE`；`install-pending` 不接受任何参数，环境只取自这里。`one.env` 的 `SPRING_PROFILES_ACTIVE` 须等于 `ENVIRONMENT`；`current` 若是手工留下的实目录则拒绝（C-4 E-10）；**断言 `/data/forcitis-one` 与 `releases` 为 root 所有、组和其他人不可写**（root 在其中操作，应用用户不得能替换任何东西，C-4 E-5）；取部署锁（`/run/forcitis-one-release.lock`）。
-2. **GitHub 只读令牌**（R-13）：`/etc/forcitis-one/github-release-token` 须 root 0600，内容为 fine-grained 令牌（`github_pat_…`）；`github-release-token.expires`（root 0644，`YYYY-MM-DD`）为其到期日，**到期当日起拒绝**并提示轮换。令牌只写进 `/run/forcitis-one-release/` 下 root 专属的临时请求头文件，以 `curl -H @文件` 使用，不进命令行、进程列表与日志，脚本退出时删除。
-3. **核对部署记录**（任一项不符即安装失败，不跳过）：
-   - `GET /repos/{仓库}/deployments?environment=<ENVIRONMENT>&per_page=5` 中 id 最大的一条（最新）。其最新状态已是 `success` / `failure` / `error` / `inactive` → 「没有待部署」并失败（deploy 作业总是先建记录再触发，正常不会出现）；更早的未完成记录不理会；
-   - `environment` 等于本机 `ENVIRONMENT`；`creator` 为 `github-actions[bot]`（类型 Bot）——这只说明记录由某个工作流运行以 `GITHUB_TOKEN` 建立，**单靠它不足以放行**；
-   - `ref` 为 `v<版本>` 且版本合格式；`payload.version` 等于去掉 `v` 的 `ref`；`payload.run_id` 为正整数，且所取的记录中只有这一条指向该运行（一次运行只建一条；同一运行被「Re-run」或被别的工作流冒名再建一条时拒绝，失败后重新发起一次 deploy 运行，不用 Re-run）；`payload.commit` 为完整 sha 且等于记录的 `sha`；
-   - **关键控制——运行核对**：`GET /repos/{仓库}/actions/runs/{run_id}` 的 `path` 为 `.github/workflows/deploy.yml`、`head_branch` 为 `main`、`event` 为 `workflow_dispatch`、`status` 为 `in_progress`，`repository` 与 `head_repository` 都是本仓库，`display_title` 恰为 `deploy <版本> to <ENVIRONMENT>`（deploy.yml 的 `run-name` 由运行的输入生成，把版本与环境绑到该运行上）。只有**正在运行的、在 main 上手动触发、正部署这一版本到这一环境的 deploy.yml** 所指的记录才会被安装；
-   - 标签：`GET /repos/{仓库}/git/ref/tags/v<版本>` 解析出的提交（附注标签逐层解引用，最多 3 层）等于 `payload.commit`。
-4. **每条记录只装一次**：`/var/lib/forcitis-one-release/processed-deployments`（目录 root 0700、文件 root 0600，只追加）中已有该 id 即拒绝；核对通过后**先记下 `started` 再开始安装**，安装中途崩溃也不会被同一条记录盲目重放；结束时在其后追加 `succeeded`，或 `failed` 与原因。`forcitis-one-release status` 显示最近几行。
+1. **本机配置**：`/etc/forcitis-one/release-source`（root 0644）给出 `ENVIRONMENT`（dev / prod）与可选的 `WECOM_VERIFY_FILE`；环境只取自这里，不取自请求。`one.env` 的 `SPRING_PROFILES_ACTIVE` 须等于 `ENVIRONMENT`；`current` 若是手工留下的实目录则拒绝（C-4 E-10）；**断言 `/data/forcitis-one` 与 `releases` 为 root 所有、组和其他人不可写**（root 在其中操作，应用用户不得能替换任何东西，C-4 E-5）；取部署锁（`/run/forcitis-one-release.lock`）。
+2. **参数形状**：恰为 `--request <值>` 两个参数；多一个、少一个、`--request=<值>` 或别的选项名都拒绝。
+3. **校验安装请求**（`python3 -I`，任一项不符即失败，不跳过）：长度 1..16384；只含标准 base64 字符、长度为 4 的倍数、无换行，严格解码；UTF-8；JSON（重复键、`NaN` 等非 JSON 常量拒绝）；对象恰好上述五个键（多键、缺键都拒绝）；`version` 合格式；`environment` 为 dev / prod 且**等于本机 `ENVIRONMENT`**；`run_id`、`run_attempt` 为正整数（字符串、小数、布尔都拒绝）；`assets` 恰为该版本的四个附件名；每个地址为不超过 4096 字符的可打印 ASCII、无反斜杠，scheme 为 `https`，**整个主机部分恰为** `objects.githubusercontent.com` 或 `release-assets.githubusercontent.com`（因而用户信息、任何显式端口——包括 `:443`——、末尾的点、大小写变体、后缀伪装如 `…githubusercontent.com.evil.com` 都拒绝），有路径、无片段。签名地址不写进日志。
+4. **每个请求只装一次**：以 `<run_id>:<run_attempt>` 为键记在 `/var/lib/forcitis-one-release/processed-requests`（目录 root 0700、文件 root 0600，只追加）；已有该键即拒绝；校验通过后**先记下 `started` 再开始安装**，安装中途崩溃也不会被同一请求重放；结束时追加 `succeeded`，或 `failed` 与原因。同一运行的「Re-run」是新的尝试号，可以再装；失败后重新发起 deploy 运行或 Re-run 均可。`forcitis-one-release status` 显示最近几行。
 5. prod 拒绝预发布版本；低于当前运行版本的拒绝（见「回滚」）；`release-source` 给出 `WECOM_VERIFY_FILE` 时要求该文件在 `static-pinned` 中存在。
-6. **从 GitHub 取发布包**：`GET /repos/{仓库}/releases/tags/v<版本>`，须非草稿，`forcitis-one-<版本>.tar.gz`、`.tar.gz.sha256`、`.release`、`.release.sig` 各恰好一个、已上传、≤ 1 GiB、地址是本仓库的附件 API；逐个以 `Accept: application/octet-stream` 经附件 API 下载并跟随重定向到 GitHub 的短期签名地址（curl 只把 `Authorization` 头发给 `api.github.com`，不带到重定向目标；只许 HTTPS；20 分钟超时），放在 `releases/.incoming.*`；发布包 SHA256 与 `.sha256` 附件一致；归档条目只能在 `forcitis-one-<版本>/` 下，无链接、无 `..`；**用 ECS 上 root 所有的 `/etc/forcitis-one/release-signers` 验发布声明的签名**，并核对声明中的版本、提交、构建工作流与发布包、`manifest.json`、`SHA256SUMS` 的 SHA256、声明中的发布包名（公钥不取自发布包，GitHub 侧被攻破也换不掉）；解包后 `sha256sum --strict -c SHA256SUMS`，不允许有清单外的文件；`manifest.json` 的 `version` 与 `gitSha` 都与部署记录一致。
+6. **下载与验证**：逐个以 `curl --proto '=https' --proto-redir '=https' -L --max-redirs 0` 下载请求中的签名地址（遇到任何重定向即失败；不带 `Authorization` 或其他凭据；≤ 1 GiB；20 分钟超时），放在 `releases/.incoming.*`；发布包 SHA256 与 `.sha256` 附件一致；**用 ECS 上 root 所有的 `/etc/forcitis-one/release-signers` 验发布声明的签名**（公钥不取自发布包，GitHub 侧被攻破也换不掉），声明格式、**声明中的版本等于请求的版本**、发布包名、构建工作流、发布包 SHA256 都核对，提交取自已验签的声明（须为完整 sha）；归档条目只能在 `forcitis-one-<版本>/` 下，无链接、无 `..`；声明中的 `manifest.json`、`SHA256SUMS` 的 SHA256 一致；解包后 `sha256sum --strict -c SHA256SUMS`，不允许有清单外的文件；**`manifest.json` 的 `version` 等于请求的版本**，`gitSha` 等于声明中的提交。
 7. **服务器文件一致**（新装的版本）：已安装的安装器、systemd 单元、nginx 配置、logrotate 与发布包中 `deploy/` 的同名文件逐字节相同，`one.env` 含模板中的每个键；不一致即失败并列出（§5）。
 8. 放到 `/data/forcitis-one/releases/<版本>/`（root:forcitis，目录 750、文件 640），`web` 软链指向 `web-<环境>`，给 nginx 用户只读 ACL。已装过且内容一致的版本直接复用，不改 `web` 软链；装给另一环境的同版本拒绝。
 9. 迁移（§4），**每次部署都运行**：有新迁移时应用它们，没有时由 Flyway 校验已应用的迁移与本版本一致。
@@ -112,9 +108,9 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 
 ### 回滚
 
-- **降级只走运维的显式回滚**：`install-pending` 拒绝低于当前版本的部署记录（按 `MAJOR.MINOR.PATCH`，`-rc.N` 低于对应正式版），因此不能用 `deploy` 部署旧版本号；持有部署凭据的人也就无法借部署记录把系统退回旧版本。
+- **降级只走运维的显式回滚**：`install-pending` 拒绝低于当前版本的请求（按 `MAJOR.MINOR.PATCH`，`-rc.N` 低于对应正式版），因此不能用 `deploy` 部署旧版本号；能调用固定命令的人也就无法借安装请求把系统退回旧版本。
 - 回滚：运维经云助手执行 `forcitis-one-release rollback`（回到 `previous`）或 `forcitis-one-release rollback <已安装的版本>`；旧版本的文件仍在 `releases/` 中，已在首次安装时校验过；回滚不跑迁移（旧版本不认识的新迁移被 Flyway 默认的 `*:future` 忽略）。修复问题后发更高的版本号再部署。
-- `forcitis-one-release status` 查看当前、上一版本、历史与最近的部署记录处理结果；回滚只用本机已装的版本，不访问 GitHub，GitHub 不可用时照样可做。
+- `forcitis-one-release status` 查看当前、上一版本、历史与最近的安装请求处理结果；回滚只用本机已装的版本，不访问网络，GitHub 不可用时照样可做。
 - 回滚只换应用，不回滚数据库（§4）。
 
 ## 4. 数据库迁移
@@ -156,7 +152,7 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 ## 7. 一次性步骤（用户或运维执行，执行前确认）
 
-本文不建 RAM 账号、AccessKey、GitHub 令牌、environment、secret 或云助手命令，下列各项由用户或运维执行。缺任何一项，相应作业失败关闭，不会降级执行。
+本文不建 OIDC 身份提供商、RAM 角色、environment、变量、secret 或云助手命令，下列各项由用户或运维执行。缺任何一项，相应作业失败关闭，不会降级执行。部署链路不再有任何长期密钥：阿里云凭据由 GitHub OIDC 临时换取，ECS 上没有 GitHub 令牌；用户决定「需要我做的，都让ops 会话自己做」，凡能由运维完成的步骤都归运维（R-4、R-6、R-7、R-11），one-coordinator 已批准该设计。
 
 ### R-0 专用部署 runner 重建（必需；只有 deploy 作业依赖它，release 在 GitHub 托管机上）
 
@@ -195,21 +191,21 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 | # | 步骤 | 位置 / 做法 |
 |---|---|---|
-| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 **✅ 2026-10-15**：三个 environment 已建，部署分支策略均只有 `main`。 **补充（2026-10-15）**：dev、prod 另加标签部署策略 `v*`（deployment 的 ref 是标签 `v<版本>`，只允许 `main` 时可能被拒；用户「允许，首次部署前加上 (Recommended)」）；回读：release=main，dev / prod=main + v*（tag）。 | 仓库 Settings → Environments |
+| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 **✅ 2026-10-15**：三个 environment 已建，部署分支策略均只有 `main`。 **补充（2026-10-15）**：dev、prod 另加标签部署策略 `v*`（deployment 的 ref 是标签 `v<版本>`，只允许 `main` 时可能被拒；用户「允许，首次部署前加上 (Recommended)」）；回读：release=main，dev / prod=main + v*（tag）。（OIDC 方案起 deploy 作业不再建以标签为 `ref` 的部署记录，`v*` 策略保留无害。） | 仓库 Settings → Environments |
 | R-2 | 仓库级 Actions variables：§6 的 8 个构建期变量（B-2、B-3 完成后填） | Settings → Secrets and variables → Actions → Variables |
 | R-3 | ~~OSS bucket~~ **不再需要**：发布包改由 ECS 自取 GitHub Release（§8，用户「先测 GitHub 直拉，可行就用 (Recommended)」），不建发布用 bucket；B-13 归档 bucket 与此无关 | — |
-| R-4 | RAM：每环境一个部署用子账号（只开 OpenAPI 访问），绑 §8.2 的策略：只允许对**该命令与该实例**的 `ecs:InvokeCommand`，以及 `ecs:DescribeInvocationResults`、`ecs:DescribeInvocations`；生成 AccessKey，每 90 天轮换。**发布不需要 ECS 实例 RAM 角色**（不授任何 OSS 权限）；SSH 方式不需要该子账号 | 阿里云 RAM 控制台 |
-| R-5 | 每个 environment 的 secrets：`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET`；SSH 方式另加 `DEPLOY_SSH_KEY`、`DEPLOY_KNOWN_HOSTS`（主机公钥由运维经云助手读 `/etc/ssh/ssh_host_ed25519_key.pub` 交来，不用 `ssh-keyscan`）；environment `release` 的 `RELEASE_SIGNING_KEY`（R-12） | Environments |
-| R-6 | 每个 environment 的 variables：`DEPLOY_TRIGGER`（`cloud-assistant`；`ssh` 仅当选用）；云助手方式 `ECS_REGION=cn-hangzhou`、`ECS_INSTANCE_ID=i-bp122xlpar8w2uylmal2`、`ECS_COMMAND_ID`（R-7 建的固定命令）；SSH 方式 `DEPLOY_HOST`、`DEPLOY_USER=forcitis-deploy`、可选 `DEPLOY_PORT`。原 `OSS_BUCKET`、`OSS_REGION`、`OSS_PREFIX` 不再使用；企业微信校验文件名改为 ECS 本机 `release-source` 的 `WECOM_VERIFY_FILE`（不再是 GitHub 变量） | Environments → dev / prod |
-| R-7 | ECS（运维经云助手，root）：C-4 E-3、E-5、E-9、E-10 的新做法；安装器、签名公钥、`release-source`（`ENVIRONMENT`、`GITHUB_REPOSITORY`、可选 `WECOM_VERIFY_FILE`）、R-13 的令牌文件与到期日、令牌到期检查与定时器、云助手固定命令（下方命令块）；SSH 方式另建部署用户与受限密钥。ECS 上不再需要 aliyun CLI 与实例角色配置 | ECS；云助手控制台 |
+| R-4 | **OIDC 身份提供商 + RAM 角色（运维执行，经用户确认；不建 RAM 用户、不生成 AccessKey）**：① GitHub 仓库 OIDC `sub` 定制：`PUT /repos/FORCITIS/forcitis-one-psa/actions/oidc/customization/sub`，`{"use_default": false, "include_claim_keys": ["repo", "context", "job_workflow_ref"]}`，回读 `GET` 同路径；② 阿里云 IMS `CreateOIDCProvider`：`IssuerUrl=https://token.actions.githubusercontent.com`、`ClientIds=sts.aliyuncs.com`、`Fingerprints`（运维创建时从该地址的证书链现场取得并核对）、名称如 `github-actions`；③ RAM `CreateRole`（每环境一个，如 `forcitis-one-deploy-dev`，`MaxSessionDuration=3600`，信任策略见 §8.2）；④ RAM `CreatePolicy`（§8.2 的部署策略，每环境一份）+ `AttachPolicyToRole`；⑤ 回读：`GetRole`、`ListPoliciesForRole`、`GetOIDCProvider`。发布不需要 ECS 实例 RAM 角色 | 阿里云 RAM / IMS OpenAPI；GitHub REST |
+| R-5 | 每个 environment 的 secrets：**dev / prod 不需要任何阿里云 secret**（凭据由 OIDC 临时换取）；只剩 environment `release` 的 `RELEASE_SIGNING_KEY`（R-12）。SSH 触发方式已删除，`DEPLOY_SSH_KEY`、`DEPLOY_KNOWN_HOSTS` 不再使用 | Environments |
+| R-6 | 每个 environment 的 variables（运维以 `gh api` 写入并回读；都不是机密）：`ALIBABA_CLOUD_ROLE_ARN`（R-4 ③ 的角色 ARN）、`ALIBABA_CLOUD_OIDC_PROVIDER_ARN`（R-4 ②）、`ECS_REGION=cn-hangzhou`、`ECS_INSTANCE_ID=i-bp122xlpar8w2uylmal2`、`ECS_COMMAND_ID`（R-7 建的固定命令）。原 `DEPLOY_TRIGGER`、`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_PORT`、`OSS_*` 不再使用，已建的删除；企业微信校验文件名在 ECS 本机 `release-source` 的 `WECOM_VERIFY_FILE` | Environments → dev / prod |
+| R-7 | ECS（运维经云助手，root）：C-4 E-3、E-5、E-9、E-10 的新做法；安装器、签名公钥、`release-source`（`ENVIRONMENT`、可选 `WECOM_VERIFY_FILE`）、云助手固定命令（带一个参数 `request`，下方命令块）；已按旧做法装过令牌文件与令牌检查的 ECS 先按下方「卸载」清理。ECS 上不需要 aliyun CLI、实例角色或任何 GitHub 令牌 | ECS；云助手 OpenAPI |
 | R-8 | 标签保护：Rules → Rulesets 新建标签规则 `v*`，限制创建、更新、删除（仅管理员与 release 工作流） **✅ 2026-10-15（偏差）**：仓库级规则不允许把 GitHub Actions 设为例外（须组织级规则），若限制创建，release 工作流打不了新标签；因此规则「release tags v*」只限制**更新与删除**（例外：仓库管理员），不限制创建。残余：有写权限者可新建 `v*` 标签，但产生不了签名的发布声明，部署验签不过。 | Settings → Rules |
 | R-9 | 启用 immutable releases（本仓库 API 返回 `enabled:false`：功能存在、未启用；只对启用后的新 Release 生效）；确认 Actions 允许工作流声明 `contents: write`，且允许使用 GitHub 托管 runner 运行 `publish`（Team 计划含托管分钟数） **✅ 2026-10-15**：immutable releases 已启用；Actions 允许全部、默认令牌只读（工作流按需声明 `contents: write`）、托管 runner 可用。 | Settings → General（Releases）/ Actions |
 | R-10 | 首次部署前 `/etc/forcitis-one/one.env` 补 `SPRING_FLYWAY_ENABLED=false`；按 §4 在 `/etc/forcitis-one/migrate/` 放迁移凭据文件（首次另加 Flowable 安装项） | ECS |
-| R-11 | 连通演练（不部署，R-4、R-7、R-13 之后）：① ECS 上用令牌请求头文件 `curl -fsS -H @<头文件> https://api.github.com/repos/FORCITIS/forcitis-one-psa/deployments?per_page=1` 返回 200；② 下载一个已发布 Release 的附件到 `/tmp` 并记录耗时与速度（§8.3，白天测一次）后删除；③ 部署 runner 上用 dev 凭据调云助手固定命令：此时没有待部署记录，安装器应以「no deployment」或「nothing to deploy」失败，证明触发、权限、令牌与输出回传都通；④ 经云助手执行 `forcitis-one-release status` | 运维 |
+| R-11 | 连通演练（不部署，R-4、R-6、R-7 之后；不需要任何令牌）：① **OIDC 换凭据**：信任策略只认 main 上 deploy.yml 的 deploy 作业，`blocks: deploy` 存在时 gate 失败、到不了该作业，因此在首次 dev 部署时以 `ship.sh` 输出的「STS session for … until …」为证；信任条件写错时 STS 拒绝，日志只显示错误码与说明，运维按 §8.2 回读角色核对；② **无效请求被拒**：运维经云助手以 `InvokeCommand` 调用固定命令，`request` 依次为 `invalid` 与约 10 KB 的随机 base64 串，安装器都应以「install request refused」失败——证明命令、参数传递、输出回传与云助手的参数长度上限够用；③ **合法请求**只能用真实 Release 验证：首次 dev 部署即是；④ 经云助手执行 `forcitis-one-release status` | 运维 |
 | R-12 | **发布签名密钥**：在可信机器上 `ssh-keygen -t ed25519 -N '' -C forcitis-one-release -f release_signing`；私钥存为 environment `release` 的 secret `RELEASE_SIGNING_KEY`，随后删除本地私钥文件；公钥写成一行 `forcitis-one-release namespaces="forcitis-one-release" ssh-ed25519 AAAA… forcitis-one-release`，经 PR 写入 `scripts/release/allowed_signers`，并由运维装到 ECS `/etc/forcitis-one/release-signers`（root 0644）。轮换：两处同时替换；旧版本的声明随之不可验证，回滚到旧版本需用新钥重签或临时并列两把公钥 **✅ 2026-10-15**：在用户本机生成，私钥直接存为 environment `release` 的 secret `RELEASE_SIGNING_KEY` 后删除（未显示、未落盘他处）；公钥写入 `scripts/release/allowed_signers`；ECS 侧 `/etc/forcitis-one/release-signers` 随 R-7 安装。 | 可信机器；GitHub；ECS |
-| R-13 | **用户步骤：GitHub 只读令牌**（每环境一个，见下方「R-13」）：用户在 github.com 生成 fine-grained 令牌，只经 one-ops 会话的安全输入窗口交给运维；运维写入 ECS 的 `/etc/forcitis-one/github-release-token`（root 0600）与到期日文件，并装到期检查 | 用户（github.com）；运维（ECS） |
+| R-13 | ~~GitHub 只读令牌~~ **不再需要**：ECS 不再访问 GitHub API，所装内容由安装请求指明，而只有 main 上为该环境运行的 deploy 作业能经 OIDC 调用固定命令（§8.2）。理由：用户决定「需要我做的，都让ops 会话自己做」，令牌须用户本人生成、每 90 天轮换，与之相悖；改为 OIDC 方案经 one-coordinator 批准。已装的令牌文件与检查按 R-7「卸载」清理 | — |
 
-R-7 命令（`<version>` 用将要部署的发布包；先在可信机器上 `verify_bundle.sh` 校验，再经云助手上传其中的 `deploy/remote_install.sh`；令牌检查脚本与单元取自本仓库 `scripts/release/` 与本目录 `files/`）：
+R-7 命令（`<version>` 用将要部署的发布包；先在可信机器上 `verify_bundle.sh` 校验，再经云助手上传其中的 `deploy/remote_install.sh`）：
 
 ```bash
 install -o root -g root -m 0755 remote_install.sh /usr/local/sbin/forcitis-one-release
@@ -217,87 +213,73 @@ install -o root -g root -m 0644 release-signers /etc/forcitis-one/release-signer
 
 cat > /etc/forcitis-one/release-source <<'EOF'
 ENVIRONMENT=dev
-GITHUB_REPOSITORY=FORCITIS/forcitis-one-psa
 WECOM_VERIFY_FILE=<static-pinned 中现有的 WW_verify_*.txt；没有则删去本行>
 EOF
 chown root:root /etc/forcitis-one/release-source && chmod 0644 /etc/forcitis-one/release-source
 
-# R-13：先建空文件，令牌由运维经安全输入窗口写入（一行，不经聊天、不进命令行）；到期日为 GitHub 页面显示的日期
-install -o root -g root -m 0600 /dev/null /etc/forcitis-one/github-release-token
-echo '<YYYY-MM-DD>' > /etc/forcitis-one/github-release-token.expires
-chown root:root /etc/forcitis-one/github-release-token.expires && chmod 0644 /etc/forcitis-one/github-release-token.expires
-
-# 令牌到期检查：每日；不足 14 天 P2，不足 3 天、已过期或文件缺失 P1（经 one_alert_send）
-install -o root -g root -m 0755 one_release_token_check.sh /usr/local/sbin/one_release_token_check.sh
-install -o root -g root -m 0644 one-release-token-check.service one-release-token-check.timer /etc/systemd/system/
-systemctl daemon-reload && systemctl enable --now one-release-token-check.timer
-systemctl start one-release-token-check.service; journalctl -u one-release-token-check.service -n 3 --no-pager
-
 forcitis-one-release status
 ```
 
-云助手固定命令（每台 ECS 一条；一台只承载一个环境，环境取自 `release-source`；控制台「创建命令」或 `CreateCommand`；**不启用自定义参数**，内容即下面一行，执行用户 root，超时 2700 秒）：`/usr/local/sbin/forcitis-one-release install-pending`；命令 ID 填入该环境的 `ECS_COMMAND_ID`。安装器拒绝带参数的 `install-pending`，按旧写法（`install-pending dev`）建过的命令须重建。
+`release-source` 中旧的 `GITHUB_REPOSITORY=` 行已不再读取，可删去。
 
-SSH 方式（仅当选用）：
+**卸载（已按旧做法装过的 ECS）**：旧做法在 ECS 上装了 GitHub 令牌文件（`/etc/forcitis-one/github-release-token`，空文件，与 `github-release-token.expires`）、令牌到期检查脚本 `/usr/local/sbin/one_release_token_check.sh` 与单元 `/etc/systemd/system/one-release-token-check.service`、`.timer`（已停用）。新安装器不再使用它们，运维经云助手删除：
 
 ```bash
-useradd --system --create-home --home-dir /var/lib/forcitis-deploy --shell /bin/bash forcitis-deploy
-install -d -o forcitis-deploy -g forcitis-deploy -m 0700 /var/lib/forcitis-deploy/.ssh
-echo 'restrict,from="<部署 runner 出口 IP>",command="/usr/local/sbin/forcitis-one-release" ssh-ed25519 AAAA… forcitis-one-deploy-dev' \
-  > /var/lib/forcitis-deploy/.ssh/authorized_keys
-chown forcitis-deploy:forcitis-deploy /var/lib/forcitis-deploy/.ssh/authorized_keys && chmod 0600 /var/lib/forcitis-deploy/.ssh/authorized_keys
-echo 'forcitis-deploy ALL=(root) NOPASSWD: /usr/local/sbin/forcitis-one-release' > /etc/sudoers.d/forcitis-deploy
-chmod 0440 /etc/sudoers.d/forcitis-deploy && visudo -cf /etc/sudoers.d/forcitis-deploy
+systemctl disable --now one-release-token-check.timer 2>/dev/null || true
+rm -f /etc/systemd/system/one-release-token-check.service /etc/systemd/system/one-release-token-check.timer \
+      /usr/local/sbin/one_release_token_check.sh \
+      /etc/forcitis-one/github-release-token /etc/forcitis-one/github-release-token.expires
+systemctl daemon-reload
+rm -rf /run/forcitis-one-release
+# 旧的 /var/lib/forcitis-one-release/processed-deployments 是历史记录，保留；新记录写在同目录的 processed-requests
 ```
 
-安装器更新：新版本的 `deploy/remote_install.sh` 与已装的不同，部署会因「服务器文件不一致」失败；运维以同样的 `install` 命令替换后再部署。
+云助手固定命令（每台 ECS 一条；一台只承载一个环境，环境取自 `release-source`；`CreateCommand`，执行用户 root，超时 2700 秒）：
 
-### R-13 GitHub 只读令牌（用户步骤）
+| 字段 | 值 |
+|---|---|
+| `Name` | `forcitis-one-release-install`（prod 同名，各在自己的地域与账号资源下） |
+| `Type` | `RunShellScript` |
+| `CommandContent`（base64 前的原文） | `/usr/local/sbin/forcitis-one-release install-pending --request '{{request}}'` |
+| `EnableParameter` | `true`（唯一参数 `request`；值只含 base64 字符，放在单引号中不会被 shell 解释） |
+| `Timeout` | `2700` |
+| `WorkingDir` | `/root` |
 
-ECS 用它读部署记录、工作流运行、标签与 Release 附件；它只读，写不了任何东西、建不了部署记录、触发不了安装。**每个环境一个令牌**（dev、prod 各一，只装在该环境的 ECS 上）。
+命令 ID 填入该环境的 `ECS_COMMAND_ID`（R-6）。旧的无参数命令（`install-pending` 不带参数）与新安装器不兼容（安装器拒绝），须删除或改为上面的内容。
 
-1. 用户在 github.com 右上角头像 → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token：
-   - Token name：`forcitis-one-ecs-release-dev`（prod 为 `forcitis-one-ecs-release-prod`）；
-   - Resource owner：**FORCITIS**；
-   - Expiration：不超过 90 天（可选 Custom）；记下页面显示的到期日；
-   - Repository access：**Only select repositories** → `forcitis-one-psa`；
-   - Permissions → Repository permissions：**Contents: Read-only**、**Deployments: Read-only**、**Actions: Read-only**；**Metadata: Read-only** 为必选（自动勾上）；其余一律 No access，不给任何 Organization / Account 权限。
-   - 组织若要求审批 fine-grained 令牌，生成后由组织所有者在组织 Settings → Personal access tokens → Pending requests 批准，批准前令牌读不到仓库。
-2. 交付：令牌**只经 one-ops 会话的安全输入窗口**交给运维（不在聊天里粘贴、不截图、不发消息）；同时告知到期日（`YYYY-MM-DD`，不是机密，可在聊天中说）。运维写入 `/etc/forcitis-one/github-release-token`（root 0600，一行）与 `github-release-token.expires`（root 0644），然后做 R-11 的 ①②。
-3. 轮换（到期前 14 天收到 P2 告警，或计划内每 90 天）：用户按第 1 步生成新令牌（名称可加日期）→ 按第 2 步交付，运维覆盖两个文件 → 运维执行 R-11 ① 确认新令牌可用 → 用户在 GitHub 删除旧令牌。令牌过期后部署失败关闭（安装器拒绝），回滚不受影响。
-4. 疑似泄露：用户立即在 GitHub 删除该令牌，再按第 3 步换新。泄露的后果：能读本仓库的代码、部署记录与 Actions 运行（只读）。
+安装器更新：新版本的 `deploy/remote_install.sh` 与已装的不同，部署会因「服务器文件不一致」失败；运维以同样的 `install` 命令替换后再部署。本次改动的安装器与旧的固定命令不兼容，须与新命令一起换上。
 
 ## 8. 发布包到 ECS 的通路
 
-用户决定：「先测 GitHub 直拉，可行就用 (Recommended)」。在 ECS 上实测（北京时间夜间）从 `release-assets.githubusercontent.com` 下载约 **9 MB/s**，可行；因此不经 OSS 中转、不建发布用 bucket（原 R-3 取消）。部署作业只建一条 GitHub deployment，再触发 ECS 上**固定的**安装入口；ECS 用本机的只读令牌向 GitHub 核对这条记录与建它的运行，自取 Release 附件，再用本机的公钥验签。调用方传不进任何命令、地址或文件。
+用户决定：「先测 GitHub 直拉，可行就用 (Recommended)」。在 ECS 上实测（北京时间夜间）从 `release-assets.githubusercontent.com` 下载约 **9 MB/s**，可行；因此不经 OSS 中转、不建发布用 bucket（原 R-3 取消）。用户随后决定「需要我做的，都让ops 会话自己做」，并要求部署链路不留长期密钥：部署作业以 GitHub OIDC 换取阿里云临时凭据，把四个附件的短期签名下载地址连同版本、环境、运行号写成**安装请求**，作为固定云助手命令的唯一参数交给 ECS；ECS 不访问 GitHub API，只按请求下载、用本机公钥验签后安装（one-coordinator 批准）。调用方传不进任何命令、文件或其他主机的地址。
 
 ```
-部署 runner ──(1) GITHUB_TOKEN 建 deployment：ref v<版本>，payload 版本 / 运行号 / 提交──────────────▶ GitHub
-     │                                                                                              ▲
-     │ (2a) 云助手 InvokeCommand（固定命令，无参数）                                                  │ (3) 只读令牌：部署记录、运行、标签、
-     │ (2b) SSH 受限密钥（强制命令）                                                                   │     Release 附件（HTTPS 直拉）
-     └───────────────▶ 杭州 ECS：forcitis-one-release install-pending ──────────────────────────────┘
-部署 runner ──(4) 按执行结果写 deployment 状态 success / failure──────────────────────────────────▶ GitHub
+部署 runner（deploy 作业，main 上的 deploy.yml，environment dev / prod）
+  (1) GITHUB_TOKEN（contents: read）：附件 API ──302 Location──▶ 四个短期签名地址（不跟随、不打印）
+  (2) OIDC 令牌（aud sts.aliyuncs.com）──AssumeRoleWithOIDC──▶ 阿里云 STS：该环境部署角色的 1 小时临时凭据
+  (3) InvokeCommand（固定命令 + 参数 request=base64(JSON)）──────────────▶ 杭州 ECS：forcitis-one-release install-pending --request …
+                                                                                │ (4) HTTPS 直接下载签名地址（不重定向、无凭据）
+                                                                                ▼
+                                                              objects / release-assets.githubusercontent.com
+  (5) DescribeInvocationResults 轮询，安装器输出回到 Actions 日志
 ```
 
-### 8.1 最后一跳对比
+### 8.1 谁持有什么、泄露的后果
 
-| 对比项 | (a) 云助手固定命令（**推荐**） | (b) SSH 受限密钥 |
+| 对象 | 持有 / 有效期 | 被拿到时能做的 |
 |---|---|---|
-| 所需账号与权限 | 部署用 RAM 子账号：对**该命令 ID 与该实例**的 `ecs:InvokeCommand`，及 `ecs:DescribeInvocationResults`、`ecs:DescribeInvocations`。不授 `RunCommand`、`CreateCommand` | 不需要 RAM 子账号；ECS 上部署用户、sudoers 只放行安装器、强制命令 + `from=` |
-| 密钥存放 | GitHub environment secret：AccessKey 一对；ECS 上 GitHub 只读令牌（R-13） | SSH 私钥 + 主机公钥；服务器上一份授权公钥；ECS 上 GitHub 只读令牌 |
-| 网络与安全组 | 无需任何入方向端口；ECS 出方向 443 到 GitHub（实测已通） | 另需入方向 TCP 22 只对部署 runner 固定出口 IP/32；无固定出口 IP 时不可用 |
-| 与现有约定 | 与「ECS 不设登录密钥，运维经云助手操作」一致 | 改变该约定 |
-| 审计 | 云助手执行记录（命令、输出、退出码）；ActionTrail 记 RAM 调用；GitHub deployment 及其状态；ECS 的 `processed-deployments` | GitHub deployment + ECS 的 sshd / sudo 日志与 `processed-deployments`；云端无记录 |
-| 失败与回滚 | 安装器自动回切；输出（最多约 24 KB 尾部）打回 Actions；命令超时 45 分钟由云助手终止——此时 `current` 未切换，重新运行 deploy 即可（新的部署记录） | 安装器自动回切；输出实时回传；断线时以 `status` 与 `HISTORY` 判断 |
-| 触发凭据泄露的后果 | AccessKey 能触发该环境的固定命令、读该实例该命令的执行结果（安装器输出，不含凭据）。没有「正在运行的、main 上手动触发的 deploy.yml」所指且未处理过的最新部署记录时，安装器拒绝，所以 AccessKey **单独装不上任何东西**；不能执行任意命令 | SSH 私钥泄露同样只能触发 `install-pending`，后果同左 |
-| 只读令牌泄露的后果 | 能读本仓库代码、部署记录、Actions 运行；不能写、不能建部署记录、不能触发安装 | 同左 |
+| GitHub OIDC 令牌 | 只在 deploy 作业内向 GitHub 现取，用后即删；短期 | 只能换取**该环境**部署角色的凭据，且须在有效期内；信任策略要求 `sub` 恰为 main 上 deploy.yml 在该 environment 的作业 |
+| 阿里云临时凭据 | `ship.sh` 进程的环境变量，1 小时 | 对该实例调用该固定命令、读执行结果（`DescribeInvocations*` 为 `*`，见 §8.2）。安装器只接受合格式的请求、只从 GitHub 的两个附件主机下载、只装本机公钥验签通过且版本一致的发布包、不降级、prod 不装预发布、同一运行尝试只装一次——**装不上 release 工作流没有签过的东西**，也不能执行任意命令 |
+| 附件签名地址 | 安装请求中；云助手执行记录中长期可见（§10） | 在 GitHub 的短期有效期内下载附件；附件本身对仓库读者本就可下载，不是机密 |
+| 发布签名私钥 | 只在 environment `release` 的 secret，GitHub 托管机上的 `publish` 作业使用 | 能签发布声明——这是整条链路唯一的长期密钥，保护见 R-12、§11.2 |
 
-能让 ECS 装上一个版本的前提：在 main 上运行 deploy.yml 并通过 gate、environment 分支策略与 runner hook；所装的是 release 工作流签名的 Release；不低于当前版本；prod 不是预发布。推荐 (a)。
+能让 ECS 装上一个版本的前提：在 main 上运行 deploy.yml 并通过 gate、environment 分支策略与 runner hook（否则拿不到满足信任策略的 OIDC 令牌）；所装的是 release 工作流签名的 Release；不低于当前版本；prod 不是预发布。
 
-### 8.2 RAM 策略（草稿）
+### 8.2 RAM 策略与信任策略（草稿）
 
-**部署用户**（以 dev 为例；prod 换命令 ID 与实例）。`<account-id>`、`<command-id>` 由用户填；保存前用 RAM 控制台校验，资源格式以控制台提示为准。SSH 方式不需要该子账号。**发布不需要 ECS 实例 RAM 角色**，原「实例角色」策略删除。
+每个环境一个部署角色（以 dev 为例；prod 换角色名、`environment:prod` 与 prod 的命令 ID / 实例）。`<account-id>`、`<command-id>`、`<provider-name>` 由运维在 R-4 中填；保存前以 RAM 接口校验，资源格式以接口提示为准。**发布不需要 ECS 实例 RAM 角色**。
+
+**权限策略**（`CreatePolicy` 后 `AttachPolicyToRole`）：
 
 ```json
 {
@@ -307,38 +289,61 @@ ECS 用它读部署记录、工作流运行、标签与 Release 附件；它只�
       "Effect": "Allow",
       "Action": ["ecs:InvokeCommand"],
       "Resource": [
-        "acs:ecs:cn-hangzhou:<account-id>:command/<command-id>",
-        "acs:ecs:cn-hangzhou:<account-id>:instance/i-bp122xlpar8w2uylmal2"
+        "acs:ecs:cn-hangzhou:<account-id>:instance/i-bp122xlpar8w2uylmal2",
+        "acs:ecs:cn-hangzhou:<account-id>:command/<command-id>"
       ]
     },
     {
       "Effect": "Allow",
-      "Action": ["ecs:DescribeInvocationResults", "ecs:DescribeInvocations"],
-      "Resource": [
-        "acs:ecs:cn-hangzhou:<account-id>:command/<command-id>",
-        "acs:ecs:cn-hangzhou:<account-id>:instance/i-bp122xlpar8w2uylmal2"
-      ]
+      "Action": ["ecs:DescribeInvocations", "ecs:DescribeInvocationResults"],
+      "Resource": "*"
     }
   ]
 }
 ```
 
-两个查询接口限定到该命令与该实例；若 RAM 控制台校验提示不支持资源级授权，只能退回 `*`，此时泄露者还能读到本账号其他云助手执行的输出，须在策略说明中记下这一点。可选：各条加 `"Condition": {"IpAddress": {"acs:SourceIp": ["<部署 runner 出口 IP>/32"]}}`。
+`ecs:DescribeInvocations`、`ecs:DescribeInvocationResults` 不支持资源级授权，只能为 `*`：持有临时凭据者还能读到本账号其他云助手执行的参数与输出，在临时凭据的 1 小时内。`ship.sh` 只调用 `DescribeInvocationResults`；`DescribeInvocations` 供排障查看调用状态，不需要时可从策略中去掉。不授 `RunCommand`、`CreateCommand`、`ModifyCommand`。
+
+**信任策略**（`CreateRole` 的 `AssumeRolePolicyDocument`；`MaxSessionDuration` 3600）：
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Federated": ["acs:ram::<account-id>:oidc-provider/<provider-name>"]
+      },
+      "Condition": {
+        "StringEquals": {
+          "oidc:iss": "https://token.actions.githubusercontent.com",
+          "oidc:aud": "sts.aliyuncs.com",
+          "oidc:sub": "repo:FORCITIS/forcitis-one-psa:environment:dev:job_workflow_ref:FORCITIS/forcitis-one-psa/.github/workflows/deploy.yml@refs/heads/main"
+        }
+      }
+    }
+  ]
+}
+```
+
+`oidc:sub` 的这一形式依赖 R-4 ① 的仓库 `sub` 定制（`repo`、`context`、`job_workflow_ref`）：`context` 对绑定 environment 的作业是 `environment:<名称>`，`job_workflow_ref` 把工作流文件与分支一并钉住。定制前 GitHub 发出的默认 `sub` 为 `repo:FORCITIS/forcitis-one-psa:environment:dev`，与条件不符，STS 拒绝——失败关闭。用 `StringEquals` 精确匹配，不用通配。
 
 ### 8.3 GitHub 直拉的链路（杭州 ECS）
 
 | 项 | 情况 | 处理 |
 |---|---|---|
-| 速度 | 北京时间夜间在 ECS 上实测 `release-assets.githubusercontent.com` 约 9 MB/s；60 MB 左右的发布包约 7 秒 | 白天未测：**首次部署时在白天再测一次**（R-11 ②，或首次部署安装器日志中「fetched … bytes」前后的时间），结果记入本节 |
-| 可用性 | 经公网跨境，偶有抖动或中断 | 安装器下载 20 分钟超时；失败即本次部署失败，重新运行 deploy（每次运行建新的部署记录） |
-| 访问的地址 | `api.github.com`（部署记录、运行、标签、Release 元数据与附件 API）；附件经重定向从 GitHub 的下载域名取（实测为 `release-assets.githubusercontent.com`） | ECS 出方向 443 已放行（E-14），实测可达 |
-| API 用量 | 每次部署约 6–10 次请求，远低于令牌的每小时限额 | 无需处理 |
+| 速度 | 北京时间夜间在 ECS 上实测 `release-assets.githubusercontent.com` 约 9 MB/s；60 MB 左右的发布包约 7 秒 | 白天未测：**首次部署时在白天测**（安装器日志中「fetched … bytes」前后的时间），结果记入本节 |
+| 可用性 | 经公网跨境，偶有抖动或中断 | 安装器下载 20 分钟超时；失败即本次部署失败，Re-run 或重新运行 deploy（新的运行尝试号、新的签名地址） |
+| 签名地址有效期 | GitHub 文档未写明附件签名地址的有效期，只说是短期地址 | `ship.sh` 打印地址中的到期时间（`se`，不打印地址本身），**首次部署时记下实测值**入本节；ECS 在调用后数秒内开始下载，四个文件依次取，发布包最后取；过期则下载失败、部署失败，重新运行即可 |
+| 访问的地址 | ECS 只访问请求中的签名地址，主机限 `objects.githubusercontent.com`、`release-assets.githubusercontent.com`；不再访问 `api.github.com` | ECS 出方向 443 已放行（E-14），实测可达 |
 | GitHub 不可用 | 期间无法部署 | 回滚只用本机已装版本，不受影响 |
 
 ## 9. 首次部署（dev）的先后
 
 1. C-1（扩容，可后置）→ C-3（建库、角色、口令；RDS SSL 与 CA）→ C-4 E-1..E-10（ECS 初始化，含 E-3、E-5、E-9、E-10 新做法）→ B-4（证书，nginx 启用）。
-2. 本文 R-0..R-13（R-3 不再需要；R-13 的令牌由用户生成）；B-2、B-3 完成后填 R-2 的构建期变量。
+2. 本文 R-0..R-12（R-3、R-13 不再需要；R-4、R-6、R-7、R-11 由运维执行）；B-2、B-3 完成后填 R-2 的构建期变量。
 3. 1a 修复批合并、opus 复审通过，调度会话删除 `status/blockers/080-*`（或其 `blocks: deploy` 标记）；1a 的「可执行 jar」修复已合并，否则 `build.sh` 拒绝出包。
 4. `release` 发 `0.1.0`（或 `-rc.1`），核对后发布 Release。
 5. `deploy` dev：首次的迁移凭据目录含 Flowable 安装项（§4）；部署成功后跑 C-3 的 V8，删除 Flowable 安装项。
@@ -351,10 +356,11 @@ prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅�
 
 - **部署 runner 的隔离靠 R-0 落实**：runner 程序、hook 与其配置归 root；PATH 与所用程序均为 root 所有或按 SHA256 下载；进程主目录为 root 所有的空目录、作业改用新 `HOME`；`forcitis-deploy` 非管理员。任何一项被放松，CI 作业就可能影响部署。
 - release 构建在 GitHub 托管机上执行第三方依赖中的代码（Maven 插件、前端构建工具；依赖的安装脚本已用 `--ignore-scripts` 关掉），它们能影响本次构建产物，这一点任何套餐都不能消除；签名在另一个托管作业中，私钥不与之同机。
-- AccessKey、SSH 私钥、只读令牌泄露的后果见 §8.1：单独都装不上任何东西；怀疑泄露时立即在 RAM 控制台禁用 AccessKey、在 GitHub 删除令牌（R-13）。
-- **部署记录与运行的绑定是「引用」而非签名**：安装器核对记录所指的运行是 main 上手动触发、正在运行、`run-name` 为同一版本与环境的 deploy.yml，并要求只有一条记录指向该运行，但不能证明记录就是该运行建的。另一个持有 `deployments: write` 的工作流运行最多只能在某个 deploy 运行进行时，抢先建一条指向它的记录：若两条都在，安装器拒绝；若只有它的，所装的也只能是该 deploy 运行正在部署的同一版本、同一提交（`run-name`、标签与签名声明都已绑定）。需要更强绑定时再加由部署作业签名的部署声明。
-- deploy 作业以标签 `v<版本>` 为 `ref` 建部署记录，而 dev / prod 的「Deployment branches and tags」只允许 main。GitHub 文档未写明经 REST 建记录是否受该策略约束；若首次部署时建记录被拒，经用户确认后在 dev / prod 加标签规则 `v*`（作业仍只在 main 上运行，由 `if:` 与 runner hook 保证）。
-- `remote_install.sh`、`ship.sh`、`toolchain.sh` 依赖 Linux / 阿里云接口 / GitHub API / 网络下载，本机只做了语法、静态检查与可本地运行部分的验证（部署记录核对由 `install_request_test.sh` 以预置应答覆盖）；`aliyun ecs` 的参数与 GitHub 附件下载在 R-11 演练时核对；首次在 dev 部署时验证。迁移以 `Started OneApplication` 判定是在 migrate profile 合入前的过渡做法（§4）。
+- 临时凭据与签名地址被拿到的后果见 §8.1：装不上 release 工作流没有签过的东西。怀疑部署角色被滥用时，运维在 RAM 中改信任策略或删除角色即全部失效，不需要轮换任何密钥。
+- **签名地址留在云助手执行记录中**：安装请求是 `InvokeCommand` 的参数，云助手的执行记录（`DescribeInvocations`）长期保存它，能读该账号云助手记录的人都看得到四个签名地址。GitHub 只把它们签为短期有效（有效期文档未写明，首次部署时按 `ship.sh` 打印的 `se` 记录实测值，§8.3），过期即无用；而且附件对仓库的任何读者本就可以下载，不是机密。Actions 日志不打印签名地址。
+- **安装内容由请求指明，可信度来自调用方身份与签名**：ECS 不再向 GitHub 核对部署记录与运行；「谁能发请求」由阿里云信任策略（`iss`、`aud`、`sub` 精确匹配，`sub` 钉住仓库、environment 与 main 上的 deploy.yml）保证，「装的是什么」由本机公钥验签的发布声明保证。部署角色的信任策略或 GitHub 的 `sub` 定制被改宽，前一条保证就随之变弱，两者的修改都应经用户确认并回读（R-4）。prod 批准行仍只由 deploy 作业核对（U-5）。
+- 云助手对参数长度的上限以 R-11 ② 实测为准；安装器与 `ship.sh` 都限制在 16384 字符，四个签名地址的请求通常远小于此。
+- `remote_install.sh`、`ship.sh`、`toolchain.sh` 依赖 Linux / 阿里云接口 / GitHub API / 网络下载，本机只做了语法、静态检查与可本地运行部分的验证（请求校验、下载、验签与版本核对由 `install_request_test.sh` 以本地签名的测试附件覆盖）；`AssumeRoleWithOIDC` 与 `InvokeCommand --Parameters` 的实际调用、附件 API 的 302 应答在首次 dev 部署时验证。迁移以 `Started OneApplication` 判定是在 migrate profile 合入前的过渡做法（§4）。
 - GitHub 直拉的白天速度未测（§8.3），首次部署时补测。
 - 前端按环境各构建一份，同一版本 dev 与 prod 的静态文件不是同一份产物（§6）。
 
@@ -372,7 +378,7 @@ prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅�
 | Wait timer | **不可用**：「… wait timers are only available for public repositories.」 | 同上 | 不用 |
 | Custom deployment protection rules | **不可用**：「Custom deployment protection rules are only available for public repositories for users on GitHub Free, GitHub Pro, and GitHub Team plans.」 | 同上 | 不用 |
 | Deployment branches and tags | 可用：「For users on GitHub Pro or GitHub Team plans, deployment branches and tags are also available for private repositories.」 | 同上 | `release`、`dev`、`prod` 只允许 main |
-| Environment secrets | 可用：私有仓库须 GitHub Pro、Team 或 Enterprise | 同上 | `RELEASE_SIGNING_KEY`、阿里云 AccessKey、SSH 密钥 |
+| Environment secrets | 可用：私有仓库须 GitHub Pro、Team 或 Enterprise | 同上 | 只有 `RELEASE_SIGNING_KEY`；阿里云凭据改由 OIDC 临时换取，不存 secret |
 | Runner groups | 可用（组织级）：「Organization owners using the GitHub Team plan can create additional organization-level runner groups.」 | [Managing access to self-hosted runners using groups](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/manage-access) | 专用 runner 注册在仓库级 |
 | Runner group 只限指定工作流（Workflow access → Selected workflows） | **视为不可用**：该节只出现在 Enterprise Cloud 版文档，Free / Pro / Team 版同一页没有；组织现有 runner group 的 `restricted_to_workflows` 均为 `false` | [Enterprise Cloud 版同页](https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/manage-runners/self-hosted-runners/manage-access) 对照 [Team 版](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/manage-access) | 改由 runner 侧 pre-job hook 实现 |
 | Pre-job hook（`ACTIONS_RUNNER_HOOK_JOB_STARTED`） | 可用（runner 功能，不分套餐）：「If there is any other exit code, the job will not run and will be marked as failed.」；「Scripts have access to the default variables. The full webhook event payload can be found in `GITHUB_EVENT_PATH`.」 | [Running scripts before or after a job](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/run-scripts) | `runner_job_started.sh` |
@@ -385,7 +391,7 @@ prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅�
 目标不变：只部署由 main 上 release 工作流构建的包，Release 附件被替换能发现。
 
 - **签名**：私钥只存在 environment `release` 的 secret 中，该 environment 只允许 main；`publish` 在 GitHub 托管的 `ubuntu-24.04` 上运行，只检出工作流自身提交的 `scripts/release`，签完立即删除私钥文件。声明写明 `GITHUB_WORKFLOW_REF` 与已证明的提交，并断言等于 `manifest.json` 的 `gitSha`。
-- **校验两处**：deploy 作业用仓库 main 上的 `allowed_signers` 验签；ECS 安装器用本机 root 所有的 `/etc/forcitis-one/release-signers` 再验一次，且发布包、声明、签名都由 ECS 以只读令牌从 GitHub 自取。两处都核对构建工作流必须是 `FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main`、提交、发布包名，以及发布包与 `manifest.json`、`SHA256SUMS` 的 SHA256。
+- **校验两处**：deploy 作业用仓库 main 上的 `allowed_signers` 验签；ECS 安装器用本机 root 所有的 `/etc/forcitis-one/release-signers` 再验一次，发布包、声明、签名由 ECS 按安装请求中的签名地址从 GitHub 的附件主机直接下载。两处都核对构建工作流必须是 `FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main`、版本、发布包名，以及发布包与 `manifest.json`、`SHA256SUMS` 的 SHA256；deploy 作业另核对声明中的提交等于标签所指提交，ECS 核对 `manifest.json` 的 `gitSha` 等于声明中的提交。
 - 本机验证：用运行时生成的测试密钥，正常声明通过；空公钥、改提交、改声明、换密钥、分支工作流签出的声明、替换发布包、写声明时提交与 manifest 不符，全部被拒。
 - **专用 runner 被任意分支利用的封堵**：pre-job hook（R-0）只放行 main 上手动运行的 deploy.yml，并把 `GITHUB_*` 变量与 runner 写在 `_work/_temp` 的事件载荷交叉核对；hook、其环境变量（在 root 所有的 plist 中）与 runner 程序都归 root。hook 不再做残留进程检查：那只能报告、不能阻止，不算控制。
 
@@ -397,4 +403,4 @@ prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅�
 | U-2 | prod 部署前由指定的人在 GitHub 上批准 | environment required reviewers、wait timer | `prod-approvals.txt` 批准行（版本、提交、发布包 SHA256）经 PR 合入 main；所有会话以同一 GitHub 账号推送与合并，批准行证明「经过 main 的评审流程」，不能证明「由某个特定的人批准」 | **接受**并约定批准行只由用户本人发起的 PR 加入 / 升级 |
 | U-3 | runner 只接指定工作流 | runner group 的 Selected workflows | runner 侧 pre-job hook + R-0 的 root 所有权 | **接受**（建议）/ 升级 / 另加 push ruleset 限制 `.github/workflows/**`（须先让代理改用单独账号才有意义） |
 | U-4 | 签名私钥与构建依赖代码同机 | — | **已决定**：签名放 GitHub 托管机器（用户：「签名步骤放 GitHub 托管机器 (Recommended)」）；随后发布打包也移到托管机器（用户：「发布打包改到 GitHub 托管机器 (Recommended)」），部署 runner 只跑 deploy | 已实施 |
-| U-5 | prod 只装已批准的构建，即使部署凭据泄露 | — | 批准行在仓库中、由 deploy 作业核对，ECS 不知道批准；改为 GitHub 直拉后，持有 prod AccessKey 者单独已装不上任何东西（§8.1）；ECS 只装正在运行的 deploy.yml 所部署的那个版本（`run-name` 绑定，§3），而该运行在建记录前已核对批准行。残余：批准仍由 deploy 作业而非 ECS 验证（§10）。未做「批准签名由 ECS 验证」：immutable releases 下 Release 附件发布后不可追加，批准签名需要另一套签发与存放流程（例如单独的批准工作流、由 `release` environment 的密钥签批准声明并另存），成本与本阶段收益不相称 | **接受**（prod AccessKey 只在 prod environment、仅 main、仅部署 runner 上出现）/ 生产前再加批准签名 |
+| U-5 | prod 只装已批准的构建，即使部署凭据泄露 | — | 批准行在仓库中、由 deploy 作业核对，ECS 不知道批准；ECS 只接受经 OIDC 证明来自 main 上 deploy.yml 的 prod deploy 作业的请求（§8.2），而该作业在调用前已核对批准行；拿到临时凭据者也装不上未签名的东西（§8.1）。残余：批准仍由 deploy 作业而非 ECS 验证（§10）。未做「批准签名由 ECS 验证」：immutable releases 下 Release 附件发布后不可追加，批准签名需要另一套签发与存放流程（例如单独的批准工作流、由 `release` environment 的密钥签批准声明并另存），成本与本阶段收益不相称 | **接受**（prod 部署角色只信任 prod environment 中 main 上的 deploy.yml，凭据 1 小时有效、只在部署 runner 上出现）/ 生产前再加批准签名 |
