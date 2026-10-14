@@ -1,0 +1,42 @@
+.tag {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.tag--posted { border-color: var(--status-posted-border); background: var(--status-posted-bg); color: var(--status-posted-fg); }
+.tag--pending { border-color: var(--status-pending-border); background: var(--status-pending-bg); color: var(--status-pending-fg); }
+.tag--rejected { border-color: var(--status-rejected-border); background: var(--status-rejected-bg); color: var(--status-rejected-fg); }
+.tag--neutral { border-color: var(--status-neutral-border); background: var(--status-neutral-bg); color: var(--status-neutral-fg); }
+.tag--info { border-color: var(--status-info-border); background: var(--status-info-bg); color: var(--status-info-fg); }
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid;
+  border-radius: 8px;
+}
+
+.notice--error { border-color: var(--status-rejected-border); background: var(--status-rejected-bg); color: var(--status-rejected-fg); }
+.notice--warning { border-color: var(--status-pending-border); background: var(--status-pending-bg); color: var(--status-pending-fg); }
+
+.notice__title {
+  font-weight: 600;
+}
+
+.notice__body {
+  font-size: 13px;
+}
+
+.loading-hint,
+.empty-hint {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--text-tertiary);
+}
