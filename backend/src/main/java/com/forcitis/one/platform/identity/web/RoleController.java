@@ -6,7 +6,7 @@ import com.forcitis.one.platform.identity.application.ChangeAccountStatus;
 import com.forcitis.one.platform.identity.application.CreateRole;
 import com.forcitis.one.platform.identity.application.DeleteRole;
 import com.forcitis.one.platform.identity.application.GetRole;
-import com.forcitis.one.platform.identity.application.IdentityError;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.application.ListRoles;
 import com.forcitis.one.platform.identity.application.ReplaceAccountRoles;
 import com.forcitis.one.platform.identity.application.RoleView;

@@ -1,11 +1,13 @@
 package com.forcitis.one.platform.identity.infrastructure.persistence;
 
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
-import com.forcitis.one.platform.identity.domain.AccountStatus;
 import com.forcitis.one.platform.identity.domain.Role;
-import com.forcitis.one.platform.identity.domain.RoleId;
+import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -29,9 +31,9 @@ class JdbcAccountRepository implements AccountRepository {
 
     @Override
     public Optional<UserAccount> find(UserId userId) {
-        return jdbc.sql("select user_id, status from platform_identity.user_accounts where user_id = :id")
+        return jdbc.sql("select user_id, status, version from platform_identity.user_accounts where user_id = :id")
                 .param("id", userId.value())
-                .query((rs, n) -> new UserAccount(new UserId(rs.getLong("user_id")), AccountStatus.valueOf(rs.getString("status"))))
+                .query((rs, n) -> UserAccount.restore(new UserId(rs.getLong("user_id")), rs.getString("status"), rs.getLong("version")))
                 .optional();
     }
 
@@ -42,9 +44,17 @@ class JdbcAccountRepository implements AccountRepository {
     }
 
     @Override
-    public void changeStatus(UserId userId, AccountStatus status) {
-        jdbc.sql("update platform_identity.user_accounts set status = :status, updated_at = now(), version = version + 1 where user_id = :id")
-                .param("status", status.name()).param("id", userId.value()).update();
+    public void save(UserAccount account) {
+        int updated = jdbc.sql("""
+                        update platform_identity.user_accounts set status = :status, updated_at = now(), version = :next
+                         where user_id = :id and version = :version and status = :loadedStatus
+                        """)
+                .param("status", account.status().name()).param("next", account.versionAfterSave()).param("id", account.userId().value())
+                .param("version", account.version()).param("loadedStatus", account.loadedStatus().name()).update();
+        if (updated != 1) {
+            throw new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
+                    "account " + account.userId().value() + " was changed by someone else");
+        }
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.identity.application;
+package com.forcitis.one.platform.identity.api;
 
 import com.forcitis.one.kernel.ErrorCode;
 
@@ -24,5 +24,8 @@ public enum IdentityError implements ErrorCode {
     PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME,
     PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN,
     PLATFORM_IDENTITY_PERMISSION_UNKNOWN,
-    PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND
+    PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND,
+    PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL,
+    PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL,
+    PLATFORM_IDENTITY_CONCURRENT_UPDATE
 }

@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.identity.domain;
+package com.forcitis.one.platform.identity.api;
 
 import com.forcitis.one.kernel.ValueObject;
 

@@ -1,11 +1,11 @@
 package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
-import com.forcitis.one.platform.identity.domain.AccountStatus;
+import com.forcitis.one.platform.identity.domain.UserAccount;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,31 +15,31 @@ public class ChangeAccountStatus {
     private final AccountRepository accounts;
     private final SessionRegistry sessions;
     private final AccessCache cache;
-    private final CurrentUser currentUser;
-    private final AuditLog audit;
+    private final DomainEvents events;
 
-    ChangeAccountStatus(AccountRepository accounts, SessionRegistry sessions, AccessCache cache, CurrentUser currentUser,
-            AuditLog audit) {
+    ChangeAccountStatus(AccountRepository accounts, SessionRegistry sessions, AccessCache cache, DomainEvents events) {
         this.accounts = accounts;
         this.sessions = sessions;
         this.cache = cache;
-        this.currentUser = currentUser;
-        this.audit = audit;
+        this.events = events;
     }
 
     @Transactional
     public AdminOutcome<Void> execute(long userId, boolean enable) {
-        if (userId == 0 || accounts.find(new UserId(userId)).isEmpty()) {
+        Optional<UserAccount> found = userId == 0 ? Optional.empty() : accounts.find(new UserId(userId));
+        if (found.isEmpty()) {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND);
         }
-        UserId target = new UserId(userId);
-        accounts.changeStatus(target, enable ? AccountStatus.ENABLED : AccountStatus.DISABLED);
-        audit.record(new AuditEntry(enable ? "platform.identity.account.enabled" : "platform.identity.account.disabled",
-                currentUser.userId(), null, "user-account:" + userId, enable ? "enabled" : "disabled"));
-        if (!enable) {
-            sessions.revokeAll(target);
+        UserAccount account = found.get();
+        account.declareEnabled(enable);
+        if (account.hasPendingEvents()) {
+            accounts.save(account);
+            events.publish(account);
         }
-        cache.evict(target);
+        if (!enable) {
+            sessions.revokeAll(account.userId());
+        }
+        cache.evict(account.userId());
         return new AdminOutcome.Done<>(null);
     }
 }

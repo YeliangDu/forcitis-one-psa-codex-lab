@@ -1,0 +1,118 @@
+package com.forcitis.one.platform.identity.domain;
+
+import static com.forcitis.one.platform.identity.domain.AccountStatus.DISABLED;
+import static com.forcitis.one.platform.identity.domain.AccountStatus.ENABLED;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.forcitis.one.kernel.TransitionTable;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.DomainEvent;
+import com.forcitis.one.kernel.event.TestEnvelopes;
+import com.forcitis.one.platform.identity.api.AccessScopeKind;
+import com.forcitis.one.platform.identity.api.RoleCode;
+import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.events.AccountDisabled;
+import com.forcitis.one.platform.identity.events.AccountEnabled;
+import com.forcitis.one.platform.identity.events.AccountRolesReplaced;
+import com.forcitis.one.platform.identity.events.RoleCreated;
+import com.forcitis.one.platform.identity.events.RoleDeleted;
+import com.forcitis.one.platform.identity.events.RoleDisabled;
+import com.forcitis.one.platform.identity.events.RoleEnabled;
+import com.forcitis.one.platform.identity.events.RoleRevised;
+import java.util.List;
+import java.util.Set;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+class IdentityStateMachineTest {
+
+    static UserAccount account(AccountStatus status) {
+        return UserAccount.restore(new UserId(1001), status.name(), 5);
+    }
+
+    static Role role(RoleStatus status) {
+        return Role.restore(new RoleId(7), new RoleCode("analyst"), "Analyst", "CUSTOM", status.name(), AccessScopeKind.SELF, false, Set.of(), 2);
+    }
+
+    @Test
+    @DisplayName("account: enable and disable are tried from every status; only the opposite status is legal")
+    void accountTransitions() {
+        new TransitionTable<AccountStatus, UserAccount>(AccountStatus.class, IdentityStateMachineTest::account, UserAccount::status)
+                .operation("enable", UserAccount::enable, DISABLED, ENABLED)
+                .operation("disable", UserAccount::disable, ENABLED, DISABLED)
+                .verify();
+    }
+
+    @Test
+    @DisplayName("role: enable and disable are tried from every status; only the opposite status is legal")
+    void roleTransitions() {
+        new TransitionTable<RoleStatus, Role>(RoleStatus.class, IdentityStateMachineTest::role, Role::status)
+                .operation("enable", Role::enable, RoleStatus.DISABLED, RoleStatus.ENABLED)
+                .operation("disable", Role::disable, RoleStatus.ENABLED, RoleStatus.DISABLED)
+                .verify();
+    }
+
+    @Test
+    @DisplayName("a system role is frozen: neither a transition nor a revision nor a deletion is possible, in any status")
+    void systemRoleIsFrozen() {
+        for (RoleStatus status : RoleStatus.values()) {
+            Role system = Role.restore(new RoleId(1), new RoleCode("employee"), "Employee", "SYSTEM", status.name(), AccessScopeKind.SELF, false, Set.of(), 0);
+            for (Runnable change : List.<Runnable>of(system::enable, system::disable, system::delete, () -> system.declareEnabled(true),
+                    () -> system.revise("x", AccessScopeKind.SELF, Set.of()))) {
+                assertThatThrownBy(change::run).isInstanceOfSatisfying(RoleRuleException.class,
+                        e -> assertThat(e.violation()).isEqualTo(RoleViolation.SYSTEM_FROZEN));
+            }
+            assertThat(system.hasPendingEvents()).isFalse();
+        }
+    }
+
+    @Test
+    @DisplayName("declaring the state a role or an account already has changes nothing and records nothing")
+    void declaringTheCurrentStateIsANoOp() {
+        UserAccount enabled = account(ENABLED);
+        enabled.declareEnabled(true);
+        assertThat(enabled.hasPendingEvents()).isFalse();
+        enabled.declareEnabled(false);
+        assertThat(enabled.status()).isEqualTo(DISABLED);
+
+        Role disabled = role(RoleStatus.DISABLED);
+        disabled.declareEnabled(false);
+        assertThat(disabled.hasPendingEvents()).isFalse();
+        disabled.declareEnabled(true);
+        assertThat(disabled.isEnabled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("each change records its own event with the aggregate and the versions after the loaded one")
+    void events() {
+        UserAccount account = account(ENABLED);
+        account.disable();
+        account.replaceRoles(Set.of(new RoleId(9), new RoleId(3)));
+        List<DomainEvent> accountEvents = account.drainEvents(TestEnvelopes.INSTANCE);
+        assertThat(accountEvents.get(0)).isInstanceOf(AccountDisabled.class);
+        assertThat(accountEvents.get(1)).isInstanceOfSatisfying(AccountRolesReplaced.class,
+                e -> assertThat(e.roleIds()).containsExactly(new RoleId(3), new RoleId(9)));
+        assertThat(accountEvents).extracting(e -> e.envelope().aggregateVersion()).containsExactly(6L, 7L);
+        assertThat(accountEvents.get(0).envelope().aggregateType()).isEqualTo("UserAccount");
+        assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo("1001");
+        assertThat(accountEvents.get(0).envelope().legalEntityId()).isNull();
+
+        UserAccount again = account(DISABLED);
+        again.enable();
+        assertThat(again.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(AccountEnabled.class);
+
+        Role role = role(RoleStatus.ENABLED);
+        role.revise("Senior", AccessScopeKind.SELF, Set.of());
+        role.disable();
+        role.enable();
+        role.delete();
+        assertThat(role.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.getClass().getSimpleName())
+                .containsExactly(RoleRevised.class.getSimpleName(), RoleDisabled.class.getSimpleName(), RoleEnabled.class.getSimpleName(),
+                        RoleDeleted.class.getSimpleName());
+
+        Role created = Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(11));
+        assertThat(created.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(RoleCreated.class,
+                e -> assertThat(e.roleId()).isEqualTo(new RoleId(11)));
+    }
+}

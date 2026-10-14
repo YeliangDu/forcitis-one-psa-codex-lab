@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.identity.web;
 
-import com.forcitis.one.platform.identity.application.IdentityError;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -23,7 +23,8 @@ final class IdentityResponses {
             case PLATFORM_IDENTITY_SSO_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
             case PLATFORM_IDENTITY_ROLE_NOT_FOUND, PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE, PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME,
-                    PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN -> HttpStatus.CONFLICT;
+                    PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN, PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL,
+                    PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL, PLATFORM_IDENTITY_CONCURRENT_UPDATE -> HttpStatus.CONFLICT;
             case PLATFORM_IDENTITY_ROLE_INVALID_CODE, PLATFORM_IDENTITY_ROLE_BLANK_NAME, PLATFORM_IDENTITY_ROLE_RESERVED_CODE,
                     PLATFORM_IDENTITY_PERMISSION_UNKNOWN -> HttpStatus.UNPROCESSABLE_CONTENT;
         };

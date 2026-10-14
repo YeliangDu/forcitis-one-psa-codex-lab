@@ -136,7 +136,8 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         assertThat(currentStatus(victim)).isEqualTo(401);
         assertThat(currentStatus(other)).isEqualTo(200);
         assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = '1001'").query(Long.class).single()).isZero();
-        assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.account.disabled");
+        assertThat(recordedEvents.stream(com.forcitis.one.platform.identity.events.AccountDisabled.class)).singleElement()
+                .satisfies(e -> assertThat(e.envelope().actorId()).isEqualTo("9"));
     }
 
     @Test
