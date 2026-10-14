@@ -1,0 +1,55 @@
+package com.forcitis.one.platform.identity.infrastructure.persistence;
+
+import com.forcitis.one.platform.identity.domain.OneTimeCredentials;
+import com.forcitis.one.platform.integration.api.WecomEntry;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/** Every consuming statement is atomic in the database (delete-returning, insert-on-conflict), so replays have one winner (I-9). */
+@Repository
+class JdbcOneTimeCredentials implements OneTimeCredentials {
+
+    private final JdbcClient jdbc;
+
+    JdbcOneTimeCredentials(JdbcClient jdbc) {
+        this.jdbc = jdbc;
+    }
+
+    @Override
+    public void storeLoginState(String stateHash, WecomEntry entry, Instant expiresAt) {
+        jdbc.sql("insert into platform_identity.login_states (state_hash, entry, expires_at) values (:hash, :entry, :expires)")
+                .param("hash", stateHash).param("entry", entry.name()).param("expires", utc(expiresAt)).update();
+    }
+
+    @Override
+    public Optional<WecomEntry> consumeLoginState(String stateHash, Instant now) {
+        return jdbc.sql("delete from platform_identity.login_states where state_hash = :hash and expires_at > :now returning entry")
+                .param("hash", stateHash).param("now", utc(now))
+                .query(String.class).optional().map(WecomEntry::valueOf);
+    }
+
+    @Override
+    public boolean markTicketUsed(String ticketSource, String ticketHash, Instant retainUntil) {
+        return jdbc.sql("""
+                        insert into platform_identity.sso_ticket_uses (ticket_source, ticket_hash, expires_at)
+                        values (:source, :hash, :retain)
+                        on conflict do nothing
+                        """)
+                .param("source", ticketSource).param("hash", ticketHash).param("retain", utc(retainUntil)).update() == 1;
+    }
+
+    @Override
+    public int purgeExpired(Instant now) {
+        int states = jdbc.sql("delete from platform_identity.login_states where expires_at <= :now").param("now", utc(now)).update();
+        int tickets = jdbc.sql("delete from platform_identity.sso_ticket_uses where expires_at <= :now").param("now", utc(now)).update();
+        return states + tickets;
+    }
+
+    private static OffsetDateTime utc(Instant instant) {
+        return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
+    }
+}

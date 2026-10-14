@@ -1,0 +1,10 @@
+# Handlers that may be called without a login session (@PublicEndpoint). Snapshot of the reviewed set (SECURITY_INVARIANTS I-3,
+# REIMAGINED_ARCHITECTURE §3.8): ApplicationIntegrationTest fails when the handlers marked @PublicEndpoint differ from this file,
+# in either direction, or when a reason differs. Adding a line needs CODEOWNERS review; no line may create a session without
+# proof of identity verified by this system (WeCom OAuth, Seeyon server-side ticket check, signed ticket, emergency admin).
+# Format: METHOD path  # reason (exactly the reason of the annotation)
+POST /api/{version}/platform/login-states  # One-time OAuth state for the WeCom login redirect; creates no session. ADR-0009 §3, RULE-322/324, I-9
+POST /api/{version}/platform/sessions:wecom-login  # WeCom OAuth login (workbench, mini program, PC scan): identity proven by the WeCom code and a one-time state. ADR-0009 §3, RULE-322/323/324/326/327, I-3, I-9
+POST /api/{version}/platform/sessions:seeyon-login  # Seeyon OA single sign-on: the server checks the one-time ticket against OA. ADR-0009 §3, RULE-320/321, I-3, I-9
+POST /api/{version}/platform/sessions:ticket-login  # Signed one-time ticket from an allow-listed external system (HMAC, at most 60 s, nonce used once). ADR-0009 §3, RULE-318, C1a-03, I-2, I-3, I-9
+POST /api/{version}/platform/sessions:emergency-login  # Break-glass administrator: Argon2id password plus TOTP, internal network only, locked after 5 failures. ADR-0009 §3, RULE-316/317, C1a-04, I-3
