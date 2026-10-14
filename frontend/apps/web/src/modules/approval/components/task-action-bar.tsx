@@ -1,15 +1,7 @@
+import { REASON_RULES, type ReasonAction, type TaskActions, canConfirm, opinionText } from '@forcitis/core';
 import { Button, Dialog, TextAreaField } from '@forcitis/ui';
 import { useState } from 'react';
-import { type TaskActions, opinionText } from '../model/task';
 import './task-action-bar.css';
-
-type ReasonAction = 'approve' | 'reject' | 'return';
-
-const DIALOGS: Record<ReasonAction, { title: string; confirm: string; required: boolean; danger: boolean }> = {
-  approve: { title: '通过', confirm: '确认通过', required: false, danger: false },
-  reject: { title: '驳回', confirm: '确认驳回', required: true, danger: true },
-  return: { title: '退回给发起人', confirm: '确认退回', required: true, danger: false },
-};
 
 interface TaskActionBarProps {
   actions: TaskActions;
@@ -23,7 +15,7 @@ interface TaskActionBarProps {
 export function TaskActionBar({ actions, busy, onClaim, onApprove, onReject, onReturn }: TaskActionBarProps) {
   const [open, setOpen] = useState<ReasonAction>();
   const [reason, setReason] = useState('');
-  const dialog = open === undefined ? undefined : DIALOGS[open];
+  const rule = open === undefined ? undefined : REASON_RULES[open];
 
   const close = () => {
     setOpen(undefined);
@@ -43,16 +35,16 @@ export function TaskActionBar({ actions, busy, onClaim, onApprove, onReject, onR
       {actions.reject ? <Button variant="danger" disabled={busy} onClick={() => setOpen('reject')}>驳回</Button> : null}
       {actions.returnToInitiator ? <Button variant="default" disabled={busy} onClick={() => setOpen('return')}>退回</Button> : null}
       <Dialog
-        open={dialog !== undefined}
-        title={dialog?.title ?? ''}
-        confirmText={dialog?.confirm ?? ''}
-        danger={dialog?.danger ?? false}
-        confirmDisabled={(dialog?.required ?? false) && reason.trim() === ''}
+        open={rule !== undefined}
+        title={rule?.title ?? ''}
+        confirmText={rule?.confirm ?? ''}
+        danger={rule?.danger ?? false}
+        confirmDisabled={open === undefined || !canConfirm(open, reason)}
         onConfirm={confirm}
         onClose={close}
       >
-        <TextAreaField label={dialog?.required === true ? '理由（必填）' : '理由（选填）'} value={reason} onChange={setReason} />
-        {open === 'approve' ? <p>意见显示为：{opinionText(reason)}</p> : null}
+        <TextAreaField label={rule?.required === true ? '理由（必填）' : '理由（选填）'} value={reason} onChange={setReason} />
+        {open === 'approve' ? <p>意见：{opinionText(reason)}</p> : null}
       </Dialog>
     </div>
   );

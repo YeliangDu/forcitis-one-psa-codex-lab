@@ -1,0 +1,52 @@
+export const VERSION_HEADER = { ETag: '"1"' } as const;
+
+export function currentUserBody(permissionCodes: string[], navigation: unknown[] = []) {
+  return {
+    userId: '1001',
+    displayName: '张三',
+    orgUnitId: '10',
+    orgUnitName: '交付一部',
+    permissionCodes,
+    navigation,
+  };
+}
+
+export function taskDetailBody(overrides: Record<string, unknown> = {}) {
+  return {
+    taskId: 't-1',
+    instanceId: 'i-1',
+    processKey: 'COST_TIMESHEET_APPROVAL',
+    documentType: 'TIMESHEET',
+    documentId: 'TS-FST-202610-0001',
+    nodeKey: 'dept-head',
+    nodeName: '部门负责人审核',
+    initiator: '2002',
+    initiatorName: '李四',
+    candidates: ['1001', '1002'],
+    candidateNames: ['张三', '王五'],
+    createdAt: '2026-10-14T01:00:00Z',
+    canAct: true,
+    overdue: false,
+    history: [],
+    ...overrides,
+  };
+}
+
+export function taskRecordBody(overrides: Record<string, unknown> = {}) {
+  return {
+    recordId: 'r-1',
+    taskId: 't-0',
+    instanceId: 'i-1',
+    processKey: 'COST_TIMESHEET_APPROVAL',
+    documentType: 'TIMESHEET',
+    documentId: 'TS-FST-202610-0001',
+    nodeKey: 'project-manager',
+    nodeName: '项目经理审核',
+    action: 'APPROVED',
+    actorId: '1001',
+    actorName: '张三',
+    decidedAt: '2026-10-14T02:00:00Z',
+    round: 1,
+    ...overrides,
+  };
+}

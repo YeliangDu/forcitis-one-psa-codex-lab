@@ -1,8 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { currentUserBody } from '@/shared/testing/fixtures';
+import { currentUserBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { AppRoutes } from './app-routes';
 
 const NAVIGATION = [

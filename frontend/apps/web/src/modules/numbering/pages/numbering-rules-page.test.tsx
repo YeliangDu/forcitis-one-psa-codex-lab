@@ -1,9 +1,8 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { currentUserBody } from '@/shared/testing/fixtures';
+import { VERSION_HEADER, currentUserBody, problemBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { NumberingRulesPage } from './numbering-rules-page';
 
 const READ = 'platform.numbering:numbering-rule:read';
@@ -54,6 +53,7 @@ describe('编号规则页', () => {
   it('编辑：提交新的模板、重置周期和起始流水号', async () => {
     const server = stubServer({
       'GET sessions:current': { body: currentUserBody([READ, UPDATE]) },
+      'GET numbering-rules/TIMESHEET': { body: RULES[1], headers: { ETag: '"4"' } },
       'GET numbering-rules': { body: RULES },
       'PUT numbering-rules/TIMESHEET': { status: 204 },
     });
@@ -68,12 +68,15 @@ describe('编号规则页', () => {
     await userEvent.click(screen.getByRole('button', { name: '保存' }));
 
     await waitFor(() => expect(server.calls.some((call) => call.method === 'PUT')).toBe(true));
-    expect(server.calls.find((call) => call.method === 'PUT')?.body).toEqual({ pattern: 'TS{yyyyMM}-{seq:5}', resetPolicy: 'MONTHLY', startValue: 1 });
+    const put = server.calls.find((call) => call.method === 'PUT');
+    expect(put?.body).toEqual({ pattern: 'TS{yyyyMM}-{seq:5}', resetPolicy: 'MONTHLY', startValue: 1 });
+    expect(put?.headers.get('If-Match')).toBe('"4"');
   });
 
   it('确认：按当前规则提交，规则即变为已确认', async () => {
     const server = stubServer({
       'GET sessions:current': { body: currentUserBody([READ, UPDATE]) },
+      'GET numbering-rules/QUOTE': { body: RULES[0], headers: VERSION_HEADER },
       'GET numbering-rules': { body: RULES },
       'PUT numbering-rules/QUOTE': { status: 204 },
     });
@@ -90,8 +93,9 @@ describe('编号规则页', () => {
   it('服务端认为模板不合法（422）时，在对话框里显示原因', async () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ, UPDATE]) },
+      'GET numbering-rules/TIMESHEET': { body: RULES[1], headers: VERSION_HEADER },
       'GET numbering-rules': { body: RULES },
-      'PUT numbering-rules/TIMESHEET': { status: 422, body: 'pattern must contain {seq}' },
+      'PUT numbering-rules/TIMESHEET': { status: 422, body: problemBody(422, 'PLATFORM_NUMBERING_RULE_INVALID') },
     });
     renderWithProviders(<NumberingRulesPage />);
 
@@ -100,5 +104,22 @@ describe('编号规则页', () => {
     await userEvent.click(await screen.findByRole('button', { name: '保存' }));
 
     expect(await screen.findByText(/编号模板或起始流水号不符合规则/)).toBeInTheDocument();
+  });
+
+  it('保存时规则已被别人修改（412），提示刷新', async () => {
+    stubServer({
+      'GET sessions:current': { body: currentUserBody([READ, UPDATE]) },
+      'GET numbering-rules/TIMESHEET': { body: RULES[1], headers: VERSION_HEADER },
+      'GET numbering-rules': { body: RULES },
+      'PUT numbering-rules/TIMESHEET': { status: 412, body: problemBody(412, 'PLATFORM_WEB_VERSION_MISMATCH') },
+    });
+    renderWithProviders(<NumberingRulesPage />);
+
+    await userEvent.click(await within((await screen.findByText('工时单')).closest('tr') as HTMLElement).findByRole('button', { name: '编辑' }));
+    const save = await screen.findByRole('button', { name: '保存' });
+    await waitFor(() => expect(save).toBeEnabled());
+    await userEvent.click(save);
+
+    expect(await screen.findByText('内容刚刚被其他人修改，请刷新后重试')).toBeInTheDocument();
   });
 });

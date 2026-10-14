@@ -1,20 +1,21 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { stubServer, taskRecordBody } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { InboxPage } from './inbox-page';
 
 const INBOX = {
   newCount: 2,
   legacyCount: 2,
+  noticeCount: 0,
   totalCount: 4,
   legacyAvailable: true,
   items: [
-    { source: 'NEW', taskId: 'n-1', title: '工时单审批 TS202610140001', nodeName: '部门负责人审核', createdAt: '2026-10-14T01:00:00Z', claimed: true, detailUrl: null },
-    { source: 'NEW', taskId: 'n-2', title: '工时单审批 TS202610140002', nodeName: '部门负责人审核', createdAt: '2026-10-14T02:00:00Z', claimed: false, detailUrl: null },
-    { source: 'LEGACY', taskId: 'l-1', title: '合同评审 HT-2026-001', nodeName: '法务审核', createdAt: '2026-10-13T08:00:00Z', claimed: false, detailUrl: 'https://old.example.com/todo/detail?id=l-1' },
-    { source: 'LEGACY', taskId: 'l-2', title: '异常链接的老待办', nodeName: '财务审核', createdAt: '2026-10-13T09:00:00Z', claimed: false, detailUrl: 'javascript:alert(1)' },
+    { category: 'TODO', overdue: false, source: 'NEW', taskId: 'n-1', processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS202610140001', title: 'COST_TIMESHEET_APPROVAL TS202610140001', nodeName: '部门负责人审核', createdAt: '2026-10-14T01:00:00Z', claimed: true, detailUrl: null },
+    { category: 'TODO', overdue: false, source: 'NEW', taskId: 'n-2', processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS202610140002', nodeName: '部门负责人审核', createdAt: '2026-10-14T02:00:00Z', claimed: false, detailUrl: null },
+    { category: 'TODO', overdue: false, source: 'LEGACY', taskId: 'l-1', title: '合同评审 HT-2026-001', nodeName: '法务审核', createdAt: '2026-10-13T08:00:00Z', claimed: false, detailUrl: 'https://old.example.com/todo/detail?id=l-1' },
+    { category: 'TODO', overdue: false, source: 'LEGACY', taskId: 'l-2', title: '异常链接的老待办', nodeName: '财务审核', createdAt: '2026-10-13T09:00:00Z', claimed: false, detailUrl: 'javascript:alert(1)' },
   ],
 };
 
@@ -31,6 +32,14 @@ describe('合并待办收件箱', () => {
     expect(screen.getByText('新系统 2')).toBeInTheDocument();
     expect(screen.getByText('老系统 2')).toBeInTheDocument();
     expect(screen.getByText('已认领')).toBeInTheDocument();
+  });
+
+  it('新系统的待办标题由流程名称和单据号拼出，不显示流程的英文名', async () => {
+    stubServer({ 'GET approval-tasks': { body: INBOX } });
+    renderWithProviders(<InboxPage />);
+
+    await screen.findByText('工时单审批 TS202610140001');
+    expect(screen.queryByText(/COST_TIMESHEET_APPROVAL/)).not.toBeInTheDocument();
   });
 
   it('老待办是指向老系统的链接，在新窗口打开且不带来源信息', async () => {
@@ -80,5 +89,102 @@ describe('合并待办收件箱', () => {
 
     expect(await screen.findByText('老系统的待办暂时无法读取')).toBeInTheDocument();
     expect(screen.queryByText('暂无待办')).not.toBeInTheDocument();
+  });
+
+  it('待办分页：服务端给出下一页的游标时显示“显示更多”，点击后带着游标读取并接在后面', async () => {
+    const server = stubServer({
+      'GET approval-tasks': (request) => request.url.includes('cursor=c2')
+        ? { body: { ...INBOX, items: [INBOX.items[2]] } }
+        : { body: { ...INBOX, items: [INBOX.items[0]], nextCursor: 'c2' } },
+    });
+    renderWithProviders(<InboxPage />);
+
+    await screen.findByText('工时单审批 TS202610140001');
+    expect(server.calls[0]?.url).toContain('limit=50');
+    expect(screen.queryByText('合同评审 HT-2026-001')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '显示更多' }));
+
+    expect(await screen.findByText('合同评审 HT-2026-001')).toBeInTheDocument();
+    expect(screen.getByText('工时单审批 TS202610140001')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '显示更多' })).not.toBeInTheDocument();
+  });
+
+  it('服务端重复给出同一个游标时报错，而不是一直读下去', async () => {
+    stubServer({ 'GET approval-tasks': { body: { ...INBOX, items: [INBOX.items[0]], nextCursor: 'c1' } } });
+    renderWithProviders(<InboxPage />);
+
+    await screen.findByText('工时单审批 TS202610140001');
+    await userEvent.click(screen.getByRole('button', { name: '显示更多' }));
+    await waitFor(() => expect(screen.getByText('待办加载失败')).toBeInTheDocument());
+  });
+});
+
+describe('已办', () => {
+  const DONE = [
+    taskRecordBody({ recordId: 'r-1', documentId: 'TS1', action: 'APPROVED', reason: '工时与计划相符' }),
+    taskRecordBody({ recordId: 'r-2', documentId: 'TS2', action: 'APPROVED' }),
+    taskRecordBody({ recordId: 'r-3', documentId: 'TS3', action: 'REJECTED', reason: '工时不符' }),
+  ];
+
+  it('已办列表显示每条办理的结果和意见；通过时没有填写意见的显示（未填写意见）', async () => {
+    stubServer({ 'GET approval-task-records': { body: { items: DONE } }, 'GET approval-tasks': { body: INBOX } });
+    renderWithProviders(<InboxPage />);
+
+    await userEvent.click(await screen.findByText('已办'));
+
+    expect(await screen.findByText('工时单审批 TS1')).toBeInTheDocument();
+    expect(screen.getByText('意见：工时与计划相符')).toBeInTheDocument();
+    expect(screen.getByText('意见：（未填写意见）')).toBeInTheDocument();
+    expect(screen.getByText('意见：工时不符')).toBeInTheDocument();
+    expect(screen.getAllByText('通过')).toHaveLength(2);
+    expect(screen.getByText('驳回')).toBeInTheDocument();
+  });
+
+  it('没有已办时说明没有已办', async () => {
+    stubServer({ 'GET approval-task-records': { body: { items: [] } }, 'GET approval-tasks': { body: INBOX } });
+    renderWithProviders(<InboxPage />);
+
+    await userEvent.click(await screen.findByText('已办'));
+    expect(await screen.findByText('暂无已办')).toBeInTheDocument();
+  });
+
+  it('不打开已办时不读取已办', async () => {
+    const server = stubServer({ 'GET approval-tasks': { body: INBOX } });
+    renderWithProviders(<InboxPage />);
+
+    await screen.findByText('工时单审批 TS202610140001');
+    expect(server.calls.some((call) => call.url.includes('approval-task-records'))).toBe(false);
+  });
+});
+
+describe('知会与超时', () => {
+  const WITH_NOTICE = {
+    ...INBOX,
+    noticeCount: 1,
+    totalCount: 5,
+    items: [
+      ...INBOX.items,
+      { category: 'NOTICE', overdue: false, source: 'LEGACY', taskId: 'z-1', title: '项目周报知会', nodeName: '知会', createdAt: '2026-10-12T08:00:00Z', claimed: false, detailUrl: 'https://old.example.com/notice?id=z-1' },
+    ],
+  };
+
+  it('老系统的知会单列：有自己的筛选和数量，标为知会，点击跳老系统', async () => {
+    stubServer({ 'GET approval-tasks': { body: WITH_NOTICE } });
+    renderWithProviders(<InboxPage />);
+
+    await screen.findByText('项目周报知会');
+    expect(screen.getByText('知会 1')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('知会 1'));
+    const list = screen.getByRole('list');
+    expect(within(list).getByRole('link', { name: '项目周报知会' })).toHaveAttribute('href', 'https://old.example.com/notice?id=z-1');
+    expect(within(list).queryByText('合同评审 HT-2026-001')).not.toBeInTheDocument();
+  });
+
+  it('超过时限的新系统待办标出已超时', async () => {
+    const items = [{ ...INBOX.items[1], overdue: true }];
+    stubServer({ 'GET approval-tasks': { body: { ...INBOX, newCount: 1, legacyCount: 0, totalCount: 1, items } } });
+    renderWithProviders(<InboxPage />);
+
+    expect(await screen.findByText('已超时')).toBeInTheDocument();
   });
 });

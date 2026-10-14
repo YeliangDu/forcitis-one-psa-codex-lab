@@ -1,5 +1,5 @@
 // Front-end guard rails (React) for humans and coding agents. Rules F1-F14 (NAMING_STANDARD.md); ../frontend-vue mirrors them.
-// One configuration for the whole workspace (apps/web, apps/h5, packages/api, packages/ui, packages/design-system).
+// One configuration for the whole workspace (apps/web, apps/h5, packages/api, packages/core, packages/ui, packages/design-system).
 // Every rule message says WHERE code belongs, so a failing lint run tells an agent how to fix it.
 // CSS files are guarded by stylelint.config.js (F14 colours / palette primitives).
 //
@@ -82,6 +82,7 @@ export default tseslint.config(
       // Order matters: the most specific pattern first.
       'boundaries/elements': [
         { type: 'api-package', pattern: 'packages/api/src' },
+        { type: 'core', pattern: 'packages/core/src' },
         { type: 'ui', pattern: 'packages/ui/src' },
         { type: 'design-system', pattern: 'packages/design-system/src' },
         { type: 'module', pattern: `${WEB}/modules/*`, capture: ['module'] },
@@ -100,17 +101,18 @@ export default tseslint.config(
       'boundaries/no-unknown-files': 'error',
       'boundaries/element-types': ['error', {
         default: 'disallow',
-        message: '${file.type} must not import ${dependency.type}. Layout: app -> modules(index) -> shared / @forcitis/ui (web only) / @forcitis/design-system; only modules/<m>/api may call @forcitis/api; apps never import each other.',
+        message: '${file.type} must not import ${dependency.type}. Layout: app -> modules(index) -> shared / @forcitis/core / @forcitis/ui (web only) / @forcitis/design-system; only modules/<m>/api and @forcitis/core may call @forcitis/api; apps never import each other. Code both apps need belongs in @forcitis/core, never copied.',
         rules: [
-          { from: 'app', allow: ['module', 'web-shared', 'ui', 'design-system'] },
-          { from: 'module', allow: ['web-shared', 'module', 'ui', 'design-system', 'api-package'] },
-          { from: 'web-shared', allow: ['web-shared', 'ui', 'design-system'] },
-          { from: 'web-test', allow: ['web-test'] },
+          { from: 'app', allow: ['module', 'web-shared', 'core', 'ui', 'design-system'] },
+          { from: 'module', allow: ['web-shared', 'module', 'core', 'ui', 'design-system', 'api-package'] },
+          { from: 'web-shared', allow: ['web-shared', 'core', 'ui', 'design-system'] },
+          { from: 'web-test', allow: ['web-test', 'core'] },
           { from: 'h5-entry', allow: ['h5-app'] },
-          { from: 'h5-app', allow: ['h5-module', 'h5-shared', 'design-system'] },
-          { from: 'h5-module', allow: ['h5-shared', 'h5-module', 'design-system', 'api-package'] },
-          { from: 'h5-shared', allow: ['h5-shared', 'api-package'] },
-          { from: 'h5-test', allow: ['h5-test', 'h5-shared'] },
+          { from: 'h5-app', allow: ['h5-module', 'h5-shared', 'core', 'design-system'] },
+          { from: 'h5-module', allow: ['h5-shared', 'h5-module', 'core', 'design-system', 'api-package'] },
+          { from: 'h5-shared', allow: ['h5-shared', 'core', 'api-package'] },
+          { from: 'h5-test', allow: ['h5-test', 'h5-shared', 'core'] },
+          { from: 'core', allow: ['core', 'api-package'] },
           { from: 'ui', allow: ['ui', 'design-system'] },
           { from: 'design-system', allow: ['design-system'] },
           { from: 'api-package', allow: ['api-package'] },
@@ -122,6 +124,7 @@ export default tseslint.config(
         rules: [
           { target: ['module'], allow: 'index.ts' },
           { target: ['h5-module'], allow: 'index.ts' },
+          { target: ['core'], allow: ['index.ts', 'testing/index.ts'] },
           { target: ['web-shared', 'ui', 'design-system', 'api-package', 'app', 'web-test', 'h5-shared', 'h5-app', 'h5-test', 'h5-entry'], allow: '**' },
         ],
       }],
@@ -184,6 +187,14 @@ export default tseslint.config(
     files: ['packages/ui/src/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': importsFor('axios', 'apiPackage', 'tokens', 'taroPrimitives'),
+      'no-restricted-syntax': ['error', ...BASE_SYNTAX, ...STYLE_SYNTAX],
+    },
+  },
+  {
+    // The one place the code of both apps is shared: it calls the API through the generated operations and renders nothing platform specific.
+    files: ['packages/core/src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': importsFor('axios', 'antd', 'tokens', 'taroPrimitives'),
       'no-restricted-syntax': ['error', ...BASE_SYNTAX, ...STYLE_SYNTAX],
     },
   },

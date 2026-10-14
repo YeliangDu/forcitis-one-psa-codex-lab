@@ -1,27 +1,23 @@
 import { operations } from '@forcitis/api';
+import { type LoginEntry, loginWithWecom, requestLoginState } from '@forcitis/core';
 
 const UNGUARDED = { guards: false } as const;
-const QR_ENTRY = 'QR_CODE_LOGIN' as const;
+const QR_ENTRY: LoginEntry = 'QR_CODE_LOGIN';
 
-export function fetchCurrentUser() {
-  return operations.getPlatformSessionsCurrent(undefined, UNGUARDED);
+export function requestWecomLoginState(): Promise<string> {
+  return requestLoginState(QR_ENTRY);
 }
 
-function stateOf(reply: unknown): string {
-  if (typeof reply === 'object' && reply !== null && 'state' in reply && typeof reply.state === 'string' && reply.state !== '') return reply.state;
-  throw new Error('The login-state answer carries no state.');
-}
-
-export async function requestWecomLoginState(): Promise<string> {
-  return stateOf(await operations.postPlatformLoginStates({ body: { entry: QR_ENTRY } }, UNGUARDED));
-}
-
-export async function loginWithWecom(code: string, state: string): Promise<void> {
-  await operations.postPlatformSessionsWecomLogin({ body: { code, state, entry: QR_ENTRY } }, UNGUARDED);
+export function loginWithWecomCode(code: string, state: string): Promise<void> {
+  return loginWithWecom(code, state, QR_ENTRY);
 }
 
 export async function loginWithSso(ticket: string): Promise<void> {
   await operations.postPlatformSessionsSsoLogin({ body: { ticket } }, UNGUARDED);
+}
+
+export async function loginWithSignedTicket(ticket: string): Promise<void> {
+  await operations.postPlatformSessionsTicketLogin({ body: { ticket } }, UNGUARDED);
 }
 
 export async function loginAsEmergencyAdmin(loginName: string, password: string, totpCode: string): Promise<void> {

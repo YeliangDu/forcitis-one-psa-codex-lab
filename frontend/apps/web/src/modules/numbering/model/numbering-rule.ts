@@ -13,12 +13,6 @@ export const RESET_POLICY_LABELS: Readonly<Record<string, string>> = {
 
 export const RESET_POLICY_OPTIONS = Object.entries(RESET_POLICY_LABELS).map(([value, label]) => ({ value, label }));
 
-export const DOCUMENT_TYPE_LABELS: Readonly<Record<string, string>> = {
-  QUOTE: '报价单',
-  TIMESHEET: '工时单',
-  JOURNAL_VOUCHER: '会计凭证',
-};
-
 export function isPendingConfirmation(rule: NumberingRule): boolean {
   return rule.confirmationStatus === 'PENDING_CONFIRMATION';
 }
@@ -36,6 +30,6 @@ export function draftOf(rule: NumberingRule): RuleDraft {
 export function draftProblems(draft: RuleDraft): { pattern?: string; startValue?: string } {
   const problems: { pattern?: string; startValue?: string } = {};
   if (draft.pattern.trim() === '') problems.pattern = '请填写编号模板';
-  if (!/^\d+$/.test(draft.startValue) || Number(draft.startValue) < 1) problems.startValue = '起始流水号须为大于 0 的整数';
+  if (!/^\d+$/.test(draft.startValue) || Number(draft.startValue) < 1) problems.startValue = '起始流水号须为正整数';
   return problems;
 }
