@@ -91,6 +91,26 @@ channels:
     messages:
       AccountOpened:
         $ref: '#/components/messages/AccountOpened'
+  emergencyAdminRegistered:
+    address: platform.identity.EmergencyAdminRegistered
+    messages:
+      EmergencyAdminRegistered:
+        $ref: '#/components/messages/EmergencyAdminRegistered'
+  emergencyAdminEnabled:
+    address: platform.identity.EmergencyAdminEnabled
+    messages:
+      EmergencyAdminEnabled:
+        $ref: '#/components/messages/EmergencyAdminEnabled'
+  emergencyAdminCredentialsReset:
+    address: platform.identity.EmergencyAdminCredentialsReset
+    messages:
+      EmergencyAdminCredentialsReset:
+        $ref: '#/components/messages/EmergencyAdminCredentialsReset'
+  emergencyAdminDisabled:
+    address: platform.identity.EmergencyAdminDisabled
+    messages:
+      EmergencyAdminDisabled:
+        $ref: '#/components/messages/EmergencyAdminDisabled'
   numberingRuleConfirmed:
     address: platform.numbering.NumberingRuleConfirmed
     messages:
@@ -101,6 +121,11 @@ channels:
     messages:
       NumberingRuleReconfigured:
         $ref: '#/components/messages/NumberingRuleReconfigured'
+  numberingRuleConfirmationGiven:
+    address: platform.numbering.NumberingRuleConfirmationGiven
+    messages:
+      NumberingRuleConfirmationGiven:
+        $ref: '#/components/messages/NumberingRuleConfirmationGiven'
   timesheetSubmitted:
     address: cost.timesheet.TimesheetSubmitted
     messages:
@@ -465,6 +490,62 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/accountOpened/messages/AccountOpened'
+  publishEmergencyAdminRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/emergencyAdminRegistered'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/emergencyAdminRegistered/messages/EmergencyAdminRegistered'
+  handleEmergencyAdminRegisteredInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/emergencyAdminRegistered'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/emergencyAdminRegistered/messages/EmergencyAdminRegistered'
+  publishEmergencyAdminEnabled:
+    action: send
+    channel:
+      $ref: '#/channels/emergencyAdminEnabled'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/emergencyAdminEnabled/messages/EmergencyAdminEnabled'
+  handleEmergencyAdminEnabledInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/emergencyAdminEnabled'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/emergencyAdminEnabled/messages/EmergencyAdminEnabled'
+  publishEmergencyAdminCredentialsReset:
+    action: send
+    channel:
+      $ref: '#/channels/emergencyAdminCredentialsReset'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/emergencyAdminCredentialsReset/messages/EmergencyAdminCredentialsReset'
+  handleEmergencyAdminCredentialsResetInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/emergencyAdminCredentialsReset'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/emergencyAdminCredentialsReset/messages/EmergencyAdminCredentialsReset'
+  publishEmergencyAdminDisabled:
+    action: send
+    channel:
+      $ref: '#/channels/emergencyAdminDisabled'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/emergencyAdminDisabled/messages/EmergencyAdminDisabled'
+  handleEmergencyAdminDisabledInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/emergencyAdminDisabled'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/emergencyAdminDisabled/messages/EmergencyAdminDisabled'
   publishNumberingRuleConfirmed:
     action: send
     channel:
@@ -493,6 +574,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/numberingRuleReconfigured/messages/NumberingRuleReconfigured'
+  publishNumberingRuleConfirmationGiven:
+    action: send
+    channel:
+      $ref: '#/channels/numberingRuleConfirmationGiven'
+    summary: platform.numbering 发布
+    messages:
+    - $ref: '#/channels/numberingRuleConfirmationGiven/messages/NumberingRuleConfirmationGiven'
+  handleNumberingRuleConfirmationGivenInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/numberingRuleConfirmationGiven'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/numberingRuleConfirmationGiven/messages/NumberingRuleConfirmationGiven'
   publishTimesheetSubmitted:
     action: send
     channel:
@@ -1731,9 +1826,136 @@ components:
             items:
               type: string
               x-type: RoleId
+    EmergencyAdminRegistered:
+      name: EmergencyAdminRegistered
+      title: 应急账号登记
+      x-event:
+        eventType: platform.identity.EmergencyAdminRegistered
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminRegistered
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    EmergencyAdminEnabled:
+      name: EmergencyAdminEnabled
+      title: 应急账号启用
+      x-event:
+        eventType: platform.identity.EmergencyAdminEnabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminEnabled
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    EmergencyAdminCredentialsReset:
+      name: EmergencyAdminCredentialsReset
+      title: 应急账号凭据重置
+      x-event:
+        eventType: platform.identity.EmergencyAdminCredentialsReset
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminCredentialsReset
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    EmergencyAdminDisabled:
+      name: EmergencyAdminDisabled
+      title: 应急账号停用（离职或运维命令）
+      x-event:
+        eventType: platform.identity.EmergencyAdminDisabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminDisabled
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        - cause
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+          cause:
+            type: string
+            enum:
+            - SEPARATION
+            - OPERATIONS
+            x-type: EmergencyAdminDisableCause
     NumberingRuleConfirmed:
       name: NumberingRuleConfirmed
-      title: 编号规则确认
+      title: 编号规则的模板版本确认齐全，开始发号
       x-event:
         eventType: platform.numbering.NumberingRuleConfirmed
         version: 1
@@ -1754,19 +1976,25 @@ components:
         required:
         - envelope
         - documentType
+        - ruleVersion
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          documentType: &id001
+          documentType:
             type: string
             enum:
             - QUOTE
             - TIMESHEET
             - JOURNAL_VOUCHER
             x-type: DocumentType
+          ruleVersion:
+            type: integer
+            format: int64
+            x-type: RuleVersion
+            description: 模板版本号，每种单据从 1 递增
     NumberingRuleReconfigured:
       name: NumberingRuleReconfigured
-      title: 编号规则的模板或起始值被修改
+      title: 编号规则保存了新的模板版本，等待他人确认
       x-event:
         eventType: platform.numbering.NumberingRuleReconfigured
         version: 1
@@ -1787,10 +2015,68 @@ components:
         required:
         - envelope
         - documentType
+        - ruleVersion
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          documentType: *id001
+          documentType:
+            type: string
+            enum:
+            - QUOTE
+            - TIMESHEET
+            - JOURNAL_VOUCHER
+            x-type: DocumentType
+          ruleVersion:
+            type: integer
+            format: int64
+            x-type: RuleVersion
+            description: 模板版本号，每种单据从 1 递增
+    NumberingRuleConfirmationGiven:
+      name: NumberingRuleConfirmationGiven
+      title: 编号规则的模板版本得到一次确认（业务或财务）
+      x-event:
+        eventType: platform.numbering.NumberingRuleConfirmationGiven
+        version: 1
+        class: com.forcitis.one.platform.numbering.events.NumberingRuleConfirmationGiven
+        aggregate: NumberingRule
+        idempotencyKey: eventId
+        publisher: platform.numbering
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
+        noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
+      payload:
+        type: object
+        required:
+        - envelope
+        - documentType
+        - ruleVersion
+        - kind
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          documentType:
+            type: string
+            enum:
+            - QUOTE
+            - TIMESHEET
+            - JOURNAL_VOUCHER
+            x-type: DocumentType
+          ruleVersion:
+            type: integer
+            format: int64
+            x-type: RuleVersion
+            description: 模板版本号，每种单据从 1 递增
+          kind:
+            type: string
+            enum:
+            - BUSINESS
+            - FINANCE
+            x-type: ConfirmationKind
     TimesheetSubmitted:
       name: TimesheetSubmitted
       title: 工时单提交审批（进入新一轮）

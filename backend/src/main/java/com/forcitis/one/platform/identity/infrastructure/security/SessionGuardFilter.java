@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
+import com.forcitis.one.platform.identity.application.SessionKind;
+import com.forcitis.one.platform.identity.application.SessionMode;
 import com.forcitis.one.platform.identity.application.SessionPrincipal;
 import com.forcitis.one.platform.identity.application.SessionSettings;
 import jakarta.servlet.FilterChain;
@@ -35,10 +37,11 @@ final class SessionGuardFilter extends OncePerRequestFilter {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof IdentityAuthentication identity) {
             Instant now = clock.instant();
-            if (identity.loginAt().plus(settings.absoluteTimeout()).isBefore(now)) {
+            if (identity.loginAt().plus(settings.absoluteTimeout()).isBefore(now) || emergencySessionOver(identity, now)) {
                 terminate(request);
             } else {
-                SessionPrincipal principal = principals.get(identity.userIdValue());
+                SessionKind kind = identity.kindAt(now);
+                SessionPrincipal principal = principals.get(identity.userIdValue(), kind);
                 if (principal.isActive()) {
                     SecurityContext refreshed = SecurityContextHolder.createEmptyContext();
                     refreshed.setAuthentication(identity.withAuthorities(
@@ -50,6 +53,10 @@ final class SessionGuardFilter extends OncePerRequestFilter {
             }
         }
         chain.doFilter(request, response);
+    }
+
+    private static boolean emergencySessionOver(IdentityAuthentication identity, Instant now) {
+        return identity.emergency() && identity.modeAt(now) != SessionMode.ADMINISTRATOR;
     }
 
     private static void terminate(HttpServletRequest request) {

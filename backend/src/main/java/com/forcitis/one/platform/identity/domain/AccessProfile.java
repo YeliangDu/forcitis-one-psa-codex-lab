@@ -1,16 +1,13 @@
 package com.forcitis.one.platform.identity.domain;
 
-import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleCode;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-/** super_admin holds every permission; for everyone else a permission nobody links is denied. */
+/** What the roles grant in an ordinary session; holding super_admin adds nothing there, it only allows entering the administrator mode. */
 public final class AccessProfile {
 
     private final Set<RoleCode> roleCodes;
@@ -36,9 +33,6 @@ public final class AccessProfile {
             permissions.addAll(role.permissionCodes());
             superAdmin |= Role.isReserved(role.code());
         }
-        if (superAdmin) {
-            permissions.addAll(Arrays.stream(Permission.values()).map(Permission::code).collect(Collectors.toSet()));
-        }
         return new AccessProfile(codes, permissions, superAdmin);
     }
 
@@ -50,13 +44,17 @@ public final class AccessProfile {
         return permissionCodes;
     }
 
+    public Set<String> administratorModePermissionCodes() {
+        return superAdmin ? AdministratorMode.PERMISSIONS : Set.of();
+    }
+
     public boolean hasPermission(String permissionCode) {
         return permissionCodes.contains(permissionCode);
     }
 
-    /** Any of the codes; an empty list passes; super_admin always passes. */
+    /** Any of the codes; an empty list passes. */
     public boolean hasAnyRole(Collection<RoleCode> codes) {
-        return superAdmin || codes.isEmpty() || codes.stream().anyMatch(roleCodes::contains);
+        return codes.isEmpty() || codes.stream().anyMatch(roleCodes::contains);
     }
 
     public boolean isAdministrator() {

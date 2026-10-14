@@ -108,6 +108,11 @@ public final class UserAccount extends AggregateRoot {
         record((envelopes, version) -> new AccountRolesReplaced(envelopes.wrap(draft("AccountRolesReplaced", version)), userId, ordered));
     }
 
+    /** The person is no longer with the company: no role stays, whatever the roles were. */
+    public void revokeAllRoles() {
+        replaceRoles(Set.of());
+    }
+
     private List<RoleId> orderedRoles() {
         return roles.stream().sorted(Comparator.comparingLong(RoleId::value)).toList();
     }

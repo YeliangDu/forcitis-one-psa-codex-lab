@@ -36,7 +36,8 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @BeforeEach
     void callers() {
         createAccount(9, "super_admin");
-        admin = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, () -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
+        admin = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, () -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
+                () -> Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE);
         reader = user("8").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
     }
 
@@ -187,7 +188,8 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 .param("p", Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE).update();
         createAccount(5, "role-editor");
         createAccount(1001);
-        RequestPostProcessor editor = user("5").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE);
+        RequestPostProcessor editor = user("5").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+                () -> Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE);
 
         MvcResult broad = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"mine\",\"name\":\"Mine\",\"permissionCodes\":[\"cost.timesheet:timesheet:approve\"]}")).andReturn();

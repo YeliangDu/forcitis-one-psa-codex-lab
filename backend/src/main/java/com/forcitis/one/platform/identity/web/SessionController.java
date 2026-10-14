@@ -125,7 +125,7 @@ class SessionController {
 
     private static ResponseEntity<?> respond(LoginResult result, String legacyLoginUrl) {
         return switch (result) {
-            case LoginResult.Authenticated ok -> ResponseEntity.ok(new LoginResponse(String.valueOf(ok.userId()), ok.absoluteExpiresAt()));
+            case LoginResult.Authenticated ok -> ResponseEntity.ok(new LoginResponse(String.valueOf(ok.userId()), ok.absoluteExpiresAt(), ok.administratorModeExpiresAt()));
             case LoginResult.Rejected rejected -> IdentityResponses.error(rejected.error(), legacyLoginUrl);
         };
     }

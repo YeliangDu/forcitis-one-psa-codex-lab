@@ -236,3 +236,109 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+    EmergencyAdminRegistered:
+      name: EmergencyAdminRegistered
+      title: 应急账号登记
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.EmergencyAdminRegistered
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminRegistered
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+    EmergencyAdminEnabled:
+      name: EmergencyAdminEnabled
+      title: 应急账号启用
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.EmergencyAdminEnabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminEnabled
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+    EmergencyAdminCredentialsReset:
+      name: EmergencyAdminCredentialsReset
+      title: 应急账号凭据重置
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.EmergencyAdminCredentialsReset
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminCredentialsReset
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+    EmergencyAdminDisabled:
+      name: EmergencyAdminDisabled
+      title: 应急账号停用（离职或运维命令）
+      payload:
+        type: object
+        properties:
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+          cause:
+            type: string
+            enum:
+            - SEPARATION
+            - OPERATIONS
+            x-type: EmergencyAdminDisableCause
+      x-event:
+        eventType: platform.identity.EmergencyAdminDisabled
+        version: 1
+        class: com.forcitis.one.platform.identity.events.EmergencyAdminDisabled
+        aggregate: EmergencyAdmin
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
+        noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回

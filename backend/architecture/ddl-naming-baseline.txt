@@ -26,7 +26,6 @@ column platform_numbering.legacy_numbers.document_type | 改名为 document_type
 column platform_numbering.legacy_numbers.import_batch | 改名为 import_batch_key
 column platform_numbering.numbering_counters.document_type | 改名为 document_type_code（同上）
 column platform_numbering.numbering_rules.document_type | 改名为 document_type_code（同上）
-column platform_numbering.numbering_rules.pattern | 改名为 pattern_text
 constraint delivery_execution.work_packages.work_packages_pkey | RENAME CONSTRAINT work_packages_pkey TO pk_work_packages
 constraint organization_workforce.assignments.assignments_employee_id_fkey | RENAME CONSTRAINT assignments_employee_id_fkey TO fk_assignments_employee_id
 constraint organization_workforce.assignments.assignments_org_unit_id_fkey | RENAME CONSTRAINT assignments_org_unit_id_fkey TO fk_assignments_org_unit_id

@@ -209,17 +209,4 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         assertThat(cookieOnly).isEqualTo(403);
         assertThat(withHeader).isEqualTo(200);
     }
-
-    @Test
-    @DisplayName("RULE-340 super_admin holds every permission; nobody else gets one nobody linked (RULE-341)")
-    void superAdminHoldsEverything() throws Exception {
-        createAccount(9, "super_admin");
-        String session = loginWithWecom(9);
-
-        var me = body(mvc.perform(get(CURRENT).cookie(new Cookie("SESSION", session))).andReturn());
-
-        assertThat(me.path("permissionCodes").valueStream().map(n -> n.asString()).toList())
-                .containsExactlyInAnyOrderElementsOf(java.util.Arrays.stream(Permission.values()).map(Permission::code).toList());
-        assertThat(me.path("navigation").valueStream().map(n -> n.path("name").asString()).toList()).contains("待办", "系统管理");
-    }
 }

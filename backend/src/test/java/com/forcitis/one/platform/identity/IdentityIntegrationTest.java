@@ -93,7 +93,33 @@ abstract class IdentityIntegrationTest {
         MutableClock mutableClock() {
             return new MutableClock();
         }
+
+        @Bean
+        DomainEventRecorder domainEventRecorder() {
+            return new DomainEventRecorder();
+        }
     }
+
+    /** Sees every domain event on the thread that publishes it, including the asynchronous listeners' own threads. */
+    static class DomainEventRecorder {
+        private final java.util.List<com.forcitis.one.kernel.event.DomainEvent> seen = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+        @org.springframework.context.event.EventListener
+        void on(com.forcitis.one.kernel.event.DomainEvent event) {
+            seen.add(event);
+        }
+
+        <T extends com.forcitis.one.kernel.event.DomainEvent> java.util.List<T> of(Class<T> type) {
+            return seen.stream().filter(type::isInstance).map(type::cast).toList();
+        }
+
+        void clear() {
+            seen.clear();
+        }
+    }
+
+    @Autowired
+    DomainEventRecorder domainEvents;
 
     @MockitoBean
     OrgDirectory orgDirectory;
@@ -136,6 +162,7 @@ abstract class IdentityIntegrationTest {
     @BeforeEach
     void cleanDatabase() {
         clock.reset();
+        domainEvents.clear();
         accessCache.evictAll();
         Mockito.reset(ssoVerifier);
         jdbc.sql("delete from platform_identity.sessions").update();
@@ -231,6 +258,29 @@ abstract class IdentityIntegrationTest {
             throw new AssertionError("login failed: " + result.getResponse().getStatus() + " " + result.getResponse().getContentAsString());
         }
         return cookie(result, "SESSION");
+    }
+
+    static final String ENTER_ADMINISTRATOR_MODE = "/api/v1/platform/sessions:enter-administrator-mode";
+
+    /** The person's session asks for the administrator mode, proving themselves with a fresh WeCom code of person personProvedByTheCode. */
+    MvcResult enterAdministratorMode(String session, long personProvedByTheCode) throws Exception {
+        knownEmployee(personProvedByTheCode, EmploymentStatus.EMPLOYED);
+        String code = "reverify-" + personProvedByTheCode + "-" + System.nanoTime();
+        wecomAccepts(code, WecomEntry.WORKBENCH, personProvedByTheCode);
+        String state = newLoginState("WORKBENCH");
+        return mvc.perform(post(ENTER_ADMINISTRATOR_MODE).with(xsrf()).cookie(new jakarta.servlet.http.Cookie("SESSION", session))
+                .cookie(new jakarta.servlet.http.Cookie("loginBinding", bindings.get(state))).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}")).andReturn();
+    }
+
+    /** A session in the administrator mode for a super_admin holder who is employed. */
+    String administratorSession(long id) throws Exception {
+        createAccount(id, "super_admin", "employee");
+        MvcResult entered = enterAdministratorMode(loginWithWecom(id), id);
+        if (entered.getResponse().getStatus() != 200) {
+            throw new AssertionError("entering the administrator mode failed: " + entered.getResponse().getContentAsString());
+        }
+        return cookie(entered, "SESSION");
     }
 
     List<AuditEntry> recorded() {

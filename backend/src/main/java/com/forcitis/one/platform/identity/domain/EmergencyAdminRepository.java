@@ -3,13 +3,22 @@ package com.forcitis.one.platform.identity.domain;
 import com.forcitis.one.kernel.UserId;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface EmergencyAdminRepository {
 
     Optional<EmergencyAdmin> findByLoginName(String loginName);
 
-    void register(EmergencyAdmin admin);
+    Optional<EmergencyAdmin> findByUserId(UserId userId);
+
+    List<EmergencyAdmin> findAll();
+
+    /** True only for the caller that created it (atomic). */
+    boolean insertIfAbsent(EmergencyAdmin registered);
+
+    /** Applies only to the version and status the admin was loaded with; otherwise a DomainException (CONFLICT). */
+    void save(EmergencyAdmin admin);
 
     /** One atomic statement, so concurrent guesses cannot slip past the limit. */
     void recordFailure(UserId userId, Instant now, int maxAttempts, Duration lock);

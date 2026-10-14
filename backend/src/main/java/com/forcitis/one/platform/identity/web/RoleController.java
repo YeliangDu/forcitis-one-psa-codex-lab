@@ -26,13 +26,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Assigning roles and switching an account on or off use the role update permission (no separate account permission yet). */
+/** Switching an account on or off still uses the role update permission; assigning roles has its own (ADR-0026 section 6). */
 @RestController
 @RequestMapping("/api/v1/platform")
 class RoleController {
 
     private static final String READ = "hasAuthority('" + Permission.Codes.PLATFORM_IDENTITY_ROLE_READ + "')";
     private static final String UPDATE = "hasAuthority('" + Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE + "')";
+    private static final String UPDATE_ACCOUNT_ROLES = "hasAuthority('" + Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE + "')";
 
     private final ListRoles listRoles;
     private final GetRole getRole;
@@ -94,7 +95,7 @@ class RoleController {
     }
 
     @PostMapping(path = "/user-accounts/{userId}:replace-roles")
-    @PreAuthorize(UPDATE)
+    @PreAuthorize(UPDATE_ACCOUNT_ROLES)
     ResponseEntity<?> replaceRoles(@PathVariable long userId, @RequestBody ReplaceRolesRequest request) {
         Set<String> codes = request.roleCodes() == null ? Set.of() : request.roleCodes();
         return noContent(replaceAccountRoles.execute(userId, codes));
