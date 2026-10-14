@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.approval;
 
-import com.forcitis.one.platform.identity.api.SessionAuthorities;
+import com.forcitis.one.platform.identity.api.SessionRoles;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.security.core.GrantedAuthority;
@@ -20,7 +20,7 @@ public final class OrdinarySessions {
 
     public static List<GrantedAuthority> with(String... permissions) {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority(SessionAuthorities.ORDINARY));
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
         for (String permission : permissions) {
             authorities.add(new SimpleGrantedAuthority(permission));
         }

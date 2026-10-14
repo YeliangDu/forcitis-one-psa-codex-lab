@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.OptionalLong;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import com.forcitis.one.platform.identity.api.SessionAuthorities;
+import com.forcitis.one.platform.identity.api.SessionRoles;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/platform/approval-tasks")
 class ApprovalTaskController {
 
-    private static final String SIGNED_IN = "hasAuthority('" + SessionAuthorities.ORDINARY + "')";
+    private static final String SIGNED_IN = "hasRole('" + SessionRoles.ORDINARY + "')";
 
     private final ListInbox listInbox;
     private final GetTaskDetail getTaskDetail;

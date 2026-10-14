@@ -3,7 +3,7 @@ package com.forcitis.one.platform.approval.web;
 import com.forcitis.one.platform.approval.application.ListAllTasks;
 import com.forcitis.one.platform.approval.application.ListPage;
 import com.forcitis.one.platform.identity.api.CurrentUser;
-import com.forcitis.one.platform.identity.api.SessionAuthorities;
+import com.forcitis.one.platform.identity.api.SessionRoles;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,7 +24,7 @@ class ApprovalTaskOverviewController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('" + SessionAuthorities.ORDINARY + "')")
+    @PreAuthorize("hasRole('" + SessionRoles.ORDINARY + "')")
     TaskOverviewPageResponse list(@RequestParam(defaultValue = "false") boolean overdueOnly, @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer limit) {
         return TaskOverviewPageResponse.of(listAllTasks.execute(currentUser.userId(), overdueOnly, ListPage.of(cursor, limit)));

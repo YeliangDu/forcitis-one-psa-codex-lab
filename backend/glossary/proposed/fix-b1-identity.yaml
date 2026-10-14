@@ -574,6 +574,20 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: install
+  zh: 安装
+  en: Install
+  snake: install
+  kind: concept
+  bc: kernel
+  definition: 把 JVM 默认时区设为 UTC 的动作（UtcJvm.installAsDefault）；整合分支的方法名用到了它，此处补登记
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - decided
 - sensitive

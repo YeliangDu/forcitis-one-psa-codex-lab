@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.identity.api.SessionAuthorities;
+import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
@@ -63,7 +63,7 @@ final class SessionGuardFilter extends OncePerRequestFilter {
                     SecurityContext refreshed = SecurityContextHolder.createEmptyContext();
                     List<SimpleGrantedAuthority> granted = new ArrayList<>(principal.authorities().stream().map(SimpleGrantedAuthority::new).toList());
                     if (kind.mode() == SessionMode.ORDINARY) {
-                        granted.add(new SimpleGrantedAuthority(SessionAuthorities.ORDINARY));
+                        granted.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
                     }
                     refreshed.setAuthentication(identity.withAuthorities(unconfirmed ? List.of() : granted, !unconfirmed));
                     SecurityContextHolder.setContext(refreshed);
