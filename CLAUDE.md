@@ -6,6 +6,17 @@
 - 代码注释能不写就不写：用命名、类型和结构表达意图；只在「为什么」看不出来时写一行（反直觉约束、规范条款、外部系统怪癖、并发或性能取舍）。不写复述代码的注释、变更历史、注释掉的代码、无编号 TODO。
 - 老代码只作证据，不得照搬：新代码从规格、规则卡、ADR、`docs/modernization/glossary/terms.yaml` 写起；领域模块不出现外部或老系统名称。
 - 用语以 `terms.yaml` 为准，方言禁用；命名遵守 `NAMING_STANDARD.md`，守护测试不通过不得合并。
+- 复刻老行为以生产数据为证据，不凭推测。
+- 不为通过测试放宽或删除断言；改断言 / 删测试须写理由并在报告与 PR 中单列。
+- 缺失或无效输入失败并告警，不静默跳过（规则卡明确允许的除外）。
+- 只实现当前阶段规格所需，未来能力留在规则卡。
+- 新标识符、界面文字、表列名先查 `terms.yaml`，查不到当场登记提议术语，不自造、不撞已有词。
+- 测试不写密钥字面量（运行时生成）；报告前用 gitleaks 8.30.1 扫全历史。提交前钩子：`pre-commit install`（`.pre-commit-config.yaml`，与 CI 同版本）。
+- 测试只断言本模块效果；异步用确定性等待，不写宽泛的 `never()`。
+- 契约先行：接口路径、必填、表名变化时 OpenAPI 与架构文档同一提交更新。
+- 并行子代理从同一基线出发，整合前同步最新 main，整合提交重跑全部守护。
+- 建账号、起容器、对外调用前先问用户，本机临时环境也一样。
+- 能一开始做对的不留到后续阶段；推迟的工作须在规则卡或文档写明「为何后做更有价值」，否则当期做对。
 - 派子代理必须显式指定模型（haiku / sonnet / opus，按任务难度）。
 - 记录只改片段：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `docs/modernization/build_all.py` 从 `intent/`、`session-log/`、`status/`、`adr/src/` 生成；用 `new_intent.py`、`new_log.py` 新增片段，改完运行 `build_all.py` 并连同产物提交，不直接编辑生成产物。
 - main 受分支保护：所有改动经 PR，CI 三项通过后由 psa-coordinator 合并；工作会话结束前向 psa-coordinator 报告。
