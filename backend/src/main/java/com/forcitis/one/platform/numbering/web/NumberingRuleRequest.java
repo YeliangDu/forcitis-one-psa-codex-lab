@@ -1,4 +1,4 @@
 package com.forcitis.one.platform.numbering.web;
 
-record NumberingRuleRequest(String pattern, String resetPolicy, long startValue) {
+record NumberingRuleRequest(String pattern, String resetPolicy, long startValue, java.time.LocalDate effectiveFrom) {
 }

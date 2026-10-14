@@ -12,14 +12,14 @@ import org.jspecify.annotations.Nullable;
  * (confirmationStatus tells which); pending is the version waiting for confirmation. Ids are strings, as everywhere.
  */
 record NumberingRuleResponse(String documentType, @Nullable String documentTypeCode, long version, String pattern, String resetPolicy, long startValue,
-        long capacity, String confirmationStatus, int templateVersion, boolean requiresFinanceConfirmation, @Nullable PendingTemplate pending) {
+        long capacity, String confirmationStatus, int templateVersion, java.time.LocalDate effectiveFrom, boolean requiresFinanceConfirmation, @Nullable PendingTemplate pending) {
 
-    record PendingTemplate(int templateVersion, String pattern, String resetPolicy, long startValue, long capacity, @Nullable String authorId,
+    record PendingTemplate(int templateVersion, String pattern, String resetPolicy, long startValue, java.time.LocalDate effectiveFrom, long capacity, @Nullable String authorId,
             Instant authoredAt, @Nullable String confirmedBy, @Nullable String financeConfirmedBy) {
 
         static PendingTemplate of(NumberingTemplateView template) {
             return new PendingTemplate(template.versionNumber(), template.pattern(), template.resetPolicy().name(), template.startValue(),
-                    template.capacity(), text(template.author()), template.authoredAt(), text(template.confirmer()),
+                    template.effectiveFrom(), template.capacity(), text(template.author()), template.authoredAt(), text(template.confirmer()),
                     text(template.financeConfirmer()));
         }
     }
@@ -28,7 +28,7 @@ record NumberingRuleResponse(String documentType, @Nullable String documentTypeC
         NumberingTemplateView template = rule.template();
         return new NumberingRuleResponse(rule.documentType().name(), rule.typeCode().orElse(null), rule.version(), template.pattern(),
                 template.resetPolicy().name(), template.startValue(), template.capacity(), rule.confirmation().name(), template.versionNumber(),
-                rule.requiresFinanceConfirmation(), rule.pending().map(PendingTemplate::of).orElse(null));
+                template.effectiveFrom(), rule.requiresFinanceConfirmation(), rule.pending().map(PendingTemplate::of).orElse(null));
     }
 
     private static String text(Optional<UserId> id) {

@@ -9,7 +9,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 final class NumberingFixtures {
 
     private static final String VERSIONS = "platform_numbering.numbering_rule_versions";
-    private static final String TRIGGER = "numbering_rule_versions_immutable";
+    private static final String TRIGGER = "numbering_rule_versions_guard";
 
     private NumberingFixtures() {
     }
@@ -20,8 +20,8 @@ final class NumberingFixtures {
         try {
             jdbc.sql("delete from " + VERSIONS).update();
             jdbc.sql("""
-                    insert into platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value, authored_at, status)
-                    select document_type, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, now(), 'PENDING_CONFIRMATION'
+                    insert into platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status)
+                    select document_type, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, DATE '2000-01-01', now(), 'PENDING_CONFIRMATION'
                       from platform_numbering.numbering_rules
                     """).update();
         } finally {

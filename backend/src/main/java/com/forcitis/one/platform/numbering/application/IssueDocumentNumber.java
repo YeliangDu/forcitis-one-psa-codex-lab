@@ -40,7 +40,7 @@ class IssueDocumentNumber implements DocumentNumbers {
     public DocumentNumber next(DocumentType type, LegalEntityId legalEntity, LocalDate businessDate) {
         NumberingRule rule = rules.findActive(type)
                 .orElseThrow(() -> new IllegalStateException("No active numbering rule for " + type));
-        TemplateVersion template = rule.inForce().orElseThrow(() -> notConfirmed(type));
+        TemplateVersion template = rule.inForceOn(businessDate).orElseThrow(() -> notConfirmed(type, businessDate));
         LegalEntityCode legalEntityCode = legalEntities.findActiveCode(legalEntity)
                 .orElseThrow(() -> new IllegalStateException("Legal entity " + legalEntity.value() + " does not exist or is deactivated"));
         long counterScope = template.pattern().usesLegalEntityCode() ? legalEntity.value() : NumberingRuleRepository.GLOBAL_COUNTER_SCOPE;
@@ -49,10 +49,10 @@ class IssueDocumentNumber implements DocumentNumbers {
         return new DocumentNumber(template.pattern().render(type.code().orElse(null), template.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, sequence));
     }
 
-    private DomainException notConfirmed(DocumentType type) {
+    private DomainException notConfirmed(DocumentType type, LocalDate businessDate) {
         meters.counter("forcitis.platform.numbering.issue.failed").increment();
-        log.error("ALERT platform.numbering no number issued for {}: the rule has no confirmed template", type);
+        log.error("ALERT platform.numbering no number issued for {} on {}: the rule has no confirmed template in force", type, businessDate);
         return new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_CONFIRMED, ErrorKind.UNPROCESSABLE,
-                "the numbering rule of " + type + " has no confirmed template, so it issues no number");
+                "the numbering rule of " + type + " has no confirmed template in force on " + businessDate + ", so it issues no number");
     }
 }

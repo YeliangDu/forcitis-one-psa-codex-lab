@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import com.forcitis.one.platform.numbering.api.RuleVersion;
 import com.forcitis.one.platform.numbering.application.ConfigureNumberingRule;
 import com.forcitis.one.platform.numbering.application.ConfirmNumberingRule;
 import com.forcitis.one.platform.numbering.application.ConfirmNumberingRuleByFinance;
@@ -61,20 +62,34 @@ class NumberingRuleController {
     @PutMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE + "')")
     ResponseEntity<Void> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request, Principal caller) {
-        configure.execute(documentType, request.pattern(), parse(request.resetPolicy()), request.startValue(), user(caller));
+        configure.execute(documentType, request.pattern(), parse(request.resetPolicy()), request.startValue(), required(request.effectiveFrom()), user(caller));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(path = "/{documentType}:confirm")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE + "')")
-    NumberingRuleResponse confirm(@PathVariable DocumentType documentType, Principal caller) {
-        return NumberingRuleResponse.from(confirm.execute(documentType, user(caller)));
+    NumberingRuleResponse confirm(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request, Principal caller) {
+        return NumberingRuleResponse.from(confirm.execute(documentType, user(caller), seen(request)));
     }
 
     @PostMapping(path = "/{documentType}:confirm-finance")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE + "')")
-    NumberingRuleResponse confirmByFinance(@PathVariable DocumentType documentType, Principal caller) {
-        return NumberingRuleResponse.from(confirmByFinance.execute(documentType, user(caller)));
+    NumberingRuleResponse confirmByFinance(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request, Principal caller) {
+        return NumberingRuleResponse.from(confirmByFinance.execute(documentType, user(caller), seen(request)));
+    }
+
+    private static RuleVersion seen(ConfirmNumberingRuleRequest request) {
+        if (request == null || request.templateVersion() == null || request.templateVersion() < 1) {
+            throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, "templateVersion, the version you looked at, is required");
+        }
+        return new RuleVersion(request.templateVersion());
+    }
+
+    private static java.time.LocalDate required(java.time.LocalDate effectiveFrom) {
+        if (effectiveFrom == null) {
+            throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, "effectiveFrom, the day the template starts, is required");
+        }
+        return effectiveFrom;
     }
 
     private static UserId user(Principal caller) {

@@ -2136,7 +2136,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 模板的生效日（effectiveFrom）
         audit: audited
         publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
         noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
@@ -2146,6 +2146,7 @@ components:
         - envelope
         - documentType
         - ruleVersion
+        - effectiveFrom
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -2161,6 +2162,10 @@ components:
             format: int64
             x-type: RuleVersion
             description: 模板版本号，每种单据从 1 递增
+          effectiveFrom:
+            type: string
+            format: date
+            description: 作者提交的生效日；业务日期从这一天起用该版本发号
     NumberingRuleReconfigured:
       name: NumberingRuleReconfigured
       title: 编号规则保存了新的模板版本，等待他人确认
@@ -2175,7 +2180,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 模板的生效日（effectiveFrom）
         audit: audited
         publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
         noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
@@ -2185,6 +2190,7 @@ components:
         - envelope
         - documentType
         - ruleVersion
+        - effectiveFrom
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -2200,6 +2206,10 @@ components:
             format: int64
             x-type: RuleVersion
             description: 模板版本号，每种单据从 1 递增
+          effectiveFrom:
+            type: string
+            format: date
+            description: 作者提交的生效日；业务日期从这一天起用该版本发号
     NumberingRuleConfirmationGiven:
       name: NumberingRuleConfirmationGiven
       title: 编号规则的模板版本得到一次确认（业务或财务）

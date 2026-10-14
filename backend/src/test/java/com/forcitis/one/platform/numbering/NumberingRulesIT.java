@@ -218,7 +218,7 @@ class NumberingRulesIT {
     @DisplayName("ADR-0027 2.4 saving a rule only saves a new version that waits for someone else's confirmation; it confirms nothing")
     void savingDoesNotConfirm() throws Exception {
         mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
+                        .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + java.time.LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isNoContent());
 
         mvc.perform(get(RULES + "/QUOTE").with(READER))

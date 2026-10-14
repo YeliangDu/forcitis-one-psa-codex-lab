@@ -39,6 +39,12 @@ class NumberingVersionMigrationIT {
                 select version_number || '|' || template_text || '|' || reset_policy || '|' || start_value || '|' || status || '|' || coalesce(author_id::text, 'none')
                   from platform_numbering.numbering_rule_versions where document_type = 'QUOTE'
                 """).query(String.class).list()).containsExactly("1|{TYPE}-{yyyy}-{seq:6}|YEARLY|7|PENDING_CONFIRMATION|none");
+        assertThat(jdbc.sql("select effective_from_date::text from platform_numbering.numbering_rule_versions where document_type = 'QUOTE'").query(String.class).single())
+                .as("the seeded template has no author's day to wait for").isEqualTo("2000-01-01");
+        assertThat(jdbc.sql("""
+                select count(*) from information_schema.columns where table_schema = 'platform_numbering' and table_name = 'numbering_rules'
+                   and column_name in ('pattern', 'reset_policy', 'start_value', 'confirmation_status') and is_nullable = 'YES'
+                """).query(Long.class).single()).as("append-only: the old columns stay, no longer required").isEqualTo(4);
         assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_rule_versions where status <> 'PENDING_CONFIRMATION'").query(Long.class).single())
                 .as("nothing stays confirmed").isZero();
         assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_rule_versions").query(Long.class).single())

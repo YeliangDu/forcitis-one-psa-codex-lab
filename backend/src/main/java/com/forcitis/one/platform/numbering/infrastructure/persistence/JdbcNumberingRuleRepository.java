@@ -56,7 +56,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     private List<TemplateVersion> versionsOf(String type) {
         return jdbc.sql("""
-                        select version_number, template_text, reset_policy, start_value, author_id, authored_at, status, confirmed_by, confirmed_at,
+                        select version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, confirmed_by, confirmed_at,
                                finance_confirmed_by, finance_confirmed_at
                           from platform_numbering.numbering_rule_versions
                          where document_type = :type
@@ -65,7 +65,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                 .param("type", type)
                 .query((rs, n) -> new TemplateVersion(rs.getInt("version_number"),
                         new NumberingPattern(rs.getString("template_text"), ResetPolicy.valueOf(rs.getString("reset_policy"))), rs.getLong("start_value"),
-                        user(rs, "author_id"), rs.getObject("authored_at", OffsetDateTime.class).toInstant(), VersionStatus.valueOf(rs.getString("status")),
+                        rs.getObject("effective_from_date", java.time.LocalDate.class), user(rs, "author_id"), rs.getObject("authored_at", OffsetDateTime.class).toInstant(), VersionStatus.valueOf(rs.getString("status")),
                         user(rs, "confirmed_by"), instant(rs, "confirmed_at"), user(rs, "finance_confirmed_by"), instant(rs, "finance_confirmed_at")))
                 .list();
     }
@@ -123,11 +123,11 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     private void insert(DocumentType type, TemplateVersion saved) {
         jdbc.sql("""
                         insert into platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value,
-                                                                                author_id, authored_at, status)
-                        values (:type, :number, :template, :reset, :start, :author, :authoredAt, :status)
+                                                                                effective_from_date, author_id, authored_at, status)
+                        values (:type, :number, :template, :reset, :start, :effectiveFrom, :author, :authoredAt, :status)
                         """)
                 .param("type", type.name()).param("number", saved.number()).param("template", saved.pattern().value())
-                .param("reset", saved.pattern().resetPolicy().name()).param("start", saved.startValue())
+                .param("reset", saved.pattern().resetPolicy().name()).param("start", saved.startValue()).param("effectiveFrom", saved.effectiveFrom())
                 .param("author", saved.author() == null ? null : saved.author().value(), Types.BIGINT)
                 .param("authoredAt", OffsetDateTime.ofInstant(saved.authoredAt(), ZoneOffset.UTC)).param("status", saved.status().name()).update();
     }

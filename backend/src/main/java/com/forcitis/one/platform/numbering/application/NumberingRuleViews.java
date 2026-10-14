@@ -19,7 +19,7 @@ final class NumberingRuleViews {
 
     private static NumberingTemplateView template(TemplateVersion version) {
         return new NumberingTemplateView(version.number(), version.pattern().value(), version.pattern().resetPolicy(), version.startValue(),
-                version.pattern().capacity(), Optional.ofNullable(version.author()), version.authoredAt(), Optional.ofNullable(version.confirmedBy()),
+                version.effectiveFrom(), version.pattern().capacity(), Optional.ofNullable(version.author()), version.authoredAt(), Optional.ofNullable(version.confirmedBy()),
                 Optional.ofNullable(version.financeConfirmedBy()));
     }
 }

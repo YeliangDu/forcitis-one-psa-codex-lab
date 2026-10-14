@@ -12,6 +12,7 @@ import com.forcitis.one.platform.numbering.domain.NumberingPattern;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
 import java.time.Clock;
+import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,11 +30,11 @@ public class ConfigureNumberingRule {
     }
 
     @Transactional
-    public NumberingRuleView execute(DocumentType type, String pattern, ResetPolicy resetPolicy, long startValue, UserId author) {
+    public NumberingRuleView execute(DocumentType type, String pattern, ResetPolicy resetPolicy, long startValue, LocalDate effectiveFrom, UserId author) {
         NumberingRule rule = rules.findActive(type).orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_FOUND,
                 ErrorKind.NOT_FOUND, "no active numbering rule for " + type));
         try {
-            rule.propose(new NumberingPattern(pattern, resetPolicy), startValue, author, clock.instant());
+            rule.propose(new NumberingPattern(pattern, resetPolicy), startValue, effectiveFrom, author, clock.instant());
         } catch (IllegalArgumentException | NullPointerException invalid) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, invalid.getMessage());
         }

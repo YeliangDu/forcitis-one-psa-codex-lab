@@ -302,20 +302,20 @@ class ApplicationIntegrationTest {
     void adminCanRedefineRulesButInvalidPatternsAreRejected() throws Exception {
         var admin = user("9").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"JV-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"JV-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isUnprocessableContent());
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isNoContent());
-        mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm").with(csrf())
+        mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":2}")
                         .with(user("10").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE)))
                 .andExpect(status().isOk());
-        mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm-finance").with(csrf())
+        mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm-finance").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":2}")
                         .with(user("11").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE)))
                 .andExpect(status().isOk());
         assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZFST-202611-00500");
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(user("8").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isForbidden());
     }
 
