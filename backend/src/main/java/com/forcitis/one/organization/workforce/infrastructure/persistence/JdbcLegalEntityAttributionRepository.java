@@ -35,11 +35,41 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
                 .map(row -> LegalEntityAttribution.restore(row[0], subject, periods(subject), row[1], row[2]));
     }
 
-    private void deletePeriods(AttributionSubject subject) {
+    private void updatePeriodEnd(AttributionSubject subject, AttributionPeriod period) {
         String sql = subject.kind() == AttributionKind.ORG_UNIT
-                ? "delete from organization_workforce.org_unit_legal_entities where org_unit_id = :id"
-                : "delete from organization_workforce.employee_legal_entities where employee_id = :id";
-        jdbc.sql(sql).param("id", subject.subjectKey()).update();
+                ? "update organization_workforce.org_unit_legal_entities set effective_to_date = :to, updated_at = now() where org_unit_id = :id and effective_from_date = :from"
+                : "update organization_workforce.employee_legal_entities set effective_to_date = :to, updated_at = now() where employee_id = :id and effective_from_date = :from";
+        jdbc.sql(sql).param("id", subject.subjectKey()).param("from", Date.valueOf(period.effectiveFrom()))
+                .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE).update();
+    }
+
+    private void deletePeriod(AttributionSubject subject, AttributionPeriod period) {
+        String sql = subject.kind() == AttributionKind.ORG_UNIT
+                ? "delete from organization_workforce.org_unit_legal_entities where org_unit_id = :id and effective_from_date = :from"
+                : "delete from organization_workforce.employee_legal_entities where employee_id = :id and effective_from_date = :from";
+        jdbc.sql(sql).param("id", subject.subjectKey()).param("from", Date.valueOf(period.effectiveFrom())).update();
+    }
+
+    private void writePeriods(LegalEntityAttribution attribution) {
+        AttributionSubject subject = attribution.subject();
+        java.util.Map<java.time.LocalDate, AttributionPeriod> stored = new java.util.HashMap<>();
+        for (AttributionPeriod period : periods(subject)) {
+            stored.put(period.effectiveFrom(), period);
+        }
+        for (AttributionPeriod period : attribution.periods()) {
+            AttributionPeriod before = stored.remove(period.effectiveFrom());
+            if (before == null) {
+                insertPeriod(subject, period);
+            } else if (!before.equals(period)) {
+                if (!before.legalEntityId().equals(period.legalEntityId())) {
+                    deletePeriod(subject, before);
+                    insertPeriod(subject, period);
+                } else {
+                    updatePeriodEnd(subject, period);
+                }
+            }
+        }
+        stored.values().forEach(removed -> deletePeriod(subject, removed));
     }
 
     private void insertPeriod(AttributionSubject subject, AttributionPeriod period) {
@@ -87,11 +117,8 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
             if (updated != 1) {
                 throw conflict(attribution);
             }
-            deletePeriods(attribution.subject());
         }
-        for (AttributionPeriod period : attribution.periods()) {
-            insertPeriod(attribution.subject(), period);
-        }
+        writePeriods(attribution);
     }
 
     private static String table(AttributionSubject subject) {
