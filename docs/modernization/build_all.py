@@ -4,7 +4,8 @@
 用法：
   python3 docs/modernization/build_all.py          生成全部产物
   python3 docs/modernization/build_all.py --check  生成后要求 docs/modernization 下工作区无差异（CI 使用）：
-                                                   片段与已提交的生成产物不一致、或有未提交的新产物时失败
+                                                   ADR、README 与 brief 与已提交的产物不一致、或有未提交的新产物时失败；
+                                                   INTENT / SESSION_LOG / STATUS 不入仓（.gitignore），只要求能生成、片段合规
 """
 import os, subprocess, sys
 
