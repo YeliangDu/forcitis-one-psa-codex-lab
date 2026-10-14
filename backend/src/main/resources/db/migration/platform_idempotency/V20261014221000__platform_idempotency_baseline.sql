@@ -1,7 +1,7 @@
--- Idempotency-Key：同一用户、同一键、同一请求在 24 小时内得到第一次的应答；同一键换了请求体是 422。
 CREATE SCHEMA IF NOT EXISTS platform_idempotency;
 COMMENT ON SCHEMA platform_idempotency IS '幂等键模块：同一写请求重复发送时的应答存储';
 
+-- Idempotency-Key：同一用户、同一键、同一请求在 24 小时内得到第一次的应答；同一键换了请求体是 422。
 CREATE TABLE platform_idempotency.idempotent_responses (
     user_id         bigint      NOT NULL,
     idempotency_key text        NOT NULL,

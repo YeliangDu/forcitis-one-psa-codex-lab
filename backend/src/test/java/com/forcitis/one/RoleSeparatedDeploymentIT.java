@@ -74,15 +74,16 @@ class RoleSeparatedDeploymentIT {
 
     private static void prepare() throws Exception {
         String script = Files.readString(Path.of("../docs/modernization/phase1a/infra/one_db_roles_schemas.sql"));
+        int afterMigrationAt = script.indexOf("-- §4b");
         try (Connection c = superuser()) {
-            c.createStatement().execute(script);
+            c.createStatement().execute(script.substring(0, afterMigrationAt));
             c.createStatement().execute("GRANT CREATE ON DATABASE " + DATABASE + " TO one_dev_owner");
             c.createStatement().execute("ALTER ROLE " + MIGRATOR + " PASSWORD '" + MIGRATOR_PASSWORD + "'");
             c.createStatement().execute("ALTER ROLE " + RUNTIME + " PASSWORD '" + RUNTIME_PASSWORD + "'");
         }
         migrateWithTheMigrationAccount();
         installTheProcessEngine();
-        String afterMigration = script.substring(script.indexOf("-- §4b"), script.indexOf("-- §5 撤销"));
+        String afterMigration = script.substring(afterMigrationAt, script.indexOf("-- §5 撤销"));
         try (Connection c = superuser()) {
             c.createStatement().execute(afterMigration);
         }

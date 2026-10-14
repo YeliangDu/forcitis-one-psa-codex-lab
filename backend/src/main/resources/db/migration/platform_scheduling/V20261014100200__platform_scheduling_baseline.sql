@@ -1,7 +1,7 @@
--- 调度锁表：ShedLock（JDBC）用，一个作业一行
 CREATE SCHEMA IF NOT EXISTS platform_scheduling;
 COMMENT ON SCHEMA platform_scheduling IS '定时作业（权限流程与集成平台 BC · 平台运维）';
 
+-- ShedLock（JDBC）用，一个作业一行
 CREATE TABLE platform_scheduling.scheduler_locks (
     lock_name  text        PRIMARY KEY,
     lock_until timestamptz NOT NULL,

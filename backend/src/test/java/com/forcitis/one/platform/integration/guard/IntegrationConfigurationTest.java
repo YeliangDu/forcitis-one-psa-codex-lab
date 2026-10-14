@@ -64,7 +64,7 @@ class IntegrationConfigurationTest {
 
         assertThat(p.getProperty("spring.modulith.events.jdbc.schema")).isEqualTo("platform_integration");
         assertThat(p.getProperty("spring.modulith.events.jdbc.schema-initialization.enabled")).isEqualTo("false");
-        assertThat(Files.readString(Path.of("src/main/resources/db/migration/platform_integration/V20261014133000__platform_integration_create_event_publication.sql")))
+        assertThat(Files.readString(Path.of("src/main/resources/db/migration/platform_integration/V20261014133000__platform_integration_baseline.sql")))
                 .contains("CREATE TABLE platform_integration.event_publication");
     }
 }

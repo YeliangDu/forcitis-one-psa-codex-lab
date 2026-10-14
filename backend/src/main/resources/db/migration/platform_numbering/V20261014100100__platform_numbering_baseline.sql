@@ -1,3 +1,70 @@
+CREATE SCHEMA IF NOT EXISTS platform_numbering;
+COMMENT ON SCHEMA platform_numbering IS '单据编号（权限流程与集成平台 BC · 平台配置）';
+
+-- 模板内容在 numbering_rule_versions；pattern、reset_policy、start_value、confirmation_status 是停用的旧列，不再写入。
+CREATE TABLE platform_numbering.numbering_rules (
+    document_type       text        PRIMARY KEY,
+    pattern             text,
+    reset_policy        text        CHECK (reset_policy IN ('NEVER', 'YEARLY', 'MONTHLY', 'DAILY')),
+    start_value         bigint      CHECK (start_value >= 1),
+    is_active           boolean     NOT NULL DEFAULT true,
+    created_at          timestamptz NOT NULL DEFAULT now(),
+    updated_at          timestamptz NOT NULL DEFAULT now(),
+    version             bigint      NOT NULL DEFAULT 0,
+    confirmation_status text        DEFAULT 'PENDING_CONFIRMATION' CHECK (confirmation_status IN ('PENDING_CONFIRMATION', 'CONFIRMED')),
+    event_count         bigint      NOT NULL DEFAULT 0
+);
+COMMENT ON TABLE platform_numbering.numbering_rules IS '编号规则：每种单据一条，是版本的聚合根；模板内容在 numbering_rule_versions，由组织数据管理员维护、业务管理员确认（凭证号另需财务确认）。粒度：每种单据一行';
+COMMENT ON COLUMN platform_numbering.numbering_rules.document_type IS '单据类型（DocumentType 枚举名）';
+COMMENT ON COLUMN platform_numbering.numbering_rules.pattern IS '停用，由 numbering_rule_versions 取代';
+COMMENT ON COLUMN platform_numbering.numbering_rules.reset_policy IS '流水号重置周期：停用，由 numbering_rule_versions 取代';
+COMMENT ON COLUMN platform_numbering.numbering_rules.start_value IS '停用，由 numbering_rule_versions 取代';
+COMMENT ON COLUMN platform_numbering.numbering_rules.is_active IS '是否启用';
+COMMENT ON COLUMN platform_numbering.numbering_rules.created_at IS '创建时间';
+COMMENT ON COLUMN platform_numbering.numbering_rules.updated_at IS '更新时间';
+COMMENT ON COLUMN platform_numbering.numbering_rules.version IS '乐观锁版本';
+COMMENT ON COLUMN platform_numbering.numbering_rules.confirmation_status IS '确认状态：停用，由 numbering_rule_versions 取代';
+COMMENT ON COLUMN platform_numbering.numbering_rules.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
+
+CREATE TABLE platform_numbering.numbering_counters (
+    document_type   text        NOT NULL,
+    legal_entity_id bigint      NOT NULL,
+    period_key      text        NOT NULL,
+    last_value      bigint      NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (document_type, legal_entity_id, period_key)
+);
+COMMENT ON TABLE platform_numbering.numbering_counters IS '编号计数器：按单据类型 × 法人 × 周期计数，与业务写入同事务递增（不跳号）。粒度：每个单据类型、法人、周期一行';
+COMMENT ON COLUMN platform_numbering.numbering_counters.document_type IS '单据类型';
+COMMENT ON COLUMN platform_numbering.numbering_counters.legal_entity_id IS '法人主体 ID';
+COMMENT ON COLUMN platform_numbering.numbering_counters.period_key IS '周期键：- / 2026 / 202610 / 20261014';
+COMMENT ON COLUMN platform_numbering.numbering_counters.last_value IS '已发出的最大流水号';
+COMMENT ON COLUMN platform_numbering.numbering_counters.created_at IS '创建时间';
+COMMENT ON COLUMN platform_numbering.numbering_counters.updated_at IS '更新时间';
+
+CREATE TABLE platform_numbering.legacy_numbers (
+    id              bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    document_type   text        NOT NULL,
+    legacy_number   text        NOT NULL,
+    document_id     bigint      NOT NULL,
+    legal_entity_id bigint,
+    import_batch    text        NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT legacy_numbers_type_number_key UNIQUE (document_type, legacy_number)
+);
+CREATE INDEX legacy_numbers_document_idx ON platform_numbering.legacy_numbers (document_type, document_id);
+COMMENT ON TABLE platform_numbering.legacy_numbers IS '原编号：新系统单据与其迁移前编号的对照，只读检索；各单据在其切换阶段导入。粒度：每个单据类型的每个原编号一行';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.id IS '主键';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.document_type IS '单据类型（DocumentType 枚举名）；与原编号合起来唯一';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.legacy_number IS '原编号：迁移前该单据在老系统中的编号，按原样保留';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.document_id IS '单据：新系统单据 id，与单据类型合起来定位一张单据';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.legal_entity_id IS '法人主体 ID；导入时推不出法人的原编号留空，原编号仍可检索（D-1a-152）';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.import_batch IS '导入批次：写入这条对照的导入批次标识，便于整批核对与回溯';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.created_at IS '创建时间';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.updated_at IS '更新时间';
+
 -- ADR-0027 第 2 项第 4 条：编号模板按版本保存、不可变；作者不得确认自己的版本；未确认的规则不发号。
 CREATE TABLE platform_numbering.numbering_rule_versions (
     document_type        text        NOT NULL CHECK (document_type IN ('QUOTE', 'TIMESHEET', 'JOURNAL_VOUCHER')),
@@ -26,7 +93,7 @@ CREATE TABLE platform_numbering.numbering_rule_versions (
 );
 CREATE UNIQUE INDEX uk_numbering_rule_versions_document_type ON platform_numbering.numbering_rule_versions (document_type)
     WHERE status = 'PENDING_CONFIRMATION';
-COMMENT ON TABLE platform_numbering.numbering_rule_versions IS '编号规则版本：模板按版本保存，保存后内容不可变，确认只补不改（触发器拒绝改内容、改已有确认、非法状态转换与删除）；每种单据至多一个待确认版本，发号取生效日不晚于业务日期的最高已确认版本。粒度：每种单据的每个模板版本一行';
+COMMENT ON TABLE platform_numbering.numbering_rule_versions IS '编号规则版本：模板按版本保存，保存后内容不可变（触发器拒绝修改内容与删除），只补确认；每种单据至多一个待确认版本，已确认的最高版本发号。粒度：每种单据的每个模板版本一行';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.document_type IS '单据类型（DocumentType 枚举名）';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.version_number IS '版本号：每种单据从 1 递增，每保存一次新模板加 1';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.template_text IS '编号模板，占位符 {TYPE} {LE} {yyyy} {yy} {MM} {dd} {yyyyMM} {yyyyMMdd} {yyMMdd} {seq:N}（N 为 1 至 12），如 {TYPE}-{LE}-{yyyyMM}-{seq:4}';
@@ -73,19 +140,13 @@ CREATE TRIGGER tg_numbering_rule_versions_append_only_truncate
     BEFORE TRUNCATE ON platform_numbering.numbering_rule_versions
     FOR EACH STATEMENT EXECUTE FUNCTION platform_numbering.guard_rule_version_change();
 
--- 现有规则的模板成为版本 1，一律回到待确认：没有列能判断原作者，由业务管理员按四眼重新确认（凭证号模板另由财务确认）。
+-- ADR-0010 第 5 项：统一新格式。三种单据都从默认模板起步，待管理员确认；老系统的编号格式不沿用（旧编号进 legacy_numbers）。
+INSERT INTO platform_numbering.numbering_rules (document_type, pattern, reset_policy, start_value, confirmation_status, version, event_count) VALUES
+    ('QUOTE', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1),
+    ('TIMESHEET', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1),
+    ('JOURNAL_VOUCHER', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1);
+
+-- 种子规则的模板成为版本 1，一律待确认：由业务管理员按四眼确认（凭证号模板另由财务确认）。
 INSERT INTO platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status)
 SELECT document_type, 1, pattern, reset_policy, start_value, DATE '2000-01-01', now(), 'PENDING_CONFIRMATION'
   FROM platform_numbering.numbering_rules;
-
--- 旧列只追加地停用：不删列、不再写入，由版本表取代。
-ALTER TABLE platform_numbering.numbering_rules
-    ALTER COLUMN pattern DROP NOT NULL,
-    ALTER COLUMN reset_policy DROP NOT NULL,
-    ALTER COLUMN start_value DROP NOT NULL,
-    ALTER COLUMN confirmation_status DROP NOT NULL;
-COMMENT ON COLUMN platform_numbering.numbering_rules.pattern IS '停用，由 numbering_rule_versions 取代';
-COMMENT ON COLUMN platform_numbering.numbering_rules.reset_policy IS '流水号重置周期：停用，由 numbering_rule_versions 取代';
-COMMENT ON COLUMN platform_numbering.numbering_rules.start_value IS '停用，由 numbering_rule_versions 取代';
-COMMENT ON COLUMN platform_numbering.numbering_rules.confirmation_status IS '确认状态：停用，由 numbering_rule_versions 取代';
-COMMENT ON TABLE platform_numbering.numbering_rules IS '编号规则：每种单据一条，是版本的聚合根；模板内容在 numbering_rule_versions，由组织数据管理员维护、业务管理员确认（凭证号另需财务确认）';
