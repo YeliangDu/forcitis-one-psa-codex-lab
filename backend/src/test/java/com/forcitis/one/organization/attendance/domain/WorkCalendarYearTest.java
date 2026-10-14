@@ -89,7 +89,7 @@ class WorkCalendarYearTest {
                 List.of(day("2026-10-03", DayKind.MAKE_UP_WORKDAY), day("2026-10-10", DayKind.MAKE_UP_WORKDAY), day("2026-10-13", DayKind.HOLIDAY)),
                 List.of(day("2026-10-03", DayKind.HOLIDAY), day("2026-10-10", DayKind.MAKE_UP_WORKDAY)))) {
             assertThatThrownBy(() -> year.maintain(attempt, today, false)).isInstanceOfSatisfying(DomainException.class,
-                    e -> assertThat(e.errorCode()).isEqualTo(AttendanceError.ORGANIZATION_ATTENDANCE_LOCKED_DAY_CHANGED));
+                    e -> assertThat(e.errorCode()).isEqualTo(AttendanceError.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED));
         }
         assertThat(year.days()).hasSize(2);
         assertThat(year.hasPendingEvents()).isFalse();

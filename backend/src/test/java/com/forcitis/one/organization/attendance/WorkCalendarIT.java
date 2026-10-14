@@ -182,14 +182,14 @@ class WorkCalendarIT {
     }
 
     @Test
-    @DisplayName("T2 over HTTP a past day cannot change: 422 ORGANIZATION_ATTENDANCE_LOCKED_DAY_CHANGED, nothing saved")
+    @DisplayName("T2 over HTTP a past day cannot change: 422 ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED, nothing saved")
     void pastDaysAreLockedOverHttp() throws Exception {
         mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026)).andExpect(status().isOk());
         clock.set(java.time.Instant.parse("2026-10-14T00:00:00Z"));
 
         mvc.perform(put(CALENDARS + "/2026").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"days\": []}"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_ATTENDANCE_LOCKED_DAY_CHANGED"));
+                .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED"));
 
         assertThat(jdbc.sql("select count(*) from organization_attendance.work_calendar_days").query(Integer.class).single()).isEqualTo(2);
     }

@@ -83,7 +83,7 @@ public final class WorkCalendarYear extends AggregateRoot {
         List<LockedDayChange> locked = storedRow == null ? List.of() : changedDates(exceptions, next).stream().filter(date -> date.isBefore(today))
                 .map(date -> new LockedDayChange(date, exception(exceptions.get(date)), exception(next.get(date)))).toList();
         if (!locked.isEmpty() && !lockedDaysConfirmed) {
-            throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_LOCKED_DAY_CHANGED, ErrorKind.UNPROCESSABLE,
+            throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED, ErrorKind.UNPROCESSABLE,
                     "days before " + today + " are locked: " + locked.stream().map(LockedDayChange::calendarDate).limit(5).toList() + (locked.size() > 5 ? " and " + (locked.size() - 5) + " more" : ""));
         }
         this.exceptions = Map.copyOf(next);
