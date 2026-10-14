@@ -3,7 +3,8 @@ COMMENT ON SCHEMA platform_numbering IS '单据编号（权限流程与集成平
 
 -- 模板内容在 numbering_rule_versions；pattern、reset_policy、start_value、confirmation_status 是停用的旧列，不再写入。
 CREATE TABLE platform_numbering.numbering_rules (
-    document_type       text        PRIMARY KEY,
+    numbering_rule_id   uuid        PRIMARY KEY,
+    document_type       text        NOT NULL,
     pattern             text,
     reset_policy        text        CHECK (reset_policy IN ('NEVER', 'YEARLY', 'MONTHLY', 'DAILY')),
     start_value         bigint      CHECK (start_value >= 1),
@@ -12,9 +13,11 @@ CREATE TABLE platform_numbering.numbering_rules (
     updated_at          timestamptz NOT NULL DEFAULT now(),
     version             bigint      NOT NULL DEFAULT 0,
     confirmation_status text        DEFAULT 'PENDING_CONFIRMATION' CHECK (confirmation_status IN ('PENDING_CONFIRMATION', 'CONFIRMED')),
-    event_count         bigint      NOT NULL DEFAULT 0
+    event_count         bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT uk_numbering_rules_document_type UNIQUE (document_type)
 );
 COMMENT ON TABLE platform_numbering.numbering_rules IS '编号规则：每种单据一条，是版本的聚合根；模板内容在 numbering_rule_versions，由组织数据管理员维护、业务管理员确认（凭证号另需财务确认）。粒度：每种单据一行';
+COMMENT ON COLUMN platform_numbering.numbering_rules.numbering_rule_id IS '编号规则 ID（UUIDv7）';
 COMMENT ON COLUMN platform_numbering.numbering_rules.document_type IS '单据类型（DocumentType 枚举名）';
 COMMENT ON COLUMN platform_numbering.numbering_rules.pattern IS '停用，由 numbering_rule_versions 取代';
 COMMENT ON COLUMN platform_numbering.numbering_rules.reset_policy IS '流水号重置周期：停用，由 numbering_rule_versions 取代';
@@ -28,7 +31,7 @@ COMMENT ON COLUMN platform_numbering.numbering_rules.event_count IS '事件序�
 
 CREATE TABLE platform_numbering.numbering_counters (
     document_type   text        NOT NULL,
-    legal_entity_id bigint      NOT NULL,
+    legal_entity_id uuid        NOT NULL,
     period_key      text        NOT NULL,
     last_value      bigint      NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),
@@ -44,11 +47,11 @@ COMMENT ON COLUMN platform_numbering.numbering_counters.created_at IS '创建时
 COMMENT ON COLUMN platform_numbering.numbering_counters.updated_at IS '更新时间';
 
 CREATE TABLE platform_numbering.legacy_numbers (
-    id              bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id              uuid        PRIMARY KEY,
     document_type   text        NOT NULL,
     legacy_number   text        NOT NULL,
-    document_id     bigint      NOT NULL,
-    legal_entity_id bigint,
+    document_id     uuid        NOT NULL,
+    legal_entity_id uuid,
     import_batch    text        NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
@@ -56,7 +59,7 @@ CREATE TABLE platform_numbering.legacy_numbers (
 );
 CREATE INDEX legacy_numbers_document_idx ON platform_numbering.legacy_numbers (document_type, document_id);
 COMMENT ON TABLE platform_numbering.legacy_numbers IS '原编号：新系统单据与其迁移前编号的对照，只读检索；各单据在其切换阶段导入。粒度：每个单据类型的每个原编号一行';
-COMMENT ON COLUMN platform_numbering.legacy_numbers.id IS '主键';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.id IS '主键（UUIDv7）';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.document_type IS '单据类型（DocumentType 枚举名）；与原编号合起来唯一';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.legacy_number IS '原编号：迁移前该单据在老系统中的编号，按原样保留';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.document_id IS '单据：新系统单据 id，与单据类型合起来定位一张单据';
@@ -141,10 +144,10 @@ CREATE TRIGGER tg_numbering_rule_versions_append_only_truncate
     FOR EACH STATEMENT EXECUTE FUNCTION platform_numbering.guard_rule_version_change();
 
 -- ADR-0010 第 5 项：统一新格式。三种单据都从默认模板起步，待管理员确认；老系统的编号格式不沿用（旧编号进 legacy_numbers）。
-INSERT INTO platform_numbering.numbering_rules (document_type, pattern, reset_policy, start_value, confirmation_status, version, event_count) VALUES
-    ('QUOTE', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1),
-    ('TIMESHEET', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1),
-    ('JOURNAL_VOUCHER', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1);
+INSERT INTO platform_numbering.numbering_rules (numbering_rule_id, document_type, pattern, reset_policy, start_value, confirmation_status, version, event_count) VALUES
+    ('019a0000-0000-7000-8000-000000000301', 'QUOTE', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1),
+    ('019a0000-0000-7000-8000-000000000302', 'TIMESHEET', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1),
+    ('019a0000-0000-7000-8000-000000000303', 'JOURNAL_VOUCHER', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1);
 
 -- 种子规则的模板成为版本 1，一律待确认：由业务管理员按四眼确认（凭证号模板另由财务确认）。
 INSERT INTO platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status)

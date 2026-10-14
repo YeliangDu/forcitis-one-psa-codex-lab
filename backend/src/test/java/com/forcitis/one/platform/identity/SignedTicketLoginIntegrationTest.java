@@ -31,8 +31,8 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
 
     private void insertIssuer(String code, String kid, String keyReference, boolean enabled, String... roles) {
         jdbc.sql("""
-                        insert into platform_identity.ticket_issuers (issuer_code, key_id, key_reference, is_enabled, allowed_role_codes)
-                        values (:code, :kid, :ref, :enabled, string_to_array(:roles, ','))
+                        insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, key_id, key_reference, is_enabled, allowed_role_codes)
+                        values (uuidv7(), :code, :kid, :ref, :enabled, string_to_array(:roles, ','))
                         """)
                 .param("code", code).param("kid", kid).param("ref", keyReference).param("enabled", enabled)
                 .param("roles", String.join(",", roles)).update();
@@ -76,7 +76,7 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(redeem(ticket(1001)).getResponse().getStatus()).isEqualTo(401);
 
         jdbc.sql("delete from platform_identity.ticket_issuers").update();
-        jdbc.sql("insert into platform_identity.ticket_issuers (issuer_code, key_id, key_reference) values ('bi', 'bi-key-1', 'env:FORCITIS_TICKET_KEY_KM')").update();
+        jdbc.sql("insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, key_id, key_reference) values (uuidv7(), 'bi', 'bi-key-1', 'env:FORCITIS_TICKET_KEY_KM')").update();
         assertThat(jdbc.sql("select is_enabled from platform_identity.ticket_issuers").query(Boolean.class).single())
                 .as("the column default is off").isFalse();
     }

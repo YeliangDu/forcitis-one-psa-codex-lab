@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
@@ -23,8 +24,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class LegalEntityAttributionTest {
-    static final LegalEntityId LE1 = new LegalEntityId(1);
-    static final LegalEntityId LE2 = new LegalEntityId(2);
+    static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
+    static final LegalEntityId LE2 = new LegalEntityId(TestIds.uuid(2));
     static final LocalDate JAN = LocalDate.of(2026, 1, 1);
     static final LocalDate JUL = LocalDate.of(2026, 7, 1);
 

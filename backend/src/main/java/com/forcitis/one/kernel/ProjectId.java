@@ -1,10 +1,12 @@
 package com.forcitis.one.kernel;
 
+import java.util.Objects;
+import java.util.UUID;
+
 @ValueObject
-public record ProjectId(long value) {
+public record ProjectId(UUID value) {
+
     public ProjectId {
-        if (value <= 0) {
-            throw new IllegalArgumentException("ProjectId must be positive: " + value);
-        }
+        Objects.requireNonNull(value, "value");
     }
 }

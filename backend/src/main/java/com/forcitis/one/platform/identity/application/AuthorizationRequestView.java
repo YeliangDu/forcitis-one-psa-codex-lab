@@ -3,10 +3,11 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 public record AuthorizationRequestView(String requestId, String kind, long requestedBy, Instant requestedAt, @Nullable Long subjectUserId,
-                                       @Nullable Long roleId, List<String> roleCodes, @Nullable String roleName, List<String> permissionCodes) {
+                                       @Nullable UUID roleId, List<String> roleCodes, @Nullable String roleName, List<String> permissionCodes) {
 
     public AuthorizationRequestView {
         roleCodes = List.copyOf(roleCodes);

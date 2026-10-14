@@ -5,7 +5,7 @@ import com.forcitis.one.platform.audit.domain.AuditRecord;
 import java.time.Instant;
 import java.util.UUID;
 
-public record AuditEntryView(long entryId, Instant createdAt, String action, Long actorId, Long onBehalfOfId, String subjectKey,
+public record AuditEntryView(UUID entryId, Instant createdAt, String action, Long actorId, Long onBehalfOfId, String subjectKey,
                              String detail, String sourceAddress, AuditOutcome outcome, String loginMethod, String changeReason,
                              String beforeText, String afterText, UUID traceNumber) {
 

@@ -1,27 +1,11 @@
-# B3-M8：单列主键必须是 uuid（由 IdGenerator 生成）。下列表在规则生效前已存在，主键仍是 bigint 或其他类型（PrimaryKeyTypeGuardTest）。
-# 格式：<schema.table>  # 说明。只减不增：新表一律用 uuid；改成 uuid 后删掉对应行，测试会拒绝已修好却没删的行。UUIDv7 本身排入下一批。
-cost_timesheet.timesheets  # existing table
-organization_attendance.work_calendar_days  # existing table
-organization_attendance.work_calendar_years  # existing table
-organization_workforce.assignments  # existing table
-organization_workforce.employees  # existing table
-organization_workforce.legal_entities  # existing table
-organization_workforce.org_units  # existing table
-organization_workforce.positions  # existing table
-organization_workforce.sync_diffs  # existing table
-organization_workforce.sync_runs  # existing table
-platform_approval.approval_requests  # existing table
-platform_approval.approval_tasks  # existing table
-platform_approval.start_rounds  # existing table
-platform_audit.audit_entries  # existing table
-platform_identity.emergency_admins  # existing table
-platform_identity.login_states  # existing table
-platform_identity.navigation_items  # existing table
-platform_identity.roles  # existing table
-platform_identity.ticket_issuers  # existing table
-platform_identity.user_accounts  # existing table
-platform_integration.outbound_deliveries  # existing table
-platform_numbering.legacy_numbers  # existing table
-platform_numbering.numbering_rules  # existing table
-platform_approval.process_archive_skips  # created by the data architecture batch in parallel with this rule; the key becomes a uuid with UUIDv7
-platform_audit.audit_archive_batches  # created by the data architecture batch in parallel with this rule; the key becomes a uuid with UUIDv7
+# B3-M8：单列主键必须是 uuid（由 IdGenerator 生成的 UUIDv7）。下列表在规则生效前已存在，或随规则同时建立，主键仍是外部来源（A8）的 bigint 或引擎生成的 text（PrimaryKeyTypeGuardTest）。
+# 格式：<schema.table>  # 说明。只减不增：新表一律用 uuid；改成 uuid 后删掉对应行，测试会拒绝已修好却没删的行。
+# 用户 2026-10-15 决定「自有 UUIDv7 + A8 ID 对照列」「主键统一」：下列八张表由 R-1b 改为自有 UUIDv7 主键（外部来源 ID、引擎 ID 改存为来源 ID 列），届时本文件清空。
+organization_workforce.assignments  # key is the employee id taken from the organisation source; R-1b
+organization_workforce.employees  # key is the person id taken from the organisation source; R-1b
+organization_workforce.org_units  # key is the unit id taken from the organisation source; R-1b
+organization_workforce.positions  # key is the position id taken from the organisation source; R-1b
+platform_approval.approval_tasks  # key is the Flowable task id; R-1b gives it its own uuid (DA-6)
+platform_approval.process_archive_skips  # key is the Flowable process instance id; made with this rule, so INT-M9 asks R-1b to give it its own uuid
+platform_identity.emergency_admins  # key is the user id, which is the employee id taken from the organisation source; R-1b
+platform_identity.user_accounts  # key is the user id, which is the employee id taken from the organisation source; R-1b

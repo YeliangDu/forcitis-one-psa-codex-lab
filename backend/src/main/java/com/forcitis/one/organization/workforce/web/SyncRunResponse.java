@@ -13,12 +13,12 @@ record SyncRunResponse(String syncRunId, String trigger, String status, Instant 
                        @Nullable String heldReason, @Nullable String failureReason, @Nullable String releasedBy, @Nullable Instant releasedAt,
                        @Nullable String releasedByRunId, List<String> holdKinds, List<String> releasedKinds, List<String> heldSeparations) {
     static SyncRunResponse of(SyncRunView view) {
-        return new SyncRunResponse(String.valueOf(view.syncRunId()), view.trigger(), view.status(), view.startedAt(),
+        return new SyncRunResponse(view.syncRunId().value().toString(), view.trigger(), view.status(), view.startedAt(),
                 view.finishedAt(), view.sourceOrgUnitCount(), view.sourceEmployeeCount(), view.incomingActiveOrgUnitCount(),
                 view.incomingEmployedCount(), view.previousActiveOrgUnitCount(), view.previousEmployedCount(),
                 view.orgUnitChangeCount(), view.employeeChangeCount(), view.positionChangeCount(), view.isolatedRowCount(),
                 view.issueCount(), view.employedWithoutWecomCount(), view.heldReason(), view.failureReason(),
-                OrgUnitResponse.text(view.releasedBy()), view.releasedAt(), OrgUnitResponse.text(view.releasedByRunId()),
+                OrgUnitResponse.text(view.releasedBy()), view.releasedAt(), view.releasedByRunId() == null ? null : view.releasedByRunId().value().toString(),
                 view.holdKinds(), view.releasedKinds(), view.heldSeparations().stream().map(String::valueOf).toList());
     }
 }

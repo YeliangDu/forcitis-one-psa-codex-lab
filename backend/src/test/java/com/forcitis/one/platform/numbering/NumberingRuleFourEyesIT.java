@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -67,7 +68,7 @@ class NumberingRuleFourEyesIT {
             .withUrlParam("currentSchema", "platform_approval");
 
     static final String RULES = "/api/v1/platform/numbering-rules";
-    static final LegalEntityId LE1 = new LegalEntityId(1);
+    static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
     static final LocalDate BUSINESS_DAY = LocalDate.of(2099, 1, 20);
     static final RequestPostProcessor AUTHOR = user("9").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE,
             () -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ, () -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE);

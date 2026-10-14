@@ -2,9 +2,9 @@ CREATE SCHEMA IF NOT EXISTS cost_timesheet;
 COMMENT ON SCHEMA cost_timesheet IS '工时（成本 BC · 工时填报与审批结果）';
 
 CREATE TABLE cost_timesheet.timesheets (
-    id                   bigint        NOT NULL,
+    id                   uuid          NOT NULL,
     employee_id          bigint        NOT NULL,
-    legal_entity_id      bigint        NOT NULL,
+    legal_entity_id      uuid          NOT NULL,
     work_date            date          NOT NULL,
     submitted_hours      numeric(10,2) NOT NULL,
     project_manager_id   bigint        NOT NULL,
@@ -27,7 +27,7 @@ CREATE INDEX ix_timesheets_employee_id ON cost_timesheet.timesheets (employee_id
 CREATE INDEX ix_timesheets_org_unit_id ON cost_timesheet.timesheets (org_unit_id, work_date);
 CREATE INDEX ix_timesheets_status ON cost_timesheet.timesheets (status, updated_at) WHERE status IN ('SUBMITTED', 'RETURNED');
 COMMENT ON TABLE cost_timesheet.timesheets IS '工时单：聚合根；粒度：每张工时单一行；状态机在聚合内，审批结果经审批完成事件回写';
-COMMENT ON COLUMN cost_timesheet.timesheets.id IS '主键：工时单标识';
+COMMENT ON COLUMN cost_timesheet.timesheets.id IS '主键：工时单标识（UUIDv7）';
 COMMENT ON COLUMN cost_timesheet.timesheets.employee_id IS '员工（人员 ID）：填报人，只有填报人能提交、撤回、撤销';
 COMMENT ON COLUMN cost_timesheet.timesheets.legal_entity_id IS '法人主体（法人 ID）：由提交人所属法人传入，缺失即失败，不设默认';
 COMMENT ON COLUMN cost_timesheet.timesheets.work_date IS '工作日期：员工填写的、工时发生的那一天；创建时校验不得晚于今天，之后不再改写；事件的业务日期取它';

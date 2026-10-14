@@ -12,7 +12,7 @@ record AuditEntryResponse(String entryId, Instant createdAt, String action, @Nul
                           @Nullable String afterText, @Nullable UUID traceNumber) {
 
     static AuditEntryResponse of(AuditEntryView view) {
-        return new AuditEntryResponse(String.valueOf(view.entryId()), view.createdAt(), view.action(), text(view.actorId()),
+        return new AuditEntryResponse(view.entryId().toString(), view.createdAt(), view.action(), text(view.actorId()),
                 text(view.onBehalfOfId()), view.subjectKey(), view.detail(), view.sourceAddress(), view.outcome(), view.loginMethod(),
                 view.changeReason(), view.beforeText(), view.afterText(), view.traceNumber());
     }

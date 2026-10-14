@@ -3,6 +3,7 @@ package com.forcitis.one.organization.attendance.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -26,7 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class WorkCalendarServiceTest {
-    static final LegalEntityId FST = new LegalEntityId(1);
+    static final LegalEntityId FST = new LegalEntityId(TestIds.uuid(1));
 
     static class MemoryCalendars implements WorkCalendarQueries {
         final Map<WorkCalendarKey, WorkCalendarYearRecord> years = new HashMap<>();
@@ -144,7 +145,7 @@ class WorkCalendarServiceTest {
     @Test
     @DisplayName("a legal entity with its own calendar for a year follows it; the others follow the default")
     void legalEntityCalendarOverridesTheDefault() {
-        LegalEntityId other = new LegalEntityId(2);
+        LegalEntityId other = new LegalEntityId(TestIds.uuid(2));
         calendars.maintain(WorkCalendarKey.defaultFor(2026));
         calendars.maintain(new WorkCalendarKey(FST, 2026), holiday("2026-10-09"));
 

@@ -1,10 +1,12 @@
 package com.forcitis.one.kernel;
 
+import java.util.Objects;
+import java.util.UUID;
+
 @ValueObject
-public record WbsNodeId(long value) {
+public record WbsNodeId(UUID value) {
+
     public WbsNodeId {
-        if (value <= 0) {
-            throw new IllegalArgumentException("WbsNodeId must be positive: " + value);
-        }
+        Objects.requireNonNull(value, "value");
     }
 }

@@ -22,7 +22,7 @@ COMMENT ON COLUMN platform_identity.user_accounts.version IS '乐观锁版本';
 COMMENT ON COLUMN platform_identity.user_accounts.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 
 CREATE TABLE platform_identity.roles (
-    role_id           bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    role_id           uuid        PRIMARY KEY,
     code              text        NOT NULL,
     name              text        NOT NULL,
     kind              text        NOT NULL DEFAULT 'CUSTOM' CHECK (kind IN ('SYSTEM', 'CUSTOM')),
@@ -37,7 +37,7 @@ CREATE TABLE platform_identity.roles (
 CREATE UNIQUE INDEX uq_roles_code ON platform_identity.roles (lower(code));
 CREATE UNIQUE INDEX uq_roles_name ON platform_identity.roles (lower(name));
 COMMENT ON TABLE platform_identity.roles IS '角色：编码与名称各自唯一；SYSTEM 角色冻结；新角色默认数据范围 SELF（RULE-345）。粒度：每个角色一行';
-COMMENT ON COLUMN platform_identity.roles.role_id IS '角色 ID';
+COMMENT ON COLUMN platform_identity.roles.role_id IS '角色 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.roles.code IS '角色编码；super_admin 为预留码，只能由迁移脚本建立（RULE-340/345）';
 COMMENT ON COLUMN platform_identity.roles.name IS '角色名称';
 COMMENT ON COLUMN platform_identity.roles.kind IS '角色类别：SYSTEM（冻结，不可改不可删）/ CUSTOM';
@@ -50,7 +50,7 @@ COMMENT ON COLUMN platform_identity.roles.version IS '乐观锁版本';
 COMMENT ON COLUMN platform_identity.roles.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 
 CREATE TABLE platform_identity.role_permissions (
-    role_id         bigint      NOT NULL REFERENCES platform_identity.roles (role_id) ON DELETE CASCADE,
+    role_id         uuid        NOT NULL REFERENCES platform_identity.roles (role_id) ON DELETE CASCADE,
     permission_code text        NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
@@ -65,7 +65,7 @@ COMMENT ON COLUMN platform_identity.role_permissions.updated_at IS '更新时间
 -- 账号仍持有的角色不得被删除：删角色时由外键拒绝，而不是悄悄把账号的授权带走。
 CREATE TABLE platform_identity.account_roles (
     user_id    bigint      NOT NULL REFERENCES platform_identity.user_accounts (user_id) ON DELETE CASCADE,
-    role_id    bigint      NOT NULL,
+    role_id    uuid        NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, role_id),
@@ -79,8 +79,8 @@ COMMENT ON COLUMN platform_identity.account_roles.created_at IS '创建时间';
 COMMENT ON COLUMN platform_identity.account_roles.updated_at IS '更新时间';
 
 CREATE TABLE platform_identity.navigation_items (
-    item_id         bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    parent_item_id  bigint      REFERENCES platform_identity.navigation_items (item_id),
+    item_id         uuid        PRIMARY KEY,
+    parent_item_id  uuid        REFERENCES platform_identity.navigation_items (item_id),
     name            text        NOT NULL,
     route_path      text,
     permission_code text,
@@ -91,7 +91,7 @@ CREATE TABLE platform_identity.navigation_items (
     CONSTRAINT ck_navigation_items_parent CHECK (parent_item_id IS NULL OR parent_item_id <> item_id)
 );
 COMMENT ON TABLE platform_identity.navigation_items IS '导航项：目录（无路由）与页面（有路由）；页面按所需权限码对持有者可见（RULE-348）。粒度：每个导航项一行';
-COMMENT ON COLUMN platform_identity.navigation_items.item_id IS '导航项 ID';
+COMMENT ON COLUMN platform_identity.navigation_items.item_id IS '导航项 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.navigation_items.parent_item_id IS '上级导航项 ID；顶层为空';
 COMMENT ON COLUMN platform_identity.navigation_items.name IS '显示名称';
 COMMENT ON COLUMN platform_identity.navigation_items.route_path IS '前端路由；目录为空';
@@ -102,14 +102,17 @@ COMMENT ON COLUMN platform_identity.navigation_items.created_at IS '创建时间
 COMMENT ON COLUMN platform_identity.navigation_items.updated_at IS '更新时间';
 
 CREATE TABLE platform_identity.login_states (
-    state_hash   text        PRIMARY KEY,
+    login_state_id uuid      PRIMARY KEY,
+    state_hash   text        NOT NULL,
     entry        text        NOT NULL CHECK (entry IN ('WORKBENCH', 'MINI_PROGRAM', 'QR_CODE_LOGIN')),
     expires_at   timestamptz NOT NULL,
     created_at   timestamptz NOT NULL DEFAULT now(),
     updated_at   timestamptz NOT NULL DEFAULT now(),
-    binding_hash text        NOT NULL
+    binding_hash text        NOT NULL,
+    CONSTRAINT uk_login_states_state_hash UNIQUE (state_hash)
 );
 COMMENT ON TABLE platform_identity.login_states IS '企业微信 OAuth state：只存哈希；一次性，消费时原子删除（I-9）。粒度：每个尚未使用的 state 一行';
+COMMENT ON COLUMN platform_identity.login_states.login_state_id IS '登录 state ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.login_states.state_hash IS 'state 的 SHA-256 十六进制';
 COMMENT ON COLUMN platform_identity.login_states.entry IS '签发时声明的企业微信登录入口';
 COMMENT ON COLUMN platform_identity.login_states.expires_at IS '过期时间（签发后 10 分钟）';
@@ -134,16 +137,19 @@ COMMENT ON COLUMN platform_identity.sso_ticket_uses.created_at IS '创建时间'
 COMMENT ON COLUMN platform_identity.sso_ticket_uses.updated_at IS '更新时间';
 
 CREATE TABLE platform_identity.ticket_issuers (
-    issuer_code        text        PRIMARY KEY,
+    ticket_issuer_id   uuid        PRIMARY KEY,
+    issuer_code        text        NOT NULL,
     key_id             text        NOT NULL UNIQUE,
     key_reference      text        NOT NULL,
     is_enabled         boolean     NOT NULL DEFAULT false,
     allowed_role_codes text[]      NOT NULL DEFAULT '{}',
     created_at         timestamptz NOT NULL DEFAULT now(),
     updated_at         timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT uk_ticket_issuers_issuer_code UNIQUE (issuer_code),
     CONSTRAINT ck_ticket_issuers_no_administrator CHECK (NOT ('super_admin' = ANY (allowed_role_codes)))
 );
 COMMENT ON TABLE platform_identity.ticket_issuers IS '票据签发方：外部签名票据的每方一把密钥（kid 区分），默认关闭；签发方必须在 architecture/ticket-issuers-allowlist.txt 中（I-2）。粒度：每个签发方一行';
+COMMENT ON COLUMN platform_identity.ticket_issuers.ticket_issuer_id IS '票据签发方 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.ticket_issuers.issuer_code IS '签发方编码，如 km；老 PSA 后端永远不得出现（I-2）';
 COMMENT ON COLUMN platform_identity.ticket_issuers.key_id IS '密钥标识 kid，票据头部携带，一方一把';
 COMMENT ON COLUMN platform_identity.ticket_issuers.key_reference IS '密钥引用，如 env:NAME；密钥本身只在环境变量或 KMS，表中不存';
@@ -252,7 +258,7 @@ CREATE TABLE platform_identity.authorization_requests (
     requested_by      bigint      NOT NULL,
     requested_at      timestamptz NOT NULL,
     subject_user_id   bigint,
-    role_id           bigint,
+    role_id           uuid,
     role_codes        text[]      NOT NULL DEFAULT '{}',
     new_role_code     text,
     role_name         text,
@@ -291,9 +297,9 @@ COMMENT ON COLUMN platform_identity.authorization_requests.created_at IS '创建
 COMMENT ON COLUMN platform_identity.authorization_requests.updated_at IS '更新时间';
 
 -- 系统角色：super_admin 为预留码（RULE-340/345），只能在此建立；employee 是新员工建档时显式授予一次的默认角色（RULE-344），仅含最小权限。
-INSERT INTO platform_identity.roles (code, name, kind, status, access_scope, is_administrative) VALUES
-    ('super_admin', '超级管理员', 'SYSTEM', 'ENABLED', 'ALL', true),
-    ('employee', '员工', 'SYSTEM', 'ENABLED', 'SELF', false);
+INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_scope, is_administrative) VALUES
+    ('019a0000-0000-7000-8000-000000000101', 'super_admin', '超级管理员', 'SYSTEM', 'ENABLED', 'ALL', true),
+    ('019a0000-0000-7000-8000-000000000102', 'employee', '员工', 'SYSTEM', 'ENABLED', 'SELF', false);
 
 INSERT INTO platform_identity.role_permissions (role_id, permission_code)
 SELECT roles.role_id, grants.permission_code
@@ -301,33 +307,23 @@ SELECT roles.role_id, grants.permission_code
  CROSS JOIN (VALUES ('platform.approval:task:read'), ('platform.approval:task:approve')) AS grants (permission_code)
  WHERE roles.code = 'employee';
 
-INSERT INTO platform_identity.navigation_items (name, route_path, permission_code, sort_order) VALUES
-    ('待办', '/inbox', 'platform.approval:task:read', 10);
-
-WITH directory AS (
-    INSERT INTO platform_identity.navigation_items (name, route_path, permission_code, sort_order)
-    VALUES ('系统管理', NULL, NULL, 90)
-    RETURNING item_id
-)
-INSERT INTO platform_identity.navigation_items (parent_item_id, name, route_path, permission_code, sort_order)
-SELECT directory.item_id, pages.name, pages.route_path, pages.permission_code, pages.sort_order
-  FROM directory
- CROSS JOIN (VALUES
-     ('角色管理', '/admin/roles', 'platform.identity:role:read', 10),
-     ('编号规则', '/admin/numbering-rules', 'platform.numbering:numbering-rule:read', 20),
-     ('组织浏览', '/admin/org-units', 'organization.workforce:org-unit:read', 30),
-     ('同步记录', '/admin/sync-runs', 'organization.workforce:sync-run:read', 40)
- ) AS pages (name, route_path, permission_code, sort_order);
+INSERT INTO platform_identity.navigation_items (item_id, parent_item_id, name, route_path, permission_code, sort_order) VALUES
+    ('019a0000-0000-7000-8000-000000000201', NULL, '待办', '/inbox', 'platform.approval:task:read', 10),
+    ('019a0000-0000-7000-8000-000000000202', NULL, '系统管理', NULL, NULL, 90),
+    ('019a0000-0000-7000-8000-000000000203', '019a0000-0000-7000-8000-000000000202', '角色管理', '/admin/roles', 'platform.identity:role:read', 10),
+    ('019a0000-0000-7000-8000-000000000204', '019a0000-0000-7000-8000-000000000202', '编号规则', '/admin/numbering-rules', 'platform.numbering:numbering-rule:read', 20),
+    ('019a0000-0000-7000-8000-000000000205', '019a0000-0000-7000-8000-000000000202', '组织浏览', '/admin/org-units', 'organization.workforce:org-unit:read', 30),
+    ('019a0000-0000-7000-8000-000000000206', '019a0000-0000-7000-8000-000000000202', '同步记录', '/admin/sync-runs', 'organization.workforce:sync-run:read', 40);
 
 -- 流程管理员角色（D-1a-61）：持有人接收没人可派的审批任务、超时升级的任务，可改派任务、查看全部待办；人选由部署前指定（PREDEPLOY_CHECKLIST B-12）。
-INSERT INTO platform_identity.roles (code, name, kind, status, access_scope, is_administrative) VALUES
-    ('process_administrator', '流程管理员', 'SYSTEM', 'ENABLED', 'SELF', false);
+INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_scope, is_administrative) VALUES
+    ('019a0000-0000-7000-8000-000000000103', 'process_administrator', '流程管理员', 'SYSTEM', 'ENABLED', 'SELF', false);
 
 -- ADR-0027 第 2、3 项：三个系统业务角色；流程管理员（D-1a-61）已在上面种入。组织数据管理员与业务管理员的持有人在上线前由运维命令按账号授予，迁移不写入任何账号。
-INSERT INTO platform_identity.roles (code, name, kind, status, access_scope, is_administrative) VALUES
-    ('org_data_admin', '组织数据管理员', 'SYSTEM', 'ENABLED', 'ALL', false),
-    ('business_admin', '业务管理员', 'SYSTEM', 'ENABLED', 'SELF', false),
-    ('security_auditor', '安全审计员', 'SYSTEM', 'ENABLED', 'ALL', false);
+INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_scope, is_administrative) VALUES
+    ('019a0000-0000-7000-8000-000000000104', 'org_data_admin', '组织数据管理员', 'SYSTEM', 'ENABLED', 'ALL', false),
+    ('019a0000-0000-7000-8000-000000000105', 'business_admin', '业务管理员', 'SYSTEM', 'ENABLED', 'SELF', false),
+    ('019a0000-0000-7000-8000-000000000106', 'security_auditor', '安全审计员', 'SYSTEM', 'ENABLED', 'ALL', false);
 
 INSERT INTO platform_identity.role_permissions (role_id, permission_code)
 SELECT roles.role_id, grants.permission_code

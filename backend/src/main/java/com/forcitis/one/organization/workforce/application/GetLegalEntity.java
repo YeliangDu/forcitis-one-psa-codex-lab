@@ -17,10 +17,9 @@ public class GetLegalEntity {
     }
 
     @Transactional(readOnly = true)
-    public LegalEntityView execute(long legalEntityId) {
-        return (legalEntityId <= 0 ? java.util.Optional.<com.forcitis.one.organization.workforce.domain.LegalEntityQueries.LegalEntityRecord>empty()
-                : legalEntities.find(new LegalEntityId(legalEntityId))).map(LegalEntityView::of)
+    public LegalEntityView execute(LegalEntityId legalEntityId) {
+        return legalEntities.find(legalEntityId).map(LegalEntityView::of)
                 .orElseThrow(() -> new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND, ErrorKind.NOT_FOUND,
-                        "no legal entity " + legalEntityId));
+                        "no legal entity " + legalEntityId.value()));
     }
 }

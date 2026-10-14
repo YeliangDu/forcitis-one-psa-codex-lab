@@ -3,9 +3,11 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.InvalidCursorException;
 import com.forcitis.one.kernel.PageRequest;
+import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import com.forcitis.one.organization.workforce.domain.SyncRunRecord;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,11 +22,11 @@ public class ListSyncRuns {
     /** Newest first; the cursor is the id of the run the previous page ended with. */
     @Transactional(readOnly = true)
     public CursorPage<SyncRunView> execute(PageRequest page) {
-        Long before = null;
+        SyncRunId before = null;
         if (page.cursorValue() != null) {
             try {
-                before = Long.parseLong(page.cursorValue());
-            } catch (NumberFormatException malformed) {
+                before = new SyncRunId(UUID.fromString(page.cursorValue()));
+            } catch (IllegalArgumentException malformed) {
                 throw new InvalidCursorException("the cursor is not one this server issued");
             }
         }

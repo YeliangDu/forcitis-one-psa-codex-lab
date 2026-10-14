@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.infrastructure.persistence;
 
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.identity.domain.OneTimeCredentials;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import java.time.Instant;
@@ -14,15 +15,17 @@ import org.springframework.stereotype.Repository;
 class JdbcOneTimeCredentials implements OneTimeCredentials {
 
     private final JdbcClient jdbc;
+    private final IdGenerator ids;
 
-    JdbcOneTimeCredentials(JdbcClient jdbc) {
+    JdbcOneTimeCredentials(JdbcClient jdbc, IdGenerator ids) {
         this.jdbc = jdbc;
+        this.ids = ids;
     }
 
     @Override
     public void storeLoginState(String stateHash, String bindingHash, WecomEntry entry, Instant expiresAt) {
-        jdbc.sql("insert into platform_identity.login_states (state_hash, binding_hash, entry, expires_at) values (:hash, :binding, :entry, :expires)")
-                .param("hash", stateHash).param("binding", bindingHash).param("entry", entry.name()).param("expires", utc(expiresAt)).update();
+        jdbc.sql("insert into platform_identity.login_states (login_state_id, state_hash, binding_hash, entry, expires_at) values (:id, :hash, :binding, :entry, :expires)")
+                .param("id", ids.next()).param("hash", stateHash).param("binding", bindingHash).param("entry", entry.name()).param("expires", utc(expiresAt)).update();
     }
 
     @Override

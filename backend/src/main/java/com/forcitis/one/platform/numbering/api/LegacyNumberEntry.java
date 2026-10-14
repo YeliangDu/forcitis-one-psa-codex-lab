@@ -5,9 +5,10 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.ValueObject;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
- * The numeric part of the document id is what the legacy link table stores; a non-numeric id cannot be linked. legalEntity is empty
+ * The document id is the UUID of the document in this system, which is what the legacy link table stores; any other id cannot be linked. legalEntity is empty
  * when the import could not work it out: the original number stays searchable.
  */
 @ValueObject
@@ -19,8 +20,10 @@ public record LegacyNumberEntry(DocumentReference document, String legacyNumber,
         Objects.requireNonNull(legacyNumber, "legacyNumber");
         Objects.requireNonNull(legalEntity, "legalEntity");
         Objects.requireNonNull(importBatch, "importBatch");
-        if (!document.documentId().value().matches("[1-9][0-9]{0,17}")) {
-            throw new IllegalArgumentException("A legacy link needs a positive numeric document id: " + document.documentId().value());
+        try {
+            UUID.fromString(document.documentId().value());
+        } catch (IllegalArgumentException notAUuid) {
+            throw new IllegalArgumentException("A legacy link needs the UUID of the document: " + document.documentId().value(), notAUuid);
         }
         if (legacyNumber.isBlank() || !legacyNumber.equals(legacyNumber.strip()) || legacyNumber.length() > MAX_LENGTH) {
             throw new IllegalArgumentException("Legacy number must be 1.." + MAX_LENGTH + " characters without surrounding blanks");

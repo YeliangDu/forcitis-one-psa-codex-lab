@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -72,7 +73,7 @@ class NumberingRulesIT {
 
     static final String RULES = "/api/v1/platform/numbering-rules";
     static final String LEGACY = "/api/v1/platform/legacy-numbers";
-    static final LegalEntityId LE1 = new LegalEntityId(1);
+    static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
     static final RequestPostProcessor READER = user("7").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ);
     static final RequestPostProcessor LEGACY_READER = user("6").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ);
     static final RequestPostProcessor UPDATER = user("9").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
@@ -102,9 +103,9 @@ class NumberingRulesIT {
     void legalEntitiesExist() {
         NumberingFixtures.restoreSeededDefaults(jdbc);
         org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Optional.empty());
-        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(1)))
+        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(TestIds.uuid(1))))
                 .thenReturn(java.util.Optional.of(new com.forcitis.one.organization.workforce.api.LegalEntityCode("FST")));
-        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(2)))
+        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(TestIds.uuid(2))))
                 .thenReturn(java.util.Optional.of(new com.forcitis.one.organization.workforce.api.LegalEntityCode("FIT")));
     }
 
@@ -158,7 +159,7 @@ class NumberingRulesIT {
 
         assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0001");
         assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0002");
-        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2), day)).isEqualTo("QT-FIT-202610-0001");
+        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(TestIds.uuid(2)), day)).isEqualTo("QT-FIT-202610-0001");
     }
 
     @Test
@@ -167,10 +168,10 @@ class NumberingRulesIT {
         inForce("QUOTE", "TIMESHEET");
         LocalDate day = LocalDate.of(2027, 3, 3);
 
-        assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(99), day))
+        assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(TestIds.uuid(99)), day))
                 .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
                         .isEqualTo(com.forcitis.one.platform.numbering.api.NumberingError.PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE));
-        assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(99), day))
+        assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(TestIds.uuid(99)), day))
                 .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
     }
 
@@ -179,8 +180,8 @@ class NumberingRulesIT {
     void deactivatedLegalEntityCannotIssue() {
         inForce("QUOTE", "TIMESHEET");
         LocalDate day = LocalDate.of(2027, 4, 4);
-        assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(3), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
-        assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(3), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
+        assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(TestIds.uuid(3)), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
+        assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(TestIds.uuid(3)), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
     }
 
     @Test
@@ -191,7 +192,7 @@ class NumberingRulesIT {
         NumberingFixtures.useTemplate(jdbc, "TIMESHEET", "{TYPE}-{yyyyMMdd}-{seq:4}", "DAILY");
 
         String first = issue(DocumentType.TIMESHEET, LE1, day);
-        String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
+        String second = issue(DocumentType.TIMESHEET, new LegalEntityId(TestIds.uuid(2)), day);
 
         assertThat(first).isEqualTo("TS-20270506-0001");
         assertThat(second).isEqualTo("TS-20270506-0002");
@@ -209,7 +210,7 @@ class NumberingRulesIT {
         inForce("TIMESHEET", "JOURNAL_VOUCHER");
         LocalDate day = LocalDate.of(2027, 6, 7);
         assertThat(issue(DocumentType.TIMESHEET, LE1, day)).isEqualTo("TS-FST-202706-0001");
-        assertThat(issue(DocumentType.TIMESHEET, new LegalEntityId(2), day)).isEqualTo("TS-FIT-202706-0001");
+        assertThat(issue(DocumentType.TIMESHEET, new LegalEntityId(TestIds.uuid(2)), day)).isEqualTo("TS-FIT-202706-0001");
         assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, day)).isEqualTo("JV-FST-202706-0001");
     }
 
@@ -240,7 +241,7 @@ class NumberingRulesIT {
     void legacyNumbersAreSearchableByPrefix() throws Exception {
         String[] numbers = {"SYN-PX-0001", "SYN-PX-0002", "SYN-PX-0003", "OTHER-0001"};
         for (int i = 0; i < numbers.length; i++) {
-            register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId(String.valueOf(7000 + i))), numbers[i], Optional.of(LE1), "synthetic-prefix"));
+            register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(7000 + i)), numbers[i], Optional.of(LE1), "synthetic-prefix"));
         }
 
         String first = mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumberPrefix", "SYN-PX").param("limit", "2").with(LEGACY_READER))
@@ -258,23 +259,23 @@ class NumberingRulesIT {
     @Test
     @DisplayName("C1a-16 an original number finds the new document, and the new document finds its original numbers")
     void legacyNumbersAreSearchableBothWays() throws Exception {
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001", Optional.of(LE1), "synthetic-batch-1"));
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001-R2", Optional.of(LE1), "synthetic-batch-1"));
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("502")), "SYN-QU-0002", Optional.of(new LegalEntityId(2)), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(501)), "SYN-QU-0001", Optional.of(LE1), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(501)), "SYN-QU-0001-R2", Optional.of(LE1), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(502)), "SYN-QU-0002", Optional.of(new LegalEntityId(TestIds.uuid(2))), "synthetic-batch-1"));
 
         mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-0001").with(LEGACY_READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.documentId").value("501"))
-                .andExpect(jsonPath("$.legalEntityId").value("1"))
+                .andExpect(jsonPath("$.documentId").value(TestIds.uuid(501).toString()))
+                .andExpect(jsonPath("$.legalEntityId").value(LE1.value().toString()))
                 .andExpect(jsonPath("$.importBatch").value("synthetic-batch-1"));
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "501").with(LEGACY_READER))
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", TestIds.uuid(501).toString()).with(LEGACY_READER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].legacyNumber").value("SYN-QU-0001"))
                 .andExpect(jsonPath("$.items[1].legacyNumber").value("SYN-QU-0001-R2"));
         mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-9999").with(LEGACY_READER))
                 .andExpect(status().isNotFound());
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "999").with(LEGACY_READER))
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", TestIds.uuid(999).toString()).with(LEGACY_READER))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
         assertThat(findDocument.find(DocumentType.TIMESHEET, "SYN-QU-0001")).isEmpty();
     }
@@ -283,26 +284,26 @@ class NumberingRulesIT {
     void legacyNumberSearchNeedsThePermission() throws Exception {
         mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "X")).andExpect(status().isUnauthorized());
         mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "X").with(UPDATER)).andExpect(status().isForbidden());
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "1").with(UPDATER)).andExpect(status().isForbidden());
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", TestIds.uuid(1).toString()).with(UPDATER)).andExpect(status().isForbidden());
         mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "X").with(READER)).andExpect(status().isForbidden());
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "1").with(READER)).andExpect(status().isForbidden());
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", TestIds.uuid(1).toString()).with(READER)).andExpect(status().isForbidden());
         mvc.perform(get(RULES).with(LEGACY_READER)).andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("D-1a-152 an original number whose legal entity could not be worked out is stored without one and stays searchable")
     void legacyNumberWithoutLegalEntityIsStoredAndFound() throws Exception {
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("601")), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("601")), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(601)), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(601)), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
 
         assertThat(jdbc.sql("select count(*) from platform_numbering.legacy_numbers where legacy_number = 'SYN-QU-NOLE' and legal_entity_id is null")
                 .query(Integer.class).single()).isEqualTo(1);
         assertThat(findDocument.find(DocumentType.QUOTE, "SYN-QU-NOLE")).hasValueSatisfying(e -> assertThat(e.legalEntity()).isEmpty());
         mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-NOLE").with(LEGACY_READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.documentId").value("601"))
+                .andExpect(jsonPath("$.documentId").value(TestIds.uuid(601).toString()))
                 .andExpect(jsonPath("$.legalEntityId").doesNotExist());
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "601").with(LEGACY_READER))
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", TestIds.uuid(601).toString()).with(LEGACY_READER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].legacyNumber").value("SYN-QU-NOLE"));
     }
@@ -310,33 +311,37 @@ class NumberingRulesIT {
     @Test
     @DisplayName("(document type, original number) is unique: re-running an import is a no-op, a second owner is refused")
     void legacyNumberIsUniquePerDocumentType() {
-        LegacyNumberEntry first = new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("11")), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-2");
+        LegacyNumberEntry first = new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, doc(11)), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-2");
         register.register(first);
         register.register(first);
 
         assertThat(jdbc.sql("select count(*) from platform_numbering.legacy_numbers where legacy_number = 'SYN-TS-1'")
                 .query(Integer.class).single()).isEqualTo(1);
-        assertThatThrownBy(() -> register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("12")), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-3")))
+        assertThatThrownBy(() -> register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, doc(12)), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-3")))
                 .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
                         .isEqualTo(com.forcitis.one.platform.numbering.api.NumberingError.PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN));
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.JOURNAL_VOUCHER, new DocumentId("12")), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-3"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.JOURNAL_VOUCHER, doc(12)), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-3"));
         assertThat(findDocument.find(DocumentType.JOURNAL_VOUCHER, "SYN-TS-1")).isPresent();
     }
 
     @Test
     void theDatabaseItselfEnforcesTheUniqueConstraint() {
-        String insert = "insert into platform_numbering.legacy_numbers (document_type, legacy_number, document_id, legal_entity_id, import_batch)"
-                + " values ('QUOTE', 'SYN-DB-1', 1, 1, 'synthetic-batch-4')";
+        String insert = "insert into platform_numbering.legacy_numbers (id, document_type, legacy_number, document_id, legal_entity_id, import_batch)"
+                + " values (uuidv7(), 'QUOTE', 'SYN-DB-1', '" + TestIds.uuid(1) + "', '" + TestIds.uuid(1) + "', 'synthetic-batch-4')";
         jdbc.sql(insert).update();
 
         assertThatThrownBy(() -> jdbc.sql(insert).update()).isInstanceOf(DuplicateKeyException.class);
     }
 
+    private static DocumentId doc(long number) {
+        return new DocumentId(TestIds.uuid(number).toString());
+    }
+
     @Test
     void entriesValidateThemselves() {
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), " ", Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("0")), "X", Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "X", Optional.of(LE1), "")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "x".repeat(129), Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(1)), " ", Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("7")), "X", Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(1)), "X", Optional.of(LE1), "")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(1)), "x".repeat(129), Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
     }
 }

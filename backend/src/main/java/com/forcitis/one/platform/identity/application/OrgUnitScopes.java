@@ -15,6 +15,7 @@ import com.forcitis.one.platform.identity.domain.AccountRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 class OrgUnitScopes implements OrgUnitAccess {
 
-    private static final LegalEntityId NOT_USED = new LegalEntityId(1);
+    private static final LegalEntityId NOT_USED = new LegalEntityId(new UUID(0, 0));
 
     private final CurrentUser currentUser;
     private final AccountRepository accounts;

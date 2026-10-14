@@ -5,6 +5,6 @@ import org.jspecify.annotations.Nullable;
 
 record LegalEntityResponse(String legalEntityId, String code, String name, String status, @Nullable Long accountingOrganizationNumber) {
     static LegalEntityResponse of(LegalEntityView view) {
-        return new LegalEntityResponse(String.valueOf(view.legalEntityId()), view.code(), view.name(), view.status(), view.accountingOrganizationNumber());
+        return new LegalEntityResponse(view.legalEntityId().value().toString(), view.code(), view.name(), view.status(), view.accountingOrganizationNumber());
     }
 }

@@ -17,6 +17,7 @@ import com.forcitis.one.platform.identity.events.RoleCreated;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,15 +51,15 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                         + ",\"permissionCodes\":[" + permissions + "]}")).andReturn();
     }
 
-    private long roleId(String code) {
-        return jdbc.sql("select role_id from platform_identity.roles where code = :c").param("c", code).query(Long.class).single();
+    private UUID roleId(String code) {
+        return jdbc.sql("select role_id from platform_identity.roles where code = :c").param("c", code).query(UUID.class).single();
     }
 
     private String errorCode(MvcResult result) throws Exception {
         return body(result).path("errorCode").asString();
     }
 
-    private String versionOf(long roleId) {
+    private String versionOf(UUID roleId) {
         return "\"" + jdbc.sql("select version from platform_identity.roles where role_id = :id").param("id", roleId).query(Long.class).single() + "\"";
     }
 
@@ -107,9 +108,9 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("RULE-345 system roles are frozen: no update, no delete; custom roles can be changed, and deleted once no account holds them")
     void systemRolesAreFrozen() throws Exception {
-        long employee = roleId("employee");
-        long superAdmin = roleId("super_admin");
-        for (long id : new long[] {employee, superAdmin}) {
+        UUID employee = roleId("employee");
+        UUID superAdmin = roleId("super_admin");
+        for (UUID id : new UUID[] {employee, superAdmin}) {
             assertThat(mvc.perform(put(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
                     .content("{\"name\":\"Renamed\",\"enabled\":false,\"permissionCodes\":[]}")).andReturn().getResponse().getStatus())
                     .isEqualTo(409);
@@ -117,7 +118,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         }
 
         createRole("analyst", "Analyst", "\"platform.approval:task:read\"", null);
-        long analyst = roleId("analyst");
+        UUID analyst = roleId("analyst");
         createAccount(1001, "analyst");
         MvcResult renamed = mvc.perform(put(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Senior analyst\",\"enabled\":true,\"accessScope\":\"OWN_ORG_UNIT_SUBTREE\",\"permissionCodes\":[\"platform.approval:task:approve\"]}"))
@@ -195,7 +196,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("RULE-345 nobody can hand out more than they hold: no escalation through role editing")
     void noEscalation() throws Exception {
-        jdbc.sql("insert into platform_identity.roles (code, name) values ('role-editor', 'Role editor')").update();
+        jdbc.sql("insert into platform_identity.roles (role_id, code, name) values (uuidv7(), 'role-editor', 'Role editor')").update();
         jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'role-editor'")
                 .param("p", Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE).update();
         jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'role-editor'")
@@ -232,7 +233,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(roleDirectory.findRoleHolders(new RoleCode("employee"))).containsExactlyInAnyOrder(new UserId(1), new UserId(4));
         assertThat(roleDirectory.findRoleHolders(new RoleCode("nobody-has-this"))).isEmpty();
 
-        jdbc.sql("insert into platform_identity.roles (code, name, status) values ('retired', 'Retired', 'DISABLED')").update();
+        jdbc.sql("insert into platform_identity.roles (role_id, code, name, status) values (uuidv7(), 'retired', 'Retired', 'DISABLED')").update();
         createAccount(4, "retired");
         assertThat(roleDirectory.findRoleHolders(new RoleCode("retired"))).as("a disabled role has no holders").isEmpty();
     }
@@ -285,7 +286,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("a role and an account keep the lock version and the event count apart: both are stored and move once per change that announces an event")
     void storedCountersFollowTheChanges() throws Exception {
         createRole("analyst", "Analyst", "", null);
-        long id = roleId("analyst");
+        UUID id = roleId("analyst");
         mvc.perform(put(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Senior analyst\",\"enabled\":true,\"permissionCodes\":[]}")).andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(200));
         mvc.perform(put(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
@@ -313,7 +314,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(createRole("hold", "Hold", "\"" + Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE + "\"", null).getResponse().getStatus())
                 .as("separation-hold:approve is allowed outside the administrator mode (ADR-0028)").isNotEqualTo(422);
 
-        jdbc.sql("insert into platform_identity.roles (code, name) values ('legacy-editor', 'Legacy editor')").update();
+        jdbc.sql("insert into platform_identity.roles (role_id, code, name) values (uuidv7(), 'legacy-editor', 'Legacy editor')").update();
         for (String code : new String[] {Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE,
                 Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE, Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_APPROVAL_TASK_READ}) {
             jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'legacy-editor'")

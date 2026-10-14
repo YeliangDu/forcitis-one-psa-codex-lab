@@ -11,6 +11,7 @@ import com.forcitis.one.platform.audit.domain.AuditPage;
 import com.forcitis.one.platform.audit.domain.AuditQuery;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +48,7 @@ public class SearchAuditEntries {
         }
         String[] parts = page.cursorValue().split("\\|");
         try {
-            return new AuditQuery.Position(Instant.EPOCH.plus(Long.parseLong(parts[0]), ChronoUnit.MICROS), new AuditEntryId(Long.parseLong(parts[1])));
+            return new AuditQuery.Position(Instant.EPOCH.plus(Long.parseLong(parts[0]), ChronoUnit.MICROS), new AuditEntryId(UUID.fromString(parts[1])));
         } catch (RuntimeException malformed) {
             throw new InvalidCursorException("the cursor is not one this server issued");
         }

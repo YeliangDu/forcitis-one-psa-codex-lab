@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.RunStats;
@@ -22,21 +23,24 @@ import org.springframework.stereotype.Repository;
 class JdbcSyncRunRepository implements SyncRunRepository {
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    JdbcSyncRunRepository(JdbcClient jdbc, Clock clock) {
+    JdbcSyncRunRepository(JdbcClient jdbc, Clock clock, IdGenerator ids) {
         this.clock = clock;
         this.jdbc = jdbc;
+        this.ids = ids;
     }
 
     @Override
     public SyncRun insertRunning(SyncTrigger trigger, Instant now) {
         SyncRun draft = SyncRun.unsaved(trigger, now);
-        long id = jdbc.sql("""
-                insert into organization_workforce.sync_runs (trigger_kind, status, started_at, created_at, updated_at, version, event_count)
-                values (:trigger, :status, :now, :now, :now, 0, 0) returning id
-                """).param("trigger", trigger.name()).param("status", draft.status().name()).param("now", Timestamp.from(now))
-                .query(Long.class).single();
-        return draft.withId(new SyncRunId(id));
+        SyncRunId id = new SyncRunId(ids.next());
+        jdbc.sql("""
+                insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at, created_at, updated_at, version, event_count)
+                values (:id, :trigger, :status, :now, :now, :now, 0, 0)
+                """).param("id", id.value()).param("trigger", trigger.name()).param("status", draft.status().name())
+                .param("now", Timestamp.from(now)).update();
+        return draft.withId(id);
     }
 
     @Override
@@ -47,13 +51,13 @@ class JdbcSyncRunRepository implements SyncRunRepository {
 
     @Override
     public List<SyncRun> findAbandoned(Instant cutoff) {
-        return jdbc.sql(SyncRunRows.SELECT + " where status = 'RUNNING' and started_at < :cutoff order by id")
+        return jdbc.sql(SyncRunRows.SELECT + " where status = 'RUNNING' and started_at < :cutoff order by started_at, id")
                 .param("cutoff", Timestamp.from(cutoff)).query((rs, n) -> SyncRunRows.aggregate(rs)).list();
     }
 
     @Override
     public List<SyncRun> findHeldExcept(SyncRunId syncRunId) {
-        return jdbc.sql(SyncRunRows.SELECT + " where status = 'HELD' and id <> :id order by id").param("id", syncRunId.value())
+        return jdbc.sql(SyncRunRows.SELECT + " where status = 'HELD' and id <> :id order by started_at, id").param("id", syncRunId.value())
                 .query((rs, n) -> SyncRunRows.aggregate(rs)).list();
     }
 
@@ -89,7 +93,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                 .param("failureReason", truncate(run.failureReason()), Types.VARCHAR)
                 .param("releasedBy", run.releasedBy() == null ? null : run.releasedBy().value(), Types.BIGINT)
                 .param("releasedAt", run.releasedAt() == null ? null : Timestamp.from(run.releasedAt()), Types.TIMESTAMP)
-                .param("releasedByRun", run.releasedByRunId() == null ? null : run.releasedByRunId().value(), Types.BIGINT)
+                .param("releasedByRun", run.releasedByRunId() == null ? null : run.releasedByRunId().value(), Types.OTHER)
                 .param("holdKinds", run.holdKinds().stream().map(Enum::name).toArray(String[]::new))
                 .param("releasedKinds", run.releasedKinds().stream().map(Enum::name).toArray(String[]::new))
                 .param("nextVersion", run.versionAfterSave()).param("eventSequence", run.eventSequenceAfterSave())
@@ -121,11 +125,11 @@ class JdbcSyncRunRepository implements SyncRunRepository {
     public void saveDiffs(SyncRunId syncRunId, List<SyncDiff> diffs) {
         for (SyncDiff d : diffs) {
             jdbc.sql("""
-                    insert into organization_workforce.sync_diffs (sync_run_id, entity_kind, subject_key, change_kind,
+                    insert into organization_workforce.sync_diffs (id, sync_run_id, entity_kind, subject_key, change_kind,
                            changed_field_codes, issue_kind, detail)
-                    values (:run, :entity, :subject, :change, :fields, :issue, :detail)
+                    values (:id, :run, :entity, :subject, :change, :fields, :issue, :detail)
                     """)
-                    .param("run", syncRunId.value()).param("entity", d.entityKind().name()).param("subject", d.subjectKey())
+                    .param("id", ids.next()).param("run", syncRunId.value()).param("entity", d.entityKind().name()).param("subject", d.subjectKey())
                     .param("change", d.changeKind().name())
                     .param("fields", d.changedFields().isEmpty() ? null : d.changedFields().toArray(String[]::new), java.sql.Types.ARRAY)
                     .param("issue", d.issueKind() == null ? null : d.issueKind().name())

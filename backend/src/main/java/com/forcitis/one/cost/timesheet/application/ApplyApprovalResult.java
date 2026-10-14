@@ -9,6 +9,7 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.modulith.events.ApplicationModuleListener;
@@ -72,8 +73,8 @@ class ApplyApprovalResult {
 
     private Optional<Timesheet> timesheetOf(ApprovalCompleted event) {
         try {
-            return timesheets.findForUpdate(new TimesheetId(Long.parseLong(event.document().documentId().value())));
-        } catch (NumberFormatException notOurs) {
+            return timesheets.findForUpdate(new TimesheetId(UUID.fromString(event.document().documentId().value())));
+        } catch (IllegalArgumentException notOurs) {
             return Optional.empty();
         }
     }

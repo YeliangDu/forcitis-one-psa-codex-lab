@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.infrastructure.persistence;
 
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.domain.DeliveryKind;
 import com.forcitis.one.platform.integration.domain.OutboundDelivery;
@@ -27,8 +28,10 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
 
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    JdbcOutboundDeliveryRepository(JdbcClient jdbc, Clock clock) {
+    JdbcOutboundDeliveryRepository(JdbcClient jdbc, Clock clock, IdGenerator ids) {
+        this.ids = ids;
         this.clock = clock;
         this.jdbc = jdbc;
     }
@@ -37,12 +40,13 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     public boolean insert(OutboundDelivery unsaved, Instant now) {
         return jdbc.sql("""
                         insert into platform_integration.outbound_deliveries
-                               (deduplication_key, recipient_codes, skipped_recipient_codes, title, description, target_url, status,
+                               (id, deduplication_key, recipient_codes, skipped_recipient_codes, title, description, target_url, status,
                                 next_attempt_at, last_error, kind, target_key, correlation_id, created_at, updated_at, version, event_count)
-                        values (:key, :recipients, :skipped, :title, :description, :url, :status, :next, :reason, :kind, :target,
+                        values (:id, :key, :recipients, :skipped, :title, :description, :url, :status, :next, :reason, :kind, :target,
                                 :correlation, :now, :now, 0, 0)
                         on conflict (deduplication_key) do nothing
                         """)
+                .param("id", ids.next())
                 .param("key", unsaved.deduplicationKey())
                 .param("recipients", codes(unsaved.recipients()))
                 .param("skipped", unsaved.skippedRecipients().isEmpty() ? null : codes(unsaved.skippedRecipients()), Types.ARRAY)
@@ -132,7 +136,7 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     }
 
     private static OutboundDelivery row(ResultSet rs) throws SQLException {
-        return OutboundDelivery.restore(new OutboundDeliveryId(rs.getLong("id")), rs.getString("deduplication_key"),
+        return OutboundDelivery.restore(new OutboundDeliveryId(rs.getObject("id", UUID.class)), rs.getString("deduplication_key"),
                 recipients(rs), rs.getString("title"), rs.getString("description"), rs.getString("target_url"),
                 rs.getString("status"), rs.getInt("attempt_count"), rs.getString("response_code"), rs.getString("handled_note"), rs.getString("handled_result"),
                 DeliveryKind.valueOf(rs.getString("kind")), rs.getString("target_key"), rs.getObject("correlation_id", UUID.class),

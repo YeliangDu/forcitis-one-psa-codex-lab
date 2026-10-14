@@ -9,8 +9,8 @@ import java.util.Optional;
 public interface SyncRunQueries {
     Optional<SyncRunRecord> find(SyncRunId syncRunId);
 
-    /** Newest first: runs with an id below beforeId (null for the first page), at most limit. */
-    List<SyncRunRecord> findBefore(Long beforeId, int limit);
+    /** Newest first: runs with an id below before (null for the first page), at most limit. */
+    List<SyncRunRecord> findBefore(SyncRunId before, int limit);
 
     List<SyncDiff> findDiffs(SyncRunId syncRunId);
 

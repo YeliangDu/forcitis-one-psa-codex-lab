@@ -3,6 +3,7 @@ package com.forcitis.one.platform.numbering.infrastructure.persistence;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
@@ -22,6 +23,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -98,9 +100,9 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     }
 
     @Override
-    public boolean hasCounterFor(long legalEntityId) {
+    public boolean hasCounterFor(LegalEntityId legalEntityId) {
         return jdbc.sql("select exists (select 1 from platform_numbering.numbering_counters where legal_entity_id = :le)")
-                .param("le", legalEntityId).query(Boolean.class).single();
+                .param("le", legalEntityId.value()).query(Boolean.class).single();
     }
 
     @Override
@@ -163,7 +165,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     }
 
     @Override
-    public long reserveNext(DocumentType type, long counterScope, String periodKey, long startValue) {
+    public long reserveNext(DocumentType type, UUID counterScope, String periodKey, long startValue) {
         return jdbc.sql("""
                         insert into platform_numbering.numbering_counters (document_type, legal_entity_id, period_key, last_value)
                         values (:type, :le, :period, :start)

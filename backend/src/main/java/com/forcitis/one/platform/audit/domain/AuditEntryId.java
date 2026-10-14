@@ -1,13 +1,13 @@
 package com.forcitis.one.platform.audit.domain;
 
 import com.forcitis.one.kernel.ValueObject;
+import java.util.Objects;
+import java.util.UUID;
 
 @ValueObject
-public record AuditEntryId(long value) {
+public record AuditEntryId(UUID value) {
 
     public AuditEntryId {
-        if (value <= 0) {
-            throw new IllegalArgumentException("AuditEntryId must be positive: " + value);
-        }
+        Objects.requireNonNull(value, "value");
     }
 }

@@ -4,6 +4,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntity;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /** Keeps the version rows in step with the legal entity, in its transaction; a second change on the same day closes that day's version and appends the next revision. */
@@ -17,7 +18,7 @@ final class LegalEntityHistory {
     void recordLegalEntity(LegalEntity entity, LocalDate day) {
         record Open(LocalDate from, int revision, boolean same) {
         }
-        long id = entity.legalEntityId().value();
+        UUID id = entity.legalEntityId().value();
         List<Open> open = jdbc.sql("""
                         select effective_from_date, revision_number, (code = :code and name = :name and status = :status) as same
                           from organization_workforce.legal_entity_versions where legal_entity_id = :id and effective_to_date is null

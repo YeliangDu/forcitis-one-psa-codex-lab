@@ -10,6 +10,6 @@ record LegalEntityAttributionResponse(String kind, String subjectId, List<Period
 
     static LegalEntityAttributionResponse of(LegalEntityAttributionView view) {
         return new LegalEntityAttributionResponse(view.kind(), String.valueOf(view.subjectId()),
-                view.periods().stream().map(p -> new Period(String.valueOf(p.legalEntityId()), p.effectiveFrom(), p.effectiveTo())).toList());
+                view.periods().stream().map(p -> new Period(p.legalEntityId().value().toString(), p.effectiveFrom(), p.effectiveTo())).toList());
     }
 }

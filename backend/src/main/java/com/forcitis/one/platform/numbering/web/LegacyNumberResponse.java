@@ -8,6 +8,6 @@ record LegacyNumberResponse(DocumentType documentType, String legacyNumber, Stri
 
     static LegacyNumberResponse from(LegacyNumberEntry e) {
         return new LegacyNumberResponse(e.document().documentType(), e.legacyNumber(), e.document().documentId().value(),
-                e.legalEntity().map(le -> Long.toString(le.value())).orElse(null), e.importBatch());
+                e.legalEntity().map(le -> le.value().toString()).orElse(null), e.importBatch());
     }
 }

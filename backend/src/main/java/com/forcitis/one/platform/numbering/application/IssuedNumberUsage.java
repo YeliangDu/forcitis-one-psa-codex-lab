@@ -15,6 +15,6 @@ class IssuedNumberUsage implements LegalEntityNumberUsage {
 
     @Override
     public boolean hasIssuedNumbers(LegalEntityId legalEntityId) {
-        return rules.hasCounterFor(legalEntityId.value());
+        return rules.hasCounterFor(legalEntityId);
     }
 }

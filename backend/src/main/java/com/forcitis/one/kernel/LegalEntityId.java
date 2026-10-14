@@ -1,10 +1,12 @@
 package com.forcitis.one.kernel;
 
+import java.util.Objects;
+import java.util.UUID;
+
 @ValueObject
-public record LegalEntityId(long value) {
+public record LegalEntityId(UUID value) {
+
     public LegalEntityId {
-        if (value <= 0) {
-            throw new IllegalArgumentException("LegalEntityId must be positive: " + value);
-        }
+        Objects.requireNonNull(value, "value");
     }
 }

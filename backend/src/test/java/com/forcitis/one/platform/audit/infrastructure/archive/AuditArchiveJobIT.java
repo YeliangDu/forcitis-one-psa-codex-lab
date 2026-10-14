@@ -8,6 +8,7 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,9 +68,9 @@ class AuditArchiveJobIT {
         jdbc.sql("truncate table platform_audit.audit_entries, platform_audit.audit_archive_batches restart identity").update();
     }
 
-    private void entry(String action, String createdAgo) {
-        jdbc.sql("insert into platform_audit.audit_entries (action, subject_key, created_at) values (:action, 'x:1', now() - cast(:ago as interval))")
-                .param("action", action).param("ago", createdAgo).update();
+    private UUID entry(String action, String createdAgo) {
+        return jdbc.sql("insert into platform_audit.audit_entries (id, action, subject_key, created_at) values (uuidv7(), :action, 'x:1', now() - cast(:ago as interval)) returning id")
+                .param("action", action).param("ago", createdAgo).query(UUID.class).single();
     }
 
     private long batches() {
@@ -79,16 +80,16 @@ class AuditArchiveJobIT {
     @Test
     @DisplayName("T3 entries older than 3 years are archived in id order and recorded as a batch; younger ones wait; nothing is deleted online")
     void archivesOnlyWhatIsOldEnough() {
-        entry("old.one", "1200 days");
-        entry("old.two", "1150 days");
+        UUID first = entry("old.one", "1200 days");
+        UUID second = entry("old.two", "1150 days");
         entry("young", "10 days");
 
         job.run();
 
         assertThat(vault.lines()).hasSize(2);
-        assertThat(vault.lines().getFirst()).contains("old.one").contains("\"id\":1");
+        assertThat(vault.lines().getFirst()).contains("old.one").contains("\"id\":\"" + first + "\"");
         assertThat(batches()).isEqualTo(1);
-        assertThat(jdbc.sql("select last_entry_id from platform_audit.audit_archive_batches").query(Long.class).single()).isEqualTo(2L);
+        assertThat(jdbc.sql("select last_entry_id from platform_audit.audit_archive_batches").query(UUID.class).single()).isEqualTo(second);
         assertThat(jdbc.sql("select count(*) from platform_audit.audit_entries").query(Long.class).single()).isEqualTo(3L);
 
         job.run();
@@ -98,7 +99,7 @@ class AuditArchiveJobIT {
     @Test
     @DisplayName("T3 the archive carries the columns listed as ARCHIVE, including event id and correlation id, and nothing else")
     void archivedColumnsAreTheListedOnes() {
-        jdbc.sql("insert into platform_audit.audit_entries (action, subject_key, event_id, correlation_id, created_at) values ('old.one', 'x:1', gen_random_uuid(), gen_random_uuid(), now() - interval '1200 days')").update();
+        jdbc.sql("insert into platform_audit.audit_entries (id, action, subject_key, event_id, correlation_id, created_at) values (uuidv7(), 'old.one', 'x:1', gen_random_uuid(), gen_random_uuid(), now() - interval '1200 days')").update();
 
         job.run();
 
@@ -110,14 +111,14 @@ class AuditArchiveJobIT {
     @Test
     @DisplayName("T3 an old entry written after a younger one is not skipped: only a prefix of ids that are all old enough is archived, the rest follows once due")
     void aLateOldEntryIsNotLost() {
-        entry("young.first", "10 days");
+        UUID young = entry("young.first", "10 days");
         entry("old.later", "1200 days");
 
         job.run();
         assertThat(vault.batches).isEmpty();
 
         jdbc.sql("alter table platform_audit.audit_entries disable trigger audit_entries_reject_update_delete").update();
-        jdbc.sql("update platform_audit.audit_entries set created_at = now() - interval '1100 days' where id = 1").update();
+        jdbc.sql("update platform_audit.audit_entries set created_at = now() - interval '1100 days' where id = :id").param("id", young).update();
         job.run();
 
         assertThat(vault.lines()).hasSize(2);

@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.audit.infrastructure.archive;
 
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.integration.api.ArchiveVault;
 import com.forcitis.one.platform.integration.api.ArchivedObject;
 import io.micrometer.core.instrument.Counter;
@@ -42,6 +43,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     private static final Logger LOG = LoggerFactory.getLogger(AuditArchiveJob.class);
     static final String KIND = "audit";
     static final int BATCH = 5000;
+    private static final UUID BEFORE_ANY_ENTRY = new UUID(0, 0);
     /** The columns the archive carries; architecture/archive-columns.txt names every column of the table as archived or excluded and AuditArchiveColumnsTest keeps both equal. */
     static final List<String> COLUMNS = List.of("id", "action", "actor_id", "on_behalf_of_id", "subject_key", "detail", "event_id", "correlation_id", "source_address", "outcome_kind", "login_method_kind", "change_reason", "before_text", "after_text", "created_at");
 
@@ -57,12 +59,14 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     private final JdbcClient jdbc;
     private final ArchiveVault vault;
     private final Clock clock;
+    private final IdGenerator ids;
     private final BusinessZone zone;
     private final Policy policy;
     private final Counter probeFailures;
     private final JsonMapper json = JsonMapper.builder().build();
 
-    AuditArchiveJob(JdbcClient jdbc, ArchiveVault vault, Clock clock, BusinessZone zone, Policy policy, MeterRegistry meters) {
+    AuditArchiveJob(JdbcClient jdbc, ArchiveVault vault, Clock clock, IdGenerator ids, BusinessZone zone, Policy policy, MeterRegistry meters) {
+        this.ids = ids;
         this.jdbc = jdbc;
         this.vault = vault;
         this.clock = clock;
@@ -103,7 +107,8 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     int archiveOlderThan(Instant cutoff) {
         int total = 0;
         while (true) {
-            long last = jdbc.sql("select coalesce(max(last_entry_id), 0) from platform_audit.audit_archive_batches").query(Long.class).single();
+            UUID last = jdbc.sql("select last_entry_id from platform_audit.audit_archive_batches order by last_entry_id desc limit 1")
+                    .query(UUID.class).optional().orElse(BEFORE_ANY_ENTRY);
             List<Map<String, Object>> entries = jdbc.sql("select " + String.join(", ", COLUMNS) + " from platform_audit.audit_entries where id > :last order by id limit :batch")
                     .param("last", last).param("batch", BATCH).query((rs, n) -> row(rs)).list();
             int due = 0;
@@ -115,7 +120,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
             }
             List<Map<String, Object>> batch = entries.subList(0, due);
             ArchivedObject stored = vault.archive(KIND, batch.stream().map(json::writeValueAsString).toList());
-            insertBatch((Long) batch.getFirst().get("id"), (Long) batch.getLast().get("id"), batch.size(), stored);
+            insertBatch(UUID.fromString((String) batch.getFirst().get("id")), UUID.fromString((String) batch.getLast().get("id")), batch.size(), stored);
             total += batch.size();
             if (due < BATCH) {
                 return total;
@@ -146,11 +151,11 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         return row;
     }
 
-    private void insertBatch(long first, long last, int count, ArchivedObject stored) {
+    private void insertBatch(UUID first, UUID last, int count, ArchivedObject stored) {
         jdbc.sql("""
-                insert into platform_audit.audit_archive_batches (first_entry_id, last_entry_id, entry_count, object_key, sha256_hash, archived_at)
-                values (:first, :last, :count, :key, :sha, :now)
-                """).param("first", first).param("last", last).param("count", count)
+                insert into platform_audit.audit_archive_batches (id, first_entry_id, last_entry_id, entry_count, object_key, sha256_hash, archived_at)
+                values (:id, :first, :last, :count, :key, :sha, :now)
+                """).param("id", ids.next()).param("first", first).param("last", last).param("count", count)
                 .param("key", stored.key()).param("sha", stored.sha256()).param("now", Timestamp.from(clock.instant())).update();
     }
 }

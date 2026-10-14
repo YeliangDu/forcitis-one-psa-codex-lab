@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -65,7 +66,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
 
     @Override
     public void save(Reconciliation changes, SyncRunId syncRunId, Instant now, LocalDate snapshotDate) {
-        Long run = syncRunId == null ? null : syncRunId.value();
+        UUID run = syncRunId == null ? null : syncRunId.value();
         Timestamp at = Timestamp.from(now);
         for (Position p : changes.positions()) {
             jdbc.sql("""
@@ -108,7 +109,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .query(Long.class).optional().orElse(0L);
     }
 
-    private void upsertOrgUnit(OrgUnit u, Long run, Timestamp now) {
+    private void upsertOrgUnit(OrgUnit u, UUID run, Timestamp now) {
         jdbc.sql("""
                 insert into organization_workforce.org_units (id, code, name, parent_org_unit_id, sort_order, status,
                        head_employee_id, regional_receivables_manager_id, region_category, is_delivery_unit, short_name,
@@ -133,7 +134,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .param("run", run).param("now", now).update();
     }
 
-    private void upsertStaff(StaffEmployee s, Long run, Timestamp now) {
+    private void upsertStaff(StaffEmployee s, UUID run, Timestamp now) {
         Employee e = s.employee();
         Assignment a = s.assignment();
         jdbc.sql("""

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering.infrastructure.persistence;
 
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
@@ -10,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -18,18 +20,20 @@ import org.springframework.stereotype.Repository;
 class JdbcLegacyNumberRepository implements LegacyNumberRepository {
 
     private static final RowMapper<LegacyNumberEntry> MAPPER = (rs, n) -> new LegacyNumberEntry(
-            new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(Long.toString(rs.getLong("document_id")))),
+            new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(rs.getObject("document_id", UUID.class).toString())),
             rs.getString("legacy_number"), legalEntity(rs), rs.getString("import_batch"));
 
     private static Optional<LegalEntityId> legalEntity(ResultSet rs) throws SQLException {
-        long value = rs.getLong("legal_entity_id");
-        return rs.wasNull() ? Optional.empty() : Optional.of(new LegalEntityId(value));
+        UUID value = rs.getObject("legal_entity_id", UUID.class);
+        return value == null ? Optional.empty() : Optional.of(new LegalEntityId(value));
     }
 
     private final JdbcClient jdbc;
+    private final IdGenerator ids;
 
-    JdbcLegacyNumberRepository(JdbcClient jdbc) {
+    JdbcLegacyNumberRepository(JdbcClient jdbc, IdGenerator ids) {
         this.jdbc = jdbc;
+        this.ids = ids;
     }
 
     @Override
@@ -67,7 +71,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
                          order by id
                         """)
                 .param("type", document.documentType().name())
-                .param("document", Long.parseLong(document.documentId().value()))
+                .param("document", UUID.fromString(document.documentId().value()))
                 .query(MAPPER)
                 .list();
     }
@@ -76,13 +80,14 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
     public boolean insertIfAbsent(LegacyNumberEntry entry) {
         return jdbc.sql("""
                         insert into platform_numbering.legacy_numbers
-                               (document_type, legacy_number, document_id, legal_entity_id, import_batch)
-                        values (:type, :legacy, :document, :le, :batch)
+                               (id, document_type, legacy_number, document_id, legal_entity_id, import_batch)
+                        values (:id, :type, :legacy, :document, :le, :batch)
                         on conflict (document_type, legacy_number) do nothing
                         """)
+                .param("id", ids.next())
                 .param("type", entry.document().documentType().name())
                 .param("legacy", entry.legacyNumber())
-                .param("document", Long.parseLong(entry.document().documentId().value()))
+                .param("document", UUID.fromString(entry.document().documentId().value()))
                 .param("le", entry.legalEntity().map(LegalEntityId::value).orElse(null))
                 .param("batch", entry.importBatch())
                 .update() == 1;
