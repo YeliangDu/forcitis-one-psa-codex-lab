@@ -1,0 +1,276 @@
+# 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
+components:
+  messages:
+    SyncRunSucceeded:
+      name: SyncRunSucceeded
+      title: 组织同步成功
+      payload:
+        type: object
+        properties:
+          syncRunId:
+            type: string
+            x-type: SyncRunId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: organization.workforce.SyncRunSucceeded
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.SyncRunSucceeded
+        aggregate: SyncRun
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: 'not-audited: 每 5 分钟一次的同步会淹没审计记录；同步记录表本身就是它的记录，中止、失败、放行仍然审计'
+        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
+        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
+    SyncRunHeld:
+      name: SyncRunHeld
+      title: 组织同步被缩水保护中止
+      payload:
+        type: object
+        properties:
+          syncRunId:
+            type: string
+            x-type: SyncRunId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: organization.workforce.SyncRunHeld
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.SyncRunHeld
+        aggregate: SyncRun
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
+        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
+    SyncRunFailed:
+      name: SyncRunFailed
+      title: 组织同步失败
+      payload:
+        type: object
+        properties:
+          syncRunId:
+            type: string
+            x-type: SyncRunId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: organization.workforce.SyncRunFailed
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.SyncRunFailed
+        aggregate: SyncRun
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
+        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
+    SyncRunReleased:
+      name: SyncRunReleased
+      title: 被中止的同步已由管理员放行或被后续成功同步取代
+      payload:
+        type: object
+        properties:
+          syncRunId:
+            type: string
+            x-type: SyncRunId
+            description: 稳定 ID 的字符串形式
+          releasedByRunId:
+            type: string
+            x-type: SyncRunId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: organization.workforce.SyncRunReleased
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.SyncRunReleased
+        aggregate: SyncRun
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
+        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
+    OrgSnapshotChanged:
+      name: OrgSnapshotChanged
+      title: 组织快照发生变化（同步或首次登录建档）
+      payload:
+        type: object
+        properties:
+          changedEmployees:
+            type: array
+            items:
+              type: string
+              x-type: UserId
+          separatedEmployees:
+            type: array
+            items:
+              type: string
+              x-type: UserId
+          changedOrgUnits:
+            type: array
+            items:
+              type: string
+              x-type: OrgUnitId
+      x-event:
+        eventType: organization.workforce.OrgSnapshotChanged
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgSnapshotChanged
+        aggregate: SyncRun 或 Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.identity
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
+    LegalEntityRegistered:
+      name: LegalEntityRegistered
+      title: 法人新增
+      payload:
+        type: object
+        properties:
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+            description: 稳定 ID 的字符串形式
+          code:
+            type: string
+            x-type: LegalEntityCode
+      x-event:
+        eventType: organization.workforce.LegalEntityRegistered
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityRegistered
+        aggregate: LegalEntity
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
+        noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
+    LegalEntityRenamed:
+      name: LegalEntityRenamed
+      title: 法人改名
+      payload:
+        type: object
+        properties:
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: organization.workforce.LegalEntityRenamed
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityRenamed
+        aggregate: LegalEntity
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
+        noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
+    LegalEntityActivated:
+      name: LegalEntityActivated
+      title: 法人启用
+      payload:
+        type: object
+        properties:
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: organization.workforce.LegalEntityActivated
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityActivated
+        aggregate: LegalEntity
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
+        noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
+    LegalEntityDeactivated:
+      name: LegalEntityDeactivated
+      title: 法人停用
+      payload:
+        type: object
+        properties:
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: organization.workforce.LegalEntityDeactivated
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityDeactivated
+        aggregate: LegalEntity
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
+        noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
+    LegalEntityCodeCorrected:
+      name: LegalEntityCodeCorrected
+      title: 法人代码更正（仅在尚未发过号时允许）
+      payload:
+        type: object
+        properties:
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+            description: 稳定 ID 的字符串形式
+          previousCode:
+            type: string
+            x-type: LegalEntityCode
+          newCode:
+            type: string
+            x-type: LegalEntityCode
+      x-event:
+        eventType: organization.workforce.LegalEntityCodeCorrected
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityCodeCorrected
+        aggregate: LegalEntity
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
+        noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
