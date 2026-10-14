@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.integration.infrastructure.persistence;
 
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.domain.DeliveryKind;
 import com.forcitis.one.platform.integration.domain.DeliveryStatus;
 import com.forcitis.one.platform.integration.domain.NewDelivery;
 import com.forcitis.one.platform.integration.domain.OutboundDelivery;
@@ -23,7 +24,9 @@ import org.springframework.stereotype.Repository;
 class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
 
     private static final String COLUMNS = "id, deduplication_key, recipients, title, description, target_url, status, attempt_count, "
-            + "response_code, handled_note";
+            + "response_code, handled_note, kind, target_key";
+
+    private static final String HANDLED_SUFFIX = "#handled";
 
     private final JdbcClient jdbc;
 
@@ -78,44 +81,81 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     }
 
     @Override
-    public void markSent(OutboundDeliveryId deliveryId, String responseCode, Instant now) {
-        jdbc.sql("""
+    public Optional<OutboundDelivery> lockByKey(String deduplicationKey) {
+        return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries where deduplication_key = :key for update")
+                .param("key", deduplicationKey).query((rs, n) -> row(rs)).optional();
+    }
+
+    @Override
+    public boolean markSent(OutboundDelivery claimed, String responseCode, Instant now) {
+        return jdbc.sql("""
                         update platform_integration.outbound_deliveries
                            set status = 'SENT', response_code = :code, sent_at = :now, next_attempt_at = null, last_error = null,
                                updated_at = :now
-                         where id = :id
+                         where id = :id and status = 'PENDING' and attempt_count = :claimedAttempt
                         """)
-                .param("code", responseCode, Types.VARCHAR).param("now", Timestamp.from(now)).param("id", deliveryId.value()).update();
+                .param("code", responseCode, Types.VARCHAR).param("now", Timestamp.from(now)).param("id", claimed.deliveryId().value())
+                .param("claimedAttempt", claimed.attemptCount()).update() > 0;
     }
 
     @Override
-    public void markRetry(OutboundDeliveryId deliveryId, Instant nextAttemptAt, String error) {
-        jdbc.sql("""
+    public boolean markRetry(OutboundDelivery claimed, Instant nextAttemptAt, String error) {
+        return jdbc.sql("""
                         update platform_integration.outbound_deliveries
                            set next_attempt_at = :next, last_error = :error, updated_at = now()
-                         where id = :id
+                         where id = :id and status = 'PENDING' and attempt_count = :claimedAttempt
                         """)
-                .param("next", Timestamp.from(nextAttemptAt)).param("error", error).param("id", deliveryId.value()).update();
+                .param("next", Timestamp.from(nextAttemptAt)).param("error", error).param("id", claimed.deliveryId().value())
+                .param("claimedAttempt", claimed.attemptCount()).update() > 0;
     }
 
     @Override
-    public void markDeadLetter(OutboundDeliveryId deliveryId, String error) {
-        finish(deliveryId, DeliveryStatus.DEAD_LETTER, error);
+    public boolean markDeadLetter(OutboundDelivery claimed, String error) {
+        return finish(claimed, DeliveryStatus.DEAD_LETTER, error);
     }
 
     @Override
-    public void markSkipped(OutboundDeliveryId deliveryId, String reason) {
-        finish(deliveryId, DeliveryStatus.SKIPPED, reason);
+    public boolean markSkipped(OutboundDelivery claimed, String reason) {
+        return finish(claimed, DeliveryStatus.SKIPPED, reason);
     }
 
     @Override
-    public void recordHandled(String deduplicationKey, String note, String result) {
+    public void recordHandledNote(String deduplicationKey, String note) {
         jdbc.sql("""
                         update platform_integration.outbound_deliveries
-                           set handled_note = :note, handled_result = :result, updated_at = now()
+                           set handled_note = :note, updated_at = now()
                          where deduplication_key = :key
                         """)
-                .param("note", note).param("result", result).param("key", deduplicationKey).update();
+                .param("note", note).param("key", deduplicationKey).update();
+    }
+
+    @Override
+    public void recordHandledResult(String deduplicationKey, String result) {
+        jdbc.sql("""
+                        update platform_integration.outbound_deliveries
+                           set handled_result = :result, updated_at = now()
+                         where deduplication_key = :key
+                        """)
+                .param("result", result).param("key", deduplicationKey).update();
+    }
+
+    @Override
+    public boolean queueHandledNote(OutboundDelivery sentCard, String note, Instant now) {
+        return jdbc.sql("""
+                        insert into platform_integration.outbound_deliveries
+                               (deduplication_key, recipients, title, description, target_url, status, next_attempt_at, kind, target_key,
+                                created_at, updated_at)
+                        values (:key, :recipients, :title, :note, :url, 'PENDING', :now, 'HANDLED_NOTE', :target, :now, :now)
+                        on conflict (deduplication_key) do nothing
+                        """)
+                .param("key", sentCard.deduplicationKey() + HANDLED_SUFFIX)
+                .param("recipients", join(sentCard.recipients()))
+                .param("title", sentCard.title())
+                .param("note", note)
+                .param("url", sentCard.targetUrl())
+                .param("target", sentCard.deduplicationKey())
+                .param("now", Timestamp.from(now))
+                .update() > 0;
     }
 
     @Override
@@ -130,20 +170,21 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                 .query(Long.class).single();
     }
 
-    private void finish(OutboundDeliveryId deliveryId, DeliveryStatus status, String reason) {
-        jdbc.sql("""
+    private boolean finish(OutboundDelivery claimed, DeliveryStatus status, String reason) {
+        return jdbc.sql("""
                         update platform_integration.outbound_deliveries
                            set status = :status, next_attempt_at = null, last_error = :reason, updated_at = now()
-                         where id = :id
+                         where id = :id and status = 'PENDING' and attempt_count = :claimedAttempt
                         """)
-                .param("status", status.name()).param("reason", reason).param("id", deliveryId.value()).update();
+                .param("status", status.name()).param("reason", reason).param("id", claimed.deliveryId().value())
+                .param("claimedAttempt", claimed.attemptCount()).update() > 0;
     }
 
     private static OutboundDelivery row(ResultSet rs) throws SQLException {
         return new OutboundDelivery(new OutboundDeliveryId(rs.getLong("id")), rs.getString("deduplication_key"),
                 split(rs.getString("recipients")), rs.getString("title"), rs.getString("description"), rs.getString("target_url"),
                 DeliveryStatus.valueOf(rs.getString("status")), rs.getInt("attempt_count"), rs.getString("response_code"),
-                rs.getString("handled_note"));
+                rs.getString("handled_note"), DeliveryKind.valueOf(rs.getString("kind")), rs.getString("target_key"));
     }
 
     private static String join(List<WecomUserId> ids) {
