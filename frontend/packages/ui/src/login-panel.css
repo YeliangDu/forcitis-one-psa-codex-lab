@@ -1,0 +1,57 @@
+.login-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--surface-page);
+}
+
+.login-panel__card {
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  padding: 32px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+
+.login-panel__title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.login-panel__subtitle {
+  margin: 0 0 24px;
+  color: var(--text-secondary);
+}
+
+.login-panel__notice {
+  margin-bottom: 16px;
+}
+
+.login-panel__entries {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.login-panel__entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.login-panel__description {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.login-panel__footer {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}

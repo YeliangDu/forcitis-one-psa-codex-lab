@@ -1,0 +1,35 @@
+{
+  "name": "@forcitis/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@forcitis/api": "workspace:*",
+    "@forcitis/design-system": "workspace:*",
+    "@forcitis/ui": "workspace:*",
+    "@tanstack/react-query": "^5.104.2",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router": "^7.9.6",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/node": "^24.19.2",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "^5.2.0",
+    "jsdom": "^30.1.2",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "^5.0.4"
+  }
+}

@@ -120,3 +120,25 @@
 - 未完成与阻塞：ADR-0022、两条 ADR 修订、G1 / G2 草案待用户审批；GL_FINANCE_REVIEW 105 项待财务评审（★22 项 G1 前必答）；GB/T 24589.1-2024 原文未取得；A8 各表单的科目对照表（OA「费用与科目对照表new」等）未导出；权责账套 1007、收付账套 1006 无基线；新 BC 模块路径与 BC-16..19 编号待用语确认。
 - 下一步命令：psa-coordinator 安排财务评审会话（`/code-modernization:modernize-review psa`，范围 rules/GL_FINANCE_REVIEW.md）；用户审批 ADR-0022 后由 psa-coordinator 并入 brief。
 - 会话 ID：本会话（worktree xin-921947，分支 claude/psa-gl-scope）
+
+## 2026-10-14 · psa-bi-scope · 经营分析范围评估
+- 目标：psa-coordinator 派工——评估经营分析纳入现代化的范围：现状盘点（BI、BI-olap、BI-release）、经营子域 4 个 BC、reporting 与 KPI 语义层（按 OAT、与 terms.yaml 对齐、与总账三大报表的边界）、BI 过渡不中断、BI 重构阶段草案、待决问题；起草 ADR-0023（提议）。
+- 输入：SESSION_PLAYBOOK §3–§5、STATUS、GUIDING_PRINCIPLES §8 / §9a、ADR-0016/0017/0018/0021、glossary/terms.yaml（348 条）、OA_PROCESS_INVENTORY.md；psa-gl-scope 工作树中的 ADR-0022 初稿（只读）；BI 三仓库与 GitHub issue / PR（只读）；OAT 机器主数据（ddd-theory，只读）。基线 origin/main 05dbc6f，收尾时 rebase 到 9109cdd。
+- 用户决定（原话，经 psa-coordinator 转达）：「BI 要重构，不满足经营管理需要。经营分析纳入现代化：经营子域 4 个 BC、reporting 与语义层纳入，BI 重构同步规划。暂停 BI 迁移会话在老数据源上的新建模，现有报表照常运行。请派 psa-bi-scope 做经营分析范围评估，产出 ADR-0023（提议）。」
+- 产出：BI_SCOPE.md；ADR-0023（提议，经 build_adrs.py 生成）；STATUS 更新（用户决定已由 psa-coordinator 记入 INTENT，本会话不重复登记）。
+- 验证：build_adrs.py 重新生成后 ADR-0001..0021 无变化，只新增 ADR-0023 与 README 一行；证据逐条带文件 / issue 出处；未访问任何生产库（BI 使用量取自 BI 仓库 2026-10-10 调研文档，未复算）；产出文件无凭据、无主机地址。子代理：BI 老仓与发布副本盘点（haiku）、BI-olap 盘点（haiku）、OAT / 词表 / BI 语义层口径映射（sonnet）；BC 划分、分层、过渡方案与 ADR 由本会话（opus）完成；未另做对抗性复审。
+- 关键发现：OAT 正本不在 psa 仓库（槽位文件指向 ddd-theory 的 CSV）；BI 仓库调研文档记有「BI 整体替换：2026-12-31」「先迁 OLAP 再迁 OLTP」（2026-10-10 用户决定），与本路线不相容，待用户确认是否被取代；老 BI 直接写 A8 表 8 处（含合同条款、开票）；发布副本缺数据权限修复。
+- 未完成与阻塞：ADR-0023 与 BI_SCOPE §6 Q1–Q12 待用户决定；118 个 T_FST_* 只按名称与 6 个已读定义归组，逐个核对留给 R0；ADR-0022 未合入 main，本分支的 build_adrs.py 与 adr/README.md 不含 0022，合并时需人工合并两条。
+- 下一步命令：用户决定后新会话 `psa-r0-metric-baseline` 做 R0。
+- 会话 ID：本会话（worktree xin-e2a79b，分支 claude/psa-bi-scope）
+
+## 2026-10-14 · psa-bi-decisions · 经营分析待决项 Q3–Q12 逐项确认
+- 目标：按 psa-coordinator 派工，对 BI_SCOPE.md §6 的 Q3–Q12 逐项给出选项、推荐与依据，取得用户决定并落档。
+- 输入：BI_SCOPE.md（E1–E14、§2–§5）、ADR-0016/0017/0022/0023、RULE_REVIEWS（RULE-144）、glossary/terms.yaml、OAT 机器主数据（ddd-theory，只读，CM/CMR 条目）、BI-olap analytics ADR-0002/0006/0017（只读）；psa-gl-finance-review 工作树（只读，截至本会话仅有 STATUS 认领，无与 Q6 相关结论，无冲突）；psa-coordinator 分支 claude/coordinator-bi-decisions 的 Q1/Q2 记录（只读）。基线 origin/main 9e6e279。
+- 用户决定（原话见 INTENT.md 最后一行）：Q3–Q12 全部选推荐项（Q6 拆为收入含税、毛利原语与其余五项三问）。
+- 产出：BI_SCOPE.md §6.1（Q1–Q12 决定、落实、待财务 F1–F5、待业务 B1–B5）；INTENT 一行；STATUS「经营分析范围评估」行；ADR-0023 证据段补「依据决定」引用（经 build_adrs.py 生成，状态不变）。
+- 验证：build_adrs.py 重新生成后只有 ADR-0023 一行变化；未访问任何生产库（Q11 已授权但留给 R0，执行前报访问方式）；未对 BI 仓库做任何操作；产出无凭据、无主机地址。子代理：未派（证据已在 BI_SCOPE 与本地仓库，查证由本会话 opus 直接完成）。
+- 追加（同日）：用户当面「批准 ADR-0023」→ 状态改为已采纳，ADR 中原「待用户决定」各处改为引用 §6.1 的决定。
+- 未完成与阻塞：F1–F5 待财务、B1–B5 待业务；INTENT 与 coordinator 分支（Q1/Q2 行）同在文件末尾追加，合并时需按时间顺序合两行。
+- 下一步命令：新会话 `psa-r0-metric-baseline` 做 R0。
+- 会话 ID：本会话（worktree xin-a2d389，分支 claude/psa-bi-decisions）
