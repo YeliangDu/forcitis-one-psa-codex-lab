@@ -1,6 +1,6 @@
 # FORCITIS one（PSA 现代化）——agent 须知
 
-开工前读 `docs/modernization/SESSION_PLAYBOOK.md`（开场 §3、收尾 §4、子代理与代码规则 §5、调度 §11、变更治理 §12）与 `docs/modernization/STATUS.md`。
+开工前读 `docs/modernization/SESSION_PLAYBOOK.md`（开场 §3、收尾 §4、子代理与代码规则 §5、调度 §11、变更治理 §12、流程梳理 §13）与 `docs/modernization/STATUS.md`。
 
 写代码的硬规则：
 - 代码注释能不写就不写：用命名、类型和结构表达意图；只在「为什么」看不出来时写一行（反直觉约束、规范条款、外部系统怪癖、并发或性能取舍）。不写复述代码的注释、变更历史、注释掉的代码、无编号 TODO。

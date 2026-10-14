@@ -137,3 +137,4 @@
 | 问「现在合并过程是不是有什么问题？」后选择：「一条记录一个文件 + ADR 拆开 (Recommended)」（2026-10-14，psa-coordinator 当面询问） | intent/、session-log/、status/ 片段与 build_records.py；adr/src/ 与 build_adrs.py；build_all.py 与 CI「generated docs match fragments」；SESSION_PLAYBOOK §1、§3、§4、§6、§7、§8、§12；CLAUDE.md |
 | 问「第一批agent写完代码，看看有没有需要总结约束后续agent写代码行为的？」后选「全部采纳，并把能自动化的做成守护 (Recommended)」（2026-10-14，psa-coordinator 当面询问） | SESSION_PLAYBOOK §5「写代码规则第二批」第 1–10 条；CLAUDE.md；.pre-commit-config.yaml（gitleaks 8.30.1）；.github/pull_request_template.md；前端界面文字进词表守护由 1a 会话负责 |
 | 能从一开始就做对的，就不要留在后续阶段，除非后续做更有价值（2026-10-14，经 psa-coordinator 转达） | SESSION_PLAYBOOK §5「写代码规则第二批」第 11 条；CLAUDE.md |
+| 每个阶段实施前增加「流程梳理」步骤：产出现状流程（代码、OA 盘点、生产计数）、目标流程、差异清单，差异逐条由我决定，结果写入 INTENT 和 brief 的行为契约。先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件，再从 Phase 1a 涉及的流程开始做。（2026-10-14，经 psa-coordinator 转达） | SESSION_PLAYBOOK §13；process/README.md；brief 各阶段入口条件（1a 为补做）与 §5「流程梳理结论」（rules/build_brief.py 生成） |
