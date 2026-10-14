@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared by build.sh, verify_bundle.sh and the workflows; sourced, not run.
 
 RELEASE_VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'

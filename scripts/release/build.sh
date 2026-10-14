@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
 # Builds the FORCITIS one release bundle from a clean checkout: backend jar, PC and H5 static files per environment, deployment
 # files, migration list, manifest.json and SHA256SUMS, packed as forcitis-one-<version>.tar.gz plus its .sha256.
-# Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
+# Runbook: RELEASE.md among the Phase 1a infra runbooks
 #
-#   scripts/release/build.sh --version 0.1.0 [--out DIR] [--environments dev,prod]
+#   scripts/release/build.sh --version 0.1.0 [--out DIR] [--environments dev,prod] [--isolated-caches DIR]
+#
+# --isolated-caches DIR: Maven repository and pnpm store under DIR instead of the user's shared caches, so a release never reuses
+# artifacts a pull-request build could have planted (the release workflow passes a fresh directory).
 #
 # Frontend build-time values are read from <ENV>_VITE_WECOM_CORP_ID, <ENV>_VITE_WECOM_AGENT_ID, <ENV>_VITE_SSO_PORTAL_URL and
 # <ENV>_TARO_APP_WECOM_CORP_ID (ENV = DEV / PROD); every one must be set and non-empty.
 set -euo pipefail
 
-usage() { sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 fail() { echo "build.sh: $*" >&2; exit 1; }
 
 version=""
 out=""
+caches=""
 environments="dev,prod"
 while [ $# -gt 0 ]; do
   case "$1" in
     --version) version="${2:-}"; shift 2 ;;
     --out) out="${2:-}"; shift 2 ;;
+    --isolated-caches) caches="${2:-}"; shift 2 ;;
     --environments) environments="${2:-}"; shift 2 ;;
     -h|--help) usage ;;
     *) fail "unknown argument: $1" ;;
@@ -70,14 +75,21 @@ maven_goals=(clean package)
 if ! grep -q '<artifactId>spring-boot-maven-plugin</artifactId>' backend/pom.xml; then
   maven_goals+=(org.springframework.boot:spring-boot-maven-plugin:repackage "-Dspring-boot.run.main-class=${RELEASE_APPLICATION_CLASS}")
 fi
-(cd backend && ./mvnw -B -q -DskipTests "${maven_goals[@]}")
+maven_cache=()
+pnpm_cache=(--prefer-offline)
+if [ -n "$caches" ]; then
+  mkdir -p "$caches/m2" "$caches/pnpm-store"
+  maven_cache=("-Dmaven.repo.local=$caches/m2")
+  pnpm_cache=(--store-dir "$caches/pnpm-store")
+fi
+(cd backend && ./mvnw -B -q -DskipTests ${maven_cache[@]+"${maven_cache[@]}"} "${maven_goals[@]}")
 jar="$(find backend/target -maxdepth 1 -name 'forcitis-one-*.jar' ! -name '*-sources.jar' ! -name '*.original' | head -1)"
 [ -n "$jar" ] || fail "backend/target has no forcitis-one-*.jar"
 cp "$jar" "$bundle/forcitis-one.jar"
 release_check_jar_runnable "$bundle/forcitis-one.jar" "$staging/jar-check" || exit 1
 
 echo "== frontend"
-(cd frontend && pnpm install --frozen-lockfile --prefer-offline --reporter=silent)
+(cd frontend && pnpm install --frozen-lockfile "${pnpm_cache[@]}" --reporter=silent)
 for env in "${envs[@]}"; do
   upper="$(printf '%s' "$env" | tr '[:lower:]' '[:upper:]')"
   build_env=(NODE_ENV=production)

@@ -19,7 +19,7 @@ jobs:
     name: publish generated docs
     runs-on: [self-hosted, forcitis-one]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
       - run: python3 docs/modernization/build_all.py

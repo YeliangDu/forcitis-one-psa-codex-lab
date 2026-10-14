@@ -1,10 +1,9 @@
 name: release
 
-# Builds the release bundle of a commit on main that ci already passed, and attaches it to a GitHub Release.
+# Builds the release bundle of a commit on main that ci already passed, attests its provenance and attaches it to a GitHub Release.
+# Only started by hand from main: the provenance check in deploy.yml requires the signing workflow to have run on refs/heads/main.
 # Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
     inputs:
       version:
@@ -19,71 +18,66 @@ on:
         type: boolean
         default: true
 
-permissions:
-  contents: write
-  checks: read
+permissions: {}
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
     name: release bundle
-    runs-on: [self-hosted, forcitis-one]
-    timeout-minutes: 60
+    if: github.ref == 'refs/heads/main'
+    # Dedicated runner and user: nothing a pull-request job left on the CI runners can reach this build (RELEASE.md §10)
+    runs-on: [self-hosted, forcitis-one-deploy]
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      version: ${{ steps.target.outputs.version }}
+      sha: ${{ steps.proof.outputs.sha }}
     steps:
-      - name: resolve version and commit
+      - name: validate inputs
         id: target
         env:
-          EVENT: ${{ github.event_name }}
-          REF_NAME: ${{ github.ref_name }}
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_COMMIT: ${{ inputs.commit }}
-          INPUT_DRAFT: ${{ inputs.draft }}
-          TAG_SHA: ${{ github.sha }}
         run: |
-          if [ "$EVENT" = push ]; then
-            version="${REF_NAME#v}"; commit="$TAG_SHA"; draft=true
-          else
-            version="$INPUT_VERSION"; commit="$INPUT_COMMIT"; draft="$INPUT_DRAFT"
-          fi
-          {
-            echo "version=$version"
-            echo "commit=$commit"
-            echo "draft=$draft"
-          } >> "$GITHUB_OUTPUT"
+          [[ "$INPUT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo "version '$INPUT_VERSION' is not MAJOR.MINOR.PATCH[-rc.N]" >&2; exit 1; }
+          [[ -z "$INPUT_COMMIT" || "$INPUT_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "commit must be empty or a full sha" >&2; exit 1; }
+          echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "commit=$INPUT_COMMIT" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ steps.target.outputs.commit || 'main' }}
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: commit is on main and passed ci
+      - name: commit is a first-parent commit of main and its push ci run succeeded
         id: proof
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.target.outputs.version }}
         run: |
-          . scripts/release/lib.sh
-          release_version_valid "$VERSION" || { echo "version '$VERSION' must match $RELEASE_VERSION_PATTERN" >&2; exit 1; }
-          python3 scripts/release/ci_passed.py --self-test
-          python3 scripts/release/manifest.py --self-test
-          git fetch -q origin main
           sha="$(git rev-parse HEAD)"
+          python3 scripts/release/ci_passed.py --self-test
           python3 scripts/release/ci_passed.py "$sha"
-          if gh release view "v$VERSION" >/dev/null 2>&1; then
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "release v$VERSION already exists; versions are never rebuilt" >&2
             exit 1
           fi
-          tagged="$(git ls-remote --tags origin "refs/tags/v$VERSION^{}" "refs/tags/v$VERSION" | awk 'NR == 1 || /\^\{\}$/ { sha = $1 } END { print sha }')"
-          if [ -n "$tagged" ] && [ "$tagged" != "$sha" ]; then
+          if tagged="$(python3 scripts/release/ci_passed.py --tag-commit "v$VERSION" 2>/dev/null)" && [ "$tagged" != "$sha" ]; then
             echo "tag v$VERSION points at $tagged, not at $sha" >&2
             exit 1
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-      - name: build bundle
+      - name: toolchain (pinned and verified downloads, nothing shared with the CI runners)
+        run: scripts/release/toolchain.sh build "$RUNNER_TEMP/toolchain"
+
+      - name: build bundle with fresh Maven and pnpm caches
         env:
           DEV_VITE_WECOM_CORP_ID: ${{ vars.DEV_VITE_WECOM_CORP_ID }}
           DEV_VITE_WECOM_AGENT_ID: ${{ vars.DEV_VITE_WECOM_AGENT_ID }}
@@ -94,26 +88,61 @@ jobs:
           PROD_VITE_SSO_PORTAL_URL: ${{ vars.PROD_VITE_SSO_PORTAL_URL }}
           PROD_TARO_APP_WECOM_CORP_ID: ${{ vars.PROD_TARO_APP_WECOM_CORP_ID }}
           VERSION: ${{ steps.target.outputs.version }}
-        run: scripts/release/build.sh --version "$VERSION" --out "$RUNNER_TEMP/release"
-
-      - name: bundle verifies after a round trip through tar
-        env:
-          VERSION: ${{ steps.target.outputs.version }}
-        run: scripts/release/verify_bundle.sh "$RUNNER_TEMP/release/forcitis-one-$VERSION.tar.gz"
-
-      - name: publish GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.target.outputs.version }}
-          SHA: ${{ steps.proof.outputs.sha }}
-          DRAFT: ${{ steps.target.outputs.draft }}
         run: |
-          flags=(--title "FORCITIS one $VERSION" --target "$SHA" --notes "Commit $SHA. Bundle and SHA256 built by the release workflow run $GITHUB_RUN_ID; see docs/modernization/phase1a/infra/runbooks/RELEASE.md.")
-          [ "$DRAFT" != true ] || flags+=(--draft)
-          case "$VERSION" in *-rc.*) flags+=(--prerelease) ;; esac
-          gh release create "v$VERSION" "${flags[@]}" \
-            "$RUNNER_TEMP/release/forcitis-one-$VERSION.tar.gz" \
-            "$RUNNER_TEMP/release/forcitis-one-$VERSION.tar.gz.sha256"
+          scripts/release/build.sh --version "$VERSION" --out "$RUNNER_TEMP/release" --isolated-caches "$RUNNER_TEMP/caches"
+          scripts/release/verify_bundle.sh "$RUNNER_TEMP/release/forcitis-one-$VERSION.tar.gz"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-bundle
+          path: |
+            ${{ runner.temp }}/release/forcitis-one-${{ steps.target.outputs.version }}.tar.gz
+            ${{ runner.temp }}/release/forcitis-one-${{ steps.target.outputs.version }}.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 1
 
       - if: always()
-        run: rm -rf "$RUNNER_TEMP/release"
+        run: rm -rf "$RUNNER_TEMP/release" "$RUNNER_TEMP/caches"
+
+  publish:
+    name: attest and publish
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, forcitis-one-deploy]
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}/publish
+
+      - name: bundle unchanged since the build job
+        working-directory: ${{ runner.temp }}/publish
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: shasum -a 256 -c "forcitis-one-$VERSION.tar.gz.sha256"
+
+      - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: ${{ runner.temp }}/publish/forcitis-one-${{ needs.build.outputs.version }}.tar.gz
+
+      - name: publish GitHub Release
+        working-directory: ${{ runner.temp }}/publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          SHA: ${{ needs.build.outputs.sha }}
+          DRAFT: ${{ inputs.draft }}
+        run: |
+          flags=(--repo "$GITHUB_REPOSITORY" --title "FORCITIS one $VERSION" --target "$SHA"
+                 --notes "Commit $SHA. Built and attested by release run $GITHUB_RUN_ID; see docs/modernization/phase1a/infra/runbooks/RELEASE.md.")
+          [ "$DRAFT" != true ] || flags+=(--draft)
+          case "$VERSION" in *-rc.*) flags+=(--prerelease) ;; esac
+          gh release create "v$VERSION" "${flags[@]}" "forcitis-one-$VERSION.tar.gz" "forcitis-one-$VERSION.tar.gz.sha256"
+
+      - if: always()
+        run: rm -rf "$RUNNER_TEMP/publish"

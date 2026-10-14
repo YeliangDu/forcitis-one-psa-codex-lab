@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # FORCITIS one release installer on the ECS. Installed as /usr/local/sbin/forcitis-one-release (root:root 0755) by the one-time setup in
-# docs/modernization/phase1a/infra/runbooks/RELEASE.md; the deploy key's forced command runs it, so the key never gets a shell.
+# RELEASE.md (Phase 1a infra runbooks). Run as root by Cloud Assistant, or through a deploy key whose forced command is this script
+# (the key never gets a shell).
 #
-#   install  <version> <dev|prod> <sha256 of the bundle>   bundle tar.gz on stdin
-#   rollback [<version>]                                   back to the previous release, or to <version>
+#   install  <version> <dev|prod> <sha256 of the bundle> <commit sha>   stdin: one line, the presigned OSS URL of the bundle
+#   rollback [<version>]                                                back to the previous release, or to <version>
 #   status
 #
 # Every step fails loudly; a release that does not report healthy is switched back to the release that ran before.
@@ -13,13 +14,23 @@ umask 027
 SELF=/usr/local/sbin/forcitis-one-release
 BASE=/data/forcitis-one
 ETC=/etc/forcitis-one
+MIGRATION_CREDENTIALS="$ETC/migrate"
+RELEASE_LOGS=/var/log/forcitis-one-release
+LOCK=/run/forcitis-one-release.lock
 UNIT=forcitis-one
+APP_USER=forcitis
+MIGRATION_USER=forcitis-migrate
 APPLICATION_CLASS=OneApplication
+MIGRATE_PROFILE_RESOURCE=BOOT-INF/classes/application-migrate.properties
 VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
 MAX_BUNDLE_BYTES=$((1024 * 1024 * 1024))
+BUNDLE_URL_PATTERN='^https://[a-z0-9.-]+\.aliyuncs\.com/[^[:space:]]+$'
+DOWNLOAD_TIMEOUT_SECONDS=1200
 HEALTH_TIMEOUT_SECONDS=180
 MIGRATION_TIMEOUT_SECONDS=900
 KEEP_RELEASES=5
+# Property files a migration may only see on the very first installation (Flowable engine tables, see RELEASE.md §4)
+FIRST_INSTALL_ONLY='^(spring\.datasource\..+|flowable\.database-schema-update)$'
 
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
 fail() { log "FAILED: $*"; exit 1; }
@@ -27,7 +38,7 @@ fail() { log "FAILED: $*"; exit 1; }
 if [ "$(id -u)" -ne 0 ]; then
   [ -n "${SSH_ORIGINAL_COMMAND:-}" ] || fail "run as root, or through the deploy key"
   read -r -a words <<< "$SSH_ORIGINAL_COMMAND"
-  [ "${#words[@]}" -ge 1 ] && [ "${#words[@]}" -le 4 ] || fail "unexpected command"
+  [[ "${#words[@]}" -ge 1 && "${#words[@]}" -le 5 ]] || fail "unexpected command"
   for word in "${words[@]}"; do
     [[ "$word" =~ ^[A-Za-z0-9.+-]{1,64}$ ]] || fail "unexpected command"
   done
@@ -46,17 +57,32 @@ env_value() {
   line="${line#\'}"; line="${line%\'}"
   printf '%s' "$line"
 }
-linked_version() { [ -L "$1" ] && basename "$(readlink "$1")" || true; }
+linked_version() {
+  if [ -L "$1" ]; then basename "$(readlink "$1")"; fi
+}
+
+# root acts on these paths; the application user must not be able to swap anything in them
+assert_root_owned() {
+  local path owner mode
+  for path in "$@"; do
+    [[ -d "$path" && ! -L "$path" ]] || fail "$path must be a real directory"
+    owner="$(stat -c %U "$path")"; mode="$(stat -c %a "$path")"
+    [ "$owner" = root ] || fail "$path must be owned by root (is $owner); see C-4 E-5"
+    (( (8#$mode & 8#022) == 0 )) || fail "$path must not be writable by group or others (mode $mode); see C-4 E-5"
+  done
+}
 
 health_ok() {
-  local port deadline
+  local port deadline body
   port="$(env_value MANAGEMENT_SERVER_PORT)"
   port="${port:-8081}"
   deadline=$((SECONDS + HEALTH_TIMEOUT_SECONDS))
   while [ "$SECONDS" -lt "$deadline" ]; do
-    if systemctl is-active --quiet "$UNIT" \
-      && curl -fsS --max-time 5 "http://127.0.0.1:${port}/actuator/health" 2>/dev/null | grep -q '"status":"UP"'; then
-      return 0
+    if systemctl is-active --quiet "$UNIT"; then
+      body="$(curl -fsS --max-time 5 "http://127.0.0.1:${port}/actuator/health" 2>/dev/null || true)"
+      if [ -n "$body" ] && printf '%s' "$body" | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("status") == "UP" else 1)' 2>/dev/null; then
+        return 0
+      fi
     fi
     if systemctl is-failed --quiet "$UNIT"; then
       return 1
@@ -124,13 +150,15 @@ verify_bundle_dir() {
   [ "$listed" = "$actual" ] || fail "bundle has files not covered by SHA256SUMS"
 }
 
+manifest_field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"; }
+
 check_server_files() {
   local dir="$1" drift=()
   cmp -s "$dir/deploy/remote_install.sh" "$SELF" || drift+=("$SELF")
   cmp -s "$dir/deploy/forcitis-one.service" /etc/systemd/system/forcitis-one.service || drift+=(/etc/systemd/system/forcitis-one.service)
   cmp -s "$dir/deploy/nginx-one.conf" /etc/nginx/conf.d/one.conf || drift+=(/etc/nginx/conf.d/one.conf)
   cmp -s "$dir/deploy/forcitis-one.logrotate" /etc/logrotate.d/forcitis-one || drift+=(/etc/logrotate.d/forcitis-one)
-  [ "${#drift[@]}" -eq 0 ] || fail "server files differ from this release; apply them as in RELEASE.md (server file changes) first: ${drift[*]}"
+  [ "${#drift[@]}" -eq 0 ] || fail "server files differ from this release; apply them as in RELEASE.md §5 first: ${drift[*]}"
 
   local missing=() key
   while IFS= read -r key; do
@@ -141,17 +169,21 @@ check_server_files() {
 
 grant_static_read() {
   local dir="$1"
-  setfacl -m u:nginx:--x "$BASE" "$releases" "$dir"
+  setfacl -m u:nginx:--x "$dir"
   setfacl -R -m u:nginx:r-X "$dir"/web-*
 }
 
 place() {
-  local version="$1" env="$2" expected_sha="$3" incoming archive top staged existing
+  local version="$1" env="$2" expected_sha="$3" commit="$4" url="$5" incoming archive top staged existing
   incoming="$(mktemp -d "$releases/.incoming.XXXXXX")"
   trap 'rm -rf "$incoming"' EXIT
   archive="$incoming/bundle.tar.gz"
-  head -c $((MAX_BUNDLE_BYTES + 1)) > "$archive"
-  [ "$(stat -c %s "$archive")" -le "$MAX_BUNDLE_BYTES" ] || fail "bundle larger than $MAX_BUNDLE_BYTES bytes"
+  # The URL carries a signature: never echo it
+  log "downloading the bundle from OSS"
+  curl -fsS --proto '=https' --tlsv1.2 --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 20 \
+    --max-time "$DOWNLOAD_TIMEOUT_SECONDS" --max-filesize "$MAX_BUNDLE_BYTES" -o "$archive" --url "$url" \
+    || fail "bundle download failed"
+  log "downloaded $(stat -c %s "$archive") bytes"
   [ "$(sha256sum "$archive" | cut -d' ' -f1)" = "$expected_sha" ] || fail "bundle sha256 differs from the release's published sha256"
 
   top="forcitis-one-$version"
@@ -159,24 +191,26 @@ place() {
   tar -xzf "$archive" -C "$incoming" --no-same-owner --no-same-permissions
   staged="$incoming/$top"
   verify_bundle_dir "$staged"
-  grep -q "\"version\": \"$version\"" "$staged/manifest.json" || fail "manifest.json is not for version $version"
+  [ "$(manifest_field "$staged/manifest.json" version)" = "$version" ] || fail "manifest.json is not for version $version"
+  [ "$(manifest_field "$staged/manifest.json" gitSha)" = "$commit" ] || fail "manifest.json is not for commit $commit"
   [ -d "$staged/web-$env" ] || fail "bundle has no static files for $env"
 
   existing="$releases/$version"
   if [ -d "$existing" ]; then
     cmp -s "$existing/manifest.json" "$staged/manifest.json" \
       || fail "release $version is already installed with different contents; publish a new version instead"
+    [ "$(readlink "$existing/web")" = "web-$env" ] || fail "release $version is installed for another environment"
     # Server files were checked when this version was first installed; re-checking would block returning to an older release
     log "release $version already installed with identical contents"
   else
     check_server_files "$staged"
-    chown -R root:forcitis "$staged"
+    chown -R root:"$APP_USER" "$staged"
     find "$staged" -type d -exec chmod 0750 {} +
     find "$staged" -type f -exec chmod 0640 {} +
+    ln -s "web-$env" "$staged/web"
     mv "$staged" "$existing"
+    grant_static_read "$existing"
   fi
-  ln -sfn "web-$env" "$existing/web"
-  grant_static_read "$existing"
   rm -rf "$incoming"
   trap - EXIT
 }
@@ -192,22 +226,58 @@ new_migrations() {
        END { exit bad }' "$old/migrations.txt" "$new/migrations.txt"
 }
 
+# Runs Flyway for <version> as its own user. Credentials are files in $MIGRATION_CREDENTIALS named after the Spring property they set;
+# systemd hands them over with LoadCredential (never as environment variables) and Spring reads them as a config tree.
 migrate() {
-  local version="$1" release="$releases/$1" unit started log_file deadline
-  [ -f "$ETC/migrate.env" ] || fail "$ETC/migrate.env is missing; migrations run only with the migration account (RELEASE.md)"
-  [ "$(stat -c '%U:%a' "$ETC/migrate.env")" = "root:600" ] || fail "$ETC/migrate.env must be root-owned 0600"
+  local version="$1" first_install="$2" release="$releases/$1" unit log_file deadline started property env_name
+  local -a credentials=() unset_env=() args=()
+  assert_root_owned "$MIGRATION_CREDENTIALS"
+  [ "$(stat -c %a "$MIGRATION_CREDENTIALS")" = 700 ] || fail "$MIGRATION_CREDENTIALS must be mode 700"
+  [ -s "$MIGRATION_CREDENTIALS/spring.flyway.user" ] && [ -s "$MIGRATION_CREDENTIALS/spring.flyway.password" ] \
+    || fail "$MIGRATION_CREDENTIALS needs spring.flyway.user and spring.flyway.password (RELEASE.md §4)"
+  for property in "$MIGRATION_CREDENTIALS"/*; do
+    property="$(basename "$property")"
+    [[ "$property" =~ ^[a-z][a-z0-9.-]*$ ]] || fail "unexpected file in $MIGRATION_CREDENTIALS: $property"
+    if [[ "$property" =~ $FIRST_INSTALL_ONLY ]] && [ "$first_install" != true ]; then
+      fail "$MIGRATION_CREDENTIALS/$property is for the first installation only; remove it (RELEASE.md §4)"
+    fi
+    [ "$(stat -c '%U:%a' "$MIGRATION_CREDENTIALS/$property")" = root:600 ] || fail "$MIGRATION_CREDENTIALS/$property must be root 0600"
+    credentials+=(-p "LoadCredential=$property:$MIGRATION_CREDENTIALS/$property")
+    # A property given here wins over the same setting from one.env: EnvironmentFile values would otherwise outrank the config tree
+    env_name="$(printf '%s' "$property" | tr 'a-z.-' 'A-Z__')"
+    unset_env+=(-p "UnsetEnvironment=$env_name")
+  done
+
   unit="forcitis-one-migrate-$(date -u +%Y%m%d%H%M%S)"
-  log_file="$BASE/logs/$unit-$version.json"
-  log "running migrations of $version as transient unit $unit (log $log_file)"
-  # Overrides go on the command line: systemd lets EnvironmentFile= win over Environment=, Spring lets arguments win over both
-  systemd-run --unit="$unit" --uid=forcitis --gid=forcitis --working-directory="$release" \
-    -p EnvironmentFile="$ETC/one.env" -p EnvironmentFile="$ETC/migrate.env" \
+  install -d -o root -g root -m 0700 "$RELEASE_LOGS"
+  log_file="$RELEASE_LOGS/$unit-$version.json"
+  args=(--spring.main.web-application-type=none "--spring.config.import=configtree:/run/credentials/$unit.service/"
+        --spring.flyway.enabled=true --spring.flyway.default-schema=one_migration)
+  # Overrides go on the command line: Spring lets arguments win over one.env. Every scheduled job and outbound delivery stays off.
+  args+=(--WORKFORCE_SYNC_ENABLED=false --WORKFORCE_SHORT_NAME_ENABLED=false --WECOM_ENABLED=false --APPROVAL_DEADLINE_ENABLED=false
+         --EVENT_PUBLICATION_JOBS_ENABLED=false --FLOWABLE_ASYNC_EXECUTOR=false
+         --spring.session.jdbc.cleanup-cron=- --forcitis.platform.identity.credential-purge.cron=-
+         --forcitis.platform.numbering.capacity-check.cron=-)
+
+  if python3 -c 'import sys, zipfile; sys.exit(0 if sys.argv[2] in zipfile.ZipFile(sys.argv[1]).namelist() else 1)' \
+       "$release/forcitis-one.jar" "$MIGRATE_PROFILE_RESOURCE"; then
+    log "running migrations of $version in the application's migrate mode as unit $unit (log $log_file)"
+    systemd-run --wait --collect --unit="$unit" --uid="$MIGRATION_USER" --gid="$APP_USER" --working-directory="$release" \
+      -p EnvironmentFile="$ETC/one.env" "${credentials[@]}" "${unset_env[@]}" -p PrivateTmp=yes -p NoNewPrivileges=yes \
+      -p RuntimeMaxSec="$MIGRATION_TIMEOUT_SECONDS" -p StandardOutput="append:$log_file" -p StandardError="append:$log_file" \
+      /usr/bin/java -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" --spring.profiles.include=migrate "${args[@]}" \
+      || fail "migrations of $version failed or timed out; result unknown, check one_migration.flyway_schema_history and $log_file"
+    log "migrations of $version applied (migrate mode exited 0)"
+    return
+  fi
+
+  # Until the application has a migrate-and-exit mode: Flyway runs during startup and aborts it on error, so reaching "Started"
+  # means Flyway finished; anything else leaves the outcome open.
+  log "running migrations of $version as unit $unit (log $log_file)"
+  systemd-run --unit="$unit" --uid="$MIGRATION_USER" --gid="$APP_USER" --working-directory="$release" \
+    -p EnvironmentFile="$ETC/one.env" "${credentials[@]}" "${unset_env[@]}" -p PrivateTmp=yes -p NoNewPrivileges=yes \
     -p StandardOutput="append:$log_file" -p StandardError="append:$log_file" \
-    /usr/bin/java -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" --spring.main.web-application-type=none \
-    --spring.flyway.enabled=true --spring.flyway.default-schema=one_migration \
-    --WORKFORCE_SYNC_ENABLED=false --WORKFORCE_SHORT_NAME_ENABLED=false --WECOM_ENABLED=false \
-    --APPROVAL_DEADLINE_ENABLED=false --EVENT_PUBLICATION_JOBS_ENABLED=false --FLOWABLE_ASYNC_EXECUTOR=false
-  # The application has no migrate-and-exit mode yet: Flyway runs during startup, so "Started" means every migration applied
+    /usr/bin/java -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" "${args[@]}"
   deadline=$((SECONDS + MIGRATION_TIMEOUT_SECONDS))
   started=false
   while [ "$SECONDS" -lt "$deadline" ]; do
@@ -216,15 +286,15 @@ migrate() {
       break
     fi
     if ! systemctl is-active --quiet "$unit"; then
-      ! grep -q "Started ${APPLICATION_CLASS} in" "$log_file" 2>/dev/null || started=true
+      if grep -q "Started ${APPLICATION_CLASS} in" "$log_file" 2>/dev/null; then started=true; fi
       break
     fi
     sleep 3
   done
   systemctl stop "$unit" 2>/dev/null || true
   systemctl reset-failed "$unit" 2>/dev/null || true
-  $started || fail "migrations of $version did not complete (see $log_file); the running release is unchanged"
-  log "migrations of $version applied"
+  $started || fail "migration run of $version ended without reaching startup; result unknown, check one_migration.flyway_schema_history and $log_file; the running release is unchanged"
+  log "migration run of $version reached startup with Flyway enabled (Flyway aborts startup on error); confirm in one_migration.flyway_schema_history"
 }
 
 prune() {
@@ -233,7 +303,7 @@ prune() {
   keep_previous="$(linked_version "$previous_link")"
   while IFS= read -r dir; do
     name="$(basename "$dir")"
-    [ "$name" = "$keep_current" ] || [ "$name" = "$keep_previous" ] && continue
+    if [[ "$name" = "$keep_current" || "$name" = "$keep_previous" ]]; then continue; fi
     count=$((count + 1))
     if [ "$count" -gt "$KEEP_RELEASES" ]; then
       log "removing old release $name"
@@ -243,39 +313,45 @@ prune() {
 }
 
 lock() {
-  exec 9>"$BASE/.release.lock"
+  exec 9>"$LOCK"
   flock -n 9 || fail "another release operation is running"
 }
 
 cmd_install() {
-  local version="${1:-}" env="${2:-}" sha="${3:-}" profile running new
+  local version="${1:-}" env="${2:-}" sha="${3:-}" commit="${4:-}" url="" profile running new first_install=false
   valid_version "$version" || fail "invalid version '$version'"
   case "$env" in dev|prod) ;; *) fail "environment must be dev or prod" ;; esac
   [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || fail "sha256 of the bundle required"
+  [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "commit sha of the release required"
+  IFS= read -r -t 30 url || true
+  [[ "$url" =~ $BUNDLE_URL_PATTERN ]] || fail "stdin must carry the https OSS URL of the bundle"
   profile="$(env_value SPRING_PROFILES_ACTIVE)"
   [ "$profile" = "$env" ] || fail "this server is configured for '$profile' (SPRING_PROFILES_ACTIVE), not '$env'"
+  assert_root_owned "$BASE" "$releases"
   lock
-  place "$version" "$env" "$sha"
+  place "$version" "$env" "$sha" "$commit" "$url"
   running="$(linked_version "$current_link")"
+  [ -n "$running" ] || first_install=true
   if [ -n "$running" ] && [ "$running" != "$version" ]; then
     if ! awk 'NR==FNR { mine[substr($0, 67)]; next } !(substr($0, 67) in mine) { exit 1 }' \
          "$releases/$version/migrations.txt" "$releases/$running/migrations.txt"; then
-      log "WARNING: the database may hold migrations of $running that $version does not know; this is safe only because migrations are expand-only (RELEASE.md)"
+      log "WARNING: the database may hold migrations of $running that $version does not know; this is safe only because migrations are expand-only (RELEASE.md §4)"
     fi
   fi
   new="$(new_migrations "${running:+$releases/$running}" "$releases/$version")" || fail "a migration file changed between releases: $new"
   if [ -n "$new" ]; then
     log "new migrations: $(printf '%s' "$new" | tr '\n' ' ')"
-    migrate "$version"
   else
-    log "no new migrations"
+    log "no new migrations; the run still validates the applied ones against this release"
   fi
+  migrate "$version" "$first_install"
   activate "$version"
   prune
 }
 
 cmd_rollback() {
   local target="${1:-}"
+  assert_root_owned "$BASE" "$releases"
   lock
   if [ -z "$target" ]; then
     target="$(linked_version "$previous_link")"
@@ -301,5 +377,5 @@ case "$command" in
   install) cmd_install "$@" ;;
   rollback) cmd_rollback "$@" ;;
   status) cmd_status ;;
-  *) fail "usage: install <version> <dev|prod> <sha256> | rollback [<version>] | status" ;;
+  *) fail "usage: install <version> <dev|prod> <sha256> <commit sha> (bundle URL on stdin) | rollback [<version>] | status" ;;
 esac

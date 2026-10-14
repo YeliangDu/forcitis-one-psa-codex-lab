@@ -61,6 +61,8 @@ fi
 if wanted E-3; then
   step "E-3 运行用户 forcitis"
   run "id forcitis >/dev/null 2>&1 || useradd --system --home /data/forcitis-one --shell /sbin/nologin forcitis"
+  # 迁移以独立用户运行（RELEASE.md §4）：主组 forcitis 只为读取发布目录
+  run "id forcitis-migrate >/dev/null 2>&1 || useradd --system --no-create-home --home-dir / --gid forcitis --shell /sbin/nologin forcitis-migrate"
 fi
 
 if wanted E-4; then
@@ -72,8 +74,13 @@ fi
 
 if wanted E-5; then
   step "E-5 目录与权限"
-  run "install -d -o forcitis -g forcitis -m 750 /data/forcitis-one /data/forcitis-one/releases /data/forcitis-one/logs /data/forcitis-one/tmp"
+  # 发布目录与 current 软链归 root：安装器以 root 在其中操作，应用用户不能替换其中任何东西；应用只写 logs、tmp
+  run "install -d -o root -g forcitis -m 750 /data/forcitis-one /data/forcitis-one/releases"
+  run "install -d -o forcitis -g forcitis -m 750 /data/forcitis-one/logs /data/forcitis-one/tmp"
+  # nginx 只需穿过这两层目录读取各版本的 web/（安装器给 web 授只读 ACL）
+  run "dnf -y install acl && setfacl -m u:nginx:--x /data/forcitis-one /data/forcitis-one/releases"
   run "install -d -o root -g forcitis -m 750 /etc/forcitis-one"
+  run "install -d -o root -g root -m 700 /etc/forcitis-one/migrate"
   run "test -e /etc/forcitis-one/one.env || install -o root -g forcitis -m 0640 $FILES/one.env.template /etc/forcitis-one/one.env"
 fi
 

@@ -38,9 +38,9 @@ reboot                                                              # 若 E-2 �
 |---|---|---|---|
 | E-1 | xfs 挂 `/data`，fstab 用 UUID + `nofail` | 挂载与 fstab；重启后仍在 | 删 fstab 行、`umount /data`（盘内无数据时） |
 | E-2 | `dnf -y update`、Asia/Shanghai、chronyd | 时区、同步状态 | 不回滚（内核问题从启动菜单选旧内核） |
-| E-3 | 系统用户 `forcitis`，nologin | 用户存在且 nologin | `userdel forcitis` |
+| E-3 | 系统用户 `forcitis`（运行）与 `forcitis-migrate`（迁移，主组 forcitis），均 nologin | 用户存在且 nologin | `userdel forcitis-migrate forcitis` |
 | E-4 | Java 25，`dnf versionlock` 固定 | `java -version` 为 25 | `dnf remove` |
-| E-5 | `/data/forcitis-one/{releases,logs,tmp}` 750；`/etc/forcitis-one` root:forcitis 750；one.env 0640 | 属主与权限；one.env 无 `SPRING_FLYWAY_*` | 删目录 |
+| E-5 | `/data/forcitis-one` 与 `releases` **root:forcitis** 750（安装器以 root 在其中操作，应用用户不得可写）；`logs`、`tmp` forcitis 750；nginx 对前两层只有穿过（`--x`）ACL；`/etc/forcitis-one` root:forcitis 750；`/etc/forcitis-one/migrate` root 700（迁移凭据，RELEASE.md §4）；one.env 0640 | 属主与权限、ACL；one.env 无迁移凭据且 `SPRING_FLYWAY_ENABLED=false` | 删目录 |
 | E-6 | 安装单元并 enable（不启动） | enabled；User=forcitis 与加固项 | `systemctl disable`、删单元 |
 | E-7 | one.env：`SERVER_ADDRESS=127.0.0.1`、`MANAGEMENT_SERVER_PORT=8081`、`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,prometheus` | 8080 / 8081 只在 127.0.0.1；非本机地址只 80 / 443；管理端点只 health、prometheus | 改 one.env |
 | E-8 | nginx：80→301、TLS 1.2/1.3、HSTS、覆盖 XFF、20m、屏蔽 `/actuator` `/v3/api-docs` `/swagger-ui`、`Referrer-Policy: no-referrer`、日志不记查询串 | `nginx -t`；日志格式；屏蔽规则；`--public-check` | 删 `/etc/nginx/conf.d/one.conf`，`systemctl reload nginx` |
@@ -68,7 +68,7 @@ reboot                                                              # 若 E-2 �
 
 ## 首次部署（dev；须 1a 修复批合并后，且 C-3、B-5 完成）
 
-> 发布流水线已补（`RELEASE.md`）：首次部署改按 `RELEASE.md`「首次部署」执行，由 `deploy` 工作流与 ECS 上的 `forcitis-one-release` 完成下面第 1–3 步。下面的手工步骤留作流水线不可用时的备用，执行时注意两点：第 2 步 `-p Environment=` 的开关会被 `EnvironmentFile` 中的同名值覆盖（systemd 规则），应改为 java 命令行参数（`--WECOM_ENABLED=false` 等，见 `scripts/release/remote_install.sh` 的 `migrate`）；`one.env` 须有 `SPRING_FLYWAY_ENABLED=false`，迁移那次以 `--spring.flyway.enabled=true` 打开。
+> 发布流水线已补（`RELEASE.md`）：首次部署改按 `RELEASE.md`「首次部署」执行，由 `deploy` 工作流与 ECS 上的 `forcitis-one-release` 完成下面第 1–3 步。**迁移凭据不再用 `migrate.env`**：改放 `/etc/forcitis-one/migrate/`（root 700，每个 Spring 属性一个 root 600 文件，经 systemd `LoadCredential` 交给以 `forcitis-migrate` 运行的迁移进程，RELEASE.md §4）。下面的手工步骤已过时，仅作流水线不可用时的参考，须按 `scripts/release/remote_install.sh` 的 `migrate` 改写后再用：第 2 步 `-p Environment=` 的开关会被 `EnvironmentFile` 中的同名值覆盖（systemd 规则），应改为 java 命令行参数；`one.env` 须有 `SPRING_FLYWAY_ENABLED=false`。
 
 1. 发布包（版本号 `<ver>`）：`forcitis-one.jar`、`web/`、`web/h5/`、`SHA256SUMS`。发布包由 `release` 工作流产出（`RELEASE.md`），经云助手上传到 `/data/forcitis-one/releases/<ver>/`，`sha256sum -c SHA256SUMS`。
 2. 迁移（迁移凭据只在这一步出现）：
