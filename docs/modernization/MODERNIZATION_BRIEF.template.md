@@ -135,7 +135,7 @@ Risk: 中。
 - 风险二：老页面仍在调用 `fst/opportunity/*` 等接口。缓解：提供兼容门面。
 Entry criteria:
 - [ ] Phase 1a 的出口条件全部满足，且本 brief 已按试点结果重新生成
-- [ ] 售前与报价域被标记的 P0 规则已在 `RULE_REVIEWS.json` 中有结论
+- [x] 售前与报价域被标记的 P0 规则已在 `RULE_REVIEWS.json` 中有结论
 - [ ] 已列出所有调用 `/admin-api/fst/quotation/**`、`/admin-api/fst/opportunity/**` 的老调用方（PC、H5、外部系统），并为每个调用方注明：经兼容门面测试通过，或本阶段一并迁移
 - [ ] `psa_quotation*`、`psa_cost_template*`、`psa_crm_opportunity` 已有逐列所有权矩阵
 - [ ] 特征基线已录制：用 dev 库数据回放报价的保存、提交、审批，请求与结果记录在 `analysis/psa/BASELINE.md`

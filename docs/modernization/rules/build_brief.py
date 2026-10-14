@@ -41,7 +41,10 @@ L = [f"行为契约取自 `BUSINESS_RULES.md` 的 **{len(p0)} 条 P0 规则**（
 for d, (s, b) in by.items():
     L.append(f"| {d} | {PHASE.get(d,'')} | {len(s)} | {len(b)} | {sum(r in reviewed for r in b)} |")
 for d, (s, b) in by.items():
-    L += ["", f"### {d}（{PHASE.get(d,'')}）", "", "**已定：** " + ("、".join(f"{r[0]} {r[2].strip()}" for r in s) if s else "（无）"), "",
+    def settled_item(r):  # a settled rule can still be revised by a later review (e.g. RULE-160 after 145/155)
+        n = note_body(reviews.get(r[0], {}).get("note", ""))
+        return f"{r[0]} {r[2].strip()}" + (f"（修订：{n}）" if n else "")
+    L += ["", f"### {d}（{PHASE.get(d,'')}）", "", "**已定：** " + ("、".join(settled_item(r) for r in s) if s else "（无）"), "",
           "**阻塞，需评审：**"]
     for r in b:
         dfx = (re.search(r"\*\*Suspected defect:\*\*\s*(.+)", body[r[0]]) or [None, ""])[1]
