@@ -201,4 +201,6 @@ B1–B5 仍待用户（BI_SCOPE §6.1）。
 2. Q11：读取 BI 审计日志计数。执行前先把访问方式报 psa-coordinator。
 3. Q12：按管理层级起草「答不了的问题」模板，请业务 Admin 补充；本稿 §2 的报表包作为验收清单的骨架。
 4. 工具对比（Q1）。
+
+Q12 已完成：模板见 `QUESTION_TEMPLATE.md`，待填文件在仓库外 `~/.modernize/psa/bi-inputs/questions/`（questions.md、answers.md）。
 5. 用语确认页：本次登记的待确认别名，加上 §5 新词条的起草稿。
