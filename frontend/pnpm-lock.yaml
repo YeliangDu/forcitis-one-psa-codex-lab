@@ -241,9 +241,6 @@ importers:
       react-router:
         specifier: ^7.9.6
         version: 7.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      zod:
-        specifier: ^4.6.7
-        version: 4.6.7
     devDependencies:
       '@testing-library/dom':
         specifier: ^10.4.1
@@ -283,6 +280,10 @@ importers:
         version: 5.0.4(@types/node@24.19.2)(jsdom@30.1.2)(vite@7.3.7(@types/node@24.19.2))
 
   packages/api:
+    dependencies:
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^24.19.2

@@ -66,7 +66,7 @@ describe('同步记录页', () => {
   it('查看差异：显示这次同步的变化', async () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ]) },
-      'GET sync-runs/11': { body: { syncRun: RUNS[1], diffs: [{ entityKind: 'EMPLOYEE', subjectKey: '1001', changeKind: 'UPDATED', detail: '部门变更' }] } },
+      'GET sync-runs/11': { body: { syncRun: RUNS[1], diffs: [{ entityKind: 'EMPLOYEE', subjectKey: '1001', changeKind: 'UPDATED', changedFields: ['部门'], detail: '部门变更' }] } },
       'GET sync-runs': { body: RUNS },
     });
     renderWithProviders(<SyncRunsPage />);

@@ -22,6 +22,8 @@ const BAN = {
   axios: { paths: [{ name: 'axios', message: API_MSG }] },
   // F10 only apps/web modules/<m>/api may import the API package (one adapter per module)
   apiPackage: { patterns: [{ group: ['@forcitis/api', '@forcitis/api/*', '**/api/generated', '**/api/generated/*'], message: 'Only modules/<m>/api may import @forcitis/api (one adapter per module).' }] },
+  // F9 model/ may name the generated types (`import type`), never call the client
+  apiTypes: { patterns: [{ group: ['@forcitis/api', '@forcitis/api/*', '**/api/generated', '**/api/generated/*'], allowTypeImports: true, message: 'model/ may only `import type` from @forcitis/api (generated types). Calls go through modules/<m>/api.' }] },
   // F14 business code uses @forcitis/ui, never antd directly
   antd: {
     paths: [{ name: 'antd', message: 'Use the design-system components of @forcitis/ui (they wrap antd with the FORCITIS one tokens).' }],
@@ -30,7 +32,7 @@ const BAN = {
   // F14 tokens.css is read only inside packages/design-system (index.ts loads it, theme.ts maps it to antd)
   tokens: { patterns: [{ group: ['**/design-system/tokens*', '@forcitis/design-system/tokens*'], message: 'tokens.css is read only by packages/design-system (index.ts loads it once, theme.ts maps it to antd). Use semantic tokens via var(--...) in CSS or @forcitis/ui.' }] },
   // F9 model/ and shared/lib are pure
-  impure: { patterns: [{ group: ['react', 'react/*', 'react-*', '@/api/*', '**/api/*', '**/api'], message: 'model/ and shared/lib are pure: no React, no API calls. Put React code in hooks/ or components/, IO in api/.' }] },
+  impure: { patterns: [{ group: ['react', 'react/*', 'react-*'], message: 'model/ and shared/lib are pure: no React. Put React code in hooks/ or components/.' }, { regex: '^(\\.{1,2}|@)/(.*/)?api(/|$)', message: 'model/ and shared/lib are pure: no React, no API calls. Put React code in hooks/ or components/, IO in api/.' }] },
 };
 
 function importsFor(...parts) {
@@ -147,8 +149,13 @@ export default tseslint.config(
     rules: { 'no-restricted-imports': importsFor('axios', 'antd', 'tokens') },
   },
   {
-    // F9 model = pure types and rules: no React, no IO (mirrors backend domain). shared/lib likewise.
-    files: [`${WEB}/modules/*/model/**/*.{ts,tsx}`, `${WEB}/shared/lib/**/*.{ts,tsx}`],
+    // F9 model = pure types and rules: no React, no IO (mirrors backend domain). It may name the generated types with `import type`.
+    files: [`${WEB}/modules/*/model/**/*.{ts,tsx}`],
+    rules: { 'no-restricted-imports': importsFor('axios', 'apiTypes', 'antd', 'tokens', 'impure') },
+  },
+  {
+    // shared/lib likewise, without even the type import
+    files: [`${WEB}/shared/lib/**/*.{ts,tsx}`],
     rules: { 'no-restricted-imports': importsFor('axios', 'apiPackage', 'antd', 'tokens', 'impure') },
   },
   {

@@ -2,15 +2,17 @@ export interface Failure {
   status: number | undefined;
   code: string | undefined;
   body: unknown;
+  malformedAnswer: boolean;
 }
 
 export function failureOf(error: unknown): Failure {
-  if (typeof error !== 'object' || error === null) return { status: undefined, code: undefined, body: undefined };
+  if (typeof error !== 'object' || error === null) return { status: undefined, code: undefined, body: undefined, malformedAnswer: false };
   const record = error as Record<string, unknown>;
   return {
     status: typeof record['status'] === 'number' ? record['status'] : undefined,
     code: typeof record['code'] === 'string' ? record['code'] : undefined,
     body: record['body'],
+    malformedAnswer: record['name'] === 'ResponseShapeError',
   };
 }
 
@@ -24,6 +26,7 @@ export function messageForStatus(status: number | undefined): string {
 }
 
 export function describeFailure(error: unknown, byCode: Readonly<Record<string, string>> = {}): string {
-  const { status, code } = failureOf(error);
+  const { status, code, malformedAnswer } = failureOf(error);
+  if (malformedAnswer) return '服务返回的数据与约定不符，请稍后重试';
   return (code === undefined ? undefined : byCode[code]) ?? messageForStatus(status);
 }

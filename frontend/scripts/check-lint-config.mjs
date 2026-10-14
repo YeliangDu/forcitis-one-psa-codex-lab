@@ -24,6 +24,7 @@ const PROBES = [
   { rule: 'F5 API URL', code: "export const url = '/api/v1/platform/x';", ruleId: 'no-restricted-syntax', blocked: all },
   { rule: 'F10 api package', code: "import '@forcitis/api';", ruleId: 'no-restricted-imports', blocked: without('moduleApi', 'apiPackage') },
   { rule: 'F9 react in pure code', code: "import 'react';", ruleId: 'no-restricted-imports', blocked: ['model', 'sharedLib'] },
+  { rule: 'F9 model may only import types of the api package', code: "import type { Schema } from '@forcitis/api'; export type X = Schema<'X'>;", ruleId: 'no-restricted-imports', blocked: without('moduleApi', 'apiPackage', 'model') },
   { rule: 'F9 api in pure code', code: "import '../api/probe-api';", ruleId: 'no-restricted-imports', blocked: ['model', 'sharedLib'] },
   { rule: 'F14 antd', code: "import 'antd';", ruleId: 'no-restricted-imports', blocked: without('ui', 'designSystem') },
   { rule: 'F14 tokens.css', code: "import '@forcitis/design-system/tokens.css';", ruleId: 'no-restricted-imports', blocked: without('designSystem') },

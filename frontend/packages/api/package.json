@@ -10,6 +10,9 @@
     "test": "vitest run",
     "build": "echo \"api is built by apps/web\""
   },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
   "devDependencies": {
     "@types/node": "^24.19.2",
     "jsdom": "^30.1.2",

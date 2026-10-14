@@ -1,25 +1,9 @@
-import { z } from 'zod';
+import type { Schema } from '@forcitis/api';
 
 export const TASK_APPROVE_PERMISSION = 'platform.approval:task:approve';
 
-export const taskDetailSchema = z.object({
-  taskId: z.string(),
-  instanceId: z.string(),
-  processKey: z.string(),
-  businessKey: z.string().nullish(),
-  nodeKey: z.string(),
-  nodeName: z.string().nullish(),
-  initiator: z.string(),
-  assignee: z.string().nullish(),
-  candidates: z.array(z.string()),
-  createdAt: z.string().nullish(),
-  canAct: z.boolean(),
-});
-
-export const decisionResultSchema = z.object({ instanceId: z.string(), status: z.string() });
-
-export type TaskDetail = z.infer<typeof taskDetailSchema>;
-export type DecisionResult = z.infer<typeof decisionResultSchema>;
+export type TaskDetail = Schema<'TaskDetail'>;
+export type DecisionResult = Schema<'DecisionResult'>;
 
 export interface TaskActions {
   claim: boolean;
@@ -30,9 +14,9 @@ export interface TaskActions {
 
 /** The server decides who may act (canAct) and checks again on every call; this only decides which buttons to show. */
 export function availableActions(task: TaskDetail, canApprove: boolean): TaskActions {
-  const mayAct = canApprove && task.canAct;
+  const mayAct = canApprove && task.canAct === true;
   return {
-    claim: mayAct && (task.assignee === null || task.assignee === undefined),
+    claim: mayAct && task.assignee === undefined,
     approve: mayAct,
     reject: mayAct,
     returnToInitiator: mayAct,
