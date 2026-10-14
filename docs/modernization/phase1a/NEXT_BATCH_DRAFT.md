@@ -36,4 +36,7 @@
 | B1-scope-M2 | `backend/architecture/module-dependencies.txt`、`REIMAGINED_ARCHITECTURE.md` §2.2 | 登记 kernel 端口 `OrgUnitAccess`；F-1 下沉 `OrgUnitId` 时端口改为类型化 id，去掉 `NOT_USED = new LegalEntityId(1)` | 随 F-1 |
 | B1-scope-N1 | `LegalEntityController.java:31-32`、`data-access-registry.yaml` | 法人列表登记为 GLOBAL；部门响应的 `parentOrgUnitId` 对范围外上级裁剪 | 随 F-1 |
 
+| B1-scope-N2 | `OrgUnitScopeIntegrationTest` | 越权与不存在两种响应改为比较整个响应体，而不只比 errorCode | `B1-scope 越权与不存在响应完全相同` |
+| B1-scope-N3 | `GetLegalEntityAttribution`、`GetOrgUnit`、`OwnAttributionGuard` | 审计主体键统一写法（`org_unit:` / `org-unit:` / `legal-entity-attribution:org_unit:` 三种并存） | 审计检索测试 |
+
 （整合复审结束后继续追加）
