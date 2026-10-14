@@ -29,6 +29,17 @@
 - 时间来自注入的 `Clock`；金额使用 `Money`；id 使用类型化 record；状态使用枚举。
 - 完成标准：在 `backend/` 下执行 `./mvnw -B verify` 全绿（含全部守护测试）。然后在你的分支上提交，提交信息中文，结尾加一行 `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`。**不推送**。
 
+## 老代码只作证据（用户 2026-10-14：「三项都加」；SESSION_PLAYBOOK §5）
+- 老仓库（/Users/yeliang/Projects/FORCITIS/psa）**只用于理解行为**：规则卡、file:line 引用、等价判定。
+- 新代码**只**依据规格、规则卡、ADR 和 `terms.yaml` 编写。**不复制**老代码的片段、类结构、表结构、接口路径或命名，包括：`psa_` / `system_` / `bpm_` 表名、`/admin-api/`、yudao 包名与基类、Service/ServiceImpl/Convert/DO/VO/Mapper 分层、老字段名（paramsId、dataStamp、deliveryDeptId、manager_id 等）、老角色码字面量（如 BU-002）、拼音缩写。
+- 与老系统行为等价，要靠以 RULE-id 命名的测试来证明，不靠照搬代码。
+- `LegacyShapeTest` 会自动拦截照搬；例外只限已批准的防腐层，按文件登记在 `backend/architecture/legacy-shape-exceptions.txt`，改动需要评审。
+
+## 领域模块不出现外部系统名（用户 2026-10-14：「改名并移到 integration」）
+- 外部系统与供应商名（a8、seeyon、u8c、fenbeitong、yudao 等）**只能出现在 `platform.integration` 的适配器**（如 `platform.integration.infrastructure.seeyon`）中。
+- 领域模块的类名、包名、配置键、表名、事件名都按角色命名，例如组织数据来源用 `OrgSource`。
+- 领域模块只经 `platform.integration` 的 api 端口取数，来源可以替换（例如自建 HRM 之后只换实现）。
+
 ## 报告（最终回复）
 请包含以下内容：
 - 分支名与提交号
