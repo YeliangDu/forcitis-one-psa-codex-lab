@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
+import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -41,7 +42,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
     DecideTasks decideTasks;
 
     ApprovalInstanceId startWithManagers(String key, long initiator, long... managers) {
-        return tx.execute(s -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), Set.of(),
+        return tx.execute(s -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
     }
 

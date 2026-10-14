@@ -35,6 +35,7 @@ final class NodePolicyReader {
         try {
             return new NodePolicy(AssignmentRuleCodec.parse(attribute(element, "type"), name -> attribute(element, name)),
                     "allowed".equals(attribute(element, "selfApproval")),
+                    "true".equals(attribute(element, "skipWhenEmpty")),
                     attribute(element, "beforeHook"));
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw new IllegalStateException("Node " + node.getId() + ": " + e.getMessage(), e);

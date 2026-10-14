@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
+import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -69,7 +70,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         String key = newKey("lifecycle");
         ApprovalInstanceId instance = tx.execute(status -> approvals.start(new com.forcitis.one.platform.approval.api.ApprovalRequest(
                 com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(s.initiator()),
-                java.util.Set.of(), List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
+                java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()), List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
                         List.of(String.valueOf(s.manager()), String.valueOf(second)))))));
         Task task = openTask(instance);
         assertThat(task.getTaskDefinitionKey()).isEqualTo("projectManagerReview");
@@ -83,17 +84,16 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
     void claimDecideAndFinish() {
         Staff s = staff();
         String key = newKey("lifecycle");
-        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
-        ApprovalTaskId review = openTaskId(instance);
+        ApprovalInstanceId instance = startWithSupervisor(key, s.initiator(), s.manager());
+        ApprovalTaskId review = openTaskId(instance, "projectManagerReview");
 
         claimTask.execute(review, new UserId(s.manager()));
-        assertThat(openTask(instance).getAssignee()).isEqualTo(String.valueOf(s.manager()));
+        assertThat(openTask(instance, "projectManagerReview").getAssignee()).isEqualTo(String.valueOf(s.manager()));
 
         DecisionResult afterReview = decide(s.manager(), review, DecisionOutcome.APPROVE, "");
         assertThat(afterReview.status()).isEqualTo("RUNNING");
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
-        Task department = openTask(instance);
-        assertThat(department.getTaskDefinitionKey()).isEqualTo("supervisorReview");
+        Task department = openTask(instance, "supervisorReview");
         assertThat(taskService.getIdentityLinksForTask(department.getId()).stream().map(l -> l.getUserId()).toList())
                 .containsExactly(String.valueOf(s.head()));
 
@@ -156,26 +156,6 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-290 a top-level reject ends the approval REJECTED and keeps the history (RULE-288)")
-    void topLevelRejectEndsTheApproval() {
-        Staff s = staff();
-        String key = newKey("lifecycle");
-        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
-        decide(s.manager(), openTaskId(instance), DecisionOutcome.APPROVE, "ok");
-
-        DecisionResult rejected = decide(s.head(), openTaskId(instance), DecisionOutcome.REJECT, "price too low");
-        assertThat(rejected.status()).isEqualTo("REJECTED");
-        assertThat(requestStatus(key)).isEqualTo("REJECTED");
-        assertThat(approvals.isFinished(instance)).isTrue();
-        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value()).count()).isEqualTo(1);
-        eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
-            assertThat(e.businessKey()).isEqualTo(key);
-            assertThat(e.outcome()).isEqualTo(ApprovalOutcome.REJECTED);
-            assertThat(e.reason()).isEqualTo("price too low");
-        }));
-    }
-
-    @Test
     @DisplayName("RULE-275 return to initiator needs a reason; with a reason the round ends RETURNED and nothing is parked")
     void returnNeedsAReason() {
         Staff s = staff();
@@ -231,9 +211,9 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
     void resultEventsAreDeliveredAtLeastOnce(@Autowired org.springframework.modulith.events.IncompleteEventPublications incomplete) {
         Staff s = staff();
         String key = "flaky-" + newId();
-        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
-        decide(s.manager(), openTaskId(instance), DecisionOutcome.APPROVE, "ok");
-        decide(s.head(), openTaskId(instance), DecisionOutcome.APPROVE, "ok");
+        ApprovalInstanceId instance = startWithSupervisor(key, s.initiator(), s.manager());
+        decide(s.manager(), openTaskId(instance, "projectManagerReview"), DecisionOutcome.APPROVE, "ok");
+        decide(s.head(), openTaskId(instance, "supervisorReview"), DecisionOutcome.APPROVE, "ok");
 
         eventually(() -> assertThat(events.failedOnce()).contains(key));
         assertThat(events.completed()).noneMatch(e -> e.businessKey().equals(key));

@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
+import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalHook;
@@ -144,12 +145,29 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager) {
+        return start(businessKey, initiator, manager, TimesheetRoutingFlag.PROJECT_HOURS);
+    }
+
+    protected ApprovalInstanceId startWithSupervisor(String businessKey, long initiator, long manager) {
+        return start(businessKey, initiator, manager, TimesheetRoutingFlag.PROJECT_HOURS, TimesheetRoutingFlag.OVERHEAD_HOURS);
+    }
+
+    protected ApprovalInstanceId start(String businessKey, long initiator, long manager, TimesheetRoutingFlag... flags) {
+        Set<String> flagNames = java.util.Arrays.stream(flags).map(TimesheetRoutingFlag::flagName).collect(java.util.stream.Collectors.toSet());
         return tx.execute(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, businessKey,
-                new UserId(initiator), Set.of(), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+                new UserId(initiator), flagNames, List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
     }
 
     protected Task openTask(ApprovalInstanceId instance) {
         return taskService.createTaskQuery().processInstanceId(instance.value()).singleResult();
+    }
+
+    protected Task openTask(ApprovalInstanceId instance, String nodeKey) {
+        return taskService.createTaskQuery().processInstanceId(instance.value()).taskDefinitionKey(nodeKey).singleResult();
+    }
+
+    protected ApprovalTaskId openTaskId(ApprovalInstanceId instance, String nodeKey) {
+        return new ApprovalTaskId(openTask(instance, nodeKey).getId());
     }
 
     protected ApprovalTaskId openTaskId(ApprovalInstanceId instance) {
