@@ -71,3 +71,24 @@ L1 的事实表以过账事件为准；业务 BC 的事件只用于累积快照�
 | 维度名称、层级路径 | 按 `businessDate` 从维度表解析，随生效期变化 |
 | 期间是否已关账 | 由 L2 依据 `accounting.period` 的关账事件判断 |
 | 汇率折算 | 事件只记交易币，折算在语义层（BI-olap ADR-0007 的做法沿用） |
+
+## 6. 修订（ADR-0025 评审后，2026-10-14；以本节为准，覆盖上文冲突处）
+
+architecture-critic（opus）评审 C-9、C-16 之后，ADR-0025 改为：财务事实由 L1 直接读 `operations.facts`，不依赖事件；事件只用于过程事实（如审批时效）与累积快照，监听器收到事件后从 OLTP 读取当前状态。据此修订信封：
+
+1. **删除 `recordedAt`**：生产者序列化时拿不到发布登记表的写入时间，它与 `occurredAt` 重复；监控用发布登记表自己的时间列。
+2. **期间规则**：
+   - 过账事实的期间一律用 `accountingPeriod`（过账负载）；
+   - `businessDate` 只用于解析维度版本，以及不过账的过程里程碑；
+   - `businessDate` 按法人所在时区（Asia/Shanghai）截日；
+   - 一个事件涉及多个业务日期（费用的权责日与支付日、开票日与到期日、合同签订日、生效日与回签日）时，`businessDate` 取 AsyncAPI 中为该事件类型声明的那一个，其余日期放在负载中，同样在 AsyncAPI 中声明。
+3. **`aggregateVersion` 定义**：
+   - 按聚合计数的事件序号，存在聚合上，每发一个事件加一；同一事务内对同一聚合发多个事件时连续编号；
+   - 定时器或流程引擎触发的事件（如 `ApprovalTaskOverdue`）取所属任务聚合的序号；
+   - L1 **不做**版本连续性检查（乱序时从 OLTP 读当前态），它只用于对账与排查。
+4. **跨聚合事件**：信封的 `aggregateType` / `aggregateId` 是主聚合；同一事务中改变的其他聚合列在负载 `relatedAggregates`（类型 + ID）中。例如开票同时改写 WIP（ADR-0016 第 5 条）。
+5. **`actorType` 只取 `USER`、`SYSTEM`**：历史迁入由 `source.system = MIGRATION` 表示，不再重复。
+6. **`source.documentRef` 与 `documentNumber` 的区别**：前者是老系统或 A8 的原单号，只在迁入时有值；后者是新系统的业务编号（ADR-0010）。
+7. **`schemaVersion`** 只用于消费方解析在途事件；重建与回填一律从 OLTP 读，不重放旧事件。
+8. **可推导约束**：信封与负载中的分析字段（`businessDate`、`source.*`、`documentNumber`、`ruleVersion`）必须同时落在 OLTP 的业务行上，保证 L1 从 OLTP 重建时不丢字段。
+9. 过账事件仍按 §3 发布，供其他消费方使用；L1 不依赖它。
