@@ -10,6 +10,8 @@
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-jdbc</artifactId></dependency>
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-core</artifactId></dependency>
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-core</artifactId></dependency>
+    <!-- Event publication registry (JDBC): at-least-once delivery of module events (RULE-295/303/304) - added by platform.approval -->
+    <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-jdbc</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
     <!-- OpenAPI contract (G42 reads /v3/api-docs); 3.1.x is built on Boot 4.1 -->
@@ -21,6 +23,12 @@
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-flyway</artifactId></dependency>
     <!-- Phase 1a: server-side sessions (ADR-0009), caches (no Redis), metrics to ARMS, read-only SQL Server for A8 / legacy views -->
     <dependency><groupId>org.springframework.session</groupId><artifactId>spring-session-jdbc</artifactId></dependency>
+    <!-- platform.identity: Boot 4 auto-configures Spring Session JDBC (cookie, table name, cleanup) from this starter -->
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-session-jdbc</artifactId></dependency>
+    <!-- platform.identity: Argon2id for emergency-admin passwords (Spring Security's Argon2PasswordEncoder needs BouncyCastle); not managed by the Boot BOM -->
+    <!-- platform.identity: @ApplicationModuleListener (reacts to OrgSnapshotChanged); a no-op duplicate if the event registry starter is added later -->
+    <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-events-api</artifactId></dependency>
+    <dependency><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk18on</artifactId><version>1.82</version></dependency>
     <dependency><groupId>com.github.ben-manes.caffeine</groupId><artifactId>caffeine</artifactId></dependency>
     <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId></dependency>
     <dependency><groupId>com.microsoft.sqlserver</groupId><artifactId>mssql-jdbc</artifactId><scope>runtime</scope></dependency>
@@ -45,6 +53,39 @@
           <execution><id>report</id><phase>verify</phase><goals><goal>report</goal></goals></execution>
         </executions>
       </plugin>
+      <!-- SQL Server integration tests (*MssqlIT) need the profile legacy-it: neither compiled nor run by default -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId>
+        <configuration><testExcludes><testExclude>**/*MssqlIT.java</testExclude></testExcludes></configuration>
+      </plugin>
+      <!-- *IT classes (Testcontainers) run in the integration-test phase; surefire only runs *Test (Boot parent) - added by platform.approval -->
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId></plugin>
     </plugins>
   </build>
+  <profiles>
+    <!-- organization.workforce: tests against a real SQL Server (Testcontainers), off by default. Run: ./mvnw -B verify -Plegacy-it -->
+    <profile>
+      <id>legacy-it</id>
+      <dependencies>
+        <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-mssqlserver</artifactId><scope>test</scope></dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId>
+            <configuration><testExcludes combine.self="override"/></configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <includes>
+                <include>**/Test*.java</include><include>**/*Test.java</include><include>**/*Tests.java</include><include>**/*TestCase.java</include>
+                <include>**/*MssqlIT.java</include>
+              </includes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

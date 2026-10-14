@@ -12,7 +12,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.PublicEndpoint;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.integration.api.WecomGateway;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.web.method.HandlerMethod;
 import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import com.forcitis.one.platform.numbering.api.DocumentType;
@@ -51,11 +58,29 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Boot 4.1 + Flowable 8 + PostgreSQL 17: security default-deny, API versioning, typed outcomes, engine schema. */
-@SpringBootTest(properties = {"flowable.async-executor-activate=false",
+@SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
+        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
+        // The cached context is closed by the JVM shutdown hook after the container is gone; without a short timeout the
+        // engine's close command (and the event publication registry) wait 30 s for a connection that can never come.
+        "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
 @Testcontainers
 class ApplicationIntegrationTest {
+
+    // platform.approval resolves approvers from the organisation snapshot and roles (provided by other modules in the
+    // finished application); here empty doubles stand in, so every task goes to the process administrator.
+    @MockitoBean
+    OrgDirectory orgDirectory;
+
+    @MockitoBean
+    RoleDirectory roleDirectory;
+
+    @MockitoBean
+    WecomGateway wecomGateway;
+
+    @MockitoBean
+    AuditTrail auditTrail;
 
     @Container
     @ServiceConnection
@@ -87,19 +112,48 @@ class ApplicationIntegrationTest {
     @Qualifier("requestMappingHandlerMapping")
     RequestMappingHandlerMapping handlerMapping;
 
+    /**
+     * Anonymous access (SECURITY_INVARIANTS I-3, REIMAGINED_ARCHITECTURE §3.8, revised wording of the exit condition):
+     * every handler that is not @PublicEndpoint answers 401; the @PublicEndpoint handlers are exactly the reviewed
+     * snapshot architecture/public-endpoints.txt (same lines, same reasons); a public handler never grants anything to a
+     * caller who proves nothing.
+     */
     @Test
-    void everyEndpointRejectsAnonymousCallers() throws Exception {
+    void anonymousCallersAreRefusedExceptOnTheReviewedPublicEndpoints() throws Exception {
         List<String> checked = new ArrayList<>();
-        for (RequestMappingInfo info : handlerMapping.getHandlerMethods().keySet()) {
-            for (String pattern : info.getPatternValues()) {
+        List<String> publicActual = new ArrayList<>();
+        for (Map.Entry<RequestMappingInfo, HandlerMethod> mapped : handlerMapping.getHandlerMethods().entrySet()) {
+            PublicEndpoint publicEndpoint = mapped.getValue().getMethodAnnotation(PublicEndpoint.class);
+            for (String pattern : mapped.getKey().getPatternValues()) {
                 String url = pattern.replace("{version}", "v1").replaceAll("\\{[^}]+}", "1");
-                for (var method : info.getMethodsCondition().getMethods()) {
-                    mvc.perform(request(HttpMethod.valueOf(method.name()), url).with(csrf())).andExpect(status().isUnauthorized());
-                    checked.add(method + " " + url);
+                for (var method : mapped.getKey().getMethodsCondition().getMethods()) {
+                    var request = request(HttpMethod.valueOf(method.name()), url).with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON).content("{}");
+                    if (publicEndpoint == null) {
+                        mvc.perform(request).andExpect(status().isUnauthorized());
+                        checked.add(method + " " + url);
+                    } else {
+                        publicActual.add(method + " " + pattern + "  # " + publicEndpoint.reason());
+                        int status = mvc.perform(request).andReturn().getResponse().getStatus();
+                        assertThat(status).as("%s %s proves nothing, so it must not log anyone in", method, url)
+                                .isGreaterThanOrEqualTo(400).isNotEqualTo(500);
+                    }
                 }
             }
         }
         assertThat(checked).isNotEmpty();
+        List<String> snapshot = Files.readAllLines(Path.of("architecture/public-endpoints.txt")).stream()
+                .map(String::strip).filter(line -> !line.isEmpty() && !line.startsWith("#")).toList();
+        assertThat(publicActual).as("@PublicEndpoint handlers must equal architecture/public-endpoints.txt (CODEOWNERS review)")
+                .containsExactlyInAnyOrderElementsOf(snapshot);
+    }
+
+    @Test
+    void writesWithoutACsrfTokenAreForbidden() throws Exception {
+        mvc.perform(post(SUBMIT).contentType(MediaType.APPLICATION_JSON).content(BODY)).andExpect(status().isForbidden());
+        mvc.perform(post(SUBMIT).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
+                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isForbidden());
     }
 
     @Test
