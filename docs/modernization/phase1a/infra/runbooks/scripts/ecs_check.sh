@@ -32,7 +32,12 @@ check "E-5 /etc/forcitis-one 属 root:forcitis、750" "[[ \$(stat -c '%U:%G %a' 
 check "E-5 one.env 为 0640 root:forcitis"   "[[ \$(stat -c '%U:%G %a' /etc/forcitis-one/one.env) == 'root:forcitis 640' ]]"
 check "E-5 one.env 无迁移凭据"              "! grep -qE '^SPRING_FLYWAY_(USER|PASSWORD)=' /etc/forcitis-one/one.env"
 check "E-5 常驻进程不跑 Flyway"             "grep -qx 'SPRING_FLYWAY_ENABLED=false' /etc/forcitis-one/one.env"
-check "E-6 forcitis-one.service 已启用"     "systemctl is-enabled forcitis-one"
+check "E-6 forcitis-one.service 已安装"     "systemctl cat forcitis-one"
+if [[ -e /data/forcitis-one/current/forcitis-one.jar ]]; then
+  check "E-6 forcitis-one.service 已启用"   "systemctl is-enabled forcitis-one"
+else
+  manual "E-6 首次部署前不 enable（发布包未到位）"
+fi
 check "E-6 单元以 forcitis 运行且加固"      "systemctl show forcitis-one -p User -p NoNewPrivileges -p ProtectSystem | tr '\n' ' ' | grep -q 'User=forcitis.*NoNewPrivileges=yes.*ProtectSystem=strict'"
 check "E-7 8080 只监听 127.0.0.1"           "ss -ltnH 'sport = :8080' | awk '{print \$4}' | grep -qx '127.0.0.1:8080' && ! ss -ltnH 'sport = :8080' | awk '{print \$4}' | grep -vqx '127.0.0.1:8080'"
 check "E-7 8081 只监听 127.0.0.1"           "ss -ltnH 'sport = :8081' | awk '{print \$4}' | grep -qx '127.0.0.1:8081'"

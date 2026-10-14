@@ -85,10 +85,11 @@ if wanted E-5; then
 fi
 
 if wanted E-6; then
-  step "E-6 systemd 单元与日志轮转（不启动；首次部署时再启动）"
+  step "E-6 systemd 单元与日志轮转（不 enable、不启动；首次部署放好 jar 后再 enable）"
   run "install -o root -g root -m 0644 $FILES/forcitis-one.service /etc/systemd/system/forcitis-one.service"
   run "install -o root -g root -m 0644 $FILES/forcitis-one.logrotate /etc/logrotate.d/forcitis-one"
-  run "systemctl daemon-reload && systemctl enable forcitis-one"
+  # 发布包到位前 enable，重启后会因 jar 不存在按 Restart=on-failure 无限重启
+  run "systemctl daemon-reload"
 fi
 
 if wanted E-7; then
