@@ -513,7 +513,7 @@ class DataArchitectureTest {
         }
         registry.forEach((name, entry) -> {
             boolean wildcard = name.endsWith("*");
-            if (!wildcard && !tables.containsKey(name)) {
+            if (!wildcard && !tables.containsKey(name) && !Boolean.TRUE.equals(entry.raw().get("optional"))) {
                 problems.add("registry entry " + name + " has no table");
             }
             if (!ROLES.contains(entry.text("role"))) {
@@ -562,7 +562,7 @@ class DataArchitectureTest {
             assertSame(problems, table, "writers", new TreeSet<>(entry.list("writers")), writers);
             assertSame(problems, table, "readers", new TreeSet<>(entry.list("readers")), readers);
         });
-        registry.values().stream().filter(e -> !seen.contains(e.table())).forEach(e -> {
+        registry.values().stream().filter(e -> !seen.contains(e.table()) && !Boolean.TRUE.equals(e.raw().get("optional"))).forEach(e -> {
             if (!e.list("writers").isEmpty() || !e.list("readers").isEmpty()) {
                 problems.add(e.table() + ": the registry lists readers or writers but no SQL touches the table");
             }
@@ -670,9 +670,10 @@ class DataArchitectureTest {
         String script = Files.readString(Path.of("../docs/modernization/phase1a/infra/one_db_roles_schemas.sql"));
         int at = script.indexOf("REVOKE DELETE, TRUNCATE ON");
         assertThat(at).as("one_db_roles_schemas.sql has the REVOKE for version tables").isGreaterThan(0);
-        String revoke = script.substring(at, script.indexOf("FROM one_dev_app;", at));
+        int list = script.lastIndexOf("FOREACH t IN ARRAY ARRAY[", at);
+        String revoke = script.substring(list, at);
         Set<String> revoked = new TreeSet<>();
-        Matcher name = Pattern.compile("([a-z_]+\\.[a-z_]+)").matcher(revoke.substring("REVOKE DELETE, TRUNCATE ON".length()));
+        Matcher name = Pattern.compile("'([a-z_]+\\.[a-z_]+)'").matcher(revoke);
         while (name.find()) {
             revoked.add(name.group(1));
         }

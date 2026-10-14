@@ -99,13 +99,19 @@ REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integrati
 -- §4b 迁移之后：版本表只追加（B2-M5；每次发布迁移后再执行一遍，幂等）
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 版本表上的触发器已拒绝删除、清空和改写已关闭的行；运行角色再不持有 DELETE 与 TRUNCATE（只留 SELECT、INSERT、UPDATE，UPDATE 用来关闭开放版本）。
--- 新增版本表（数据访问注册表中角色为 DIMENSION_VERSIONED 的表）时，在这里补一行；DataArchitectureTest 核对此清单与注册表一致。
-REVOKE DELETE, TRUNCATE ON
-    organization_workforce.org_unit_versions,
-    organization_workforce.assignment_versions,
-    organization_workforce.legal_entity_versions,
-    organization_workforce.legal_entity_attribution_periods
-    FROM one_dev_app;
+-- 新增版本表（数据访问注册表中角色为 DIMENSION_VERSIONED 的表）时，在这里补一项；DataArchitectureTest 核对此清单与注册表一致。
+-- 法人归属的期间表旧版叫 legal_entity_attribution_periods，按契约改名后是后两项；集成后从清单和注册表里删去旧名。
+DO $$
+DECLARE t text;
+BEGIN
+    FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
+                             'organization_workforce.legal_entity_versions', 'organization_workforce.legal_entity_attribution_periods',
+                             'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities'] LOOP
+        IF to_regclass(t) IS NOT NULL THEN
+            EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
+        END IF;
+    END LOOP;
+END $$;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）

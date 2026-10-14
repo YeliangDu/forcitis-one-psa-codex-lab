@@ -19,7 +19,17 @@ CREATE TRIGGER tg_assignment_versions_append_only_truncate BEFORE TRUNCATE ON or
     FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_version_rewrite();
 CREATE TRIGGER tg_legal_entity_versions_append_only_truncate BEFORE TRUNCATE ON organization_workforce.legal_entity_versions
     FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_version_rewrite();
-CREATE TRIGGER tg_legal_entity_attribution_periods_append_only BEFORE UPDATE OR DELETE ON organization_workforce.legal_entity_attribution_periods
-    FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_version_rewrite();
-CREATE TRIGGER tg_legal_entity_attribution_periods_append_only_truncate BEFORE TRUNCATE ON organization_workforce.legal_entity_attribution_periods
-    FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_version_rewrite();
+
+-- 法人归属的期间表：旧版是一张 legal_entity_attribution_periods，按契约命名后拆成 org_unit_legal_entities 与 employee_legal_entities；哪张存在就给哪张加上触发器。
+DO $$
+DECLARE t text;
+BEGIN
+    FOREACH t IN ARRAY ARRAY['legal_entity_attribution_periods', 'org_unit_legal_entities', 'employee_legal_entities'] LOOP
+        IF to_regclass('organization_workforce.' || t) IS NOT NULL THEN
+            EXECUTE format('CREATE TRIGGER tg_%s_append_only BEFORE UPDATE OR DELETE ON organization_workforce.%I '
+                           'FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_version_rewrite()', t, t);
+            EXECUTE format('CREATE TRIGGER tg_%s_append_only_truncate BEFORE TRUNCATE ON organization_workforce.%I '
+                           'FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_version_rewrite()', t, t);
+        END IF;
+    END LOOP;
+END $$;
