@@ -11,7 +11,7 @@
 | # | 不变量 | 来源 | 现状 | 验收测试 |
 |---|---|---|---|---|
 | I-1 | 新系统不读取、不写入、不校验老系统令牌（`system_oauth2_*`）。只读账号与视图**不授权**令牌表 | 检查点 2 Q-1；ADR-0009 §6 修订 | 架构已采纳（REIMAGINED_ARCHITECTURE §3.1、§3.6） | `LegacyTokenIsolationTest`（ArchUnit）：任何模块都不访问 `system_oauth2_*`；启动时校验只读账号对令牌表没有权限，有权限则启动失败 |
-| I-2 | **老系统后端不得被配置为签名票据签发方**（C1a-03 的 `ticket_issuers`）。ADR-0009 §6 中「需要时由老后端签发一次性签名票据」的做法，在老系统的免密入口（SEC-001、SEC-116）修复前**不得启用** | 本决定 | 新增 | `TicketIssuerAllowlistTest`：`ticket_issuers` 中只允许评审过的签发方，老系统后端不在其中；新增签发方需 CODEOWNERS 评审 |
+| I-2 | **老系统后端不得被配置为签名票据签发方**（C1a-03 的 `ticket_issuers`）。**无条件**：老系统后端永远不是签发方（ADR-0027 第 4 项取代 ADR-0009 第 6 条中「由老后端签发」一句；D-1a-32）；以后若需要须另立 ADR | 本决定；ADR-0027 | 新增 | `TicketIssuerAllowlistTest`：`ticket_issuers` 中只允许评审过的签发方，老系统后端不在其中；新增签发方需 CODEOWNERS 评审 |
 | I-3 | 新系统只接受由自己向身份源核实过的登录方式：企业微信 OAuth（含小程序）、致远 SSO（服务端验票）、外部签名票据、应急管理员 | C1a-01..04 | 已在规格中 | `AnonymousAccessIT` + 公开端点白名单快照（§3.8）：白名单之外不存在任何能建立会话的端点 |
 
 ## 2. 第 7 轮缺陷在新系统中的对应要求
@@ -30,7 +30,7 @@
 | # | 不变量 | 验收测试 |
 |---|---|---|
 | I-10 | 数据范围 fail-closed：空范围零行、范围计算异常即拒绝；只有登记在数据访问注册表中的持久化类能访问数据库，触及 `SCOPED` 表的方法必须带 `AccessScope`；越权按 id 读取返回 404 | `DataAccessRegistryTest`、ArchUnit `onlyRegisteredPersistenceTouchesTheDatabase`、`ScopedRepositoryContract` |
-| I-11 | 管理模式与业务权限分离：普通会话中 `super_admin` 持有人没有平台权限；管理模式（再次验证、1 小时）只有登记的平台权限，不含业务、敏感读与审计查看，不能办理审批；应急登录直接进入管理模式 | `AdminModeBoundaryTest` |
+| I-11 | 管理模式与业务权限分离：普通会话中 `super_admin` 持有人没有平台权限；管理模式（再次验证、1 小时）只有角色定义、账号授权、强制下线三项平台权限（ADR-0027 第 2 项），不含业务、敏感读与审计查看，不能办理审批；应急登录直接进入管理模式；应急与管理模式会话每请求复核「账号启用、应急账号启用、当前持有 `super_admin`」，快照明确离职时拒绝应急登录；离职删除全部角色授予并停用应急账号 | `AdminModeBoundaryTest`、`EmergencyLoginIT`、`SeparationRevokesRolesIT`、`SyncLockoutGuardIT` |
 | I-12 | 不能修改自己的角色集合，也不能修改自己持有的任何角色的定义；敏感权限的授予需第二人确认，管理员不豁免 | `SelfGrantForbiddenIT`、`SensitiveGrantTwoPersonIT` |
 
 ## 3. 落地方式
