@@ -2,7 +2,7 @@
 
 - 用户决定：Q11「同意，放在 R0 做 (Recommended)」；访问方式「同意；无权时我另给只读账号」（经 psa-coordinator 转达）。
 - 访问方式：
-  - 沿用 PSA 生产只读通道：经云助手在 PSA 应用服务器运行单文件程序，以 PSA 数据源只读连接 + READ UNCOMMITTED 访问同一 SQL Server 实例上的 BI 库；
+  - 沿用老系统生产只读通道：经云助手在老系统应用服务器运行单文件程序，以老系统数据源只读连接 + READ UNCOMMITTED 访问同一 SQL Server 实例上的 BI 库；
   - 第 0 段探测结果为 `HAS_DBACCESS('BI') = 1`，未使用任何其他凭据；
   - 程序只放行 SELECT；单条超时 150 秒；凭据只在服务器进程内使用；
   - 服务器临时目录 `/tmp/psa-bi-ro` 每次执行后删除；共执行 6 次（权限与列名 1 次，输出超出云助手上限后拆为 5 次）。
@@ -66,12 +66,12 @@
 | 只读 A8（`a8_db`） | 84 | 合同、条款、开票、回款、应收、商机、人事、目标 |
 | A8 + BI 库内其他 T_FST 视图 | 17 | 请假工时、风险客户等 |
 | 只读 BI 库（由其他 T_FST 视图或 BI 本地表派生） | 7 | 考勤（`monthly_attendance`）、承诺交付、承诺开票、无效交付、应收、待确认产值、集团清单 |
-| A8 + 老 PSA | 7 | 付款 6 个（`PAY*`）、存货（`INVENTORY`） |
-| 只读老 PSA | 2 | 实际工时等 |
-| 老 PSA + BI | 1 | 工时审批（`ACTUALHOURS_APPROVE`） |
+| A8 + 老系统 | 7 | 付款 6 个（`PAY*`）、存货（`INVENTORY`） |
+| 只读老系统 | 2 | 实际工时等 |
+| 老系统 + BI | 1 | 工时审批（`ACTUALHOURS_APPROVE`） |
 
 对 BI_SCOPE §4.3 切换时点表的修正：
-1. **付款类（`PAY*`）与存货（`INVENTORY`）同时依赖 A8 与老 PSA**（老 PSA 项目、工时）。6c 的过渡镜像须同时承接两边；在 6c 之前，PSA 一侧由反向同步保持即可。
+1. **付款类（`PAY*`）与存货（`INVENTORY`）同时依赖 A8 与老系统**（老系统项目、工时）。6c 的过渡镜像须同时承接两边；在 6c 之前，老系统一侧由反向同步保持即可。
 2. **工时类不全是「只靠反向同步」**：`ACTUALHOURS_APPROVE` 还读 `T_FST_PROJECT`（A8 项目档案），`ACTUALHOURS_LEAVE` 读 A8 考勤。Phase 2 之后，这两个视图在 6a、6e 时仍会受影响。
 3. **7 个派生视图**跟随其来源视图切换，不需要单独镜像；`RISKCUSTOMER` 表与 `monthly_attendance` 由 SQL Agent 作业写入（见 §3）。
 
@@ -83,24 +83,24 @@
 | 同步考勤汇总到 BI | BI | 写 BI 本地考勤表 |
 | 每月创建风险客户快照 | BI | 写 `RISKCUSTOMER`（月快照） |
 | 每月创建商机快照 | a8_db | 商机月快照 |
-| 同步成本明细到 PSA | ruoyi-vue-pro | A8 → 老 PSA |
-| 同步工时档案 | ruoyi-vue-pro | A8 → 老 PSA |
-| 同步商机档案到 PSA | ruoyi-vue-pro | A8 → 老 PSA |
-| 同步项目档案到 PSA | ruoyi-vue-pro | A8 → 老 PSA |
-| 同步项目预算到 PSA | ruoyi-vue-pro | A8 → 老 PSA |
+| `同步成本明细到 PSA` | ruoyi-vue-pro | A8 → 老系统 |
+| 同步工时档案 | ruoyi-vue-pro | A8 → 老系统 |
+| `同步商机档案到 PSA` | ruoyi-vue-pro | A8 → 老系统 |
+| `同步项目档案到 PSA` | ruoyi-vue-pro | A8 → 老系统 |
+| `同步项目预算到 PSA` | ruoyi-vue-pro | A8 → 老系统 |
 | 同步商机档案到 PSA-pre、同步项目档案到 PSA-pre | ruoyi-vue-pre | 同上，预发布库 |
 
 要点：
 - 今天仅有的「期间快照」（风险客户、商机、考勤）由月度作业手工维护，印证 E6。
-- 5 个「同步到 PSA」作业是 A8 → 老 PSA 的数据通道。请 psa-coordinator 与 OA 盘点的 36 处集成点（OA_PROCESS_INVENTORY §5）核对，确认是否已在其中。
+- 5 个「同步到老系统」作业是 A8 → 老系统的数据通道。请 psa-coordinator 与 OA 盘点的 36 处集成点（OA_PROCESS_INVENTORY §5）核对，确认是否已在其中。
 
-## 4. 补充：同步到老 PSA 的作业步骤元数据（psa-coordinator 补派，2026-10-14）
+## 4. 补充：同步到老系统的作业步骤元数据（psa-coordinator 补派，2026-10-14）
 
 用同一只读通道又执行 2 次，只取作业步骤名、目标库、调度、运行状态，以及步骤正文中引用的库表名；正文不回传。原始结果在仓库外 `bi_09_sqlagent_jobs_meta.tsv`、`bi_10_timesheet_job_refs.tsv`。结论已登记到 `phase1a/A8_ACCESS_REGISTER.md` #28–#32 与 `OA_PROCESS_INVENTORY.md` §5.3 第 37–40 行：
 
-- **成本明细**（每小时）：读 A8 项目档案、付款申请、特殊付款与 BI 视图 `T_FST_PAY`，写老 PSA `psa_pm_pay`，属于权责事实。第 3 步「委外和居间付款申请不结转」是隐含业务规则。
+- **成本明细**（每小时）：读 A8 项目档案、付款申请、特殊付款与 BI 视图 `T_FST_PAY`，写老系统 `psa_pm_pay`，属于权责事实。第 3 步「委外和居间付款申请不结转」是隐含业务规则。
 - **项目档案**（每 30 分钟）：读 A8 七张表与 `T_FST_PROJECT`，写 `psa_pm_project`。
-- **项目预算**（每 10 分钟）：读 A8 项目预算编制与 A8 库内的两个 `T_FST_PSA_BUDGET_WORKS*` 视图，写老 PSA 三张预算表，与 PSA 自己的预算形成双入口。
-- **工时档案**（每小时）：不直读 A8。前 3 步在老 PSA 库内加工；第 4 步用 BI 视图 `T_FST_INVALID_DELIVERY` 回写无效交付工时。作业名与实际不符。
-- **BI 视图处在老 PSA 的权责数据路径上**（`T_FST_PAY`、`T_FST_PROJECT`、`T_FST_INVALID_DELIVERY`）。对 BI_SCOPE §4.3 的补充：在对应阶段（Phase 2、6a、6c / Phase 4）切换前，这些视图不能改为过渡镜像或废弃。
+- **项目预算**（每 10 分钟）：读 A8 项目预算编制与 A8 库内的两个 `T_FST_PSA_BUDGET_WORKS*` 视图，写老系统三张预算表，与老系统自己的预算形成双入口。
+- **工时档案**（每小时）：不直读 A8。前 3 步在老系统库内加工；第 4 步用 BI 视图 `T_FST_INVALID_DELIVERY` 回写无效交付工时。作业名与实际不符。
+- **BI 视图处在老系统的权责数据路径上**（`T_FST_PAY`、`T_FST_PROJECT`、`T_FST_INVALID_DELIVERY`）。对 BI_SCOPE §4.3 的补充：在对应阶段（Phase 2、6a、6c / Phase 4）切换前，这些视图不能改为过渡镜像或废弃。
 

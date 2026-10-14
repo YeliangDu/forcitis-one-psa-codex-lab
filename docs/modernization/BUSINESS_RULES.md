@@ -83,8 +83,8 @@
 | RULE-073 | 项目成本与核算 | Year-end bonus is split to project terms by the person's annual hours (cent-exact largest remainder) | Calculation | P0 | `AnnualBonusSplitCalculator.java:66-123` | High |
 | RULE-074 | 项目成本与核算 | Cost routing chain and how expense nature is set | Calculation | P0 | `CostRoutingService.java:101-235` | High |
 | RULE-075 | 项目成本与核算 | Timesheet three-element (salary/social/fund) cent rounding anchored to the rounded total | Calculation | P0 | `TimesheetElementRounding.java:24-53` | High |
-| RULE-076 | 项目成本与核算 | Labour reclass – U8C credit vs PSA landed cost, by department, with tolerance | Calculation | P0 | `LaborReclassDiffCalculator.java:49-278` | High |
-| RULE-077 | 项目成本与核算 | Labour reclass voucher – reverse U8C credit in full, debit PSA buckets, absorb small differences | Calculation | P0 | `LaborReclassVoucherAssembler.java:27-131` | High |
+| RULE-076 | 项目成本与核算 | Labour reclass – U8C credit vs legacy-system landed cost, by department, with tolerance | Calculation | P0 | `LaborReclassDiffCalculator.java:49-278` | High |
+| RULE-077 | 项目成本与核算 | Labour reclass voucher – reverse U8C credit in full, debit legacy-system buckets, absorb small differences | Calculation | P0 | `LaborReclassVoucherAssembler.java:27-131` | High |
 | RULE-078 | 项目成本与核算 | Vouchers are aggregated per company × voucher word × department | Calculation | P0 | `PostingRuleEngine.java:84-181` | High |
 | RULE-079 | 项目成本与核算 | Posting rule matching and voucher-line rendering | Calculation | P0 | `PostingRuleEngine.java:185-286` | High |
 | RULE-080 | 项目成本与核算 | Revenue-return red reversal – reverse the whole original cost, re-render the voucher and negate it | Calculation | P0 | `PostingVoucherDrafterImpl.java:125-209` | Medium |
@@ -1449,27 +1449,27 @@ Pairing: the i-th unpaired confirmed revenue (dated ≤ period end) is paired wi
 **Edge cases handled:** null is treated as 0. Negatives are compared by absolute value. Elements that net to 0 are later dropped (CostSummaryViewReader.java:433-441). Timesheet amount equals not-tax amount (no input VAT).
 **Confidence:** High.
 
-### RULE-076: Labour reclass – U8C credit vs PSA landed cost, by department, with tolerance
+### RULE-076: Labour reclass – U8C credit vs legacy-system landed cost, by department, with tolerance
 **Category:** Calculation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/domain/cost/projectcost/laborreclass/LaborReclassDiffCalculator.java:49-278`
-**Plain English:** For each labour element, PSA landed cost per person is split across that person's salary-archive departments in proportion to the archive amounts (remainder on the last row). The difference = U8C credit − PSA, per U8C department. The line blocks posting unless |diff| ≤ tolerance or cause ⑧ applies (U8C higher, both sides non-zero, no PSA gap); ⑧ is non-blocking and the excess stays in U8C.
+**Plain English:** For each labour element, legacy-system landed cost per person is split across that person's salary-archive departments in proportion to the archive amounts (remainder on the last row). The difference = U8C credit − legacy system, per U8C department. The line blocks posting unless |diff| ≤ tolerance or cause ⑧ applies (U8C higher, both sides non-zero, no legacy-system gap); ⑧ is non-blocking and the excess stays in U8C.
 **Specification:**
-  Given dept D with U8C 50,000.00, PSA 49,999.40 and tolerance 1.00
+  Given dept D with U8C 50,000.00, legacy system 49,999.40 and tolerance 1.00
   Then diff 0.60, cause ROUNDING, non-blocking
-  Given U8C 52,000.00 and PSA 50,000.00 with no unapproved-hours gap
+  Given U8C 52,000.00 and legacy system 50,000.00 with no unapproved-hours gap
   Then diff 2,000.00, cause RESIDUAL_IN_U8C, non-blocking
 **Parameters:** `fst.cost.labor-reclass.diff-tolerance` default 1.00 (LaborReclassPreviewService.java:86-97); MATCH_EPS 0.01; scale 2, HALF_UP
 **Edge cases handled:** Causes for no department, unmapped OA department, not collected, unapproved timesheet ⑦, archive mismatch and people with no archive (blocking row).
 **Confidence:** High.
 
-### RULE-077: Labour reclass voucher – reverse U8C credit in full, debit PSA buckets, absorb small differences
+### RULE-077: Labour reclass voucher – reverse U8C credit in full, debit legacy-system buckets, absorb small differences
 **Category:** Calculation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/domain/cost/projectcost/laborreclass/LaborReclassVoucherAssembler.java:27-131`
 **Plain English:**
 - Credits (account × dept) are reversed in full. For ⑧ rows, the excess is first cut from the largest credit rows.
-- Debits = PSA cells by bucket (project / sales / management) × account × dept.
+- Debits = legacy-system cells by bucket (project / sales / management) × account × dept.
 - Non-blocking, non-⑧ differences are debited to the element's difference account.
 - A negative net amount moves to the other side, and 0 amounts are dropped.
 **Specification:**
@@ -1899,14 +1899,14 @@ Unclaimed lines on whitelisted vouchers are kept; lines on other vouchers are ex
 **Category:** Validation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/domain/cost/projectcost/laborreclass/LaborReclassDiffCalculator.java:180-209`
-**Plain English:** For each labor element and U8C department, a U8C-minus-PSA difference blocks the voucher if it exceeds the tolerance, the department is unmapped, or there is no department. One exception: when U8C is higher, both sides have amounts, and there is no PSA-side shortfall, the residual stays in U8C and does not block.
+**Plain English:** For each labor element and U8C department, a U8C-minus-legacy-system difference blocks the voucher if it exceeds the tolerance, the department is unmapped, or there is no department. One exception: when U8C is higher, both sides have amounts, and there is no legacy-system-side shortfall, the residual stays in U8C and does not block.
 **Specification:**
-  Given salary element, U8C dept D01: U8C ¥100,000.80, PSA ¥100,000.00
+  Given salary element, U8C dept D01: U8C ¥100,000.80, legacy system ¥100,000.00
   Then diff ¥0.80 ≤ ¥1.00 → ROUNDING, not blocking
-  Given U8C ¥105,000.00, PSA ¥100,000.00, no unapproved or other gap
+  Given U8C ¥105,000.00, legacy system ¥100,000.00, no unapproved or other gap
   Then RESIDUAL_IN_U8C, not blocking
-  Given U8C ¥95,000.00, PSA ¥100,000.00
-  Then blocking (diff −5,000 exceeds the ¥1.00 tolerance in absolute value; PSA cannot reverse more than U8C holds)
+  Given U8C ¥95,000.00, legacy system ¥100,000.00
+  Then blocking (diff −5,000 exceeds the ¥1.00 tolerance in absolute value; the legacy system cannot reverse more than U8C holds)
 **Parameters:** `fst.cost.labor-reclass.diff-tolerance` default 1.00 (a negative value falls back to 1). MATCH_EPS = 0.01 for archive-mismatch hints.
 **Edge cases handled:** A person-level shortfall within tolerance is treated as rounding. A diff explained by unapproved timesheets is classified TIMESHEET_UNAPPROVED but still blocks.
 **Confidence:** High.
@@ -2368,7 +2368,7 @@ Unclaimed lines on whitelisted vouchers are kept; lines on other vouchers are ex
 **Specification:**
   Given TimesheetApprovalCheck (level BLOCK) reports 35 timesheet rows not approved, ¥42,000.00 labor cost affected
   When finance executes collection
-  Then collection is not blocked, and those hours' cost simply does not enter PSA
+  Then collection is not blocked, and those hours' cost simply does not enter the legacy system
 **Parameters:** BLOCK checks: TimesheetApproval, TimesheetDeptMapping, TimesheetPostingIssue, TimesheetZeroCost, ExpensePostingIssue, ExpenseNotRatified, ExpenseSnapshotViewDiff, OutsourcingAccrualBlock, PocSnapshot, ConfirmedTermPoc, SalaryCalculation. WARN checks: TimesheetApprovalHours, TimesheetOpportunityStatus, TimesheetProjectStatus, ExpenseOutsourcingNotRatified, OutsourcingAccrualWarn.
 **Edge cases handled:** The year-end period returns "not applicable" for monthly checks.
 **Suspected defect:** Users will read "阻断" (block) as a hard gate. Several BLOCK items (unapproved hours, zero-cost hours, outsourcing accrual gap, which can drive U8C negative balances at WIP carry) have no enforcement anywhere.
@@ -3177,7 +3177,7 @@ The revenue period is always the month of the customer's sign date. Any period t
 **Category:** Calculation
 **Priority:** P1
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/infrastructure/delivery/project/ProjectQueryImpl.java:272-300`
-**Plain English:** Confirmed revenue = sum of output-value rows (type 0 or null) whose term number equals one of the project's clause keys. The clause key is the OA term_code, falling back to the PSA clause code.
+**Plain English:** Confirmed revenue = sum of output-value rows (type 0 or null) whose term number equals one of the project's clause keys. The clause key is the OA term_code, falling back to the legacy-system clause code.
 **Specification:**
   Given clause term_code "HT-01-03" and rows of ¥200,000 (HT-01-03), ¥50,000 (no term number) and ¥30,000 ("HT-OLD")
   When the project list loads
@@ -3695,7 +3695,7 @@ The incremental job only covers projects with timesheets or output-value records
   Then the status is `REV_REJECTED` with note "审批通过时累计确认金额已超条款金额，系统自动驳回…" ("cumulative confirmed amount exceeds the clause amount at approval time; rejected automatically by the system…"), and no fact row is written
 **Parameters:** BPM results 2 (approved), 3/4 (rejected/cancelled) (`RevenueProcessResultHandler.java:37-43`).
 **Edge cases handled:** A confirmation that is not PENDING is a no-op, so redelivered messages cannot create a second fact. A missing confirmation → warning only.
-**Suspected defect:** When the auto-reject happens, BPM shows the instance as approved while PSA shows it rejected. No notification or BPM correction is visible in the code.
+**Suspected defect:** When the auto-reject happens, BPM shows the instance as approved while the legacy system shows it rejected. No notification or BPM correction is visible in the code.
 **Confidence:** High.
 
 ### RULE-223: Task package execution states — DOING/REWORK → DONE, DONE → DOING (reopen), LOCKED → REWORK
@@ -5303,7 +5303,7 @@ If permissions cannot be loaded, approval is refused. A pass defaults its reason
 - [ ] **RULE-210**（P0，交付、预算与收入）Budget can only be edited while it is unlocked and not awaiting approval — 疑似缺陷：The budget write endpoints (`PmProjectBudgetController` `/import`, `/task/*`, `/lock`, `/deliverable*`, `/cost-items`) check only the permission `fst:pm-project:budget` and turn off `@DataPermission`. No use case checks that the caller is that project's PM. Anyone with the permission can edit or sub 
 - [ ] **RULE-212**（P0，交付、预算与收入）Rules for an approver changing the budget tree during approval — 疑似缺陷：This path does not run the RULE-02 rate-missing check. An approver can add a task package with hours but no matching rate, and it is locked into the baseline at cost 0. 
 - [ ] **RULE-213**（P0，交付、预算与收入）Total confirmed revenue cannot exceed the clause amount — 疑似缺陷：Unlike deliverable acceptance (RULE-21), the sign date is not checked against today. A future date is accepted and gives a future revenue period. 
-- [ ] **RULE-222**（P0，交付、预算与收入）Approved revenue writes an append-only revenue fact, after a second quota check — 疑似缺陷：When the auto-reject happens, BPM shows the instance as approved while PSA shows it rejected. No notification or BPM correction is visible in the code. 
+- [ ] **RULE-222**（P0，交付、预算与收入）Approved revenue writes an append-only revenue fact, after a second quota check — 疑似缺陷：When the auto-reject happens, BPM shows the instance as approved while the legacy system shows it rejected. No notification or BPM correction is visible in the code. 
 - [ ] **RULE-223**（P0，交付、预算与收入）Task package execution states — DOING/REWORK → DONE, DONE → DOING (reopen), LOCKED → REWORK — 疑似缺陷：`FSTConstant.TaskStatus` (0 进行中 / in progress, 1 已保存 / saved, 2 已完成 / completed, 3 已逾期 / overdue, with the comment "TODO 其他两个状态需要完善" / "the other two states need completing") is a separate legacy integer vocabulary. It is not used by this state machine, which uses strings. 
 - [ ] **RULE-224**（P0，交付、预算与收入）Submitting a deliverable requires all its task packages to be done, and locks them — 疑似缺陷：If the submission is rejected (DRAFT), the packages stay LOCKED. Nothing unlocks them. Resubmission still works because LOCKED is accepted. 
 - [ ] **RULE-225**（P0，交付、预算与收入）Deliverable approval outcome — approved → awaiting customer acceptance; rejected or cancelled → DRAFT — 疑似缺陷：The `StageReviewProcessResultHandler.java:16-17` comment says that when a meeting fails, the director-node handler already set the submission to DRAFT, so a later "approved" end is a no-op. But `recordDirectorReview` (lines 377-400) never changes status, and the form handler only records `meetingRes ｜Medium. SME question: "In PM_STAGE_REVIEW, does 'meeting not passed' end the process as approved, rejected, or neither? Should the submission go back to DRAFT?"

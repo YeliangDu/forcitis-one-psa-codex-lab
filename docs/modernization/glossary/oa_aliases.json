@@ -14,7 +14,7 @@
     {"term": "project", "name": "项目立项", "source": "A8 模板「项目立项申请」"},
     {"term": "project", "name": "项目档案", "source": "A8 模板「项目档案变更」、档案「项目档案底表」"},
     {"term": "final_account", "name": "项目结算", "source": "A8 模板「项目结算申请」"},
-    {"term": "payment_term_item", "name": "付款条件档案", "source": "A8 档案 formmain_1321（PSA 报价条款同步）"},
+    {"term": "payment_term_item", "name": "付款条件档案", "source": "A8 档案 formmain_1321（老系统报价条款同步）"},
     {"term": "project_budget", "name": "项目预算编制", "source": "A8 模板"},
     {"term": "expense_claim", "name": "日常费用报销单", "source": "A8 模板"},
     {"term": "expense_claim", "name": "业务招待费用报销单", "source": "A8 模板"},

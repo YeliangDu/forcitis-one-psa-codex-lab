@@ -1,4 +1,4 @@
-# 指导思想 — FORCITIS one（PSA 现代化）
+# 指导思想 — FORCITIS one 现代化
 
 日期：2026-10-14
 
@@ -51,7 +51,7 @@
   - `platform.identity`、`platform.approval`、`platform.integration`、`platform.audit`、`platform.numbering` → 权限流程与集成平台 BC 的技术模块
 - **上下文映射 → 依赖方向**：`architecture/module-dependencies.txt` 就是上下文映射的代码形态，由 `ModuleDependencyTest` 强制执行，修改需评审；Modulith 保证只能经 api / events 访问。
 - **统一语言**：`03-通用语言.md` 是唯一词源，代码、表、事件、API 都从它派生（`NAMING_STANDARD.md`）。
-- **防腐层**：A8、U8C、分贝通、企业微信、KM 各有独立的 integration 模块。老 PSA 在过渡期也被当作一个外部系统，通过防腐层读取和反向同步。
+- **防腐层**：A8、U8C、分贝通、企业微信、KM 各有独立的 integration 模块。老系统在过渡期也被当作一个外部系统，通过防腐层读取和反向同步。
 
 **战术设计**
 - **聚合**是一致性边界：一个用例一个事务，一个事务只改一个聚合。跨聚合、跨模块的协作用领域事件，实现上用 Modulith 事件发布登记表。
@@ -160,7 +160,7 @@
 
 ## 9a. 权责发生制业财一体（贯穿七个框架，ADR-0016）
 
-弗思特以 AEC 项目为业务基础，PSA 的核心是权责发生制下的业财一体。七个框架在这一点上的落点：
+弗思特以 AEC 项目为业务基础，FORCITIS one 的核心是权责发生制下的业财一体。七个框架在这一点上的落点：
 
 | 框架 | 在权责发生制主干上的落点 |
 |---|---|

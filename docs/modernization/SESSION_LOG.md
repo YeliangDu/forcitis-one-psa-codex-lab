@@ -238,6 +238,17 @@
 - 下一步命令：合并后由 psa-coordinator 通知在途会话改用片段文件。
 - 会话 ID：本会话（worktree xin-884358，分支 claude/psa-repo-fragments）
 
+## 2026-10-14 · psa-authz-model · 授权模型 ADR-0026（提议）
+- 目标：psa-coordinator 派工——写授权模型 ADR-0026（数据范围机制、法人维度、审批访问、职责分离、super_admin 边界、授权治理、敏感字段、老角色迁移），提议阶段做 architecture-critic 评审，列出需用户决定的事项。
+- 输入（读过的状态文件、上一条日志）：STATUS、SESSION_PLAYBOOK §5、§12、adr/src/_readme_lifecycle.md、ADR-0009、ADR-0024（格式）、RULE_REVIEWS（RULE-270、307、336–353、363、366）、IDENTITY_ORG_RULES、REIMAGINED_ARCHITECTURE §2.1、§3、GUIDING_PRINCIPLES §6、U8C_CAPABILITY_MAP §2.2、SECURITY_INVARIANTS；main fde2c74 的 platform.identity / workforce / audit / approval 代码（sonnet 子代理盘点）。
+- 用户决定（原话）：问「1a 还有哪些设计需要现在考虑？权限系统？」，选「写授权模型 ADR，1a 实现数据权限 (Recommended)」（经 psa-coordinator 转达，已用 new_intent.py 记录）。
+- 产出（文件 / 提交 / 发布的页面）：adr/src/ADR-0026.md（提议；部分取代 ADR-0009 第 4 条）及生成的 adr/ADR-0026.md、adr/README.md；intent 片段；status/units 新单元；本日志。
+- 验证（跑了什么、结果）：build_all.py 通过（25 份 ADR，必备小节齐全）；architecture-critic（opus）评审初稿：阻断 3、重要 14、建议 4，全部采纳并写入 ADR「证据」；修订稿未再派第二个评审代理。代码事实盘点用 sonnet。
+- 未完成与阻塞：待用户批准 ADR-0026 并回答 D-1..D-7、D-9..D-13；批准后由 1a 会话按「1a 交付范围」实现并同步守护规则；法人限定与审批参与访问在 1b 实现前须按 §12.2 在 RULE_REVIEWS 登记新规则。
+- 下一步命令：psa-coordinator 汇总 ADR-0026 的待决事项给用户；批准后 1a 会话实现。
+- 会话 ID（用于 claude --resume）：本会话（worktree xin-af304c，分支 claude/psa-authz-model）
+- 采纳（同日，接续）：psa-coordinator 转达用户决定——D-1「部门→法人为默认，员工可单独指定并带生效区间 (Recommended)」（与流程梳理 D-1a-27 合并为同一模型）；其余「全部按建议，并批准 ADR-0026 (Recommended)」；D-13「内控 / 财务」。ADR-0026 改为已采纳，「需用户决定」改为「用户决定」；ADR-0009 状态标注第 4 条部分已被 ADR-0026 取代；同步 REIMAGINED_ARCHITECTURE §3.2、AI_NATIVE_SPEC C1a-08/09 与 §5.3、SECURITY_INVARIANTS I-10..I-12；STATUS 阻塞新增「1b 前须登记的新规则」；三条 intent。build_all 通过。下一步：Phase 1a 会话按 ADR-0026「1a 交付范围」实现。
+
 ## 2026-10-14 · psa-olap-architecture · OLAP 物理架构与数据流（ADR-0025）
 - 目标：psa-coordinator 派工——先定领域事件的分析必带字段（交 1a 事件目录定稿），再起草 ADR-0025（提议）「OLAP 物理架构与数据流」（6 处：取代关系、物理位置、L1 构建、行级权限、过渡镜像、历史数据），并做 architecture-critic 评审。
 - 输入：ADR-0009、0011、0016、0022、0023、0024；BI_SCOPE §3–§4、§6.1；r0/（BI_USAGE_SUMMARY、TOOL_COMPARISON、tfst_objects）；phase1a/A8_ACCESS_REGISTER #28–#32、INFRA_RUNBOOK（D-1）、SECURITY_INVARIANTS；GUIDING_PRINCIPLES §8、§9a；SESSION_PLAYBOOK §12。基线 origin/main fde2c74。
@@ -257,6 +268,17 @@
 - 未完成与阻塞：6a–6f、G1 / G2、R 系列尚未并入 brief 模板，并入时自动出现在 §5「流程梳理结论」，入口条件须同时加上本条；第 5 条前端界面文字进词表守护由 1a 会话负责。
 - 下一步命令：调度会话派 `psa-1a-process-review` 按 SESSION_PLAYBOOK §13 补做 Phase 1a 流程梳理。
 - 会话 ID：本会话（worktree xin-884358，分支 claude/psa-coding-rules-2）
+
+## 2026-10-14 · one-docs-naming · 文档去除旧名称 PSA
+- 目标：按用户决定（原话见 INTENT）去除文档中的旧名称：指代新系统的 PSA 改为 FORCITIS one，指代老系统的改为「老系统」，字面标识保留；文档标题改；加守护。
+- 输入：psa-coordinator 派工与对统计的 8 项决定（a 行业术语保留、b 英文 the legacy system、c session-log 不改、d brief 模板只换名称、e 标题改、f「新系统（PSA）」改老系统、g backend 断言交 1a、h adr/README 加说明）；基线 origin/main 0708eef。
+- 用户决定（原话见 INTENT.md）：「当前仓库的所有文档里要避免使用 psa 旧名称，FORCITIS one 是新名称」；「老系统称「老系统」，字面标识保留 (Recommended)」；「文档标题改，仓库名和会话名暂不改 (Recommended)」。
+- 产出：B1 标题、CLAUDE.md、README、SESSION_PLAYBOOK 会话命名 one-*、adr/README 说明、check_legacy_name.py 与白名单；B2 顶层文档、OA 盘点生成器、brief 模板；B3 规则卡与评审记录（英文 the legacy system）；B4 词表与术语表生成器（terms.yaml、GLOSSARY.md 重新生成）；B5 phase1a、r0、proposals、拓扑显示名；B6 guardrails 模板断言消息、调度台账一行、CI 接入守护。
+- 验证：check_legacy_name.py 无违规；每批 build_all.py --check 通过；GlossaryTest 通过（B4 后）；抽样复核三批子代理的改动，纠正 A8 作业名（恢复字面并加反引号）、幻灯片原文、期初「项目级事实」的指代（统一为老系统）、拓扑根节点（老系统而非 FORCITIS one）、BI_SCOPE R2（FORCITIS one 自有事实）。子代理：B2、B3、B5 各 1 个（sonnet）；统计脚本、B4、复核由本会话（opus）完成。
+- 关键发现：terms.yaml 不能把「PSA」列入 forbidden（G38 拆词会误伤 psa_ 字面标识与 Flyway 注释），守护改在文档层；backend/glossary/proposed/frontend-ui.yaml 已有提议术语 legacy_system（老系统），未在本单元转正，避免与 1a 在途分支冲突。
+- 未完成与阻塞：backend SecurityInvariantsTest 断言消息由 1a 会话改；legacy_system 术语转正（建议加方言 PSA、老 PSA）待下一轮用语确认；topology.json / TOPOLOGY.html 未重新生成（依赖仓库外老代码）。
+- 下一步命令：其他在途 PR 合并后若再引入 PSA，CI「no legacy system name in docs」会拦下，按脚本提示修。
+- 会话 ID：本会话（worktree xin-a2d389，分支 claude/one-docs-naming）
 
 ## 2026-10-14 · psa-repo-fragments · 片段文件名去序号化
 - 目标：片段序号在并行会话间撞号（intent 099–101 各两条），改为不需要协调的文件名（psa-coordinator 派工；非用户决定，INTENT 不记）。
