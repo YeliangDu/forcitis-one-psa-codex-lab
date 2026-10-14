@@ -16,6 +16,7 @@ READ_BY_BUILDS = (
     "docs/modernization/status/blockers/",
     "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
     "docs/modernization/phase1a/infra/runbooks/files/",
+    "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
 )
 
 

@@ -5,8 +5,8 @@
 #
 #   scripts/release/build.sh --version 0.1.0 [--out DIR] [--environments dev,prod] [--isolated-caches DIR]
 #
-# --isolated-caches DIR: Maven repository and pnpm store under DIR instead of the user's shared caches, so a release never reuses
-# artifacts a pull-request build could have planted (the release workflow passes a fresh directory).
+# --isolated-caches DIR: Maven repository, pnpm store and HOME under DIR instead of the user's, so a release never reuses artifacts or
+# settings an earlier job could have planted (the release workflow passes a fresh directory).
 #
 # Frontend build-time values are read from <ENV>_VITE_WECOM_CORP_ID, <ENV>_VITE_WECOM_AGENT_ID, <ENV>_VITE_SSO_PORTAL_URL and
 # <ENV>_TARO_APP_WECOM_CORP_ID (ENV = DEV / PROD); every one must be set and non-empty.
@@ -78,7 +78,9 @@ fi
 maven_cache=()
 pnpm_cache=(--prefer-offline)
 if [ -n "$caches" ]; then
-  mkdir -p "$caches/m2" "$caches/pnpm-store"
+  mkdir -p "$caches/m2" "$caches/pnpm-store" "$caches/home"
+  # A fresh HOME as well: ~/.m2/settings.xml, ~/.mavenrc, ~/.npmrc or ~/.gitconfig left by an earlier job must not steer this build
+  export HOME="$caches/home"
   maven_cache=("-Dmaven.repo.local=$caches/m2")
   pnpm_cache=(--store-dir "$caches/pnpm-store")
 fi

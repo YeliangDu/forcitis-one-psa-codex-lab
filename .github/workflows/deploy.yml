@@ -1,6 +1,6 @@
 name: deploy
 
-# Deploys a published release to dev or prod: the bundle's provenance and checksums are verified, it is staged in the Frankfurt OSS
+# Deploys a published release to dev or prod: the bundle's signed release statement and checksums are verified, it is staged in the Frankfurt OSS
 # bucket, and the ECS pulls and installs it (scripts/release/ship.sh, then scripts/release/remote_install.sh on the server),
 # triggered by Cloud Assistant or a restricted SSH key.
 # Blocked while a docs/modernization/status/blockers/ entry carries `blocks: deploy`; prod also needs the Phase 1a exit conditions and C-9.
@@ -65,7 +65,6 @@ jobs:
     permissions:
       contents: read
       actions: read
-      attestations: read
     env:
       TARGET_ENV: ${{ inputs.environment }}
       VERSION: ${{ inputs.version }}
@@ -101,7 +100,7 @@ jobs:
           python3 scripts/release/ci_passed.py "$commit"
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
 
-      - name: download, check provenance and verify the bundle
+      - name: download, check the signed release statement and verify the bundle
         env:
           GH_TOKEN: ${{ github.token }}
           COMMIT: ${{ steps.release.outputs.commit }}
@@ -110,9 +109,9 @@ jobs:
           archive="$dir/forcitis-one-$VERSION.tar.gz"
           mkdir -p "$dir"
           gh release download "v$VERSION" --repo "$GITHUB_REPOSITORY" --dir "$dir" --clobber \
-            --pattern "forcitis-one-$VERSION.tar.gz" --pattern "forcitis-one-$VERSION.tar.gz.sha256"
-          gh attestation verify "$archive" --repo "$GITHUB_REPOSITORY" \
-            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" --source-ref refs/heads/main
+            --pattern "forcitis-one-$VERSION.tar.gz" --pattern "forcitis-one-$VERSION.tar.gz.sha256" \
+            --pattern "forcitis-one-$VERSION.release" --pattern "forcitis-one-$VERSION.release.sig"
+          scripts/release/statement.sh verify "$archive" "$dir/forcitis-one-$VERSION.release" scripts/release/allowed_signers "$VERSION" "$COMMIT"
           scripts/release/verify_bundle.sh "$archive"
           built_from="$(tar -xzOf "$archive" "forcitis-one-$VERSION/manifest.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["gitSha"])')"
           [ "$built_from" = "$COMMIT" ] || { echo "bundle was built from $built_from, but v$VERSION points at $COMMIT" >&2; exit 1; }

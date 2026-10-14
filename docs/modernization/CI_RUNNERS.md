@@ -58,6 +58,8 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 | PATH | `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin` |
 | 工具 | 机器自带：git、curl、unzip、ssh、python3（Homebrew）、gh（Homebrew）、Homebrew 的 `openjdk@25`（不在 PATH 上，`toolchain.sh` 设 `JAVA_HOME`）。作业自带：Node 24 与 aliyun CLI 按版本与 SHA256 锁定下载到 `$RUNNER_TEMP`，pnpm 经 corepack 按 `frontend/package.json` 获取；Maven 仓库与 pnpm store 每次 release 在 `$RUNNER_TEMP` 新建（`--isolated-caches`），不读 `yeliang` 的 `~/.m2` 与 pnpm store。该用户没有 gh 登录，作业用 `GITHUB_TOKEN` |
 
+**pre-job hook（必需）**：runner 目录的 `.env` 设 `ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/forcitis-one/runner-job-started.sh`（来自 `scripts/release/runner_job_started.sh`），hook 与 `.env` 都归 root、`forcitis-deploy` 不可写。它只放行 main 上手动运行的 release.yml 与 deploy.yml：GitHub Team 计划不能在 GitHub 侧把 runner 限定到指定工作流（RELEASE.md §11），任何分支的工作流都可以写 `runs-on: forcitis-one-deploy`，由 hook 在第一步之前拒绝。hook 更新时以 root 重新安装并 `kickstart`。
+
 隔离的意义：PR 的作业可以在 4 个 CI runner 上执行任意代码，但读不到 `forcitis-deploy` 的主目录、`$RUNNER_TEMP` 与 environment secret，也无法往 release 构建的依赖缓存里投放东西。因此 `forcitis-deploy` 不得加入管理员组，也不得给它加 `forcitis-one` 标签。
 
 日常操作（需要管理员权限）：

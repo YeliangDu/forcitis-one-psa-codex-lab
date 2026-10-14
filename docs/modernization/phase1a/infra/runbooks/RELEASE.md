@@ -1,30 +1,34 @@
 # 发布与部署（release / deploy 工作流）
 
-整理：one-coordinator 子代理，2026-10-14。补 `PREDEPLOY_CHECKLIST.md` 遗漏项「CI 无发布产物」与 `CROSSCHECK.md` 第 15 条；按 PR #59 的用户决定（法兰克福 OSS 中转、专用部署 runner）与 opus 安全复审修订。
+整理：one-coordinator 子代理，2026-10-14。补 `PREDEPLOY_CHECKLIST.md` 遗漏项「CI 无发布产物」与 `CROSSCHECK.md` 第 15 条；按 PR #59 的用户决定（法兰克福 OSS 中转、专用部署 runner）与 opus 安全复审修订；组织 FORCITIS 为 **GitHub Team 计划**，各项 GitHub 功能是否可用见 §11，凡需 Enterprise Cloud 的都不假定可用。
 
 **当前禁止部署任何环境**（`status/blockers/080`，带 `blocks: deploy` 标记）。`deploy` 工作流在该阻塞存在时直接失败；本文的一次性步骤只是准备，涉及 GitHub 设置、阿里云、ECS 的每一步仍须用户确认后执行（清单 B-10）。
 
 | 文件 | 作用 |
 |---|---|
-| `.github/workflows/release.yml` | 由 main 上已通过 ci 的提交构建发布包、生成出处证明、附到 GitHub Release |
+| `.github/workflows/release.yml` | 由 main 上已通过 ci 的提交构建发布包、签署发布声明、附到 GitHub Release |
 | `.github/workflows/deploy.yml` | 把已发布（非草稿）的版本部署到 dev / prod；只写好，未运行过 |
 | `scripts/release/build.sh` | 构建发布包；本机可直接运行，工作流只是调用它 |
 | `scripts/release/toolchain.sh` | 专用 runner 上的工具链：Homebrew 的 Java 25；按版本与 SHA256 锁定下载的 Node 24、aliyun CLI；corepack 取锁定的 pnpm |
 | `scripts/release/verify_bundle.sh` | 按部署时的方式校验发布包（归档 SHA256、`SHA256SUMS`、`manifest.json`、jar 可启动） |
 | `scripts/release/ci_passed.py` | 证明提交是 main 的 first-parent 提交，且该提交 push 到 main 触发的 ci 运行成功、三项必需作业成功 |
 | `scripts/release/deploy_gate.py` | 部署守护：阻塞条目、prod 的版本与前置条件 |
+| `scripts/release/statement.sh` | 发布声明：写出（版本、提交、发布包与 manifest / SHA256SUMS 的 SHA256、构建工作流与运行号）、签名（`ssh-keygen -Y sign`）、校验 |
+| `scripts/release/allowed_signers` | 发布签名公钥（`ssh-keygen` allowed_signers 格式）；空文件时部署一律失败 |
+| `scripts/release/runner_job_started.sh` | 专用 runner 的 pre-job hook：只放行 main 上手动运行的 release.yml、deploy.yml |
+| `docs/…/runbooks/prod-approvals.txt` | prod 部署批准行（经 PR 合入 main），代替 Team 计划下不可用的 required reviewers |
 | `scripts/release/ship.sh` | 部署最后一段：发布包传到法兰克福 OSS、签发短时下载地址、经云助手或 SSH 让 ECS 拉取安装 |
 | `scripts/release/remote_install.sh` | ECS 上的安装器（装为 `/usr/local/sbin/forcitis-one-release`） |
 
 ## 1. 版本号
 
 - 形如 `MAJOR.MINOR.PATCH`，预发布加 `-rc.N`（`0.1.0`、`0.1.0-rc.1`）；标签为 `v<版本>`。Phase 1a 期间用 `0.x`。预发布版本只能部署 dev。
-- 一个版本只构建一次：同名 Release 已存在则 `release` 失败；仓库启用 immutable releases（R-9）后，发布后的附件与标签不可再改；ECS 上同一版本内容不同则拒绝安装。修复一律发新版本。
+- 一个版本只构建一次：同名 Release 已存在则 `release` 失败；仓库启用 immutable releases（R-9）后，发布后的附件与标签不可再改；附件即使被替换，也过不了签名发布声明的校验；ECS 上同一版本内容不同则拒绝安装。修复一律发新版本。
 - `backend/pom.xml` 的 `<version>` 目前固定为 `0.0.1`，jar 内的 `Implementation-Version` 与发布版本不一致；以 `manifest.json` 的 `version` 与 `gitSha` 为准（给 1a 的建议见 PR）。
 
 ## 2. 发布（`release`）
 
-触发：只能**在 main 上手动运行**（输入版本、可选提交 sha、是否草稿，默认草稿）。不设标签推送触发：出处证明要求签发工作流运行在 `refs/heads/main`，标签触发的运行不满足；两个作业都有 `if: github.ref == 'refs/heads/main'`。`deploy` 只接受已发布的 Release，草稿经人核对后在 GitHub 上点「Publish」。
+触发：只能**在 main 上手动运行**（输入版本、可选提交 sha、是否草稿，默认草稿）。不设标签推送触发：发布声明要写明「由 main 上的 release.yml 构建」，签名私钥也只给 main 用，标签触发的运行两者都不满足；两个作业都有 `if: github.ref == 'refs/heads/main'`，专用 runner 的 pre-job hook 也只放行 main 上手动运行的 release / deploy。`deploy` 只接受已发布的 Release，草稿经人核对后在 GitHub 上点「Publish」。
 
 `build` 作业（专用 runner `forcitis-one-deploy`，权限 `contents: read`、`actions: read`；checkout 不保存凭据）：
 
@@ -39,7 +43,7 @@
    - 前端：PC（web）与 H5 按 dev、prod 各构建一份（构建期变量不同，见 §6），H5 放在 PC 产物的 `h5/` 下。
 6. 打包、`verify_bundle.sh` 复核，作为 Actions artifact（保留 1 天）交给下一作业。
 
-`publish` 作业（同一专用 runner，权限 `contents: write`、`id-token: write`、`attestations: write`，不 checkout 代码）：核对 artifact 的 SHA256 → `actions/attest-build-provenance`（锁定提交 SHA）为发布包生成出处证明 → `gh release create v<版本> --target <sha>`，附发布包与 `.sha256`。
+`publish` 作业（同一专用 runner，`environment: release`，权限只有 `contents: write`，只 checkout `scripts/release`）：核对 artifact 的 SHA256 → `statement.sh write` 写出**发布声明**（版本、提交、发布包与包内 `manifest.json`、`SHA256SUMS` 的 SHA256、`GITHUB_WORKFLOW_REF`、运行号）→ 用 environment `release` 的 secret `RELEASE_SIGNING_KEY` 以 `ssh-keygen -Y sign`（命名空间 `forcitis-one-release`）签名，私钥只在作业临时目录中存在、步骤结束即删 → `gh release create v<版本> --target <sha>`，附发布包、`.sha256`、`.release`、`.release.sig`。`release` environment 的部署分支策略只允许 main（Team 私有仓库可用，§11），其他分支的运行拿不到私钥。签名工具用系统自带的 OpenSSH（macOS 与 Alibaba Cloud Linux 4 均自带，`-Y sign/verify` 自 OpenSSH 8.1 起提供），不另外下载。
 
 发布包内容（顶层目录 `forcitis-one-<版本>/`）：
 
@@ -71,15 +75,16 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 1. `gate` 作业（`forcitis-one` runner，不进 environment，失败不必等审批）：版本格式；prod 的确认；`deploy_gate.py`：
    - `docs/modernization/status/blockers/` 中任一条目含 `` `blocks: deploy` `` 标记 → 失败。阻塞片段是单行（`build_records.py` 的格式），标记写在行内而非 front-matter。修复批合并后由调度会话删除该条目或标记。
    - prod：不接受预发布版本；`PREDEPLOY_CHECKLIST.md` D 节（Phase 1a 出口条件，**在 dev 上验收**）每一行状态格恰为 ✅（多一个字也不算），且行数不少于 9；C-9（生产库）为 ✅。表格改了形状时失败而不是放行。
-2. `deploy` 作业（`environment: dev / prod`；prod 须 required reviewers 批准后才开始）跑在**专用部署 runner**（标签 `forcitis-one-deploy`，macOS 用户 `forcitis-deploy`，见 `CI_RUNNERS.md`），权限 `contents: read`、`actions: read`、`attestations: read`，checkout 不保存凭据：
+   - prod：版本已列在 `runbooks/prod-approvals.txt`（批准行经 PR 合入 main）。Team 计划的私有仓库没有 environment 的 required reviewers（§11），由这一行代替人工批准。
+2. `deploy` 作业（`environment: dev / prod`，两者的部署分支策略只允许 main）跑在**专用部署 runner**（标签 `forcitis-one-deploy`，macOS 用户 `forcitis-deploy`，见 `CI_RUNNERS.md`），权限 `contents: read`、`actions: read`，checkout 不保存凭据：
    - 再跑一次 `deploy_gate.py`（等待审批期间 main 可能新增阻塞）；
    - 工具链（`toolchain.sh deploy`：Java 25、锁定版本与 SHA256 的 aliyun CLI）；
    - Release 非草稿；标签经 API 解析出的提交满足 `ci_passed.py`；
-   - 下载附件 → `gh attestation verify --signer-workflow FORCITIS/forcitis-one-psa/.github/workflows/release.yml --source-ref refs/heads/main`（证明发布包由 main 上的 release 工作流构建）→ `verify_bundle.sh` → `manifest.json` 的 `gitSha` 必须等于标签所指提交；
+   - 下载附件 → `statement.sh verify`：用**仓库中**的 `scripts/release/allowed_signers`（main 上的公钥，不取自 Release）验签，声明的版本、提交（等于标签所指提交）、发布包名、构建工作流（`FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main`）、发布包与 `manifest.json`、`SHA256SUMS` 的 SHA256 全部一致 → `verify_bundle.sh` → `manifest.json` 的 `gitSha` 必须等于标签所指提交；
    - `ship.sh`：
-     1. 已校验的 `forcitis-one-<版本>.tar.gz`、`.sha256`、包内 `manifest.json` 与 `SHA256SUMS` 上传到 `oss://<OSS_BUCKET>/<OSS_PREFIX>/<版本>/`（法兰克福 `eu-central-1`），回读 `.sha256` 核对；
+     1. 已校验的 `forcitis-one-<版本>.tar.gz`、`.sha256`、发布声明与签名、包内 `manifest.json` 与 `SHA256SUMS` 上传到 `oss://<OSS_BUCKET>/<OSS_PREFIX>/<版本>/`（法兰克福 `eu-central-1`），回读 `.sha256` 核对；
      2. 为发布包签发 30 分钟有效的只读下载地址（可走传输加速域名，§8.3），在 Actions 日志中屏蔽；
-     3. 最后一跳（`DEPLOY_TRIGGER`，§8）：云助手 `RunCommand` 在 ECS 上以 root 运行，或受限 SSH 密钥的强制命令（`ssh -F /dev/null … -l <用户> -- <主机>`），二者都执行 `forcitis-one-release install <版本> <环境> <发布包 sha256> <提交 sha>`，下载地址经标准输入传入；
+     3. 最后一跳（`DEPLOY_TRIGGER`，§8）：云助手 `RunCommand` 在 ECS 上以 root 运行，或受限 SSH 密钥的强制命令（`ssh -F /dev/null … -l <用户> -- <主机>`），二者都执行 `forcitis-one-release install <版本> <环境> <发布包 sha256> <提交 sha>`，下载地址、发布声明与签名（base64）经标准输入传入；
      4. 云助手方式轮询执行结果，把安装器输出打回 Actions 日志，退出码非 0 即作业失败。
    - 凭据只来自 environment secret，经环境变量交给 `aliyun` CLI，不执行 `aliyun configure`（会在用户目录留下凭据），不打印；SSH 私钥写入 `ship.sh` 的临时目录，脚本退出时（含失败）由 `trap` 删除。
 
@@ -88,7 +93,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 云助手以 root 直接运行安装器；SSH 方式下 deploy key 在 `authorized_keys` 中是强制命令，只能运行安装器的 `install`、`rollback`、`status`，拿不到 shell，安装器以 sudo（仅此一个命令）切到 root。`install` 依次：
 
 1. 检查 `/etc/forcitis-one/one.env` 的 `SPRING_PROFILES_ACTIVE` 等于目标环境；**断言 `/data/forcitis-one` 与 `releases` 为 root 所有、组和其他人不可写**（root 在其中操作，应用用户不得能替换任何东西，C-4 E-5）；取部署锁（`/run/forcitis-one-release.lock`）。
-2. 从 OSS 下载发布包（只接受 `https://…aliyuncs.com/` 地址，≤ 1 GiB，重试 5 次，20 分钟超时；地址不写日志），SHA256 与部署作业传入的一致；归档条目只能在 `forcitis-one-<版本>/` 下，无链接、无 `..`；解包后 `sha256sum --strict -c SHA256SUMS`，不允许有清单外的文件；`manifest.json` 的 `version` 与 `gitSha` 都与传入的一致。
+2. 从 OSS 下载发布包（只接受 `https://…aliyuncs.com/` 地址，≤ 1 GiB，重试 5 次，20 分钟超时；地址不写日志），SHA256 与部署作业传入的一致；归档条目只能在 `forcitis-one-<版本>/` 下，无链接、无 `..`；**用 ECS 上 root 所有的 `/etc/forcitis-one/release-signers` 验发布声明的签名**，并核对声明中的版本、提交、构建工作流与发布包、`manifest.json`、`SHA256SUMS` 的 SHA256（公钥不取自发布包，GitHub 侧被攻破也换不掉）；解包后 `sha256sum --strict -c SHA256SUMS`，不允许有清单外的文件；`manifest.json` 的 `version` 与 `gitSha` 都与传入的一致。
 3. **服务器文件一致**（新装的版本）：已安装的安装器、systemd 单元、nginx 配置、logrotate 与发布包中 `deploy/` 的同名文件逐字节相同，`one.env` 含模板中的每个键；不一致即失败并列出（§5）。
 4. 放到 `/data/forcitis-one/releases/<版本>/`（root:forcitis，目录 750、文件 640），`web` 软链指向 `web-<环境>`，给 nginx 用户只读 ACL。已装过且内容一致的版本直接复用，不改 `web` 软链；装给另一环境的同版本拒绝。
 5. 迁移（§4），**每次部署都运行**：有新迁移时应用它们，没有时由 Flyway 校验已应用的迁移与本版本一致。
@@ -145,8 +150,8 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 | # | 步骤 | 位置 / 做法 |
 |---|---|---|
-| R-0 | **专用 runner（必需）**：已由调度会话注册（`mac-one-deploy`，标签 `forcitis-one-deploy`，macOS 用户 `forcitis-deploy`，主目录 700，见 `CI_RUNNERS.md`）。该用户不得加入管理员组；Homebrew 的 `openjdk@25` 须存在（`toolchain.sh` 检查） | 本机 |
-| R-1 | 建 GitHub environments `dev`、`prod`；两者「Deployment branches and tags」只允许 `main`；`prod` 设 required reviewers（至少 1 人，建议 2 人，勾选禁止自己批准自己发起的部署） | 仓库 Settings → Environments |
+| R-0 | **专用 runner（必需）**：已由调度会话注册（`mac-one-deploy`，标签 `forcitis-one-deploy`，macOS 用户 `forcitis-deploy`，主目录 700，见 `CI_RUNNERS.md`）。该用户不得加入管理员组；Homebrew 的 `openjdk@25` 须存在（`toolchain.sh` 检查）。**另装 pre-job hook（必需）**：`sudo install -o root -g wheel -m 0755 scripts/release/runner_job_started.sh /usr/local/libexec/forcitis-one/runner-job-started.sh`，在 runner 目录的 `.env` 加一行 `ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/forcitis-one/runner-job-started.sh`，再 `sudo chown root:wheel .env && sudo chmod 0644 .env`（runner 只读它，作业改不了），`kickstart` 重启 runner；之后从一个非 main 分支手动运行 release.yml 应在第一步之前被拒（演练） | 本机 |
+| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。**不设 required reviewers / wait timer**：Team 私有仓库不可用（§11），prod 的人工批准改为 `prod-approvals.txt` 批准行 | 仓库 Settings → Environments |
 | R-2 | 仓库级 Actions variables：§6 的 8 个构建期变量（B-2、B-3 完成后填） | Settings → Secrets and variables → Actions → Variables |
 | R-3 | OSS：在**法兰克福（eu-central-1）**建私有 bucket（阻止公共访问、服务端加密、生命周期规则：前缀下对象 30 天后删除——GitHub Release 才是正本，OSS 只作中转）；按 §8.3 决定是否开传输加速 | 阿里云 OSS 控制台 |
 | R-4 | RAM：建 `forcitis-one-deploy-dev`、`forcitis-one-deploy-prod` 两个子账号（只开 OpenAPI 访问），各绑 §8.2 的策略（前缀与实例按环境填）；各生成一对 AccessKey；每 90 天轮换 | 阿里云 RAM 控制台 |
@@ -154,14 +159,16 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 | R-6 | 每个 environment 的 variables：`OSS_BUCKET`、`OSS_REGION=eu-central-1`、`OSS_PREFIX`（如 `forcitis-one/dev`）、可选 `OSS_DOWNLOAD_ENDPOINT`（传输加速时 `oss-accelerate.aliyuncs.com`）、`DEPLOY_TRIGGER`（`cloud-assistant` 或 `ssh`）；云助手方式 `ECS_REGION=cn-hangzhou`、`ECS_INSTANCE_ID=i-bp122xlpar8w2uylmal2`；SSH 方式 `DEPLOY_HOST`、`DEPLOY_USER=forcitis-deploy`、可选 `DEPLOY_PORT` | Environments → dev / prod |
 | R-7 | ECS（运维经云助手，root）：C-4 E-3、E-5 的新做法（`forcitis-migrate` 用户；`/data/forcitis-one`、`releases` 归 root；nginx 穿过 ACL；`/etc/forcitis-one/migrate`）；安装器（下方命令块）；SSH 方式另建部署用户与受限密钥 | ECS |
 | R-8 | 标签保护：Rules → Rulesets 新建标签规则 `v*`，限制创建、更新、删除（仅管理员与 release 工作流） | Settings → Rules |
-| R-9 | **启用 immutable releases**（发布后附件与标签不可改）；确认 Actions 允许工作流声明 `contents: write`、`id-token: write`、`attestations: write`；确认组织套餐支持**私有仓库的 artifact attestations**（GitHub 文档：需 GitHub Enterprise Cloud），不支持时 `publish` 的出处证明一步失败，须先解决再发布 | Settings → General / Actions；组织设置 |
+| R-9 | **启用 immutable releases**（发布后附件与标签不可改；本仓库 `GET /repos/…/immutable-releases` 返回 `enabled: false`，即功能存在、未启用，只对启用后的新 Release 生效）；确认 Actions 允许工作流声明 `contents: write` | Settings → General（Releases）/ Actions |
 | R-10 | 首次部署前 `/etc/forcitis-one/one.env` 补 `SPRING_FLYWAY_ENABLED=false`；按 §4 在 `/etc/forcitis-one/migrate/` 放迁移凭据文件（首次另加 Flowable 安装项） | ECS |
+| R-12 | **发布签名密钥**：在可信机器上 `ssh-keygen -t ed25519 -N '' -C forcitis-one-release -f release_signing`；私钥内容存为 environment `release` 的 secret `RELEASE_SIGNING_KEY`，随后删除本地私钥文件；公钥写成一行 `forcitis-one-release namespaces="forcitis-one-release" ssh-ed25519 AAAA… forcitis-one-release`，经 PR 写入 `scripts/release/allowed_signers`，并由运维装到 ECS `/etc/forcitis-one/release-signers`（root 0644）。轮换：新钥两处同时替换；旧版本的发布声明随之不可验证，回滚到旧版本需用新钥重签或临时并列两把公钥 | 可信机器；GitHub；ECS |
 | R-11 | 设置完成后的连通演练（不部署）：部署 runner 上用 dev 凭据 `aliyun oss ls oss://<bucket>/<前缀>/`；云助手对 ECS 执行 `forcitis-one-release status`；ECS 上 `curl` 一个签名地址并记录下载速度（§8.3） | 运维 |
 
 R-7 命令（`<version>` 用将要部署的发布包；先在可信机器上 `verify_bundle.sh` 校验，再经云助手上传其中的 `deploy/remote_install.sh`）：
 
 ```bash
 install -o root -g root -m 0755 remote_install.sh /usr/local/sbin/forcitis-one-release
+install -o root -g root -m 0644 release-signers /etc/forcitis-one/release-signers   # R-12 的公钥行
 forcitis-one-release status
 
 # 仅 SSH 方式：
@@ -196,7 +203,7 @@ chmod 0440 /etc/sudoers.d/forcitis-deploy && visudo -cf /etc/sudoers.d/forcitis-
 | 密钥存放 | GitHub environment secret：AccessKey 一对 | GitHub environment secret：AccessKey 一对（仍要上传 OSS）+ SSH 私钥 + 主机公钥；服务器上多一份授权公钥 |
 | 网络与安全组 | 无需任何入方向端口，ECS 安全组保持只开 80 / 443；云助手经阿里云内部通道 | 入方向放行 TCP 22，源地址只填部署 runner 的固定出口 IP/32；出口 IP 变化要同时改安全组与 `from=`；本机网络没有固定出口 IP 时不可用 |
 | 与现有约定 | 与「ECS 不设登录密钥，运维经云助手操作」一致 | 改变该约定，须用户认可 |
-| 审计 | 每次执行在云助手执行记录中留命令内容、输出、退出码；RAM 调用记入操作审计（ActionTrail）；GitHub 有部署记录与出处证明 | GitHub 部署记录 + ECS 的 sshd / sudo 日志（`/var/log/secure`，经 SLS 采集）；云端无记录 |
+| 审计 | 每次执行在云助手执行记录中留命令内容、输出、退出码；RAM 调用记入操作审计（ActionTrail）；GitHub 有部署记录与签名发布声明 | GitHub 部署记录 + ECS 的 sshd / sudo 日志（`/var/log/secure`，经 SLS 采集）；云端无记录 |
 | 失败与回滚 | 安装器的自动回切相同；云助手输出（最多约 24 KB 尾部）打回 Actions 日志；命令超时 45 分钟后云助手终止进程，可能停在迁移中途——此时 `current` 未切换，重跑即可 | 安装器的自动回切相同；输出实时回传；SSH 断线时以 `forcitis-one-release status` 与 `HISTORY` 判断 |
 | 主要风险 | AccessKey 泄露 → 可对该实例执行**任意** root 命令（策略只限实例，不能限命令内容） | 私钥泄露 → 只能运行安装器，但安装器只认传入的 SHA256，攻击者可传自己的包与 SHA256；AccessKey 泄露 → 只能改写 OSS 中转对象 |
 | 签名下载地址的暴露 | 地址写在命令内容里，留在云助手执行记录中（有 `ecs:DescribeInvocations` 权限者可见，30 分钟后失效） | 地址经 SSH 标准输入传入，不落盘 |
@@ -249,20 +256,68 @@ chmod 0440 /etc/sudoers.d/forcitis-deploy && visudo -cf /etc/sudoers.d/forcitis-
 ## 9. 首次部署（dev）的先后
 
 1. C-1（扩容，可后置）→ C-3（建库、角色、口令；RDS SSL 与 CA）→ C-4 E-1..E-10（ECS 初始化，含 E-3、E-5 新做法）→ B-4（证书，nginx 启用）。
-2. 本文 R-0..R-11；B-2、B-3 完成后填 R-2 的构建期变量。
+2. 本文 R-0..R-12；B-2、B-3 完成后填 R-2 的构建期变量。
 3. 1a 修复批合并、opus 复审通过，调度会话删除 `status/blockers/080-*`（或其 `blocks: deploy` 标记）；1a 的「可执行 jar」修复已合并，否则 `build.sh` 拒绝出包。
 4. `release` 发 `0.1.0`（或 `-rc.1`），核对后发布 Release。
 5. `deploy` dev：首次的迁移凭据目录含 Flowable 安装项（§4）；部署成功后跑 C-3 的 V8，删除 Flowable 安装项。
 6. C-5（首任超管与应急账号，用已部署的 jar 执行运维命令；运维命令未实现，阻塞于 blockers/070）。
 7. INFRA_RUNBOOK §7 第 5 步冒烟、`ecs_check.sh --public-check`；D 节出口条件在 dev 上逐项验收。
 
-prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅、C-9 ✅、prod environment 的 reviewers 批准。
+prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅、C-9 ✅、`prod-approvals.txt` 中有该版本的批准行。
 
 ## 10. 风险与已知限制
 
 - **专用 runner 是隔离的前提**：release 与 deploy 作业只在 `forcitis-one-deploy` 上运行，CI 作业所在的 4 个 runner（`yeliang` 用户）读不到它的主目录、`$RUNNER_TEMP` 与 environment secret；release 用本次运行内的全新 Maven / pnpm 缓存，PR 作业无法预先投放依赖。`forcitis-deploy` 用户不得加入管理员组；Maven Wrapper 下载的 Maven 发行包留在该用户主目录，`maven-wrapper.properties` 尚无 `distributionSha256Sum`（建议补上）。
 - **AccessKey 的权限面**：方案 (a) 下 AccessKey 能对该实例执行任意 root 命令（§8.1）；怀疑泄露时立即在 RAM 控制台禁用。
-- **私有仓库的出处证明**需要组织套餐支持（R-9），未确认前 `publish` 可能失败。
+- **Team 计划的限制**：出处证明、prod 审批人、runner 只限指定工作流都需要 Enterprise Cloud，已改用签名发布声明、批准行、pre-job hook 代替，剩余风险与「升级 / 接受」的选择见 §11.3。
 - `remote_install.sh`、`ship.sh`、`toolchain.sh` 依赖 Linux / 阿里云接口 / 网络下载，本机只做了语法与静态检查；`aliyun oss` / `aliyun ecs` 的参数在 R-11 演练时核对；首次在 dev 部署时验证。迁移以 `Started OneApplication` 判定是在 migrate profile 合入前的过渡做法（§4）。
 - 跨境下载的速度与可用性未实测（§8.3）。
 - 前端按环境各构建一份，同一版本 dev 与 prod 的静态文件不是同一份产物（§6）。
+
+## 11. GitHub Team 计划下的可用性与替代（2026-10-14 查官方文档）
+
+组织 FORCITIS 为 GitHub Team 计划（`gh api orgs/FORCITIS` → `plan: team`），仓库为私有。下表逐项依据 docs.github.com（只读查阅）；文档未写明而由只读 API 观察到的，单独注明。
+
+### 11.1 逐项结论
+
+| 功能 | Team 私有仓库 | 依据 | 本流水线的用法 |
+|---|---|---|---|
+| Artifact attestations（出处证明） | **不可用**：「If you are on a GitHub Free, GitHub Pro, or GitHub Team plan, artifact attestations are only available for public repositories. To use artifact attestations in private or internal repositories, you must be on a GitHub Enterprise Cloud plan.」 | [Using artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations) | 不用；改为签名发布声明（§2、§3） |
+| Environments | 可用：「Organizations with GitHub Team and users with GitHub Pro can configure environments for private repositories.」 | [Managing environments for deployment](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment) | `release`、`dev`、`prod` |
+| Required reviewers | **不可用**：「If you are on a GitHub Free, GitHub Pro, or GitHub Team plan, required reviewers are only available for public repositories.」 | [Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments) | 不用；prod 改为 `prod-approvals.txt` 批准行 |
+| Wait timer | **不可用**：「… wait timers are only available for public repositories.」（同上句式） | 同上 | 不用 |
+| Custom deployment protection rules | **不可用**：「Custom deployment protection rules are only available for public repositories for users on GitHub Free, GitHub Pro, and GitHub Team plans.」 | 同上 | 不用 |
+| Deployment branches and tags | 可用：「For users on GitHub Pro or GitHub Team plans, deployment branches and tags are also available for private repositories.」 | 同上 | `release`、`dev`、`prod` 只允许 main |
+| Environment secrets | 可用：私有仓库须 GitHub Pro、Team 或 Enterprise | 同上 | `RELEASE_SIGNING_KEY`、阿里云 AccessKey、SSH 密钥 |
+| Runner groups | 可用（组织级）：「Organization owners using the GitHub Team plan can create additional organization-level runner groups.」 | [Managing access to self-hosted runners using groups](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/manage-access) | 专用 runner 目前注册在仓库级，不在组里 |
+| Runner group 只限指定工作流（Workflow access → Selected workflows） | **视为不可用**：该节只出现在 Enterprise Cloud 版文档，Free / Pro / Team 版同一页没有；组织现有 runner group 的 `restricted_to_workflows` 均为 `false` | [Enterprise Cloud 版同页](https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/manage-runners/self-hosted-runners/manage-access) 对照 [Team 版](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/manage-access) | 改由 runner 侧 pre-job hook 实现（§11.2） |
+| Pre-job hook（`ACTIONS_RUNNER_HOOK_JOB_STARTED`） | 可用（runner 功能，不分套餐）：「If there is any other exit code, the job will not run and will be marked as failed.」脚本可读默认变量 | [Running scripts before or after a job](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/run-scripts) | `runner_job_started.sh` |
+| Immutable releases | 文档未写套餐限制；本仓库 `GET /repos/FORCITIS/forcitis-one-psa/immutable-releases` 返回 `{"enabled":false}`，判断为可用、未启用。只对启用后的新 Release 生效（「immutability will only apply to future releases」） | [Immutable releases](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/immutable-releases)、[Preventing changes to your releases](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/establish-provenance-and-integrity/prevent-release-changes) | R-9 启用；与签名声明互补 |
+| Rulesets（含 tag rulesets） | 可用：「Rulesets are available in public repositories with GitHub Free and GitHub Free for organizations, and in public and private repositories with GitHub Pro, GitHub Team, and GitHub Enterprise Cloud.」；tag ruleset 与 branch ruleset 同一功能 | [About rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) | R-8 `v*` 标签保护 |
+| Push rulesets（按文件路径限制推送） | 可用：「Push rulesets are available for the GitHub Team plan in internal and private repositories …」 | 同上 | 可选，见 §11.3 第 3 项 |
+
+### 11.2 H-2 的 Team 方案：签名发布声明
+
+目标不变：只部署由 main 上 release 工作流构建的包，Release 附件被替换能发现。
+
+- **签名**：私钥只存在 environment `release` 的 secret 中，该 environment 只允许 main（部署分支策略在 Team 私有仓库可用）；非 main 分支的运行引用它会失败、拿不到私钥。`publish` 作业签署的声明写明 `GITHUB_WORKFLOW_REF`。
+- **校验两处**：deploy 作业用仓库 main 上的 `allowed_signers` 验签；ECS 安装器用本机 root 所有的 `/etc/forcitis-one/release-signers` 再验一次。两处都核对构建工作流必须是 `FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main`、提交与标签一致、发布包与 `manifest.json`、`SHA256SUMS` 的 SHA256 一致。
+- **能发现**：Release 附件被替换（发布包、声明或签名任何一个）→ 验签或 SHA256 失败；用其他分支或其他工作流构建的包 → 拿不到私钥，或声明中的工作流不符；在 GitHub 侧换掉公钥 → ECS 上的公钥不随之改变，安装器仍拒绝。
+- 本机验证：用运行时生成的测试密钥，正常声明通过；仓库中空的 `allowed_signers`、改提交、改声明内容、换密钥、分支工作流签出的声明、替换发布包，全部被拒。
+- **与出处证明相比的差距**：出处证明由 GitHub 托管的签名身份背书，私钥不经过我们的 runner；这里的私钥在签名那一步出现在专用 runner 上，安全性取决于专用 runner 不被攻破（§11.3）。
+
+**专用 runner 被任意分支利用的封堵**：任何分支的工作流都可以写 `runs-on: [self-hosted, forcitis-one-deploy]`。Team 计划下无法在 GitHub 侧把 runner 限定到指定工作流（§11.1），因此由 runner 自己把关：
+
+1. **pre-job hook**（`runner_job_started.sh`，R-0）：只放行 `GITHUB_REPOSITORY=FORCITIS/forcitis-one-psa`、`GITHUB_EVENT_NAME=workflow_dispatch`、`GITHUB_REF=refs/heads/main`、`GITHUB_WORKFLOW_REF` 为 main 上 release.yml 或 deploy.yml 的作业；其他作业在第一步之前即失败。变量缺失也拒绝。hook 与 runner 的 `.env` 归 root 所有，作业改不了。
+2. 被放行的作业都来自 main（经 PR、CI 与调度会话合并），内容可信；release 构建用全新的 `HOME`、Maven 仓库与 pnpm store（`--isolated-caches`），不读该用户主目录中可能被留下的设置。
+3. hook 会以 warning 报出上一个作业残留的、runner 之外的进程，供排查。
+
+### 11.3 剩余风险：用户决定（升级 / 接受）
+
+| # | 事项 | 需要 Enterprise Cloud 才能做到的 | Team 下现状 | 选项 |
+|---|---|---|---|---|
+| U-1 | 出处由 GitHub 背书 | 私有仓库的 artifact attestations | 签名发布声明，私钥在 environment `release`、签名时出现在专用 runner | **接受**（建议，现方案已满足「只部署 main 上 release 构建、替换可发现」）/ 升级后改回 attestations |
+| U-2 | prod 部署前由指定的人在 GitHub 上批准 | environment required reviewers、wait timer | `prod-approvals.txt` 批准行经 PR 合入 main；所有会话以同一 GitHub 账号推送与合并，批准行能证明「经过 main 的评审流程」，不能证明「由某个特定的人批准」 | **接受**并约定批准行只由用户本人发起的 PR 加入 / 升级 |
+| U-3 | runner 只接指定工作流 | runner group 的 Selected workflows | runner 侧 pre-job hook；依赖 hook 与 `.env` 保持 root 所有、`forcitis-deploy` 非管理员 | **接受**（建议）/ 升级 / 另加 push ruleset：限制 `.github/workflows/**` 的推送，只允许旁路名单——但所有会话用同一账号，旁路名单区分不了人与代理，须先给代理改用单独的机器账号或 GitHub App 才有意义 |
+| U-4 | 构建期间第三方依赖代码的影响 | （任何套餐都不解决） | release 的 `build` 作业会执行 npm / Maven 依赖中的代码；它与持有签名私钥的 `publish` 作业先后跑在同一个 macOS 用户下，残留进程理论上可观察后者 | **接受**（hook 告警残留进程）/ 让 `publish` 改跑 GitHub 托管 runner（作业很小，但与「CI 不用托管机器」的现行约定不同，须用户决定）/ 给 runner 改成每作业重新注册的 ephemeral 模式 |
+

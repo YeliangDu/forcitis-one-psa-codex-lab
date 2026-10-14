@@ -1,7 +1,8 @@
 name: release
 
-# Builds the release bundle of a commit on main that ci already passed, attests its provenance and attaches it to a GitHub Release.
-# Only started by hand from main: the provenance check in deploy.yml requires the signing workflow to have run on refs/heads/main.
+# Builds the release bundle of a commit on main that ci already passed, signs a release statement for it and attaches both to a GitHub
+# Release. Only started by hand from main: the signing key is available to main only, and deploy.yml checks the statement names this
+# workflow on refs/heads/main.
 # Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
 on:
   workflow_dispatch:
@@ -104,17 +105,23 @@ jobs:
       - if: always()
         run: rm -rf "$RUNNER_TEMP/release" "$RUNNER_TEMP/caches"
 
+  # The release signing key is a secret of the `release` environment, whose deployment branch policy admits main only (RELEASE.md §11)
   publish:
-    name: attest and publish
+    name: sign and publish
     needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, forcitis-one-deploy]
+    environment: release
     timeout-minutes: 15
     permissions:
       contents: write
-      id-token: write
-      attestations: write
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.build.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: scripts/release
+
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: release-bundle
@@ -126,9 +133,20 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
         run: shasum -a 256 -c "forcitis-one-$VERSION.tar.gz.sha256"
 
-      - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
-        with:
-          subject-path: ${{ runner.temp }}/publish/forcitis-one-${{ needs.build.outputs.version }}.tar.gz
+      - name: sign the release statement
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          [ -n "$RELEASE_SIGNING_KEY" ] || { echo "environment release lacks RELEASE_SIGNING_KEY (RELEASE.md §7 R-12)" >&2; exit 1; }
+          key_dir="$(mktemp -d "$RUNNER_TEMP/sign.XXXXXX")"
+          trap 'rm -rf "$key_dir"' EXIT
+          (umask 077 && printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key_dir/key")
+          archive="$RUNNER_TEMP/publish/forcitis-one-$VERSION.tar.gz"
+          statement="$RUNNER_TEMP/publish/forcitis-one-$VERSION.release"
+          scripts/release/statement.sh write "$archive" "$statement"
+          scripts/release/statement.sh sign "$statement" "$key_dir/key"
+          cat "$statement"
 
       - name: publish GitHub Release
         working-directory: ${{ runner.temp }}/publish
@@ -139,10 +157,11 @@ jobs:
           DRAFT: ${{ inputs.draft }}
         run: |
           flags=(--repo "$GITHUB_REPOSITORY" --title "FORCITIS one $VERSION" --target "$SHA"
-                 --notes "Commit $SHA. Built and attested by release run $GITHUB_RUN_ID; see docs/modernization/phase1a/infra/runbooks/RELEASE.md.")
+                 --notes "Commit $SHA. Built and signed by release run $GITHUB_RUN_ID; see docs/modernization/phase1a/infra/runbooks/RELEASE.md.")
           [ "$DRAFT" != true ] || flags+=(--draft)
           case "$VERSION" in *-rc.*) flags+=(--prerelease) ;; esac
-          gh release create "v$VERSION" "${flags[@]}" "forcitis-one-$VERSION.tar.gz" "forcitis-one-$VERSION.tar.gz.sha256"
+          gh release create "v$VERSION" "${flags[@]}" "forcitis-one-$VERSION.tar.gz" "forcitis-one-$VERSION.tar.gz.sha256" \
+            "forcitis-one-$VERSION.release" "forcitis-one-$VERSION.release.sig"
 
       - if: always()
         run: rm -rf "$RUNNER_TEMP/publish"

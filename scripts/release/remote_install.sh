@@ -3,7 +3,8 @@
 # RELEASE.md (Phase 1a infra runbooks). Run as root by Cloud Assistant, or through a deploy key whose forced command is this script
 # (the key never gets a shell).
 #
-#   install  <version> <dev|prod> <sha256 of the bundle> <commit sha>   stdin: one line, the presigned OSS URL of the bundle
+#   install  <version> <dev|prod> <sha256 of the bundle> <commit sha>
+#            stdin, three lines: the presigned OSS URL of the bundle, the signed release statement and its signature (both base64)
 #   rollback [<version>]                                                back to the previous release, or to <version>
 #   status
 #
@@ -15,6 +16,10 @@ SELF=/usr/local/sbin/forcitis-one-release
 BASE=/data/forcitis-one
 ETC=/etc/forcitis-one
 MIGRATION_CREDENTIALS="$ETC/migrate"
+RELEASE_SIGNERS="$ETC/release-signers"
+STATEMENT_NAMESPACE=forcitis-one-release
+STATEMENT_FORMAT=forcitis-one-release-statement/1
+RELEASE_WORKFLOW=FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main
 RELEASE_LOGS=/var/log/forcitis-one-release
 LOCK=/run/forcitis-one-release.lock
 UNIT=forcitis-one
@@ -150,6 +155,27 @@ verify_bundle_dir() {
   [ "$listed" = "$actual" ] || fail "bundle has files not covered by SHA256SUMS"
 }
 
+statement_field() { awk -v key="$1:" '$1 == key { print $2; found = 1 } END { exit !found }' "$2"; }
+
+# Same checks as scripts/release/statement.sh verify, against the signer key installed on this server (never one from the bundle)
+verify_statement() {
+  local archive="$1" statement="$2" version="$3" commit="$4" name="forcitis-one-$3"
+  [ -s "$RELEASE_SIGNERS" ] && [ "$(stat -c '%U %a' "$RELEASE_SIGNERS")" = "root 644" ] \
+    || fail "$RELEASE_SIGNERS must exist, root-owned 0644 (RELEASE.md §7)"
+  ssh-keygen -Y verify -f "$RELEASE_SIGNERS" -I "$STATEMENT_NAMESPACE" -n "$STATEMENT_NAMESPACE" -s "$statement.sig" < "$statement" >/dev/null 2>&1 \
+    || fail "the release statement's signature does not verify"
+  [ "$(statement_field format "$statement")" = "$STATEMENT_FORMAT" ] || fail "unknown release statement format"
+  [ "$(statement_field version "$statement")" = "$version" ] || fail "release statement is for another version"
+  [ "$(statement_field commit "$statement")" = "$commit" ] || fail "release statement is for another commit"
+  [ "$(statement_field workflow "$statement")" = "$RELEASE_WORKFLOW" ] || fail "release statement was not produced by the release workflow on main"
+  [ "$(statement_field bundle-sha256 "$statement")" = "$(sha256sum "$archive" | cut -d' ' -f1)" ] || fail "bundle differs from the signed release statement"
+  [ "$(statement_field manifest-sha256 "$statement")" = "$(tar -xzOf "$archive" "$name/manifest.json" | sha256sum | cut -d' ' -f1)" ] \
+    || fail "manifest.json differs from the signed release statement"
+  [ "$(statement_field sha256sums-sha256 "$statement")" = "$(tar -xzOf "$archive" "$name/SHA256SUMS" | sha256sum | cut -d' ' -f1)" ] \
+    || fail "SHA256SUMS differs from the signed release statement"
+  log "bundle matches the release statement signed by release run $(statement_field run "$statement")"
+}
+
 manifest_field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"; }
 
 check_server_files() {
@@ -174,7 +200,7 @@ grant_static_read() {
 }
 
 place() {
-  local version="$1" env="$2" expected_sha="$3" commit="$4" url="$5" incoming archive top staged existing
+  local version="$1" env="$2" expected_sha="$3" commit="$4" url="$5" statement_b64="$6" signature_b64="$7" incoming archive top staged existing
   incoming="$(mktemp -d "$releases/.incoming.XXXXXX")"
   trap 'rm -rf "$incoming"' EXIT
   archive="$incoming/bundle.tar.gz"
@@ -188,6 +214,9 @@ place() {
 
   top="forcitis-one-$version"
   check_tar_entries "$archive" "$top"
+  printf '%s' "$statement_b64" | base64 -d > "$incoming/statement" || fail "release statement is not base64"
+  printf '%s' "$signature_b64" | base64 -d > "$incoming/statement.sig" || fail "release statement signature is not base64"
+  verify_statement "$archive" "$incoming/statement" "$version" "$commit"
   tar -xzf "$archive" -C "$incoming" --no-same-owner --no-same-permissions
   staged="$incoming/$top"
   verify_bundle_dir "$staged"
@@ -318,18 +347,22 @@ lock() {
 }
 
 cmd_install() {
-  local version="${1:-}" env="${2:-}" sha="${3:-}" commit="${4:-}" url="" profile running new first_install=false
+  local version="${1:-}" env="${2:-}" sha="${3:-}" commit="${4:-}" url="" statement_b64="" signature_b64="" profile running new first_install=false
   valid_version "$version" || fail "invalid version '$version'"
   case "$env" in dev|prod) ;; *) fail "environment must be dev or prod" ;; esac
   [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || fail "sha256 of the bundle required"
   [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "commit sha of the release required"
   IFS= read -r -t 30 url || true
-  [[ "$url" =~ $BUNDLE_URL_PATTERN ]] || fail "stdin must carry the https OSS URL of the bundle"
+  IFS= read -r -t 30 statement_b64 || true
+  IFS= read -r -t 30 signature_b64 || true
+  [[ "$url" =~ $BUNDLE_URL_PATTERN ]] || fail "stdin line 1 must carry the https OSS URL of the bundle"
+  [[ "$statement_b64" =~ ^[A-Za-z0-9+/=]{1,8192}$ && "$signature_b64" =~ ^[A-Za-z0-9+/=]{1,8192}$ ]] \
+    || fail "stdin lines 2 and 3 must carry the release statement and its signature in base64"
   profile="$(env_value SPRING_PROFILES_ACTIVE)"
   [ "$profile" = "$env" ] || fail "this server is configured for '$profile' (SPRING_PROFILES_ACTIVE), not '$env'"
   assert_root_owned "$BASE" "$releases"
   lock
-  place "$version" "$env" "$sha" "$commit" "$url"
+  place "$version" "$env" "$sha" "$commit" "$url" "$statement_b64" "$signature_b64"
   running="$(linked_version "$current_link")"
   [ -n "$running" ] || first_install=true
   if [ -n "$running" ] && [ "$running" != "$version" ]; then
@@ -377,5 +410,5 @@ case "$command" in
   install) cmd_install "$@" ;;
   rollback) cmd_rollback "$@" ;;
   status) cmd_status ;;
-  *) fail "usage: install <version> <dev|prod> <sha256> <commit sha> (bundle URL on stdin) | rollback [<version>] | status" ;;
+  *) fail "usage: install <version> <dev|prod> <sha256> <commit sha> (URL, statement, signature on stdin) | rollback [<version>] | status" ;;
 esac

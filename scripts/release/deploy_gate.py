@@ -8,7 +8,9 @@
   deployment. Blocker fragments are single lines (build_records.py), so the marker sits in the line instead of front matter. The
   coordinating session deletes the entry, or the marker, when the blocking work is merged.
 - prod: no pre-release version (-rc.N); every Phase 1a exit condition in section D of PREDEPLOY_CHECKLIST.md is done (verified on dev);
-  C-9 (the production database) is done. "Done" means the status cell is exactly the done mark, nothing else.
+  C-9 (the production database) is done. "Done" means the status cell is exactly the done mark, nothing else. The version is listed in
+  prod-approvals.txt: on the GitHub Team plan a private repository has no required reviewers, so a reviewed approval line merged into
+  main is the human approval.
 """
 import os
 import re
@@ -17,6 +19,7 @@ import tempfile
 
 BLOCKERS = "docs/modernization/status/blockers"
 CHECKLIST = "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md"
+PROD_APPROVALS = "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt"
 DEPLOY_MARKER = "`blocks: deploy`"
 DONE = "✅"
 EXPECTED_EXIT_CONDITIONS = 9
@@ -48,6 +51,15 @@ def table_rows(checklist_text, section_letter):
     return rows
 
 
+def approved_versions(root):
+    with open(os.path.join(root, PROD_APPROVALS), encoding="utf-8") as handle:
+        rows = [line.split() for line in handle if line.strip() and not line.startswith("#")]
+    for row in rows:
+        if len(row) < 3 or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", row[1]):
+            raise SystemExit(f"deploy_gate.py: {PROD_APPROVALS} line {' '.join(row)!r} is not '<version> <YYYY-MM-DD> <approver>'")
+    return {row[0] for row in rows}
+
+
 def check(root, environment, version):
     problems = [f"deployment blocked by {BLOCKERS}/{name}" for name in deploy_blockers(root)]
     if environment == "prod":
@@ -62,6 +74,8 @@ def check(root, environment, version):
         open_exits = [row for row, status in exits.items() if status != DONE]
         if open_exits:
             problems.append(f"Phase 1a exit conditions (verified on dev) not done in {CHECKLIST}: {', '.join(open_exits)}")
+        if version not in approved_versions(root):
+            problems.append(f"{version} is not approved for prod in {PROD_APPROVALS}")
         executions = table_rows(text, "C")
         for row in PROD_PREREQUISITES:
             if executions.get(row) != DONE:
@@ -72,7 +86,9 @@ def check(root, environment, version):
 def self_test():
     with tempfile.TemporaryDirectory() as root:
         os.makedirs(os.path.join(root, BLOCKERS))
-        os.makedirs(os.path.dirname(os.path.join(root, CHECKLIST)))
+        os.makedirs(os.path.dirname(os.path.join(root, PROD_APPROVALS)))
+        with open(os.path.join(root, PROD_APPROVALS), "w", encoding="utf-8") as handle:
+            handle.write("# header\n0.1.0 2026-10-14 平台负责人\n")
 
         def checklist(statuses, c9=DONE):
             rows = "".join(f"| D-{i} | x | y | {s} |\n" for i, s in enumerate(statuses, 1))
@@ -88,6 +104,7 @@ def self_test():
         checklist([DONE] * 9)
         assert check(root, "dev", "0.1.0-rc.1") == [] and check(root, "prod", "0.1.0") == []
         assert check(root, "prod", "0.1.0-rc.1"), "prod refuses pre-releases"
+        assert any("not approved" in p for p in check(root, "prod", "0.2.0")), "prod needs an approval line"
         checklist([DONE] * 8 + ["⬜"])
         assert check(root, "dev", "0.1.0") == [] and "D-9" in check(root, "prod", "0.1.0")[0]
         checklist([DONE] * 8 + [DONE + " 部分"])
@@ -105,6 +122,7 @@ def self_test():
         text = handle.read()
     assert len(table_rows(text, "D")) >= EXPECTED_EXIT_CONDITIONS, f"{CHECKLIST} section D no longer parses"
     assert all(row in table_rows(text, "C") for row in PROD_PREREQUISITES), f"{CHECKLIST} section C lacks {PROD_PREREQUISITES}"
+    approved_versions(".")
     print("deploy_gate.py self-test passed")
 
 
