@@ -217,11 +217,27 @@ class NumberingRulesIT {
             mvc.perform(get(RULES + "/QUOTE").with(READER))
                     .andExpect(jsonPath("$.confirmationStatus").value("CONFIRMED"))
                     .andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"));
+            assertThat(quoteRuleVersionAndEffectiveDay()).isEqualTo("1/" + today());
+
+            mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
+                    .andExpect(status().isNoContent());
+            assertThat(quoteRuleVersionAndEffectiveDay()).as("replacing a confirmed template starts the next version").isEqualTo("2/" + today());
         } finally {
             // put the shared fixture back to the seeded default so other tests keep seeing the pending template
             jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}',"
-                    + " confirmation_status = 'PENDING_CONFIRMATION' where document_type = 'QUOTE'").update();
+                    + " confirmation_status = 'PENDING_CONFIRMATION', rule_version_number = 1, effective_from_date = null"
+                    + " where document_type = 'QUOTE'").update();
         }
+    }
+
+    private String quoteRuleVersionAndEffectiveDay() {
+        return jdbc.sql("select rule_version_number || '/' || effective_from_date from platform_numbering.numbering_rules where document_type = 'QUOTE'")
+                .query(String.class).single();
+    }
+
+    private static LocalDate today() {
+        return LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
     }
 
     @Test

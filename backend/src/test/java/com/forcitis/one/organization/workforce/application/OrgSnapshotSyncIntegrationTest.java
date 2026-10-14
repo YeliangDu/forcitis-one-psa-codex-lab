@@ -24,6 +24,7 @@ import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.organization.workforce.events.SyncRunReleased;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -84,7 +85,15 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
             assertThat(e.changedEmployees()).containsExactlyInAnyOrder(user(1), user(2), user(3));
             assertThat(e.changedOrgUnits()).containsExactlyInAnyOrder(unitId(1), unitId(2), unitId(3));
             assertThat(e.separatedEmployees()).isEmpty();
+            assertThat(e.envelope().businessDate()).as("the snapshot cut-off day is the Shanghai day the run started")
+                    .isEqualTo(runStartDay());
+            assertThat(e.effectiveDate()).isEqualTo(e.envelope().businessDate());
         });
+    }
+
+    private LocalDate runStartDay() {
+        return jdbc.sql("select started_at from organization_workforce.sync_runs").query((rs, n) -> rs.getObject(1, java.time.OffsetDateTime.class))
+                .single().atZoneSameInstant(java.time.ZoneId.of("Asia/Shanghai")).toLocalDate();
     }
 
     @Test

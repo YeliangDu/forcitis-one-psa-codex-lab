@@ -71,4 +71,41 @@ class WorkCalendarYearTest {
             assertThat(e.envelope().legalEntityId()).isNull();
         });
     }
+
+    @Test
+    @DisplayName("the event names exactly the days this save added, removed or changed, in date order, and has no businessDate")
+    void eventNamesTheChangedDays() {
+        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026),
+                List.of(day("2026-10-01", DayKind.HOLIDAY), day("2026-10-02", DayKind.HOLIDAY), day("2026-10-10", DayKind.MAKE_UP_WORKDAY)), 3, 3);
+
+        year.maintain(List.of(day("2026-10-01", DayKind.HOLIDAY), day("2026-10-02", DayKind.HOLIDAY),
+                day("2026-10-12", DayKind.HOLIDAY), day("2026-05-01", DayKind.HOLIDAY)));
+
+        assertThat(year.drainEvents(ENVELOPES)).singleElement().isInstanceOfSatisfying(WorkCalendarYearMaintained.class, e -> {
+            assertThat(e.changedDates()).containsExactly(LocalDate.parse("2026-05-01"), LocalDate.parse("2026-10-10"), LocalDate.parse("2026-10-12"));
+            assertThat(e.envelope().businessDate()).as("one save can touch many days, so they travel in the payload").isNull();
+        });
+    }
+
+    @Test
+    @DisplayName("saving a year as it already is names no day: it only says the year has been checked")
+    void unchangedYearNamesNoDay() {
+        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-01", DayKind.HOLIDAY)), 3, 3);
+
+        year.maintain(List.of(day("2026-10-01", DayKind.HOLIDAY)));
+
+        assertThat(year.drainEvents(ENVELOPES)).singleElement().isInstanceOfSatisfying(WorkCalendarYearMaintained.class,
+                e -> assertThat(e.changedDates()).isEmpty());
+    }
+
+    @Test
+    @DisplayName("a day that changes kind is named")
+    void changedKindIsNamed() {
+        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-10", DayKind.MAKE_UP_WORKDAY)), 3, 3);
+
+        year.maintain(List.of(day("2026-10-10", DayKind.HOLIDAY)));
+
+        assertThat(year.drainEvents(ENVELOPES)).singleElement().isInstanceOfSatisfying(WorkCalendarYearMaintained.class,
+                e -> assertThat(e.changedDates()).containsExactly(LocalDate.parse("2026-10-10")));
+    }
 }

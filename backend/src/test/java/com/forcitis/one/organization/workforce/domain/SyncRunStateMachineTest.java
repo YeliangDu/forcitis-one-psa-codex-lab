@@ -19,12 +19,14 @@ import com.forcitis.one.organization.workforce.events.SyncRunHeld;
 import com.forcitis.one.organization.workforce.events.SyncRunReleased;
 import com.forcitis.one.organization.workforce.events.SyncRunSucceeded;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class SyncRunStateMachineTest {
     static final Instant NOW = Instant.parse("2026-10-14T02:00:00Z");
+    static final LocalDate SNAPSHOT_DAY = LocalDate.of(2026, 10, 13);
     static final RunStats STATS = new RunStats(10, 20, 10, 20, 10, 20, 1, 1, 0, 0, 0, 0);
     static final SnapshotChange NO_CHANGE = new SnapshotChange(List.of(), List.of(), List.of());
 
@@ -36,7 +38,7 @@ class SyncRunStateMachineTest {
     @DisplayName("every operation is tried from every status: only the legal transitions succeed, the rest are refused and change nothing")
     void exhaustiveTransitions() {
         new TransitionTable<SyncRunStatus, SyncRun>(SyncRunStatus.class, SyncRunStateMachineTest::at, SyncRun::status)
-                .operation("succeed", run -> run.succeed(NOW, STATS, NO_CHANGE), RUNNING, SUCCEEDED)
+                .operation("succeed", run -> run.succeed(NOW, STATS, NO_CHANGE, SNAPSHOT_DAY), RUNNING, SUCCEEDED)
                 .operation("hold", run -> run.hold(NOW, STATS, "shrunk"), RUNNING, HELD, HELD, HELD)
                 .operation("fail", run -> run.fail(NOW, "down"), RUNNING, FAILED)
                 .operation("release", run -> run.release(new UserId(9), new SyncRunId(6), NOW), HELD, RELEASED)
@@ -59,11 +61,11 @@ class SyncRunStateMachineTest {
     @DisplayName("a successful run records SyncRunSucceeded, and OrgSnapshotChanged only when something changed; versions are contiguous")
     void succeedingRecordsEvents() {
         SyncRun quiet = at(RUNNING);
-        quiet.succeed(NOW, STATS, NO_CHANGE);
+        quiet.succeed(NOW, STATS, NO_CHANGE, SNAPSHOT_DAY);
         assertThat(quiet.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(SyncRunSucceeded.class);
 
         SyncRun busy = at(RUNNING);
-        busy.succeed(NOW, STATS, new SnapshotChange(List.of(new UserId(1)), List.of(new UserId(2)), List.of(new OrgUnitId(3))));
+        busy.succeed(NOW, STATS, new SnapshotChange(List.of(new UserId(1)), List.of(new UserId(2)), List.of(new OrgUnitId(3))), SNAPSHOT_DAY);
         List<DomainEvent> events = busy.drainEvents(TestEnvelopes.INSTANCE);
 
         assertThat(events).hasSize(2);
@@ -73,9 +75,31 @@ class SyncRunStateMachineTest {
             assertThat(e.envelope().aggregateType()).isEqualTo("SyncRun");
             assertThat(e.envelope().aggregateId()).isEqualTo("5");
         });
+        assertThat(events.get(0).envelope().businessDate()).as("a sync run is not a dated milestone").isNull();
         assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(4L, 5L);
         assertThat(busy.eventSequence()).isEqualTo(5);
         assertThat(busy.version()).isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("OrgSnapshotChanged takes its businessDate and effectiveDate from the snapshot day it is given, not from the clock")
+    void snapshotChangedIsDatedBySnapshotDay() {
+        SyncRun run = at(RUNNING);
+        run.succeed(NOW, STATS, new SnapshotChange(List.of(new UserId(1)), List.of(), List.of()), SNAPSHOT_DAY);
+
+        assertThat(run.drainEvents(TestEnvelopes.INSTANCE)).last().isInstanceOfSatisfying(OrgSnapshotChanged.class, e -> {
+            assertThat(e.envelope().businessDate()).isEqualTo(SNAPSHOT_DAY).isNotEqualTo(LocalDate.of(2026, 10, 14));
+            assertThat(e.effectiveDate()).isEqualTo(SNAPSHOT_DAY);
+        });
+    }
+
+    @Test
+    @DisplayName("a run cannot succeed without a snapshot day")
+    void snapshotDayIsRequired() {
+        SyncRun run = at(RUNNING);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> run.succeed(NOW, STATS, NO_CHANGE, null)).isInstanceOf(NullPointerException.class);
+        assertThat(run.status()).isEqualTo(RUNNING);
+        assertThat(run.hasPendingEvents()).isFalse();
     }
 
     @Test

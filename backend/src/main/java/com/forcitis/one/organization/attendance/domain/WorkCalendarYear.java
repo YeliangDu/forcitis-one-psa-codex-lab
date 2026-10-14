@@ -13,7 +13,9 @@ import java.time.Year;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 /** One maintained year of one calendar. A year with no exception is still maintained: saving it says "this year has been checked". */
 public final class WorkCalendarYear extends AggregateRoot {
@@ -71,9 +73,16 @@ public final class WorkCalendarYear extends AggregateRoot {
                         day.calendarDate() + " is listed twice");
             }
         }
+        List<LocalDate> changedDates = changedDates(exceptions, next);
         this.exceptions = Map.copyOf(next);
         record((envelopes, version) -> new WorkCalendarYearMaintained(envelopes.wrap(new EventDraft(
                 "organization.attendance.WorkCalendarYearMaintained", 1, "WorkCalendarYear", key.asText(), version,
-                key.legalEntityId(), null, new EventSource(SourceSystem.ONE, null), List.of())), Year.of(key.calendarYear())));
+                key.legalEntityId(), null, new EventSource(SourceSystem.ONE, null), List.of())), Year.of(key.calendarYear()), changedDates));
+    }
+
+    private static List<LocalDate> changedDates(Map<LocalDate, DayKind> before, Map<LocalDate, DayKind> after) {
+        Set<LocalDate> dates = new TreeSet<>(before.keySet());
+        dates.addAll(after.keySet());
+        return dates.stream().filter(date -> before.get(date) != after.get(date)).toList();
     }
 }

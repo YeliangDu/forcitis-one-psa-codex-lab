@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshot;
@@ -31,15 +32,17 @@ public class ApplySourceSnapshot {
     private final SyncRunRepository runs;
     private final DomainEvents events;
     private final Clock clock;
+    private final BusinessZone businessZone;
     private final int maxDropPercent;
 
     ApplySourceSnapshot(OrgSnapshotRepository snapshots, SyncRunRepository runs, DomainEvents events,
-                        Clock clock,
+                        Clock clock, BusinessZone businessZone,
                         @Value("${forcitis.organization.workforce.sync.max-drop-percent:20}") int maxDropPercent) {
         this.snapshots = snapshots;
         this.runs = runs;
         this.events = events;
         this.clock = clock;
+        this.businessZone = businessZone;
         this.maxDropPercent = maxDropPercent;
     }
 
@@ -60,7 +63,7 @@ public class ApplySourceSnapshot {
         }
         snapshots.save(changes, syncRunId, now);
         runs.saveDiffs(syncRunId, changes.diffs());
-        run.succeed(now, changes.stats(), changes.change());
+        run.succeed(now, changes.stats(), changes.change(), businessZone.dateOf(run.startedAt()));
         runs.save(run);
         events.publish(run);
         if (run.trigger() == SyncTrigger.SCHEDULED) {

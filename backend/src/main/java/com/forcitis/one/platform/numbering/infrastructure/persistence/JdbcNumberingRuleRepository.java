@@ -25,7 +25,8 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     @Override
     public Optional<NumberingRule> findActive(DocumentType type) {
         return jdbc.sql("""
-                        select document_type, pattern, reset_policy, start_value, confirmation_status, version, event_count
+                        select document_type, pattern, reset_policy, start_value, confirmation_status, rule_version_number, effective_from_date, version,
+                               event_count
                           from platform_numbering.numbering_rules
                          where document_type = :type and is_active
                         """)
@@ -37,7 +38,8 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     @Override
     public List<NumberingRule> findAllActive() {
         return jdbc.sql("""
-                        select document_type, pattern, reset_policy, start_value, confirmation_status, version, event_count
+                        select document_type, pattern, reset_policy, start_value, confirmation_status, rule_version_number, effective_from_date, version,
+                               event_count
                           from platform_numbering.numbering_rules
                          where is_active
                          order by document_type
@@ -49,8 +51,8 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     private static NumberingRule row(java.sql.ResultSet rs) throws java.sql.SQLException {
         return NumberingRule.restore(DocumentType.valueOf(rs.getString("document_type")),
                 new NumberingPattern(rs.getString("pattern"), ResetPolicy.valueOf(rs.getString("reset_policy"))),
-                rs.getLong("start_value"), rs.getString("confirmation_status"), rs.getLong("version"),
-                rs.getLong("event_count"));
+                rs.getLong("start_value"), rs.getString("confirmation_status"), rs.getLong("rule_version_number"),
+                rs.getObject("effective_from_date", java.time.LocalDate.class), rs.getLong("version"), rs.getLong("event_count"));
     }
 
     @Override
@@ -76,7 +78,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
         int updated = jdbc.sql("""
                         update platform_numbering.numbering_rules
                            set pattern = :pattern, reset_policy = :reset, start_value = :start, confirmation_status = :confirmation,
-                               updated_at = now(), version = :next, event_count = :eventSequence
+                               rule_version_number = :ruleVersion, effective_from_date = :effectiveFrom, updated_at = now(), version = :next, event_count = :eventSequence
                          where document_type = :type and version = :version and confirmation_status = :loadedConfirmation
                         """)
                 .param("type", rule.documentType().name())
@@ -84,6 +86,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                 .param("reset", rule.pattern().resetPolicy().name())
                 .param("start", rule.startValue())
                 .param("confirmation", rule.confirmation().name())
+                .param("ruleVersion", rule.ruleVersion().value()).param("effectiveFrom", rule.effectiveFrom())
                 .param("next", rule.versionAfterSave()).param("eventSequence", rule.eventSequenceAfterSave()).param("version", rule.version())
                 .param("loadedConfirmation", rule.loadedConfirmation().name())
                 .update();

@@ -14,6 +14,7 @@ import com.forcitis.one.organization.workforce.events.SyncRunHeld;
 import com.forcitis.one.organization.workforce.events.SyncRunReleased;
 import com.forcitis.one.organization.workforce.events.SyncRunSucceeded;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -126,15 +127,17 @@ public final class SyncRun extends AggregateRoot {
         return releasedByRunId;
     }
 
-    public void succeed(Instant now, RunStats runStats, SnapshotChange change) {
+    /** snapshotDate is the business day on which the source was read; the source gives no earlier date for what changed. */
+    public void succeed(Instant now, RunStats runStats, SnapshotChange change, LocalDate snapshotDate) {
+        Objects.requireNonNull(snapshotDate, "snapshotDate");
         move(SyncRunStatus.SUCCEEDED);
         this.finishedAt = now;
         this.stats = runStats;
         this.heldReason = null;
         record((envelopes, version) -> new SyncRunSucceeded(envelopes.wrap(draft("SyncRunSucceeded", version)), syncRunId));
         if (change.hasContent()) {
-            record((envelopes, version) -> new OrgSnapshotChanged(envelopes.wrap(draft("OrgSnapshotChanged", version)),
-                    change.changedEmployees(), change.separatedEmployees(), change.changedOrgUnits()));
+            record((envelopes, version) -> new OrgSnapshotChanged(envelopes.wrap(draft("OrgSnapshotChanged", version, snapshotDate)),
+                    change.changedEmployees(), change.separatedEmployees(), change.changedOrgUnits(), snapshotDate));
         }
     }
 
@@ -168,7 +171,11 @@ public final class SyncRun extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version) {
+        return draft(eventName, version, null);
+    }
+
+    private EventDraft draft(String eventName, long version, LocalDate businessDate) {
         return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, String.valueOf(syncRunId.value()), version, null,
-                null, new EventSource(SourceSystem.ONE, null), List.of());
+                businessDate, new EventSource(SourceSystem.ONE, null), List.of());
     }
 }
