@@ -93,3 +93,14 @@
 要点：
 - 今天仅有的「期间快照」（风险客户、商机、考勤）由月度作业手工维护，印证 E6。
 - 5 个「同步到 PSA」作业是 A8 → 老 PSA 的数据通道。请 psa-coordinator 与 OA 盘点的 36 处集成点（OA_PROCESS_INVENTORY §5）核对，确认是否已在其中。
+
+## 4. 补充：同步到老 PSA 的作业步骤元数据（psa-coordinator 补派，2026-10-14）
+
+用同一只读通道又执行 2 次，只取作业步骤名、目标库、调度、运行状态，以及步骤正文中引用的库表名；正文不回传。原始结果在仓库外 `bi_09_sqlagent_jobs_meta.tsv`、`bi_10_timesheet_job_refs.tsv`。结论已登记到 `phase1a/A8_ACCESS_REGISTER.md` #28–#32 与 `OA_PROCESS_INVENTORY.md` §5.3 第 37–40 行：
+
+- **成本明细**（每小时）：读 A8 项目档案、付款申请、特殊付款与 BI 视图 `T_FST_PAY`，写老 PSA `psa_pm_pay`，属于权责事实。第 3 步「委外和居间付款申请不结转」是隐含业务规则。
+- **项目档案**（每 30 分钟）：读 A8 七张表与 `T_FST_PROJECT`，写 `psa_pm_project`。
+- **项目预算**（每 10 分钟）：读 A8 项目预算编制与 A8 库内的两个 `T_FST_PSA_BUDGET_WORKS*` 视图，写老 PSA 三张预算表，与 PSA 自己的预算形成双入口。
+- **工时档案**（每小时）：不直读 A8。前 3 步在老 PSA 库内加工；第 4 步用 BI 视图 `T_FST_INVALID_DELIVERY` 回写无效交付工时。作业名与实际不符。
+- **BI 视图处在老 PSA 的权责数据路径上**（`T_FST_PAY`、`T_FST_PROJECT`、`T_FST_INVALID_DELIVERY`）。对 BI_SCOPE §4.3 的补充：在对应阶段（Phase 2、6a、6c / Phase 4）切换前，这些视图不能改为过渡镜像或废弃。
+
