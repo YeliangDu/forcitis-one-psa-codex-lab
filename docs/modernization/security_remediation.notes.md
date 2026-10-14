@@ -1,4 +1,4 @@
-# PSA security remediation — per-hunk notes
+# Legacy-system security remediation — per-hunk notes
 
 Companion to `security_remediation.patch` (shareable) and `~/.modernize/psa/security_remediation.local.patch` (local only, mode 600, holds the credential-removal hunks because their `-` lines contain the raw values).
 
@@ -133,7 +133,7 @@ subject  = the exact string sent as userId (customization-login*) or memberId (a
      }
      ```
      This is a stopgap that needs no code change. Do it now, before the code below ships. The repo copy `scripts/deploy/dev-lan/nginx/psa-pc.conf` drops the same block in the patch.
-   - **SEC-109 (r4):** nginx does not inherit `proxy_set_header` from the `server` level into a `location` that has its own `proxy_set_header` lines, and every PSA location has them. So put the clear line **inside every such `location`** of the 443 server (the only nginx server in front of the gateway in prod; `48088` is the gateway itself, not an nginx server), next to the existing headers:
+   - **SEC-109 (r4):** nginx does not inherit `proxy_set_header` from the `server` level into a `location` that has its own `proxy_set_header` lines, and every legacy-system location has them. So put the clear line **inside every such `location`** of the 443 server (the only nginx server in front of the gateway in prod; `48088` is the gateway itself, not an nginx server), next to the existing headers:
      ```nginx
      location /api/ {                       # and every other location that proxies to the gateway (6 in prod)
          proxy_pass https://127.0.0.1:48088/;   # prod; dev-lan uses http://127.0.0.1:48080/
@@ -214,7 +214,7 @@ nginx, the gateway and the services run on the same host. A request that comes i
 | `yudao-common/.../enums/RpcConstants.java` | Adds the `INTERNAL_TOKEN_HEADER` (`X-PSA-Internal-Token`) and `INTERNAL_TOKEN_PROPERTY` (`system.rpc.internal-token`) constants. |
 | `yudao-common/.../util/rpc/InternalRpcTokenUtils.java` (new) | `matches(expected, supplied)`: `MessageDigest.isEqual` over UTF-8 bytes. It returns false when the expected value is blank, so a missing token fails closed. |
 | `yudao-spring-boot-starter-rpc/.../rpc/config/YudaoRpcAutoConfiguration.java` (new) + `META-INF/spring/...AutoConfiguration.imports` (new) | The rpc starter had no auto-configuration; this adds one. It registers `InternalRpcTokenRequestInterceptor` as a parent-context bean, which every Feign client picks up. When the token is unset it logs ERROR at startup. |
-| `yudao-spring-boot-starter-rpc/.../rpc/core/feign/InternalRpcTokenRequestInterceptor.java` (new) | Sets the token on every Feign request whose path starts with `/rpc-api/`, removing any existing value first. Every PSA Feign client targets `/rpc-api/*`. Third-party Feign clients added later will not get the token. |
+| `yudao-spring-boot-starter-rpc/.../rpc/core/feign/InternalRpcTokenRequestInterceptor.java` (new) | Sets the token on every Feign request whose path starts with `/rpc-api/`, removing any existing value first. Every legacy-system Feign client targets `/rpc-api/*`. Third-party Feign clients added later will not get the token. |
 | `PermissionApiFeignConfiguration` / `OrgSynchronizationSnapshotApiFeignConfiguration` | Remove the header before setting it, so the header is not sent twice next to the global interceptor. |
 | ~~system `InternalRpcTokenFilter` / `InternalRpcTokenConfiguration`~~ **r5: deleted**, replaced by the framework filter below (SEC-111) | (r4) Registered on `/rpc-api/*` in system only. |
 | **r5** security starter `core/filter/InternalRpcTokenFilter.java` (new) + `config/YudaoInternalRpcTokenAutoConfiguration.java` (new) + `AutoConfiguration.imports` | `@ConditionalOnWebApplication(SERVLET)`, so it registers in system, infra, bpm and fst (all four use the security starter; the WebFlux gateway does not). `FilterRegistrationBean` on `/rpc-api/*`, order 0 (**r6, SEC-114:** now `WebFilterOrderEnum.INTERNAL_RPC_TOKEN_FILTER`, before Spring Security), covering all RPC of each service, including System `oauth2/token/create` and `token/check`. Accepts `system.rpc.internal-token` or `system.rpc.internal-token-previous` (constant time). When the current token is unset, every request gets 401 and an ERROR is logged at startup; startup continues. A WARN is logged while `-previous` is set. The Spring Security `permitAll` on each `/rpc-api/**` is unchanged; this filter is the gate. |
@@ -313,7 +313,7 @@ The two-step sequence from the r4 review (set `token=new, previous=old` → roll
 ## SEC-114 (Low): the `/rpc-api` filter ran after Spring Security
 
 ### Problem
-`YudaoInternalRpcTokenAutoConfiguration` (r5) registered the filter with `setOrder(0)`. Spring Boot registers the Spring Security chain as a `DelegatingFilterProxyRegistrationBean` at `spring.security.filter.order`, default `SecurityProperties.DEFAULT_FILTER_ORDER` = -100 (no PSA config overrides it). Servlet filters run in ascending order, so an unsigned `/rpc-api` request first went through the whole Spring Security chain, including the framework `TokenAuthenticationFilter` (which parses `Authorization` and `login-user` and may make a Feign `token/check` call), and through the tenant security filter (-99). Only then did it get 401. `/rpc-api/**` is `permitAll` in Spring Security, so it was still rejected, but work and side effects ran before the gate.
+`YudaoInternalRpcTokenAutoConfiguration` (r5) registered the filter with `setOrder(0)`. Spring Boot registers the Spring Security chain as a `DelegatingFilterProxyRegistrationBean` at `spring.security.filter.order`, default `SecurityProperties.DEFAULT_FILTER_ORDER` = -100 (no legacy-system config overrides it). Servlet filters run in ascending order, so an unsigned `/rpc-api` request first went through the whole Spring Security chain, including the framework `TokenAuthenticationFilter` (which parses `Authorization` and `login-user` and may make a Feign `token/check` call), and through the tenant security filter (-99). Only then did it get 401. `/rpc-api/**` is `permitAll` in Spring Security, so it was still rejected, but work and side effects ran before the gate.
 
 ### Change
 | File | Change |
@@ -397,7 +397,7 @@ Rollback: SEC-108 and SEC-110 are pure code and roll back with the jars. Remove 
 ### Pre-release checks
 1. `curl -sSI https://km.forcitis.com:40380/index.html` and `curl -sS -X POST https://km.forcitis.com:40380/api/services/Org/UserLoginIntegrationByUserLoginName` from the system-server host. Both must complete a TLS handshake with a trusted cert (the JDK 8 truststore).
 2. **Browser-navigated `/login/KM` callers:** in 30 days of gateway logs, list requests to `/admin-api/system/auth/login/KM` and split them by whether an `Authorization` header is present. If you can't see headers, use `Referer`, `Sec-Fetch-Mode: navigate` or `Accept: text/html`. Any navigate or form request is a caller that breaks (401). If such callers exist, hold SEC-002. Instead, change the endpoint to return the jump URL as JSON and set `window.location` in the front-end. That is a contract change.
-3. Neither PSA front-end in this repo calls this endpoint.
+3. Neither legacy-system front-end in this repo calls this endpoint.
 
 ### Ops / tests
 - Rotate the KM integration key anyway (see SEC-006).
