@@ -1,0 +1,91 @@
+package com.forcitis.one.platform.approval;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.kernel.event.EventSource;
+import com.forcitis.one.kernel.event.SourceSystem;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
+import com.forcitis.one.platform.approval.api.ApprovalField;
+import com.forcitis.one.platform.approval.api.ApprovalOutcome;
+import com.forcitis.one.platform.approval.api.ApprovalSummary;
+import com.forcitis.one.platform.approval.api.ContentHash;
+import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.RoundNumber;
+import com.forcitis.one.platform.approval.api.RoutingFlag;
+import com.forcitis.one.platform.approval.events.ApprovalCompleted;
+import com.forcitis.one.platform.approval.events.DocumentSubmittedForApproval;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.modulith.test.EnableScenarios;
+import org.springframework.modulith.test.Scenario;
+
+/** The approval module starts the rounds that document owners ask for; the request is the only way in (I-5). */
+@EnableScenarios
+class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
+
+    @Autowired
+    MeterRegistry meters;
+
+    DocumentSubmittedForApproval request(String key, long initiator, long manager, int round, String flag) {
+        EventEnvelope envelope = new EventEnvelope(UUID.randomUUID(), "platform.approval.DocumentSubmittedForApproval", 1, Instant.now(), "Timesheet", key,
+                round, UUID.randomUUID(), null, ActorType.SYSTEM, "test", LEGAL_ENTITY, LocalDate.now(), new EventSource(SourceSystem.ONE, null),
+                null, List.of());
+        return new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL, document(key), new UserId(initiator), new RoundNumber(round),
+                List.of(new RoutingFlag(flag)), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))),
+                new ContentHash("hash"), new ApprovalSummary("summary of " + key));
+    }
+
+    @Test
+    @DisplayName("D-1a-78 a request the approval cannot route is not retried: the round ends RETURNED to its initiator with the reason, and the next round starts normally")
+    void aRefusedStartEndsAsReturned(Scenario scenario) {
+        long unit = newId();
+        long initiator = newId();
+        long manager = newId();
+        organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
+        String key = newKey("refused");
+
+        scenario.publish(request(key, initiator, manager, 1, "noSuchFlag")).andWaitForEventOfType(ApprovalCompleted.class)
+                .matching(e -> e.document().equals(document(key))).toArriveAndVerify(e -> {
+                    assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
+                    assertThat(e.round()).isEqualTo(new RoundNumber(1));
+                    assertThat(e.initiator()).isEqualTo(new UserId(initiator));
+                    assertThat(e.reason().value()).contains("PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN");
+                });
+
+        assertThat(requestStatus(key)).isEqualTo("RETURNED");
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_tasks where document_key = ?", Integer.class, key)).isZero();
+
+        scenario.publish(request(key, initiator, manager, 2, "projectHours")).andWaitForEventOfType(com.forcitis.one.platform.approval.events.TaskAssigned.class)
+                .matching(e -> e.document().equals(document(key))).toArrive();
+        assertThat(requestStatus(key)).isEqualTo("RUNNING");
+    }
+
+    @Test
+    @DisplayName("a request for a round older than the current one is ignored and counted")
+    void anOlderRoundIsIgnored(Scenario scenario) {
+        long unit = newId();
+        long initiator = newId();
+        long manager = newId();
+        organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
+        String key = newKey("older");
+        start(key, initiator, manager);
+        tx.executeWithoutResult(s -> approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), new UserId(initiator), "again"));
+        start(key, initiator, manager);
+        double before = meters.counter("forcitis.platform.approval.start.ignored").count();
+
+        scenario.publish(request(key, initiator, manager, 1, "projectHours")).andWaitForStateChange(
+                () -> meters.counter("forcitis.platform.approval.start.ignored").count() > before ? Boolean.TRUE : null);
+
+        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_key = ?", Integer.class, key))
+                .isEqualTo(2);
+    }
+}

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.events.TimesheetApproved;
@@ -23,7 +24,11 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.platform.approval.api.ApprovalField;
+import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
+import com.forcitis.one.platform.approval.api.RoutingFlag;
+import com.forcitis.one.platform.approval.events.DocumentSubmittedForApproval;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -122,28 +127,40 @@ class TimesheetStateMachineTest {
     }
 
     @Test
-    @DisplayName("H-1 RULE-295 submitting records one TimesheetSubmitted that carries everything the approval needs: employee, project manager, round, routing, hash, summary; the numbering aggregate is named as touched together")
-    void submittingPublishesWhatTheApprovalNeeds() {
+    @DisplayName("H-1 RULE-295 submitting records the fact TimesheetSubmitted and, separately, DocumentSubmittedForApproval with everything the approval needs; the numbering aggregate is named as touched together")
+    void submittingPublishesTheFactAndTheRequest() {
         Timesheet timesheet = drafted();
         timesheet.submit(OWNER, TODAY);
 
         List<DomainEvent> events = timesheet.drainEvents(ENVELOPES);
 
-        assertThat(events).singleElement().isInstanceOfSatisfying(TimesheetSubmitted.class, submitted -> {
+        assertThat(events).hasSize(2);
+        assertThat(events.get(0)).isInstanceOfSatisfying(TimesheetSubmitted.class, submitted -> {
             assertThat(submitted.document().documentId().value()).isEqualTo("7");
             assertThat(submitted.number()).isEqualTo(new DocumentNumber("TS-ABC-202610-0007"));
             assertThat(submitted.employee()).isEqualTo(OWNER);
             assertThat(submitted.projectManager()).isEqualTo(new UserId(40));
             assertThat(submitted.round()).isEqualTo(new RoundNumber(1));
             assertThat(submitted.submittedOn()).isEqualTo(TODAY);
-            assertThat(submitted.routingFlags()).containsExactly(TimesheetRoutingFlag.PROJECT_HOURS);
-            assertThat(submitted.contentHash()).isEqualTo(timesheet.contentHash());
-            assertThat(submitted.summary().value()).contains("TS-ABC-202610-0007").contains("2026-10-13");
             assertThat(submitted.envelope().businessDate()).as("the business date of the fact is the work date").isEqualTo(WORK_DATE);
             assertThat(submitted.envelope().legalEntityId()).isEqualTo(new LegalEntityId(1));
             assertThat(submitted.envelope().aggregateVersion()).isEqualTo(1);
             assertThat(submitted.envelope().relatedAggregates()).as("DDD-1 the counter that took the number in the same transaction")
                     .containsExactly(new AggregateReference("NumberingRule", "TIMESHEET"));
+        });
+        assertThat(events.get(1)).isInstanceOfSatisfying(DocumentSubmittedForApproval.class, requested -> {
+            assertThat(requested.envelope().eventType()).isEqualTo("platform.approval.DocumentSubmittedForApproval");
+            assertThat(requested.envelope().aggregateType()).isEqualTo("Timesheet");
+            assertThat(requested.envelope().aggregateVersion()).isEqualTo(2);
+            assertThat(requested.processKey()).isEqualTo(ProcessKey.COST_TIMESHEET_APPROVAL);
+            assertThat(requested.document()).isEqualTo(timesheet.document());
+            assertThat(requested.initiator()).isEqualTo(OWNER);
+            assertThat(requested.round()).isEqualTo(new RoundNumber(1));
+            assertThat(requested.routingFlags()).containsExactly(new RoutingFlag(TimesheetRoutingFlag.PROJECT_HOURS.flagName()));
+            assertThat(requested.formFields()).containsExactly(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of("40")));
+            assertThat(requested.contentHash()).isEqualTo(timesheet.contentHash());
+            assertThat(requested.summary().value()).contains("TS-ABC-202610-0007").contains("2026-10-13");
+            assertThat(requested.envelope().legalEntityId()).isEqualTo(new LegalEntityId(1));
         });
     }
 
@@ -159,16 +176,18 @@ class TimesheetStateMachineTest {
         List<DomainEvent> events = timesheet.drainEvents(ENVELOPES);
 
         assertThat(events).extracting(e -> e.envelope().eventType()).containsExactly("cost.timesheet.TimesheetSubmitted",
-                "cost.timesheet.TimesheetReturned", "cost.timesheet.TimesheetSubmitted", "cost.timesheet.TimesheetApproved");
-        assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(5L, 6L, 7L, 8L);
+                "platform.approval.DocumentSubmittedForApproval", "cost.timesheet.TimesheetReturned", "cost.timesheet.TimesheetSubmitted",
+                "platform.approval.DocumentSubmittedForApproval", "cost.timesheet.TimesheetApproved");
+        assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(5L, 6L, 7L, 8L, 9L, 10L);
         assertThat(events).extracting(e -> e.envelope().businessDate()).containsOnly(WORK_DATE);
         assertThat(events).extracting(e -> e.envelope().legalEntityId()).containsOnly(new LegalEntityId(1));
         assertThat(events).extracting(e -> e.envelope().aggregateId()).containsOnly("7");
         assertThat(((TimesheetSubmitted) events.get(0)).round()).isEqualTo(new RoundNumber(3));
-        assertThat(events.get(1)).isInstanceOf(TimesheetReturned.class);
-        assertThat(((TimesheetApproved) events.get(3)).submittedHours()).isEqualTo(Hours.of("8"));
+        assertThat(((DocumentSubmittedForApproval) events.get(1)).round()).isEqualTo(new RoundNumber(3));
+        assertThat(events.get(2)).isInstanceOf(TimesheetReturned.class);
+        assertThat(((TimesheetApproved) events.get(5)).submittedHours()).isEqualTo(Hours.of("8"));
         assertThat(timesheet.version()).as("one save, one version step, however many events").isEqualTo(7);
-        assertThat(timesheet.eventSequence()).isEqualTo(8);
+        assertThat(timesheet.eventSequence()).isEqualTo(10);
     }
 
     @Test

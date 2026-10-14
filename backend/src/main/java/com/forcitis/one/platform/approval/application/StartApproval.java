@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.approval.application;
 
-import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -11,7 +10,6 @@ import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import com.forcitis.one.platform.approval.domain.InstanceStart;
-import com.forcitis.one.platform.approval.domain.Moment;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -74,25 +72,16 @@ public class StartApproval {
         }
         requireKnownRoute(request);
 
-        ApprovalInstanceId instanceId = new ApprovalInstanceId(Uuids.timeOrdered(time.clock()).toString());
-        Moment now = time.moment();
-        ApprovalRequest aggregate;
-        if (existing.isPresent()) {
-            aggregate = existing.get();
-            aggregate.restart(request.initiator(), instanceId, request.summary(), request.trigger(), now);
-        } else {
-            aggregate = ApprovalRequest.begin(request.processKey(), request.document(), request.legalEntityId(), request.initiator(),
-                    instanceId, request.summary(), request.trigger(), now);
-        }
+        ApprovalRequest aggregate = approvals.openRound(request, existing);
         try (TaskRegistrar.Scope scope = registrar.open(aggregate)) {
-            engine.startInstance(new InstanceStart(instanceId, request.processKey(), request.document(), request.legalEntityId(),
+            engine.startInstance(new InstanceStart(aggregate.instanceId(), request.processKey(), request.document(), request.legalEntityId(),
                     request.initiator(), request.contentHash(), variablesOf(request)));
         }
-        if (!engine.isRunning(instanceId)) {
+        if (!engine.isRunning(aggregate.instanceId())) {
             aggregate.approve(time.moment());
         }
         approvals.save(aggregate);
-        return instanceId;
+        return aggregate.instanceId();
     }
 
     private void requireKnownRoute(ApprovalStartRequest request) {

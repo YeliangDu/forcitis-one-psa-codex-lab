@@ -518,7 +518,22 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__cost_timesheet_project_manager_unknown
+  zh: 项目经理不在职
+  en: CostTimesheetProjectManagerUnknown
+  snake: cost_timesheet_project_manager_unknown
+  kind: error_code
+  bc: cost.timesheet
+  definition: 提交工时单时指定的项目经理不是在职员工，审批没有人可以处理（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
+- ignored
 - auto
 - customize
 - history

@@ -11,6 +11,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.EmployeeLegalEntities;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
@@ -73,8 +74,10 @@ public class SubmitTimesheet {
                 requireRoundStillRunning(timesheet);
                 return view(timesheet, false);
             }
+            requireEmployed(command.projectManager());
             timesheet.revise(employee, command.workDate(), command.hours(), command.projectManager());
         } else {
+            requireEmployed(command.projectManager());
             OrgUnitId orgUnit = org.findEmployee(employee).map(profile -> profile.orgUnitId()).orElseThrow(
                     () -> TimesheetError.COST_TIMESHEET_EMPLOYEE_UNKNOWN.refusal("User " + employee.value() + " is not in the organisation"));
             LegalEntityId legalEntity = legalEntities.on(employee, command.workDate());
@@ -87,6 +90,14 @@ public class SubmitTimesheet {
         repository.save(timesheet);
         events.publish(timesheet);
         return view(timesheet, false);
+    }
+
+    private void requireEmployed(UserId projectManager) {
+        boolean employed = org.findEmployee(projectManager).filter(profile -> profile.employmentStatus() == EmploymentStatus.EMPLOYED).isPresent();
+        if (!employed) {
+            throw TimesheetError.COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN.refusal("User " + projectManager.value()
+                    + " is not an employed member of the organisation, so cannot review the timesheet");
+        }
     }
 
     private void requireRoundStillRunning(Timesheet timesheet) {

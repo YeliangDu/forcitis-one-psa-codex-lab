@@ -9,6 +9,11 @@ import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
+import com.forcitis.one.platform.approval.api.ApprovalField;
+import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.RoutingFlag;
+import com.forcitis.one.platform.approval.events.DocumentSubmittedForApproval;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.kernel.AccountingPeriod;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DocumentId;
@@ -53,8 +58,6 @@ public final class Timesheet extends AggregateRoot {
             .allow(TimesheetStatus.SUBMITTED, TimesheetStatus.APPROVED, TimesheetStatus.REJECTED, TimesheetStatus.RETURNED,
                     TimesheetStatus.DRAFT)
             .build();
-
-    private static final String EVENT_PREFIX = "cost.timesheet.";
 
     private final TimesheetId timesheetId;
     private final DocumentNumber number;
@@ -134,35 +137,40 @@ public final class Timesheet extends AggregateRoot {
         List<TimesheetRoutingFlag> flags = List.of(TimesheetRoutingFlag.PROJECT_HOURS);
         ContentHash hash = contentHash();
         ApprovalSummary summary = new ApprovalSummary(number.value() + " " + workDate + " " + submittedHours.value().toPlainString() + "h");
-        record("TimesheetSubmitted", envelope -> new TimesheetSubmitted(envelope, at.document(), number, at.employee(), projectManager,
-                at.submittedHours(), at.submittedOn(), new RoundNumber(at.round()), flags, hash, summary));
+        record("cost.timesheet.TimesheetSubmitted", envelope -> new TimesheetSubmitted(envelope, at.document(), number, at.employee(),
+                projectManager, at.submittedHours(), at.submittedOn(), new RoundNumber(at.round())));
+        List<RoutingFlag> routing = flags.stream().map(flag -> new RoutingFlag(flag.flagName())).toList();
+        List<ApprovalField> fields = List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
+                List.of(String.valueOf(projectManager.value()))));
+        record("platform.approval.DocumentSubmittedForApproval", envelope -> new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL,
+                at.document(), at.employee(), new RoundNumber(at.round()), routing, fields, hash, summary));
     }
 
     public void approve() {
         status = MACHINE.require(status, TimesheetStatus.APPROVED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("TimesheetApproved", envelope -> new TimesheetApproved(envelope, at.document(), at.employee(),
+        record("cost.timesheet.TimesheetApproved", envelope -> new TimesheetApproved(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round())));
     }
 
     public void reject(Reason reason) {
         status = MACHINE.require(status, TimesheetStatus.REJECTED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("TimesheetRejected", envelope -> new TimesheetRejected(envelope, at.document(), at.employee(),
+        record("cost.timesheet.TimesheetRejected", envelope -> new TimesheetRejected(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 
     public void returnForRevision(Reason reason) {
         status = MACHINE.require(status, TimesheetStatus.RETURNED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("TimesheetReturned", envelope -> new TimesheetReturned(envelope, at.document(), at.employee(),
+        record("cost.timesheet.TimesheetReturned", envelope -> new TimesheetReturned(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 
     public void cancelSubmission(Reason reason) {
         status = MACHINE.require(status, TimesheetStatus.DRAFT, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("TimesheetCancelled", envelope -> new TimesheetCancelled(envelope, at.document(), at.employee(),
+        record("cost.timesheet.TimesheetCancelled", envelope -> new TimesheetCancelled(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 
@@ -198,8 +206,8 @@ public final class Timesheet extends AggregateRoot {
         }
     }
 
-    private void record(String eventName, Function<EventEnvelope, DomainEvent> assemble) {
-        record((envelopes, sequence) -> assemble.apply(envelopes.wrap(new EventDraft(EVENT_PREFIX + eventName, 1, "Timesheet",
+    private void record(String eventType, Function<EventEnvelope, DomainEvent> assemble) {
+        record((envelopes, sequence) -> assemble.apply(envelopes.wrap(new EventDraft(eventType, 1, "Timesheet",
                 String.valueOf(timesheetId.value()), sequence, legalEntityId, workDate, new EventSource(SourceSystem.ONE, null),
                 touchedTogether))));
     }

@@ -248,7 +248,7 @@ public abstract class ApprovalIntegrationSupport {
     /** If-Match for a task action sent over HTTP: the version of the task's request as it is now, or 1 for a task nobody knows. */
     protected org.springframework.test.web.servlet.request.RequestPostProcessor currentEtag() {
         return request -> {
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("/approval-tasks/([^/:]+):(claim|release|decide|return|transfer)$")
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("/approval-tasks/([^/:]+):(claim|release|decide|return|transfer|reassign)$")
                     .matcher(request.getRequestURI());
             if (m.find() && request.getHeader("If-Match") == null) {
                 List<Long> versions = jdbc.queryForList("select r.version from platform_approval.approval_requests r join platform_approval.approval_tasks t"

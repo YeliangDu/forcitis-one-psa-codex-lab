@@ -3,7 +3,7 @@ components:
     TimesheetSubmitted:
       name: TimesheetSubmitted
       title: 工时单提交审批（进入新一轮）
-      description: 工时单提交审批，进入新一轮；过程里程碑，不过账。审批由本事件异步发起（H-1）：cost.timesheet 的监听器据此调用审批端口，一个事务只改一个聚合。事件带齐发起审批所需的全部信息。工时单事件的 businessDate 一律取工作日期（work_date）；提交日在 submittedOn。
+      description: 工时单提交审批，进入新一轮；过程里程碑，不过账。请审批模块发起这一轮审批的是另一个事件 DocumentSubmittedForApproval（H-1），本事件只陈述事实：一个事务只改一个聚合，两者由同一次提交记录。工时单事件的 businessDate 一律取工作日期（work_date）；提交日在 submittedOn。
       payload:
         type: object
         properties:
@@ -61,29 +61,6 @@ components:
             type: string
             format: date
             description: 提交日：员工提交审批的业务日期；与工作日期是两件事
-          routingFlags:
-            type: array
-            items:
-              type: string
-              enum:
-              - PROJECT_HOURS
-              - PRE_SALES_HOURS
-              - OVERHEAD_HOURS
-            description: 审批路由标记，业务模块算好，流程只读
-          contentHash:
-            type: object
-            properties:
-              value:
-                type: string
-            x-type: ContentHash
-            description: 提交内容的摘要：同一审批人同一节点内容未变则自动通过
-          summary:
-            type: object
-            properties:
-              value:
-                type: string
-            x-type: ApprovalSummary
-            description: 业务摘要，审批卡片显示它
       x-event:
         eventType: cost.timesheet.TimesheetSubmitted
         version: 1
@@ -93,12 +70,12 @@ components:
         publisher: cost.timesheet
         consumers:
         - platform.audit
-        - cost.timesheet
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 工作日期（work_date）
         audit: audited
         publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时提交时效统计将订阅；现在就发布，是因为提交的时刻只在发生当时可记录，事后补不回
         relatedAggregates: 首次提交同事务取号时列出 NumberingRule（登记在 architecture/multi-aggregate-exceptions.txt）
     TimesheetApproved:
       name: TimesheetApproved

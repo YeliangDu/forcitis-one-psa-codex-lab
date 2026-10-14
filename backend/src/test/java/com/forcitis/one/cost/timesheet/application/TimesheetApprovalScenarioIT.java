@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
+import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.cost.timesheet.events.TimesheetApproved;
 import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
@@ -25,6 +26,8 @@ import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.approval.ApprovalIntegrationSupport;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
+import com.forcitis.one.platform.approval.events.DocumentSubmittedForApproval;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
@@ -88,10 +91,16 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     DecideTasks decideTasks;
 
     @Autowired
+    com.forcitis.one.platform.approval.application.ListInbox listInbox;
+
+    @Autowired
     ApplyApprovalResult applyApprovalResult;
 
     @Autowired
-    StartApprovalOnSubmission startApprovalOnSubmission;
+    com.forcitis.one.platform.approval.api.ApprovalProcesses approvalProcesses;
+
+    @Autowired
+    TimesheetRepository timesheetRepository;
 
     @Autowired
     io.micrometer.core.instrument.MeterRegistry meters;
@@ -155,10 +164,15 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalTaskId taskOf(TimesheetId id) {
-        return new ApprovalTaskId(taskService.createTaskQuery().processInstanceBusinessKey("TIMESHEET:" + id.value()).singleResult().getId());
+        return new ApprovalTaskId(inboxOf(id).getFirst().taskId());
     }
 
-    static void domainError(Throwable thrown, TimesheetError expected) {
+    List<com.forcitis.one.platform.approval.application.InboxItem> inboxOf(TimesheetId id) {
+        return listInbox.execute(new UserId(manager)).items().stream()
+                .filter(item -> item.documentId().filter(String.valueOf(id.value())::equals).isPresent()).toList();
+    }
+
+    static void domainError(Throwable thrown, com.forcitis.one.kernel.ErrorCode expected) {
         assertThat(thrown).isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(expected));
     }
 
@@ -193,7 +207,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
                     assertThat(e.round()).isEqualTo(new RoundNumber(1));
                     assertThat(e.employee()).isEqualTo(new UserId(employee));
                     assertThat(e.submittedHours()).isEqualTo(Hours.of("8"));
-                    assertThat(e.envelope().aggregateVersion()).as("submitted = 1, approved = 2").isEqualTo(2);
+                    assertThat(e.envelope().aggregateVersion()).as("submitted = 1, approval requested = 2, approved = 3").isEqualTo(3);
                     assertThat(e.envelope().eventType()).isEqualTo("cost.timesheet.TimesheetApproved");
                     assertThat(e.envelope().actorType()).as("the result is applied by the listener, not by a person").isEqualTo(ActorType.SYSTEM);
                 });
@@ -205,23 +219,20 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("D-1a-78 the approval starts once per (document, round): the submitted event delivered again starts nothing new")
+    @DisplayName("D-1a-78 the approval starts once per (document, round): the request delivered again starts nothing new")
     void redeliveredSubmissionStartsNothingNew(Scenario scenario, PublishedEvents published) {
         TimesheetId id = newTimesheet();
         DocumentReference document = documentOf(id);
         submitAndAwaitApproval(scenario, id, "3");
-        TimesheetSubmitted event = published.ofType(TimesheetSubmitted.class).matching(e -> e.document().equals(document)).iterator().next();
-        String instance = jdbc.queryForObject("select current_instance_id from platform_approval.approval_requests where document_key = ?",
-                String.class, String.valueOf(id.value()));
+        DocumentSubmittedForApproval event = published.ofType(DocumentSubmittedForApproval.class).matching(e -> e.document().equals(document)).iterator().next();
+        ApprovalStartRequest again = new ApprovalStartRequest(event.processKey(), event.document(), event.envelope().legalEntityId(), event.initiator(),
+                event.round(), event.envelope().eventId(), java.util.Set.of("projectHours"), event.formFields(), event.contentHash(), event.summary());
+        tx.executeWithoutResult(s -> approvalProcesses.start(again));
+        tx.executeWithoutResult(s -> approvalProcesses.start(again));
 
-        startApprovalOnSubmission.on(event);
-        startApprovalOnSubmission.on(event);
-
-        assertThat(jdbc.queryForObject("select current_instance_id from platform_approval.approval_requests where document_key = ?", String.class,
-                String.valueOf(id.value()))).isEqualTo(instance);
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class,
-                String.valueOf(id.value()))).isEqualTo(1);
-        assertThat(taskService.createTaskQuery().processInstanceId(instance).count()).isEqualTo(1);
+        assertThat(inboxOf(id)).as("the first start opened one task and the repeats opened nothing").hasSize(1);
+        assertThat(approvalProcesses.progress(ProcessKey.COST_TIMESHEET_APPROVAL, document)).hasValueSatisfying(
+                progress -> assertThat(progress.round()).isEqualTo(new RoundNumber(1)));
     }
 
     @Test
@@ -415,9 +426,50 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         submit(id, "1");
 
         assertThat(jdbc.queryForMap("select version, event_count from cost_timesheet.timesheets where id = ?", id.value()))
-                .containsEntry("version", 1L).containsEntry("event_count", 1L);
+                .containsEntry("version", 1L).containsEntry("event_count", 2L);
         assertThat(jdbc.queryForObject("select submitted_hours from cost_timesheet.timesheets where id = ?", BigDecimal.class, id.value()))
                 .isEqualByComparingTo("1");
+    }
+
+    @Test
+    @DisplayName("an unknown or separated project manager is refused at submit with its own code, and nothing is stored")
+    void unknownProjectManagerIsRefused() {
+        TimesheetId id = newTimesheet();
+        signInAs(employee);
+        long nobody = newId();
+
+        assertThatThrownBy(() -> submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("1"), new UserId(nobody))))
+                .satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN));
+        assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where id = ?", Integer.class, id.value())).isZero();
+    }
+
+    @Test
+    @DisplayName("an employee without a legal entity on the work date cannot submit: the refusal comes from workforce and nothing is stored")
+    void missingLegalEntityIsRefused() {
+        TimesheetId id = newTimesheet();
+        org.mockito.Mockito.when(employeeLegalEntities.on(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenThrow(
+                new DomainException(com.forcitis.one.organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED,
+                        com.forcitis.one.kernel.ErrorKind.UNPROCESSABLE, "none"));
+
+        assertThatThrownBy(() -> submit(id, "1")).satisfies(thrown -> domainError(thrown,
+                com.forcitis.one.organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED));
+        assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where id = ?", Integer.class, id.value())).isZero();
+    }
+
+    @Test
+    @DisplayName("a stale copy of a timesheet cannot be saved over the newer one")
+    void aStaleCopyIsNotSaved() {
+        TimesheetId id = newTimesheet();
+        submit(id, "2");
+        com.forcitis.one.cost.timesheet.domain.Timesheet first = timesheetRepository.find(id).orElseThrow();
+        com.forcitis.one.cost.timesheet.domain.Timesheet stale = timesheetRepository.find(id).orElseThrow();
+        first.cancelSubmission(new Reason("first"));
+        stale.cancelSubmission(new Reason("second"));
+
+        tx.executeWithoutResult(s -> timesheetRepository.save(first));
+
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> timesheetRepository.save(stale)))
+                .satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_CONCURRENT_CHANGE));
     }
 
     @Test
@@ -437,7 +489,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         }
         assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where id = ?", Integer.class, id.value())).isEqualTo(1);
         assertThat(jdbc.queryForMap("select version, event_count from cost_timesheet.timesheets where id = ?", id.value()))
-                .containsEntry("version", 1L).containsEntry("event_count", 1L);
+                .containsEntry("version", 1L).containsEntry("event_count", 2L);
     }
 
     Object submitOnThread(TimesheetId id, CountDownLatch go) throws InterruptedException {

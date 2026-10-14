@@ -2,14 +2,18 @@ package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
+import com.forcitis.one.platform.approval.domain.Moment;
 import com.forcitis.one.platform.approval.domain.TaskView;
+import java.util.Optional;
 import java.util.OptionalLong;
 import org.springframework.stereotype.Component;
 
@@ -43,6 +47,18 @@ class Approvals {
             throw new VersionMismatchException("Approval " + request.aggregateId() + " is at version " + request.version() + ", the caller read "
                     + expected.getAsLong());
         }
+    }
+
+    /** The aggregate of the round a start asks for: a new request, or the existing one opened again. */
+    ApprovalRequest openRound(ApprovalStartRequest request, Optional<ApprovalRequest> existing) {
+        ApprovalInstanceId instanceId = new ApprovalInstanceId(Uuids.timeOrdered(time.clock()).toString());
+        Moment now = time.moment();
+        if (existing.isPresent()) {
+            existing.get().restart(request.initiator(), instanceId, request.summary(), request.trigger(), now);
+            return existing.get();
+        }
+        return ApprovalRequest.begin(request.processKey(), request.document(), request.legalEntityId(), request.initiator(), instanceId,
+                request.summary(), request.trigger(), now);
     }
 
     /** A lost race against another candidate is a refusal (409), not a server error. */
