@@ -94,7 +94,7 @@
 | `seeyon` | 致远 | Seeyon | 致远；组织主数据与单点登录验票的外部系统，由集成模块的防腐层读取 |  |
 | `outbound_delivery` | 外发投递 | OutboundDelivery | 一条待发往外部系统（企业微信）的消息及其发送结果；事务提交后由投递作业发送，失败退避重试，次数用尽进死信 |  |
 | `recipient` | 收件人 | Recipient | 消息的接收人，用企业微信用户 ID 精确指定；不允许按部门、标签或全员投递 |  |
-| `source_reference` | 来源对照 | SourceReference | 外部系统或老系统中对象标识与自有 ID 的对应；只在集成层（ADR-0033 提议） |  |
+| `source_reference` | 来源对照 | SourceReference | 外部系统或老系统中对象标识与自有 ID 的对应；只在集成层；权限码 `platform.integration:source-reference:update`、`:approve`（ADR-0033 提议） |  |
 | `source_system` | 来源系统 | SourceSystem | 来源对照所属的外部系统（ADR-0033 提议） |  |
 | `source_object_kind` | 来源对象类别 | SourceObjectKind | 来源对照所指的自有对象类别（ADR-0033 提议） |  |
 

@@ -69,7 +69,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: ADR-0033（提议）登记，待用语确认
+  note: ADR-0033（提议）登记，待用语确认；权限码 platform.integration:source-reference:update（组织数据管理员）、platform.integration:source-reference:approve（核算组织编码四眼确认，持有人待 U-3），授予方式均为 INDIVIDUAL
 - id: source_system
   zh: 来源系统
   en: SourceSystem
