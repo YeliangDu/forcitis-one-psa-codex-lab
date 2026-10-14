@@ -88,6 +88,7 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 - 初始授权：一次性 ETL，从老库只读导出角色与菜单权限，按映射表转成新 `Permission`；没有对应的不授予（映射表在实施时给用户确认）。
 
 ### 3.3 组织快照
+- **过渡态说明**（用户 2026-10-14：「主数据全部进新系统」「自建整个 hrm」）：1a 的 A8 组织快照是**过渡态**——员工与组织主数据最终归新系统（自建 HRM），届时 A8 不再是组织主数据源；1a 范围不变，快照模型与 `OrgDirectory` 契约按「来源可替换」设计（来源只在 workforce 的 infrastructure 中）。
 - **权责事实边界（GUIDING_PRINCIPLES §9a，用户 2026-10-14：「确保权责业务事实全部在新系统」）**：A8 在新系统中**只**作为组织主数据（部门、人员、岗位、汇报线、负责人）、身份（致远 SSO）的来源。合同、产值 / 收入确认、成本、费用、开票、回款、分包、付款等权责事实不得从 A8 读取或在 A8 存放。A8 只读视图只授权组织表列；workforce 的 A8 ACL 由 ArchUnit 规则限定只能被 `organization.workforce` 使用。老 fst 中其他 `a8_db` 跨库读取（如 `docs/ops/oa-*` 存储过程涉及的报价、产值、开票、奖金）不在新系统中以「直接读 A8」延续，在各自阶段改为新系统自有事实。
 - **§9a 的机器守护**（architecture-critic §9a 专项核对，2026-10-14）：
   - **视图列白名单入库**：`organization/workforce/a8-view-columns.yaml` 列出视图名、列名、来源表与列、分类（组织 / 身份），启动时校验 `INFORMATION_SCHEMA.COLUMNS` 与白名单**完全相等**（不只是「所需列存在」）。DBA 脚本只授予视图 SELECT，对 `a8_db` 基表显式 DENY；A8 账号无 INSERT / UPDATE / EXEC，并由集成测试断言写操作被拒绝。

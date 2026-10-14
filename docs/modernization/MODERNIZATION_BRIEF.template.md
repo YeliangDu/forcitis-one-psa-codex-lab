@@ -55,6 +55,7 @@ C4Container
 |---|---|
 | `yudao-gateway`（gateway:core）、nginx 直连 48080 / 48088 | 删除；nginx → 单体（切换期按路径分流） |
 | `yudao-module-system`（system:*）、fst `service/{sync,dept,user,a8}`、企业微信 / A8 / KM 登录 | `identity` + `org` 模块；`integration-acl`（A8、企业微信、KM） |
+| ↳ Proposed revision:（用户 2026-10-14：「两条都同意 (Recommended)」）按已批准架构（REIMAGINED_ARCHITECTURE §2）：A8 只读视图防腐层归 `organization.workforce`，致远验票归 `platform.identity`，`platform.integration` 只含共用企业微信客户端与出站投递；KM 等外部系统走签名票据（`platform.identity`）。 | |
 | `yudao-module-infra`（infra:*：文件、代码生成、配置、API 日志） | `base` 模块（文件存 OSS、审计日志）；代码生成和表单设计器不迁移 |
 | `yudao-module-bpm`（bpm:*）+ fst workflowhook / workflowform / 审批消费者 + RocketMQ 审批主题 | `platform.approval` 模块（Flowable 8 BPMN + DMN：步骤、条件、行级分路、会签、催办、转交、退回、撤回、截止点）+ 模块内事件 |
 | fst `presales/*`、`controller/admin/{quotation,opportunity}`、`service/customer`、成本模板 / 费率 | `presales` 模块（报价、成本估算树、岗位费率读模型） |
@@ -107,6 +108,7 @@ Risk: 高。
 Entry criteria:
 - [ ] 本 brief 获批（至少覆盖 Phase 1a 和 1b）
 - [ ] SEC-001 至 SEC-006、SEC-107 已在老系统止血（`security_remediation.patch` 已部署，或网络层止血已生效：48088 不再对 0.0.0.0/0 开放、`/other-api/admin-api/system/auth/` 返回 403），且 `~/.modernize/psa/SECRETS.local.md` 中列出的凭据已全部轮换
+  Proposed revision:（用户 2026-10-14：「老系统先不管，确保新系统没有这些缺陷」；SEC-116「仍然完全不处理」）本条不再阻塞 Phase 1a：新系统不信任老系统签发的任何身份，由 `phase1a/SECURITY_INVARIANTS.md` I-1..I-9 及其验收测试保障；老系统缺陷影响的是老系统自身数据，按用户决定暂不处理。
 - [x] 仓库已创建：https://github.com/FORCITIS/forcitis-one-psa（私有，2026-10-14，空仓库）
 - [ ] 骨架已推入 `forcitis-one-psa`，分支保护、CI（verify + 守护 + gitleaks）已配置
 - [ ] 骨架采用 `architecture-guardrails/backend` 和 `frontend`，在 Mac 本机执行 `./mvnw verify` 和 `pnpm verify` 均全绿
@@ -120,6 +122,7 @@ Exit criteria:
 - [ ] one.forcitis.com 上线：用企业微信 OAuth 和致远 SSO 登录都能成功；遍历全部接口的匿名访问测试返回 401
   Proposed revision:（检查点 2，用户 2026-10-14：「两条都按建议修订」）匿名访问测试改为「非 `@PublicEndpoint` 的接口一律返回 401，且 `@PublicEndpoint` 集合等于经 CODEOWNERS 评审的白名单快照」；另加无 CSRF 写操作返回 403，上线前从 nginx 外侧黑盒遍历。
 - [ ] 组织快照与 A8 的对账查询结果为零差异（人员数、部门数、上级关系）
+  Proposed revision:（用户 2026-10-14：「两条都同意 (Recommended)」）追加 §9a 证明项：新系统对 A8 的全部访问 = 视图列白名单（启动时列集合完全相等）+ 致远服务端验票；白名单中没有权责列；不存在写 A8 的路径（DBA 授权只含视图 SELECT，集成测试断言写被拒绝）；`phase1a/A8_ACCESS_REGISTER.md` 中 1a 行状态已更新。
 - [ ] 回放从生产导出的 TIMESHEET 流程实例，`platform.approval` 解析出的审批人序列与老系统一致；每条差异都在 `RULE_REVIEWS.json` 中被接受
 - [ ] 合并待办中，同一用户在新旧系统中的待办数量与老系统一致
 - [ ] 业务编号规则已按统一新格式配置并经管理员确认；老编号作为「原编号」可检索，新旧编号对照可查
