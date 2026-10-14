@@ -1,4 +1,4 @@
-package com.forcitis.one.cost.timesheet.application;
+package com.forcitis.one.scenario;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

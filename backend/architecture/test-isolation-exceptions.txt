@@ -1,9 +1,5 @@
 # A test of one module whose SQL names the schema of another: <path under src/test/java/com/forcitis/one>#<schema>  # why.
 # TestIsolationGuardTest fails for a reference outside this list and for a line here that is no longer needed. Framework tables
 # (Spring Session, Modulith event publication, ShedLock) are not another module's data. Cross-module scenarios belong in scenario/.
-# The entry below belongs to the approval and timesheet work stream and goes when its test stops reading the approval tables (review H-7).
-cost/timesheet/application/EventSequencePersistenceIT.java#platform_approval  # to be removed with the timesheet / approval fix batch
 platform/identity/SyncLockoutGuardIntegrationTest.java#organization_workforce  # the lock-out guard is one scenario across the organisation sync and the identity holds (ADR-0027 section 1 item 7, ADR-0028); it starts from an empty snapshot schema. To move into scenario/ with the authorization work stream
-organization/workforce/legal/LegalEntityAttributionIntegrationTest.java#platform_identity  # the data-scope scenario needs accounts and roles of the identity module next to the organisation snapshot (ADR-0026); to move into scenario/ with the data-scope batch
-organization/workforce/web/WorkforceHttpIntegrationTest.java#platform_identity  # the same data-scope scenario at the HTTP level; to move into scenario/ with the data-scope batch
 platform/identity/OrgUnitScopeIntegrationTest.java#organization_workforce  # the data-scope scenario reads the organisation tree the scope is cut from (ADR-0026); to move into scenario/ with the data-scope batch
