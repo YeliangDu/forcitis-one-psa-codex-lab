@@ -2,7 +2,7 @@
 
 收件人：A8 数据库 DBA、老系统 RDS（SQL Server）DBA（人选见 `DECISIONS_A.md` A-2）。时点：dev 部署前。
 
-**执行状态（2026-10-15，会话 one-ops-1a，经用户授权以 RDS 高权限账号执行）**：A8 部分已完成并校验；老系统部分在 STEP 1 失败（排序规则冲突，未建出任何对象），视图已修正，待复核后重跑。实测要点：
+**执行状态（2026-10-15，经用户授权以 RDS 高权限账号执行）**：A8 部分已完成并校验（one-ops-1a）；老系统部分首次在 STEP 1 失败（排序规则冲突，未建出任何对象），视图修正后由 one-ops 重跑完成：apply 与 verify（云助手 t-hz0701f88r8dedc）全部符合验收标准，在途待办 196、部门 41；两个账号写入 `one.env`（t-hz0701f8mylkpa8，dev 连接按用户决定加 `trustServerCertificate=true`，`A8_DB_URL` 同步）；真实登录（t-hz0701f8s68gikg）两个账号都能读自己的视图，读基表、读人员表、读令牌表、读对方视图、写基表、经视图删除、建表、读 `a8_db` 8 项全部被拒（229 / 4405 / 262 / 916）；两台服务器临时目录与临时密钥已删除。执行工具在 `tools/`（`b5_legacy_run.py` 编排；`OneSql.java` 执行 sqlcmd 风格脚本，`one_time_secret` 列只输出 RSA-OAEP 密文；`set_env.py` 从 stdin 写 `one.env`）。实测要点：
 
 - A8 与老系统库在同一 RDS SQL Server 实例 `rm-bp1690ep53t9778dp`（2016 标准版）上，A8 的 `a8_db` 不在 A8 应用服务器本机；`A8_DB_URL` 指向该实例内网地址。
 - 该实例未开 SSL：模板里的 `encrypt=true`（不带 `trustServerCertificate`）会让应用的证书校验失败，须先决定开 SSL（实例要重启）或 dev 期接受 `trustServerCertificate=true`。

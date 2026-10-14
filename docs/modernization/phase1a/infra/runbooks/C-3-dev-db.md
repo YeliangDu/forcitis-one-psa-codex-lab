@@ -8,6 +8,7 @@
 
 | 改动 | 原因 |
 |---|---|
+| 建库用 `LOCALE_PROVIDER builtin BUILTIN_LOCALE 'C.UTF-8'`（`LC_COLLATE` / `LC_CTYPE` 为 `C`） | 实例操作系统没有 libc 的 `C.UTF-8`（2026-10-15 查 `pg_collation` 只有内置的 `ucs_basic`、`pg_c_utf8`、`pg_unicode_fast`）；PG 18 内置 provider 的 `C.UTF-8` 按码点排序、Unicode 字符分类，不随 glibc 升级变化，比退回 libc `C` 更贴近原意（one-coordinator 认可） |
 | `GRANT CREATE ON DATABASE forcitis_one_dev TO one_dev_owner` | 现有 Flyway 迁移每个模块都有 `CREATE SCHEMA IF NOT EXISTS`；PG 在判断「已存在」之前先检查库级 CREATE 权限，草稿只给了 CONNECT，首次迁移会以「permission denied for database」失败 |
 | `GRANT one_dev_owner TO CURRENT_USER WITH INHERIT FALSE, SET TRUE` | PG 16 起 CREATEROLE 账号建出的角色只得 ADMIN 选项；`CREATE SCHEMA … AUTHORIZATION one_dev_owner` 与 `ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner` 要求执行人能 SET ROLE |
 | `one_dev_app` 加 `work_mem = 16MB`；`one_dev_readonly` 加只读事务、60 s 语句超时、`work_mem = 8MB` | 清单 C-3 与 ADR-0025 第 2 条要求按角色设超时与 work_mem；数值为**建议**，C-1 后按实例规格调整 |
@@ -19,8 +20,8 @@
 
 1. C-1 已完成（或用户明确先在现规格上建 dev 库）；`SHOW max_connections` 已记录。
 2. 连接预算：`one_dev_*` 合计 45（app 40、migrator 2、readonly 3），加上 it_portal 与以后的 `one_prod_*`，合计须小于 `max_connections` 减保留；不满足时先由用户决定下调哪一方。
-3. 排序规则：`SELECT collname FROM pg_collation WHERE collname IN ('C.utf8','C.UTF-8','ucs_basic');` 有 `C.UTF-8` 或 `C.utf8`；没有则把 STEP 1 的 `LC_COLLATE` / `LC_CTYPE` 改为实例支持的 `C`，并回报。
-4. 执行账号是 RDS 高权限账号（本实例唯一的高权限账号是 IT 服务门户的 `portal_migrator`，口令不在任何服务器上，由用户保管）；执行环境可连 RDS 内网地址（ECS 已装发行版 `postgresql` 15 客户端，2026-10-15）。高权限口令只能经用户提供的安全通道到 ECS（例如用 ECS 上临时 RSA 公钥加密后传入），不经聊天、命令行参数或日志。
+3. 排序规则：脚本用 PG 内置 provider 的 `C.UTF-8`（PG 17 起可用），不依赖操作系统 locale；执行前确认 `SELECT collname FROM pg_collation WHERE collprovider = 'b'` 含 `pg_c_utf8`。
+4. 执行账号是 FORCITIS one 专用高权限账号 `one_admin`（用户 2026-10-15「新建 FORCITIS one 专用高权限账号 (Recommended)」「先建后轮换 (Recommended)」；只用于建库建角色，不碰 IT 服务门户的 `portal_migrator` 与 `forcitis_one` 库），口令文件 ECS `/etc/forcitis-one/one-admin.pgpass`（root 0600）；执行环境可连 RDS 内网地址（ECS 已装发行版 `postgresql` 15 客户端，2026-10-15）。高权限口令只能经用户提供的安全通道到 ECS（例如用 ECS 上临时 RSA 公钥加密后传入），不经聊天、命令行参数或日志。
 5. 1a 修复批已合并（status/blockers/080）——**建库可先做，但首次 Flyway 迁移与应用启动须等修复批合并**。
 
 ## 步骤
@@ -34,13 +35,26 @@ STEP 0 / STEP 2 的冲突检查有任何一行返回即停止（`ON_ERROR_STOP` 
 
 设口令（在 ECS 上生成，不经本机与聊天）：`openssl rand` 生成 ≥ 32 位随机口令，在 ECS 上算出 SCRAM-SHA-256 校验值后执行 `ALTER ROLE … PASSWORD 'SCRAM-SHA-256$…'`（服务器与日志只见校验值，不见原文；`psql` 的 `\password` 同理但要交互）。`one_dev_app` 写入 `/etc/forcitis-one/one.env` 的 `SPRING_DATASOURCE_PASSWORD`；`one_dev_migrator` 写入 `/etc/forcitis-one/migrate/spring.flyway.user` 与 `spring.flyway.password`（目录 root 700、文件 root 600，只由安装器的迁移步骤经 `LoadCredential` 读取，见 RELEASE.md §4）；`one_dev_readonly` 存运维密码管理器。
 
-另需（RDS 控制台）：开启 SSL 并下载 CA 证书到 `/etc/forcitis-one/rds-ca.pem`（`0644`），否则 `sslmode=verify-full` 连不上。
+CA 证书：实例 SSL 已开启（阿里云签发，`ApsaraDB cn-hangzhou region CA`）。从阿里云公开的 ApsaraDB CA 链（`https://apsaradb-public.oss-ap-southeast-1.aliyuncs.com/ApsaraDB-CA-Chain.zip`）只取 `ApsaraDB cn-hangzhou region CA` 与 `ApsaraDB Root CA` 两类证书，写入 `/etc/forcitis-one/rds-ca.pem`（root:forcitis 0640）；`one.env` 用 `sslmode=verify-full&sslrootcert=/etc/forcitis-one/rds-ca.pem`。
+
+> **注意：不得调用会返回密钥的接口。** `rds DescribeDBInstanceSSL` 的返回含实例证书的私钥（`ServerKey`）；查 SSL 状态用控制台，或在进程内只取 `SSLEnabled`、`CAType`、`SSLExpireTime` 等字段，不打印原始返回。2026-10-15 曾因直接打印而使私钥进入会话记录（见下方执行记录）。
 
 ## 校验
 
 `c3_dev_db_verify.sql` 各项符合注释中的期望；V8 在首次迁移与 Flowable 安装之后再跑一次：全部表属主 `one_dev_owner`，`act_*` 表全部在 `platform_approval`。
 
 > 风险（须在首次部署时验证）：Flowable 安装运行用 `one_dev_migrator`，其 `search_path` 是 `one_migration`；Flowable 的建表语句不带 schema，`ACT_*` 可能建进 `one_migration`。安装那一次的连接串加 `&currentSchema=platform_approval`，并以 V8 第二个查询核对。
+
+## 执行记录（2026-10-15，one-ops）
+
+| 项 | 结果 |
+|---|---|
+| `one_admin` | 用户决定「先建后轮换」：口令在运维机进程内存中随机生成，同一进程用阿里云 SDK 调 `CreateAccount`（Super），经云助手 SendFile（f-hz0701colwwbzsw）写 ECS `/etc/forcitis-one/one-admin.pgpass`（root 0600），口令不进命令行参数、环境变量、日志与磁盘。登录验证：`rolcreaterole`、`rolcreatedb` 为真。**待办**：R-4 实例 RAM 角色就绪后在 ECS 上生成新口令并重置（DEV_DEPLOY_REMAINING 1-12） |
+| STEP 0 | 4 项冲突检查全为空；`max_connections` 1620 |
+| 建库与授权 | `c3_dev_db.sql` 退出码 0；`c3_dev_db_verify.sql`：4 个角色、10 个 schema 属主 `one_dev_owner`、默认权限 18 项、连接上限合计 45、无外来属主（云助手 t-hz0701ctw0hn3eo） |
+| 口令 | `scripts/c3_set_role_passwords.py dev <RDS 内网地址>`（t-hz0701cxo2kjbpc）：在 ECS 上生成，数据库只收到 SCRAM-SHA-256 校验值；app → `one.env`，migrator → `/etc/forcitis-one/migrate/spring.flyway.{user,password}`，readonly → `/etc/forcitis-one/one-dev-readonly.pgpass`；三个角色真实登录，readonly 确认只读 |
+| verify-full | 三个角色与 `one_admin` 均以 `sslmode=verify-full` 连通（TLS 1.3，t-hz0701ffbczsglc）；改用 IP 连接时证书校验失败，主机名校验生效 |
+| 安全事件 | 查 SSL 状态时直接打印了 `DescribeDBInstanceSSL` 的返回，实例证书私钥进入会话记录。影响：须能截获 VPC 内网流量才可利用。处置：用户决定「和生产前维护一并做」——生产前维护窗口重签证书（必要时重启，与 IT 门户协调）；已加「不得调用会返回密钥的接口」注意事项 |
 
 ## 回滚
 

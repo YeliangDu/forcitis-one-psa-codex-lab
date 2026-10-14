@@ -46,6 +46,29 @@
 | 保留 | 角色：到用户对差异报告逐项决定完、1a 生产切换完成；回放：到 D-3 验收（1a 出口）；日历：到生产导入核对通过。三类最迟都在 **1a 生产切换后 30 天**删除 |
 | 删除 | `rm -rf /data/forcitis-one/import/c6/<YYYYMMDD>/`；删除时间写入会话日志，one-coordinator 台账里销项 |
 
+## 执行记录（2026-10-15，one-ops）
+
+工具：`scripts/LegacyReadOnlyProbe.java`（只读连接、READ COMMITTED、只许 SELECT、每次最多 3,000 行）、`scripts/legacy_probe_run.sh`（老系统服务器上取驱动与主数据源、运行探针、结束删除工作目录）、`scripts/c6_relay.py`（运维机上的中转：分页查询、内存拼装、SendFile 分块写新 ECS 并核对 SHA256）、`sql/c6_step0_counts.sql`。执行账号即老系统应用的主数据源账号（实例上有建登录等权限，非 sysadmin）；只读由探针保证。
+
+| 步骤 | 结果 |
+|---|---|
+| 0 计数（t-hz0701buw7j7fnk，READ UNCOMMITTED，只计数） | 角色 38、持有关系 1,359、菜单权限 1,386；日历 2016–2026 共 4,018 天、无重复；TIMESHEET 当前定义版本 v15；v15 已办结 2026-09 1,573 个、2026-10 1,827 个，未办结 147 个 |
+| 样本（one-coordinator 确认） | v15 已办结（审批通过）实例，9 月、10 月各 250 个按结束时间均匀抽取；未办结 147 个不纳入（没有完整审批人序列） |
+| 角色与日历（READ COMMITTED） | `legacy-roles.json`（SHA256 329cdb09f1fa5d8d0601a661519c11d1f0045a904f758ac547ed24f29352bccc）、`legacy-calendar.csv`（14ad4d12e0d0b1a839c974d8602d9adc22b5fa147ca3e3605d41fd939be45c43）、`manifest-roles-calendar.json`；与 0 计数对账全部一致 |
+| 回放（READ COMMITTED） | `timesheet-export.json`（SHA256 0d505904dfb72b7a5d8544006f105c5975e2a6e05038ee3ab171a0e9d78d42a9）、`manifest-replay.json`（b673202567f676b547df5c7162b642e6db7e4fc2dad01b0fefca78d057f7064e）：样本 500 / 500，全部取到工时行类型，表单字段解码失败 0，审批节点 561 个；快照人员 1,258、部门 367。导出时 10 月已办结增至 1,828 个（多 1 个），不影响样本规则 |
+| 存放 | 新 ECS `/data/forcitis-one/import/c6/20261015/`（root 0700，文件 root 0600）；运维机不落盘 |
+
+回放导出的口径与局限（写入 `manifest-replay.json`，回放报告须引用）：
+- 工时行类型取自流程变量 `manHourType`（老流程网关当时判断分支用的值，Java 序列化的整数列表，在中转进程内解码）；修订表 `psa_time_sheet_revision` 只有 851 行，覆盖不了样本，不用。
+- 表单字段：项目经理取 `manager_id`、区域负责人取 `area_leader`（Java 序列化的字符串列表）。
+- 实际办理人：`bpm_task_ext` 中三个审批节点结果为通过 / 不通过的任务的办理人；发起人节点不回放（M3）。
+- 组织快照为导出当天的人员与部门（老表无历史），由此产生的差异归 `REVIEWED_*` 类。
+- `processAdministratorUserId` 为回放专用替身 `-1`（流程管理员 A-4 未定），使「取不到人转流程管理员」路径可比对；不是真人，不进任何运行配置。
+- `legacyFallbackUserIds` 为老代码中写死的兜底人 ID（RULE-254，用户已判「去掉写死兜底，取不到人转流程管理员」），只取 ID。
+- 云助手会在阿里云侧保留调用输出一段时间（压缩后的页数据，含人员 ID），这是该通道的固有特性。
+
+回放的运行：在新 ECS 上以 root 运行 `TimesheetApproverReplayCommand`，输入 `/data/forcitis-one/import/c6/20261015/timesheet-export.json`，输出到同目录 `replay-out/`。需要含该命令的构建产物（发布包或同版本的类与依赖）和 Java 25（已装）；首个发布包就绪后执行。
+
 ## 校验
 
 - 三类导出的计数与源一致，执行记录写明执行人、时间、行数、文件 SHA256（不写内容）。
