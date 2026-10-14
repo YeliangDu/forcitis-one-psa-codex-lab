@@ -22,9 +22,11 @@ public class GetCurrentUserProfile {
     private final OrgDirectory directory;
     private final AccountRepository accounts;
     private final NavigationRepository navigation;
+    private final SessionRegistry sessions;
 
     GetCurrentUserProfile(CurrentUser currentUser, OrgDirectory directory, AccountRepository accounts,
-            NavigationRepository navigation) {
+            NavigationRepository navigation, SessionRegistry sessions) {
+        this.sessions = sessions;
         this.currentUser = currentUser;
         this.directory = directory;
         this.accounts = accounts;
@@ -41,7 +43,7 @@ public class GetCurrentUserProfile {
                 .stream().map(GetCurrentUserProfile::entry).toList();
         return new CurrentUserView(userId.value(), employee.map(EmployeeProfile::name).orElse(""),
                 employee.map(e -> e.orgUnitId().value()).orElse(null), unit.map(OrgUnitProfile::name).orElse(""),
-                profile.permissionCodes().stream().sorted().toList(), menu);
+                profile.permissionCodes().stream().sorted().toList(), menu, sessions.identityConfirmed());
     }
 
     private static NavigationEntry entry(NavigationNode node) {

@@ -30,6 +30,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Component
 class ServletSessionRegistry implements SessionRegistry {
 
+    static final String CONFIRMED_ATTRIBUTE = "identityConfirmed";
+
     private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
     private final SessionSettings settings;
     private final Clock clock;
@@ -60,8 +62,23 @@ class ServletSessionRegistry implements SessionRegistry {
         SecurityContextHolder.setContext(context);
         contextRepository.saveContext(context, request, response);
         session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, String.valueOf(userId.value()));
+        session.setAttribute(CONFIRMED_ATTRIBUTE, !method.requiresIdentityConfirmation());
         session.setMaxInactiveInterval((int) settings.idleTimeout().toSeconds());
         return now.plus(settings.absoluteTimeout());
+    }
+
+    @Override
+    public boolean identityConfirmed() {
+        HttpSession session = currentRequest().getRequest().getSession(false);
+        return session != null && !Boolean.FALSE.equals(session.getAttribute(CONFIRMED_ATTRIBUTE));
+    }
+
+    @Override
+    public void confirmIdentity() {
+        HttpSession session = currentRequest().getRequest().getSession(false);
+        if (session != null) {
+            session.setAttribute(CONFIRMED_ATTRIBUTE, true);
+        }
     }
 
     @Override

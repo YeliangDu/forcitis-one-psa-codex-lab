@@ -59,7 +59,7 @@ class LoginAdmission {
                 describe(method, null)).withTrace(origin.address(), AuditResult.SUCCESS));
         Instant absoluteExpiresAt = sessions.start(userId, method);
         meters.counter("forcitis.platform.identity.login", "method", method.name(), "outcome", "success").increment();
-        return new LoginResult.Authenticated(userId.value(), absoluteExpiresAt);
+        return new LoginResult.Authenticated(userId.value(), absoluteExpiresAt, method.requiresIdentityConfirmation());
     }
 
     /** reason is for the audit trail only; it never reaches the caller. */

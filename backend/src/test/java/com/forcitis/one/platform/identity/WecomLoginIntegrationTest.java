@@ -232,6 +232,10 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(jdbc.sql("select count(*) from platform_identity.login_states where binding_hash = :b").param("b", binding)
                 .query(Long.class).single()).as("no clear-text binding in the database").isZero();
         assertThat(body(issued).toString()).as("the binding never travels in the body").doesNotContain(binding);
+        knownEmployee(1001, EmploymentStatus.EMPLOYED);
+        wecomAccepts("c9", WecomEntry.WORKBENCH, 1001);
+        assertThat(body(login("c9", newState("WORKBENCH"), "WORKBENCH")).path("identityConfirmationRequired").asBoolean())
+                .as("a WeCom login proves the person itself: nothing to confirm").isFalse();
     }
 
     @Test

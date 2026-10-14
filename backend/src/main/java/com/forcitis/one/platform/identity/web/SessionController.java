@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.application.BeginWecomLogin;
 import com.forcitis.one.platform.identity.application.ClientOrigin;
+import com.forcitis.one.platform.identity.application.ConfirmIdentity;
 import com.forcitis.one.platform.identity.application.LoginStateIssue;
 import com.forcitis.one.platform.identity.application.LoginThrottle;
 import com.forcitis.one.platform.identity.application.SessionSettings;
@@ -40,6 +41,7 @@ class SessionController {
     private final LoginWithSignedTicket loginWithSignedTicket;
     private final LoginAsEmergencyAdmin loginAsEmergencyAdmin;
     private final Logout logout;
+    private final ConfirmIdentity confirmIdentity;
     private final GetCurrentUserProfile getCurrentUserProfile;
     private final SsoSettings ssoSettings;
     private final LoginThrottle throttle;
@@ -47,7 +49,7 @@ class SessionController {
     private final SessionSettings sessionSettings;
 
     SessionController(BeginWecomLogin beginWecomLogin, LoginWithWecom loginWithWecom, LoginWithSso loginWithSso,
-            LoginWithSignedTicket loginWithSignedTicket, LoginAsEmergencyAdmin loginAsEmergencyAdmin, Logout logout,
+            LoginWithSignedTicket loginWithSignedTicket, LoginAsEmergencyAdmin loginAsEmergencyAdmin, Logout logout, ConfirmIdentity confirmIdentity,
             GetCurrentUserProfile getCurrentUserProfile, SsoSettings ssoSettings, LoginThrottle throttle, ClientOrigin clientOrigin,
             SessionSettings sessionSettings) {
         this.beginWecomLogin = beginWecomLogin;
@@ -56,6 +58,7 @@ class SessionController {
         this.loginWithSignedTicket = loginWithSignedTicket;
         this.loginAsEmergencyAdmin = loginAsEmergencyAdmin;
         this.logout = logout;
+        this.confirmIdentity = confirmIdentity;
         this.getCurrentUserProfile = getCurrentUserProfile;
         this.ssoSettings = ssoSettings;
         this.throttle = throttle;
@@ -110,6 +113,13 @@ class SessionController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping(path = "/sessions:confirm-identity")
+    @PreAuthorize("isAuthenticated()")
+    ResponseEntity<Void> confirmIdentity() {
+        confirmIdentity.execute();
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping(path = "/sessions:current")
     @PreAuthorize("isAuthenticated()")
     CurrentUserResponse current() {
@@ -124,7 +134,7 @@ class SessionController {
 
     private static LoginResponse respond(LoginResult result, String legacyLoginUrl) {
         return switch (result) {
-            case LoginResult.Authenticated ok -> new LoginResponse(String.valueOf(ok.userId()), ok.absoluteExpiresAt(), null);
+            case LoginResult.Authenticated ok -> new LoginResponse(String.valueOf(ok.userId()), ok.absoluteExpiresAt(), null, ok.identityConfirmationRequired());
             case LoginResult.Rejected rejected -> {
                 DomainException refusal = rejected.error().refusal("login refused");
                 throw legacyLoginUrl == null ? refusal : refusal.withExtension("legacyLoginUrl", legacyLoginUrl);

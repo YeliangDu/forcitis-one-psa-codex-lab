@@ -108,6 +108,9 @@
           "displayName" : {
             "type" : "string"
           },
+          "identityConfirmed" : {
+            "type" : "boolean"
+          },
           "navigation" : {
             "items" : {
               "$ref" : "#/components/schemas/NavigationResponse"
@@ -130,7 +133,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "displayName", "navigation", "permissionCodes", "userId" ],
+        "required" : [ "displayName", "identityConfirmed", "navigation", "permissionCodes", "userId" ],
         "type" : "object"
       },
       "CursorPageAuditEntryResponse" : {
@@ -416,11 +419,14 @@
             "format" : "date-time",
             "type" : [ "string", "null" ]
           },
+          "identityConfirmationRequired" : {
+            "type" : "boolean"
+          },
           "userId" : {
             "type" : "string"
           }
         },
-        "required" : [ "absoluteExpiresAt", "userId" ],
+        "required" : [ "absoluteExpiresAt", "identityConfirmationRequired", "userId" ],
         "type" : "object"
       },
       "LoginStateRequest" : {
@@ -2950,6 +2956,36 @@
           }
         },
         "tags" : [ "role-controller" ]
+      }
+    },
+    "/api/v1/platform/sessions:confirm-identity" : {
+      "post" : {
+        "operationId" : "confirmIdentity",
+        "parameters" : [ {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "session-controller" ]
       }
     },
     "/api/v1/platform/sessions:current" : {

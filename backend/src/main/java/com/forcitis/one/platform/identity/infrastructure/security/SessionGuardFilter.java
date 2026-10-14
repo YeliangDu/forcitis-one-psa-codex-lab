@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -40,9 +41,11 @@ final class SessionGuardFilter extends OncePerRequestFilter {
             } else {
                 SessionPrincipal principal = principals.get(identity.userIdValue());
                 if (principal.isActive()) {
+                    HttpSession session = request.getSession(false);
+                    boolean unconfirmed = session != null && Boolean.FALSE.equals(session.getAttribute(ServletSessionRegistry.CONFIRMED_ATTRIBUTE));
                     SecurityContext refreshed = SecurityContextHolder.createEmptyContext();
-                    refreshed.setAuthentication(identity.withAuthorities(
-                            principal.authorities().stream().map(SimpleGrantedAuthority::new).toList()));
+                    refreshed.setAuthentication(identity.withAuthorities(unconfirmed ? List.of()
+                            : principal.authorities().stream().map(SimpleGrantedAuthority::new).toList()));
                     SecurityContextHolder.setContext(refreshed);
                 } else {
                     terminate(request);

@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -161,5 +163,27 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(status).isEqualTo(401);
         verify(ssoVerifier, never()).verify(anyString());
+    }
+
+    @Test
+    @DisplayName("C-M7 a ticket from another site starts a session that holds no permission until the person confirms the account is theirs")
+    void ticketSessionNeedsConfirmation() throws Exception {
+        portalSays("T1", new SsoVerdict.LoginName("13800000000"));
+        personWithLoginName("13800000000", 1001, EmploymentStatus.EMPLOYED);
+        MvcResult result = redeem("T1");
+        String session = cookie(result, "SESSION");
+
+        assertThat(body(result).path("identityConfirmationRequired").asBoolean()).isTrue();
+        assertThat(mvc.perform(get("/api/v1/platform/approval-tasks").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn()
+                .getResponse().getStatus()).as("unconfirmed: no permission").isEqualTo(403);
+        assertThat(body(mvc.perform(get("/api/v1/platform/sessions:current").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn())
+                .path("identityConfirmed").asBoolean()).isFalse();
+
+        assertThat(mvc.perform(post("/api/v1/platform/sessions:confirm-identity").with(xsrf()).cookie(new jakarta.servlet.http.Cookie("SESSION", session)))
+                .andReturn().getResponse().getStatus()).isEqualTo(204);
+
+        assertThat(mvc.perform(get("/api/v1/platform/approval-tasks").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn()
+                .getResponse().getStatus()).as("confirmed: the employee role works").isNotEqualTo(403);
+        assertThat(recorded()).extracting(com.forcitis.one.platform.audit.api.AuditEntry::action).contains("platform.identity.session.identity-confirmed");
     }
 }
