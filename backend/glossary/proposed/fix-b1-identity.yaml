@@ -294,7 +294,94 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_identity_own_roles_forbidden
+  zh: 不能改自己的角色
+  en: PlatformIdentityOwnRolesForbidden
+  snake: platform_identity_own_roles_forbidden
+  kind: error_code
+  bc: platform.identity
+  definition: 不能修改本人的角色集合（403，I-12）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_own_role_definition_forbidden
+  zh: 不能改自己持有的角色的定义
+  en: PlatformIdentityOwnRoleDefinitionForbidden
+  snake: platform_identity_own_role_definition_forbidden
+  kind: error_code
+  bc: platform.identity
+  definition: 不能修改或删除本人持有的角色的定义（403，I-12）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_authorization_request_not_found
+  zh: 授权申请不存在
+  en: PlatformIdentityAuthorizationRequestNotFound
+  snake: platform_identity_authorization_request_not_found
+  kind: error_code
+  bc: platform.identity
+  definition: 没有这个授权申请（404）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_authorization_request_not_pending
+  zh: 授权申请已处理
+  en: PlatformIdentityAuthorizationRequestNotPending
+  snake: platform_identity_authorization_request_not_pending
+  kind: error_code
+  bc: platform.identity
+  definition: 授权申请已被确认或拒绝（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_authorization_confirmer_not_allowed
+  zh: 不能确认该授权申请
+  en: PlatformIdentityAuthorizationConfirmerNotAllowed
+  snake: platform_identity_authorization_confirmer_not_allowed
+  kind: error_code
+  bc: platform.identity
+  definition: 申请人与受益人不能确认该授权申请（403）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: authorization_request
+  zh: 授权申请
+  en: AuthorizationRequest
+  snake: authorization_request
+  kind: concept
+  bc: platform.identity
+  definition: 授予敏感权限、或把角色改成含敏感权限时先建的申请，另一人确认后才生效
+  standard_ref:
+  - adr/src/ADR-0028.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
+- decided
+- sensitive
+- within
 - authored
 - cause
 - exit
@@ -309,3 +396,4 @@ common_words:
 - revoke
 - superseded
 - trace
+- requested

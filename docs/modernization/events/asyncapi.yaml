@@ -111,6 +111,21 @@ channels:
     messages:
       EmergencyAdminDisabled:
         $ref: '#/components/messages/EmergencyAdminDisabled'
+  authorizationOpened:
+    address: platform.identity.AuthorizationOpened
+    messages:
+      AuthorizationOpened:
+        $ref: '#/components/messages/AuthorizationOpened'
+  authorizationConfirmed:
+    address: platform.identity.AuthorizationConfirmed
+    messages:
+      AuthorizationConfirmed:
+        $ref: '#/components/messages/AuthorizationConfirmed'
+  authorizationRejected:
+    address: platform.identity.AuthorizationRejected
+    messages:
+      AuthorizationRejected:
+        $ref: '#/components/messages/AuthorizationRejected'
   numberingRuleConfirmed:
     address: platform.numbering.NumberingRuleConfirmed
     messages:
@@ -546,6 +561,55 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/emergencyAdminDisabled/messages/EmergencyAdminDisabled'
+  publishAuthorizationOpened:
+    action: send
+    channel:
+      $ref: '#/channels/authorizationOpened'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/authorizationOpened/messages/AuthorizationOpened'
+  handleAuthorizationOpenedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/authorizationOpened'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/authorizationOpened/messages/AuthorizationOpened'
+  publishAuthorizationConfirmed:
+    action: send
+    channel:
+      $ref: '#/channels/authorizationConfirmed'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/authorizationConfirmed/messages/AuthorizationConfirmed'
+  handleAuthorizationConfirmedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/authorizationConfirmed'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/authorizationConfirmed/messages/AuthorizationConfirmed'
+  handleAuthorizationConfirmedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/authorizationConfirmed'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/authorizationConfirmed/messages/AuthorizationConfirmed'
+  publishAuthorizationRejected:
+    action: send
+    channel:
+      $ref: '#/channels/authorizationRejected'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/authorizationRejected/messages/AuthorizationRejected'
+  handleAuthorizationRejectedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/authorizationRejected'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/authorizationRejected/messages/AuthorizationRejected'
   publishNumberingRuleConfirmed:
     action: send
     channel:
@@ -1953,6 +2017,111 @@ components:
             - SEPARATION
             - OPERATIONS
             x-type: EmergencyAdminDisableCause
+    AuthorizationOpened:
+      name: AuthorizationOpened
+      title: 敏感授权申请开立
+      x-event:
+        eventType: platform.identity.AuthorizationOpened
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AuthorizationOpened
+        aggregate: AuthorizationRequest
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
+        noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - requestId
+        - requestedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
+          requestedBy:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    AuthorizationConfirmed:
+      name: AuthorizationConfirmed
+      title: 敏感授权申请被另一人确认
+      x-event:
+        eventType: platform.identity.AuthorizationConfirmed
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AuthorizationConfirmed
+        aggregate: AuthorizationRequest
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        - platform.identity
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - requestId
+        - confirmedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
+          confirmedBy:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+    AuthorizationRejected:
+      name: AuthorizationRejected
+      title: 敏感授权申请被拒绝或撤回
+      x-event:
+        eventType: platform.identity.AuthorizationRejected
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AuthorizationRejected
+        aggregate: AuthorizationRequest
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
+        noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - requestId
+        - rejectedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
+          rejectedBy:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
     NumberingRuleConfirmed:
       name: NumberingRuleConfirmed
       title: 编号规则的模板版本确认齐全，开始发号

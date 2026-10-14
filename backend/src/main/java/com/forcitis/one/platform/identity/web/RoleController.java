@@ -75,6 +75,7 @@ class RoleController {
             case AdminOutcome.Done<RoleView> done -> ResponseEntity
                     .created(URI.create("/api/v1/platform/roles/" + done.value().roleId())).body(RoleResponse.of(done.value()));
             case AdminOutcome.Refused<RoleView> refused -> IdentityResponses.error(refused.error(), null);
+            case AdminOutcome.Awaiting<RoleView> awaiting -> accepted(awaiting.requestId());
         };
     }
 
@@ -85,6 +86,7 @@ class RoleController {
         return switch (outcome) {
             case AdminOutcome.Done<RoleView> done -> ResponseEntity.ok(RoleResponse.of(done.value()));
             case AdminOutcome.Refused<RoleView> refused -> IdentityResponses.error(refused.error(), null);
+            case AdminOutcome.Awaiting<RoleView> awaiting -> accepted(awaiting.requestId());
         };
     }
 
@@ -121,6 +123,11 @@ class RoleController {
         return switch (outcome) {
             case AdminOutcome.Done<Void> done -> ResponseEntity.noContent().build();
             case AdminOutcome.Refused<Void> refused -> IdentityResponses.error(refused.error(), null);
+            case AdminOutcome.Awaiting<Void> awaiting -> accepted(awaiting.requestId());
         };
+    }
+
+    private static ResponseEntity<?> accepted(String requestId) {
+        return ResponseEntity.accepted().body(new AwaitingConfirmationResponse(requestId));
     }
 }

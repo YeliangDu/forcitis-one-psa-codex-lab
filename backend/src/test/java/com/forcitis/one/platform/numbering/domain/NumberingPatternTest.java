@@ -77,6 +77,22 @@ class NumberingPatternTest {
     }
 
     @Test
+    @DisplayName("ADR-0027 5.1 the placeholder set is exactly {TYPE} {LE} {yyyy} {yy} {MM} {dd} {yyyyMM} {yyyyMMdd} {yyMMdd} and {seq:N} with N from 1 to 12")
+    void thePlaceholderSetIsExactlyTheDocumentedOne() {
+        for (String token : new String[] {"TYPE", "LE", "yyyy", "yy", "MM", "dd", "yyyyMM", "yyyyMMdd", "yyMMdd"}) {
+            String template = "{" + token + "}-{seq:4}";
+            ResetPolicy reset = ResetPolicy.NEVER;
+            assertThat(new NumberingPattern(template, reset).value()).as(token).isEqualTo(template);
+        }
+        for (int width = 1; width <= 12; width++) {
+            assertThat(new NumberingPattern("{seq:" + width + "}", ResetPolicy.NEVER).capacity()).isEqualTo((long) Math.pow(10, width) - 1);
+        }
+        for (String token : new String[] {"seq:0", "seq:13", "seq", "yyyyM", "MMdd", "type", "le", "YYYY", "HH", ""}) {
+            assertThatThrownBy(() -> new NumberingPattern("{" + token + "}-{seq:4}", ResetPolicy.NEVER)).as(token).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
     void stillRejectsUnknownTokensAndMissingSequences() {
         assertThatThrownBy(() -> new NumberingPattern("{TYPO}-{seq:4}", ResetPolicy.NEVER)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new NumberingPattern("{TYPE}-{yyyyMM}", ResetPolicy.MONTHLY)).isInstanceOf(IllegalArgumentException.class);

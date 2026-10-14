@@ -193,7 +193,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
 
         MvcResult broad = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"mine\",\"name\":\"Mine\",\"permissionCodes\":[\"cost.timesheet:timesheet:approve\"]}")).andReturn();
-        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/5:replace-roles").with(xsrf()).with(editor)
+        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(editor)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"role-editor\",\"super_admin\"]}")).andReturn();
         MvcResult within = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"small\",\"name\":\"Small\",\"permissionCodes\":[\"" + Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE + "\"]}")).andReturn();
@@ -202,7 +202,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(errorCode(broad)).isEqualTo("PLATFORM_IDENTITY_ROLE_NOT_ALLOWED");
         assertThat(toSuperAdmin.getResponse().getStatus()).isEqualTo(403);
         assertThat(within.getResponse().getStatus()).isEqualTo(201);
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = 5")
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = 1001")
                 .query(Long.class).single()).isZero();
     }
 
