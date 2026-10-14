@@ -32,8 +32,8 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         long head = newId();
         long unit = newId();
         organisation.unit(unit, null, head).person(head, unit, null).person(initiator, unit, null).person(manager, unit, null);
-        ApprovalInstanceId instance = start(newKey("http"), initiator, manager);
-        String task = openTaskId(instance).value();
+        ApprovalInstanceId instance = startWithSupervisor(newKey("http"), initiator, manager);
+        String task = openTaskId(instance, "projectManagerReview").value();
         RequestPostProcessor approve = as(manager, Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE, Permission.Codes.PLATFORM_APPROVAL_TASK_READ);
 
         mvc.perform(get(BASE).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.newCount").value(1))

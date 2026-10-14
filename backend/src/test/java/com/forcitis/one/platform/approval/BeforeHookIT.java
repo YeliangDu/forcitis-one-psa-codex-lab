@@ -84,6 +84,28 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
     }
 
     @Test
+    @DisplayName("RULE-290 a top-level reject ends the approval REJECTED and keeps the history (RULE-288)")
+    void topLevelRejectEndsTheApproval() {
+        deploy("hooked/cost_timesheet_approval.bpmn20.xml");
+        Staff s = staff();
+        String key = newKey("hook");
+        ApprovalInstanceId instance = atDepartmentNode(s, key);
+
+        var rejected = decideTasks.execute(new UserId(s.head()),
+                List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.REJECT, "price too low")));
+
+        assertThat(rejected.status()).isEqualTo("REJECTED");
+        assertThat(requestStatus(key)).isEqualTo("REJECTED");
+        assertThat(approvals.isFinished(instance)).isTrue();
+        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value()).count()).isEqualTo(1);
+        eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
+            assertThat(e.businessKey()).isEqualTo(key);
+            assertThat(e.outcome()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalOutcome.REJECTED);
+            assertThat(e.reason()).isEqualTo("price too low");
+        }));
+    }
+
+    @Test
     @DisplayName("RULE-277 the hook runs inside the decide transaction, before the task completes, with a server-built context")
     void hookRunsInsideTheTransactionBeforeCompletion() {
         deploy("hooked/cost_timesheet_approval.bpmn20.xml");

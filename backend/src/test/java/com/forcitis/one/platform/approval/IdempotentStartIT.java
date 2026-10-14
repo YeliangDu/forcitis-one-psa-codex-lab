@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
+import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -92,7 +93,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-266/278/287 once the previous round has ended (returned, then rejected), each new start opens the next round with a new instance")
+    @DisplayName("RULE-266/278/287 once the previous round has ended (returned twice), each new start opens the next round with a new instance")
     void newRoundAfterTheApprovalEnded() {
         long initiator = newId();
         long manager = newId();
@@ -105,21 +106,21 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         // rejected inside the sub-process = returned: round 1 is over (M3)
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
 
-        ApprovalInstanceId second = start(key, initiator, manager);
+        ApprovalInstanceId second = startWithSupervisor(key, initiator, manager);
         assertThat(second).isNotEqualTo(first);
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(second), DecisionOutcome.APPROVE, "ok")));
-        decideTasks.execute(new UserId(head), List.of(new TaskDecision(openTaskId(second), DecisionOutcome.REJECT, "final no")));
-        assertThat(requestStatus(key)).isEqualTo("REJECTED");
+        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(second, "projectManagerReview"), DecisionOutcome.APPROVE, "ok")));
+        decideTasks.execute(new UserId(head), List.of(new TaskDecision(openTaskId(second, "supervisorReview"), DecisionOutcome.REJECT, "final no")));
+        assertThat(requestStatus(key)).isEqualTo("RETURNED");
 
-        ApprovalInstanceId third = start(key, initiator, manager);
+        ApprovalInstanceId third = startWithSupervisor(key, initiator, manager);
         assertThat(third).isNotIn(first, second);
         assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where business_key = ?",
                 Integer.class, key)).isEqualTo(3);
         assertThat(jdbc.queryForList("select round_number from platform_approval.start_rounds where business_key = ? order by 1",
                 Integer.class, key)).containsExactly(1, 2, 3);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(third), DecisionOutcome.APPROVE, "ok")));
-        decideTasks.execute(new UserId(head), List.of(new TaskDecision(openTaskId(third), DecisionOutcome.APPROVE, "ok")));
+        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(third, "projectManagerReview"), DecisionOutcome.APPROVE, "ok")));
+        decideTasks.execute(new UserId(head), List.of(new TaskDecision(openTaskId(third, "supervisorReview"), DecisionOutcome.APPROVE, "ok")));
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
             assertThat(e.businessKey()).isEqualTo(key);
             assertThat(e.round()).isEqualTo(3);
@@ -159,7 +160,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null);
         String key = newKey("rollback");
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
-            approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), Set.of(),
+            approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                     List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(initiator))))));
             throw new IllegalStateException("business transaction fails after the start");
         })).isInstanceOf(IllegalStateException.class);

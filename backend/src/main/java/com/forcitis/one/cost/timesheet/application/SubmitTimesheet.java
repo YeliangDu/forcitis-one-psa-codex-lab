@@ -8,6 +8,7 @@ import com.forcitis.one.delivery.execution.api.WorkPackageQueries;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
 import java.util.Optional;
 import java.util.Set;
@@ -43,7 +44,7 @@ public class SubmitTimesheet {
         }
         UserId employee = currentUser.userId();
         ApprovalInstanceId instanceId = approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL,
-                "timesheet:" + command.timesheetId().value(), employee, Set.of()));
+                "timesheet:" + command.timesheetId().value(), employee, Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName())));
         events.publishEvent(new TimesheetSubmitted(command.timesheetId(), employee, instanceId));
         return new SubmissionResult.Submitted(instanceId);
     }
