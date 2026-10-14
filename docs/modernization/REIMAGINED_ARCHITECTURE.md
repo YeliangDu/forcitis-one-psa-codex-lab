@@ -128,21 +128,89 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 
 ### 3.4 审批引擎（范围待 Q-3）
 - Flowable 8 嵌入同一数据源（`ACT_*` 在 `platform_approval` schema）。BPMN 文件进版本库，不提供设计器（D-05）。**生产环境 `flowable.database-schema-update=false`**，引擎升级走专门的手册（评审 #15）。
-- **指派**：每个节点恰一条规则（RULE-262），写在 BPMN 扩展属性里，由 Java 的 `AssigneeResolver`（纯函数：规则 + 组织快照 + 流程变量 → 候选集）实现。1a 不引入 DMN，出现真正的决策表时再引入（评审 #9、#15）。
+- **指派**：每个节点恰一条规则（RULE-262），写在 BPMN 扩展属性里，由 Java 的 `AssigneeResolver`（纯函数：规则 + 组织快照 + 流程变量 → 候选集）实现。DMN 的引入见 §2.1 与 §3.4.2（取代此前「1a 不引入 DMN」）。
 - **单人节点**：改为候选组 + 认领（RULE-249）。排除停用和离职人员（RULE-253）；取不到人时转流程管理员并告警（RULE-250/254）；防自审（RULE-307）。
 - **1a 建议交付**（Q-3 建议项）：发起（幂等，唯一约束（流程类型, 单据 ID）与（流程类型, 单据 ID, 轮次），RULE-264/266/278）、认领（RULE-276）、办理（RULE-272/280）、退回发起人（RULE-275）、类型化结果事件（经事件发布登记表，至少一次，RULE-295/303/304）、合并待办。
 - **随第一个使用者交付**（Q-3 建议项）：加签、转交、退回到指定节点、撤回 / 撤销截止点（1b 报价）；行级审批生命周期（Phase 2 工时）。它们的规则已评审，验收测试在对应阶段启用。
 - **BEFORE 钩子**：SPI `ApprovalHook` 定义在 approval 的 `api` 中，在办理事务内调用（RULE-277/280）。1a 只有接口与测试替身。
 - **1a 不接入业务单据**（brief 风险二缓解）。
 
+#### 3.4.1 聚合边界与状态机（Phase 1a 第二轮，用户决定「现在就改，并加守护」）
+- **聚合**：`ApprovalRequest` 是聚合根，每张单据一个，带法人、轮次、状态、事件计数、`version`；它的 `ApprovalTask`（每个引擎任务一行）是成员实体，有自己的事件计数。所有改动先锁请求行，再改任务行，所以一个事务只改一个聚合；引擎里的流程实例不是聚合，是请求聚合的执行态。
+- **状态机在聚合内**：合法转换表是 `ApprovalRequest` / `ApprovalTask` / `Timesheet` 的私有常量，状态只能经领域方法改变，非法转换抛领域异常，应用层把它转成 `ErrorCode`，再由 web 转 ProblemDetail。仓储只写聚合给出的结果，更新带 `version` 与前置状态条件，不满足即 `StaleAggregateException`（409）。穷举测试：`ApprovalRequestStateMachineTest`、`ApprovalTaskStateMachineTest`、`TimesheetStateMachineTest`。
+
+```mermaid
+stateDiagram-v2
+    [*] --> RUNNING: begin（第 1 轮）
+    RUNNING --> APPROVED: approve（全部通过）
+    RUNNING --> REJECTED: reject（顶层驳回）
+    RUNNING --> RETURNED: returnRound（审批人退回 / 子流程内驳回）
+    RUNNING --> RETURNED: withdraw（发起人撤回，RULE-269）
+    RUNNING --> CANCELLED: cancel（发起人撤销，RULE-268）
+    RETURNED --> RUNNING: restart（上一轮发起人开新一轮）
+    CANCELLED --> RUNNING: restart
+    APPROVED --> [*]
+    REJECTED --> [*]
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: assign（TaskAssigned）
+    [*] --> COMPLETED: assignAutomatically（RULE-302，无卡片无结果事件）
+    PENDING --> CLAIMED: claim（TaskClaimed）
+    CLAIMED --> CLAIMED: transfer（TaskTransferred）
+    CLAIMED --> COMPLETED: complete（TaskResulted）
+    PENDING --> CLOSED: close（本轮已结束）
+    CLAIMED --> CLOSED: close
+    PENDING --> PENDING: markOverdue（ApprovalTaskOverdue，一次）
+    CLAIMED --> CLAIMED: markOverdue
+    CLAIMED --> PENDING: escalate（ApprovalTaskEscalated：释放认领，一次，须先超时）
+    PENDING --> PENDING: escalate
+```
+
+#### 3.4.2 事件流：审批 → 工时单
+```mermaid
+sequenceDiagram
+    participant U as 填报人
+    participant T as cost.timesheet（Timesheet 聚合）
+    participant A as platform.approval（ApprovalRequest / ApprovalTask）
+    participant R as 事件发布登记表
+    participant M as 审批人
+    U->>T: 提交（法人来自会话）
+    T->>A: ApprovalProcesses.start（单据引用 + 法人 + 内容摘要）
+    A-->>R: TaskAssigned（每位会签审批人一个任务）
+    T-->>R: TimesheetSubmitted
+    M->>A: 认领、办理（服务端校验操作人）
+    A-->>R: TaskClaimed、TaskResulted
+    A-->>R: ApprovalCompleted（APPROVED / REJECTED / RETURNED / CANCELLED）
+    R->>T: ApplyApprovalResult（按 eventId 幂等；轮次不符忽略）
+    T-->>R: TimesheetApproved / Returned / Rejected / Cancelled
+```
+- 两边只经事件协作：approval 拥有流程状态，业务模块拥有单据状态。事件由聚合记录（`EventDraft`，聚合上的事件计数就是信封的 `aggregateVersion`），应用层在同一事务里用 `EventEnvelopes` 包装后交 Modulith 发布；事件目录条目见 `docs/modernization/events/approval.yaml`、`timesheet.yaml`。
+- **会签**（RULE-248/273，G-2 已做）：TIMESHEET 三路都是 Flowable 多实例并行节点，集合表达式 `approverResolution` 给出去重后的审批人，每人一个任务；全部通过才过节点，任一正式驳回结束本轮（子流程内驳回即退回），加签人的驳回只作建议。
+- **决策表**（用户决定「B 决策表管业务判断」）：每个流程类型一张 DMN 表 `{流程标识}_nodes`，随部署版本生效，开始时求值一次，答案以流程变量带着走：走哪几路、取不到人能否跳过、重复审批人能否自动通过、节点时限与升级间隔。「取谁」仍由 BPMN 上的类型化指派规则决定。
+- **重复审批人**（RULE-302）：同一审批人在同一实例的同一节点再次出现，且内容摘要未变，由系统自动通过并记审计；内容变了必须重审。**撤回 / 撤销 / 截止点**（RULE-268/269/309）：「能否撤回」的显示与执行用同一个判断（`ApprovalRequest.checkWithdraw`），截止点是 BPMN 上标了 `cutoff` 的节点，只要有已完成的任务即越过。**转交**（RULE-285）只有当前处理人能做，新处理人要在职、非发起人、不在同节点已有任务。
+- **审批时限**（RULE-377..384）：截止 = 提交日起第 n 个工作日结束（`WorkCalendar`，按法人），到期提醒、再过一个间隔升级给上级（取不到交流程管理员并告警），不自动通过；ShedLock 定时作业 `platform.approval.deadline.enforce`，一任务一事务。
+
+```mermaid
+flowchart LR
+    S[提交日 T] -->|WorkCalendar.endOfWorkdayAfter n| D[截止 due]
+    D -->|定时作业：仍未处理| O[记超时 + 提醒]
+    O -->|WorkCalendar.endOfWorkdayAfter m| E[升级点]
+    E -->|定时作业：仍未处理| X{有上级?}
+    X -->|是| U[上级成为候选人 + 卡片]
+    X -->|否| P[流程管理员 + 告警]
+```
+
 ### 3.5 TIMESHEET 审批人序列回放（两步法，待 Q-4）
 - **(a) 引擎等价**：生产只读导出近期、**当前定义版本**的 TIMESHEET 实例样本，同时导出**当时的老 `system_users` / `system_dept` 快照**、指派规则、流程变量快照与实际审批人序列。`AssigneeResolver` 用老组织快照逐节点计算候选集。匹配口径为「老审批人 ∈ 新候选集」，以适应 RULE-249 的随机选人改为候选组。
 - **(b) 数据源差异**：单独报告 A8 与老表之间的漂移（领导被清空不同步、改名不同步等，RULE-365），不混入 (a)。
 - 差异分为三类：已评审的修正、数据源漂移、真缺陷。前两类按类别由用户接受，真缺陷逐条修复（评审 #6）。
 - 导出文件含人员姓名，不进仓库，只存本机 `~/.modernize/psa/`。执行前需用户授权生产只读查询。
+- **会签已实现**（G-2）：生产 v15 的三路都是并行多实例会签；新流程与之一致，每个不同的审批人一个任务，回放仍只比对「老审批人 ∈ 新候选集」。路由由决策表给出，回放工具的分支表与 BPMN、决策表的一致性由 `TimesheetApproverReplayIT.branchTableEqualsTheProcess` 守护。
 
 ### 3.6 合并待办
-- **新待办**：Flowable 任务，加上本人所在候选组的任务。
+- **新待办**：Flowable 任务，加上本人所在候选组的任务；会签节点每位审批人是自己的一项待办。
 - **老待办**：approval 的内部 ACL 通过只读账号查询**老库视图**（`bpm_task_ext` 中 result=1，关联 `ACT_RU_TASK` 与 `bpm_process_instance_ext` 标题），按 RULE-261 把行任务合并为（实例, 节点）一项。
   - 视图由 DBA 建立，只授权所需的列，**不授权令牌表**；建视图作为一次老系统变更登记（评审 #11）。
   - **不做缓存**：查询量约每天 540 次（180 天 97,591 次），直接查询即可。这样「待办数一致」的测试结果稳定（评审 #9）。
@@ -152,6 +220,7 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 - 通知意图（`TaskAssigned`、`ApprovalCompleted`、知会）→ approval 内部的通知端口（接口隔离；出现第二个使用者时再抽出 `platform.notification`，评审 #17）→ 从 workforce 取 userid → integration 发送 **文本卡片 + 跳转链接，不带按钮**（评审 #10）。`touser` 精确匹配，不带 `@all`。失败记入 `outbound_deliveries`，退避重试，进死信时告警。
 - 卡片按钮回调（C1a-15 的 P1 部分）推迟。原因：企业微信应用只有一个回调地址，目前由老系统占用。等老待办排空，或者新开独立的企业微信应用之后再做。
 - **候选组通知策略待 Q-3**：改为候选组认领后，一个任务会通知 N 个人。
+- 审批时限与转交增加三种卡片：超时提醒（`ApprovalTaskOverdue`，发给处理人）、升级（`ApprovalTaskEscalated`，发给上级或流程管理员）、转交（`TaskTransferred`，发给新处理人）；去重键分别是 `approval-task:{taskId}:overdue`、`:escalated`、`:transfer:{eventId}`。
 - 非生产环境：收件人改为配置的白名单，agentId 按环境配置（RULE-375）。
 
 ### 3.8 安全验证
