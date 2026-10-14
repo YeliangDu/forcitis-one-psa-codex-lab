@@ -2,7 +2,7 @@ package com.forcitis.one.platform.numbering;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -22,12 +22,13 @@ class DocumentTypeCodeTest {
     static final Path PROPOSED = Path.of("glossary/proposed/platform-numbering.yaml");
 
     @Test
-    @DisplayName("Phase 1a registers exactly the quote code QT")
-    void onlyTheQuoteCodeIsRegisteredInPhase1a() {
+    @DisplayName("Phase 1a registers the codes QT, TS and JV")
+    void everyNumberedTypeHasACode() {
         Map<DocumentType, String> registered = Arrays.stream(DocumentType.values()).filter(t -> t.code().isPresent())
                 .collect(Collectors.toMap(t -> t, t -> t.code().orElseThrow()));
 
-        assertThat(registered).containsExactly(Map.entry(DocumentType.QUOTE, "QT"));
+        assertThat(registered).containsOnly(Map.entry(DocumentType.QUOTE, "QT"), Map.entry(DocumentType.TIMESHEET, "TS"),
+                Map.entry(DocumentType.JOURNAL_VOUCHER, "JV"));
     }
 
     @Test

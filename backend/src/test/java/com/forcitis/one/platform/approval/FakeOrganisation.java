@@ -30,6 +30,12 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     private final Map<Long, Unit> units = new ConcurrentHashMap<>();
     private final Map<String, Set<Long>> roles = new ConcurrentHashMap<>();
 
+    private final java.util.concurrent.atomic.AtomicBoolean failNextLookup = new java.util.concurrent.atomic.AtomicBoolean();
+
+    public void failOnNextLookup() {
+        failNextLookup.set(true);
+    }
+
     public FakeOrganisation unit(long id, Long parent, Long head) {
         units.put(id, new Unit(id, parent, head, null, true));
         return this;
@@ -69,6 +75,9 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
 
     @Override
     public Optional<EmployeeProfile> findEmployee(UserId userId) {
+        if (failNextLookup.compareAndSet(true, false)) {
+            throw new IllegalStateException("organisation lookup failed");
+        }
         return Optional.ofNullable(people.get(userId.value())).map(p -> new EmployeeProfile(new UserId(p.id()), "person-" + p.id(),
                 new OrgUnitId(p.unit()), p.wecom() == null ? null : new WecomUserId(p.wecom()),
                 p.employed() ? EmploymentStatus.EMPLOYED : EmploymentStatus.SEPARATED, false));

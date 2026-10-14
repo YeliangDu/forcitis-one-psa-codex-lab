@@ -1,11 +1,11 @@
 package com.forcitis.one.platform.numbering.domain;
 
-import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import java.util.List;
 import java.util.Optional;
 
 public interface NumberingRuleRepository {
+    long GLOBAL_COUNTER_SCOPE = 0;
 
     Optional<NumberingRule> findActive(DocumentType type);
 
@@ -16,6 +16,7 @@ public interface NumberingRuleRepository {
 
     void save(NumberingRule rule);
 
-    /** Atomically reserves the next value of the counter (row lock until the surrounding transaction ends). */
-    long reserveNext(DocumentType type, LegalEntityId legalEntity, String periodKey, long startValue);
+    /** Atomically reserves the next value of the counter (row lock until the surrounding transaction ends).
+     *  counterScope is the legal entity id, or GLOBAL_COUNTER_SCOPE when the template has no {LE}. */
+    long reserveNext(DocumentType type, long counterScope, String periodKey, long startValue);
 }

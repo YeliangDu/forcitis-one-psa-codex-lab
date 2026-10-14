@@ -66,11 +66,10 @@ class SeeyonViewSqlTest {
     @DisplayName("RULE-361 bulk sync and single lookup share the scope: internal, with code, org unit below the root PATH prefix")
     void bulkAndSingleLookupShareTheScope() {
         assertThat(SeeyonViewSql.MEMBERS).contains("IS_INTERNAL = 1").contains("CODE IS NOT NULL").contains("CODE <> ''")
-                .contains("ORG_UNIT_ID IS NOT NULL").contains("ORG_UNIT_PATH LIKE '00000001%'");
+                .contains("ORG_UNIT_ID IS NOT NULL").contains("ORG_UNIT_PATH LIKE :rootPathPrefix");
         assertThat(SeeyonViewSql.MEMBERS_BY_WECOM_USER_ID).startsWith(SeeyonViewSql.MEMBERS).endsWith("AND WE_COM_ID = :wecomUserId");
         assertThat(SeeyonViewSql.MEMBERS_BY_LOGIN_NAME).startsWith(SeeyonViewSql.MEMBERS).endsWith("AND LOGIN_NAME = :loginName");
-        assertThat(SeeyonViewSql.ORG_UNITS).contains("PATH LIKE '00000001%'");
-        assertThat(SeeyonViewSql.ROOT_PATH_PREFIX).isEqualTo("00000001%");
+        assertThat(SeeyonViewSql.ORG_UNITS).contains("PATH LIKE :rootPathPrefix");
     }
 
     @Test

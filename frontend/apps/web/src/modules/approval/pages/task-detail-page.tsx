@@ -27,12 +27,12 @@ export function TaskDetailPage() {
       {failed === undefined ? null : <Notice tone="error" title="操作失败">{describeFailure(failed.error, APPROVAL_ERROR_MESSAGES)}</Notice>}
       <DescriptionList
         items={[
-          { label: '审批流程', value: PROCESS_LABELS[detail.processKey] ?? detail.processKey },
+          { label: '审批流程', value: PROCESS_LABELS[detail.processKey ?? ''] ?? detail.processKey ?? '—' },
           { label: '业务键', value: detail.businessKey ?? '—' },
-          { label: '当前节点', value: detail.nodeName ?? detail.nodeKey },
-          { label: '发起人', value: detail.initiator },
+          { label: '当前节点', value: detail.nodeName ?? detail.nodeKey ?? '—' },
+          { label: '发起人', value: detail.initiator ?? '—' },
           { label: '处理人', value: detail.assignee ?? '未认领' },
-          { label: '候选审批人', value: detail.candidates.length === 0 ? '—' : detail.candidates.join('、') },
+          { label: '候选审批人', value: (detail.candidates ?? []).length === 0 ? '—' : (detail.candidates ?? []).join('、') },
           { label: '创建时间', value: formatDateTime(detail.createdAt) },
         ]}
       />

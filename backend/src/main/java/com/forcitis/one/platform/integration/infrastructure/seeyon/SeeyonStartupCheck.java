@@ -30,6 +30,11 @@ final class SeeyonStartupCheck implements SmartInitializingSingleton {
         List<String> problems = new ArrayList<>(mapping.configurationProblems());
         try {
             problems.addAll(columnProblems(inspector.viewColumns()));
+            if (mapping.configurationProblems().stream().noneMatch(p -> p.contains("root-path"))
+                    && inspector.countUnitsAtPath(mapping.rootPath()) == 0) {
+                problems.add("no org unit sits at the configured root path " + mapping.rootPath()
+                        + ": the whole organisation would silently become empty");
+            }
             if (mapping.headRelationshipTypeId() != 0 && inspector.countRelationshipsOfType(mapping.headRelationshipTypeId()) == 0) {
                 problems.add("no relationship of the configured head type " + mapping.headRelationshipTypeId()
                         + " exists in the Seeyon view: every org unit head would silently become empty");

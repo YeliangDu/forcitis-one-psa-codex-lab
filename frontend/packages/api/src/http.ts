@@ -16,6 +16,10 @@ export interface ApiHandlers {
   onForbidden?: () => void;
 }
 
+export interface ResponseSchema {
+  safeParse(input: unknown): { success: true; data: unknown } | { success: false; error: { issues: readonly { path: PropertyKey[]; message: string }[] } };
+}
+
 export interface HttpClientConfig {
   baseUrl?: string;
   fetchImpl?: (input: string, init: RequestInit) => Promise<Response>;
@@ -34,6 +38,25 @@ export class ApiError extends Error {
     this.status = status;
     this.code = code;
     this.body = body;
+  }
+}
+
+/** The OpenAPI document marks a property optional when it may be absent; the server writes such a property as null. Treat both as absent. */
+function dropNulls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(dropNulls);
+  if (typeof value !== 'object' || value === null) return value;
+  return Object.fromEntries(Object.entries(value).filter(([, member]) => member !== null).map(([key, member]) => [key, dropNulls(member)]));
+}
+
+export class ResponseShapeError extends Error {
+  readonly operation: string;
+  readonly problems: readonly string[];
+
+  constructor(operation: string, problems: readonly string[]) {
+    super(`The answer of ${operation} does not match openapi.json: ${problems.join('; ')}`);
+    this.name = 'ResponseShapeError';
+    this.operation = operation;
+    this.problems = problems;
   }
 }
 
@@ -85,7 +108,7 @@ export function createHttpClient(config: HttpClientConfig = {}) {
   const readCookie = config.readCookie ?? readBrowserCookie;
   const send = config.fetchImpl ?? ((input: string, init: RequestInit) => globalThis.fetch(input, init));
 
-  async function request<T>(method: HttpMethod, template: string, args: RequestArgs = {}, options: RequestOptions = {}): Promise<T> {
+  async function request<T>(method: HttpMethod, template: string, args: RequestArgs = {}, options: RequestOptions = {}, schema?: ResponseSchema): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (args.body !== undefined) headers['Content-Type'] = 'application/json';
     if (!SAFE_METHODS.has(method)) {
@@ -97,7 +120,14 @@ export function createHttpClient(config: HttpClientConfig = {}) {
 
     const response = await send(buildUrl(baseUrl, template, args), init);
     const body = await readBody(response);
-    if (response.ok) return body as T;
+    if (response.ok) {
+      if (schema === undefined) return body as T;
+      const checked = schema.safeParse(dropNulls(body));
+      if (!checked.success) {
+        throw new ResponseShapeError(`${method.toUpperCase()} ${template}`, checked.error.issues.map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`));
+      }
+      return checked.data as T;
+    }
 
     if (options.guards !== false) {
       if (response.status === 401) config.handlers?.().onUnauthenticated?.();

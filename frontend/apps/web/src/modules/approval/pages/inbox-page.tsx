@@ -15,20 +15,20 @@ export function InboxPage() {
   if (inbox.isPending) return <LoadingState />;
   if (inbox.isError) return <Notice tone="error" title="待办加载失败">{describeFailure(inbox.error)}</Notice>;
 
-  const { items, newCount, legacyCount, totalCount, legacyAvailable } = inbox.data;
+  const { items = [], newCount = 0, legacyCount = 0, totalCount = 0, legacyAvailable = true } = inbox.data;
 
   const toRow = (item: InboxItem): InboxRow => {
     const subtitle = item.nodeName ?? '';
     const timeText = formatDateTime(item.createdAt);
     if (item.source === 'NEW') {
-      const path = taskPath(item.taskId);
+      const path = taskPath(item.taskId ?? '');
       return {
         id: inboxRowId(item),
-        title: item.title,
+        title: item.title ?? '',
         subtitle,
         timeText,
         tag: { label: '新系统', tone: 'info' },
-        ...(item.claimed ? { state: '已认领' } : {}),
+        ...(item.claimed === true ? { state: '已认领' } : {}),
         href: path,
         external: false,
         onOpen: () => void navigate(path),
@@ -37,7 +37,7 @@ export function InboxPage() {
     const target = safeExternalUrl(item.detailUrl);
     return {
       id: inboxRowId(item),
-      title: item.title,
+      title: item.title ?? '',
       subtitle,
       timeText,
       tag: { label: '老系统', tone: 'neutral' },

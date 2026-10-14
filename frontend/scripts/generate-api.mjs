@@ -1,4 +1,6 @@
-// Generates packages/api/src/generated/{schema,operations}.ts from packages/api/openapi.json (written by the backend's OpenApiExportTest).
+// Generates packages/api/src/generated/{schema,validators,operations}.ts from packages/api/openapi.json (written by the backend's OpenApiExportTest).
+// schema.ts = TypeScript types (openapi-typescript); validators.ts = Zod schemas of every component and of every operation's 200 answer;
+// operations.ts = one function per operation that validates the answer at runtime. The three files always move together (`--check` in `pnpm verify`).
 //   node scripts/generate-api.mjs           regenerate
 //   node scripts/generate-api.mjs --check   fail when the committed files differ from what openapi.json produces (runs in `pnpm verify`)
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -42,16 +44,118 @@ for (const path of Object.keys(spec.paths).sort()) {
   }
 }
 
+const ZERO_PAD = '  ';
+
+/** Keywords the Zod emitter understands. Any other keyword fails the generation instead of being silently ignored (G-1). */
+const KNOWN_KEYWORDS = new Set(['type', 'format', 'enum', 'items', 'properties', 'required', 'additionalProperties', 'oneOf', 'pattern', 'uniqueItems', 'description', 'example', 'examples', 'default', 'title', '$ref', 'minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems']);
+
+function refName(ref) {
+  const match = /^#\/components\/schemas\/(\w+)$/.exec(ref);
+  if (!match) throw new Error(`generate-api: unsupported $ref ${ref}`);
+  return match[1];
+}
+
+function containsRef(node) {
+  if (node === null || typeof node !== 'object') return false;
+  if (node.$ref !== undefined) return true;
+  return Object.values(node).some((value) => containsRef(value));
+}
+
+function literal(value) {
+  return JSON.stringify(value);
+}
+
+/** One OpenAPI schema node as a Zod expression. Properties holding a $ref become getters, so recursive schemas need no declaration order. */
+function zodOf(node, where) {
+  for (const key of Object.keys(node)) {
+    if (!KNOWN_KEYWORDS.has(key)) throw new Error(`generate-api: ${where}: unsupported schema keyword "${key}"`);
+  }
+  if (node.$ref !== undefined) return `${refName(node.$ref)}Schema`;
+  if (node.oneOf !== undefined) return `z.union([${node.oneOf.map((option, index) => zodOf(option, `${where}.oneOf[${index}]`)).join(', ')}])`;
+  const nullable = Array.isArray(node.type) && node.type.includes('null');
+  const type = Array.isArray(node.type) ? node.type.find((candidate) => candidate !== 'null') : node.type;
+  let expression;
+  switch (type) {
+    case 'string': {
+      expression = node.enum === undefined ? 'z.string()' : `z.enum([${node.enum.map(literal).join(', ')}])`;
+      if (node.pattern !== undefined) expression += `.regex(new RegExp(${literal(node.pattern)}))`;
+      break;
+    }
+    case 'integer':
+      expression = 'z.number().int()';
+      break;
+    case 'number':
+      expression = 'z.number()';
+      break;
+    case 'boolean':
+      expression = 'z.boolean()';
+      break;
+    case 'array':
+      if (node.items === undefined) throw new Error(`generate-api: ${where}: array without items`);
+      expression = `z.array(${zodOf(node.items, `${where}[]`)})`;
+      break;
+    case 'object': {
+      if (node.properties === undefined) {
+        expression = typeof node.additionalProperties === 'object' ? `z.record(z.string(), ${zodOf(node.additionalProperties, `${where}{}`)})` : 'z.unknown()';
+        break;
+      }
+      const required = new Set(node.required ?? []);
+      const members = Object.entries(node.properties).map(([name, child]) => {
+        const value = zodOf(child, `${where}.${name}`) + (required.has(name) ? '' : '.optional()');
+        const key = /^[A-Za-z_$][\w$]*$/.test(name) ? name : literal(name);
+        return containsRef(child) ? `get ${key}() { return ${value}; }` : `${key}: ${value}`;
+      });
+      expression = `z.object({\n${members.map((member) => `${ZERO_PAD}${member},`).join('\n')}\n})`;
+      break;
+    }
+    default:
+      throw new Error(`generate-api: ${where}: unsupported schema type ${literal(node.type)}`);
+  }
+  return nullable ? `${expression}.nullable()` : expression;
+}
+
+function successSchema(operation, where) {
+  const response = operation.responses?.['200'];
+  const content = response?.content;
+  if (content === undefined) return undefined;
+  const media = content['application/json'] ?? content['*/*'];
+  if (media?.schema === undefined) throw new Error(`generate-api: ${where}: the 200 answer has content but no schema`);
+  return media.schema;
+}
+
+const componentEntries = Object.entries(spec.components?.schemas ?? {}).sort(([a], [b]) => a.localeCompare(b));
+const componentSource = componentEntries.map(([name, node]) => {
+  const expression = zodOf(node, name);
+  const isObject = node.type === 'object' && node.properties !== undefined;
+  return `export const ${name}Schema = ${isObject || !containsRef(node) ? expression : `z.lazy(() => ${expression})`};`;
+}).join('\n\n');
+
+const responseEntries = operations.map(({ name, method, path }) => {
+  const schemaNode = successSchema(spec.paths[path][method], `${method} ${path}`);
+  return schemaNode === undefined ? undefined : `  ${name}: ${zodOf(schemaNode, `${method} ${path}`)},`;
+}).filter((entry) => entry !== undefined);
+
 const HEADER = '// Generated from packages/api/openapi.json by scripts/generate-api.mjs. Do not edit by hand.\n';
 const schema = HEADER + astToString(await openapiTS(spec));
-const operationsSource = `${HEADER}import { type Call, type Result, request } from '../runtime';
-import type { paths } from './schema';
+const validatorsSource = `${HEADER}import { z } from 'zod';
 
-${operations.map(({ name, method, path }) => `export const ${name} = (...[args, options]: Call<paths['${path}']['${method}']>) =>
-  request<Result<paths['${path}']['${method}']>>('${method}', '${path}', args, options);`).join('\n\n')}
+${componentSource}
+
+export const responseSchemas = {
+${responseEntries.join('\n')}
+} as const;
 `;
 
-const files = { 'schema.ts': schema, 'operations.ts': operationsSource };
+const withResponseSchema = new Set(responseEntries.map((entry) => entry.trim().split(':')[0]));
+const operationsSource = `${HEADER}import { type Call, type Result, request } from '../runtime';
+import type { paths } from './schema';
+import { responseSchemas } from './validators';
+
+${operations.map(({ name, method, path }) => `export const ${name} = (...[args, options]: Call<paths['${path}']['${method}']>) =>
+  request<Result<paths['${path}']['${method}']>>('${method}', '${path}', args, options${withResponseSchema.has(name) ? `, responseSchemas.${name}` : ''});`).join('\n\n')}
+`;
+
+const files = { 'schema.ts': schema, 'validators.ts': validatorsSource, 'operations.ts': operationsSource };
 let stale = false;
 for (const [file, content] of Object.entries(files)) {
   const target = join(outDir, file);

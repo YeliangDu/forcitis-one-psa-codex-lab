@@ -18,13 +18,10 @@ final class SeeyonViewSql {
     /** The startup check requires the database to match it exactly. */
     static final Map<String, List<String>> VIEW_COLUMNS = columns();
 
-    /** Every unit and person in scope lies in the subtree below this hierarchy path. */
-    static final String ROOT_PATH = "00000001";
     static final int PATH_LEVEL_LENGTH = 4;
-    static final String ROOT_PATH_PREFIX = ROOT_PATH + "%";
 
     static final String ORG_UNITS = "SELECT ID, CODE, NAME, SORT_ID, PATH, IS_DELETED, IS_INTERNAL, IS_ENABLE, CATEGORY, "
-            + "DELIVERY_FLAG_ENUM_ID FROM " + SCHEMA + "." + ORG_UNIT_VIEW + " WHERE PATH LIKE '" + ROOT_PATH_PREFIX + "'";
+            + "DELIVERY_FLAG_ENUM_ID FROM " + SCHEMA + "." + ORG_UNIT_VIEW + " WHERE PATH LIKE :rootPathPrefix";
 
     /** Type ids are parameters, never literals. */
     static final String RELATIONSHIPS = "SELECT SOURCE_MEMBER_ID, ORG_UNIT_ID, RELATIONSHIP_TYPE_ID, MEMBER_IS_DELETED FROM "
@@ -37,7 +34,7 @@ final class SeeyonViewSql {
 
     /** Same scope for bulk and single lookups. */
     static final String MEMBER_SCOPE = " WHERE ID IS NOT NULL AND IS_INTERNAL = 1 AND CODE IS NOT NULL AND CODE <> '' "
-            + "AND ORG_UNIT_ID IS NOT NULL AND ORG_UNIT_PATH LIKE '" + ROOT_PATH_PREFIX + "'";
+            + "AND ORG_UNIT_ID IS NOT NULL AND ORG_UNIT_PATH LIKE :rootPathPrefix";
 
     static final String MEMBERS = MEMBER_SELECT + MEMBER_SCOPE;
 
@@ -47,6 +44,7 @@ final class SeeyonViewSql {
 
     static final String COUNT_RELATIONSHIPS_OF_TYPE = "SELECT COUNT(*) FROM " + SCHEMA + "." + ORG_RELATIONSHIP_VIEW
             + " WHERE RELATIONSHIP_TYPE_ID = :typeId";
+    static final String COUNT_UNITS_AT_ROOT = "SELECT COUNT(*) FROM " + SCHEMA + "." + ORG_UNIT_VIEW + " WHERE PATH = :rootPath";
     static final String COUNT_DELIVERY_MARKED = "SELECT COUNT(*) FROM " + SCHEMA + "." + ORG_UNIT_VIEW
             + " WHERE DELIVERY_FLAG_ENUM_ID = :enumId";
     static final String COUNT_FEE_EARNER_MARKED = "SELECT COUNT(*) FROM " + SCHEMA + "." + ORG_MEMBER_VIEW

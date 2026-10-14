@@ -4,11 +4,11 @@ export const LOGIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   PLATFORM_IDENTITY_NETWORK_DENIED: '应急管理员只能在公司内网登录',
   PLATFORM_IDENTITY_STATE_INVALID: '登录已失效，请重新发起扫码登录',
   PLATFORM_IDENTITY_WECOM_CODE_INVALID: '企业微信授权已失效，请重新扫码登录',
-  PLATFORM_IDENTITY_WECOM_NOT_BOUND: '该企业微信账号尚未对应到员工，请联系管理员',
+  PLATFORM_IDENTITY_WECOM_NOT_BOUND: '该企业微信用户尚未对应到员工，请联系管理员',
   PLATFORM_IDENTITY_TICKET_INVALID: '单点登录票据无效，请从门户重新进入',
   PLATFORM_IDENTITY_TICKET_REPLAYED: '单点登录票据已使用过，请从门户重新进入',
   PLATFORM_IDENTITY_SSO_UNAVAILABLE: '致远暂时无法验证登录，请稍后重试或回到老系统登录',
-  PLATFORM_IDENTITY_ACCOUNT_DISABLED: '账号已停用，请联系管理员',
+  PLATFORM_IDENTITY_ACCOUNT_DISABLED: '用户账号已停用，请联系管理员',
   PLATFORM_IDENTITY_EMPLOYEE_SEPARATED: '员工已离职，无法登录',
   PLATFORM_IDENTITY_ROLE_NOT_ALLOWED: '该登录方式不允许使用此角色',
 };

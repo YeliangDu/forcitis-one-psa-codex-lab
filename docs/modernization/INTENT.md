@@ -146,21 +146,32 @@
 | 每个阶段实施前增加「流程梳理」步骤：产出现状流程（代码、OA 盘点、生产计数）、目标流程、差异清单，差异逐条由我决定，结果写入 INTENT 和 brief 的行为契约。先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件，再从 Phase 1a 涉及的流程开始做。（2026-10-14，经 psa-coordinator 转达） | SESSION_PLAYBOOK §13；process/README.md；brief 各阶段入口条件（1a 为补做）与 §5「流程梳理结论」（rules/build_brief.py 生成） |
 | Phase 1a 流程梳理范围：「按建议 7 个、按此顺序 (Recommended)」（登录与会话；组织与人员同步；审批通用流程；TIMESHEET 审批；合并待办与通知；业务编号；审计） | process/1a/（每个流程一份）；status/units/065-Phase-1a-流程梳理.md |
 | 推迟项按新原则重审（2026-10-14，psa-coordinator 询问）：「同意，全部在 1a 做 (Recommended)」 | G-1、G-2 会签、RULE-302、RULE-268/269/285/309、RULE-300 剩余、H5（企业微信静默登录、待办、审批详情）在 1a 完成；仍后做项与理由见 phase1a/DEFERRED.md |
+| 「1a 涉及哪些聚合？状态机是怎样的？」→ 状态机收进聚合并加守护：「现在就改，并加守护 (Recommended)」（2026-10-14，psa-coordinator 询问） | 审批请求（含轮次）、同步批次、出站投递、工时单、账号 / 角色 / 法人 / 编号规则的启停与确认：合法转换表进领域对象、领域方法改状态、非法转换抛领域异常、仓储带前置状态条件或乐观锁；每个状态机穷举测试；守护禁止 application / infrastructure 直接写状态与 SQL 状态字面量赋值；状态机图写进架构 §3（Phase 1a 下一轮代理 A / B） |
 | 问「过渡期老系统自己的 A8 同步何时停」：「保留到老模块下线 (Recommended)」——老同步继续到老系统不再读老用户表为止（最迟 Phase 5），对账只比新快照与 A8，A8 访问登记改成一致说法 | process/1a/组织与人员同步.md（差异：老系统双同步）；contract.md |
 | ADR-0025 审批：「批准」 | ADR-0025 已采纳；同一提交标注 ADR-0011 第 2、4 条与 ADR-0023 第 2 条 L1 采集限制对一次性历史装载的适用已被 ADR-0025 取代 |
 | ADR-0026 D-1 员工法人归属：「部门→法人为默认，员工可单独指定并带生效区间 (Recommended)」（经 psa-coordinator 转达） | ADR-0026 第 2 项第 5 条：部门→法人对照（子部门继承）为默认，个别员工单独指定，二者带生效区间、按事实发生日取值；与流程梳理 D-1a-27 员工→法人生效区间表合并为同一模型 |
 | 问「同步被拦下谁来放行、问题发给谁」：「新设组织数据管理员 (Recommended)」——新增角色「组织数据管理员」（放行、法人维护、问题清单），由业务 Admin 指定人选；放行须填原因；HELD 与每日问题汇总用企业微信发给该角色 | process/1a/组织与人员同步.md（差异：放行人、问题出口）；contract.md；需改代码清单 |
 | ADR-0026 其余 11 项（D-2..D-7、D-9..D-12）：「全部按建议，并批准 ADR-0026 (Recommended)」（经 psa-coordinator 转达） | ADR-0026 状态改为已采纳；ADR-0009 状态标注第 4 条部分已被 ADR-0026 取代；REIMAGINED_ARCHITECTURE §3.2、AI_NATIVE_SPEC C1a-08/09 与 §5.3、SECURITY_INVARIANTS I-10..I-12 同步 |
+| 「领域事件是在1a 要考虑的吗」→「在 1a 做全 (Recommended)」（2026-10-14，psa-coordinator 询问） | 聚合在状态转换时记录事件、同事务交 Modulith 发布登记表、消费方幂等；打通 ApprovalCompleted → cost.timesheet；补法人、编号规则、账号、角色等对外有意义的事件；AsyncAPI 事件目录与代码一致；事件守护；架构 §3 事件流图（Phase 1a 下一轮） |
+| 「1a 还有哪些 DDD 设计需要现在考虑？」→「全部在 1a 做，并建 DDD 检查清单 (Recommended)」（2026-10-14，psa-coordinator 询问） | 法人维度与乐观锁直接实施；DMN 路由、审批与单据编排、跨模块强类型、错误链、读模型、上下文映射、审计与事件原则先出方案报用户；DDD 检查清单进 SESSION_PLAYBOOK 与 opus 复审提示 |
 | 问「对账怎么跑、差异怎么处理」：「每日自动+页面，差异须清零 (Recommended)」——每天自动对账并可手动触发；比较项加部门负责人、区域 AR、企业微信 ID；差异进问题清单，由组织数据管理员在 A8 修正后重新同步；出口要求零差异，不接受签字豁免 | process/1a/组织与人员同步.md（差异：对账）；contract.md；需改代码清单 |
 | ADR-0026 D-13 季度授权复核由谁负责：「内控 / 财务」（经 psa-coordinator 转达） | ADR-0026 第 6 项第 3 条：季度复核报表由内控 / 财务复核，超期提醒内控 / 财务负责人 |
 | 问「直属领导不合格时新系统记什么」：「写空+问题清单 (Recommended)」——不保留过时上级；审批取人按 RULE-250 往上推，推不到转流程管理员并告警；组织数据管理员收到问题后去 A8 修正 | process/1a/组织与人员同步.md（差异：汇报线不合格）；contract.md |
+| DDD 第 3 项审批路由 DMN（2026-10-14，psa-coordinator 询问）：「B 决策表管业务判断 (Recommended)」——修订检查点 2「1a 不引入 DMN」 | DMN 只管走哪几路、能否跳过、能否自动通过；取谁仍用类型化指派规则；REIMAGINED_ARCHITECTURE §2.1 注明修订 |
 | 问「员工离职后名下未处理的审批任务怎么办」：「按规则重新取人 (Recommended)」——同步发现离职后，该人待办按节点指派规则重新取人（汇报线往上推），取不到转流程管理员并告警；审计记录原处理人与新处理人 | process/1a/组织与人员同步.md、审批通用流程.md（差异：离职者在途待办）；contract.md；需改代码清单 |
+| DDD 第 6 项错误链位置：「新建 platform.web (Recommended)」（2026-10-14） | platform.web 技术模块：全局 ProblemDetail 处理器、OpenApiRequiredProperties 等跨模块 web 装配 |
 | 问「员工 / 部门归哪个法人、法人代码格式」：「1a 就建归属」——1a 即增加员工→法人生效区间表，由组织数据管理员维护（法人代码格式另问） | process/1a/组织与人员同步.md（差异：法人归属）；contract.md；需改代码清单 |
+| DDD 第 9 项审计与领域事件：「B 审计订阅领域事件 (Recommended)」；安全事件仍 recordIndependently（2026-10-14） | platform.audit 订阅领域事件（事件发布登记表保证不漏）；登录失败 / 拒绝访问直接独立事务记录 |
 | 问「A8 人员『是否内部』为 NULL 怎么处理」：「先查计数，规则同部门 (Recommended)」——用已授权只读通道查人员侧 NULL 行数（只取计数）；NULL 视为内部，并记入问题清单由组织数据管理员在 A8 补齐 | process/1a/组织与人员同步.md（差异：人员 NULL 标志）；contract.md；需改代码清单；生产计数待 psa-coordinator 确认访问方式 |
+| 审批超时：「工时要求T+1 审批完毕，这个是不是要现在考虑？」；T 从「提交审批当天 (Recommended)」起算；+1 按「工作日，需要工作日历 (Recommended)」；超时「提醒审批人」「升级给审批人的上级」「计入审批时效统计」（均 Recommended，不自动通过）（2026-10-14） | 1a 实现审批时限能力（时限由 DMN / 配置给出，TIMESHEET=提交日后第 1 个工作日结束前）、工作日历（节假日与调休）、到期提醒与升级（取不到上级给流程管理员并告警）、事件 ApprovalTaskOverdue / ApprovalTaskEscalated；不自动通过 |
 | 组织同步其余建议（逐项勾选）：「每 5 分钟同步,HELD 不设「拒绝」,法人停用规则,其余 5 项按现设计」——即：每 5 分钟全量同步；HELD 只能放行（填原因）或等源修复后自动恢复；法人停用后不能用于新单据编号、历史单据保留原法人；部门简称每天从老库只读视图刷新至新维护页上线；生日推迟到费用阶段；同一企业微信 ID 属多名在职者时都不存并记问题；账号由组织变更事件异步创建、登录未命中当场建档兜底；1a 不加岗位 / 法人变更事件 | process/1a/组织与人员同步.md；contract.md |
+| 工作日历（2026-10-14，psa-coordinator 询问）：归属「考勤与休假 organization.attendance (Recommended)」（BC 提前到 1a 建）；范围「一份默认日历，预留法人专属 (Recommended)」；时限口径：「这个旧系统已经有规则，看看能不能读到」 | organization.attendance 在 1a 建：工作日历结构、维护、查询「第 N 个工作日结束时刻」、未录入年份失败告警；TIMESHEET 截止与升级参数待 psa-1a-process-review 查实老系统规则后定，放 DMN / 配置不写死 |
 | 问「法人字母代码与 U8C 数字核算组织编码怎么对应」：「两种代码并存 (Recommended)」——法人表增加「U8C 核算组织编码」（数字，唯一）；字母代码继续用于业务编号；对接 U8C 与老系统按数字编码 | process/1a/组织与人员同步.md（差异：法人代码）；contract.md；需改代码清单 |
+| 平台约定 6 项（ID 策略、时间与时区、API 规范、可观测性、备份与恢复、配置与密钥）：「全部在 1a 做 (Recommended)」（2026-10-14，psa-coordinator 询问） | 先出方案（proposals/PHASE1A_PLATFORM_CONVENTIONS.md），有取舍的报用户定，再由下一轮代理实施；备份恢复与密钥写入 INFRA_RUNBOOK（执行属部署前事项） |
 | 问「外部调用方（YD、A8 门户、customization-login、BI、KM）怎么切换到签名票据」：「逐个切换、逐个批准 (Recommended)」——先盘点调用方清单（含查明 customization-login 的调用方）；每个调用方一份切换步骤、一把密钥；开启签发方由用户逐个批准并做安全复审；老端点到 Phase 5 才下线 | process/1a/登录与会话.md（差异：外部调用方切换）；contract.md |
+| 平台约定（2026-10-14，psa-coordinator 询问）：主键「UUIDv7 (Recommended)」；分页「游标分页 (Recommended)」；备份恢复「RPO ≤ 5 分钟、RTO ≤ 1 小时 (Recommended)」；告警「按级别分通道 (Recommended)」；并发版本传递未单独作答，按建议 If-Match / ETag | proposals/PHASE1A_PLATFORM_CONVENTIONS.md 标为已决定；A、B 合并后的下一批实施；INFRA_RUNBOOK 写入备份恢复与告警分级（接收群与值班人部署前定） |
 | 问「应急管理员账号怎么定」：「独立账号+运维开通 (Recommended)」——应急账号不绑员工、不依赖 A8；保留 2 个；由运维用受控脚本开通 / 启停 / 重置口令与 TOTP，全部审计；改口令后吊销其其他会话 | process/1a/登录与会话.md（差异：应急账号）；contract.md；需改代码清单 |
+| 生产库：「扩容现有实例共用」（不另开 RDS）（2026-10-14，psa-coordinator 转达） | INFRA_RUNBOOK D-1、one_db_roles_schemas.sql：生产沿用现有 PG 18 高可用实例，另建生产库与 one_prod_* 角色，连接数预算与按角色超时；实例扩容为部署前购买操作 |
 | 问「企业微信小程序怎么带会话」：「请求头带会话标识 (Recommended)」——同一服务端会话（同样的空闲 / 绝对时长与吊销），小程序用请求头携带会话标识、不用 Cookie，该入口不接受 Cookie 故无需 CSRF；不引入令牌对 | process/1a/登录与会话.md（差异：小程序会话载体）；contract.md；需改代码清单 |
 | 问「员工复职后角色怎么办」：「只授基础角色 (Recommended)」——复职时重新授予基础角色（employee），其余角色由管理员重新分配；审计记录 | process/1a/组织与人员同步.md D-1a-17；contract.md；需改代码清单 |
 | 问「T+1 工作日到哪一刻算超时」：「T+1 工作日 23:59 (Recommended)」——下一个工作日结束仍未处理即超时，次日早上提醒审批人；再过 1 个工作日升级给直属上级 | process/1a/TIMESHEET审批.md、审批通用流程.md（差异：审批时限）；contract.md；需改代码清单 |

@@ -58,7 +58,7 @@ export function SyncRunsPage() {
       title: '操作',
       render: (run) => (
         <>
-          <Button variant="default" onClick={() => setViewing(run.syncRunId)}>查看差异</Button>
+          <Button variant="default" onClick={() => setViewing(run.syncRunId)}>查看同步差异</Button>
           {canRelease(run, mayRelease) ? <Button onClick={() => setReleasing(run)}>放行</Button> : null}
         </>
       ),
@@ -71,8 +71,8 @@ export function SyncRunsPage() {
       <DataTable columns={columns} rows={runs.data} rowKey={(run) => run.syncRunId} emptyText="暂无同步记录" />
       <Dialog open={viewing !== undefined} title="同步差异" confirmText="关闭" cancelText="取消" onConfirm={() => setViewing(undefined)} onClose={() => setViewing(undefined)}>
         {detail.isPending ? <LoadingState /> : null}
-        {detail.isError ? <Notice tone="error" title="差异加载失败">{describeFailure(detail.error)}</Notice> : null}
-        {detail.isSuccess ? <DataTable columns={DIFF_COLUMNS} rows={detail.data.diffs} rowKey={(diff) => `${diff.entityKind ?? ''}:${diff.subjectKey ?? ''}:${diff.changeKind ?? diff.issueKind ?? ''}`} emptyText="没有差异" /> : null}
+        {detail.isError ? <Notice tone="error" title="同步差异加载失败">{describeFailure(detail.error)}</Notice> : null}
+        {detail.isSuccess ? <DataTable columns={DIFF_COLUMNS} rows={detail.data.diffs} rowKey={(diff) => `${diff.entityKind ?? ''}:${diff.subjectKey ?? ''}:${diff.changeKind ?? diff.issueKind ?? ''}`} emptyText="没有同步差异" /> : null}
       </Dialog>
       <Dialog
         open={releasing !== undefined}
@@ -84,7 +84,7 @@ export function SyncRunsPage() {
       >
         {release.isError ? <Notice tone="error" title="放行失败">{releaseFailure(release.error)}</Notice> : null}
         <p>{releasing?.heldReason ?? '该同步因组织数据大幅减少而被中止。'}</p>
-        <p>放行后，本次同步的组织数据会立即生效。请先核对差异再放行。</p>
+        <p>放行后，本次同步的组织数据会立即生效。请先核对同步差异再放行。</p>
       </Dialog>
     </>
   );

@@ -8,10 +8,12 @@
     "typecheck": "pnpm -r --workspace-concurrency=1 run typecheck",
     "lint": "eslint . --max-warnings 0 && stylelint \"{apps,packages}/*/src/**/*.css\"",
     "check:structure": "node scripts/check-structure.mjs",
+    "check:copy": "node scripts/check-copy-glossary.mjs",
+    "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "check:lint-config": "node scripts/check-lint-config.mjs",
     "test": "pnpm -r --workspace-concurrency=1 run test",
     "build": "pnpm -r --workspace-concurrency=1 run build",
-    "verify": "pnpm check:generated && pnpm typecheck && pnpm check:lint-config && pnpm lint && pnpm check:structure && pnpm test && pnpm build"
+    "verify": "pnpm check:generated && pnpm typecheck && pnpm check:lint-config && pnpm lint && pnpm check:structure && pnpm check:copy && pnpm test:scripts && pnpm test && pnpm build"
   },
   "devDependencies": {
     "eslint": "^9.39.5",
@@ -22,7 +24,8 @@
     "openapi-typescript": "^7.13.0",
     "stylelint": "^16.26.1",
     "typescript": "catalog:",
-    "typescript-eslint": "^8.71.2"
+    "typescript-eslint": "^8.71.2",
+    "yaml": "^2.9.1"
   },
   "packageManager": "pnpm@12.4.2",
   "engines": {
