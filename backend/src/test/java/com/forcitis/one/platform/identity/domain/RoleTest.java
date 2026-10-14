@@ -15,11 +15,11 @@ import org.junit.jupiter.api.Test;
 class RoleTest {
 
     static Role custom(String code, Set<String> permissions) {
-        return Role.restore(new RoleId(7), new RoleCode(code), code, "CUSTOM", "ENABLED", AccessScopeKind.SELF, false, permissions, 2);
+        return Role.restore(new RoleId(7), new RoleCode(code), code, "CUSTOM", "ENABLED", AccessScopeKind.SELF, false, permissions, 2, 2);
     }
 
     static Role system(String code, Set<String> permissions) {
-        return Role.restore(new RoleId(1), new RoleCode(code), code, "SYSTEM", "ENABLED", AccessScopeKind.ALL, true, permissions, 0);
+        return Role.restore(new RoleId(1), new RoleCode(code), code, "SYSTEM", "ENABLED", AccessScopeKind.ALL, true, permissions, 0, 0);
     }
 
     @Test
@@ -71,7 +71,7 @@ class RoleTest {
     void effectivePermissions() {
         Role enabled = custom("a", Set.of(Permission.Codes.TIMESHEET_SUBMIT));
         Role disabled = Role.restore(new RoleId(8), new RoleCode("b"), "b", "CUSTOM", "DISABLED", AccessScopeKind.SELF, false,
-                Set.of(Permission.Codes.TIMESHEET_APPROVE), 0);
+                Set.of(Permission.Codes.TIMESHEET_APPROVE), 0, 0);
 
         AccessProfile profile = AccessProfile.of(List.of(enabled, disabled));
 
@@ -90,7 +90,7 @@ class RoleTest {
         assertThat(admin.permissionCodes()).hasSize(Permission.values().length);
         assertThat(admin.hasPermission(Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE)).isTrue();
 
-        Role disabledAdmin = Role.restore(new RoleId(1), new RoleCode("super_admin"), "x", "SYSTEM", "DISABLED", AccessScopeKind.ALL, true, Set.of(), 0);
+        Role disabledAdmin = Role.restore(new RoleId(1), new RoleCode("super_admin"), "x", "SYSTEM", "DISABLED", AccessScopeKind.ALL, true, Set.of(), 0, 0);
         assertThat(AccessProfile.of(List.of(disabledAdmin)).isAdministrator()).isFalse();
     }
 

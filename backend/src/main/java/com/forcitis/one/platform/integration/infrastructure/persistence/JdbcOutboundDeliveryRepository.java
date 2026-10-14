@@ -23,7 +23,7 @@ import org.springframework.stereotype.Repository;
 class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
 
     private static final String COLUMNS = "id, deduplication_key, recipients, title, description, target_url, status, attempt_count, "
-            + "response_code, handled_note, kind, target_key, correlation_id, version";
+            + "response_code, handled_note, kind, target_key, correlation_id, version, event_count";
 
     private final JdbcClient jdbc;
 
@@ -36,9 +36,9 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
         return jdbc.sql("""
                         insert into platform_integration.outbound_deliveries
                                (deduplication_key, recipients, skipped_recipients, title, description, target_url, status,
-                                next_attempt_at, last_error, kind, target_key, correlation_id, created_at, updated_at)
+                                next_attempt_at, last_error, kind, target_key, correlation_id, created_at, updated_at, version, event_count)
                         values (:key, :recipients, :skipped, :title, :description, :url, :status, :next, :reason, :kind, :target,
-                                :correlation, :now, :now)
+                                :correlation, :now, :now, 0, 0)
                         on conflict (deduplication_key) do nothing
                         """)
                 .param("key", unsaved.deduplicationKey())
@@ -140,7 +140,7 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                 split(rs.getString("recipients")), rs.getString("title"), rs.getString("description"), rs.getString("target_url"),
                 rs.getString("status"), rs.getInt("attempt_count"), rs.getString("response_code"), rs.getString("handled_note"),
                 DeliveryKind.valueOf(rs.getString("kind")), rs.getString("target_key"), rs.getObject("correlation_id", UUID.class),
-                rs.getLong("version"));
+                rs.getLong("version"), rs.getLong("event_count"));
     }
 
     private static String join(List<WecomUserId> ids) {

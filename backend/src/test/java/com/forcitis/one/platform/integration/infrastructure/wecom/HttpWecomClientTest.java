@@ -86,7 +86,7 @@ class HttpWecomClientTest {
 
     private static OutboundDelivery delivery() {
         return OutboundDelivery.restore(new OutboundDeliveryId(1), "approval-task:42", List.of(new WecomUserId("alice"), new WecomUserId("bob")),
-                "title", "description", "https://one.example.test/tasks/42", "PENDING", 1, null, null, DeliveryKind.CARD, null, null, 0);
+                "title", "description", "https://one.example.test/tasks/42", "PENDING", 1, null, null, DeliveryKind.CARD, null, null, 0, 0);
     }
 
     @Test
@@ -264,7 +264,7 @@ class HttpWecomClientTest {
         wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\"}")));
         OutboundDelivery sent = OutboundDelivery.restore(new OutboundDeliveryId(1), "approval-task:42",
                 List.of(new WecomUserId("alice"), new WecomUserId("bob")), "title", "description", "https://one.example.test/tasks/42",
-                "SENT", 1, "rc-1", null, DeliveryKind.CARD, null, null, 0);
+                "SENT", 1, "rc-1", null, DeliveryKind.CARD, null, null, 0, 0);
 
         client.replaceWithHandledNote(sent, "handled by Carol");
 

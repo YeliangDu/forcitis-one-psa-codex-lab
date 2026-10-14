@@ -15,6 +15,7 @@ import com.forcitis.one.organization.workforce.domain.Position;
 import com.forcitis.one.organization.workforce.domain.PositionId;
 import com.forcitis.one.organization.workforce.domain.PositionStatus;
 import com.forcitis.one.organization.workforce.domain.Reconciliation;
+import com.forcitis.one.organization.workforce.domain.RegisteredEmployee;
 import com.forcitis.one.organization.workforce.domain.RegionCategory;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -85,8 +86,16 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     }
 
     @Override
-    public void saveStaffEmployee(StaffEmployee member, SyncRunId syncRunId, Instant now) {
-        upsertStaff(member, syncRunId == null ? null : syncRunId.value(), Timestamp.from(now));
+    public void saveRegisteredEmployee(RegisteredEmployee registered, Instant now) {
+        upsertStaff(registered.staff(), null, Timestamp.from(now));
+        jdbc.sql("update organization_workforce.employees set event_count = :sequence where id = :id")
+                .param("sequence", registered.eventSequenceAfterSave()).param("id", registered.staff().userId().value()).update();
+    }
+
+    @Override
+    public long findEmployeeEventSequence(UserId userId) {
+        return jdbc.sql("select event_count from organization_workforce.employees where id = :id").param("id", userId.value())
+                .query(Long.class).optional().orElse(0L);
     }
 
     private void upsertOrgUnit(OrgUnit u, Long run, Timestamp now) {
@@ -119,9 +128,9 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
         Assignment a = s.assignment();
         jdbc.sql("""
                 insert into organization_workforce.employees (id, employee_code, display_name, login_name, email, gender,
-                       wecom_user_id, employment_status, is_fee_earner, separated_at, last_sync_run_id, created_at, updated_at)
+                       wecom_user_id, employment_status, is_fee_earner, separated_at, last_sync_run_id, created_at, updated_at, event_count)
                 values (:id, :code, :name, :login, :email, :gender, :wecom, :status, :feeEarner,
-                        case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :run, :now, :now)
+                        case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :run, :now, :now, 0)
                 on conflict (id) do update set employee_code = excluded.employee_code, display_name = excluded.display_name,
                        login_name = excluded.login_name, email = excluded.email, gender = excluded.gender,
                        wecom_user_id = excluded.wecom_user_id, employment_status = excluded.employment_status,

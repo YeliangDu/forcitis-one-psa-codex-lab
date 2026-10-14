@@ -20,7 +20,9 @@ public interface OrgSnapshotRepository {
     /** The order never trips the unique keys. */
     void save(Reconciliation changes, SyncRunId syncRunId, Instant now);
 
-    void saveStaffEmployee(StaffEmployee member, SyncRunId syncRunId, Instant now);
+    void saveRegisteredEmployee(RegisteredEmployee registered, Instant now);
+
+    long findEmployeeEventSequence(UserId userId);
 
     Set<OrgUnitId> findOrgUnitIds();
 

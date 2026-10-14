@@ -45,14 +45,15 @@ class JdbcRoleRepository implements RoleRepository {
     @Override
     public Role insert(Role role) {
         Optional<Long> id = jdbc.sql("""
-                        insert into platform_identity.roles (code, name, kind, status, access_scope, is_administrative, version)
-                        values (:code, :name, :kind, :status, :scope, :administrative, :version)
+                        insert into platform_identity.roles (code, name, kind, status, access_scope, is_administrative, version, event_count)
+                        values (:code, :name, :kind, :status, :scope, :administrative, :version, :eventSequence)
                         on conflict do nothing
                         returning role_id
                         """)
                 .param("code", role.code().value()).param("name", role.name()).param("kind", role.kind().name())
                 .param("status", role.status().name()).param("scope", role.accessScope().name())
                 .param("administrative", role.administrative()).param("version", role.versionAfterSave())
+                .param("eventSequence", role.eventSequenceAfterSave())
                 .query(Long.class).optional();
         if (id.isEmpty()) {
             boolean codeTaken = jdbc.sql("select exists (select 1 from platform_identity.roles where lower(code) = lower(:code))")
@@ -75,11 +76,11 @@ class JdbcRoleRepository implements RoleRepository {
         int updated = jdbc.sql("""
                         update platform_identity.roles
                            set name = :name, status = :status, access_scope = :scope,
-                               updated_at = now(), version = :next
+                               updated_at = now(), version = :next, event_count = :eventSequence
                          where role_id = :id and version = :version and status = :loadedStatus
                         """)
                 .param("name", role.name()).param("status", role.status().name()).param("scope", role.accessScope().name())
-                .param("next", role.versionAfterSave()).param("id", role.roleId().value()).param("version", role.version())
+                .param("next", role.versionAfterSave()).param("eventSequence", role.eventSequenceAfterSave()).param("id", role.roleId().value()).param("version", role.version())
                 .param("loadedStatus", role.loadedStatus().name()).update();
         if (updated != 1) {
             throw staleRole(role);

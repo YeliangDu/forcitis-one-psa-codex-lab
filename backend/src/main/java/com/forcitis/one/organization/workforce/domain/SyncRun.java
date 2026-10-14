@@ -44,8 +44,8 @@ public final class SyncRun extends AggregateRoot {
 
     private SyncRun(SyncRunId syncRunId, SyncTrigger trigger, SyncRunStatus status, Instant startedAt, Instant finishedAt,
                     RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
-                    SyncRunId releasedByRunId, long version) {
-        super(version);
+                    SyncRunId releasedByRunId, long version, long eventSequence) {
+        super(version, eventSequence);
         this.syncRunId = syncRunId;
         this.trigger = Objects.requireNonNull(trigger, "trigger");
         this.status = Objects.requireNonNull(status, "status");
@@ -62,20 +62,20 @@ public final class SyncRun extends AggregateRoot {
 
     /** A run that is about to be inserted; the repository gives it its id with withId. */
     public static SyncRun unsaved(SyncTrigger trigger, Instant startedAt) {
-        return new SyncRun(null, trigger, SyncRunStatus.RUNNING, startedAt, null, null, null, null, null, null, null, 0);
+        return new SyncRun(null, trigger, SyncRunStatus.RUNNING, startedAt, null, null, null, null, null, null, null, 0, 0);
     }
 
     public SyncRun withId(SyncRunId id) {
         return new SyncRun(Objects.requireNonNull(id, "id"), trigger, status, startedAt, finishedAt, stats, heldReason, failureReason,
-                releasedBy, releasedAt, releasedByRunId, version());
+                releasedBy, releasedAt, releasedByRunId, version(), eventSequence());
     }
 
     /** Rebuilds a stored run; status is the stored name. */
     public static SyncRun restore(SyncRunId syncRunId, SyncTrigger trigger, String status, Instant startedAt, Instant finishedAt,
                                   RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
-                                  SyncRunId releasedByRunId, long version) {
+                                  SyncRunId releasedByRunId, long version, long eventSequence) {
         return new SyncRun(syncRunId, trigger, SyncRunStatus.valueOf(status), startedAt, finishedAt, stats, heldReason,
-                failureReason, releasedBy, releasedAt, releasedByRunId, version);
+                failureReason, releasedBy, releasedAt, releasedByRunId, version, eventSequence);
     }
 
     public SyncRunId syncRunId() {

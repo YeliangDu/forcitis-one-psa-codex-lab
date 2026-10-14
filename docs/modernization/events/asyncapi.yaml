@@ -86,6 +86,11 @@ channels:
     messages:
       AccountRolesReplaced:
         $ref: '#/components/messages/AccountRolesReplaced'
+  accountOpened:
+    address: platform.identity.AccountOpened
+    messages:
+      AccountOpened:
+        $ref: '#/components/messages/AccountOpened'
   numberingRuleConfirmed:
     address: platform.numbering.NumberingRuleConfirmed
     messages:
@@ -171,6 +176,11 @@ channels:
     messages:
       LegalEntityCodeCorrected:
         $ref: '#/components/messages/LegalEntityCodeCorrected'
+  employeeRegistered:
+    address: organization.workforce.EmployeeRegistered
+    messages:
+      EmployeeRegistered:
+        $ref: '#/components/messages/EmployeeRegistered'
 operations:
   publishApprovalCompleted:
     action: send
@@ -431,6 +441,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/accountRolesReplaced/messages/AccountRolesReplaced'
+  publishAccountOpened:
+    action: send
+    channel:
+      $ref: '#/channels/accountOpened'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/accountOpened/messages/AccountOpened'
+  handleAccountOpenedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/accountOpened'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/accountOpened/messages/AccountOpened'
   publishNumberingRuleConfirmed:
     action: send
     channel:
@@ -669,6 +693,27 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/legalEntityCodeCorrected/messages/LegalEntityCodeCorrected'
+  publishEmployeeRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/employeeRegistered'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
+  handleEmployeeRegisteredInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeRegistered'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
+  handleEmployeeRegisteredInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeRegistered'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
 components:
   schemas:
     EventEnvelope:
@@ -1612,6 +1657,42 @@ components:
             items:
               type: string
               x-type: RoleId
+    AccountOpened:
+      name: AccountOpened
+      title: 账号开立（含开立时授予的角色）
+      x-event:
+        eventType: platform.identity.AccountOpened
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AccountOpened
+        aggregate: UserAccount
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
+        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        - roleIds
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
+          roleIds:
+            type: array
+            items:
+              type: string
+              x-type: RoleId
     NumberingRuleConfirmed:
       name: NumberingRuleConfirmed
       title: 编号规则确认
@@ -2199,12 +2280,12 @@ components:
             description: 稳定 ID 的字符串形式
     OrgSnapshotChanged:
       name: OrgSnapshotChanged
-      title: 组织快照发生变化（同步或首次登录建档）
+      title: 组织快照因同步发生变化
       x-event:
         eventType: organization.workforce.OrgSnapshotChanged
         version: 1
         class: com.forcitis.one.organization.workforce.events.OrgSnapshotChanged
-        aggregate: SyncRun 或 Employee
+        aggregate: SyncRun
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
@@ -2402,3 +2483,33 @@ components:
           newCode:
             type: string
             x-type: LegalEntityCode
+    EmployeeRegistered:
+      name: EmployeeRegistered
+      title: 员工在首次登录时被登记进组织快照
+      x-event:
+        eventType: organization.workforce.EmployeeRegistered
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeRegistered
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.identity
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.RegisteredEmployeeTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          userId:
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式

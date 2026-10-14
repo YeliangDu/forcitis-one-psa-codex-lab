@@ -29,7 +29,7 @@ class SyncRunStateMachineTest {
     static final SnapshotChange NO_CHANGE = new SnapshotChange(List.of(), List.of(), List.of());
 
     static SyncRun at(SyncRunStatus status) {
-        return SyncRun.restore(new SyncRunId(5), SyncTrigger.SCHEDULED, status.name(), NOW, null, null, null, null, null, null, null, 3);
+        return SyncRun.restore(new SyncRunId(5), SyncTrigger.SCHEDULED, status.name(), NOW, null, null, null, null, null, null, null, 3, 3);
     }
 
     @Test
@@ -74,7 +74,8 @@ class SyncRunStateMachineTest {
             assertThat(e.envelope().aggregateId()).isEqualTo("5");
         });
         assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(4L, 5L);
-        assertThat(busy.version()).isEqualTo(5);
+        assertThat(busy.eventSequence()).isEqualTo(5);
+        assertThat(busy.version()).isEqualTo(4);
     }
 
     @Test

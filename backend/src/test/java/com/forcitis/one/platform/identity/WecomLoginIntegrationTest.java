@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.identity.events.AccountOpened;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
@@ -182,7 +183,7 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
                 select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
                  where ar.user_id = 1001
                 """).query(String.class).list()).containsExactly("employee");
-        assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.account.created", "platform.identity.role.granted");
+        assertThat(recordedEvents.stream(AccountOpened.class)).singleElement().satisfies(e -> assertThat(e.userId().value()).isEqualTo(1001));
 
         jdbc.sql("delete from platform_identity.account_roles where user_id = 1001").update();
         loginWithWecom(1001);

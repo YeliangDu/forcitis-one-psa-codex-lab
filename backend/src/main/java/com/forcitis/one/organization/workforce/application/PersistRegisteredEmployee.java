@@ -24,8 +24,8 @@ class PersistRegisteredEmployee {
 
     @Transactional
     public void execute(StaffEmployee staff) {
-        RegisteredEmployee registered = RegisteredEmployee.onFirstLogin(staff);
-        snapshots.saveStaffEmployee(registered.staff(), null, clock.instant());
+        RegisteredEmployee registered = RegisteredEmployee.onFirstLogin(staff, 0, snapshots.findEmployeeEventSequence(staff.userId()));
+        snapshots.saveRegisteredEmployee(registered, clock.instant());
         events.publish(registered);
     }
 }
