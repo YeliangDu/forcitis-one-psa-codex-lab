@@ -483,11 +483,69 @@ architecture-guardrails/frontend（React 版：修复了 ESLint 配置块互相�
 "依据决定：BI_SCOPE.md §6.1 与 INTENT.md（Q1–Q12，2026-10-14；Q3–Q12 由 psa-bi-decisions 逐项确认）；BI_SCOPE.md（现状盘点、证据表、4 个 BC、分层与总线矩阵、OAT 声明字段、与 accounting.reporting 的边界、过渡方案、工具选项、阶段草案）；BI、BI-olap、BI-release 仓库（只读，含 FORCITIS/BI issue #59 与 PR #36–#58）；OAT 机器主数据（ddd-theory `cases/forcitis-aec-ops/*.csv`）与 KPI 体系设计；GLOSSARY.md、glossary/terms.yaml；ADR-0016、0017、0018、0021、ADR-0022 初稿；OA_PROCESS_INVENTORY.md；GUIDING_PRINCIPLES §8、§9a",
 "现代化只做数据层、BI 工具和看板留给 BI 项目（用户已改变边界；且看板自带算法会继续造成口径分裂）；新经营分析继续从 A8、老 PSA 采集并先上线（在老数据源上新建模已由用户暂停，6a–6f 切换后源头不再增长）；在 `reporting` 中重算三大报表（与 `accounting.reporting` 重复建设、口径不一）；过渡期写回 A8 让老视图继续可用（违反 ADR-0021）"),
 ]
-import os
+LIFECYCLE = """## ADR 生命周期与变更规则
+
+用户 2026-10-14：「已采纳的 ADR 不改正文，改决定就新增 ADR，标明「取代 ADR-00xx」，旧 ADR 改为已被取代、正文保留。」「新 ADR 必须写影响面、迁移方案、回滚方案，并同步修改对应守护规则。」完整的变更治理（配置类、代码类、ADR 类，已过账事实只能冲销）见 `../SESSION_PLAYBOOK.md` §12。
+
+**状态**
+
+| 状态 | 含义 | 谁来改 |
+|---|---|---|
+| 提议 | 已起草，未经用户批准；正文可以修改 | 工作会话起草 |
+| 已采纳 | 用户批准（状态中引用用户原话）；**正文冻结** | 用户批准后由会话改状态 |
+| 已被 ADR-00yy 取代 | 决定被新 ADR 整份替换；正文保留不动，只改状态行 | 新 ADR 采纳时同一提交中修改 |
+| 已废弃 | 决定不再适用且没有替代；正文保留，状态中写明原因与用户原话 | 用户决定 |
+
+部分取代：新 ADR 只替换旧 ADR 的某一条时，新 ADR 写「取代：ADR-00xx 第 N 条」，旧 ADR 状态写「已采纳（第 N 条已被 ADR-00yy 取代）」，正文同样不动。
+
+**规则**
+1. 已采纳的 ADR 只允许改状态行；任何决定上的变化（含修订、补充、例外）都新增 ADR，并在「取代」中列出被取代的 ADR 或条款。
+2. 新 ADR 除背景、决定、后果、证据、备选方案外，必须有四个小节：**影响面**（受影响的 BC、表、接口、阶段、文档）、**迁移方案**（数据与在途单据如何过渡）、**回滚方案**（出问题时如何退回、退回的边界）、**需同步修改的守护规则**（ArchUnit、词表、DDL、lint 等，以及在哪个 PR 中修改）。
+3. 新 ADR 在提议阶段经 `code-modernization:architecture-critic`（opus）对抗性评审，评审意见与处理结果写入证据；用户批准后改为已采纳。
+4. 所有 ADR 由 `build_adrs.py` 生成，不手改 `ADR-*.md` 与本 README。生成器校验：状态必须属于上表；ADR-0024 起缺少必备小节即生成失败；声明取代时被取代 ADR 的状态必须同步标注。
+5. ADR-0001 至 ADR-0023 早于本规则，不追补必备小节；其中 ADR-0022、ADR-0023 仍为提议，建议在采纳前补齐。"""
+import os, re, sys
+os.chdir(os.path.dirname(os.path.abspath(__file__)))   # 产物总是写在 adr/ 下，与从哪个目录运行无关
+# ── 变更治理（用户 2026-10-14，SESSION_PLAYBOOK §12；本目录 README「ADR 生命周期与变更规则」）──
+# ADRS 每项为 8 元组 (no, title, status, ctx, dec, cons, ev, alt)，或 9 元组：末尾多一个 dict，可含
+#   supersedes: ["ADR-0016", "ADR-0016 第 6 条", ...]   取代（整份）或部分取代（带「第 N 条」）
+#   impact / migration / rollback / guards: 影响面 / 迁移方案 / 回滚方案 / 需同步修改的守护规则
+# 校验（不通过则生成失败）：
+#   1. 状态以「提议」「已采纳」「已被 ADR-」「已废弃」之一开头；
+#   2. LEGACY_MAX 之后的新 ADR 必须写全 impact / migration / rollback / guards；
+#   3. 已采纳的 ADR 声明取代 ADR-x 时：整份取代 → ADR-x 状态须以「已被 ADR-本号 取代」开头；
+#      部分取代 → ADR-x 状态中须含「已被 ADR-本号 取代」（例：已采纳（第 6 条已被 ADR-0024 取代））。
+LEGACY_MAX = "0023"   # 本规则生效前已存在的 ADR，不追补必备小节（缺口清单见 README）
+STATES = ("提议", "已采纳", "已被 ADR-", "已废弃")
+REQUIRED = (("impact", "影响面"), ("migration", "迁移方案"), ("rollback", "回滚方案"), ("guards", "需同步修改的守护规则"))
+rows = [(a[:8], a[8] if len(a) > 8 else {}) for a in ADRS]
+status_of = {a[0]: a[2] for a, _ in rows}
+errors = []
+for (no, title, status, *_), ext in rows:
+    if not status.startswith(STATES):
+        errors.append(f"ADR-{no}: 状态须以 {'/'.join(STATES)} 开头：{status[:30]}")
+    if no > LEGACY_MAX:
+        for key, name in REQUIRED:
+            if not str(ext.get(key, "")).strip():
+                errors.append(f"ADR-{no}: 缺少必备小节「{name}」（{key}）")
+    if status.startswith("已采纳"):
+        for ref in ext.get("supersedes", []):
+            m = re.match(r"ADR-(\d{4})(.*)", ref)
+            if not m or m.group(1) not in status_of:
+                errors.append(f"ADR-{no}: 取代对象不存在：{ref}"); continue
+            old, partial, mark = status_of[m.group(1)], m.group(2).strip(), f"已被 ADR-{no} 取代"
+            if (partial and mark not in old) or (not partial and not old.startswith(mark)):
+                errors.append(f"ADR-{no}: 取代 {ref}，但 ADR-{m.group(1)} 的状态未标「{mark}」")
+if errors:
+    sys.exit("ADR 校验失败：\n" + "\n".join(errors))
+
 idx = ["# FORCITIS one 现代化 ADR", "", "本目录记录 PSA → FORCITIS one 现代化中的架构决策。STACK_DECISION.md、NAMING_STANDARD.md、GUIDING_PRINCIPLES.md、MODERNIZATION_BRIEF.md 只引用这里的决定，不另立结论。参照文档：forcitis-one `docs/adr/0001-tech-stack.md`（只参照文本，不参照代码）。", "", "| ADR | 标题 | 状态 |", "|---|---|---|"]
-for no, title, status, ctx, dec, cons, ev, alt in ADRS:
+for (no, title, status, ctx, dec, cons, ev, alt), ext in rows:
     fn = f"ADR-{no}.md"
-    open(fn, "w", encoding="utf-8").write(f"# ADR-{no}：{title}\n\n- **状态**：{status}\n- **日期**：2026-10-14\n\n## 背景\n\n{ctx}\n\n## 决定\n\n{dec}\n\n## 后果\n\n{cons}\n\n## 证据\n\n{ev}\n\n## 备选方案（未采用）\n\n{alt}\n")
+    sup = f"- **取代**：{'、'.join(ext['supersedes'])}\n" if ext.get("supersedes") else ""
+    extra = "".join(f"## {name}\n\n{ext[key]}\n\n" for key, name in REQUIRED if ext.get(key))
+    open(fn, "w", encoding="utf-8").write(f"# ADR-{no}：{title}\n\n- **状态**：{status}\n- **日期**：2026-10-14\n{sup}\n## 背景\n\n{ctx}\n\n## 决定\n\n{dec}\n\n{extra}## 后果\n\n{cons}\n\n## 证据\n\n{ev}\n\n## 备选方案（未采用）\n\n{alt}\n")
     idx.append(f"| [ADR-{no}](ADR-{no}.md) | {title} | {status} |")
+idx += ["", LIFECYCLE]
 open("README.md", "w", encoding="utf-8").write("\n".join(idx) + "\n")
 print(len(ADRS), "ADRs written")
