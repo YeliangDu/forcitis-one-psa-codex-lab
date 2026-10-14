@@ -893,8 +893,8 @@ export interface components {
         AttributeLegalEntityRequest: {
             /** Format: date */
             effectiveFrom?: string;
-            /** Format: int64 */
-            legalEntityId?: number;
+            /** Format: uuid */
+            legalEntityId?: string;
         };
         AuditEntryResponse: {
             action: string;
@@ -925,8 +925,8 @@ export interface components {
             /** Format: int64 */
             requestedBy?: number;
             roleCodes?: string[];
-            /** Format: int64 */
-            roleId?: number;
+            /** Format: uuid */
+            roleId?: string;
             roleName?: string;
             /** Format: int64 */
             subjectUserId?: number;
@@ -1660,7 +1660,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                legalEntityId: number;
+                legalEntityId: string;
             };
             cookie?: never;
         };
@@ -1693,7 +1693,7 @@ export interface operations {
                 "If-Match": string;
             };
             path: {
-                legalEntityId: number;
+                legalEntityId: string;
             };
             cookie?: never;
         };
@@ -1969,7 +1969,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                syncRunId: number;
+                syncRunId: string;
             };
             cookie?: never;
         };
@@ -2003,7 +2003,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                syncRunId: number;
+                syncRunId: string;
             };
             cookie?: never;
         };
@@ -3410,7 +3410,7 @@ export interface operations {
                 /** @description Exactly one of legacyNumberPrefix and documentId is given */
                 legacyNumberPrefix?: string;
                 /** @description Exactly one of legacyNumberPrefix and documentId is given */
-                documentId?: number;
+                documentId?: string;
                 limit?: number;
                 cursor?: string;
             };
@@ -3785,7 +3785,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                roleId: number;
+                roleId: string;
             };
             cookie?: never;
         };
@@ -3818,7 +3818,7 @@ export interface operations {
                 "If-Match": string;
             };
             path: {
-                roleId: number;
+                roleId: string;
             };
             cookie?: never;
         };
@@ -3855,7 +3855,7 @@ export interface operations {
                 "If-Match": string;
             };
             path: {
-                roleId: number;
+                roleId: string;
             };
             cookie?: never;
         };

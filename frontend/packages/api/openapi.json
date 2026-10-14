@@ -22,8 +22,8 @@
             "type" : "string"
           },
           "legalEntityId" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -111,8 +111,8 @@
             "type" : "array"
           },
           "roleId" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           },
           "roleName" : {
             "type" : "string"
@@ -1882,8 +1882,8 @@
           "name" : "legalEntityId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -1917,8 +1917,8 @@
           "name" : "legalEntityId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -2312,8 +2312,8 @@
           "name" : "syncRunId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -2349,8 +2349,8 @@
           "name" : "syncRunId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "description" : "The same key with the same request within 24 hours gets the first answer again",
@@ -4183,8 +4183,8 @@
           "name" : "documentId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "query",
@@ -4685,8 +4685,8 @@
           "name" : "roleId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -4720,8 +4720,8 @@
           "name" : "roleId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -4755,8 +4755,8 @@
           "name" : "roleId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
