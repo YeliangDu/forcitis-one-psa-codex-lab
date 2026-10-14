@@ -9,13 +9,13 @@
 | `.github/workflows/release.yml` | 由 main 上已通过 ci 的提交构建发布包、签署发布声明、附到 GitHub Release |
 | `.github/workflows/deploy.yml` | 把已发布（非草稿）的版本部署到 dev / prod；只写好，未运行过 |
 | `scripts/release/build.sh` | 构建发布包；本机可直接运行，工作流只是调用它 |
-| `scripts/release/toolchain.sh` | 专用 runner 上的工具链，失败关闭：系统工具与 PATH 必须 root 所有、组与他人不可写（含全部上级目录）；Java 25、gh、Node 24、aliyun CLI 按版本与 SHA256 锁定下载；corepack 取锁定的 pnpm |
+| `scripts/release/toolchain.sh` | release 构建（GitHub 托管机）与部署 runner 的工具链；部署 runner 上失败关闭：系统工具与 PATH 必须 root 所有、组与他人不可写（含全部上级目录），账号主目录中不得有会左右 python3 / git / aliyun / curl 的配置；Java 25、gh、Node 24、aliyun CLI 按版本与 SHA256 锁定下载；corepack 取锁定的 pnpm |
 | `scripts/release/verify_bundle.sh` | 按部署时的方式校验发布包（归档 SHA256、`SHA256SUMS`、`manifest.json`、jar 可启动） |
 | `scripts/release/ci_passed.py` | 证明提交是 main 的 first-parent 提交，且该提交 push 到 main 触发的 ci 运行成功、三项必需作业成功 |
 | `scripts/release/deploy_gate.py` | 部署守护：阻塞条目、prod 的版本与前置条件 |
 | `scripts/release/statement.sh` | 发布声明：写出（版本、提交、发布包与 manifest / SHA256SUMS 的 SHA256、构建工作流与运行号）、签名（`ssh-keygen -Y sign`）、校验 |
 | `scripts/release/allowed_signers` | 发布签名公钥（`ssh-keygen` allowed_signers 格式）；空文件时部署一律失败 |
-| `scripts/release/runner_job_started.sh` | 专用 runner 的 pre-job hook：只放行 main 上手动运行的 release.yml、deploy.yml，并与 runner 写下的事件载荷交叉核对 |
+| `scripts/release/runner_job_started.sh` | 部署 runner 的 pre-job hook：只放行 main 上手动运行的 deploy.yml，并与 runner 写下的事件载荷交叉核对 |
 | `docs/…/runbooks/prod-approvals.txt` | prod 部署批准行（经 PR 合入 main），代替 Team 计划下不可用的 required reviewers |
 | `scripts/release/ship.sh` | 部署最后一段：发布包与部署请求传到法兰克福 OSS，经固定的云助手命令或受限 SSH 让 ECS 以自身 RAM 角色拉取、验签、安装 |
 | `scripts/release/remote_install.sh` | ECS 上的安装器（装为 `/usr/local/sbin/forcitis-one-release`） |
@@ -28,12 +28,12 @@
 
 ## 2. 发布（`release`）
 
-触发：只能**在 main 上手动运行**（输入版本、可选提交 sha、是否草稿，默认草稿）。不设标签推送触发：发布声明要写明「由 main 上的 release.yml 构建」，签名私钥也只给 main 用，标签触发的运行两者都不满足；两个作业都有 `if: github.ref == 'refs/heads/main'`，专用 runner 的 pre-job hook 也只放行 main 上手动运行的 release / deploy。`deploy` 只接受已发布的 Release，草稿经人核对后在 GitHub 上点「Publish」。
+触发：只能**在 main 上手动运行**（输入版本、可选提交 sha、是否草稿，默认草稿）。不设标签推送触发：发布声明要写明「由 main 上的 release.yml 构建」，签名私钥也只给 main 用，标签触发的运行两者都不满足；两个作业都有 `if: github.ref == 'refs/heads/main'`。release 的两个作业都跑在 **GitHub 托管的 `ubuntu-24.04`**（用户决定：「发布打包改到 GitHub 托管机器 (Recommended)」），每次都是全新虚拟机，本机 CI runner 上的任何作业都影响不到。`deploy` 只接受已发布的 Release，草稿经人核对后在 GitHub 上点「Publish」。
 
-`build` 作业（专用 runner `forcitis-one-deploy`，权限 `contents: read`、`actions: read`；checkout 不保存凭据）。**证明、构建、签名用的脚本一律取自本工作流自己的提交**（`github.sha`，即 main 上的 release.yml 所在提交），检出到 `tools/`；要发布的提交另行检出到 `source/`，只作为构建输入，它自带的脚本不运行：
+`build` 作业（GitHub 托管 `ubuntu-24.04`，权限 `contents: read`、`actions: read`；checkout 不保存凭据）。**证明、构建、签名用的脚本一律取自本工作流自己的提交**（`github.sha`，即 main 上的 release.yml 所在提交），检出到 `tools/`；要发布的提交另行检出到 `source/`，只作为构建输入，它自带的脚本不运行：
 
 1. 输入校验（版本格式、sha 格式）后才写入作业输出；未给提交时取 `github.sha`。
-2. `tools/` 的 `toolchain.sh build`：先核验 PATH 与系统工具（§7 R-0），再按 SHA256 下载 Java、gh、Node。
+2. `tools/` 的 `toolchain.sh build`：只在 GitHub 托管的 Linux 上运行，按版本与 SHA256 下载 Java（Temurin 25.0.4.1）、gh、Node 24；pnpm 由 corepack 按 `packageManager` 中的 `+sha512` 校验获取。
 3. **证明这个提交测过**（`tools/` 的 `ci_passed.py`）：
    - 提交必须在 `git rev-list --first-parent origin/main` 中——即 main 上的合并提交或直接提交；被合并分支中间的提交（祖先但不在 first-parent 链上）一律拒绝；
    - 按工作流运行判定：`actions/runs?head_sha=<sha>&event=push&branch=main` 中 `path` 为 `.github/workflows/ci.yml` 的最新一次运行 `completed/success`，且其三项必需作业（backend verify、frontend verify、secret scan）都是 `success`；pull_request 事件的运行、其他分支或其他工作流的运行都不算。不重跑测试。作业名取自 `ci.yml`，改名而脚本未同步时直接失败。
@@ -43,7 +43,7 @@
    - 前端：PC（web）与 H5 按 dev、prod 各构建一份（构建期变量不同，见 §6），H5 放在 PC 产物的 `h5/` 下。
 6. 打包、`verify_bundle.sh` 复核，作为 Actions artifact（保留 1 天）交给下一作业。
 
-`publish` 作业（**GitHub 托管的 `ubuntu-24.04`**——用户决定，签名私钥不进运行过第三方构建代码的机器；`environment: release`，权限只有 `contents: write`，只检出 `github.sha` 的 `scripts/release`，绝不检出构建的提交）：核对 artifact 的 SHA256 → `statement.sh write <发布包> <声明> <已证明的提交>` 写出**发布声明**（版本、提交、发布包与包内 `manifest.json`、`SHA256SUMS` 的 SHA256、`GITHUB_WORKFLOW_REF`、运行号），并断言 `manifest.json` 的 `gitSha` 等于该提交 → 用 environment `release` 的 secret `RELEASE_SIGNING_KEY` 以 `ssh-keygen -Y sign`（命名空间 `forcitis-one-release`）签名，签完立即删除私钥文件 → `gh release create v<版本> --target <sha>`，附发布包、`.sha256`、`.release`、`.release.sig`。`release` environment 的部署分支策略只允许 main（Team 私有仓库可用，§11），其他分支的运行拿不到私钥。签名与验签用系统自带的 OpenSSH（Ubuntu、macOS 与 Alibaba Cloud Linux 4 均自带，`-Y sign/verify` 自 OpenSSH 8.1 起提供），不另外下载。
+`publish` 作业（另一个 **GitHub 托管的 `ubuntu-24.04`** 作业——签名私钥不进运行过第三方构建代码的虚拟机；`environment: release`，权限只有 `contents: write`，只检出 `github.sha` 的 `scripts/release`，绝不检出构建的提交）：核对 artifact 的 SHA256 → `statement.sh write <发布包> <声明> <已证明的提交>` 写出**发布声明**（版本、提交、发布包与包内 `manifest.json`、`SHA256SUMS` 的 SHA256、`GITHUB_WORKFLOW_REF`、运行号），并断言 `manifest.json` 的 `gitSha` 等于该提交 → 用 environment `release` 的 secret `RELEASE_SIGNING_KEY` 以 `ssh-keygen -Y sign`（命名空间 `forcitis-one-release`）签名，签完立即删除私钥文件 → `gh release create v<版本> --target <sha>`，附发布包、`.sha256`、`.release`、`.release.sig`。`release` environment 的部署分支策略只允许 main（Team 私有仓库可用，§11），其他分支的运行拿不到私钥。签名与验签用系统自带的 OpenSSH（Ubuntu、macOS 与 Alibaba Cloud Linux 4 均自带，`-Y sign/verify` 自 OpenSSH 8.1 起提供），不另外下载。
 
 发布包内容（顶层目录 `forcitis-one-<版本>/`）：
 
@@ -76,7 +76,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
    - `docs/modernization/status/blockers/` 中任一条目含 `` `blocks: deploy` `` 标记 → 失败。阻塞片段是单行（`build_records.py` 的格式），标记写在行内而非 front-matter。修复批合并后由调度会话删除该条目或标记。
    - prod：不接受预发布版本；`PREDEPLOY_CHECKLIST.md` D 节（Phase 1a 出口条件，**在 dev 上验收**）每一行状态格恰为 ✅（多一个字也不算），且行数不少于 9；C-9（生产库）为 ✅。表格改了形状时失败而不是放行。
    - prod：版本已列在 `runbooks/prod-approvals.txt`（批准行经 PR 合入 main）。Team 计划的私有仓库没有 environment 的 required reviewers（§11），由这一行代替人工批准。
-2. `deploy` 作业（`environment: dev / prod`，两者的部署分支策略只允许 main）跑在**专用部署 runner**（标签 `forcitis-one-deploy`，macOS 用户 `forcitis-deploy`，见 `CI_RUNNERS.md`），权限 `contents: read`、`actions: read`，checkout 不保存凭据：
+2. `deploy` 作业（`environment: dev / prod`，两者的部署分支策略只允许 main）跑在**专用部署 runner**（标签 `forcitis-one-deploy`，macOS 用户 `forcitis-deploy`，只接这一个作业，见 `CI_RUNNERS.md`）；第一步把 `HOME` 与 git 全局配置换成本作业 `$RUNNER_TEMP` 下的新目录；所有 `python3` 都以 `-I` 运行；权限 `contents: read`、`actions: read`，checkout 不保存凭据：
    - 工具链（`toolchain.sh deploy`：先核验 PATH 与系统工具；Java 25、gh、aliyun CLI 按 SHA256 下载）；
    - 再跑一次 `deploy_gate.py`（gate 之后 main 可能新增阻塞）；
    - Release 非草稿；标签经 API 解析出的提交满足 `ci_passed.py`；
@@ -103,8 +103,9 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 
 ### 回滚
 
-- 首选：用 `deploy` 部署上一个版本号。发布包照样经 OSS 中转、校验；ECS 上已装过且内容一致的版本直接复用，不再比对服务器文件（首次安装时已比对过），因此回到旧版本不会被「服务器文件不一致」挡住。迁移步骤照常运行，对旧版本只做校验（旧版本不认识的新迁移被 Flyway 默认的 `*:future` 忽略）。
-- 应急（GitHub 不可用）：运维经云助手执行 `forcitis-one-release rollback`（回到 `previous`）或 `forcitis-one-release rollback <版本>`；`forcitis-one-release status` 查看当前、上一版本与历史。
+- **降级只走运维的显式回滚**：`install-pending` 拒绝低于当前版本的部署请求（按 `MAJOR.MINOR.PATCH`，`-rc.N` 低于对应正式版），因此不能用 `deploy` 部署旧版本号；持有部署凭据的人也就无法借部署请求把系统退回旧版本。
+- 回滚：运维经云助手执行 `forcitis-one-release rollback`（回到 `previous`）或 `forcitis-one-release rollback <已安装的版本>`；旧版本的文件仍在 `releases/` 中，已在首次安装时校验过；回滚不跑迁移（旧版本不认识的新迁移被 Flyway 默认的 `*:future` 忽略）。修复问题后发更高的版本号再部署。
+- `forcitis-one-release status` 查看当前、上一版本与历史；GitHub 不可用时回滚照样可做。
 - 回滚只换应用，不回滚数据库（§4）。
 
 ## 4. 数据库迁移
@@ -148,7 +149,7 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 本文不建 bucket、RAM 账号、AccessKey、environment、secret 或云助手命令，下列各项由用户或运维执行。缺任何一项，相应作业失败关闭，不会降级执行。
 
-### R-0 专用部署 runner 重建（必需；release 的 build 与 deploy 都依赖它）
+### R-0 专用部署 runner 重建（必需；只有 deploy 作业依赖它，release 在 GitHub 托管机上）
 
 原 `mac-one-deploy` 已从 GitHub 注销（从未接过作业），本机 LaunchDaemon 仍在。按下列方案重建，使作业改不了 runner 本身、改不了 hook、也用不到任何用户可写的程序：
 
@@ -157,16 +158,17 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 3. 在该目录解压 runner 发行包（核对 GitHub 公布的 SHA256），临时把目录交给 `forcitis-deploy` 完成注册：`./config.sh --url https://github.com/FORCITIS/forcitis-one-psa --token <一次性令牌> --name mac-one-deploy --labels forcitis-one-deploy --work _work --disableupdate --unattended`。
 4. **收回所有权**：除 `_work`、`_diag` 外全部改回 root:wheel、只读（`bin/`、`externals/`、`run.sh`、`runsvc.sh`、`env.sh` 等）；`.runner`、`.credentials`、`.credentials_rsaparams` 改为 root:forcitis-deploy 0640（runner 要读，作业改不了）；`.env` 与 `.path` 改为 root:wheel 0644，`.path` 内容只写 `/usr/bin:/bin:/usr/sbin:/sbin`；`_work`、`_diag` 归 `forcitis-deploy`。`--disableupdate` 使 runner 不自行改写程序文件，升级按 `CI_RUNNERS.md` 手工做。
 5. **hook**：`sudo install -o root -g wheel -m 0755 scripts/release/runner_job_started.sh /usr/local/libexec/forcitis-one/runner-job-started.sh`（目录 root 755）。
-6. **LaunchDaemon**：`/Library/LaunchDaemons/actions.runner.forcitis-one-deploy.plist`（root:wheel 0644）：`UserName` 为 `forcitis-deploy`，`ProgramArguments` 为 `/opt/forcitis-one-runner/run.sh`，`EnvironmentVariables` 中写 `ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/forcitis-one/runner-job-started.sh`、`PATH=/usr/bin:/bin:/usr/sbin:/sbin`、`HOME=/Users/forcitis-deploy`。hook 变量放在 root 所有的 plist，而非 runner 可写的位置。`sudo launchctl bootstrap system <plist>`。
+6. **LaunchDaemon**：`/Library/LaunchDaemons/actions.runner.forcitis-one-deploy.plist`（root:wheel 0644）：`UserName` 为 `forcitis-deploy`，`ProgramArguments` 为 `/opt/forcitis-one-runner/run.sh`，`EnvironmentVariables` 中写 `ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/forcitis-one/runner-job-started.sh`、`PATH=/usr/bin:/bin:/usr/sbin:/sbin`、`PYTHONNOUSERSITE=1`、`GIT_CONFIG_GLOBAL=/dev/null`、`HOME=/opt/forcitis-one-runner-home`（root:wheel 555 的空目录：runner 进程本身没有可写、可被投放配置的主目录；每个作业第一步改用 `$RUNNER_TEMP/home`）。hook 变量放在 root 所有的 plist，而非 runner 可写的位置。账号主目录 `/Users/forcitis-deploy` 中不得有 `Library/Python`、`.gitconfig`、`.config/git`、`.aliyun`、`.curlrc`（`toolchain.sh` 断言，存在即失败）。`sudo launchctl bootstrap system <plist>`。
 7. **程序可信**（复核 B-2）：部署 runner 只运行 root 所有、组与他人不可写（含全部上级目录）的程序，或按 SHA256 锁定下载到 `$RUNNER_TEMP` 的程序。`toolchain.sh` 每个作业开头检查 PATH 各项与 `bash python3 git curl tar shasum unzip ssh ssh-keygen …` 的真实路径，不满足即失败。`/opt/homebrew` 归 `yeliang:admin`，CI 作业可改写其中的 python3 / gh / java，因此不在 PATH 中、也不被使用：python3、git 用 Command Line Tools（`/usr/bin`，root 所有）；Java 25、gh、Node、aliyun CLI 每个作业按 SHA256 下载（可选：以 root 安装 Temurin 25 的 .pkg 到 `/Library/Java/JavaVirtualMachines/temurin-25.jdk`，`toolchain.sh` 核验后直接使用，省去每次下载约 200 MB）。
 8. **重新注册后演练**（全部应被拒，在第一步之前失败）：
    - 在一个分支上手动运行 release.yml；
    - 一个分支新增工作流，`runs-on: [self-hosted, forcitis-one-deploy]`，push 触发；
+   - 在 main 上手动运行 release.yml 但把某个作业指到 `forcitis-one-deploy`（不应出现；hook 只放行 deploy.yml）；
    - 同一工作流在**工作流级与作业级 `env`** 分别写 `GITHUB_REF: refs/heads/main`、`GITHUB_EVENT_NAME: workflow_dispatch`、`GITHUB_WORKFLOW_REF: FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main`（hook 另与 runner 写在自身 `_work/_temp` 的事件载荷交叉核对 `ref`、`workflow`、仓库，伪造的变量对不上载荷）；
-   - 在 main 上手动运行 release.yml，应被放行（之后可能因 1a 的可执行 jar 修复未合并而在 `build.sh` 失败，属预期）。
+   - 在 main 上手动运行 deploy.yml，应被放行（之后会被 `blocks: deploy` 阻塞或缺少 environment 设置而失败，属预期）。
    本机已用模拟载荷验证这些情形的判定（PR 正文）。
 
-**推荐**：现在采用上面的「root 所有的常驻 runner + `--disableupdate` + plist 中的 hook」。备选为 ephemeral / JIT：由 root 启动器在每个作业前，从 root 所有的原始副本重建 runner 目录与 `HOME`，用 JIT 配置注册一次性 runner。它能清除作业留下的一切（含后台进程与主目录文件），但需要在本机保存能签发 JIT 配置的凭据（GitHub App 私钥或管理员令牌，root 专用），并多一个启动器要维护。签名已移到 GitHub 托管机器（U-4），常驻方案的剩余风险是「上一个被放行的作业」影响下一个；被放行的只有 main 上的 release / deploy，故先不做 JIT。若日后部署 runner 还要接别的作业，再改 JIT。
+**推荐**：现在采用上面的「root 所有的常驻 runner + `--disableupdate` + plist 中的 hook」。备选为 ephemeral / JIT：由 root 启动器在每个作业前，从 root 所有的原始副本重建 runner 目录与 `HOME`，用 JIT 配置注册一次性 runner。它能清除作业留下的一切（含后台进程与主目录文件），但需要在本机保存能签发 JIT 配置的凭据（GitHub App 私钥或管理员令牌，root 专用），并多一个启动器要维护。发布构建与签名都已移到 GitHub 托管机器，部署 runner 只跑 main 上的 deploy 作业；该作业不执行第三方构建代码，只运行仓库中已评审的脚本与按 SHA256 下载的工具，且每个作业使用全新的 `HOME`。常驻方案的剩余风险是某个被放行的 deploy 作业被攻破后留下进程或文件影响下一个，可能性低于构建作业。若日后部署 runner 要接别的作业，或要消除这一残余，再改 JIT。
 
 ### 其余步骤
 
@@ -240,13 +242,13 @@ chmod 0440 /etc/sudoers.d/forcitis-deploy && visudo -cf /etc/sudoers.d/forcitis-
 
 | 对比项 | (a) 云助手固定命令（**推荐**） | (b) SSH 受限密钥 |
 |---|---|---|
-| 所需账号与权限 | 部署用 RAM 子账号：该前缀 `oss:PutObject`；对**该命令 ID 与该实例** `ecs:InvokeCommand`；`ecs:DescribeInvocationResults`。不授 `RunCommand`、`CreateCommand` | 部署用 RAM 子账号只留该前缀 `oss:PutObject`；ECS 上部署用户、sudoers 只放行安装器、强制命令 + `from=` |
+| 所需账号与权限 | 部署用 RAM 子账号：该前缀 `oss:PutObject`；对**该命令 ID 与该实例**的 `ecs:InvokeCommand` 与 `ecs:DescribeInvocationResults`。不授 `RunCommand`、`CreateCommand` | 部署用 RAM 子账号只留该前缀 `oss:PutObject`；ECS 上部署用户、sudoers 只放行安装器、强制命令 + `from=` |
 | 密钥存放 | GitHub environment secret：AccessKey 一对 | 同左 + SSH 私钥 + 主机公钥；服务器上多一份授权公钥 |
 | 网络与安全组 | 无需任何入方向端口 | 入方向 TCP 22 只对部署 runner 固定出口 IP/32；无固定出口 IP 时不可用 |
 | 与现有约定 | 与「ECS 不设登录密钥，运维经云助手操作」一致 | 改变该约定 |
 | 审计 | 云助手执行记录（命令、输出、退出码）；ActionTrail 记 RAM 调用；GitHub 部署记录与签名声明 | GitHub 部署记录 + ECS 的 sshd / sudo 日志；云端无记录 |
 | 失败与回滚 | 安装器自动回切；输出（最多约 24 KB 尾部）打回 Actions；命令超时 45 分钟由云助手终止——此时 `current` 未切换，重跑即可 | 安装器自动回切；输出实时回传；断线时以 `status` 与 `HISTORY` 判断 |
-| AccessKey 泄露的后果 | 只能往该前缀写对象、触发固定命令：至多让 ECS 安装**另一个已签名的发布**（含旧版本；prod 仍拒预发布）；不能执行任意命令、不能装未签名的包 | 同左（OSS）；SSH 私钥泄露同样只能触发 `install-pending` |
+| AccessKey 泄露的后果 | 能改写该前缀下的暂存对象与部署请求、触发该环境的固定命令、读取该实例该命令的执行结果（安装器输出，不含凭据）。最坏结果：让 ECS 安装一个**版本不低于当前、已用发布密钥签名**的发布（prod 仍拒预发布）。不能执行任意命令、不能装未签名或被改动的包、不能降级；prod 上可能装上一个已签名但尚未批准的更新版本（见 §11.3 U-5） | 同左（OSS）；SSH 私钥泄露同样只能触发 `install-pending` |
 
 推荐 (a)。与前一版相比，固定命令 + 实例角色拉取 + 本机验签，使 AccessKey 不再等于「对实例的 root」。
 
@@ -274,13 +276,16 @@ chmod 0440 /etc/sudoers.d/forcitis-deploy && visudo -cf /etc/sudoers.d/forcitis-
     {
       "Effect": "Allow",
       "Action": ["ecs:DescribeInvocationResults"],
-      "Resource": ["acs:ecs:cn-hangzhou:<account-id>:*"]
+      "Resource": [
+        "acs:ecs:cn-hangzhou:<account-id>:command/<command-id>",
+        "acs:ecs:cn-hangzhou:<account-id>:instance/i-bp122xlpar8w2uylmal2"
+      ]
     }
   ]
 }
 ```
 
-可选：各条加 `"Condition": {"IpAddress": {"acs:SourceIp": ["<部署 runner 出口 IP>/32"]}}`。
+`DescribeInvocationResults` 限定到该命令与该实例；若 RAM 控制台校验提示该接口不支持资源级授权，只能退回 `*`，此时泄露者还能读到本账号其他云助手执行的输出，须在策略说明中记下这一点。可选：各条加 `"Condition": {"IpAddress": {"acs:SourceIp": ["<部署 runner 出口 IP>/32"]}}`。
 
 **ECS 实例角色**（附加到 i-bp122xlpar8w2uylmal2；dev 与 prod 共用一台时两个前缀都列出）：
 
@@ -322,9 +327,9 @@ prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅�
 
 ## 10. 风险与已知限制
 
-- **部署 runner 的隔离靠 R-0 落实**：runner 程序、hook 与其配置归 root；PATH 与所用程序均为 root 所有或按 SHA256 下载；`forcitis-deploy` 非管理员。任何一项被放松，CI 作业就可能影响 release 构建或部署。
-- 被放行的 release 构建仍会执行第三方依赖中的代码（Maven 插件、前端构建工具；依赖的安装脚本已用 `--ignore-scripts` 关掉），它们能影响本次构建产物，这一点任何套餐都不能消除；签名在 GitHub 托管机器上，私钥不与之同机。
-- AccessKey 泄露后，攻击者能让 ECS 改装另一个**已签名**的发布（含旧版本），不能装未签名的包或执行任意命令（§8.1）；怀疑泄露时立即在 RAM 控制台禁用。
+- **部署 runner 的隔离靠 R-0 落实**：runner 程序、hook 与其配置归 root；PATH 与所用程序均为 root 所有或按 SHA256 下载；进程主目录为 root 所有的空目录、作业改用新 `HOME`；`forcitis-deploy` 非管理员。任何一项被放松，CI 作业就可能影响部署。
+- release 构建在 GitHub 托管机上执行第三方依赖中的代码（Maven 插件、前端构建工具；依赖的安装脚本已用 `--ignore-scripts` 关掉），它们能影响本次构建产物，这一点任何套餐都不能消除；签名在另一个托管作业中，私钥不与之同机。
+- AccessKey 泄露后果见 §8.1：不能执行任意命令、不能装未签名的包、不能降级；怀疑泄露时立即在 RAM 控制台禁用。
 - `remote_install.sh`、`ship.sh`、`toolchain.sh` 依赖 Linux / 阿里云接口 / 网络下载，本机只做了语法、静态检查与可本地运行部分的验证；`aliyun oss` / `aliyun ecs` 的参数在 R-11 演练时核对；首次在 dev 部署时验证。迁移以 `Started OneApplication` 判定是在 migrate profile 合入前的过渡做法（§4）。
 - 跨境下载的速度与可用性未实测（§8.3）。
 - 前端按环境各构建一份，同一版本 dev 与 prod 的静态文件不是同一份产物（§6）。
@@ -358,7 +363,7 @@ prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅�
 - **签名**：私钥只存在 environment `release` 的 secret 中，该 environment 只允许 main；`publish` 在 GitHub 托管的 `ubuntu-24.04` 上运行，只检出工作流自身提交的 `scripts/release`，签完立即删除私钥文件。声明写明 `GITHUB_WORKFLOW_REF` 与已证明的提交，并断言等于 `manifest.json` 的 `gitSha`。
 - **校验两处**：deploy 作业用仓库 main 上的 `allowed_signers` 验签；ECS 安装器用本机 root 所有的 `/etc/forcitis-one/release-signers` 再验一次，且发布包、声明、签名都由 ECS 以实例角色自取。两处都核对构建工作流必须是 `FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main`、提交、发布包名，以及发布包与 `manifest.json`、`SHA256SUMS` 的 SHA256。
 - 本机验证：用运行时生成的测试密钥，正常声明通过；空公钥、改提交、改声明、换密钥、分支工作流签出的声明、替换发布包、写声明时提交与 manifest 不符，全部被拒。
-- **专用 runner 被任意分支利用的封堵**：pre-job hook（R-0）只放行 main 上手动运行的 release.yml / deploy.yml，并把 `GITHUB_*` 变量与 runner 写在 `_work/_temp` 的事件载荷交叉核对；hook、其环境变量（在 root 所有的 plist 中）与 runner 程序都归 root。hook 不再做残留进程检查：那只能报告、不能阻止，不算控制。
+- **专用 runner 被任意分支利用的封堵**：pre-job hook（R-0）只放行 main 上手动运行的 deploy.yml，并把 `GITHUB_*` 变量与 runner 写在 `_work/_temp` 的事件载荷交叉核对；hook、其环境变量（在 root 所有的 plist 中）与 runner 程序都归 root。hook 不再做残留进程检查：那只能报告、不能阻止，不算控制。
 
 ### 11.3 用户决定（升级 / 接受）
 
@@ -367,4 +372,5 @@ prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅�
 | U-1 | 出处由 GitHub 背书 | 私有仓库的 artifact attestations | 签名发布声明 | **接受**（建议） / 升级后改回 attestations |
 | U-2 | prod 部署前由指定的人在 GitHub 上批准 | environment required reviewers、wait timer | `prod-approvals.txt` 批准行（版本、提交、发布包 SHA256）经 PR 合入 main；所有会话以同一 GitHub 账号推送与合并，批准行证明「经过 main 的评审流程」，不能证明「由某个特定的人批准」 | **接受**并约定批准行只由用户本人发起的 PR 加入 / 升级 |
 | U-3 | runner 只接指定工作流 | runner group 的 Selected workflows | runner 侧 pre-job hook + R-0 的 root 所有权 | **接受**（建议）/ 升级 / 另加 push ruleset 限制 `.github/workflows/**`（须先让代理改用单独账号才有意义） |
-| U-4 | 签名私钥与构建依赖代码同机 | — | **已决定**：签名放 GitHub 托管机器（用户：「签名步骤放 GitHub 托管机器 (Recommended)」） | 已实施 |
+| U-4 | 签名私钥与构建依赖代码同机 | — | **已决定**：签名放 GitHub 托管机器（用户：「签名步骤放 GitHub 托管机器 (Recommended)」）；随后发布打包也移到托管机器（用户：「发布打包改到 GitHub 托管机器 (Recommended)」），部署 runner 只跑 deploy | 已实施 |
+| U-5 | prod 只装已批准的构建，即使部署凭据泄露 | — | 批准行在仓库中、由 deploy 作业核对，ECS 不知道批准；持有 prod AccessKey 者可让 ECS 装一个已签名、版本更高但未批准的发布。未做「批准签名由 ECS 验证」：immutable releases 下 Release 附件发布后不可追加，批准签名需要另一套签发与存放流程（例如单独的批准工作流、由 `release` environment 的密钥签批准声明并另存），成本与本阶段收益不相称 | **接受**（prod AccessKey 只在 prod environment、仅 main、仅部署 runner 上出现）/ 生产前再加批准签名 |

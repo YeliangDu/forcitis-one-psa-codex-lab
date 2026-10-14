@@ -56,7 +56,7 @@ echo "== staging $name in $root/$version/"
 for file in "$archive" "$archive.sha256" "$dir/$name.release" "$dir/$name.release.sig" "$work/$name/manifest.json" "$work/$name/SHA256SUMS"; do
   aliyun oss cp "$file" "$root/$version/$(basename "$file")" --endpoint "$oss_endpoint" -f >/dev/null
 done
-python3 -c 'import json,sys; json.dump({"version": sys.argv[1], "bundleSha256": sys.argv[2], "commit": sys.argv[3],
+python3 -I -c 'import json,sys; json.dump({"version": sys.argv[1], "bundleSha256": sys.argv[2], "commit": sys.argv[3],
            "wecomVerifyFile": sys.argv[4]}, open(sys.argv[5], "w"))' "$version" "$sha" "$commit" "$pinned" "$work/request.json"
 aliyun oss cp "$work/request.json" "$root/requests/$env.json" --endpoint "$oss_endpoint" -f >/dev/null
 echo "== deploy request for $env: $version ($commit)"
@@ -65,19 +65,19 @@ case "$trigger" in
   cloud-assistant)
     need ECS_REGION ECS_INSTANCE_ID ECS_COMMAND_ID
     invoke_id="$(aliyun ecs InvokeCommand --RegionId "$ECS_REGION" --CommandId "$ECS_COMMAND_ID" --InstanceId.1 "$ECS_INSTANCE_ID" \
-      | python3 -c 'import json,sys; print(json.load(sys.stdin)["InvokeId"])')"
+      | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["InvokeId"])')"
     echo "Cloud Assistant invocation $invoke_id of $ECS_COMMAND_ID"
     deadline=$((SECONDS + INVOCATION_TIMEOUT_SECONDS + 120))
     while :; do
       result="$(aliyun ecs DescribeInvocationResults --RegionId "$ECS_REGION" --InvokeId "$invoke_id" --InstanceId "$ECS_INSTANCE_ID")"
-      status="$(printf '%s' "$result" | python3 -c 'import json,sys; r=json.load(sys.stdin)["Invocation"]["InvocationResults"]["InvocationResult"]; print(r[0]["InvocationStatus"] if r else "Pending")')"
+      status="$(printf '%s' "$result" | python3 -I -c 'import json,sys; r=json.load(sys.stdin)["Invocation"]["InvocationResults"]["InvocationResult"]; print(r[0]["InvocationStatus"] if r else "Pending")')"
       case "$status" in
         Success|Failed|Error|Timeout|Cancelled|Terminated|Invalid|Aborted) break ;;
       esac
       [ "$SECONDS" -lt "$deadline" ] || fail "invocation $invoke_id still $status after the timeout"
       sleep 10
     done
-    printf '%s' "$result" | python3 -c '
+    printf '%s' "$result" | python3 -I -c '
 import base64, json, sys
 r = json.load(sys.stdin)["Invocation"]["InvocationResults"]["InvocationResult"][0]
 print(base64.b64decode(r.get("Output") or "").decode("utf-8", "replace"))

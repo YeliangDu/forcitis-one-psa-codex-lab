@@ -146,11 +146,11 @@ done) > "$bundle/migrations.txt"
 [ -s "$bundle/migrations.txt" ] || fail "no migration files found"
 
 echo "== manifest"
-python3 "$tools/scripts/release/manifest.py" write "$bundle" \
+python3 -I "$tools/scripts/release/manifest.py" write "$bundle" \
   --version "$version" --git-sha "$sha" --commit-epoch "$commit_epoch" \
   --jdk "$java_version" --node "$node_version" --pnpm "$pnpm_pinned" \
   --environments "$environments" --frontend-variables "$FRONTEND_VARIABLES"
-python3 "$tools/scripts/release/manifest.py" verify "$bundle"
+python3 -I "$tools/scripts/release/manifest.py" verify "$bundle"
 
 mkdir -p "$out"
 archive="$out/$name.tar.gz"

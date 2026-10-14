@@ -28,8 +28,8 @@ jobs:
   build:
     name: release bundle
     if: github.ref == 'refs/heads/main'
-    # Dedicated runner and user; its pre-job hook admits only this workflow and deploy.yml from main (RELEASE.md §7 R-0)
-    runs-on: [self-hosted, forcitis-one-deploy]
+    # GitHub-hosted (user decision, RELEASE.md §11): a fresh VM per run, nothing a pull-request job did on the local runners can reach it
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
       contents: read
@@ -58,7 +58,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: toolchain (system tools vetted; pinned and verified downloads)
+      - name: toolchain (pinned and verified downloads)
         working-directory: tools
         run: scripts/release/toolchain.sh build "$RUNNER_TEMP/toolchain"
 
@@ -70,13 +70,13 @@ jobs:
           VERSION: ${{ steps.target.outputs.version }}
           COMMIT: ${{ steps.target.outputs.commit }}
         run: |
-          python3 scripts/release/ci_passed.py --self-test
-          python3 scripts/release/ci_passed.py "$COMMIT"
+          python3 -I scripts/release/ci_passed.py --self-test
+          python3 -I scripts/release/ci_passed.py "$COMMIT"
           if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "release v$VERSION already exists; versions are never rebuilt" >&2
             exit 1
           fi
-          if tagged="$(python3 scripts/release/ci_passed.py --tag-commit "v$VERSION" 2>/dev/null)" && [ "$tagged" != "$COMMIT" ]; then
+          if tagged="$(python3 -I scripts/release/ci_passed.py --tag-commit "v$VERSION" 2>/dev/null)" && [ "$tagged" != "$COMMIT" ]; then
             echo "tag v$VERSION points at $tagged, not at $COMMIT" >&2
             exit 1
           fi
@@ -119,7 +119,7 @@ jobs:
       - if: always()
         run: rm -rf "$RUNNER_TEMP/release" "$RUNNER_TEMP/caches" "$RUNNER_TEMP/toolchain"
 
-  # Signing runs on a GitHub-hosted machine (user decision, RELEASE.md §11 U-4): the key never meets the host that ran third-party build
+  # Signing runs in its own GitHub-hosted job (user decision, RELEASE.md §11 U-4): the key never meets the VM that ran third-party build
   # code. The key is a secret of the `release` environment, whose deployment branch policy admits main only.
   publish:
     name: sign and publish

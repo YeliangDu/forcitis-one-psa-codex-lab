@@ -29,7 +29,8 @@ release_check_jar_runnable() {
   local jar="$1" work="$2" start_class
   mkdir -p "$work"
   start_class="$(unzip -p "$jar" META-INF/MANIFEST.MF | tr -d '\r' | awk '/^Start-Class:/{c=$2; next} /^ /{if (c!="") c=c substr($0,2); next} {if (c!="") {print c; exit}}')"
-  if ! unzip -p "$jar" META-INF/MANIFEST.MF | grep -q '^Main-Class: org.springframework.boot.loader'; then
+  # JarLauncher (JAR layout) or PropertiesLauncher (ZIP layout, which also lets operators start other mains with -Dloader.main)
+  if ! unzip -p "$jar" META-INF/MANIFEST.MF | tr -d '\r' | grep -Eq '^Main-Class: org\.springframework\.boot\.loader\.launch\.(JarLauncher|PropertiesLauncher)$'; then
     echo "jar check: $jar is not a Spring Boot executable jar" >&2
     return 1
   fi

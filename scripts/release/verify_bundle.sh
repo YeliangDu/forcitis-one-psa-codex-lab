@@ -31,13 +31,13 @@ tar -xzf "$archive" -C "$work"
 bundle="$work/$name"
 
 (cd "$bundle" && release_sha256_check SHA256SUMS) || fail "SHA256SUMS mismatch"
-python3 "$repo/scripts/release/manifest.py" verify "$bundle"
+python3 -I "$repo/scripts/release/manifest.py" verify "$bundle"
 release_check_jar_runnable "$bundle/forcitis-one.jar" "$work/jar-check" || fail "jar is not runnable"
 for required in forcitis-one.jar manifest.json SHA256SUMS migrations.txt deploy/remote_install.sh deploy/forcitis-one.service \
                 deploy/nginx-one.conf deploy/forcitis-one.logrotate deploy/one.env.template; do
   [ -s "$bundle/$required" ] || fail "$required missing or empty"
 done
-envs="$(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["environments"]))' "$bundle/manifest.json")"
+envs="$(python3 -I -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["environments"]))' "$bundle/manifest.json")"
 for env in $envs; do
   [ -s "$bundle/web-$env/index.html" ] || fail "web-$env/index.html missing"
   [ -s "$bundle/web-$env/h5/index.html" ] || fail "web-$env/h5/index.html missing"

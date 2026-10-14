@@ -63,6 +63,17 @@ current_link="$BASE/current"
 previous_link="$BASE/previous"
 
 valid_version() { [[ "$1" =~ $VERSION_PATTERN ]]; }
+# True when $1 is a lower version than $2 (MAJOR.MINOR.PATCH, a -rc.N pre-release before its release)
+version_lower() {
+  python3 -I - "$1" "$2" <<'PY'
+import re, sys
+def key(v):
+    m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:-rc\.(\d+))?", v)
+    major, minor, patch, rc = m.groups()
+    return (int(major), int(minor), int(patch), int(rc) if rc else float("inf"))
+sys.exit(0 if key(sys.argv[1]) < key(sys.argv[2]) else 1)
+PY
+}
 env_value() {
   local key="$1" line
   line="$(grep -E "^${key}=" "$ETC/one.env" | tail -1 || true)"
@@ -106,7 +117,7 @@ health_ok() {
   while [ "$SECONDS" -lt "$deadline" ]; do
     if systemctl is-active --quiet "$UNIT"; then
       body="$(curl -fsS --max-time 5 "http://127.0.0.1:${port}/actuator/health" 2>/dev/null || true)"
-      if [ -n "$body" ] && printf '%s' "$body" | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("status") == "UP" else 1)' 2>/dev/null \
+      if [ -n "$body" ] && printf '%s' "$body" | python3 -I -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("status") == "UP" else 1)' 2>/dev/null \
          && pinned_served; then
         return 0
       fi
@@ -192,14 +203,19 @@ verify_statement() {
   [ "$(statement_field commit "$statement")" = "$commit" ] || fail "release statement is for another commit"
   [ "$(statement_field workflow "$statement")" = "$RELEASE_WORKFLOW" ] || fail "release statement was not produced by the release workflow on main"
   [ "$(statement_field bundle-sha256 "$statement")" = "$(sha256sum "$archive" | cut -d' ' -f1)" ] || fail "bundle differs from the signed release statement"
+  log "bundle matches the release statement signed by release run $(statement_field run "$statement")"
+}
+
+# After check_tar_entries: the members the statement names
+verify_statement_members() {
+  local archive="$1" statement="$2" name="forcitis-one-$3"
   [ "$(statement_field manifest-sha256 "$statement")" = "$(tar -xzOf "$archive" "$name/manifest.json" | sha256sum | cut -d' ' -f1)" ] \
     || fail "manifest.json differs from the signed release statement"
   [ "$(statement_field sha256sums-sha256 "$statement")" = "$(tar -xzOf "$archive" "$name/SHA256SUMS" | sha256sum | cut -d' ' -f1)" ] \
     || fail "SHA256SUMS differs from the signed release statement"
-  log "bundle matches the release statement signed by release run $(statement_field run "$statement")"
 }
 
-manifest_field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"; }
+manifest_field() { python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"; }
 
 check_server_files() {
   local dir="$1" drift=()
@@ -254,8 +270,9 @@ place() {
   log "fetched $(stat -c %s "$archive") bytes"
   [ "$(sha256sum "$archive" | cut -d' ' -f1)" = "$expected_sha" ] || fail "bundle sha256 differs from the deploy request"
 
-  check_tar_entries "$archive" "$top"
   verify_statement "$archive" "$incoming/statement" "$version" "$commit"
+  check_tar_entries "$archive" "$top"
+  verify_statement_members "$archive" "$incoming/statement" "$version"
   tar -xzf "$archive" -C "$incoming" --no-same-owner --no-same-permissions
   staged="$incoming/$top"
   verify_bundle_dir "$staged"
@@ -327,7 +344,7 @@ migrate() {
          --spring.session.jdbc.cleanup-cron=- --forcitis.platform.identity.credential-purge.cron=-
          --forcitis.platform.numbering.capacity-check.cron=-)
 
-  if python3 -c 'import sys, zipfile; sys.exit(0 if sys.argv[2] in zipfile.ZipFile(sys.argv[1]).namelist() else 1)' \
+  if python3 -I -c 'import sys, zipfile; sys.exit(0 if sys.argv[2] in zipfile.ZipFile(sys.argv[1]).namelist() else 1)' \
        "$release/forcitis-one.jar" "$MIGRATE_PROFILE_RESOURCE"; then
     log "running migrations of $version in the application's migrate mode as unit $unit (log $log_file)"
     systemd-run --wait --collect --unit="$unit" --uid="$MIGRATION_USER" --gid="$APP_USER" --working-directory="$release" \
@@ -395,7 +412,7 @@ cmd_install_pending() {
   request="$(mktemp)"
   oss_get "requests/$env.json" "$request"
   # Every field is checked here; the request only chooses among releases whose statements verify below
-  read -r version sha commit pinned_expected < <(python3 - "$request" <<'PY'
+  read -r version sha commit pinned_expected < <(python3 -I - "$request" <<'PY'
 import json, re, sys
 r = json.load(open(sys.argv[1]))
 checks = {"version": r"[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?", "bundleSha256": r"[0-9a-f]{64}", "commit": r"[0-9a-f]{40}",
@@ -409,10 +426,14 @@ PY
   rm -f "$request"
   valid_version "$version" || fail "invalid version '$version'"
   [[ "$env" != prod || "$version" != *-* ]] || fail "prod takes released versions only, not the pre-release $version"
+  running="$(linked_version "$current_link")"
+  if [ -n "$running" ] && version_lower "$version" "$running"; then
+    fail "$version is lower than the running $running; going back is an explicit operator rollback (forcitis-one-release rollback), never a deploy request"
+  fi
   log "deploy request: $version ($commit) for $env"
   if [ "$pinned_expected" != "-" ]; then
-    [[ "$pinned_expected" =~ $PINNED_PATTERN ]] || fail "stdin line 4 must name the WeCom verification file (WW_verify_*.txt) or be -"
-    [ -s "$PINNED/$pinned_expected" ] || fail "$PINNED/$pinned_expected is missing; WeCom would drop the trusted domain (C-4 E-10)"
+    [[ "$pinned_expected" =~ $PINNED_PATTERN ]] || fail "deploy request field wecomVerifyFile must name a WW_verify_*.txt file or be -"
+    [ -s "$PINNED/$pinned_expected" ] || fail "deploy request field wecomVerifyFile names $pinned_expected, missing in $PINNED; WeCom would drop the trusted domain (C-4 E-10)"
   fi
   # An older manual setup kept static files in a real current/ directory; switching would discard them
   [[ ! -e "$current_link" || -L "$current_link" ]] \

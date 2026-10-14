@@ -117,9 +117,9 @@ jobs:
         run: |
           for script in scripts/release/*.sh; do bash -n "$script"; done
           shellcheck -x scripts/release/*.sh
-          python3 scripts/release/ci_passed.py --self-test
-          python3 scripts/release/manifest.py --self-test
-          python3 scripts/release/deploy_gate.py --self-test
+          python3 -I scripts/release/ci_passed.py --self-test
+          python3 -I scripts/release/manifest.py --self-test
+          python3 -I scripts/release/deploy_gate.py --self-test
 
   assertion-drift:
     name: assertion drift (warning only)

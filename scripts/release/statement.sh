@@ -33,7 +33,7 @@ case "$command" in
     name="$(basename "$archive" .tar.gz)"
     version="${name#forcitis-one-}"
     [ -n "${GITHUB_WORKFLOW_REF:-}" ] && [ -n "${GITHUB_RUN_ID:-}" ] || fail "write runs inside GitHub Actions only"
-    built_from="$(tar -xzOf "$archive" "$name/manifest.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["gitSha"])')"
+    built_from="$(tar -xzOf "$archive" "$name/manifest.json" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["gitSha"])')"
     [ "$built_from" = "$commit" ] || fail "bundle manifest says $built_from, the proved commit is $commit"
     {
       echo "format: $FORMAT"
