@@ -121,12 +121,6 @@ class LegacyShapeTest {
             "src/test/java/com/forcitis/one/NamingSurfaceTest.java",
             "src/test/java/com/forcitis/one/SecurityInvariantsTest.java");
 
-    /** Domain files that keep an external-system word until the user decides (review M6); each entry goes when the file is renamed. */
-    static final List<Allowed> PENDING_DECISION = List.of(
-            pending("src/main/java/com/forcitis/one/organization/workforce/domain/SourceMember.java"),
-            pending("src/main/java/com/forcitis/one/organization/workforce/domain/StaffMember.java"),
-            pending("src/main/java/com/forcitis/one/organization/workforce/domain/MemberChecks.java"));
-
     /** Files that carry an external name on purpose and permanently. */
     static final List<Allowed> STANDING = List.of(new Allowed("src/main/java/com/forcitis/one/kernel/WecomUserId.java",
             Set.of(Rule.EXTERNAL_SYSTEM_NAME), "企业微信 userid 是全系统共用的外部标识"),
@@ -135,10 +129,6 @@ class LegacyShapeTest {
                             + "V20261014135200 / 135300 已把种子改为统一新格式"),
             new Allowed("src/main/resources/db/migration/platform_numbering/V20261014135200__platform_numbering_add_confirmation_status.sql",
                     Set.of(Rule.OLD_DOCUMENT_FORMAT), "已合入 main 的历史迁移，Flyway 只追加不可改；该处只在注释中说明老格式不沿用"));
-
-    private static Allowed pending(String file) {
-        return new Allowed(file, Set.of(Rule.EXTERNAL_SYSTEM_NAME), "待用户决定（复审 M6）");
-    }
 
     static final Pattern COMMENT_ON_LINE = Pattern.compile("(?im)^\\s*COMMENT\\s+ON\\b.*$");
 
@@ -387,7 +377,7 @@ class LegacyShapeTest {
 
     static List<Hit> violations(List<Hit> hits, List<Allowed> exceptions) {
         Map<String, Set<Rule>> allowed = new LinkedHashMap<>();
-        Stream.of(exceptions, PENDING_DECISION, STANDING).flatMap(List::stream).forEach(e -> allowed.merge(e.file(), e.rules(), (a, b) -> {
+        Stream.of(exceptions, STANDING).flatMap(List::stream).forEach(e -> allowed.merge(e.file(), e.rules(), (a, b) -> {
             Set<Rule> merged = new LinkedHashSet<>(a);
             merged.addAll(b);
             return merged;
@@ -422,11 +412,6 @@ class LegacyShapeTest {
                 assertThat(hitRules.getOrDefault(e.file(), Set.of())).as("%s needs the exception for %s (stale entries are removed)", e.file(), rule)
                         .contains(rule);
             }
-        }
-        for (Allowed pending : PENDING_DECISION) {
-            assertThat(Files.isRegularFile(Path.of(pending.file()))).as("%s exists (remove the entry when it is renamed)", pending.file()).isTrue();
-            assertThat(hitRules.getOrDefault(pending.file(), Set.of())).as("%s still needs its pending exception", pending.file())
-                    .contains(Rule.EXTERNAL_SYSTEM_NAME);
         }
         for (Allowed standing : STANDING) {
             assertThat(Files.isRegularFile(Path.of(standing.file()))).as("%s exists", standing.file()).isTrue();

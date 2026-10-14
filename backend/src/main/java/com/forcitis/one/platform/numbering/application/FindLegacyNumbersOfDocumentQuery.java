@@ -1,7 +1,6 @@
 package com.forcitis.one.platform.numbering.application;
 
-import com.forcitis.one.platform.numbering.api.DocumentId;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
 import com.forcitis.one.platform.numbering.api.LegacyNumberEntry;
 import com.forcitis.one.platform.numbering.domain.LegacyNumberRepository;
@@ -20,7 +19,7 @@ class FindLegacyNumbersOfDocumentQuery implements FindLegacyNumbersOfDocument {
 
     @Override
     @Transactional(readOnly = true)
-    public List<LegacyNumberEntry> find(DocumentType type, DocumentId documentId) {
-        return legacyNumbers.findByDocument(type, documentId);
+    public List<LegacyNumberEntry> find(DocumentReference document) {
+        return legacyNumbers.findByDocument(document);
     }
 }

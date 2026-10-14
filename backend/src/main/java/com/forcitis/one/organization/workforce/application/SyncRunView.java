@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.organization.workforce.domain.RunStats;
-import com.forcitis.one.organization.workforce.domain.SyncRun;
+import com.forcitis.one.organization.workforce.domain.SyncRunRecord;
 import java.time.Instant;
 
 public record SyncRunView(long syncRunId, String trigger, String status, Instant startedAt, Instant finishedAt,
@@ -11,7 +11,7 @@ public record SyncRunView(long syncRunId, String trigger, String status, Instant
                           Integer positionChangeCount, Integer isolatedRowCount, Integer issueCount,
                           Integer employedWithoutWecomCount, String heldReason, String failureReason, Long releasedBy,
                           Instant releasedAt, Long releasedByRunId) {
-    static SyncRunView of(SyncRun run) {
+    static SyncRunView of(SyncRunRecord run) {
         RunStats s = run.stats();
         return new SyncRunView(run.syncRunId().value(), run.trigger().name(), run.status().name(), run.startedAt(),
                 run.finishedAt(),

@@ -1,21 +1,19 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.LegalEntity;
 import com.forcitis.one.organization.workforce.domain.LegalEntityRepository;
-import com.forcitis.one.organization.workforce.domain.LegalEntityStatus;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
 import java.util.Optional;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcLegalEntityRepository implements LegalEntityRepository {
-    private static final String COLUMNS = "id, code, name, status";
-
     private final JdbcClient jdbc;
 
     JdbcLegalEntityRepository(JdbcClient jdbc) {
@@ -23,40 +21,54 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     }
 
     @Override
-    public List<LegalEntity> findAll() {
-        return jdbc.sql("select " + COLUMNS + " from organization_workforce.legal_entities order by code")
-                .query((rs, n) -> row(rs)).list();
-    }
-
-    @Override
     public Optional<LegalEntity> find(LegalEntityId legalEntityId) {
-        return jdbc.sql("select " + COLUMNS + " from organization_workforce.legal_entities where id = :id")
-                .param("id", legalEntityId.value()).query((rs, n) -> row(rs)).optional();
+        return jdbc.sql("select id, code, name, status, version from organization_workforce.legal_entities where id = :id")
+                .param("id", legalEntityId.value())
+                .query((rs, n) -> LegalEntity.restore(new LegalEntityId(rs.getLong("id")), new LegalEntityCode(rs.getString("code")),
+                        rs.getString("name"), rs.getString("status"), rs.getLong("version")))
+                .optional();
     }
 
     @Override
-    public Optional<LegalEntity> insert(LegalEntityCode code, String name) {
-        return jdbc.sql("""
-                        insert into organization_workforce.legal_entities (code, name, status)
-                        values (:code, :name, 'ACTIVE')
-                        on conflict (code) do nothing
-                        returning """ + " " + COLUMNS)
-                .param("code", code.value()).param("name", name.trim()).query((rs, n) -> row(rs)).optional();
+    public LegalEntity insert(LegalEntity unsaved) {
+        try {
+            long id = jdbc.sql("""
+                            insert into organization_workforce.legal_entities (code, name, status, version)
+                            values (:code, :name, :status, :version) returning id
+                            """)
+                    .param("code", unsaved.code().value()).param("name", unsaved.name()).param("status", unsaved.status().name())
+                    .param("version", unsaved.versionAfterSave()).query(Long.class).single();
+            return unsaved.withId(new LegalEntityId(id));
+        } catch (DuplicateKeyException taken) {
+            throw codeTaken(unsaved.code());
+        }
     }
 
     @Override
-    public void update(LegalEntity legalEntity) {
-        jdbc.sql("""
-                        update organization_workforce.legal_entities
-                           set name = :name, status = :status, updated_at = now()
-                         where id = :id
-                        """)
-                .param("name", legalEntity.name()).param("status", legalEntity.status().name())
-                .param("id", legalEntity.legalEntityId().value()).update();
+    public void save(LegalEntity legalEntity) {
+        int updated;
+        try {
+            updated = jdbc.sql("""
+                            update organization_workforce.legal_entities
+                               set code = :code, name = :name, status = :status, version = :next, updated_at = now()
+                             where id = :id and version = :version and status = :loadedStatus and code = :loadedCode
+                            """)
+                    .param("code", legalEntity.code().value()).param("name", legalEntity.name())
+                    .param("status", legalEntity.status().name()).param("next", legalEntity.versionAfterSave())
+                    .param("id", legalEntity.legalEntityId().value()).param("version", legalEntity.version())
+                    .param("loadedStatus", legalEntity.loadedStatus().name()).param("loadedCode", legalEntity.loadedCode().value())
+                    .update();
+        } catch (DuplicateKeyException taken) {
+            throw codeTaken(legalEntity.code());
+        }
+        if (updated != 1) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
+                    "legal entity " + legalEntity.legalEntityId().value() + " was changed by someone else");
+        }
     }
 
-    private static LegalEntity row(ResultSet rs) throws SQLException {
-        return new LegalEntity(new LegalEntityId(rs.getLong("id")), new LegalEntityCode(rs.getString("code")), rs.getString("name"),
-                LegalEntityStatus.valueOf(rs.getString("status")));
+    private static DomainException codeTaken(LegalEntityCode code) {
+        return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN, ErrorKind.CONFLICT,
+                "the legal entity code " + code.value() + " is already used");
     }
 }

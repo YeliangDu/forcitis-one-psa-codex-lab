@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 
 class DdlNamingTest {
@@ -20,6 +22,8 @@ class DdlNamingTest {
     static final Set<String> BANNED = Set.of("psa", "cuvalue", "manhour", "man_hour", "works", "biget", "arbad", "ohproject",
             "flag", "info", "data", "temp", "tmp", "bd", "pm", "u8c", "fst");
     static final Set<String> KEYWORDS = Set.of("primary", "constraint", "unique", "foreign", "check");
+    static final Set<String> COMMON_COLUMNS = Set.of("id", "created_at", "created_by", "updated_at", "updated_by", "version");
+    static final Pattern LOCAL_TIMESTAMP = Pattern.compile("\\btimestamp\\b(?!tz)(?!\\s*(\\(\\d+\\))?\\s+with\\s+time\\s+zone)", Pattern.CASE_INSENSITIVE);
 
     @Test
     void migrationsFollowTheNamingStandard() throws IOException {
@@ -40,7 +44,16 @@ class DdlNamingTest {
         }
     }
 
+    static List<String> violations(String schema, String sql) {
+        List<String> problems = new ArrayList<>();
+        check(Path.of("V0__" + schema + "_sample.sql"), schema, sql, problems);
+        return problems;
+    }
+
     private static void check(Path file, String schema, String sql, List<String> problems) {
+        if (LOCAL_TIMESTAMP.matcher(sql.replaceAll("(?m)^\\s*--.*$", "").replaceAll("'[^']*'", "''")).find()) {
+            problems.add(file.getFileName() + ": timestamp without time zone is forbidden; instants are timestamptz, business days are date");
+        }
         Matcher t = CREATE_TABLE.matcher(sql);
         while (t.find()) {
             String tableSchema = t.group(1);
@@ -73,7 +86,7 @@ class DdlNamingTest {
                 if (column.endsWith("_amount") && !t.group(3).contains(column.replace("_amount", "_currency"))) {
                     problems.add(where + ": " + column + " needs a sibling " + column.replace("_amount", "_currency") + " (Money = amount + currency)");
                 }
-                if (!sql.contains("COMMENT ON COLUMN " + tableSchema + "." + table + "." + column + " IS")) {
+                if (!COMMON_COLUMNS.contains(column) && !sql.contains("COMMENT ON COLUMN " + tableSchema + "." + table + "." + column + " IS")) {
                     problems.add(where + ": column " + column + " has no COMMENT (data dictionary)");
                 }
             }
@@ -97,5 +110,41 @@ class DdlNamingTest {
                 problems.add(where + ": " + what + " uses legacy/vague word '" + part + "' (see GLOSSARY.md)");
             }
         }
+    }
+
+    static final String GOOD = """
+            CREATE TABLE platform_sample.things (
+                id         bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                name       text        NOT NULL,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                version    bigint      NOT NULL DEFAULT 0
+            );
+            COMMENT ON TABLE platform_sample.things IS 'x';
+            COMMENT ON COLUMN platform_sample.things.name IS 'x';
+            """;
+
+    @Test
+    void commonColumnsNeedNoComment() {
+        assertThat(violations("platform_sample", GOOD)).isEmpty();
+    }
+
+    @Test
+    void otherColumnsStillNeedAComment() {
+        assertThat(violations("platform_sample", GOOD.replace("COMMENT ON COLUMN platform_sample.things.name IS 'x';", "")))
+                .anyMatch(p -> p.contains("column name has no COMMENT"));
+    }
+
+    @Test
+    void timestampWithoutTimeZoneIsRejected() {
+        assertThat(violations("platform_sample", GOOD.replace("name       text        NOT NULL,",
+                "name       text        NOT NULL,\n                seen_at    timestamp without time zone,")))
+                .anyMatch(p -> p.contains("timestamp without time zone"));
+        assertThat(violations("platform_sample", GOOD.replace("name       text        NOT NULL,",
+                "name       text        NOT NULL,\n                seen_at    timestamp,")))
+                .anyMatch(p -> p.contains("timestamp without time zone"));
+        assertThat(violations("platform_sample", GOOD.replace("name       text        NOT NULL,",
+                "name       text        NOT NULL,\n                seen_at    timestamp with time zone,")))
+                .noneMatch(p -> p.contains("timestamp without time zone"));
     }
 }

@@ -4,7 +4,10 @@ import com.forcitis.one.platform.integration.domain.DeliveryKind;
 import com.forcitis.one.platform.integration.domain.DeliveryStatus;
 import com.forcitis.one.platform.integration.domain.OutboundDelivery;
 import com.forcitis.one.platform.integration.domain.OutboundDeliveryRepository;
+import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.kernel.WorkContext;
 import java.time.Clock;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -59,6 +62,7 @@ public class MarkWecomCardHandled {
             deliveries.recordHandledResult(sent.deduplicationKey(), reason);
             return;
         }
-        deliveries.queueHandledNote(sent, handledNote, clock.instant());
+        UUID correlationId = WorkContext.correlationId().orElseGet(() -> Uuids.timeOrdered(clock));
+        deliveries.insert(OutboundDelivery.handledNoteFor(sent, handledNote, correlationId, clock.instant()), clock.instant());
     }
 }

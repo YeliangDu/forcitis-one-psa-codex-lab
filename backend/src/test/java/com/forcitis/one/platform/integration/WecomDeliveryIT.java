@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -261,7 +262,7 @@ class WecomDeliveryIT {
     @DisplayName("ARCH 3.7/3.9 after 8 failed attempts the card is a dead letter and the dead-letter metric rises")
     void exhaustedRetriesEndInTheDeadLetters() {
         wecom.stubFor(post(urlPathEqualTo(SEND_PATH)).willReturn(okJson("{\"errcode\":60020,\"errmsg\":\"not allow to access from your ip\"}")));
-        double deadBefore = gauge("platform.integration.deliveries.dead.letters");
+        double deadBefore = gauge("forcitis.platform.integration.deliveries.dead.letters");
         queue(card("approval-task:10", ALICE));
 
         for (int attempt = 1; attempt <= 8; attempt++) {
@@ -272,7 +273,7 @@ class WecomDeliveryIT {
         }
 
         assertThat(row("approval-task:10").get("last_error").toString()).contains("60020");
-        assertThat(gauge("platform.integration.deliveries.dead.letters")).isEqualTo(deadBefore + 1);
+        assertThat(gauge("forcitis.platform.integration.deliveries.dead.letters")).isEqualTo(deadBefore + 1);
         makeDue("approval-task:10");
         assertThat(deliver.execute()).as("a dead letter is never picked up again").isZero();
         wecom.verify(8, postRequestedFor(urlPathEqualTo(SEND_PATH)));
@@ -282,15 +283,15 @@ class WecomDeliveryIT {
     @DisplayName("ARCH 3.9 a card still pending 10 minutes after it was queued shows in the overdue metric until it is sent")
     void overdueMetricCountsStalePendingCards() {
         sendSucceeds("");
-        double before = gauge("platform.integration.deliveries.pending.overdue");
+        double before = gauge("forcitis.platform.integration.deliveries.pending.overdue");
         queue(card("approval-task:11", ALICE));
-        assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before);
+        assertThat(gauge("forcitis.platform.integration.deliveries.pending.overdue")).isEqualTo(before);
 
         jdbc.sql("update platform_integration.outbound_deliveries set created_at = now() - interval '11 minutes'").update();
-        assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before + 1);
+        assertThat(gauge("forcitis.platform.integration.deliveries.pending.overdue")).isEqualTo(before + 1);
 
         deliver.execute();
-        assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before);
+        assertThat(gauge("forcitis.platform.integration.deliveries.pending.overdue")).isEqualTo(before);
     }
 
     private void markHandled(String key, String note) {
@@ -423,14 +424,32 @@ class WecomDeliveryIT {
 
         assertThat(first.attemptCount()).isEqualTo(1);
         assertThat(second.attemptCount()).isEqualTo(2);
-        assertThat(repository.markSent(first, "stale-code", now)).isFalse();
-        assertThat(repository.markRetry(first, now, "stale")).isFalse();
-        assertThat(repository.markDeadLetter(first, "stale")).isFalse();
-        assertThat(repository.markSkipped(first, "stale")).isFalse();
+        first.markSent("stale-code", now);
+        assertThat(repository.save(first)).isFalse();
+        var retried = repository.findByKey("approval-task:18").orElseThrow();
+        assertThat(retried.attemptCount()).isEqualTo(2);
+        var staleRetry = claimedAs(first);
+        staleRetry.scheduleRetry(now, "stale");
+        assertThat(repository.save(staleRetry)).isFalse();
+        var staleDead = claimedAs(first);
+        staleDead.deadLetter("stale");
+        assertThat(repository.save(staleDead)).isFalse();
+        var staleSkip = claimedAs(first);
+        staleSkip.skip("stale");
+        assertThat(repository.save(staleSkip)).isFalse();
         assertThat(row("approval-task:18")).containsEntry("status", "PENDING").containsEntry("attempt_count", 2);
-        assertThat(repository.markSent(second, "rc-18", now)).isTrue();
-        assertThat(repository.markSent(second, "again", now)).as("already sent").isFalse();
+        second.markSent("rc-18", now);
+        assertThat(repository.save(second)).isTrue();
+        var again = repository.findByKey("approval-task:18").orElseThrow();
+        assertThatThrownBy(() -> again.markSent("again", now)).as("already sent").isInstanceOf(DomainException.class);
         assertThat(row("approval-task:18")).containsEntry("status", "SENT").containsEntry("response_code", "rc-18");
+    }
+
+    private static com.forcitis.one.platform.integration.domain.OutboundDelivery claimedAs(
+            com.forcitis.one.platform.integration.domain.OutboundDelivery claim) {
+        return com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(claim.deliveryId(), claim.deduplicationKey(),
+                claim.recipients(), claim.title(), claim.description(), claim.targetUrl(), "PENDING", claim.attemptCount(), null, null,
+                claim.kind(), claim.targetKey(), claim.correlation(), claim.version());
     }
 
     @Test

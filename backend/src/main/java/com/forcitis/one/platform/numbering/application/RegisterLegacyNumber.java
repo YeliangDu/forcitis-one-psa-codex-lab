@@ -21,10 +21,10 @@ class RegisterLegacyNumber implements RegisterLegacyNumbers {
         if (legacyNumbers.insertIfAbsent(entry)) {
             return;
         }
-        LegacyNumberEntry existing = legacyNumbers.find(entry.documentType(), entry.legacyNumber()).orElseThrow();
-        if (!existing.documentId().equals(entry.documentId())) {
-            throw new IllegalStateException("Legacy number " + entry.legacyNumber() + " of " + entry.documentType()
-                    + " already belongs to document " + existing.documentId().value());
+        LegacyNumberEntry existing = legacyNumbers.find(entry.document().documentType(), entry.legacyNumber()).orElseThrow();
+        if (!existing.document().equals(entry.document())) {
+            throw new IllegalStateException("Legacy number " + entry.legacyNumber() + " of " + entry.document().documentType()
+                    + " already belongs to document " + existing.document().documentId().value());
         }
     }
 }

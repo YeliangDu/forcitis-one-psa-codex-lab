@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** The caller is always the session user, no request carries an identity (G33); there is no start endpoint (I-5). */
 @RestController
-@RequestMapping("/api/{version}/platform/approval-tasks")
+@RequestMapping("/api/v1/platform/approval-tasks")
 class ApprovalTaskController {
 
     private final ListInbox listInbox;
@@ -45,39 +45,39 @@ class ApprovalTaskController {
         this.currentUser = currentUser;
     }
 
-    @GetMapping(path = "", version = "1")
+    @GetMapping(path = "")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "')")
     InboxResponse list() {
         return InboxResponse.of(listInbox.execute(currentUser.userId()));
     }
 
-    @GetMapping(path = "/{taskId}", version = "1")
+    @GetMapping(path = "/{taskId}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "')")
     TaskDetailResponse get(@PathVariable String taskId) {
         return TaskDetailResponse.of(getTaskDetail.execute(new ApprovalTaskId(taskId), currentUser.userId()));
     }
 
-    @PostMapping(path = "/{taskId}:claim", version = "1")
+    @PostMapping(path = "/{taskId}:claim")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
     ResponseEntity<Void> claim(@PathVariable String taskId) {
         claimTask.execute(new ApprovalTaskId(taskId), currentUser.userId());
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(path = "/{taskId}:decide", version = "1")
+    @PostMapping(path = "/{taskId}:decide")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
     DecisionResponse decide(@PathVariable String taskId, @RequestBody DecideTaskRequest request) {
         return DecisionResponse.of(decideTasks.execute(currentUser.userId(),
                 List.of(new TaskDecision(new ApprovalTaskId(taskId), request.outcome(), request.reason()))));
     }
 
-    @PostMapping(path = "/{taskId}:return", version = "1")
+    @PostMapping(path = "/{taskId}:return")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
     DecisionResponse returnTask(@PathVariable String taskId, @RequestBody ReturnTaskRequest request) {
         return DecisionResponse.of(returnToInitiator.execute(new ApprovalTaskId(taskId), currentUser.userId(), request.reason()));
     }
 
-    @PostMapping(path = "/{taskId}:transfer", version = "1")
+    @PostMapping("/{taskId}:transfer")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
     ResponseEntity<Void> transfer(@PathVariable String taskId, @RequestBody TransferTaskRequest request) {
         transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new UserId(request.assigneeId()));

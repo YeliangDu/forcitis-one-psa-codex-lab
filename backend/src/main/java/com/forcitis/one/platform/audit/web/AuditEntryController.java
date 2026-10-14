@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/{version}/platform/audit-entries")
+@RequestMapping("/api/v1/platform/audit-entries")
 class AuditEntryController {
 
     private final SearchAuditEntries search;
@@ -21,7 +21,7 @@ class AuditEntryController {
         this.search = search;
     }
 
-    @GetMapping(version = "1")
+    @GetMapping
     @PreAuthorize("hasAuthority('" + AuditPermissions.ENTRY_READ + "')")
     ResponseEntity<?> list(@RequestParam(required = false) Long actorId, @RequestParam(required = false) String action,
                            @RequestParam(required = false) String subjectKey,

@@ -1,35 +1,26 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.SyncRunId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+/** Writing side. A save applies only to the stored status and version the run was loaded with; otherwise it is refused. */
 public interface SyncRunRepository {
-    SyncRunId begin(SyncTrigger trigger, Instant now);
-
-    void markSucceeded(SyncRunId syncRunId, Instant now, RunStats stats);
-
-    /** While an earlier run is still held it is refreshed instead, so a stuck hold adds no row every five minutes. */
-    SyncRunId markHeld(SyncRunId syncRunId, Instant now, RunStats stats, String reason);
-
-    void markFailed(SyncRunId syncRunId, Instant now, String reason);
-
-    void markReleased(SyncRunId held, SyncRunId releasedByRun, UserId releasedBy, Instant now);
-
-    void saveDiffs(SyncRunId syncRunId, List<SyncDiff> diffs);
+    SyncRun begin(SyncTrigger trigger, Instant now);
 
     Optional<SyncRun> find(SyncRunId syncRunId);
 
-    List<SyncRun> findRecent(int limit);
+    /** RUNNING runs started before the cutoff: the process that owned them is gone. */
+    List<SyncRun> findAbandoned(Instant cutoff);
 
-    List<SyncDiff> findDiffs(SyncRunId syncRunId);
+    /** Held runs other than the given one, oldest first. */
+    List<SyncRun> findHeldExcept(SyncRunId syncRunId);
 
-    Optional<SyncRun> findLatest();
+    void save(SyncRun run);
 
-    Optional<Instant> findLastSucceededAt();
+    /** Removes a run that never got past RUNNING (its figures were merged into an earlier held run). */
+    void discard(SyncRun run);
 
-    int countHeld();
-
-    Optional<Integer> findLatestEmployedWithoutWecomCount();
+    void saveDiffs(SyncRunId syncRunId, List<SyncDiff> diffs);
 }

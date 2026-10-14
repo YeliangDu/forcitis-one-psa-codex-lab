@@ -1,17 +1,14 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.organization.workforce.api.LegalEntityCode;
-import java.util.List;
 import java.util.Optional;
 
+/** Writing side. A code already used by another legal entity is refused with a DomainException; a stale save too. */
 public interface LegalEntityRepository {
-    List<LegalEntity> findAll();
-
     Optional<LegalEntity> find(LegalEntityId legalEntityId);
 
-    /** Empty when the code is already used. */
-    Optional<LegalEntity> insert(LegalEntityCode code, String name);
+    /** Returns the stored legal entity with its id and its registration event recorded. */
+    LegalEntity insert(LegalEntity unsaved);
 
-    void update(LegalEntity legalEntity);
+    void save(LegalEntity legalEntity);
 }

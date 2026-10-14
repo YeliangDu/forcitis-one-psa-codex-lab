@@ -51,8 +51,12 @@ import tools.jackson.databind.json.JsonMapper;
         "forcitis.platform.identity.sso.legacy-login-url=https://legacy.example.invalid/login",
         "FORCITIS_TICKET_KEY_SHORT=too-short"})
 @AutoConfigureMockMvc
+@org.springframework.test.context.event.RecordApplicationEvents
 @Import(IdentityIntegrationTest.ClockConfiguration.class)
 abstract class IdentityIntegrationTest {
+
+    @org.springframework.beans.factory.annotation.Autowired
+    org.springframework.test.context.event.ApplicationEvents recordedEvents;
 
     /** Throw-away key per test run (no key literal in the repo). */
     static final String TOTP_KEY = Base64.getEncoder().encodeToString(randomBytes(32));

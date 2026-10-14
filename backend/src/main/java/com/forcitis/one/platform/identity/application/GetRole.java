@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
-import com.forcitis.one.platform.identity.domain.RoleId;
+import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import java.util.Optional;
 import org.springframework.stereotype.Service;

@@ -1,0 +1,13 @@
+package com.forcitis.one.platform.identity.api;
+
+import com.forcitis.one.kernel.ValueObject;
+
+@ValueObject
+public record RoleId(long value) {
+
+    public RoleId {
+        if (value <= 0) {
+            throw new IllegalArgumentException("RoleId must be positive");
+        }
+    }
+}

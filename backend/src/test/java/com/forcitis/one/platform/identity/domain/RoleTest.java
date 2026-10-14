@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.domain;
 
+import com.forcitis.one.platform.identity.api.RoleId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -14,11 +15,11 @@ import org.junit.jupiter.api.Test;
 class RoleTest {
 
     static Role custom(String code, Set<String> permissions) {
-        return new Role(new RoleId(7), new RoleCode(code), code, RoleKind.CUSTOM, RoleStatus.ENABLED, AccessScopeKind.SELF, false, permissions);
+        return Role.restore(new RoleId(7), new RoleCode(code), code, "CUSTOM", "ENABLED", AccessScopeKind.SELF, false, permissions, 2);
     }
 
     static Role system(String code, Set<String> permissions) {
-        return new Role(new RoleId(1), new RoleCode(code), code, RoleKind.SYSTEM, RoleStatus.ENABLED, AccessScopeKind.ALL, true, permissions);
+        return Role.restore(new RoleId(1), new RoleCode(code), code, "SYSTEM", "ENABLED", AccessScopeKind.ALL, true, permissions, 0);
     }
 
     @Test
@@ -52,12 +53,13 @@ class RoleTest {
     @Test
     @DisplayName("RULE-345 system roles are frozen; custom roles can be revised and keep their code")
     void frozenSystemRoles() {
-        assertThatThrownBy(() -> system("employee", Set.of()).revise("x", RoleStatus.DISABLED, AccessScopeKind.SELF, Set.of()))
+        assertThatThrownBy(() -> system("employee", Set.of()).revise("x", AccessScopeKind.SELF, Set.of()))
                 .isInstanceOfSatisfying(RoleRuleException.class, e -> assertThat(e.violation()).isEqualTo(RoleViolation.SYSTEM_FROZEN));
         assertThatThrownBy(() -> system("employee", Set.of()).requireModifiable()).isInstanceOf(RoleRuleException.class);
 
-        Role revised = custom("analyst", Set.of()).revise("Senior", RoleStatus.DISABLED, AccessScopeKind.OWN_ORG_UNIT,
-                Set.of(Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE));
+        Role revised = custom("analyst", Set.of());
+        revised.revise("Senior", AccessScopeKind.OWN_ORG_UNIT, Set.of(Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE));
+        revised.disable();
         assertThat(revised.code().value()).isEqualTo("analyst");
         assertThat(revised.isEnabled()).isFalse();
         assertThat(revised.accessScope()).isEqualTo(AccessScopeKind.OWN_ORG_UNIT);
@@ -68,8 +70,8 @@ class RoleTest {
     @DisplayName("RULE-341/343 permissions come from enabled roles only; a person without roles has none")
     void effectivePermissions() {
         Role enabled = custom("a", Set.of(Permission.Codes.TIMESHEET_SUBMIT));
-        Role disabled = new Role(new RoleId(8), new RoleCode("b"), "b", RoleKind.CUSTOM, RoleStatus.DISABLED, AccessScopeKind.SELF, false,
-                Set.of(Permission.Codes.TIMESHEET_APPROVE));
+        Role disabled = Role.restore(new RoleId(8), new RoleCode("b"), "b", "CUSTOM", "DISABLED", AccessScopeKind.SELF, false,
+                Set.of(Permission.Codes.TIMESHEET_APPROVE), 0);
 
         AccessProfile profile = AccessProfile.of(List.of(enabled, disabled));
 
@@ -88,7 +90,7 @@ class RoleTest {
         assertThat(admin.permissionCodes()).hasSize(Permission.values().length);
         assertThat(admin.hasPermission(Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE)).isTrue();
 
-        Role disabledAdmin = new Role(new RoleId(1), new RoleCode("super_admin"), "x", RoleKind.SYSTEM, RoleStatus.DISABLED, AccessScopeKind.ALL, true, Set.of());
+        Role disabledAdmin = Role.restore(new RoleId(1), new RoleCode("super_admin"), "x", "SYSTEM", "DISABLED", AccessScopeKind.ALL, true, Set.of(), 0);
         assertThat(AccessProfile.of(List.of(disabledAdmin)).isAdministrator()).isFalse();
     }
 

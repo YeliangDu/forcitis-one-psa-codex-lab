@@ -4,6 +4,17 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.platform.integration.api.SourceGender;
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+import com.forcitis.one.platform.integration.api.SourceOrgUnit;
+import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.platform.integration.api.SourcePersonId;
+import com.forcitis.one.platform.integration.api.SourcePosition;
+import com.forcitis.one.platform.integration.api.SourcePositionId;
+import com.forcitis.one.platform.integration.api.SourceRecordState;
+import com.forcitis.one.platform.integration.api.SourceRelationship;
+import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
+import com.forcitis.one.platform.integration.api.SourceUnitId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,52 +30,60 @@ public final class Fixtures {
         return new UserId(id);
     }
 
-    public static SourceOrgUnit unit(long id, Long parent) {
-        return unit(id, parent, OrgUnitStatus.ACTIVE);
+    public static SourceUnitId sourceUnit(long id) {
+        return new SourceUnitId(id);
     }
 
-    public static SourceOrgUnit unit(long id, Long parent, OrgUnitStatus status) {
-        return new SourceOrgUnit(unitId(id), "C" + id, "Unit " + id, parent == null ? null : unitId(parent), (int) id, status,
+    public static SourcePersonId sourcePerson(long id) {
+        return new SourcePersonId(id);
+    }
+
+    public static SourceOrgUnit unit(long id, Long parent) {
+        return unit(id, parent, SourceRecordState.ACTIVE);
+    }
+
+    public static SourceOrgUnit unit(long id, Long parent, SourceRecordState state) {
+        return new SourceOrgUnit(sourceUnit(id), "C" + id, "Unit " + id, parent == null ? null : sourceUnit(parent), (int) id, state,
                 List.of(), null, null, false, null);
     }
 
     public static SourcePosition post(long id) {
-        return new SourcePosition(new PositionId(id), "P" + id, "Post " + id, (int) id, PositionStatus.ACTIVE);
+        return post(id, SourceRecordState.ACTIVE);
     }
 
-    public static SourcePosition post(long id, PositionStatus status) {
-        return new SourcePosition(new PositionId(id), "P" + id, "Post " + id, (int) id, status);
+    public static SourcePosition post(long id, SourceRecordState state) {
+        return new SourcePosition(new SourcePositionId(id), "P" + id, "Post " + id, (int) id, state);
     }
 
-    public static SourceMember member(long id, long unit, Long post, Long leader) {
-        return member(id, unit, post, leader, "139" + id, "wx-" + id);
+    public static SourcePerson person(long id, long unit, Long post, Long leader) {
+        return person(id, unit, post, leader, "139" + id, "wx-" + id);
     }
 
-    public static SourceMember member(long id, long unit, Long post, Long leader, String login, String wecom) {
-        return new SourceMember(user(id), "E" + id, "Person " + id, unitId(unit), post == null ? null : new PositionId(post),
-                leader == null ? null : user(leader), login, "p" + id + "@example.test", Gender.MALE,
-                wecom == null ? null : new WecomUserId(wecom), false);
+    public static SourcePerson person(long id, long unit, Long post, Long leader, String login, String wecom) {
+        return new SourcePerson(sourcePerson(id), "E" + id, "Person " + id, sourceUnit(unit),
+                post == null ? null : new SourcePositionId(post), leader == null ? null : sourcePerson(leader), login,
+                "p" + id + "@example.test", SourceGender.MALE, wecom == null ? null : new WecomUserId(wecom), false);
     }
 
-    public static SourceRelationship head(long unit, long member) {
-        return new SourceRelationship(RelationshipKind.HEAD, unitId(unit), user(member), false);
+    public static SourceRelationship head(long unit, long person) {
+        return new SourceRelationship(SourceRelationshipKind.UNIT_HEAD, sourceUnit(unit), sourcePerson(person), false);
     }
 
-    public static SourceRelationship manager(long unit, long member) {
-        return new SourceRelationship(RelationshipKind.REGIONAL_RECEIVABLES_MANAGER, unitId(unit), user(member), false);
+    public static SourceRelationship manager(long unit, long person) {
+        return new SourceRelationship(SourceRelationshipKind.REGIONAL_RECEIVABLES_MANAGER, sourceUnit(unit), sourcePerson(person), false);
     }
 
-    public static SourceSnapshot source(List<SourceOrgUnit> units, List<SourceRelationship> relationships,
-                                 List<SourcePosition> positions, List<SourceMember> members) {
-        return new SourceSnapshot(units, relationships, positions, members);
+    public static SourceOrgSnapshot source(List<SourceOrgUnit> units, List<SourceRelationship> relationships,
+                                 List<SourcePosition> positions, List<SourcePerson> staff) {
+        return new SourceOrgSnapshot(units, relationships, positions, staff);
     }
 
-    public static SourceSnapshot tree(SourceMember... members) {
+    public static SourceOrgSnapshot tree(SourcePerson... staff) {
         return source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(),
-                List.of(post(100), post(101)), List.of(members));
+                List.of(post(100), post(101)), List.of(staff));
     }
 
-    public static Reconciliation first(SourceSnapshot source) {
+    public static Reconciliation first(SourceOrgSnapshot source) {
         return SnapshotReconciler.reconcile(OrgSnapshot.empty(), source);
     }
 
@@ -75,13 +94,13 @@ public final class Fixtures {
         List<Position> positions = new ArrayList<>(before.positionsById().values());
         positions.removeIf(p -> changes.positions().stream().anyMatch(c -> c.positionId().equals(p.positionId())));
         positions.addAll(changes.positions());
-        List<StaffMember> staff = new ArrayList<>(before.staffById().values());
+        List<StaffEmployee> staff = new ArrayList<>(before.staffById().values());
         staff.removeIf(s -> changes.staff().stream().anyMatch(c -> c.userId().equals(s.userId())));
         staff.addAll(changes.staff());
         return new OrgSnapshot(units, positions, staff);
     }
 
-    public static StaffMember staff(OrgSnapshot snapshot, long id) {
+    public static StaffEmployee staff(OrgSnapshot snapshot, long id) {
         return snapshot.staffById().get(user(id));
     }
 
@@ -89,7 +108,7 @@ public final class Fixtures {
         return snapshot.orgUnitsById().get(unitId(id));
     }
 
-    public static boolean employed(StaffMember s) {
+    public static boolean employed(StaffEmployee s) {
         return s.employee().employmentStatus() == EmploymentStatus.EMPLOYED;
     }
 

@@ -1,6 +1,31 @@
 {
   "components" : {
     "schemas" : {
+      "CalendarDayRequest" : {
+        "properties" : {
+          "calendarDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "dayKind" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CalendarDayResponse" : {
+        "properties" : {
+          "calendarDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "dayKind" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "calendarDate", "dayKind" ],
+        "type" : "object"
+      },
       "CreateLegalEntityRequest" : {
         "properties" : {
           "code" : {
@@ -179,6 +204,17 @@
           "entry" : {
             "enum" : [ "WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN" ],
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "MaintainWorkCalendarRequest" : {
+        "properties" : {
+          "days" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarDayRequest"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -658,6 +694,9 @@
       },
       "UpdateLegalEntityRequest" : {
         "properties" : {
+          "code" : {
+            "type" : "string"
+          },
           "name" : {
             "type" : "string"
           },
@@ -680,6 +719,22 @@
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "WorkCalendarYearResponse" : {
+        "properties" : {
+          "calendarYear" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "days" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CalendarDayResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "calendarYear", "days" ],
         "type" : "object"
       }
     }
@@ -851,7 +906,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object"
+                  "$ref" : "#/components/schemas/LegalEntityResponse"
                 }
               }
             },
@@ -888,7 +943,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "type" : "object"
+                  "$ref" : "#/components/schemas/LegalEntityResponse"
                 }
               }
             },
@@ -1038,6 +1093,90 @@
           }
         },
         "tags" : [ "sync-run-controller" ]
+      }
+    },
+    "/api/v1/organization/work-calendars" : {
+      "get" : {
+        "operationId" : "maintainedYears",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "format" : "int32",
+                    "type" : "integer"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "work-calendar-controller" ]
+      }
+    },
+    "/api/v1/organization/work-calendars/{calendarYear}" : {
+      "get" : {
+        "operationId" : "view",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "calendarYear",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkCalendarYearResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "work-calendar-controller" ]
+      },
+      "put" : {
+        "operationId" : "maintain",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "calendarYear",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MaintainWorkCalendarRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkCalendarYearResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "work-calendar-controller" ]
       }
     },
     "/api/v1/platform/approval-tasks" : {
@@ -1426,13 +1565,6 @@
         },
         "responses" : {
           "200" : {
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
             "description" : "OK"
           }
         },

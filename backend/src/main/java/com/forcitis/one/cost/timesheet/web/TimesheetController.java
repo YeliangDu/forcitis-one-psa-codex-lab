@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/{version}/cost/timesheets")
+@RequestMapping("/api/v1/cost/timesheets")
 class TimesheetController {
 
     private final SubmitTimesheet submitTimesheet;
@@ -38,7 +38,7 @@ class TimesheetController {
         this.getTimesheet = getTimesheet;
     }
 
-    @PostMapping(path = "/{id}:submit", version = "1")
+    @PostMapping(path = "/{id}:submit")
     @PreAuthorize("hasAuthority('" + Permission.Codes.TIMESHEET_SUBMIT + "')")
     ResponseEntity<SubmitTimesheetResponse> submit(@PathVariable long id, @RequestBody SubmitTimesheetRequest request) {
         SubmissionResult result = submitTimesheet.execute(new SubmitTimesheetCommand(
@@ -52,20 +52,20 @@ class TimesheetController {
         };
     }
 
-    @GetMapping(path = "/{id}", version = "1")
+    @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.TIMESHEET_SUBMIT + "')")
     TimesheetResponse get(@PathVariable long id) {
         return TimesheetResponse.of(getTimesheet.execute(new TimesheetId(id)));
     }
 
-    @PostMapping(path = "/{id}:withdraw", version = "1")
+    @PostMapping("/{id}:withdraw")
     @PreAuthorize("hasAuthority('" + Permission.Codes.TIMESHEET_SUBMIT + "')")
     ResponseEntity<Void> withdraw(@PathVariable long id, @RequestBody RetractTimesheetRequest request) {
         withdrawTimesheet.execute(new TimesheetId(id), request.reason());
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(path = "/{id}:cancel", version = "1")
+    @PostMapping("/{id}:cancel")
     @PreAuthorize("hasAuthority('" + Permission.Codes.TIMESHEET_SUBMIT + "')")
     ResponseEntity<Void> cancel(@PathVariable long id, @RequestBody RetractTimesheetRequest request) {
         cancelTimesheet.execute(new TimesheetId(id), request.reason());

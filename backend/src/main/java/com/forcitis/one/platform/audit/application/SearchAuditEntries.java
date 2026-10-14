@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.audit.application;
 
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.audit.domain.AuditEntryRepository;
+import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
 import com.forcitis.one.platform.audit.domain.AuditPage;
 import com.forcitis.one.platform.audit.domain.AuditQuery;
 import org.springframework.stereotype.Service;
@@ -10,9 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SearchAuditEntries {
 
-    private final AuditEntryRepository entries;
+    private final AuditEntryQueries entries;
 
-    SearchAuditEntries(AuditEntryRepository entries) {
+    SearchAuditEntries(AuditEntryQueries entries) {
         this.entries = entries;
     }
 

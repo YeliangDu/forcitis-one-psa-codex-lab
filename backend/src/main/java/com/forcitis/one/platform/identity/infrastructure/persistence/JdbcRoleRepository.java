@@ -1,8 +1,11 @@
 package com.forcitis.one.platform.identity.infrastructure.persistence;
 
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.domain.Role;
-import com.forcitis.one.platform.identity.domain.RoleId;
+import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.RoleRuleException;
 import com.forcitis.one.platform.identity.domain.RoleViolation;
@@ -42,14 +45,14 @@ class JdbcRoleRepository implements RoleRepository {
     @Override
     public Role insert(Role role) {
         Optional<Long> id = jdbc.sql("""
-                        insert into platform_identity.roles (code, name, kind, status, access_scope, is_administrative)
-                        values (:code, :name, :kind, :status, :scope, :administrative)
+                        insert into platform_identity.roles (code, name, kind, status, access_scope, is_administrative, version)
+                        values (:code, :name, :kind, :status, :scope, :administrative, :version)
                         on conflict do nothing
                         returning role_id
                         """)
                 .param("code", role.code().value()).param("name", role.name()).param("kind", role.kind().name())
                 .param("status", role.status().name()).param("scope", role.accessScope().name())
-                .param("administrative", role.administrative())
+                .param("administrative", role.administrative()).param("version", role.versionAfterSave())
                 .query(Long.class).optional();
         if (id.isEmpty()) {
             boolean codeTaken = jdbc.sql("select exists (select 1 from platform_identity.roles where lower(code) = lower(:code))")
@@ -57,8 +60,7 @@ class JdbcRoleRepository implements RoleRepository {
             throw new RoleRuleException(codeTaken ? RoleViolation.DUPLICATE_CODE : RoleViolation.DUPLICATE_NAME);
         }
         replacePermissions(id.get(), role.permissionCodes());
-        return new Role(new RoleId(id.get()), role.code(), role.name(), role.kind(), role.status(), role.accessScope(),
-                role.administrative(), role.permissionCodes());
+        return role.withId(new RoleId(id.get()));
     }
 
     @Override
@@ -70,20 +72,33 @@ class JdbcRoleRepository implements RoleRepository {
         if (nameTaken) {
             throw new RoleRuleException(RoleViolation.DUPLICATE_NAME);
         }
-        jdbc.sql("""
+        int updated = jdbc.sql("""
                         update platform_identity.roles
                            set name = :name, status = :status, access_scope = :scope,
-                               updated_at = now(), version = version + 1
-                         where role_id = :id
+                               updated_at = now(), version = :next
+                         where role_id = :id and version = :version and status = :loadedStatus
                         """)
                 .param("name", role.name()).param("status", role.status().name()).param("scope", role.accessScope().name())
-                .param("id", role.roleId().value()).update();
+                .param("next", role.versionAfterSave()).param("id", role.roleId().value()).param("version", role.version())
+                .param("loadedStatus", role.loadedStatus().name()).update();
+        if (updated != 1) {
+            throw staleRole(role);
+        }
         replacePermissions(role.roleId().value(), role.permissionCodes());
     }
 
     @Override
-    public void delete(RoleId roleId) {
-        jdbc.sql("delete from platform_identity.roles where role_id = :id").param("id", roleId.value()).update();
+    public void delete(Role role) {
+        int removed = jdbc.sql("delete from platform_identity.roles where role_id = :id and version = :version")
+                .param("id", role.roleId().value()).param("version", role.version()).update();
+        if (removed != 1) {
+            throw staleRole(role);
+        }
+    }
+
+    private static DomainException staleRole(Role role) {
+        return new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
+                "role " + role.roleId().value() + " was changed by someone else");
     }
 
     private void replacePermissions(long roleId, Set<String> permissionCodes) {

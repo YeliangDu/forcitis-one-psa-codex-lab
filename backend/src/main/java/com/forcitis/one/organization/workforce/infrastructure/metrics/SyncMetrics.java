@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.metrics;
 
-import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
+import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
@@ -16,21 +16,21 @@ import org.springframework.stereotype.Component;
 class SyncMetrics {
     private static final Logger LOG = LoggerFactory.getLogger(SyncMetrics.class);
 
-    private final SyncRunRepository runs;
+    private final SyncRunQueries runs;
     private final Clock clock;
     private final Instant startedAt;
 
-    SyncMetrics(SyncRunRepository runs, MeterRegistry registry, ObjectProvider<Clock> clock) {
+    SyncMetrics(SyncRunQueries runs, MeterRegistry registry, ObjectProvider<Clock> clock) {
         this.runs = runs;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
         this.startedAt = this.clock.instant();
-        Gauge.builder("organization.workforce.sync.lag.seconds", this, SyncMetrics::lagSeconds)
+        Gauge.builder("forcitis.organization.workforce.sync.lag.seconds", this, SyncMetrics::lagSeconds)
                 .description("Seconds since the last successful org snapshot sync (since start-up if there was none)")
                 .register(registry);
-        Gauge.builder("organization.workforce.sync.held.runs", this, SyncMetrics::heldRuns)
+        Gauge.builder("forcitis.organization.workforce.sync.held.runs", this, SyncMetrics::heldRuns)
                 .description("Sync runs held by the shrink guard and waiting for an administrator")
                 .register(registry);
-        Gauge.builder("organization.workforce.employees.without.wecom", this, SyncMetrics::employedWithoutWecom)
+        Gauge.builder("forcitis.organization.workforce.employees.without.wecom", this, SyncMetrics::employedWithoutWecom)
                 .description("Employed people without a WeCom user id after the latest successful sync")
                 .register(registry);
     }

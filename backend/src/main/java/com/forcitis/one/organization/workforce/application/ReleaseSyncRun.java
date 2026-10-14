@@ -1,8 +1,10 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.SyncRun;
-import com.forcitis.one.organization.workforce.domain.SyncRunId;
+import com.forcitis.one.organization.workforce.api.SyncRunId;
+import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
@@ -13,11 +15,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class ReleaseSyncRun {
     private final SyncRunRepository runs;
+    private final SyncRunQueries queries;
     private final SyncOrgSnapshot sync;
     private final RecordSyncRunRelease record;
 
-    ReleaseSyncRun(SyncRunRepository runs, SyncOrgSnapshot sync, RecordSyncRunRelease record) {
+    ReleaseSyncRun(SyncRunRepository runs, SyncRunQueries queries, SyncOrgSnapshot sync, RecordSyncRunRelease record) {
         this.runs = runs;
+        this.queries = queries;
         this.sync = sync;
         this.record = record;
     }
@@ -39,6 +43,6 @@ public class ReleaseSyncRun {
             return new ReleaseResult.NotApplied(result.note() == null ? result.status().name() : result.note());
         }
         record.execute(held, result.syncRunId(), new UserId(actorUserId));
-        return new ReleaseResult.Released(runs.find(result.syncRunId()).map(SyncRunView::of).orElseThrow());
+        return new ReleaseResult.Released(queries.find(result.syncRunId()).map(SyncRunView::of).orElseThrow());
     }
 }

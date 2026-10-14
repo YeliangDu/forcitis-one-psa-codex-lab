@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public record OrgSnapshot(List<OrgUnit> orgUnits, List<Position> positions, List<StaffMember> staff) {
+public record OrgSnapshot(List<OrgUnit> orgUnits, List<Position> positions, List<StaffEmployee> staff) {
     public OrgSnapshot {
         orgUnits = List.copyOf(orgUnits);
         positions = List.copyOf(positions);
@@ -30,8 +30,8 @@ public record OrgSnapshot(List<OrgUnit> orgUnits, List<Position> positions, List
         return byId;
     }
 
-    public Map<UserId, StaffMember> staffById() {
-        Map<UserId, StaffMember> byId = new LinkedHashMap<>();
+    public Map<UserId, StaffEmployee> staffById() {
+        Map<UserId, StaffEmployee> byId = new LinkedHashMap<>();
         staff.forEach(s -> byId.put(s.userId(), s));
         return byId;
     }

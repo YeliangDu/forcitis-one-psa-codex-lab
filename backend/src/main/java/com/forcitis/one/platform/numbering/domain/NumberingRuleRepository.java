@@ -14,6 +14,10 @@ public interface NumberingRuleRepository {
     /** Highest value any counter of the type has reached (0 when none was issued yet). */
     long maxLastValue(DocumentType type);
 
+    /** True once any counter of any type is kept for the legal entity, that is, a number carrying its code was issued. */
+    boolean hasCounterFor(long legalEntityId);
+
+    /** Applies only to the version and confirmation the rule was loaded with; otherwise a DomainException (CONFLICT). */
     void save(NumberingRule rule);
 
     /** Atomically reserves the next value of the counter (row lock until the surrounding transaction ends).
