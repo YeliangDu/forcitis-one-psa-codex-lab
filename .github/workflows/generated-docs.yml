@@ -17,9 +17,9 @@ concurrency:
 jobs:
   publish:
     name: publish generated docs
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, forcitis-one]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
       - run: python3 docs/modernization/build_all.py
@@ -39,6 +39,6 @@ jobs:
           git add -A
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "generated from main ${GITHUB_SHA}"
-          auth="$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"
+          auth="$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d "\n")"
           git -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${auth}" \
             push -f "https://github.com/${GITHUB_REPOSITORY}.git" generated-docs:generated-docs

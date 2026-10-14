@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily FORCITIS one certificate check (C-7)
+
+[Timer]
+OnCalendar=*-*-* 09:10:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

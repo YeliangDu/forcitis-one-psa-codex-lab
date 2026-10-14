@@ -2,6 +2,7 @@
 -- FORCITIS one · Phase 1a · PostgreSQL 18 数据库角色与 schema 草稿（DDL 提议，未执行）
 -- 目标实例：pgm-bp13vak0sew3m003（cn-hangzhou，PG 18.6 高可用），数据库 **forcitis_one_dev**（同实例独立库，用户 2026-10-14：「同实例分库，生产前再定」；IT 服务门户在 forcitis_one 库，互不共享对象）
 -- 会话：psa-1a-platform-bridge-reimagine · 日期：2026-10-14 · 执行属于对外变更，须经用户确认后由运维执行
+-- 评审草稿，不直接执行：可执行版为 runbooks/sql/c3_dev_db.sql（dev）与 c9_prod_db.sql（生产），差异见 runbooks/C-3-dev-db.md
 -- 约定：
 --   * 本文件不含任何口令；带 LOGIN 的角色在执行时由运维用 \password 或 RDS 控制台设置，口令只存服务器受保护文件 / KMS
 --   * 所有对象以 one_ 前缀命名，执行前先跑 §0 冲突检查，避免与 it_portal 的角色 / schema 冲突

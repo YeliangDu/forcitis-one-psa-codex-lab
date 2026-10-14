@@ -4,6 +4,8 @@
 
 **清单里的每一项都是对外变更**，包括云助手执行命令、建库建角色、DNS、证书、企业微信和致远的配置。执行前由 psa-coordinator 请用户逐项确认，确认后由运维执行。本文件和仓库都不保存任何凭据。
 
+逐项执行剧本见 `runbooks/`（C 类），交给外部执行人的交接包见 `handoff/`（B 类），用户决定单见 `DECISIONS_A.md`，与代码的核对结果见 `CROSSCHECK.md`。
+
 ## 0. 资源（用户已确认）
 
 | 资源 | 标识 | 说明 |
@@ -24,7 +26,7 @@
 
 ## 2. PostgreSQL（`forcitis_one_dev`；生产库 `forcitis_one_prod` 同实例另建，见 D-1）
 
-脚本见 `one_db_roles_schemas.sql`。执行顺序：
+脚本见 `one_db_roles_schemas.sql`（评审草稿）；**可执行版**为 `runbooks/sql/c3_dev_db.sql`（dev）与 `runbooks/sql/c9_prod_db.sql`（生产，由 dev 版生成），剧本见 `runbooks/C-3-dev-db.md`。可执行版另加了库级 CREATE 授权（迁移含 `CREATE SCHEMA IF NOT EXISTS`）、PG 16 起执行人对属主角色的 SET 授权、按角色的 `work_mem` 与只读角色超时。执行顺序：
 1. 用 RDS 高权限账号执行 §0 冲突检查。任何一项查到结果就停止，并把结果报给 psa-coordinator。
 2. 执行 §1 至 §3：
    - 建角色：`one_dev_owner`（属主，不可登录）、`one_dev_migrator`（迁移）、`one_dev_app`（运行）、`one_dev_readonly`（排障，可选）；
@@ -35,7 +37,7 @@
 
 与 it_portal 隔离：所有 schema 和角色都以本系统模块名或 `one_` 为前缀；不触碰 it_portal 的 schema；连接数上限分别设为 one_dev_app 40、one_dev_migrator 2、one_dev_readonly 3。
 
-应用侧需要的配置（随骨架补齐，属代码改动，由本会话完成）：
+应用侧需要的配置（随骨架补齐，属代码改动，由本会话完成；**截至 2026-10-14 `application.properties` 尚未包含以下三项**，首次迁移时以环境变量 `SPRING_FLYWAY_DEFAULT_SCHEMA=one_migration` 兜底，见 `runbooks/C-4-ecs-init.md`「首次部署」）：
 - `spring.flyway.default-schema=one_migration`
 - `spring.flyway.schemas` 列出全部模块 schema，`create-schemas=false`（由 DBA 预建）
 - 部署时迁移连接用 one_dev_migrator，运行连接用 one_dev_app。分开配置 `spring.flyway.user` / `password` 和 `spring.datasource.*`。
@@ -50,13 +52,13 @@
 | E-4 | Java 运行时 | Eclipse Temurin 25 JRE（RPM 包，固定小版本），或 Alibaba Dragonwell 25；要与 CI 的 Java 25 一致 | `java -version` |
 | E-5 | 目录 | `/data/forcitis-one/{releases,current→releases/<ver>,logs,tmp}`，属主 forcitis，权限 750；`/etc/forcitis-one/` 属主 root:forcitis，权限 750 | |
 | E-6 | 服务 | systemd 单元 `forcitis-one.service`：User=forcitis；`EnvironmentFile=/etc/forcitis-one/one.env`；`ExecStart=/usr/bin/java -XX:MaxRAMPercentage=60 -jar /data/forcitis-one/current/forcitis-one.jar`；`Restart=on-failure`；加固项 `NoNewPrivileges=yes`、`ProtectSystem=strict`、`ReadWritePaths=/data/forcitis-one/logs /data/forcitis-one/tmp`、`PrivateTmp=yes` | `systemctl status` |
-| E-7 | 应用端口 | 应用只监听 `127.0.0.1:8080`；管理端点另设 `127.0.0.1:8081`，只开放 health 和 prometheus | 外网扫描只看到 80/443 |
-| E-8 | 反向代理 | nginx（发行版包）：80 端口 301 跳转到 443；443 用 TLS 1.2/1.3；`proxy_pass http://127.0.0.1:8080`；**覆盖** `X-Forwarded-For` 和 `X-Forwarded-Proto`（应用的 `FORCITIS_TRUSTED_PROXIES` 只信任 127.0.0.1）；开启 HSTS；`client_max_body_size` 20m；不转发 `/actuator`、`/v3/api-docs` | SSL Labs A；`curl -I` |
+| E-7 | 应用端口 | 应用只监听 `127.0.0.1:8080`；管理端点另设 `127.0.0.1:8081`，只开放 health 和 prometheus。代码默认未设监听地址与管理端口、只暴露 health，须在 one.env 设 `SERVER_ADDRESS`、`MANAGEMENT_SERVER_ADDRESS`、`MANAGEMENT_SERVER_PORT`、`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,prometheus`（`runbooks/files/one.env.template`） | 外网扫描只看到 80/443 |
+| E-8 | 反向代理 | nginx（发行版包）：80 端口 301 跳转到 443；443 用 TLS 1.2/1.3；`proxy_pass http://127.0.0.1:8080`；**覆盖** `X-Forwarded-For` 和 `X-Forwarded-Proto`（应用的 `FORCITIS_TRUSTED_PROXIES` 只信任 127.0.0.1）；开启 HSTS；`client_max_body_size` 20m；不转发 `/actuator`、`/v3/api-docs`；**访问日志不记查询串**（`/login/wecom?code=&state=`、`/login/sso?ticket=` 的一次性凭证，D-1a-39），并加 `Referrer-Policy: no-referrer`（`runbooks/files/nginx-one.conf`） | SSL Labs A；`curl -I` |
 | E-9 | 证书 | `one.forcitis.com` 证书放在 `/etc/nginx/tls/`，权限 600；如用 ACME，配置自动续期 | 到期日监控 |
-| E-10 | 前端静态资源 | PC 端 `dist` 放到 `/data/forcitis-one/current/web`，由 nginx 直接提供；H5 同理放到 `/h5` | |
+| E-10 | 前端静态资源 | PC 端 `dist` 放到 `/data/forcitis-one/current/web`，由 nginx 直接提供；H5 同理放到 `/h5`（**待定**：H5 构建的 `publicPath` 目前是 `/`，放在 `/h5` 下资源路径会错，见 `CROSSCHECK.md` 第 4 条与 `DECISIONS_A.md` N-1） | |
 | E-11 | 日志接 SLS | 安装 Logtail；采集 `/data/forcitis-one/logs/*.json`（应用输出结构化 JSON）和 nginx access / error 日志；Project 与门户分开或按 Logstore 区分 | SLS 能检索到日志 |
 | E-12 | 指标接 ARMS | 方案 A：ARMS Prometheus 抓取 `127.0.0.1:8081/actuator/prometheus`。方案 B：ARMS Java 探针，需先核实对 Java 25 的支持，不支持就用方案 A | ARMS 看板有数据 |
-| E-13 | 四类告警 | 在 ARMS / SLS 中配置以下四类，并在 dev 上用故障注入演练（出口条件）：<br>• 组织同步延迟：`organization.workforce.sync.*` 指标，或缩水保护中止<br>• 未完成事件发布：event_publication 中超过 10 分钟仍未完成，或出站投递进入死信<br>• 作业失败：定时任务观测指标，或 Flowable 死信任务数<br>• 登录失败率：5 分钟内失败率超过 20 % 且失败数 ≥ 20 | 演练记录 |
+| E-13 | 四类告警 | 在 ARMS / SLS 中配置以下四类，并在 dev 上用故障注入演练（出口条件）：<br>• 组织同步延迟：`organization.workforce.sync.*` 指标，或缩水保护中止<br>• 未完成事件发布：event_publication 中超过 10 分钟仍未完成，或出站投递进入死信<br>• 作业失败：定时任务观测指标，或 Flowable 死信任务数（**代码中暂无 Flowable 死信任务数指标**）<br>• 登录失败率：5 分钟内失败率超过 20 % 且失败数 ≥ 20 | 演练记录 |
 | E-14 | 出站网络 | 安全组出方向放行：RDS 5432（同 VPC）、`qyapi.weixin.qq.com:443`、致远 OA 验票地址、A8 SQL Server、老系统 SQL Server（经白名单）；其余出站按需收紧 | |
 | E-15 | 企业微信 | 在企业微信后台为新应用配置：可信域名 `one.forcitis.com`、扫码登录回调域、企业可信 IP 47.114.56.157；工作台**新增**「FORCITIS one」入口，**不替换**老 H5（切换手册 §3.11） | 登录冒烟 |
 | E-16 | 致远 | 由 A8 管理员登记新系统的验票回跳地址，**不替换**老 SSO | 登录冒烟 |
@@ -66,9 +68,11 @@
 
 | 库 | 对象 | 账号 | 授权 | 脚本 |
 |---|---|---|---|---|
-| A8（a8_db） | 组织视图（只含白名单列） | 只读，专用 | 只授予视图 SELECT，基表 DENY，无 EXEC | `phase1a/SEEYON_VIEWS.sql`，重构完成前名为 `A8_VIEWS.sql` |
-| 老系统（ruoyi-vue-pro） | 老待办视图 | 只读，专用 | 只授予视图 SELECT，**令牌表不授权**（I-1）；应用启动时校验能 SELECT 的对象恰好只有这一个 | `phase1a/LEGACY_INBOX_VIEW.sql` |
-| 老系统 | 组织短名视图 | 同上或另设 | 同上 | 随重构给出 |
+| A8（a8_db） | 组织视图（只含白名单列） | 只读，专用 | 只授予视图 SELECT，基表 DENY，无 EXEC | `phase1a/SEEYON_VIEWS.sql` |
+| 老系统（ruoyi-vue-pro） | 老待办视图 `dbo.v_psa_one_legacy_todo` | 只读，专用（`psa_one_legacy_ro`） | 只授予视图 SELECT，**令牌表不授权**（I-1）；应用启动时校验能 SELECT 的对象恰好只有这一个 | `phase1a/LEGACY_INBOX_VIEW.sql` |
+| 老系统 | 部门简称视图 `dbo.v_one_legacy_org_short_name` | 只读，专用（`one_legacy_names_ro`）；**必须另设**，不能与待办共用账号——两个模块各自校验「恰好只能读一个对象」 | 同上 | `phase1a/LEGACY_ORG_NAMES_VIEW.sql` |
+
+DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`handoff/B-5-dba/`。
 
 两库都要把 172.16.89.86 加入白名单。账号口令只写入 `/etc/forcitis-one/one.env` 或 KMS。
 
@@ -91,6 +95,11 @@
 | `FORCITIS_TICKET_KEY_<KID>` | 签名票据签发方密钥；签发方默认关闭，当前白名单为空 | 否 |
 | `FORCITIS_TRUSTED_PROXIES` | 只信任 nginx（127.0.0.1） | 是 |
 | `SEEYON_OA_BASE_URL`、`LEGACY_LOGIN_URL` | 致远验票地址；失败时回老系统登录 | 是 |
+| `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED` | 致远单点登录开关；配置文件中写死为 false，B-3 完成后在 one.env 设 true | 启用时 |
+| `APPROVAL_DEADLINE_ENABLED` | 审批时限提醒与升级作业开关（默认 true） | 否 |
+| `EVENT_PUBLICATION_JOBS_ENABLED` | 事件发布重投与清理作业开关（默认 true，见 §9） | 否 |
+| `FORCITIS_PLATFORM_INTEGRATION_WECOM_DELIVERY_DUPLICATE_TASK_ERROR_CODES` | 企业微信「task_id 已用过」错误码（B-9 核实后设置） | 启用时 |
+| `SERVER_ADDRESS`、`SERVER_PORT`、`MANAGEMENT_SERVER_ADDRESS`、`MANAGEMENT_SERVER_PORT`、`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | E-7 的监听地址与管理端点（代码未设默认） | 是 |
 | `WECOM_ENABLED` | 企业微信网关与出站投递总开关（默认 false） | 否 |
 | `WECOM_BASE_URL` | 企业微信 API 地址（默认 `https://qyapi.weixin.qq.com`） | 否 |
 | `WECOM_CORP_ID`、`WECOM_AGENT_ID` | 新企业微信应用的**新值**（老应用的值已在老仓历史中泄露，I-8） | 启用时 |
@@ -101,17 +110,23 @@
 | `A8_DB_URL` / `A8_DB_USERNAME` / `A8_DB_PASSWORD` | A8 视图只读连接（第 4 节的专用账号） | 启用时 |
 | `INTEGRATION_SEEYON_VALIDATE_ON_STARTUP` | 启动时校验 A8 账号只能读视图（默认 true） | 否 |
 | `A8_HEAD_RELATIONSHIP_TYPE_ID`、`A8_REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID`、`A8_DELIVERY_UNIT_YES_ENUM_ID`、`A8_FEE_EARNER_YES_ENUM_ID`、`A8_ROOT_PATH` | A8 中关系类型、枚举的编号与同步根单位的层级路径（有默认值，与 A8 实例不一致时覆盖） | 否 |
-| `INTEGRATION_LEGACY_ENABLED` | 老系统 待办视图读取开关（默认 false） | 否 |
-| `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 老库只读连接（第 4 节的专用账号） | 启用时 |
-| `INTEGRATION_LEGACY_VALIDATE_ON_STARTUP` | 启动时校验老库账号只能读那一个视图（默认 true） | 否 |
+| `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL` / `_USERNAME` / `_PASSWORD` | 合并待办读老待办视图的只读连接（`psa_one_legacy_ro`）；URL 为空则只显示新待办 | 启用时 |
+| `FORCITIS_PLATFORM_APPROVAL_LEGACY_DETAIL_URL_TEMPLATE` | 老待办详情页地址，含 `{processInstanceId}`、`{taskId}` | 启用时 |
+| `INTEGRATION_LEGACY_ENABLED` | 老系统**部门简称**视图读取开关（默认 false） | 否 |
+| `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 部门简称视图的只读连接（`one_legacy_names_ro`） | 启用时 |
+| `INTEGRATION_LEGACY_VALIDATE_ON_STARTUP` | 启动时校验该账号只能读部门简称视图（默认 true） | 否 |
 | `WORKFORCE_SYNC_ENABLED` | 从 A8 视图同步组织与人员的定时任务开关（默认 false） | 否 |
 | `WORKFORCE_SHORT_NAME_ENABLED` | 从老库同步组织短名的定时任务开关（默认 false） | 否 |
 | `SPRING_PROFILES_ACTIVE=dev` | 环境 | 是 |
-| 生产附加 | `springdoc.api-docs.enabled=false` | 生产 |
+| 生产附加 | `SPRINGDOC_API_DOCS_ENABLED=false` | 生产 |
+| 前端构建时（CI 变量，非机密） | `VITE_WECOM_CORP_ID`、`VITE_WECOM_AGENT_ID`、`VITE_SSO_PORTAL_URL`（PC）；`TARO_APP_WECOM_CORP_ID`（H5） | 构建时 |
+
+模板：`runbooks/files/one.env.template`（只有变量名与非机密默认值）。
 
 ## 6. 应急管理员开通（设计，执行需用户确认）
 
 - 不提供 HTTP 开通接口（设计如此）。
+- **尚未实现**（代码中无运维命令入口，随 ADR-0027 下一批实现）；剧本见 `runbooks/C-5-first-admins.md`。
 - 由应用提供一次性运维命令，例如 `java -jar forcitis-one.jar --forcitis.ops.command=register-emergency-admin`，经云助手在服务器上执行。执行流程：
   1. 从标准输入读取账号名和初始口令，不经命令行参数，避免进入进程列表和历史；
   2. 校验口令强度（≥12 位并有复杂度要求，RULE-317）；
@@ -123,7 +138,7 @@
 
 ## 7. 首次部署步骤（dev）
 
-1. CI 在 main 上构建 jar 和前端 dist，产物附带版本号与 SHA256。
+1. CI 在 main 上构建 jar 和前端 dist，产物附带版本号与 SHA256。（**CI 目前只做 verify，不产出发布包**；Maven 产物名为 `forcitis-one-<版本>.jar`，上传时改名为 `forcitis-one.jar` 以符合 E-6。）
 2. 经云助手上传到 `/data/forcitis-one/releases/<ver>/`，校验 SHA256。
 3. 迁移：以 one_dev_migrator 运行 Flyway（`--spring.main.web-application-type=none` 的迁移模式）。首次还要以 `FLOWABLE_SCHEMA_UPDATE=true` 建 ACT_*。
 4. 切换 `current` 软链，`systemctl restart forcitis-one`，检查健康。

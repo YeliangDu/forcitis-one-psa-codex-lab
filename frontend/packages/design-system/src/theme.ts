@@ -42,6 +42,13 @@ function semanticColour(token: string): string {
   return oklchToHex(Number(oklch[1]), Number(oklch[2]), Number(oklch[3]));
 }
 
+/** Reads a font-family stack token as-is (antd accepts CSS font stacks, unlike colours). */
+function fontStack(token: string): string {
+  const value = declarations.get(token);
+  if (value === undefined) throw new Error(`design-system: --${token} is not defined in tokens.css.`);
+  return value;
+}
+
 export const antdTheme: ThemeConfig = {
   cssVar: true,
   token: {
@@ -58,5 +65,7 @@ export const antdTheme: ThemeConfig = {
     colorBgLayout: semanticColour('surface-page'),
     borderRadius: 4,
     fontSize: 14,
+    fontFamily: fontStack('font-sans'),
+    fontFamilyCode: fontStack('font-mono'),
   },
 };

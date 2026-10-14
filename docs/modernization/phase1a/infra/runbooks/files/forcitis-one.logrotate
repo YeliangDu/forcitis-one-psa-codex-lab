@@ -1,0 +1,11 @@
+# /etc/logrotate.d/forcitis-one：systemd 以 append 方式写日志，用 copytruncate；SLS 保留 30 天，本机只留 7 天
+/data/forcitis-one/logs/*.json /data/forcitis-one/logs/*.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su forcitis forcitis
+}
