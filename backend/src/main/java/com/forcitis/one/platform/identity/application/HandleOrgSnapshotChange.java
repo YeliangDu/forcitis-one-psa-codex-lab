@@ -6,7 +6,7 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.Optional;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Service;
@@ -24,10 +24,10 @@ public class HandleOrgSnapshotChange {
     private final AccountProvisioning provisioning;
     private final SessionRegistry sessions;
     private final AccessCache cache;
-    private final AuditTrail audit;
+    private final AuditLog audit;
 
     HandleOrgSnapshotChange(OrgDirectory directory, AccountProvisioning provisioning, SessionRegistry sessions, AccessCache cache,
-            AuditTrail audit) {
+            AuditLog audit) {
         this.directory = directory;
         this.provisioning = provisioning;
         this.sessions = sessions;

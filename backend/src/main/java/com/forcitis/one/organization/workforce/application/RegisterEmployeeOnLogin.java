@@ -60,7 +60,7 @@ public class RegisterEmployeeOnLogin {
             return Optional.empty();
         }
         StaffMember staff = new StaffMember(MemberChecks.toEmployee(member, true),
-                new Assignment(member.userId(), member.orgUnitId(), member.positionId(), validLeader(member)));
+                new Assignment(member.userId(), member.orgUnitId(), member.positionId(), validSupervisor(member)));
         persist.execute(staff);
         return Optional.of(staff);
     }
@@ -82,8 +82,8 @@ public class RegisterEmployeeOnLogin {
     }
 
     /** Same leader rule as the sync (RULE-372): exists, employed, not the person. A new person cannot close a loop. */
-    private UserId validLeader(SourceMember member) {
-        UserId leader = member.leaderId();
+    private UserId validSupervisor(SourceMember member) {
+        UserId leader = member.supervisorId();
         if (leader == null || leader.equals(member.userId())) {
             return null;
         }

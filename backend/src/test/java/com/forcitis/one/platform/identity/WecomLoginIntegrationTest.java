@@ -84,9 +84,9 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("RULE-324 PC scan login is a WeCom login too: exact user id only, no guessing from names or e-mail")
     void scanLogin() throws Exception {
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
-        wecomAccepts("scan", WecomEntry.WEB_SCAN, 1001);
+        wecomAccepts("scan", WecomEntry.QR_CODE_LOGIN, 1001);
 
-        assertThat(login("scan", newState("WEB_SCAN"), "WEB_SCAN").getResponse().getStatus()).isEqualTo(200);
+        assertThat(login("scan", newState("QR_CODE_LOGIN"), "QR_CODE_LOGIN").getResponse().getStatus()).isEqualTo(200);
     }
 
     @Test
@@ -120,11 +120,11 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
     void stateRules() throws Exception {
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         wecomAccepts("c1", WecomEntry.WORKBENCH, 1001);
-        wecomAccepts("c1", WecomEntry.WEB_SCAN, 1001);
+        wecomAccepts("c1", WecomEntry.QR_CODE_LOGIN, 1001);
 
         assertThat(errorCode(login("c1", null, "WORKBENCH"))).as("missing state").isEqualTo("PLATFORM_IDENTITY_STATE_INVALID");
         assertThat(errorCode(login("c1", "never-issued", "WORKBENCH"))).as("unknown state").isEqualTo("PLATFORM_IDENTITY_STATE_INVALID");
-        assertThat(errorCode(login("c1", newState("WORKBENCH"), "WEB_SCAN"))).as("state of another entry")
+        assertThat(errorCode(login("c1", newState("WORKBENCH"), "QR_CODE_LOGIN"))).as("state of another entry")
                 .isEqualTo("PLATFORM_IDENTITY_STATE_INVALID");
 
         String state = newState("WORKBENCH");

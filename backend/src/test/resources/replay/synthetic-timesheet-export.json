@@ -29,14 +29,14 @@
       "formFields": {"manager_id": ["111"]}, "variables": {},
       "nodes": [
         {"nodeKey": "managerReview", "rule": {"type": "FORM_FIELD_USERS", "field": "manager_id"}, "actualApprovers": [111]},
-        {"nodeKey": "leaderReview",  "rule": {"type": "INITIATOR_LEADER", "level": "1"}, "actualApprovers": [111]},
+        {"nodeKey": "leaderReview",  "rule": {"type": "INITIATOR_SUPERVISOR", "level": "1"}, "actualApprovers": [111]},
         {"nodeKey": "departmentReview", "rule": {"type": "DEPARTMENT_HEAD"}, "actualApprovers": [110]}
       ]
     },
     {
       "instanceId": "SYN-2", "initiatorId": 202, "formFields": {}, "variables": {},
       "nodes": [
-        {"nodeKey": "leaderReview", "rule": {"type": "INITIATOR_LEADER", "level": "1"}, "actualApprovers": [105]}
+        {"nodeKey": "leaderReview", "rule": {"type": "INITIATOR_SUPERVISOR", "level": "1"}, "actualApprovers": [105]}
       ]
     },
     {

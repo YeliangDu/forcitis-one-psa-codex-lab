@@ -126,28 +126,28 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
 
     @Test
     @DisplayName("login miss: a leader who is unknown or not employed is not stored (RULE-372)")
-    void loginMissValidatesTheLeader() {
+    void loginMissValidatesTheSupervisor() {
         synced();
         a8.singleLookupResult = List.of(member(3008, 2, 100L, 99999L, "13900003008", "wx-bad-leader"));
 
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-bad-leader"))).isPresent();
 
         assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3008").query(Long.class).optional()).isEmpty();
-        assertThat(directory.findDirectLeader(user(3008))).isEmpty();
+        assertThat(directory.findSupervisor(user(3008))).isEmpty();
     }
 
     @Test
     @DisplayName("RULE-372 the direct leader is the person-level leader; empty when none or not employed")
-    void directLeader() {
+    void supervisor() {
         synced();
 
-        assertThat(directory.findDirectLeader(user(3))).contains(user(2));
-        assertThat(directory.findDirectLeader(user(2))).contains(user(1));
-        assertThat(directory.findDirectLeader(user(1))).isEmpty();
+        assertThat(directory.findSupervisor(user(3))).contains(user(2));
+        assertThat(directory.findSupervisor(user(2))).contains(user(1));
+        assertThat(directory.findSupervisor(user(1))).isEmpty();
 
         jdbc.sql("update organization_workforce.employees set employment_status = 'SEPARATED' where id = 2").update();
-        assertThat(directory.findDirectLeader(user(3))).as("leader separated since the last sync").isEmpty();
-        assertThat(directory.findDirectLeader(user(2))).as("the person themselves is not employed").isEmpty();
+        assertThat(directory.findSupervisor(user(3))).as("leader separated since the last sync").isEmpty();
+        assertThat(directory.findSupervisor(user(2))).as("the person themselves is not employed").isEmpty();
     }
 
     @Test

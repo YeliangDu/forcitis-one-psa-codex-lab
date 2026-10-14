@@ -5,5 +5,5 @@ public enum WecomEntry {
     /** WeCom workbench web app (老系统 H5 内嵌页). */
     WORKBENCH,
     MINI_PROGRAM,
-    WEB_SCAN
+    QR_CODE_LOGIN
 }

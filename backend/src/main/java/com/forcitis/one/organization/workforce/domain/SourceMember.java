@@ -7,10 +7,10 @@ import java.util.Objects;
 
 /**
  * One person as read from the A8 view and interpreted by the shared mapper (bulk sync and single-person lookup use
- * the same mapper). positionId, leaderId, loginName, wecomUserId may be null. loginName is trimmed; blank means none.
+ * the same mapper). positionId, supervisorId, loginName, wecomUserId may be null. loginName is trimmed; blank means none.
  */
 public record SourceMember(UserId userId, String employeeCode, String displayName, OrgUnitId orgUnitId,
-                           PositionId positionId, UserId leaderId, String loginName, String email, Gender gender,
+                           PositionId positionId, UserId supervisorId, String loginName, String email, Gender gender,
                            WecomUserId wecomUserId, boolean feeEarner) {
 
     public SourceMember {

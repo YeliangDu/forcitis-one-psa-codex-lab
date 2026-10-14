@@ -2,7 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
@@ -29,10 +29,10 @@ public class ReplaceAccountRoles {
     private final SessionRegistry sessions;
     private final AccessCache cache;
     private final CurrentUser currentUser;
-    private final AuditTrail audit;
+    private final AuditLog audit;
 
     ReplaceAccountRoles(AccountRepository accounts, RoleRepository roles, PrivilegeCeiling ceiling, SessionRegistry sessions,
-            AccessCache cache, CurrentUser currentUser, AuditTrail audit) {
+            AccessCache cache, CurrentUser currentUser, AuditLog audit) {
         this.accounts = accounts;
         this.roles = roles;
         this.ceiling = ceiling;

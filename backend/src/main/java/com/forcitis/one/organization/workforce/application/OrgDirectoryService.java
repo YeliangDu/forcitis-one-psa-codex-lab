@@ -42,7 +42,7 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     @Override
-    public Optional<UserId> findDirectLeader(UserId userId) {
+    public Optional<UserId> findSupervisor(UserId userId) {
         return snapshots.findStaff(userId)
                 .filter(s -> s.employee().employmentStatus() == EmploymentStatus.EMPLOYED)
                 .map(s -> s.assignment().reportsToEmployeeId())

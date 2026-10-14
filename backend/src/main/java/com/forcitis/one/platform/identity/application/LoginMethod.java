@@ -6,7 +6,7 @@ import com.forcitis.one.platform.integration.api.WecomEntry;
 public enum LoginMethod {
     WECOM_WORKBENCH,
     WECOM_MINI_PROGRAM,
-    WECOM_WEB_SCAN,
+    WECOM_QR_CODE_LOGIN,
     SEEYON,
     SIGNED_TICKET,
     EMERGENCY;
@@ -15,7 +15,7 @@ public enum LoginMethod {
         return switch (entry) {
             case WORKBENCH -> WECOM_WORKBENCH;
             case MINI_PROGRAM -> WECOM_MINI_PROGRAM;
-            case WEB_SCAN -> WECOM_WEB_SCAN;
+            case QR_CODE_LOGIN -> WECOM_QR_CODE_LOGIN;
         };
     }
 }

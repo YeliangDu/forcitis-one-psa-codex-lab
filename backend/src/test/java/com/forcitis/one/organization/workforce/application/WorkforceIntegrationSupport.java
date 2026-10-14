@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,7 @@ public abstract class WorkforceIntegrationSupport {
     }
 
     @MockitoBean
-    protected AuditTrail audit;
+    protected AuditLog audit;
 
     // platform.approval (same application context) sends WeCom cards; integration is not wired in this test.
     @MockitoBean

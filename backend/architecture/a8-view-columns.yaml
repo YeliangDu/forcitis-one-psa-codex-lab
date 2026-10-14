@@ -51,7 +51,7 @@ views:
       - { name: ORG_UNIT_ID, source: ORG_MEMBER.ORG_DEPARTMENT_ID, category: 组织 }
       - { name: ORG_UNIT_PATH, source: ORG_UNIT.PATH, category: 组织 }
       - { name: POST_ID, source: ORG_MEMBER.ORG_POST_ID, category: 组织 }
-      - { name: LEADER_MEMBER_ID, source: ORG_MEMBER.EXT_ATTR_37, category: 组织 }
+      - { name: SUPERVISOR_MEMBER_ID, source: ORG_MEMBER.EXT_ATTR_37, category: 组织 }
       - { name: WE_COM_ID, source: ORG_MEMBER.we_com_id, category: 身份 }
       - { name: IS_INTERNAL, source: ORG_MEMBER.IS_INTERNAL, category: 组织 }
       - { name: LOGIN_NAME, source: ORG_PRINCIPAL.LOGIN_NAME, category: 身份 }

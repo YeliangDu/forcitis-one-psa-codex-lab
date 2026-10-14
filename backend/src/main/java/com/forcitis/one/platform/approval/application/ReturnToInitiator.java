@@ -9,7 +9,7 @@ import com.forcitis.one.platform.approval.domain.ApprovalRequestRecord;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,9 +26,9 @@ public class ReturnToInitiator {
     private final HookGate hooks;
     private final ApprovalEngine engine;
     private final ApprovalLifecycle lifecycle;
-    private final AuditTrail audit;
+    private final AuditLog audit;
 
-    ReturnToInitiator(TaskGuard guard, HookGate hooks, ApprovalEngine engine, ApprovalLifecycle lifecycle, AuditTrail audit) {
+    ReturnToInitiator(TaskGuard guard, HookGate hooks, ApprovalEngine engine, ApprovalLifecycle lifecycle, AuditLog audit) {
         this.guard = guard;
         this.hooks = hooks;
         this.engine = engine;

@@ -14,7 +14,7 @@ public interface OrgDirectory {
     Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId);
 
     /** Person-level direct leader (RULE-372); empty when none or not employed. */
-    Optional<UserId> findDirectLeader(UserId userId);
+    Optional<UserId> findSupervisor(UserId userId);
 
     /** Org unit head from A8 (RULE-356); empty when none. */
     Optional<UserId> findOrgUnitHead(OrgUnitId orgUnitId);

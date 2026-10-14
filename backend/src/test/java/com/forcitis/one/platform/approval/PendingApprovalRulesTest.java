@@ -24,7 +24,7 @@ class PendingApprovalRulesTest {
     @Disabled("pending RULE-251: Phase 2 first consumer (timesheet row-level approval)")
     @DisplayName("RULE-251 a row reaches a node when its routing value activates a path to it")
     void rowReachability() {
-        // Given a gateway flow containsAny('manHourType', '2') to node areaLeader, rows r1 [2] and r2 [1]; Then only r1 reaches areaLeader.
+        // Given a gateway flow containsAny('manHourType', '2') to node areaSupervisor, rows r1 [2] and r2 [1]; Then only r1 reaches areaSupervisor.
     }
 
     @Test

@@ -3,7 +3,7 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.Role;
@@ -23,10 +23,10 @@ class AccountProvisioning {
 
     private final AccountRepository accounts;
     private final RoleRepository roles;
-    private final AuditTrail audit;
+    private final AuditLog audit;
     private final String defaultRole;
 
-    AccountProvisioning(AccountRepository accounts, RoleRepository roles, AuditTrail audit,
+    AccountProvisioning(AccountRepository accounts, RoleRepository roles, AuditLog audit,
             @Value("${forcitis.platform.identity.default-role:employee}") String defaultRole) {
         this.accounts = accounts;
         this.roles = roles;

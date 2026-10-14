@@ -7,8 +7,8 @@
 
     Assignment rules live in the forcitis:assignmentRule extension element of each user task, exactly one per task
     (RULE-262). The Java AssigneeResolver evaluates them; BPMN holds no scripts and no business rules.
-      type    ROLE | DEPARTMENT_HEAD | INITIATOR_LEADER | NAMED_USERS | REGIONAL_RECEIVABLES_MANAGER | DEPARTMENT_DIRECTOR
-              | FORM_FIELD_USERS | FORM_FIELD_USER_LEADERS | PROCESS_VARIABLE_USERS | INITIATOR
+      type    ROLE | DEPARTMENT_HEAD | INITIATOR_SUPERVISOR | NAMED_USERS | REGIONAL_RECEIVABLES_MANAGER | DEPARTMENT_DIRECTOR
+              | FORM_FIELD_USERS | FORM_FIELD_USER_SUPERVISORS | PROCESS_VARIABLE_USERS | INITIATOR
       initiatorNode="true"      the rework node the initiator resubmits from; skipped on the first pass (RULE-267/301)
       selfApproval="allowed"    exempts the node from the self-approval guard (RULE-307)
       beforeHook="KEY"          names the BEFORE hook the node runs inside the decide transaction (RULE-277/283)

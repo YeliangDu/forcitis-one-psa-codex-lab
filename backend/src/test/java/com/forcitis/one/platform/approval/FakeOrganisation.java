@@ -89,7 +89,7 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public Optional<UserId> findDirectLeader(UserId userId) {
+    public Optional<UserId> findSupervisor(UserId userId) {
         return Optional.ofNullable(people.get(userId.value())).map(Person::leader)
                 .filter(l -> people.containsKey(l) && people.get(l).employed()).map(UserId::new);
     }

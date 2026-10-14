@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.PublicEndpoint;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.method.HandlerMethod;
@@ -80,7 +80,7 @@ class ApplicationIntegrationTest {
     WecomGateway wecomGateway;
 
     @MockitoBean
-    AuditTrail auditTrail;
+    AuditLog auditLog;
 
     @Container
     @ServiceConnection

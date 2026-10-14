@@ -71,7 +71,7 @@ class A8ViewsOnPostgresTest {
         admin.sql("create table forcitis_one.v_org_post (ID bigint, CODE varchar(32), NAME varchar(64), SORT_ID int, STATUS int, IS_DELETED int)").update();
         admin.sql("""
                 create table forcitis_one.v_org_member (ID bigint, NAME varchar(64), CODE varchar(32), ORG_UNIT_ID bigint,
-                    ORG_UNIT_PATH varchar(64), POST_ID bigint, LEADER_MEMBER_ID bigint, WE_COM_ID varchar(64), IS_INTERNAL int,
+                    ORG_UNIT_PATH varchar(64), POST_ID bigint, SUPERVISOR_MEMBER_ID bigint, WE_COM_ID varchar(64), IS_INTERNAL int,
                     LOGIN_NAME varchar(64), ENTERPRISE_EMAIL varchar(128), GENDER varchar(8), FEE_EARNER_ENUM_ID varchar(32))
                 """).update();
     }

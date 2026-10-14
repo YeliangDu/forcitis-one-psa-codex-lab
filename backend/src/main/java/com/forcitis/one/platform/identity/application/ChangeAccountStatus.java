@@ -2,7 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.AccountStatus;
@@ -17,10 +17,10 @@ public class ChangeAccountStatus {
     private final SessionRegistry sessions;
     private final AccessCache cache;
     private final CurrentUser currentUser;
-    private final AuditTrail audit;
+    private final AuditLog audit;
 
     ChangeAccountStatus(AccountRepository accounts, SessionRegistry sessions, AccessCache cache, CurrentUser currentUser,
-            AuditTrail audit) {
+            AuditLog audit) {
         this.accounts = accounts;
         this.sessions = sessions;
         this.cache = cache;

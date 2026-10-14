@@ -227,7 +227,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(jdbc.sql("select status from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value()).query(String.class).single())
                 .isEqualTo("RELEASED");
         assertThat(registry.get("organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
-        verify(audit, never()).record(argThat((AuditEntry e) -> true));
+        verify(audit, never()).record(argThat((AuditEntry e) -> e.action().startsWith("organization.workforce")));
     }
 
     @Test

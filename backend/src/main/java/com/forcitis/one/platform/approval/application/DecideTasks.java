@@ -12,7 +12,7 @@ import com.forcitis.one.platform.approval.domain.ApprovalStatus;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditTrail;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -40,9 +40,9 @@ public class DecideTasks {
     private final HookGate hooks;
     private final ApprovalEngine engine;
     private final ApprovalLifecycle lifecycle;
-    private final AuditTrail audit;
+    private final AuditLog audit;
 
-    DecideTasks(TaskGuard guard, HookGate hooks, ApprovalEngine engine, ApprovalLifecycle lifecycle, AuditTrail audit) {
+    DecideTasks(TaskGuard guard, HookGate hooks, ApprovalEngine engine, ApprovalLifecycle lifecycle, AuditLog audit) {
         this.guard = guard;
         this.hooks = hooks;
         this.engine = engine;

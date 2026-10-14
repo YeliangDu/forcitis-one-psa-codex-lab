@@ -19,8 +19,8 @@ public final class AssignmentRuleCodec {
     }
 
     /**
-     * @param type  ROLE, DEPARTMENT_HEAD, INITIATOR_LEADER, NAMED_USERS, REGIONAL_RECEIVABLES_MANAGER, DEPARTMENT_DIRECTOR,
-     *              FORM_FIELD_USERS, FORM_FIELD_USER_LEADERS, PROCESS_VARIABLE_USERS or INITIATOR
+     * @param type  ROLE, DEPARTMENT_HEAD, INITIATOR_SUPERVISOR, NAMED_USERS, REGIONAL_RECEIVABLES_MANAGER, DEPARTMENT_DIRECTOR,
+     *              FORM_FIELD_USERS, FORM_FIELD_USER_SUPERVISORS, PROCESS_VARIABLE_USERS or INITIATOR
      * @param attribute reads an attribute of the rule element (role, department, level, users, field, variable); null when absent
      */
     public static AssignmentRule parse(String type, Function<String, String> attribute) {
@@ -30,12 +30,12 @@ public final class AssignmentRuleCodec {
         return switch (type) {
             case "ROLE" -> new AssignmentRule.Role(new RoleCode(required(type, attribute, "role")));
             case "DEPARTMENT_HEAD" -> new AssignmentRule.DepartmentHead(attribute.apply("department"));
-            case "INITIATOR_LEADER" -> new AssignmentRule.InitiatorLeader(Integer.parseInt(required(type, attribute, "level")));
+            case "INITIATOR_SUPERVISOR" -> new AssignmentRule.InitiatorSupervisor(Integer.parseInt(required(type, attribute, "level")));
             case "NAMED_USERS" -> new AssignmentRule.NamedUsers(users(required(type, attribute, "users")));
             case "REGIONAL_RECEIVABLES_MANAGER" -> new AssignmentRule.RegionalReceivablesOwner(attribute.apply("department"));
             case "DEPARTMENT_DIRECTOR" -> new AssignmentRule.DepartmentDirector(attribute.apply("department"));
             case "FORM_FIELD_USERS" -> new AssignmentRule.FormFieldUsers(required(type, attribute, "field"));
-            case "FORM_FIELD_USER_LEADERS" -> new AssignmentRule.FormFieldUserLeaders(required(type, attribute, "field"));
+            case "FORM_FIELD_USER_SUPERVISORS" -> new AssignmentRule.FormFieldUserSupervisors(required(type, attribute, "field"));
             case "PROCESS_VARIABLE_USERS" -> new AssignmentRule.ProcessVariableUsers(required(type, attribute, "variable"));
             case "INITIATOR" -> new AssignmentRule.Initiator();
             default -> throw new IllegalStateException("Unknown assignment rule type " + type);

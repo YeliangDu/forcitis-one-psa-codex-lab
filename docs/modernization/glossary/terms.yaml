@@ -4545,6 +4545,7 @@ terms:
     type: dialect
     deprecated: true
   forbidden:
+  - AuditTrail
   - 审计轨迹
   status: approved
   core: true
@@ -5135,7 +5136,8 @@ terms:
   - name: DeclaredHours
     type: old-code
     deprecated: true
-  forbidden: []
+  forbidden:
+  - DeclaredHours
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#declared-hours）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
@@ -5651,7 +5653,8 @@ terms:
   - name: WebScan
     type: old-code
     deprecated: true
-  forbidden: []
+  forbidden:
+  - WebScan
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#web_scan）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
@@ -5779,6 +5782,7 @@ terms:
     deprecated: true
   forbidden:
   - 直属领导
+  - DirectLeader
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#direct_leader）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
