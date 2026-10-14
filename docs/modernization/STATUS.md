@@ -15,6 +15,7 @@
 | 用语确认 | 完成（197 项） | — | 模板新增 4 个提议词条待下一轮确认 | — |
 | Phase 1a 平台桥接（试点） | 进行中（2026-10-14 派工） | psa-1a-platform-bridge-reimagine | 入口条件见 brief：未满足项含安全止血与凭据轮换、主机与 RDS、骨架与 CI、老表所有权矩阵 | `/code-modernization:modernize-reimagine`（新会话 `psa-1a-…`） |
 | OA 流程盘点（迁入边界与顺序） | 进行中（2026-10-14 派工） | psa-oa-inventory | 只读盘点 A8 OA 流程，产出 OA_PROCESS_INVENTORY.md 与 ADR-0021（提议）；生产只读查询已获用户同意 | 完成后由用户决定 ADR-0021 |
+| 总账纳入新系统与三大报表（范围评估） | 进行中（2026-10-14 派工） | psa-gl-scope | 只读盘点 PSA→U8C 凭证与 U8C 总账做法；U8C 访问方式须先经用户确认；产出 U8C_GL_PRACTICE.md、ADR-0022（提议）、brief 修订稿 | 完成后由用户审批 ADR-0022 与 brief 修订 |
 | Phase 1b 报价 | 未开始 | — | Phase 1a 出口 | — |
 | Phase 2 交付 + 工时 | 未开始 | — | Phase 1b 出口 | — |
 | Phase 3 差旅报销 | 未开始 | — | Phase 1a 出口 | — |
