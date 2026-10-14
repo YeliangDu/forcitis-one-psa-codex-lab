@@ -256,5 +256,5 @@
 ## 收口记录（psa-1a-platform-bridge-reimagine）
 
 - INT-G3：本批已修（H5 子路径改为常量 `/h5/`，`H5_PUBLIC_PATH` 只能重复该值，否则构建失败；`public-path.test.ts`「INT-G3 …」）。
-- INT-G1：待用户确认推迟（见 DEFERRED）。
+- INT-G1：用户 2026-10-15 确认「同意推迟，生产部署前完成 (Recommended)」，已登记 DEFERRED。
 - `status/blockers/070`、`080` 随本 PR 删除；`090` 保留。
