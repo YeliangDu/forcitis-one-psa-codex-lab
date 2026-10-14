@@ -16,6 +16,7 @@
 | Phase 1a 平台桥接（试点） | 进行中（2026-10-14 派工） | psa-1a-platform-bridge-reimagine | 入口条件见 brief：老系统安全止血按用户决定不再阻塞（I-1..I-9 保障）；骨架与 CI 已就绪（PR #9）；RDS 已开通（PG 18 高可用 pgm-bp13vak0sew3m003，现作测试开发用）；FORCITIS one 专用 ECS 已开通（i-bp122xlpar8w2uylmal2，杭州 K 区，g8i.xlarge 4C16G，内网 172.16.89.86，包年自动续费，安全组 sg-bp1hjbq8dkoaxa2nljzq 仅 80/443，RDS 白名单分组 forcitis_one）；待办：PSA 用数据库与角色、部署 | `/code-modernization:modernize-reimagine`（新会话 `psa-1a-…`） |
 | OA 流程盘点（迁入边界与顺序） | 完成（2026-10-14）：OA_PROCESS_INVENTORY.md（125 个在用模板：迁入 80、视情况 30、留在 OA 12、已停用 3；权责事实完整性矩阵 24 行 + 主数据；36 处集成点逐处判定；6a–6f 阶段草案）；ADR-0021 **已采纳**（用户：「采纳；6a–6c 并入 Phase 4 前」）；ADR-0016 第 44 行修订提议与 brief 两条 `Proposed revision:`（H-1 不设双源期、Phase 4 出口以 6a–6c 为前置）；A8 叫法 20 项登记为待确认用语 | — （psa-oa-inventory 已收尾） | 待用户：批准 ADR-0016 修订提议与 brief 两条修订；用语确认表 A 组 20 项；财务判定 U8C 手工 / 出纳 / 固定资产凭证；「应付与付款」BC 编号由 psa-gl-scope 统一 | 6a 前新会话 `psa-6a-contract-revenue-extract` 补抽 A8 合同与收入规则（含表单触发器） |
 | 总账纳入新系统与三大报表（范围评估） | 进行中（2026-10-14 派工） | psa-gl-scope | 只读盘点 PSA→U8C 凭证与 U8C 总账做法；U8C 访问方式须先经用户确认；产出 U8C_GL_PRACTICE.md、ADR-0022（提议）、brief 修订稿 | 完成后由用户审批 ADR-0022 与 brief 修订 |
+| 经营分析范围评估（经营子域 4 个 BC、reporting 与 KPI 语义层、BI 重构规划） | 进行中（2026-10-14 派工） | psa-bi-scope | 暂停 BI 迁移会话在老数据源上的新建模由用户自行处理，现有报表照常运行 | 产出 BI_SCOPE.md 与 ADR-0023（提议） |
 | Phase 1b 报价 | 未开始 | — | Phase 1a 出口 | — |
 | Phase 2 交付 + 工时 | 未开始 | — | Phase 1b 出口 | — |
 | Phase 3 差旅报销 | 未开始 | — | Phase 1a 出口 | — |
