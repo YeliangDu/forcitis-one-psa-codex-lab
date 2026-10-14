@@ -17,13 +17,13 @@
 |---|---|---|---|---|
 | C1a-01 | **企业微信 OAuth2 登录**（H5 内嵌静默授权；PC 扫码；小程序——RULE-323 评审「保留」），按 `we_com_id` 精确映射，只放行「启用且在职」 | W3/W5/W13；RULE-322/323/324/326/327 | ADR-0009 §3 | P0 |
 | C1a-02 | **致远 SSO 登录**：服务端验票、票据一次性、只放行启用用户 | A2/A3；RULE-320/321 | ADR-0009 §3 | P0 |
-| C1a-03 | **外部系统签名一次性票据**替代免密端点：YD 门户、A8 门户、BI 等外部系统进入新系统是入站签名票据；KM 是 PSA→KM 的出站跳转（须已登录，KM 身份取自会话；签名票据、HTTPS，密钥进配置并轮换，RULE-329） | X1/X2/A1/A4/K1/K2；RULE-318/319/329/335；SEC-001/002/019 | ADR-0009 §3 | P0（各调用方改造需协调） |
+| C1a-03 | **外部系统签名一次性票据**替代免密端点：YD 门户、A8 门户、BI 等外部系统进入新系统是入站签名票据；KM 是老系统→KM 的出站跳转（须已登录，KM 身份取自会话；签名票据、HTTPS，密钥进配置并轮换，RULE-329） | X1/X2/A1/A4/K1/K2；RULE-318/319/329/335；SEC-001/002/019 | ADR-0009 §3 | P0（各调用方改造需协调） |
 | C1a-04 | **管理员应急账号**（强口令 + MFA + 锁定）；员工不再口令登录 | U1；RULE-316/317；SEC-011 | ADR-0009 §3 | P0 |
 | C1a-05 | **服务端会话**（Spring Session JDBC、HttpOnly + SameSite Cookie、CSRF）；空闲超时 + 绝对上限；登出；状态变更（停用、离职、角色变更）即时吊销 | U2/U3；RULE-331..334/338/339 | ADR-0009 §2 | P0 |
 | C1a-06 | ~~**身份桥接**：只读校验老系统令牌，换发新会话~~ **已删除**（检查点 2 Q-1，用户：「1a 删除桥接」；ADR-0009 §6 已修订） | — | ADR-0009 §6（修订） | — |
 | C1a-07 | **默认拒绝**：所有接口需认证；方法级 `@PreAuthorize` 或带理由的 `@PublicEndpoint`；匿名遍历全部接口返回 401 | RULE-336/337；SEC-020/021 | ADR-0009 §1，G28/G33 | P0（出口条件） |
-| C1a-08 | **功能权限（RBAC）与导航**：类型化 `Permission`；角色—菜单；变更即时生效；无隐式默认角色 | RULE-340..348 | ADR-0009 §4 | P0 |
-| C1a-09 | **数据范围 `AccessScope`**：法人 × 部门 × 项目角色，显式传入仓储，空范围 = 无行（fail-closed） | RULE-349..353；SEC-009 | ADR-0009 §4 | P0（1a 只建模型，业务仓储从 1b 起用） |
+| C1a-08 | **功能权限（RBAC）与导航**：类型化 `Permission`；角色—菜单；变更即时生效（缓存 ≤ 60 秒）；无隐式默认角色；`super_admin` 改为会话级管理模式；拆出 `account-role:update`；不能改自己的角色与自己持有角色的定义；敏感权限双人确认 | RULE-340..348 | ADR-0009 §4；ADR-0026 第 5、6 项 | P0 |
+| C1a-09 | **数据范围 `AccessScope`**：法人 × 部门 × 项目角色，显式传入仓储，按权限计算，空范围 = 无行（fail-closed）；数据访问注册表；部门浏览与人员详情接入；法人归属生效区间表 | RULE-349..353；SEC-009 | ADR-0009 §4；ADR-0026 第 1、2 项 | P0（1a 按 ADR-0026「1a 交付范围」；法人限定与审批参与访问 1b） |
 | C1a-10 | **组织快照（只读）**：从 A8 同步部门、人员、岗位、汇报线、部门负责人 / 区域 AR / 类别 / 交付标识；源缩水保护；与 A8 对账零差异 | A5..A8；RULE-354..367/371/372；所有权矩阵 §1–2 | ADR-0011；出口条件 | P0 |
 | C1a-11 | **组织变更事件**（模块内，事件发布登记表保证至少一次） | M6；RULE-373 | ADR-0016 / Modulith | P1 |
 | C1a-12 | **审批引擎 `platform.approval`**：Flowable 8 BPMN（1a 不引入 DMN：指派写在 BPMN 扩展属性，由 AssigneeResolver 计算；出现真正的多维决策表时在该阶段引入）；单人 / 候选组认领、会签 / 或签、行级审批、加签（建议性）、转交、退回发起人 / 指定节点、撤回、撤销（不删历史）、截止点、BEFORE 钩子、幂等发起、轮次、类型化结果事件 | RULE-248..315（28 条已评审） | ADR-0007；RULE_REVIEWS | P0（引擎与契约；1a 无业务单据接入）；会签 / 或签、行级审批等引擎能力随第一个使用者交付（Q-3 收窄） |
@@ -244,6 +244,7 @@ channels:
 | 编号 | `NumberingIT`（已在守护模板中实现 7 项） |
 | 告警 | dev 演练记录 |
 | 回滚 | 演练记录 |
+| **授权模型**（ADR-0026，用户 2026-10-14 批准） | `DataAccessRegistryTest`；ArchUnit `onlyRegisteredPersistenceTouchesTheDatabase`、`onlyIdentityBuildsAccessScope`；`ScopedRepositoryContract`（部门浏览、人员详情）；`ScopePerPermissionTest`；`AdminModeBoundaryTest`；`SelfGrantForbiddenIT`；`SensitiveGrantTwoPersonIT`；`AccessDeniedAuditIT`；`LegalEntityAttributionTest`（部门默认、员工单独指定、按日期取值、区间不重叠）；`PendingIdentityRulesTest` 中 RULE-350/352、353 启用 |
 | **安全不变量**（`phase1a/SECURITY_INVARIANTS.md`，用户：「老系统先不管，确保新系统没有这些缺陷」） | I-1 `LegacyTokenIsolationTest`（ArchUnit + 启动时权限校验）；I-2 `TicketIssuerAllowlistTest`；I-3 `AnonymousAccessIT` + 公开端点白名单快照；I-4 白名单无验证码端点 + `ProductionConfigSanityTest`；I-5 `ApprovalStartOwnershipIT`（1a 验证发起人只取当前用户、无「客户端传单据 ID」的 HTTP 发起接口、退回后重提只能由发起人办理；单据归属部分 1b 启用）；I-6 `WecomMessagePayloadTest`（ArchUnit 限定请求体构造入口）；I-7 `TaskActorAuthorizationIT`（认领、办理、退回；转交 / 加签随 1b，资源任务随 Phase 2）；I-8 `WecomCallbackActorIT`（随卡片按钮回调上线，1a 推迟）；I-9 `OneTimeCredentialConcurrencyIT` |
 | **§9a 证明**（brief 出口 Proposed revision） | `A8ViewColumnWhitelistIT`（列集合完全相等）、`A8ReadOnlyIT`（写被拒绝）、`A8SourceScanTest`（禁止 `formmain_`、`formson_`、`a8_db` 等） |
 

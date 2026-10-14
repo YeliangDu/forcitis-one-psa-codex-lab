@@ -11,11 +11,15 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /** Failures are audited in their own transaction so they survive a rollback; must run inside the caller's transaction. */
 @Component
 class LoginAdmission {
+
+    private static final Logger log = LoggerFactory.getLogger(LoginAdmission.class);
 
     private final AccountProvisioning provisioning;
     private final AccountRepository accounts;
@@ -59,7 +63,12 @@ class LoginAdmission {
     /** reason is for the audit trail only; it never reaches the caller. */
     LoginResult reject(IdentityError error, LoginMethod method, UserId actor, String reason) {
         String subject = actor == null ? "login:" + method.name() : "user-account:" + actor.value();
-        audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason)));
+        try {
+            audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason)));
+        } catch (RuntimeException failed) {
+            log.error("Audit entry for the failed login of {} could not be written: {}", subject, failed.toString());
+            meters.counter("platform.identity.login.audit.failed").increment();
+        }
         meters.counter("platform.identity.login", "method", method.name(), "outcome", "failure").increment();
         return new LoginResult.Rejected(error);
     }

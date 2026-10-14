@@ -379,8 +379,8 @@ for d in clean_nodes:
             c["description"] = prev_desc[c["id"]]
 
 topo = {
-    "system": "PSA (FORCITIS Professional Services Automation)",
-    "root": {"id": "sys", "name": "psa", "kind": "system", "children": clean_nodes},
+    "system": "老系统（FORCITIS Professional Services Automation）",
+    "root": {"id": "sys", "name": "老系统", "kind": "system", "children": clean_nodes},
     "edges": edge_list,
     "entryPoints": entry,
     "deadEnds": dead,

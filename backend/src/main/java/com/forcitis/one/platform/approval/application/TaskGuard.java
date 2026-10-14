@@ -6,7 +6,6 @@ import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.TaskActors;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -15,9 +14,9 @@ import org.springframework.stereotype.Component;
 class TaskGuard {
 
     private final ApprovalEngine engine;
-    private final AuditLog audit;
+    private final DenialAudit audit;
 
-    TaskGuard(ApprovalEngine engine, AuditLog audit) {
+    TaskGuard(ApprovalEngine engine, DenialAudit audit) {
         this.engine = engine;
         this.audit = audit;
     }
@@ -40,7 +39,7 @@ class TaskGuard {
     }
 
     void deny(TaskView task, UserId actor, String action) {
-        audit.recordIndependently(new AuditEntry("platform.approval.task.denied", actor, null,
+        audit.record(new AuditEntry("platform.approval.task.denied", actor, null,
                 "approval-task:" + task.taskId().value(), action));
         throw new AccessDeniedException("User " + actor.value() + " is not the handler of task " + task.taskId().value());
     }

@@ -1,0 +1,119 @@
+.action-button {
+  flex: 1;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 40px;
+}
+
+.action-button--primary {
+  border-color: var(--intent-primary-bg);
+  background: var(--intent-primary-bg);
+  color: var(--intent-primary-fg);
+}
+
+.action-button--default {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.action-button--danger {
+  border-color: var(--status-rejected-border);
+  background: var(--status-rejected-bg);
+  color: var(--status-rejected-fg);
+}
+
+.action-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border-default);
+  background: var(--surface-raised);
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.segments {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.segments__item {
+  flex: 1;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 30px;
+}
+
+.segments__item--active {
+  border-color: var(--intent-primary-bg);
+  background: var(--intent-primary-bg);
+  color: var(--intent-primary-fg);
+}
+
+.bottom-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.bottom-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--surface-backdrop);
+}
+
+.bottom-sheet__panel {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 12px calc(12px + env(safe-area-inset-bottom));
+  border-radius: 12px 12px 0 0;
+  background: var(--surface-overlay);
+}
+
+.bottom-sheet__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.text-area-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.text-area-field__label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.text-area-field__input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 96px;
+  padding: 8px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}

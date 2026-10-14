@@ -33,12 +33,12 @@ class SecurityInvariantsTest {
                 .isEmpty();
     }
 
-    /** I-2: only reviewed issuers may sign one-time tickets; the legacy PSA backend never may. */
+    /** I-2: only reviewed issuers may sign one-time tickets; the legacy backend never may. */
     @Test
     void ticketIssuersAreReviewedAndNeverTheLegacyBackend() throws IOException {
         Set<String> allowed = Set.copyOf(Files.readAllLines(ISSUER_ALLOWLIST).stream()
                 .map(String::trim).filter(l -> !l.isEmpty() && !l.startsWith("#")).toList());
-        assertThat(allowed).as("I-2: the legacy PSA backend must not be an issuer").noneMatch(SecurityInvariantsTest::looksLegacy);
+        assertThat(allowed).as("I-2: the legacy backend must not be an issuer").noneMatch(SecurityInvariantsTest::looksLegacy);
         Pattern insert = Pattern.compile("insert\\s+into\\s+\\S*ticket_issuers[^;]*?values\\s*(.*?);",
                 Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
         Pattern firstString = Pattern.compile("\\(\\s*'([^']+)'");

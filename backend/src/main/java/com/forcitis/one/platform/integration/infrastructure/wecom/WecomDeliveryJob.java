@@ -18,7 +18,7 @@ class WecomDeliveryJob {
 
     @Scheduled(initialDelayString = "${forcitis.platform.integration.wecom.delivery.interval}",
             fixedDelayString = "${forcitis.platform.integration.wecom.delivery.interval}")
-    @SchedulerLock(name = "platform.integration.wecom.delivery.send", lockAtMostFor = "PT5M")
+    @SchedulerLock(name = "platform.integration.wecom.delivery.send", lockAtMostFor = "PT25M")
     void deliverDueCards() {
         deliver.execute();
     }

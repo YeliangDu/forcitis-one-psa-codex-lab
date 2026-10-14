@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build GLOSSARY.md: the unified domain vocabulary for the PSA modernization.
+"""Build GLOSSARY.md: the unified domain vocabulary for the FORCITIS one modernization.
 Source of truth = psa/docs/domain/00_战略设计/03-通用语言.md (parsed into glossary/source_terms.json).
 This script adds: module path (subdomain.bc), legacy names, and amendment proposals."""
 import json, collections
@@ -33,7 +33,7 @@ CORE = [
  ("成本估算树", "CostEstimateNode", "商机评估与报价承诺 BC", "CostEstimateNode", "psa_cost_estimate_*", "CostEstimateTree.vue", "词表无此条：建议补入"),
  ("工时估算明细", "LaborEstimateLine", "商机评估与报价承诺 BC", "—", "—", "—", "改词建议：词表现为 ManhourEstimateItem"),
  ("商机", "Opportunity", "商机评估与报价承诺 BC", "OpportunityDO, OppCloseStatus", "psa_crm_opportunity", "/fst/opportunity", "关闭状态改为枚举 OPEN/WON/LOST"),
- ("客户", "Customer", "客户经营 BC", "CustomerDO", "psa_bd_customer", "/fst/customer", "CRM 为上游，PSA 存只读快照"),
+ ("客户", "Customer", "客户经营 BC", "CustomerDO", "psa_bd_customer", "/fst/customer", "CRM 为上游，老系统存只读快照"),
  ("费率卡", "RateCard / RateCardItem", "合约基线 BC", "BillRateDO, HourlyRateDO", "psa_bill_rate*, psa_pm_hourlyrate*", "views/project/price", "改词建议：统一 RateCard 词族（含 StandardCostRateCard、RateVersion、CustomerRateCard）"),
  ("合同条款", "ContractClause", "合约基线 BC", "ContractTermDO, termNumber, clause", "psa_pm_contract_term, psa_contract_clause", "—", "老代码 term/clause 混用；Term 一律不用"),
  ("项目", "Project", "项目交付执行 BC", "PmProjectDO, ProjectDO", "psa_pm_project", "views/project/pmList", "项目状态改为枚举"),
@@ -73,12 +73,12 @@ def path(bc):
     sd, slug = BC[bc]
     return f"{sd}.{slug}" if slug != "*" else "platform.*"
 
-L = ["# GLOSSARY — psa 现代化统一领域用语", "",
+L = ["# GLOSSARY — FORCITIS one 现代化统一领域用语", "",
      "日期：2026-10-14",
      "",
      "**唯一来源**：`psa/docs/domain/00_战略设计/03-通用语言.md`（385 个术语，23 个 BC）。本文不另立术语，只做三件事：",
      "1. 给每个 BC 指定代码位置：子域 slug 沿用已定稿的 `02-子域划分.md`，BC slug 是本次提出的方案；",
-     "2. 列出老 PSA 的代码名、表名、页面接口与新名的对照；",
+     "2. 列出老系统的代码名、表名、页面接口与新名的对照；",
      "3. 提出词表改词建议，需同批修改 `03-通用语言.md`（按 `00-命名一致性规则.md` 的同步清单）。", "",
      "所有新代码、表、事件、API、文档都用这里的代码名，**不得自创**（ArchUnit G14 和词表校验守护）。", "",
      "## 1. 模块路径：子域 → BC → 包", "",
@@ -95,7 +95,7 @@ for bc, (sd, slug) in BC.items():
             L.append("| accounting | 会计期间 BC（**新增提议**，ADR-0016：(期间, 法人) 期间状态与关账闸门；词表需补入） | `accounting.period` | `accounting_period` | ✔ |")
 L += ["", "BC slug 的命名规则（沿用 fst `CLAUDE.md` §2）：纯英文小写；不用 Manager / Helper / Util；不用拼音；不用自造缩写；不用子域旧称（operating、opportunity、cash、knowledge）。",
       "平台子域只有一个 BC（权限流程与集成平台 BC）。按 ADR-007，它是技术底座，所以拆成 identity / approval / integration / audit 四个技术模块，但它们同属一个 BC。",
-      "", "## 2. 核心术语对照（老 PSA → 统一用语）", "",
+      "", "## 2. 核心术语对照（老系统 → 统一用语）", "",
       "| 中文 | 代码名（词表） | 模块 | 老代码名 | 老表 | 老页面 / 接口 | 说明 |", "|---|---|---|---|---|---|---|"]
 for zh, code, bc, lc, lt, lu, note in CORE:
     L.append(f"| {zh} | `{code}` | `{path(bc)}` | {lc} | {lt} | {lu} | {note} |")
@@ -107,7 +107,7 @@ L += ["", "## 3. 词表改词建议（需同批修改 03-通用语言.md）", ""
       "| G-4 | 会计期间只有事件名 `AccountingPeriodClosed` | 补实体 `AccountingPeriod` | 实体与事件同主语 |",
       "| G-5 | 无「成本估算树 / 节点」 | 补 `CostEstimateNode`（商机评估与报价承诺 BC） | 报价的核心结构，代码已在用 |",
       "| G-6 | 无「法人主体」以外的核算主体别名 | 明确 `companyCode` 等老字段一律映射为 `LegalEntity` / `legal_entity_id` | ADR-0001 硬约束 2 |",
-      "| G-7 | 本次方案文档中曾使用「审批与待办 BC」 | 废止，改称「权限流程与集成平台 BC」的 `platform.approval` 模块 | PSA 的 23 个 BC 中没有「审批与待办 BC」 |",
+      "| G-7 | 本次方案文档中曾使用「审批与待办 BC」 | 废止，改称「权限流程与集成平台 BC」的 `platform.approval` 模块 | 老系统领域设计的 23 个 BC 中没有「审批与待办 BC」 |",
       "", "## 附录：全部术语（按模块）", ""]
 by = collections.defaultdict(list)
 for r in rows:

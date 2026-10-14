@@ -3,6 +3,7 @@ package com.forcitis.one.cost.timesheet.web;
 import com.forcitis.one.delivery.execution.api.WorkPackageId;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.kernel.Hours;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.application.SubmissionResult;
 import com.forcitis.one.cost.timesheet.application.SubmitTimesheet;
@@ -30,7 +31,7 @@ class TimesheetController {
     @PreAuthorize("hasAuthority('" + Permission.Codes.TIMESHEET_SUBMIT + "')")
     ResponseEntity<SubmitTimesheetResponse> submit(@PathVariable long id, @RequestBody SubmitTimesheetRequest request) {
         SubmissionResult result = submitTimesheet.execute(new SubmitTimesheetCommand(
-                new TimesheetId(id), new WorkPackageId(request.workPackageId()), new Hours(request.hours())));
+                new TimesheetId(id), new WorkPackageId(request.workPackageId()), new Hours(request.hours()), new UserId(request.projectManagerId())));
         return switch (result) {
             case SubmissionResult.Submitted s -> ResponseEntity.ok(new SubmitTimesheetResponse("SUBMITTED", null, s.approvalInstanceId().value(), null));
             case SubmissionResult.ExceedsRemainingHours e -> ResponseEntity.unprocessableContent()

@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.numbering.web;
 
 import com.forcitis.one.platform.identity.api.Permission;
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.DocumentId;
 import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;

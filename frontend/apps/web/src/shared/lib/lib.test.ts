@@ -23,6 +23,11 @@ describe('safeInternalPath', () => {
 });
 
 describe('describeFailure', () => {
+  it('服务返回的数据与接口约定不符时，给出专门的提示，而不是说无法连接', () => {
+    const malformed = Object.assign(new Error('x'), { name: 'ResponseShapeError' });
+    expect(describeFailure(malformed)).toBe('服务返回的数据与约定不符，请稍后重试');
+  });
+
   it('优先使用模块给出的业务错误码文案，其次按状态码给通用文案', () => {
     const conflict = Object.assign(new Error('x'), { status: 409, code: 'A' });
     expect(describeFailure(conflict, { A: '专用文案' })).toBe('专用文案');
@@ -32,7 +37,7 @@ describe('describeFailure', () => {
   });
 
   it('读不出状态时不抛错', () => {
-    expect(failureOf('boom')).toEqual({ status: undefined, code: undefined, body: undefined });
+    expect(failureOf('boom')).toEqual({ status: undefined, code: undefined, body: undefined, malformedAnswer: false });
   });
 });
 

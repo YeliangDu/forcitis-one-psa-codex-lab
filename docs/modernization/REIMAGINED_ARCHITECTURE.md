@@ -15,14 +15,14 @@ C4Container
   System_Ext(seeyon, "致远 A8 OA", "SSO 验票")
   System_Ext(a8db, "A8 数据库", "组织主数据（只读视图）")
   System_Ext(ext, "KM / A8 门户 / YD / BI", "签名一次性票据（按签发方开关，默认关）")
-  System(legacy, "PSA 老系统", "继续承担全部业务与在途审批")
+  System(legacy, "老系统", "继续承担全部业务与在途审批")
   SystemDb_Ext(legacydb, "SQL Server ruoyi-vue-pro", "老待办只读视图")
   Container(nginx, "nginx", "one.forcitis.com 整体指向单体", "老域名与路由不变")
   Container_Boundary(one, "FORCITIS one 单体（Java 25 / Spring Boot 4.1 / Modulith 2.1）") {
     Container(web, "PC 前端", "React 19 + AntD 5 + TanStack Query + Zod")
     Container(h5, "H5 前端", "Taro 4 + React")
     Container(app, "应用", "Spring MVC /api/v1", "platform.identity / approval / integration / audit / numbering / scheduling、organization.workforce")
-    ContainerDb(pg, "PostgreSQL 18（PSA 专用 RDS）", "platform_* / organization_workforce；Flowable ACT_*；事件发布登记；Spring Session；ShedLock")
+    ContainerDb(pg, "PostgreSQL 18（FORCITIS one 专用 RDS）", "platform_* / organization_workforce；Flowable ACT_*；事件发布登记；Spring Session；ShedLock")
   }
   Rel(emp, h5, "HTTPS")
   Rel(pc, web, "HTTPS")
@@ -82,8 +82,12 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 | TIMESHEET 与生产当前版本（v15）对齐 | ——（依据 `runtime/prod_bpm.tsv` ##13） | <ul><li>节点：项目经理 `projectManagerId`；售前分支的区域负责人 `regionalHeadId`，路由标记 `preSalesHours`；发起人一级上级。</li><li>老变量名只在回放转换表中出现。</li><li>节点顺序与子流程范围**待用户确认**。</li></ul> |
 | 列名 `is_fee_earner`（原文 `fee_earner_flag`） | ——（DdlNamingTest：布尔列以 is_ 开头，禁用 flag） | `organization_workforce.employees.is_fee_earner` |
 | `event_publication` 归 `platform_integration` schema | psa-coordinator 同意 | Flyway 创建，关闭自动建表 |
+| **审批路由引入 DMN**（修订检查点 2「1a 不引入 DMN」） | 「B 决策表管业务判断 (Recommended)」 | DMN 只负责：走哪几路、能否跳过、能否自动通过、节点时限。用 Flowable DMN 执行，按部署版本生效，业务可评审。「取谁」仍由 BPMN 上的类型化指派规则决定，AssigneeResolver 只执行决策结果 |
+| **新建 `platform.web`** | 「新建 platform.web (Recommended)」 | 技术模块，承载跨模块的 web 装配：领域异常 → ErrorCode → ProblemDetail 的全局处理器、OpenAPI 定制 |
+| **审计订阅领域事件** | 「B 审计订阅领域事件 (Recommended)」 | 对外有意义的业务状态变化，审计统一订阅领域事件（事件发布登记表保证不漏记）；安全事件（登录失败、拒绝访问）仍用 `recordIndependently` |
+| **审批时限 T+1 工作日** | 「工时要求T+1 审批完毕……」；T 从提交当天起算，+1 按工作日（需要工作日历）；超时提醒、升级给上级、计入时效统计，不自动通过 | 引擎通用的审批时限能力，时限由 DMN 或配置给出；工作日历由管理员维护；事件 `ApprovalTaskOverdue`、`ApprovalTaskEscalated` |
 
-无环要点：integration 不认识 PSA 用户；企业微信 userid 由 workforce 快照持有，identity 在登录时按 userid 查 workforce 的 api（取消 `external_identities` 表，评审 #8）；通知时 approval 从 workforce 取收件人的 userid，再调 integration 发送；审计由各模块调用 audit 的 api。各模块 api 方法数 ≤ 12（`ArchitectureRulesTest`）。
+无环要点：integration 不认识 FORCITIS one 用户；企业微信 userid 由 workforce 快照持有，identity 在登录时按 userid 查 workforce 的 api（取消 `external_identities` 表，评审 #8）；通知时 approval 从 workforce 取收件人的 userid，再调 integration 发送；审计由各模块调用 audit 的 api。各模块 api 方法数 ≤ 12（`ArchitectureRulesTest`）。
 
 ## 3. 关键设计
 
@@ -101,6 +105,7 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 - `Permission` 为类型化常量（`<子域>.<bc>:<资源>:<动作>`，G43）；角色—权限、账号—角色存库，变更时失效缓存，即时生效。
 - 新员工：同步建档时**显式**授予配置项 `forcitis.platform.identity.default-role`（最小权限）一次并写审计；管理员移除后不补回；离职者不授（RULE-344 修正）。新角色默认数据范围 SELF（RULE-345）。
 - `AccessScope`（法人 × 部门子树 × 项目角色；「本人及下属」只算直接下属，RULE-349 用户决定）：1a 只交付类型与单测，`data_scope_grants` 表推迟到第一个使用者 1b（评审 #16）。
+  - **已由 ADR-0026 改变**（用户 2026-10-14 批准）：1a 交付范围授予明细表（`role_scope_grants`）、数据访问注册表与守护、部门浏览和人员详情按范围过滤、「部门 → 法人」与「员工 → 法人」生效区间表、管理模式；法人限定与审批参与访问在 1b。以 ADR-0026「1a 交付范围」为准。
 - 初始授权：一次性 ETL，从老库只读导出角色与菜单权限，按映射表转成新 `Permission`；没有对应的不授予（映射表在实施时给用户确认）。
 
 ### 3.3 组织快照
@@ -237,7 +242,7 @@ ETL 为自建（用户已决定）：用 JdbcClient 编写，可重跑、可对�
 | 问题 | 处理 |
 |---|---|
 | 1 组织快照的数据源 | 设计：A8 只读视图（§3.3）；零差异以 A8 为基准 |
-| 2 A8 与 PSA 冲突以谁为准、是否冻结手工编辑 | 已由第三批评审决定：A8 为源，新系统组织只读（RULE-357/359/368）。老系统菜单是否收回属运维动作，**待 Q-4** |
+| 2 A8 与老系统冲突以谁为准、是否冻结手工编辑 | 已由第三批评审决定：A8 为源，新系统组织只读（RULE-357/359/368）。老系统菜单是否收回属运维动作，**待 Q-4** |
 | 3 `short_name` / `company_code` | 设计：`short_name` 每天只读刷新，`company_code` 不迁移（§3.3） |
 | 4 outbox 死信 | 1a 不涉及；列入 Phase 2 入口项（生产中 7 行的状态待查） |
 | 5 合并待办怎么读老待办 | 设计：老库只读视图，列级授权（§3.6） |

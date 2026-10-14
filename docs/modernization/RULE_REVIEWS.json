@@ -328,7 +328,7 @@
     "RULE-329": {
       "verdict": "wrong",
       "at": "2026-10-14T11:00:28+02:00",
-      "title": "KM token: anonymous caller, memberId used as a mobile number or a PSA id",
+      "title": "KM token: anonymous caller, memberId used as a mobile number or a legacy-system id",
       "note": "错误（整批同意评审建议）：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。"
     },
     "RULE-331": {
@@ -412,7 +412,7 @@
     "RULE-355": {
       "verdict": "confirmed",
       "at": "2026-10-14T11:00:28+02:00",
-      "title": "A8 dept \"disabled\" test and how it maps to PSA status and deleted",
+      "title": "A8 dept \"disabled\" test and how it maps to legacy-system status and deleted",
       "note": "正确+修（整批同意评审建议）：停用判定保留；NULL 的处理写成显式规则（仍视为有效，同步报告列出 NULL 行，与 A8 负责人确认）；「停用」与「撤销」分为两个状态，不再混同。"
     },
     "RULE-356": {
@@ -425,7 +425,7 @@
       "verdict": "confirmed",
       "at": "2026-10-14T11:00:28+02:00",
       "title": "Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive",
-      "note": "正确+修（整批同意评审建议）：A8 部门随 A8 新增、更新、撤销、恢复；PSA 不再有手工部门（D-06）；PSA 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。"
+      "note": "正确+修（整批同意评审建议）：A8 部门随 A8 新增、更新、撤销、恢复；FORCITIS one 不再有手工部门（D-06）；FORCITIS one 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。"
     },
     "RULE-359": {
       "verdict": "wrong",
@@ -448,20 +448,20 @@
     "RULE-362": {
       "verdict": "confirmed",
       "at": "2026-10-14T11:00:28+02:00",
-      "title": "A new A8 person becomes a PSA user with username = phone and a default password",
+      "title": "A new A8 person becomes a legacy-system user with username = phone and a default password",
       "note": "正确+修（整批同意评审建议）：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。"
     },
     "RULE-363": {
       "verdict": "confirmed",
       "at": "2026-10-14T11:00:28+02:00",
-      "title": "Resignation = A8 login name is null → PSA user soft-deleted",
+      "title": "Resignation = A8 login name is null → legacy-system user soft-deleted",
       "note": "正确+修（整批同意评审建议）：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。"
     },
     "RULE-364": {
       "verdict": "confirmed",
       "at": "2026-10-14T11:00:28+02:00",
-      "title": "Rehire and phone change restore and re-enable the PSA user",
-      "note": "正确+修（整批同意评审建议）：复职（A8 重新有登录名）时恢复；换手机号不覆盖 PSA 的手工停用（启用状态由 PSA 拥有）；用户名跟随 A8 登录名同步。"
+      "title": "Rehire and phone change restore and re-enable the legacy-system user",
+      "note": "正确+修（整批同意评审建议）：复职（A8 重新有登录名）时恢复；换手机号不覆盖 FORCITIS one 的手工停用（启用状态由 FORCITIS one 拥有）；用户名跟随 A8 登录名同步。"
     },
     "RULE-365": {
       "verdict": "wrong",
@@ -479,7 +479,7 @@
       "verdict": "wrong",
       "at": "2026-10-14T11:00:28+02:00",
       "title": "Post sync only adds and renames",
-      "note": "错误（整批同意评审建议）：岗位同步状态与删除（停用 / 删除同步到 PSA），保证「岗位必须启用」的校验有意义。"
+      "note": "错误（整批同意评审建议）：岗位同步状态与删除（停用 / 删除同步到 FORCITIS one），保证「岗位必须启用」的校验有意义。"
     },
     "RULE-368": {
       "verdict": "wrong",
