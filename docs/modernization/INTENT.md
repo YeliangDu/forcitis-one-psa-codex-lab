@@ -112,3 +112,9 @@
 | 经营分析（2026-10-14，覆盖上一条 OLAP 边界）：「BI 要重构，不满足经营管理需要。经营分析纳入现代化：经营子域 4 个 BC、reporting 与语义层纳入，BI 重构同步规划。暂停 BI 迁移会话在老数据源上的新建模，现有报表照常运行。请派 psa-bi-scope 做经营分析范围评估，产出 ADR-0023（提议）。」 | 已开会话由 psa-reporting-contract 改名为 psa-bi-scope 并扩大范围；BI 会话暂停由用户自行处理；ADR-0023（提议） |
 | 「G46 为什么新系统要放 A8 这类旧系统的名称？」；1a 会话询问防腐层位置时选「改名并移到 integration」（2026-10-14） | 领域模块不出现外部系统名（LegacyShapeTest）；A8 视图读取、致远验票移入 platform.integration（REIMAGINED_ARCHITECTURE §2 修订，修订检查点 2 已批准的「防腐层下沉到使用模块」）；G46 不放宽，去掉 Binder 绕开 |
 | Phase 1a M3「退回即结束本轮，重提开新一轮 (Recommended)」；D-1/D-2「同实例分库，生产前再定 (Recommended)」；D-3/D-4/D-5「可以」（部署前再问）；M1 先看剩余 7 种指派类型说明再定（2026-10-14，psa-coordinator 当面询问） | RULE_REVIEWS「实现方式变更」；phase1a/infra（forcitis_one_dev、one_dev_* 角色）；审批模块退回改为按轮次 |
+| 「新系统，为什么会采用旧写法？需要禁止 agent 使用旧代码？」→ 禁止照搬老代码三项「三项都加 (Recommended)」（2026-10-14） | SESSION_PLAYBOOK §5「老代码只作证据，不得照搬」；LegacyShapeTest 守护；每波 opus「老系统形状」复审 |
+| psa-gl-scope 访问 U8C（2026-10-14，本会话当面）：访问方式「经 PSA 服务器跨库只读（推荐）」；范围「两个都蒸馏（推荐）」 | U8C_GL_PRACTICE.md §0；只执行 SELECT、连接只读、凭据只在服务器进程内使用 |
+| U8C 黄金基线（用户经 psa-coordinator 下达：「U8C 除了蒸馏，还要①导出最近两个已结期间的科目余额表和三大报表作为黄金基线（只放本机）；②把结转模板、报表公式、凭证科目映射整理成规则交财务评审；③检查 U8C 有无二次开发或插件；④统计科目和辅助核算的实际使用面。」）；本会话当面确认导出金额：「同意，按上述方式导出（推荐）」（各法人取各自最近两个已结期间；只放本机 `~/.modernize/psa/u8c-baseline/`，权限 700，不进 git；往来辅助核算只留编码） | U8C_GL_PRACTICE.md 黄金基线一节（只记清单、行数、SHA-256）；GL 规则卡；二开与插件清单；使用面统计 |
+| U8C 功能盘点（用户经 psa-coordinator 下达：「盘点 U8C 实际启用的模块、功能和近一年使用量，以及角色权限分工；把凭证流转、账簿查询、出纳与银行对账、往来核销、年结与期初、打印与会计档案、审计轨迹、GB/T 24589 数据接口逐项归类（第一步需要 / 第二步前需要 / 不迁移 / 留外部）；按《会计软件基本功能和服务规范》列出合规清单。」） | U8C_CAPABILITY_MAP.md、GL_COMPLIANCE_CHECKLIST.md；ADR-0022 与阶段草案引用 |
+| 法定账与收付账套（2026-10-14，psa-gl-scope 当面）：「法定账是收付账套，收付账套保留」 | ADR-0022 第 1、2、8 条；proposals/GL_SCOPE_REVISIONS.md §A、§D 第 1–2 项；rules/GL_FINANCE_REVIEW.md GL-109 |
+| 收付账套保留的含义（2026-10-14，psa-gl-scope 当面追问）：「新系统内两种口径都出（推荐）」；U8C 权责账套「G1 起由新系统取代（推荐）」 | ADR-0022 第 2、8、9 条；GL_SCOPE_REVISIONS §A、§C、§D |

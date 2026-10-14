@@ -10,12 +10,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Admin-defined template, e.g. "QU-{yyyy}-{seq:5}". Validated on construction so an invalid rule can never be saved:
+ * Admin-defined template, e.g. "{TYPE}-{LE}-{yyyyMM}-{seq:4}". Validated on construction so an invalid rule can never be saved:
  * exactly one {seq:N} (N 1..12), only known tokens, and the date part must be at least as fine as the reset policy
  * (otherwise two periods would produce the same number).
  */
 @ValueObject
 public record NumberingPattern(String value, ResetPolicy resetPolicy) {
+
+    /** Placeholder for the registered document type code (ADR-0010 decision 5), e.g. QT for a quote. */
+    public static final String TYPE_TOKEN = "TYPE";
+    /** Default template of the unified new format (ADR-0010 decision 5). */
+    public static final String DEFAULT_TEMPLATE = "{TYPE}-{LE}-{yyyyMM}-{seq:4}";
 
     private static final Pattern TOKEN = Pattern.compile("\\{([^}]*)}");
     private static final Pattern SEQ = Pattern.compile("seq:(\\d{1,2})");
@@ -37,7 +42,7 @@ public record NumberingPattern(String value, ResetPolicy resetPolicy) {
                     throw new IllegalArgumentException("{seq:N} width must be 1..12");
                 }
                 sequences++;
-            } else if (token.equals("LE")) {
+            } else if (token.equals("LE") || token.equals(TYPE_TOKEN)) {
                 continue;
             } else if (token.matches("(yyyy|yy|MM|dd|yyyyMM|yyyyMMdd|yyMMdd)")) {
                 hasYear |= token.contains("yy");
@@ -74,7 +79,13 @@ public record NumberingPattern(String value, ResetPolicy resetPolicy) {
         throw new IllegalStateException("validated pattern without {seq:N}: " + value);
     }
 
-    public String render(LegalEntityId legalEntity, LocalDate date, long sequence) {
+    /** Whether the template contains the document type code placeholder. */
+    public boolean usesTypeCode() {
+        return TOKEN.matcher(value).results().anyMatch(m -> m.group(1).equals(TYPE_TOKEN));
+    }
+
+    /** @param typeCode the registered code of the document type; may be null only when the template has no {TYPE} */
+    public String render(String typeCode, LegalEntityId legalEntity, LocalDate date, long sequence) {
         Matcher m = TOKEN.matcher(value);
         StringBuilder out = new StringBuilder();
         while (m.find()) {
@@ -90,6 +101,11 @@ public record NumberingPattern(String value, ResetPolicy resetPolicy) {
                 replacement = "0".repeat(width - digits.length()) + digits;
             } else if (token.equals("LE")) {
                 replacement = Long.toString(legalEntity.value());
+            } else if (token.equals(TYPE_TOKEN)) {
+                if (typeCode == null) {
+                    throw new IllegalStateException("Pattern " + value + " needs a document type code but none is registered");
+                }
+                replacement = typeCode;
             } else {
                 replacement = date.format(DateTimeFormatter.ofPattern(token));
             }
