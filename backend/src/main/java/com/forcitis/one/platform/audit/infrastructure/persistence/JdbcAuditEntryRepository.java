@@ -21,8 +21,9 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     @Override
     public void save(AuditEntry entry, Instant createdAt) {
         jdbc.sql("""
-                        insert into platform_audit.audit_entries (created_at, updated_at, action, actor_id, on_behalf_of_id, subject_key, detail)
-                        values (:createdAt, :createdAt, :action, :actor, :onBehalfOf, :subject, :detail)
+                        insert into platform_audit.audit_entries (created_at, updated_at, action, actor_id, on_behalf_of_id, subject_key, detail,
+                                                                  source_address, outcome_kind, login_method_kind)
+                        values (:createdAt, :createdAt, :action, :actor, :onBehalfOf, :subject, :detail, :sourceAddress, :outcome, :loginMethod)
                         """)
                 .param("createdAt", Timestamp.from(createdAt))
                 .param("action", entry.action())
@@ -30,6 +31,9 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
                 .param("onBehalfOf", entry.onBehalfOfId() == null ? null : entry.onBehalfOfId().value(), Types.BIGINT)
                 .param("subject", entry.subjectKey())
                 .param("detail", entry.detail(), Types.VARCHAR)
+                .param("sourceAddress", entry.sourceAddress(), Types.VARCHAR)
+                .param("outcome", entry.outcome() == null ? null : entry.outcome().name(), Types.VARCHAR)
+                .param("loginMethod", entry.loginMethod(), Types.VARCHAR)
                 .update();
     }
 
