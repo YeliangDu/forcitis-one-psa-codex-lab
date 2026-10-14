@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -69,7 +70,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         String key = newKey("actor");
         ApprovalInstanceId instance = tx.execute(s -> approvals.start(new com.forcitis.one.platform.approval.api.ApprovalRequest(
                 com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), java.util.Set.of(),
-                List.of(new com.forcitis.one.platform.approval.api.ApprovalField("manager_id",
+                List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
                         List.of(String.valueOf(candidate), String.valueOf(other)))))));
         return new Scene(key, instance, openTaskId(instance), initiator, candidate, other, stranger);
     }
@@ -231,7 +232,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         assertThat(results.stream().filter(r -> !r.equals("won"))).allMatch(r -> r.equals("denied")
                 || r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND") || r.equals("PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED"));
         // the approval moved on exactly once: the manager node is done and the department node is open
-        assertThat(openTask(scene.instance()).getTaskDefinitionKey()).isEqualTo("departmentReview");
+        assertThat(openTask(scene.instance()).getTaskDefinitionKey()).isEqualTo("supervisorReview");
         assertThat(events.resulted().stream().filter(e -> e.businessKey().equals(scene.key())).count()).isLessThanOrEqualTo(1);
     }
 

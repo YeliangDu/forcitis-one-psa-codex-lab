@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.application;
 
-import static com.forcitis.one.organization.workforce.domain.Fixtures.ROOT;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
@@ -61,7 +60,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("RULE-357/373 the first run builds the snapshot in one transaction, logs run and differences, announces the change")
     void firstRunBuildsTheSnapshot() {
-        a8.snapshot = source(List.of(unit(1, ROOT), unit(2, ROOT + "0001"), unit(3, ROOT + "00010001")), List.of(head(2, 1)),
+        orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(head(2, 1)),
                 List.of(post(100), post(101)), people(3));
 
         SyncResult result = sync.execute(SyncTrigger.SCHEDULED, false);
@@ -86,7 +85,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("RULE-357 a run without changes writes no rows and publishes no event")
     void unchangedSourceChangesNothing() {
-        a8.snapshot = tree(member(1, 2, 100L, null));
+        orgSource.snapshot = tree(member(1, 2, 100L, null));
         sync.execute(SyncTrigger.SCHEDULED, false);
 
         SyncResult second = sync.execute(SyncTrigger.SCHEDULED, false);
@@ -101,12 +100,12 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("RULE-363/366 a leaver is separated once, the event names them, and re-running never repeats it")
     void leaverIsSeparatedOnce() {
-        a8.snapshot = tree(member(1, 2, 100L, null), member(2, 2, 100L, null), member(3, 2, 100L, null), member(4, 2, 100L, null),
+        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 2, 100L, null), member(3, 2, 100L, null), member(4, 2, 100L, null),
                 member(5, 2, 100L, null), member(6, 2, 100L, null), member(7, 2, 100L, null), member(8, 2, 100L, null),
                 member(9, 2, 100L, null), member(10, 2, 100L, null));
         sync.execute(SyncTrigger.SCHEDULED, false);
 
-        a8.snapshot = tree(member(1, 2, 100L, null), member(2, 2, 100L, null), member(3, 2, 100L, null), member(4, 2, 100L, null),
+        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 2, 100L, null), member(3, 2, 100L, null), member(4, 2, 100L, null),
                 member(5, 2, 100L, null), member(6, 2, 100L, null), member(7, 2, 100L, null), member(8, 2, 100L, null),
                 member(9, 2, 100L, null), member(10, 2, 100L, null, null, "wx-10"));
         sync.execute(SyncTrigger.SCHEDULED, false);
@@ -124,7 +123,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     void interruptedRunsAreClosed() {
         jdbc.sql("insert into organization_workforce.sync_runs (trigger_kind, status, started_at) values ('SCHEDULED', 'RUNNING', now() - interval '1 hour')").update();
         jdbc.sql("insert into organization_workforce.sync_runs (trigger_kind, status, started_at) values ('SCHEDULED', 'RUNNING', now() - interval '1 minute')").update();
-        a8.snapshot = tree(member(1, 2, 100L, null));
+        orgSource.snapshot = tree(member(1, 2, 100L, null));
 
         sync.execute(SyncTrigger.SCHEDULED, false);
 
@@ -135,30 +134,30 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("RULE-354 a broken org tree fails the run, writes nothing and publishes nothing")
     void brokenTreeLeavesTheSnapshotAlone() {
-        a8.snapshot = tree(member(1, 2, 100L, null));
+        orgSource.snapshot = tree(member(1, 2, 100L, null));
         sync.execute(SyncTrigger.SCHEDULED, false);
         long before = events.stream(OrgSnapshotChanged.class).count();
 
-        a8.snapshot = source(List.of(unit(1, ROOT), unit(9, ROOT + "0099" + "0001")), List.of(), List.of(post(100)), List.of(member(1, 1, 100L, null)));
+        orgSource.failure = new com.forcitis.one.kernel.ExternalSourceBrokenException("org unit 9 has no parent in the organisation tree");
         SyncResult result = sync.execute(SyncTrigger.SCHEDULED, false);
 
         assertThat(result.status()).isEqualTo(SyncRunStatus.FAILED);
         assertThat(count("org_units")).isEqualTo(3);
         assertThat(jdbc.sql("select failure_reason from organization_workforce.sync_runs order by id desc limit 1").query(String.class).single())
-                .contains("BrokenOrgTreeException");
+                .contains("ExternalSourceBrokenException");
         assertThat(events.stream(OrgSnapshotChanged.class).count()).isEqualTo(before);
         assertThat(jdbc.sql("select status from organization_workforce.org_units where id = 2").query(String.class).single()).isEqualTo("ACTIVE");
     }
 
     @Test
-    @DisplayName("an unreachable A8 fails the run, records why and keeps the snapshot; the next run recovers")
+    @DisplayName("an unreachable the source fails the run, records why and keeps the snapshot; the next run recovers")
     void unavailableSourceFailsTheRun() {
-        a8.snapshot = tree(member(1, 2, 100L, null));
+        orgSource.snapshot = tree(member(1, 2, 100L, null));
         sync.execute(SyncTrigger.SCHEDULED, false);
 
-        a8.unavailable = true;
+        orgSource.unavailable = true;
         SyncResult down = sync.execute(SyncTrigger.SCHEDULED, false);
-        a8.unavailable = false;
+        orgSource.unavailable = false;
         SyncResult up = sync.execute(SyncTrigger.SCHEDULED, false);
 
         assertThat(down.status()).isEqualTo(SyncRunStatus.FAILED);
@@ -171,10 +170,10 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("RULE-358/366 shrink guard: a drop over 20 % holds the run, nothing is written, one held row is refreshed, alerts can fire")
     void shrinkHoldsTheRun() {
-        a8.snapshot = tree(people(10).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(people(10).toArray(SourceMember[]::new));
         sync.execute(SyncTrigger.SCHEDULED, false);
 
-        a8.snapshot = tree(people(7).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(people(7).toArray(SourceMember[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
         SyncResult heldAgain = sync.execute(SyncTrigger.SCHEDULED, false);
 
@@ -190,11 +189,11 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-358 an administrator releases the held run: A8 is read afresh, the guard is bypassed, the actor is audited")
+    @DisplayName("RULE-358 an administrator releases the held run: the source is read afresh, the guard is bypassed, the actor is audited")
     void releaseAppliesTheHeldChange() {
-        a8.snapshot = tree(people(10).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(people(10).toArray(SourceMember[]::new));
         sync.execute(SyncTrigger.SCHEDULED, false);
-        a8.snapshot = tree(people(7).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(people(7).toArray(SourceMember[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
         ReleaseResult released = release.execute(held.syncRunId().value(), 9001L);
@@ -213,13 +212,13 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("a held run that A8 itself repairs is closed by the next normal run, no administrator needed")
+    @DisplayName("a held run that the source itself repairs is closed by the next normal run, no administrator needed")
     void recoveredSourceClosesTheHold() {
-        a8.snapshot = tree(people(10).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(people(10).toArray(SourceMember[]::new));
         sync.execute(SyncTrigger.SCHEDULED, false);
-        a8.snapshot = tree(people(7).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(people(7).toArray(SourceMember[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
-        a8.snapshot = tree(people(10).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(people(10).toArray(SourceMember[]::new));
 
         SyncResult recovered = sync.execute(SyncTrigger.SCHEDULED, false);
 
@@ -227,13 +226,14 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(jdbc.sql("select status from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value()).query(String.class).single())
                 .isEqualTo("RELEASED");
         assertThat(registry.get("organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
+        // identity reacts to earlier events asynchronously; what must not appear is a workforce audit entry
         verify(audit, never()).record(argThat((AuditEntry e) -> e.action().startsWith("organization.workforce")));
     }
 
     @Test
     @DisplayName("RULE-365 an isolated row is reported in the run, the rest of the batch is written")
     void isolatedRowDoesNotStopTheBatch() {
-        a8.snapshot = tree(member(1, 2, 100L, null), member(2, 99, 100L, null));
+        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 99, 100L, null));
 
         SyncResult result = sync.execute(SyncTrigger.SCHEDULED, false);
 
@@ -247,7 +247,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("RULE-374 the number of employed people without a WeCom user id is recorded and exposed as a gauge")
     void dataQualityCountIsOutput() {
-        a8.snapshot = tree(member(1, 2, 100L, null, "13900000001", null), member(2, 2, 100L, null));
+        orgSource.snapshot = tree(member(1, 2, 100L, null, "13900000001", null), member(2, 2, 100L, null));
 
         sync.execute(SyncTrigger.SCHEDULED, false);
 
@@ -258,7 +258,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("two runs at the same time never double-write: the writer lock serialises them")
     void concurrentRunsDoNotDuplicate() throws Exception {
-        a8.snapshot = tree(people(20).toArray(SourceMember[]::new));
+        orgSource.snapshot = tree(people(20).toArray(SourceMember[]::new));
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             Callable<SyncResult> run = () -> sync.execute(SyncTrigger.SCHEDULED, false);
@@ -279,11 +279,11 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("the unique WeCom key never trips the write: a user id moving from a leaver to a new hire in one run")
     void wecomUserIdCanMoveBetweenPeopleInOneRun() {
-        a8.snapshot = tree(member(1, 2, 100L, null, "13900000001", "wx-shared"), member(2, 2, 100L, null), member(3, 2, 100L, null),
+        orgSource.snapshot = tree(member(1, 2, 100L, null, "13900000001", "wx-shared"), member(2, 2, 100L, null), member(3, 2, 100L, null),
                 member(4, 2, 100L, null), member(5, 2, 100L, null));
         sync.execute(SyncTrigger.SCHEDULED, false);
 
-        a8.snapshot = tree(member(1, 2, 100L, null, null, "wx-shared"), member(2, 2, 100L, null), member(3, 2, 100L, null),
+        orgSource.snapshot = tree(member(1, 2, 100L, null, null, "wx-shared"), member(2, 2, 100L, null), member(3, 2, 100L, null),
                 member(4, 2, 100L, null), member(5, 2, 100L, null), member(6, 2, 100L, null, "13900000006", "wx-shared"));
         SyncResult result = sync.execute(SyncTrigger.SCHEDULED, false);
 
@@ -293,22 +293,22 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("short names: refreshed daily from the old system, only changed units are touched, the A8 sync never overwrites them")
+    @DisplayName("short names: refreshed daily from the old system, only changed units are touched, the source sync never overwrites them")
     void shortNamesAreRefreshedAndKept() {
-        a8.snapshot = tree();
+        orgSource.snapshot = tree();
         sync.execute(SyncTrigger.SCHEDULED, false);
 
         oldSystem.names = Map.of(unitId(1), "HQ", unitId(2), "Delivery", unitId(777), "Unknown unit");
         assertThat(refreshShortNames.execute()).isEqualTo(2);
         assertThat(refreshShortNames.execute()).isZero();
 
-        a8.snapshot = source(List.of(unit(1, ROOT), new com.forcitis.one.organization.workforce.domain.SourceOrgUnit(unitId(2), "C2", "Renamed in A8",
-                ROOT + "0001", 2, com.forcitis.one.organization.workforce.domain.OrgUnitStatus.ACTIVE, List.of(), null, null, false),
-                unit(3, ROOT + "00010001")), List.of(), List.of(post(100), post(101)), List.of());
+        orgSource.snapshot = source(List.of(unit(1, null), new com.forcitis.one.organization.workforce.domain.SourceOrgUnit(unitId(2), "C2", "Renamed in the source",
+                unitId(1), 2, com.forcitis.one.organization.workforce.domain.OrgUnitStatus.ACTIVE, List.of(), null, null, false, null),
+                unit(3, 2L)), List.of(), List.of(post(100), post(101)), List.of());
         sync.execute(SyncTrigger.SCHEDULED, false);
 
         assertThat(jdbc.sql("select name || '/' || short_name from organization_workforce.org_units where id = 2").query(String.class).single())
-                .isEqualTo("Renamed in A8/Delivery");
+                .isEqualTo("Renamed in the source/Delivery");
 
         oldSystem.unavailable = true;
         assertThat(refreshShortNames.execute()).isZero();

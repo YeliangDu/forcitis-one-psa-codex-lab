@@ -3,7 +3,7 @@ package com.forcitis.one.organization.workforce.web;
 import com.forcitis.one.organization.workforce.application.SyncRunView;
 import java.time.Instant;
 
-/** One sync run with its counts (null before the run read A8). */
+/** One sync run with its counts (null before the run read the source). */
 record SyncRunResponse(String syncRunId, String trigger, String status, Instant startedAt, Instant finishedAt,
                        Integer sourceOrgUnitCount, Integer sourceEmployeeCount, Integer incomingActiveOrgUnitCount,
                        Integer incomingEmployedCount, Integer previousActiveOrgUnitCount, Integer previousEmployedCount,

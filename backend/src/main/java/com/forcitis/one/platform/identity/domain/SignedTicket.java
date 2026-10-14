@@ -12,7 +12,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * One-time signed ticket from an external system (KM, A8 portal, YD portal, BI; C1a-03, replaces the passwordless endpoints).
+ * One-time signed ticket from an external system (KM, the source portal, YD portal, BI; C1a-03, replaces the passwordless endpoints).
  * Wire form: base64url(payload) "." base64url(HMAC-SHA256(key, payload)), payload = kid|issuer|subject|nonce|issuedAt|expiresAt
  * (epoch seconds). The key is picked by kid, one key per issuer; the signature covers the kid too. Lifetime is at most 60 s;
  * the nonce is consumed once by the caller (I-9). Nothing here trusts the ticket before the signature checks out.

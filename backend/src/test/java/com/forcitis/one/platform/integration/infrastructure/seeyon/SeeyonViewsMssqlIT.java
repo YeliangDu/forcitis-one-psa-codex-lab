@@ -1,0 +1,268 @@
+package com.forcitis.one.platform.integration.infrastructure.seeyon;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.platform.integration.api.SourcePersonId;
+import com.forcitis.one.platform.integration.api.SourceRecordState;
+import com.forcitis.one.platform.integration.api.SourceRegionKind;
+import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
+import com.forcitis.one.platform.integration.api.SourceUnitId;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.mssqlserver.MSSQLServerContainer;
+
+/**
+ * Real SQL Server (Testcontainers), only under the Maven profile legacy-it: ./mvnw -B verify -Plegacy-it.
+ * Runs the DBA proposal docs/modernization/phase1a/SEEYON_VIEWS.sql against stand-in base tables and proves the §9a
+ * claims: the views return the whitelisted columns (and only those) through the ownership chain, the account can
+ * read the views but not the base tables, every write / execute / DDL is refused, and the start-up check passes
+ * - and refuses an extra column.
+ * No real account, password or host appears here: passwords are generated per run.
+ */
+@Testcontainers
+class SeeyonViewsMssqlIT {
+
+    @Container
+    static MSSQLServerContainer mssql = new MSSQLServerContainer("mcr.microsoft.com/mssql/server:2022-latest").acceptLicense();
+
+    static final Path SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
+    static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "-2682590999914657055", "-3267712510147735998");
+
+    static String readerPassword = "Aa1!" + UUID.randomUUID();
+    static ReadOnlyConnection reader;
+
+    static String url(String database) {
+        return "jdbc:sqlserver://" + mssql.getHost() + ":" + mssql.getMappedPort(1433) + ";databaseName=" + database
+                + ";encrypt=true;trustServerCertificate=true;loginTimeout=30";
+    }
+
+    static Connection admin(String database) throws SQLException {
+        return DriverManager.getConnection(url(database), mssql.getUsername(), mssql.getPassword());
+    }
+
+    static void run(String database, String... statements) throws SQLException {
+        try (Connection c = admin(database); Statement s = c.createStatement()) {
+            for (String sql : statements) {
+                s.execute(sql);
+            }
+        }
+    }
+
+    @BeforeAll
+    static void createWorld() throws Exception {
+        run("master", "CREATE DATABASE seeyontest");
+        createBaseTables();
+        seedBase();
+        applyDbaScript();
+        reader = ReadOnlyConnection.open("it-seeyon", url("seeyontest"), "forcitis_reader", readerPassword);
+    }
+
+    @AfterAll
+    static void close() {
+        if (reader != null) {
+            reader.close();
+        }
+    }
+
+    // ---------------------------------------------------------------- stand-in Seeyon base tables and the DBA script
+
+    private static void createBaseTables() throws SQLException {
+        run("seeyontest",
+                "CREATE TABLE dbo.ORG_UNIT (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), TYPE nvarchar(16), IS_DELETED bit, IS_INTERNAL bit, IS_ENABLE bit)",
+                "CREATE TABLE dbo.ORG_MEMBER (ID bigint PRIMARY KEY, NAME nvarchar(64), CODE nvarchar(32), ORG_DEPARTMENT_ID bigint, ORG_POST_ID bigint, EXT_ATTR_37 nvarchar(64), EXT_ATTR_21 date, we_com_id nvarchar(64), IS_INTERNAL bit, IS_DELETED bit)",
+                "CREATE TABLE dbo.ORG_PRINCIPAL (ID bigint IDENTITY PRIMARY KEY, MEMBER_ID bigint, LOGIN_NAME nvarchar(64))",
+                "CREATE TABLE dbo.ORG_POST (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, STATUS int, IS_DELETED bit)",
+                "CREATE TABLE dbo.ORG_RELATIONSHIP (ID bigint IDENTITY PRIMARY KEY, SOURCE_ID bigint, OBJECTIVE0_ID bigint, OBJECTIVE1_ID bigint)",
+                "CREATE TABLE dbo.ADDRESSBOOK (ID bigint IDENTITY PRIMARY KEY, MEMBER_ID bigint, TYPE nvarchar(16), EXT_ATTR_32 nvarchar(32), EXT_ATTR_33 bigint)",
+                "CREATE TABLE dbo.CTP_ENUM (ID bigint PRIMARY KEY, ENUMNAME nvarchar(64))",
+                "CREATE TABLE dbo.CTP_ENUM_ITEM (ID bigint PRIMARY KEY, STATE int, REF_ENUMID bigint, SHOWVALUE nvarchar(32))",
+                "CREATE TABLE dbo.formmain_0307 (ID bigint IDENTITY PRIMARY KEY, field0217 nvarchar(32), field0234 nvarchar(128), field0284 nvarchar(8), FIELD0244 bigint)",
+                "CREATE TABLE dbo.contract_values (ID bigint PRIMARY KEY, amount decimal(18,2))",
+                "CREATE PROCEDURE dbo.sp_noop AS SELECT 1");
+    }
+
+    private static void seedBase() throws SQLException {
+        run("seeyontest",
+                "INSERT dbo.ORG_UNIT VALUES (1, 'C1', N'Root', 1, '00000001', 'Account', 0, 1, 1)",
+                "INSERT dbo.ORG_UNIT VALUES (2, 'C2', N'Delivery', 2, '000000010001', 'Department', 0, 1, 1)",
+                "INSERT dbo.ORG_UNIT VALUES (3, 'C3', N'Stopped', 3, '000000010002', 'Department', 0, 1, 0)",
+                "INSERT dbo.ORG_UNIT VALUES (4, 'C4', N'Outside the scope', 4, '00000002', 'Department', 0, 1, 1)",
+                "INSERT dbo.CTP_ENUM VALUES (500, N'总部/区域')",
+                "INSERT dbo.CTP_ENUM_ITEM VALUES (601, 1, 500, N'总部'), (602, 1, 500, N'区域')",
+                "INSERT dbo.ADDRESSBOOK (MEMBER_ID, TYPE, EXT_ATTR_32, EXT_ATTR_33) VALUES (1, 'Department', NULL, 601), (2, 'Department', '-2682590999914657055', 602)",
+                "INSERT dbo.ORG_POST VALUES (100, 'P100', N'Consultant', 1, 0, 0), (101, 'P101', N'Old post', 2, 1, 0), (102, 'P102', N'Gone', 3, 0, 1)",
+                "INSERT dbo.ORG_MEMBER VALUES (8001, N'Boss', 'E8001', 2, 100, NULL, '1980-01-01', 'wx-8001', 1, 0)",
+                "INSERT dbo.ORG_MEMBER VALUES (8002, N'Worker', 'E8002', 2, 100, '8001', '1990-05-05', 'wx-8002', 1, 0)",
+                "INSERT dbo.ORG_MEMBER VALUES (8003, N'Leaver', 'E8003', 2, 100, '8001', NULL, 'wx-8003', 1, 0)",
+                "INSERT dbo.ORG_MEMBER VALUES (8004, N'Outsider', 'E8004', 4, 100, NULL, NULL, 'wx-8004', 1, 0)",
+                "INSERT dbo.ORG_MEMBER VALUES (8005, N'External', 'E8005', 2, 100, NULL, NULL, 'wx-8005', 0, 0)",
+                "INSERT dbo.ORG_PRINCIPAL (MEMBER_ID, LOGIN_NAME) VALUES (8001, '13900008001'), (8002, '13900008002'), (8002, '13900008002'), (8004, '13900008004'), (8005, '13900008005')",
+                "INSERT dbo.formmain_0307 (field0217, field0234, field0284, FIELD0244) VALUES ('E8001', 'boss@example.test', N'男', -3267712510147735998), "
+                        + "('E8002', 'old@example.test', N'女', -8755227263218923811), ('E8002', 'worker@example.test', N'女', -3267712510147735998)",
+                "INSERT dbo.ORG_RELATIONSHIP (SOURCE_ID, OBJECTIVE0_ID, OBJECTIVE1_ID) VALUES (8001, 2, -1726439953579618944), (8002, 2, -8187907605834545337), (8003, 2, 424242)",
+                "INSERT dbo.contract_values VALUES (1, 1000000.00)");
+    }
+
+    private static void applyDbaScript() throws Exception {
+        String script = Files.readString(SCRIPT);
+        Matcher blocks = Pattern.compile("(?m)^-- ==== BLOCK: (\\S+) ====$").matcher(script);
+        List<Integer> starts = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        while (blocks.find()) {
+            starts.add(blocks.end());
+            names.add(blocks.group(1));
+        }
+        run("master", "CREATE LOGIN forcitis_reader WITH PASSWORD = N'" + readerPassword + "', CHECK_POLICY = OFF");
+        for (String wanted : List.of("schema", "views", "account")) {
+            int i = names.indexOf(wanted);
+            assertThat(i).as("block " + wanted).isGreaterThanOrEqualTo(0);
+            String body = script.substring(starts.get(i), i + 1 < starts.size() ? script.indexOf("-- ==== BLOCK:", starts.get(i)) : script.length());
+            body = body.replace("{{READER_LOGIN}}", "forcitis_reader").replace("{{READER_USER}}", "forcitis_reader");
+            for (String batch : body.split("(?m)^GO\\s*$")) {
+                String statements = batch.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("(?m)--.*$", "").trim();
+                if (!statements.isEmpty()) {
+                    run("seeyontest", batch);
+                }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- the claims
+
+    @Test
+    @DisplayName("§9a the views carry exactly the whitelisted columns, and the start-up check passes against the real catalog")
+    void startupCheckPassesAgainstSqlServer() {
+        SeeyonStartupCheck check = new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader.jdbc()), MAPPING);
+
+        assertThat(check.problems()).isEmpty();
+        assertThat(new JdbcSeeyonSchemaInspector(reader.jdbc()).viewColumns()).containsOnlyKeys("V_ORG_UNIT", "V_ORG_RELATIONSHIP", "V_ORG_POST", "V_ORG_MEMBER");
+        assertThat(new JdbcSeeyonSchemaInspector(reader.jdbc()).excessivePermissions()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("§9a the views are read through the ownership chain and map to the domain with the shared mapper")
+    void viewsAreReadAndMapped() {
+        SourceOrgSnapshot snapshot = new SeeyonOrgSource(reader.jdbc(), MAPPING).readSnapshot();
+
+        assertThat(snapshot.units()).extracting(u -> u.unitId().value()).containsExactlyInAnyOrder(1L, 2L, 3L);
+        assertThat(snapshot.units().stream().filter(u -> u.unitId().value() == 3).findFirst().orElseThrow().state()).isEqualTo(SourceRecordState.DISABLED);
+        var delivery = snapshot.units().stream().filter(u -> u.unitId().value() == 2).findFirst().orElseThrow();
+        assertThat(delivery.regionKind()).isEqualTo(SourceRegionKind.REGIONAL);
+        assertThat(delivery.deliveryUnit()).isTrue();
+        assertThat(snapshot.units().stream().filter(u -> u.unitId().value() == 1).findFirst().orElseThrow().regionKind()).isEqualTo(SourceRegionKind.HEADQUARTERS);
+
+        assertThat(snapshot.relationships()).extracting(r -> r.kind()).containsExactlyInAnyOrder(SourceRelationshipKind.UNIT_HEAD, SourceRelationshipKind.REGIONAL_RECEIVABLES_MANAGER);
+        assertThat(snapshot.positions()).hasSize(3);
+
+        assertThat(snapshot.staff()).extracting(m -> m.personId().value()).as("one row per person, in scope only")
+                .containsExactlyInAnyOrder(8001L, 8002L, 8003L);
+        SourcePerson worker = snapshot.staff().stream().filter(m -> m.personId().equals(new SourcePersonId(8002))).findFirst().orElseThrow();
+        assertThat(worker.supervisorId()).isEqualTo(new SourcePersonId(8001));
+        assertThat(worker.loginName()).isEqualTo("13900008002");
+        assertThat(worker.email()).isEqualTo("worker@example.test");
+        assertThat(worker.feeEarner()).isTrue();
+        assertThat(worker.unitId()).isEqualTo(new SourceUnitId(2));
+        assertThat(snapshot.staff().stream().filter(m -> m.personId().value() == 8003).findFirst().orElseThrow().loginName()).isNull();
+    }
+
+    @Test
+    @DisplayName("§9a single-person lookup over the real view returns the same person as the bulk read")
+    void singleLookup() {
+        SeeyonOrgSource source = new SeeyonOrgSource(reader.jdbc(), MAPPING);
+
+        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-8002")))
+                .containsExactly(source.readSnapshot().staff().stream().filter(m -> m.personId().value() == 8002).findFirst().orElseThrow());
+        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-8004"))).as("outside the root path").isEmpty();
+    }
+
+    @Test
+    @DisplayName("§9a ReadOnly: the account cannot read a single base table - including the birthday column and a money table")
+    void baseTablesAreDenied() {
+        JdbcClient jdbc = reader.jdbc();
+
+        for (String table : List.of("dbo.ORG_MEMBER", "dbo.ORG_UNIT", "dbo.formmain_0307", "dbo.contract_values", "dbo.ORG_PRINCIPAL")) {
+            assertThatThrownBy(() -> jdbc.sql("SELECT * FROM " + table).query().listOfRows()).as(table).hasMessageContaining("permission was denied");
+        }
+        assertThatThrownBy(() -> jdbc.sql("SELECT EXT_ATTR_21 FROM dbo.ORG_MEMBER").query().listOfRows()).hasMessageContaining("permission was denied");
+        assertThat(jdbc.sql("SELECT COUNT(*) FROM forcitis_one.v_org_member").query(Integer.class).single()).isPositive();
+    }
+
+    @Test
+    @DisplayName("§9a ReadOnly: every write, execute and DDL attempt is refused - on base tables and on the views")
+    void writesAreDenied() {
+        JdbcClient jdbc = reader.jdbc();
+        List<String> attempts = List.of(
+                "INSERT dbo.ORG_MEMBER (ID, NAME, CODE) VALUES (9999, 'x', 'x')",
+                "UPDATE dbo.ORG_MEMBER SET NAME = 'x'",
+                "DELETE dbo.ORG_MEMBER",
+                "UPDATE forcitis_one.v_org_post SET NAME = 'x'",
+                "DELETE forcitis_one.v_org_post",
+                "EXEC dbo.sp_noop",
+                "CREATE TABLE forcitis_one.sneaky (id int)",
+                "CREATE VIEW forcitis_one.sneaky_view AS SELECT 1 AS one",
+                "DROP VIEW forcitis_one.v_org_post",
+                "TRUNCATE TABLE dbo.ORG_UNIT");
+
+        for (String sql : attempts) {
+            assertThatThrownBy(() -> jdbc.sql(sql).update()).as(sql).satisfies(e -> {
+                assertThat(e.getMessage()).containsAnyOf("denied", "permission");
+                assertThat(e.getMessage()).doesNotContain("Login failed");
+            });
+        }
+    }
+
+    @Test
+    @DisplayName("§9a an extra column in a view (say the birthday) makes the start-up check refuse; a dropped one too")
+    void extraColumnIsRefused() throws SQLException {
+        run("seeyontest", "ALTER VIEW forcitis_one.v_org_post AS SELECT P.ID, P.CODE, P.NAME, P.SORT_ID, P.STATUS, P.IS_DELETED, CAST(NULL AS date) AS BIRTHDAY FROM dbo.ORG_POST P");
+        try {
+            assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader.jdbc()), MAPPING).problems())
+                    .anyMatch(p -> p.contains("V_ORG_POST") && p.contains("outside the whitelist") && p.contains("BIRTHDAY"));
+        } finally {
+            run("seeyontest", "ALTER VIEW forcitis_one.v_org_post AS SELECT P.ID, P.CODE, P.NAME, P.SORT_ID, P.STATUS, P.IS_DELETED FROM dbo.ORG_POST P");
+        }
+        assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader.jdbc()), MAPPING).problems()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("RULE-356 a Seeyon instance whose ids differ from the configuration is refused at start-up, not silently turned into 'no head'")
+    void wrongIdsAreRefused() {
+        SeeyonMapping wrong = new SeeyonMapping(1, 2, "nope", "nope");
+
+        assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader.jdbc()), wrong).problems()).hasSize(4);
+    }
+
+    @Test
+    @DisplayName("§9a an account that was given too much (db_datareader) is refused by the permission probe")
+    void tooManyPermissionsAreDetected() throws SQLException {
+        String password = "Aa1!" + UUID.randomUUID();
+        run("master", "CREATE LOGIN greedy WITH PASSWORD = N'" + password + "', CHECK_POLICY = OFF");
+        run("seeyontest", "CREATE USER greedy FOR LOGIN greedy", "ALTER ROLE db_datareader ADD MEMBER greedy", "GRANT INSERT ON SCHEMA::dbo TO greedy");
+        try (ReadOnlyConnection greedy = ReadOnlyConnection.open("it-greedy", url("seeyontest"), "greedy", password)) {
+            assertThat(ReadOnlyGuard.excessiveDatabasePermissions(greedy.jdbc())).contains("SELECT");
+            assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(greedy.jdbc()), MAPPING).problems())
+                    .anyMatch(p -> p.contains("must not have"));
+        }
+    }
+}

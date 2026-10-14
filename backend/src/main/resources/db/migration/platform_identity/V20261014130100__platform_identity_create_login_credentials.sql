@@ -22,9 +22,9 @@ CREATE TABLE platform_identity.sso_ticket_uses (
 );
 CREATE INDEX ix_sso_ticket_uses_expiry ON platform_identity.sso_ticket_uses (expires_at);
 COMMENT ON TABLE platform_identity.sso_ticket_uses IS '已使用的一次性凭证：主键即唯一约束，并发重放只有一次插入成功（I-9，RULE-320）';
-COMMENT ON COLUMN platform_identity.sso_ticket_uses.ticket_source IS '凭证来源：SEEYON（致远票据），或签发方编码（签名票据的 nonce）';
+COMMENT ON COLUMN platform_identity.sso_ticket_uses.ticket_source IS '凭证来源：SSO（门户票据），或签发方编码（签名票据的 nonce）';
 COMMENT ON COLUMN platform_identity.sso_ticket_uses.ticket_hash IS '票据或 nonce 的 SHA-256 十六进制，不存明文';
-COMMENT ON COLUMN platform_identity.sso_ticket_uses.expires_at IS '记录保留到该时间后清理（致远 7 天，签名票据略长于票据有效期）';
+COMMENT ON COLUMN platform_identity.sso_ticket_uses.expires_at IS '记录保留到该时间后清理（门户票据 7 天，签名票据略长于票据有效期）';
 COMMENT ON COLUMN platform_identity.sso_ticket_uses.created_at IS '创建时间';
 COMMENT ON COLUMN platform_identity.sso_ticket_uses.updated_at IS '更新时间';
 

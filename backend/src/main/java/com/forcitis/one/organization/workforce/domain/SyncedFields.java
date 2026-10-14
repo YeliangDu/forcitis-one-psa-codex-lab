@@ -20,7 +20,6 @@ public final class SyncedFields {
             new Field<>("code", OrgUnit::code),
             new Field<>("name", OrgUnit::name),
             new Field<>("parentOrgUnitId", OrgUnit::parentOrgUnitId),
-            new Field<>("path", OrgUnit::path),
             new Field<>("sortOrder", OrgUnit::sortOrder),
             new Field<>("status", OrgUnit::status),
             new Field<>("headEmployeeId", OrgUnit::headEmployeeId),

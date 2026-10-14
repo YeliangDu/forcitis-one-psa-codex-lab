@@ -52,8 +52,8 @@ class AssigneeResolverTest {
     @Test
     @DisplayName("RULE-253 a role gives its enabled, employed holders; separated holders are excluded")
     void roleHoldersWithoutSeparatedPeople() {
-        org.role("TEST-ROLE", 2, 3, 120);
-        Resolution r = resolve(new AssignmentRule.Role(new RoleCode("TEST-ROLE")), 1, ProcessVariables.empty());
+        org.role("reviewer", 2, 3, 120);
+        Resolution r = resolve(new AssignmentRule.Role(new RoleCode("reviewer")), 1, ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(2, 3));
         assertThat(r.kind()).isEqualTo(ResolutionKind.RESOLVED);
     }
@@ -65,23 +65,23 @@ class AssigneeResolverTest {
         // initiator 1 sits in unit 11, which has no head: the head of unit 10 takes it
         assertThat(resolve(new AssignmentRule.DepartmentHead(""), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(110));
         // the unit comes from a process variable (RULE-257); unit 12's only head is separated -> unit 10's head
-        assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryDeptId"), 1, variable("deliveryDeptId", "12")).candidates())
+        assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", "12")).candidates())
                 .isEqualTo(ids(110));
         // an inactive (revoked) unit is skipped
-        assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryDeptId"), 1, variable("deliveryDeptId", "13")).candidates())
+        assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", "13")).candidates())
                 .isEqualTo(ids(110));
     }
 
     @Test
     @DisplayName("RULE-253 an unparsable or missing unit never fails with a null: the administrator takes it and the kind says so")
     void unparsableUnitGoesToAdministrator() {
-        Resolution r = resolve(new AssignmentRule.DepartmentHead("deliveryDeptId"), 1, variable("deliveryDeptId", "not-a-number"));
+        Resolution r = resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", "not-a-number"));
         assertThat(r.candidates()).isEqualTo(ids(ADMIN));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
     }
 
     @Test
-    @DisplayName("RULE-250 initiator leader level 1 and level 2 follow the reporting line")
+    @DisplayName("RULE-250 initiator supervisor level 1 and level 2 follow the reporting line")
     void initiatorSupervisors() {
         assertThat(resolve(new AssignmentRule.InitiatorSupervisor(1), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(2));
         assertThat(resolve(new AssignmentRule.InitiatorSupervisor(2), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(3));
@@ -114,71 +114,26 @@ class AssigneeResolverTest {
     }
 
     @Test
-    @DisplayName("RULE-253 named users: separated and unknown people are dropped, the set never contains a null")
-    void namedUsers() {
-        Resolution r = resolve(new AssignmentRule.NamedUsers(ids(2, 120, 777)), 1, ProcessVariables.empty());
-        assertThat(r.candidates()).isEqualTo(ids(2));
-    }
-
-    @Test
-    @DisplayName("RULE-255 regional receivables manager of the unit named by the variable; none -> administrator")
-    void regionalReceivablesManager() {
-        org.unit(14, 10L, null, 131L, true);
-        assertThat(resolve(new AssignmentRule.RegionalReceivablesOwner("deliveryDeptId"), 1, variable("deliveryDeptId", "14")).candidates())
-                .isEqualTo(ids(131));
-        Resolution none = resolve(new AssignmentRule.RegionalReceivablesOwner("deliveryDeptId"), 1, variable("deliveryDeptId", "11"));
-        assertThat(none.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
-    }
-
-    @Test
-    @DisplayName("RULE-256 department director = holders of BU-002 who sit directly in the unit, not in a parent")
-    void departmentDirector() {
-        org.role("BU-002", 2, 3, 110);
-        Resolution r = resolve(new AssignmentRule.DepartmentDirector("deliveryDeptId"), 1, variable("deliveryDeptId", "10"));
-        assertThat(r.candidates()).isEqualTo(ids(2, 110));
-        assertThat(resolve(new AssignmentRule.DepartmentDirector("deliveryDeptId"), 1, variable("deliveryDeptId", "1")).candidates())
-                .isEqualTo(ids(3));
-    }
-
-    @Test
     @DisplayName("RULE-258/260 form field users: every distinct value is a candidate; blanks and garbage are ignored")
     void formFieldUsers() {
         org.person(-4000000000000000001L, 10, null);
-        Resolution r = resolve(new AssignmentRule.FormFieldUsers("manager_id"), 1,
-                fields("manager_id", "2", "3", "2", " ", "x", "-4000000000000000001"));
+        Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1,
+                fields("projectManagerId", "2", "3", "2", " ", "x", "-4000000000000000001"));
         assertThat(r.candidates()).isEqualTo(ids(2, 3, -4000000000000000001L));
     }
 
     @Test
     @DisplayName("RULE-254 a missing form field goes to the process administrator, never to a hard-coded person")
     void missingFormFieldGoesToAdministrator() {
-        Resolution r = resolve(new AssignmentRule.FormFieldUsers("manager_id"), 1, ProcessVariables.empty());
+        Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1, ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(ADMIN));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
     }
 
     @Test
-    @DisplayName("RULE-259/260 the direct leaders of the people in a form field, resolved per value and unioned")
-    void formFieldUserSupervisors() {
-        org.person(20, 10, 110L).person(21, 10, 101L);
-        Resolution r = resolve(new AssignmentRule.FormFieldUserSupervisors("manager_id"), 1, fields("manager_id", "20", "21", "999"));
-        assertThat(r.candidates()).isEqualTo(ids(110, 101));
-    }
-
-    @Test
-    @DisplayName("process variable users come from engine variables, not from business fields")
-    void processVariableUsers() {
-        assertThat(resolve(new AssignmentRule.ProcessVariableUsers("reviewerId"), 1, variable("reviewerId", "2")).candidates())
-                .isEqualTo(ids(2));
-        // a business field of the same name must not be read as an engine variable
-        assertThat(resolve(new AssignmentRule.ProcessVariableUsers("reviewerId"), 1, fields("reviewerId", "2")).kind())
-                .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
-    }
-
-    @Test
     @DisplayName("RULE-307 the initiator is removed when somebody else qualifies (the leader is NOT added)")
     void selfApprovalRemovedWhenOthersExist() {
-        Resolution r = resolve(new AssignmentRule.FormFieldUsers("manager_id"), 1, fields("manager_id", "1", "3"));
+        Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1, fields("projectManagerId", "1", "3"));
         assertThat(r.candidates()).isEqualTo(ids(3));
         assertThat(r.kind()).isEqualTo(ResolutionKind.RESOLVED);
     }
@@ -186,34 +141,28 @@ class AssigneeResolverTest {
     @Test
     @DisplayName("RULE-307 only when the initiator is the sole candidate does the task escalate to the direct leader")
     void selfApprovalEscalatesToSupervisorOnlyWhenAlone() {
-        Resolution r = resolve(new AssignmentRule.FormFieldUsers("manager_id"), 1, fields("manager_id", "1"));
+        Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1, fields("projectManagerId", "1"));
         assertThat(r.candidates()).isEqualTo(ids(2));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ESCALATED_SELF_APPROVAL);
         // no leader either -> administrator, never the initiator
-        Resolution noSupervisor = resolve(new AssignmentRule.FormFieldUsers("manager_id"), 3, fields("manager_id", "3"));
+        Resolution noSupervisor = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 3, fields("projectManagerId", "3"));
         assertThat(noSupervisor.candidates()).isEqualTo(ids(ADMIN));
     }
 
     @Test
     @DisplayName("RULE-307 an employee-activity node may be approved by its initiator")
     void selfApprovalAllowedOnEmployeeActivities() {
-        Resolution r = resolver.resolve(new AssignmentRule.FormFieldUsers("manager_id"), true, new UserId(1), fields("manager_id", "1"));
+        Resolution r = resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), true, new UserId(1), fields("projectManagerId", "1"));
         assertThat(r.candidates()).isEqualTo(ids(1));
-    }
-
-    @Test
-    @DisplayName("the initiator rule gives the initiator and is exempt from the self-approval guard")
-    void initiatorRule() {
-        assertThat(resolve(new AssignmentRule.Initiator(), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(1));
     }
 
     @Test
     @DisplayName("RULE-249 the function is deterministic: the same input always gives the same candidate set")
     void deterministic() {
-        org.role("TEST-ROLE", 2, 3, 110, 101);
-        Resolution first = resolve(new AssignmentRule.Role(new RoleCode("TEST-ROLE")), 1, ProcessVariables.empty());
+        org.role("reviewer", 2, 3, 110, 101);
+        Resolution first = resolve(new AssignmentRule.Role(new RoleCode("reviewer")), 1, ProcessVariables.empty());
         for (int i = 0; i < 50; i++) {
-            assertThat(resolve(new AssignmentRule.Role(new RoleCode("TEST-ROLE")), 1, ProcessVariables.empty())).isEqualTo(first);
+            assertThat(resolve(new AssignmentRule.Role(new RoleCode("reviewer")), 1, ProcessVariables.empty())).isEqualTo(first);
         }
         assertThat(first.candidates()).hasSize(4);
     }
@@ -223,8 +172,45 @@ class AssigneeResolverTest {
     void ruleCodecIsStrict() {
         assertThatThrownBy(() -> AssignmentRuleCodec.parse("RANDOM_PERSON", n -> null)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> AssignmentRuleCodec.parse("ROLE", n -> null)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> AssignmentRuleCodec.parse("FORM_FIELD_USERS", n -> null)).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("field");
+        assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR_SUPERVISOR", n -> null)).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("level");
+        assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR_SUPERVISOR", n -> n.equals("level") ? "x" : null))
+                .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> AssignmentRuleCodec.parse(null, n -> null)).isInstanceOf(IllegalStateException.class);
         assertThat(AssignmentRuleCodec.parse("INITIATOR_SUPERVISOR", n -> n.equals("level") ? "2" : null))
                 .isEqualTo(new AssignmentRule.InitiatorSupervisor(2));
+        assertThat(AssignmentRuleCodec.parse("FORM_FIELD_USERS", n -> n.equals("field") ? "projectManagerId" : null))
+                .isEqualTo(new AssignmentRule.FormFieldUsers("projectManagerId"));
+    }
+
+    @Test
+    @DisplayName("H1 the department of a DEPARTMENT_HEAD node is optional: not written = the initiator's own unit; written = that variable")
+    void departmentIsOptionalForTheDepartmentHead() {
+        assertThat(AssignmentRuleCodec.parse("DEPARTMENT_HEAD", n -> null)).isEqualTo(new AssignmentRule.DepartmentHead(null));
+        assertThat(AssignmentRuleCodec.parse("DEPARTMENT_HEAD", n -> n.equals("department") ? "deliveryUnitId" : null))
+                .isEqualTo(new AssignmentRule.DepartmentHead("deliveryUnitId"));
+        // not written: nothing about a delivery unit or a role is assumed, the initiator's unit decides
+        assertThat(resolve(new AssignmentRule.DepartmentHead(null), 1, variable("deliveryUnitId", "12")).candidates()).isEqualTo(ids(110));
+    }
+
+    @Test
+    @DisplayName("1a catalogue: types for later phases are refused with a clear message, types that are not offered are refused too")
+    void deferredAndNotBuiltTypesAreRefused() {
+        for (String type : AssignmentRuleCodec.DEFERRED_TYPES) {
+            assertThatThrownBy(() -> AssignmentRuleCodec.parse(type, n -> "x")).as(type).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(type).hasMessageContaining("deferred");
+        }
+        for (String type : AssignmentRuleCodec.NOT_BUILT_TYPES) {
+            assertThatThrownBy(() -> AssignmentRuleCodec.parse(type, n -> "1")).as(type).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(type).hasMessageContaining("not offered");
+        }
+        assertThat(AssignmentRuleCodec.DEFERRED_TYPES).containsExactlyInAnyOrder("REGIONAL_RECEIVABLES_MANAGER", "DEPARTMENT_DIRECTOR",
+                "FORM_FIELD_USER_SUPERVISORS");
+        assertThat(AssignmentRuleCodec.NOT_BUILT_TYPES).containsExactlyInAnyOrder("NAMED_USERS", "PROCESS_VARIABLE_USERS");
+        // the initiator rework node went away with the new return mechanics (a return ends the round)
+        assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR", n -> null)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR_LEADER", n -> "1")).isInstanceOf(IllegalStateException.class);
     }
 }

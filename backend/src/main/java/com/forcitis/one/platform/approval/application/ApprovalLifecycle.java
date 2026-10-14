@@ -53,11 +53,6 @@ class ApprovalLifecycle {
                 task.nodeKey(), actor, outcome, false, reason));
     }
 
-    /** The initiator resubmitted: the approval runs again. */
-    void resumed(ApprovalRequestRecord request) {
-        requests.updateStatus(request.instanceId(), ApprovalStatus.RUNNING, null);
-    }
-
     /** After a task completed (or the instance started): if the engine has no live instance left, the approval is APPROVED. */
     ApprovalStatus finishIfDone(ApprovalRequestRecord request, ApprovalStatus current) {
         if (engine.isRunning(request.instanceId())) {
@@ -67,11 +62,11 @@ class ApprovalLifecycle {
         return ApprovalStatus.APPROVED;
     }
 
-    /** Parks the live instance at its initiator (RULE-271/275/293: the approval stays alive, nothing is deleted). */
-    ApprovalStatus returnToInitiator(ApprovalRequestRecord request, TaskView task, UserId actor, String reason) {
-        engine.returnToInitiator(task.instanceId());
-        requests.updateStatus(task.instanceId(), ApprovalStatus.RETURNED, reason);
+    /** A return ends the round (RULE-271/275): the instance ends as "returned", the initiator starts a new round; history stays. */
+    ApprovalStatus returned(ApprovalRequestRecord request, TaskView task, UserId actor, String reason) {
+        engine.endAsReturned(task.instanceId());
         publishTaskResult(task, actor, TaskOutcome.RETURNED, reason);
+        complete(request, ApprovalOutcome.RETURNED, ApprovalStatus.RETURNED, reason);
         return ApprovalStatus.RETURNED;
     }
 

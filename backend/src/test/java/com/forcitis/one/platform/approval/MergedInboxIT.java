@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -50,7 +51,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
 
     ApprovalInstanceId newTaskFor(long initiator, String key, long... managers) {
         return tx.execute(s -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), Set.of(),
-                List.of(new ApprovalField("manager_id", java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
     }
 
     @Test

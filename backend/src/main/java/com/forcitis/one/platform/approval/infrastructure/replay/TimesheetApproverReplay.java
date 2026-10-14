@@ -36,18 +36,23 @@ final class TimesheetApproverReplay {
         List<ReplayReport.Difference> differences = new ArrayList<>();
         int nodes = 0;
         for (ReplayExport.InstanceRecord instance : export.instances()) {
-            ProcessVariables variables = new ProcessVariables(instance.formFields(), instance.variables());
+            ProcessVariables variables = new ProcessVariables(LegacyVocabulary.fields(instance.formFields()),
+                    LegacyVocabulary.fields(instance.variables()));
             for (ReplayExport.NodeRecord node : instance.nodes()) {
+                if (LegacyVocabulary.isReworkNode(node)) {
+                    continue;
+                }
                 nodes++;
-                AssignmentRule rule = AssignmentRuleCodec.parse(node.rule().get("type"), node.rule()::get);
+                Map<String, String> ruleElement = LegacyVocabulary.rule(node.rule());
+                AssignmentRule rule = AssignmentRuleCodec.parse(ruleElement.get("type"), ruleElement::get);
                 Resolution resolution = resolver.resolve(rule, node.selfApprovalAllowed(), new UserId(instance.initiatorId()), variables);
                 resolutions.merge(resolution.kind(), 1, Integer::sum);
                 Set<Long> candidates = new HashSet<>();
                 resolution.candidates().forEach(c -> candidates.add(c.value()));
-                ReplayVerdict verdict = verdictOf(node, instance.initiatorId(), rule, resolution, candidates, snapshot, hardCoded);
+                ReplayVerdict verdict = verdictOf(node, instance.initiatorId(), resolution, candidates, snapshot, hardCoded);
                 verdicts.merge(verdict, 1, Integer::sum);
                 if (verdict != ReplayVerdict.MATCH) {
-                    differences.add(new ReplayReport.Difference(instance.instanceId(), node.nodeKey(), node.rule().get("type"), verdict,
+                    differences.add(new ReplayReport.Difference(instance.instanceId(), node.nodeKey(), ruleElement.get("type"), verdict,
                             resolution.kind(), candidates.stream().sorted().toList(), node.actualApprovers().stream().sorted().toList()));
                 }
             }
@@ -55,7 +60,7 @@ final class TimesheetApproverReplay {
         return new ReplayReport(export.processKey(), export.instances().size(), nodes, verdicts, resolutions, differences);
     }
 
-    private static ReplayVerdict verdictOf(ReplayExport.NodeRecord node, long initiator, AssignmentRule rule, Resolution resolution,
+    private static ReplayVerdict verdictOf(ReplayExport.NodeRecord node, long initiator, Resolution resolution,
             Set<Long> candidates, ExportedSnapshot snapshot, Set<Long> hardCoded) {
         List<Long> unmatched = node.actualApprovers().stream().filter(a -> !candidates.contains(a)).toList();
         if (unmatched.isEmpty()) {
@@ -68,7 +73,7 @@ final class TimesheetApproverReplay {
         if (!snapshot.employed(first)) {
             return ReplayVerdict.REVIEWED_DISABLED_APPROVER;
         }
-        if (first == initiator && !(rule instanceof AssignmentRule.Initiator) && !node.selfApprovalAllowed()) {
+        if (first == initiator && !node.selfApprovalAllowed()) {
             return ReplayVerdict.REVIEWED_SELF_APPROVAL;
         }
         return switch (resolution.kind()) {

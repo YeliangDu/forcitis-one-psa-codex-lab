@@ -39,7 +39,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     private static final long WRITER_LOCK_KEY = 20261014131000L;
 
     private static final String SELECT_ORG_UNITS = """
-            select id, code, name, parent_org_unit_id, path, sort_order, status, head_employee_id,
+            select id, code, name, parent_org_unit_id, sort_order, status, head_employee_id,
                    regional_receivables_manager_id, region_category, is_delivery_unit, short_name
               from organization_workforce.org_units
             """;
@@ -108,13 +108,13 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
 
     private void upsertOrgUnit(OrgUnit u, Long run, Timestamp now) {
         jdbc.sql("""
-                insert into organization_workforce.org_units (id, code, name, parent_org_unit_id, path, sort_order, status,
+                insert into organization_workforce.org_units (id, code, name, parent_org_unit_id, sort_order, status,
                        head_employee_id, regional_receivables_manager_id, region_category, is_delivery_unit, short_name,
                        revoked_at, last_sync_run_id, created_at, updated_at)
-                values (:id, :code, :name, :parent, :path, :sortOrder, :status, :head, :manager, :category, :delivery, :shortName,
+                values (:id, :code, :name, :parent, :sortOrder, :status, :head, :manager, :category, :delivery, :shortName,
                         case when cast(:status as text) = 'REVOKED' then cast(:now as timestamptz) end, :run, :now, :now)
                 on conflict (id) do update set code = excluded.code, name = excluded.name,
-                       parent_org_unit_id = excluded.parent_org_unit_id, path = excluded.path, sort_order = excluded.sort_order,
+                       parent_org_unit_id = excluded.parent_org_unit_id, sort_order = excluded.sort_order,
                        status = excluded.status, head_employee_id = excluded.head_employee_id,
                        regional_receivables_manager_id = excluded.regional_receivables_manager_id,
                        region_category = excluded.region_category, is_delivery_unit = excluded.is_delivery_unit,
@@ -122,7 +122,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                        last_sync_run_id = excluded.last_sync_run_id, updated_at = excluded.updated_at, version = org_units.version + 1
                 """)
                 .param("id", u.orgUnitId().value()).param("code", u.code()).param("name", u.name())
-                .param("parent", u.parentOrgUnitId() == null ? null : u.parentOrgUnitId().value()).param("path", u.path())
+                .param("parent", u.parentOrgUnitId() == null ? null : u.parentOrgUnitId().value())
                 .param("sortOrder", u.sortOrder()).param("status", u.status().name())
                 .param("head", u.headEmployeeId() == null ? null : u.headEmployeeId().value())
                 .param("manager", u.regionalReceivablesManagerId() == null ? null : u.regionalReceivablesManagerId().value())
@@ -175,6 +175,12 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     public Optional<StaffMember> findStaffByWecomUserId(WecomUserId wecomUserId) {
         return jdbc.sql(SELECT_STAFF + " where e.wecom_user_id = :wecom order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1")
                 .param("wecom", wecomUserId.value()).query((rs, n) -> staff(rs)).optional();
+    }
+
+    @Override
+    public Optional<StaffMember> findStaffByLoginName(String loginName) {
+        return jdbc.sql(SELECT_STAFF + " where e.login_name = :login order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1")
+                .param("login", loginName).query((rs, n) -> staff(rs)).optional();
     }
 
     @Override
@@ -235,7 +241,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
 
     private static OrgUnit orgUnit(ResultSet rs) throws SQLException {
         return new OrgUnit(new OrgUnitId(rs.getLong("id")), rs.getString("code"), rs.getString("name"),
-                orgUnitId(rs, "parent_org_unit_id"), rs.getString("path"), integer(rs, "sort_order"),
+                orgUnitId(rs, "parent_org_unit_id"), integer(rs, "sort_order"),
                 OrgUnitStatus.valueOf(rs.getString("status")), userId(rs, "head_employee_id"),
                 userId(rs, "regional_receivables_manager_id"),
                 rs.getString("region_category") == null ? null : RegionCategory.valueOf(rs.getString("region_category")),

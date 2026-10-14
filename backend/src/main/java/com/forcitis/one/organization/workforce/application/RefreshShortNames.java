@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Daily refresh of org unit short names from the old system (read-only: id and short_name only) until the
- * maintenance page exists. A short name is not an A8 column, so the sync never touches it. Returns how many units changed.
+ * maintenance page exists. A short name is not an the source column, so the sync never touches it. Returns how many units changed.
  */
 @Service
 public class RefreshShortNames {
