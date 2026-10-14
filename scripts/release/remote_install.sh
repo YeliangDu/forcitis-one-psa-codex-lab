@@ -41,6 +41,8 @@ MAX_BUNDLE_BYTES=$((1024 * 1024 * 1024))
 DOWNLOAD_TIMEOUT_SECONDS=1200
 HEALTH_TIMEOUT_SECONDS=180
 MIGRATION_TIMEOUT_SECONDS=900
+# The application refuses to start unless the JVM default zone is UTC (kernel.UtcJvm); every java launch here passes it
+JVM_TIMEZONE=-Duser.timezone=UTC
 KEEP_RELEASES=5
 # Property files a migration may only see on the very first installation (Flowable engine tables, see RELEASE.md §4)
 FIRST_INSTALL_ONLY='^(spring\.datasource\..+|flowable\.database-schema-update)$'
@@ -228,6 +230,8 @@ check_server_files() {
   cmp -s "$dir/deploy/nginx-one.conf" /etc/nginx/conf.d/one.conf || drift+=(/etc/nginx/conf.d/one.conf)
   cmp -s "$dir/deploy/forcitis-one.logrotate" /etc/logrotate.d/forcitis-one || drift+=(/etc/logrotate.d/forcitis-one)
   [ "${#drift[@]}" -eq 0 ] || fail "server files differ from this release; apply them as in RELEASE.md §5 first: ${drift[*]}"
+  grep -Eq "^ExecStart=/usr/bin/java .*${JVM_TIMEZONE}( |$)" /etc/systemd/system/forcitis-one.service \
+    || fail "forcitis-one.service does not start the JVM with ${JVM_TIMEZONE}; the application would refuse to start"
 
   local missing=() key
   while IFS= read -r key; do
@@ -354,7 +358,7 @@ migrate() {
     systemd-run --wait --collect --unit="$unit" --uid="$MIGRATION_USER" --gid="$APP_USER" --working-directory="$release" \
       -p EnvironmentFile="$ETC/one.env" "${credentials[@]}" "${unset_env[@]}" -p PrivateTmp=yes -p NoNewPrivileges=yes \
       -p RuntimeMaxSec="$MIGRATION_TIMEOUT_SECONDS" -p StandardOutput="append:$log_file" -p StandardError="append:$log_file" \
-      /usr/bin/java -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" --spring.profiles.include=migrate "${args[@]}" \
+      /usr/bin/java "$JVM_TIMEZONE" -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" --spring.profiles.include=migrate "${args[@]}" \
       || fail "migrations of $version failed or timed out; result unknown, check one_migration.flyway_schema_history and $log_file"
     log "migrations of $version applied (migrate mode exited 0)"
     return
@@ -366,7 +370,7 @@ migrate() {
   systemd-run --unit="$unit" --uid="$MIGRATION_USER" --gid="$APP_USER" --working-directory="$release" \
     -p EnvironmentFile="$ETC/one.env" "${credentials[@]}" "${unset_env[@]}" -p PrivateTmp=yes -p NoNewPrivileges=yes \
     -p StandardOutput="append:$log_file" -p StandardError="append:$log_file" \
-    /usr/bin/java -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" "${args[@]}"
+    /usr/bin/java "$JVM_TIMEZONE" -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" "${args[@]}"
   deadline=$((SECONDS + MIGRATION_TIMEOUT_SECONDS))
   started=false
   while [ "$SECONDS" -lt "$deadline" ]; do

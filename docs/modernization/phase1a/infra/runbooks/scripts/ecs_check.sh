@@ -38,6 +38,10 @@ if [[ -e /data/forcitis-one/current/forcitis-one.jar ]]; then
 else
   manual "E-6 首次部署前不 enable（发布包未到位）"
 fi
+check "E-6 单元以 UTC 启动 JVM（-Duser.timezone=UTC）" "systemctl cat forcitis-one | grep -Eq '^ExecStart=/usr/bin/java .*-Duser\\.timezone=UTC( |\$)'"
+if systemctl is-active -q forcitis-one; then
+  check "E-6 运行中的进程带 -Duser.timezone=UTC" "tr '\\0' ' ' < /proc/\$(systemctl show -p MainPID --value forcitis-one)/cmdline | grep -q -- '-Duser.timezone=UTC '"
+fi
 check "E-6 单元以 forcitis 运行且加固"      "systemctl show forcitis-one -p User -p NoNewPrivileges -p ProtectSystem | tr '\n' ' ' | grep -q 'User=forcitis.*NoNewPrivileges=yes.*ProtectSystem=strict'"
 check "E-7 8080 只监听 127.0.0.1"           "ss -ltnH 'sport = :8080' | awk '{print \$4}' | grep -qx '127.0.0.1:8080' && ! ss -ltnH 'sport = :8080' | awk '{print \$4}' | grep -vqx '127.0.0.1:8080'"
 check "E-7 8081 只监听 127.0.0.1"           "ss -ltnH 'sport = :8081' | awk '{print \$4}' | grep -qx '127.0.0.1:8081'"

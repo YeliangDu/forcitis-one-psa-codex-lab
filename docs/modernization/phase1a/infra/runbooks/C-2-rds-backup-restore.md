@@ -56,7 +56,7 @@
    # 口令经 EnvironmentFile 传入，不出现在命令行参数
    install -o root -g root -m 0600 /etc/forcitis-one/one.env /root/drill.env   # 然后编辑上面几项
    systemd-run --unit=one-drill --uid=forcitis --gid=forcitis -p EnvironmentFile=/root/drill.env \
-     /usr/bin/java -jar /data/forcitis-one/current/forcitis-one.jar
+     /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/current/forcitis-one.jar
    ```
    另用只读角色执行关键表核对：
    ```sql

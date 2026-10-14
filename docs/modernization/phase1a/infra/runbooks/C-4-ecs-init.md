@@ -80,7 +80,7 @@ reboot                                                              # 若 E-2 �
      -p EnvironmentFile=/etc/forcitis-one/one.env -p EnvironmentFile=/etc/forcitis-one/migrate.env \
      -p Environment=WORKFORCE_SYNC_ENABLED=false -p Environment=WECOM_ENABLED=false -p Environment=APPROVAL_DEADLINE_ENABLED=false \
      -p Environment=EVENT_PUBLICATION_JOBS_ENABLED=false -p Environment=FLOWABLE_ASYNC_EXECUTOR=false \
-     /usr/bin/java -jar /data/forcitis-one/releases/<ver>/forcitis-one.jar --spring.main.web-application-type=none
+     /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/releases/<ver>/forcitis-one.jar --spring.main.web-application-type=none
    ```
    应用会在迁移与引擎建表后保持运行（非 Web 模式没有退出逻辑时），看到 `Started` 日志后 `systemctl stop one-migrate`。随后跑 `sql/c3_dev_db_verify.sql` 的 V8。
 3. `ln -sfn /data/forcitis-one/releases/<ver> /data/forcitis-one/current && systemctl start forcitis-one`；`curl -s 127.0.0.1:8081/actuator/health` 为 UP。
