@@ -17,7 +17,7 @@
 |---|---|---|---|---|
 | C1a-01 | **企业微信 OAuth2 登录**（H5 内嵌静默授权；PC 扫码；小程序——RULE-323 评审「保留」），按 `we_com_id` 精确映射，只放行「启用且在职」 | W3/W5/W13；RULE-322/323/324/326/327 | ADR-0009 §3 | P0 |
 | C1a-02 | **致远 SSO 登录**：服务端验票、票据一次性、只放行启用用户 | A2/A3；RULE-320/321 | ADR-0009 §3 | P0 |
-| C1a-03 | **外部系统签名一次性票据**（KM、A8 门户、YD 门户、BI）替代免密端点 | X1/X2/A1/A4/K1/K2；RULE-318/319/329/335；SEC-001/002/019 | ADR-0009 §3 | P0（各调用方改造需协调） |
+| C1a-03 | **外部系统签名一次性票据**替代免密端点：YD 门户、A8 门户、BI 等外部系统进入新系统是入站签名票据；KM 是老系统→KM 的出站跳转（须已登录，KM 身份取自会话；签名票据、HTTPS，密钥进配置并轮换，RULE-329） | X1/X2/A1/A4/K1/K2；RULE-318/319/329/335；SEC-001/002/019 | ADR-0009 §3 | P0（各调用方改造需协调） |
 | C1a-04 | **管理员应急账号**（强口令 + MFA + 锁定）；员工不再口令登录 | U1；RULE-316/317；SEC-011 | ADR-0009 §3 | P0 |
 | C1a-05 | **服务端会话**（Spring Session JDBC、HttpOnly + SameSite Cookie、CSRF）；空闲超时 + 绝对上限；登出；状态变更（停用、离职、角色变更）即时吊销 | U2/U3；RULE-331..334/338/339 | ADR-0009 §2 | P0 |
 | C1a-06 | ~~**身份桥接**：只读校验老系统令牌，换发新会话~~ **已删除**（检查点 2 Q-1，用户：「1a 删除桥接」；ADR-0009 §6 已修订） | — | ADR-0009 §6（修订） | — |
@@ -26,7 +26,7 @@
 | C1a-09 | **数据范围 `AccessScope`**：法人 × 部门 × 项目角色，显式传入仓储，按权限计算，空范围 = 无行（fail-closed）；数据访问注册表；部门浏览与人员详情接入；法人归属生效区间表 | RULE-349..353；SEC-009 | ADR-0009 §4；ADR-0026 第 1、2 项 | P0（1a 按 ADR-0026「1a 交付范围」；法人限定与审批参与访问 1b） |
 | C1a-10 | **组织快照（只读）**：从 A8 同步部门、人员、岗位、汇报线、部门负责人 / 区域 AR / 类别 / 交付标识；源缩水保护；与 A8 对账零差异 | A5..A8；RULE-354..367/371/372；所有权矩阵 §1–2 | ADR-0011；出口条件 | P0 |
 | C1a-11 | **组织变更事件**（模块内，事件发布登记表保证至少一次） | M6；RULE-373 | ADR-0016 / Modulith | P1 |
-| C1a-12 | **审批引擎 `platform.approval`**：Flowable 8 BPMN + 指派 DMN；单人 / 候选组认领、会签 / 或签、行级审批、加签（建议性）、转交、退回发起人 / 指定节点、撤回、撤销（不删历史）、截止点、BEFORE 钩子、幂等发起、轮次、类型化结果事件 | RULE-248..315（28 条已评审） | ADR-0007；RULE_REVIEWS | P0（引擎与契约；1a 无业务单据接入） |
+| C1a-12 | **审批引擎 `platform.approval`**：Flowable 8 BPMN（1a 不引入 DMN：指派写在 BPMN 扩展属性，由 AssigneeResolver 计算；出现真正的多维决策表时在该阶段引入）；单人 / 候选组认领、会签 / 或签、行级审批、加签（建议性）、转交、退回发起人 / 指定节点、撤回、撤销（不删历史）、截止点、BEFORE 钩子、幂等发起、轮次、类型化结果事件 | RULE-248..315（28 条已评审） | ADR-0007；RULE_REVIEWS | P0（引擎与契约；1a 无业务单据接入）；会签 / 或签、行级审批等引擎能力随第一个使用者交付（Q-3 收窄） |
 | C1a-13 | **TIMESHEET 审批人序列回放**：读取老系统导出的实例与分配规则，在新引擎上解析审批人序列并比对，差异逐条入档 | `bpm_task_assign_rule`、`prod_bpm*.tsv` | 出口条件 | P0 |
 | C1a-14 | **合并待办收件箱**：新引擎待办 + 老系统待办（只读），同一用户计数一致；点击老待办跳回老系统 | P8/P11；`bpm_task_ext` 只读；RULE-261/299 | 风险二缓解；出口条件 | P0 |
 | C1a-15 | **企业微信通知**：待办 / 完成 / 知会卡片；按 `we_com_id` 精确投递（不再 `@all`）；access_token 缓存；超时与重试；卡片按钮回调以 `FromUserName` 定人并校验为处理人 | W8..W12；M5；RULE-374..376；SEC-006 | ADR-0009；短信不迁移 | P0（通知）／P1（卡片按钮操作） |
@@ -71,7 +71,7 @@ erDiagram
   EMPLOYEE ||--o{ ASSIGNMENT : "汇报对象（reports_to）"
   ORG_UNIT }o--o| EMPLOYEE : "负责人 / 区域 AR"
   ORG_SYNC_RUN ||--o{ ORG_SYNC_DIFF : "产生"
-  APPROVAL_DEFINITION ||--o{ ASSIGNMENT_RULE : "节点指派（DMN）"
+  APPROVAL_DEFINITION ||--o{ ASSIGNMENT_RULE : "节点指派（BPMN 扩展属性，1a 不用 DMN）"
   APPROVAL_DEFINITION ||--o{ APPROVAL_REQUEST : "实例化"
   APPROVAL_REQUEST ||--o{ APPROVAL_TASK : "生成"
   APPROVAL_REQUEST ||--o{ APPROVAL_ROW : "行级单元"
@@ -107,29 +107,29 @@ components:
   securitySchemes:
     session: { type: apiKey, in: cookie, name: SESSION }
 paths:
-  /platform/identity/wecom/authorize:
-    get:
-      security: []          # @PublicEndpoint: 发起企业微信 OAuth（state 防 CSRF）
-      responses: { "302": { description: "to open.weixin.qq.com, appid=${WECOM_CORP_ID}" } }
-  /platform/identity/wecom/callback:
-    get:
-      security: []          # @PublicEndpoint: code → userid → 启用且在职 → 建会话
-      parameters: [ { name: code, in: query, required: true }, { name: state, in: query, required: true } ]
-      responses: { "302": { description: "Set-Cookie SESSION (HttpOnly, SameSite=Lax); 不在 URL 带令牌" } }
-  /platform/identity/seeyon/callback:
-    get:
-      security: []          # @PublicEndpoint: 服务端验票 ${SEEYON_OA_BASE_URL}，一次性
-      parameters: [ { name: ticket, in: query, required: true, schema: { maxLength: 256 } } ]
-      responses: { "302": { description: "Set-Cookie SESSION" }, "401": { description: invalid/replayed ticket } }
-  /platform/identity/tickets/redeem:
-    get:
-      security: []          # @PublicEndpoint: 外部系统签名一次性票据（KM/A8 门户/YD/BI）
-      parameters:
-        - { name: t, in: query, required: true, description: "HMAC(${SSO_TICKET_SIGNING_KEY}) 签名、≤60s、一次性" }
-      responses: { "302": { description: "Set-Cookie SESSION" }, "401": {} }
-  /platform/identity/session:
-    delete: { responses: { "204": { description: logout } } }
-  /platform/identity/me:
+  # 登录由前端落地页接收回跳（企业微信 code+state、致远 ticket、外部系统签名票据）后 POST 给后端，成功返回 JSON；
+  # 一次性凭证不出现在服务端访问日志的 GET 参数中。以 SessionController 为准。
+  /platform/login-states:
+    post:
+      security: []          # @PublicEndpoint: 发起企业微信登录，返回一次性 state（防 CSRF），不建会话
+      requestBody: { content: { application/json: { schema: { properties: { entry: {} } } } } }
+  /platform/sessions:wecom-login:
+    post:
+      security: []          # @PublicEndpoint: body {code, state, entry}；code → userid → 启用且在职 → 建会话
+      responses: { "200": { description: "JSON {userId, absoluteExpiresAt}；Set-Cookie SESSION (HttpOnly, SameSite=Lax)；不在 URL 带令牌" } }
+  /platform/sessions:sso-login:
+    post:
+      security: []          # @PublicEndpoint: body {ticket}；服务端向 ${SEEYON_OA_BASE_URL} 验票，一次性
+      responses: { "200": { description: "同上" }, "401": { description: invalid/replayed ticket } }
+  /platform/sessions:ticket-login:
+    post:
+      security: []          # @PublicEndpoint: 入站外部系统签名一次性票据（A8 门户/YD/BI 等；需前端落地页）；body {ticket}
+      description: "HMAC(${SSO_TICKET_SIGNING_KEY}) 签名、≤60s、nonce 一次性"
+      responses: { "200": { description: "同上" }, "401": {} }
+  /platform/sessions:emergency-login:
+    post: { security: [], description: "应急管理员：口令 + TOTP，仅内网" }
+  /platform/sessions:logout: { post: { responses: { "204": { description: logout } } } }
+  /platform/sessions:current:
     get:
       responses:
         "200":
@@ -141,18 +141,20 @@ paths:
                   userId: { type: string, description: "bigint as string" }
                   displayName: { type: string }
                   orgUnit: { type: object }
-                  permissions: { type: array, items: { type: string, example: "platform.approval:task:decide" } }
+                  permissions: { type: array, items: { type: string, example: "platform.approval:task:approve" } }
                   navigation: { type: array, items: { $ref: "#/components/schemas/NavItem" } }
   /organization/workforce/org-units: { get: { description: "组织树（只读快照）" } }
   /organization/workforce/employees/{id}: { get: {} }
   /organization/workforce/sync-runs: { get: { description: "同步记录与差异（管理员）" } }
-  /platform/approval/inbox:
+  /platform/approval-tasks:
     get:
-      description: "合并待办：source=NEW|LEGACY；LEGACY 项带 legacyUrl"
-      parameters: [ { name: status, in: query, schema: { enum: [TODO, DONE, CC] } } ]
-  /platform/approval/tasks/{taskId}/claim: { post: {} }
-  /platform/approval/tasks/{taskId}/decide:
+      description: "合并待办（新旧）；权限 platform.approval:task:read；调用人恒为会话用户，请求不带身份"
+  /platform/approval-tasks/{taskId}:
+    get: { description: "任务详情（含 canAct）；权限 platform.approval:task:read" }
+  /platform/approval-tasks/{taskId}:claim: { post: { description: "权限 platform.approval:task:approve" } }
+  /platform/approval-tasks/{taskId}:decide:
     post:
+      description: "权限 platform.approval:task:approve；待实现：rows[]（行级审批，随第一个使用者交付）、批量办理"
       requestBody:
         content:
           application/json:
@@ -162,12 +164,9 @@ paths:
               properties:
                 outcome: { enum: [APPROVE, REJECT] }
                 reason: { type: string }
-                rows: { type: array, items: { type: object, properties: { rowId: {type: string}, outcome: { enum: [APPROVE, REJECT] } } } }
-  /platform/approval/tasks/{taskId}/return: { post: {} }
-  /platform/approval/tasks/{taskId}/transfer: { post: {} }
-  /platform/approval/tasks/{taskId}/countersigns: { post: {} }
-  /platform/approval/requests/{id}/withdraw: { post: {} }
-  /platform/approval/requests/{id}/cancel: { post: {} }
+  /platform/approval-tasks/{taskId}:return:
+    post: { description: "退回发起人，结束本轮（outcome=RETURNED）；body 只带 reason；权限 platform.approval:task:approve" }
+  # 待实现（随功能交付补路径）：转交、加签、撤回、撤销；发起无 HTTP 入口（I-5，由业务模块经 api 发起）
   /platform/numbering/numbering-rules/{documentType}:
     put: { description: "权限 platform.numbering:numbering-rule:update（ADR-0010）" }
   /platform/legacy-numbers: { get: { description: "原编号检索与对照；权限 platform.numbering:legacy-number:read（实际路径 /api/v1/platform/legacy-numbers，G41）" } }
@@ -178,15 +177,16 @@ asyncapi: 3.0.0
 info: { title: FORCITIS one — Phase 1a module events (in-process, Modulith event publication registry), version: v1 }
 channels:
   platform.approval.ApprovalCompleted:
-    messages: { m: { payload: { type: object, properties: { requestId: {}, processType: {}, businessId: {}, round: {}, outcome: { enum: [APPROVED, REJECTED, CANCELLED] }, reason: {} } } } }
+    messages: { m: { payload: { type: object, properties: { requestId: {}, processType: {}, businessId: {}, round: {}, outcome: { enum: [APPROVED, REJECTED, RETURNED, CANCELLED], description: "RETURNED：退回即结束本轮，重提开新一轮" }, reason: {} } } } }
   platform.approval.TaskResulted:
-    messages: { m: { payload: { type: object, properties: { requestId: {}, taskId: {}, nodeKey: {}, assigneeId: {}, outcome: {}, advisory: { type: boolean }, rowIds: { type: array } } } } }
+    messages: { m: { payload: { type: object, properties: { requestId: {}, taskId: {}, nodeKey: {}, assigneeId: {}, outcome: {}, advisory: { type: boolean }, rowIds: { type: array, description: "待实现：用户已决定要带，代码尚无" } } } } }
   platform.approval.TaskAssigned:
     messages: { m: { payload: { type: object, properties: { taskId: {}, candidateIds: { type: array }, notifyKind: { enum: [TODO, DONE, CC] } } } } }
   organization.workforce.OrgChanged:
     messages: { m: { payload: { type: object, properties: { syncRunId: {}, items: { type: array } } } } }
-  platform.identity.AccountStatusChanged:
-    messages: { m: { payload: { type: object, properties: { userId: {}, status: {}, revokeSessions: { type: boolean } } } } }
+  platform.approval.TaskClaimed:
+    messages: { m: { payload: { type: object, properties: { taskId: {}, claimedBy: {} } } } }   # 认领时发出，通知用于更新卡片；转交、加签、知会事件随功能交付时补
+  # 账号停用不发 platform.identity.AccountStatusChanged：停用时同步吊销会话；有订阅方时再加（D-1a-57）
 ```
 
 ### 3.3 防腐层出站
@@ -209,7 +209,7 @@ channels:
 | 登录入口 | 企业微信 H5 25,112、小程序 7,828、YD 门户 15,281、免密 3,768、a8-login 1,425、seeyon-sso 1,079、口令 1,198 | 外部调用方切换到签名票据前不能关停老端点（顺序见 SEC 止血） |
 | 数据量 | `bpm_task_ext` 166,037；`bpm_process_instance_ext` 132,304；`bpm_oa_customized` 131,142；部门 367 | 老审批数据只读归档，不迁移 |
 | 外部依赖超时 | 企业微信、致远验票 5 s | 防腐层统一超时 + 熔断；登录失败率告警 |
-| 同步时效 | A8 同步 cron 在 XXL-JOB 调度库，仓库不可见 | 新同步默认 15 分钟一次，延迟告警阈值待用户定 |
+| 同步时效 | A8 同步 cron 在 XXL-JOB 调度库，仓库不可见 | 新同步每 5 分钟一次（`organization_workforce.properties`）；同步延迟告警为「距上次成功超过 2 个周期（10 分钟）或被拦下」 |
 | 部署 | 杭州独立 ECS 4 核 16G；RDS PG 18 高可用 | 单体 + 单库；ShedLock 保证作业单实例 |
 | 安全 | SEC-001..021 | 默认拒绝；会话 Cookie；CSRF；不在 URL 携带令牌；凭据走 KMS / 环境变量 |
 
