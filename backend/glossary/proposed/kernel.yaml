@@ -41,6 +41,58 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: tail_adjustment
+  zh: 尾调
+  en: TailAdjustment
+  snake: tail_adjustment
+  kind: value
+  bc: presales.quoting
+  definition: 报价整单的人工调整额：最终报价 = 行合计 + 尾调，审批单显示尾调金额及其占行合计的比例（RULE-142）；与舍入产生的舍入差是两个概念
+  standard_ref:
+  - RULE-142
+  - CROSS_CUTTING_MATRIX.md §3.1
+  confidence: medium
+  aliases:
+  - name: 尾差
+    type: dialect
+    deprecated: true
+    source: 老系统报价（RULE-142 原称）；同一词也被用来指舍入差，一词两义，新系统不用
+  forbidden:
+  - 尾差
+  status: proposed
+  note: 用户 2026-10-15 XD-07「同意 (Recommended)」（intent 2026-10-15-214100-one-coordinator-横切决定单-XD-07）
+- id: rounding_residual
+  zh: 舍入差
+  en: RoundingResidual
+  snake: rounding_residual
+  kind: value
+  bc: kernel
+  definition: 金额按统一口径舍入到分后，各份之和与总额之间的分厘差；由按权重拆分按既定规则分配，使各份之和恰等于总额
+  standard_ref:
+  - CROSS_CUTTING_MATRIX.md §3.3
+  confidence: medium
+  aliases:
+  - name: 尾差
+    type: dialect
+    deprecated: true
+    source: 老系统分摊（RULE-069「尾差标志位」等）；一词两义，新系统不用
+  forbidden: []
+  status: proposed
+  note: 用户 2026-10-15 XD-07「同意 (Recommended)」；「尾差」的禁用登记在 tail_adjustment，一处即可
+- id: prorate
+  zh: 按权重拆分
+  en: Prorate
+  snake: prorate
+  kind: command
+  bc: kernel
+  definition: 把一笔金额按一组非负权重拆成若干份，各份之和恰等于原额，舍入差按最大余数法分配，结果确定、可镜像；是 kernel 的金额原语，不是业务动作「间接成本分摊」（allocate_indirect_cost）
+  standard_ref:
+  - CROSS_CUTTING_MATRIX.md §3.3
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 用户 2026-10-15 XD-07「同意 (Recommended)」、XD-08「先按建议建 (Recommended)」
 common_words:
 - contain
 - containing

@@ -119,7 +119,13 @@
 
 ## kernel（`kernel.yaml`）
 
-无业务术语；7 个技术词在 `common_words`。
+| id | zh | en | 定义 | 是否疑似方言 |
+|---|---|---|---|---|
+| `tail_adjustment` | 尾调 | TailAdjustment | 报价整单的人工调整额（RULE-142） | 「尾差」为方言，已禁用 |
+| `rounding_residual` | 舍入差 | RoundingResidual | 舍入到分后各份之和与总额之间的分厘差 | 「尾差」为方言 |
+| `prorate` | 按权重拆分 | Prorate | kernel 金额原语：按权重拆分，各份之和恰等于原额 |  |
+
+以上三条由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。另有 `migration`、`work_calendar`、`workday` 等提议术语，以及若干技术词在 `common_words`。
 
 ## 前端界面用语（`frontend-ui.yaml`）
 
