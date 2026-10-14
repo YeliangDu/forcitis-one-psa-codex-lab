@@ -21,15 +21,13 @@
 | 会话 | 在做 | 下一步 |
 |---|---|---|
 | psa-1a-platform-bridge-reimagine | A+B 整合已交（PR #50）；opus 复审本批中；起草下一批派工；5 个事件补 businessDate（OLAP 结论）未做 | 复审结论后派下一批三路：下一批三路：A 审批 / TIMESHEET / 待办通知；B 组织 / 登录 / 编号 / 审计 / 数据权限（ADR-0026/0027）/ 平台约定 / 84 项命名改名；C 前端（共用包、工作日历录入页、H5 与 PC 差异）；完成后 opus 按 §14 复审 |
-| psa-olap-architecture | 1a 数据架构逐表打分卡（34 表，OLTP / OLAP 准备 / DAMA）与守护规格、数据架构检查清单 | 报告后开 PR；要改的转 1a，取舍问用户 |
 | psa-repo-fragments | 记录类产物不入仓：INTENT / SESSION_LOG / STATUS 移出仓库，main 合并后 Action 生成到 generated-docs 分支 | 报告后开 PR；合并前通知各会话不再提交这三个文件 |
 
-已完成、可复用：psa-terms-review（第三轮用语确认待启动）、psa-1a-process-review、psa-authz-model、one-docs-naming、psa-gl-finance-review、psa-review-*。
+已完成、可复用：psa-olap-architecture、psa-terms-review（第三轮用语确认待启动）、psa-1a-process-review、psa-authz-model、one-docs-naming、psa-gl-finance-review、psa-review-*。
 
 ## 待合并 PR
-- #47 ADR-0027（已采纳）——已合 main，等 CI。
-- #48 Phase 1a 入口条件核对与部署前清单——已合 main，等 CI。
-- #50 1a A+B 整合（状态机、事件、错误链、工作日历、审批时限、会签等；surefire 718 / failsafe 203）——等 CI。调度会话已同意：意见字段进任务详情与已办、工时提交错误统一 ProblemDetail（下一批 A）；ExportedSnapshot 状态写入例外接受；effect / opinion / binding / nullable 交第三轮用语。
+- #51 Phase 1a 数据架构打分卡（K1–K15、T1–T5、D1–D10，§14.1）——等 CI。K、D 与 T 的用户决定已转 1a 下一批 B（T1 现在建组织版本表；T2 过去日期日历锁定；T3 consumed_events 90 天、ACT_HI_* 在线 3 年归档满 10 年、separation_date；T4 Phase 2 定）。
+- #50 已合并（1a A+B 整合）。调度会话已同意：意见字段进任务详情与已办、工时提交错误统一 ProblemDetail（下一批 A）；ExportedSnapshot 例外接受；effect / opinion / binding / nullable 交第三轮用语。
 
 ## 待用户 / 财务 / 运维决定
 - 部署前清单：`docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md`（A 需用户决定 8 项、B 只能用户或运维执行 9 项、C 执行前须确认 9 项、D 出口验证 9 项）。已发给用户；A 类人选与群名需用户直接回复；建议用户先做 B-1 `/design-sync` 与 B-2 新开企业微信应用。
