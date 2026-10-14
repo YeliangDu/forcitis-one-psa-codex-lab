@@ -10,17 +10,18 @@ SELECT r.rolname, s.setconfig
   FROM pg_db_role_setting s JOIN pg_roles r ON r.oid = s.setrole
  WHERE r.rolname LIKE 'one\_prod\_%' ORDER BY r.rolname;
 
--- V3 schema 属主：期望 9 行，属主均为 one_prod_owner
+-- V3 schema 属主：期望 10 行，属主均为 one_prod_owner
 SELECT nspname, pg_get_userbyid(nspowner) AS owner
   FROM pg_namespace
  WHERE nspname IN ('one_migration', 'platform_identity', 'platform_approval', 'platform_integration', 'platform_audit',
-                   'platform_numbering', 'platform_scheduling', 'organization_workforce', 'organization_attendance')
+                   'platform_numbering', 'platform_scheduling', 'organization_workforce', 'organization_attendance',
+                   'cost_timesheet')
  ORDER BY nspname;
 
 -- V4 运行角色无建对象权限：期望 0 行
 SELECT n.nspname, r.rolname
   FROM pg_namespace n CROSS JOIN (VALUES ('one_prod_app'), ('one_prod_readonly')) r(rolname)
- WHERE n.nspname LIKE ANY (ARRAY['platform\_%', 'organization\_%', 'one\_migration'])
+ WHERE n.nspname LIKE ANY (ARRAY['platform\_%', 'organization\_%', 'cost\_%', 'one\_migration'])
    AND has_schema_privilege(r.rolname, n.oid, 'CREATE');
 
 -- V5 默认权限：platform_audit 中 one_prod_app 只有 SELECT、INSERT（arwd 中只含 a、r）

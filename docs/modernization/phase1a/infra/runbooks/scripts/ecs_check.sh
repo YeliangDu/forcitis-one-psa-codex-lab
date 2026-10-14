@@ -22,7 +22,12 @@ check "E-5 /data/forcitis-one 属主 forcitis、750" "[[ \$(stat -c '%U %a' /dat
 check "E-5 /etc/forcitis-one 属 root:forcitis、750" "[[ \$(stat -c '%U:%G %a' /etc/forcitis-one) == 'root:forcitis 750' ]]"
 check "E-5 one.env 为 0640 root:forcitis"   "[[ \$(stat -c '%U:%G %a' /etc/forcitis-one/one.env) == 'root:forcitis 640' ]]"
 check "E-5 one.env 无迁移凭据"              "! grep -qE '^SPRING_FLYWAY_(USER|PASSWORD)=' /etc/forcitis-one/one.env"
-check "E-6 forcitis-one.service 已启用"     "systemctl is-enabled forcitis-one"
+check "E-6 forcitis-one.service 已安装"     "systemctl cat forcitis-one"
+if [[ -e /data/forcitis-one/current/forcitis-one.jar ]]; then
+  check "E-6 forcitis-one.service 已启用"   "systemctl is-enabled forcitis-one"
+else
+  manual "E-6 首次部署前不 enable（发布包未到位）"
+fi
 check "E-6 单元以 forcitis 运行且加固"      "systemctl show forcitis-one -p User -p NoNewPrivileges -p ProtectSystem | tr '\n' ' ' | grep -q 'User=forcitis.*NoNewPrivileges=yes.*ProtectSystem=strict'"
 check "E-7 8080 只监听 127.0.0.1"           "ss -ltnH 'sport = :8080' | awk '{print \$4}' | grep -qx '127.0.0.1:8080' && ! ss -ltnH 'sport = :8080' | awk '{print \$4}' | grep -vqx '127.0.0.1:8080'"
 check "E-7 8081 只监听 127.0.0.1"           "ss -ltnH 'sport = :8081' | awk '{print \$4}' | grep -qx '127.0.0.1:8081'"
@@ -41,8 +46,8 @@ check "E-7 非本机地址只监听 80、443"        public_ports_only_web
 check "E-8 nginx 配置有效"                  "nginx -t"
 check "E-8 访问日志不记查询串"              access_log_without_query
 check "E-8 不转发 /actuator、/v3/api-docs"  "grep -q 'location ^~ /actuator' /etc/nginx/conf.d/one.conf && grep -q 'location ^~ /v3/api-docs' /etc/nginx/conf.d/one.conf"
-check "E-9 私钥权限 600"                    "[[ \$(stat -c '%a' /etc/nginx/tls/one.forcitis.com.key) == 600 ]]"
-check "E-9 证书 30 天内不过期"              "openssl x509 -checkend 2592000 -noout -in /etc/nginx/tls/one.forcitis.com.pem"
+check "E-9 私钥权限 600"                    "[[ \$(stat -L -c '%a' /etc/letsencrypt/live/one.forcitis.com/privkey.pem) == 600 ]]"
+check "E-9 证书 30 天内不过期"              "openssl x509 -checkend 2592000 -noout -in /etc/letsencrypt/live/one.forcitis.com/fullchain.pem"
 check "E-10 PC 静态资源就位"                "test -s /data/forcitis-one/current/web/index.html"
 check "E-11 Logtail 运行"                   "systemctl is-active ilogtaild || /etc/init.d/ilogtaild status"
 check "E-12 prometheus 端点有业务指标"      "curl -fsS http://127.0.0.1:8081/actuator/prometheus | grep -q '^forcitis_'"

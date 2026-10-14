@@ -78,10 +78,11 @@ if wanted E-5; then
 fi
 
 if wanted E-6; then
-  step "E-6 systemd 单元与日志轮转（不启动；首次部署时再启动）"
+  step "E-6 systemd 单元与日志轮转（不 enable、不启动；首次部署放好 jar 后再 enable）"
   run "install -o root -g root -m 0644 $FILES/forcitis-one.service /etc/systemd/system/forcitis-one.service"
   run "install -o root -g root -m 0644 $FILES/forcitis-one.logrotate /etc/logrotate.d/forcitis-one"
-  run "systemctl daemon-reload && systemctl enable forcitis-one"
+  # 发布包到位前 enable，重启后会因 jar 不存在按 Restart=on-failure 无限重启
+  run "systemctl daemon-reload"
 fi
 
 if wanted E-7; then
@@ -93,14 +94,13 @@ if wanted E-8; then
   step "E-8 nginx（发行版包）"
   run "dnf -y install nginx"
   run "install -o root -g root -m 0644 $FILES/nginx-one.conf /etc/nginx/conf.d/one.conf"
-  run "install -d -o root -g root -m 700 /etc/nginx/tls"
   echo "（证书就位前 nginx -t 会失败，属预期；E-9 完成后再 enable --now nginx）"
 fi
 
 if wanted E-9; then
-  step "E-9 证书（B-4 交接包；私钥 600）"
-  run "test -s /etc/nginx/tls/one.forcitis.com.pem && test -s /etc/nginx/tls/one.forcitis.com.key"
-  run "chmod 600 /etc/nginx/tls/one.forcitis.com.key /etc/nginx/tls/one.forcitis.com.pem"
+  step "E-9 证书（B-4：Let's Encrypt，certbot 签发与续期；私钥 600）"
+  run "test -s /etc/letsencrypt/live/one.forcitis.com/fullchain.pem && test -s /etc/letsencrypt/live/one.forcitis.com/privkey.pem"
+  run "[[ \$(stat -L -c '%a' /etc/letsencrypt/live/one.forcitis.com/privkey.pem) == 600 ]]"
   run "nginx -t && systemctl enable --now nginx"
 fi
 

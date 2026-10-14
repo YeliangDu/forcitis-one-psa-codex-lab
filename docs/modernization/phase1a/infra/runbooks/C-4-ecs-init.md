@@ -19,7 +19,7 @@
 
 1. 用户已确认本次执行 C-4（以及是否包含 `dnf -y update`，它会升级内核，需重启）。
 2. `lsblk` 确认 200 GB 数据盘设备名（通常 `/dev/vdb`）未分区、未挂载、无文件系统——脚本会再次检查，有文件系统则拒绝格式化。
-3. Java 包：确认来源与固定版本（Temurin 25 与 CI 一致；若用 Dragonwell 25 先在 dev 跑完整测试），作为 `--java-pkg` 传入。不从未经确认的地址下载。
+3. Java 包：确认来源与固定版本（Temurin 25 与 CI 一致；若用 Dragonwell 25 先在 dev 跑完整测试），作为 `--java-pkg` 传入。不从未经确认的地址下载。**实测（2026-10-15）**：Alibaba Cloud Linux 4 自带源（alinux4-os / plus / updates）只有 `java-21-alibaba-dragonwell`，没有任何 Java 25 包；须由用户确认外部来源（Adoptium 的 RPM 源，或 Dragonwell 25 官方发行包）后才能做 E-4。
 4. B-4（DNS、证书）未完成时，跳过 E-9 并保持 nginx 未启用。
 
 ## 步骤
@@ -41,10 +41,10 @@ reboot                                                              # 若 E-2 �
 | E-3 | 系统用户 `forcitis`，nologin | 用户存在且 nologin | `userdel forcitis` |
 | E-4 | Java 25，`dnf versionlock` 固定 | `java -version` 为 25 | `dnf remove` |
 | E-5 | `/data/forcitis-one/{releases,logs,tmp}` 750；`/etc/forcitis-one` root:forcitis 750；one.env 0640 | 属主与权限；one.env 无 `SPRING_FLYWAY_*` | 删目录 |
-| E-6 | 安装单元并 enable（不启动） | enabled；User=forcitis 与加固项 | `systemctl disable`、删单元 |
+| E-6 | 安装单元与 logrotate（不启动）；**首次部署时再 enable**：发布包放好之前 enable，重启后 jar 不存在，单元按 `Restart=on-failure` 每 10 秒重启一次、不会停 | 首次部署前：单元已安装、disabled；部署后：enabled；User=forcitis 与加固项 | `systemctl disable`、删单元 |
 | E-7 | one.env：`SERVER_ADDRESS=127.0.0.1`、`MANAGEMENT_SERVER_PORT=8081`、`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,prometheus` | 8080 / 8081 只在 127.0.0.1；非本机地址只 80 / 443；管理端点只 health、prometheus | 改 one.env |
 | E-8 | nginx：80→301、TLS 1.2/1.3、HSTS、覆盖 XFF、20m、屏蔽 `/actuator` `/v3/api-docs` `/swagger-ui`、`Referrer-Policy: no-referrer`、日志不记查询串 | `nginx -t`；日志格式；屏蔽规则；`--public-check` | 删 `/etc/nginx/conf.d/one.conf`，`systemctl reload nginx` |
-| E-9 | 证书放 `/etc/nginx/tls/`，600（B-4） | 私钥 600；30 天内不过期 | 删证书文件 |
+| E-9 | Let's Encrypt 证书在 `/etc/letsencrypt/live/one.forcitis.com/`，私钥 600，certbot 定时续期（A-1 改选 B，B-4） | 私钥 600；30 天内不过期 | 删证书与续期定时器 |
 | E-10 | 发布包中 `web/`（PC）、`web/h5/`（H5）随 `current` 软链切换 | `current/web/index.html` 存在 | 随版本回滚 |
 | E-11 | SLS 控制台生成 Logtail 安装命令执行；采集 `logs/*.json` 与 nginx 两类日志；Project 与门户分开 | `ilogtaild` 运行；SLS 能按 `correlationId` 检索 | 卸载 Logtail |
 | E-12 | ARMS Prometheus 抓 `127.0.0.1:8081/actuator/prometheus`（job 名 `forcitis-one`） | 端点有 `forcitis_` 指标；ARMS 看板有数 | 删抓取任务 |
