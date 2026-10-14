@@ -108,8 +108,37 @@
 | `INTEGRATION_LEGACY_VALIDATE_ON_STARTUP` | 启动时校验老库账号只能读那一个视图（默认 true） | 否 |
 | `WORKFORCE_SYNC_ENABLED` | 从 A8 视图同步组织与人员的定时任务开关（默认 false） | 否 |
 | `WORKFORCE_SHORT_NAME_ENABLED` | 从老库同步组织短名的定时任务开关（默认 false） | 否 |
-| `SPRING_PROFILES_ACTIVE=dev` | 环境 | 是 |
+| `SPRING_PROFILES_ACTIVE` | `dev` 或 `prod`；决定数据库连接的 TLS 要求（§5.1） | 是 |
 | 生产附加 | `springdoc.api-docs.enabled=false` | 生产 |
+
+### 5.1 数据库连接的 TLS 与 CA（用户决定 N-3）
+
+- **应用侧的硬规则**（`DatabaseTransportConfiguration`，在任何连接建立之前检查）：
+  - 激活 `prod` 时，主库、迁移连接（`spring.flyway.url`）、A8 视图、老系统短名视图、老待办视图的 JDBC URL 都必须验证服务端证书和主机名，且 CA 文件可读；否则**启动失败**，日志列出是哪条连接、缺什么。
+  - 激活 `dev` 时至少加密：PostgreSQL `sslmode` 为 `require`、`verify-ca` 或 `verify-full`；SQL Server `encrypt=true`。
+  - 没有激活这两个 profile（本地、测试）不检查。
+  - 未启用的 A8 / 老系统视图连接不检查。
+- **PostgreSQL（RDS）**：URL 带 `sslmode=verify-full&sslrootcert=/etc/forcitis-one/rds-ca.pem`。`prod` 不接受 `require`。
+- **SQL Server（A8、老系统）**：驱动没有 PEM 形式的 CA 路径，URL 用 `encrypt=true;trustServerCertificate=false;trustStore=/etc/forcitis-one/sqlserver-ca.p12;trustStorePassword=<取自 one.env>`。`prod` 不接受 `trustServerCertificate=true`、`encrypt=false` 或缺 `trustStore`。
+- **CA 的放置与下发**：
+  1. 在 RDS 控制台开启 SSL 并下载 CA 证书链（PEM），在另一条渠道核对指纹。SQL Server 两边向对方 DBA 要各自的 CA 证书，不信任 `trustServerCertificate`。
+  2. 运维经云助手把 PEM 放到 `/etc/forcitis-one/rds-ca.pem`，属主 `root:forcitis`，权限 `0640`；SQL Server 的 CA 用 `keytool -importcert` 导入 PKCS12 信任库 `/etc/forcitis-one/sqlserver-ca.p12`，权限同上。CA 是公开证书，不是密钥，但文件被替换等于信任被替换，所以只由 root 写。
+  3. 同一份文件被运行连接和迁移连接共用；文件不进仓库、镜像和聊天，下发动作记入运维记录。
+  4. 证书到期前 30 天更新文件并重启应用；到期日列入证书监控（与 `one.forcitis.com` 的证书一起）。RDS 控制台更换服务端证书后必须同步更新 CA 文件，否则应用重启后连不上，而不是静默降级。
+- **验证**：`psql "host=<RDS 内网地址> dbname=forcitis_one_dev user=one_dev_app sslmode=verify-full sslrootcert=/etc/forcitis-one/rds-ca.pem" -c "select ssl, version from pg_stat_ssl where pid = pg_backend_pid()"`，应返回 `t`。
+
+### 5.2 密钥清单与轮换（用户决定 N-2：服务账号口令不设到期，每 90 天轮换）
+
+| 密钥 | 存放 | 到期 | 轮换 |
+|---|---|---|---|
+| `one_dev_app`、`one_dev_migrator`、`one_dev_readonly` 的口令 | one.env / KMS（迁移口令只在部署步骤注入） | 不设到期（PostgreSQL 角色不加 `VALID UNTIL`） | 每 90 天：RDS 控制台改口令 → 写入 one.env → 重启；迁移口令随部署轮换 |
+| A8 只读账号、老系统两个只读账号的口令 | one.env / KMS | 不设到期（SQL Server 登录 `CHECK_EXPIRATION = OFF`） | 每 90 天：对方 DBA 改口令 → 写入 one.env → 重启 |
+| `WECOM_APP_SECRET` | one.env / KMS | 以企业微信后台为准 | 每 90 天在企业微信后台重置并更新 |
+| `EMERGENCY_TOTP_ENCRYPTION_KEY` | one.env / KMS | 不到期 | 不随 90 天轮换：轮换要重加密全部应急管理员的 TOTP 密钥，单独写手册后才能做 |
+| `FORCITIS_TICKET_KEY_<KID>` | one.env / KMS | 签发方默认关闭 | 启用某个签发方时，按该签发方的约定轮换（`kid` 并存期内可平滑换） |
+
+- 轮换到点由运维日历提醒；任何一项逾期 7 天按 P2 报告 psa-coordinator。
+- 口令只在服务器受保护文件或 KMS 中出现，轮换过程不经聊天、工单和仓库。
 
 ## 6. 应急管理员开通（设计，执行需用户确认）
 
