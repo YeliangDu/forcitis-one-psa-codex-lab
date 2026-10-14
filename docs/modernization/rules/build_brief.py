@@ -64,5 +64,11 @@ for d, (s, b) in by.items():
         dfx = (re.search(r"\*\*Suspected defect:\*\*\s*(.+)", body[r[0]]) or [None, ""])[1]
         L.append(contract_line(r, dfx))
 tpl = open(os.path.join(BASE, "MODERNIZATION_BRIEF.template.md"), encoding="utf-8").read()
-open(os.path.join(BASE, "MODERNIZATION_BRIEF.md"), "w", encoding="utf-8").write(tpl.replace("{{BEHAVIOR_CONTRACT}}", "\n".join(L)))
+PC = ["### 流程梳理结论（按阶段，SESSION_PLAYBOOK §13）", "",
+      "每个阶段实施前做端到端流程梳理，差异清单逐条由用户决定；结论来自 `process/<阶段>/contract.md`，生成到这里。"]
+for ph in re.findall(r"(?m)^#### Phase (\S+) —", tpl):
+    src = os.path.join(BASE, "process", ph, "contract.md")
+    PC += ["", f"#### Phase {ph}", "", open(src, encoding="utf-8").read().strip() if os.path.exists(src) else "待流程梳理"]
+open(os.path.join(BASE, "MODERNIZATION_BRIEF.md"), "w", encoding="utf-8").write(
+    tpl.replace("{{BEHAVIOR_CONTRACT}}", "\n".join(L)).replace("{{PROCESS_CONTRACT}}", "\n".join(PC)))
 print("P0", len(p0), "settled", len(settled), "blocked", len(blocked), "reviewed", len(reviewed)); print({d: (len(s), len(b)) for d, (s, b) in by.items()})
