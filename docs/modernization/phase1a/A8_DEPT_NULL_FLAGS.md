@@ -6,9 +6,9 @@
 
 **生产 A8 中，`ORG_UNIT` 的 `IS_DELETED`、`IS_INTERNAL`、`IS_ENABLE` 三个标志的 NULL 行数都是 0。** 不论是全表（368 行），还是同步范围内（`LEFT(PATH,8)='00000001'`，367 行），结果都一样。
 
-- RULE-355 担心的「NULL 按三值逻辑落入『有效』」的情况，在当前数据中不存在。若改为「NULL 视为停用」，受影响的部门、A8 在职人员和 PSA 在职用户都是 0。
+- RULE-355 担心的「NULL 按三值逻辑落入『有效』」的情况，在当前数据中不存在。若改为「NULL 视为停用」，受影响的部门、A8 在职人员和 老系统在职用户都是 0。
 - 当前结论（NULL 视为有效，另出同步例外报告）不会改变任何部门的状态。该结论作为防御规则保留即可：新系统同步时若遇到 NULL，按有效处理，同时写入例外报告并告警。其他三种做法（A8 源头补齐、按其他线索推断、本地覆盖表）目前没有可作用的对象。
-- 同步范围内实际有效的部门是 40 个（`IS_DELETED=0、IS_INTERNAL=1、IS_ENABLE=1`），加 1 个 `Account` 根节点。PSA `system_dept` 中有效部门 41 个，与之吻合。
+- 同步范围内实际有效的部门是 40 个（`IS_DELETED=0、IS_INTERNAL=1、IS_ENABLE=1`），加 1 个 `Account` 根节点。老系统 `system_dept` 中有效部门 41 个，与之吻合。
 
 ## 数据
 
@@ -33,19 +33,19 @@
 两种判定逐行一致，差异为 0。
 
 - 含 NULL 的部门清单（派工第 2 项）：0 行。
-- 这些部门在 PSA `system_dept` 中的状态（第 3 项）：0 行。
-- 影响对照（第 4 项）：直接受影响的部门 0 个，其子树也是 0 个；受影响的 A8 在职人员 0 人，PSA 在职用户 0 人。作为参照，PSA 当前在职用户 305 人，有效部门 41 个。
+- 这些部门在 老系统 `system_dept` 中的状态（第 3 项）：0 行。
+- 影响对照（第 4 项）：直接受影响的部门 0 个，其子树也是 0 个；受影响的 A8 在职人员 0 人，老系统在职用户 0 人。作为参照，老系统当前在职用户 305 人，有效部门 41 个。
 
 ## 方法
 
-- **通道**：沿用评估期的生产只读通道（`runtime/README.md`）。通过阿里云云助手在生产 PSA 应用服务器上运行单文件 Java 程序，以只读连接加 `READ UNCOMMITTED` 隔离级别访问 `ruoyi-vue-pro`，经三段式名称 `a8_db.dbo.*` 读取 A8 表。
+- **通道**：沿用评估期的生产只读通道（`runtime/README.md`）。通过阿里云云助手在生产老系统应用服务器上运行单文件 Java 程序，以只读连接加 `READ UNCOMMITTED` 隔离级别访问 `ruoyi-vue-pro`，经三段式名称 `a8_db.dbo.*` 读取 A8 表。
 - **凭据**：只在服务器进程内使用，不打印、不回传。
 - **只读保证**：程序拒绝一切非 `SELECT`/`WITH` 语句，以及含写操作关键字的语句。服务器上的临时目录执行后即删除。
 - **个人信息**：结果只含计数，不含姓名。
 - **口径**：
   - 同步范围、停用判定与老系统 `A8DeptMapper.selectSyncScopedDepts` 一致。
   - A8 在职人员的判定与 `A8UserMapper.selectInternalUsers` 一致：`IS_INTERNAL=1`、工号非空，且 `ORG_PRINCIPAL.LOGIN_NAME` 非空（RULE-363）。
-  - PSA 在职用户：`system_users.deleted=0 AND status=0`。
+  - 老系统在职用户：`system_users.deleted=0 AND status=0`。
 
 ## 所用 SQL
 

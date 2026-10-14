@@ -1,4 +1,4 @@
-# RULE_REVIEWS — psa
+# RULE_REVIEWS — FORCITIS one
 
 规则评审记录，由 `/code-modernization:modernize-review psa` 写入，数据源为 `RULE_REVIEWS.json`。第一批为审批域（platform.approval，Phase 1a 前）的 28 条被标记 P0 规则，2026-10-14 由会话 psa-review-approval 评审：RULE-248/249/250/252 由用户逐条作答；其余 24 条由用户整批同意评估会话 PSA现代化工程 的建议，其中 RULE-293 由用户亲自决定。结论：正确 19 条（其中多条为「正确+修」——规则保留、缺陷在新系统中修掉，见备注），错误或不需要 9 条，待讨论 0 条。标为「错误」的规则不作为行为契约的基准，新系统按备注中的修正行为实现。
 
@@ -62,7 +62,7 @@
 | RULE-326 | 错误 | 2026-10-14 11:00 | Only password and Seeyon logins check the disabled status | 错误（整批同意评审建议）：所有登录入口在建会话前过同一道检查：启用且未删除（identity BC 一处实现）。 |
 | RULE-327 | 错误 | 2026-10-14 11:00 | Resigned (soft-deleted) users are kept out only by the lookup filter | 错误（整批同意评审建议）：显式检查「已离职」并返回明确业务错误，不依赖 ORM 逻辑删除过滤，不抛空指针或越界。 |
 | RULE-328 | 错误 | 2026-10-14 11:00 | SMS login: the code must be valid and the mobile must exist | 错误（整批同意评审建议）：短信登录不迁移（D-01，ADR-0019「短信不迁移」）。 |
-| RULE-329 | 错误 | 2026-10-14 11:00 | KM token: anonymous caller, memberId used as a mobile number or a PSA id | 错误（整批同意评审建议）：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。 |
+| RULE-329 | 错误 | 2026-10-14 11:00 | KM token: anonymous caller, memberId used as a mobile number or a legacy-system id | 错误（整批同意评审建议）：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。 |
 | RULE-331 | 错误 | 2026-10-14 11:00 | Every login creates a refresh token and an access token for client "default" | 错误（用户作答）：不再签发令牌对，改服务端会话（ADR-0009 §2，Spring Session JDBC + HttpOnly/SameSite Cookie）；时长为配置项（见 332）。 |
 | RULE-332 | 错误 | 2026-10-14 11:00 | Access-token expiry slides to now + 10 h on every check | 错误（用户作答）：会话时长「空闲 10h + 上限 24h」——10 小时无活动过期，登录 24 小时后无论是否活跃都须重新登录；均为配置项；令牌不打印到日志。 |
 | RULE-333 | 错误 | 2026-10-14 11:00 | Refresh revokes sibling access tokens but never rotates the refresh token | 错误（整批同意评审建议）：新系统无刷新令牌；登录时轮换会话 ID；过渡期对老令牌只读校验后换发新会话（C1a-06）。 |
@@ -76,18 +76,18 @@
 | RULE-350 | 错误 | 2026-10-14 11:00 | Row filtering applies only to opt-in methods with `@DataOwner` fields | 错误（整批同意评审建议）：不用注解开启的隐式 SQL 改写；AccessScope 显式传入仓储，异常即拒绝（fail-closed）（ADR-0009 §4、ADR-0019）。 |
 | RULE-351 | 错误 | 2026-10-14 11:00 | An empty data scope fails open | 错误（整批同意评审建议）：空数据范围返回零行，不放行。 |
 | RULE-352 | 错误 | 2026-10-14 11:00 | A second, different data-scope engine guards system user and dept writes | 错误（整批同意评审建议）：合并为一套数据范围模型（同 349），读写同一口径。 |
-| RULE-355 | 正确 | 2026-10-14 11:00 | A8 dept "disabled" test and how it maps to PSA status and deleted | 正确+修（整批同意评审建议）：停用判定保留；NULL 的处理写成显式规则（仍视为有效，同步报告列出 NULL 行，与 A8 负责人确认）；「停用」与「撤销」分为两个状态，不再混同。 |
+| RULE-355 | 正确 | 2026-10-14 11:00 | A8 dept "disabled" test and how it maps to legacy-system status and deleted | 正确+修（整批同意评审建议）：停用判定保留；NULL 的处理写成显式规则（仍视为有效，同步报告列出 NULL 行，与 A8 负责人确认）；「停用」与「撤销」分为两个状态，不再混同。 |
 | RULE-356 | 正确 | 2026-10-14 11:00 | A8 is authoritative for dept leader, regional AR, category and delivery flag | 正确+修（整批同意评审建议）：A8 为部门负责人、区域 AR、类别、交付标识的权威来源；关系类型 ID 等改为配置并在启动时校验；多名负责人时取 ID 最小者并告警给数据管理员（确定性、不阻塞）。 |
-| RULE-357 | 正确 | 2026-10-14 11:00 | Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive | 正确+修（整批同意评审建议）：A8 部门随 A8 新增、更新、撤销、恢复；PSA 不再有手工部门（D-06）；PSA 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。 |
+| RULE-357 | 正确 | 2026-10-14 11:00 | Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive | 正确+修（整批同意评审建议）：A8 部门随 A8 新增、更新、撤销、恢复；FORCITIS one 不再有手工部门（D-06）；FORCITIS one 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。 |
 | RULE-359 | 错误 | 2026-10-14 11:00 | Manual dept edits: parent valid, no cycles, unique name, no delete with children | 错误（整批同意评审建议）：组织数据在新系统只读，不提供手工维护部门（D-06，C1a-10）；树完整性由同步校验。 |
 | RULE-360 | 正确 | 2026-10-14 11:00 | "Dept and below" = recursive children from a cache that includes deleted depts | 正确+修（整批同意评审建议）：「本部门及以下」递归保留；计算权限范围时排除已撤销部门，历史报表可包含。 |
 | RULE-361 | 错误 | 2026-10-14 11:00 | A8 user sync scope uses a substring match, unlike the dept prefix rule | 错误（整批同意评审建议）：人员同步范围改用与部门同步相同的前缀规则（PATH 以 00000001 开头），人员不指向未同步部门。 |
-| RULE-362 | 正确 | 2026-10-14 11:00 | A new A8 person becomes a PSA user with username = phone and a default password | 正确+修（整批同意评审建议）：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。 |
-| RULE-363 | 正确 | 2026-10-14 11:00 | Resignation = A8 login name is null → PSA user soft-deleted | 正确+修（整批同意评审建议）：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。 |
-| RULE-364 | 正确 | 2026-10-14 11:00 | Rehire and phone change restore and re-enable the PSA user | 正确+修（整批同意评审建议）：复职（A8 重新有登录名）时恢复；换手机号不覆盖 PSA 的手工停用（启用状态由 PSA 拥有）；用户名跟随 A8 登录名同步。 |
+| RULE-362 | 正确 | 2026-10-14 11:00 | A new A8 person becomes a legacy-system user with username = phone and a default password | 正确+修（整批同意评审建议）：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。 |
+| RULE-363 | 正确 | 2026-10-14 11:00 | Resignation = A8 login name is null → legacy-system user soft-deleted | 正确+修（整批同意评审建议）：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。 |
+| RULE-364 | 正确 | 2026-10-14 11:00 | Rehire and phone change restore and re-enable the legacy-system user | 正确+修（整批同意评审建议）：复职（A8 重新有登录名）时恢复；换手机号不覆盖 FORCITIS one 的手工停用（启用状态由 FORCITIS one 拥有）；用户名跟随 A8 登录名同步。 |
 | RULE-365 | 错误 | 2026-10-14 11:00 | Per-field update semantics in user sync are asymmetric | 错误（整批同意评审建议）：A8 权威列按值同步并显式写 NULL（汇报线清空也同步）；单行缺部门或岗位时隔离该行并告警，不中断整批。 |
 | RULE-366 | 错误 | 2026-10-14 11:00 | Users that drop out of the A8 result set are never deactivated | 错误（整批同意评审建议）：不在 A8 结果中的人员视为离职候选，经与部门同步相同的 80% 缩水保护后停用并吊销会话。 |
-| RULE-367 | 错误 | 2026-10-14 11:00 | Post sync only adds and renames | 错误（整批同意评审建议）：岗位同步状态与删除（停用 / 删除同步到 PSA），保证「岗位必须启用」的校验有意义。 |
+| RULE-367 | 错误 | 2026-10-14 11:00 | Post sync only adds and renames | 错误（整批同意评审建议）：岗位同步状态与删除（停用 / 删除同步到 FORCITIS one），保证「岗位必须启用」的校验有意义。 |
 | RULE-368 | 错误 | 2026-10-14 11:00 | Manual user maintenance: unique username, mobile and email; enabled dept and posts | 错误（整批同意评审建议）：不提供手工维护人员（D-06）；身份键为 A8 ID，唯一性在全部行上保证（含已离职）。 |
 | RULE-369 | 错误 | 2026-10-14 11:00 | Excel user import: per-row validation, optional update, init password | 错误（整批同意评审建议）：Excel 导入用户不迁移（D-06），不设共享初始口令。 |
 | RULE-370 | 错误 | 2026-10-14 11:00 | Password change rules | 错误（整批同意评审建议）：员工无口令；仅应急账号可改口令，改后吊销其其他会话（ADR-0009）。 |

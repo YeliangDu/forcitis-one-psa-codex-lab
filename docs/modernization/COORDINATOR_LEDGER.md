@@ -29,7 +29,7 @@
 - 用户：B1–B5 与经营问题清单（~/.modernize/psa/bi-inputs/questions/）。
 - 用户：OAT 4 个文件在 ddd-theory 未提交，提交后 glossary/oat/README 改引提交号。
 - 用户：确认单末尾「会计类新术语由财务逐条确认」是否保留（未答）。
-- 部署前一次问清：D-3 域名与证书、D-4 A8 / 老 PSA 只读视图与账号由谁建、D-5 应急管理员开通、新开企业微信应用（I-8 卡片回调）、企业微信接口真实租户核对、WECOM_RESTRICT_RECIPIENTS 生产值、AG Grid 企业版许可采购、新 ECS 云安全中心授权、新 ECS 机内加固、生产 RDS 是否另开、Phase 2/4 出口停用生产 SQL Agent 作业（#28–#31）。
+- 部署前一次问清：D-3 域名与证书、D-4 A8 / 老系统只读视图与账号由谁建、D-5 应急管理员开通、新开企业微信应用（I-8 卡片回调）、企业微信接口真实租户核对、WECOM_RESTRICT_RECIPIENTS 生产值、AG Grid 企业版许可采购、新 ECS 云安全中心授权、新 ECS 机内加固、生产 RDS 是否另开、Phase 2/4 出口停用生产 SQL Agent 作业（#28–#31）。
 - Phase 2 前：projectManagerId / regionalHeadId / 工时类别来源；ProjectCoordinate 维度。
 
 ## 排定的后续

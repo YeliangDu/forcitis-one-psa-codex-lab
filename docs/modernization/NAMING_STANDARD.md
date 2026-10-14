@@ -1,4 +1,4 @@
-# 命名、包结构与架构守护规范 — FORCITIS one（PSA 现代化）
+# 命名、包结构与架构守护规范 — FORCITIS one 现代化
 
 日期：2026-10-14 · 适用范围：`reimagine` 产出的全部新代码（后端、PC、H5、数据库、事件、API）
 
@@ -94,6 +94,54 @@
   - 更正（2026-10-14）：原示例 `/api/v1/timesheet/timesheets` 把 BC 当成子域，原规则「事件载荷 snake_case」与接口 camelCase 不一致，均已统一。
 - **前端**：`src/modules/<module>/{pages,components,hooks,api}`；API 客户端由 OpenAPI 生成（禁止手写 URL）；TypeScript strict；组件用 PascalCase，hook 用 `useXxx`，文件名用 kebab-case。
 
+### 2.4 列名类别词、约束与索引命名（借鉴 DAMA / ISO 11179，2026-10-14）
+
+用户 2026-10-14：问「1a 还有哪些设计需要现在考虑？所有表命名是否有标准？需要借鉴 dama 的标准吗」，选「全部在 1a 做 (Recommended)」。
+
+**列名 = 限定词 + 类别词**（ISO 11179 representation term）。类别词决定类型；列名也可以只由类别词本身构成（如 `code`、`name`、`status`），表名就是它的对象。
+
+| 类别词 | 含义 | 类型 |
+|---|---|---|
+| `_id` | 标识符 | `bigint`、`uuid`；`text` 只用于外部系统标识（如企业微信 userid） |
+| `_key` | 业务键、幂等键 | `text` |
+| `_code` / `_codes` | 代码 / 代码集合 | `text` / `text[]` |
+| `_name` | 名称 | `text` |
+| `_text`、`_description`、`_reason`、`_note`、`_title`、`_message` | 自由文本 | `text` |
+| `_address` | 地址（邮箱、IP） | `text` |
+| `_ciphertext` | 加密后的值 | `text` |
+| `_status`、`_kind`、`_type`、`_policy` | 枚举 | `text` + `CHECK` 列出枚举名 |
+| `_at` | 时间点 | `timestamptz` |
+| `_date` | 业务日期 | `date` |
+| `_amount` | 金额，必须配同名 `_currency` | `numeric` |
+| `_currency` | 币种（ISO 4217） | `text` / `char(3)` |
+| `_qty`、`_hours`、`_days` | 数量；带单位的数量（工时、人天） | `numeric`（`_qty` 也可整数） |
+| `_rate` / `_pct` | 比率、单价 / 百分比 | `numeric` |
+| `_count` | 计数 | `integer` / `bigint` |
+| `_number` | 编号（单据编号）、序号（轮次） | `text` / `integer` / `bigint` |
+| `_order` | 排序 | `integer` |
+| `_hash` | 摘要 | `text` |
+| `_url` / `_path` | 地址 / 路径 | `text` |
+| `_by` | 操作人（审计） | `bigint` |
+| `_value` | 数值（计数器、起始值） | `numeric` / `integer` / `bigint` |
+| `is_` / `has_`（前缀） | 指示 | `boolean` |
+
+另允许 `id`、`version` 两个独立列名。单据编号用 `_number`（与编号模块用语 `legacy_number`、`round_number` 一致），不用 `_no`。
+
+**约束与索引**：主键 `pk_<表>`；外键 `fk_<表>_<列>`；唯一 `uk_<表>_<列>`（唯一约束和唯一索引都用）；表级检查 `ck_<表>_<规则>`；普通索引 `ix_<表>_<列>`。主键、外键、唯一约束都要用 `CONSTRAINT <名>` 显式命名，不依赖 PostgreSQL 的默认名；只写在列上的枚举 `CHECK` 可不命名。
+
+**守护**：`DdlNamingTest` 按全部迁移脚本推算最终表结构（跟踪 `ADD COLUMN`、`RENAME COLUMN`、`RENAME CONSTRAINT`、`ALTER INDEX ... RENAME TO`），检查类别词与类型、约束与索引命名；注入样例覆盖每类错误。规则生效前已存在的项登记在 `backend/architecture/ddl-naming-baseline.txt`（每行附改名建议），新违规和「已修好却没删」的基线行都会失败。框架拥有列名的表豁免：`platform_identity.sessions`、`sessions_attributes`（Spring Session JDBC）、`platform_integration.event_publication`（Spring Modulith）、`platform_scheduling.scheduler_locks`（ShedLock）。
+
+### 2.5 列级敏感分级
+
+| 级别 | 含义 | 处理 |
+|---|---|---|
+| `PUBLIC` 公开 | 可对外 | — |
+| `INTERNAL` 内部 | 默认级别 | 登录可见，按功能权限 |
+| `SENSITIVE` 敏感 | 个人信息、工资与日薪、银行卡（GUIDING_PRINCIPLES §6） | 脱敏展示、按法人 × 部门 × 项目角色授权、访问留痕；不进分析层明细 |
+| `RESTRICTED` 高度敏感 | 口令、密钥、会话内容 | 不出库（只在本模块内部使用）、不进日志、不进分析层 |
+
+登记在 `backend/architecture/data-classification.txt`（`<schema.table.column> | <级别> | <理由>`），未登记的列默认 `INTERNAL`。守护：`DdlNamingTest` 要求名字像敏感信息的列（口令、密钥、TOTP、银行、工资、日薪、证件、手机、邮箱、生日、性别、地址、会话内容）必须登记为 `SENSITIVE` 或 `RESTRICTED`，登记的列必须存在。web / api 出参不得直接暴露 `SENSITIVE`、`RESTRICTED` 列，这一守护由 1a 会话实现。
+
 ## 3. 包结构：代码放在哪里（agent 速查表）
 
 ```
@@ -183,7 +231,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G47 | 流程 / 决策 id 为 `{子域}_{BC}_{snake}`，文件名同 id，`ProcessKey` 与流程一一对应，用户任务 id camelCase | 流程键与代码脱节 | `NamingSurfaceTest` |
 | G48 | 错误码：每个模块一个实现 `kernel.ErrorCode` 的枚举，格式 `{SUBDOMAIN}_{BC}_{REASON}` | 错误码散落为字符串 | `NamingSurfaceTest` |
 | D1 | 模块依赖必须在 `architecture/module-dependencies.txt` 中登记 | 随手引入新依赖 | `ModuleDependencyTest` |
-| D2 | DDL：文件名规范、只建本 schema 的表、snake_case、禁用老名和空泛词、审计列、金额带币种、状态 `CHECK`、布尔 `is_` / `has_`、每列有 COMMENT | 数据字典混乱 | `DdlNamingTest` |
+| D2 | DDL：文件名规范、只建本 schema 的表、snake_case、禁用老名和空泛词、审计列、金额带币种、状态 `CHECK`、布尔 `is_` / `has_`、每列有 COMMENT；列名类别词与类型、约束与索引命名（§2.4）；敏感列登记（§2.5） | 数据字典混乱 | `DdlNamingTest` |
 | D3 | 数据字典从数据库元数据生成，每张表、每个字段必须有注释 | 字段无说明 | `ApplicationIntegrationTest.everyTableAndColumnIsDocumented…` |
 
 **负向验证（后端）**：向模板注入以下错误，`./mvnw verify` 失败并报出 8 条违规，信息逐条指出位置和原因：
@@ -228,7 +276,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 
 ## 6. 老名 → 新名对照（起点，各阶段补全）
 
-| 老（PSA） | 新（模块.对象 / schema.table） |
+| 老（老系统） | 新（模块.对象 / schema.table） |
 |---|---|
 | `yudao-module-fst`、`cn.iocoder.yudao.module.fst` | 按 BC 拆为 `presales.quoting`、`delivery.execution`、`receivables.wip`、`cost.timesheet`、`cost.costing`、`expense.spend`、`accounting.ledger` 等模块（GLOSSARY §1） |
 | `yudao-module-bpm`、`bpm_*`、`ACT_*` | `platform.approval` 模块、`platform_approval` schema |

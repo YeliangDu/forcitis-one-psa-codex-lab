@@ -1,4 +1,4 @@
-# MODERNIZATION BRIEF — PSA → FORCITIS one
+# MODERNIZATION BRIEF — 老系统 → FORCITIS one
 
 日期：2026-10-14 · 状态：**待审批**
 
@@ -6,7 +6,7 @@
 
 ## 1. Objective
 
-把 PSA 重建为 **FORCITIS one**（one.forcitis.com，ADR-0001）。
+把老系统重建为 **FORCITIS one**（one.forcitis.com，ADR-0001）。
 
 - **从**：yudao 微服务底座 + Java 8 / Spring Boot 2.7 + SQL Server 2016 + Flowable 6.8 + Vue 2。
 - **到**：Spring Modulith 模块化单体，Java 25 / Spring Boot 4.1、PostgreSQL 18（schema 为 `<子域>_<BC>`）、JdbcClient、Flyway、Flowable 8（BPMN + DMN）、API 版本化、默认拒绝的鉴权、可配置的业务编号，前端为 React + Taro + 设计系统。定栈见 `STACK_DECISION.md` 和 `adr/`。
@@ -36,7 +36,7 @@ C4Container
     Container(web, "PC 前端", "React 19 + TS + Vite + Ant Design 5 + TanStack Query + Zod", "设计令牌；OpenAPI 生成客户端")
     Container(h5, "H5 前端", "Taro 4 + React", "企业微信内嵌；与 PC 共用 OpenAPI 客户端、Zod、查询层、令牌 CSS")
     Container(app, "FORCITIS one 应用", "Spring MVC /api/v1 + springdoc", "模块（子域.BC）：platform.identity / approval / integration / audit / numbering、organization.workforce、presales.customer / quoting、delivery.execution / acceptance、cost.timesheet / costing、operations.facts（单一过账管道）、accounting.period / ledger、receivables.wip、expense.spend、reporting")
-    ContainerDb(pg, "PostgreSQL 18（PSA 专用 RDS）", "schema = <子域>_<BC>", "platform_*（含 Flowable ACT_*、事件发布登记、编号）、presales_*、delivery_*、cost_*、operations_facts（明细事实只追加）、accounting_period、accounting_ledger、receivables_wip、expense_spend、reporting（只读视图）")
+    ContainerDb(pg, "PostgreSQL 18（FORCITIS one 专用 RDS）", "schema = <子域>_<BC>", "platform_*（含 Flowable ACT_*、事件发布登记、编号）、presales_*、delivery_*、cost_*、operations_facts（明细事实只追加）、accounting_period、accounting_ledger、receivables_wip、expense_spend、reporting（只读视图）")
   }
   Rel(emp, h5, "HTTPS")
   Rel(pm, web, "HTTPS")
@@ -112,7 +112,7 @@ Entry criteria:
 - [x] 仓库已创建：https://github.com/FORCITIS/forcitis-one-psa（私有，2026-10-14，空仓库）
 - [ ] 骨架已推入 `forcitis-one-psa`，分支保护、CI（verify + 守护 + gitleaks）已配置
 - [ ] 骨架采用 `architecture-guardrails/backend` 和 `frontend`，在 Mac 本机执行 `./mvnw verify` 和 `pnpm verify` 均全绿
-- [ ] FORCITIS one 专用主机和 PSA 专用 RDS PostgreSQL 实例已开通
+- [ ] FORCITIS one 专用主机和 FORCITIS one 专用 RDS PostgreSQL 实例已开通
 - [ ] `shared/design-system/tokens.css` 与设计正本「Forcitis One Design System」的 `tokens/palette.css`、`tokens/semantic.css` 逐项一致（正本有更新时重新同步）
 - [ ] 设计正本已完整备份到本地；正本现有组件已取下并作为 `shared/ui`（React）的起点（ADR-0013 第 7 条，代码为源）
 - [ ] 内核值对象 `Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId` 已就位（ADR-0016）
@@ -280,7 +280,7 @@ Exit criteria:
 
 ### 项目成本与核算（Phase 4）
 
-**已定：** RULE-067 Three-tier project profit and rates、RULE-068 OH tier routing and carry-forward when the labour base is zero、RULE-071 WIP stage on entry and stage advance (POC exactly 100 and contract returned)、RULE-073 Year-end bonus is split to project terms by the person's annual hours (cent-exact largest remainder)、RULE-074 Cost routing chain and how expense nature is set、RULE-075 Timesheet three-element (salary/social/fund) cent rounding anchored to the rounded total、RULE-076 Labour reclass – U8C credit vs PSA landed cost, by department, with tolerance、RULE-077 Labour reclass voucher – reverse U8C credit in full, debit PSA buckets, absorb small differences、RULE-078 Vouchers are aggregated per company × voucher word × department、RULE-081 Write-off voucher amounts and credit account derivation、RULE-091 Period open/close preconditions (sequential opening, month-end done, reconciled)、RULE-092 Full OH allocation: one effective full run per period, never concurrent、RULE-093 Carry draft gate order, and the red-reversal exception、RULE-094 Carry confirm re-checks the gates and dry-runs the vouchers、RULE-098 Labor reclass confirm and deliver must be fresh and follow period order、RULE-100 Landing conservation must balance exactly (zero tolerance)、RULE-101 Collection confirmation gate、RULE-103 Project fees without a contract term never go to the OH pool、RULE-105 Labor reclass differences over ¥1.00 block the voucher、RULE-106 Re-running collection reverses a prior confirmation; it is blocked once allocation is confirmed、RULE-107 Collection cannot start until payroll is complete for everyone who filed timesheets、RULE-116 Full allocation takes effect atomically with pool write-back and step advance、RULE-117 A batch becomes POSTED only when U8C has confirmed every voucher; then the step advances、RULE-118 Creating a carry draft (asynchronous)、RULE-119 Posting phases and the completion condition、RULE-123 WIP stage assignment and advancement、RULE-125 Carry steps are strictly serial: occupy on draft, advance on POSTED, release on cancel、RULE-126 WIP write-off flips the entry from in-WIP to relieved and books a P&L line、RULE-134 A cost dated in a closed period lands in the earliest later open period
+**已定：** RULE-067 Three-tier project profit and rates、RULE-068 OH tier routing and carry-forward when the labour base is zero、RULE-071 WIP stage on entry and stage advance (POC exactly 100 and contract returned)、RULE-073 Year-end bonus is split to project terms by the person's annual hours (cent-exact largest remainder)、RULE-074 Cost routing chain and how expense nature is set、RULE-075 Timesheet three-element (salary/social/fund) cent rounding anchored to the rounded total、RULE-076 Labour reclass – U8C credit vs legacy-system landed cost, by department, with tolerance、RULE-077 Labour reclass voucher – reverse U8C credit in full, debit legacy-system buckets, absorb small differences、RULE-078 Vouchers are aggregated per company × voucher word × department、RULE-081 Write-off voucher amounts and credit account derivation、RULE-091 Period open/close preconditions (sequential opening, month-end done, reconciled)、RULE-092 Full OH allocation: one effective full run per period, never concurrent、RULE-093 Carry draft gate order, and the red-reversal exception、RULE-094 Carry confirm re-checks the gates and dry-runs the vouchers、RULE-098 Labor reclass confirm and deliver must be fresh and follow period order、RULE-100 Landing conservation must balance exactly (zero tolerance)、RULE-101 Collection confirmation gate、RULE-103 Project fees without a contract term never go to the OH pool、RULE-105 Labor reclass differences over ¥1.00 block the voucher、RULE-106 Re-running collection reverses a prior confirmation; it is blocked once allocation is confirmed、RULE-107 Collection cannot start until payroll is complete for everyone who filed timesheets、RULE-116 Full allocation takes effect atomically with pool write-back and step advance、RULE-117 A batch becomes POSTED only when U8C has confirmed every voucher; then the step advances、RULE-118 Creating a carry draft (asynchronous)、RULE-119 Posting phases and the completion condition、RULE-123 WIP stage assignment and advancement、RULE-125 Carry steps are strictly serial: occupy on draft, advance on POSTED, release on cancel、RULE-126 WIP write-off flips the entry from in-WIP to relieved and books a P&L line、RULE-134 A cost dated in a closed period lands in the earliest later open period
 
 **阻塞，需评审：**
 - [ ] RULE-066 OH basis is timesheet (source_type 0) not-tax cost; period 13 uses the full-year base（`AllocationOrchestrator.java:108-146`，置信度 High） — Docs COST-R39/R40 still say "wpt0/1 work-package hours". Code uses source_type = 0 because work_package_type is never populated (#875).
@@ -342,7 +342,7 @@ Exit criteria:
 - [ ] RULE-210 Budget can only be edited while it is unlocked and not awaiting approval（`ProjectBudget.java:438-446`，置信度 High） — The budget write endpoints (`PmProjectBudgetController` `/import`, `/task/*`, `/lock`, `/deliverable*`, `/cost-items`) check only the permission `fst:pm-project:budget` and turn off `@DataPermission`. No use case checks 
 - [ ] RULE-212 Rules for an approver changing the budget tree during approval（`ProjectBudget.java:639-723`，置信度 High） — This path does not run the RULE-02 rate-missing check. An approver can add a task package with hours but no matching rate, and it is locked into the baseline at cost 0.
 - [ ] RULE-213 Total confirmed revenue cannot exceed the clause amount（`RevenueConfirmation.java:64-87`，置信度 High） — Unlike deliverable acceptance (RULE-21), the sign date is not checked against today. A future date is accepted and gives a future revenue period.
-- [ ] RULE-222 Approved revenue writes an append-only revenue fact, after a second quota check（`DecideRevenueConfirmationUseCase.java:36-68`，置信度 High） — When the auto-reject happens, BPM shows the instance as approved while PSA shows it rejected. No notification or BPM correction is visible in the code.
+- [ ] RULE-222 Approved revenue writes an append-only revenue fact, after a second quota check（`DecideRevenueConfirmationUseCase.java:36-68`，置信度 High） — When the auto-reject happens, BPM shows the instance as approved while the legacy system shows it rejected. No notification or BPM correction is visible in the code.
 - [ ] RULE-223 Task package execution states — DOING/REWORK → DONE, DONE → DOING (reopen), LOCKED → REWORK（`DeliverableProgress.java:47-84`，置信度 High） — `FSTConstant.TaskStatus` (0 进行中 / in progress, 1 已保存 / saved, 2 已完成 / completed, 3 已逾期 / overdue, with the comment "TODO 其他两个状态需要完善" / "the other two states need completing") is a separate legacy integer vocabulary. It i
 - [ ] RULE-224 Submitting a deliverable requires all its task packages to be done, and locks them（`DeliverableProgress.java:403-423`，置信度 High） — If the submission is rejected (DRAFT), the packages stay LOCKED. Nothing unlocks them. Resubmission still works because LOCKED is accepted.
 - [ ] RULE-225 Deliverable approval outcome — approved → awaiting customer acceptance; rejected or cancelled → DRAFT（`DeliverableSubmission.java:588-613`，置信度 Medium） — The `StageReviewProcessResultHandler.java:16-17` comment says that when a meeting fails, the director-node handler already set the submission to DRAFT, so a later "approved" end is a no-op. But `recordDirectorReview` (li
@@ -397,7 +397,7 @@ Exit criteria:
 - [x] **不复刻** · 老行为：RULE-324 PC WeCom web login guesses the user from the email local part or an "f-stripped" id（`SocialUserServiceImpl.java:169-194`，置信度 High） → 新系统做法：不按邮箱前缀或去掉 f 猜人，只按 we_com_id 精确映射（与 H5 同一键），未映射拒绝；令牌不进 URL。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-326 Only password and Seeyon logins check the disabled status（`AdminAuthServiceImpl.java:153-216`，置信度 High） → 新系统做法：所有登录入口在建会话前过同一道检查：启用且未删除（identity BC 一处实现）。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-327 Resigned (soft-deleted) users are kept out only by the lookup filter（`AdminAuthServiceImpl.java:153-164`，置信度 Medium） → 新系统做法：显式检查「已离职」并返回明确业务错误，不依赖 ORM 逻辑删除过滤，不抛空指针或越界。（不复刻；评审 2026-10-14）
-- [x] **不复刻** · 老行为：RULE-329 KM token: anonymous caller, memberId used as a mobile number or a PSA id（`AdminAuthServiceImpl.java:253-281`，置信度 High） → 新系统做法：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-329 KM token: anonymous caller, memberId used as a mobile number or a legacy-system id（`AdminAuthServiceImpl.java:253-281`，置信度 High） → 新系统做法：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-331 Every login creates a refresh token and an access token for client "default"（`OAuth2TokenServiceImpl.java:54-62`，置信度 Medium） → 新系统做法：不再签发令牌对，改服务端会话（ADR-0009 §2，Spring Session JDBC + HttpOnly/SameSite Cookie）；时长为配置项（见 332）。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-332 Access-token expiry slides to now + 10 h on every check（`OAuth2TokenServiceImpl.java:95-137`，置信度 High） → 新系统做法：会话时长「空闲 10h + 上限 24h」——10 小时无活动过期，登录 24 小时后无论是否活跃都须重新登录；均为配置项；令牌不打印到日志。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-333 Refresh revokes sibling access tokens but never rotates the refresh token（`OAuth2TokenServiceImpl.java:64-93`，置信度 High） → 新系统做法：新系统无刷新令牌；登录时轮换会话 ID；过渡期对老令牌只读校验后换发新会话（C1a-06）。（不复刻；评审 2026-10-14）
@@ -410,13 +410,13 @@ Exit criteria:
 - [x] RULE-349 Business data scope = union over roles; ALL anywhere means unrestricted（`RoleServiceImpl.java:289-345`，置信度 High） — 修正：各角色并集保留；只计启用角色；自定义部门只在 DEPT_CUSTOM 下生效；排除已离职用户；「本人及下属」只算直接下属（问题「只算直接下属」，与老系统一致）；以显式 AccessScope（法人 × 部门 × 项目角色）表达。（已评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-350 Row filtering applies only to opt-in methods with `@DataOwner` fields（`DataPermissionDatabaseInterceptor.java:68-195`，置信度 High） → 新系统做法：不用注解开启的隐式 SQL 改写；AccessScope 显式传入仓储，异常即拒绝（fail-closed）（ADR-0009 §4、ADR-0019）。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-351 An empty data scope fails open（`DataPermissionDatabaseInterceptor.java:108-112`，置信度 High） → 新系统做法：空数据范围返回零行，不放行。（不复刻；评审 2026-10-14）
-- [x] RULE-355 A8 dept "disabled" test and how it maps to PSA status and deleted（`A8DeptMapper.java:35-48`，置信度 High） — 修正：停用判定保留；NULL 的处理写成显式规则（仍视为有效，同步报告列出 NULL 行，与 A8 负责人确认）；「停用」与「撤销」分为两个状态，不再混同。（已评审 2026-10-14）
+- [x] RULE-355 A8 dept "disabled" test and how it maps to legacy-system status and deleted（`A8DeptMapper.java:35-48`，置信度 High） — 修正：停用判定保留；NULL 的处理写成显式规则（仍视为有效，同步报告列出 NULL 行，与 A8 负责人确认）；「停用」与「撤销」分为两个状态，不再混同。（已评审 2026-10-14）
 - [x] RULE-356 A8 is authoritative for dept leader, regional AR, category and delivery flag（`SyncServiceImpl.java:184-221`，置信度 High） — 修正：A8 为部门负责人、区域 AR、类别、交付标识的权威来源；关系类型 ID 等改为配置并在启动时校验；多名负责人时取 ID 最小者并告警给数据管理员（确定性、不阻塞）。（已评审 2026-10-14）
-- [x] RULE-357 Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive（`DeptServiceImpl.java:200-305`，置信度 High） — 修正：A8 部门随 A8 新增、更新、撤销、恢复；PSA 不再有手工部门（D-06）；PSA 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。（已评审 2026-10-14）
+- [x] RULE-357 Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive（`DeptServiceImpl.java:200-305`，置信度 High） — 修正：A8 部门随 A8 新增、更新、撤销、恢复；FORCITIS one 不再有手工部门（D-06）；FORCITIS one 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。（已评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-361 A8 user sync scope uses a substring match, unlike the dept prefix rule（`A8UserMapper.java:24-40`，置信度 High） → 新系统做法：人员同步范围改用与部门同步相同的前缀规则（PATH 以 00000001 开头），人员不指向未同步部门。（不复刻；评审 2026-10-14）
-- [x] RULE-362 A new A8 person becomes a PSA user with username = phone and a default password（`SyncServiceImpl.java:299-340`，置信度 High） — 修正：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。（已评审 2026-10-14）
-- [x] RULE-363 Resignation = A8 login name is null → PSA user soft-deleted（`SyncServiceImpl.java:359-369`，置信度 High） — 修正：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。（已评审 2026-10-14）
-- [x] RULE-364 Rehire and phone change restore and re-enable the PSA user（`SyncServiceImpl.java:380-398`，置信度 High） — 修正：复职（A8 重新有登录名）时恢复；换手机号不覆盖 PSA 的手工停用（启用状态由 PSA 拥有）；用户名跟随 A8 登录名同步。（已评审 2026-10-14）
+- [x] RULE-362 A new A8 person becomes a legacy-system user with username = phone and a default password（`SyncServiceImpl.java:299-340`，置信度 High） — 修正：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。（已评审 2026-10-14）
+- [x] RULE-363 Resignation = A8 login name is null → legacy-system user soft-deleted（`SyncServiceImpl.java:359-369`，置信度 High） — 修正：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。（已评审 2026-10-14）
+- [x] RULE-364 Rehire and phone change restore and re-enable the legacy-system user（`SyncServiceImpl.java:380-398`，置信度 High） — 修正：复职（A8 重新有登录名）时恢复；换手机号不覆盖 FORCITIS one 的手工停用（启用状态由 FORCITIS one 拥有）；用户名跟随 A8 登录名同步。（已评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-365 Per-field update semantics in user sync are asymmetric（`SyncServiceImpl.java:342-441`，置信度 High） → 新系统做法：A8 权威列按值同步并显式写 NULL（汇报线清空也同步）；单行缺部门或岗位时隔离该行并告警，不中断整批。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-366 Users that drop out of the A8 result set are never deactivated（`SyncServiceImpl.java:283-441`，置信度 Medium） → 新系统做法：不在 A8 结果中的人员视为离职候选，经与部门同步相同的 80% 缩水保护后停用并吊销会话。（不复刻；评审 2026-10-14）
 - [x] RULE-372 Two separate leader concepts: person leader and dept leader（`SyncServiceImpl.java:324-405`，置信度 High） — 修正：「直属领导」（人员 leader）与「部门负责人」两个概念保留，每个流程写明用哪一个；同步时校验存在、在职、非本人、无环，不合格的报告数据管理员；审批取人按 RULE-250 往上推一级。（已评审 2026-10-14）
@@ -428,7 +428,118 @@ Exit criteria:
 
 #### Phase 1a
 
-待流程梳理
+# Phase 1a 流程梳理结论（行为契约）
+
+只收录已有用户决定的差异，每条一句可测试的行为；来源与证据见同目录各流程文档。由 `build_all.py` 生成到 brief §5「流程梳理结论」。
+
+## 组织与人员同步
+
+- D-1a-01：只读 4 个 A8 视图，列白名单启动校验，A8 账号无写权限（用户决定：「确保权责业务事实全部在新系统」「改名并移到 integration」（`INTENT.md`，REIMAGINED_ARCHITECTURE §integration））
+- D-1a-02：新系统独立读 A8，不读不写老表；老同步保留到老系统不再读老用户表为止（最迟 Phase 5）；对账只比新快照与 A8（用户决定：intent/2026-10-14-103-1a流程-组织-双同步.md）
+- D-1a-03：每 5 分钟全量同步、单事务；生产以环境变量开启（用户决定：intent/2026-10-14-110-1a流程-组织-其余建议.md）
+- D-1a-04：前缀 `00000001%`，与部门一致（用户决定：RULE-361 评审（RULE_REVIEWS 第三批））
+- D-1a-05：ACTIVE / DISABLED / REVOKED 三态；NULL 视为有效并记问题清单（生产 NULL 0 行，`phase1a/A8_DEPT_NULL_FLAGS.md`）（用户决定：RULE-355 评审；NULL 确认人见 D-1a-08）
+- D-1a-06：NULL 视为内部，并记入问题清单由组织数据管理员在 A8 补齐；生产计数待查（用户决定：intent/2026-10-14-109-1a流程-组织-人员NULL标志.md）
+- D-1a-07：有效部门数与在职人数各自下降超 20% 即 HELD（用户决定：RULE-358 保留、RULE-366「经与部门同步相同的 80% 缩水保护」）
+- D-1a-08：新增角色「组织数据管理员」（放行、法人维护、问题清单），由业务 Admin 指定人选；放行须填原因；HELD 与每日问题汇总经企业微信发给该角色（用户决定：intent/2026-10-14-104-1a流程-组织-放行与告警.md）
+- D-1a-09：同步批次 RUNNING / SUCCEEDED / HELD / RELEASED / FAILED，不设「拒绝」；HELD 只能放行或等源修复后自动恢复（用户决定：intent/2026-10-14-110-1a流程-组织-其余建议.md）
+- D-1a-10：每天自动对账并可手动触发；比较人员、部门、上级关系，并加部门负责人、区域 AR、企业微信 ID；差异进问题清单，由组织数据管理员在 A8 修正后重新同步；1a 出口要求零差异，不接受签字豁免（用户决定：intent/2026-10-14-105-1a流程-组织-对账.md）
+- D-1a-11：全部舍弃，组织数据只读，改动回 A8（用户决定：D-06「按建议批准」（检查点 1）；RULE-359/368/369 评审）
+- D-1a-12：A8 权威列按值同步含 NULL；生日推迟到费用阶段（用户决定：intent/2026-10-14-110-1a流程-组织-其余建议.md）
+- D-1a-13：建档即写入；同一 ID 属多名在职者时都不存并记问题；登录未命中按 A8 单人查询当场建档（用户决定：intent/2026-10-14-110-1a流程-组织-其余建议.md）
+- D-1a-14：新建账号时显式授予一次 `employee`，管理员移除后不补回（用户决定：RULE-344 评审）
+- D-1a-15：领导不存在、已离职、是本人或成环时写空并记问题；审批按 RULE-250 往上推，推不到转流程管理员并告警（用户决定：intent/2026-10-14-106-1a流程-组织-汇报线不合格.md）
+- D-1a-16：离职（登录名为空、A8 不再返回）即吊销全部会话并收回角色；HR 字段继续更新（用户决定：RULE-338、RULE-363 评审）
+- D-1a-17：复职时重新授予基础角色（employee），其余角色由管理员重新分配；审计记录（用户决定：intent/2026-10-14-115-1a流程-复职角色.md）
+- D-1a-18：同步发现离职后，其待办按节点指派规则重新取人（汇报线往上推），取不到转流程管理员并告警；审计记录原、新处理人（用户决定：intent/2026-10-14-107-1a流程-组织-离职者在途待办.md）
+- D-1a-19：员工 EMPLOYED / SEPARATED（workforce）与账号 ENABLED / DISABLED（identity）分开；同步不动账号启用状态；A8 缺席即 SEPARATED（用户决定：RULE-364、366 评审）
+- D-1a-20：ACTIVE / DISABLED / DELETED 同步（用户决定：RULE-367 评审）
+- D-1a-21：一轮单事务写入，缺失行隔离并记问题（用户决定：RULE-365 评审）
+- D-1a-22：递归保留，权限范围排除已撤销部门，历史报表可含（用户决定：RULE-360 评审）
+- D-1a-23：`OrgSnapshotChanged` 至少一次投递；字段清单与同步字段同一份；已撤销不重复发（用户决定：RULE-373 评审）
+- D-1a-24：账号由组织变更事件异步创建，登录未命中当场建档兜底；1a 不加岗位、法人变更事件（用户决定：intent/2026-10-14-110-1a流程-组织-其余建议.md）
+- D-1a-25：新维护页上线前，每天从老库只读视图刷新（用户决定：intent/2026-10-14-110-1a流程-组织-其余建议.md）
+- D-1a-26：法人小表由新系统组织数据管理员维护；停用后不能用于新单据编号，历史单据保留原法人（用户决定：intent/2026-10-14-104-1a流程-组织-放行与告警.md；intent/2026-10-14-110-1a流程-组织-其余建议.md）
+- D-1a-27：1a 即增加员工→法人生效区间表，由组织数据管理员维护（用户决定：intent/2026-10-14-108-1a流程-组织-法人归属.md）
+- D-1a-28：法人表增加「U8C 核算组织编码」（数字、唯一）；字母代码继续用于业务编号；对接 U8C 与老系统按数字编码（用户决定：intent/2026-10-14-111-1a流程-组织-法人代码格式.md）
+
+## 登录与会话
+
+- D-1a-29：不迁移；外部调用方改用签名、≤60 s、一次性票据，拒绝管理员角色（用户决定：RULE-318/319 评审；检查点 1「D-01..D-09 全部舍弃」）
+- D-1a-30：先盘点调用方（含查明 customization-login 的调用方）；每个调用方一份切换步骤、一把密钥；签发方由用户逐个批准开启并做安全复审；老端点到 Phase 5 下线（用户决定：intent/2026-10-14-112-1a流程-登录-外部调用方切换.md）
+- D-1a-31：须已登录，KM 身份取自会话，签名票据、HTTPS，密钥进配置并轮换；与入站票据分开（出站方向）（用户决定：RULE-329 评审）
+- D-1a-32：新系统不读、不写、不校验老令牌表；老系统后端不得作为票据签发方；相关文档按此统一（用户决定：「取消桥接 (Recommended)」、检查点 2 Q-1（INTENT））
+- D-1a-33：新系统不识别老令牌；从合并待办点老待办时，PC 未登录老系统则回老登录页，H5 在企业微信内静默登录老系统（用户决定：Q-1「1a 删除桥接」；REIMAGINED_ARCHITECTURE「1a 可接受」）
+- D-1a-34：三个入口统一按 `we_com_id` 精确映射，未映射拒绝（用户决定：RULE-324 评审）
+- D-1a-35：上线前按「在职但无企业微信 ID」清单由组织数据管理员在 A8 补齐；1a 出口要求该清单为 0（确无企业微信者逐个登记原因）（用户决定：intent/2026-10-14-120-1a流程-登录-企业微信ID覆盖.md）
+- D-1a-36：小程序保留，与 H5 共用映射与「启用且在职」（用户决定：RULE-323「保留 (Recommended)」）
+- D-1a-37：同一服务端会话；小程序用请求头携带会话标识、不用 Cookie，该入口不接受 Cookie 故无需 CSRF；不引入令牌对（用户决定：intent/2026-10-14-114-1a流程-登录-小程序会话.md）
+- D-1a-38：Taro 4 H5 企业微信静默登录与待办（用户决定：检查点 1 批准 C1a-19 为 P0）
+- D-1a-39：前端落地页接收回跳，再 POST 到 `sessions:*-login`，返回 JSON；规格改为与代码一致；补外部票据落地页；一次性凭证不出现在服务端访问日志的 GET 参数中（用户决定：intent/2026-10-14-121-1a流程-登录-接口形态.md）
+- D-1a-40：同样做法，新回跳地址由 A8 管理员登记；失败页给「回到老系统登录」（用户决定：RULE-320/321 按老行为复刻（未标记评审））
+- D-1a-41：服务端会话，空闲 10 小时、绝对 24 小时，均为配置项；登录时更换会话 ID（用户决定：「空闲10h+上限24h (Recommended)」（RULE-331/332））
+- D-1a-42：无刷新令牌（用户决定：RULE-333 评审）
+- D-1a-43：停用、离职（含同步）、角色变更即时吊销全部会话；每次请求校验账号与在职状态（缓存 ≤ 60 秒）（用户决定：RULE-338/363/366 评审）
+- D-1a-44：同步每 5 分钟；距上次成功超过 2 个周期（10 分钟）或被拦下即告警；离职者最长约 6 分钟失效（用户决定：intent/2026-10-14-123-1a流程-登录-其余建议.md）
+- D-1a-45：停用、离职、角色变更都写「会话吊销」审计；会话本身不设状态字段，过期 / 吊销 / 登出原因只记审计（用户决定：intent/2026-10-14-123-1a流程-登录-其余建议.md）
+- D-1a-46：登出失效会话并审计；无会话时也返回成功（用户决定：RULE-334 按老行为复刻（未标记评审））
+- D-1a-47：员工无口令；应急账号强口令（≥ 12 位 + 复杂度）+ TOTP + 5 次失败锁 15 分钟，仅内网；改口令后吊销其其他会话（用户决定：RULE-316/317/370 评审；C1a-04）
+- D-1a-48：应急账号不绑员工、不依赖 A8；保留 2 个；运维用受控脚本开通 / 启停 / 重置口令与 TOTP，全部审计（用户决定：intent/2026-10-14-113-1a流程-登录-应急账号.md）
+- D-1a-49：切换前盘点非 A8 账号，去留由用户逐个决定（用户决定：Q-4「四项都同意」（待执行））
+- D-1a-50：均不迁移（用户决定：「短信不迁移，审批通知走企业微信」；D-01..D-03；RULE-325/328 评审）
+- D-1a-51：默认拒绝；身份只来自服务端会话；无效会话 401；匿名遍历全部接口返回 401（用户决定：RULE-336/337 评审；C1a-07）
+- D-1a-52：登录未命中即时到 A8 查一人建档；`employee` 仅在建档时授予一次（用户决定：RULE-344 评审；见 D-1a-14、D-1a-24）
+- D-1a-53：不迁移，老表只读归档；老系统下线时导出，保留期按公司审计要求（下线前再定）（用户决定：intent/2026-10-14-122-1a流程-登录-历史登录日志.md）
+- D-1a-54：账号 ENABLED / DISABLED（identity 拥有）与员工 EMPLOYED / SEPARATED（workforce 拥有）分开（用户决定：RULE-363/364 评审；见 D-1a-19）
+- D-1a-55：致远票据、签名票据 nonce、OAuth state 均为数据库唯一键原子一次性；state 10 分钟（用户决定：I-9；RULE-320）
+- D-1a-56：签发方默认关闭；由用户逐个批准后以受控变更开启（见 D-1a-30）（用户决定：intent/2026-10-14-112-1a流程-登录-外部调用方切换.md）
+- D-1a-57：规格中的 `AccountStatusChanged` 删去，停用时同步吊销会话；有订阅方时再加；老系统外部订阅方在 Phase 5 前盘点（用户决定：intent/2026-10-14-123-1a流程-登录-其余建议.md）
+- D-1a-58：登录后按哪个法人生效、数据范围授予表由谁维护，在 1b 流程梳理时定（用户决定：intent/2026-10-14-123-1a流程-登录-其余建议.md）
+
+## 审批通用流程
+
+- D-1a-59：候选组，先认领后处理；通知发给候选组全员（用户决定：RULE-249「错误，改成候选组认领」；Q-3「通知发候选组全员 (Recommended)」）
+- D-1a-60：汇报线不完整往上推一级，一直找不到转流程管理员并告警（用户决定：RULE-250（用户原话见 RULE_REVIEWS））
+- D-1a-61：流程管理员是角色（可多人）；取不到人的任务进该角色候选组并用企业微信告警；管理员可改派（填原因、审计）；生产未配置时系统拒绝启动（用户决定：intent/2026-10-14-124-1a流程-审批-流程管理员.md）
+- D-1a-62：仅显式配置且确实无人时跳过；配置错误或脚本异常报错告警（用户决定：RULE-300 评审）
+- D-1a-63：排除停用（账号）与离职（员工）；部门无负责人取上级部门负责人；候选集无空值（用户决定：RULE-253 评审）
+- D-1a-64：只有没有其他非发起人候选时才升级到直属领导（用户决定：RULE-307 评审）
+- D-1a-65：不自动通过，按反自审升级给直属领导（用户决定：intent/2026-10-14-128-1a流程-审批-办理动作.md）
+- D-1a-66：保留自动同意；行内容在上次审批后有变化（按内容比对）则必须重审；自动同意也发任务结果事件并标注「自动」（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
+- D-1a-67：知会在合并待办里单列，发卡片，打开即已读，不阻塞流程；随第一个用到知会的流程交付（用户决定：intent/2026-10-14-130-1a流程-审批-知会历史投递.md）
+- D-1a-68：会签 / 或签与行级审批随第一个使用者交付（用户决定：Q-3「收窄」；RULE-248）
+- D-1a-69：退回即以「已退回」结束本轮；重提开新一轮，历史按轮次保留（用户决定：RULE-275/287「退回即结束本轮，重提开新一轮 (Recommended)」；RULE-293）
+- D-1a-70：同（用户决定：RULE-271/290 已定）
+- D-1a-71：同一轮内回退重审，状态仍为审批中，不通知业务模块，审计记录；随第一个用到的流程交付（用户决定：intent/2026-10-14-128-1a流程-审批-办理动作.md）
+- D-1a-72：撤回与退回一样结束本轮（记为已退回，来源发起人撤回），单据回到可编辑，重提开新一轮；显示与执行同一判断（用户决定：intent/2026-10-14-128-1a流程-审批-办理动作.md）
+- D-1a-73：撤销不删历史，原审批人仍可见单据与审批记录；单据回草稿、不记驳回（用户决定：RULE-288、RULE-279 评审）
+- D-1a-74：同（用户决定：RULE-268/309 已定）
+- D-1a-75：只能转给在职、非发起人用户；原因必填并审计；候选组任务须先认领再转交；通知被转交人（用户决定：intent/2026-10-14-128-1a流程-审批-办理动作.md）
+- D-1a-76：只有已认领的当前处理人可加签；加签人须在职、非发起人；加签意见只作参考（行节点同样）（用户决定：intent/2026-10-14-129-1a流程-审批-加签重提钩子时限.md）
+- D-1a-77：批量只处理本人待办；只有流程管理员可代理，每次选被代理人并填原因，可代理通过与驳回，审计记录操作人与被代理人，企业微信通知被代理人，不设长期委托（用户决定：intent/2026-10-14-125-1a流程-审批-代理边界.md）
+- D-1a-78：唯一键（流程类型，单据 ID，轮次）；同一单据 + 轮次的重试返回原实例；已退回、已驳回、已撤销可开新一轮；已通过不允许再发起（用户决定：intent/2026-10-14-126-1a流程-审批-重新发起.md）
+- D-1a-79：发起人只能是当前登录用户；所有续跑入口检查轮次；只有原发起人能重提；发起人离职时由流程管理员撤销在途审批并通知业务负责人重新发起；管理员不能代发起（用户决定：intent/2026-10-14-129-1a流程-审批-加签重提钩子时限.md）
+- D-1a-80：钩子保留，字段写入与任务完成同一事务；失败返回明确校验信息，不延续弹窗协议（用户决定：intent/2026-10-14-129-1a流程-审批-加签重提钩子时限.md）
+- D-1a-81：退回后其余未审行统一改为「已退回」，重提整单重新审批（用户决定：RULE-293（用户亲自决定）、RULE-292）
+- D-1a-82：类型化事件经事件发布登记表，至少一次，消费方幂等；不从引擎记录反推；钩子与业务处理都执行、顺序固定（用户决定：RULE-295/304/308「错误」、RULE-303「正确」、RULE-311）
+- D-1a-83：待办 / 完成 / 知会卡片；候选组每人一张，认领后更新；发起人收到结果通知（用户决定：C1a-15、Q-3、ADR-0019）
+- D-1a-84：时限按流程节点配置（工作日），未配置不计时；到期提醒、再过 1 个工作日升级直属上级（取不到给流程管理员并告警）；不自动通过；按工作日小时统计时效；企业微信卡片 + 合并待办标红（用户决定：intent/2026-10-14-129-1a流程-审批-加签重提钩子时限.md；intent/2026-10-14-118-1a流程-审批时效统计.md）
+- D-1a-85：老实例在老引擎走完；每个流程在其业务迁入阶段出口前排空；停滞超 30 天的老实例每周列清单给流程管理员处理；离职者名下老任务同样列入（用户决定：intent/2026-10-14-127-1a流程-审批-在途老单据.md）
+- D-1a-86：新任务（含候选组）+ 老库只读视图，行任务合并，计数一致（用户决定：RULE-261；C1a-14）
+- D-1a-87：规格的接口路径、权限点（`decide` / `approve`）与 `rows[]` 按代码修订（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
+- D-1a-88：结果枚举含 RETURNED（退回结束本轮）；规格同步（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
+- D-1a-89：单一枚举 RUNNING / RETURNED / APPROVED / REJECTED / CANCELLED；退回 RUNNING → RETURNED，重提 RETURNED → RUNNING（新一轮）（用户决定：RULE-289；M3；RULE-293）
+- D-1a-90：新增只追加的任务办理记录（含自动同意、加签建议、转交、代理），已办与逐轮历史从中查询；撤销后原审批人仍可见（用户决定：intent/2026-10-14-130-1a流程-审批-知会历史投递.md）
+- D-1a-91：事件登记表 + 出站投递 PENDING / SENT / SKIPPED / FAILED / DEAD_LETTER（8 次后死信）；进死信即告警运维与流程管理员；管理页可重投或放弃（填原因、审计）（用户决定：intent/2026-10-14-130-1a流程-审批-知会历史投递.md）
+- D-1a-92：退回（含撤回）后业务单据回到可编辑并带「已退回」标记，具体状态名在各业务阶段定（用户决定：intent/2026-10-14-130-1a流程-审批-知会历史投递.md）
+- D-1a-93：1a 只有 4 种类型；其余随各流程迁入时翻译（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
+- D-1a-95：任务结果含 APPROVED / REJECTED / RETURNED；自动同意发结果并标「自动」；加签建议不作正式结果；结果事件带行 ID（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
+- D-1a-96：去掉通用回写，业务模块监听类型化结果事件（用户决定：RULE-308）
+- D-1a-97：转交、加签、知会事件随功能交付时补；AFTER 钩子与老任务创建 / 活动消息的去留随第一个使用者（差旅 Phase 3）定；规格补列 TaskClaimed（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
+- D-1a-98：登记表默认重试；企业微信出站 8 次后死信；消费方必须幂等（用户决定：RULE-303）
+- D-1a-99：审批请求记录单据法人（业务模块传入）；取人不限同法人；审批期间可见性按参与人规则、不受法人范围限制；1b 落地（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
+- D-1a-100：1a 不用 DMN（BPMN 扩展属性 + `AssigneeResolver`）；出现真正的多维决策表时在该阶段引入 DMN（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
+- D-1a-101：审批请求拥有审批状态，业务模块拥有单据状态，经事件同步（用户决定：RULE-308、RULE-279、RULE-289）
 
 #### Phase 1b
 
@@ -476,7 +587,7 @@ Phase 1a 开始前需要决定的事项（逐项勾选）：
 - [x] **前端栈**：PC 采用 React 19 + TS + Vite + Ant Design 5 + TanStack Query + Zod，与 H5 统一为 React（ADR-0013，用户 2026-10-14 决定：「前端就用 React」）
 - [x] **设计正本**：「Forcitis One Design System」（用户 2026-10-14 决定）；「FORCITIS one（Storm）」只作交互参考
 - [x] **权责发生制主干**：已采纳 ADR-0016（用户 2026-10-14）（单一过账管道、事实只追加、(期间, 法人) 期间闸门、新增 `accounting.period`、U8C 本期仍为法定账）
-- [x] **与边界蓝图的关系**：已采纳 ADR-0017（用户 2026-10-14）（模块沿用 PSA 子域划分并登记蓝图 BC 编号；蓝图的财务不变量作为硬约束；技术栈按本项目评估确定、不沿用 DD-8；D11 / D12 / DD-6 不在本 brief 范围）
+- [x] **与边界蓝图的关系**：已采纳 ADR-0017（用户 2026-10-14）（模块沿用老系统子域划分并登记蓝图 BC 编号；蓝图的财务不变量作为硬约束；技术栈按本项目评估确定、不沿用 DD-8；D11 / D12 / DD-6 不在本 brief 范围）
 - [x] **SEC-107**：立即删除生产 nginx 的 `/other-api` location（由运维执行后 reload）（用户 2026-10-14 决定）
 - [x] **用语确认**：2026-10-14 业务 Admin 在用语确认页确认全部 197 项（A 组 4 项为方言、B 组 59 项同意改为标准用语、C 组 134 项确认为正式用语），`terms.yaml` 293 条全部已批准（ADR-0018）
 - [x] **BC slug**：批准 GLOSSARY §1 的现有 slug，含新增 `accounting.period`（用户 2026-10-14 决定）

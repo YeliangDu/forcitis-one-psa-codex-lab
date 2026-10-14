@@ -2,8 +2,11 @@
 """从片段目录生成 INTENT.md、SESSION_LOG.md、STATUS.md（用户 2026-10-14：「一条记录一个文件」）。
 
 会话只新增或修改片段，不直接编辑这三个生成产物（SESSION_PLAYBOOK §1）。
-- intent/：_header.md + 每条用户决定一个文件（## 原话 / ## 落点），按文件名排序
-- session-log/：_header.md + 每条会话日志一个文件（以「## 日期 · 会话 · 单元」开头），按文件名排序
+- intent/：_header.md + 每条用户决定一个文件（## 原话 / ## 落点）
+- session-log/：_header.md + 每条会话日志一个文件（以「## 日期 · 会话 · 单元」开头）
+  两者的文件名为 <日期>-<HHMMSS>-<会话名>-<短名>.md（new_intent.py / new_log.py 生成，并行会话无需协调），
+  或迁移时的旧格式 <日期>-<三位序号>-<短名>.md；同一天内旧格式在前、按序号，新格式在后、按时间，再按文件名。
+  旧格式同日序号重复时只警告，不失败。
 - status/：_header.md、_position.md；units/ 每个工作单元一个文件（键值行，按「排序」）；blockers/ 每条阻塞一个文件
 片段格式不合规时生成失败，不写任何产物。
 """
@@ -17,9 +20,27 @@ def read(path):
     return open(path, encoding="utf-8").read()
 
 
+WARNINGS = []
+
+
 def fragments(folder):
     d = os.path.join(BASE, folder)
     return [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith(".md") and not f.startswith("_")]
+
+
+def dated_fragments(folder):
+    keyed, seen = [], {}
+    for p in fragments(folder):
+        name = os.path.basename(p)
+        if m := re.match(r"(\d{4}-\d{2}-\d{2})-(\d{6})-", name):
+            keyed.append(((m.group(1), 1, m.group(2), name), p))
+        elif m := re.match(r"(\d{4}-\d{2}-\d{2})-(\d{3})-", name):
+            keyed.append(((m.group(1), 0, m.group(2), name), p))
+            seen.setdefault(m.group(1, 2), []).append(name)
+        else:
+            raise ValueError(f"{p}：文件名须为 <日期>-<HHMMSS>-<会话名>-<短名>.md（用 new_intent.py / new_log.py 生成）")
+    WARNINGS.extend(f"{folder}/ 序号重复（按文件名排序）：{'、'.join(v)}" for v in seen.values() if len(v) > 1)
+    return [p for _, p in sorted(keyed)]
 
 
 def table_cell(text, where):
@@ -31,7 +52,7 @@ def table_cell(text, where):
 
 def build_intent():
     rows = []
-    for p in fragments("intent"):
+    for p in dated_fragments("intent"):
         m = re.fullmatch(r"## 原话\n\n(.*)\n\n## 落点\n\n(.*)\n", read(p), re.S)
         if not m:
             raise ValueError(f"{p}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点")
@@ -41,7 +62,7 @@ def build_intent():
 
 def build_session_log():
     entries = []
-    for p in fragments("session-log"):
+    for p in dated_fragments("session-log"):
         t = read(p)
         if not re.match(r"## \d{4}-\d{2}-\d{2} · [^\n]+ ?· [^\n]+\n", t) or re.search(r"(?m)^## ", t[3:]):
             raise ValueError(f"{p}：须以「## 日期 · 会话名 · 工作单元」开头，且只含这一个二级标题")
@@ -81,6 +102,8 @@ def main():
         sys.exit(f"片段校验失败：{e}")
     for name, text in out.items():
         open(os.path.join(BASE, name), "w", encoding="utf-8").write(text)
+    for w in WARNINGS:
+        print("警告：" + w, file=sys.stderr)
     print("records:", ", ".join(out))
 
 

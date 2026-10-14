@@ -63,22 +63,22 @@
 
 来源：生产只读查询 `msdb` 作业元数据。只取了作业名、步骤名、目标库、调度、最近运行状态，以及步骤正文中引用的库表名，未取正文（`r0/BI_USAGE_SUMMARY.md` §3；原始结果在仓库外 `~/.modernize/psa/bi-inputs/runtime/bi_09_*.tsv`、`bi_10_*.tsv`）。这些作业在 psa 仓库中没有脚本，只存在于生产 SQL Agent，全部启用，最近一次运行均为 2026-10-14 且成功。「同步商机档案到 PSA」作业即 #26 / #27 的生产作业，不另编号。
 
-| # | 作业（步骤数，调度） | 读取（A8 / BI 视图） | 写入（老 PSA） | 分类 | 新系统去向 |
+| # | 作业（步骤数，调度） | 读取（A8 / BI 视图） | 写入（老系统） | 分类 | 新系统去向 |
 |---|---|---|---|---|---|
-| 28 | 同步成本明细到PSA（3 步：插入、更新项目已发生成本明细；委外和居间付款申请不结转；每小时） | `formmain_0051`（项目档案）、`formson_0640`（付款申请）、`formson_1226`（特殊付款），以及 BI 视图 `T_FST_PAY`（A8 报销、付款七类单据 + 老 PSA 项目） | `psa_pm_pay` | **权责**（项目已发生成本：费用、付款） | Phase 4 / 6c：改为 `expense.spend`、应付与付款 BC 的自有事实经过账管道归集；步骤 3「委外和居间付款申请不结转」是隐含业务规则，须在 6c 规则抽取中登记 |
-| 29 | 同步项目档案到PSA（2 步：导入、更新；每 30 分钟） | `formmain_0051`、`formmain_0219`、`formmain_0238`、`formmain_0457`、`formmain_0763`、`formmain_0919`、`formmain_0973`，以及 BI 视图 `T_FST_PROJECT` | `psa_pm_project` | **权责参照**（项目档案中的合同金额、交付部门、条款等合同基线属性）+ 项目主数据 | Phase 2 / 6a：项目在新系统立项（`delivery.execution`），合同基线属性归 `contract.baseline`（6a）；Phase 2 起不得再以 A8 项目档案覆盖新系统项目 |
-| 30 | 同步项目预算到PSA（7 步：预算、人工成本明细、其他费用明细的插入与更新，补人天为空的明细；每 10 分钟） | `formmain_0051`、`formmain_0574`（项目预算编制），A8 库内视图 `T_FST_PSA_BUDGET_WORKS`、`T_FST_PSA_BUDGET_WORKS_COST` | `psa_pm_budget`、`psa_pm_budget_works`、`psa_pm_budget_works_cost` | **权责相关**（项目成本预算：成本控制基线，不过账；与 PSA 自己的 PM_BUDGET 形成双入口，RULE-182 / 239） | Phase 2：预算只在新系统编制（`delivery.execution`），A8「项目预算编制 / 变更」模板随之停用（OA_PROCESS_INVENTORY #79、#80） |
-| 31 | 同步工时档案（4 步：插入、删除、更新工时档案，更新无效交付工时分录；每小时） | 前 3 步只在老 PSA 库内加工（`psa_time_sheet*`、`psa_pm_project`、`psa_pm_plan_task`）；第 4 步读 BI 视图 `T_FST_INVALID_DELIVERY`（由 A8 项目档案与风险客户派生） | `psa_time_sheet_works_end` | **权责**（工时成本归类：无效交付标记影响工时成本去向） | Phase 2：工时成本归类规则改由 `cost.timesheet` 依据新系统项目与风险客户事实判定，不再读 BI 视图；作业名「A8 工时明细档案同步到 PSA」与实际不符（不直读 A8） |
-| 32 | 同步商机档案到PSA-pre、同步项目档案到PSA-pre（每小时 / 每 30 分钟） | 预发布 A8 库 `a8_db_pre` 的 `formmain_0219`、`0051`、`0238`、`0457`、`0763`、`0919`、`0973` | 预发布 PSA 库 `ruoyi-vue-pre` | 否（预发布环境，非生产数据） | 随 #27、#29 停用；须确认预发布库在生产实例上的存续与权限 |
+| 28 | `同步成本明细到PSA`（3 步：插入、更新项目已发生成本明细；委外和居间付款申请不结转；每小时） | `formmain_0051`（项目档案）、`formson_0640`（付款申请）、`formson_1226`（特殊付款），以及 BI 视图 `T_FST_PAY`（A8 报销、付款七类单据 + 老系统项目） | `psa_pm_pay` | **权责**（项目已发生成本：费用、付款） | Phase 4 / 6c：改为 `expense.spend`、应付与付款 BC 的自有事实经过账管道归集；步骤 3「委外和居间付款申请不结转」是隐含业务规则，须在 6c 规则抽取中登记 |
+| 29 | `同步项目档案到PSA`（2 步：导入、更新；每 30 分钟） | `formmain_0051`、`formmain_0219`、`formmain_0238`、`formmain_0457`、`formmain_0763`、`formmain_0919`、`formmain_0973`，以及 BI 视图 `T_FST_PROJECT` | `psa_pm_project` | **权责参照**（项目档案中的合同金额、交付部门、条款等合同基线属性）+ 项目主数据 | Phase 2 / 6a：项目在新系统立项（`delivery.execution`），合同基线属性归 `contract.baseline`（6a）；Phase 2 起不得再以 A8 项目档案覆盖新系统项目 |
+| 30 | `同步项目预算到PSA`（7 步：预算、人工成本明细、其他费用明细的插入与更新，补人天为空的明细；每 10 分钟） | `formmain_0051`、`formmain_0574`（项目预算编制），A8 库内视图 `T_FST_PSA_BUDGET_WORKS`、`T_FST_PSA_BUDGET_WORKS_COST` | `psa_pm_budget`、`psa_pm_budget_works`、`psa_pm_budget_works_cost` | **权责相关**（项目成本预算：成本控制基线，不过账；与老系统自己的 PM_BUDGET 形成双入口，RULE-182 / 239） | Phase 2：预算只在新系统编制（`delivery.execution`），A8「项目预算编制 / 变更」模板随之停用（OA_PROCESS_INVENTORY #79、#80） |
+| 31 | 同步工时档案（4 步：插入、删除、更新工时档案，更新无效交付工时分录；每小时） | 前 3 步只在老系统库内加工（`psa_time_sheet*`、`psa_pm_project`、`psa_pm_plan_task`）；第 4 步读 BI 视图 `T_FST_INVALID_DELIVERY`（由 A8 项目档案与风险客户派生） | `psa_time_sheet_works_end` | **权责**（工时成本归类：无效交付标记影响工时成本去向） | Phase 2：工时成本归类规则改由 `cost.timesheet` 依据新系统项目与风险客户事实判定，不再读 BI 视图；作业名「A8 工时明细档案同步到 PSA」与实际不符（不直读 A8） |
+| 32 | `同步商机档案到PSA-pre`、`同步项目档案到PSA-pre`（每小时 / 每 30 分钟） | 预发布 A8 库 `a8_db_pre` 的 `formmain_0219`、`0051`、`0238`、`0457`、`0763`、`0919`、`0973` | 预发布老系统库 `ruoyi-vue-pre` | 否（预发布环境，非生产数据） | 随 #27、#29 停用；须确认预发布库在生产实例上的存续与权限 |
 
 **§9a 影响**（GUIDING_PRINCIPLES §9a、ADR-0021 第 2 条）：
-1. #28–#31 是在仓库之外运行的 A8 / BI → 老 PSA 数据通道，其中 #28、#31 承载权责事实，#29、#30 承载合同基线参照与成本控制基线。新系统中这些通道**不得以直连 A8 或读 BI 视图的方式延续**。
+1. #28–#31 是在仓库之外运行的 A8 / BI → 老系统数据通道，其中 #28、#31 承载权责事实，#29、#30 承载合同基线参照与成本控制基线。新系统中这些通道**不得以直连 A8 或读 BI 视图的方式延续**。
 2. 按阶段改为新系统自有事实：
    - 项目与预算 → Phase 2（预算）/ 6a（合同基线属性）；
    - 工时档案 → Phase 2；
    - 成本明细 → Phase 4 / 6c。
    各阶段出口时，本表对应行改为「已停用」，并在生产 SQL Agent 中禁用对应作业（运维动作，经用户批准）。
-3. BI 视图（`T_FST_PAY`、`T_FST_PROJECT`、`T_FST_INVALID_DELIVERY`）**处在老 PSA 的权责数据路径上**：BI 库不只是报表读方。在上述阶段切换前，这些视图不能改为过渡镜像或废弃（BI_SCOPE §4.3 补充）。
+3. BI 视图（`T_FST_PAY`、`T_FST_PROJECT`、`T_FST_INVALID_DELIVERY`）**处在老系统的权责数据路径上**：BI 库不只是报表读方。在上述阶段切换前，这些视图不能改为过渡镜像或废弃（BI_SCOPE §4.3 补充）。
 
 ### 写入 A8（A8 被当作存放地，不能延续）
 

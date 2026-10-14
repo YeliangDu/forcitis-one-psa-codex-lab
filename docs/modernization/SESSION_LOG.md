@@ -238,6 +238,27 @@
 - 下一步命令：合并后由 psa-coordinator 通知在途会话改用片段文件。
 - 会话 ID：本会话（worktree xin-884358，分支 claude/psa-repo-fragments）
 
+## 2026-10-14 · psa-authz-model · 授权模型 ADR-0026（提议）
+- 目标：psa-coordinator 派工——写授权模型 ADR-0026（数据范围机制、法人维度、审批访问、职责分离、super_admin 边界、授权治理、敏感字段、老角色迁移），提议阶段做 architecture-critic 评审，列出需用户决定的事项。
+- 输入（读过的状态文件、上一条日志）：STATUS、SESSION_PLAYBOOK §5、§12、adr/src/_readme_lifecycle.md、ADR-0009、ADR-0024（格式）、RULE_REVIEWS（RULE-270、307、336–353、363、366）、IDENTITY_ORG_RULES、REIMAGINED_ARCHITECTURE §2.1、§3、GUIDING_PRINCIPLES §6、U8C_CAPABILITY_MAP §2.2、SECURITY_INVARIANTS；main fde2c74 的 platform.identity / workforce / audit / approval 代码（sonnet 子代理盘点）。
+- 用户决定（原话）：问「1a 还有哪些设计需要现在考虑？权限系统？」，选「写授权模型 ADR，1a 实现数据权限 (Recommended)」（经 psa-coordinator 转达，已用 new_intent.py 记录）。
+- 产出（文件 / 提交 / 发布的页面）：adr/src/ADR-0026.md（提议；部分取代 ADR-0009 第 4 条）及生成的 adr/ADR-0026.md、adr/README.md；intent 片段；status/units 新单元；本日志。
+- 验证（跑了什么、结果）：build_all.py 通过（25 份 ADR，必备小节齐全）；architecture-critic（opus）评审初稿：阻断 3、重要 14、建议 4，全部采纳并写入 ADR「证据」；修订稿未再派第二个评审代理。代码事实盘点用 sonnet。
+- 未完成与阻塞：待用户批准 ADR-0026 并回答 D-1..D-7、D-9..D-13；批准后由 1a 会话按「1a 交付范围」实现并同步守护规则；法人限定与审批参与访问在 1b 实现前须按 §12.2 在 RULE_REVIEWS 登记新规则。
+- 下一步命令：psa-coordinator 汇总 ADR-0026 的待决事项给用户；批准后 1a 会话实现。
+- 会话 ID（用于 claude --resume）：本会话（worktree xin-af304c，分支 claude/psa-authz-model）
+- 采纳（同日，接续）：psa-coordinator 转达用户决定——D-1「部门→法人为默认，员工可单独指定并带生效区间 (Recommended)」（与流程梳理 D-1a-27 合并为同一模型）；其余「全部按建议，并批准 ADR-0026 (Recommended)」；D-13「内控 / 财务」。ADR-0026 改为已采纳，「需用户决定」改为「用户决定」；ADR-0009 状态标注第 4 条部分已被 ADR-0026 取代；同步 REIMAGINED_ARCHITECTURE §3.2、AI_NATIVE_SPEC C1a-08/09 与 §5.3、SECURITY_INVARIANTS I-10..I-12；STATUS 阻塞新增「1b 前须登记的新规则」；三条 intent。build_all 通过。下一步：Phase 1a 会话按 ADR-0026「1a 交付范围」实现。
+
+## 2026-10-14 · psa-olap-architecture · OLAP 物理架构与数据流（ADR-0025）
+- 目标：psa-coordinator 派工——先定领域事件的分析必带字段（交 1a 事件目录定稿），再起草 ADR-0025（提议）「OLAP 物理架构与数据流」（6 处：取代关系、物理位置、L1 构建、行级权限、过渡镜像、历史数据），并做 architecture-critic 评审。
+- 输入：ADR-0009、0011、0016、0022、0023、0024；BI_SCOPE §3–§4、§6.1；r0/（BI_USAGE_SUMMARY、TOOL_COMPARISON、tfst_objects）；phase1a/A8_ACCESS_REGISTER #28–#32、INFRA_RUNBOOK（D-1）、SECURITY_INVARIANTS；GUIDING_PRINCIPLES §8、§9a；SESSION_PLAYBOOK §12。基线 origin/main fde2c74。
+- 用户决定（原话，经 psa-coordinator 转达）：问「OLTP、OLAP 现在架构清晰吗」，选「现在写，并先定事件必带字段 (Recommended)」（intent 片段 099）。另：工时审批时限 T+1，超时事件计入审批时效统计（psa-coordinator 转达的输入）。
+- 产出：proposals/EVENT_ANALYTICS_FIELDS.md（信封与过账负载契约，§6 为评审后修订）；adr/src/ADR-0025.md（提议，经 build_all 生成）；BI_SCOPE §3.2 总线矩阵增加「审批时效」。
+- 验证：build_all 生成通过（25 份 ADR，必备小节校验通过）；architecture-critic（opus）对抗性评审 23 条（阻断 5、重要 13、建议 5），处理结果写入 ADR-0025 证据表。核心修改：财务事实由 L1 直读 operations.facts（视图起步，按 postSeq 物化），事件只用于过程事实与累积快照；L2 由关账水位门控、从 OLTP 生成；权责历史一律进 OLTP（部分取代 ADR-0011 第 2 条）；RLS 改为防应用缺陷的兜底（FORCE、失败即拒绝、禁物化视图）；镜像改为 staging + 单事务替换、敏感对象默认不镜像。子代理：architecture-critic 1 个（opus）。
+- 未完成与阻塞：ADR-0025 待用户审批与 8 项决定；信封修订（删 recordedAt 等）须 1a 同步；ApprovalTaskOverdue / Escalated 事件尚未实现；工作日历引用 1a 的 organization.attendance。
+- 下一步命令：用户审批 ADR-0025 后，R1 骨架会话按「需同步修改的守护规则」实现。
+- 会话 ID（用于 claude --resume）：本会话（worktree xin-e2a79b，分支 claude/psa-olap-architecture）
+
 ## 2026-10-14 · psa-repo-fragments · 写代码规则第二批与流程梳理步骤
 - 目标：把用户采纳的写代码规则第二批（11 条）写进 SESSION_PLAYBOOK 与 CLAUDE.md，能自动化的做成守护；把「流程梳理」步骤写进 SESSION_PLAYBOOK 与 brief 阶段入口条件、§5 行为契约（psa-coordinator 派工，#36 合并后做）。
 - 输入：origin/main fde2c74（片段化已合并）；SESSION_PLAYBOOK、CLAUDE.md、brief 模板与 rules/build_brief.py、.github。
@@ -247,3 +268,34 @@
 - 未完成与阻塞：6a–6f、G1 / G2、R 系列尚未并入 brief 模板，并入时自动出现在 §5「流程梳理结论」，入口条件须同时加上本条；第 5 条前端界面文字进词表守护由 1a 会话负责。
 - 下一步命令：调度会话派 `psa-1a-process-review` 按 SESSION_PLAYBOOK §13 补做 Phase 1a 流程梳理。
 - 会话 ID：本会话（worktree xin-884358，分支 claude/psa-coding-rules-2）
+
+## 2026-10-14 · one-docs-naming · 文档去除旧名称 PSA
+- 目标：按用户决定（原话见 INTENT）去除文档中的旧名称：指代新系统的 PSA 改为 FORCITIS one，指代老系统的改为「老系统」，字面标识保留；文档标题改；加守护。
+- 输入：psa-coordinator 派工与对统计的 8 项决定（a 行业术语保留、b 英文 the legacy system、c session-log 不改、d brief 模板只换名称、e 标题改、f「新系统（PSA）」改老系统、g backend 断言交 1a、h adr/README 加说明）；基线 origin/main 0708eef。
+- 用户决定（原话见 INTENT.md）：「当前仓库的所有文档里要避免使用 psa 旧名称，FORCITIS one 是新名称」；「老系统称「老系统」，字面标识保留 (Recommended)」；「文档标题改，仓库名和会话名暂不改 (Recommended)」。
+- 产出：B1 标题、CLAUDE.md、README、SESSION_PLAYBOOK 会话命名 one-*、adr/README 说明、check_legacy_name.py 与白名单；B2 顶层文档、OA 盘点生成器、brief 模板；B3 规则卡与评审记录（英文 the legacy system）；B4 词表与术语表生成器（terms.yaml、GLOSSARY.md 重新生成）；B5 phase1a、r0、proposals、拓扑显示名；B6 guardrails 模板断言消息、调度台账一行、CI 接入守护。
+- 验证：check_legacy_name.py 无违规；每批 build_all.py --check 通过；GlossaryTest 通过（B4 后）；抽样复核三批子代理的改动，纠正 A8 作业名（恢复字面并加反引号）、幻灯片原文、期初「项目级事实」的指代（统一为老系统）、拓扑根节点（老系统而非 FORCITIS one）、BI_SCOPE R2（FORCITIS one 自有事实）。子代理：B2、B3、B5 各 1 个（sonnet）；统计脚本、B4、复核由本会话（opus）完成。
+- 关键发现：terms.yaml 不能把「PSA」列入 forbidden（G38 拆词会误伤 psa_ 字面标识与 Flyway 注释），守护改在文档层；backend/glossary/proposed/frontend-ui.yaml 已有提议术语 legacy_system（老系统），未在本单元转正，避免与 1a 在途分支冲突。
+- 未完成与阻塞：backend SecurityInvariantsTest 断言消息由 1a 会话改；legacy_system 术语转正（建议加方言 PSA、老 PSA）待下一轮用语确认；topology.json / TOPOLOGY.html 未重新生成（依赖仓库外老代码）。
+- 下一步命令：其他在途 PR 合并后若再引入 PSA，CI「no legacy system name in docs」会拦下，按脚本提示修。
+- 会话 ID：本会话（worktree xin-a2d389，分支 claude/one-docs-naming）
+
+## 2026-10-14 · psa-repo-fragments · 片段文件名去序号化
+- 目标：片段序号在并行会话间撞号（intent 099–101 各两条），改为不需要协调的文件名（psa-coordinator 派工；非用户决定，INTENT 不记）。
+- 输入：origin/main 190c79f（#37–#39 已合并）；build_records.py、new_intent.py、new_log.py、build_all.py。
+- 用户决定（原话）：无。
+- 产出：new_intent.py（新增必填 --session）/ new_log.py 生成 <日期>-<HHMMSS>-<会话名>[-<短名>].md，同秒冲突自动顺延一秒；build_records.py 按（日期、旧格式在前、旧序号或时刻、文件名）确定排序，旧格式同日同序号给出警告（不失败），不合规文件名失败；build_all.py 透传警告；SESSION_PLAYBOOK §1、§4、§8 与 CLAUDE.md 更新用法。已有文件不改名。
+- 验证：新 main 上重新生成产物无变化（现有顺序不变），并报出 3 组真实撞号警告；临时副本测试：旧格式撞号警告、新格式排在旧格式之后、同一秒两个会话按文件名排序、缺 --session 打印用法、坏文件名失败。build_all.py --check 通过。未使用子代理。
+- 未完成与阻塞：无。
+- 下一步命令：在途会话按新用法建片段（psa-coordinator 转达）。
+- 会话 ID：本会话（worktree xin-884358，分支 claude/psa-fragment-naming）
+
+## 2026-10-14 · psa-repo-fragments · 命名标准借鉴 DAMA
+- 目标：按用户「全部在 1a 做」，在命名标准中补 DAMA / ISO 11179 的列名类别词、约束与索引命名、列级敏感分级、1a 表保留期，更正 GUIDING_PRINCIPLES §6 过时内容，并给出 1a 改名清单（psa-coordinator 派工）。
+- 输入：origin/main 190c79f（含 1a 全部迁移脚本 15 个）；NAMING_STANDARD、GUIDING_PRINCIPLES §6、backend DdlNamingTest 与 architecture/ 下其他守护清单的格式。
+- 用户决定（原话见 INTENT.md）：问「1a 还有哪些设计需要现在考虑？所有表命名是否有标准？需要借鉴 dama 的标准吗」，选「全部在 1a 做 (Recommended)」。
+- 产出：NAMING_STANDARD §2.4（类别词与类型表、pk_/fk_/uk_/ck_/ix_ 命名、框架表豁免）、§2.5（四级分级与处理）、守护表 D2；DdlNamingTest 新增按迁移推算最终表结构（跟踪 ADD / RENAME COLUMN、RENAME CONSTRAINT、ALTER INDEX RENAME、DROP），检查类别词与类型、约束与索引命名、敏感列登记，附注入与改名跟踪测试；architecture/ddl-naming-baseline.txt（83 项：列 26、约束 41、索引 16，每行附改名建议）；architecture/data-classification.txt（10 列）；GUIDING_PRINCIPLES §6 主数据改为全部进新系统、数据安全引用分级、1a 表保留期建议值（待用户决定）、ID 策略标待定。
+- 验证：DdlNamingTest 5 项通过（注入：错类别词、错类型、未命名或错名的约束与索引、未登记的敏感列均失败；后续迁移改名后违规消失；基线删行则该项重新报错，多余的基线行报「已修好请删除」；删掉敏感登记则报错）；NamingSurfaceTest、GlossaryTest、LegacyShapeTest、ArchitectureRulesTest 通过；完整 mvnw verify 见报告。未使用子代理。
+- 未完成与阻塞：保留期待用户决定；ID 策略以 1a 方案为准；web / api 出参不暴露敏感列的守护由 1a 实现；类别词表比派工单多出若干项（见报告），请用户确认。
+- 下一步命令：1a 按 ddl-naming-baseline.txt 用 Flyway 追加迁移改名并删行。
+- 会话 ID：本会话（worktree xin-884358，分支 claude/psa-fragment-naming）
