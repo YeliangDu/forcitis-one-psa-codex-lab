@@ -12,7 +12,7 @@
 
 | # | 事项 | 建议 | 时点 | 依据 | 决定单 | 状态 |
 |---|---|---|---|---|---|---|
-| A-1 | `one.forcitis.com` 的 DNS 解析与证书由谁办理、用哪种证书 | 阿里云 SSL 证书服务（与现有证书统一管理）；DNS 指向新 ECS 公网地址 | dev 前 | INFRA_RUNBOOK D-3、E-9 | [A-1](DECISIONS_A.md#a-1-oneforcitiscom-的-dns-与证书谁办哪种证书) | 🟨 选项已定，人选待定 |
+| A-1 | `one.forcitis.com` 的 DNS 解析与证书由谁办理、用哪种证书 | 阿里云 SSL 证书服务（与现有证书统一管理）；DNS 指向新 ECS 公网地址 | dev 前 | INFRA_RUNBOOK D-3、E-9 | [A-1](DECISIONS_A.md#a-1-oneforcitiscom-的-dns-与证书谁办哪种证书) | ✅ 改选 B：Let's Encrypt + 自动续期（用户 2026-10-15「同意」） |
 | A-2 | A8 库与老系统库的只读视图、只读账号由谁建（对方 DBA 是谁） | 指定一名 DBA，按 `handoff/B-5-dba/` 执行；同一人负责 6a 前的 `mirror_*` 只写账号 | dev 前 | D-4、ADR-0025 第 5 条 | [A-2](DECISIONS_A.md#a-2-只读视图与账号由谁建dba) | 🟨 选项已定，人选待定 |
 | A-3 | 超级管理员人选（至少 2 名）与应急账号持有人（至少 2 个） | 平台负责人 + 一名运维；应急账号绑定超管持有人 | dev 前 | ADR-0026 / 0027、intent 156 | [A-3](DECISIONS_A.md#a-3-超级管理员持有人-2-名与应急账号持有人2-个账号) | 🟨 选项已定，人选待定 |
 | A-4 | 组织数据管理员、安全审计员、流程管理员的人选 | 组织数据管理员 1–2 名（HR 或行政）；安全审计员由内控 / 财务；流程管理员 1 名 | dev 前 | ADR-0026 D-11、ADR-0027、D-1a-61 | [A-4](DECISIONS_A.md#a-4-组织数据管理员安全审计员流程管理员人选) | 🟨 选项已定，人选待定 |
@@ -28,9 +28,9 @@
 | # | 事项 | 时点 | 依据 | 交接包 | 状态 |
 |---|---|---|---|---|---|
 | B-1 | 在本仓库运行 `/design-sync`：设计 token 与正本对齐、正本备份到本地（入口条件），以及首次同步（出口条件） | dev 前 / 出口前 | brief Phase 1a 入口与出口 | —（用户在会话中运行） | ⬜ |
-| B-2 | 在企业微信后台新开自建应用（卡片按钮回调、扫码登录回调、可信域名） | dev 前 | SECURITY_INVARIANTS I-8（SEC-119）、D-1a-138、E-15 | [B-2](handoff/B-2-wecom-app.md) | 🟨 |
+| B-2 | 在企业微信后台新开自建应用（卡片按钮回调、扫码登录回调、可信域名） | dev 前 | SECURITY_INVARIANTS I-8（SEC-119）、D-1a-138、E-15 | [B-2](handoff/B-2-wecom-app.md) | 🟨 应用已建，可信域名已验证（2026-10-15 外部核验 `WW_verify_*.txt` 返回 200）；`gettoken` 与可信 IP 待 C-4 E-15，登录冒烟待 dev 部署 |
 | B-3 | 由 A8 管理员登记新系统的致远验票回跳地址（不替换老 SSO） | dev 前 | E-16、D-1a-40 | [B-3](handoff/B-3-a8-sso-return.md) | 🟨 |
-| B-4 | DNS 解析 `one.forcitis.com`，证书申请 | dev 前 | A-1 | [B-4](handoff/B-4-dns-tls.md) | 🟨 |
+| B-4 | DNS 解析 `one.forcitis.com`，证书申请 | dev 前 | A-1 | [B-4](handoff/B-4-dns-tls.md) | 🟨 解析与证书已就绪（2026-10-15 外部核验：A 记录 47.114.56.157，Let's Encrypt 证书至 2027-01-12，HTTP 301 到 HTTPS）；待：自动续期定时任务与 nginx 重载、`--dry-run` 续期演练、80 端口只放行 `/.well-known/acme-challenge/` |
 | B-5 | 对方 DBA 建 A8 与老系统只读视图和账号（按 `SEEYON_VIEWS.sql`、`LEGACY_INBOX_VIEW.sql`、`LEGACY_ORG_NAMES_VIEW.sql`） | dev 前 | A-2、INFRA_RUNBOOK §4 | [B-5](handoff/B-5-dba/README.md) | 🟨 |
 | B-6 | 组织数据管理员在 A8 补齐「在职但无企业微信 ID」清单至 0（确无者逐个登记） | 出口前 | D-1a-35（出口条件） | [B-6](handoff/B-6-wecom-id-coverage.md) | 🟨 |
 | B-7 | 组织数据管理员录入 2027 年工作日历（节假日与调休） | 出口前（且每年 12 月 1 日前录入下一年） | D-1a-110..117 | [B-7](handoff/B-7-work-calendar-2027.md) | 🟨 |
@@ -44,10 +44,10 @@
 | C-1 | RDS 扩容到 8 核 32 GB、ESSD 200 GB，开启存储自动扩容（购买） | dev 前 | ADR-0025 第 2 条、用户「扩容现有实例共用」 | [C-1](runbooks/C-1-rds-scale.md) | 🟨 |
 | C-2 | RDS 开启删除保护；备份策略满足 RPO ≤ 5 分钟（日志备份）、RTO ≤ 1 小时；首次恢复演练 | dev 前（演练在出口前） | 平台约定方案 §5 | [C-2](runbooks/C-2-rds-backup-restore.md) | 🟨 |
 | C-3 | 建库建角色：`forcitis_one_dev` 与 `one_dev_*`；按角色设连接数、超时与 work_mem | dev 前 | INFRA_RUNBOOK §2、ADR-0025 | [C-3](runbooks/C-3-dev-db.md) · `runbooks/sql/c3_dev_db*.sql` | 🟨 |
-| C-4 | ECS 初始化 E-1..E-17（数据盘、运行时、systemd、nginx、TLS、Logtail、ARMS、出站白名单） | dev 前 | INFRA_RUNBOOK §3 | [C-4](runbooks/C-4-ecs-init.md) · `runbooks/scripts/` · `runbooks/files/` | 🟨 |
+| C-4 | ECS 初始化 E-1..E-17（数据盘、运行时、systemd、nginx、TLS、Logtail、ARMS、出站白名单） | dev 前 | INFRA_RUNBOOK §3 | [C-4](runbooks/C-4-ecs-init.md) · `runbooks/scripts/` · `runbooks/files/` | 🟨 nginx 与 TLS 已上线（外部核验，其余路径 503 维护页）；其余 E 项待运维以 `ecs_check.sh` 回报 |
 | C-5 | 应急管理员与首任超管开通（运维命令，双人在场） | dev 前 | INFRA_RUNBOOK §6、ADR-0027 | [C-5](runbooks/C-5-first-admins.md)（运维命令未实现，阻塞于 blockers/070） | ⬜ |
 | C-6 | 老系统数据只读导出：老角色与权限（ADR-0026 D-9 已授权）、TIMESHEET 流程实例（回放用）、`psa_calendar` 2016–2026（迁入工作日历） | dev 前 | ADR-0026、TIMESHEET_REPLAY、D-1a-110 | [C-6](runbooks/C-6-legacy-export.md) · `runbooks/sql/c6_legacy_readonly_export.sql` | 🟨 |
-| C-7 | 告警规则配置与 dev 演练（四类告警） | 出口前 | E-13（出口条件） | [C-7](runbooks/C-7-alerts.md) · `runbooks/files/alert-rules.yaml` | 🟨 |
+| C-7 | 告警规则配置与 dev 演练（四类告警） | 出口前 | E-13（出口条件） | [C-7](runbooks/C-7-alerts.md) · `runbooks/files/alert-rules.yaml` | 🟨 另加：证书剩余不足 20 天告警（A-1 改选 Let's Encrypt 的前提） |
 | C-8 | 配置与密钥从 `one.env` 迁到 KMS，确定轮换周期 | 生产前 | 平台约定方案 §6 | [C-8](runbooks/C-8-kms.md)（应用读取 KMS 需代码改动） | 🟨 |
 | C-9 | 生产库 `forcitis_one_prod` 与 `one_prod_*` 角色 | 生产前 | ADR-0025 第 2 条 | [C-9](runbooks/C-9-prod-db.md) · `runbooks/sql/c9_prod_db*.sql` | 🟨 |
 
