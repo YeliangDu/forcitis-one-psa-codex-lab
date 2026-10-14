@@ -27,6 +27,8 @@ jobs:
           java-version: '25'
           cache: maven
       - run: ./mvnw -B verify
+      - name: OpenAPI contract unchanged (OpenApiExportTest rewrites frontend/packages/api/openapi.json)
+        run: git diff --exit-code -- ../frontend/packages/api/openapi.json
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

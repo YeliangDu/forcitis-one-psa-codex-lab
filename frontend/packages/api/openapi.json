@@ -1,6 +1,17 @@
 {
   "components" : {
     "schemas" : {
+      "CreateLegalEntityRequest" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "CurrentUserResponse" : {
         "properties" : {
           "displayName" : {
@@ -110,6 +121,23 @@
             "type" : "string"
           },
           "legalEntityId" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "LegalEntityResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "legalEntityId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
             "type" : "string"
           }
         },
@@ -566,6 +594,17 @@
         },
         "type" : "object"
       },
+      "UpdateLegalEntityRequest" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "WecomLoginRequest" : {
         "properties" : {
           "code" : {
@@ -626,9 +665,93 @@
         "tags" : [ "timesheet-controller" ]
       }
     },
+    "/api/1/organization/legal-entities" : {
+      "get" : {
+        "operationId" : "list_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/LegalEntityResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-controller" ]
+      },
+      "post" : {
+        "operationId" : "create_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateLegalEntityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-controller" ]
+      }
+    },
+    "/api/1/organization/legal-entities/{legalEntityId}" : {
+      "put" : {
+        "operationId" : "update_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "legalEntityId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateLegalEntityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-controller" ]
+      }
+    },
     "/api/1/organization/org-units" : {
       "get" : {
-        "operationId" : "list_4",
+        "operationId" : "list_6",
         "parameters" : [ {
           "in" : "query",
           "name" : "includeRevoked",
@@ -685,7 +808,7 @@
     },
     "/api/1/organization/sync-runs" : {
       "get" : {
-        "operationId" : "list_3",
+        "operationId" : "list_5",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -770,7 +893,7 @@
     },
     "/api/1/platform/approval-tasks" : {
       "get" : {
-        "operationId" : "list_2",
+        "operationId" : "list_4",
         "responses" : {
           "200" : {
             "content" : {
@@ -903,6 +1026,81 @@
         "tags" : [ "approval-task-controller" ]
       }
     },
+    "/api/1/platform/audit-entries" : {
+      "get" : {
+        "operationId" : "list_3",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "actorId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "action",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "subjectKey",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "audit-entry-controller" ]
+      }
+    },
     "/api/1/platform/legacy-numbers" : {
       "get" : {
         "operationId" : "byLegacyNumber",
@@ -982,7 +1180,7 @@
     },
     "/api/1/platform/numbering-rules" : {
       "get" : {
-        "operationId" : "list_1",
+        "operationId" : "list_2",
         "responses" : {
           "200" : {
             "content" : {

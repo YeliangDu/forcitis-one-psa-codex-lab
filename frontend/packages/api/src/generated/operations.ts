@@ -5,6 +5,15 @@ import type { paths } from './schema';
 export const postCostTimesheetsByIdSubmit = (...[args, options]: Call<paths['/api/1/cost/timesheets/{id}:submit']['post']>) =>
   request<Result<paths['/api/1/cost/timesheets/{id}:submit']['post']>>('post', '/api/1/cost/timesheets/{id}:submit', args, options);
 
+export const getOrganizationLegalEntities = (...[args, options]: Call<paths['/api/1/organization/legal-entities']['get']>) =>
+  request<Result<paths['/api/1/organization/legal-entities']['get']>>('get', '/api/1/organization/legal-entities', args, options);
+
+export const postOrganizationLegalEntities = (...[args, options]: Call<paths['/api/1/organization/legal-entities']['post']>) =>
+  request<Result<paths['/api/1/organization/legal-entities']['post']>>('post', '/api/1/organization/legal-entities', args, options);
+
+export const putOrganizationLegalEntitiesByLegalEntityId = (...[args, options]: Call<paths['/api/1/organization/legal-entities/{legalEntityId}']['put']>) =>
+  request<Result<paths['/api/1/organization/legal-entities/{legalEntityId}']['put']>>('put', '/api/1/organization/legal-entities/{legalEntityId}', args, options);
+
 export const getOrganizationOrgUnits = (...[args, options]: Call<paths['/api/1/organization/org-units']['get']>) =>
   request<Result<paths['/api/1/organization/org-units']['get']>>('get', '/api/1/organization/org-units', args, options);
 
@@ -34,6 +43,9 @@ export const postPlatformApprovalTasksByTaskIdDecide = (...[args, options]: Call
 
 export const postPlatformApprovalTasksByTaskIdReturn = (...[args, options]: Call<paths['/api/1/platform/approval-tasks/{taskId}:return']['post']>) =>
   request<Result<paths['/api/1/platform/approval-tasks/{taskId}:return']['post']>>('post', '/api/1/platform/approval-tasks/{taskId}:return', args, options);
+
+export const getPlatformAuditEntries = (...[args, options]: Call<paths['/api/1/platform/audit-entries']['get']>) =>
+  request<Result<paths['/api/1/platform/audit-entries']['get']>>('get', '/api/1/platform/audit-entries', args, options);
 
 export const getPlatformLegacyNumbers = (...[args, options]: Call<paths['/api/1/platform/legacy-numbers']['get']>) =>
   request<Result<paths['/api/1/platform/legacy-numbers']['get']>>('get', '/api/1/platform/legacy-numbers', args, options);
