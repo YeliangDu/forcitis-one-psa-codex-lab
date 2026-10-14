@@ -26,7 +26,6 @@ G-1（字段缺失或无效时失败并告警）、G-2 会签（RULE-248/273）�
 | RULE-353 部门下拉收窄 | 首个业务页面 | 1a 没有这类页面 |
 | I-8 卡片按钮回调 | 部署前（新开企业微信应用后） | 老应用的回调地址被老系统占用，属外部依赖 |
 | 离职日期 `separation_date` | A8 视图提供离职日期之后 | A8 视图 `v_org_member` 没有离职日期，用同步发现的时间代替就是编造日期。A8 提供后再建列并接同步；依赖 A8 的 DBA 在 `v_org_member` 加列、列白名单（`seeyon-view-columns.yaml`）经 CODEOWNERS 评审。在此之前离职联动以同步发出的离职事件触发 |
-| 编号规则生效日 | 由 B1 的四眼确认流程交付 | 编号规则的生效日目前取保存当天；按 D-1a-147 应在重新确认后按用户指定的生效日启用。生效日的输入、确认人与启用时点本来就是四眼确认流程的一部分，现在单独做一个输入再被它改掉没有价值 |
 | reapprove_on_return | **新机制下不适用** | 退回即结束本轮，重提时开新一轮并全部重新审批（M3），这个开关已没有意义 |
 
 ## 已知差异
@@ -45,3 +44,4 @@ G-1（字段缺失或无效时失败并告警）、G-2 会签（RULE-248/273）�
 | 凭证号模板财务确认由哪个角色持有（`platform.numbering:voucher-numbering-rule:approve`，敏感权限，授予需双人确认） | 首个过账阶段（G1 / 6a） | 1a 不发凭证号，没有使用者；1a 不授予任何角色，凭证模板保持待确认、不发号，到产生凭证时按财务组织实际定角色更准确（用户 2026-10-14：「到首个过账阶段再定 (Recommended)」） |
 | ADR-0026「1a 交付范围」的整套数据范围机制：类型下沉、`CurrentAccess`、角色范围授予明细表、直接下属查询、数据访问注册表 SCOPED / GLOBAL 登记、`DataAccessRegistryTest` / `onlyRegisteredPersistenceTouchesTheDatabase` / `ScopedRepositoryContract`、部门浏览与人员详情接入范围（I-10） | 下一批第一项；**首次部署任何环境前必须完成**（status/blockers/090） | 修复批需尽快合并，以免各路分支继续漂移；1a 尚未部署，没有暴露面；本批已先堵 `org_units` 的 fail-open（范围无法计算或不覆盖即拒绝、越权 404 并审计）。用户 2026-10-14：「本批堵漏洞，整套放下一批 (Recommended)」；依据 ADR-0026 第 1 项与「1a 交付范围」 |
 | 审计在线行到期移出：归档并经 OSS 校验后，删除早于在线保留期（3 年）的 `audit_entries` 在线行，经受控数据库函数（SECURITY DEFINER，只删已有归档批次覆盖的 id）执行并写审计；`AuditArchiveJobIT` 中「在线行不删」的断言随之改写 | 下一批；**须在生产部署前完成** | 首批到期在 2029 年，现在无数据到期；依据用户已定「在线 3 年 + 归档 7 年 = 满 10 年」（intent 2026-10-14-192237、192731）与 GUIDING_PRINCIPLES §6「在线 3 年，之后归档」（one-coordinator 裁定 G-1；用户确认「同意推迟，生产部署前完成 (Recommended)」） |
+| 专业产值切分 | Phase 2 | 用户「适用，纳入 Phase 2」（intent `2026-10-14-222541-psa-1a-platform-bridge-reimagine-适用-纳入-Phase-2.md`）；横切普查矩阵 §2.9 已登记为 Phase 2 阶段项（#75），1a 没有产值事实可切分（INT-L32） |

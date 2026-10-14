@@ -538,7 +538,7 @@ Exit criteria:
 - D-1a-86：新任务（含候选组）+ 老库只读视图，行任务合并，计数一致（用户决定：RULE-261；C1a-14）
 - D-1a-87：规格的接口路径、权限点（`decide` / `approve`）与 `rows[]` 按代码修订（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
 - D-1a-88：结果枚举含 RETURNED（退回结束本轮）；规格同步（用户决定：intent/2026-10-14-131-1a流程-审批-事件法人DMN.md）
-- D-1a-89：单一枚举 RUNNING / RETURNED / APPROVED / REJECTED / CANCELLED；退回 RUNNING → RETURNED，重提 RETURNED → RUNNING（新一轮）（用户决定：RULE-289；M3；RULE-293）
+- D-1a-89：单一枚举 RUNNING / RETURNED / APPROVED / REJECTED / CANCELLED；退回 RUNNING → RETURNED，重提 RETURNED → RUNNING（新一轮）；已驳回、已撤销按 D-1a-78 可开新一轮（用户决定：RULE-289；M3；RULE-293；措辞补全见 INT-L10，不改语义）
 - D-1a-90：新增只追加的任务办理记录（含自动同意、加签建议、转交、代理），已办与逐轮历史从中查询；撤销后原审批人仍可见（用户决定：intent/2026-10-14-130-1a流程-审批-知会历史投递.md）
 - D-1a-91：事件登记表 + 出站投递 PENDING / SENT / SKIPPED / FAILED / DEAD_LETTER（8 次后死信）；进死信即告警运维与流程管理员；管理页可重投或放弃（填原因、审计）（用户决定：intent/2026-10-14-130-1a流程-审批-知会历史投递.md）
 - D-1a-92：退回（含撤回）后业务单据回到可编辑并带「已退回」标记，具体状态名在各业务阶段定（用户决定：intent/2026-10-14-130-1a流程-审批-知会历史投递.md）
