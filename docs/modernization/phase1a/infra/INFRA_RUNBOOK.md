@@ -179,3 +179,8 @@
 - 原因：新员工首次登录时系统按配置项 `forcitis.platform.identity.default-role`（当前为 `employee`）授予默认角色；该角色在库里不存在或已被停用时，不能给新账号授权，登录按「服务不可用」拒绝，而不是放进一个没有权限的账号。
 - 处理：在角色管理中确认该编码的角色存在且启用（系统预置角色不可删除；自定义角色被误删或停用时重建或启用）；不要为了让人登进来而把配置改成别的角色。已有账号不受影响。
 
+## 13. 数据库扩展 btree_gist
+- 用途：`organization_workforce` 的法人归属期间表（`org_unit_legal_entities`、`employee_legal_entities`）用 EXCLUDE 约束保证同一部门或员工的期间不重叠，约束里的等值比较需要 `btree_gist`。
+- 建库时由有权限的账号执行 `CREATE EXTENSION IF NOT EXISTS btree_gist;`（见 `one_db_roles_schemas.sql`）。Flyway 迁移中也带同一句 `IF NOT EXISTS`；迁移账号没有建扩展权限时，迁移会失败，先补上这一步再重试。
+- RDS PostgreSQL 的 `btree_gist` 默认可用，不需要改 `shared_preload_libraries`，也不需要重启。
+

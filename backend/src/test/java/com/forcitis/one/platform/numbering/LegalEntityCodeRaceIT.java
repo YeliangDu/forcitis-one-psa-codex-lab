@@ -80,7 +80,7 @@ class LegalEntityCodeRaceIT {
 
     private void awaitBlockedStatement() throws InterruptedException {
         long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
-        while (jdbc.sql("select count(*) from pg_stat_activity where wait_event_type = 'Lock' and datname = current_database()")
+        while (jdbc.sql("select count(*) from pg_stat_activity where datname = current_database() and cardinality(pg_blocking_pids(pid)) > 0")
                 .query(Long.class).single() == 0) {
             if (System.nanoTime() > deadline) {
                 throw new AssertionError("nobody is waiting for a lock");
@@ -140,6 +140,31 @@ class LegalEntityCodeRaceIT {
 
         unwrap(correction);
         assertThat(issuer.get(10, TimeUnit.SECONDS)).startsWith("QT-RBB-");
+    }
+
+    @Test
+    @DisplayName("H-2 a deactivation that holds the legal entity first makes the issuer wait and then refuse: no number is issued for a deactivated entity")
+    void deactivationFirst() throws Throwable {
+        LegalEntityId le = legalEntity("RCA");
+        CountDownLatch deactivated = new CountDownLatch(1);
+        CountDownLatch commit = new CountDownLatch(1);
+        CompletableFuture<Object> deactivation = CompletableFuture.supplyAsync(() -> tx.execute(status -> {
+            try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "numbering.race.test")) {
+                Object view = updateLegalEntity.execute(le.value(), com.forcitis.one.kernel.ExpectedVersion.of(1), "RCA", "Synthetic RCA", "INACTIVE", null);
+                deactivated.countDown();
+                await(commit);
+                return view;
+            }
+        }));
+        assertThat(deactivated.await(10, TimeUnit.SECONDS)).isTrue();
+        CompletableFuture<Object> issuer = CompletableFuture.supplyAsync(() -> tx.execute(status -> numbers.next(DocumentType.QUOTE, le, DAY).value()));
+        awaitBlockedStatement();
+        commit.countDown();
+
+        unwrap(deactivation);
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(() -> unwrap(issuer));
+        assertThat(refused).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.numbering.api.NumberingError.PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE));
     }
 
     private static void await(CountDownLatch latch) {

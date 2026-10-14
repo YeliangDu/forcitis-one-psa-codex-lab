@@ -13,6 +13,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.kernel.PageRequest;
 import java.util.List;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,7 +36,8 @@ class LegacyNumberController {
 
     @GetMapping(params = "legacyNumber")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
-    ResponseEntity<LegacyNumberResponse> byLegacyNumber(@RequestParam DocumentType documentType, @RequestParam String legacyNumber) {
+    ResponseEntity<LegacyNumberResponse> byLegacyNumber(@RequestParam DocumentType documentType,
+            @Parameter(description = "Exactly one of legacyNumber, legacyNumberPrefix and documentId is given") @RequestParam(required = false) String legacyNumber) {
         return findDocument.find(documentType, legacyNumber)
                 .map(LegacyNumberResponse::from)
                 .map(ResponseEntity::ok)
@@ -46,7 +48,7 @@ class LegacyNumberController {
     /** Original numbers by their beginning (at least 2 characters), for the person who remembers only the start of a number. */
     @GetMapping(params = "legacyNumberPrefix")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
-    CursorPage<LegacyNumberResponse> byPrefix(@RequestParam DocumentType documentType, @RequestParam String legacyNumberPrefix,
+    CursorPage<LegacyNumberResponse> byPrefix(@RequestParam DocumentType documentType, @Parameter(description = "Exactly one of legacyNumber, legacyNumberPrefix and documentId is given") @RequestParam(required = false) String legacyNumberPrefix,
             @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
         PageRequest page = PageRequest.of(limit, cursor, "legacy-number-prefix");
         List<LegacyNumberResponse> found = findByPrefix.findByPrefix(documentType, legacyNumberPrefix, page.cursorValue(), page.limit() + 1)
@@ -57,7 +59,7 @@ class LegacyNumberController {
 
     @GetMapping(params = "documentId")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
-    CursorPage<LegacyNumberResponse> byDocument(@RequestParam DocumentType documentType, @RequestParam long documentId,
+    CursorPage<LegacyNumberResponse> byDocument(@RequestParam DocumentType documentType, @Parameter(description = "Exactly one of legacyNumber, legacyNumberPrefix and documentId is given") @RequestParam(required = false) Long documentId,
             @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
         List<LegacyNumberResponse> all = findLegacyNumbers.find(new DocumentReference(documentType, new DocumentId(Long.toString(documentId))))
                 .stream().map(LegacyNumberResponse::from).toList();

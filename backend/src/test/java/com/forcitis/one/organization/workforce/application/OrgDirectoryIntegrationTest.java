@@ -67,6 +67,37 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(directory.findEmployee(user(999))).isEmpty();
     }
 
+    @Autowired
+    RegisterEmployeeOnLogin registerOnLogin;
+
+    @Test
+    @DisplayName("login miss: two first logins of the same person at once register them once - one row and one EmployeeRegistered")
+    void concurrentFirstLoginsRegisterOnce() throws Exception {
+        synced();
+        orgSource.singleLookupResult = List.of(person(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
+        int callers = 6;
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(callers);
+        List<java.util.concurrent.Future<Optional<?>>> results = new java.util.ArrayList<>();
+        for (int i = 0; i < callers; i++) {
+            results.add(pool.submit(() -> {
+                try (com.forcitis.one.kernel.WorkContext.Scope acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "login.race.test")) {
+                    start.await();
+                    return registerOnLogin.execute(new WecomUserId("wx-new-hire"));
+                }
+            }));
+        }
+        start.countDown();
+        for (var result : results) {
+            assertThat(result.get(30, java.util.concurrent.TimeUnit.SECONDS)).isPresent();
+        }
+        pool.shutdown();
+
+        assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = 3001").query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("select event_count from organization_workforce.employees where id = 3001").query(Long.class).single())
+                .as("the employee announced EmployeeRegistered once").isEqualTo(1);
+    }
+
     @Test
     @DisplayName("login miss: an unknown WeCom user id asks the same the source view for this one person, registers them and audits it")
     void loginMissRegistersTheNewHire() {

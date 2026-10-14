@@ -2715,16 +2715,18 @@
             "type" : "string"
           }
         }, {
+          "description" : "Exactly one of legacyNumber, legacyNumberPrefix and documentId is given",
           "in" : "query",
           "name" : "legacyNumber",
-          "required" : true,
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
         }, {
+          "description" : "Exactly one of legacyNumber, legacyNumberPrefix and documentId is given",
           "in" : "query",
           "name" : "legacyNumberPrefix",
-          "required" : true,
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -2744,9 +2746,10 @@
             "type" : "string"
           }
         }, {
+          "description" : "Exactly one of legacyNumber, legacyNumberPrefix and documentId is given",
           "in" : "query",
           "name" : "documentId",
-          "required" : true,
+          "required" : false,
           "schema" : {
             "format" : "int64",
             "type" : "integer"

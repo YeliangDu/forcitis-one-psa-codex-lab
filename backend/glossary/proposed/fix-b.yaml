@@ -496,7 +496,7 @@ terms:
   snake: platform_numbering_legacy_number_not_found
   kind: error_code
   bc: platform.numbering
-  definition: "没有单据登记过这个老编号（404）"
+  definition: "没有单据登记过这个原编号（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium
@@ -617,12 +617,12 @@ terms:
   status: proposed
   note: ''
 - id: error__platform_numbering_legacy_number_taken
-  zh: 老编号已被占用
+  zh: 原编号已被占用
   en: PlatformNumberingLegacyNumberTaken
   snake: platform_numbering_legacy_number_taken
   kind: error_code
   bc: platform.numbering
-  definition: "同一单据类型的老编号已登记给另一张单据（409）"
+  definition: "同一单据类型的原编号已登记给另一张单据（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium
@@ -673,12 +673,12 @@ terms:
   status: proposed
   note: ''
 - id: error__platform_numbering_legacy_prefix_invalid
-  zh: 老编号前缀无效
+  zh: 原编号前缀无效
   en: PlatformNumberingLegacyPrefixInvalid
   snake: platform_numbering_legacy_prefix_invalid
   kind: error_code
   bc: platform.numbering
-  definition: "按前缀检索老编号时前缀少于 2 个字符（422）"
+  definition: "按前缀检索原编号时前缀少于 2 个字符（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium

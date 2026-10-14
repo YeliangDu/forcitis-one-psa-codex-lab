@@ -122,6 +122,19 @@ class HttpContractIT {
     }
 
     @Test
+    @DisplayName("the original-number lookup declares only documentType as required: the three ways to search are alternatives, not a conjunction")
+    void legacyNumberSearchKeysAreAlternatives() throws Exception {
+        tools.jackson.databind.JsonNode parameters = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .path("paths").path("/api/v1/platform/legacy-numbers").path("get").path("parameters");
+        java.util.Map<String, Boolean> required = new java.util.TreeMap<>();
+        parameters.forEach(p -> required.put(p.path("name").asString(), p.path("required").asBoolean()));
+
+        assertThat(required).containsEntry("documentType", true).containsEntry("legacyNumber", false)
+                .containsEntry("legacyNumberPrefix", false).containsEntry("documentId", false);
+    }
+
+    @Test
     @DisplayName("Idempotency-Key is offered exactly where the answer is stored: on POSTs, never under /sessions or on the login states, which hand out credentials")
     void idempotencyKeyIsOfferedExactlyWhereItIsStored() throws Exception {
         tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(

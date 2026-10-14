@@ -566,6 +566,28 @@ class DdlNamingTest {
         }
     }
 
+    @Test
+    @DisplayName("exclusion constraints are named ex_<table>_<rule>, whether they are created with the table or added later")
+    void exclusionConstraintsAreNamedEx() {
+        String sql = """
+                CREATE TABLE cost_timesheet.spans (
+                    id          uuid        NOT NULL,
+                    owner_id    bigint      NOT NULL,
+                    from_date   date        NOT NULL,
+                    to_date     date,
+                    created_at  timestamptz NOT NULL,
+                    updated_at  timestamptz NOT NULL,
+                    CONSTRAINT pk_spans PRIMARY KEY (id),
+                    CONSTRAINT overlap_spans EXCLUDE USING gist (owner_id WITH =, daterange(from_date, to_date) WITH &&)
+                );
+                ALTER TABLE cost_timesheet.spans ADD CONSTRAINT spans_other EXCLUDE USING gist (owner_id WITH =, daterange(from_date, to_date) WITH &&);
+                """;
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql", sql))).keySet()).contains(
+                "constraint cost_timesheet.spans.overlap_spans", "constraint cost_timesheet.spans.spans_other");
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql",
+                sql.replace("overlap_spans", "ex_spans_overlap").replace("spans_other", "ex_spans_other"))))).isEmpty();
+    }
+
     static final String GOOD = """
             CREATE TABLE platform_sample.things (
                 id         bigint      GENERATED ALWAYS AS IDENTITY,

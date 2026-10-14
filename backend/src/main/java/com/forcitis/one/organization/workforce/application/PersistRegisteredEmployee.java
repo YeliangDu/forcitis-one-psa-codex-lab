@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
 import com.forcitis.one.organization.workforce.domain.RegisteredEmployee;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
@@ -8,21 +9,30 @@ import java.time.Clock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The person and the event commit together; the audit entry is written from the event. */
+/**
+ * The person and the event commit together; the audit entry is written from the event. Takes the same lock as the sync, so a registration
+ * and a sync never write the snapshot at once, and the second of two first logins finds the person already registered and writes nothing.
+ */
 @Service
 class PersistRegisteredEmployee {
     private final OrgSnapshotRepository snapshots;
+    private final OrgSnapshotQueries lookups;
     private final DomainEvents events;
     private final Clock clock;
 
-    PersistRegisteredEmployee(OrgSnapshotRepository snapshots, DomainEvents events, Clock clock) {
+    PersistRegisteredEmployee(OrgSnapshotRepository snapshots, OrgSnapshotQueries lookups, DomainEvents events, Clock clock) {
         this.snapshots = snapshots;
+        this.lookups = lookups;
         this.events = events;
         this.clock = clock;
     }
 
     @Transactional
     public void execute(StaffEmployee staff) {
+        snapshots.lockForWrite();
+        if (lookups.findStaff(staff.userId()).isPresent()) {
+            return;
+        }
         RegisteredEmployee registered = RegisteredEmployee.onFirstLogin(staff, 0, snapshots.findEmployeeEventSequence(staff.userId()));
         snapshots.saveRegisteredEmployee(registered, clock.instant());
         events.publish(registered);
