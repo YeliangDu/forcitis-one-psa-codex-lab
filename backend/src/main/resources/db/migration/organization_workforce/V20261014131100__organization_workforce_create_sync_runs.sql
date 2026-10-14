@@ -1,4 +1,4 @@
--- 同步运行与差异（RULE-358/366/373）：每 5 分钟一次，缩水时 HELD，管理员可放行。
+-- 同步记录与差异（RULE-358/366/373）：每 5 分钟一次，缩水时 HELD，管理员可放行。
 CREATE TABLE organization_workforce.sync_runs (
     id                             bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     trigger_kind                   text        NOT NULL CHECK (trigger_kind IN ('SCHEDULED', 'MANUAL')),
@@ -27,8 +27,8 @@ CREATE TABLE organization_workforce.sync_runs (
 );
 CREATE INDEX sync_runs_started_at_idx ON organization_workforce.sync_runs (started_at DESC);
 CREATE INDEX sync_runs_status_idx ON organization_workforce.sync_runs (status);
-COMMENT ON TABLE organization_workforce.sync_runs IS '同步运行：A8 组织快照每次同步的记录与缩水保护结果';
-COMMENT ON COLUMN organization_workforce.sync_runs.id IS '同步运行 ID';
+COMMENT ON TABLE organization_workforce.sync_runs IS '同步记录：A8 组织快照每次同步的记录与缩水保护结果';
+COMMENT ON COLUMN organization_workforce.sync_runs.id IS '同步记录 ID';
 COMMENT ON COLUMN organization_workforce.sync_runs.trigger_kind IS '触发方式：SCHEDULED 定时 / MANUAL 管理员放行';
 COMMENT ON COLUMN organization_workforce.sync_runs.status IS '状态：RUNNING 运行中 / SUCCEEDED 成功 / HELD 因缩水保护中止 / RELEASED 已被管理员放行 / FAILED 失败';
 COMMENT ON COLUMN organization_workforce.sync_runs.started_at IS '开始时间';
@@ -49,7 +49,7 @@ COMMENT ON COLUMN organization_workforce.sync_runs.held_reason IS '中止原因�
 COMMENT ON COLUMN organization_workforce.sync_runs.failure_reason IS '失败原因';
 COMMENT ON COLUMN organization_workforce.sync_runs.released_by IS '放行人（员工 ID）';
 COMMENT ON COLUMN organization_workforce.sync_runs.released_at IS '放行时间';
-COMMENT ON COLUMN organization_workforce.sync_runs.released_by_run_id IS '放行后实际执行的同步运行';
+COMMENT ON COLUMN organization_workforce.sync_runs.released_by_run_id IS '放行后实际执行的同步记录';
 COMMENT ON COLUMN organization_workforce.sync_runs.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.sync_runs.updated_at IS '更新时间';
 
@@ -68,7 +68,7 @@ CREATE TABLE organization_workforce.sync_diffs (
 CREATE INDEX sync_diffs_sync_run_id_idx ON organization_workforce.sync_diffs (sync_run_id);
 COMMENT ON TABLE organization_workforce.sync_diffs IS '同步差异：每次同步改动的对象与字段，以及数据例外（ISSUE）';
 COMMENT ON COLUMN organization_workforce.sync_diffs.id IS '差异 ID';
-COMMENT ON COLUMN organization_workforce.sync_diffs.sync_run_id IS '同步运行 ID';
+COMMENT ON COLUMN organization_workforce.sync_diffs.sync_run_id IS '同步记录 ID';
 COMMENT ON COLUMN organization_workforce.sync_diffs.entity_kind IS '对象类别：ORG_UNIT / EMPLOYEE / POSITION';
 COMMENT ON COLUMN organization_workforce.sync_diffs.subject_key IS '对象键，如 employee:2001';
 COMMENT ON COLUMN organization_workforce.sync_diffs.change_kind IS '变更类别：CREATED / UPDATED / SEPARATED / REHIRED / REVOKED / REVIVED / ISSUE（数据例外）';

@@ -57,7 +57,7 @@ COMMENT ON COLUMN organization_workforce.org_units.region_category IS '总部 / 
 COMMENT ON COLUMN organization_workforce.org_units.is_delivery_unit IS '是否交付部门（A8 扩展属性）';
 COMMENT ON COLUMN organization_workforce.org_units.short_name IS '部门简称：A8 视图中没有，每天从老系统只读刷新';
 COMMENT ON COLUMN organization_workforce.org_units.revoked_at IS '撤销时间（A8 不再返回该组织单元的时间）';
-COMMENT ON COLUMN organization_workforce.org_units.last_sync_run_id IS '最近一次改动它的同步运行';
+COMMENT ON COLUMN organization_workforce.org_units.last_sync_run_id IS '最近一次改动它的同步记录';
 COMMENT ON COLUMN organization_workforce.org_units.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.org_units.updated_at IS '更新时间';
 COMMENT ON COLUMN organization_workforce.org_units.version IS '乐观锁版本';
@@ -92,7 +92,7 @@ COMMENT ON COLUMN organization_workforce.employees.wecom_user_id IS '企业微�
 COMMENT ON COLUMN organization_workforce.employees.employment_status IS '在职状态：EMPLOYED 在职 / SEPARATED 离职（含不在 A8 结果中的离职候选，RULE-366）';
 COMMENT ON COLUMN organization_workforce.employees.is_fee_earner IS '是否收费员工：A8 人事分类（FIELD0244），只是可计费性判定的输入之一，不等于可计费';
 COMMENT ON COLUMN organization_workforce.employees.separated_at IS '离职时间（首次同步到离职的时间）';
-COMMENT ON COLUMN organization_workforce.employees.last_sync_run_id IS '最近一次改动它的同步运行';
+COMMENT ON COLUMN organization_workforce.employees.last_sync_run_id IS '最近一次改动它的同步记录';
 COMMENT ON COLUMN organization_workforce.employees.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.employees.updated_at IS '更新时间';
 COMMENT ON COLUMN organization_workforce.employees.version IS '乐观锁版本';
