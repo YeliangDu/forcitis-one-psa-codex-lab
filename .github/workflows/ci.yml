@@ -26,6 +26,12 @@ jobs:
         run: |
           python3 scripts/ci/migrations_immutable.py --self-test
           python3 scripts/ci/migrations_immutable.py origin/${{ github.base_ref || 'main' }}
+      - name: Acceptance tests are changed only by the test engineer or under a ruling (SESSION_PLAYBOOK §6.1)
+        run: |
+          python3 scripts/ci/acceptance_guard.py --self-test
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python3 scripts/ci/acceptance_guard.py origin/${{ github.base_ref }}
+          fi
       - name: backend or frontend inputs changed?
         id: change
         run: |
