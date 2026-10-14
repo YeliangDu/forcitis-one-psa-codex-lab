@@ -7,7 +7,7 @@ import com.forcitis.one.fixture.doubles.RecordingArchiveVault;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
-import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -94,6 +94,20 @@ class AuditArchiveJobIT {
 
         job.run();
         assertThat(vault.batches).as("nothing new is due").hasSize(1);
+    }
+
+    @Test
+    @DisplayName("T3 the archive carries every column of audit_entries, including event id and correlation id and any column added later")
+    void everyColumnIsArchived() {
+        jdbc.sql("insert into platform_audit.audit_entries (action, subject_key, event_id, correlation_id, created_at) values ('old.one', 'x:1', gen_random_uuid(), gen_random_uuid(), now() - interval '1200 days')").update();
+
+        job.run();
+
+        List<String> columns = jdbc.sql("select column_name from information_schema.columns where table_schema = 'platform_audit' and table_name = 'audit_entries'")
+                .query(String.class).list();
+        String line = vault.lines().getFirst();
+        assertThat(columns).isNotEmpty().allSatisfy(column -> assertThat(line).contains("\"" + column + "\":"));
+        assertThat(line).doesNotContain("\"event_id\":null").doesNotContain("\"correlation_id\":null");
     }
 
     @Test
