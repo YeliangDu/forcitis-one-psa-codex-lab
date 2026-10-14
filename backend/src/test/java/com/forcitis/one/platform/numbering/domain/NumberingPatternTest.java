@@ -64,11 +64,10 @@ class NumberingPatternTest {
     }
 
     @Test
-    void aRuleWhoseTemplateUsesTheTypeCodeNeedsARegisteredCode() {
+    void aRuleWhoseTemplateUsesTheTypeCodeIsAcceptedForARegisteredCode() {
         NumberingPattern pattern = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
 
-        assertThatThrownBy(() -> NumberingRule.confirmed(DocumentType.TIMESHEET, pattern, 1))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("no registered code");
+        assertThat(NumberingRule.confirmed(DocumentType.TIMESHEET, pattern, 1).confirmation()).isEqualTo(ConfirmationStatus.CONFIRMED);
         assertThat(new NumberingRule(DocumentType.QUOTE, pattern, 1, ConfirmationStatus.PENDING_CONFIRMATION).confirmation())
                 .isEqualTo(ConfirmationStatus.PENDING_CONFIRMATION);
     }

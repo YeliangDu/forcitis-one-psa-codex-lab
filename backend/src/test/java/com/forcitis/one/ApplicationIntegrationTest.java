@@ -222,7 +222,7 @@ class ApplicationIntegrationTest {
         assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0002");
         assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2L), day)).isEqualTo("QT-FIT-202610-0001");
         assertThat(issue(DocumentType.QUOTE, LE1, LocalDate.of(2026, 11, 2))).isEqualTo("QT-FST-202611-0001");
-        assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, day)).isEqualTo("JV-FST-202610-000001");
+        assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, day)).isEqualTo("JV-FST-202610-0001");
     }
 
     @Test
@@ -234,9 +234,9 @@ class ApplicationIntegrationTest {
             status.setRollbackOnly();
             return n;
         });
-        assertThat(first).isEqualTo("TS202603010001");
-        assertThat(rolledBack).isEqualTo("TS202603010002");
-        assertThat(issue(DocumentType.TIMESHEET, LE1, day)).isEqualTo("TS202603010002");
+        assertThat(first).isEqualTo("TS-FST-202603-0001");
+        assertThat(rolledBack).isEqualTo("TS-FST-202603-0002");
+        assertThat(issue(DocumentType.TIMESHEET, LE1, day)).isEqualTo("TS-FST-202603-0002");
     }
 
     @Test
@@ -249,7 +249,7 @@ class ApplicationIntegrationTest {
         }
         pool.shutdown();
         assertThat(pool.awaitTermination(30, TimeUnit.SECONDS)).isTrue();
-        assertThat(issued).hasSize(20).contains("TS202605050001", "TS202605050020");
+        assertThat(issued).hasSize(20).contains("TS-FST-202605-0001", "TS-FST-202605-0020");
     }
 
     @Test
