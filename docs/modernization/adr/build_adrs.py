@@ -480,7 +480,7 @@ architecture-guardrails/frontend（React 版：修复了 ESLint 配置块互相�
 - 应收等指标改为单一口径后，老页面读到的数会变，须在切换前由财务确认（BI_SCOPE.md §3.3 的六项口径裁决）。
 - BI 仓库调研文档记载的「BI 整体替换：2026-12-31」与本路线不相容，需用户确认是否被本决定取代（BI_SCOPE.md §6 Q2）。
 - 需要用户决定的事项见 BI_SCOPE.md §6（Q1–Q12）。""",
-"BI_SCOPE.md（现状盘点、证据表、4 个 BC、分层与总线矩阵、OAT 声明字段、与 accounting.reporting 的边界、过渡方案、工具选项、阶段草案）；BI、BI-olap、BI-release 仓库（只读，含 FORCITIS/BI issue #59 与 PR #36–#58）；OAT 机器主数据（ddd-theory `cases/forcitis-aec-ops/*.csv`）与 KPI 体系设计；GLOSSARY.md、glossary/terms.yaml；ADR-0016、0017、0018、0021、ADR-0022 初稿；OA_PROCESS_INVENTORY.md；GUIDING_PRINCIPLES §8、§9a",
+"依据决定：BI_SCOPE.md §6.1 与 INTENT.md（Q1–Q12，2026-10-14；Q3–Q12 由 psa-bi-decisions 逐项确认）；BI_SCOPE.md（现状盘点、证据表、4 个 BC、分层与总线矩阵、OAT 声明字段、与 accounting.reporting 的边界、过渡方案、工具选项、阶段草案）；BI、BI-olap、BI-release 仓库（只读，含 FORCITIS/BI issue #59 与 PR #36–#58）；OAT 机器主数据（ddd-theory `cases/forcitis-aec-ops/*.csv`）与 KPI 体系设计；GLOSSARY.md、glossary/terms.yaml；ADR-0016、0017、0018、0021、ADR-0022 初稿；OA_PROCESS_INVENTORY.md；GUIDING_PRINCIPLES §8、§9a",
 "现代化只做数据层、BI 工具和看板留给 BI 项目（用户已改变边界；且看板自带算法会继续造成口径分裂）；新经营分析继续从 A8、老 PSA 采集并先上线（在老数据源上新建模已由用户暂停，6a–6f 切换后源头不再增长）；在 `reporting` 中重算三大报表（与 `accounting.reporting` 重复建设、口径不一）；过渡期写回 A8 让老视图继续可用（违反 ADR-0021）"),
 ]
 import os
