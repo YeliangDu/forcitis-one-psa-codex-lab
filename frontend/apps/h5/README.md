@@ -1,26 +1,50 @@
-# apps/h5：H5 / 小程序端（Taro 4 + React）
+# apps/h5：企业微信 H5（Taro 4 + React 18）
 
-状态：Phase 1a 只有目录骨架，没有实现，也没有 `package.json`，所以不属于 pnpm workspace，`pnpm verify` 不会构建它。
+Phase 1a 的 H5 页面：静默登录、待办、审批详情。接口以 `packages/api/openapi.json` 生成的客户端和类型为准；业务判定（能否办理、按钮显隐的依据）来自后端，前端只展示。
 
-## 下一步（在 1a 后续或 1b 开始时做）
+## 页面
 
-1. 新增 `package.json`（名称 `@forcitis/h5`），依赖 Taro 4、React，以及工作区包 `@forcitis/api`、`@forcitis/ui`、`@forcitis/design-system`。
-   `@forcitis/ui` 基于 antd，不能直接用于 Taro；H5 需要在 `packages/` 下为移动端另建组件包（或在 `apps/h5/src/shared/ui` 中按正本 BottomSheet、TimesheetRow 等组件实现），令牌仍然只来自 `@forcitis/design-system` 的 `tokens.css`。
-2. 在 `src/` 下按 `apps/web` 的分层建：`app/`、`modules/<m>/{api,hooks,model,pages,components,index.ts}`、`shared/`。
-3. 把 H5 加进守护，规则不放宽：
-   - `eslint.config.js` 的 `boundaries/elements` 增加 H5 的 app、module、shared 三类，`ALL_SOURCES`、`MODULES_APP_SHARED` 等文件范围加上 `apps/h5/src/**`，`ignores` 去掉 `apps/h5`；
-   - `scripts/check-lint-config.mjs` 的 `CATEGORIES` 增加 H5 各类文件；
-   - `scripts/check-structure.mjs` 的 `MODULES`、`SOURCE_ROOTS` 增加 H5；
-   - 只有 `modules/<m>/api` 可以引用 `@forcitis/api`（F10），其余照 `apps/web`。
-4. 1a 的 H5 页面（REIMAGINED_ARCHITECTURE §3.10）：企业微信静默登录（`snsapi_base`）、待办（新旧合并，老待办跳转老系统）、审批详情（认领、通过、驳回、退回）。接口以 `packages/api/openapi.json` 为准，规则与 `apps/web` 的待办、任务详情模块一致，业务判定（能否办理、按钮显隐的依据）来自后端。
-5. 登录：Cookie 会话，写请求带 `X-XSRF-TOKEN`（`@forcitis/api` 已处理）；小程序走 `jscode2session` 对应的登录入口，令牌不进 URL。
-6. 老 H5（`psa` 仓库）只用来理解行为，代码不搬运。
+| 页面 | 入口 | 说明 |
+|---|---|---|
+| 待办 | `src/app/pages/inbox.tsx` | 合并待办：新系统的进入审批详情，老系统的跳转老系统；按来源筛选 |
+| 审批详情 | `src/app/pages/task.tsx?taskId=` | 认领、通过、驳回、退回；驳回和退回必须填写理由；按钮按办理权限和 `canAct` 显示 |
+| 静默登录 | `src/modules/session` | 不是页面，是整个应用外面的一道门（`SessionGate`） |
 
-## 目录
+## 静默登录
+
+1. 查询当前会话；已有会话直接进入。
+2. 没有会话且地址里没有授权回跳：申请登录用的 state（入口类型 `WORKBENCH`），跳到企业微信 `snsapi_base` 授权地址。
+3. 授权回跳时地址里带 `code` 和 `state`：**先**把它们从地址栏清掉，**再**提交登录。会话靠 Cookie 维持，令牌不进 URL。
+4. 登录被拒绝或会话没有保存下来时，显示原因和「重新登录」，不自动循环。
+
+企业 ID 通过构建时的环境变量 `TARO_APP_WECOM_CORP_ID` 注入；没有配置时登录失败并提示，不会静默放行。
+
+## 命令
 
 ```
-apps/h5/
-  README.md
-  config/     Taro 构建配置（待建）
-  src/        应用代码（待建，分层同 apps/web）
+pnpm --filter @forcitis/h5 build       # taro build --type h5，再检查 dist/js 能否按 ES2020 解析（scripts/check-bundle.mjs）
+pnpm --filter @forcitis/h5 dev         # 开发服务器，/api 代理到 localhost:8080
+pnpm --filter @forcitis/h5 test        # Vitest + Testing Library
 ```
+
+## 结构与守护
+
+分层同 `apps/web`：`app/` → `modules/<m>/{api,hooks,model,pages,components,index.ts}` → `shared/`。F1–F14 守护同样覆盖这里（见 `frontend/eslint.config.js` 和 `scripts/check-lint-config.mjs`），另有：
+
+- 业务代码不直接用 Taro 组件和 Taro API：组件用 `shared/ui`，路由和跳转用 `shared/platform`；
+- 不使用 `Taro.request`，网络请求只经 `modules/<m>/api` 调生成的客户端；
+- 不引用 `@forcitis/ui`（基于 antd，H5 用不了）；令牌来自 `@forcitis/design-system/mobile`（只加载 `tokens.css`）；
+- 两个应用互不引用。
+
+## 构建注意
+
+- 工作区包（`packages/*`，TypeScript 源码）、`@tanstack/*`、`zod`、`query-string` 要过 Babel：Taro 的压缩器会把 `@tanstack/query-core` 的类私有字段写成非法语法，页面整页空白，单元测试看不出来，所以 `build` 之后有 `check-bundle.mjs`。
+- 路由用 hash 模式；企业微信授权回跳的 `?code=…&state=…` 在 `#` 之前，登录后立即清除。
+- Taro 的 `Button` 传 `disabled={false}` 会写出 `disabled="false"` 属性并变灰，`ActionButton` 只在为真时传。
+- Taro 把页面当作 App 的 children 挂载，登录门（`SessionGate`）因此放在每个页面里（`app/page-frame.tsx`），不能放在 `app.tsx`。
+
+## 为什么是 React 18
+
+Taro 4.3 的 React 运行时（`react-reconciler` 0.29）要求 React 18，PC 端用 React 19。两端各自在自己的 `package.json` 里声明；类型包统一用工作区目录里的版本，避免 `@types/react` 双版本。Taro 升级支持 React 19 后再合并。
+
+老 H5 只用来理解行为，代码没有搬运。

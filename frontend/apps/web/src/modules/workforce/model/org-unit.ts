@@ -1,17 +1,6 @@
-import { z } from 'zod';
+import type { Schema } from '@forcitis/api';
 
-export const orgUnitSchema = z.object({
-  orgUnitId: z.string(),
-  code: z.string().nullish(),
-  name: z.string(),
-  shortName: z.string().nullish(),
-  parentOrgUnitId: z.string().nullish(),
-  status: z.string(),
-  deliveryUnit: z.boolean().nullish(),
-  sortOrder: z.number().nullish(),
-});
-
-export type OrgUnit = z.infer<typeof orgUnitSchema>;
+export type OrgUnit = Schema<'OrgUnitResponse'>;
 
 export interface OrgUnitNode extends OrgUnit {
   children?: OrgUnitNode[];
@@ -21,7 +10,7 @@ export function buildOrgTree(units: readonly OrgUnit[]): OrgUnitNode[] {
   const nodes = new Map<string, OrgUnitNode>(units.map((unit) => [unit.orgUnitId, { ...unit }]));
   const roots: OrgUnitNode[] = [];
   for (const node of nodes.values()) {
-    const parent = node.parentOrgUnitId === null || node.parentOrgUnitId === undefined ? undefined : nodes.get(node.parentOrgUnitId);
+    const parent = node.parentOrgUnitId === undefined ? undefined : nodes.get(node.parentOrgUnitId);
     if (parent === undefined) {
       roots.push(node);
     } else {

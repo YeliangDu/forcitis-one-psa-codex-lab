@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { operations, setApiHandlers } from './index';
+import { ResponseShapeError, operations, setApiHandlers } from './index';
 
 function stubFetch(status: number, body: unknown) {
   const calls: { url: string; init: RequestInit }[] = [];
@@ -45,5 +45,24 @@ describe('generated operations over the default client', () => {
     stubFetch(403, {});
     await expect(operations.getPlatformNumberingRules()).rejects.toMatchObject({ status: 403 });
     expect(onForbidden).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects an answer that does not match the schema of openapi.json instead of passing it on', async () => {
+    stubFetch(200, { displayName: '张三', navigation: [] });
+    const failure = await operations.getPlatformSessionsCurrent().catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(ResponseShapeError);
+    expect((failure as ResponseShapeError).problems.join(' ')).toContain('userId');
+  });
+
+  it('treats a null property like an absent one, because the server writes unset optional properties as null', async () => {
+    stubFetch(200, { displayName: '张三', userId: '1001', permissionCodes: [], navigation: [{ name: '待办', routePath: null, children: [] }], orgUnitId: null });
+    const user = await operations.getPlatformSessionsCurrent();
+    expect(user.orgUnitId).toBeUndefined();
+    expect(user.navigation[0]).toEqual({ name: '待办', children: [] });
+  });
+
+  it('validates an answer nested inside a list', async () => {
+    stubFetch(200, [{ orgUnitId: '1', name: '交付一部', status: 'ACTIVE' }, { orgUnitId: 2 }]);
+    await expect(operations.getOrganizationOrgUnits()).rejects.toBeInstanceOf(ResponseShapeError);
   });
 });

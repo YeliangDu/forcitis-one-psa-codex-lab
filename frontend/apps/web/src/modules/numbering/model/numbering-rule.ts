@@ -1,18 +1,8 @@
-import { z } from 'zod';
+import type { Schema } from '@forcitis/api';
 
 export const NUMBERING_UPDATE_PERMISSION = 'platform.numbering:numbering-rule:update';
 
-export const numberingRuleSchema = z.object({
-  documentType: z.string(),
-  documentTypeCode: z.string().nullish(),
-  pattern: z.string(),
-  resetPolicy: z.string(),
-  startValue: z.number(),
-  capacity: z.number(),
-  confirmationStatus: z.string(),
-});
-
-export type NumberingRule = z.infer<typeof numberingRuleSchema>;
+export type NumberingRule = Schema<'NumberingRuleResponse'>;
 
 export const RESET_POLICY_LABELS: Readonly<Record<string, string>> = {
   NEVER: '不重置',
