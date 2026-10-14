@@ -21,7 +21,7 @@ public final class SyncedFields {
             new Field<>("regionCategory", OrgUnit::regionCategory),
             new Field<>("deliveryUnit", OrgUnit::deliveryUnit));
 
-    public static final List<Field<StaffMember>> STAFF = List.of(
+    public static final List<Field<StaffEmployee>> STAFF = List.of(
             new Field<>("employeeCode", s -> s.employee().employeeCode()),
             new Field<>("displayName", s -> s.employee().displayName()),
             new Field<>("loginName", s -> s.employee().loginName()),

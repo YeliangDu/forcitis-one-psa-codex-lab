@@ -8,14 +8,6 @@ import org.junit.jupiter.api.Test;
 class PendingApprovalRulesTest {
 
     @Test
-    @Disabled("pending RULE-248: 1b first consumer (countersign / or-sign multi-instance nodes)")
-    @DisplayName("RULE-248 a countersign node creates one task per distinct approver; the model's completion condition ends the node")
-    void countersignNodeCreatesOneTaskPerApprover() {
-        // Given a multi-instance node whose rule resolves to {201, 202, 203}; When the node is entered; Then 3 tasks, one each.
-        // Given skip-when-empty and 0 candidates; Then the node is passed through.
-    }
-
-    @Test
     @Disabled("pending RULE-251: Phase 2 first consumer (timesheet row-level approval)")
     @DisplayName("RULE-251 a row reaches a node when its routing value activates a path to it")
     void rowReachability() {
@@ -37,33 +29,11 @@ class PendingApprovalRulesTest {
     }
 
     @Test
-    @Disabled("pending RULE-268: 1b first consumer (initiator cancel with reason before the cut-off)")
-    @DisplayName("RULE-268 only the initiator may cancel, before the cut-off node, with a reason; the history stays (RULE-288)")
-    void initiatorCancelsBeforeCutoff() {
-        // Given PI-A started by 2048 before its cut-off; When 3001 cancels -> 403; When 2048 cancels without a reason -> refused;
-        // When 2048 cancels with a reason -> status CANCELLED, ApprovalCompleted(CANCELLED), the approvers still see the document.
-    }
-
-    @Test
-    @Disabled("pending RULE-269: 1b first consumer (withdraw to initiator; 'can withdraw' display = the execution check)")
-    @DisplayName("RULE-269 withdraw to initiator: initiator only, before cut-off, single-instance node, not already at the initiator")
-    void withdrawToInitiator() {
-        // Reviewed correction: the displayed 'withdrawable' and the executed check are ONE function.
-    }
-
-    @Test
     @Disabled("pending RULE-270: 1b first consumer (explicit proxy approval; own-task batches are covered by TaskActorAuthorizationIT)")
     @DisplayName("RULE-270 a batch approves only the caller's own tasks; an administrator acts only through an explicit proxy, audited with both ids")
     void batchApprovesOnlyOwnTasks() {
         // Given a filter matching tasks of 3 users; When user 1 runs the batch; Then only user 1's tasks are approved.
         // Proxy: AuditEntry(actorId = administrator, onBehalfOfId = assignee) (D-07).
-    }
-
-    @Test
-    @Disabled("pending RULE-273: 1b first consumer (a rejection by an added countersigner is advisory)")
-    @DisplayName("RULE-273 an added countersigner's reject is recorded but the process continues and publishes no result")
-    void addedCountersignerRejectIsAdvisory() {
-        // TaskResulted.advisory = true is reserved for this; ApprovalCompleted is not published.
     }
 
     @Test
@@ -95,23 +65,10 @@ class PendingApprovalRulesTest {
     }
 
     @Test
-    @Disabled("pending RULE-285: 1b first consumer (transfer to another user by the current assignee only)")
-    @DisplayName("RULE-285 transfer: only the current assignee, to any user; I-7 applies to the operation")
-    void transfer() {
-        // TaskActorAuthorizationIT gets the transfer operation in the same change.
-    }
-
-    @Test
     @Disabled("pending RULE-286/313: 1b first consumer (add countersign on a running parallel multi-instance node)")
     @DisplayName("RULE-286 countersign can only target a running parallel multi-instance node, never a row node")
     void addCountersign() {
         // I-7: only the current assignee adds; duplicates and nulls are dropped.
-    }
-
-    @Test
-    @Disabled("pending RULE-288: 1b first consumer (cancel keeps the history; the reject part is done: TaskLifecycleIT)")
-    @DisplayName("RULE-288 the initiator cancels the whole process; history is kept and former approvers still see the document")
-    void cancelKeepsHistory() {
     }
 
     @Test
@@ -121,7 +78,7 @@ class PendingApprovalRulesTest {
     }
 
     @Test
-    @Disabled("pending RULE-297: 1b first consumer (withdraw to edit, the process stays alive)")
+    @Disabled("pending RULE-297: replaced by RULE-269 under M3: a withdraw ends the round and the initiator starts the next; keeping the process alive is not built")
     @DisplayName("RULE-297 the initiator pulls the approval back to their own node to edit it")
     void withdrawToEdit() {
     }
@@ -136,18 +93,6 @@ class PendingApprovalRulesTest {
     @Disabled("pending RULE-301: 1b first consumer (auto-complete cascade for notify nodes, skip-initiator-approval and empty nodes)")
     @DisplayName("RULE-301 after a task is created, notify / skip-initiator-approval / empty nodes complete automatically in a fixed order")
     void autoCompleteCascade() {
-    }
-
-    @Test
-    @Disabled("pending RULE-302: 1b first consumer (repeat approver auto-approved unless the row content changed)")
-    @DisplayName("RULE-302 a repeat approver on the same node is auto-approved except on rework; changed content must be re-approved")
-    void repeatApprover() {
-    }
-
-    @Test
-    @Disabled("pending RULE-309: 1b first consumer (withdraw / cancel cut-off = any marked node with a completed task)")
-    @DisplayName("RULE-309 once a cut-off node has a finished task, withdraw and cancel are blocked")
-    void cutoff() {
     }
 
     @Test

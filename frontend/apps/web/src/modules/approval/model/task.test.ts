@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { type TaskDetail, availableActions } from './task';
+import { type TaskDetail, availableActions, opinionText } from './task';
 
 const TASK: TaskDetail = {
   taskId: 't-1',
   instanceId: 'i-1',
   processKey: 'COST_TIMESHEET_APPROVAL',
-  businessKey: 'TS1',
+  documentType: 'TIMESHEET',
+  documentId: 'TS1',
   nodeKey: 'dept-head',
   nodeName: '部门负责人审核',
   initiator: '2002',
@@ -29,5 +30,13 @@ describe('availableActions', () => {
 
   it('服务端说现在不能办理（例如只是发起人）时一个按钮都没有', () => {
     expect(availableActions({ ...TASK, canAct: false }, true)).toEqual({ claim: false, approve: false, reject: false, returnToInitiator: false });
+  });
+});
+
+describe('opinionText', () => {
+  it('RULE-280 留空的意见显示为（未填写意见），不改动数据', () => {
+    expect(opinionText(undefined)).toBe('（未填写意见）');
+    expect(opinionText('  ')).toBe('（未填写意见）');
+    expect(opinionText('同意')).toBe('同意');
   });
 });

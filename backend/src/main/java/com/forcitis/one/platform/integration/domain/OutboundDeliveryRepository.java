@@ -5,10 +5,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-/** Every state change of a claimed delivery applies only while it is still PENDING at the claimed attempt; false means the claim went stale. */
+/**
+ * A change of a claimed delivery applies only while the delivery is still in the status it was claimed in and at the claimed
+ * attempt; false means the claim went stale.
+ */
 public interface OutboundDeliveryRepository {
 
-    boolean insert(NewDelivery delivery, Instant now);
+    /** False when a delivery with the same deduplication key was queued before. */
+    boolean insert(OutboundDelivery unsaved, Instant now);
 
     Optional<OutboundDelivery> findByKey(String deduplicationKey);
 
@@ -18,20 +22,11 @@ public interface OutboundDeliveryRepository {
     /** Takes due pending deliveries for one attempt each: counts the attempt and pushes next_attempt_at out by the lease. */
     List<OutboundDelivery> claimDue(Instant now, Duration lease, int limit);
 
-    boolean markSent(OutboundDelivery claimed, String responseCode, Instant now);
-
-    boolean markRetry(OutboundDelivery claimed, Instant nextAttemptAt, String error);
-
-    boolean markDeadLetter(OutboundDelivery claimed, String error);
-
-    boolean markSkipped(OutboundDelivery claimed, String reason);
+    boolean save(OutboundDelivery claimed);
 
     void recordHandledNote(String deduplicationKey, String note);
 
     void recordHandledResult(String deduplicationKey, String result);
-
-    /** Queues the replacement of a sent card as a delivery of its own; false when it was queued already. */
-    boolean queueHandledNote(OutboundDelivery sentCard, String note, Instant now);
 
     long countPendingCreatedBefore(Instant cutoff);
 

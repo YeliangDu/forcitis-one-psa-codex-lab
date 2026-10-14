@@ -1,10 +1,9 @@
 package com.forcitis.one.platform.identity.application;
 
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.platform.identity.api.IdentityError;
+import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.Role;
-import com.forcitis.one.platform.identity.domain.RoleId;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.RoleRuleException;
 import java.util.Optional;
@@ -16,14 +15,12 @@ public class DeleteRole {
 
     private final RoleRepository roles;
     private final AccessCache cache;
-    private final CurrentUser currentUser;
-    private final AuditLog audit;
+    private final DomainEvents events;
 
-    DeleteRole(RoleRepository roles, AccessCache cache, CurrentUser currentUser, AuditLog audit) {
+    DeleteRole(RoleRepository roles, AccessCache cache, DomainEvents events) {
         this.roles = roles;
         this.cache = cache;
-        this.currentUser = currentUser;
-        this.audit = audit;
+        this.events = events;
     }
 
     @Transactional
@@ -33,13 +30,12 @@ public class DeleteRole {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
         }
         try {
-            existing.get().requireModifiable();
+            existing.get().delete();
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }
-        roles.delete(existing.get().roleId());
-        audit.record(new AuditEntry("platform.identity.role.deleted", currentUser.userId(), null, "role:" + roleId,
-                "code=" + existing.get().code().value()));
+        roles.delete(existing.get());
+        events.publish(existing.get());
         cache.evictAll();
         return new AdminOutcome.Done<>(null);
     }

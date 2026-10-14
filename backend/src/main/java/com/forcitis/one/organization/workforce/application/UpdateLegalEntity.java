@@ -1,45 +1,49 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.LegalEntityNumberUsage;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.LegalEntity;
 import com.forcitis.one.organization.workforce.domain.LegalEntityRepository;
-import com.forcitis.one.organization.workforce.domain.LegalEntityStatus;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
-import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The code is never changed: issued document numbers carry it. */
+/** A null code leaves the code alone; a different one is a correction and is refused once numbers carry the old code. */
 @Service
 public class UpdateLegalEntity {
     private final LegalEntityRepository legalEntities;
-    private final AuditLog audit;
+    private final LegalEntityNumberUsage numberUsage;
+    private final DomainEvents events;
 
-    UpdateLegalEntity(LegalEntityRepository legalEntities, AuditLog audit) {
+    UpdateLegalEntity(LegalEntityRepository legalEntities, LegalEntityNumberUsage numberUsage, DomainEvents events) {
         this.legalEntities = legalEntities;
-        this.audit = audit;
+        this.numberUsage = numberUsage;
+        this.events = events;
     }
 
     @Transactional
-    public LegalEntityOutcome execute(long legalEntityId, String name, String status, long actorUserId) {
+    public LegalEntityView execute(long legalEntityId, String code, String name, String status) {
         if (legalEntityId <= 0) {
-            return new LegalEntityOutcome.NotFound();
+            throw notFound(legalEntityId);
         }
-        Optional<LegalEntity> found = legalEntities.find(new LegalEntityId(legalEntityId));
-        if (found.isEmpty()) {
-            return new LegalEntityOutcome.NotFound();
+        LegalEntityId id = new LegalEntityId(legalEntityId);
+        LegalEntity legalEntity = legalEntities.find(id).orElseThrow(() -> notFound(legalEntityId));
+        if (code != null) {
+            var corrected = CreateLegalEntity.parse(code);
+            legalEntity.correctCode(corrected, !corrected.equals(legalEntity.code()) && numberUsage.hasIssuedNumbers(id));
         }
-        LegalEntity updated;
-        try {
-            updated = found.get().update(name, LegalEntityStatus.valueOf(status));
-        } catch (IllegalArgumentException | NullPointerException invalid) {
-            return new LegalEntityOutcome.Rejected("name must be 1 to " + LegalEntity.MAX_NAME_LENGTH + " characters and status ACTIVE or INACTIVE");
-        }
-        legalEntities.update(updated);
-        audit.record(new AuditEntry("organization.workforce.legal-entity.updated", new UserId(actorUserId), null,
-                "legal-entity:" + legalEntityId, updated.code().value() + " now " + updated.status() + " named " + updated.name()));
-        return new LegalEntityOutcome.Saved(LegalEntityView.of(updated));
+        legalEntity.rename(name);
+        legalEntity.declareStatus(status);
+        legalEntities.save(legalEntity);
+        events.publish(legalEntity);
+        return LegalEntityView.of(legalEntity);
+    }
+
+    private static DomainException notFound(long legalEntityId) {
+        return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND, ErrorKind.NOT_FOUND,
+                "no legal entity " + legalEntityId);
     }
 }

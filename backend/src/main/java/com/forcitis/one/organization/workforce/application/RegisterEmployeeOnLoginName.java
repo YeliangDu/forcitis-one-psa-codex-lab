@@ -1,9 +1,9 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.organization.workforce.domain.OrgSource;
-import com.forcitis.one.organization.workforce.domain.SourceMember;
-import com.forcitis.one.organization.workforce.domain.SourceUnavailableException;
-import com.forcitis.one.organization.workforce.domain.StaffMember;
+import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.kernel.ExternalSystemUnavailableException;
+import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -22,11 +22,11 @@ public class RegisterEmployeeOnLoginName {
         this.registration = registration;
     }
 
-    public Optional<StaffMember> execute(String loginName) {
-        List<SourceMember> found;
+    public Optional<StaffEmployee> execute(String loginName) {
+        List<SourcePerson> found;
         try {
-            found = source.fetchMembersByLoginName(loginName);
-        } catch (SourceUnavailableException unavailable) {
+            found = source.findStaffByLoginName(loginName);
+        } catch (ExternalSystemUnavailableException unavailable) {
             LOG.warn("organization.workforce login-miss lookup skipped, source not available: {}", unavailable.getMessage());
             return Optional.empty();
         }

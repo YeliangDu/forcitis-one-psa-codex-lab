@@ -1,15 +1,15 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.organization.workforce.domain.SyncRunId;
-import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
+import com.forcitis.one.organization.workforce.api.SyncRunId;
+import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GetSyncRun {
-    private final SyncRunRepository runs;
+    private final SyncRunQueries runs;
 
-    GetSyncRun(SyncRunRepository runs) {
+    GetSyncRun(SyncRunQueries runs) {
         this.runs = runs;
     }
 

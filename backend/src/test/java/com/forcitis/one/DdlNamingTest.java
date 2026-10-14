@@ -30,10 +30,12 @@ class DdlNamingTest {
     static final Set<String> BANNED = Set.of("psa", "cuvalue", "manhour", "man_hour", "works", "biget", "arbad", "ohproject",
             "flag", "info", "data", "temp", "tmp", "bd", "pm", "u8c", "fst");
     static final Set<String> KEYWORDS = Set.of("primary", "constraint", "unique", "foreign", "check");
+    static final Set<String> COMMON_COLUMNS = Set.of("id", "created_at", "created_by", "updated_at", "updated_by", "version");
+    static final Pattern LOCAL_TIMESTAMP = Pattern.compile("\\btimestamp\\b(?!tz)(?!\\s*(\\(\\d+\\))?\\s+with\\s+time\\s+zone)", Pattern.CASE_INSENSITIVE);
 
     // Column names and types are fixed by the framework that owns the table (Spring Session JDBC, Spring Modulith, ShedLock).
     static final Set<String> FRAMEWORK_TABLES = Set.of("platform_identity.sessions", "platform_identity.sessions_attributes",
-            "platform_integration.event_publication", "platform_scheduling.scheduler_locks");
+            "platform_integration.event_publication", "platform_integration.event_publication_archive", "platform_scheduling.scheduler_locks");
 
     enum ClassWord {
         ID("_id", "bigint", "uuid", "text"),
@@ -482,7 +484,16 @@ class DdlNamingTest {
         return problems;
     }
 
+    static List<String> sampleViolations(String schema, String sql) {
+        List<String> problems = new ArrayList<>();
+        check(Path.of("V0__" + schema + "_sample.sql"), schema, sql, problems);
+        return problems;
+    }
+
     private static void check(Path file, String schema, String sql, List<String> problems) {
+        if (LOCAL_TIMESTAMP.matcher(sql.replaceAll("(?m)^\\s*--.*$", "").replaceAll("'[^']*'", "''")).find()) {
+            problems.add(file.getFileName() + ": timestamp without time zone is forbidden; instants are timestamptz, business days are date");
+        }
         Matcher t = CREATE_TABLE.matcher(sql);
         while (t.find()) {
             String tableSchema = t.group(1);
@@ -515,7 +526,7 @@ class DdlNamingTest {
                 if (column.endsWith("_amount") && !t.group(3).contains(column.replace("_amount", "_currency"))) {
                     problems.add(where + ": " + column + " needs a sibling " + column.replace("_amount", "_currency") + " (Money = amount + currency)");
                 }
-                if (!sql.contains("COMMENT ON COLUMN " + tableSchema + "." + table + "." + column + " IS")) {
+                if (!COMMON_COLUMNS.contains(column) && !sql.contains("COMMENT ON COLUMN " + tableSchema + "." + table + "." + column + " IS")) {
                     problems.add(where + ": column " + column + " has no COMMENT (data dictionary)");
                 }
             }
@@ -539,5 +550,40 @@ class DdlNamingTest {
                 problems.add(where + ": " + what + " uses legacy/vague word '" + part + "' (see GLOSSARY.md)");
             }
         }
+    }
+
+    static final String GOOD = """
+            CREATE TABLE platform_sample.things (
+                id         bigint      GENERATED ALWAYS AS IDENTITY,
+                sample_name text       NOT NULL,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                version    bigint      NOT NULL DEFAULT 0,
+                CONSTRAINT pk_things PRIMARY KEY (id)
+            );
+            COMMENT ON TABLE platform_sample.things IS 'x';
+            COMMENT ON COLUMN platform_sample.things.sample_name IS 'x';
+            """;
+
+    @Test
+    void commonColumnsNeedNoComment() {
+        assertThat(sampleViolations("platform_sample", GOOD)).noneMatch(p -> p.contains("has no COMMENT"));
+    }
+
+    @Test
+    void otherColumnsStillNeedAComment() {
+        assertThat(sampleViolations("platform_sample", GOOD.replace("COMMENT ON COLUMN platform_sample.things.sample_name IS 'x';", "")))
+                .anyMatch(p -> p.contains("column sample_name has no COMMENT"));
+    }
+
+    @Test
+    void timestampWithoutTimeZoneIsRejected() {
+        String column = "sample_name text       NOT NULL,";
+        assertThat(sampleViolations("platform_sample", GOOD.replace(column, column + "\n                seen_at    timestamp without time zone,")))
+                .anyMatch(p -> p.contains("timestamp without time zone"));
+        assertThat(sampleViolations("platform_sample", GOOD.replace(column, column + "\n                seen_at    timestamp,")))
+                .anyMatch(p -> p.contains("timestamp without time zone"));
+        assertThat(sampleViolations("platform_sample", GOOD.replace(column, column + "\n                seen_at    timestamp with time zone,")))
+                .noneMatch(p -> p.contains("timestamp without time zone"));
     }
 }

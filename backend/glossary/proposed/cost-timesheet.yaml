@@ -58,3 +58,27 @@ terms:
   forbidden: []
   status: proposed
   note: 疑似方言，第三轮用语确认
+common_words:
+- revise
+- revised
+- submitted
+- awaiting
+- round
+- consumed
+- consumer
+- first
+- time
+- event
+- events
+- cancelled
+- returned
+- rejected
+- approved
+- draft
+- owner
+- result
+- retract
+- revert
+- digest
+- unknown
+- unmatched

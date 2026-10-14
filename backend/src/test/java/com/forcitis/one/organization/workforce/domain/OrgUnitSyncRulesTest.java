@@ -1,11 +1,16 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+import com.forcitis.one.platform.integration.api.SourceOrgUnit;
+import com.forcitis.one.platform.integration.api.SourceRecordState;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.sourceUnit;
+
 import static com.forcitis.one.organization.workforce.domain.Fixtures.apply;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.first;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.issues;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
-import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.orgUnit;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
@@ -34,7 +39,7 @@ class OrgUnitSyncRulesTest {
     @Test
     @DisplayName("RULE-354 units are written parents first, whatever order the source lists them in")
     void parentsComeFirst() {
-        SourceSnapshot shuffled = source(List.of(unit(3, 2L), unit(2, 1L), unit(1, null)), List.of(), List.of(post(100)), List.of());
+        SourceOrgSnapshot shuffled = source(List.of(unit(3, 2L), unit(2, 1L), unit(1, null)), List.of(), List.of(post(100)), List.of());
 
         Reconciliation changes = first(shuffled);
 
@@ -44,9 +49,9 @@ class OrgUnitSyncRulesTest {
     @Test
     @DisplayName("RULE-354 when the source reports that two units share a place, the stewards are told")
     void sharedPlaceIsReported() {
-        SourceOrgUnit sharing = new SourceOrgUnit(unitId(3), "C3", "Unit 3", unitId(1), 3, OrgUnitStatus.ACTIVE, List.of(), null, null,
-                false, unitId(2));
-        SourceSnapshot shared = source(List.of(unit(1, null), unit(2, 1L, OrgUnitStatus.DISABLED), sharing, unit(4, 3L)), List.of(),
+        SourceOrgUnit sharing = new SourceOrgUnit(sourceUnit(3), "C3", "Unit 3", sourceUnit(1), 3, SourceRecordState.ACTIVE, List.of(), null, null,
+                false, sourceUnit(2));
+        SourceOrgSnapshot shared = source(List.of(unit(1, null), unit(2, 1L, SourceRecordState.DISABLED), sharing, unit(4, 3L)), List.of(),
                 List.of(post(100)), List.of());
 
         Reconciliation changes = first(shared);
@@ -60,7 +65,7 @@ class OrgUnitSyncRulesTest {
     @DisplayName("RULE-355 a disabled unit is DISABLED, a unit the source no longer returns is REVOKED: two different states")
     void disabledAndRevokedAreSeparate() {
         OrgSnapshot before = apply(OrgSnapshot.empty(), first(tree()));
-        SourceSnapshot next = source(List.of(unit(1, null), unit(2, 1L, OrgUnitStatus.DISABLED)), List.of(),
+        SourceOrgSnapshot next = source(List.of(unit(1, null), unit(2, 1L, SourceRecordState.DISABLED)), List.of(),
                 List.of(post(100), post(101)), List.of());
 
         Reconciliation changes = SnapshotReconciler.reconcile(before, next);
@@ -74,7 +79,7 @@ class OrgUnitSyncRulesTest {
     @Test
     @DisplayName("RULE-355 a unit with NULL flags counts as valid and is listed in the exception report")
     void nullFlagsAreValidAndReported() {
-        SourceOrgUnit nullFlags = new SourceOrgUnit(unitId(1), "C1", "Unit 1", null, 1, OrgUnitStatus.ACTIVE,
+        SourceOrgUnit nullFlags = new SourceOrgUnit(sourceUnit(1), "C1", "Unit 1", null, 1, SourceRecordState.ACTIVE,
                 List.of("enabled"), null, null, false, null);
 
         Reconciliation changes = first(source(List.of(nullFlags), List.of(), List.of(post(100)), List.of()));
@@ -86,8 +91,8 @@ class OrgUnitSyncRulesTest {
     @Test
     @DisplayName("RULE-356 several heads: the smallest id wins, deterministically, and the data steward is told")
     void smallestHeadIdWins() {
-        SourceSnapshot snapshot = source(List.of(unit(1, null)), List.of(head(1, 805), head(1, 801)), List.of(post(100)),
-                List.of(member(801, 1, 100L, null), member(805, 1, 100L, null)));
+        SourceOrgSnapshot snapshot = source(List.of(unit(1, null)), List.of(head(1, 805), head(1, 801)), List.of(post(100)),
+                List.of(person(801, 1, 100L, null), person(805, 1, 100L, null)));
 
         Reconciliation changes = first(snapshot);
 
@@ -98,12 +103,12 @@ class OrgUnitSyncRulesTest {
     @Test
     @DisplayName("RULE-356 the regional receivables manager follows the same rule and a removed one becomes empty")
     void managerIsSyncedByValue() {
-        SourceSnapshot with = source(List.of(unit(1, null)), List.of(manager(1, 801)), List.of(post(100)),
-                List.of(member(801, 1, 100L, null)));
+        SourceOrgSnapshot with = source(List.of(unit(1, null)), List.of(manager(1, 801)), List.of(post(100)),
+                List.of(person(801, 1, 100L, null)));
         OrgSnapshot before = apply(OrgSnapshot.empty(), first(with));
         assertThat(orgUnit(before, 1).regionalReceivablesManagerId()).isEqualTo(user(801));
 
-        SourceSnapshot without = source(List.of(unit(1, null)), List.of(), List.of(post(100)), List.of(member(801, 1, 100L, null)));
+        SourceOrgSnapshot without = source(List.of(unit(1, null)), List.of(), List.of(post(100)), List.of(person(801, 1, 100L, null)));
         OrgSnapshot after = apply(before, SnapshotReconciler.reconcile(before, without));
 
         assertThat(orgUnit(after, 1).regionalReceivablesManagerId()).isNull();
@@ -112,7 +117,7 @@ class OrgUnitSyncRulesTest {
     @Test
     @DisplayName("RULE-356 a head who is not in the snapshot is stored empty and reported, not left dangling")
     void unknownHeadIsReported() {
-        SourceSnapshot snapshot = source(List.of(unit(1, null)), List.of(head(1, 999)), List.of(post(100)), List.of());
+        SourceOrgSnapshot snapshot = source(List.of(unit(1, null)), List.of(head(1, 999)), List.of(post(100)), List.of());
 
         Reconciliation changes = first(snapshot);
 
@@ -128,8 +133,8 @@ class OrgUnitSyncRulesTest {
         Reconciliation noChange = SnapshotReconciler.reconcile(v1, tree());
         assertThat(noChange.hasChanges()).isFalse();
 
-        SourceSnapshot renamed = source(List.of(unit(1, null), new SourceOrgUnit(unitId(2), "C2", "Renamed", unitId(1), 2,
-                OrgUnitStatus.ACTIVE, List.of(), null, null, false, null)), List.of(), List.of(post(100), post(101)), List.of());
+        SourceOrgSnapshot renamed = source(List.of(unit(1, null), new SourceOrgUnit(sourceUnit(2), "C2", "Renamed", sourceUnit(1), 2,
+                SourceRecordState.ACTIVE, List.of(), null, null, false, null)), List.of(), List.of(post(100), post(101)), List.of());
         Reconciliation rename = SnapshotReconciler.reconcile(v1, renamed);
         OrgSnapshot v2 = apply(v1, rename);
         assertThat(orgUnit(v2, 2).name()).isEqualTo("Renamed");
@@ -153,8 +158,8 @@ class OrgUnitSyncRulesTest {
         OrgSnapshot stored = new OrgSnapshot(v1.orgUnits().stream().map(u -> u.orgUnitId().equals(unitId(2)) ? withShortName : u).toList(),
                 v1.positions(), v1.staff());
 
-        SourceSnapshot renamed = source(List.of(unit(1, null), new SourceOrgUnit(unitId(2), "C2", "Renamed", unitId(1), 2,
-                OrgUnitStatus.ACTIVE, List.of(), null, null, false, null), unit(3, 2L)), List.of(),
+        SourceOrgSnapshot renamed = source(List.of(unit(1, null), new SourceOrgUnit(sourceUnit(2), "C2", "Renamed", sourceUnit(1), 2,
+                SourceRecordState.ACTIVE, List.of(), null, null, false, null), unit(3, 2L)), List.of(),
                 List.of(post(100), post(101)), List.of());
         OrgSnapshot after = apply(stored, SnapshotReconciler.reconcile(stored, renamed));
 

@@ -8,10 +8,10 @@ import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ApprovalRequest;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.ApprovalError;
-import com.forcitis.one.platform.approval.application.ApprovalOperationException;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
 import com.forcitis.one.platform.approval.application.TaskDecision;
@@ -50,8 +50,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         for (TimesheetRoutingFlag flag : flags) {
             names.add(flag.flagName());
         }
-        return tx.execute(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key,
-                new UserId(s.initiator()), names, fields)));
+        return tx.execute(status -> approvals.start(startRequest(key, new UserId(s.initiator()), names, fields)));
     }
 
     List<String> openNodes(ApprovalInstanceId instance) {
@@ -127,8 +126,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         for (TimesheetRoutingFlag flag : flags) {
             names.add(flag.flagName());
         }
-        return tx.execute(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key,
-                new UserId(s.initiator()), names, fields)));
+        return tx.execute(status -> approvals.start(startRequest(key, new UserId(s.initiator()), names, fields)));
     }
 
     static ApprovalField projectManagers(String... values) {
@@ -160,12 +158,12 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     @DisplayName("G-1 / RULE-300 a missing field is not 'nobody': the start fails and an alert is counted, nothing passes silently")
     void missingFieldFailsInsteadOfSkipping() {
         Staff s = staff();
-        double before = counter("platform.approval.assignee.invalid.input");
+        double before = counter("forcitis.platform.approval.assignee.invalid.input");
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(), TimesheetRoutingFlag.PROJECT_HOURS))
-                .isInstanceOf(RuntimeException.class).hasStackTraceContaining("missing or invalid");
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
 
-        assertThat(counter("platform.approval.assignee.invalid.input")).isEqualTo(before + 1);
+        assertThat(counter("forcitis.platform.approval.assignee.invalid.input")).isEqualTo(before + 1);
     }
 
     @Test
@@ -174,22 +172,22 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         Staff s = staff();
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers(String.valueOf(newId()))),
-                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOf(RuntimeException.class).hasStackTraceContaining("missing or invalid");
+                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers("not-an-id")),
-                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOf(RuntimeException.class).hasStackTraceContaining("missing or invalid");
+                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
     }
 
     @Test
     @DisplayName("G-1 / RULE-300 a failure while resolving a node fails the start and is counted")
     void resolutionFailureFailsTheStart() {
         Staff s = staff();
-        double before = counter("platform.approval.assignee.resolution.failed");
+        double before = counter("forcitis.platform.approval.assignee.resolution.failed");
         organisation.failOnNextLookup();
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers(String.valueOf(s.projectManager()))),
                 TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOf(RuntimeException.class);
 
-        assertThat(counter("platform.approval.assignee.resolution.failed")).isEqualTo(before + 1);
+        assertThat(counter("forcitis.platform.approval.assignee.resolution.failed")).isEqualTo(before + 1);
     }
 
     @Test
@@ -198,13 +196,13 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         Staff s = staff();
         long gone = newId();
         organisation.separated(gone, newId(), null);
-        double before = counter("platform.approval.all.nodes.skipped");
+        double before = counter("forcitis.platform.approval.all.nodes.skipped");
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s,
                 List.of(new ApprovalField(TimesheetApprovalField.REGIONAL_HEAD.fieldName(), List.of(String.valueOf(gone)))),
                 TimesheetRoutingFlag.PRE_SALES_HOURS)).isInstanceOf(RuntimeException.class).hasStackTraceContaining("found nobody to assign");
 
-        assertThat(counter("platform.approval.all.nodes.skipped")).isEqualTo(before + 1);
+        assertThat(counter("forcitis.platform.approval.all.nodes.skipped")).isEqualTo(before + 1);
     }
 
     @Test
@@ -212,7 +210,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     void noRoutingFlagIsRefused() {
         Staff s = staff();
         assertThatThrownBy(() -> start(newKey("branches"), s, List.of(), new TimesheetRoutingFlag[0]))
-                .isInstanceOfSatisfying(ApprovalOperationException.class,
-                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NO_ROUTE));
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NO_ROUTE));
     }
 }

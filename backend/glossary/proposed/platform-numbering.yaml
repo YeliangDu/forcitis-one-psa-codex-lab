@@ -1,5 +1,61 @@
 # platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服务于原编号、确认状态、单据类型代码的命名守护。
 terms:
+- id: error__platform_numbering_rule_not_found
+  zh: 编号规则不存在
+  en: PlatformNumberingRuleNotFound
+  snake: platform_numbering_rule_not_found
+  kind: error_code
+  bc: platform.numbering
+  definition: 该单据类型没有有效的编号规则（404）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_rule_invalid
+  zh: 编号规则无效
+  en: PlatformNumberingRuleInvalid
+  snake: platform_numbering_rule_invalid
+  kind: error_code
+  bc: platform.numbering
+  definition: 模板或重置周期不符合规则（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_rule_transition_illegal
+  zh: 编号规则状态转换非法
+  en: PlatformNumberingRuleTransitionIllegal
+  snake: platform_numbering_rule_transition_illegal
+  kind: error_code
+  bc: platform.numbering
+  definition: 编号规则已经确认，不能再次确认（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_concurrent_update
+  zh: 编号规则并发修改
+  en: PlatformNumberingConcurrentUpdate
+  snake: platform_numbering_concurrent_update
+  kind: error_code
+  bc: platform.numbering
+  definition: 规则已被他人修改（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 - id: legacy_number
   zh: 原编号
   en: LegacyNumber
@@ -98,3 +154,7 @@ terms:
   forbidden: []
   status: proposed
   note: 例 JV-FST-202610-0001；模板待管理员确认
+common_words:
+- confirm
+- reconfigure
+- reconfigured

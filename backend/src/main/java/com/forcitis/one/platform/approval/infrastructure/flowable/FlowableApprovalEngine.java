@@ -1,15 +1,23 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
+import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
+import com.forcitis.one.platform.approval.domain.InstanceStart;
 import com.forcitis.one.platform.approval.domain.NodePolicy;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -18,10 +26,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import org.flowable.bpmn.model.BpmnModel;
+import org.flowable.bpmn.model.UserTask;
+import org.flowable.common.engine.api.FlowableException;
 import org.flowable.common.engine.api.FlowableOptimisticLockingException;
 import org.flowable.common.engine.api.FlowableTaskAlreadyClaimedException;
-import org.flowable.bpmn.model.UserTask;
+import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
@@ -41,34 +52,76 @@ class FlowableApprovalEngine implements ApprovalEngine {
 
     static final String VARIABLE_INITIATOR = "initiatorId";
     static final String VARIABLE_BUSINESS_KEY = "businessKey";
-    static final String VARIABLE_SKIPPED = "skippedWhenEmpty";
+    static final String VARIABLE_DOCUMENT_TYPE = "documentType";
+    static final String VARIABLE_DOCUMENT_ID = "documentId";
+    static final String VARIABLE_LEGAL_ENTITY = "legalEntityId";
+    static final String VARIABLE_SUBMITTED_ON = "submittedOn";
+    static final String VARIABLE_CONTENT_DIGEST = "contentDigest";
+    static final String VARIABLE_SYSTEM_COMPLETE = "systemComplete";
     static final String VARIABLE_ASSIGNED_AT = "assignedAtMillis";
+    static final String VARIABLE_ADVISORY = "advisory";
 
     private final RuntimeService runtime;
     private final TaskService tasks;
     private final RepositoryService repository;
+    private final HistoryService history;
+    private final NodeDecisions decisions;
     private final MeterRegistry meters;
     private final Map<String, Definition> definitions = new ConcurrentHashMap<>();
 
-    FlowableApprovalEngine(RuntimeService runtime, TaskService tasks, RepositoryService repository, MeterRegistry meters) {
-        this.meters = meters;
+    FlowableApprovalEngine(RuntimeService runtime, TaskService tasks, RepositoryService repository, HistoryService history,
+            NodeDecisions decisions, MeterRegistry meters) {
         this.runtime = runtime;
         this.tasks = tasks;
         this.repository = repository;
+        this.history = history;
+        this.decisions = decisions;
+        this.meters = meters;
     }
 
     private record Definition(ProcessKey processKey, BpmnModel model) {
     }
 
+    static DocumentReference documentOf(ProcessVariables variables) {
+        return new DocumentReference(DocumentType.valueOf(variables.firstVariable(VARIABLE_DOCUMENT_TYPE).orElseThrow()),
+                new DocumentId(variables.firstVariable(VARIABLE_DOCUMENT_ID).orElseThrow()));
+    }
+
     @Override
-    public ApprovalInstanceId startInstance(ProcessKey processKey, String businessKey, UserId initiator, ProcessVariables variables) {
-        Map<String, Object> engine = new LinkedHashMap<>(EngineVariables.toEngine(variables));
-        engine.put(VARIABLE_INITIATOR, String.valueOf(initiator.value()));
+    public ApprovalInstanceId startInstance(InstanceStart start) {
+        Map<String, Object> engine = new LinkedHashMap<>(EngineVariables.toEngine(start.variables()));
+        String businessKey = start.document().documentType().name() + ":" + start.document().documentId().value();
+        engine.put(VARIABLE_INITIATOR, String.valueOf(start.initiator().value()));
         engine.put(VARIABLE_BUSINESS_KEY, businessKey);
-        String instanceId = runtime.startProcessInstanceByKey(processKey.key(), businessKey, engine).getId();
+        engine.put(VARIABLE_DOCUMENT_TYPE, start.document().documentType().name());
+        engine.put(VARIABLE_DOCUMENT_ID, start.document().documentId().value());
+        engine.put(VARIABLE_LEGAL_ENTITY, String.valueOf(start.legalEntityId().value()));
+        engine.put(VARIABLE_SUBMITTED_ON, start.submittedOn().toString());
+        engine.put(VARIABLE_CONTENT_DIGEST, start.contentDigest());
+        engine.putAll(nodeDecisions(start));
+        String instanceId = refusing(() -> runtime.startProcessInstanceByKey(start.processKey().key(), businessKey, engine).getId());
         rejectWhenEveryNodeWasSkipped(instanceId);
-        completeSkippedTasks(instanceId);
+        completeSystemTasks(instanceId);
         return new ApprovalInstanceId(instanceId);
+    }
+
+    private Map<String, Object> nodeDecisions(InstanceStart start) {
+        ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(start.processKey().key())
+                .latestVersion().singleResult();
+        if (definition == null) {
+            throw new IllegalStateException("No deployed process definition " + start.processKey().key());
+        }
+        Set<String> facts = new HashSet<>();
+        start.variables().variables().forEach((name, values) -> {
+            if (values.size() == 1 && "true".equals(values.getFirst())) {
+                facts.add(name);
+            }
+        });
+        Map<String, Object> variables = new LinkedHashMap<>();
+        for (UserTask node : repository.getBpmnModel(definition.getId()).getMainProcess().findFlowElementsOfType(UserTask.class)) {
+            variables.putAll(decisions.decide(start.processKey(), node.getId(), facts).asVariables(node.getId()));
+        }
+        return variables;
     }
 
     @Override
@@ -78,14 +131,14 @@ class FlowableApprovalEngine implements ApprovalEngine {
 
     @Override
     public Optional<TaskView> findTask(ApprovalTaskId taskId) {
-        return Optional.ofNullable(tasks.createTaskQuery().taskId(taskId.value()).includeIdentityLinks().includeProcessVariables().includeTaskLocalVariables()
-                .singleResult()).map(this::view);
+        return Optional.ofNullable(tasks.createTaskQuery().taskId(taskId.value()).includeIdentityLinks().includeProcessVariables()
+                .includeTaskLocalVariables().singleResult()).map(this::view);
     }
 
     @Override
     public List<TaskView> findOpenTasks(ApprovalInstanceId instanceId) {
-        return tasks.createTaskQuery().processInstanceId(instanceId.value()).includeIdentityLinks().includeProcessVariables().includeTaskLocalVariables()
-                .orderByTaskCreateTime().asc().list().stream().map(this::view).toList();
+        return tasks.createTaskQuery().processInstanceId(instanceId.value()).includeIdentityLinks().includeProcessVariables()
+                .includeTaskLocalVariables().orderByTaskCreateTime().asc().list().stream().map(this::view).toList();
     }
 
     @Override
@@ -97,7 +150,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
         tasks.createTaskQuery().taskCandidateUser(id).includeIdentityLinks().includeProcessVariables().includeTaskLocalVariables().list()
                 .forEach(t -> found.putIfAbsent(t.getId(), t));
         return found.values().stream().map(this::view)
-                .filter(t -> user.equals(t.assignee()) || (t.assignee() == null && t.candidates().contains(user)))
+                .filter(t -> t.assignee().map(user::equals).orElseGet(() -> t.candidates().contains(user)))
                 .sorted((a, b) -> b.createdAt().compareTo(a.createdAt())).toList();
     }
 
@@ -112,34 +165,70 @@ class FlowableApprovalEngine implements ApprovalEngine {
     }
 
     @Override
+    public void releaseClaim(ApprovalTaskId taskId) {
+        tasks.unclaim(taskId.value());
+    }
+
+    @Override
+    public void reassignTask(ApprovalTaskId taskId, UserId to) {
+        tasks.setAssignee(taskId.value(), String.valueOf(to.value()));
+    }
+
+    @Override
+    public void addCandidates(ApprovalTaskId taskId, Collection<UserId> users) {
+        users.forEach(user -> tasks.addCandidateUser(taskId.value(), String.valueOf(user.value())));
+    }
+
+    @Override
     public void completeTask(ApprovalTaskId taskId) {
         Task task = tasks.createTaskQuery().taskId(taskId.value()).singleResult();
         if (task == null) {
             throw new IllegalStateException("Task " + taskId.value() + " is gone");
         }
-        tasks.complete(taskId.value());
-        completeSkippedTasks(task.getProcessInstanceId());
+        refusing(() -> {
+            tasks.complete(taskId.value());
+            return null;
+        });
+        completeSystemTasks(task.getProcessInstanceId());
+    }
+
+    /** A refusal raised while the engine assigns the next node reaches the caller as itself, not wrapped in the engine's exception. */
+    private static <T> T refusing(Supplier<T> command) {
+        try {
+            return command.get();
+        } catch (FlowableException failed) {
+            for (Throwable cause = failed; cause != null; cause = cause.getCause()) {
+                if (cause instanceof DomainException refusal) {
+                    throw refusal;
+                }
+            }
+            throw failed;
+        }
     }
 
     private void rejectWhenEveryNodeWasSkipped(String instanceId) {
         long open = tasks.createTaskQuery().processInstanceId(instanceId).count();
-        if (open > 0 && skippedTasks(instanceId).size() == open) {
+        boolean nothingEverAssigned = open == 0 && history.createHistoricTaskInstanceQuery().processInstanceId(instanceId).count() == 0;
+        if (nothingEverAssigned || (open > 0 && systemTasks(instanceId).size() == open)) {
             log.error("Every node of instance {} was skipped for lack of an approver: the approval is refused, not passed", instanceId);
-            meters.counter("platform.approval.all.nodes.skipped").increment();
+            meters.counter("forcitis.platform.approval.all.nodes.skipped").increment();
             throw new IllegalStateException("Every node of approval instance " + instanceId + " found nobody to assign");
         }
     }
 
-    private void completeSkippedTasks(String instanceId) {
-        List<Task> skipped = skippedTasks(instanceId);
-        while (!skipped.isEmpty()) {
-            skipped.forEach(task -> tasks.complete(task.getId()));
-            skipped = skippedTasks(instanceId);
+    private void completeSystemTasks(String instanceId) {
+        List<Task> pending = systemTasks(instanceId);
+        while (!pending.isEmpty()) {
+            pending.forEach(task -> refusing(() -> {
+                tasks.complete(task.getId());
+                return null;
+            }));
+            pending = systemTasks(instanceId);
         }
     }
 
-    private List<Task> skippedTasks(String instanceId) {
-        return tasks.createTaskQuery().processInstanceId(instanceId).taskVariableValueEquals(VARIABLE_SKIPPED, Boolean.TRUE).list();
+    private List<Task> systemTasks(String instanceId) {
+        return tasks.createTaskQuery().processInstanceId(instanceId).taskVariableValueEquals(VARIABLE_SYSTEM_COMPLETE, Boolean.TRUE).list();
     }
 
     @Override
@@ -160,11 +249,28 @@ class FlowableApprovalEngine implements ApprovalEngine {
         }
     }
 
+    @Override
+    public boolean cutoffPassed(ApprovalInstanceId instanceId) {
+        var instance = runtime.createProcessInstanceQuery().processInstanceId(instanceId.value()).singleResult();
+        if (instance == null) {
+            return false;
+        }
+        BpmnModel model = repository.getBpmnModel(instance.getProcessDefinitionId());
+        Set<String> cutoffNodes = new LinkedHashSet<>();
+        for (UserTask node : model.getMainProcess().findFlowElementsOfType(UserTask.class)) {
+            if (NodePolicyReader.read(node).cutoff()) {
+                cutoffNodes.add(node.getId());
+            }
+        }
+        return !cutoffNodes.isEmpty() && history.createHistoricTaskInstanceQuery().processInstanceId(instanceId.value()).finished()
+                .list().stream().anyMatch(task -> cutoffNodes.contains(task.getTaskDefinitionKey()));
+    }
+
     private TaskView view(Task task) {
         Definition definition = definition(task.getProcessDefinitionId());
         NodePolicy policy = nodeOf(task);
         UserTask node = (UserTask) definition.model().getFlowElement(task.getTaskDefinitionKey());
-        Map<String, Object> variables = task.getProcessVariables();
+        ProcessVariables variables = EngineVariables.fromEngine(task.getProcessVariables());
         Set<UserId> candidates = new LinkedHashSet<>();
         for (IdentityLinkInfo link : task.getIdentityLinks()) {
             if (IdentityLinkType.CANDIDATE.equals(link.getType()) && link.getUserId() != null) {
@@ -172,10 +278,13 @@ class FlowableApprovalEngine implements ApprovalEngine {
             }
         }
         return new TaskView(new ApprovalTaskId(task.getId()), new ApprovalInstanceId(task.getProcessInstanceId()),
-                definition.processKey(), String.valueOf(variables.get(VARIABLE_BUSINESS_KEY)), task.getTaskDefinitionKey(),
-                task.getName(), new UserId(Long.parseLong(String.valueOf(variables.get(VARIABLE_INITIATOR)))),
-                task.getAssignee() == null ? null : new UserId(Long.parseLong(task.getAssignee())), candidates,
-                createdAt(task), node.getSubProcess() != null, policy.beforeHookKey());
+                definition.processKey(), documentOf(variables),
+                new LegalEntityId(Long.parseLong(variables.firstVariable(VARIABLE_LEGAL_ENTITY).orElseThrow())),
+                task.getTaskDefinitionKey(), task.getName(),
+                new UserId(Long.parseLong(variables.firstVariable(VARIABLE_INITIATOR).orElseThrow())),
+                Optional.ofNullable(task.getAssignee()).map(a -> new UserId(Long.parseLong(a))), candidates, createdAt(task),
+                node.getSubProcess() != null, policy.beforeHookKey(), Boolean.TRUE.equals(task.getTaskLocalVariables().get(VARIABLE_ADVISORY)),
+                variables.firstVariable(VARIABLE_CONTENT_DIGEST).orElseThrow());
     }
 
     private static Instant createdAt(Task task) {

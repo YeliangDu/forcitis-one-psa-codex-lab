@@ -3,7 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.organization.workforce.domain.OrgReconciliation;
 import com.forcitis.one.organization.workforce.domain.OrgReconciliationReport;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
-import com.forcitis.one.organization.workforce.domain.OrgSource;
+import com.forcitis.one.platform.integration.api.OrgSource;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,6 +17,6 @@ public class ReconcileOrgSnapshot {
     }
 
     public OrgReconciliationReport execute() {
-        return OrgReconciliation.compare(source.fetchAll(), snapshots.loadAll());
+        return OrgReconciliation.compare(source.readSnapshot(), snapshots.loadAll());
     }
 }

@@ -12,7 +12,8 @@ const TASK = {
   taskId: 't-1',
   instanceId: 'i-1',
   processKey: 'COST_TIMESHEET_APPROVAL',
-  businessKey: 'TS202610140001',
+  documentType: 'TIMESHEET',
+  documentId: 'TS-FST-202610-0001',
   nodeKey: 'dept-head',
   nodeName: '部门负责人审核',
   initiator: '2002',
@@ -41,7 +42,7 @@ describe('审批详情', () => {
     await showTask();
 
     expect(screen.getByText('工时单审批')).toBeInTheDocument();
-    expect(screen.getByText('TS202610140001')).toBeInTheDocument();
+    expect(screen.getByText('TIMESHEET TS-FST-202610-0001')).toBeInTheDocument();
     expect(screen.getByText('1001、1002')).toBeInTheDocument();
     expect(screen.getByText('待认领')).toBeInTheDocument();
   });

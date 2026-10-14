@@ -1,14 +1,12 @@
 package com.forcitis.one.platform.identity.application;
 
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.platform.identity.api.IdentityError;
+import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.Role;
-import com.forcitis.one.platform.identity.domain.RoleId;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.RoleRuleException;
-import com.forcitis.one.platform.identity.domain.RoleStatus;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,15 +18,13 @@ public class UpdateRole {
     private final RoleRepository roles;
     private final PrivilegeCeiling ceiling;
     private final AccessCache cache;
-    private final CurrentUser currentUser;
-    private final AuditLog audit;
+    private final DomainEvents events;
 
-    UpdateRole(RoleRepository roles, PrivilegeCeiling ceiling, AccessCache cache, CurrentUser currentUser, AuditLog audit) {
+    UpdateRole(RoleRepository roles, PrivilegeCeiling ceiling, AccessCache cache, DomainEvents events) {
         this.roles = roles;
         this.ceiling = ceiling;
         this.cache = cache;
-        this.currentUser = currentUser;
-        this.audit = audit;
+        this.events = events;
     }
 
     @Transactional
@@ -41,17 +37,17 @@ public class UpdateRole {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
         }
         try {
-            AccessScopeKind scope = command.accessScope() != null ? command.accessScope() : existing.get().accessScope();
-            Role revised = existing.get().revise(command.name(), command.enabled() ? RoleStatus.ENABLED : RoleStatus.DISABLED,
-                    scope, command.permissionCodes());
-            if (!ceiling.mayGrant(revised.permissionCodes(), revised.administrative())) {
+            Role role = existing.get();
+            AccessScopeKind scope = command.accessScope() != null ? command.accessScope() : role.accessScope();
+            role.revise(command.name(), scope, command.permissionCodes());
+            role.declareEnabled(command.enabled());
+            if (!ceiling.mayGrant(role.permissionCodes(), role.administrative())) {
                 return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
             }
-            roles.update(revised);
-            audit.record(new AuditEntry("platform.identity.role.updated", currentUser.userId(), null, "role:" + roleId,
-                    "code=" + revised.code().value() + " enabled=" + command.enabled() + " scope=" + scope));
+            roles.update(role);
+            events.publish(role);
             cache.evictAll();
-            return new AdminOutcome.Done<>(RoleView.of(revised));
+            return new AdminOutcome.Done<>(RoleView.of(role));
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }

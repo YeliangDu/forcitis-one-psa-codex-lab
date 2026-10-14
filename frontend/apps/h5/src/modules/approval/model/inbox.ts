@@ -1,7 +1,7 @@
 import type { Schema } from '@forcitis/api';
 
-export type InboxItem = Schema<'InboxItem'>;
-export type MergedInbox = Schema<'MergedInbox'>;
+export type InboxItem = Schema<'InboxItemResponse'>;
+export type MergedInbox = Schema<'InboxResponse'>;
 
 export const INBOX_PAGE = '/app/pages/inbox';
 export const TASK_PAGE = '/app/pages/task';

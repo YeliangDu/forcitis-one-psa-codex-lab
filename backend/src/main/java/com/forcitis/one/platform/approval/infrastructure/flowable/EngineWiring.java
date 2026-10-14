@@ -27,12 +27,15 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
     private final RepositoryService repository;
     private final TaskAssignmentListener listener;
     private final AssignmentProperties properties;
+    private final NodeDecisions decisions;
 
-    EngineWiring(ProcessEngine engine, RepositoryService repository, TaskAssignmentListener listener, AssignmentProperties properties) {
+    EngineWiring(ProcessEngine engine, RepositoryService repository, TaskAssignmentListener listener, AssignmentProperties properties,
+            NodeDecisions decisions) {
         this.engine = engine;
         this.repository = repository;
         this.listener = listener;
         this.properties = properties;
+        this.decisions = decisions;
     }
 
     @Override
@@ -53,6 +56,9 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
             if (definition == null) {
                 problems.add(key + ": no deployed process definition " + key.key());
                 continue;
+            }
+            if (!decisions.isDeployed(key)) {
+                problems.add(key + ": no deployed decision table " + NodeDecisions.decisionKey(key));
             }
             BpmnModel model = repository.getBpmnModel(definition.getId());
             for (UserTask task : model.getMainProcess().findFlowElementsOfType(UserTask.class)) {

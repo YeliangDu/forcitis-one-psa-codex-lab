@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.identity.api.IdentityError;
 import java.time.Instant;
 
 /** Rejected carries the coarse error only. */

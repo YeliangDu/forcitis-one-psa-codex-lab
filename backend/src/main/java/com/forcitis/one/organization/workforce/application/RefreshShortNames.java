@@ -3,7 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
 import com.forcitis.one.organization.workforce.domain.ShortNameSource;
-import com.forcitis.one.organization.workforce.domain.SourceUnavailableException;
+import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import java.time.Clock;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -32,7 +32,7 @@ public class RefreshShortNames {
         Map<OrgUnitId, String> names;
         try {
             names = source.fetchShortNames();
-        } catch (SourceUnavailableException unavailable) {
+        } catch (ExternalSystemUnavailableException unavailable) {
             LOG.warn("organization.workforce short name refresh skipped: {}", unavailable.getMessage());
             return 0;
         }

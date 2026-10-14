@@ -2,6 +2,9 @@ package com.forcitis.one.platform.numbering.web;
 
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.application.ConfigureNumberingRule;
 import com.forcitis.one.platform.numbering.application.FindNumberingRule;
 import com.forcitis.one.platform.numbering.application.ListNumberingRules;
@@ -17,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/{version}/platform/numbering-rules")
+@RequestMapping("/api/v1/platform/numbering-rules")
 class NumberingRuleController {
 
     private final ConfigureNumberingRule configure;
@@ -30,13 +33,13 @@ class NumberingRuleController {
         this.find = find;
     }
 
-    @GetMapping(version = "1")
+    @GetMapping
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_READ + "')")
     List<NumberingRuleResponse> list() {
         return list.execute().stream().map(NumberingRuleResponse::from).toList();
     }
 
-    @GetMapping(path = "/{documentType}", version = "1")
+    @GetMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_READ + "')")
     ResponseEntity<NumberingRuleResponse> get(@PathVariable DocumentType documentType) {
         return find.execute(documentType)
@@ -45,14 +48,19 @@ class NumberingRuleController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping(path = "/{documentType}", version = "1")
+    @PutMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE + "')")
-    ResponseEntity<String> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request) {
+    ResponseEntity<Void> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request) {
+        configure.execute(documentType, request.pattern(), parse(request.resetPolicy()), request.startValue());
+        return ResponseEntity.noContent().build();
+    }
+
+    private static ResetPolicy parse(String resetPolicy) {
         try {
-            configure.execute(documentType, request.pattern(), ResetPolicy.valueOf(request.resetPolicy()), request.startValue());
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException invalid) {
-            return ResponseEntity.unprocessableContent().body(invalid.getMessage());
+            return ResetPolicy.valueOf(resetPolicy);
+        } catch (IllegalArgumentException | NullPointerException unknown) {
+            throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE,
+                    "reset policy must be one of " + java.util.Arrays.toString(ResetPolicy.values()));
         }
     }
 }

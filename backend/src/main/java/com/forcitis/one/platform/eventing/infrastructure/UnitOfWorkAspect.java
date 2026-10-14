@@ -1,0 +1,58 @@
+package com.forcitis.one.platform.eventing.infrastructure;
+
+import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.kernel.event.DomainEvent;
+import java.time.Clock;
+import java.util.UUID;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Component;
+
+/** A scheduled job starts a correlation of its own; an event handler continues the correlation of the event it handles. */
+@Aspect
+@Component
+class UnitOfWorkAspect {
+
+    private final ObjectProvider<Clock> clock;
+
+    UnitOfWorkAspect(ObjectProvider<Clock> clock) {
+        this.clock = clock;
+    }
+
+    @Around("@annotation(org.springframework.modulith.events.ApplicationModuleListener)")
+    Object handleEvent(ProceedingJoinPoint call) throws Throwable {
+        MethodSignature method = (MethodSignature) call.getSignature();
+        String handler = method.getDeclaringType().getSimpleName() + "." + method.getName();
+        Object[] args = call.getArgs();
+        UUID correlationId;
+        UUID causationId = null;
+        if (args.length > 0 && args[0] instanceof DomainEvent event) {
+            correlationId = event.envelope().correlationId();
+            causationId = event.envelope().eventId();
+        } else {
+            correlationId = newCorrelation();
+        }
+        try (WorkContext.Scope scope = WorkContext.enter(correlationId, causationId, handler)) {
+            return call.proceed();
+        }
+    }
+
+    @Around("@annotation(org.springframework.scheduling.annotation.Scheduled)")
+    Object runJob(ProceedingJoinPoint call) throws Throwable {
+        MethodSignature method = (MethodSignature) call.getSignature();
+        SchedulerLock lock = method.getMethod().getAnnotation(SchedulerLock.class);
+        String job = lock == null ? method.getDeclaringType().getSimpleName() + "." + method.getName() : lock.name();
+        try (WorkContext.Scope scope = WorkContext.enter(newCorrelation(), null, job)) {
+            return call.proceed();
+        }
+    }
+
+    private UUID newCorrelation() {
+        return Uuids.timeOrdered(clock.getIfAvailable(Clock::systemUTC));
+    }
+}

@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -13,15 +15,15 @@ public final class OrgReconciliation {
     private OrgReconciliation() {
     }
 
-    public static OrgReconciliationReport compare(SourceSnapshot source, OrgSnapshot snapshot) {
+    public static OrgReconciliationReport compare(SourceOrgSnapshot source, OrgSnapshot snapshot) {
         Reconciliation expected = SnapshotReconciler.reconcile(OrgSnapshot.empty(), source);
         Map<OrgUnitId, OrgUnit> expectedUnits = new OrgSnapshot(expected.orgUnits(), List.of(), List.of()).orgUnitsById();
-        Map<UserId, StaffMember> expectedStaff = new OrgSnapshot(List.of(), List.of(), expected.staff()).staffById();
+        Map<UserId, StaffEmployee> expectedStaff = new OrgSnapshot(List.of(), List.of(), expected.staff()).staffById();
 
         // The snapshot keeps revoked units; they are not part of what the source returns.
         Map<OrgUnitId, OrgUnit> actualUnits = new java.util.LinkedHashMap<>();
         snapshot.orgUnits().stream().filter(u -> u.status() != OrgUnitStatus.REVOKED).forEach(u -> actualUnits.put(u.orgUnitId(), u));
-        Map<UserId, StaffMember> actualStaff = snapshot.staffById();
+        Map<UserId, StaffEmployee> actualStaff = snapshot.staffById();
 
         List<String> missing = new ArrayList<>();
         List<String> unexpected = new ArrayList<>();
@@ -43,7 +45,7 @@ public final class OrgReconciliation {
             if (staff.employee().employmentStatus() != EmploymentStatus.EMPLOYED) {
                 return;
             }
-            StaffMember actual = actualStaff.get(id);
+            StaffEmployee actual = actualStaff.get(id);
             if (actual == null) {
                 missing.add("employee:" + id.value());
             } else if (actual.employee().employmentStatus() != EmploymentStatus.EMPLOYED) {
@@ -53,7 +55,7 @@ public final class OrgReconciliation {
             }
         });
         actualStaff.forEach((id, staff) -> {
-            StaffMember wanted = expectedStaff.get(id);
+            StaffEmployee wanted = expectedStaff.get(id);
             boolean employedInSnapshot = staff.employee().employmentStatus() == EmploymentStatus.EMPLOYED;
             if (employedInSnapshot && (wanted == null || wanted.employee().employmentStatus() != EmploymentStatus.EMPLOYED)) {
                 unexpected.add("employee:" + id.value() + " (employed in snapshot, not employed in source)");

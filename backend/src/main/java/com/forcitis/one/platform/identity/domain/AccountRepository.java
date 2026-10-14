@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.domain;
 
+import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import java.time.Instant;
@@ -14,7 +15,8 @@ public interface AccountRepository {
     /** True only for the caller that created it (atomic). */
     boolean createIfAbsent(UserId userId);
 
-    void changeStatus(UserId userId, AccountStatus status);
+    /** Applies only to the status and version the account was loaded with; otherwise a DomainException (CONFLICT). */
+    void save(UserAccount account);
 
     void recordLogin(UserId userId, Instant at, String address);
 
