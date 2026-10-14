@@ -23,12 +23,19 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
 import com.forcitis.one.platform.numbering.api.RegisterLegacyNumbers;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -48,7 +55,17 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
 @Testcontainers
+@Import(NumberingRulesIT.FixedClock.class)
 class NumberingRulesIT {
+    @TestConfiguration
+    static class FixedClock {
+        @Bean
+        @Primary
+        Clock fixedClock() {
+            return Clock.fixed(Instant.parse("2026-10-14T04:00:00Z"), ZoneOffset.UTC);
+        }
+    }
+
     @MockitoBean
     OrgDirectory orgDirectory;
 
@@ -223,6 +240,15 @@ class NumberingRulesIT {
                             .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
                     .andExpect(status().isNoContent());
             assertThat(quoteRuleVersionAndEffectiveDay()).as("replacing a confirmed template starts the next version").isEqualTo("2/" + today());
+            long versionAfterSecondSave = jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'")
+                    .query(Long.class).single();
+
+            mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
+                    .andExpect(status().isNoContent());
+            assertThat(quoteRuleVersionAndEffectiveDay()).as("saving the same template again changes nothing").isEqualTo("2/" + today());
+            assertThat(jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'").query(Long.class).single())
+                    .as("and does not even touch the row").isEqualTo(versionAfterSecondSave);
         } finally {
             // put the shared fixture back to the seeded default so other tests keep seeing the pending template
             jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}',"
@@ -237,7 +263,7 @@ class NumberingRulesIT {
     }
 
     private static LocalDate today() {
-        return LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+        return LocalDate.of(2026, 10, 14);
     }
 
     @Test

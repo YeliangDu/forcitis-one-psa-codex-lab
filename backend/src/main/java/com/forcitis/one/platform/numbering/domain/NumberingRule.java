@@ -91,9 +91,20 @@ public final class NumberingRule extends AggregateRoot {
                 sealedRuleVersion, from));
     }
 
-    /** Replaces the template, in force from the given day; a rule still waiting for confirmation is confirmed with it. */
+    /**
+     * Replaces the template, in force from the given day; a rule still waiting for confirmation is confirmed with it. Saving the template
+     * and start value it already has changes nothing, so a repeated save neither starts a new version nor moves the effective day; on a
+     * rule still waiting for confirmation it only confirms.
+     */
     public void reconfigure(NumberingPattern newPattern, long newStartValue, LocalDate from) {
         Objects.requireNonNull(from, "from");
+        Objects.requireNonNull(newPattern, "pattern");
+        if (newPattern.equals(pattern) && newStartValue == startValue) {
+            if (confirmation == ConfirmationStatus.PENDING_CONFIRMATION) {
+                confirm(from);
+            }
+            return;
+        }
         boolean replacesTemplateInForce = confirmation == ConfirmationStatus.CONFIRMED;
         change(newPattern, newStartValue);
         if (replacesTemplateInForce) {

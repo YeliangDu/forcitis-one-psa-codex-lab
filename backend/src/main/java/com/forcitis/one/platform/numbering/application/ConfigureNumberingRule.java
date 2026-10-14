@@ -38,8 +38,10 @@ public class ConfigureNumberingRule {
         } catch (IllegalArgumentException | NullPointerException invalid) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, invalid.getMessage());
         }
-        rules.save(rule);
-        events.publish(rule);
+        if (rule.hasPendingEvents()) {
+            rules.save(rule);
+            events.publish(rule);
+        }
         return NumberingRuleViews.of(rule);
     }
 }

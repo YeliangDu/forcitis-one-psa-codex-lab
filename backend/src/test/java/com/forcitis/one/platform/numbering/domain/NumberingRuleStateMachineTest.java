@@ -107,4 +107,30 @@ class NumberingRuleStateMachineTest {
         assertThatThrownBy(() -> NumberingRule.restore(DocumentType.QUOTE, TEMPLATE, 1, "CONFIRMED", 1, null, 0, 0))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    @DisplayName("saving the template and start value a confirmed rule already has changes nothing: no event, same version, same effective day")
+    void repeatedSaveOfAConfirmedRuleIsANoOp() {
+        NumberingRule confirmed = at(CONFIRMED);
+
+        confirmed.reconfigure(TEMPLATE, 1, DAY);
+
+        assertThat(confirmed.hasPendingEvents()).isFalse();
+        assertThat(confirmed.ruleVersion().value()).isEqualTo(1);
+        assertThat(confirmed.effectiveFrom()).isEqualTo(ENFORCED_SINCE);
+    }
+
+    @Test
+    @DisplayName("saving an unchanged template on a pending rule only confirms it: one Confirmed event, the first version")
+    void unchangedSaveOfAPendingRuleConfirms() {
+        NumberingRule pending = at(PENDING_CONFIRMATION);
+
+        pending.reconfigure(TEMPLATE, 1, DAY);
+
+        assertThat(pending.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(NumberingRuleConfirmed.class, e -> {
+            assertThat(e.ruleVersion().value()).isEqualTo(1);
+            assertThat(e.effectiveFrom()).isEqualTo(DAY);
+        });
+        assertThat(pending.confirmation()).isEqualTo(CONFIRMED);
+    }
 }
