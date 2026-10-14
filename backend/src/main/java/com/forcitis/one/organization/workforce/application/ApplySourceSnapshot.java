@@ -1,6 +1,8 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshot;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
@@ -16,6 +18,10 @@ import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,29 +36,40 @@ public class ApplySourceSnapshot {
     private final OrgSnapshotRepository snapshots;
     private final SyncRunRepository runs;
     private final DomainEvents events;
+    private final SeparationReview separations;
     private final Clock clock;
     private final int maxDropPercent;
 
-    ApplySourceSnapshot(OrgSnapshotRepository snapshots, SyncRunRepository runs, DomainEvents events,
+    ApplySourceSnapshot(OrgSnapshotRepository snapshots, SyncRunRepository runs, DomainEvents events, SeparationReview separations,
                         Clock clock,
                         @Value("${forcitis.organization.workforce.sync.max-drop-percent:20}") int maxDropPercent) {
         this.snapshots = snapshots;
         this.runs = runs;
         this.events = events;
+        this.separations = separations;
         this.clock = clock;
         this.maxDropPercent = maxDropPercent;
     }
 
     @Transactional
     public SyncResult execute(SyncRunId syncRunId, SourceOrgSnapshot source, boolean bypassShrinkGuard) {
+        return execute(syncRunId, source, bypassShrinkGuard, null);
+    }
+
+    /** releasedBy is the person releasing a held run; a hold caused by separations of administrators is released only by one of them. */
+    @Transactional
+    SyncResult execute(SyncRunId syncRunId, SourceOrgSnapshot source, boolean bypassShrinkGuard, UserId releasedBy) {
         SyncRun run = runs.find(syncRunId).orElseThrow();
         snapshots.lockForWrite();
         OrgSnapshot current = snapshots.loadAll();
         Reconciliation changes = SnapshotReconciler.reconcile(current, source);
         ShrinkGuard.Verdict verdict = ShrinkGuard.evaluate(changes.stats(), maxDropPercent);
         Instant now = clock.instant();
-        if (verdict.held() && !bypassShrinkGuard) {
-            return hold(run, changes, verdict.reason(), now);
+        Optional<String> separationHold = separations.holdReason(changes.separatedEmployees(), releasedBy);
+        if ((verdict.held() && !bypassShrinkGuard) || separationHold.isPresent()) {
+            String reason = Stream.of(verdict.held() && !bypassShrinkGuard ? verdict.reason() : null, separationHold.orElse(null))
+                    .filter(Objects::nonNull).collect(Collectors.joining("; "));
+            return hold(run, changes, reason, now);
         }
         if (verdict.held()) {
             LOG.warn("organization.workforce sync {} runs with the shrink guard bypassed by an administrator: {}",
@@ -84,7 +101,7 @@ public class ApplySourceSnapshot {
         held.hold(now, changes.stats(), reason);
         runs.save(held);
         events.publish(held);
-        LOG.error("ALERT organization.workforce sync {} held by the shrink guard: {}", held.syncRunId().value(), reason);
+        LOG.error("ALERT organization.workforce sync {} held: {}", held.syncRunId().value(), reason);
         return new SyncResult(held.syncRunId(), held.status(), reason);
     }
 }

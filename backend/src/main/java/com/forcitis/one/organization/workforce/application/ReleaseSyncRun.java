@@ -38,7 +38,7 @@ public class ReleaseSyncRun {
         if (run.get().status() != SyncRunStatus.HELD) {
             return new ReleaseResult.NotHeld(run.get().status().name());
         }
-        SyncResult result = sync.execute(SyncTrigger.MANUAL, true);
+        SyncResult result = sync.release(SyncTrigger.MANUAL, new UserId(actorUserId));
         if (result.status() != SyncRunStatus.SUCCEEDED) {
             return new ReleaseResult.NotApplied(result.note() == null ? result.status().name() : result.note());
         }

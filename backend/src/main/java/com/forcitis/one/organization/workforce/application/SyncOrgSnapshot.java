@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -31,11 +32,20 @@ public class SyncOrgSnapshot {
     }
 
     public SyncResult execute(SyncTrigger trigger, boolean bypassShrinkGuard) {
+        return execute(trigger, bypassShrinkGuard, null);
+    }
+
+    /** A held run is released by a person: the run reads the source afresh with the guards bypassed in that person's name. */
+    SyncResult release(SyncTrigger trigger, UserId releasedBy) {
+        return execute(trigger, true, releasedBy);
+    }
+
+    private SyncResult execute(SyncTrigger trigger, boolean bypassShrinkGuard, UserId releasedBy) {
         SyncRunId run = begin.execute(trigger);
         SyncResult result;
         try {
             SourceOrgSnapshot snapshot = source.readSnapshot();
-            result = apply.execute(run, snapshot, bypassShrinkGuard);
+            result = apply.execute(run, snapshot, bypassShrinkGuard, releasedBy);
         } catch (RuntimeException failure) {
             LOG.error("organization.workforce sync {} failed: {}", run.value(), failure.toString(), failure);
             String reason = failure.getClass().getSimpleName() + ": " + failure.getMessage();
