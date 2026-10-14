@@ -244,3 +244,6 @@
 | 10 | 错误链 | 领域异常 → ErrorCode → ProblemDetail 一条链；错误码在 terms.yaml 中登记 |
 | 11 | 上下文映射 | 模块间关系（上下游、ACL、发布语言、共享内核）与 architecture/module-dependencies.txt 一致，并登记在架构文档中 |
 | 12 | 统一语言 | 类、方法、表、列、事件、错误码、界面文字都使用 terms.yaml 中的用语；新词以提议术语登记 |
+
+**已登记的例外**（psa-coordinator 2026-10-14 接受）：
+- 第 1 项：`organization.workforce` 的 `BeginSyncRun` / `ApplySourceSnapshot` 在开始新的同步运行时，会在同一事务内放行被取代的 HELD 记录、关闭被遗弃的 RUNNING 记录（涉及多条 `SyncRun`）。理由：这些都是同一类型的运维记录，拆成异步会留下「两条同步同时运行」的并发窗口。

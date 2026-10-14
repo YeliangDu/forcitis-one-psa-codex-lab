@@ -82,6 +82,8 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 | TIMESHEET 与生产当前版本（v15）对齐 | ——（依据 `runtime/prod_bpm.tsv` ##13） | <ul><li>节点：项目经理 `projectManagerId`；售前分支的区域负责人 `regionalHeadId`，路由标记 `preSalesHours`；发起人一级上级。</li><li>老变量名只在回放转换表中出现。</li><li>节点顺序与子流程范围**待用户确认**。</li></ul> |
 | 列名 `is_fee_earner`（原文 `fee_earner_flag`） | ——（DdlNamingTest：布尔列以 is_ 开头，禁用 flag） | `organization_workforce.employees.is_fee_earner` |
 | `event_publication` 归 `platform_integration` schema | psa-coordinator 同意 | Flyway 创建，关闭自动建表 |
+| 外发投递的并发令牌 | psa-coordinator 接受（代理 B 方案） | `outbound_deliveries` 以「认领号（`attempt_count`）+ 状态」作乐观锁；`version` 只递增，不参与校验。原因：卡片在途时，「已处理」说明仍要能写入同一行，若以 version 校验，会让投递作业持有的版本失效；认领号才是这张表真正的并发令牌 |
+| 审计最终一致 | 「B 审计订阅领域事件 (Recommended)」 | 业务审计在事件投递后可见，不与业务写入同时可见。延迟上限由事件发布登记表的重投策略决定：1 分钟间隔，最多 8 次；超过上限会触发「未完成事件发布」告警（P2）。安全审计（登录失败、拒绝访问）仍在独立事务中同步写入 |
 | **审批路由引入 DMN**（修订检查点 2「1a 不引入 DMN」） | 「B 决策表管业务判断 (Recommended)」 | DMN 只负责：走哪几路、能否跳过、能否自动通过、节点时限。用 Flowable DMN 执行，按部署版本生效，业务可评审。「取谁」仍由 BPMN 上的类型化指派规则决定，AssigneeResolver 只执行决策结果 |
 | **新建 `platform.web`** | 「新建 platform.web (Recommended)」 | 技术模块，承载跨模块的 web 装配：领域异常 → ErrorCode → ProblemDetail 的全局处理器、OpenAPI 定制 |
 | **新建 `platform.eventing`**（事件信封的实现位置，实现 `kernel.event.EventEnvelopes` 与 `DomainEvents`） | 「事件信封实现放在符合依赖图的位置，可以新建技术模块」 | 技术模块，不被任何模块依赖（各模块只用 kernel 里的端口），只依赖 `platform.identity` 的 `CurrentUser`；eventId 用 UUIDv7，时间取注入的 Clock，关联号从 `X-Correlation-Id` 经 MDC 带入事件信封与出站投递，行为人在请求里是用户、在作业或事件处理里是作业名 |
