@@ -23,6 +23,7 @@
 |---|---|---|---|
 | R-1 | UUIDv7 主键：全部聚合 ID 类型、迁移、事件载荷、OpenAPI；`IdGenerator` 与「单列主键必须是 uuid」守护已在修复批落地 | 用户「UUIDv7 (Recommended)」；B3 擅自推迟已如实登记 | 在迁移基线之前完成；可与 R-2 同批 |
 | R-2 | 84 项命名改名（ddl-naming-baseline）与「web/api 出参不得暴露 SENSITIVE / RESTRICTED 列」守护（若修复批 B2b 未完成） | #44 | |
+| R-4 | 列默认值 `DEFAULT now()`（约 91 处、28 个迁移）改为不依赖数据库时钟：追加迁移去掉默认值，各 INSERT 显式传入注入 Clock 的时刻；并入时间守护 | 修复批时区项范围外发现（`TimeSourceGuardTest` 已禁止 SQL 字符串读数据库时钟） | 宜并入 R-3 迁移基线一并处理 |
 | R-3 | 迁移基线 PR：已合入迁移合并为一份基线，opus 用两个空库对比 `pg_dump --schema-only`，diff 为空的证据写进 PR 正文；同 PR 实现「迁移只增不删不改名」守护（基线开放标记移除后生效，破坏性变更走 expand / contract 并登记例外） | §12.2；one-coordinator 2026-10-14 | 在 R-1、R-2 之后；修复批中的条件式迁移（B2 011000 / 011100、§4b）在基线中改为无条件写法 |
 
 ## 三、缺陷修复（按卡手术式，小 PR 直合 main）
