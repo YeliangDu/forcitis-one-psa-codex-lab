@@ -41,6 +41,7 @@
 - `flowable.database-schema=platform_approval`：引擎表 `ACT_*` 一律落在 `platform_approval`，业务模块不连接它们；安装 / 升级时的连接串也加 `currentSchema=platform_approval`，建完用 `SELECT table_schema FROM information_schema.tables WHERE table_name LIKE 'act\_%' GROUP BY 1` 核对只有这一个 schema。
 - **首次运行 Flyway 需要库级 CREATE 权限**：每个模块的第一个迁移都以 `CREATE SCHEMA IF NOT EXISTS` 开头，PostgreSQL 先检查库级 CREATE 权限再判断 schema 是否已存在，所以迁移角色（继承 `one_dev_owner`）要有 `GRANT CREATE ON DATABASE forcitis_one_dev TO one_dev_owner`（`one_db_roles_schemas.sql` §0 已列出）。应用运行角色不需要。
 - 部署时迁移连接用 `one_dev_migrator`，运行连接用 `one_dev_app`，分开配置 `spring.flyway.user` / `password` 与 `spring.datasource.*`。
+- 每次发布迁移之后执行 `one_db_roles_schemas.sql` 的 §4b：对运行角色撤销版本表的 DELETE 和 TRUNCATE（版本表只追加）。
 
 ## 3. ECS 初始化（i-bp122xlpar8w2uylmal2）
 
@@ -86,12 +87,16 @@
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | PG 运行连接 | 是 |
 | `SPRING_FLYWAY_URL` / `SPRING_FLYWAY_USER` / `_PASSWORD` | 迁移账号的连接，只给 `migrate` 步骤（缺省 URL 取 `SPRING_DATASOURCE_URL`） | 部署时 |
 | `SPRING_FLYWAY_ENABLED` | 常驻服务必须为 `false`（生产 profile 已默认） | 是 |
-| `APPROVAL_PROCESS_ARCHIVE_DIRECTORY` | 引擎历史归档目录（绝对路径，§5.3）；缺失则启动失败 | 是 |
+| `ARCHIVE_STORE_BUCKET` / `_REGION` / `_PREFIX` | 归档库（OSS）的 bucket、地域（只允许国内地域，如 `cn-hangzhou`）和对象前缀（§5.3）；缺任一项启动失败 | 是 |
+| `ARCHIVE_STORE_LOCAL_DIRECTORY` | 本机只留最近一份归档的目录（绝对路径） | 是 |
+| `ARCHIVE_STORE_WORM_LOCK_DAYS` | bucket 必须已锁定的 WORM 保留天数下限（探针核对） | 是 |
+| `ARCHIVE_STORE_ACCESS_KEY_ID` / `_SECRET` | 归档专用 RAM 子账号的密钥，只写入 one.env 或 KMS | 是 |
 | `FLOWABLE_SCHEMA_UPDATE` | 仅引擎安装 / 升级时为 true | 否 |
 | `FLOWABLE_ASYNC_EXECUTOR` | 流程引擎异步执行器开关（默认 true） | 否 |
 | `APPROVAL_PROCESS_ADMINISTRATOR_USER_ID` | 取不到审批人时的兜底人 | 是 |
 | `APPROVAL_TASK_URL_TEMPLATE` | 卡片跳转地址 | 否（有默认值） |
 | `EMERGENCY_TOTP_ENCRYPTION_KEY` | 应急管理员 TOTP 密钥加密（32 字节 Base64） | 是 |
+| 归档专用 RAM 子账号的 AccessKey | one.env / KMS | 不设到期 | 每 90 天在 RAM 控制台新建一把、替换、再停用旧的 |
 | `FORCITIS_TICKET_KEY_<KID>` | 签名票据签发方密钥；签发方默认关闭，当前白名单为空 | 否 |
 | `FORCITIS_TRUSTED_PROXIES` | 只信任 nginx（127.0.0.1） | 是 |
 | `SEEYON_OA_BASE_URL`、`LEGACY_LOGIN_URL` | 致远验票地址；失败时回老系统登录 | 是 |
@@ -142,19 +147,24 @@
 - 轮换到点由运维日历提醒；任何一项逾期 7 天按 P2 报告 psa-coordinator。
 - 口令只在服务器受保护文件或 KMS 中出现，轮换过程不经聊天、工单和仓库。
 
-### 5.3 数据保留作业与引擎历史的归档去向（数据打分卡 T3）
+### 5.3 数据保留作业与归档去向（数据打分卡 T3；用户决定 2026-10-15：用国内 OSS 归档存储）
 
 | 数据 | 在线保留 | 到期后 | 作业（ShedLock 名） | 配置项（缺失则启动失败） |
 |---|---|---|---|---|
 | `cost_timesheet.consumed_events` | 90 天 | 删除 | `cost.timesheet.consumed.events.purge`，每日 04:20 | `forcitis.cost.timesheet.consumed-events.keep-period`、`.cron` |
-| 引擎历史 `ACT_HI_*`（已结束的流程实例及其任务、活动） | 3 年 | 写入归档文件后从引擎删除；归档满 10 年删除文件 | `platform.approval.process.archive`，每日 03:40 | `forcitis.platform.approval.process-archive.online-period`、`.archive-period`、`.directory`（环境变量 `APPROVAL_PROCESS_ARCHIVE_DIRECTORY`）、`.cron` |
+| `organization_workforce.sync_runs` / `sync_diffs` | 运行 2 年、差异 1 年（已放行的从放行日算；未放行的中止运行不删） | 删除 | `organization.workforce.sync.purge`，每日 03:50 | `forcitis.organization.workforce.sync-purge.*` |
+| `platform_integration.outbound_deliveries` | 成功或跳过 90 天、失败 1 年 | 删除 | `platform.integration.outbound.purge`，每日 04:10 | `forcitis.platform.integration.outbound-purge.*` |
+| 引擎历史 `ACT_HI_*`（已结束的流程实例） | 3 年 | 先写入归档库，库确认后才从引擎删除 | `platform.approval.process.archive`，每日 03:40 | `forcitis.platform.approval.process-archive.*` |
+| `platform_audit.audit_entries` | 3 年 | 先写入归档库；**在线行暂不删除**（表有触发器拒绝 DELETE，删除要单独决定） | `platform.audit.entry.archive`，每日 02:00 | `forcitis.platform.audit.archive.*` |
 
-- 两个作业都能用 `...enabled=false` 关闭（测试用）；生产不要关。
-- **归档去向**：ECS 数据盘 `/data/forcitis-one/archive/process/`（目录属主 `forcitis`，权限 `0750`，systemd 单元的 `ReadWritePaths` 要加上它），每个完成年份一个文件 `act_hi-<年>.ndjson.gz`，每行一个流程实例（实例 ID、流程定义键、业务键、起止时间、发起人、删除原因，及其任务与活动的时间和办理人），不含流程变量：审批结论与内容在审批表和审计里。
-- **异地副本**（提议，须经用户确认后由运维配置）：每日把该目录同步到阿里云 OSS 专用 Bucket（开启版本控制与 10 年保留策略），ECS 盘损坏也不丢归档；Bucket 名和账号由用户指定，仓库里不记。
-- 同一实例写入后、删除前作业中断，下一次会再写一遍，读取方按 `instanceId` 去重。
-- 归档文件在其完成年份结束后满 10 年才删除（例如 2026 年完成的，到 2037-01-01 删）。
-- 审计表 `audit_entries` 在线 3 年后的归档作业尚未实现，到期前（第 3 年）补；见数据访问注册表。
+- **归档库**：阿里云 OSS，**与 ECS 同地域的国内地域**（应用只接受国内地域，拒绝 `eu-central-1` 等；归档含个人信息，不得放到法兰克福），存储类型 Archive，开启 WORM 合规保留（保留期不得短于 `ARCHIVE_STORE_WORM_LOCK_DAYS`）。bucket 和 RAM 子账号由用户创建，名字、账号、密钥都不进仓库。RAM 子账号只授予该 bucket 前缀下的写入（`oss:PutObject`、分片上传的发起与中止）和读元数据，不授予删除。
+- **写入方式**：每批一个不可变对象，键为 `<前缀>/<类别>/<年>/<类别>-<UTC 时间>-<SHA-256 前 12 位>.ndjson.gz`；写入前算 SHA-256，上传带 `Content-MD5`、禁止覆盖、归档存储类型，SHA-256 同时写进对象元数据；上传后读回元数据，哈希或大小不符则整批失败，引擎和在线行都不动。多节点下由 ShedLock 保证同一时刻只有一个节点归档，对象名也各不相同。
+- **本机**：数据盘 `ARCHIVE_STORE_LOCAL_DIRECTORY/<类别>/latest.ndjson.gz` 只留最近一份（目录属主 `forcitis`，权限 `0750`，systemd 单元的 `ReadWritePaths` 要加上它）。
+- **到期删除不归应用管**：十年（审计另按会计档案期限）到期由 WORM 与 bucket 生命周期规则处理。审计要满 30 年：WORM 期限可只增不减，建 bucket 时按 10 年锁定，审计前缀的保留期在到期前延长到 30 年（OSS 允许延长），此项由用户在 OSS 控制台办理；与 `GUIDING_PRINCIPLES` §6 的「保留至满 10 年」不一致，已在报告中提出。
+- **探针**：应用启动时和每天一次，检查本机目录可写、bucket 在配置的地域、WORM 已锁定且期限足够、有写入权限（发起并中止一次分片上传，不在 WORM 桶里留对象）。失败不阻止启动，记 `ALERT` 日志并计数 `forcitis.platform.approval.archive.probe.failures`、`forcitis.platform.audit.archive.probe.failures`；归档作业本身失败记 `ALERT` 并计数 `forcitis.platform.scheduling.job.failures{job=…}`（所有带锁作业共用）。生产缺少上述配置项则**启动失败**。
+- **归档内容**：流程实例的 ID、流程定义键、版本与部署 ID、业务键、起止时间、发起人、删除原因，任务（办理人、认领、办结、到期时间）、活动、身份关联（候选人、转交、升级追加的人），以及白名单内的变量（`architecture/archive-variables.txt`：`contentDigest`、`routed_*`，任务级 `systemComplete`、`advisory`、`assignedAt`），不含其他流程变量。任务级的结论与理由由审批的只追加办理记录表负责。
+- 一个实例写入归档后引擎删除失败，则跳过、记 `ALERT`、计数 `forcitis.platform.approval.archive.skipped`；下一次运行会再写一遍，读取方按 `instanceId` 去重。
+- 审计 3 年归档按 id 前缀成批，进度记在 `platform_audit.audit_archive_batches`。
 
 ## 6. 应急管理员开通（设计，执行需用户确认）
 
@@ -190,7 +200,7 @@
 - **指标命名**：`forcitis.<子域>.<bc>.…`，例如 `forcitis.platform.integration.deliveries.dead.letters`；看板和告警规则用新名字。
 - **新增 schema**：`organization_attendance`（工作日历），已写入 `one_db_roles_schemas.sql`；上线前需在每个环境执行该脚本中对应的建 schema 与授权语句，再启动应用。
 - **工作日历要先维护**：依赖工作日历的计算（审批时限等）在所属年份没有维护时失败并记 `ALERT` 日志与指标 `forcitis.organization.attendance.calendar.unmaintained`；管理员用 `PUT /api/v1/organization/work-calendars/{年}` 维护（权限 `organization.attendance:work-calendar:update`），每年底前维护下一年。
-- **今天之前的日期不可修改**（T2）：改动会得到 422 `ORGANIZATION_ATTENDANCE_LOCKED_DAY_CHANGED`。例外只给组织数据管理员，调用时带确认参数 `lockedDaysConfirmed`，并发出 `WorkCalendarLockedDaysChanged`（进审计，载荷列出被改的日期）；已算出的审批截止时刻不重算。
+- **今天之前的日期不可修改**（T2）：已维护过的年份里，改动早于今天的日期会得到 422 `ORGANIZATION_ATTENDANCE_LOCKED_DAY_CHANGED`；一个年份的首次维护不受此限。例外是独立用例 `MaintainLockedWorkCalendarDays`，要求权限 `organization.attendance:locked-day:update`（只授给组织数据管理员），并发出 `WorkCalendarLockedDaysChanged`：载荷与审计条目的说明里列出每个被改日期及其改前改后的类别。已算出的审批截止时刻不重算。
 
 ## 9. 事件发布登记表的运维（ADR-0025 评审 C-4、C-8）
 

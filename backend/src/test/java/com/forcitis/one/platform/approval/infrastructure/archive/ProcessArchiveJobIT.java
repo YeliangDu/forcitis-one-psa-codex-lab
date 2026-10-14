@@ -161,7 +161,11 @@ class ProcessArchiveJobIT {
         clock.set(after3Years());
         vault.failure = new IllegalStateException("upload failed");
 
+        double failuresBefore = meters.counter("forcitis.platform.scheduling.job.failures", "job", "platform.approval.process.archive").count();
+
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> job.run()).hasMessageContaining("upload failed");
+
+        assertThat(meters.counter("forcitis.platform.scheduling.job.failures", "job", "platform.approval.process.archive").count()).as("the failure is counted for the job").isEqualTo(failuresBefore + 1);
 
         assertThat(finished()).isEqualTo(1);
     }
