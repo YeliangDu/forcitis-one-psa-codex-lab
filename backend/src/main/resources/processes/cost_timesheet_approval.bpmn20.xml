@@ -3,7 +3,9 @@
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xmlns:forcitis="https://forcitis.com/psa/approval/extension"
              targetNamespace="https://forcitis.com/psa/approval">
-  <!-- Branch conditions and field names are the ones cost.timesheet.api publishes; BpmnRuleConventionsTest keeps them equal. -->
+  <!-- Which routes run, whether a node may be skipped, whether a repeat approver passes automatically and the node deadlines come from the
+       decision table cost_timesheet_approval_nodes (routed_<node> and the other answers are process variables set at the start).
+       Each node is a countersign: one task per distinct approver, all must approve. -->
   <process id="cost_timesheet_approval" name="工时审批" isExecutable="true">
     <startEvent id="start"/>
     <sequenceFlow id="toReviewStage" sourceRef="start" targetRef="reviewStage"/>
@@ -12,28 +14,34 @@
       <sequenceFlow id="toReviewFork" sourceRef="reviewStart" targetRef="reviewFork"/>
       <inclusiveGateway id="reviewFork"/>
       <sequenceFlow id="toProjectManagerReview" sourceRef="reviewFork" targetRef="projectManagerReview">
-        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('projectHours', false)}</conditionExpression>
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_projectManagerReview', false)}</conditionExpression>
       </sequenceFlow>
       <sequenceFlow id="toRegionalHeadReview" sourceRef="reviewFork" targetRef="regionalHeadReview">
-        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('preSalesHours', false)}</conditionExpression>
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_regionalHeadReview', false)}</conditionExpression>
       </sequenceFlow>
       <sequenceFlow id="toSupervisorReview" sourceRef="reviewFork" targetRef="supervisorReview">
-        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('overheadHours', false)}</conditionExpression>
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_supervisorReview', false)}</conditionExpression>
       </sequenceFlow>
       <userTask id="projectManagerReview" name="项目经理审批">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" skipWhenEmpty="true"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
         </extensionElements>
+        <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
+                                          flowable:elementVariable="approver"/>
       </userTask>
       <userTask id="regionalHeadReview" name="区域负责人审批">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId" skipWhenEmpty="true"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId"/>
         </extensionElements>
+        <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
+                                          flowable:elementVariable="approver"/>
       </userTask>
       <userTask id="supervisorReview" name="一级汇报人审批">
         <extensionElements>
-          <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1" skipWhenEmpty="true"/>
+          <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1"/>
         </extensionElements>
+        <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
+                                          flowable:elementVariable="approver"/>
       </userTask>
       <sequenceFlow id="fromProjectManagerReview" sourceRef="projectManagerReview" targetRef="reviewJoin"/>
       <sequenceFlow id="fromRegionalHeadReview" sourceRef="regionalHeadReview" targetRef="reviewJoin"/>

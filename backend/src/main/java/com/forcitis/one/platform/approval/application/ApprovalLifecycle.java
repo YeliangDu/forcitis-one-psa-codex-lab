@@ -2,80 +2,78 @@ package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ApprovalOutcome;
-import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
-import com.forcitis.one.platform.approval.domain.ApprovalRequestRecord;
-import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
-import com.forcitis.one.platform.approval.domain.ApprovalStatus;
+import com.forcitis.one.platform.approval.domain.ApprovalRequest;
+import com.forcitis.one.platform.approval.api.ApprovalStatus;
+import com.forcitis.one.platform.approval.domain.ApprovalTask;
+import com.forcitis.one.platform.approval.domain.ApprovalTaskRepository;
 import com.forcitis.one.platform.approval.domain.TaskView;
-import com.forcitis.one.platform.approval.events.ApprovalCompleted;
-import com.forcitis.one.platform.approval.events.TaskClaimed;
-import com.forcitis.one.platform.approval.events.TaskResulted;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-/** Every transition runs in the caller's transaction, so engine change, status row and event commit together (at-least-once delivery). */
+/**
+ * Every transition runs in the caller's transaction, so the engine change, the aggregates and their events commit together. The
+ * request is the aggregate root: its row is locked first, and its tasks change under that lock.
+ */
 @Component
 class ApprovalLifecycle {
 
     private final ApprovalEngine engine;
-    private final ApprovalRequestRepository requests;
-    private final ApplicationEventPublisher events;
+    private final Aggregates aggregates;
+    private final ApprovalTaskRepository tasks;
+    private final BusinessTime time;
 
-    ApprovalLifecycle(ApprovalEngine engine, ApprovalRequestRepository requests, ApplicationEventPublisher events) {
+    ApprovalLifecycle(ApprovalEngine engine, Aggregates aggregates, ApprovalTaskRepository tasks, BusinessTime time) {
         this.engine = engine;
-        this.requests = requests;
-        this.events = events;
+        this.aggregates = aggregates;
+        this.tasks = tasks;
+        this.time = time;
     }
 
     /** Serialises concurrent decisions for the rest of the transaction. */
-    ApprovalRequestRecord lock(ApprovalInstanceId instanceId) {
-        return requests.lockByInstance(instanceId).orElseThrow(() -> new ApprovalOperationException(
-                ApprovalError.PLATFORM_APPROVAL_REQUEST_NOT_FOUND, "No approval request for instance " + instanceId.value()));
+    ApprovalRequest lock(ApprovalInstanceId instanceId) {
+        return aggregates.requestOf(instanceId);
     }
 
     /** A lost race against another candidate is a refusal (409), not a server error. */
-    void claim(TaskView task, UserId actor) {
-        if (!engine.claimTask(task.taskId(), actor)) {
+    void claim(ApprovalTask task, TaskView view, UserId actor) {
+        if (!engine.claimTask(view.taskId(), actor)) {
             throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED,
-                    "Task " + task.taskId().value() + " was claimed by somebody else");
+                    "Task " + view.taskId().value() + " was claimed by somebody else");
         }
-        events.publishEvent(new TaskClaimed(task.taskId(), actor));
-    }
-
-    void publishTaskResult(TaskView task, UserId actor, TaskOutcome outcome, String reason) {
-        events.publishEvent(new TaskResulted(task.taskId(), task.instanceId(), task.processKey(), task.businessKey(),
-                task.nodeKey(), actor, outcome, false, reason));
+        Transitions.run(() -> task.claim(actor, time.today()));
     }
 
     /** APPROVED when the engine has no live instance left. */
-    ApprovalStatus finishIfDone(ApprovalRequestRecord request, ApprovalStatus current) {
+    ApprovalStatus finishIfDone(ApprovalRequest request) {
         if (engine.isRunning(request.instanceId())) {
-            return current;
+            return ApprovalStatus.RUNNING;
         }
-        complete(request, ApprovalOutcome.APPROVED, ApprovalStatus.APPROVED, null);
+        Transitions.run(() -> request.approve(time.today()));
+        aggregates.save(request);
         return ApprovalStatus.APPROVED;
     }
 
     /** A return ends the round, the initiator starts a new one; history stays. */
-    ApprovalStatus returned(ApprovalRequestRecord request, TaskView task, UserId actor, String reason) {
-        engine.endAsReturned(task.instanceId());
-        publishTaskResult(task, actor, TaskOutcome.RETURNED, reason);
-        complete(request, ApprovalOutcome.RETURNED, ApprovalStatus.RETURNED, reason);
+    ApprovalStatus returned(ApprovalRequest request, String reason) {
+        engine.endAsReturned(request.instanceId());
+        Transitions.run(() -> request.returnRound(reason, time.today()));
+        aggregates.save(request);
+        closeOpenTasks(request.instanceId());
         return ApprovalStatus.RETURNED;
     }
 
-    ApprovalStatus reject(ApprovalRequestRecord request, TaskView task, UserId actor, String reason) {
-        engine.terminate(task.instanceId(), "REJECTED");
-        publishTaskResult(task, actor, TaskOutcome.REJECTED, reason);
-        complete(request, ApprovalOutcome.REJECTED, ApprovalStatus.REJECTED, reason);
+    ApprovalStatus reject(ApprovalRequest request, String reason) {
+        engine.terminate(request.instanceId(), "REJECTED");
+        Transitions.run(() -> request.reject(reason, time.today()));
+        aggregates.save(request);
+        closeOpenTasks(request.instanceId());
         return ApprovalStatus.REJECTED;
     }
 
-    private void complete(ApprovalRequestRecord request, ApprovalOutcome outcome, ApprovalStatus status, String reason) {
-        requests.updateStatus(request.instanceId(), status, reason);
-        events.publishEvent(new ApprovalCompleted(request.instanceId(), request.processKey(), request.businessKey(),
-                request.round(), outcome, reason));
+    void closeOpenTasks(ApprovalInstanceId instanceId) {
+        for (ApprovalTask open : tasks.findOpenByInstance(instanceId)) {
+            Transitions.run(open::close);
+            aggregates.save(open);
+        }
     }
 }

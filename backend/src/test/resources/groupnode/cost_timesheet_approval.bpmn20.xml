@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test-only variant of the timesheet process whose nodes are plain candidate-group tasks (RULE-249), not countersign nodes. Deployed by the ITs that need
+     several candidates on one task, as a newer version, and deleted again. Not on the auto-deploy path (processes/). -->
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:forcitis="https://forcitis.com/psa/approval/extension"
+             targetNamespace="https://forcitis.com/psa/approval">
+  <!-- Which routes run, whether a node may be skipped, whether a repeat approver passes automatically and the node deadlines come from the
+       decision table cost_timesheet_approval_nodes (routed_<node> and the other answers are process variables set at the start).
+       Each node is a countersign: one task per distinct approver, all must approve. -->
+  <process id="cost_timesheet_approval" name="工时审批（候选组）" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="toReviewStage" sourceRef="start" targetRef="reviewStage"/>
+    <subProcess id="reviewStage" name="审核">
+      <startEvent id="reviewStart"/>
+      <sequenceFlow id="toReviewFork" sourceRef="reviewStart" targetRef="reviewFork"/>
+      <inclusiveGateway id="reviewFork"/>
+      <sequenceFlow id="toProjectManagerReview" sourceRef="reviewFork" targetRef="projectManagerReview">
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_projectManagerReview', false)}</conditionExpression>
+      </sequenceFlow>
+      <sequenceFlow id="toRegionalHeadReview" sourceRef="reviewFork" targetRef="regionalHeadReview">
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_regionalHeadReview', false)}</conditionExpression>
+      </sequenceFlow>
+      <sequenceFlow id="toSupervisorReview" sourceRef="reviewFork" targetRef="supervisorReview">
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_supervisorReview', false)}</conditionExpression>
+      </sequenceFlow>
+      <userTask id="projectManagerReview" name="项目经理审批">
+        <extensionElements>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
+        </extensionElements>
+      </userTask>
+      <userTask id="regionalHeadReview" name="区域负责人审批">
+        <extensionElements>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId"/>
+        </extensionElements>
+      </userTask>
+      <userTask id="supervisorReview" name="一级汇报人审批">
+        <extensionElements>
+          <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1"/>
+        </extensionElements>
+      </userTask>
+      <sequenceFlow id="fromProjectManagerReview" sourceRef="projectManagerReview" targetRef="reviewJoin"/>
+      <sequenceFlow id="fromRegionalHeadReview" sourceRef="regionalHeadReview" targetRef="reviewJoin"/>
+      <sequenceFlow id="fromSupervisorReview" sourceRef="supervisorReview" targetRef="reviewJoin"/>
+      <inclusiveGateway id="reviewJoin"/>
+      <sequenceFlow id="toReviewEnd" sourceRef="reviewJoin" targetRef="reviewEnd"/>
+      <endEvent id="reviewEnd"/>
+    </subProcess>
+    <sequenceFlow id="toEnd" sourceRef="reviewStage" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>

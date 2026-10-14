@@ -3,13 +3,12 @@ package com.forcitis.one.platform.approval.web;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.DecideTasks;
-import com.forcitis.one.platform.approval.application.DecisionResult;
 import com.forcitis.one.platform.approval.application.GetTaskDetail;
 import com.forcitis.one.platform.approval.application.ListInbox;
-import com.forcitis.one.platform.approval.application.MergedInbox;
 import com.forcitis.one.platform.approval.application.ReturnToInitiator;
 import com.forcitis.one.platform.approval.application.TaskDecision;
-import com.forcitis.one.platform.approval.application.TaskDetail;
+import com.forcitis.one.platform.approval.application.TransferTask;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.api.Permission;
 import java.util.List;
@@ -32,28 +31,30 @@ class ApprovalTaskController {
     private final ClaimTask claimTask;
     private final DecideTasks decideTasks;
     private final ReturnToInitiator returnToInitiator;
+    private final TransferTask transferTask;
     private final CurrentUser currentUser;
 
     ApprovalTaskController(ListInbox listInbox, GetTaskDetail getTaskDetail, ClaimTask claimTask, DecideTasks decideTasks,
-            ReturnToInitiator returnToInitiator, CurrentUser currentUser) {
+            ReturnToInitiator returnToInitiator, TransferTask transferTask, CurrentUser currentUser) {
         this.listInbox = listInbox;
         this.getTaskDetail = getTaskDetail;
         this.claimTask = claimTask;
         this.decideTasks = decideTasks;
         this.returnToInitiator = returnToInitiator;
+        this.transferTask = transferTask;
         this.currentUser = currentUser;
     }
 
     @GetMapping(path = "", version = "1")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "')")
-    MergedInbox list() {
-        return listInbox.execute(currentUser.userId());
+    InboxResponse list() {
+        return InboxResponse.of(listInbox.execute(currentUser.userId()));
     }
 
     @GetMapping(path = "/{taskId}", version = "1")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "')")
-    TaskDetail get(@PathVariable String taskId) {
-        return getTaskDetail.execute(new ApprovalTaskId(taskId), currentUser.userId());
+    TaskDetailResponse get(@PathVariable String taskId) {
+        return TaskDetailResponse.of(getTaskDetail.execute(new ApprovalTaskId(taskId), currentUser.userId()));
     }
 
     @PostMapping(path = "/{taskId}:claim", version = "1")
@@ -65,14 +66,21 @@ class ApprovalTaskController {
 
     @PostMapping(path = "/{taskId}:decide", version = "1")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
-    DecisionResult decide(@PathVariable String taskId, @RequestBody DecideTaskRequest request) {
-        return decideTasks.execute(currentUser.userId(),
-                List.of(new TaskDecision(new ApprovalTaskId(taskId), request.outcome(), request.reason())));
+    DecisionResponse decide(@PathVariable String taskId, @RequestBody DecideTaskRequest request) {
+        return DecisionResponse.of(decideTasks.execute(currentUser.userId(),
+                List.of(new TaskDecision(new ApprovalTaskId(taskId), request.outcome(), request.reason()))));
     }
 
     @PostMapping(path = "/{taskId}:return", version = "1")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
-    DecisionResult returnTask(@PathVariable String taskId, @RequestBody ReturnTaskRequest request) {
-        return returnToInitiator.execute(new ApprovalTaskId(taskId), currentUser.userId(), request.reason());
+    DecisionResponse returnTask(@PathVariable String taskId, @RequestBody ReturnTaskRequest request) {
+        return DecisionResponse.of(returnToInitiator.execute(new ApprovalTaskId(taskId), currentUser.userId(), request.reason()));
+    }
+
+    @PostMapping(path = "/{taskId}:transfer", version = "1")
+    @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE + "')")
+    ResponseEntity<Void> transfer(@PathVariable String taskId, @RequestBody TransferTaskRequest request) {
+        transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new UserId(request.assigneeId()));
+        return ResponseEntity.noContent().build();
     }
 }

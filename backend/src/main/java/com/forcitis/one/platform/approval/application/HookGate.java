@@ -8,6 +8,7 @@ import com.forcitis.one.platform.approval.api.HookDecision;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
@@ -26,16 +27,16 @@ class HookGate {
     }
 
     HookDecision check(TaskView task, UserId actor, HookAction action, String reason) {
-        String key = task.beforeHookKey();
-        if (key == null || key.isBlank()) {
+        Optional<String> key = task.beforeHookKey().filter(k -> !k.isBlank());
+        if (key.isEmpty()) {
             return HookDecision.allow();
         }
-        ApprovalHook hook = hooks.get(key);
+        ApprovalHook hook = hooks.get(key.get());
         if (hook == null) {
             throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED,
-                    "Node " + task.nodeKey() + " names the BEFORE hook " + key + ", which is not registered");
+                    "Node " + task.nodeKey() + " names the BEFORE hook " + key.get() + ", which is not registered");
         }
-        HookDecision decision = hook.before(new HookContext(task.processKey(), task.businessKey(), task.instanceId(),
+        HookDecision decision = hook.before(new HookContext(task.processKey(), task.document(), task.instanceId(),
                 task.taskId(), task.nodeKey(), actor, action, reason));
         if (decision == null || !decision.outcome().commits()) {
             String message = decision == null ? "The hook returned no decision" : decision.outcome() + ": " + decision.message();

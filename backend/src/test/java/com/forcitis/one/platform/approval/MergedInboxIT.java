@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ApprovalRequest;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.ListInbox;
@@ -28,6 +28,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 class MergedInboxIT extends ApprovalIntegrationSupport {
+
+    @org.junit.jupiter.api.BeforeEach
+    void candidateGroupNodes() {
+        deployVariant("groupnode");
+    }
 
     @Autowired
     ListInbox listInbox;
@@ -46,7 +51,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalInstanceId newTaskFor(long initiator, String key, long... managers) {
-        return tx.execute(s -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+        return tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
     }
 
@@ -94,10 +99,10 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         MergedInbox inbox = listInbox.execute(new UserId(me));
         assertThat(inbox.items()).singleElement().satisfies(item -> {
             assertThat(item.source().name()).isEqualTo("LEGACY");
-            assertThat(item.detailUrl()).isEqualTo("https://legacy.example.test/bpm/detail?instance=P-" + me + "&task=t-1");
+            assertThat(item.detailUrl()).contains("https://legacy.example.test/bpm/detail?instance=P-" + me + "&task=t-1");
             assertThat(item.title()).isEqualTo("Old title P-" + me);
-            assertThat(item.nodeName()).isEqualTo("Old node N1");
-            assertThat(item.createdAt()).isEqualTo(Instant.parse("2026-10-01T01:00:00Z"));
+            assertThat(item.nodeName()).contains("Old node N1");
+            assertThat(item.createdAt()).contains(Instant.parse("2026-10-01T01:00:00Z"));
         });
     }
 

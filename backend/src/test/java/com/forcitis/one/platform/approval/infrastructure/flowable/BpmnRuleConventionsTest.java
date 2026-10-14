@@ -55,7 +55,7 @@ class BpmnRuleConventionsTest {
                 "<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"reviewer\" selfApproval=\"allowed\" beforeHook=\"K\"/></extensionElements>")));
         assertThat(policy.rule()).isInstanceOf(AssignmentRule.Role.class);
         assertThat(policy.selfApprovalAllowed()).isTrue();
-        assertThat(policy.beforeHookKey()).isEqualTo("K");
+        assertThat(policy.beforeHookKey()).contains("K");
     }
 
     @Test
@@ -143,19 +143,26 @@ class BpmnRuleConventionsTest {
         }
 
         assertThat(fields).containsExactlyInAnyOrder(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), TimesheetApprovalField.REGIONAL_HEAD.fieldName());
+        String nodesTable = Files.readString(Path.of("src/main/resources/dmn/cost_timesheet_approval_nodes.dmn"));
         for (TimesheetRoutingFlag flag : TimesheetRoutingFlag.values()) {
-            assertThat(xml).contains("getOrDefault('" + flag.flagName() + "', false)");
+            assertThat(nodesTable).contains("<text>" + flag.flagName() + "</text>");
         }
     }
 
     @Test
-    @DisplayName("RULE-300 every node of the timesheet process says explicitly that it may be skipped when nobody is found")
-    void timesheetNodesAllowSkipping() throws Exception {
+    @DisplayName("RULE-248/300 every node of the timesheet process is a countersign node and leaves the permission to skip to the decision table")
+    void timesheetNodesAreCountersignAndLeaveSkippingToTheTable() throws Exception {
         try (InputStream in = getClass().getResourceAsStream("/processes/cost_timesheet_approval.bpmn20.xml")) {
             BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);
             List<UserTask> nodes = model.getMainProcess().findFlowElementsOfType(UserTask.class);
             assertThat(nodes).hasSize(3);
-            nodes.forEach(node -> assertThat(NodePolicyReader.read(node).skipWhenEmpty()).as(node.getId()).isTrue());
+            nodes.forEach(node -> {
+                assertThat(NodePolicyReader.read(node).skipWhenEmpty()).as(node.getId()).isFalse();
+                assertThat(node.getLoopCharacteristics()).as(node.getId()).isNotNull();
+                assertThat(node.getLoopCharacteristics().isSequential()).isFalse();
+                assertThat(node.getLoopCharacteristics().getInputDataItem()).isEqualTo("${approverResolution.apply(execution)}");
+                assertThat(node.getLoopCharacteristics().getElementVariable()).isEqualTo("approver");
+            });
         }
     }
 

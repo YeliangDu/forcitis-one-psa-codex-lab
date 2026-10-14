@@ -12,6 +12,6 @@ public final class TaskActors {
         if (actor == null) {
             return false;
         }
-        return task.isClaimed() ? task.assignee().equals(actor) : task.candidates().contains(actor);
+        return task.assignee().map(actor::equals).orElseGet(() -> task.candidates().contains(actor));
     }
 }

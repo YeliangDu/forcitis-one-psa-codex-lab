@@ -4,6 +4,7 @@ import com.forcitis.one.platform.approval.domain.AssignmentRuleCodec;
 import com.forcitis.one.platform.approval.domain.NodePolicy;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.flowable.bpmn.model.ExtensionAttribute;
 import org.flowable.bpmn.model.ExtensionElement;
 import org.flowable.bpmn.model.UserTask;
@@ -32,7 +33,8 @@ final class NodePolicyReader {
             return new NodePolicy(AssignmentRuleCodec.parse(attribute(element, "type"), name -> attribute(element, name)),
                     "allowed".equals(attribute(element, "selfApproval")),
                     "true".equals(attribute(element, "skipWhenEmpty")),
-                    attribute(element, "beforeHook"));
+                    Optional.ofNullable(attribute(element, "beforeHook")).filter(key -> !key.isBlank()),
+                    "true".equals(attribute(element, "cutoff")));
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw new IllegalStateException("Node " + node.getId() + ": " + e.getMessage(), e);
         }

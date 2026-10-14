@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.approval.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.util.List;
@@ -8,14 +8,16 @@ import java.util.Optional;
 
 public interface ApprovalRequestRepository {
 
-    /** Returns the row locked (FOR UPDATE) until the transaction ends, so concurrent starts of one document serialise. */
-    ApprovalRequestRecord lockOrCreate(ProcessKey processKey, String businessKey, UserId initiator);
+    /** Serialises concurrent starts of one document until the transaction ends, whether or not its request exists yet. */
+    void lockForStart(ProcessKey processKey, DocumentReference document);
 
-    Optional<ApprovalRequestRecord> lockByInstance(ApprovalInstanceId instanceId);
+    /** The row stays locked (FOR UPDATE) until the transaction ends. */
+    Optional<ApprovalRequest> find(ProcessKey processKey, DocumentReference document);
 
-    void beginRound(ProcessKey processKey, String businessKey, int round, UserId initiator, ApprovalInstanceId instanceId);
+    Optional<ApprovalRequest> findByInstance(ApprovalInstanceId instanceId);
 
-    List<ApprovalRound> rounds(ProcessKey processKey, String businessKey);
+    /** Writes only what the aggregate holds, and only if the stored version and status are still the ones it was loaded with. */
+    void save(ApprovalRequest request);
 
-    void updateStatus(ApprovalInstanceId instanceId, ApprovalStatus status, String reason);
+    List<ApprovalRound> rounds(ProcessKey processKey, DocumentReference document);
 }

@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ApprovalRequest;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -33,7 +33,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     DecideTasks decideTasks;
 
     int instancesOf(String businessKey) {
-        return (int) runtime.createProcessInstanceQuery().processInstanceBusinessKey(businessKey).count();
+        return (int) runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + businessKey).count();
     }
 
     @Test
@@ -47,9 +47,9 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId second = start(key, initiator, manager);
         assertThat(second).isEqualTo(first);
         assertThat(instancesOf(key)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where business_key = ?", Integer.class, key))
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class, key))
                 .isEqualTo(1);
-        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where business_key = ?",
+        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_key = ?",
                 Integer.class, key)).isEqualTo(1);
     }
 
@@ -84,9 +84,9 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
 
         assertThat(distinct).hasSize(1);
         assertThat(instancesOf(key)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where business_key = ?", Integer.class, key))
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_key = ?", Integer.class, key))
                 .isEqualTo(1);
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where business_key = ?", Integer.class, key))
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class, key))
                 .isEqualTo(1);
         assertThat(taskService.createTaskQuery().processInstanceId(distinct.iterator().next().value()).count()).isEqualTo(1);
     }
@@ -113,15 +113,15 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
 
         ApprovalInstanceId third = startWithSupervisor(key, initiator, manager);
         assertThat(third).isNotIn(first, second);
-        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where business_key = ?",
+        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_key = ?",
                 Integer.class, key)).isEqualTo(3);
-        assertThat(jdbc.queryForList("select round_number from platform_approval.start_rounds where business_key = ? order by 1",
+        assertThat(jdbc.queryForList("select round_number from platform_approval.start_rounds where document_key = ? order by 1",
                 Integer.class, key)).containsExactly(1, 2, 3);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
         decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(third, "projectManagerReview"), DecisionOutcome.APPROVE, "ok")));
         decideTasks.execute(new UserId(head), List.of(new TaskDecision(openTaskId(third, "supervisorReview"), DecisionOutcome.APPROVE, "ok")));
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
-            assertThat(e.businessKey()).isEqualTo(key);
+            assertThat(e.document().documentId().value()).isEqualTo(key);
             assertThat(e.round()).isEqualTo(3);
             assertThat(e.outcome()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalOutcome.APPROVED);
         }));
@@ -131,24 +131,24 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-278 the database itself refuses a duplicate (process type, business key, round)")
     void roundsAreUniqueInTheDatabase() {
         String key = newKey("unique");
-        jdbc.update("insert into platform_approval.start_rounds (process_key, business_key, round_number, initiator_id, instance_id)"
+        jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number, initiator_id, instance_id)"
                 + " values ('COST_TIMESHEET_APPROVAL', ?, 1, 5, 'a')", key);
-        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (process_key, business_key, round_number,"
+        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number,"
                 + " initiator_id, instance_id) values ('COST_TIMESHEET_APPROVAL', ?, 1, 5, 'b')", key))
                 .isInstanceOf(DuplicateKeyException.class);
         // the same business key under another process type is another document
-        jdbc.update("insert into platform_approval.start_rounds (process_key, business_key, round_number, initiator_id, instance_id)"
+        jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number, initiator_id, instance_id)"
                 + " values ('OTHER_TYPE', ?, 1, 5, 'c')", key);
     }
 
     @Test
-    @DisplayName("RULE-264 the request table is unique per (process type, business key)")
+    @DisplayName("RULE-264 the request table is unique per (process type, document)")
     void requestsAreUniqueInTheDatabase() {
         String key = newKey("unique-request");
-        jdbc.update("insert into platform_approval.approval_requests (process_key, business_key, initiator_id, current_round, status)"
-                + " values ('COST_TIMESHEET_APPROVAL', ?, 5, 1, 'RUNNING')", key);
-        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (process_key, business_key, initiator_id,"
-                + " current_round, status) values ('COST_TIMESHEET_APPROVAL', ?, 6, 1, 'RUNNING')", key))
+        jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key, legal_entity_id, initiator_id,"
+                + " current_round, status) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 5, 1, 'RUNNING')", key);
+        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key,"
+                + " legal_entity_id, initiator_id, current_round, status) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 6, 1, 'RUNNING')", key))
                 .isInstanceOf(DuplicateKeyException.class);
     }
 
@@ -159,14 +159,15 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null);
         String key = newKey("rollback");
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
-            approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                    List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(initiator))))));
+            approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, new UserId(initiator),
+                    Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+                    List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(initiator)))), "digest"));
             throw new IllegalStateException("business transaction fails after the start");
         })).isInstanceOf(IllegalStateException.class);
         assertThat(instancesOf(key)).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where business_key = ?", Integer.class, key))
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_key = ?", Integer.class, key))
                 .isZero();
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where business_key = ?", Integer.class, key))
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class, key))
                 .isZero();
     }
 }

@@ -8,7 +8,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ApprovalRequest;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.ApprovalError;
 import com.forcitis.one.platform.approval.application.ApprovalOperationException;
@@ -50,8 +50,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         for (TimesheetRoutingFlag flag : flags) {
             names.add(flag.flagName());
         }
-        return tx.execute(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key,
-                new UserId(s.initiator()), names, fields)));
+        return tx.execute(status -> approvals.start(startRequest(key, new UserId(s.initiator()), names, fields)));
     }
 
     List<String> openNodes(ApprovalInstanceId instance) {
@@ -127,8 +126,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         for (TimesheetRoutingFlag flag : flags) {
             names.add(flag.flagName());
         }
-        return tx.execute(status -> approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL, key,
-                new UserId(s.initiator()), names, fields)));
+        return tx.execute(status -> approvals.start(startRequest(key, new UserId(s.initiator()), names, fields)));
     }
 
     static ApprovalField projectManagers(String... values) {

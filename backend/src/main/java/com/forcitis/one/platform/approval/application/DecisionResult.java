@@ -1,4 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
-public record DecisionResult(String instanceId, String status) {
+import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalStatus;
+
+public record DecisionResult(ApprovalInstanceId instanceId, ApprovalStatus status) {
 }
