@@ -1,60 +1,59 @@
 package com.forcitis.one.platform.approval.application;
 
-import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.organization.attendance.api.WorkCalendar;
-import com.forcitis.one.platform.approval.domain.ApprovalTask;
-import com.forcitis.one.platform.approval.domain.ApprovalTaskRepository;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
-import java.time.Instant;
-import java.time.LocalDate;
+import com.forcitis.one.platform.approval.domain.ApprovalRequest;
+import com.forcitis.one.platform.approval.domain.DeadlinePlan;
+import com.forcitis.one.platform.approval.domain.Moment;
+import com.forcitis.one.platform.approval.domain.TaskAssignment;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
-/** Called by the engine when it creates a task, inside the caller's transaction; a calendar that cannot answer fails the whole command. */
+/**
+ * The engine creates tasks while a use case drives it; the use case opens a scope with the request it is changing, and every task
+ * the engine creates meanwhile becomes part of that request. A task created outside any scope fails the command.
+ */
 @Component
 public class TaskRegistrar {
 
-    private final Aggregates aggregates;
-    private final ApprovalTaskRepository tasks;
-    private final WorkCalendar calendar;
-    private final AuditLog audit;
+    private final DeadlinePlanner deadlines;
     private final BusinessTime time;
+    private final ThreadLocal<ApprovalRequest> current = new ThreadLocal<>();
 
-    TaskRegistrar(Aggregates aggregates, ApprovalTaskRepository tasks, WorkCalendar calendar, AuditLog audit, BusinessTime time) {
-        this.aggregates = aggregates;
-        this.tasks = tasks;
-        this.calendar = calendar;
-        this.audit = audit;
+    TaskRegistrar(DeadlinePlanner deadlines, BusinessTime time) {
+        this.deadlines = deadlines;
         this.time = time;
+    }
+
+    public Scope open(ApprovalRequest request) {
+        if (current.get() != null) {
+            throw new IllegalStateException("Another approval request is being changed on this thread");
+        }
+        current.set(request);
+        return current::remove;
     }
 
     /** True when the system passes the task itself: the only candidate already approved this node with exactly this content (RULE-302). */
     public boolean register(TaskRegistration registration) {
-        if (isRepeatApprover(registration)) {
-            aggregates.save(ApprovalTask.assignAutomatically(registration.taskId(), registration.instanceId(), registration.processKey(),
-                    registration.document(), registration.legalEntityId(), registration.nodeKey()));
-            audit.record(new AuditEntry("platform.approval.task.auto-approve", null, null,
-                    "approval-task:" + registration.taskId().value(), "same approver, same node, same content"));
+        ApprovalRequest request = current.get();
+        if (request == null) {
+            throw new IllegalStateException("Task " + registration.taskId().value() + " was created outside a use case that owns its request");
+        }
+        Moment now = time.moment();
+        if (registration.autoApproveRepeat() && registration.candidates().size() == 1
+                && request.isRepeatApprover(registration.nodeKey(), registration.candidates().getFirst(), registration.contentHash())) {
+            request.passAutomatically(assignment(registration, Optional.empty()), registration.candidates().getFirst(), now);
             return true;
         }
-        Instant due = null;
-        Instant escalate = null;
-        if (registration.deadlineWorkdays().isPresent()) {
-            due = calendar.endOfWorkdayAfter(registration.submittedOn(), registration.deadlineWorkdays().getAsInt(), registration.legalEntityId());
-            LocalDate dueDate = LocalDate.ofInstant(due.minusSeconds(1), BusinessTime.ZONE);
-            escalate = calendar.endOfWorkdayAfter(dueDate, registration.escalationWorkdays().getAsInt(), registration.legalEntityId());
-        }
-        aggregates.save(ApprovalTask.assign(registration.taskId(), registration.instanceId(), registration.processKey(),
-                registration.processName(), registration.document(), registration.legalEntityId(), registration.nodeKey(),
-                registration.nodeName(), registration.initiator(), registration.candidates(), due, escalate, time.today()));
+        request.assignTask(assignment(registration, registration.deadline().map(node -> deadlines.plan(node, request.legalEntityId()))), now);
         return false;
     }
 
-    private boolean isRepeatApprover(TaskRegistration registration) {
-        if (!registration.autoApproveRepeat() || registration.candidates().size() != 1) {
-            return false;
-        }
-        UserId only = registration.candidates().getFirst();
-        return tasks.hasApprovedSameContent(registration.instanceId(), registration.nodeKey(), only, registration.contentDigest());
+    private static TaskAssignment assignment(TaskRegistration registration, Optional<DeadlinePlan> plan) {
+        return new TaskAssignment(registration.taskId(), registration.instanceId(), registration.nodeKey(), registration.nodeName(),
+                registration.processName(), registration.candidates(), plan);
+    }
+
+    public interface Scope extends AutoCloseable {
+        @Override
+        void close();
     }
 }

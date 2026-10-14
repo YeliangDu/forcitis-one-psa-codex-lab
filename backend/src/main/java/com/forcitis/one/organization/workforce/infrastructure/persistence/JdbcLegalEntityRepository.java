@@ -22,10 +22,10 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
 
     @Override
     public Optional<LegalEntity> find(LegalEntityId legalEntityId) {
-        return jdbc.sql("select id, code, name, status, version from organization_workforce.legal_entities where id = :id")
+        return jdbc.sql("select id, code, name, status, version, event_count from organization_workforce.legal_entities where id = :id")
                 .param("id", legalEntityId.value())
                 .query((rs, n) -> LegalEntity.restore(new LegalEntityId(rs.getLong("id")), new LegalEntityCode(rs.getString("code")),
-                        rs.getString("name"), rs.getString("status"), rs.getLong("version")))
+                        rs.getString("name"), rs.getString("status"), rs.getLong("version"), rs.getLong("event_count")))
                 .optional();
     }
 
@@ -33,11 +33,12 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     public LegalEntity insert(LegalEntity unsaved) {
         try {
             long id = jdbc.sql("""
-                            insert into organization_workforce.legal_entities (code, name, status, version)
-                            values (:code, :name, :status, :version) returning id
+                            insert into organization_workforce.legal_entities (code, name, status, version, event_count)
+                            values (:code, :name, :status, :version, :eventSequence) returning id
                             """)
                     .param("code", unsaved.code().value()).param("name", unsaved.name()).param("status", unsaved.status().name())
-                    .param("version", unsaved.versionAfterSave()).query(Long.class).single();
+                    .param("version", unsaved.versionAfterSave()).param("eventSequence", unsaved.eventSequenceAfterSave())
+                    .query(Long.class).single();
             return unsaved.withId(new LegalEntityId(id));
         } catch (DuplicateKeyException taken) {
             throw codeTaken(unsaved.code());
@@ -50,11 +51,12 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
         try {
             updated = jdbc.sql("""
                             update organization_workforce.legal_entities
-                               set code = :code, name = :name, status = :status, version = :next, updated_at = now()
+                               set code = :code, name = :name, status = :status, version = :next, event_count = :eventSequence, updated_at = now()
                              where id = :id and version = :version and status = :loadedStatus and code = :loadedCode
                             """)
                     .param("code", legalEntity.code().value()).param("name", legalEntity.name())
                     .param("status", legalEntity.status().name()).param("next", legalEntity.versionAfterSave())
+                    .param("eventSequence", legalEntity.eventSequenceAfterSave())
                     .param("id", legalEntity.legalEntityId().value()).param("version", legalEntity.version())
                     .param("loadedStatus", legalEntity.loadedStatus().name()).param("loadedCode", legalEntity.loadedCode().value())
                     .update();

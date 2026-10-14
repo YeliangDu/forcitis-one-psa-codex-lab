@@ -7,7 +7,9 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.InstanceStart;
@@ -55,9 +57,9 @@ class FlowableApprovalEngine implements ApprovalEngine {
     static final String VARIABLE_DOCUMENT_TYPE = "documentType";
     static final String VARIABLE_DOCUMENT_ID = "documentId";
     static final String VARIABLE_LEGAL_ENTITY = "legalEntityId";
-    static final String VARIABLE_SUBMITTED_ON = "submittedOn";
-    static final String VARIABLE_CONTENT_DIGEST = "contentDigest";
+    static final String VARIABLE_CONTENT_HASH = "contentHash";
     static final String VARIABLE_SYSTEM_COMPLETE = "systemComplete";
+    static final String VARIABLE_APPROVER_INVALID = "approverInvalid";
     static final String VARIABLE_ASSIGNED_AT = "assignedAtMillis";
     static final String VARIABLE_ADVISORY = "advisory";
 
@@ -65,17 +67,15 @@ class FlowableApprovalEngine implements ApprovalEngine {
     private final TaskService tasks;
     private final RepositoryService repository;
     private final HistoryService history;
-    private final NodeDecisions decisions;
     private final MeterRegistry meters;
     private final Map<String, Definition> definitions = new ConcurrentHashMap<>();
 
     FlowableApprovalEngine(RuntimeService runtime, TaskService tasks, RepositoryService repository, HistoryService history,
-            NodeDecisions decisions, MeterRegistry meters) {
+            MeterRegistry meters) {
         this.runtime = runtime;
         this.tasks = tasks;
         this.repository = repository;
         this.history = history;
-        this.decisions = decisions;
         this.meters = meters;
     }
 
@@ -88,7 +88,16 @@ class FlowableApprovalEngine implements ApprovalEngine {
     }
 
     @Override
-    public ApprovalInstanceId startInstance(InstanceStart start) {
+    public Set<String> routingFlagsOf(ProcessKey processKey) {
+        Set<String> flags = new LinkedHashSet<>();
+        for (UserTask node : latestNodes(processKey)) {
+            NodePolicyReader.read(node).routingFlag().ifPresent(flags::add);
+        }
+        return flags;
+    }
+
+    @Override
+    public void startInstance(InstanceStart start) {
         Map<String, Object> engine = new LinkedHashMap<>(EngineVariables.toEngine(start.variables()));
         String businessKey = start.document().documentType().name() + ":" + start.document().documentId().value();
         engine.put(VARIABLE_INITIATOR, String.valueOf(start.initiator().value()));
@@ -96,21 +105,25 @@ class FlowableApprovalEngine implements ApprovalEngine {
         engine.put(VARIABLE_DOCUMENT_TYPE, start.document().documentType().name());
         engine.put(VARIABLE_DOCUMENT_ID, start.document().documentId().value());
         engine.put(VARIABLE_LEGAL_ENTITY, String.valueOf(start.legalEntityId().value()));
-        engine.put(VARIABLE_SUBMITTED_ON, start.submittedOn().toString());
-        engine.put(VARIABLE_CONTENT_DIGEST, start.contentDigest());
-        engine.putAll(nodeDecisions(start));
-        String instanceId = refusing(() -> runtime.startProcessInstanceByKey(start.processKey().key(), businessKey, engine).getId());
+        engine.put(VARIABLE_CONTENT_HASH, start.contentHash().value());
+        engine.putAll(routes(start));
+        String instanceId = start.instanceId().value();
+        refusing(() -> runtime.createProcessInstanceBuilder().processDefinitionKey(start.processKey().key()).businessKey(businessKey)
+                .variables(engine).predefineProcessInstanceId(instanceId).start().getId());
         rejectWhenEveryNodeWasSkipped(instanceId);
         completeSystemTasks(instanceId);
-        return new ApprovalInstanceId(instanceId);
     }
 
-    private Map<String, Object> nodeDecisions(InstanceStart start) {
-        ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(start.processKey().key())
+    private List<UserTask> latestNodes(ProcessKey processKey) {
+        ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(processKey.key())
                 .latestVersion().singleResult();
         if (definition == null) {
-            throw new IllegalStateException("No deployed process definition " + start.processKey().key());
+            throw new IllegalStateException("No deployed process definition " + processKey.key());
         }
+        return repository.getBpmnModel(definition.getId()).getMainProcess().findFlowElementsOfType(UserTask.class);
+    }
+
+    private Map<String, Object> routes(InstanceStart start) {
         Set<String> facts = new HashSet<>();
         start.variables().variables().forEach((name, values) -> {
             if (values.size() == 1 && "true".equals(values.getFirst())) {
@@ -118,8 +131,8 @@ class FlowableApprovalEngine implements ApprovalEngine {
             }
         });
         Map<String, Object> variables = new LinkedHashMap<>();
-        for (UserTask node : repository.getBpmnModel(definition.getId()).getMainProcess().findFlowElementsOfType(UserTask.class)) {
-            variables.putAll(decisions.decide(start.processKey(), node.getId(), facts).asVariables(node.getId()));
+        for (UserTask node : latestNodes(start.processKey())) {
+            variables.put("routed_" + node.getId(), NodePolicyReader.read(node).routingFlag().map(facts::contains).orElse(true));
         }
         return variables;
     }
@@ -212,7 +225,13 @@ class FlowableApprovalEngine implements ApprovalEngine {
         if (nothingEverAssigned || (open > 0 && systemTasks(instanceId).size() == open)) {
             log.error("Every node of instance {} was skipped for lack of an approver: the approval is refused, not passed", instanceId);
             meters.counter("forcitis.platform.approval.all.nodes.skipped").increment();
-            throw new IllegalStateException("Every node of approval instance " + instanceId + " found nobody to assign");
+            boolean initiatorCanFix = !history.createHistoricVariableInstanceQuery().processInstanceId(instanceId)
+                    .variableName(VARIABLE_APPROVER_INVALID).list().isEmpty();
+            if (initiatorCanFix) {
+                throw ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID.refusal("Every node of approval instance " + instanceId
+                        + " was skipped because the approver named on the document cannot act");
+            }
+            throw ApprovalError.PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND.refusal("Every node of approval instance " + instanceId + " found nobody to assign");
         }
     }
 
@@ -284,12 +303,15 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 new UserId(Long.parseLong(variables.firstVariable(VARIABLE_INITIATOR).orElseThrow())),
                 Optional.ofNullable(task.getAssignee()).map(a -> new UserId(Long.parseLong(a))), candidates, createdAt(task),
                 node.getSubProcess() != null, policy.beforeHookKey(), Boolean.TRUE.equals(task.getTaskLocalVariables().get(VARIABLE_ADVISORY)),
-                variables.firstVariable(VARIABLE_CONTENT_DIGEST).orElseThrow());
+                new ContentHash(variables.firstVariable(VARIABLE_CONTENT_HASH).orElseThrow()));
     }
 
     private static Instant createdAt(Task task) {
         Object millis = task.getTaskLocalVariables().get(VARIABLE_ASSIGNED_AT);
-        return millis instanceof Number n ? Instant.ofEpochMilli(n.longValue()) : Instant.EPOCH;
+        if (!(millis instanceof Number assignedAt)) {
+            throw new IllegalStateException("Task " + task.getId() + " has no assignment time");
+        }
+        return Instant.ofEpochMilli(assignedAt.longValue());
     }
 
     private NodePolicy nodeOf(Task task) {

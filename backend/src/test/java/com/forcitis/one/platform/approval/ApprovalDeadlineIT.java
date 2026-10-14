@@ -1,9 +1,9 @@
 package com.forcitis.one.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.after;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,9 +25,11 @@ import com.forcitis.one.platform.approval.application.EnforceDeadlines;
 import com.forcitis.one.platform.approval.application.TaskDecision;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.TaskClosed;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
@@ -41,7 +43,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 
-/** Approval deadline: due at the end of the n-th workday after the submission day, a reminder when due, an escalation later, never an approval. */
+/**
+ * D-1a-110..117: a task created on a workday is due at 23:59 of the next workday, reminded at 09:00 of the workday after that and escalated
+ * at 09:00 of the workday after the reminder; claimed tasks go to the holder's superior, unclaimed ones to the process administrator; a
+ * deadline never approves anything.
+ */
 @Import(ApprovalDeadlineIT.Time.class)
 class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
 
@@ -87,6 +93,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     void resetTime() {
         calendar.reset();
         clock.set(FRIDAY.atTime(10, 0).atZone(SHANGHAI).toInstant());
+        jdbc.update("update platform_approval.approval_tasks set status = 'CLOSED' where status in ('PENDING', 'CLAIMED')");
     }
 
     @AfterEach
@@ -111,14 +118,21 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         return new Scene(key, instance, openTaskId(instance), initiator, manager, head);
     }
 
-    Instant dueOf(Scene s) {
-        return jdbc.queryForObject("select due_at from platform_approval.approval_tasks where task_id = ?", java.time.OffsetDateTime.class,
+    Instant column(Scene s, String column) {
+        return jdbc.queryForObject("select " + column + " from platform_approval.approval_tasks where task_id = ?", java.time.OffsetDateTime.class,
                 s.task().value()).toInstant();
     }
 
+    Instant dueOf(Scene s) {
+        return column(s, "due_at");
+    }
+
+    Instant remindAtOf(Scene s) {
+        return column(s, "remind_at");
+    }
+
     Instant escalateAtOf(Scene s) {
-        return jdbc.queryForObject("select escalate_at from platform_approval.approval_tasks where task_id = ?", java.time.OffsetDateTime.class,
-                s.task().value()).toInstant();
+        return column(s, "escalate_at");
     }
 
     boolean isOverdue(Scene s) {
@@ -126,51 +140,72 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
                 s.task().value());
     }
 
-    static Instant endOf(LocalDate day) {
-        return day.plusDays(1).atStartOfDay(SHANGHAI).toInstant();
+    static Instant at(LocalDate day, int hour, int minute) {
+        return day.atTime(LocalTime.of(hour, minute)).atZone(SHANGHAI).toInstant();
+    }
+
+    List<String> candidatesOf(Scene s) {
+        return taskService.getIdentityLinksForTask(s.task().value()).stream().filter(l -> "candidate".equals(l.getType())).map(l -> l.getUserId())
+                .toList();
     }
 
     @Test
-    @DisplayName("platform.approval deadline: T+1 from a Friday submission is the end of Monday, the weekend does not count")
+    @DisplayName("D-1a-110/111/112 a task created on Friday is due at 23:59 of Monday, reminded Tuesday 09:00 and escalated Wednesday 09:00; the weekend does not count")
     void weekendDoesNotCount() {
         Scene s = scene(true);
 
-        assertThat(dueOf(s)).isEqualTo(endOf(LocalDate.of(2026, 10, 19)));
-        assertThat(escalateAtOf(s)).as("one more workday after the deadline").isEqualTo(endOf(LocalDate.of(2026, 10, 20)));
+        assertThat(dueOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 19), 23, 59));
+        assertThat(remindAtOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 20), 9, 0));
+        assertThat(escalateAtOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 21), 9, 0));
     }
 
     @Test
-    @DisplayName("platform.approval deadline: a public holiday after the submission day moves the deadline to the next workday")
+    @DisplayName("D-1a-111 a public holiday after the creation day moves every point to the next workday")
     void holidayMovesTheDeadline() {
         calendar.holiday(LocalDate.of(2026, 10, 19));
         Scene s = scene(true);
 
-        assertThat(dueOf(s)).isEqualTo(endOf(LocalDate.of(2026, 10, 20)));
-        assertThat(escalateAtOf(s)).isEqualTo(endOf(LocalDate.of(2026, 10, 21)));
+        assertThat(dueOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 20), 23, 59));
+        assertThat(remindAtOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 21), 9, 0));
+        assertThat(escalateAtOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 22), 9, 0));
     }
 
     @Test
-    @DisplayName("platform.approval deadline: a make-up Saturday is a workday, so T+1 from Friday is the end of Saturday")
+    @DisplayName("D-1a-111 a make-up Saturday is a workday, so T+1 from Friday is Saturday 23:59, and the reminder skips Sunday")
     void makeUpWorkdayCounts() {
         calendar.makeUpWorkday(LocalDate.of(2026, 10, 17));
         Scene s = scene(true);
 
-        assertThat(dueOf(s)).isEqualTo(endOf(LocalDate.of(2026, 10, 17)));
-        assertThat(escalateAtOf(s)).as("Sunday is not a workday: the next one is Monday").isEqualTo(endOf(LocalDate.of(2026, 10, 19)));
+        assertThat(dueOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 17), 23, 59));
+        assertThat(remindAtOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 19), 9, 0));
+        assertThat(escalateAtOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 20), 9, 0));
     }
 
     @Test
-    @DisplayName("platform.approval deadline: the number of workdays and the escalation interval come from the decision table version deployed")
-    void numbersComeFromTheDecisionTable() {
-        deployVariant("deadline3");
+    @DisplayName("D-1a-111 T is the workday the task is created in: created on a Saturday it counts from Monday")
+    void createdOnADayOffCountsFromTheNextWorkday() {
+        clock.set(at(LocalDate.of(2026, 10, 17), 10, 0));
         Scene s = scene(true);
 
-        assertThat(dueOf(s)).as("Mon, Tue, Wed").isEqualTo(endOf(LocalDate.of(2026, 10, 21)));
-        assertThat(escalateAtOf(s)).as("Thu, Fri").isEqualTo(endOf(LocalDate.of(2026, 10, 23)));
+        assertThat(dueOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 20), 23, 59));
+        assertThat(remindAtOf(s)).isEqualTo(at(LocalDate.of(2026, 10, 21), 9, 0));
     }
 
     @Test
-    @DisplayName("platform.approval deadline: a calendar that cannot answer fails the submission instead of assuming every day is a workday; nothing is left behind")
+    @DisplayName("D-1a-84 the number of workdays and the escalation interval come from the node of the process version deployed; a newer version applies to later starts only")
+    void numbersComeFromTheNode() {
+        Scene before = scene(true);
+        deployVariant("deadline3");
+        Scene after = scene(true);
+
+        assertThat(dueOf(before)).isEqualTo(at(LocalDate.of(2026, 10, 19), 23, 59));
+        assertThat(dueOf(after)).as("Mon, Tue, Wed").isEqualTo(at(LocalDate.of(2026, 10, 21), 23, 59));
+        assertThat(remindAtOf(after)).isEqualTo(at(LocalDate.of(2026, 10, 22), 9, 0));
+        assertThat(escalateAtOf(after)).as("Fri, Mon after the reminder day Thursday").isEqualTo(at(LocalDate.of(2026, 10, 26), 9, 0));
+    }
+
+    @Test
+    @DisplayName("RULE-383 a calendar that cannot answer fails the start of the approval instead of assuming every day is a workday; nothing is left behind")
     void calendarFailureFailsTheStart() {
         calendar.failWith("year 2026 is not maintained");
         long unit = newId();
@@ -179,7 +214,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
         String key = newKey("deadline-calendar");
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, new UserId(initiator),
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, new UserId(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager))))))))
                 .hasStackTraceContaining("not maintained");
@@ -189,16 +224,16 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("platform.approval deadline: nothing happens before the deadline; after it the holder is reminded exactly once and the task is NOT approved")
+    @DisplayName("D-1a-112 nothing happens before the reminder time; after it the holder is reminded exactly once and the task is NOT approved")
     void reminderOnceAndNeverAnApproval() {
         Scene s = scene(true);
 
-        clock.set(dueOf(s).minusSeconds(1));
+        clock.set(remindAtOf(s).minusSeconds(1));
         enforceDeadlines.execute();
         assertThat(isOverdue(s)).isFalse();
-        verify(wecom, after(300).never()).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":overdue")));
+        verify(wecom, after(300).times(0)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":overdue")));
 
-        clock.set(dueOf(s).plusSeconds(1));
+        clock.set(remindAtOf(s));
         enforceDeadlines.execute();
         assertThat(isOverdue(s)).isTrue();
         enforceDeadlines.execute();
@@ -209,23 +244,22 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
                 .isEqualTo("PENDING");
         assertThat(requestStatus(s.key())).isEqualTo("RUNNING");
         assertThat(approvals.isFinished(s.instance())).isFalse();
-        eventually(() -> {
-            List<ApprovalTaskOverdue> overdue = events.overdue().stream().filter(e -> e.taskId().equals(s.task())).toList();
-            assertThat(overdue).hasSize(1);
-            assertThat(overdue.getFirst().holders()).containsExactly(new UserId(s.manager()));
-            assertThat(overdue.getFirst().dueAt()).isEqualTo(dueOf(s));
-            assertThat(overdue.getFirst().envelope().aggregateType()).isEqualTo("ApprovalTask");
-            assertThat(overdue.getFirst().envelope().aggregateId()).isEqualTo(s.task().value());
-            assertThat(overdue.getFirst().envelope().aggregateVersion()).as("assigned = 1, overdue = 2").isEqualTo(2);
-            assertThat(overdue.getFirst().envelope().businessDate()).isEqualTo(LocalDate.of(2026, 10, 20));
-        });
+        List<ApprovalTaskOverdue> overdue = events.overdue().stream().filter(e -> e.taskId().equals(s.task())).toList();
+        assertThat(overdue).hasSize(1);
+        assertThat(overdue.getFirst().holders()).containsExactly(new UserId(s.manager()));
+        assertThat(overdue.getFirst().dueAt()).isEqualTo(dueOf(s));
+        assertThat(overdue.getFirst().envelope().aggregateType()).isEqualTo("ApprovalRequest");
+        assertThat(overdue.getFirst().envelope().aggregateId()).isEqualTo("TIMESHEET:" + s.key());
+        assertThat(overdue.getFirst().envelope().aggregateVersion()).as("round started = 1, assigned = 2, overdue = 3").isEqualTo(3);
+        assertThat(overdue.getFirst().envelope().businessDate()).isEqualTo(LocalDate.of(2026, 10, 20));
+        assertThat(overdue.getFirst().envelope().actorType().name()).as("a job acts as the system").isEqualTo("SYSTEM");
     }
 
     @Test
-    @DisplayName("platform.approval deadline: a task decided in time is never reminded")
+    @DisplayName("D-1a-84 a task decided in time is never reminded")
     void decidedInTimeIsNotReminded() {
         Scene s = scene(true);
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
 
         clock.set(escalateAtOf(s).plusSeconds(1));
 
@@ -235,63 +269,71 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("platform.approval deadline: still unhandled after the escalation point, the task goes to the holder's superior, who may then act")
-    void escalationToTheSuperior() {
+    @DisplayName("D-1a-113 a claimed task that is still unhandled at the escalation time goes to the claimant's superior; the claimant stays a candidate")
+    void aClaimedTaskEscalatesToTheSuperior() {
         Scene s = scene(true);
+        claimTask.execute(s.task(), new UserId(s.manager()), java.util.OptionalLong.empty());
         clock.set(escalateAtOf(s).plusSeconds(1));
 
         enforceDeadlines.execute();
 
-        assertThat(taskService.getIdentityLinksForTask(s.task().value()).stream().filter(l -> "candidate".equals(l.getType()))
-                .map(l -> l.getUserId()).toList()).containsExactlyInAnyOrder(String.valueOf(s.manager()), String.valueOf(s.head()));
-        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":escalated")
-                && card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(s.head()))))));
-        eventually(() -> {
-            ApprovalTaskEscalated escalated = events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow();
-            assertThat(escalated.escalatedTo()).containsExactly(new UserId(s.head()));
-            assertThat(escalated.target()).isEqualTo(EscalationTarget.SUPERVISOR);
-            assertThat(escalated.envelope().aggregateVersion()).as("assigned, overdue, escalated").isEqualTo(3);
-        });
-        assertThat(requestStatus(s.key())).isEqualTo("RUNNING");
-
-        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")));
-        assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
-    }
-
-    @Test
-    @DisplayName("platform.approval deadline: a claimed task escalates too — the claim is released so the superior can take it")
-    void claimedTaskEscalates() {
-        Scene s = scene(true);
-        claimTask.execute(s.task(), new UserId(s.manager()));
-        clock.set(escalateAtOf(s).plusSeconds(1));
-
-        enforceDeadlines.execute();
-
-        assertThat(openTask(s.instance()).getAssignee()).isNull();
+        assertThat(candidatesOf(s)).containsExactlyInAnyOrder(String.valueOf(s.manager()), String.valueOf(s.head()));
+        assertThat(openTask(s.instance()).getAssignee()).as("the claim is released so the superior can take it").isNull();
         assertThat(jdbc.queryForObject("select status from platform_approval.approval_tasks where task_id = ?", String.class, s.task().value()))
                 .isEqualTo("PENDING");
-        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)));
+        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":escalated")
+                && card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(s.head()))))));
+        ApprovalTaskEscalated escalated = events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow();
+        assertThat(escalated.escalatedTo()).containsExactly(new UserId(s.head()));
+        assertThat(escalated.target()).isEqualTo(EscalationTarget.SUPERVISOR);
+        assertThat(escalated.envelope().aggregateVersion()).as("round, assigned, claimed, overdue, escalated").isEqualTo(5);
+        assertThat(requestStatus(s.key())).isEqualTo("RUNNING");
+
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
         assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
     }
 
     @Test
-    @DisplayName("platform.approval deadline: with no superior known the task goes to the process administrator and the alert counter rises")
+    @DisplayName("D-1a-113 D-1a-61 an unclaimed candidate group escalates to every holder of the process administrator role, any of whom may then decide")
+    void anUnclaimedTaskEscalatesToTheAdministrator() {
+        Scene s = scene(true);
+        long secondAdministrator = newId();
+        organisation.person(secondAdministrator, 1, null).role("process_administrator", ADMINISTRATOR, secondAdministrator);
+        double before = meters.counter("forcitis.platform.approval.task.escalation.administrator").count();
+        clock.set(escalateAtOf(s).plusSeconds(1));
+
+        enforceDeadlines.execute();
+
+        assertThat(candidatesOf(s)).containsExactlyInAnyOrder(String.valueOf(s.manager()), String.valueOf(ADMINISTRATOR),
+                String.valueOf(secondAdministrator));
+        ApprovalTaskEscalated escalated = events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow();
+        assertThat(escalated.target()).isEqualTo(EscalationTarget.PROCESS_ADMINISTRATOR);
+        assertThat(escalated.escalatedTo()).containsExactlyInAnyOrder(new UserId(ADMINISTRATOR), new UserId(secondAdministrator));
+        assertThat(meters.counter("forcitis.platform.approval.task.escalation.administrator").count()).isEqualTo(before + 1);
+        org.mockito.Mockito.verify(wecom, org.mockito.Mockito.timeout(10_000)).markHandled(org.mockito.ArgumentMatchers.eq("approval-task:" + s.task().value()),
+                org.mockito.ArgumentMatchers.argThat(note -> note.contains("已超时，已升级给")));
+        decideTasks.execute(new UserId(ADMINISTRATOR), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
+        assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
+    }
+
+    @Test
+    @DisplayName("D-1a-113 a claimed task whose holder has no superior goes to the process administrator and raises the alert counter")
     void noSuperiorGoesToTheAdministrator() {
         Scene s = scene(false);
+        claimTask.execute(s.task(), new UserId(s.manager()), java.util.OptionalLong.empty());
         double before = meters.counter("forcitis.platform.approval.task.escalation.administrator").count();
         clock.set(escalateAtOf(s).plusSeconds(1));
 
         enforceDeadlines.execute();
 
         assertThat(meters.counter("forcitis.platform.approval.task.escalation.administrator").count()).isEqualTo(before + 1);
-        assertThat(taskService.getIdentityLinksForTask(s.task().value()).stream().filter(l -> "candidate".equals(l.getType()))
-                .map(l -> l.getUserId()).toList()).contains(String.valueOf(ADMINISTRATOR));
-        eventually(() -> assertThat(events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow()
-                .target()).isEqualTo(EscalationTarget.PROCESS_ADMINISTRATOR));
+        assertThat(candidatesOf(s)).contains(String.valueOf(ADMINISTRATOR));
+        assertThat(events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow().target())
+                .isEqualTo(EscalationTarget.PROCESS_ADMINISTRATOR);
     }
 
     @Test
-    @DisplayName("platform.approval deadline: a late job run records the reminder and the escalation in order, once each")
+    @DisplayName("D-1a-112 a late job run records the reminder and the escalation in order, once each")
     void lateRunCatchesUp() {
         Scene s = scene(true);
         clock.set(escalateAtOf(s).plusSeconds(10));
@@ -299,11 +341,32 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         enforceDeadlines.execute();
         enforceDeadlines.execute();
 
-        eventually(() -> {
-            assertThat(events.overdue().stream().filter(e -> e.taskId().equals(s.task()))).hasSize(1);
-            assertThat(events.escalated().stream().filter(e -> e.taskId().equals(s.task()))).hasSize(1);
-        });
+        assertThat(events.overdue().stream().filter(e -> e.taskId().equals(s.task()))).hasSize(1);
+        assertThat(events.escalated().stream().filter(e -> e.taskId().equals(s.task()))).hasSize(1);
         verify(wecom, after(500).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":overdue")));
         verify(wecom, times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":escalated")));
+    }
+
+    @Test
+    @DisplayName("M-7 an open task of an earlier round does not fail the job every run: it is closed, as an event, under the lock of its request")
+    void aLeftoverTaskOfAnEarlierRoundIsClosed() {
+        Scene s = scene(true);
+        tx.executeWithoutResult(t -> approvals.withdraw(com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, document(s.key()),
+                new UserId(s.initiator()), "wrong hours"));
+        start(s.key(), s.initiator(), s.manager());
+        jdbc.update("update platform_approval.approval_tasks set status = 'PENDING', completed_at = null, due_at = ?, remind_at = ?, escalate_at = ?"
+                + " where task_id = ?", java.sql.Timestamp.from(Instant.parse("2019-01-01T00:00:00Z")),
+                java.sql.Timestamp.from(Instant.parse("2020-01-01T00:00:00Z")), java.sql.Timestamp.from(Instant.parse("2021-01-01T00:00:00Z")),
+                s.task().value());
+        double failed = meters.counter("forcitis.platform.approval.deadline.failed").count();
+
+        enforceDeadlines.execute();
+
+        assertThat(jdbc.queryForObject("select status from platform_approval.approval_tasks where task_id = ?", String.class, s.task().value()))
+                .isEqualTo("CLOSED");
+        assertThat(events.of(TaskClosed.class)).anySatisfy(e -> assertThat(e.taskId()).isEqualTo(s.task()));
+        assertThat(meters.counter("forcitis.platform.approval.deadline.failed").count()).isEqualTo(failed);
+        enforceDeadlines.execute();
+        assertThat(meters.counter("forcitis.platform.approval.deadline.failed").count()).isEqualTo(failed);
     }
 }

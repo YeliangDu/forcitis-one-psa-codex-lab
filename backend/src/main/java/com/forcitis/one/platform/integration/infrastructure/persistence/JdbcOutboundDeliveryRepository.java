@@ -23,7 +23,7 @@ import org.springframework.stereotype.Repository;
 class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
 
     private static final String COLUMNS = "id, deduplication_key, recipients, title, description, target_url, status, attempt_count, "
-            + "response_code, handled_note, kind, target_key, correlation_id, version";
+            + "response_code, handled_note, handled_result, kind, target_key, correlation_id, version, event_count";
 
     private final JdbcClient jdbc;
 
@@ -36,9 +36,9 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
         return jdbc.sql("""
                         insert into platform_integration.outbound_deliveries
                                (deduplication_key, recipients, skipped_recipients, title, description, target_url, status,
-                                next_attempt_at, last_error, kind, target_key, correlation_id, created_at, updated_at)
+                                next_attempt_at, last_error, kind, target_key, correlation_id, created_at, updated_at, version, event_count)
                         values (:key, :recipients, :skipped, :title, :description, :url, :status, :next, :reason, :kind, :target,
-                                :correlation, :now, :now)
+                                :correlation, :now, :now, 0, 0)
                         on conflict (deduplication_key) do nothing
                         """)
                 .param("key", unsaved.deduplicationKey())
@@ -104,23 +104,15 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     }
 
     @Override
-    public void recordHandledNote(String deduplicationKey, String note) {
-        jdbc.sql("""
+    public boolean saveHandled(OutboundDelivery delivery) {
+        return jdbc.sql("""
                         update platform_integration.outbound_deliveries
-                           set handled_note = :note, version = version + 1, updated_at = now()
-                         where deduplication_key = :key
+                           set handled_note = :note, handled_result = :result, version = version + 1, updated_at = now()
+                         where id = :id and status = :loadedStatus and attempt_count = :attempt
                         """)
-                .param("note", note).param("key", deduplicationKey).update();
-    }
-
-    @Override
-    public void recordHandledResult(String deduplicationKey, String result) {
-        jdbc.sql("""
-                        update platform_integration.outbound_deliveries
-                           set handled_result = :result, version = version + 1, updated_at = now()
-                         where deduplication_key = :key
-                        """)
-                .param("result", result).param("key", deduplicationKey).update();
+                .param("note", delivery.handledNote(), Types.VARCHAR).param("result", delivery.handledResult(), Types.VARCHAR)
+                .param("id", delivery.deliveryId().value()).param("loadedStatus", delivery.loadedStatus().name())
+                .param("attempt", delivery.attemptCount()).update() > 0;
     }
 
     @Override
@@ -138,9 +130,9 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     private static OutboundDelivery row(ResultSet rs) throws SQLException {
         return OutboundDelivery.restore(new OutboundDeliveryId(rs.getLong("id")), rs.getString("deduplication_key"),
                 split(rs.getString("recipients")), rs.getString("title"), rs.getString("description"), rs.getString("target_url"),
-                rs.getString("status"), rs.getInt("attempt_count"), rs.getString("response_code"), rs.getString("handled_note"),
+                rs.getString("status"), rs.getInt("attempt_count"), rs.getString("response_code"), rs.getString("handled_note"), rs.getString("handled_result"),
                 DeliveryKind.valueOf(rs.getString("kind")), rs.getString("target_key"), rs.getObject("correlation_id", UUID.class),
-                rs.getLong("version"));
+                rs.getLong("version"), rs.getLong("event_count"));
     }
 
     private static String join(List<WecomUserId> ids) {

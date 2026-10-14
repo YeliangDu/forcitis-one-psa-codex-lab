@@ -4,7 +4,6 @@ package com.forcitis.one.platform.identity.api;
 public enum Permission {
     TIMESHEET_SUBMIT(Codes.TIMESHEET_SUBMIT),
     TIMESHEET_APPROVE(Codes.TIMESHEET_APPROVE),
-    DELIVERY_BUDGET_UPDATE(Codes.DELIVERY_BUDGET_UPDATE),
     PLATFORM_NUMBERING_RULE_UPDATE(Codes.PLATFORM_NUMBERING_RULE_UPDATE),
     PLATFORM_NUMBERING_RULE_READ(Codes.PLATFORM_NUMBERING_RULE_READ),
     PLATFORM_NUMBERING_LEGACY_NUMBER_READ(Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ),
@@ -33,7 +32,6 @@ public enum Permission {
     public interface Codes {
         String TIMESHEET_SUBMIT = "cost.timesheet:timesheet:submit";
         String TIMESHEET_APPROVE = "cost.timesheet:timesheet:approve";
-        String DELIVERY_BUDGET_UPDATE = "delivery.execution:project-budget:update";
         String PLATFORM_NUMBERING_RULE_UPDATE = "platform.numbering:numbering-rule:update";
         String PLATFORM_NUMBERING_RULE_READ = "platform.numbering:numbering-rule:read";
         String PLATFORM_NUMBERING_LEGACY_NUMBER_READ = "platform.numbering:legacy-number:read";

@@ -58,7 +58,7 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     @BeforeEach
     void noLegalEntities() {
         jdbc.sql("truncate table platform_numbering.numbering_counters").update();
-        jdbc.sql("truncate table organization_workforce.legal_entities restart identity").update();
+        jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
     }
 
     private void create(String code, String name) throws Exception {
@@ -133,8 +133,10 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
                 .satisfies(e -> assertThat(e.previousCode()).isEqualTo(new LegalEntityCode("FST")));
         assertThat(events.stream(LegalEntityRenamed.class)).hasSize(1);
         assertThat(events.stream(LegalEntityDeactivated.class)).hasSize(1);
-        assertThat(jdbc.sql("select version from organization_workforce.legal_entities where id = 1").query(Long.class).single())
+        assertThat(jdbc.sql("select event_count from organization_workforce.legal_entities where id = 1").query(Long.class).single())
                 .as("registered 1, then code corrected + renamed + deactivated").isEqualTo(4L);
+        assertThat(jdbc.sql("select version from organization_workforce.legal_entities where id = 1").query(Long.class).single())
+                .as("one save: the lock version moves by one however many events it carried").isEqualTo(2L);
     }
 
     @Test

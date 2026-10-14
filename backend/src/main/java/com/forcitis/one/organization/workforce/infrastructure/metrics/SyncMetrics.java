@@ -8,7 +8,6 @@ import java.time.Duration;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /** Values are read from the run log on every scrape; a failing read reports NaN instead of failing the scrape. */
@@ -20,9 +19,9 @@ class SyncMetrics {
     private final Clock clock;
     private final Instant startedAt;
 
-    SyncMetrics(SyncRunQueries runs, MeterRegistry registry, ObjectProvider<Clock> clock) {
+    SyncMetrics(SyncRunQueries runs, MeterRegistry registry, Clock clock) {
         this.runs = runs;
-        this.clock = clock.getIfAvailable(Clock::systemUTC);
+        this.clock = clock;
         this.startedAt = this.clock.instant();
         Gauge.builder("forcitis.organization.workforce.sync.lag.seconds", this, SyncMetrics::lagSeconds)
                 .description("Seconds since the last successful org snapshot sync (since start-up if there was none)")

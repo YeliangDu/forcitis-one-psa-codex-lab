@@ -64,7 +64,6 @@ public class ReplaceAccountRoles {
         }
         account.replaceRoles(wanted);
         accounts.save(account);
-        accounts.replaceRoles(target, wanted);
         events.publish(account);
         sessions.revokeAll(target);
         cache.evict(target);

@@ -23,7 +23,7 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
-import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
+import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import java.util.List;
 import java.util.Optional;
@@ -80,9 +80,8 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(count("employees")).isEqualTo(4);
         assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3001").query(Long.class).single()).isEqualTo(1L);
-        assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.envelope().aggregateType().equals("Employee")
-                && e.envelope().aggregateId().equals("3001"))).hasSize(1);
-        assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.changedEmployees().contains(user(3001)))).hasSize(1);
+        assertThat(events.stream(EmployeeRegistered.class).filter(e -> e.envelope().aggregateType().equals("Employee")
+                && e.envelope().aggregateId().equals("3001") && e.envelope().aggregateVersion() == 1)).hasSize(1);
 
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-new-hire"))).isPresent();
         assertThat(orgSource.singleLookups.get()).as("the second login is answered by the snapshot").isEqualTo(1);
@@ -139,8 +138,8 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(found.get().userId()).isEqualTo(user(3101));
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(count("employees")).isEqualTo(4);
-        assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.envelope().aggregateType().equals("Employee")
-                && e.envelope().aggregateId().equals("3101"))).hasSize(1);
+        assertThat(events.stream(EmployeeRegistered.class).filter(e -> e.envelope().aggregateType().equals("Employee")
+                && e.envelope().aggregateId().equals("3101") && e.envelope().aggregateVersion() == 1)).hasSize(1);
         assertThat(directory.findEmployeeByLoginName("13900003101")).isPresent();
         assertThat(orgSource.singleLookups.get()).as("the second lookup is answered by the snapshot").isEqualTo(1);
     }

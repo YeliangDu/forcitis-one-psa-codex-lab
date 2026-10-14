@@ -7,7 +7,6 @@ import java.time.Clock;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,9 +18,9 @@ class DeliveryMetrics {
     private final OutboundDeliveryRepository deliveries;
     private final Clock clock;
 
-    DeliveryMetrics(OutboundDeliveryRepository deliveries, MeterRegistry registry, ObjectProvider<Clock> clock) {
+    DeliveryMetrics(OutboundDeliveryRepository deliveries, MeterRegistry registry, Clock clock) {
         this.deliveries = deliveries;
-        this.clock = clock.getIfAvailable(Clock::systemUTC);
+        this.clock = clock;
         Gauge.builder("forcitis.platform.integration.deliveries.pending.overdue", this, DeliveryMetrics::pendingOverdue)
                 .description("Deliveries still pending more than 10 minutes after they were queued")
                 .register(registry);

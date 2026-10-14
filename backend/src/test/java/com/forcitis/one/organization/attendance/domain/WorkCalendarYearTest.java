@@ -58,7 +58,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("maintaining records one WorkCalendarYearMaintained with the aggregate version and no legal entity for the default calendar")
     void maintainingRecordsTheEvent() {
-        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026), List.of(), 3);
+        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026), List.of(), 3, 3);
         year.maintain(List.of(day("2026-10-01", DayKind.HOLIDAY)));
 
         List<DomainEvent> events = year.drainEvents(ENVELOPES);

@@ -21,9 +21,6 @@
     <dependency><groupId>net.javacrumbs.shedlock</groupId><artifactId>shedlock-spring</artifactId><version>${shedlock.version}</version></dependency>
     <dependency><groupId>net.javacrumbs.shedlock</groupId><artifactId>shedlock-provider-jdbc-template</artifactId><version>${shedlock.version}</version></dependency>
     <dependency><groupId>org.flowable</groupId><artifactId>flowable-spring-boot-starter-process</artifactId><version>8.0.0</version></dependency>
-    <!-- platform.approval: decision tables (DMN) give routes, skip / auto-approve permission and node deadlines; versioned with the deployment -->
-    <dependency><groupId>org.flowable</groupId><artifactId>flowable-spring-boot-starter-dmn</artifactId><version>8.0.0</version></dependency>
-    <dependency><groupId>org.flowable</groupId><artifactId>flowable-dmn-spring-configurator</artifactId><version>8.0.0</version></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-flyway</artifactId></dependency>
     <!-- Phase 1a: server-side sessions (ADR-0009), caches (no Redis), metrics to ARMS, read-only SQL Server for A8 / legacy views -->
     <dependency><groupId>org.springframework.session</groupId><artifactId>spring-session-jdbc</artifactId></dependency>
@@ -63,7 +60,8 @@
         <configuration><testExcludes><testExclude>**/*MssqlIT.java</testExclude></testExcludes></configuration>
       </plugin>
       <!-- *IT classes (Testcontainers) run in the integration-test phase; surefire only runs *Test (Boot parent) - added by platform.approval -->
-      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine></configuration></plugin>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine><forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds></configuration></plugin>
+      <!-- At JVM exit the cached Spring contexts close after Testcontainers stopped the database; each waits for its connection timeout, so a fork with many contexts needs more than the default 30 s to leave. -->
       <!-- every test class owns its Testcontainers database, so classes run in parallel JVMs: ./mvnw verify -Dtest.forks=1 restores serial runs -->
       <!-- OpenApiExportTest rewrites frontend/packages/api/openapi.json and LegacyShapeTest scans it: the export runs alone and first, never beside the scan -->
       <plugin>

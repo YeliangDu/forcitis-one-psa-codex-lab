@@ -1,7 +1,12 @@
 package com.forcitis.one.platform.identity.web;
 
 import com.forcitis.one.kernel.PublicEndpoint;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.application.BeginWecomLogin;
+import com.forcitis.one.platform.identity.application.ClientOrigin;
+import com.forcitis.one.platform.identity.application.LoginStateIssue;
+import com.forcitis.one.platform.identity.application.LoginThrottle;
+import com.forcitis.one.platform.identity.application.SessionSettings;
 import com.forcitis.one.platform.identity.application.EmergencyLoginCommand;
 import com.forcitis.one.platform.identity.application.GetCurrentUserProfile;
 import com.forcitis.one.platform.identity.application.LoginAsEmergencyAdmin;
@@ -12,8 +17,10 @@ import com.forcitis.one.platform.identity.application.LoginWithWecom;
 import com.forcitis.one.platform.identity.application.Logout;
 import com.forcitis.one.platform.identity.application.SsoSettings;
 import com.forcitis.one.platform.identity.application.WecomLoginCommand;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,10 +40,14 @@ class SessionController {
     private final Logout logout;
     private final GetCurrentUserProfile getCurrentUserProfile;
     private final SsoSettings ssoSettings;
+    private final LoginThrottle throttle;
+    private final ClientOrigin clientOrigin;
+    private final SessionSettings sessionSettings;
 
     SessionController(BeginWecomLogin beginWecomLogin, LoginWithWecom loginWithWecom, LoginWithSso loginWithSso,
             LoginWithSignedTicket loginWithSignedTicket, LoginAsEmergencyAdmin loginAsEmergencyAdmin, Logout logout,
-            GetCurrentUserProfile getCurrentUserProfile, SsoSettings ssoSettings) {
+            GetCurrentUserProfile getCurrentUserProfile, SsoSettings ssoSettings, LoginThrottle throttle, ClientOrigin clientOrigin,
+            SessionSettings sessionSettings) {
         this.beginWecomLogin = beginWecomLogin;
         this.loginWithWecom = loginWithWecom;
         this.loginWithSso = loginWithSso;
@@ -45,6 +56,9 @@ class SessionController {
         this.logout = logout;
         this.getCurrentUserProfile = getCurrentUserProfile;
         this.ssoSettings = ssoSettings;
+        this.throttle = throttle;
+        this.clientOrigin = clientOrigin;
+        this.sessionSettings = sessionSettings;
     }
 
     @PostMapping(path = "/login-states")
@@ -53,13 +67,25 @@ class SessionController {
         if (request.entry() == null) {
             return ResponseEntity.badRequest().body(new ErrorResponse("PLATFORM_IDENTITY_STATE_INVALID", null));
         }
-        return ResponseEntity.ok(new LoginStateResponse(beginWecomLogin.execute(request.entry())));
+        if (!throttle.allows("login-states", clientOrigin.address())) {
+            return rateLimited();
+        }
+        LoginStateIssue issued = beginWecomLogin.execute(request.entry());
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE,
+                LoginStateCookie.issue(issued.binding(), sessionSettings.secureCookie(), issued.lifetime()).toString())
+                .body(new LoginStateResponse(issued.state()));
     }
 
     @PostMapping(path = "/sessions:wecom-login")
     @PublicEndpoint(reason = "WeCom OAuth login (workbench, mini program, PC scan): identity proven by the WeCom code and a one-time state. ADR-0009 §3, RULE-322/323/324/326/327, I-3, I-9")
-    ResponseEntity<?> loginWithWecom(@RequestBody WecomLoginRequest request) {
-        return respond(loginWithWecom.execute(new WecomLoginCommand(request.code(), request.state(), request.entry())), null);
+    ResponseEntity<?> loginWithWecom(@RequestBody WecomLoginRequest request,
+            @CookieValue(name = LoginStateCookie.NAME, required = false) String binding) {
+        if (!throttle.allows("wecom-login", clientOrigin.address())) {
+            return rateLimited();
+        }
+        ResponseEntity<?> response = respond(loginWithWecom.execute(new WecomLoginCommand(request.code(), request.state(), binding, request.entry())), null);
+        return ResponseEntity.status(response.getStatusCode()).headers(response.getHeaders())
+                .header(HttpHeaders.SET_COOKIE, LoginStateCookie.clear(sessionSettings.secureCookie()).toString()).body(response.getBody());
     }
 
     @PostMapping(path = "/sessions:sso-login")
@@ -91,6 +117,10 @@ class SessionController {
     @PreAuthorize("isAuthenticated()")
     CurrentUserResponse current() {
         return CurrentUserResponse.of(getCurrentUserProfile.execute());
+    }
+
+    private static ResponseEntity<?> rateLimited() {
+        return IdentityResponses.error(IdentityError.PLATFORM_IDENTITY_LOGIN_RATE_LIMITED, null);
     }
 
     private static ResponseEntity<?> respond(LoginResult result, String legacyLoginUrl) {

@@ -12,7 +12,9 @@ import com.forcitis.one.kernel.UserId;
 import java.util.Optional;
 import com.forcitis.one.platform.approval.api.ApprovalHook;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.HookAction;
 import com.forcitis.one.platform.approval.api.HookContext;
 import com.forcitis.one.platform.approval.api.HookDecision;
@@ -51,7 +53,7 @@ class HookGateTest {
     static TaskView task(String hookKey) {
         return new TaskView(new ApprovalTaskId("t"), new ApprovalInstanceId("i"), ProcessKey.COST_TIMESHEET_APPROVAL,
                 new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc")), new LegalEntityId(1), "node", "Node", new UserId(1),
-                Optional.empty(), Set.of(new UserId(2)), Instant.EPOCH, false, Optional.ofNullable(hookKey), false, "digest");
+                Optional.empty(), Set.of(new UserId(2)), Instant.EPOCH, false, Optional.ofNullable(hookKey), false, new ContentHash("hash"));
     }
 
     @Test

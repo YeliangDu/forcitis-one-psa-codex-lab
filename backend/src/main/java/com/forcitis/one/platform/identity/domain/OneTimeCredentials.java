@@ -7,9 +7,10 @@ import java.util.Optional;
 /** Every consuming operation is a single atomic statement, so N concurrent replays give exactly one winner; only hashes are stored. */
 public interface OneTimeCredentials {
 
-    void storeLoginState(String stateHash, WecomEntry entry, Instant expiresAt);
+    void storeLoginState(String stateHash, String bindingHash, WecomEntry entry, Instant expiresAt);
 
-    Optional<WecomEntry> consumeLoginState(String stateHash, Instant now);
+    /** Consumes only when the binding matches; a wrong binding leaves the state alone, so nobody can burn another browser's state. */
+    Optional<WecomEntry> consumeLoginState(String stateHash, String bindingHash, Instant now);
 
     boolean markTicketUsed(String ticketSource, String ticketHash, Instant retainUntil);
 

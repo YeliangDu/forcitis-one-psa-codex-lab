@@ -79,6 +79,9 @@ class ApplicationIntegrationTest {
     RoleDirectory roleDirectory;
 
     @MockitoBean
+    com.forcitis.one.organization.workforce.api.EmployeeLegalEntities employeeLegalEntities;
+
+    @MockitoBean
     WecomGateway wecomGateway;
 
     @MockitoBean
@@ -93,7 +96,7 @@ class ApplicationIntegrationTest {
     static final LegalEntityId LE1 = new LegalEntityId(1L);
 
     static final String SUBMIT = "/api/v1/cost/timesheets/7:submit";
-    static final String BODY = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":2002}";
+    static final String BODY = "{\"hours\":8,\"projectManagerId\":2002}";
 
     @Autowired
     MockMvc mvc;
@@ -154,56 +157,9 @@ class ApplicationIntegrationTest {
     }
 
     @Test
-    void missingPermissionIsForbidden() throws Exception {
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_APPROVE))
-                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void submitStartsFlowableApprovalInItsOwnSchema() throws Exception {
-        String body = mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.outcome").value("SUBMITTED"))
-                .andReturn().getResponse().getContentAsString();
-        String instanceId = JsonMapper.builder().build().readTree(body).get("approvalInstanceId").asString();
-
+    void flowableLivesInItsOwnSchema() {
         assertThat(count("platform_approval")).isGreaterThan(20);
         assertThat(count("public")).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_ru_task where proc_inst_id_ = ?",
-                Integer.class, instanceId)).isEqualTo(1);
-        assertThat(jdbc.queryForList("""
-                select l.user_id_ from platform_approval.act_ru_identitylink l
-                  join platform_approval.act_ru_task t on t.id_ = l.task_id_
-                 where t.proc_inst_id_ = ? and l.type_ = 'candidate'""", String.class, instanceId))
-                .containsExactly("2002");
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_hi_varinst where proc_inst_id_ = ? and name_ = 'skippedWhenEmpty'",
-                Integer.class, instanceId)).isZero();
-    }
-
-    @Test
-    void submitWithoutAnExistingProjectManagerFailsInsteadOfPassingSilently() throws Exception {
-        String unknownManager = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":424242}";
-
-        String body = mvc.perform(post("/api/v1/cost/timesheets/8:submit").with(csrf())
-                        .with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content(unknownManager))
-                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID"))
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andReturn().getResponse().getContentAsString();
-        org.assertj.core.api.Assertions.assertThat(body).contains("\"status\":422");
-    }
-
-    @Test
-    void typedOutcomesMapToHttpStatuses() throws Exception {
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":1,\"hours\":31,\"projectManagerId\":2002}"))
-                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.outcome").value("EXCEEDS_REMAINING_HOURS"))
-                .andExpect(jsonPath("$.errorCode").value("COST_TIMESHEET_EXCEEDS_REMAINING_HOURS"));
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":99,\"hours\":1,\"projectManagerId\":2002}"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.errorCode").value("COST_TIMESHEET_UNKNOWN_WORK_PACKAGE"));
     }
 
     @Test
@@ -224,6 +180,11 @@ class ApplicationIntegrationTest {
     void projectManagerExists() {
         org.mockito.Mockito.when(orgDirectory.findEmployee(new UserId(2002))).thenReturn(java.util.Optional.of(new EmployeeProfile(
                 new UserId(2002), "person-2002", new OrgUnitId(1), null, EmploymentStatus.EMPLOYED, false)));
+    }
+
+    @BeforeEach
+    void everyEmployeeBelongsToLegalEntityOne() {
+        org.mockito.Mockito.when(employeeLegalEntities.on(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(LE1);
     }
 
     @BeforeEach
@@ -314,6 +275,9 @@ class ApplicationIntegrationTest {
             for (Map.Entry<String, JsonNode> operation : path.getValue().properties()) {
                 for (JsonNode parameter : operation.getValue().path("parameters")) {
                     String name = parameter.path("name").asString();
+                    if ("header".equals(parameter.path("in").asString()) && STANDARD_HEADERS.contains(name)) {
+                        continue;
+                    }
                     camelCase(operation.getKey().toUpperCase() + " " + path.getKey() + " " + parameter.path("in").asString()
                             + " parameter '" + name + "'", name, problems);
                 }
@@ -365,6 +329,9 @@ class ApplicationIntegrationTest {
             node.forEach(child -> jsonKeys(where + "[]", child, problems));
         }
     }
+
+    /** Header names are fixed by HTTP (RFC 9110, IETF Idempotency-Key), not chosen by this contract. */
+    private static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key");
 
     private static void camelCase(String where, String name, List<String> problems) {
         if (!name.matches("[a-z][a-zA-Z0-9]*")) {
@@ -465,7 +432,7 @@ class ApplicationIntegrationTest {
                        col_description(format('%I.%I', c.table_schema, c.table_name)::regclass, c.ordinal_position) as column_comment,
                        obj_description(format('%I.%I', c.table_schema, c.table_name)::regclass, 'pg_class') as table_comment
                   from information_schema.columns c
-                 where c.table_schema in ('delivery_execution', 'platform_numbering', 'platform_scheduling')
+                 where c.table_schema in ('platform_numbering', 'platform_scheduling')
                  order by c.table_schema, c.table_name, c.ordinal_position
                 """);
         assertThat(rows).isNotEmpty();

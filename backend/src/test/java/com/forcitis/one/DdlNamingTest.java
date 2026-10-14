@@ -307,6 +307,16 @@ class DdlNamingTest {
                 schema.indexKinds.put(renameIndex.group(3), kind);
             }
         }
+        Matcher dropTable = Pattern.compile("DROP TABLE\\s+(?:IF EXISTS\\s+)?([a-z0-9_]+)\\.([a-z0-9_]+)", Pattern.CASE_INSENSITIVE).matcher(sql);
+        while (dropTable.find()) {
+            Schema schema = schemas.computeIfAbsent(dropTable.group(1), s -> new Schema());
+            schema.tables.remove(dropTable.group(2));
+            List<String> indexes = schema.indexes.entrySet().stream().filter(e -> e.getValue().equals(dropTable.group(2))).map(Map.Entry::getKey).toList();
+            indexes.forEach(i -> {
+                schema.indexes.remove(i);
+                schema.indexKinds.remove(i);
+            });
+        }
         Matcher dropIndex = Pattern.compile("DROP INDEX\\s+(?:IF EXISTS\\s+)?([a-z0-9_]+)\\.([a-z0-9_]+)", Pattern.CASE_INSENSITIVE).matcher(sql);
         while (dropIndex.find()) {
             Schema schema = schemas.computeIfAbsent(dropIndex.group(1), s -> new Schema());
@@ -347,7 +357,7 @@ class DdlNamingTest {
 
     private static void tableConstraint(String table, Table model, String line) {
         String lower = line.toLowerCase(Locale.ROOT);
-        Matcher m = Pattern.compile("constraint ([a-z0-9_]+) (primary key|foreign key|unique|check)").matcher(lower);
+        Matcher m = Pattern.compile("constraint ([a-z0-9_]+) (primary key|foreign key|unique|check|exclude)").matcher(lower);
         String kind;
         String name;
         if (m.find()) {
@@ -368,6 +378,7 @@ class DdlNamingTest {
             case "primary key" -> "pk";
             case "foreign key" -> "fk";
             case "unique" -> "uk";
+            case "exclude" -> "ex";
             default -> "ck";
         }, name, false);
     }
@@ -398,6 +409,7 @@ class DdlNamingTest {
                         case "pk" -> "pk_" + table;
                         case "fk" -> "fk_" + table + "_<column>";
                         case "uk" -> "uk_" + table + "_<column>";
+                        case "ex" -> "ex_" + table + "_<rule>";
                         default -> "ck_" + table + "_<rule>";
                     };
                     boolean ok = c.kind().equals("pk") ? c.name().equals(expected) : c.name().startsWith(expected.replace("<column>", "").replace("<rule>", ""));

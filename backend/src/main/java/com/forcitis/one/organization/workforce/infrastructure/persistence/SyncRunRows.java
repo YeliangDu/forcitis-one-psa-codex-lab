@@ -18,7 +18,7 @@ final class SyncRunRows {
                    incoming_active_org_unit_count, incoming_employed_count, previous_active_org_unit_count,
                    previous_employed_count, org_unit_change_count, employee_change_count, position_change_count,
                    isolated_row_count, issue_count, employed_without_wecom_count, held_reason, failure_reason,
-                   released_by, released_at, released_by_run_id, version
+                   released_by, released_at, released_by_run_id, version, event_count
               from organization_workforce.sync_runs
             """;
 
@@ -29,7 +29,7 @@ final class SyncRunRows {
         return SyncRun.restore(new SyncRunId(rs.getLong("id")), SyncTrigger.valueOf(rs.getString("trigger_kind")), rs.getString("status"),
                 rs.getTimestamp("started_at").toInstant(), instant(rs, "finished_at"), stats(rs), rs.getString("held_reason"),
                 rs.getString("failure_reason"), user(rs, "released_by"), instant(rs, "released_at"), runId(rs, "released_by_run_id"),
-                rs.getLong("version"));
+                rs.getLong("version"), rs.getLong("event_count"));
     }
 
     static SyncRunRecord record(ResultSet rs) throws SQLException {
