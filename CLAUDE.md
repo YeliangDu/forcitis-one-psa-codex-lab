@@ -19,6 +19,8 @@
 - 能一开始做对的不留到后续阶段；推迟的工作须在规则卡或文档写明「为何后做更有价值」，否则当期做对。
 - 系统名称：新系统写 FORCITIS one，老系统写「老系统」（英文 the legacy system），不用「PSA」指代系统；老路径、表名、接口、代码标识、仓库名、会话名与用户原话照原样（`docs/modernization/check_legacy_name.py`）。
 - 派子代理必须显式指定模型（haiku / sonnet / opus，按任务难度）。
+- 委派 Codex 编码按 SESSION_PLAYBOOK §5「Codex 派工」：只交规格写死、可客观验证的机械编码，显式指定模型，独立 worktree，照常测试代理先写验收、opus 复审。
+- 登记术语时中英文名都查重；通用错误码只在 `kernel` 定义；生产只读访问写明对象，超出先请示。
 - 记录只改片段：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `docs/modernization/build_all.py` 从 `intent/`、`session-log/`、`status/`、`adr/src/` 生成；用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段（文件名带时刻与会话名，不手工起名），改完运行 `build_all.py`；ADR 与 brief 连同产物提交，INTENT / SESSION_LOG / STATUS 不入仓（只提交片段）；不直接编辑生成产物。
 - main 受分支保护：所有改动经 PR，CI 三项通过后由调度会话 one-coordinator 合并；工作会话结束前向 one-coordinator 报告。
 - 只在自己的 worktree 分支上工作并开 PR，不在主检出目录留未提交改动；用户已决定的事照做，有异议停下报告，不得自行推迟或改变。
