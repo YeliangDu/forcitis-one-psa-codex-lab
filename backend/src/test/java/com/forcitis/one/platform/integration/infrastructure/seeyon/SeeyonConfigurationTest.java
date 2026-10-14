@@ -23,7 +23,8 @@ class SeeyonConfigurationTest {
             PREFIX + "head-relationship-type-id=-1726439953579618944",
             PREFIX + "regional-receivables-manager-relationship-type-id=-8187907605834545337",
             PREFIX + "delivery-unit-yes-enum-id=-2682590999914657055",
-            PREFIX + "fee-earner-yes-enum-id=-3267712510147735998"};
+            PREFIX + "fee-earner-yes-enum-id=-3267712510147735998",
+            PREFIX + "root-path=00000001"};
 
     @Test
     @DisplayName("by default no connection exists: the organisation source is a disabled stand-in and answers nothing")
@@ -49,6 +50,7 @@ class SeeyonConfigurationTest {
             assertThat(views.headRelationshipTypeId()).isEqualTo(-1726439953579618944L);
             assertThat(views.regionalReceivablesManagerRelationshipTypeId()).isEqualTo(-8187907605834545337L);
             assertThat(views.deliveryUnitYesEnumId()).isEqualTo("-2682590999914657055");
+            assertThat(views.rootPath()).isEqualTo("00000001");
             assertThat(views.mapping().configurationProblems()).isEmpty();
             assertThatThrownBy(() -> context.getBean(OrgSource.class).readSnapshot())
                     .isInstanceOf(ExternalSystemUnavailableException.class)
@@ -77,6 +79,7 @@ class SeeyonConfigurationTest {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure()).isInstanceOf(IllegalStateException.class)
                             .hasMessageContaining("head-relationship-type-id is not configured")
+                            .hasMessageContaining("root-path must be digits")
                             .hasMessageContaining("delivery-unit-yes-enum-id is not configured")
                             .hasMessageContaining("fee-earner-yes-enum-id is not configured");
                 });

@@ -15,7 +15,7 @@ final class SeeyonOrgTree {
     private SeeyonOrgTree() {
     }
 
-    static List<SourceOrgUnit> resolve(List<OrgUnitRow> rows) {
+    static List<SourceOrgUnit> resolve(List<OrgUnitRow> rows, String rootPath) {
         List<OrgUnitRow> sorted = rows.stream()
                 .sorted(Comparator.comparingInt((OrgUnitRow u) -> u.path().length())
                         .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder())
@@ -35,16 +35,15 @@ final class SeeyonOrgTree {
             }
         }
         return sorted.stream()
-                .map(unit -> new SourceOrgUnit(unit.unitId(), unit.code(), unit.name(), parentOf(unit, byPath), unit.sortOrder(),
+                .map(unit -> new SourceOrgUnit(unit.unitId(), unit.code(), unit.name(), parentOf(unit, byPath, rootPath), unit.sortOrder(),
                         unit.state(), unit.emptyFlags(), unit.regionKind(), unit.rawRegion(), unit.deliveryUnit(),
                         sharedWith.get(unit.unitId())))
                 .toList();
     }
 
-    private static SourceUnitId parentOf(OrgUnitRow unit, Map<String, OrgUnitRow> byPath) {
+    private static SourceUnitId parentOf(OrgUnitRow unit, Map<String, OrgUnitRow> byPath, String root) {
         String path = unit.path();
-        String root = SeeyonViewSql.ROOT_PATH;
-        if (!path.startsWith(root) || (path.length() - root.length()) % SeeyonViewSql.PATH_LEVEL_LENGTH != 0) {
+                if (!path.startsWith(root) || (path.length() - root.length()) % SeeyonViewSql.PATH_LEVEL_LENGTH != 0) {
             throw new ExternalSourceBrokenException("org unit " + unit.unitId().value()
                     + " is not below the sync root of the organisation tree");
         }

@@ -10,11 +10,11 @@ record SeeyonProperties(@DefaultValue Views views, @DefaultValue Sso sso) {
 
     record Views(@DefaultValue("false") boolean enabled, String jdbcUrl, String username, String password,
                  @DefaultValue("false") boolean validateOnStartup, long headRelationshipTypeId,
-                 long regionalReceivablesManagerRelationshipTypeId, String deliveryUnitYesEnumId, String feeEarnerYesEnumId) {
+                 long regionalReceivablesManagerRelationshipTypeId, String deliveryUnitYesEnumId, String feeEarnerYesEnumId, String rootPath) {
 
         SeeyonMapping mapping() {
             return new SeeyonMapping(headRelationshipTypeId, regionalReceivablesManagerRelationshipTypeId,
-                    deliveryUnitYesEnumId, feeEarnerYesEnumId);
+                    deliveryUnitYesEnumId, feeEarnerYesEnumId, rootPath);
         }
     }
 
