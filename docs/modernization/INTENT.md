@@ -85,3 +85,4 @@
 | 规则评审第一批（审批 28 条）逐条作答：RULE-248「正确」；RULE-249「错误，改成候选组认领」；RULE-250「正确+修，汇报线不完整时往上推一级；一直找不到就转给流程管理员并告警。不能空指针，也不能静默跳过」；RULE-252「正确+修。行级类型照旧。非行级类型不再取 HashSet里的「第一个」，和节点级用同一种解析方式（候选组）」 | RULE_REVIEWS.json / .md；BRIEF §5 审批域勾选 |
 | 「建议已经发到 psa-review-approval 会话的收件箱，你读一下，不要一条一条问了」；对评估会话 23 条建议：「整批同意」；RULE-293：「按建议：改为「已退回」」 | RULE_REVIEWS.json / .md（RULE-253..311）；BRIEF §5 审批域勾选 |
 | 规则评审第二批（售前报价 14 条）逐条作答：RULE-139 折扣「不需要 (Recommended)」；RULE-141 汇总「仅参考+审批提示 (Recommended)」；RULE-147 费率日「提交时锁定 (Recommended)」；RULE-155 审批改价「不能，需退回 (Recommended)」；其余 10 条（140、142、144、145、158、159、168、169、172、173）及随之修订 RULE-160 契约：「整批同意 (Recommended)」 | RULE_REVIEWS.json / .md（RULE-139..173、RULE-160）；BRIEF §5 售前报价域与 Phase 1b 入口条件勾选 |
+| Phase 1a reimagine 检查点 1（能力 P0 与舍弃，2026-10-14）：「按建议批准」 | AI_NATIVE_SPEC.md §1、§7（C1a-11 与卡片按钮操作为 P1，其余为 P0；D-01..D-09 舍弃） |
