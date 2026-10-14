@@ -139,3 +139,4 @@
 | 第二波 opus 复审 9 个取舍（2026-10-14，psa-coordinator 询问）：除第 7 条外全部按建议；第 7 条：「能从一开始就做对的，就不要留在后续阶段，除非后续做更有价值」 | M2 web 层响应 record；M3 写死 /api/v1；M5 未发号法人代码可更正；M6 workforce 直接用 integration.api 类型、member→employee；M10 以生成类型为准；M11 内核值对象保留；TIMESHEET 编号 1a 即用统一新格式；第 8 条规则卡提回评审；第 9 条 DdlNamingTest 公共列豁免 COMMENT |
 | RULE-280 默认通过意见（2026-10-14，psa-coordinator 询问）：「留空并如实审计 (Recommended)」 | RULE_REVIEWS「实现方式变更」；BUSINESS_RULES RULE-280 Revision；proposals/RULE-280_DEFAULT_REASON.md（已确认） |
 | 推迟项按新原则重审（2026-10-14，psa-coordinator 询问）：「同意，全部在 1a 做 (Recommended)」 | G-1、G-2 会签、RULE-302、RULE-268/269/285/309、RULE-300 剩余、H5（企业微信静默登录、待办、审批详情）在 1a 完成；仍后做项与理由见 phase1a/DEFERRED.md |
+| 「1a 涉及哪些聚合？状态机是怎样的？」→ 状态机收进聚合并加守护：「现在就改，并加守护 (Recommended)」（2026-10-14，psa-coordinator 询问） | 审批请求（含轮次）、同步批次、出站投递、工时单、账号 / 角色 / 法人 / 编号规则的启停与确认：合法转换表进领域对象、领域方法改状态、非法转换抛领域异常、仓储带前置状态条件或乐观锁；每个状态机穷举测试；守护禁止 application / infrastructure 直接写状态与 SQL 状态字面量赋值；状态机图写进架构 §3（Phase 1a 下一轮代理 A / B） |
