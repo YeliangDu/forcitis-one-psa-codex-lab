@@ -10,6 +10,19 @@
 # 字段：id, zh, en, snake, kind, bc, definition, standard_ref, confidence, aliases, forbidden, status(approved|proposed)
 
 common_words:
+  # Phase 1a 平台契约用到的技术性通用词（2026-10-14，psa-1a-platform-bridge-reimagine）
+  - action
+  - on
+  - mark
+  - send
+  - resolve
+  - independently
+  - ids
+  - handled
+  - parent
+  - deduplication
+  - directory
+  - profile
   # 架构与技术后缀（命名规范 §3 规定的类型后缀、通用 CRUD 动词）
   - id
   - key
