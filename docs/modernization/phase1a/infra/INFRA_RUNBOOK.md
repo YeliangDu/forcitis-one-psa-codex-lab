@@ -35,10 +35,12 @@
 
 与 it_portal 隔离：所有 schema 和角色都以本系统模块名或 `one_` 为前缀；不触碰 it_portal 的 schema；连接数上限分别设为 one_dev_app 40、one_dev_migrator 2、one_dev_readonly 3。
 
-应用侧需要的配置（随骨架补齐，属代码改动，由本会话完成）：
-- `spring.flyway.default-schema=one_migration`
-- `spring.flyway.schemas` 列出全部模块 schema，`create-schemas=false`（由 DBA 预建）
-- 部署时迁移连接用 one_dev_migrator，运行连接用 one_dev_app。分开配置 `spring.flyway.user` / `password` 和 `spring.datasource.*`。
+应用侧的 Flyway 与 Flowable 配置（已在 `application.properties`，用 `SchemaPlacementIT` 断言）：
+- `spring.flyway.default-schema=one_migration`：历史表 `flyway_schema_history` 只在 `one_migration`，不落在任何模块 schema。
+- `spring.flyway.schemas` 列出 `one_migration` 与全部模块 schema，`spring.flyway.create-schemas=false`：schema 由 DBA 预建，应用不替 DBA 建。测试库是空库，测试配置里为 `true`。
+- `flowable.database-schema=platform_approval`：引擎表 `ACT_*` 一律落在 `platform_approval`，业务模块不连接它们；安装 / 升级时的连接串也加 `currentSchema=platform_approval`，建完用 `SELECT table_schema FROM information_schema.tables WHERE table_name LIKE 'act\_%' GROUP BY 1` 核对只有这一个 schema。
+- **首次运行 Flyway 需要库级 CREATE 权限**：每个模块的第一个迁移都以 `CREATE SCHEMA IF NOT EXISTS` 开头，PostgreSQL 先检查库级 CREATE 权限再判断 schema 是否已存在，所以迁移角色（继承 `one_dev_owner`）要有 `GRANT CREATE ON DATABASE forcitis_one_dev TO one_dev_owner`（`one_db_roles_schemas.sql` §0 已列出）。应用运行角色不需要。
+- 部署时迁移连接用 `one_dev_migrator`，运行连接用 `one_dev_app`，分开配置 `spring.flyway.user` / `password` 与 `spring.datasource.*`。
 
 ## 3. ECS 初始化（i-bp122xlpar8w2uylmal2）
 
