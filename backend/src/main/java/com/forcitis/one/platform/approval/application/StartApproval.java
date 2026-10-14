@@ -9,7 +9,6 @@ import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import com.forcitis.one.platform.approval.domain.ApprovalStatus;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +23,9 @@ public class StartApproval {
     private final ApprovalRequestRepository requests;
     private final ApprovalEngine engine;
     private final ApprovalLifecycle lifecycle;
-    private final AuditLog audit;
+    private final DenialAudit audit;
 
-    StartApproval(ApprovalRequestRepository requests, ApprovalEngine engine, ApprovalLifecycle lifecycle, AuditLog audit) {
+    StartApproval(ApprovalRequestRepository requests, ApprovalEngine engine, ApprovalLifecycle lifecycle, DenialAudit audit) {
         this.requests = requests;
         this.engine = engine;
         this.lifecycle = lifecycle;
@@ -38,7 +37,7 @@ public class StartApproval {
         ApprovalRequestRecord record = requests.lockOrCreate(request.processKey(), request.businessKey(), request.initiator());
         if (!record.created()) {
             if (!record.initiator().equals(request.initiator())) {
-                audit.recordIndependently(new AuditEntry("platform.approval.start.denied", request.initiator(), null,
+                audit.record(new AuditEntry("platform.approval.start.denied", request.initiator(), null,
                         "approval-request:" + request.processKey() + ":" + request.businessKey(), "not the initiator"));
                 throw new AccessDeniedException("The approval of " + request.businessKey() + " was started by another user");
             }
