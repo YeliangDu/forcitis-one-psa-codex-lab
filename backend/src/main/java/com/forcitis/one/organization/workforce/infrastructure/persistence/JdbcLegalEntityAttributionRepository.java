@@ -13,6 +13,8 @@ import com.forcitis.one.organization.workforce.domain.AttributionPeriod;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttribution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionRepository;
 import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,8 +26,10 @@ import org.springframework.stereotype.Repository;
 class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepository {
     private final JdbcClient jdbc;
     private final IdGenerator ids;
+    private final Clock clock;
 
-    JdbcLegalEntityAttributionRepository(JdbcClient jdbc, IdGenerator ids) {
+    JdbcLegalEntityAttributionRepository(JdbcClient jdbc, IdGenerator ids, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
         this.ids = ids;
     }
@@ -43,10 +47,11 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
 
     private void updatePeriodEnd(AttributionSubject subject, AttributionPeriod period) {
         String sql = subject.kind() == AttributionKind.ORG_UNIT
-                ? "update organization_workforce.org_unit_legal_entities set effective_to_date = :to, updated_at = now() where org_unit_id = :id and effective_from_date = :from"
-                : "update organization_workforce.employee_legal_entities set effective_to_date = :to, updated_at = now() where employee_id = :id and effective_from_date = :from";
+                ? "update organization_workforce.org_unit_legal_entities set effective_to_date = :to, updated_at = :updatedAt where org_unit_id = :id and effective_from_date = :from"
+                : "update organization_workforce.employee_legal_entities set effective_to_date = :to, updated_at = :updatedAt where employee_id = :id and effective_from_date = :from";
         jdbc.sql(sql).param("id", subject.subjectKey()).param("from", Date.valueOf(period.effectiveFrom()))
-                .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE).update();
+                .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE)
+                .param("updatedAt", Timestamp.from(clock.instant())).update();
     }
 
     private void writePeriods(LegalEntityAttribution attribution) {
@@ -105,11 +110,12 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
         } else {
             int updated = jdbc.sql("""
                             update organization_workforce.legal_entity_attributions
-                               set version = :next, event_count = :eventCount, updated_at = now()
+                               set version = :next, event_count = :eventCount, updated_at = :updatedAt
                              where attribution_id = :id and version = :version
                             """)
                     .param("next", attribution.versionAfterSave()).param("eventCount", attribution.eventSequenceAfterSave())
-                    .param("id", attribution.storedId().value()).param("version", attribution.version()).update();
+                    .param("id", attribution.storedId().value()).param("version", attribution.version())
+                    .param("updatedAt", Timestamp.from(clock.instant())).update();
             if (updated != 1) {
                 throw conflict(attribution);
             }

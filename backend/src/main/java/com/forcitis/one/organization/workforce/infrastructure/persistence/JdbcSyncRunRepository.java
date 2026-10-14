@@ -11,6 +11,7 @@ import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -20,8 +21,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcSyncRunRepository implements SyncRunRepository {
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcSyncRunRepository(JdbcClient jdbc) {
+    JdbcSyncRunRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -65,7 +68,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                        isolated_row_count = :j, issue_count = :k, employed_without_wecom_count = :l,
                        held_reason = :heldReason, failure_reason = :failureReason, released_by = :releasedBy,
                        released_at = :releasedAt, released_by_run_id = :releasedByRun, hold_kind_codes = :holdKinds, released_kind_codes = :releasedKinds,
-                       version = :nextVersion, event_count = :eventSequence, updated_at = now()
+                       version = :nextVersion, event_count = :eventSequence, updated_at = :updatedAt
                  where id = :id and version = :version and status = :loadedStatus
                 """)
                 .param("status", run.status().name())
@@ -91,6 +94,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                 .param("releasedKinds", run.releasedKinds().stream().map(Enum::name).toArray(String[]::new))
                 .param("nextVersion", run.versionAfterSave()).param("eventSequence", run.eventSequenceAfterSave())
                 .param("id", run.syncRunId().value()).param("version", run.version()).param("loadedStatus", run.loadedStatus().name())
+                .param("updatedAt", Timestamp.from(clock.instant()))
                 .update();
         if (updated != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT,

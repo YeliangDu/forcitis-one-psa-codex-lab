@@ -58,7 +58,11 @@ categories:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   - organization.workforce.legal-entity-attribution.correction-refused
+  - organization.workforce.legal-entity-attribution.denied
   - organization.workforce.legal-entity-attribution.refused
+- name: 数据范围
+  actions:
+  - organization.workforce.org-unit.denied
 - name: 编号规则
   actions:
   - platform.numbering.NumberingRuleConfirmationGiven

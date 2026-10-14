@@ -68,6 +68,18 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     LegalEntityId le1;
     LegalEntityId le2;
 
+    @org.junit.jupiter.api.BeforeEach
+    void theReaderIsTheOrganisationDataAdministrator() {
+        jdbc.sql("insert into platform_identity.user_accounts (user_id) values (9002) on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) select 9002, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void removeTheReaderAccount() {
+        jdbc.sql("delete from platform_identity.account_roles where user_id = 9002").update();
+        jdbc.sql("delete from platform_identity.user_accounts where user_id = 9002").update();
+    }
+
     @BeforeEach
     void twoLegalEntities() {
         jdbc.sql("alter table organization_workforce.legal_entity_attribution_corrections disable trigger user").update();

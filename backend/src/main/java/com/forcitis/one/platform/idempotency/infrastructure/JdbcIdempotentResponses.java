@@ -2,6 +2,7 @@ package com.forcitis.one.platform.idempotency.infrastructure;
 
 import com.forcitis.one.kernel.IdempotentResponses;
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -18,8 +19,10 @@ class JdbcIdempotentResponses implements IdempotentResponses {
 
     private final JdbcClient jdbc;
     private final JsonMapper json;
+    private final Clock clock;
 
-    JdbcIdempotentResponses(JdbcClient jdbc, JsonMapper json) {
+    JdbcIdempotentResponses(JdbcClient jdbc, JsonMapper json, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
         this.json = json;
     }
@@ -57,11 +60,11 @@ class JdbcIdempotentResponses implements IdempotentResponses {
     public void finish(long userId, String key, int responseNumber, String responseName, String responseText, Map<String, String> responseHeaders) {
         jdbc.sql("""
                         update platform_idempotency.idempotent_responses
-                           set response_number = :number, response_name = :name, response_text = :text, response_header_text = :headers, updated_at = now()
+                           set response_number = :number, response_name = :name, response_text = :text, response_header_text = :headers, updated_at = :updatedAt
                          where user_id = :user and idempotency_key = :key and response_number is null
                         """)
                 .param("number", responseNumber).param("name", responseName, java.sql.Types.VARCHAR).param("text", responseText)
-                .param("headers", json.writeValueAsString(responseHeaders))
+                .param("headers", json.writeValueAsString(responseHeaders)).param("updatedAt", Timestamp.from(clock.instant()))
                 .param("user", userId).param("key", key).update();
     }
 

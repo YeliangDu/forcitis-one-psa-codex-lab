@@ -10,6 +10,8 @@ import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarRepository;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarYear;
 import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
@@ -19,8 +21,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcWorkCalendarRepository implements WorkCalendarRepository {
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcWorkCalendarRepository(JdbcClient jdbc) {
+    JdbcWorkCalendarRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -62,10 +66,11 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
         } else {
             id = calendarYear.storedRow();
             int updated = jdbc.sql("""
-                            update organization_attendance.work_calendar_years set version = :next, event_count = :eventSequence, updated_at = now()
+                            update organization_attendance.work_calendar_years set version = :next, event_count = :eventSequence, updated_at = :updatedAt
                              where id = :id and version = :version
                             """)
-                    .param("next", calendarYear.versionAfterSave()).param("eventSequence", calendarYear.eventSequenceAfterSave()).param("id", id).param("version", calendarYear.version()).update();
+                    .param("next", calendarYear.versionAfterSave()).param("eventSequence", calendarYear.eventSequenceAfterSave()).param("id", id).param("version", calendarYear.version()).param("updatedAt", Timestamp.from(clock.instant()))
+                    .update();
             if (updated != 1) {
                 throw conflict(key);
             }
