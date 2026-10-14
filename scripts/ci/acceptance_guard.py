@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Fail when a commit of the pull request changes an acceptance test without saying who may (SESSION_PLAYBOOK §6.1 item 8).
-Acceptance tests are the files under an `acceptance` directory in backend/src/test/{java,resources} and in frontend.
+Acceptance tests are the files under backend/src/test/java/com/forcitis/one/acceptance/, backend/src/test/resources/acceptance/
+and any frontend `__acceptance__` directory (not `acceptance` packages inside modules, e.g. the delivery.acceptance context).
 Such a commit message must carry a line `Acceptance-Test-Author: test-engineer` or `Acceptance-Ruling: <ruling id>`.
 Merge commits are skipped. Usage: acceptance_guard.py <base-ref> [head-ref]  |  acceptance_guard.py --self-test"""
 import os
@@ -9,7 +10,8 @@ import subprocess
 import sys
 import tempfile
 
-ACCEPTANCE = re.compile(r"^(backend/src/test/(java|resources)|frontend)/(?!.*node_modules/)(.+/)?acceptance/.+")
+ACCEPTANCE = re.compile(
+    r"^(backend/src/test/java/com/forcitis/one/acceptance/.+|backend/src/test/resources/acceptance/.+|frontend/(?!.*node_modules/)(.+/)?__acceptance__/.+)$")
 TRAILER = re.compile(r"^(Acceptance-Test-Author: test-engineer|Acceptance-Ruling: \S+)\s*$", re.M)
 
 
@@ -37,8 +39,8 @@ def commit(repo, files, message):
 
 
 def self_test():
-    backend = "backend/src/test/java/com/forcitis/one/platform_numbering/acceptance/NumberingAcceptanceTest.java"
-    frontend = "frontend/apps/h5/src/acceptance/login.spec.ts"
+    backend = "backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingAcceptanceTest.java"
+    frontend = "frontend/apps/h5/src/__acceptance__/login.spec.ts"
     with tempfile.TemporaryDirectory() as repo:
         git("init", "-q", "-b", "main", cwd=repo)
         git("config", "user.email", "ci@example.invalid", cwd=repo)
@@ -50,7 +52,12 @@ def self_test():
             return [(message, files) for _, message, files in violations("main", "HEAD", repo)]
 
         commit(repo, {"backend/src/main/java/A.java": "a\n", "backend/src/test/java/com/forcitis/one/UnitTest.java": "a\n"}, "implementation only")
-        commit(repo, {"frontend/node_modules/x/acceptance/y.js": "a\n", "backend/src/test/java/com/forcitis/one/acceptance_notes.txt": "a\n"}, "lookalikes")
+        commit(repo, {
+            "frontend/node_modules/x/__acceptance__/y.js": "a\n",
+            "backend/src/test/java/com/forcitis/one/acceptance_notes.txt": "a\n",
+            "backend/src/test/java/com/forcitis/one/delivery/acceptance/AcceptanceRecordTest.java": "a\n",
+            "frontend/apps/h5/src/acceptance/module.spec.ts": "a\n",
+        }, "lookalikes")
         assert found() == [], "files that only look like acceptance tests must pass"
         commit(repo, {backend: "a\n"}, "backend acceptance without trailer")
         assert found() == [("backend acceptance without trailer", [backend])]

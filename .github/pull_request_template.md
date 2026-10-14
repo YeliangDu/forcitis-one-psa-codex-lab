@@ -15,5 +15,5 @@
 
 ## 验收测试
 
-<!-- 改动了验收测试目录（backend/src/test/java/**/acceptance/**、frontend/**/acceptance/**）的提交，说明须含一行 `Acceptance-Test-Author: test-engineer` 或 `Acceptance-Ruling: <裁定编号>`；本 PR 不涉及写「不涉及」 -->
+<!-- 改动了验收测试目录（backend/src/test/java/com/forcitis/one/acceptance/**、backend/src/test/resources/acceptance/**、frontend/**/__acceptance__/**）的提交，说明须含一行 `Acceptance-Test-Author: test-engineer` 或 `Acceptance-Ruling: <裁定编号>`；本 PR 不涉及写「不涉及」 -->
 - [ ] 改动验收测试的提交都带上述其中一行（SESSION_PLAYBOOK §6.1 第 8 条）

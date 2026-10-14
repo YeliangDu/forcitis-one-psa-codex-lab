@@ -3,6 +3,7 @@
   - a migration that already exists on the base branch was changed, renamed or deleted, unless the base branch carries
     the baseline-open marker (then the baseline may be edited directly);
   - the marker is added although the base branch has never had one (it may be added once, never reopened);
+  - the marker is removed together with any other migration change (removing the marker must be its own pull request);
   - a migration file name is not V{yyyyMMddHHmmss}__{description}.sql, or two migrations share a version;
   - an added migration's version is not greater than the highest one on the base branch (warning only while the
     baseline is open: merging the baseline produces low versions).
@@ -60,9 +61,12 @@ def check(base, cwd=None):
     is_open = baseline_open(base, cwd)
     if marker_reopened(base, cwd):
         errors.append(f"{MARKER} is added but {base} has had a baseline-open marker before; the baseline cannot be reopened")
+    changes = changed_migrations(base, cwd)
+    if is_open and not os.path.exists(os.path.join(cwd or ".", MARKER)) and changes:
+        errors.append(f"{MARKER} is removed together with {len(changes)} migration change(s); removing the baseline-open marker must be its own pull request")
     if not is_open:
         errors += [f"{status} {path}: changes a migration that is already on {base}; add a new migration instead"
-                   for status, path in changed_migrations(base, cwd) if status != "A"]
+                   for status, path in changes if status != "A"]
 
     current = migration_files(cwd)
     seen = {}
@@ -78,7 +82,7 @@ def check(base, cwd=None):
     base_versions = [v for v in map(version_of, migration_files(cwd, base)) if v]
     highest = max(base_versions, default=None)
     if highest:
-        added = [path for status, path in changed_migrations(base, cwd) if status == "A"]
+        added = [path for status, path in changes if status == "A"]
         for path in added:
             version = version_of(path)
             if version and version <= highest:
@@ -173,7 +177,10 @@ def run_cases(root):
     expect(opened, label="marker removal is always allowed")
     os.remove(os.path.join(opened, MARKER))
     write(opened, first, "-- edited\n")
-    expect(opened, label="marker removed in the same change as a baseline edit follows the base state")
+    expect(opened, errors=1, text="its own pull request", label="marker removal together with a baseline edit fails")
+    write(opened, f"{MIGRATIONS}m/V20270101000000__m_new.sql")
+    os.remove(os.path.join(opened, MARKER))
+    expect(opened, errors=1, text="its own pull request", label="marker removal together with a new migration fails")
 
     git("rm", "-q", MARKER, cwd=opened)
     commit(opened, "remove marker")
