@@ -23,8 +23,9 @@ public class SearchAuditEntries {
     @Transactional(readOnly = true)
     public AuditEntryPageView execute(AuditSearch search) {
         AuditPage page = entries.findPage(new AuditQuery(search.actorId() == null ? null : new UserId(search.actorId()),
-                blankToNull(search.action()), blankToNull(search.subjectKey()), search.from(), search.to(), position(search.page()),
-                search.page().limit()));
+                search.onBehalfOfId() == null ? null : new UserId(search.onBehalfOfId()), blankToNull(search.action()),
+                blankToNull(search.actionPrefix()), blankToNull(search.subjectKey()), blankToNull(search.sourceAddress()),
+                blankToNull(search.result()), search.from(), search.to(), position(search.page()), search.page().limit()));
         return new AuditEntryPageView(page.items().stream().map(AuditEntryView::of).toList(),
                 page.next() == null ? null : PageRequest.encode(LIST, java.time.temporal.ChronoUnit.MICROS.between(Instant.EPOCH, page.next().createdAt()) + "|" + page.next().entryId().value()));
     }

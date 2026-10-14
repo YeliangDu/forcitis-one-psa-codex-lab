@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.NotAudited;
+import com.forcitis.one.kernel.event.Reasoned;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.domain.AuditEntryRepository;
 import org.slf4j.Logger;
@@ -34,8 +35,9 @@ class AuditDomainEvents {
         EventEnvelope envelope = event.envelope();
         UserId actor = envelope.actorType() == ActorType.USER ? new UserId(Long.parseLong(envelope.actorId())) : null;
         String detail = envelope.actorType() == ActorType.USER ? null : "by " + envelope.actorId();
-        AuditEntry entry = new AuditEntry(envelope.eventType(), actor, null,
-                envelope.aggregateType() + ":" + envelope.aggregateId(), detail);
+        String reason = event instanceof Reasoned reasoned && reasoned.reason() != null ? reasoned.reason().value() : null;
+        AuditEntry entry = new AuditEntry(envelope.eventType(), actor, null, envelope.aggregateType() + ":" + envelope.aggregateId(), detail)
+                .withChange(reason, null, null);
         if (!entries.saveForEvent(entry, envelope.occurredAt(), envelope.eventId(), envelope.correlationId())) {
             LOG.info("platform.audit event {} was audited before: ignored", envelope.eventId());
         }

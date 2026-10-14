@@ -72,4 +72,29 @@ class HttpContractIT {
                 .andExpect(header().string(WorkContext.HEADER, given.toString()))
                 .andExpect(jsonPath("$.status").value(404));
     }
+
+    @Test
+    @DisplayName("a response field that can be null is declared nullable in the contract, a required one is not; a page's nextCursor is nullable")
+    void nullableFieldsAreDeclaredNullable() throws Exception {
+        tools.jackson.databind.JsonNode schemas = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .path("components").path("schemas");
+
+        assertThat(allowsNull(schemas.path("AuditEntryResponse").path("properties").path("detail"))).isTrue();
+        assertThat(schemas.path("AuditEntryResponse").path("required").toString()).doesNotContain("\"detail\"").contains("\"action\"");
+        assertThat(allowsNull(schemas.path("LegalEntityResponse").path("properties").path("accountingOrganizationNumber"))).isTrue();
+        assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("administrationExpiresAt"))).isTrue();
+        assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("userId"))).isFalse();
+        assertThat(allowsNull(schemas.path("CursorPageRoleResponse").path("properties").path("nextCursor"))).isTrue();
+        assertThat(schemas.path("CursorPageRoleResponse").path("required").toString()).isEqualTo("[\"items\"]");
+    }
+
+    private static boolean allowsNull(tools.jackson.databind.JsonNode property) {
+        for (tools.jackson.databind.JsonNode type : property.path("type")) {
+            if ("null".equals(type.asString())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

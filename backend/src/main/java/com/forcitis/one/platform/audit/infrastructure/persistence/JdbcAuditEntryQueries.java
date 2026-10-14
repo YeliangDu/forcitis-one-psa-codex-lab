@@ -33,9 +33,25 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
             conditions.add("actor_id = :actor");
             params.put("actor", query.actorId().value());
         }
+        if (query.onBehalfOfId() != null) {
+            conditions.add("on_behalf_of_id = :onBehalfOf");
+            params.put("onBehalfOf", query.onBehalfOfId().value());
+        }
         if (query.action() != null) {
             conditions.add("action = :action");
             params.put("action", query.action());
+        }
+        if (query.actionPrefix() != null) {
+            conditions.add("starts_with(action, :actionPrefix)");
+            params.put("actionPrefix", query.actionPrefix());
+        }
+        if (query.sourceAddress() != null) {
+            conditions.add("source_address = :sourceAddress");
+            params.put("sourceAddress", query.sourceAddress());
+        }
+        if (query.result() != null) {
+            conditions.add("result_kind = :result");
+            params.put("result", query.result());
         }
         if (query.subjectKey() != null) {
             conditions.add("subject_key = :subject");
@@ -56,7 +72,8 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
             params.put("afterId", query.after().entryId().value());
         }
         List<AuditRecord> items = jdbc.sql("""
-                        select id, created_at, action, actor_id, on_behalf_of_id, subject_key, detail
+                        select id, created_at, action, actor_id, on_behalf_of_id, subject_key, detail, source_address, result_kind, change_reason,
+                               before_text, after_text, correlation_id
                           from platform_audit.audit_entries
                         """ + where + """
 
@@ -75,7 +92,9 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
 
     private static AuditRecord row(ResultSet rs) throws SQLException {
         return new AuditRecord(new AuditEntryId(rs.getLong("id")), rs.getTimestamp("created_at").toInstant(), rs.getString("action"),
-                userId(rs, "actor_id"), userId(rs, "on_behalf_of_id"), rs.getString("subject_key"), rs.getString("detail"));
+                userId(rs, "actor_id"), userId(rs, "on_behalf_of_id"), rs.getString("subject_key"), rs.getString("detail"),
+                rs.getString("source_address"), rs.getString("result_kind"), rs.getString("change_reason"), rs.getString("before_text"),
+                rs.getString("after_text"), rs.getObject("correlation_id", java.util.UUID.class));
     }
 
     private static UserId userId(ResultSet rs, String column) throws SQLException {

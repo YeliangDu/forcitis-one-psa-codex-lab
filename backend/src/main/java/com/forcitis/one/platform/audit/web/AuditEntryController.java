@@ -27,14 +27,16 @@ class AuditEntryController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('" + AuditPermissions.ENTRY_READ + "')")
-    CursorPage<AuditEntryResponse> list(@RequestParam(required = false) Long actorId, @RequestParam(required = false) String action,
+    CursorPage<AuditEntryResponse> list(@RequestParam(required = false) Long actorId, @RequestParam(required = false) Long onBehalfOfId,
+                           @RequestParam(required = false) String action, @RequestParam(required = false) String actionPrefix,
+                           @RequestParam(required = false) String sourceAddress, @RequestParam(required = false) String result,
                            @RequestParam(required = false) String subjectKey,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
                            @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
         AuditEntryPageView page;
         try {
-            page = search.execute(new AuditSearch(actorId, action, subjectKey, from, to, PageRequest.of(limit, cursor, "audit-entries")));
+            page = search.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKey, sourceAddress, result, from, to, PageRequest.of(limit, cursor, "audit-entries")));
         } catch (IllegalArgumentException invalid) {
             throw new DomainException(AuditWebError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, invalid.getMessage());
         }

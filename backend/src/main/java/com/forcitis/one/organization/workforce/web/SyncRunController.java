@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.web;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.organization.workforce.application.GetSyncRun;
@@ -15,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -49,7 +51,12 @@ class SyncRunController {
     /** The actor is the authenticated session user, never a request field. */
     @PostMapping(path = "/{syncRunId}:release")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.SYNC_RUN_EXECUTE + "')")
-    SyncRunResponse release(@PathVariable long syncRunId, Principal caller) {
-        return SyncRunResponse.of(releaseSyncRun.execute(syncRunId, Long.parseLong(caller.getName())));
+    SyncRunResponse release(@PathVariable long syncRunId, @RequestBody(required = false) ReleaseSyncRunRequest request, Principal caller) {
+        Reason reason = Reason.ofNullable(request == null ? null : request.reason());
+        if (reason == null) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED, ErrorKind.UNPROCESSABLE,
+                    "a release needs the reason");
+        }
+        return SyncRunResponse.of(releaseSyncRun.execute(syncRunId, Long.parseLong(caller.getName()), reason));
     }
 }

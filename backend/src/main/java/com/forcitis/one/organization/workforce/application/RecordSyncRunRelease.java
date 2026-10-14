@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -23,9 +24,9 @@ class RecordSyncRunRelease {
     }
 
     @Transactional
-    public void execute(SyncRunId held, SyncRunId releasedByRun, UserId actor) {
+    public void execute(SyncRunId held, SyncRunId releasedByRun, UserId actor, Reason reason) {
         SyncRun run = runs.find(held).orElseThrow();
-        run.release(actor, releasedByRun, clock.instant());
+        run.release(actor, releasedByRun, clock.instant(), reason);
         runs.save(run);
         events.publish(run);
     }

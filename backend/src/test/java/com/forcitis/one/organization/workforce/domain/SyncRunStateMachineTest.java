@@ -39,7 +39,7 @@ class SyncRunStateMachineTest {
                 .operation("succeed", run -> run.succeed(NOW, STATS, NO_CHANGE), RUNNING, SUCCEEDED)
                 .operation("hold", run -> run.hold(NOW, STATS, "shrunk"), RUNNING, HELD, HELD, HELD)
                 .operation("fail", run -> run.fail(NOW, "down"), RUNNING, FAILED)
-                .operation("release", run -> run.release(new UserId(9), new SyncRunId(6), NOW), HELD, RELEASED)
+                .operation("release", run -> run.release(new UserId(9), new SyncRunId(6), NOW, new com.forcitis.one.kernel.Reason("synthetic")), HELD, RELEASED)
                 .verify();
     }
 
@@ -91,9 +91,12 @@ class SyncRunStateMachineTest {
         assertThat(failed.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(SyncRunFailed.class);
 
         SyncRun released = at(HELD);
-        released.release(new UserId(9), new SyncRunId(6), NOW);
+        released.release(new UserId(9), new SyncRunId(6), NOW, new com.forcitis.one.kernel.Reason("checked with the source"));
         assertThat(released.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(SyncRunReleased.class,
-                e -> assertThat(e.releasedByRunId()).isEqualTo(new SyncRunId(6)));
+                e -> {
+                    assertThat(e.releasedByRunId()).isEqualTo(new SyncRunId(6));
+                    assertThat(e.reason()).isEqualTo(new com.forcitis.one.kernel.Reason("checked with the source"));
+                });
         assertThat(released.releasedBy()).isEqualTo(new UserId(9));
     }
 

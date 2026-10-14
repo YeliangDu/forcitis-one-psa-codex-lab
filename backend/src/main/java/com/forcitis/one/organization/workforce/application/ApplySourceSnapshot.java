@@ -65,7 +65,7 @@ public class ApplySourceSnapshot {
         events.publish(run);
         if (run.trigger() == SyncTrigger.SCHEDULED) {
             for (SyncRun held : runs.findHeldExcept(syncRunId)) {
-                held.release(null, syncRunId, now);
+                held.release(null, syncRunId, now, null);
                 runs.save(held);
                 events.publish(held);
             }

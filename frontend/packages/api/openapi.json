@@ -20,23 +20,42 @@
             "type" : "string"
           },
           "actorId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
+          },
+          "afterText" : {
+            "type" : [ "string", "null" ]
+          },
+          "beforeText" : {
+            "type" : [ "string", "null" ]
+          },
+          "changeReason" : {
+            "type" : [ "string", "null" ]
           },
           "createdAt" : {
             "format" : "date-time",
             "type" : "string"
           },
           "detail" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "entryId" : {
             "type" : "string"
           },
           "onBehalfOfId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
+          },
+          "result" : {
+            "type" : [ "string", "null" ]
+          },
+          "sourceAddress" : {
+            "type" : [ "string", "null" ]
           },
           "subjectKey" : {
             "type" : "string"
+          },
+          "traceNumber" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "action", "createdAt", "entryId", "subjectKey" ],
@@ -96,10 +115,10 @@
             "type" : "array"
           },
           "orgUnitId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "orgUnitName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "permissionCodes" : {
             "items" : {
@@ -123,9 +142,10 @@
             "type" : "array"
           },
           "nextCursor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
+        "required" : [ "items" ],
         "type" : "object"
       },
       "CursorPageLegacyNumberResponse" : {
@@ -137,9 +157,10 @@
             "type" : "array"
           },
           "nextCursor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
+        "required" : [ "items" ],
         "type" : "object"
       },
       "CursorPageLegalEntityResponse" : {
@@ -151,9 +172,10 @@
             "type" : "array"
           },
           "nextCursor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
+        "required" : [ "items" ],
         "type" : "object"
       },
       "CursorPageMaintainedYearResponse" : {
@@ -165,9 +187,10 @@
             "type" : "array"
           },
           "nextCursor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
+        "required" : [ "items" ],
         "type" : "object"
       },
       "CursorPageNumberingRuleResponse" : {
@@ -179,9 +202,10 @@
             "type" : "array"
           },
           "nextCursor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
+        "required" : [ "items" ],
         "type" : "object"
       },
       "CursorPageRoleResponse" : {
@@ -193,9 +217,10 @@
             "type" : "array"
           },
           "nextCursor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
+        "required" : [ "items" ],
         "type" : "object"
       },
       "CursorPageSyncRunResponse" : {
@@ -207,9 +232,10 @@
             "type" : "array"
           },
           "nextCursor" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
+        "required" : [ "items" ],
         "type" : "object"
       },
       "DecideTaskRequest" : {
@@ -260,7 +286,7 @@
         "type" : "object"
       },
       "ErrorCode" : {
-        "enum" : [ "COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_PROJECT_MANAGER_INVALID", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_AUDIT_QUERY_INVALID", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_NOT_SIGNED_IN", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_CONCURRENT_UPDATE", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND", "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN", "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED" ],
+        "enum" : [ "COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_PROJECT_MANAGER_INVALID", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID", "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND", "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN", "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND", "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_AUDIT_QUERY_INVALID", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_NOT_SIGNED_IN", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_CONCURRENT_UPDATE", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND", "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN", "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED" ],
         "type" : "string"
       },
       "InboxItemResponse" : {
@@ -270,13 +296,13 @@
           },
           "createdAt" : {
             "format" : "date-time",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "detailUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "nodeName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "source" : {
             "type" : "string"
@@ -362,7 +388,7 @@
         "properties" : {
           "accountingOrganizationNumber" : {
             "format" : "int64",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "code" : {
             "type" : "string"
@@ -388,7 +414,7 @@
           },
           "administrationExpiresAt" : {
             "format" : "date-time",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "userId" : {
             "type" : "string"
@@ -451,7 +477,7 @@
             "type" : "string"
           },
           "routePath" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "children", "name" ],
@@ -488,7 +514,7 @@
             "type" : "string"
           },
           "documentTypeCode" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "pattern" : {
             "type" : "string"
@@ -503,6 +529,67 @@
           }
         },
         "required" : [ "capacity", "confirmationStatus", "documentType", "pattern", "resetPolicy", "startValue" ],
+        "type" : "object"
+      },
+      "OrgReconciliationResponse" : {
+        "properties" : {
+          "missingInSnapshot" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "parentMismatches" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "reportingLineMismatches" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "responsibilityMismatches" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "snapshotEmployedCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "snapshotOrgUnitCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sourceEmployedCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sourceOrgUnitCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "unexpectedInSnapshot" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "wecomUserIdMismatches" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "zeroDifference" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "missingInSnapshot", "parentMismatches", "reportingLineMismatches", "responsibilityMismatches", "snapshotEmployedCount", "snapshotOrgUnitCount", "sourceEmployedCount", "sourceOrgUnitCount", "unexpectedInSnapshot", "wecomUserIdMismatches", "zeroDifference" ],
         "type" : "object"
       },
       "OrgUnitDetailResponse" : {
@@ -535,7 +622,7 @@
             "type" : "boolean"
           },
           "headEmployeeId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
@@ -544,20 +631,20 @@
             "type" : "string"
           },
           "parentOrgUnitId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "regionCategory" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "regionalReceivablesManagerId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "shortName" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "sortOrder" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "status" : {
             "type" : "string"
@@ -612,6 +699,14 @@
           }
         },
         "required" : [ "errorCode", "status" ],
+        "type" : "object"
+      },
+      "ReleaseSyncRunRequest" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
+          }
+        },
         "type" : "object"
       },
       "ReplaceRolesRequest" : {
@@ -720,16 +815,16 @@
       "SubmitTimesheetResponse" : {
         "properties" : {
           "approvalInstanceId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "errorCode" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "outcome" : {
             "type" : "string"
           },
           "remainingHours" : {
-            "type" : "number"
+            "type" : [ "number", "null" ]
           }
         },
         "required" : [ "outcome" ],
@@ -747,13 +842,13 @@
             "type" : "array"
           },
           "detail" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "entityKind" : {
             "type" : "string"
           },
           "issueKind" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "subjectKey" : {
             "type" : "string"
@@ -781,71 +876,71 @@
         "properties" : {
           "employedWithoutWecomCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "employeeChangeCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "failureReason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "finishedAt" : {
             "format" : "date-time",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "heldReason" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "incomingActiveOrgUnitCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "incomingEmployedCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "isolatedRowCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "issueCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "orgUnitChangeCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "positionChangeCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "previousActiveOrgUnitCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "previousEmployedCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "releasedAt" : {
             "format" : "date-time",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "releasedBy" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "releasedByRunId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "sourceEmployeeCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "sourceOrgUnitCount" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
           },
           "startedAt" : {
             "format" : "date-time",
@@ -867,7 +962,7 @@
       "TaskDetailResponse" : {
         "properties" : {
           "assignee" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "canAct" : {
             "type" : "boolean"
@@ -921,7 +1016,7 @@
       "TimesheetResponse" : {
         "properties" : {
           "approvalInstanceId" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "canWithdraw" : {
             "type" : "boolean"
@@ -1824,6 +1919,15 @@
             "type" : "string"
           }
         } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReleaseSyncRunRequest"
+              }
+            }
+          }
+        },
         "responses" : {
           "200" : {
             "content" : {
@@ -1847,6 +1951,43 @@
           }
         },
         "tags" : [ "sync-run-controller" ]
+      }
+    },
+    "/api/v1/organization/sync-runs:reconcile" : {
+      "post" : {
+        "operationId" : "reconcile",
+        "parameters" : [ {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrgReconciliationResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "org-reconciliation-controller" ]
       }
     },
     "/api/v1/organization/work-calendars" : {
@@ -2258,7 +2399,36 @@
           }
         }, {
           "in" : "query",
+          "name" : "onBehalfOfId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
           "name" : "action",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "actionPrefix",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sourceAddress",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "result",
           "required" : false,
           "schema" : {
             "type" : "string"

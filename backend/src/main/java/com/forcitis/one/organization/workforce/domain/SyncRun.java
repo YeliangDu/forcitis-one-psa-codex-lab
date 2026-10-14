@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.AggregateRoot;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
@@ -155,12 +156,12 @@ public final class SyncRun extends AggregateRoot {
     }
 
     /** releasedBy is null when the next successful run supersedes the hold. */
-    public void release(UserId by, SyncRunId byRun, Instant now) {
+    public void release(UserId by, SyncRunId byRun, Instant now, Reason reason) {
         move(SyncRunStatus.RELEASED);
         this.releasedBy = by;
         this.releasedAt = now;
         this.releasedByRunId = Objects.requireNonNull(byRun, "byRun");
-        record((envelopes, version) -> new SyncRunReleased(envelopes.wrap(draft("SyncRunReleased", version)), syncRunId, byRun));
+        record((envelopes, version) -> new SyncRunReleased(envelopes.wrap(draft("SyncRunReleased", version)), syncRunId, byRun, reason));
     }
 
     private void move(SyncRunStatus target) {

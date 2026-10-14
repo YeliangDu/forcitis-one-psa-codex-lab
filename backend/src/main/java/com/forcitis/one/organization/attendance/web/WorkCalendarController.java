@@ -10,7 +10,9 @@ import com.forcitis.one.organization.attendance.application.MaintainWorkCalendar
 import com.forcitis.one.organization.attendance.application.WorkCalendarYearView;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -52,7 +54,10 @@ class WorkCalendarController {
     @PreAuthorize("hasAuthority('" + AttendancePermissions.WORK_CALENDAR_UPDATE + "')")
     ResponseEntity<WorkCalendarYearResponse> maintain(@PathVariable int calendarYear, @RequestBody MaintainWorkCalendarRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch,
-            @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
+            @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch, Authentication caller) {
+        if (request.confirmed() && caller.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals(AttendancePermissions.WORK_CALENDAR_UPDATE_LOCKED_DAYS))) {
+            throw new AccessDeniedException("changing days before today needs " + AttendancePermissions.WORK_CALENDAR_UPDATE_LOCKED_DAYS);
+        }
         List<DayEntry> days = request.days().stream().map(d -> new DayEntry(d.calendarDate(), d.dayKind() == null ? null : d.dayKind().name())).toList();
         WorkCalendarYearView year = maintain.execute(calendarYear, ExpectedVersion.fromHeaders(ifMatch, ifNoneMatch), request.confirmed(), days);
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(year.version())).body(WorkCalendarYearResponse.of(year));

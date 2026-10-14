@@ -104,7 +104,7 @@ class EventSequenceContinuityTest {
         RunStats stats = new RunStats(1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0);
         checkMany(() -> SyncRun.restore(new SyncRunId(1), SyncTrigger.SCHEDULED, "RUNNING", NOW, null, null, null, null, null, null, null, 0, 0),
                 List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of())), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
-                        r -> r.release(null, new SyncRunId(2), NOW)));
+                        r -> r.release(null, new SyncRunId(2), NOW, null)));
     }
 
     @Test

@@ -53,20 +53,46 @@ class OpenApiRequiredProperties implements SmartInitializingSingleton {
                 return;
             }
             openApi.getComponents().getSchemas().forEach((name, schema) -> {
+                if (name.startsWith("CursorPage") && schema.getProperties() != null && schema.getProperties().containsKey("nextCursor")) {
+                    schema.setRequired(List.of("items"));
+                    markNullable((io.swagger.v3.oas.models.media.Schema<?>) schema.getProperties().get("nextCursor"));
+                    return;
+                }
                 Class<?> type = responseRecords.get(name);
                 if (type == null || schema.getProperties() == null) {
                     return;
                 }
                 List<String> required = new ArrayList<>();
                 for (RecordComponent component : type.getRecordComponents()) {
-                    if (schema.getProperties().containsKey(component.getName()) && !nullable(component)) {
+                    if (!schema.getProperties().containsKey(component.getName())) {
+                        continue;
+                    }
+                    if (!nullable(component)) {
                         required.add(component.getName());
+                    } else {
+                        markNullable((io.swagger.v3.oas.models.media.Schema<?>) schema.getProperties().get(component.getName()));
                     }
                 }
                 required.sort(null);
                 schema.setRequired(required.isEmpty() ? null : required);
             });
         };
+    }
+
+    /** OpenAPI 3.1: a value that may be null says so in its type list (or, for a reference, as one of two alternatives). */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    static void markNullable(io.swagger.v3.oas.models.media.Schema property) {
+        java.util.Set<String> types = property.getTypes() != null ? new java.util.LinkedHashSet<>(property.getTypes())
+                : property.getType() != null ? new java.util.LinkedHashSet<>(java.util.Set.of(property.getType())) : null;
+        if (types != null) {
+            types.add("null");
+            property.setTypes(types);
+            property.setType(null);
+        } else if (property.get$ref() != null) {
+            String ref = property.get$ref();
+            property.set$ref(null);
+            property.setOneOf(List.of(new io.swagger.v3.oas.models.media.Schema<>().$ref(ref), new io.swagger.v3.oas.models.media.Schema<>().addType("null")));
+        }
     }
 
     static Map<String, Class<?>> responseRecords(Collection<ResolvableType> returnTypes) {

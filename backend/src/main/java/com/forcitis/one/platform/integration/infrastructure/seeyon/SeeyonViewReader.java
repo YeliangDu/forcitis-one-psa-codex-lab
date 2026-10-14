@@ -108,7 +108,7 @@ final class SeeyonViewReader {
                 leader == null || leader == 0 ? null : new SourcePersonId(leader),
                 text(rs, "LOGIN_NAME"), text(rs, "ENTERPRISE_EMAIL"), gender(text(rs, "GENDER")),
                 wecom == null ? null : new WecomUserId(wecom),
-                feeEarnerEnum != null && feeEarnerEnum.equals(mapping.feeEarnerYesEnumId())));
+                feeEarnerEnum != null && feeEarnerEnum.equals(mapping.feeEarnerYesEnumId()), flag(rs, "IS_INTERNAL") == null));
     }
 
     static SourceRegionKind region(String displayValue) {

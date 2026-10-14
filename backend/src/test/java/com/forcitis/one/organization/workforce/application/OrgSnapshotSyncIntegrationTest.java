@@ -204,7 +204,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        SyncRunView released = release.execute(held.syncRunId().value(), 9001L);
+        SyncRunView released = release.execute(held.syncRunId().value(), 9001L, new com.forcitis.one.kernel.Reason("synthetic: the source is right"));
 
         assertThat(released.status()).isEqualTo("SUCCEEDED");
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(3);
@@ -217,9 +217,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
-        assertThatThrownBy(() -> release.execute(held.syncRunId().value(), 9001L)).isInstanceOfSatisfying(DomainException.class,
+        assertThatThrownBy(() -> release.execute(held.syncRunId().value(), 9001L, new com.forcitis.one.kernel.Reason("synthetic: the source is right"))).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL));
-        assertThatThrownBy(() -> release.execute(424242L, 9001L)).isInstanceOfSatisfying(DomainException.class,
+        assertThatThrownBy(() -> release.execute(424242L, 9001L, new com.forcitis.one.kernel.Reason("synthetic"))).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND));
     }
 

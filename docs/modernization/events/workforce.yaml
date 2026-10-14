@@ -85,6 +85,11 @@ components:
             type: string
             x-type: SyncRunId
             description: 稳定 ID 的字符串形式
+          reason:
+            type: string
+            x-type: Reason
+            nullable: true
+            description: 放行人填写的原因；由下一次成功同步自动放行时为空
           releasedByRunId:
             type: string
             x-type: SyncRunId

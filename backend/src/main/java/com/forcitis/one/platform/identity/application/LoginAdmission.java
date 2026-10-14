@@ -6,6 +6,7 @@ import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.audit.api.AuditResult;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -55,7 +56,7 @@ class LoginAdmission {
         Instant now = clock.instant();
         accounts.recordLogin(userId, now, origin.address());
         audit.record(new AuditEntry("platform.identity.login.succeeded", userId, null, "user-account:" + userId.value(),
-                describe(method, null)));
+                describe(method, null)).withTrace(origin.address(), AuditResult.SUCCESS));
         Instant absoluteExpiresAt = sessions.start(userId, method);
         meters.counter("forcitis.platform.identity.login", "method", method.name(), "outcome", "success").increment();
         return new LoginResult.Authenticated(userId.value(), absoluteExpiresAt);
@@ -65,7 +66,8 @@ class LoginAdmission {
     LoginResult reject(IdentityError error, LoginMethod method, UserId actor, String reason) {
         String subject = actor == null ? "login:" + method.name() : "user-account:" + actor.value();
         try {
-            audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason)));
+            audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason))
+                    .withTrace(origin.address(), AuditResult.FAILURE));
         } catch (RuntimeException failed) {
             log.error("Audit entry for the failed login of {} could not be written: {}", subject, failed.toString());
             meters.counter("forcitis.platform.identity.login.audit.failed").increment();

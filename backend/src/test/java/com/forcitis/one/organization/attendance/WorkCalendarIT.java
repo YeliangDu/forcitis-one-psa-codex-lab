@@ -86,7 +86,8 @@ class WorkCalendarIT {
         return user("9001").authorities(java.util.Arrays.stream(authorities).<GrantedAuthority>map(a -> () -> a).toList());
     }
 
-    static final RequestPostProcessor UPDATE = caller("organization.attendance:work-calendar:update");
+    static final RequestPostProcessor UPDATE = caller("organization.attendance:work-calendar:update", "organization.attendance:locked-day:update");
+    static final RequestPostProcessor UPDATE_WITHOUT_LOCKED_DAYS = caller("organization.attendance:work-calendar:update");
     static final RequestPostProcessor READ = caller("organization.attendance:work-calendar:read");
 
     static final String BODY_2026 = """
@@ -189,5 +190,18 @@ class WorkCalendarIT {
             assertThat(e.lockedDatesChanged()).containsExactly(LocalDate.parse("2026-10-10"), LocalDate.parse("2026-10-12"));
             assertThat(e.changedDates()).hasSize(2);
         });
+    }
+
+    @Test
+    @DisplayName("T2 confirming a change to past days needs the locked-days permission; without it the answer is a 403 ProblemDetail, with it the save goes through")
+    void lockedDaysNeedTheirOwnPermission() throws Exception {
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE_WITHOUT_LOCKED_DAYS).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_ACCESS_DENIED"));
+        mvc.perform(put(CALENDARS + "/2026").header("If-None-Match", "*").with(UPDATE_WITHOUT_LOCKED_DAYS).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"days\": [{\"calendarDate\": \"2026-12-25\", \"dayKind\": \"HOLIDAY\"}]}"))
+                .andExpect(status().isOk());
+        mvc.perform(put(CALENDARS + "/2026").header("If-Match", "\"1\"").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026))
+                .andExpect(status().isOk());
     }
 }

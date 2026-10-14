@@ -213,4 +213,41 @@ class AuditLogIT {
         mvc.perform(get(ENTRIES).param("from", "2026-02-01T00:00:00Z").param("to", "2026-01-01T00:00:00Z").with(READER))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("D-1a-170/171 an entry carries source address, result, reason and before / after; they can be searched by on-behalf-of, address, result and action prefix")
+    void traceColumnsAreStoredAndSearchable() throws Exception {
+        String subject = unique("subject");
+        String prefix = unique("platform.audit.trace");
+        tx.executeWithoutResult(s -> {
+            audit.record(new AuditEntry(prefix + ".changed", new UserId(61), new UserId(62), subject, "d")
+                    .withTrace("10.1.2.3", com.forcitis.one.platform.audit.api.AuditResult.SUCCESS).withChange("quarterly review", "ACTIVE", "INACTIVE"));
+            audit.record(new AuditEntry(prefix + ".refused", new UserId(61), null, subject, "d")
+                    .withTrace("10.9.9.9", com.forcitis.one.platform.audit.api.AuditResult.FAILURE));
+        });
+
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("actionPrefix", prefix).with(READER))
+                .andExpect(jsonPath("$.items.length()").value(2));
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("onBehalfOfId", "62").with(READER))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].sourceAddress").value("10.1.2.3"))
+                .andExpect(jsonPath("$.items[0].result").value("SUCCESS"))
+                .andExpect(jsonPath("$.items[0].changeReason").value("quarterly review"))
+                .andExpect(jsonPath("$.items[0].beforeText").value("ACTIVE"))
+                .andExpect(jsonPath("$.items[0].afterText").value("INACTIVE"));
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("result", "FAILURE").with(READER))
+                .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].sourceAddress").value("10.9.9.9"));
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("sourceAddress", "10.9.9.9").with(READER))
+                .andExpect(jsonPath("$.items.length()").value(1));
+        mvc.perform(get(ENTRIES).param("result", "MAYBE").with(READER)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("D-1a-170 a secret or personal data must not get into an audit text: the entry is refused when it is built")
+    void secretsAreRefused() {
+        assertThatThrownBy(() -> new AuditEntry("platform.audit.test.x", null, null, "s:1", "login with password=hunter2"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new AuditEntry("platform.audit.test.x", null, null, "s:1", "d").withChange("because", "token: abc", "x"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

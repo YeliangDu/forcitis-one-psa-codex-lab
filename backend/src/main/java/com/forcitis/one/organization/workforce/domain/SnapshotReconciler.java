@@ -97,6 +97,10 @@ public final class SnapshotReconciler {
                         "the source returned this person more than once; the first row is used"));
                 continue;
             }
+            if (person.internalFlagMissing()) {
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + userId.value(), IssueKind.NULL_FLAG,
+                        "the internal flag is NULL in the source; the person is treated as internal"));
+            }
             if (EmployeeChecks.employmentOf(person) == EmploymentStatus.EMPLOYED) {
                 incomingEmployed++;
             }

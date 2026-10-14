@@ -30,12 +30,15 @@ import com.forcitis.one.platform.audit.api.AuditEntry;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
+import org.springframework.http.MediaType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
+    static final String REASON = "{\"reason\":\"synthetic: the shrink is real\"}";
+
     static final String ORG_UNITS = "/api/v1/organization/org-units";
     static final String SYNC_RUNS = "/api/v1/organization/sync-runs";
 
@@ -82,7 +85,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only write is the release of a held run")
+    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the release of a held run and the read-only comparison trigger")
     void orgDataHasNoEditEndpoints() {
         List<String> writes = new ArrayList<>();
         List<String> reads = new ArrayList<>();
@@ -91,7 +94,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                     (m.name().equals("GET") ? reads : writes).add(m.name() + " " + p);
                 })));
 
-        assertThat(writes).containsExactly("POST /api/v1/organization/sync-runs/{syncRunId}:release");
+        assertThat(writes).containsExactlyInAnyOrder("POST /api/v1/organization/sync-runs/{syncRunId}:release", "POST /api/v1/organization/sync-runs:reconcile");
         assertThat(reads).hasSize(4);
     }
 
@@ -174,7 +177,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
         mvc.perform(post(path).with(EXECUTE)).andExpect(status().isForbidden());
 
-        mvc.perform(post(path).with(csrf()).with(EXECUTE))
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content(REASON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trigger").value("MANUAL"))
                 .andExpect(jsonPath("$.status").value("SUCCEEDED"));
@@ -184,11 +187,11 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         });
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(4);
 
-        mvc.perform(post(path).with(csrf()).with(EXECUTE))
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content(REASON))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL"))
                 .andExpect(header().string("Content-Type", "application/problem+json"));
-        mvc.perform(post(SYNC_RUNS + "/777:release").with(csrf()).with(EXECUTE))
+        mvc.perform(post(SYNC_RUNS + "/777:release").with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content(REASON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND"));
     }
@@ -206,11 +209,44 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         var held = sync.execute(SyncTrigger.SCHEDULED, false);
 
         orgSource.unavailable = true;
-        mvc.perform(post(SYNC_RUNS + "/" + held.syncRunId().value() + ":release").with(csrf()).with(EXECUTE))
+        mvc.perform(post(SYNC_RUNS + "/" + held.syncRunId().value() + ":release").with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content(REASON))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED"));
 
         assertThat(jdbc.sql("select status from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value()).query(String.class).single())
                 .isEqualTo("HELD");
+    }
+
+    @Test
+    @DisplayName("D-1a-10 the comparison can be triggered by hand by the sync executor and lists the differences")
+    void reconciliationOnDemand() throws Exception {
+        synced();
+        mvc.perform(post(SYNC_RUNS + ":reconcile").with(csrf()).with(EXECUTE)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.zeroDifference").value(true));
+        mvc.perform(post(SYNC_RUNS + ":reconcile").with(csrf()).with(READ_RUNS)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("D-1a-164 a release without a reason is refused; the reason of an accepted release reaches the audit trail through the event")
+    void releaseNeedsAReason() throws Exception {
+        List<SourcePerson> ten = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            ten.add(person(i, 2, 100L, null));
+        }
+        orgSource.snapshot = tree(ten.toArray(SourcePerson[]::new));
+        sync.execute(SyncTrigger.SCHEDULED, false);
+        orgSource.snapshot = tree(ten.subList(0, 6).toArray(SourcePerson[]::new));
+        var held = sync.execute(SyncTrigger.SCHEDULED, false);
+        String path = SYNC_RUNS + "/" + held.syncRunId().value() + ":release";
+
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"  \"}"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED"));
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnprocessableContent());
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content(REASON)).andExpect(status().isOk());
+
+        assertThat(events.stream(SyncRunReleased.class)).singleElement()
+                .satisfies(e -> assertThat(e.reason().value()).isEqualTo("synthetic: the shrink is real"));
     }
 }
