@@ -142,3 +142,4 @@
 | RULE-280 默认通过意见（2026-10-14，psa-coordinator 询问）：「留空并如实审计 (Recommended)」 | RULE_REVIEWS「实现方式变更」；BUSINESS_RULES RULE-280 Revision；proposals/RULE-280_DEFAULT_REASON.md（已确认） |
 | 每个阶段实施前增加「流程梳理」步骤：产出现状流程（代码、OA 盘点、生产计数）、目标流程、差异清单，差异逐条由我决定，结果写入 INTENT 和 brief 的行为契约。先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件，再从 Phase 1a 涉及的流程开始做。（2026-10-14，经 psa-coordinator 转达） | SESSION_PLAYBOOK §13；process/README.md；brief 各阶段入口条件（1a 为补做）与 §5「流程梳理结论」（rules/build_brief.py 生成） |
 | 推迟项按新原则重审（2026-10-14，psa-coordinator 询问）：「同意，全部在 1a 做 (Recommended)」 | G-1、G-2 会签、RULE-302、RULE-268/269/285/309、RULE-300 剩余、H5（企业微信静默登录、待办、审批详情）在 1a 完成；仍后做项与理由见 phase1a/DEFERRED.md |
+| 「当前仓库的所有文档里要避免使用 psa 旧名称，FORCITIS one 是新名称」；追问后：「老系统称「老系统」，字面标识保留 (Recommended)」；「文档标题改，仓库名和会话名暂不改 (Recommended)」（2026-10-14，经 psa-coordinator 转达） | 工作单元「文档去除旧名称 PSA」（one-docs-naming）；规则：指代新系统 → FORCITIS one，指代老系统 → 老系统；老路径、表名、接口、代码标识、文件名、仓库名、分支名、会话名、用户原话与已采纳 ADR 正文保留；文档标题改；用语守护禁用以 PSA 指代新系统；新会话名用 one-* 前缀 |
