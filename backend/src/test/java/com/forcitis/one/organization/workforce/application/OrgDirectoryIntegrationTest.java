@@ -80,8 +80,8 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(count("employees")).isEqualTo(4);
         assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3001").query(Long.class).single()).isEqualTo(1L);
-        verify(audit).record(argThat((AuditEntry e) -> e.action().equals("organization.workforce.employee.registered-on-login")
-                && e.subjectKey().equals("employee:3001")));
+        assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.envelope().aggregateType().equals("Employee")
+                && e.envelope().aggregateId().equals("3001"))).hasSize(1);
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.changedEmployees().contains(user(3001)))).hasSize(1);
 
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-new-hire"))).isPresent();
@@ -139,8 +139,8 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(found.get().userId()).isEqualTo(user(3101));
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(count("employees")).isEqualTo(4);
-        verify(audit).record(argThat((AuditEntry e) -> e.action().equals("organization.workforce.employee.registered-on-login")
-                && e.subjectKey().equals("employee:3101")));
+        assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.envelope().aggregateType().equals("Employee")
+                && e.envelope().aggregateId().equals("3101"))).hasSize(1);
         assertThat(directory.findEmployeeByLoginName("13900003101")).isPresent();
         assertThat(orgSource.singleLookups.get()).as("the second lookup is answered by the snapshot").isEqualTo(1);
     }

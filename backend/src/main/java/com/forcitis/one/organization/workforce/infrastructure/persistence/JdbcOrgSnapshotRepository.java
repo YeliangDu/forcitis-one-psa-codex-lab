@@ -17,7 +17,7 @@ import com.forcitis.one.organization.workforce.domain.PositionStatus;
 import com.forcitis.one.organization.workforce.domain.Reconciliation;
 import com.forcitis.one.organization.workforce.domain.RegionCategory;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
-import com.forcitis.one.organization.workforce.domain.SyncRunId;
+import com.forcitis.one.organization.workforce.api.SyncRunId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;

@@ -211,7 +211,7 @@ class EmployeeSyncRulesTest {
     @DisplayName("RULE-373 the change event and the diff report come from the same synced-field list; no change, no event content")
     void eventContentFollowsTheSyncedFields() {
         OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(person(2001, 2, 100L, null), person(2002, 2, 100L, null))));
-        assertThat(SnapshotReconciler.reconcile(v1, tree(person(2001, 2, 100L, null), person(2002, 2, 100L, null))).hasEventContent())
+        assertThat(SnapshotReconciler.reconcile(v1, tree(person(2001, 2, 100L, null), person(2002, 2, 100L, null))).change().hasContent())
                 .isFalse();
 
         Reconciliation moved = SnapshotReconciler.reconcile(v1, tree(person(2001, 3, 100L, null), person(2002, 2, 100L, null)));
@@ -241,6 +241,6 @@ class EmployeeSyncRulesTest {
 
         Reconciliation repeat = SnapshotReconciler.reconcile(apply(v2, revoke), gone);
         assertThat(repeat.changedOrgUnits()).isEmpty();
-        assertThat(repeat.hasEventContent()).isFalse();
+        assertThat(repeat.change().hasContent()).isFalse();
     }
 }

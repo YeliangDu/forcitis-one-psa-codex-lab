@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -158,7 +159,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String victim = loginWithWecom(1001);
         String other = loginWithWecom(1002);
 
-        publish(new OrgSnapshotChanged(List.of(), List.of(new UserId(1001)), List.of()));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(new UserId(1001)), List.of()));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
                 jdbc.sql("select count(*) from platform_identity.sessions where principal_name = '1001'").query(Long.class).single()).isZero());
@@ -173,7 +174,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(2001, EmploymentStatus.EMPLOYED);
         knownEmployee(2002, EmploymentStatus.SEPARATED);
 
-        publish(new OrgSnapshotChanged(List.of(new UserId(2001), new UserId(2002)), List.of(), List.of()));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new UserId(2001), new UserId(2002)), List.of(), List.of()));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(count("user_accounts")).isEqualTo(1));
         assertThat(jdbc.sql("select user_id from platform_identity.user_accounts").query(Long.class).single()).isEqualTo(2001);
@@ -183,7 +184,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
                 """).query(String.class).list()).containsExactly("employee");
 
         jdbc.sql("delete from platform_identity.account_roles where user_id = 2001").update();
-        publish(new OrgSnapshotChanged(List.of(new UserId(2001)), List.of(), List.of()));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new UserId(2001)), List.of(), List.of()));
         Thread.sleep(1000);
         assertThat(count("account_roles")).isZero();
     }

@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.metrics;
 
-import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
+import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
@@ -16,11 +16,11 @@ import org.springframework.stereotype.Component;
 class SyncMetrics {
     private static final Logger LOG = LoggerFactory.getLogger(SyncMetrics.class);
 
-    private final SyncRunRepository runs;
+    private final SyncRunQueries runs;
     private final Clock clock;
     private final Instant startedAt;
 
-    SyncMetrics(SyncRunRepository runs, MeterRegistry registry, ObjectProvider<Clock> clock) {
+    SyncMetrics(SyncRunQueries runs, MeterRegistry registry, ObjectProvider<Clock> clock) {
         this.runs = runs;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
         this.startedAt = this.clock.instant();

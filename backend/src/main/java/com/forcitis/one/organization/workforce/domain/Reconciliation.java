@@ -22,7 +22,7 @@ public record Reconciliation(List<Position> positions, List<OrgUnit> orgUnits, L
         return !positions.isEmpty() || !orgUnits.isEmpty() || !staff.isEmpty();
     }
 
-    public boolean hasEventContent() {
-        return !changedEmployees.isEmpty() || !separatedEmployees.isEmpty() || !changedOrgUnits.isEmpty();
+    public SnapshotChange change() {
+        return new SnapshotChange(changedEmployees, separatedEmployees, changedOrgUnits);
     }
 }

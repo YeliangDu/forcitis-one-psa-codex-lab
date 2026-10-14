@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.time.Instant;

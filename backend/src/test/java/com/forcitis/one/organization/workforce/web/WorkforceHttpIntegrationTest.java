@@ -17,7 +17,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
+import com.forcitis.one.organization.workforce.events.SyncRunReleased;
+import org.springframework.test.context.event.ApplicationEvents;
 import com.forcitis.one.organization.workforce.application.WorkforceIntegrationSupport;
 import com.forcitis.one.platform.integration.api.SourcePerson;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
@@ -40,6 +43,9 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
     @Autowired
     SyncOrgSnapshot sync;
+
+    @Autowired
+    ApplicationEvents events;
 
     @Autowired
     @org.springframework.beans.factory.annotation.Qualifier("requestMappingHandlerMapping")
@@ -80,7 +86,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         List<String> writes = new ArrayList<>();
         List<String> reads = new ArrayList<>();
         handlerMapping.getHandlerMethods().keySet().forEach(info -> info.getPatternValues().stream()
-                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities")).forEach(p -> info.getMethodsCondition().getMethods().forEach(m -> {
+                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities") && !p.contains("/work-calendars")).forEach(p -> info.getMethodsCondition().getMethods().forEach(m -> {
                     (m.name().equals("GET") ? reads : writes).add(m.name() + " " + p);
                 })));
 
@@ -167,7 +173,10 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 .andExpect(jsonPath("$.outcome").value("RELEASED"))
                 .andExpect(jsonPath("$.syncRun.trigger").value("MANUAL"))
                 .andExpect(jsonPath("$.syncRun.status").value("SUCCEEDED"));
-        verify(audit).record(argThat((AuditEntry e) -> user(9001).equals(e.actorId()) && e.action().endsWith("sync-run.released")));
+        assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
+            assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
+            assertThat(e.envelope().actorId()).isEqualTo("9001");
+        });
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(4);
 
         mvc.perform(post(path).with(csrf()).with(EXECUTE))

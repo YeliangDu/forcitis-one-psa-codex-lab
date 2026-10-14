@@ -21,15 +21,18 @@ import com.forcitis.one.platform.integration.api.SourcePerson;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
+import com.forcitis.one.organization.workforce.events.SyncRunReleased;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import com.forcitis.one.kernel.WorkContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -204,8 +207,10 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(3);
         assertThat(jdbc.sql("select status || ':' || released_by from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value())
                 .query(String.class).single()).isEqualTo("RELEASED:9001");
-        verify(audit).record(argThat((AuditEntry e) -> e.action().equals("organization.workforce.sync-run.released")
-                && e.actorId().equals(user(9001)) && e.subjectKey().equals("sync-run:" + held.syncRunId().value())));
+        assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
+            assertThat(e.syncRunId()).isEqualTo(held.syncRunId());
+            assertThat(e.envelope().aggregateId()).isEqualTo(String.valueOf(held.syncRunId().value()));
+        });
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
@@ -263,7 +268,11 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(20).toArray(SourcePerson[]::new));
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
-            Callable<SyncResult> run = () -> sync.execute(SyncTrigger.SCHEDULED, false);
+            Callable<SyncResult> run = () -> {
+                try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test")) {
+                    return sync.execute(SyncTrigger.SCHEDULED, false);
+                }
+            };
             Future<SyncResult> a = pool.submit(run);
             Future<SyncResult> b = pool.submit(run);
 

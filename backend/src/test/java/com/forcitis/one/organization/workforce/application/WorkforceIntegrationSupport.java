@@ -1,6 +1,9 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +46,18 @@ public abstract class WorkforceIntegrationSupport {
 
     @Autowired
     protected FakeShortNameSource oldSystem;
+
+    private WorkContext.Scope acting;
+
+    @BeforeEach
+    protected void actAsTheTestJob() {
+        acting = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test");
+    }
+
+    @AfterEach
+    protected void leaveTheTestJob() {
+        acting.close();
+    }
 
     @BeforeEach
     protected void emptySnapshot() {
