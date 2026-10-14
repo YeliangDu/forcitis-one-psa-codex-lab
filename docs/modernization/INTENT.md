@@ -147,3 +147,4 @@
 | DDD 第 9 项审计与领域事件：「B 审计订阅领域事件 (Recommended)」；安全事件仍 recordIndependently（2026-10-14） | platform.audit 订阅领域事件（事件发布登记表保证不漏）；登录失败 / 拒绝访问直接独立事务记录 |
 | 审批超时：「工时要求T+1 审批完毕，这个是不是要现在考虑？」；T 从「提交审批当天 (Recommended)」起算；+1 按「工作日，需要工作日历 (Recommended)」；超时「提醒审批人」「升级给审批人的上级」「计入审批时效统计」（均 Recommended，不自动通过）（2026-10-14） | 1a 实现审批时限能力（时限由 DMN / 配置给出，TIMESHEET=提交日后第 1 个工作日结束前）、工作日历（节假日与调休）、到期提醒与升级（取不到上级给流程管理员并告警）、事件 ApprovalTaskOverdue / ApprovalTaskEscalated；不自动通过 |
 | 工作日历（2026-10-14，psa-coordinator 询问）：归属「考勤与休假 organization.attendance (Recommended)」（BC 提前到 1a 建）；范围「一份默认日历，预留法人专属 (Recommended)」；时限口径：「这个旧系统已经有规则，看看能不能读到」 | organization.attendance 在 1a 建：工作日历结构、维护、查询「第 N 个工作日结束时刻」、未录入年份失败告警；TIMESHEET 截止与升级参数待 psa-1a-process-review 查实老系统规则后定，放 DMN / 配置不写死 |
+| 平台约定 6 项（ID 策略、时间与时区、API 规范、可观测性、备份与恢复、配置与密钥）：「全部在 1a 做 (Recommended)」（2026-10-14，psa-coordinator 询问） | 先出方案（proposals/PHASE1A_PLATFORM_CONVENTIONS.md），有取舍的报用户定，再由下一轮代理实施；备份恢复与密钥写入 INFRA_RUNBOOK（执行属部署前事项） |
