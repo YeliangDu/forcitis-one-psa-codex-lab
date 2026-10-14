@@ -6,6 +6,8 @@
 
 逐项执行剧本见 `runbooks/`（C 类），交给外部执行人的交接包见 `handoff/`（B 类），用户决定单见 `DECISIONS_A.md`，与代码的核对结果见 `CROSSCHECK.md`。
 
+> **运维纪律：不得调用会返回密钥的接口，也不打印云接口的原始返回。** 例如 `rds DescribeDBInstanceSSL` 会返回实例证书私钥（2026-10-15 曾因此使私钥进入会话记录，见 C-3 执行记录）。查询云资源时在进程内只取所需字段；口令、私钥、令牌只在服务器上生成与使用，跨机只以加密形式或经云助手文件下发。
+
 ## 0. 资源（用户已确认）
 
 | 资源 | 标识 | 说明 |
@@ -57,7 +59,7 @@
 | E-9 | 证书 | `one.forcitis.com` 证书放在 `/etc/nginx/tls/`，权限 600；如用 ACME，配置自动续期 | 到期日监控 |
 | E-10 | 前端静态资源 | PC 端 `dist` 放到 `/data/forcitis-one/current/web`，由 nginx 直接提供；H5 同理放到 `/h5`（**待定**：H5 构建的 `publicPath` 目前是 `/`，放在 `/h5` 下资源路径会错，见 `CROSSCHECK.md` 第 4 条与 `DECISIONS_A.md` N-1） | |
 | E-11 | 日志接 SLS | 安装 Logtail；采集 `/data/forcitis-one/logs/*.json`（应用输出结构化 JSON）和 nginx access / error 日志；Project 与门户分开或按 Logstore 区分 | SLS 能检索到日志 |
-| E-12 | 指标接 ARMS | 方案 A：ARMS Prometheus 抓取 `127.0.0.1:8081/actuator/prometheus`。方案 B：ARMS Java 探针，需先核实对 Java 25 的支持，不支持就用方案 A | ARMS 看板有数据 |
+| E-12 | 指标接 ARMS | 方案 A：ARMS Prometheus 抓取 `127.0.0.1:8081/actuator/prometheus`。方案 B：ARMS Java 探针，需先核实对 Java 25 的支持，不支持就用方案 A。**实际（2026-10-15）**：由 ECS 上的 LoongCollector 抓取，写入 SLS Prometheus 指标库 `forcitis-one-observability/metrics`（管理端口只听回环，VPC 内托管采集器抓不到；写 ARMS 需 AccessKey，不建），PromQL 告警在 SLS 上配置（C-7） | 指标库有数据 |
 | E-13 | 四类告警 | 在 ARMS / SLS 中配置以下四类，并在 dev 上用故障注入演练（出口条件）：<br>• 组织同步延迟：`organization.workforce.sync.*` 指标，或缩水保护中止<br>• 未完成事件发布：event_publication 中超过 10 分钟仍未完成，或出站投递进入死信<br>• 作业失败：定时任务观测指标，或 Flowable 死信任务数（**代码中暂无 Flowable 死信任务数指标**）<br>• 登录失败率：5 分钟内失败率超过 20 % 且失败数 ≥ 20 | 演练记录 |
 | E-14 | 出站网络 | 安全组出方向放行：RDS 5432（同 VPC）、`qyapi.weixin.qq.com:443`、致远 OA 验票地址、A8 SQL Server、老系统 SQL Server（经白名单）；其余出站按需收紧 | |
 | E-15 | 企业微信 | 在企业微信后台为新应用配置：可信域名 `one.forcitis.com`、扫码登录回调域、企业可信 IP 47.114.56.157；工作台**新增**「FORCITIS one」入口，**不替换**老 H5（切换手册 §3.11） | 登录冒烟 |

@@ -19,7 +19,7 @@
 
 1. 用户已确认本次执行 C-4（以及是否包含 `dnf -y update`，它会升级内核，需重启）。
 2. `lsblk` 确认 200 GB 数据盘设备名（通常 `/dev/vdb`）未分区、未挂载、无文件系统——脚本会再次检查，有文件系统则拒绝格式化。
-3. Java 包：确认来源与固定版本（Temurin 25 与 CI 一致；若用 Dragonwell 25 先在 dev 跑完整测试），作为 `--java-pkg` 传入。不从未经确认的地址下载。**实测（2026-10-15）**：Alibaba Cloud Linux 4 自带源（alinux4-os / plus / updates）只有 `java-21-alibaba-dragonwell`，没有任何 Java 25 包；须由用户确认外部来源（Adoptium 的 RPM 源，或 Dragonwell 25 官方发行包）后才能做 E-4。
+3. Java 包：确认来源与固定版本（Temurin 25 与 CI 一致；若用 Dragonwell 25 先在 dev 跑完整测试），作为 `--java-pkg` 传入。不从未经确认的地址下载。**实测（2026-10-15）**：Alibaba Cloud Linux 4 自带源（alinux4-os / plus / updates）只有 `java-21-alibaba-dragonwell`，没有任何 Java 25 包；须由用户确认外部来源（Adoptium 的 RPM 源，或 Dragonwell 25 官方发行包）后才能做 E-4。 **已完成（2026-10-15，one-ops，one-coordinator 定 Eclipse Temurin 25）**：Adoptium 官方 RPM 源 `https://packages.adoptium.net/artifactory/rpm/rhel/9/$basearch`（`/etc/yum.repos.d/adoptium.repo`，`gpgcheck=1`），签名公钥指纹 `3B04D753C9050D9A5D343F39843C48A565F8F04B`；装 `temurin-25-jdk-25.0.4.1.0.1-0` 并 `dnf versionlock`；`java -version` 为 Temurin-25.0.4.1+1。
 4. B-4（DNS、证书）未完成时，跳过 E-9 并保持 nginx 未启用。
 
 ## 步骤

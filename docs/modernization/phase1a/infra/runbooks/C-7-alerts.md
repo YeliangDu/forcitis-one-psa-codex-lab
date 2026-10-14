@@ -81,6 +81,21 @@ systemctl start one-cert-check.service; journalctl -u one-cert-check.service -n 
 
 回退：P-4 解绑或删除自动快照策略（已生成的快照按保留期自动删除，或手工删除）；P-5 恢复原备份策略；P-1 删除抓取任务（Prometheus 实例停写即不再计费）；P-2 删除 Logtail 采集配置与 Logstore（数据随之删除）。
 
+## P-1 / P-2 开通记录（2026-10-15，用户在 one-ops 会话中确认「两项都开 (Recommended)」）
+
+| 资源 | 设置 |
+|---|---|
+| SLS Project | `forcitis-one-observability`（cn-hangzhou；数据冗余为接口默认的同城冗余） |
+| Logstore | `app`（应用 JSON 日志 `/data/forcitis-one/logs/*.json`）、`nginx`（`/var/log/nginx/one.access.json` JSON 与 `one.error.log`）、`ops`（`/data/forcitis-one/logs/ops/*.json`，证书检查）；均保留 30 天、自动分裂；计费为按使用功能（本账号未开通按写入量计费模式，接口返回 `ServiceNotOpened`；one-coordinator 认可现状，不开） |
+| 索引 | `app`、`ops`：全文加 `level`、`logger`、`message`、`correlationId`；`nginx`：全文 |
+| 指标库 | `metrics`（Prometheus，保留 30 天）：LoongCollector `service_prometheus` 每 15 秒抓 `127.0.0.1:8081/actuator/prometheus`（job `forcitis-one`）。未用 ARMS Prometheus 实例：管理端口只听回环，VPC 内托管采集器抓不到；本机写 ARMS 需 AccessKey，不建 |
+| 采集器 | ECS 安装 LoongCollector 3.3.10（阿里云杭州内网安装脚本，SHA256 652b42bc…f918），用户标识 `/etc/ilogtail/user_defined_id` = `forcitis-one-production`，账号文件 `/etc/ilogtail/users/<主账号 ID>`；机器组 `forcitis-one-production`（自定义标识）心跳正常 |
+| 采集配置 | `one-app`、`one-ops`、`one-nginx-access`、`one-nginx-error`、`one-metrics`，均应用到机器组 |
+| 验证 | 证书检查日志与 nginx 日志可在 SLS 查到；`app` 为空、指标抓不到目标（应用未部署，符合「未部署前不接业务数据」） |
+| 告警 | 未配：通知渠道等 A-5 群机器人；届时按「规则定义」在 SLS 上配 PromQL 告警与 `ALERT*` 日志告警 |
+
+回退：删除 5 个采集配置与机器组（`DeleteLogtailPipelineConfig`、`DeleteMachineGroup`）→ ECS 上 `loongcollector.sh uninstall`（或 `/etc/init.d/loongcollectord stop` 后删 `/usr/local/ilogtail`），删 `/etc/ilogtail/user_defined_id` 与账号文件 → 删除 Project（数据随之删除，不再计费）。
+
 ## 通知渠道变量（只在 ARMS / SLS 控制台中配置，值不进仓库）
 
 | 变量 | 内容 | 来源 |
