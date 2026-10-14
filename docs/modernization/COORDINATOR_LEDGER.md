@@ -70,6 +70,13 @@
 - 运维手册用 `--spring.profiles.active=identity-operations` 会顶掉 dev/prod，生产运维命令跳过 VERIFIED_SERVER 校验 → 缺陷，随 ADR-0030 实现（F-12）改为 include 写法，加回归测试；one-ops 同步改手册。
 - ADR-0028 第 1 条「可用超管少于 2 名即暂停」未实现（ApplySourceSnapshot 只在离职名单含超管 / 审计员时暂停）；第 4 条的运维放行命令不存在 → 缺陷卡，one-1a-next 按 §6.1 手术式修复。
 
+- 用语缺陷：terms.yaml 的 job_grade（职级，T1–T7，「计费费率与折扣权限的档位依据」）与取证不符——A8 无独立职级字段，T1–T7 只是 ORG_POST 岗位名前缀，ORG_LEVEL 是管理职务；别名与 position 重叠。并入第三轮用语确认与岗位体系重梳；澄清前任何会话（1b 流程梳理、R 系列、F-8「职级标准费率」掩码）不得自行定职级来源。
+
+## Codex 试点（用户 2026-10-15「用最合适的模型，你试试」）
+- 调用：`codex exec -m gpt-6.1-sol -c model_reasoning_effort=high -s <read-only|workspace-write> --ephemeral -o <out> - < prompt`，在独立 worktree 中运行；Codex 读 AGENTS.md，不读 CLAUDE.md，提示词须要求先读 CLAUDE.md 与 SESSION_PLAYBOOK §5、§6.1。
+- 冒烟（只读，R-4 方案，约 5 分钟）：清单 102 处 / 31 文件 / 49 表与计划一致，抽查属实，未改文件；指出框架管理表（Spring Session、Modulith 事件登记、ShedLock usingDbTime）、种子迁移、Flowable 边界等须先决定的问题。输出存 `~/.modernize/psa/codex/R-4-plan-codex-smoke.md`。
+- 正式试点：R-4 实现（R-2 合并后），流程不变（测试代理先写验收、opus 复审、PR 注明 Codex 实现）；记录返工轮次与耗时，与 sonnet 卡对比。
+
 ## 排定的后续
 - 第三轮用语确认（复用 psa-terms-review）：1a 下一批交付后启动；合并 1a 全部提议术语（按业务 / 技术分组）、R0 的 TERMS_ROUND3_INPUT（A 组 19、新词约 45、NRPM 与「人工成本产出倍数」对齐）、前端用语（含同步 / 放行 / 被中止与 held_run 重叠、待办与 todo / inbox 重叠）、工时类别（项目 / 售前 / OH，OH 疑似方言）、legacy_system（老系统，方言为旧名称）、TS / JV 单据类型代码。ADR-0018：阶段结束时不得留有会计类提议术语。
 - 统一编排路线（1a 试点结束、brief 重新生成时一起审批）：Phase 1a–5、6a–6f（ADR-0021）、G1/G2（ADR-0022）、R0–R6（ADR-0023 / 0025）统一编号与依赖；6a 入口加「收付口径推送通道就绪」「过渡镜像就绪」；Phase 4、6a–6c、G1 合为业财一体阶段作为可选方案；客商主数据是否提前；6a–6f、G 与 R 阶段并入模板时补「流程梳理」入口条件。
