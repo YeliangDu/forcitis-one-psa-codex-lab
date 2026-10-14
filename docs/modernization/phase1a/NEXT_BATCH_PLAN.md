@@ -13,7 +13,7 @@
 
 ## 0. 对草案的更正
 
-`NEXT_BATCH_DRAFT.md`、`DEFERRED.md` 与 `application.properties` 目前只在 #72 分支上。#72 合并后，由本会话按本表更正。
+`NEXT_BATCH_DRAFT.md`、`DEFERRED.md` 与 `application.properties` 目前只在 #72 分支上。one-coordinator 定：#72 合并后，由本会话开小 PR 按本表更正；`application.properties` 的残留由 R-3a 处理。
 
 | 草案原文 | 实际（`27ac707`） | 处理 |
 |---|---|---|
@@ -121,7 +121,7 @@
 
 | 代理 | 模型 | 表（新增 / 修改） | 权限码（预计；名称以 terms.yaml 登记为准） | 事件（预计） | 写入范围（独占） | 依赖 |
 |---|---|---|---|---|---|---|
-| F-1 数据范围 ★ | opus 执行，opus 复审；测试代理 opus | identity 新增角色范围授予明细表；`data-access-registry.yaml` 加 `scope_kind`（SCOPED / GLOBAL）并逐表定值 | 授予时选范围的权限沿用 `account-role:update`；「待调整权限」处理权限给组织数据管理员和安全审计员 | 范围授予变更；待调整权限产生 / 处理 | `platform.identity` 授权部分；kernel 新增 `CurrentAccess`；`OrgUnitId` 下沉到 kernel，`OrgUnitAccess` 改为类型化 ID，去掉 `NOT_USED = new LegalEntityId(1)`；workforce 的部门浏览与人员详情接入范围；`DataAccessRegistryTest`、`onlyRegisteredPersistenceTouchesTheDatabase`、`ScopedRepositoryContract`；敏感权限只授给具体的人（守护）；调岗或离岗生成待调整权限待办；`test-isolation-exceptions.txt` 中 3 条迁入 `scenario/`（b12-H7 余项） | K-3；ADR-0026「1a 交付范围」、ADR-0027 离职删除授予 |
+| F-1 数据范围 ★ | opus 执行，opus 复审；测试代理 opus | identity 新增角色范围授予明细表；`data-access-registry.yaml` 加 `scope_kind`（SCOPED / GLOBAL）并逐表定值 | 授予时选范围的权限沿用 `account-role:update`；「待调整权限」处理权限给组织数据管理员和安全审计员 | 范围授予变更；待调整权限产生 / 处理 | `platform.identity` 授权部分；kernel 新增 `CurrentAccess`；`OrgUnitId` 下沉到 kernel，`OrgUnitAccess` 改为类型化 ID，去掉 `NOT_USED = new LegalEntityId(1)`；workforce 的部门浏览与人员详情接入范围；`DataAccessRegistryTest`、`onlyRegisteredPersistenceTouchesTheDatabase`、`ScopedRepositoryContract`；敏感权限只授给具体的人（守护）；调岗或离岗生成待调整权限待办 | K-3；ADR-0026「1a 交付范围」、ADR-0027 离职删除授予 |
 | F-2 守护 ★ | sonnet | — | — | — | `src/test/java/com/forcitis/one/` 的守护类；`backend/architecture/` 的豁免清单（G-T4 规格到测试对照、豁免清单入仓）；G-T1 核对按仓储判定并读 §14 例外；G-T2 扩展到全部生产代码 | W1 完成后开始（要扫描最终代码形状）；G-T4 在 F-1 / F-4 / F-5 合并后最后跑一次 |
 | F-3 运行时配置 ★ | sonnet | — | — | — | PC：`login-config.ts`、`login-page.tsx`；H5：`config/index.ts`、`page-frame.tsx`、`wecom-login.ts`；5 个构建期变量改为运行时读取的配置文件；nginx 模板只写约定文件名与路径，部署模板由 one-ops 改 | 与 one-ops 约定配置文件的路径与发布方式 |
 | F-4 前端契约 | sonnet | — | 沿用后端已有权限码 | — | 前端审批与收件箱：D-1a-139 全部待办只读视图、D-1a-75 转交、D-1a-77 批量与代理界面；管理模式 1 小时横幅（D-1a-48，`administratorModeExpiresAt`） | K-3；后端接口已有的先做，缺接口的报告由 F-5 补 |
@@ -138,7 +138,7 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
 
 按 #72 整合复审的统计（`27ac707`）：
 - Blocker：未关闭 0 条。
-- High：未关闭 1 条，b12-H7。它的余项是 3 条测试隔离例外，已并入 F-1。**按 §6.1 第 11 条，这条是否须在 #72 合并前收口，由 one-coordinator 定。**
+- High：b12-H7 已由前任在 #72 内手术式收口：3 条移入 `scenario/` 并删除例外；余下 2 条待 B1 修完后同样移走，不保留例外。
 - Medium：未关闭 21 条，其中 8 条已在草案第三节，13 条不在。
 - Low / Nit：未关闭 37 条，其中 5 条在草案，32 条不在（部分只是「未核实」）。
 
@@ -185,7 +185,7 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
 
 ## 5. 交给 one-coordinator 核对的点（不是用户决定，只需确认）
 
-1. **b12-H7**：one-coordinator 裁定按 §6.1 第 11 条在 #72 合并前收口，由前任会话处理。前任若决定并入 F-1，须在报告中给出理由，由 one-coordinator 裁定。本计划暂按「并入 F-1」占位。
+1. **b12-H7**：已在 #72 关闭。one-coordinator 按 §6.1 第 11 条裁定合并前收口，由前任处理。
 2. **R-1 的范围**：员工、组织单元、岗位、任职按平台约定 §1「外部主数据沿用来源 ID……快照表列入白名单」沿用 A8 ID。但 `primary-key-type-baseline.txt` 把这几张表也列为待改 uuid。one-coordinator 已认可按平台约定执行：这几张表进白名单并写明理由。`user_accounts.user_id` 由 R-1 代理核实来源后报 one-coordinator。
 3. **D-1a-181 不纳入 F-5**：契约原文为 1b 交付；D-1a-67、D-1a-128 的知会部分随首个有知会节点的流程交付。one-coordinator 已认可。
 4. **1a 出口条件**：brief 模板中「平台穿刺」（CC-B11）仍是 `Proposed revision:`，待用户批准；批准后由本会话补验收。
@@ -193,4 +193,4 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
 6. **会话设置**：
    - 本会话权限模式为 bypass，与派工要求一致。
    - 推理强度从会话内无法自查，也无法自行修改；由 one-coordinator 请用户在应用中确认设为 high。
-7. **NEXT_BATCH_DRAFT 的更正（第 0 节）**：#72 合并后由本会话在 main 上更正，不改 #72 分支。
+7. **NEXT_BATCH_DRAFT 的更正（第 0 节）**：#72 合并后由本会话开小 PR 更正，不改 #72 分支（one-coordinator 选 b）。
