@@ -61,6 +61,7 @@ public abstract class WorkforceIntegrationSupport {
 
     @BeforeEach
     protected void emptySnapshot() {
+        awaitEventListeners();
         jdbc.sql("""
                 truncate table organization_workforce.sync_diffs, organization_workforce.sync_runs,
                        organization_workforce.assignments, organization_workforce.employees,
@@ -72,6 +73,24 @@ public abstract class WorkforceIntegrationSupport {
         orgSource.singleLookups.set(0);
         oldSystem.unavailable = false;
         oldSystem.names = java.util.Map.of();
+    }
+
+    // TRUNCATE takes an exclusive lock: listeners of the previous test's events (identity, audit) must have finished first,
+    // otherwise the two wait on each other (PessimisticLockingFailureException). Archive mode leaves only unfinished rows here.
+    protected void awaitEventListeners() {
+        long deadline = System.nanoTime() + java.time.Duration.ofSeconds(20).toNanos();
+        while (jdbc.sql("select count(*) from platform_integration.event_publication").query(Integer.class).single() > 0) {
+            if (System.nanoTime() > deadline) {
+                throw new AssertionError("event listeners still running after 20 s");
+            }
+            Thread.onSpinWait();
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(e);
+            }
+        }
     }
 
     protected int count(String table) {
