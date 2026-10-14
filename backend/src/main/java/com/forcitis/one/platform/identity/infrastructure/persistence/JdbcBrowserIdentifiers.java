@@ -1,0 +1,64 @@
+package com.forcitis.one.platform.identity.infrastructure.persistence;
+
+import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.identity.domain.BrowserIdentifiers;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+@Repository
+class JdbcBrowserIdentifiers implements BrowserIdentifiers {
+
+    private final JdbcClient jdbc;
+    private final IdGenerator ids;
+
+    JdbcBrowserIdentifiers(JdbcClient jdbc, IdGenerator ids) {
+        this.jdbc = jdbc;
+        this.ids = ids;
+    }
+
+    @Override
+    public Optional<Known> find(String identifierHash, UserId userId) {
+        return jdbc.sql("""
+                        select last_login_at, retired_at is not null as retired from platform_identity.browser_identifiers
+                         where identifier_hash = :hash and user_id = :user
+                        """)
+                .param("hash", identifierHash).param("user", userId.value())
+                .query((rs, n) -> new Known(rs.getTimestamp("last_login_at").toInstant(), rs.getBoolean("retired"))).optional();
+    }
+
+    @Override
+    public void replace(UserId userId, String oldHash, String newHash, Instant now) {
+        Timestamp at = Timestamp.from(now);
+        if (oldHash != null) {
+            jdbc.sql("""
+                    update platform_identity.browser_identifiers set retired_at = :now, updated_at = :now
+                     where identifier_hash = :old and user_id = :user and retired_at is null
+                    """).param("now", at).param("old", oldHash).param("user", userId.value()).update();
+            jdbc.sql("""
+                    update platform_identity.browser_identifiers set identifier_hash = :new, updated_at = :now
+                     where identifier_hash = :old and user_id <> :user and retired_at is null
+                    """).param("now", at).param("old", oldHash).param("new", newHash).param("user", userId.value()).update();
+        }
+        jdbc.sql("""
+                insert into platform_identity.browser_identifiers (browser_identifier_id, user_id, identifier_hash, last_login_at)
+                values (:id, :user, :hash, :now)
+                """).param("id", ids.next()).param("user", userId.value()).param("hash", newHash).param("now", at).update();
+    }
+
+    @Override
+    public int invalidateAll(UserId userId) {
+        return jdbc.sql("delete from platform_identity.browser_identifiers where user_id = :user").param("user", userId.value()).update();
+    }
+
+    @Override
+    public int purge(Instant olderThan) {
+        return jdbc.sql("""
+                delete from platform_identity.browser_identifiers
+                 where last_login_at < :limit or retired_at < :limit
+                """).param("limit", Timestamp.from(olderThan)).update();
+    }
+}

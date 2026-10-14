@@ -16,6 +16,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +46,7 @@ public class LoginWithSignedTicket {
     }
 
     @Transactional
-    public LoginResult execute(String rawTicket) {
+    public LoginResult execute(String rawTicket, @Nullable String browserIdentifier) {
         LoginMethod method = LoginMethod.SIGNED_TICKET;
         Optional<SignedTicket> parsed = SignedTicket.parse(rawTicket);
         if (parsed.isEmpty()) {
@@ -100,7 +101,7 @@ public class LoginWithSignedTicket {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED, method, userId,
                     "outside the user scope of issuer " + issuer.issuerCode());
         }
-        return admission.complete(userId, method);
+        return admission.completeFromTicket(userId, method, browserIdentifier);
     }
 
     private LoginResult invalid(LoginMethod method, String reason) {

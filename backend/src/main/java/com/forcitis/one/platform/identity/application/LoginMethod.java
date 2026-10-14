@@ -10,6 +10,11 @@ public enum LoginMethod {
     SIGNED_TICKET,
     EMERGENCY;
 
+    /** A ticket arrives from another site, so whose identity it is has to be confirmed by the person in front of the screen (C-M7). */
+    public boolean requiresIdentityConfirmation() {
+        return this == SSO || this == SIGNED_TICKET;
+    }
+
     static LoginMethod of(WecomEntry entry) {
         return switch (entry) {
             case WORKBENCH -> WECOM_WORKBENCH;

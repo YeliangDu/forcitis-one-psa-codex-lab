@@ -63,9 +63,9 @@ class SeeyonViewSqlTest {
     }
 
     @Test
-    @DisplayName("RULE-361 bulk sync and single lookup share the scope: internal, with code, org unit below the root PATH prefix")
+    @DisplayName("RULE-361 bulk sync and single lookup share the scope: internal (a NULL flag counts as internal, D-1a-06), with code, org unit below the root PATH prefix")
     void bulkAndSingleLookupShareTheScope() {
-        assertThat(SeeyonViewSql.MEMBERS).contains("IS_INTERNAL = 1").contains("CODE IS NOT NULL").contains("CODE <> ''")
+        assertThat(SeeyonViewSql.MEMBERS).contains("(IS_INTERNAL = 1 OR IS_INTERNAL IS NULL)").contains("CODE IS NOT NULL").contains("CODE <> ''")
                 .contains("ORG_UNIT_ID IS NOT NULL").contains("ORG_UNIT_PATH LIKE :rootPathPrefix");
         assertThat(SeeyonViewSql.MEMBERS_BY_WECOM_USER_ID).startsWith(SeeyonViewSql.MEMBERS).endsWith("AND WE_COM_ID = :wecomUserId");
         assertThat(SeeyonViewSql.MEMBERS_BY_LOGIN_NAME).startsWith(SeeyonViewSql.MEMBERS).endsWith("AND LOGIN_NAME = :loginName");

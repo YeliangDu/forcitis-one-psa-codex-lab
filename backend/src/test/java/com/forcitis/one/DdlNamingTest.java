@@ -100,6 +100,7 @@ class DdlNamingTest {
     static final class Table {
         final Map<String, Column> columns = new LinkedHashMap<>();
         final Map<String, Constraint> constraints = new LinkedHashMap<>();
+        final List<String> primaryKey = new ArrayList<>();
     }
 
     static final class Schema {
@@ -307,6 +308,16 @@ class DdlNamingTest {
                 schema.indexKinds.put(renameIndex.group(3), kind);
             }
         }
+        Matcher dropTable = Pattern.compile("DROP TABLE\\s+(?:IF EXISTS\\s+)?([a-z0-9_]+)\\.([a-z0-9_]+)", Pattern.CASE_INSENSITIVE).matcher(sql);
+        while (dropTable.find()) {
+            Schema schema = schemas.computeIfAbsent(dropTable.group(1), s -> new Schema());
+            schema.tables.remove(dropTable.group(2));
+            List<String> indexes = schema.indexes.entrySet().stream().filter(e -> e.getValue().equals(dropTable.group(2))).map(Map.Entry::getKey).toList();
+            indexes.forEach(i -> {
+                schema.indexes.remove(i);
+                schema.indexKinds.remove(i);
+            });
+        }
         Matcher dropIndex = Pattern.compile("DROP INDEX\\s+(?:IF EXISTS\\s+)?([a-z0-9_]+)\\.([a-z0-9_]+)", Pattern.CASE_INSENSITIVE).matcher(sql);
         while (dropIndex.find()) {
             Schema schema = schemas.computeIfAbsent(dropIndex.group(1), s -> new Schema());
@@ -327,6 +338,8 @@ class DdlNamingTest {
         model.columns.put(name, new Column(name, type, lower.contains("check")));
         // PostgreSQL's default names for inline constraints: <table>_pkey, <table>_<column>_fkey, <table>_<column>_key
         if (lower.contains("primary key")) {
+            model.primaryKey.clear();
+            model.primaryKey.add(name);
             putConstraint(model, "pk", named(lower, table + "_pkey"), false);
         }
         if (lower.contains("references")) {
@@ -347,7 +360,7 @@ class DdlNamingTest {
 
     private static void tableConstraint(String table, Table model, String line) {
         String lower = line.toLowerCase(Locale.ROOT);
-        Matcher m = Pattern.compile("constraint ([a-z0-9_]+) (primary key|foreign key|unique|check)").matcher(lower);
+        Matcher m = Pattern.compile("constraint ([a-z0-9_]+) (primary key|foreign key|unique|check|exclude)").matcher(lower);
         String kind;
         String name;
         if (m.find()) {
@@ -364,10 +377,20 @@ class DdlNamingTest {
                 default -> table + "_check";
             };
         }
+        if (kind.equals("primary key")) {
+            Matcher keyColumns = Pattern.compile("primary key\\s*\\(([^)]*)\\)").matcher(lower);
+            if (keyColumns.find()) {
+                model.primaryKey.clear();
+                for (String keyColumn : keyColumns.group(1).split(",")) {
+                    model.primaryKey.add(keyColumn.trim());
+                }
+            }
+        }
         putConstraint(model, switch (kind) {
             case "primary key" -> "pk";
             case "foreign key" -> "fk";
             case "unique" -> "uk";
+            case "exclude" -> "ex";
             default -> "ck";
         }, name, false);
     }
@@ -398,6 +421,7 @@ class DdlNamingTest {
                         case "pk" -> "pk_" + table;
                         case "fk" -> "fk_" + table + "_<column>";
                         case "uk" -> "uk_" + table + "_<column>";
+                        case "ex" -> "ex_" + table + "_<rule>";
                         default -> "ck_" + table + "_<rule>";
                     };
                     boolean ok = c.kind().equals("pk") ? c.name().equals(expected) : c.name().startsWith(expected.replace("<column>", "").replace("<rule>", ""));
@@ -550,6 +574,28 @@ class DdlNamingTest {
                 problems.add(where + ": " + what + " uses legacy/vague word '" + part + "' (see GLOSSARY.md)");
             }
         }
+    }
+
+    @Test
+    @DisplayName("exclusion constraints are named ex_<table>_<rule>, whether they are created with the table or added later")
+    void exclusionConstraintsAreNamedEx() {
+        String sql = """
+                CREATE TABLE cost_timesheet.spans (
+                    id          uuid        NOT NULL,
+                    owner_id    bigint      NOT NULL,
+                    from_date   date        NOT NULL,
+                    to_date     date,
+                    created_at  timestamptz NOT NULL,
+                    updated_at  timestamptz NOT NULL,
+                    CONSTRAINT pk_spans PRIMARY KEY (id),
+                    CONSTRAINT overlap_spans EXCLUDE USING gist (owner_id WITH =, daterange(from_date, to_date) WITH &&)
+                );
+                ALTER TABLE cost_timesheet.spans ADD CONSTRAINT spans_other EXCLUDE USING gist (owner_id WITH =, daterange(from_date, to_date) WITH &&);
+                """;
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql", sql))).keySet()).contains(
+                "constraint cost_timesheet.spans.overlap_spans", "constraint cost_timesheet.spans.spans_other");
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql",
+                sql.replace("overlap_spans", "ex_spans_overlap").replace("spans_other", "ex_spans_other"))))).isEmpty();
     }
 
     static final String GOOD = """

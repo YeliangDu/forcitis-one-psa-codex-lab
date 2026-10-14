@@ -1,7 +1,13 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.application.GetOrgUnit;
 import com.forcitis.one.organization.workforce.application.ListOrgUnits;
+import com.forcitis.one.kernel.OrgUnitAccess;
+import com.forcitis.one.kernel.UserId;
+import java.security.Principal;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,8 +22,10 @@ import org.springframework.web.bind.annotation.RestController;
 class OrgUnitController {
     private final ListOrgUnits listOrgUnits;
     private final GetOrgUnit getOrgUnit;
+    private final OrgUnitAccess access;
 
-    OrgUnitController(ListOrgUnits listOrgUnits, GetOrgUnit getOrgUnit) {
+    OrgUnitController(ListOrgUnits listOrgUnits, GetOrgUnit getOrgUnit, OrgUnitAccess access) {
+        this.access = access;
         this.listOrgUnits = listOrgUnits;
         this.getOrgUnit = getOrgUnit;
     }
@@ -25,13 +33,14 @@ class OrgUnitController {
     @GetMapping
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_UNIT_READ + "')")
     List<OrgUnitResponse> list(@RequestParam(defaultValue = "false") boolean includeRevoked) {
-        return listOrgUnits.execute(includeRevoked).stream().map(OrgUnitResponse::of).toList();
+        return listOrgUnits.execute(includeRevoked, access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ)).stream().map(OrgUnitResponse::of).toList();
     }
 
     @GetMapping(path = "/{orgUnitId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_UNIT_READ + "')")
-    ResponseEntity<OrgUnitDetailResponse> get(@PathVariable long orgUnitId) {
-        return getOrgUnit.execute(orgUnitId).map(OrgUnitDetailResponse::of)
-                .map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    OrgUnitDetailResponse get(@PathVariable long orgUnitId, Principal caller) {
+        return getOrgUnit.execute(orgUnitId, access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ), new UserId(Long.parseLong(caller.getName())))
+                .map(OrgUnitDetailResponse::of).orElseThrow(() -> new DomainException(
+                        WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND, ErrorKind.NOT_FOUND, "no org unit " + orgUnitId));
     }
 }

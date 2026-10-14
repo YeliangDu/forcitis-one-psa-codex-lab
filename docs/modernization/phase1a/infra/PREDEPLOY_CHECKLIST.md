@@ -37,6 +37,8 @@
 | B-8 | 业务管理员（用户）确认各单据编号模板；凭证号模板另需财务确认 | 出口前 | ADR-0027、出口条件「编号规则经管理员确认」 | [B-8](handoff/B-8-numbering-templates.md)（四眼确认待 ADR-0027 下一批实现） | 🟨 |
 | B-9 | 企业微信接口真实返回核对（`task_id` 重复的错误码、模板卡片更新） | 出口前 | 1a 第二波报告 | [B-9](handoff/B-9-wecom-api-check.md) | 🟨 |
 | B-10 | 发布与部署一次性设置。**必需前置：按 RELEASE.md R-0 重建专用部署 runner `forcitis-one-deploy`**（只接 deploy；程序、hook 与空主目录归 root，PATH 只含系统目录，`--disableupdate`；原注册已注销；发布打包与签名在 GitHub 托管机器上）；发布包由 ECS 以 GitHub 只读令牌自取（不建发布用 OSS bucket，R-13 令牌由用户生成）；GitHub environments `dev` / `prod`（prod 设 required reviewers）、专用 runner 的 pre-job hook、构建期变量、environment `release` 与发布签名密钥（Team 计划私有仓库无出处证明，RELEASE.md §11）、immutable releases、`v*` 标签保护、prod 批准行；每环境 RAM 子账号（只许调用固定云助手命令）与 AccessKey；ECS 侧安装器、`forcitis-migrate` 用户、目录归属与迁移凭据目录；最后一跳推荐云助手（SSH 方式另需 22 端口只对固定出口 IP 开放） | dev 前 | 遗漏项「CI 无发布产物」、INFRA_RUNBOOK §7 | [RELEASE.md §7、§8](runbooks/RELEASE.md#7-一次性步骤用户或运维执行执行前确认) | 🟨 |
+| B-11 | dev 库里若有 1a 修复批之前建出的审批与工时单数据，先清空 `platform_approval`、`cost_timesheet` 的业务表再部署：修复批的迁移新增必填列、收紧约束，不给旧行补猜测的值，非空表会让迁移失败 | dev 前 | 迁移 V20261014200000、V20261014201000、V20261014204000 的头注释；1a 未上线、无生产数据 | — | ⬜ |
+| B-12 | 指定流程管理员：把 `process_administrator` 角色授予 1 名以上的人（建议 2 名，A-4 定人选）；该角色没有任何持有人时应用在任何环境都拒绝启动（只有测试配置可关闭） | dev 前 | D-1a-61；迁移 V20261014205200 建角色 | — | ⬜ |
 
 ## C. 由会话执行，执行前须用户确认（对外变更或购买）
 
@@ -46,11 +48,12 @@
 | C-2 | RDS 开启删除保护；备份策略满足 RPO ≤ 5 分钟（日志备份）、RTO ≤ 1 小时；首次恢复演练 | dev 前（演练在出口前） | 平台约定方案 §5 | [C-2](runbooks/C-2-rds-backup-restore.md) | 🟨 已核对（2026-10-15）：包年包月实例不支持删除保护（API `OperationDenied.PayType`），已开自动续费；日志备份已开、保留 7 天，但约 2.5 小时上传一次，**按时间点恢复达不到 RPO ≤ 5 分钟**；改动可能产生费用，待用户决定；演练未做 |
 | C-3 | 建库建角色：`forcitis_one_dev` 与 `one_dev_*`；按角色设连接数、超时与 work_mem | dev 前 | INFRA_RUNBOOK §2、ADR-0025 | [C-3](runbooks/C-3-dev-db.md) · `runbooks/sql/c3_dev_db*.sql` | 🟨 脚本已补 `cost_timesheet`；实例现为 4C16G、PG 18、`max_connections` 1600，现有库只有 `forcitis_one`（IT 服务门户）。**阻塞**：唯一高权限账号 `portal_migrator` 的口令不在任何服务器上，须用户提供或授权另建高权限账号 |
 | C-4 | ECS 初始化 E-1..E-17（数据盘、运行时、systemd、nginx、TLS、Logtail、ARMS、出站白名单） | dev 前 | INFRA_RUNBOOK §3 | [C-4](runbooks/C-4-ecs-init.md) · `runbooks/scripts/` · `runbooks/files/` | 🟨 已做：E-1 数据盘 XFS（one-data）挂载 /data、nginx 1.30.4 与 TLS、静态根 `/data/forcitis-one/current/web`（当前为 bootstrap）、`forcitis` 系统用户与 `/etc/forcitis-one/one.env`（session-log one-1a-infra-b4 / b2）；2026-10-15 one-ops-1a 按发布流水线的目录布局补 E-3 `forcitis-migrate`、E-5（`/data/forcitis-one` 与 `releases` root:forcitis 750、nginx 穿过 ACL、`logs`/`tmp`、`/etc/forcitis-one/migrate` 700、`SPRING_FLYWAY_ENABLED=false`）、E-6 单元与 logrotate 已装（首次部署前不 enable）、E-14 安全组出方向白名单（其余出站拒绝）；`psql` 客户端已装。**待**：E-4 发行版源无 Java 25，须用户确认来源；E-11 Logtail、E-12 ARMS 涉及计费，未做；E-17 数据盘快照策略。**注意**：企业微信校验文件 `WW_verify_*.txt` 现放在 current/web，发布切换 current 时须保留（见 RELEASE.md） |
-| C-5 | 应急管理员与首任超管开通（运维命令，双人在场） | dev 前 | INFRA_RUNBOOK §6、ADR-0027 | [C-5](runbooks/C-5-first-admins.md)（运维命令未实现，阻塞于 blockers/070） | ⬜ |
+| C-5 | 应急管理员与首任超管开通（运维命令，双人在场） | dev 前 | INFRA_RUNBOOK §6、ADR-0027 | [C-5](runbooks/C-5-first-admins.md)（运维命令已实现，剧本待按 INFRA_RUNBOOK §6 对齐） | ⬜ |
 | C-6 | 老系统数据只读导出：老角色与权限（ADR-0026 D-9 已授权）、TIMESHEET 流程实例（回放用）、`psa_calendar` 2016–2026（迁入工作日历） | dev 前 | ADR-0026、TIMESHEET_REPLAY、D-1a-110 | [C-6](runbooks/C-6-legacy-export.md) · `runbooks/sql/c6_legacy_readonly_export.sql` | 🟨 |
-| C-7 | 告警规则配置与 dev 演练（四类告警） | 出口前 | E-13（出口条件） | [C-7](runbooks/C-7-alerts.md) · `runbooks/files/alert-rules.yaml` | 🟨 另加：证书剩余不足 20 天告警（A-1 改选 Let's Encrypt 的前提） |
+| C-7 | 告警规则配置与 dev 演练（四类告警，含 NaN 缺数据规则与各模块自己的失败指标，见 INFRA_RUNBOOK E-13 补充） | 出口前 | E-13（出口条件） | [C-7](runbooks/C-7-alerts.md) · `runbooks/files/alert-rules.yaml` | 🟨 另加：证书剩余不足 20 天告警（A-1 改选 Let's Encrypt 的前提） |
 | C-8 | 配置与密钥从 `one.env` 迁到 KMS，确定轮换周期 | 生产前 | 平台约定方案 §6 | [C-8](runbooks/C-8-kms.md)（应用读取 KMS 需代码改动） | 🟨 |
 | C-9 | 生产库 `forcitis_one_prod` 与 `one_prod_*` 角色 | 生产前 | ADR-0025 第 2 条 | [C-9](runbooks/C-9-prod-db.md) · `runbooks/sql/c9_prod_db*.sql` | 🟨 |
+| C-10 | 每个环境的 one.env 设置 `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED`（`true` 或 `false`）；没有默认值，缺失则应用启动失败（交叉检查 7） | dev 前 | INFRA_RUNBOOK §5 | — | ⬜ |
 
 ## D. 部署后验证（Phase 1a 出口条件）
 

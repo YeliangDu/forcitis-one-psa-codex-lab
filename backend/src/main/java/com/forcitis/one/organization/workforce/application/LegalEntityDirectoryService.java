@@ -7,6 +7,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityQueries;
 import com.forcitis.one.organization.workforce.domain.LegalEntityQueries.LegalEntityRecord;
 import com.forcitis.one.organization.workforce.domain.LegalEntityStatus;
 import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,8 +23,10 @@ class LegalEntityDirectoryService implements LegalEntityDirectory {
         return legalEntities.find(legalEntityId).map(LegalEntityRecord::code);
     }
 
+    /** The share lock lasts to the end of the caller's transaction; without one it would protect nothing, so none is started here. */
     @Override
-    public Optional<LegalEntityCode> findActiveCode(LegalEntityId legalEntityId) {
-        return legalEntities.find(legalEntityId).filter(e -> e.status() == LegalEntityStatus.ACTIVE).map(LegalEntityRecord::code);
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public Optional<LegalEntityCode> lockActiveCode(LegalEntityId legalEntityId) {
+        return legalEntities.findSharedLocked(legalEntityId).filter(e -> e.status() == LegalEntityStatus.ACTIVE).map(LegalEntityRecord::code);
     }
 }

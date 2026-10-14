@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -24,6 +25,7 @@ import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
 import com.forcitis.one.platform.numbering.api.RegisterLegacyNumbers;
 import java.time.LocalDate;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +45,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
 @Testcontainers
@@ -59,6 +60,9 @@ class NumberingRulesIT {
 
     @MockitoBean
     AuditLog auditLog;
+
+    @MockitoBean
+    com.forcitis.one.organization.workforce.api.LegalEntityDirectory legalEntityDirectory;
 
     @Container
     @ServiceConnection
@@ -96,11 +100,18 @@ class NumberingRulesIT {
 
     @BeforeEach
     void legalEntitiesExist() {
-        jdbc.sql("""
-                insert into organization_workforce.legal_entities (id, code, name, status)
-                values (1, 'FST', 'Synthetic legal entity one', 'ACTIVE'), (2, 'FIT', 'Synthetic legal entity two', 'ACTIVE')
-                on conflict (id) do nothing
-                """).update();
+        NumberingFixtures.restoreSeededDefaults(jdbc);
+        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(org.mockito.ArgumentMatchers.any())).thenReturn(java.util.Optional.empty());
+        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(1)))
+                .thenReturn(java.util.Optional.of(new com.forcitis.one.organization.workforce.api.LegalEntityCode("FST")));
+        org.mockito.Mockito.when(legalEntityDirectory.lockActiveCode(new LegalEntityId(2)))
+                .thenReturn(java.util.Optional.of(new com.forcitis.one.organization.workforce.api.LegalEntityCode("FIT")));
+    }
+
+    private void inForce(String... types) {
+        for (String type : types) {
+            NumberingFixtures.confirmSeeded(jdbc, type);
+        }
     }
 
     private String issue(DocumentType type, LegalEntityId legalEntity, LocalDate day) {
@@ -112,12 +123,12 @@ class NumberingRulesIT {
     void ruleListShowsTheDefaultQuoteTemplateAsPending() throws Exception {
         mvc.perform(get(RULES).with(READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:4}"))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].resetPolicy").value("MONTHLY"))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].documentTypeCode").value("QT"))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].confirmationStatus").value("PENDING_CONFIRMATION"))
-                .andExpect(jsonPath("$[?(@.documentType == 'QUOTE')].capacity").value(9999));
+                .andExpect(jsonPath("$.items.length()").value(3))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:4}"))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].resetPolicy").value("MONTHLY"))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].documentTypeCode").value("QT"))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].confirmationStatus").value("PENDING_CONFIRMATION"))
+                .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].capacity").value(9999));
     }
 
     @Test
@@ -142,6 +153,7 @@ class NumberingRulesIT {
     @Test
     @DisplayName("the quote's first number follows the unified format with the registered code QT")
     void quoteNumbersCarryTheRegisteredTypeCode() {
+        inForce("QUOTE");
         LocalDate day = LocalDate.of(2026, 10, 14);
 
         assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0001");
@@ -152,43 +164,37 @@ class NumberingRulesIT {
     @Test
     @DisplayName("an unknown legal entity cannot take a number, whatever the template")
     void unknownLegalEntityCannotIssue() {
+        inForce("QUOTE", "TIMESHEET");
         LocalDate day = LocalDate.of(2027, 3, 3);
 
         assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(99), day))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("99");
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
+                        .isEqualTo(com.forcitis.one.platform.numbering.api.NumberingError.PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE));
         assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(99), day))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("99");
+                .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
     }
 
     @Test
     @DisplayName("a deactivated legal entity cannot take a new number")
     void deactivatedLegalEntityCannotIssue() {
+        inForce("QUOTE", "TIMESHEET");
         LocalDate day = LocalDate.of(2027, 4, 4);
-        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (3, 'FOT', 'Synthetic three', 'INACTIVE') on conflict (id) do update set status = 'INACTIVE'").update();
-        try {
-            assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(3), day))
-                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("3");
-            assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(3), day))
-                    .isInstanceOf(IllegalStateException.class);
-        } finally {
-            jdbc.sql("delete from organization_workforce.legal_entities where id = 3").update();
-        }
+        assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(3), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
+        assertThatThrownBy(() -> issue(DocumentType.TIMESHEET, new LegalEntityId(3), day)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
     }
 
     @Test
     @DisplayName("a template without {LE} (configured later by an administrator) shares one counter across legal entities, so numbers never repeat")
     void templateWithoutLegalEntityTokenSharesOneCounter() {
         LocalDate day = LocalDate.of(2027, 5, 6);
-        jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{yyyyMMdd}-{seq:4}', reset_policy = 'DAILY' where document_type = 'TIMESHEET'").update();
-        try {
-            String first = issue(DocumentType.TIMESHEET, LE1, day);
-            String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
+        inForce("TIMESHEET");
+        NumberingFixtures.useTemplate(jdbc, "TIMESHEET", "{TYPE}-{yyyyMMdd}-{seq:4}", "DAILY");
 
-            assertThat(first).isEqualTo("TS-20270506-0001");
-            assertThat(second).isEqualTo("TS-20270506-0002");
-        } finally {
-            jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}', reset_policy = 'MONTHLY' where document_type = 'TIMESHEET'").update();
-        }
+        String first = issue(DocumentType.TIMESHEET, LE1, day);
+        String second = issue(DocumentType.TIMESHEET, new LegalEntityId(2), day);
+
+        assertThat(first).isEqualTo("TS-20270506-0001");
+        assertThat(second).isEqualTo("TS-20270506-0002");
     }
 
     @Test
@@ -200,6 +206,7 @@ class NumberingRulesIT {
                     .andExpect(jsonPath("$.resetPolicy").value("MONTHLY"))
                     .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"));
         }
+        inForce("TIMESHEET", "JOURNAL_VOUCHER");
         LocalDate day = LocalDate.of(2027, 6, 7);
         assertThat(issue(DocumentType.TIMESHEET, LE1, day)).isEqualTo("TS-FST-202706-0001");
         assertThat(issue(DocumentType.TIMESHEET, new LegalEntityId(2), day)).isEqualTo("TS-FIT-202706-0001");
@@ -207,68 +214,112 @@ class NumberingRulesIT {
     }
 
     @Test
-    @DisplayName("saving a rule is the administrator's confirmation")
-    void savingConfirmsTheRule() throws Exception {
-        try {
-            mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
-                    .andExpect(status().isNoContent());
-            mvc.perform(get(RULES + "/QUOTE").with(READER))
-                    .andExpect(jsonPath("$.confirmationStatus").value("CONFIRMED"))
-                    .andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"));
-        } finally {
-            // put the shared fixture back to the seeded default so other tests keep seeing the pending template
-            jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}',"
-                    + " confirmation_status = 'PENDING_CONFIRMATION' where document_type = 'QUOTE'").update();
+    @DisplayName("ADR-0027 2.4 saving a rule only saves a new version that waits for someone else's confirmation; it confirms nothing")
+    void savingDoesNotConfirm() throws Exception {
+        String body = "{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\""
+                + java.time.LocalDate.now().plusDays(1) + "\"}";
+        mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isPreconditionRequired()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_REQUIRED"));
+        mvc.perform(put(RULES + "/QUOTE").header("If-Match", "\"999\"").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isPreconditionFailed());
+        String etag = mvc.perform(get(RULES + "/QUOTE").with(READER)).andReturn().getResponse().getHeader("ETag");
+        mvc.perform(put(RULES + "/QUOTE").header("If-Match", etag).with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andExpect(header().exists("ETag"));
+
+        mvc.perform(get(RULES + "/QUOTE").with(READER))
+                .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"))
+                .andExpect(jsonPath("$.pending.templateVersion").value(2))
+                .andExpect(jsonPath("$.pending.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"))
+                .andExpect(jsonPath("$.pending.authorId").value("9"));
+        assertThatThrownBy(() -> issue(DocumentType.QUOTE, LE1, LocalDate.of(2027, 7, 1)))
+                .isInstanceOf(com.forcitis.one.kernel.DomainException.class).hasMessageContaining("no confirmed template");
+    }
+
+    @Test
+    @DisplayName("D-1a-160 an original number is found by its beginning, a page at a time; a prefix shorter than 2 characters is refused")
+    void legacyNumbersAreSearchableByPrefix() throws Exception {
+        String[] numbers = {"SYN-PX-0001", "SYN-PX-0002", "SYN-PX-0003", "OTHER-0001"};
+        for (int i = 0; i < numbers.length; i++) {
+            register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId(String.valueOf(7000 + i))), numbers[i], Optional.of(LE1), "synthetic-prefix"));
         }
+
+        String first = mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumberPrefix", "SYN-PX").param("limit", "2").with(LEGACY_READER))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].legacyNumber").value("SYN-PX-0001")).andExpect(jsonPath("$.nextCursor").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+        String cursor = new tools.jackson.databind.json.JsonMapper().readTree(first).path("nextCursor").asString();
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumberPrefix", "SYN-PX").param("limit", "2").param("cursor", cursor).with(LEGACY_READER))
+                .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].legacyNumber").value("SYN-PX-0003"))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumberPrefix", "S").with(LEGACY_READER))
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID"));
     }
 
     @Test
     @DisplayName("C1a-16 an original number finds the new document, and the new document finds its original numbers")
     void legacyNumbersAreSearchableBothWays() throws Exception {
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001", LE1, "synthetic-batch-1"));
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001-R2", LE1, "synthetic-batch-1"));
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("502")), "SYN-QU-0002", new LegalEntityId(2), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001", Optional.of(LE1), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001-R2", Optional.of(LE1), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("502")), "SYN-QU-0002", Optional.of(new LegalEntityId(2)), "synthetic-batch-1"));
 
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-0001").with(LEGACY_READER))
+        mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-0001").with(LEGACY_READER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.documentId").value("501"))
                 .andExpect(jsonPath("$.legalEntityId").value("1"))
                 .andExpect(jsonPath("$.importBatch").value("synthetic-batch-1"));
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "501").with(LEGACY_READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].legacyNumber").value("SYN-QU-0001"))
-                .andExpect(jsonPath("$[1].legacyNumber").value("SYN-QU-0001-R2"));
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-9999").with(LEGACY_READER))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].legacyNumber").value("SYN-QU-0001"))
+                .andExpect(jsonPath("$.items[1].legacyNumber").value("SYN-QU-0001-R2"));
+        mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-9999").with(LEGACY_READER))
                 .andExpect(status().isNotFound());
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "999").with(LEGACY_READER))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
         assertThat(findDocument.find(DocumentType.TIMESHEET, "SYN-QU-0001")).isEmpty();
     }
 
     @Test
     void legacyNumberSearchNeedsThePermission() throws Exception {
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "X")).andExpect(status().isUnauthorized());
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "X").with(UPDATER)).andExpect(status().isForbidden());
+        mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "X")).andExpect(status().isUnauthorized());
+        mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "X").with(UPDATER)).andExpect(status().isForbidden());
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "1").with(UPDATER)).andExpect(status().isForbidden());
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "X").with(READER)).andExpect(status().isForbidden());
+        mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "X").with(READER)).andExpect(status().isForbidden());
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "1").with(READER)).andExpect(status().isForbidden());
         mvc.perform(get(RULES).with(LEGACY_READER)).andExpect(status().isForbidden());
     }
 
     @Test
+    @DisplayName("D-1a-152 an original number whose legal entity could not be worked out is stored without one and stays searchable")
+    void legacyNumberWithoutLegalEntityIsStoredAndFound() throws Exception {
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("601")), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("601")), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
+
+        assertThat(jdbc.sql("select count(*) from platform_numbering.legacy_numbers where legacy_number = 'SYN-QU-NOLE' and legal_entity_id is null")
+                .query(Integer.class).single()).isEqualTo(1);
+        assertThat(findDocument.find(DocumentType.QUOTE, "SYN-QU-NOLE")).hasValueSatisfying(e -> assertThat(e.legalEntity()).isEmpty());
+        mvc.perform(get(LEGACY + ":resolve").param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-NOLE").with(LEGACY_READER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.documentId").value("601"))
+                .andExpect(jsonPath("$.legalEntityId").doesNotExist());
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "601").with(LEGACY_READER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].legacyNumber").value("SYN-QU-NOLE"));
+    }
+
+    @Test
     @DisplayName("(document type, original number) is unique: re-running an import is a no-op, a second owner is refused")
     void legacyNumberIsUniquePerDocumentType() {
-        LegacyNumberEntry first = new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("11")), "SYN-TS-1", LE1, "synthetic-batch-2");
+        LegacyNumberEntry first = new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("11")), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-2");
         register.register(first);
         register.register(first);
 
         assertThat(jdbc.sql("select count(*) from platform_numbering.legacy_numbers where legacy_number = 'SYN-TS-1'")
                 .query(Integer.class).single()).isEqualTo(1);
-        assertThatThrownBy(() -> register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("12")), "SYN-TS-1", LE1, "synthetic-batch-3")))
-                .isInstanceOf(IllegalStateException.class);
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.JOURNAL_VOUCHER, new DocumentId("12")), "SYN-TS-1", LE1, "synthetic-batch-3"));
+        assertThatThrownBy(() -> register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("12")), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-3")))
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
+                        .isEqualTo(com.forcitis.one.platform.numbering.api.NumberingError.PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.JOURNAL_VOUCHER, new DocumentId("12")), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-3"));
         assertThat(findDocument.find(DocumentType.JOURNAL_VOUCHER, "SYN-TS-1")).isPresent();
     }
 
@@ -283,9 +334,9 @@ class NumberingRulesIT {
 
     @Test
     void entriesValidateThemselves() {
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), " ", LE1, "b")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("0")), "X", LE1, "b")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "X", LE1, "")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "x".repeat(129), LE1, "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), " ", Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("0")), "X", Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "X", Optional.of(LE1), "")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "x".repeat(129), Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -6,6 +6,8 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.LegacyNumberEntry;
 import com.forcitis.one.platform.numbering.domain.LegacyNumberRepository;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.RowMapper;
@@ -17,12 +19,30 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
 
     private static final RowMapper<LegacyNumberEntry> MAPPER = (rs, n) -> new LegacyNumberEntry(
             new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(Long.toString(rs.getLong("document_id")))),
-            rs.getString("legacy_number"), new LegalEntityId(rs.getLong("legal_entity_id")), rs.getString("import_batch"));
+            rs.getString("legacy_number"), legalEntity(rs), rs.getString("import_batch"));
+
+    private static Optional<LegalEntityId> legalEntity(ResultSet rs) throws SQLException {
+        long value = rs.getLong("legal_entity_id");
+        return rs.wasNull() ? Optional.empty() : Optional.of(new LegalEntityId(value));
+    }
 
     private final JdbcClient jdbc;
 
     JdbcLegacyNumberRepository(JdbcClient jdbc) {
         this.jdbc = jdbc;
+    }
+
+    @Override
+    public List<LegacyNumberEntry> findByPrefix(DocumentType type, String prefix, String after, int limit) {
+        return jdbc.sql("""
+                        select document_type, legacy_number, document_id, legal_entity_id, import_batch
+                          from platform_numbering.legacy_numbers
+                         where document_type = :type and starts_with(legacy_number, :prefix)
+                           and (cast(:after as text) is null or legacy_number > :after)
+                         order by legacy_number limit :limit
+                        """)
+                .param("type", type.name()).param("prefix", prefix).param("after", after, java.sql.Types.VARCHAR).param("limit", limit)
+                .query(MAPPER).list();
     }
 
     @Override
@@ -63,7 +83,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
                 .param("type", entry.document().documentType().name())
                 .param("legacy", entry.legacyNumber())
                 .param("document", Long.parseLong(entry.document().documentId().value()))
-                .param("le", entry.legalEntity().value())
+                .param("le", entry.legalEntity().map(LegalEntityId::value).orElse(null))
                 .param("batch", entry.importBatch())
                 .update() == 1;
     }

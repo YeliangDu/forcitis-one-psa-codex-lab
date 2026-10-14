@@ -1,7 +1,9 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.domain.ApprovalTaskRepository;
+import com.forcitis.one.platform.approval.domain.ApprovalTaskQueries;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,12 +15,12 @@ public class EnforceDeadlines {
 
     private static final Logger log = LoggerFactory.getLogger(EnforceDeadlines.class);
 
-    private final ApprovalTaskRepository tasks;
+    private final ApprovalTaskQueries tasks;
     private final TaskDeadline deadline;
     private final MeterRegistry meters;
     private final BusinessTime time;
 
-    EnforceDeadlines(ApprovalTaskRepository tasks, TaskDeadline deadline, MeterRegistry meters, BusinessTime time) {
+    EnforceDeadlines(ApprovalTaskQueries tasks, TaskDeadline deadline, MeterRegistry meters, BusinessTime time) {
         this.tasks = tasks;
         this.deadline = deadline;
         this.meters = meters;
@@ -27,13 +29,15 @@ public class EnforceDeadlines {
 
     public int execute() {
         int handled = 0;
-        for (ApprovalTaskId id : tasks.findDue(time.now())) {
-            try {
-                deadline.enforce(id);
-                handled++;
-            } catch (RuntimeException failed) {
-                log.error("Enforcing the deadline of task {} failed: {}", id.value(), failed.toString());
-                meters.counter("forcitis.platform.approval.deadline.failed").increment();
+        try (WorkContext.Scope job = WorkContext.enter(Uuids.timeOrdered(time.clock()), null, "platform.approval.deadline.enforce")) {
+            for (ApprovalTaskId id : tasks.findDue(time.now())) {
+                try {
+                    deadline.enforce(id);
+                    handled++;
+                } catch (RuntimeException failed) {
+                    log.error("Enforcing the deadline of task {} failed: {}", id.value(), failed.toString());
+                    meters.counter("forcitis.platform.approval.deadline.failed").increment();
+                }
             }
         }
         return handled;

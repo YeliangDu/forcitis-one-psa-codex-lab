@@ -1,19 +1,44 @@
 package com.forcitis.one.platform.approval.web;
 
+import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.Reason;
+import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.TaskRecordAction;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.approval.api.ApprovalSummary;
+import com.forcitis.one.platform.approval.api.TaskEffect;
+import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.application.TaskDetail;
 import java.time.Instant;
 import java.util.List;
-import org.jspecify.annotations.Nullable;
+import org.springframework.lang.Nullable;
 
-record TaskDetailResponse(String taskId, String instanceId, String processKey, String documentType, String documentId, String nodeKey,
-                          String nodeName, String initiator, @Nullable String assignee, List<String> candidates, Instant createdAt,
-                          boolean canAct) {
+/** reason is absent when the deciding person gave none: the screen words that, the data does not pretend (RULE-280). */
+record TaskDetailResponse(String taskId, String instanceId, ProcessKey processKey, DocumentType documentType, String documentId, String nodeKey,
+                          @Nullable String nodeName, String initiator, String initiatorName, @Nullable String initiatorOrgUnitName,
+                          @Nullable String assignee, @Nullable String assigneeName, List<String> candidates, List<String> candidateNames,
+                          Instant createdAt, String status, @Nullable Instant dueAt, @Nullable Instant deadlineAt, boolean overdue,
+                          @Nullable Instant completedAt, @Nullable String outcome, @Nullable String effect, @Nullable String reason,
+                          @Nullable String summary, boolean canAct, List<HistoryEntry> history) {
+
+    record HistoryEntry(String recordId, String taskId, String nodeKey, String nodeName, int round, TaskRecordAction action, String actorId,
+                        String actorName, @Nullable String onBehalfOfName, @Nullable String assigneeName, @Nullable String reason,
+                        Instant decidedAt) {
+    }
 
     static TaskDetailResponse of(TaskDetail detail) {
-        return new TaskDetailResponse(detail.taskId().value(), detail.instanceId().value(), detail.processKey().name(),
-                detail.document().documentType().name(), detail.document().documentId().value(), detail.nodeKey(), detail.nodeName(),
-                String.valueOf(detail.initiator().value()), detail.assignee().map(a -> String.valueOf(a.value())).orElse(null),
-                detail.candidates().stream().map(UserId::value).map(String::valueOf).toList(), detail.createdAt(), detail.canAct());
+        return new TaskDetailResponse(detail.taskId().value(), detail.instanceId().value(), detail.processKey(),
+                detail.document().documentType(), detail.document().documentId().value(), detail.nodeKey(),
+                detail.nodeName().orElse(null), String.valueOf(detail.initiator().value()), detail.initiatorName(),
+                detail.initiatorOrgUnitName().orElse(null), detail.assignee().map(a -> String.valueOf(a.value())).orElse(null),
+                detail.assigneeName().orElse(null), detail.candidates().stream().map(UserId::value).map(String::valueOf).toList(),
+                detail.candidateNames(), detail.createdAt(), detail.status().name(), detail.dueAt().orElse(null), detail.dueAt().orElse(null),
+                detail.overdue(), detail.completedAt().orElse(null), detail.outcome().map(TaskOutcome::name).orElse(null),
+                detail.effect().map(TaskEffect::name).orElse(null), detail.reason().map(Reason::value).orElse(null),
+                detail.summary().map(ApprovalSummary::value).orElse(null), detail.canAct(),
+                detail.history().stream().map(e -> new HistoryEntry(e.recordId().value().toString(), e.taskId().value(), e.nodeKey().value(),
+                        e.nodeName().value(), e.round(), e.action(), String.valueOf(e.actor().value()), e.actorName(),
+                        e.onBehalfOfName().orElse(null), e.assigneeName().orElse(null), e.reason().map(Reason::value).orElse(null),
+                        e.decidedAt())).toList());
     }
 }

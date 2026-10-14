@@ -71,7 +71,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-269 the initiator withdraws a running approval with a reason: the round ends RETURNED, the tasks close, a new round can start")
+    @DisplayName("RULE-269 D-1a-72 the initiator withdraws a running approval with a reason: the round ends RETURNED, the tasks close, a new round can start")
     void withdrawEndsTheRoundAndAllowsANewOne() {
         Staff s = staff();
         actAs(s.initiator());
@@ -92,7 +92,9 @@ class RetractionIT extends ApprovalIntegrationSupport {
             assertThat(e.reason()).isEqualTo(new Reason("wrong hours"));
             assertThat(e.round()).isEqualTo(new RoundNumber(1));
         }));
-        eventually(() -> assertThat(auditActors("ApprovalRequest:TIMESHEET:" + key, "platform.approval.ApprovalCompleted")).containsExactly(s.initiator()));
+        assertThat(events.completed().getFirst().returnSource()).as("D-1a-72 a withdrawal is a return whose source is the initiator")
+                .isEqualTo(com.forcitis.one.platform.approval.api.ReturnSource.INITIATOR);
+        assertThat(events.completed().getFirst().envelope().actorId()).isEqualTo(String.valueOf(s.initiator()));
 
         ApprovalInstanceId second = startFor(key, s);
         assertThat(second).isNotEqualTo(first);
@@ -157,7 +159,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
         Staff s = staff();
         String key = newKey("retract-finished");
         ApprovalInstanceId instance = startFor(key, s);
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
 
         assertThat(check(key, s.initiator())).isEqualTo(WithdrawCheck.NOT_RUNNING);
@@ -173,10 +175,10 @@ class RetractionIT extends ApprovalIntegrationSupport {
         String key = newKey("cutoff");
         ApprovalInstanceId instance = startFor(key, s);
 
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "firstReview"), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "firstReview"), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(check(key, s.initiator())).as("a finished task before the cut-off node does not block").isEqualTo(WithdrawCheck.ALLOWED);
 
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "cutoffReview"), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "cutoffReview"), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(check(key, s.initiator())).isEqualTo(WithdrawCheck.CUTOFF_PASSED);
         assertThat(withdraw(key, s.initiator(), "regret")).isEqualTo(RetractionResult.CUTOFF_PASSED);
         assertThat(cancel(key, s.initiator(), "regret")).isEqualTo(RetractionResult.CUTOFF_PASSED);
@@ -191,7 +193,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
         Staff s = staff();
         String key = newKey("cutoff-reached");
         ApprovalInstanceId instance = startFor(key, s);
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "firstReview"), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "firstReview"), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("cutoffReview");
 
         assertThat(check(key, s.initiator())).isEqualTo(WithdrawCheck.ALLOWED);

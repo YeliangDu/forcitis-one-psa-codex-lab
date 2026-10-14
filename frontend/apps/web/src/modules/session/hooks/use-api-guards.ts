@@ -1,9 +1,8 @@
+import { CURRENT_USER_KEY, installApiGuards } from '@forcitis/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { installApiGuards } from '../api/api-guards';
 import { isPublicPath } from '../model/current-user';
-import { CURRENT_USER_KEY } from './use-current-user';
 
 export function useApiGuards(): void {
   const navigate = useNavigate();

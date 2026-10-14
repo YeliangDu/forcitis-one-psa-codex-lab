@@ -1,0 +1,609 @@
+# Phase 1a 修复批 B1（身份与授权）新增术语（proposed，待业务评审，ADR-0018）。ADR-0027 的八项与运维命令用到的词；每个新错误码一条 error__ 条目。
+terms:
+- id: witness
+  zh: 见证人
+  en: Witness
+  snake: witness
+  kind: role
+  bc: platform.identity
+  definition: 运维命令执行时在场的另一个人，与操作人一起记入审计（双人在场）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: separation
+  zh: 离职
+  en: Separation
+  snake: separation
+  kind: concept
+  bc: platform.identity
+  definition: 员工从在职变为离职这件事；离职时删除全部角色授予、停用应急账号、吊销会话（ADR-0027 第 1 项）。事件、字段与方法里的 separated 是同一概念的过去分词（已离职），登记为技术词，不另立术语
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: finance
+  zh: 财务
+  en: Finance
+  snake: finance
+  kind: concept
+  bc: platform.numbering
+  definition: 凭证号模板在业务确认之外另需的财务确认所属的职能（D-1a-157）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: confirmer
+  zh: 确认人
+  en: Confirmer
+  snake: confirmer
+  kind: role
+  bc: platform.numbering
+  definition: 确认某个编号模板版本的人：业务确认人持有 numbering-rule:approve，财务确认人持有凭证号模板的确认权限
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: author
+  zh: 作者
+  en: Author
+  snake: author
+  kind: role
+  bc: platform.numbering
+  definition: 保存某个编号模板版本的人；作者不能确认自己保存的版本（四眼）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_emergency_admin_transition_illegal
+  zh: 应急账号状态转换非法
+  en: PlatformIdentityEmergencyAdminTransitionIllegal
+  snake: platform_identity_emergency_admin_transition_illegal
+  kind: error_code
+  bc: platform.identity
+  definition: 应急账号已经处于目标状态（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_emergency_admin_not_found
+  zh: 应急账号不存在
+  en: PlatformIdentityEmergencyAdminNotFound
+  snake: platform_identity_emergency_admin_not_found
+  kind: error_code
+  bc: platform.identity
+  definition: 该用户没有应急账号（404）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_emergency_admin_duplicate
+  zh: 应急账号重复
+  en: PlatformIdentityEmergencyAdminDuplicate
+  snake: platform_identity_emergency_admin_duplicate
+  kind: error_code
+  bc: platform.identity
+  definition: 该用户已有应急账号，或登录名已被占用（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_emergency_binding_invalid
+  zh: 应急账号绑定无效
+  en: PlatformIdentityEmergencyBindingInvalid
+  snake: platform_identity_emergency_binding_invalid
+  kind: error_code
+  bc: platform.identity
+  definition: 绑定的人没有启用的账号，或不持有超级管理员；或登录名格式不对（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_operation_witness_required
+  zh: 运维命令须有见证人
+  en: PlatformIdentityOperationWitnessRequired
+  snake: platform_identity_operation_witness_required
+  kind: error_code
+  bc: platform.identity
+  definition: 运维命令须填操作人和另一名见证人，两人不得相同（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_administrator_mode_denied
+  zh: 不能进入管理模式
+  en: PlatformIdentityAdministratorModeDenied
+  snake: platform_identity_administrator_mode_denied
+  kind: error_code
+  bc: platform.identity
+  definition: 再次验证未通过、验证的是另一个人、本人不持有超级管理员，或已在管理模式中（403）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_forced_logout_self_forbidden
+  zh: 不能强制自己下线
+  en: PlatformIdentityForcedLogoutSelfForbidden
+  snake: platform_identity_forced_logout_self_forbidden
+  kind: error_code
+  bc: platform.identity
+  definition: 强制下线不能对本人操作（403）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_forced_logout_reason_required
+  zh: 强制下线须填原因
+  en: PlatformIdentityForcedLogoutReasonRequired
+  snake: platform_identity_forced_logout_reason_required
+  kind: error_code
+  bc: platform.identity
+  definition: 强制下线必须填写 1 至 200 字的原因（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_rule_not_confirmed
+  zh: 编号规则未确认
+  en: PlatformNumberingRuleNotConfirmed
+  snake: platform_numbering_rule_not_confirmed
+  kind: error_code
+  bc: platform.numbering
+  definition: 规则没有已确认的模板版本，不发号（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_confirmer_is_author
+  zh: 确认人是作者
+  en: PlatformNumberingConfirmerIsAuthor
+  snake: platform_numbering_confirmer_is_author
+  kind: error_code
+  bc: platform.numbering
+  definition: 模板版本的作者不能确认自己的版本（403）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_confirmation_repeated
+  zh: 同一人重复确认
+  en: PlatformNumberingConfirmationRepeated
+  snake: platform_numbering_confirmation_repeated
+  kind: error_code
+  bc: platform.numbering
+  definition: 业务确认与财务确认须来自不同的人（403）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_nothing_to_confirm
+  zh: 没有待确认的版本
+  en: PlatformNumberingNothingToConfirm
+  snake: platform_numbering_nothing_to_confirm
+  kind: error_code
+  bc: platform.numbering
+  definition: 该单据的编号规则没有待确认的模板版本（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_finance_confirmation_not_required
+  zh: 无须财务确认
+  en: PlatformNumberingFinanceConfirmationNotRequired
+  snake: platform_numbering_finance_confirmation_not_required
+  kind: error_code
+  bc: platform.numbering
+  definition: 只有凭证号模板需要财务确认（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_audit_export_too_large
+  zh: 导出的条目过多
+  en: PlatformAuditExportTooLarge
+  snake: platform_audit_export_too_large
+  kind: error_code
+  bc: platform.audit
+  definition: 符合条件的审计条目超过导出上限，请缩小筛选范围（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_audit_query_invalid
+  zh: 审计查询条件非法
+  en: PlatformAuditQueryInvalid
+  snake: platform_audit_query_invalid
+  kind: error_code
+  bc: platform.audit
+  definition: 查询条件的取值范围或时间先后不对（400）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_own_attribution_forbidden
+  zh: 不能改本人的法人归属
+  en: OrganizationWorkforceOwnAttributionForbidden
+  snake: organization_workforce_own_attribution_forbidden
+  kind: error_code
+  bc: organization.workforce
+  definition: 不能新增或修改本人、本人所在部门及其上级部门的法人归属（403）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_own_roles_forbidden
+  zh: 不能改自己的角色
+  en: PlatformIdentityOwnRolesForbidden
+  snake: platform_identity_own_roles_forbidden
+  kind: error_code
+  bc: platform.identity
+  definition: 不能修改本人的角色集合（403，I-12）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_own_role_definition_forbidden
+  zh: 不能改自己持有的角色的定义
+  en: PlatformIdentityOwnRoleDefinitionForbidden
+  snake: platform_identity_own_role_definition_forbidden
+  kind: error_code
+  bc: platform.identity
+  definition: 不能修改或删除本人持有的角色的定义（403，I-12）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_authorization_request_not_found
+  zh: 授权申请不存在
+  en: PlatformIdentityAuthorizationRequestNotFound
+  snake: platform_identity_authorization_request_not_found
+  kind: error_code
+  bc: platform.identity
+  definition: 没有这个授权申请（404）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_authorization_request_not_pending
+  zh: 授权申请已处理
+  en: PlatformIdentityAuthorizationRequestNotPending
+  snake: platform_identity_authorization_request_not_pending
+  kind: error_code
+  bc: platform.identity
+  definition: 授权申请已被确认或拒绝（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_authorization_confirmer_not_allowed
+  zh: 不能确认该授权申请
+  en: PlatformIdentityAuthorizationConfirmerNotAllowed
+  snake: platform_identity_authorization_confirmer_not_allowed
+  kind: error_code
+  bc: platform.identity
+  definition: 申请人与受益人不能确认该授权申请（403）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: authorization_request
+  zh: 授权申请
+  en: AuthorizationRequest
+  snake: authorization_request
+  kind: concept
+  bc: platform.identity
+  definition: 授予敏感权限、或把角色改成含敏感权限时先建的申请，另一人确认后才生效
+  standard_ref:
+  - adr/src/ADR-0028.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_version_mismatch
+  zh: 模板版本已变
+  en: PlatformNumberingVersionMismatch
+  snake: platform_numbering_version_mismatch
+  kind: error_code
+  bc: platform.numbering
+  definition: 确认时看到的模板版本不是现在待确认的版本，作者在确认前保存了新版本（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_numbering_effective_date_passed
+  zh: 生效日已过
+  en: PlatformNumberingEffectiveDatePassed
+  snake: platform_numbering_effective_date_passed
+  kind: error_code
+  bc: platform.numbering
+  definition: 作者填写的生效日早于确认当天；不改写作者的日期，由作者改日期重新提交（422，用户决定）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: retained
+  zh: 留任
+  en: Retained
+  snake: retained
+  kind: concept
+  bc: organization.workforce
+  definition: 放行同步暂停的人必须仍是启用账号、持有 super_admin 或安全审计员、在组织快照中明确在职且不在离职名单上（ADR-0028）
+  standard_ref:
+  - adr/src/ADR-0028.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_separation_hold_forbidden
+  zh: 无权解除该暂停
+  en: OrganizationWorkforceSeparationHoldForbidden
+  snake: organization_workforce_separation_hold_forbidden
+  kind: error_code
+  bc: organization.workforce
+  definition: 操作人没有任何一类仍在等待的暂停的解除资格：持有 sync-run:execute 才能解除缩水保护，留任的超级管理员或安全审计员持有 separation-hold:approve 才能解除管理员离职暂停（403，ADR-0028）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_separation_hold_refused
+  zh: 不能在界面放行
+  en: OrganizationWorkforceSeparationHoldRefused
+  snake: organization_workforce_separation_hold_refused
+  kind: error_code
+  bc: organization.workforce
+  definition: 放行后将没有可用的超级管理员，界面拒绝，只能走运维命令（409，ADR-0028）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_release_reason_required
+  zh: 放行需要理由
+  en: OrganizationWorkforceReleaseReasonRequired
+  snake: organization_workforce_release_reason_required
+  kind: error_code
+  bc: organization.workforce
+  definition: 放行被暂停的同步必须写明理由（400，ADR-0028）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: administrator_mode
+  zh: 管理模式
+  en: AdministratorMode
+  snake: administrator_mode
+  kind: concept
+  bc: platform.identity
+  definition: super_admin 持有人经再次验证后在同一会话进入的模式，最长 1 小时、不延长；只有五项平台权限（ADR-0027 第 2 项、ADR-0028），不含业务、敏感读与审计查看
+  standard_ref:
+  - adr/src/ADR-0026.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: forced_logout
+  zh: 强制下线
+  en: ForcedLogout
+  snake: forced_logout
+  kind: concept
+  bc: platform.identity
+  definition: 管理员结束某个人的全部会话：一次一人、须写理由、不能对自己，结束超级管理员或安全审计员的会话会告警（ADR-0027 第 3 项）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: org_data_admin
+  zh: 组织数据管理员
+  en: OrgDataAdmin
+  snake: org_data_admin
+  kind: role
+  bc: platform.identity
+  definition: 系统角色 org_data_admin：维护组织与法人归属、工作日历、编号模板、同步运行；无敏感权限、不能确认模板（ADR-0027 第 2 项）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: business_admin
+  zh: 业务管理员
+  en: BusinessAdmin
+  snake: business_admin
+  kind: role
+  bc: platform.identity
+  definition: 系统角色 business_admin：确认各单据编号模板（凭证号模板的财务确认不在 1a 内设角色）（ADR-0027 第 2 项）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: security_auditor
+  zh: 安全审计员
+  en: SecurityAuditor
+  snake: security_auditor
+  kind: role
+  bc: platform.identity
+  definition: 系统角色 security_auditor：查看与导出审计记录，并在普通会话里放行管理员离职造成的同步暂停（ADR-0027 第 3 项、ADR-0028）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: voucher_numbering_rule
+  zh: 凭证号规则
+  en: VoucherNumberingRule
+  snake: voucher_numbering_rule
+  kind: concept
+  bc: platform.numbering
+  definition: 凭证号模板的编号规则；其确认权限 voucher-numbering-rule:approve 是敏感权限，1a 不设持有角色，待首个过账阶段再定（用户决定）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_access_scope_unavailable
+  zh: 数据范围无法确定
+  en: PlatformIdentityAccessScopeUnavailable
+  snake: platform_identity_access_scope_unavailable
+  kind: error_code
+  bc: platform.identity
+  definition: 调用人的数据范围算不出来时一律拒绝，不放宽成全部（403，RULE-350）
+  standard_ref:
+  - adr/src/ADR-0026.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_permission_administrator_mode_only
+  zh: 该权限只在管理模式
+  en: PlatformIdentityPermissionAdministratorModeOnly
+  snake: platform_identity_permission_administrator_mode_only
+  kind: error_code
+  bc: platform.identity
+  definition: 角色定义、账号授权、强制下线这类平台权限只在管理模式里有，自定义角色不能带（422，ADR-0026 第 5 项、ADR-0027 第 2 项）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: install
+  zh: 安装
+  en: Install
+  snake: install
+  kind: concept
+  bc: kernel
+  definition: 把 JVM 默认时区设为 UTC 的动作（UtcJvm.installAsDefault）；整合分支的方法名用到了它，此处补登记
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+common_words:
+- decided
+- sensitive
+- within
+- authored
+- cause
+- exit
+- force
+- forced
+- given
+- large
+- nothing
+- operation
+- propose
+- repeated
+- revoke
+- superseded
+- trace
+- requested

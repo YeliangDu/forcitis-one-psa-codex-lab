@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -16,11 +17,17 @@ import com.forcitis.one.platform.identity.application.AccessCache;
 import com.forcitis.one.platform.integration.api.SsoTicketVerifier;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.forcitis.one.platform.integration.api.WecomGateway;
+import jakarta.servlet.http.Cookie;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -31,12 +38,15 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -48,15 +58,20 @@ import tools.jackson.databind.json.JsonMapper;
 @SpringBootTest(properties = {
         "flowable.async-executor-activate=false",
         "forcitis.platform.identity.sso.enabled=true",
+        "forcitis.platform.identity.login-throttle.limits.login-states=100000",
+        "forcitis.platform.identity.login-throttle.limits.wecom-login=100000",
+        "forcitis.platform.identity.login-throttle.limits.sso-login=100000",
+        "forcitis.platform.identity.login-throttle.limits.ticket-login=100000",
+        "forcitis.platform.identity.login-throttle.limits.emergency-login=100000",
         "forcitis.platform.identity.sso.legacy-login-url=https://legacy.example.invalid/login",
         "FORCITIS_TICKET_KEY_SHORT=too-short"})
 @AutoConfigureMockMvc
-@org.springframework.test.context.event.RecordApplicationEvents
+@RecordApplicationEvents
 @Import(IdentityIntegrationTest.ClockConfiguration.class)
-abstract class IdentityIntegrationTest {
+public abstract class IdentityIntegrationTest {
 
-    @org.springframework.beans.factory.annotation.Autowired
-    org.springframework.test.context.event.ApplicationEvents recordedEvents;
+    @Autowired
+    ApplicationEvents recordedEvents;
 
     /** Throw-away key per test run (no key literal in the repo). */
     static final String TOTP_KEY = Base64.getEncoder().encodeToString(randomBytes(32));
@@ -92,41 +107,67 @@ abstract class IdentityIntegrationTest {
         MutableClock mutableClock() {
             return new MutableClock();
         }
+
+        @Bean
+        DomainEventRecorder domainEventRecorder() {
+            return new DomainEventRecorder();
+        }
     }
 
+    /** Sees every domain event on the thread that publishes it, including the asynchronous listeners' own threads. */
+    static class DomainEventRecorder {
+        private final List<DomainEvent> seen = new CopyOnWriteArrayList<>();
+
+        @EventListener
+        void on(DomainEvent event) {
+            seen.add(event);
+        }
+
+        <T extends DomainEvent> List<T> of(Class<T> type) {
+            return seen.stream().filter(type::isInstance).map(type::cast).toList();
+        }
+
+        void clear() {
+            seen.clear();
+        }
+    }
+
+    @Autowired
+    protected DomainEventRecorder domainEvents;
+
     @MockitoBean
-    OrgDirectory orgDirectory;
+    protected OrgDirectory orgDirectory;
 
     @MockitoBean
-    WecomGateway wecomGateway;
+    protected WecomGateway wecomGateway;
 
     @MockitoBean
-    AuditLog auditLog;
+    protected AuditLog auditLog;
 
     @MockitoBean
-    SsoTicketVerifier ssoVerifier;
+    protected SsoTicketVerifier ssoVerifier;
 
     @Autowired
-    MockMvc mvc;
+    protected MockMvc mvc;
 
     @Autowired
-    JdbcClient jdbc;
+    protected JdbcClient jdbc;
 
     @Autowired
-    JsonMapper json;
+    protected JsonMapper json;
 
     @Autowired
-    MutableClock clock;
+    protected MutableClock clock;
 
     @Autowired
-    AccessCache accessCache;
+    protected AccessCache accessCache;
 
     /** Not spring-security-test's csrf(): that swaps the CSRF repository of the whole shared context. */
-    static RequestPostProcessor xsrf() {
+    protected static RequestPostProcessor xsrf() {
         return request -> {
-            request.setCookies(java.util.stream.Stream.concat(
-                    request.getCookies() == null ? java.util.stream.Stream.<jakarta.servlet.http.Cookie>empty() : java.util.Arrays.stream(request.getCookies()),
-                    java.util.stream.Stream.of(new jakarta.servlet.http.Cookie("XSRF-TOKEN", "test-xsrf-token"))).toArray(jakarta.servlet.http.Cookie[]::new));
+            request.setCookies(Stream.concat(
+                    request.getCookies() == null ? Stream.<Cookie>empty() : Arrays.stream(request.getCookies()),
+                    Stream.of(new Cookie("XSRF-TOKEN", "test-xsrf-token"))).toArray(Cookie[]::new));
             request.addHeader("X-XSRF-TOKEN", "test-xsrf-token");
             return request;
         };
@@ -135,6 +176,7 @@ abstract class IdentityIntegrationTest {
     @BeforeEach
     void cleanDatabase() {
         clock.reset();
+        domainEvents.clear();
         accessCache.evictAll();
         Mockito.reset(ssoVerifier);
         jdbc.sql("delete from platform_identity.sessions").update();
@@ -147,11 +189,11 @@ abstract class IdentityIntegrationTest {
         jdbc.sql("delete from platform_identity.roles where kind = 'CUSTOM'").update();
     }
 
-    static EmployeeProfile profile(long id, EmploymentStatus status) {
+    protected static EmployeeProfile profile(long id, EmploymentStatus status) {
         return new EmployeeProfile(new UserId(id), "Employee " + id, new OrgUnitId(10), new WecomUserId("wx" + id), status, false);
     }
 
-    EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
+    protected EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
         EmployeeProfile profile = profile(id, status);
         when(orgDirectory.findEmployee(profile.userId())).thenReturn(Optional.of(profile));
         when(orgDirectory.findEmployeeByWecomUserId(profile.wecomUserId())).thenReturn(Optional.of(profile));
@@ -159,34 +201,63 @@ abstract class IdentityIntegrationTest {
         return profile;
     }
 
-    void wecomAccepts(String code, WecomEntry entry, long id) {
+    protected void wecomAccepts(String code, WecomEntry entry, long id) {
         when(wecomGateway.resolveWecomUserId(code, entry)).thenReturn(Optional.of(new WecomUserId("wx" + id)));
     }
 
-    void createAccount(long id, String... roleCodes) {
+    protected void createAccount(long id, String... roleCodes) {
         jdbc.sql("insert into platform_identity.user_accounts (user_id) values (:id) on conflict do nothing").param("id", id).update();
         for (String code : roleCodes) {
             jdbc.sql("""
                             insert into platform_identity.account_roles (user_id, role_id)
                             select :id, role_id from platform_identity.roles where lower(code) = lower(:code)
+                            on conflict do nothing
                             """)
                     .param("id", id).param("code", code).update();
         }
     }
 
-    long count(String table) {
+    protected String accountVersion(long id) {
+        return "\"" + jdbc.sql("select version from platform_identity.user_accounts where user_id = :id").param("id", id).query(Long.class).optional().orElse(0L) + "\"";
+    }
+
+    protected String roleVersion(long roleId) {
+        return "\"" + jdbc.sql("select version from platform_identity.roles where role_id = :id").param("id", roleId).query(Long.class).single() + "\"";
+    }
+
+    protected long count(String table) {
         return jdbc.sql("select count(*) from platform_identity." + table).query(Long.class).single();
     }
 
-    MvcResult postJson(String url, String body) throws Exception {
+    protected MvcResult postJson(String url, String body) throws Exception {
         return mvc.perform(post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn();
     }
 
-    JsonNode body(MvcResult result) throws Exception {
+    protected final Map<String, String> bindings = new ConcurrentHashMap<>();
+
+    /** Asks for a login state as a browser would and keeps the binding cookie that came with it. */
+    protected String newLoginState(String entry) throws Exception {
+        MvcResult issued = postJson("/api/v1/platform/login-states", "{\"entry\":\"" + entry + "\"}");
+        String state = body(issued).path("state").asString();
+        bindings.put(state, cookie(issued, "loginBinding"));
+        return state;
+    }
+
+    /** Posts the login with the binding cookie of the browser that obtained the state. */
+    protected MvcResult postLogin(String url, String body, String state) throws Exception {
+        var request = post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body);
+        String binding = state == null ? null : bindings.get(state);
+        if (binding != null) {
+            request = request.cookie(new Cookie("loginBinding", binding));
+        }
+        return mvc.perform(request).andReturn();
+    }
+
+    protected JsonNode body(MvcResult result) throws Exception {
         return json.readTree(result.getResponse().getContentAsString());
     }
 
-    static String cookie(MvcResult result, String name) {
+    protected static String cookie(MvcResult result, String name) {
         for (String header : result.getResponse().getHeaders("Set-Cookie")) {
             if (header.startsWith(name + "=")) {
                 return header.substring(name.length() + 1, header.indexOf(';') < 0 ? header.length() : header.indexOf(';'));
@@ -195,36 +266,83 @@ abstract class IdentityIntegrationTest {
         return null;
     }
 
-    static String setCookieHeader(MvcResult result, String name) {
+    protected static String setCookieHeader(MvcResult result, String name) {
         return result.getResponse().getHeaders("Set-Cookie").stream().filter(h -> h.startsWith(name + "=")).findFirst().orElse(null);
     }
 
-    String loginWithWecom(long id) throws Exception {
+    protected String loginWithWecom(long id) throws Exception {
         knownEmployee(id, EmploymentStatus.EMPLOYED);
         String code = "code-" + id;
         wecomAccepts(code, WecomEntry.WORKBENCH, id);
-        String state = body(postJson("/api/v1/platform/login-states", "{\"entry\":\"WORKBENCH\"}")).path("state").asString();
-        MvcResult result = postJson("/api/v1/platform/sessions:wecom-login",
-                "{\"code\":\"" + code + "\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}");
+        String state = newLoginState("WORKBENCH");
+        MvcResult result = postLogin("/api/v1/platform/sessions:wecom-login",
+                "{\"code\":\"" + code + "\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}", state);
         if (result.getResponse().getStatus() != 200) {
             throw new AssertionError("login failed: " + result.getResponse().getStatus() + " " + result.getResponse().getContentAsString());
         }
         return cookie(result, "SESSION");
     }
 
-    List<AuditEntry> recorded() {
+    protected static final String ENTER_ADMINISTRATOR_MODE = "/api/v1/platform/sessions:enter-administrator-mode";
+
+    /** The person's session asks for the administrator mode, proving themselves with a fresh WeCom code of person personProvedByTheCode. */
+    protected MvcResult enterAdministratorMode(String session, long personProvedByTheCode) throws Exception {
+        knownEmployee(personProvedByTheCode, EmploymentStatus.EMPLOYED);
+        String code = "reverify-" + personProvedByTheCode + "-" + System.nanoTime();
+        wecomAccepts(code, WecomEntry.WORKBENCH, personProvedByTheCode);
+        String state = newLoginState("WORKBENCH");
+        return mvc.perform(post(ENTER_ADMINISTRATOR_MODE).with(xsrf()).cookie(new Cookie("SESSION", session))
+                .cookie(new Cookie("loginBinding", bindings.get(state))).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}")).andReturn();
+    }
+
+    /** A session in the administrator mode for a super_admin holder who is employed. */
+    protected String administratorSession(long id) throws Exception {
+        createAccount(id, "super_admin", "employee");
+        MvcResult entered = enterAdministratorMode(loginWithWecom(id), id);
+        if (entered.getResponse().getStatus() != 200) {
+            throw new AssertionError("entering the administrator mode failed: " + entered.getResponse().getContentAsString());
+        }
+        return cookie(entered, "SESSION");
+    }
+
+    @Autowired
+    protected com.forcitis.one.platform.identity.domain.EmergencyAdminRepository emergencyAdmins;
+
+    @Autowired
+    protected com.forcitis.one.platform.identity.domain.PasswordHasher hasher;
+
+    @Autowired
+    protected com.forcitis.one.platform.identity.domain.TotpSecretVault vault;
+
+    /** A session started by the emergency login of a new emergency account bound to super_admin holder userId. */
+    protected String emergencySession(long userId) throws Exception {
+        createAccount(userId, "super_admin");
+        byte[] secret = com.forcitis.one.platform.identity.domain.Totp.newSecret();
+        emergencyAdmins.insertIfAbsent(com.forcitis.one.platform.identity.domain.EmergencyAdmin.register(new UserId(userId), "breakglass-" + userId,
+                hasher.hash("Str0ng!Passphrase#42"), vault.seal(secret)));
+        MvcResult login = mvc.perform(post("/api/v1/platform/sessions:emergency-login").with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(
+                "{\"loginName\":\"breakglass-" + userId + "\",\"password\":\"Str0ng!Passphrase#42\",\"totpCode\":\""
+                        + com.forcitis.one.platform.identity.domain.Totp.code(secret, com.forcitis.one.platform.identity.domain.Totp.stepAt(clock.instant())) + "\"}")).andReturn();
+        if (login.getResponse().getStatus() != 200) {
+            throw new AssertionError("emergency login failed: " + login.getResponse().getContentAsString());
+        }
+        return cookie(login, "SESSION");
+    }
+
+    protected List<AuditEntry> recorded() {
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);
         Mockito.verify(auditLog, Mockito.atLeast(0)).record(captor.capture());
         return captor.getAllValues();
     }
 
-    List<AuditEntry> recordedIndependently() {
+    protected List<AuditEntry> recordedIndependently() {
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);
         Mockito.verify(auditLog, Mockito.atLeast(0)).recordIndependently(captor.capture());
         return captor.getAllValues();
     }
 
-    static String responseText(MvcResult result) throws Exception {
+    protected static String responseText(MvcResult result) throws Exception {
         MockHttpServletResponse response = result.getResponse();
         return response.getContentAsString();
     }

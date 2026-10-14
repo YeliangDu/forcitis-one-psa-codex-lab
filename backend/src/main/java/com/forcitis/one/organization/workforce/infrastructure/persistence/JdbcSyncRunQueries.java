@@ -9,7 +9,6 @@ import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import com.forcitis.one.organization.workforce.domain.SyncRunRecord;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,22 +30,23 @@ class JdbcSyncRunQueries implements SyncRunQueries {
     }
 
     @Override
-    public List<SyncRunRecord> findRecent(int limit) {
-        return jdbc.sql(SyncRunRows.SELECT + " order by started_at desc, id desc limit :limit").param("limit", limit)
+    public List<SyncRunRecord> findBefore(Long beforeId, int limit) {
+        return jdbc.sql(SyncRunRows.SELECT + " where (cast(:before as bigint) is null or id < :before) order by id desc limit :limit")
+                .param("before", beforeId, java.sql.Types.BIGINT).param("limit", limit)
                 .query((rs, n) -> SyncRunRows.record(rs)).list();
     }
 
     @Override
     public List<SyncDiff> findDiffs(SyncRunId syncRunId) {
         return jdbc.sql("""
-                select entity_kind, subject_key, change_kind, changed_fields, issue_kind, detail
+                select entity_kind, subject_key, change_kind, changed_field_codes, issue_kind, detail
                   from organization_workforce.sync_diffs where sync_run_id = :id order by id
                 """).param("id", syncRunId.value()).query((rs, n) -> {
-            String fields = rs.getString("changed_fields");
+            java.sql.Array fields = rs.getArray("changed_field_codes");
             String issue = rs.getString("issue_kind");
             return new SyncDiff(EntityKind.valueOf(rs.getString("entity_kind")), rs.getString("subject_key"),
                     ChangeKind.valueOf(rs.getString("change_kind")),
-                    fields == null ? List.of() : Arrays.asList(fields.split(",")),
+                    fields == null ? List.<String>of() : List.of((String[]) fields.getArray()),
                     issue == null ? null : IssueKind.valueOf(issue), rs.getString("detail"));
         }).list();
     }
@@ -56,6 +56,11 @@ class JdbcSyncRunQueries implements SyncRunQueries {
         List<Timestamp> latest = jdbc.sql("select max(finished_at) from organization_workforce.sync_runs where status = 'SUCCEEDED'")
                 .query((rs, n) -> rs.getTimestamp(1)).list();
         return latest.stream().filter(Objects::nonNull).findFirst().map(Timestamp::toInstant);
+    }
+
+    @Override
+    public List<SyncRunRecord> findHeld() {
+        return jdbc.sql(SyncRunRows.SELECT + " where status = 'HELD' order by id").query((rs, n) -> SyncRunRows.record(rs)).list();
     }
 
     @Override

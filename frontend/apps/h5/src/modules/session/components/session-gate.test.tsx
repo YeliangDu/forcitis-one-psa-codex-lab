@@ -1,9 +1,8 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { currentUserBody } from '@/shared/testing/fixtures';
+import { currentUserBody, problemBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
-import { stubServer } from '@/shared/testing/stub-server';
 import { SessionGate } from './session-gate';
 
 const leaveTo = vi.hoisted(() => vi.fn());
@@ -49,7 +48,7 @@ describe('企业微信工作台静默登录', () => {
       'POST sessions:wecom-login': () => {
         addressWhenPosting = window.location.href;
         signedIn = true;
-        return { body: { userId: '1001' } };
+        return { body: { userId: '1001', absoluteExpiresAt: '2026-10-15T01:00:00Z', identityConfirmationRequired: false } };
       },
     });
     renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
@@ -67,12 +66,12 @@ describe('企业微信工作台静默登录', () => {
     window.history.replaceState(null, '', '/?code=C-1&state=S-1');
     const server = stubServer({
       'GET sessions:current': { status: 401, body: {} },
-      'POST sessions:wecom-login': { status: 403, body: { errorCode: 'PLATFORM_IDENTITY_WECOM_NOT_BOUND' } },
+      'POST sessions:wecom-login': { status: 403, body: problemBody(403, 'PLATFORM_IDENTITY_WECOM_NOT_BOUND') },
       'POST login-states': { body: { state: 'S-2' } },
     });
     renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
 
-    expect(await screen.findByText('该企业微信用户尚未对应到员工，请联系管理员')).toBeInTheDocument();
+    expect(await screen.findByText('企业微信用户尚未对应到员工，请联系管理员')).toBeInTheDocument();
     expect(leaveTo).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', { name: '重新登录' }));
@@ -84,11 +83,11 @@ describe('企业微信工作台静默登录', () => {
     window.history.replaceState(null, '', '/?code=C-1&state=S-1');
     stubServer({
       'GET sessions:current': { status: 401, body: {} },
-      'POST sessions:wecom-login': { body: { userId: '1001' } },
+      'POST sessions:wecom-login': { body: { userId: '1001', absoluteExpiresAt: '2026-10-15T01:00:00Z', identityConfirmationRequired: false } },
     });
     renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
 
-    expect(await screen.findByText('登录成功，但登录状态没有保存下来，请重新登录')).toBeInTheDocument();
+    expect(await screen.findByText('登录成功，登录状态没有保存下来，请重新登录')).toBeInTheDocument();
     expect(leaveTo).not.toHaveBeenCalled();
   });
 
@@ -107,5 +106,32 @@ describe('企业微信工作台静默登录', () => {
 
     expect(await screen.findByText('服务暂时不可用，请稍后重试')).toBeInTheDocument();
     expect(server.calls.some((call) => call.method === 'POST')).toBe(false);
+  });
+
+  describe('确认身份（C-M7）', () => {
+    it('身份没有确认之前，页面内容不显示：只显示“将以……身份登录”', async () => {
+      stubServer({ 'GET sessions:current': { body: currentUserBody([], [], { identityConfirmed: false }) } });
+      renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
+
+      expect(await screen.findByText('将以张三身份登录')).toBeInTheDocument();
+      expect(screen.queryByText('待办内容')).not.toBeInTheDocument();
+    });
+
+    it('确认身份：请求确认接口，随后页面内容显示', async () => {
+      let confirmed = false;
+      const server = stubServer({
+        'GET sessions:current': () => ({ body: currentUserBody([], [], { identityConfirmed: confirmed }) }),
+        'POST sessions:confirm-identity': () => {
+          confirmed = true;
+          return { status: 204 };
+        },
+      });
+      renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
+
+      await userEvent.click(await screen.findByRole('button', { name: '确认身份' }));
+
+      expect(await screen.findByText('待办内容')).toBeInTheDocument();
+      expect(server.calls.filter((call) => call.method === 'POST').map((call) => call.url.split('/').pop())).toEqual(['sessions:confirm-identity']);
+    });
   });
 });

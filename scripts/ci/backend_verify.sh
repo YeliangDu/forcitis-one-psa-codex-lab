@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# CI form of `./mvnw verify`: compile once, then surefire (*Test) and failsafe (*IT) run side by side; same tests, without the jacoco agent and report (nothing in CI reads coverage).
+# CI form of `./mvnw verify`: compile and package once (PackagedJarIT checks the executable jar), then surefire (*Test) and failsafe (*IT) run side by side;
+# same tests, without the jacoco agent and report (nothing in CI reads coverage).
 set -uo pipefail
 cd "$(dirname "$0")/../../backend"
 
-./mvnw -B test-compile -Djacoco.skip=true "$@" || exit 1
+./mvnw -B package -DskipTests -Djacoco.skip=true "$@" || exit 1
 
 unit_log=$(mktemp)
 integration_log=$(mktemp)

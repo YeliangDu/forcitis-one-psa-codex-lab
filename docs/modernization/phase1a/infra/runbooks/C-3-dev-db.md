@@ -49,7 +49,7 @@ CA 证书：实例 SSL 已开启（阿里云签发，`ApsaraDB cn-hangzhou regio
 
 | 项 | 结果 |
 |---|---|
-| `one_admin` | 用户决定「先建后轮换」：口令在运维机进程内存中随机生成，同一进程用阿里云 SDK 调 `CreateAccount`（Super），经云助手 SendFile（f-hz0701colwwbzsw）写 ECS `/etc/forcitis-one/one-admin.pgpass`（root 0600），口令不进命令行参数、环境变量、日志与磁盘。登录验证：`rolcreaterole`、`rolcreatedb` 为真。**待办**：R-4 实例 RAM 角色就绪后在 ECS 上生成新口令并重置（DEV_DEPLOY_REMAINING 1-12） |
+| `one_admin` | 用户决定「先建后轮换」：口令在运维机进程内存中随机生成，同一进程用阿里云 SDK 调 `CreateAccount`（Super），经云助手 SendFile（f-hz0701colwwbzsw）写 ECS `/etc/forcitis-one/one-admin.pgpass`（root 0600），口令不进命令行参数、环境变量、日志与磁盘。登录验证：`rolcreaterole`、`rolcreatedb` 为真。**已轮换（2026-10-15，t-hz0701tj8quuccg）**：`scripts/c3_rotate_admin_password.py` 在 ECS 上生成新口令，用现有口令连接执行 `ALTER ROLE one_admin PASSWORD '<SCRAM 校验值>'`（PostgreSQL 允许角色改自己的口令，RDS 高权限账号实测可行），先写 `.new` 再改口令、新口令登录验证通过才替换正式文件；创建时经运维机进程内存的那个口令已作废。以后按同一脚本定期轮换，不依赖 RAM 角色 |
 | STEP 0 | 4 项冲突检查全为空；`max_connections` 1620 |
 | 建库与授权 | `c3_dev_db.sql` 退出码 0；`c3_dev_db_verify.sql`：4 个角色、10 个 schema 属主 `one_dev_owner`、默认权限 18 项、连接上限合计 45、无外来属主（云助手 t-hz0701ctw0hn3eo） |
 | 口令 | `scripts/c3_set_role_passwords.py dev <RDS 内网地址>`（t-hz0701cxo2kjbpc）：在 ECS 上生成，数据库只收到 SCRAM-SHA-256 校验值；app → `one.env`，migrator → `/etc/forcitis-one/migrate/spring.flyway.{user,password}`，readonly → `/etc/forcitis-one/one-dev-readonly.pgpass`；三个角色真实登录，readonly 确认只读 |

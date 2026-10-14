@@ -32,7 +32,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
 @Testcontainers
@@ -54,6 +53,9 @@ class AuditLogIT {
 
     static final String ENTRIES = "/api/v1/platform/audit-entries";
     static final RequestPostProcessor READER = user("7").authorities(() -> Permission.Codes.PLATFORM_AUDIT_ENTRY_READ);
+
+    @Autowired
+    tools.jackson.databind.json.JsonMapper json;
 
     @Autowired
     AuditLog audit;
@@ -152,28 +154,30 @@ class AuditLogIT {
 
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).with(READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.matchCount").value(4))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist())
                 .andExpect(jsonPath("$.items.length()").value(4))
                 .andExpect(jsonPath("$.items[0].createdAt").value("2026-01-04T08:00:00Z"))
                 .andExpect(jsonPath("$.items[0].actorId").doesNotExist())
                 .andExpect(jsonPath("$.items[3].actorId").value("41"))
                 .andExpect(jsonPath("$.items[3].subjectKey").value(subject));
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("actorId", "41").with(READER))
-                .andExpect(jsonPath("$.matchCount").value(3));
+                .andExpect(jsonPath("$.items.length()").value(3));
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("actorId", "42").with(READER))
-                .andExpect(jsonPath("$.matchCount").value(1));
+                .andExpect(jsonPath("$.items.length()").value(1));
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("from", "2026-01-02T00:00:00Z").param("to", "2026-01-04T00:00:00Z").with(READER))
-                .andExpect(jsonPath("$.matchCount").value(2))
+                .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].createdAt").value("2026-01-03T08:00:00Z"))
                 .andExpect(jsonPath("$.items[1].createdAt").value("2026-01-02T08:00:00Z"));
-        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("page", "1").param("limit", "3").with(READER))
-                .andExpect(jsonPath("$.matchCount").value(4))
-                .andExpect(jsonPath("$.page").value(1))
-                .andExpect(jsonPath("$.limit").value(3))
+        String cursor = json.readTree(mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("limit", "3").with(READER))
+                .andExpect(jsonPath("$.items.length()").value(3))
+                .andExpect(jsonPath("$.items[2].createdAt").value("2026-01-02T08:00:00Z"))
+                .andExpect(jsonPath("$.nextCursor").isNotEmpty())
+                .andReturn().getResponse().getContentAsString()).path("nextCursor").asString();
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("limit", "3").param("cursor", cursor).with(READER))
                 .andExpect(jsonPath("$.items.length()").value(1))
-                .andExpect(jsonPath("$.items[0].createdAt").value("2026-01-01T08:00:00Z"));
+                .andExpect(jsonPath("$.items[0].createdAt").value("2026-01-01T08:00:00Z"))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
         mvc.perform(get(ENTRIES).param("subjectKey", unique("subject")).with(READER))
-                .andExpect(jsonPath("$.matchCount").value(0))
                 .andExpect(jsonPath("$.items.length()").value(0));
     }
 
@@ -203,8 +207,58 @@ class AuditLogIT {
     void badPagingIsRefused() throws Exception {
         mvc.perform(get(ENTRIES).param("limit", "0").with(READER)).andExpect(status().isBadRequest());
         mvc.perform(get(ENTRIES).param("limit", "201").with(READER)).andExpect(status().isBadRequest());
-        mvc.perform(get(ENTRIES).param("page", "-1").with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(get(ENTRIES).param("cursor", "not-a-cursor").with(READER)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_CURSOR_INVALID"));
         mvc.perform(get(ENTRIES).param("from", "2026-02-01T00:00:00Z").param("to", "2026-01-01T00:00:00Z").with(READER))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("D-1a-170/171 an entry carries source address, outcome, login method, reason and before / after; they can be searched by on-behalf-of, address, outcome and action prefix")
+    void traceColumnsAreStoredAndSearchable() throws Exception {
+        String subject = unique("subject");
+        String prefix = unique("platform.audit.trace");
+        tx.executeWithoutResult(s -> {
+            audit.record(new AuditEntry(prefix + ".changed", new UserId(61), new UserId(62), subject, "d")
+                    .withTrace("10.1.2.3", com.forcitis.one.platform.audit.api.AuditOutcome.SUCCEEDED, "SSO").withChange("quarterly review", "ACTIVE", "INACTIVE"));
+            audit.record(new AuditEntry(prefix + ".refused", new UserId(61), null, subject, "d")
+                    .withTrace("10.9.9.9", com.forcitis.one.platform.audit.api.AuditOutcome.FAILED, null));
+        });
+
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("actionPrefix", prefix).with(READER))
+                .andExpect(jsonPath("$.items.length()").value(2));
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("onBehalfOfId", "62").with(READER))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].sourceAddress").value("10.1.2.3"))
+                .andExpect(jsonPath("$.items[0].outcome").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.items[0].loginMethod").value("SSO"))
+                .andExpect(jsonPath("$.items[0].changeReason").value("quarterly review"))
+                .andExpect(jsonPath("$.items[0].beforeText").value("ACTIVE"))
+                .andExpect(jsonPath("$.items[0].afterText").value("INACTIVE"));
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("outcome", "FAILED").with(READER))
+                .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].sourceAddress").value("10.9.9.9"));
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("sourceAddress", "10.9.9.9").with(READER))
+                .andExpect(jsonPath("$.items.length()").value(1));
+        mvc.perform(get(ENTRIES).param("outcome", "MAYBE").with(READER)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("B1-M9 looking into the audit trail is an audit entry of its own: who, with which filter, how many were returned (intent 152)")
+    void searchesAreAudited() throws Exception {
+        String subject = unique("subject");
+
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).with(READER)).andExpect(status().isOk());
+
+        assertThat(jdbc.sql("select actor_id || '|' || detail from platform_audit.audit_entries where action = 'platform.audit.audit-entry.searched' and detail like :d")
+                .param("d", "%subjectKey=" + subject + "%").query(String.class).single()).startsWith("7|returned=0 filter=subjectKey=" + subject);
+    }
+
+    @Test
+    @DisplayName("D-1a-170 a secret or personal data must not get into an audit text: the entry is refused when it is built")
+    void secretsAreRefused() {
+        assertThatThrownBy(() -> new AuditEntry("platform.audit.test.x", null, null, "s:1", "login with password=hunter2"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new AuditEntry("platform.audit.test.x", null, null, "s:1", "d").withChange("because", "token: abc", "x"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

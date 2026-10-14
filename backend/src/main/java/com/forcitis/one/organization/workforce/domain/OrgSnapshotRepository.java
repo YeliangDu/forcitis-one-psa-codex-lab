@@ -5,6 +5,7 @@ import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,9 +19,12 @@ public interface OrgSnapshotRepository {
     OrgSnapshot loadAll();
 
     /** The order never trips the unique keys. */
-    void save(Reconciliation changes, SyncRunId syncRunId, Instant now);
+    /** snapshotDate is the day the history rows take effect from: the day the source was read. */
+    void save(Reconciliation changes, SyncRunId syncRunId, Instant now, LocalDate snapshotDate);
 
-    void saveStaffEmployee(StaffEmployee member, SyncRunId syncRunId, Instant now);
+    void saveRegisteredEmployee(RegisteredEmployee registered, Instant now);
+
+    long findEmployeeEventSequence(UserId userId);
 
     Set<OrgUnitId> findOrgUnitIds();
 

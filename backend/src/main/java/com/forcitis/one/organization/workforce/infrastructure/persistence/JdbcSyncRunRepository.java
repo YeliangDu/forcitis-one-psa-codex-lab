@@ -11,6 +11,7 @@ import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -20,17 +21,19 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcSyncRunRepository implements SyncRunRepository {
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcSyncRunRepository(JdbcClient jdbc) {
+    JdbcSyncRunRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
     @Override
-    public SyncRun begin(SyncTrigger trigger, Instant now) {
+    public SyncRun insertRunning(SyncTrigger trigger, Instant now) {
         SyncRun draft = SyncRun.unsaved(trigger, now);
         long id = jdbc.sql("""
-                insert into organization_workforce.sync_runs (trigger_kind, status, started_at, created_at, updated_at)
-                values (:trigger, :status, :now, :now, :now) returning id
+                insert into organization_workforce.sync_runs (trigger_kind, status, started_at, created_at, updated_at, version, event_count)
+                values (:trigger, :status, :now, :now, :now, 0, 0) returning id
                 """).param("trigger", trigger.name()).param("status", draft.status().name()).param("now", Timestamp.from(now))
                 .query(Long.class).single();
         return draft.withId(new SyncRunId(id));
@@ -64,7 +67,8 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                        org_unit_change_count = :g, employee_change_count = :h, position_change_count = :i,
                        isolated_row_count = :j, issue_count = :k, employed_without_wecom_count = :l,
                        held_reason = :heldReason, failure_reason = :failureReason, released_by = :releasedBy,
-                       released_at = :releasedAt, released_by_run_id = :releasedByRun, version = :nextVersion, updated_at = now()
+                       released_at = :releasedAt, released_by_run_id = :releasedByRun, hold_kind_codes = :holdKinds, released_kind_codes = :releasedKinds,
+                       version = :nextVersion, event_count = :eventSequence, updated_at = :updatedAt
                  where id = :id and version = :version and status = :loadedStatus
                 """)
                 .param("status", run.status().name())
@@ -86,17 +90,25 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                 .param("releasedBy", run.releasedBy() == null ? null : run.releasedBy().value(), Types.BIGINT)
                 .param("releasedAt", run.releasedAt() == null ? null : Timestamp.from(run.releasedAt()), Types.TIMESTAMP)
                 .param("releasedByRun", run.releasedByRunId() == null ? null : run.releasedByRunId().value(), Types.BIGINT)
-                .param("nextVersion", run.versionAfterSave())
+                .param("holdKinds", run.holdKinds().stream().map(Enum::name).toArray(String[]::new))
+                .param("releasedKinds", run.releasedKinds().stream().map(Enum::name).toArray(String[]::new))
+                .param("nextVersion", run.versionAfterSave()).param("eventSequence", run.eventSequenceAfterSave())
                 .param("id", run.syncRunId().value()).param("version", run.version()).param("loadedStatus", run.loadedStatus().name())
+                .param("updatedAt", Timestamp.from(clock.instant()))
                 .update();
         if (updated != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
                     "sync run " + run.syncRunId().value() + " was changed by someone else");
         }
+        jdbc.sql("delete from organization_workforce.sync_run_held_separations where sync_run_id = :id").param("id", run.syncRunId().value()).update();
+        for (var person : run.heldSeparations()) {
+            jdbc.sql("insert into organization_workforce.sync_run_held_separations (sync_run_id, employee_id) values (:id, :employee)")
+                    .param("id", run.syncRunId().value()).param("employee", person.value()).update();
+        }
     }
 
     @Override
-    public void discard(SyncRun run) {
+    public void delete(SyncRun run) {
         int removed = jdbc.sql("delete from organization_workforce.sync_runs where id = :id and version = :version and status = :loadedStatus")
                 .param("id", run.syncRunId().value()).param("version", run.version()).param("loadedStatus", run.loadedStatus().name()).update();
         if (removed != 1) {
@@ -110,12 +122,12 @@ class JdbcSyncRunRepository implements SyncRunRepository {
         for (SyncDiff d : diffs) {
             jdbc.sql("""
                     insert into organization_workforce.sync_diffs (sync_run_id, entity_kind, subject_key, change_kind,
-                           changed_fields, issue_kind, detail)
+                           changed_field_codes, issue_kind, detail)
                     values (:run, :entity, :subject, :change, :fields, :issue, :detail)
                     """)
                     .param("run", syncRunId.value()).param("entity", d.entityKind().name()).param("subject", d.subjectKey())
                     .param("change", d.changeKind().name())
-                    .param("fields", d.changedFields().isEmpty() ? null : String.join(",", d.changedFields()))
+                    .param("fields", d.changedFields().isEmpty() ? null : d.changedFields().toArray(String[]::new), java.sql.Types.ARRAY)
                     .param("issue", d.issueKind() == null ? null : d.issueKind().name())
                     .param("detail", truncate(d.detail())).update();
         }

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcLegalEntityQueries implements LegalEntityQueries {
-    private static final String COLUMNS = "id, code, name, status";
+    private static final String COLUMNS = "id, code, name, status, accounting_organization_number, version";
 
     private final JdbcClient jdbc;
 
@@ -33,8 +33,15 @@ class JdbcLegalEntityQueries implements LegalEntityQueries {
                 .param("id", legalEntityId.value()).query((rs, n) -> row(rs)).optional();
     }
 
+    @Override
+    public Optional<LegalEntityRecord> findSharedLocked(LegalEntityId legalEntityId) {
+        return jdbc.sql("select " + COLUMNS + " from organization_workforce.legal_entities where id = :id for share")
+                .param("id", legalEntityId.value()).query((rs, n) -> row(rs)).optional();
+    }
+
     private static LegalEntityRecord row(ResultSet rs) throws SQLException {
         return new LegalEntityRecord(new LegalEntityId(rs.getLong("id")), new LegalEntityCode(rs.getString("code")), rs.getString("name"),
-                LegalEntityStatus.valueOf(rs.getString("status")));
+                LegalEntityStatus.valueOf(rs.getString("status")),
+                rs.getObject("accounting_organization_number", Long.class), rs.getLong("version"));
     }
 }

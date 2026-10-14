@@ -24,9 +24,8 @@ public interface OutboundDeliveryRepository {
 
     boolean save(OutboundDelivery claimed);
 
-    void recordHandledNote(String deduplicationKey, String note);
-
-    void recordHandledResult(String deduplicationKey, String result);
+    /** Writes the handled note and the handled result; applies only to the status and attempt the delivery was loaded with. */
+    boolean saveHandled(OutboundDelivery delivery);
 
     long countPendingCreatedBefore(Instant cutoff);
 

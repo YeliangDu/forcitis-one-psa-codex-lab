@@ -7,13 +7,19 @@ import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
+import com.forcitis.one.organization.attendance.api.DayException;
+import com.forcitis.one.organization.attendance.api.DayKind;
+import com.forcitis.one.organization.attendance.api.LockedDayChange;
+import com.forcitis.one.organization.attendance.events.WorkCalendarLockedDaysChanged;
 import com.forcitis.one.organization.attendance.events.WorkCalendarYearMaintained;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 /** One maintained year of one calendar. A year with no exception is still maintained: saving it says "this year has been checked". */
 public final class WorkCalendarYear extends AggregateRoot {
@@ -21,21 +27,21 @@ public final class WorkCalendarYear extends AggregateRoot {
     private final WorkCalendarKey key;
     private Map<LocalDate, DayKind> exceptions;
 
-    private WorkCalendarYear(Long storedRow, WorkCalendarKey key, Map<LocalDate, DayKind> exceptions, long version) {
-        super(version);
+    private WorkCalendarYear(Long storedRow, WorkCalendarKey key, Map<LocalDate, DayKind> exceptions, long version, long eventSequence) {
+        super(version, eventSequence);
         this.storedRow = storedRow;
         this.key = Objects.requireNonNull(key, "key");
         this.exceptions = Map.copyOf(exceptions);
     }
 
     public static WorkCalendarYear unmaintained(WorkCalendarKey key) {
-        return new WorkCalendarYear(null, key, Map.of(), 0);
+        return new WorkCalendarYear(null, key, Map.of(), 0, 0);
     }
 
-    public static WorkCalendarYear restore(long storedRow, WorkCalendarKey key, List<CalendarDay> days, long version) {
+    public static WorkCalendarYear restore(long storedRow, WorkCalendarKey key, List<CalendarDay> days, long version, long eventSequence) {
         Map<LocalDate, DayKind> restored = new TreeMap<>();
         days.forEach(day -> restored.put(day.calendarDate(), day.dayKind()));
-        return new WorkCalendarYear(storedRow, key, restored, version);
+        return new WorkCalendarYear(storedRow, key, restored, version, eventSequence);
     }
 
     public Long storedRow() {
@@ -58,8 +64,13 @@ public final class WorkCalendarYear extends AggregateRoot {
         return WorkdayRules.isWorkday(date, exceptions);
     }
 
-    /** Replaces the whole year: what the administrator saves is the complete list of exceptions. */
-    public void maintain(List<CalendarDay> days) {
+    /**
+     * Replaces the whole year: what the administrator saves is the complete list of exceptions. In a year that was maintained before, a
+     * day before today is locked, because deadlines already computed on it are not recomputed; changing one needs lockedDaysConfirmed and
+     * is recorded as its own event with the kind before and after. The first maintenance of a year is not a change of anything computed.
+     */
+    public void maintain(List<CalendarDay> days, LocalDate today, boolean lockedDaysConfirmed) {
+        Objects.requireNonNull(today, "today");
         Map<LocalDate, DayKind> next = new TreeMap<>();
         for (CalendarDay day : days) {
             if (day.calendarDate().getYear() != key.calendarYear()) {
@@ -71,9 +82,40 @@ public final class WorkCalendarYear extends AggregateRoot {
                         day.calendarDate() + " is listed twice");
             }
         }
+        List<LockedDayChange> locked = storedRow == null ? List.of() : changedDates(exceptions, next).stream().filter(date -> date.isBefore(today))
+                .map(date -> new LockedDayChange(date, exception(exceptions.get(date)), exception(next.get(date)))).toList();
+        if (!locked.isEmpty() && !lockedDaysConfirmed) {
+            throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED, ErrorKind.UNPROCESSABLE,
+                    "days before " + today + " are locked: " + locked.stream().map(LockedDayChange::calendarDate).limit(5).toList() + (locked.size() > 5 ? " and " + (locked.size() - 5) + " more" : ""));
+        }
+        List<LocalDate> changedDates = changedDates(exceptions, next);
         this.exceptions = Map.copyOf(next);
         record((envelopes, version) -> new WorkCalendarYearMaintained(envelopes.wrap(new EventDraft(
                 "organization.attendance.WorkCalendarYearMaintained", 1, "WorkCalendarYear", key.asText(), version,
-                key.legalEntityId(), null, new EventSource(SourceSystem.ONE, null), List.of())), Year.of(key.calendarYear())));
+                key.legalEntityId(), null, new EventSource(SourceSystem.ONE, null), List.of())), Year.of(key.calendarYear()), changedDates));
+        if (!locked.isEmpty()) {
+            record((envelopes, version) -> new WorkCalendarLockedDaysChanged(envelopes.wrap(new EventDraft(
+                    "organization.attendance.WorkCalendarLockedDaysChanged", 1, "WorkCalendarYear", key.asText(), version,
+                    key.legalEntityId(), null, new EventSource(SourceSystem.ONE, null), List.of())), Year.of(key.calendarYear()), locked));
+        }
+    }
+
+    private static DayException exception(DayKind kind) {
+        return kind == null ? DayException.NONE : DayException.valueOf(kind.name());
+    }
+
+    private static List<LocalDate> changedDates(Map<LocalDate, DayKind> before, Map<LocalDate, DayKind> after) {
+        TreeSet<LocalDate> changed = new TreeSet<>();
+        before.forEach((date, kind) -> {
+            if (after.get(date) != kind) {
+                changed.add(date);
+            }
+        });
+        after.forEach((date, kind) -> {
+            if (before.get(date) != kind) {
+                changed.add(date);
+            }
+        });
+        return List.copyOf(changed);
     }
 }

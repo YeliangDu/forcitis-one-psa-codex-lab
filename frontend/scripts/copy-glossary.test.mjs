@@ -31,6 +31,27 @@ test('registered terms, proposed terms and allowed plain words pass', () => {
   for (const plain of ['确定', '取消', '加载中']) assert.deepEqual(kinds(plain), [], plain);
 });
 
+test('a one-character word is only a connector between two words (M-16)', () => {
+  assert.deepEqual(kinds('工时单和审批'), []);
+  assert.deepEqual(kinds('工时单的审批'), []);
+  assert.deepEqual(kinds('已认领'), [], 'a state is a registered term, not 已 + 认领');
+  for (const text of ['的', '的审批', '工时单的', '请重试', '工时单的是审批', '已通知']) assert.notDeepEqual(kinds(text), [], text);
+});
+
+test('connectors cannot be chained into a text that no term explains', () => {
+  assert.notDeepEqual(kinds('工时单的是审批'), []);
+  assert.deepEqual(kinds('不是的'), ['unregistered:的']);
+  assert.deepEqual(kinds('的的的').length > 0, true);
+});
+
+test('only the listed values may be a whole text by themselves', () => {
+  assert.deepEqual(kinds('是'), []);
+  assert.deepEqual(kinds('否'), []);
+  assert.deepEqual(kinds(' 是 '), []);
+  assert.notDeepEqual(kinds('是的'), []);
+  assert.notDeepEqual(kinds('在'), []);
+});
+
 test('a business word that is not registered fails, with the word named', () => {
   assert.deepEqual(kinds('锦鲤积分'), ['unregistered:锦鲤积分']);
   assert.deepEqual(kinds('确定后查看锦鲤积分'), ['unregistered:锦鲤积分']);
@@ -73,6 +94,18 @@ test('injection: a source file with an unregistered word, a dialect and a plain 
   writeFileSync(file, 'export const a = <button>锦鲤积分</button>;\nexport const b = <p aria-label="销售合同">确定</p>;\n');
   const failures = scan(sourceFiles([root]), glossary);
   assert.deepEqual(failures.map((failure) => `${failure.line}:${failure.kind}:${failure.word}`), ['1:unregistered:锦鲤积分', '2:dialect:销售合同']);
+});
+
+test('a folder called testing is skipped only where the layout puts test helpers, not anywhere in production code', () => {
+  const root = mkdtempSync(join(tmpdir(), 'copy-glossary-'));
+  mkdirSync(join(root, 'shared', 'testing'), { recursive: true });
+  mkdirSync(join(root, 'test'));
+  mkdirSync(join(root, 'modules', 'orders', 'testing'), { recursive: true });
+  writeFileSync(join(root, 'shared', 'testing', 'fixtures.ts'), 'export const a = "锦鲤积分";');
+  writeFileSync(join(root, 'test', 'setup.ts'), 'export const a = "锦鲤积分";');
+  writeFileSync(join(root, 'modules', 'orders', 'testing', 'order-page.tsx'), 'export const a = <p>锦鲤积分</p>;');
+  assert.deepEqual(sourceFiles([root]).map((file) => file.slice(root.length + 1)), ['modules/orders/testing/order-page.tsx']);
+  assert.deepEqual(scan(sourceFiles([root]), glossary).map((failure) => failure.word), ['锦鲤积分']);
 });
 
 test('test files and test helpers are not scanned', () => {

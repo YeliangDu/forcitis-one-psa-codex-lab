@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>4.1.1</version></parent>
-  <groupId>com.forcitis</groupId><artifactId>forcitis-one</artifactId><version>0.0.1</version>
-  <properties><java.version>25</java.version><spring-modulith.version>2.1.1</spring-modulith.version><shedlock.version>7.10.1</shedlock.version><argLine></argLine><test.forks>4</test.forks><test.jvm>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto</test.jvm></properties>
+  <groupId>com.forcitis</groupId><artifactId>forcitis-one</artifactId><version>${revision}</version>
+  <properties><revision>0.0.1</revision><java.version>25</java.version><spring-modulith.version>2.1.1</spring-modulith.version><shedlock.version>7.10.1</shedlock.version><argLine></argLine><test.forks>4</test.forks><test.jvm>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto -Duser.timezone=UTC</test.jvm></properties>
   <dependencyManagement><dependencies><dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-bom</artifactId><version>${spring-modulith.version}</version><type>pom</type><scope>import</scope></dependency></dependencies></dependencyManagement>
   <dependencies>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
@@ -20,10 +20,9 @@
     <dependency><groupId>org.aspectj</groupId><artifactId>aspectjweaver</artifactId></dependency>
     <dependency><groupId>net.javacrumbs.shedlock</groupId><artifactId>shedlock-spring</artifactId><version>${shedlock.version}</version></dependency>
     <dependency><groupId>net.javacrumbs.shedlock</groupId><artifactId>shedlock-provider-jdbc-template</artifactId><version>${shedlock.version}</version></dependency>
+    <!-- platform.integration: object store for archives (China-region OSS, archive storage class, WORM); official SDK, pinned -->
+    <dependency><groupId>com.aliyun.oss</groupId><artifactId>aliyun-sdk-oss</artifactId><version>3.18.1</version></dependency>
     <dependency><groupId>org.flowable</groupId><artifactId>flowable-spring-boot-starter-process</artifactId><version>8.0.0</version></dependency>
-    <!-- platform.approval: decision tables (DMN) give routes, skip / auto-approve permission and node deadlines; versioned with the deployment -->
-    <dependency><groupId>org.flowable</groupId><artifactId>flowable-spring-boot-starter-dmn</artifactId><version>8.0.0</version></dependency>
-    <dependency><groupId>org.flowable</groupId><artifactId>flowable-dmn-spring-configurator</artifactId><version>8.0.0</version></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-flyway</artifactId></dependency>
     <!-- Phase 1a: server-side sessions (ADR-0009), caches (no Redis), metrics to ARMS, read-only SQL Server for A8 / legacy views -->
     <dependency><groupId>org.springframework.session</groupId><artifactId>spring-session-jdbc</artifactId></dependency>
@@ -47,9 +46,17 @@
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-test</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.wiremock</groupId><artifactId>wiremock-standalone</artifactId><version>3.13.1</version><scope>test</scope></dependency>
     <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit</artifactId><version>1.4.2</version></dependency>
+    <!-- archunit stays in the runtime: spring-modulith-core depends on it (compile) to detect modules; test scope here would strip it from the jar -->
   </dependencies>
   <build>
     <plugins>
+      <!-- Start-Class is the application even though the replay command also has a main; the ZIP layout (PropertiesLauncher) lets operators run
+           that command offline from the same jar with -Dloader.main (TIMESHEET_REPLAY.md). The release pipeline passes -Drevision. -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration><mainClass>com.forcitis.one.OneApplication</mainClass><layout>ZIP</layout></configuration>
+        <executions><execution><goals><goal>build-info</goal><goal>repackage</goal></goals></execution></executions>
+      </plugin>
       <plugin>
         <groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><version>0.8.14</version>
         <executions>
@@ -63,7 +70,8 @@
         <configuration><testExcludes><testExclude>**/*MssqlIT.java</testExclude></testExcludes></configuration>
       </plugin>
       <!-- *IT classes (Testcontainers) run in the integration-test phase; surefire only runs *Test (Boot parent) - added by platform.approval -->
-      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine></configuration></plugin>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine><forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds></configuration></plugin>
+      <!-- At JVM exit the cached Spring contexts close after Testcontainers stopped the database; each waits for its connection timeout, so a fork with many contexts needs more than the default 30 s to leave. -->
       <!-- every test class owns its Testcontainers database, so classes run in parallel JVMs: ./mvnw verify -Dtest.forks=1 restores serial runs -->
       <!-- OpenApiExportTest rewrites frontend/packages/api/openapi.json and LegacyShapeTest scans it: the export runs alone and first, never beside the scan -->
       <plugin>

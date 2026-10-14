@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.modulith.events.CompletedEventPublications;
@@ -39,7 +38,7 @@ class EventPublicationJobs {
     private final AtomicLong staleNow = new AtomicLong();
 
     EventPublicationJobs(IncompleteEventPublications incomplete, CompletedEventPublications completed, EventPublicationStatistics statistics,
-                         MeterRegistry meters, ObjectProvider<Clock> clock,
+                         MeterRegistry meters, Clock clock,
                          @Value("${forcitis.platform.integration.event-publication.minimum-age:PT1M}") Duration minimumAge,
                          @Value("${forcitis.platform.integration.event-publication.maximum-attempts:8}") int maximumAttempts,
                          @Value("${forcitis.platform.integration.event-publication.archive-period:P30D}") Duration archivePeriod,
@@ -47,7 +46,7 @@ class EventPublicationJobs {
         this.incomplete = incomplete;
         this.completed = completed;
         this.statistics = statistics;
-        this.clock = clock.getIfAvailable(Clock::systemUTC);
+        this.clock = clock;
         this.minimumAge = minimumAge;
         this.maximumAttempts = maximumAttempts;
         this.archivePeriod = archivePeriod;

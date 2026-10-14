@@ -42,7 +42,7 @@
 | 分页 | **游标分页**：参数为 `cursor` 和 `limit`，`limit` 默认 50、上限 200；响应为 `{items, nextCursor}`。游标不透明，内部编码为 (排序键, id)，与 UUIDv7 天然配合。管理类小表（法人、编号规则）不分页 | **待定**：游标分页（建议），或页码分页（`page` 加 `size`，能跳页，但大表深翻页慢，并发写入时还会漏行或重行） |
 | 过滤 | 查询参数用驼峰命名的字段名，多值用逗号分隔；不提供通用表达式语言 | — |
 | 排序 | `sort=field,-field`，只允许白名单中的字段 | — |
-| POST 幂等 | 有副作用的 POST 接受 `Idempotency-Key` 请求头，服务端保存 24 小时的「键 → 响应」。同一个键带不同的请求体时返回 422 | — |
+| POST 幂等 | 有副作用的 POST 接受 `Idempotency-Key` 请求头，服务端按「用户 + 键」保存 24 小时的「键 → 响应」（状态、正文、ETag、Location），重复请求原样回放。同一个键带不同的请求体时返回 422；第一次请求仍在处理时返回 409；处理中的占位超过「处理中超时」（配置项，节点宕机时用）后允许重试接管；5xx 不保存，重试会重新执行；过期应答由 ShedLock 保护的定时任务清除。**范围**：只覆盖 POST；会话与登录状态端点（路径含 `/sessions`、以 `/login-states` 结尾）返回凭据或会话状态，**永不保存应答正文**，也不在契约中声明该请求头。规则由 `IdempotencyScope` 唯一表达，`HttpContractIT.idempotencyKeyIsOfferedExactlyWhereItIsStored` 守护契约与实现一致，新增返回凭据的端点必须放在这两类路径下，否则评审不予通过 | — |
 | 并发更新 | 更新类请求必须带版本：`If-Match: "<version>"`；不一致返回 412。读取接口返回 `ETag` | **待定**：放在 If-Match 请求头（建议，符合 HTTP 语义），还是放在请求体的 version 字段（前端更直观） |
 | 错误 | RFC 9457 ProblemDetail，type 和 code 取 ErrorCode（platform.web，已定） | — |
 

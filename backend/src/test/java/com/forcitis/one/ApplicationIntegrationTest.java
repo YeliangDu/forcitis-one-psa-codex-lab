@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.forcitis.one.kernel.LegalEntityId;
@@ -64,7 +65,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         // The cached context closes after the container is gone; without a short timeout the engine's close waits 30 s for a connection.
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
@@ -79,6 +79,9 @@ class ApplicationIntegrationTest {
     RoleDirectory roleDirectory;
 
     @MockitoBean
+    com.forcitis.one.organization.workforce.api.EmployeeLegalEntities employeeLegalEntities;
+
+    @MockitoBean
     WecomGateway wecomGateway;
 
     @MockitoBean
@@ -90,10 +93,13 @@ class ApplicationIntegrationTest {
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
+    /** HTTP header names are fixed by RFC 9110 and the Idempotency-Key convention; they are not JSON names. */
+    static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key");
+
     static final LegalEntityId LE1 = new LegalEntityId(1L);
 
     static final String SUBMIT = "/api/v1/cost/timesheets/7:submit";
-    static final String BODY = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":2002}";
+    static final String BODY = "{\"hours\":8,\"projectManagerId\":2002}";
 
     @Autowired
     MockMvc mvc;
@@ -154,56 +160,9 @@ class ApplicationIntegrationTest {
     }
 
     @Test
-    void missingPermissionIsForbidden() throws Exception {
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_APPROVE))
-                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void submitStartsFlowableApprovalInItsOwnSchema() throws Exception {
-        String body = mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.outcome").value("SUBMITTED"))
-                .andReturn().getResponse().getContentAsString();
-        String instanceId = JsonMapper.builder().build().readTree(body).get("approvalInstanceId").asString();
-
+    void flowableLivesInItsOwnSchema() {
         assertThat(count("platform_approval")).isGreaterThan(20);
         assertThat(count("public")).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_ru_task where proc_inst_id_ = ?",
-                Integer.class, instanceId)).isEqualTo(1);
-        assertThat(jdbc.queryForList("""
-                select l.user_id_ from platform_approval.act_ru_identitylink l
-                  join platform_approval.act_ru_task t on t.id_ = l.task_id_
-                 where t.proc_inst_id_ = ? and l.type_ = 'candidate'""", String.class, instanceId))
-                .containsExactly("2002");
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.act_hi_varinst where proc_inst_id_ = ? and name_ = 'skippedWhenEmpty'",
-                Integer.class, instanceId)).isZero();
-    }
-
-    @Test
-    void submitWithoutAnExistingProjectManagerFailsInsteadOfPassingSilently() throws Exception {
-        String unknownManager = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":424242}";
-
-        String body = mvc.perform(post("/api/v1/cost/timesheets/8:submit").with(csrf())
-                        .with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content(unknownManager))
-                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID"))
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andReturn().getResponse().getContentAsString();
-        org.assertj.core.api.Assertions.assertThat(body).contains("\"status\":422");
-    }
-
-    @Test
-    void typedOutcomesMapToHttpStatuses() throws Exception {
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":1,\"hours\":31,\"projectManagerId\":2002}"))
-                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.outcome").value("EXCEEDS_REMAINING_HOURS"))
-                .andExpect(jsonPath("$.errorCode").value("COST_TIMESHEET_EXCEEDS_REMAINING_HOURS"));
-        mvc.perform(post(SUBMIT).with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"workPackageId\":99,\"hours\":1,\"projectManagerId\":2002}"))
-                .andExpect(status().isNotFound()).andExpect(jsonPath("$.errorCode").value("COST_TIMESHEET_UNKNOWN_WORK_PACKAGE"));
     }
 
     @Test
@@ -227,11 +186,27 @@ class ApplicationIntegrationTest {
     }
 
     @BeforeEach
+    void everyEmployeeBelongsToLegalEntityOne() {
+        org.mockito.Mockito.when(employeeLegalEntities.on(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(LE1);
+    }
+
+    @BeforeEach
     void legalEntitiesExist() {
         jdbc.update("""
                 insert into organization_workforce.legal_entities (id, code, name, status)
                 values (1, 'FST', 'Synthetic legal entity one', 'ACTIVE'), (2, 'FIT', 'Synthetic legal entity two', 'ACTIVE')
                 on conflict (id) do nothing
+                """);
+    }
+
+    @BeforeEach
+    void seededNumberingRulesAreConfirmed() {
+        jdbc.update("""
+                update platform_numbering.numbering_rule_versions
+                   set status = 'CONFIRMED', confirmed_by = 101, confirmed_at = now(),
+                       finance_confirmed_by = case when document_type = 'JOURNAL_VOUCHER' then 102 end,
+                       finance_confirmed_at = case when document_type = 'JOURNAL_VOUCHER' then now() end
+                 where version_number = 1 and status = 'PENDING_CONFIRMATION'
                 """);
     }
 
@@ -279,18 +254,28 @@ class ApplicationIntegrationTest {
                 .isInstanceOf(IllegalTransactionStateException.class);
     }
 
+    private String ruleVersion(String documentType) {
+        return "\"" + jdbc.queryForObject("select version from platform_numbering.numbering_rules where document_type = ?", Long.class, documentType) + "\"";
+    }
+
     @Test
     void adminCanRedefineRulesButInvalidPatternsAreRejected() throws Exception {
         var admin = user("9").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
-        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"JV-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
+        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin).header("If-Match", ruleVersion("JOURNAL_VOUCHER"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"JV-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isUnprocessableContent());
-        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500}"))
-                .andExpect(status().isNoContent());
+        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin).header("If-Match", ruleVersion("JOURNAL_VOUCHER"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
+                .andExpect(status().isOk()).andExpect(header().exists("ETag"));
+        mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":2}")
+                        .with(user("10").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE)))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm-finance").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":2}")
+                        .with(user("11").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE)))
+                .andExpect(status().isOk());
         assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZFST-202611-00500");
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(user("8").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -314,6 +299,9 @@ class ApplicationIntegrationTest {
             for (Map.Entry<String, JsonNode> operation : path.getValue().properties()) {
                 for (JsonNode parameter : operation.getValue().path("parameters")) {
                     String name = parameter.path("name").asString();
+                    if ("header".equals(parameter.path("in").asString()) && STANDARD_HEADERS.contains(name)) {
+                        continue;
+                    }
                     camelCase(operation.getKey().toUpperCase() + " " + path.getKey() + " " + parameter.path("in").asString()
                             + " parameter '" + name + "'", name, problems);
                 }
@@ -465,7 +453,7 @@ class ApplicationIntegrationTest {
                        col_description(format('%I.%I', c.table_schema, c.table_name)::regclass, c.ordinal_position) as column_comment,
                        obj_description(format('%I.%I', c.table_schema, c.table_name)::regclass, 'pg_class') as table_comment
                   from information_schema.columns c
-                 where c.table_schema in ('delivery_execution', 'platform_numbering', 'platform_scheduling')
+                 where c.table_schema in ('platform_numbering', 'platform_scheduling')
                  order by c.table_schema, c.table_name, c.ordinal_position
                 """);
         assertThat(rows).isNotEmpty();

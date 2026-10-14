@@ -3,6 +3,8 @@ package com.forcitis.one.cost.timesheet.application;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.domain.ConsumedEvents;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
+import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
+import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -23,12 +25,14 @@ class ApplyApprovalResult {
     private static final String CONSUMER = "cost.timesheet.apply-approval-result";
 
     private final ConsumedEvents consumed;
-    private final Timesheets timesheets;
+    private final TimesheetRepository timesheets;
+    private final DomainEvents events;
     private final MeterRegistry meters;
 
-    ApplyApprovalResult(ConsumedEvents consumed, Timesheets timesheets, MeterRegistry meters) {
+    ApplyApprovalResult(ConsumedEvents consumed, TimesheetRepository timesheets, DomainEvents events, MeterRegistry meters) {
         this.consumed = consumed;
         this.timesheets = timesheets;
+        this.events = events;
         this.meters = meters;
     }
 
@@ -56,24 +60,19 @@ class ApplyApprovalResult {
             log.info("Timesheet {} is not waiting for the result of round {}: ignored", event.document().documentId().value(), event.round().value());
             return;
         }
-        Transitions.run(() -> {
-            switch (event.outcome()) {
-                case APPROVED -> timesheet.approve();
-                case REJECTED -> timesheet.reject(reasonOf(event));
-                case RETURNED -> timesheet.returnForRevision(reasonOf(event));
-                case CANCELLED -> timesheet.cancelSubmission(reasonOf(event));
-            }
-        });
+        switch (event.outcome()) {
+            case APPROVED -> timesheet.approve();
+            case REJECTED -> timesheet.reject(event.reason());
+            case RETURNED -> timesheet.returnForRevision(event.reason());
+            case CANCELLED -> timesheet.cancelSubmission(event.reason());
+        }
         timesheets.save(timesheet);
-    }
-
-    private static String reasonOf(ApprovalCompleted event) {
-        return event.reason() == null ? null : event.reason().value();
+        events.publish(timesheet);
     }
 
     private Optional<Timesheet> timesheetOf(ApprovalCompleted event) {
         try {
-            return timesheets.find(new TimesheetId(Long.parseLong(event.document().documentId().value())));
+            return timesheets.findForUpdate(new TimesheetId(Long.parseLong(event.document().documentId().value())));
         } catch (NumberFormatException notOurs) {
             return Optional.empty();
         }

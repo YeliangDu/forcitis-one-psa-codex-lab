@@ -12,6 +12,8 @@ READ_BY_BUILDS = (
     "docs/modernization/glossary/",
     "docs/modernization/events/",
     "docs/modernization/phase1a/SEEYON_VIEWS.sql",
+    "docs/modernization/phase1a/infra/one_db_roles_schemas.sql",
+    "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml",
     # read by scripts/release (deploy gate, release bundle); their self-tests run in ci
     "docs/modernization/status/blockers/",
     "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",

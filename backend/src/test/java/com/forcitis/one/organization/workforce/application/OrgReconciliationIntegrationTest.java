@@ -2,6 +2,11 @@ package com.forcitis.one.organization.workforce.application;
 
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.tree;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.organization.workforce.domain.OrgReconciliationReport;
@@ -52,5 +57,23 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
 
         jdbc.sql("update organization_workforce.org_units set parent_org_unit_id = 1 where id = 3").update();
         assertThat(reconcile.execute().parentMismatches()).containsExactly("org-unit:3");
+    }
+
+    @Test
+    @DisplayName("D-1a-10 the comparison covers heads, regional receivables managers and WeCom ids too; the count of differences is what the daily alert reports")
+    void headsManagersAndWecomIdsAreCompared() {
+        orgSource.snapshot = source(java.util.List.of(unit(1, null), unit(2, 1L)), java.util.List.of(head(2, 1), manager(2, 1)),
+                java.util.List.of(post(100)), java.util.List.of(person(1, 2, 100L, null, "13900000001", "wx-1"), person(2, 2, 100L, null, "13900000002", "wx-2")));
+        sync.execute(SyncTrigger.SCHEDULED, false);
+        assertThat(reconcile.execute().isZeroDifference()).isTrue();
+
+        orgSource.snapshot = source(java.util.List.of(unit(1, null), unit(2, 1L)), java.util.List.of(head(2, 2), manager(2, 2)),
+                java.util.List.of(post(100)), java.util.List.of(person(1, 2, 100L, null, "13900000001", "wx-1-new"), person(2, 2, 100L, null, "13900000002", "wx-2")));
+        OrgReconciliationReport drift = reconcile.execute();
+
+        assertThat(drift.responsibilityMismatches()).containsExactly("org-unit:2");
+        assertThat(drift.wecomUserIdMismatches()).containsExactly("employee:1");
+        assertThat(drift.differenceCount()).isEqualTo(2);
+        assertThat(drift.isZeroDifference()).isFalse();
     }
 }

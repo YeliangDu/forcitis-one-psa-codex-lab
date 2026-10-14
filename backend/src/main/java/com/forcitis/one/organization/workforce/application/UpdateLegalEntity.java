@@ -2,8 +2,10 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.AccountingOrganizationNumber;
 import com.forcitis.one.organization.workforce.api.LegalEntityNumberUsage;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.LegalEntity;
@@ -25,21 +27,35 @@ public class UpdateLegalEntity {
     }
 
     @Transactional
-    public LegalEntityView execute(long legalEntityId, String code, String name, String status) {
+    public LegalEntityView execute(long legalEntityId, ExpectedVersion expected, String code, String name, String status,
+                                   Long accountingOrganizationNumber) {
         if (legalEntityId <= 0) {
             throw notFound(legalEntityId);
         }
         LegalEntityId id = new LegalEntityId(legalEntityId);
-        LegalEntity legalEntity = legalEntities.find(id).orElseThrow(() -> notFound(legalEntityId));
+        LegalEntity legalEntity = legalEntities.findForUpdate(id).orElseThrow(() -> notFound(legalEntityId));
+        expected.check(legalEntity.version());
         if (code != null) {
             var corrected = CreateLegalEntity.parse(code);
             legalEntity.correctCode(corrected, !corrected.equals(legalEntity.code()) && numberUsage.hasIssuedNumbers(id));
+        }
+        if (accountingOrganizationNumber != null) {
+            legalEntity.assignAccountingNumber(accountingNumber(accountingOrganizationNumber));
         }
         legalEntity.rename(name);
         legalEntity.declareStatus(status);
         legalEntities.save(legalEntity);
         events.publish(legalEntity);
         return LegalEntityView.of(legalEntity);
+    }
+
+    static AccountingOrganizationNumber accountingNumber(long value) {
+        try {
+            return new AccountingOrganizationNumber(value);
+        } catch (IllegalArgumentException invalid) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID, ErrorKind.UNPROCESSABLE,
+                    "an accounting organization number is a positive number");
+        }
     }
 
     private static DomainException notFound(long legalEntityId) {

@@ -1,12 +1,10 @@
+import { describeFailure, useCurrentUser } from '@forcitis/core';
 import { LoginPanel, Notice } from '@forcitis/ui';
 import { useState } from 'react';
 import { Navigate } from 'react-router';
-import { describeFailure } from '@/shared/lib/failure';
 import { rememberReturnPath } from '../api/return-path-storage';
 import { requestWecomLoginState } from '../api/session-api';
-import { useCurrentUser } from '../hooks/use-current-user';
 import { useReturnPath } from '../hooks/use-return-path';
-import { LOGIN_ERROR_MESSAGES } from '../model/login-errors';
 import { readLoginConfig, wecomAuthorizeUrl, wecomConfigured } from '../model/login-config';
 
 export function LoginPage() {
@@ -25,7 +23,7 @@ export function LoginPage() {
     requestWecomLoginState()
       .then((state) => window.location.assign(wecomAuthorizeUrl(config, state, window.location.origin)))
       .catch((error: unknown) => {
-        setProblem(describeFailure(error, LOGIN_ERROR_MESSAGES));
+        setProblem(describeFailure(error));
         setBusy(false);
       });
   };
@@ -52,7 +50,7 @@ export function LoginPage() {
         {
           key: 'sso',
           label: '致远单点登录',
-          description: '从公司门户进入',
+          description: '通过公司门户进入',
           onSelect: startSso,
           ...(config.ssoPortalUrl === '' ? { unavailableText: '尚未配置致远单点登录' } : {}),
         },
