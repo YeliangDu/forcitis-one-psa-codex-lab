@@ -25,6 +25,9 @@
 
 已完成、可复用：psa-olap-architecture、psa-terms-review（第三轮用语确认待启动）、psa-1a-process-review、psa-authz-model、one-docs-naming、psa-gl-finance-review、psa-review-*。
 
+## 重要阻塞
+- 1a 修复批合并前禁止部署任何环境（status/blockers/080）：#50 在 opus 复审前被合并；复审 1 Blocker + 7 High + 18 Medium，修复批已派（H-1 用户定事件解耦；H-6 工作日期由用户填写、T 仍为提交日）。修复批合并前须 opus 复审。
+
 ## 待合并 PR
 - #51 Phase 1a 数据架构打分卡（K1–K15、T1–T5、D1–D10，§14.1）——等 CI。K、D 与 T 的用户决定已转 1a 下一批 B（T1 现在建组织版本表；T2 过去日期日历锁定；T3 consumed_events 90 天、ACT_HI_* 在线 3 年归档满 10 年、separation_date；T4 Phase 2 定）。
 - #50 已合并（1a A+B 整合）。调度会话已同意：意见字段进任务详情与已办、工时提交错误统一 ProblemDetail（下一批 A）；ExportedSnapshot 例外接受；effect / opinion / binding / nullable 交第三轮用语。
