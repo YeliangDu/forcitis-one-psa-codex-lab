@@ -1,0 +1,1635 @@
+{
+  "components" : {
+    "schemas" : {
+      "CreateLegalEntityRequest" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CurrentUserResponse" : {
+        "properties" : {
+          "displayName" : {
+            "type" : "string"
+          },
+          "navigation" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NavigationResponse"
+            },
+            "type" : "array"
+          },
+          "orgUnitId" : {
+            "type" : "string"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "permissionCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "userId" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DecideTaskRequest" : {
+        "properties" : {
+          "outcome" : {
+            "enum" : [ "APPROVE", "REJECT" ],
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DecisionResult" : {
+        "properties" : {
+          "instanceId" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "EmergencyLoginRequest" : {
+        "properties" : {
+          "loginName" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          },
+          "totpCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "InboxItem" : {
+        "properties" : {
+          "claimed" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "detailUrl" : {
+            "type" : "string"
+          },
+          "nodeName" : {
+            "type" : "string"
+          },
+          "source" : {
+            "enum" : [ "NEW", "LEGACY" ],
+            "type" : "string"
+          },
+          "taskId" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "LegacyNumberResponse" : {
+        "properties" : {
+          "documentId" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "type" : "string"
+          },
+          "importBatch" : {
+            "type" : "string"
+          },
+          "legacyNumber" : {
+            "type" : "string"
+          },
+          "legalEntityId" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "LegalEntityResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "legalEntityId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "LoginStateRequest" : {
+        "properties" : {
+          "entry" : {
+            "enum" : [ "WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "MergedInbox" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/InboxItem"
+            },
+            "type" : "array"
+          },
+          "legacyAvailable" : {
+            "type" : "boolean"
+          },
+          "legacyCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "newCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "totalCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "NavigationResponse" : {
+        "properties" : {
+          "children" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NavigationResponse"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "routePath" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "NumberingRuleRequest" : {
+        "properties" : {
+          "pattern" : {
+            "type" : "string"
+          },
+          "resetPolicy" : {
+            "type" : "string"
+          },
+          "startValue" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "NumberingRuleResponse" : {
+        "properties" : {
+          "capacity" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "confirmationStatus" : {
+            "type" : "string"
+          },
+          "documentType" : {
+            "type" : "string"
+          },
+          "documentTypeCode" : {
+            "type" : "string"
+          },
+          "pattern" : {
+            "type" : "string"
+          },
+          "resetPolicy" : {
+            "type" : "string"
+          },
+          "startValue" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "OrgUnitDetailResponse" : {
+        "properties" : {
+          "ancestorOrgUnitIds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "orgUnit" : {
+            "$ref" : "#/components/schemas/OrgUnitResponse"
+          },
+          "orgUnitAndBelowIds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "OrgUnitResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "deliveryUnit" : {
+            "type" : "boolean"
+          },
+          "headEmployeeId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string"
+          },
+          "parentOrgUnitId" : {
+            "type" : "string"
+          },
+          "regionCategory" : {
+            "type" : "string"
+          },
+          "regionalReceivablesManagerId" : {
+            "type" : "string"
+          },
+          "shortName" : {
+            "type" : "string"
+          },
+          "sortOrder" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ReleaseResponse" : {
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "syncRun" : {
+            "$ref" : "#/components/schemas/SyncRunResponse"
+          }
+        },
+        "type" : "object"
+      },
+      "ReplaceRolesRequest" : {
+        "properties" : {
+          "roleCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          }
+        },
+        "type" : "object"
+      },
+      "ReturnTaskRequest" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "RoleRequest" : {
+        "properties" : {
+          "accessScope" : {
+            "enum" : [ "ALL", "CUSTOM_ORG_UNITS", "OWN_ORG_UNIT", "OWN_ORG_UNIT_SUBTREE", "SELF", "SELF_AND_DIRECT_REPORTS" ],
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "permissionCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          }
+        },
+        "type" : "object"
+      },
+      "RoleResponse" : {
+        "properties" : {
+          "accessScope" : {
+            "enum" : [ "ALL", "CUSTOM_ORG_UNITS", "OWN_ORG_UNIT", "OWN_ORG_UNIT_SUBTREE", "SELF", "SELF_AND_DIRECT_REPORTS" ],
+            "type" : "string"
+          },
+          "administrative" : {
+            "type" : "boolean"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "permissionCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "roleId" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "SubmitTimesheetRequest" : {
+        "properties" : {
+          "hours" : {
+            "type" : "number"
+          },
+          "workPackageId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "SubmitTimesheetResponse" : {
+        "properties" : {
+          "approvalInstanceId" : {
+            "type" : "string"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "remainingHours" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "SyncDiffResponse" : {
+        "properties" : {
+          "changeKind" : {
+            "type" : "string"
+          },
+          "changedFields" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "detail" : {
+            "type" : "string"
+          },
+          "entityKind" : {
+            "type" : "string"
+          },
+          "issueKind" : {
+            "type" : "string"
+          },
+          "subjectKey" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "SyncRunDetailResponse" : {
+        "properties" : {
+          "diffs" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SyncDiffResponse"
+            },
+            "type" : "array"
+          },
+          "syncRun" : {
+            "$ref" : "#/components/schemas/SyncRunResponse"
+          }
+        },
+        "type" : "object"
+      },
+      "SyncRunResponse" : {
+        "properties" : {
+          "employedWithoutWecomCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "employeeChangeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "failureReason" : {
+            "type" : "string"
+          },
+          "finishedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "heldReason" : {
+            "type" : "string"
+          },
+          "incomingActiveOrgUnitCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "incomingEmployedCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "isolatedRowCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "issueCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "orgUnitChangeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "positionChangeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "previousActiveOrgUnitCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "previousEmployedCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "releasedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "releasedBy" : {
+            "type" : "string"
+          },
+          "releasedByRunId" : {
+            "type" : "string"
+          },
+          "sourceEmployeeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sourceOrgUnitCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "startedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "syncRunId" : {
+            "type" : "string"
+          },
+          "trigger" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "TaskDetail" : {
+        "properties" : {
+          "assignee" : {
+            "type" : "string"
+          },
+          "businessKey" : {
+            "type" : "string"
+          },
+          "canAct" : {
+            "type" : "boolean"
+          },
+          "candidates" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "initiator" : {
+            "type" : "string"
+          },
+          "instanceId" : {
+            "type" : "string"
+          },
+          "nodeKey" : {
+            "type" : "string"
+          },
+          "nodeName" : {
+            "type" : "string"
+          },
+          "processKey" : {
+            "type" : "string"
+          },
+          "taskId" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "TicketLoginRequest" : {
+        "properties" : {
+          "ticket" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "UpdateLegalEntityRequest" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "WecomLoginRequest" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "entry" : {
+            "enum" : [ "WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN" ],
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    }
+  },
+  "info" : {
+    "title" : "OpenAPI definition",
+    "version" : "v0"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/1/cost/timesheets/{id}:submit" : {
+      "post" : {
+        "operationId" : "submit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubmitTimesheetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubmitTimesheetResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "timesheet-controller" ]
+      }
+    },
+    "/api/1/organization/legal-entities" : {
+      "get" : {
+        "operationId" : "list_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/LegalEntityResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-controller" ]
+      },
+      "post" : {
+        "operationId" : "create_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateLegalEntityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-controller" ]
+      }
+    },
+    "/api/1/organization/legal-entities/{legalEntityId}" : {
+      "put" : {
+        "operationId" : "update_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "legalEntityId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateLegalEntityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legal-entity-controller" ]
+      }
+    },
+    "/api/1/organization/org-units" : {
+      "get" : {
+        "operationId" : "list_6",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "includeRevoked",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/OrgUnitResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "org-unit-controller" ]
+      }
+    },
+    "/api/1/organization/org-units/{orgUnitId}" : {
+      "get" : {
+        "operationId" : "get_4",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "orgUnitId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrgUnitDetailResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "org-unit-controller" ]
+      }
+    },
+    "/api/1/organization/sync-runs" : {
+      "get" : {
+        "operationId" : "list_5",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SyncRunResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sync-run-controller" ]
+      }
+    },
+    "/api/1/organization/sync-runs/{syncRunId}" : {
+      "get" : {
+        "operationId" : "get_3",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "syncRunId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SyncRunDetailResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sync-run-controller" ]
+      }
+    },
+    "/api/1/organization/sync-runs/{syncRunId}:release" : {
+      "post" : {
+        "operationId" : "release",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "syncRunId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReleaseResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sync-run-controller" ]
+      }
+    },
+    "/api/1/platform/approval-tasks" : {
+      "get" : {
+        "operationId" : "list_4",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MergedInbox"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
+    "/api/1/platform/approval-tasks/{taskId}" : {
+      "get" : {
+        "operationId" : "get_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaskDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
+    "/api/1/platform/approval-tasks/{taskId}:claim" : {
+      "post" : {
+        "operationId" : "claim",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
+    "/api/1/platform/approval-tasks/{taskId}:decide" : {
+      "post" : {
+        "operationId" : "decide",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DecideTaskRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DecisionResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
+    "/api/1/platform/approval-tasks/{taskId}:return" : {
+      "post" : {
+        "operationId" : "returnTask",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "taskId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReturnTaskRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DecisionResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "approval-task-controller" ]
+      }
+    },
+    "/api/1/platform/audit-entries" : {
+      "get" : {
+        "operationId" : "list_3",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "actorId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "action",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "subjectKey",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "audit-entry-controller" ]
+      }
+    },
+    "/api/1/platform/legacy-numbers" : {
+      "get" : {
+        "operationId" : "byLegacyNumber",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "documentType",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "legacyNumber",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "documentId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "oneOf" : [ {
+                    "items" : {
+                      "$ref" : "#/components/schemas/LegacyNumberResponse"
+                    },
+                    "type" : "array"
+                  }, {
+                    "$ref" : "#/components/schemas/LegacyNumberResponse"
+                  } ]
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "legacy-number-controller" ]
+      }
+    },
+    "/api/1/platform/login-states" : {
+      "post" : {
+        "operationId" : "beginWecomLogin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginStateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "session-controller" ]
+      }
+    },
+    "/api/1/platform/numbering-rules" : {
+      "get" : {
+        "operationId" : "list_2",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/NumberingRuleResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "numbering-rule-controller" ]
+      }
+    },
+    "/api/1/platform/numbering-rules/{documentType}" : {
+      "get" : {
+        "operationId" : "get_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "documentType",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NumberingRuleResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "numbering-rule-controller" ]
+      },
+      "put" : {
+        "operationId" : "put",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "documentType",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "QUOTE", "TIMESHEET", "JOURNAL_VOUCHER" ],
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NumberingRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "numbering-rule-controller" ]
+      }
+    },
+    "/api/1/platform/roles" : {
+      "get" : {
+        "operationId" : "list",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/RoleResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "role-controller" ]
+      },
+      "post" : {
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "role-controller" ]
+      }
+    },
+    "/api/1/platform/roles/{roleId}" : {
+      "delete" : {
+        "operationId" : "delete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "roleId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "role-controller" ]
+      },
+      "get" : {
+        "operationId" : "get",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "roleId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "role-controller" ]
+      },
+      "put" : {
+        "operationId" : "update",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "roleId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "role-controller" ]
+      }
+    },
+    "/api/1/platform/sessions:current" : {
+      "get" : {
+        "operationId" : "current",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "session-controller" ]
+      }
+    },
+    "/api/1/platform/sessions:emergency-login" : {
+      "post" : {
+        "operationId" : "loginAsEmergencyAdmin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EmergencyLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "session-controller" ]
+      }
+    },
+    "/api/1/platform/sessions:logout" : {
+      "post" : {
+        "operationId" : "logout",
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "session-controller" ]
+      }
+    },
+    "/api/1/platform/sessions:sso-login" : {
+      "post" : {
+        "operationId" : "loginWithSso",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "session-controller" ]
+      }
+    },
+    "/api/1/platform/sessions:ticket-login" : {
+      "post" : {
+        "operationId" : "loginWithSignedTicket",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "session-controller" ]
+      }
+    },
+    "/api/1/platform/sessions:wecom-login" : {
+      "post" : {
+        "operationId" : "loginWithWecom",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WecomLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "session-controller" ]
+      }
+    },
+    "/api/1/platform/user-accounts/{userId}:disable" : {
+      "post" : {
+        "operationId" : "disable",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "role-controller" ]
+      }
+    },
+    "/api/1/platform/user-accounts/{userId}:enable" : {
+      "post" : {
+        "operationId" : "enable",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "role-controller" ]
+      }
+    },
+    "/api/1/platform/user-accounts/{userId}:replace-roles" : {
+      "post" : {
+        "operationId" : "replaceRoles",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReplaceRolesRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "role-controller" ]
+      }
+    }
+  },
+  "servers" : [ {
+    "description" : "Generated server url",
+    "url" : "http://localhost"
+  } ]
+}

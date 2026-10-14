@@ -27,7 +27,7 @@ class LegacyNumberController {
     }
 
     @GetMapping(version = "1", params = "legacyNumber")
-    @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_READ + "')")
+    @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
     ResponseEntity<LegacyNumberResponse> byLegacyNumber(@RequestParam DocumentType documentType, @RequestParam String legacyNumber) {
         return findDocument.find(documentType, legacyNumber)
                 .map(LegacyNumberResponse::from)
@@ -36,7 +36,7 @@ class LegacyNumberController {
     }
 
     @GetMapping(version = "1", params = "documentId")
-    @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_READ + "')")
+    @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
     List<LegacyNumberResponse> byDocument(@RequestParam DocumentType documentType, @RequestParam long documentId) {
         return findLegacyNumbers.find(documentType, new DocumentId(documentId)).stream().map(LegacyNumberResponse::from).toList();
     }

@@ -1,0 +1,24 @@
+{
+  "name": "@forcitis/design-system",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "build": "echo \"design-system is built by apps/web\""
+  },
+  "dependencies": {
+    "antd": "catalog:",
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "^5.0.4"
+  }
+}

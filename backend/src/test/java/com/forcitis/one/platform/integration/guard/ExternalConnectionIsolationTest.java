@@ -34,6 +34,7 @@ class ExternalConnectionIsolationTest {
 
     static final String ROOT = "com.forcitis.one";
     static final String SEEYON = ROOT + ".platform.integration.infrastructure.seeyon..";
+    static final String WECOM = ROOT + ".platform.integration.infrastructure.wecom..";
     static final String INTEGRATION_LEGACY = ROOT + ".platform.integration.infrastructure.legacy..";
     static final String APPROVAL_LEGACY = ROOT + ".platform.approval.infrastructure.legacy..";
 
@@ -58,9 +59,9 @@ class ExternalConnectionIsolationTest {
                 .should().dependOnClassesThat().resideInAPackage(SEEYON)
                 .because("the Seeyon ACL is used through the platform.integration api ports (OrgSource, SsoTicketVerifier), never directly")
                 .check(CLASSES);
-        noClasses().that().resideOutsideOfPackage(SEEYON)
+        noClasses().that().resideOutsideOfPackages(SEEYON, WECOM)
                 .should().dependOnClassesThat().resideInAPackage("java.net.http..")
-                .because("the portal ticket check is the only HTTP client of the application's own code")
+                .because("the portal ticket check (Seeyon) and the WeCom client are the only HTTP clients of the application's own code")
                 .check(CLASSES);
         noClasses().that().resideOutsideOfPackage(INTEGRATION_LEGACY)
                 .should().dependOnClassesThat().resideInAPackage(INTEGRATION_LEGACY)

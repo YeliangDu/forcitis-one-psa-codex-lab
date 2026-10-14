@@ -23,6 +23,7 @@ import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
 import com.forcitis.one.platform.numbering.api.RegisterLegacyNumbers;
 import java.time.LocalDate;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +75,7 @@ class NumberingRulesIT {
     static final String LEGACY = "/api/v1/platform/legacy-numbers";
     static final LegalEntityId LE1 = new LegalEntityId(1);
     static final RequestPostProcessor READER = user("7").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ);
+    static final RequestPostProcessor LEGACY_READER = user("6").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ);
     static final RequestPostProcessor UPDATER = user("9").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
 
     @Autowired
@@ -96,6 +98,15 @@ class NumberingRulesIT {
 
     @Autowired
     TransactionTemplate tx;
+
+    @BeforeEach
+    void legalEntitiesExist() {
+        jdbc.sql("""
+                insert into organization_workforce.legal_entities (id, code, name, status)
+                values (1, 'FST', 'Synthetic legal entity one', 'ACTIVE'), (2, 'FIT', 'Synthetic legal entity two', 'ACTIVE')
+                on conflict (id) do nothing
+                """).update();
+    }
 
     private String issue(DocumentType type, LegalEntityId legalEntity, LocalDate day) {
         return tx.execute(status -> numbers.next(type, legalEntity, day).value());
@@ -142,9 +153,21 @@ class NumberingRulesIT {
     void quoteNumbersCarryTheRegisteredTypeCode() {
         LocalDate day = LocalDate.of(2026, 10, 14);
 
-        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-1-202610-0001");
-        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-1-202610-0002");
-        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2), day)).isEqualTo("QT-2-202610-0001");
+        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0001");
+        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0002");
+        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2), day)).isEqualTo("QT-FIT-202610-0001");
+    }
+
+    @Test
+    @DisplayName("{LE} renders the legal entity code; an unknown legal entity (no code) is an error, and a template without {LE} needs none")
+    void legalEntityCodeIsRequiredByTheTemplate() {
+        LocalDate day = LocalDate.of(2027, 3, 3);
+
+        assertThatThrownBy(() -> issue(DocumentType.QUOTE, new LegalEntityId(99), day))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("99");
+        assertThat(issue(DocumentType.TIMESHEET, new LegalEntityId(99), day)).startsWith("TS20270303");
+        jdbc.sql("update organization_workforce.legal_entities set name = 'Renamed', status = 'INACTIVE' where id = 2").update();
+        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2), day)).startsWith("QT-FIT-202703-");
     }
 
     @Test
@@ -177,19 +200,19 @@ class NumberingRulesIT {
         register.register(new LegacyNumberEntry(DocumentType.QUOTE, "SYN-QU-0001-R2", new DocumentId(501), LE1, "synthetic-batch-1"));
         register.register(new LegacyNumberEntry(DocumentType.QUOTE, "SYN-QU-0002", new DocumentId(502), new LegalEntityId(2), "synthetic-batch-1"));
 
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-0001").with(READER))
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-0001").with(LEGACY_READER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.documentId").value("501"))
                 .andExpect(jsonPath("$.legalEntityId").value("1"))
                 .andExpect(jsonPath("$.importBatch").value("synthetic-batch-1"));
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "501").with(READER))
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "501").with(LEGACY_READER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].legacyNumber").value("SYN-QU-0001"))
                 .andExpect(jsonPath("$[1].legacyNumber").value("SYN-QU-0001-R2"));
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-9999").with(READER))
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-9999").with(LEGACY_READER))
                 .andExpect(status().isNotFound());
-        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "999").with(READER))
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "999").with(LEGACY_READER))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
         assertThat(findDocument.find(DocumentType.TIMESHEET, "SYN-QU-0001")).isEmpty();
     }
@@ -199,6 +222,9 @@ class NumberingRulesIT {
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "X")).andExpect(status().isUnauthorized());
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "X").with(UPDATER)).andExpect(status().isForbidden());
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "1").with(UPDATER)).andExpect(status().isForbidden());
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "X").with(READER)).andExpect(status().isForbidden());
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "1").with(READER)).andExpect(status().isForbidden());
+        mvc.perform(get(RULES).with(LEGACY_READER)).andExpect(status().isForbidden());
     }
 
     @Test

@@ -3,31 +3,26 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "eslint . --max-warnings 0 && stylelint \"src/**/*.css\"",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "vite build",
+    "generate:api": "node scripts/generate-api.mjs",
+    "check:generated": "node scripts/generate-api.mjs --check",
+    "typecheck": "pnpm -r --workspace-concurrency=1 run typecheck",
+    "lint": "eslint . --max-warnings 0 && stylelint \"{apps,packages}/*/src/**/*.css\"",
     "check:structure": "node scripts/check-structure.mjs",
     "check:lint-config": "node scripts/check-lint-config.mjs",
-    "verify": "pnpm typecheck && pnpm check:lint-config && pnpm lint && pnpm check:structure && pnpm build"
-  },
-  "dependencies": {
-    "antd": "^5.29.3",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "test": "pnpm -r --workspace-concurrency=1 run test",
+    "build": "pnpm -r --workspace-concurrency=1 run build",
+    "verify": "pnpm check:generated && pnpm typecheck && pnpm check:lint-config && pnpm lint && pnpm check:structure && pnpm test && pnpm build"
   },
   "devDependencies": {
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^5.2.0",
     "eslint": "^9.39.5",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-boundaries": "^5.4.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-unicorn": "^60.0.0",
+    "openapi-typescript": "^7.13.0",
     "stylelint": "^16.26.1",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.71.2",
-    "vite": "^7.3.7"
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.71.2"
   },
   "packageManager": "pnpm@12.4.2",
   "engines": {

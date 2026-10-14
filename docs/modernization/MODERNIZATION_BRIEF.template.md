@@ -166,12 +166,14 @@ Entry criteria:
 - [ ] `operations.facts` 过账管道和 `accounting.period` 已可用（ADR-0016）：明细事实表拒绝 UPDATE / DELETE 的测试通过；向已关闭的 (期间, 法人) 过账被拒绝的测试通过；工时成本（交易类型 TS）是第一个事实生产者
 - [ ] 老过账引擎最近一个已结期间的工时成本过账结果已导出，作为影子比对基线
   Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14）：追加入口条件「工时审批所需的流程字段已有来源：项目经理（`projectManagerId`）、区域负责人（`regionalHeadId`）与工时行类型路由标记（项目 / 售前 / OH）由哪个模块提供已决定（候选：delivery.execution 提供项目经理，organization.workforce 提供区域负责人）」。1a 中 TIMESHEET 只用于回放，不实际发起，取不到人时落流程管理员兜底。
+  Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14，依据 R0 登记的 A8_ACCESS_REGISTER #29–#31）：追加入口条件「无效交付工时规则（生产 SQL Agent 作业第 4 步经 BI 视图 T_FST_INVALID_DELIVERY 回写，#31）已抽取为规则卡并评审；项目档案（#29）与项目预算（#30，与 PSA 预算双入口，RULE-182/239）的 A8 → 老 PSA 通道已在规则卡中登记」。
 Exit criteria:
 - [ ] 影子计算结果：一个完整会计期间内，新旧系统逐行的审批状态、锁定费率、标准成本金额、计费金额、人天、任务包实际工时完全一致，或差异已被接受
 - [ ] 切换发生在会计期间边界；老系统中切换前发起的工时审批实例已全部结束
 - [ ] 工时保存和提交的 p95 延迟不高于基线
 - [ ] 老成本归集读取反向同步后的 `psa_time_sheet_works_end` 时，结果与切换前一致
 - [ ] 回滚演练通过
+  Proposed revision（草稿，待用户决定；同上）：追加出口条件「生产 SQL Agent 中对应的 A8 / BI → 老 PSA 作业（A8_ACCESS_REGISTER #29、#30、#31）已停用，并在登记表中改为『已停用 / 已迁入』；切换完成前 BI 视图 T_FST_PROJECT、T_FST_INVALID_DELIVERY 不改为过渡镜像、不废弃」。
 
 #### Phase 3 — 差旅报销（分贝通）
 Command: /code-modernization:modernize-reimagine
@@ -206,6 +208,7 @@ Entry criteria:
   Proposed revision:（ADR-0022 评审 C-1，用户 2026-10-14：「收付推送前移到 6a (Recommended)」；草稿，路线整体编排由 psa-coordinator 统一处理）6a 入口增加：`accounting.ledger` 收付口径推送通道就绪——收付科目表与映射表首版、6a 表单对应的口径转换规则（D17）、主数据单向同步、幂等推送、死信与对账，经财务确认；自 6a 切换日起已迁入表单的凭证由新系统推送 U8C 收付账套，A8 制证插件同日停用。
 - [ ] 最近两个已结期间的老系统归集、分摊、结转、凭证结果已导出，作为黄金基线
 - [ ] 月结批处理的耗时基线已导出
+  Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14，依据 R0 登记的 A8_ACCESS_REGISTER #28）：追加入口条件「成本明细 → psa_pm_pay 通道（生产 SQL Agent 作业，#28）承载的成本明细规则已抽取为规则卡并评审，含隐含规则『委外和居间付款申请不结转』」。
 Exit criteria:
 - [ ] 两个月结期间，新旧系统的分摊行、WIP 余额、凭证分录逐笔一致，或差异已由财务在 `RULE_REVIEWS.json` 中签字接受
 - [ ] 对账等式全部成立：归集守恒、合同资产滚动恒等式（F113）、凭证借贷平衡；老系统的红冲记录已按冲销关系迁移，原行与反向行双向关联
@@ -213,6 +216,7 @@ Exit criteria:
 - [ ] U8C 推送权已切换到新系统，老成本页面和 `/fst/accounting/wip` 已下线
   Proposed revision:（OA 流程盘点，用户 2026-10-14：ADR-0021「采纳；6a–6c 并入 Phase 4 前」）增加前置：6a 合同与收入、6b 开票与收款、6c 费用、付款与预提的出口条件均已满足，且 A8 凭证插件（`LEXMISCIF_VOUCHER`）与销项开票插件在切换日后无新记录；本阶段权责事实按 ADR-0021 第 4 条完成无遗留检查。阶段草案见 OA_PROCESS_INVENTORY.md §6.3。
 - [ ] 回滚演练通过（推送权切回老系统）
+  Proposed revision（草稿，待用户决定；同上）：追加出口条件「#28 对应的生产 SQL Agent 作业已停用，并在 A8_ACCESS_REGISTER 中改为『已停用 / 已迁入』；切换完成前 BI 视图 T_FST_PAY 不改为过渡镜像、不废弃」。
 
 #### Phase 5 — 身份全面切换、BI 与老系统下线
 Command: /code-modernization:modernize-reimagine

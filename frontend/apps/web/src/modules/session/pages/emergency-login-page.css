@@ -1,0 +1,28 @@
+.emergency-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--surface-page);
+}
+
+.emergency-login__card {
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  padding: 32px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+
+.emergency-login__title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.emergency-login__hint {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}

@@ -1,0 +1,24 @@
+package com.forcitis.one.platform.integration.infrastructure.wecom;
+
+import java.time.Duration;
+import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+
+/**
+ * forcitis.platform.integration.wecom.*: credentials come from environment variables only. Off by default: no
+ * WeCom call is made, the delivery job does not run, and code exchange answers "unknown".
+ */
+@ConfigurationProperties("forcitis.platform.integration.wecom")
+record WecomProperties(@DefaultValue("false") boolean enabled, @DefaultValue("https://qyapi.weixin.qq.com") String baseUrl,
+                       @DefaultValue("") String corpId, @DefaultValue("") String secret, @DefaultValue("") String agentId,
+                       @DefaultValue("5s") Duration connectTimeout, @DefaultValue("5s") Duration readTimeout,
+                       @DefaultValue Recipients recipients, @DefaultValue Delivery delivery) {
+
+    /** Restricted by default; production sets restricted=false explicitly. */
+    record Recipients(@DefaultValue("true") boolean restricted, @DefaultValue List<String> allowed) {
+    }
+
+    record Delivery(@DefaultValue("PT5S") Duration interval) {
+    }
+}
