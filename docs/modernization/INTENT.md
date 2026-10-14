@@ -143,3 +143,6 @@
 | RULE-280 默认通过意见（2026-10-14，psa-coordinator 询问）：「留空并如实审计 (Recommended)」 | RULE_REVIEWS「实现方式变更」；BUSINESS_RULES RULE-280 Revision；proposals/RULE-280_DEFAULT_REASON.md（已确认） |
 | 每个阶段实施前增加「流程梳理」步骤：产出现状流程（代码、OA 盘点、生产计数）、目标流程、差异清单，差异逐条由我决定，结果写入 INTENT 和 brief 的行为契约。先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件，再从 Phase 1a 涉及的流程开始做。（2026-10-14，经 psa-coordinator 转达） | SESSION_PLAYBOOK §13；process/README.md；brief 各阶段入口条件（1a 为补做）与 §5「流程梳理结论」（rules/build_brief.py 生成） |
 | 推迟项按新原则重审（2026-10-14，psa-coordinator 询问）：「同意，全部在 1a 做 (Recommended)」 | G-1、G-2 会签、RULE-302、RULE-268/269/285/309、RULE-300 剩余、H5（企业微信静默登录、待办、审批详情）在 1a 完成；仍后做项与理由见 phase1a/DEFERRED.md |
+| ADR-0026 D-1 员工法人归属：「部门→法人为默认，员工可单独指定并带生效区间 (Recommended)」（经 psa-coordinator 转达） | ADR-0026 第 2 项第 5 条：部门→法人对照（子部门继承）为默认，个别员工单独指定，二者带生效区间、按事实发生日取值；与流程梳理 D-1a-27 员工→法人生效区间表合并为同一模型 |
+| ADR-0026 其余 11 项（D-2..D-7、D-9..D-12）：「全部按建议，并批准 ADR-0026 (Recommended)」（经 psa-coordinator 转达） | ADR-0026 状态改为已采纳；ADR-0009 状态标注第 4 条部分已被 ADR-0026 取代；REIMAGINED_ARCHITECTURE §3.2、AI_NATIVE_SPEC C1a-08/09 与 §5.3、SECURITY_INVARIANTS I-10..I-12 同步 |
+| ADR-0026 D-13 季度授权复核由谁负责：「内控 / 财务」（经 psa-coordinator 转达） | ADR-0026 第 6 项第 3 条：季度复核报表由内控 / 财务复核，超期提醒内控 / 财务负责人 |

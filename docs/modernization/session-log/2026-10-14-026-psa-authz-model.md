@@ -7,3 +7,4 @@
 - 未完成与阻塞：待用户批准 ADR-0026 并回答 D-1..D-7、D-9..D-13；批准后由 1a 会话按「1a 交付范围」实现并同步守护规则；法人限定与审批参与访问在 1b 实现前须按 §12.2 在 RULE_REVIEWS 登记新规则。
 - 下一步命令：psa-coordinator 汇总 ADR-0026 的待决事项给用户；批准后 1a 会话实现。
 - 会话 ID（用于 claude --resume）：本会话（worktree xin-af304c，分支 claude/psa-authz-model）
+- 采纳（同日，接续）：psa-coordinator 转达用户决定——D-1「部门→法人为默认，员工可单独指定并带生效区间 (Recommended)」（与流程梳理 D-1a-27 合并为同一模型）；其余「全部按建议，并批准 ADR-0026 (Recommended)」；D-13「内控 / 财务」。ADR-0026 改为已采纳，「需用户决定」改为「用户决定」；ADR-0009 状态标注第 4 条部分已被 ADR-0026 取代；同步 REIMAGINED_ARCHITECTURE §3.2、AI_NATIVE_SPEC C1a-08/09 与 §5.3、SECURITY_INVARIANTS I-10..I-12；STATUS 阻塞新增「1b 前须登记的新规则」；三条 intent。build_all 通过。下一步：Phase 1a 会话按 ADR-0026「1a 交付范围」实现。
