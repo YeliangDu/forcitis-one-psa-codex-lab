@@ -19,9 +19,12 @@ const TASK_DETAIL = {
   nodeKey: 'pm',
   nodeName: '项目经理',
   initiator: '1',
+  initiatorName: '李四',
   candidates: [],
+  candidateNames: [],
   createdAt: '2026-10-14T01:00:00Z',
   canAct: true,
+  overdue: false,
   history: [],
 };
 

@@ -54,6 +54,8 @@ export const DecisionResponseSchema = z.object({
   get status() { return ApprovalStatusSchema; },
 });
 
+export const DocumentTypeSchema = z.enum(["JOURNAL_VOUCHER", "QUOTE", "TIMESHEET"]);
+
 export const EmergencyLoginRequestSchema = z.object({
   loginName: z.string().optional(),
   password: z.string().optional(),
@@ -62,12 +64,17 @@ export const EmergencyLoginRequestSchema = z.object({
 
 export const ErrorCodeSchema = z.enum(["COST_TIMESHEET_CONCURRENT_CHANGE", "COST_TIMESHEET_CUTOFF_PASSED", "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS", "COST_TIMESHEET_NOT_FOUND", "COST_TIMESHEET_REASON_REQUIRED", "COST_TIMESHEET_TRANSITION_ILLEGAL", "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE", "COST_TIMESHEET_WORK_DATE_IN_FUTURE", "COST_TIMESHEET_WORK_DATE_REQUIRED", "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE", "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN", "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR", "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED", "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY", "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT", "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND", "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED", "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE", "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN", "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL", "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED", "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND", "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL", "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID", "PLATFORM_APPROVAL_CONCURRENT_CHANGE", "PLATFORM_APPROVAL_CUTOFF_PASSED", "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE", "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK", "PLATFORM_APPROVAL_DECISION_EMPTY", "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY", "PLATFORM_APPROVAL_HOOK_BLOCKED", "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED", "PLATFORM_APPROVAL_NOT_INITIATOR", "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_REASON_REQUIRED", "PLATFORM_APPROVAL_REQUEST_NOT_FOUND", "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED", "PLATFORM_APPROVAL_TASK_NOT_FOUND", "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID", "PLATFORM_APPROVAL_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_ACCOUNT_DISABLED", "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND", "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_CONCURRENT_UPDATE", "PLATFORM_IDENTITY_CREDENTIALS_INVALID", "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED", "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN", "PLATFORM_IDENTITY_NETWORK_DENIED", "PLATFORM_IDENTITY_PERMISSION_UNKNOWN", "PLATFORM_IDENTITY_ROLE_BLANK_NAME", "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE", "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME", "PLATFORM_IDENTITY_ROLE_INVALID_CODE", "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED", "PLATFORM_IDENTITY_ROLE_NOT_FOUND", "PLATFORM_IDENTITY_ROLE_RESERVED_CODE", "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN", "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL", "PLATFORM_IDENTITY_SSO_UNAVAILABLE", "PLATFORM_IDENTITY_STATE_INVALID", "PLATFORM_IDENTITY_TICKET_INVALID", "PLATFORM_IDENTITY_TICKET_REPLAYED", "PLATFORM_IDENTITY_WECOM_CODE_INVALID", "PLATFORM_IDENTITY_WECOM_NOT_BOUND", "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL", "PLATFORM_NUMBERING_CONCURRENT_UPDATE", "PLATFORM_NUMBERING_RULE_INVALID", "PLATFORM_NUMBERING_RULE_NOT_FOUND", "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL", "PLATFORM_WEB_ACCESS_DENIED", "PLATFORM_WEB_CORRELATION_INVALID", "PLATFORM_WEB_CURSOR_INVALID", "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED", "PLATFORM_WEB_REQUEST_INVALID", "PLATFORM_WEB_SOURCE_BROKEN", "PLATFORM_WEB_SOURCE_UNAVAILABLE", "PLATFORM_WEB_UNAUTHENTICATED", "PLATFORM_WEB_UNEXPECTED", "PLATFORM_WEB_VERSION_MISMATCH", "PLATFORM_WEB_VERSION_REQUIRED"]);
 
+export const InboxCategorySchema = z.enum(["NOTICE", "TODO"]);
+
 export const InboxItemResponseSchema = z.object({
+  get category() { return InboxCategorySchema; },
   claimed: z.boolean(),
   createdAt: z.string().optional(),
+  deadlineAt: z.string().optional(),
   detailUrl: z.string().optional(),
   documentId: z.string().optional(),
   nodeName: z.string().optional(),
+  overdue: z.boolean(),
   get processKey() { return ProcessKeySchema.optional(); },
   get source() { return InboxSourceSchema; },
   taskId: z.string(),
@@ -80,6 +87,7 @@ export const InboxResponseSchema = z.object({
   legacyCount: z.number().int(),
   newCount: z.number().int(),
   nextCursor: z.string().optional(),
+  noticeCount: z.number().int(),
   totalCount: z.number().int(),
 });
 
@@ -104,6 +112,10 @@ export const LoginStateRequestSchema = z.object({
   entry: z.enum(["WORKBENCH", "MINI_PROGRAM", "QR_CODE_LOGIN"]).optional(),
 });
 
+export const LoginStateResponseSchema = z.object({
+  state: z.string(),
+});
+
 export const MaintainWorkCalendarRequestSchema = z.object({
   get days() { return z.array(CalendarDayRequestSchema); },
   lockedDaysConfirmed: z.boolean().optional(),
@@ -124,7 +136,7 @@ export const NumberingRuleRequestSchema = z.object({
 export const NumberingRuleResponseSchema = z.object({
   capacity: z.number().int(),
   confirmationStatus: z.string(),
-  documentType: z.string(),
+  get documentType() { return DocumentTypeSchema; },
   documentTypeCode: z.string().optional(),
   pattern: z.string(),
   resetPolicy: z.string(),
@@ -156,6 +168,7 @@ export const ProblemDetailSchema = z.object({
   detail: z.string().optional(),
   get errorCode() { return ErrorCodeSchema; },
   instance: z.string().optional(),
+  legacyLoginUrl: z.string().optional(),
   status: z.number().int(),
   title: z.string().optional(),
   type: z.string().optional(),
@@ -248,17 +261,24 @@ export const SyncRunResponseSchema = z.object({
 
 export const TaskDetailResponseSchema = z.object({
   assignee: z.string().optional(),
+  assigneeName: z.string().optional(),
   canAct: z.boolean(),
+  candidateNames: z.array(z.string()),
   candidates: z.array(z.string()),
   createdAt: z.string(),
+  deadlineAt: z.string().optional(),
   documentId: z.string(),
-  documentType: z.string(),
+  get documentType() { return DocumentTypeSchema; },
   get history() { return z.array(TaskRecordResponseSchema); },
   initiator: z.string(),
+  initiatorName: z.string(),
+  initiatorOrgUnitName: z.string().optional(),
   instanceId: z.string(),
   nodeKey: z.string(),
   nodeName: z.string(),
+  overdue: z.boolean(),
   get processKey() { return ProcessKeySchema; },
+  summary: z.string().optional(),
   taskId: z.string(),
 });
 
@@ -272,12 +292,14 @@ export const TaskRecordPageResponseSchema = z.object({
 export const TaskRecordResponseSchema = z.object({
   get action() { return TaskRecordActionSchema; },
   actorId: z.string(),
+  actorName: z.string(),
   decidedAt: z.string(),
   documentId: z.string(),
-  documentType: z.string(),
+  get documentType() { return DocumentTypeSchema; },
   instanceId: z.string(),
   nodeKey: z.string(),
   nodeName: z.string(),
+  onBehalfOfName: z.string().optional(),
   get processKey() { return ProcessKeySchema; },
   reason: z.string().optional(),
   recordId: z.string(),
@@ -340,7 +362,7 @@ export const responseSchemas = {
   postPlatformApprovalTasksByTaskIdReturn: DecisionResponseSchema,
   getPlatformAuditEntries: AuditEntryPageResponseSchema,
   getPlatformLegacyNumbers: z.union([z.array(LegacyNumberResponseSchema), LegacyNumberResponseSchema]),
-  postPlatformLoginStates: z.unknown(),
+  postPlatformLoginStates: LoginStateResponseSchema,
   getPlatformNumberingRules: z.array(NumberingRuleResponseSchema),
   getPlatformNumberingRulesByDocumentType: NumberingRuleResponseSchema,
   getPlatformRoles: z.array(RoleResponseSchema),

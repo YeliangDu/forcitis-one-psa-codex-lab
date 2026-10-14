@@ -629,6 +629,8 @@ export interface components {
             instanceId: string;
             status: components["schemas"]["ApprovalStatus"];
         };
+        /** @enum {string} */
+        DocumentType: "JOURNAL_VOUCHER" | "QUOTE" | "TIMESHEET";
         EmergencyLoginRequest: {
             loginName?: string;
             password?: string;
@@ -636,13 +638,19 @@ export interface components {
         };
         /** @enum {string} */
         ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE" | "COST_TIMESHEET_CUTOFF_PASSED" | "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS" | "COST_TIMESHEET_NOT_FOUND" | "COST_TIMESHEET_REASON_REQUIRED" | "COST_TIMESHEET_TRANSITION_ILLEGAL" | "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE" | "COST_TIMESHEET_WORK_DATE_IN_FUTURE" | "COST_TIMESHEET_WORK_DATE_REQUIRED" | "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE" | "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN" | "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR" | "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED" | "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY" | "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED" | "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE" | "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL" | "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND" | "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL" | "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID" | "PLATFORM_APPROVAL_CONCURRENT_CHANGE" | "PLATFORM_APPROVAL_CUTOFF_PASSED" | "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE" | "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK" | "PLATFORM_APPROVAL_DECISION_EMPTY" | "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY" | "PLATFORM_APPROVAL_HOOK_BLOCKED" | "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED" | "PLATFORM_APPROVAL_NOT_INITIATOR" | "PLATFORM_APPROVAL_NO_ROUTE" | "PLATFORM_APPROVAL_REASON_REQUIRED" | "PLATFORM_APPROVAL_REQUEST_NOT_FOUND" | "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED" | "PLATFORM_APPROVAL_TASK_NOT_FOUND" | "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID" | "PLATFORM_APPROVAL_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_ACCOUNT_DISABLED" | "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND" | "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_CONCURRENT_UPDATE" | "PLATFORM_IDENTITY_CREDENTIALS_INVALID" | "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED" | "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN" | "PLATFORM_IDENTITY_NETWORK_DENIED" | "PLATFORM_IDENTITY_PERMISSION_UNKNOWN" | "PLATFORM_IDENTITY_ROLE_BLANK_NAME" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME" | "PLATFORM_IDENTITY_ROLE_INVALID_CODE" | "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED" | "PLATFORM_IDENTITY_ROLE_NOT_FOUND" | "PLATFORM_IDENTITY_ROLE_RESERVED_CODE" | "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN" | "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_SSO_UNAVAILABLE" | "PLATFORM_IDENTITY_STATE_INVALID" | "PLATFORM_IDENTITY_TICKET_INVALID" | "PLATFORM_IDENTITY_TICKET_REPLAYED" | "PLATFORM_IDENTITY_WECOM_CODE_INVALID" | "PLATFORM_IDENTITY_WECOM_NOT_BOUND" | "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_CONCURRENT_UPDATE" | "PLATFORM_NUMBERING_RULE_INVALID" | "PLATFORM_NUMBERING_RULE_NOT_FOUND" | "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL" | "PLATFORM_WEB_ACCESS_DENIED" | "PLATFORM_WEB_CORRELATION_INVALID" | "PLATFORM_WEB_CURSOR_INVALID" | "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED" | "PLATFORM_WEB_REQUEST_INVALID" | "PLATFORM_WEB_SOURCE_BROKEN" | "PLATFORM_WEB_SOURCE_UNAVAILABLE" | "PLATFORM_WEB_UNAUTHENTICATED" | "PLATFORM_WEB_UNEXPECTED" | "PLATFORM_WEB_VERSION_MISMATCH" | "PLATFORM_WEB_VERSION_REQUIRED";
+        /** @enum {string} */
+        InboxCategory: "NOTICE" | "TODO";
         InboxItemResponse: {
+            category: components["schemas"]["InboxCategory"];
             claimed: boolean;
             /** Format: date-time */
             createdAt?: string;
+            /** Format: date-time */
+            deadlineAt?: string;
             detailUrl?: string;
             documentId?: string;
             nodeName?: string;
+            overdue: boolean;
             processKey?: components["schemas"]["ProcessKey"];
             source: components["schemas"]["InboxSource"];
             taskId: string;
@@ -656,6 +664,8 @@ export interface components {
             /** Format: int32 */
             newCount: number;
             nextCursor?: string;
+            /** Format: int32 */
+            noticeCount: number;
             /** Format: int32 */
             totalCount: number;
         };
@@ -678,6 +688,9 @@ export interface components {
             /** @enum {string} */
             entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
         };
+        LoginStateResponse: {
+            state: string;
+        };
         MaintainWorkCalendarRequest: {
             days: components["schemas"]["CalendarDayRequest"][];
             lockedDaysConfirmed?: boolean;
@@ -697,7 +710,7 @@ export interface components {
             /** Format: int64 */
             capacity: number;
             confirmationStatus: string;
-            documentType: string;
+            documentType: components["schemas"]["DocumentType"];
             documentTypeCode?: string;
             pattern: string;
             resetPolicy: string;
@@ -728,6 +741,7 @@ export interface components {
             detail?: string;
             errorCode: components["schemas"]["ErrorCode"];
             instance?: string;
+            legacyLoginUrl?: string;
             /** Format: int32 */
             status: number;
             title?: string;
@@ -830,18 +844,26 @@ export interface components {
         };
         TaskDetailResponse: {
             assignee?: string;
+            assigneeName?: string;
             canAct: boolean;
+            candidateNames: string[];
             candidates: string[];
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            deadlineAt?: string;
             documentId: string;
-            documentType: string;
+            documentType: components["schemas"]["DocumentType"];
             history: components["schemas"]["TaskRecordResponse"][];
             initiator: string;
+            initiatorName: string;
+            initiatorOrgUnitName?: string;
             instanceId: string;
             nodeKey: string;
             nodeName: string;
+            overdue: boolean;
             processKey: components["schemas"]["ProcessKey"];
+            summary?: string;
             taskId: string;
         };
         /** @enum {string} */
@@ -853,13 +875,15 @@ export interface components {
         TaskRecordResponse: {
             action: components["schemas"]["TaskRecordAction"];
             actorId: string;
+            actorName: string;
             /** Format: date-time */
             decidedAt: string;
             documentId: string;
-            documentType: string;
+            documentType: components["schemas"]["DocumentType"];
             instanceId: string;
             nodeKey: string;
             nodeName: string;
+            onBehalfOfName?: string;
             processKey: components["schemas"]["ProcessKey"];
             reason?: string;
             recordId: string;
@@ -1732,7 +1756,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["LoginStateResponse"];
                 };
             };
             /** @description Error */

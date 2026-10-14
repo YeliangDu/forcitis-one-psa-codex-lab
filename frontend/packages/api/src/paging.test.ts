@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectPages, nextCursorOf } from './paging';
+import { checkedPage, collectPages, nextCursorOf } from './paging';
 
 describe('cursor paging', () => {
   it('reads pages until the server stops giving a cursor', async () => {
@@ -14,12 +14,14 @@ describe('cursor paging', () => {
   });
 
   it('treats an empty cursor like none', () => {
-    expect(nextCursorOf({ items: [], nextCursor: '' }, undefined)).toBeUndefined();
-    expect(nextCursorOf({ items: [] }, 'a')).toBeUndefined();
+    expect(nextCursorOf({ items: [], nextCursor: '' })).toBeUndefined();
+    expect(nextCursorOf({ items: [] })).toBeUndefined();
+    expect(nextCursorOf({ items: [], nextCursor: 'b' })).toBe('b');
   });
 
   it('fails when the server repeats the cursor it was given, instead of looping', () => {
-    expect(() => nextCursorOf({ items: [], nextCursor: 'a' }, 'a')).toThrow(/never end/);
+    expect(() => checkedPage({ items: [], nextCursor: 'a' }, 'a')).toThrow(/never end/);
+    expect(checkedPage({ items: [], nextCursor: 'b' }, 'a').nextCursor).toBe('b');
   });
 
   it('fails when the list is longer than the page budget, instead of reading without end', async () => {

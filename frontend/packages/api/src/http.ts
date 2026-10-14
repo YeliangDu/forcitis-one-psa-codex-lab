@@ -16,6 +16,8 @@ export interface RequestOptions {
   guards?: boolean;
   /** Reuse the key of an earlier attempt to repeat a side-effecting POST safely; without it every call gets a fresh key. */
   idempotencyKey?: string;
+  /** The versioned update creates a resource that does not exist yet: with no version read, send If-None-Match: * instead of refusing. */
+  createOnly?: boolean;
 }
 
 /** Declared by the operation in openapi.json: `versioned` = requires If-Match, `idempotent` = accepts Idempotency-Key. */
@@ -167,8 +169,9 @@ export function createHttpClient(config: HttpClientConfig = {}) {
     }
     if (traits.versioned === true) {
       const version = versions.get(resource);
-      if (version === undefined) throw new MissingVersionError(operation);
-      headers['If-Match'] = version;
+      if (version !== undefined) headers['If-Match'] = version;
+      else if (options.createOnly === true) headers['If-None-Match'] = '*';
+      else throw new MissingVersionError(operation);
     }
     if (traits.idempotent === true) headers['Idempotency-Key'] = options.idempotencyKey ?? newKey();
     const init: RequestInit = { method: method.toUpperCase(), headers, credentials: 'include' };

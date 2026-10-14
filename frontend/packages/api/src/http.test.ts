@@ -165,6 +165,21 @@ describe('HTTP client', () => {
       expect(calls).toHaveLength(0);
     });
 
+    it('creating a resource that does not exist yet sends If-None-Match: * instead of a version', async () => {
+      const { client, calls } = clientWith({ status: 200, body: {} });
+      await client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { createOnly: true }, undefined, versioned);
+      expect(headersOf(calls[0]).get('If-None-Match')).toBe('*');
+      expect(headersOf(calls[0]).has('If-Match')).toBe(false);
+    });
+
+    it('a version that was read wins over createOnly', async () => {
+      const { client, calls } = clientWith({ status: 200, body: {}, headers: { ETag: '"2"' } });
+      await client.request('get', '/tasks/{id}', { path: { id: 5 } });
+      await client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { createOnly: true }, undefined, versioned);
+      expect(headersOf(calls[1]).get('If-Match')).toBe('"2"');
+      expect(headersOf(calls[1]).has('If-None-Match')).toBe(false);
+    });
+
     it('does not reuse a version for another resource', async () => {
       const { client } = clientWith({ status: 200, body: {}, headers: { ETag: '"1"' } });
       await client.request('get', '/tasks/{id}', { path: { id: 5 } });
