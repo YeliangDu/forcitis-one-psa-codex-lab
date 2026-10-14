@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.platform.identity.api.IdentityError;
+import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.api.RoleCode;
@@ -37,12 +38,13 @@ public class ReplaceAccountRoles {
     }
 
     @Transactional
-    public void execute(long userId, Set<String> roleCodes) {
+    public long execute(long userId, Set<String> roleCodes, ExpectedVersion expected) {
         Optional<UserAccount> found = userId == 0 ? Optional.empty() : accounts.find(new UserId(userId));
         if (found.isEmpty()) {
             throw IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account " + userId);
         }
         UserAccount account = found.get();
+        expected.check(account.version());
         UserId target = account.userId();
         Set<RoleId> wanted = new HashSet<>();
         Set<String> wantedPermissions = new HashSet<>();
@@ -63,9 +65,12 @@ public class ReplaceAccountRoles {
             throw IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED.refusal("the caller may not grant these roles");
         }
         account.replaceRoles(wanted);
-        accounts.save(account);
-        events.publish(account);
-        sessions.revokeAll(target);
-        cache.evict(target);
+        if (account.hasPendingEvents()) {
+            accounts.save(account);
+            events.publish(account);
+            sessions.revokeAll(target);
+            cache.evict(target);
+        }
+        return account.version();
     }
 }

@@ -179,6 +179,10 @@ abstract class IdentityIntegrationTest {
         }
     }
 
+    String accountVersion(long id) {
+        return "\"" + jdbc.sql("select version from platform_identity.user_accounts where user_id = :id").param("id", id).query(Long.class).optional().orElse(0L) + "\"";
+    }
+
     long count(String table) {
         return jdbc.sql("select count(*) from platform_identity." + table).query(Long.class).single();
     }

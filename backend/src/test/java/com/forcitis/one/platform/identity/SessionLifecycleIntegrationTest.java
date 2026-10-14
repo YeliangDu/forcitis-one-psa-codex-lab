@@ -129,7 +129,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String other = loginWithWecom(1002);
         createAccount(9, "super_admin");
 
-        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").with(xsrf())
+        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").header("If-Match", accountVersion(1001)).with(xsrf())
                 .with(user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE))).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(204);

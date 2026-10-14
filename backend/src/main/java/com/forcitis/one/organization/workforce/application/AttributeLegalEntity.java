@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
@@ -32,14 +33,16 @@ public class AttributeLegalEntity {
     }
 
     @Transactional
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, long legalEntityId, LocalDate effectiveFrom) {
+    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, long legalEntityId, LocalDate effectiveFrom, ExpectedVersion expected) {
         AttributionSubject subject = subjects.require(kind, subjectId);
         LegalEntityId target = legalEntityId > 0 ? new LegalEntityId(legalEntityId) : null;
         if (target == null || legalEntities.find(target).filter(e -> e.status() == LegalEntityStatus.ACTIVE).isEmpty()) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND, ErrorKind.UNPROCESSABLE,
                     "legal entity " + legalEntityId + " does not exist or is not active");
         }
-        LegalEntityAttribution attribution = attributions.find(subject).orElseGet(() -> LegalEntityAttribution.empty(subject));
+        LegalEntityAttribution stored = attributions.find(subject).orElse(null);
+        expected.check(stored == null ? null : stored.version());
+        LegalEntityAttribution attribution = stored != null ? stored : LegalEntityAttribution.empty(subject);
         attribution.attribute(target, effectiveFrom);
         if (attribution.hasPendingEvents()) {
             attributions.save(attribution);

@@ -12,7 +12,7 @@ public record PageRequest(int limit, @Nullable String cursorValue) {
 
     public PageRequest {
         if (limit < 1 || limit > MAX_LIMIT) {
-            throw new InvalidCursorException("limit must be between 1 and " + MAX_LIMIT);
+            throw new InvalidRequestException("limit must be between 1 and " + MAX_LIMIT);
         }
     }
 

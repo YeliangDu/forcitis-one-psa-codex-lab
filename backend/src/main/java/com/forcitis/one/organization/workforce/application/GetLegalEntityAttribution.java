@@ -5,6 +5,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionQuer
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** version is null while nothing has ever been attributed to the subject: the first attribution is then written with If-None-Match: *. */
 @Service
 public class GetLegalEntityAttribution {
     private final LegalEntityAttributionQueries attributions;
@@ -18,6 +19,6 @@ public class GetLegalEntityAttribution {
     @Transactional(readOnly = true)
     public LegalEntityAttributionView execute(AttributionKind kind, long subjectId) {
         var subject = subjects.require(kind, subjectId);
-        return LegalEntityAttributionView.of(subject, attributions.periodsOf(subject));
+        return LegalEntityAttributionView.of(subject, attributions.periodsOf(subject), attributions.versionOf(subject).orElse(null));
     }
 }

@@ -131,7 +131,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(jdbc.sql("select count(*) from platform_identity.account_roles where role_id = :id").param("id", analyst)
                 .query(Long.class).single()).as("a role held by an account is not deleted and its link stays").isEqualTo(1);
 
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(admin)
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andReturn().getResponse().getStatus()).isEqualTo(204);
         assertThat(mvc.perform(delete(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(204);
         assertThat(jdbc.sql("select count(*) from platform_identity.role_permissions where role_id = :id").param("id", analyst)
@@ -172,7 +172,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         createAccount(1001, "analyst", "auditor");
         String session = loginWithWecom(1001);
 
-        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(admin)
+        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"auditor\",\"planner\"]}")).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(204);
@@ -182,10 +182,10 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 """).query(String.class).list()).containsExactly("auditor", "planner");
         assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus())
                 .as("RULE-338: a role change ends the sessions").isEqualTo(401);
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(admin)
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"ghost\"]}")).andReturn().getResponse().getStatus())
                 .isEqualTo(404);
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/555:replace-roles").with(xsrf()).with(admin)
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/555:replace-roles").header("If-Match", accountVersion(555)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andReturn().getResponse().getStatus()).isEqualTo(404);
     }
 
@@ -201,7 +201,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
 
         MvcResult broad = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"mine\",\"name\":\"Mine\",\"permissionCodes\":[\"cost.timesheet:timesheet:approve\"]}")).andReturn();
-        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/5:replace-roles").with(xsrf()).with(editor)
+        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/5:replace-roles").header("If-Match", accountVersion(5)).with(xsrf()).with(editor)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"role-editor\",\"super_admin\"]}")).andReturn();
         MvcResult within = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"small\",\"name\":\"Small\",\"permissionCodes\":[\"" + Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE + "\"]}")).andReturn();
@@ -234,5 +234,44 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     private Set<String> permissionsOf(String session) throws Exception {
         var me = body(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn());
         return Set.copyOf(me.path("permissionCodes").valueStream().map(n -> n.asString()).toList());
+    }
+
+    @Test
+    @DisplayName("B3-M4 account writes need the version of the account: none is 428, an old one 412, a weak or unreadable tag 400; the GET gives the ETag")
+    void accountWritesNeedTheVersion() throws Exception {
+        createRole("analyst", "Analyst", "", null);
+        createAccount(1001, "analyst");
+        String url = "/api/v1/platform/user-accounts/1001";
+        String etag = mvc.perform(get(url).with(admin)).andReturn().getResponse().getHeader("ETag");
+        assertThat(etag).isEqualTo(accountVersion(1001));
+
+        for (String action : new String[] {":replace-roles", ":enable", ":disable"}) {
+            var request = post(url + action).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}");
+            assertThat(mvc.perform(request).andReturn().getResponse().getStatus()).as(action + " without a version").isEqualTo(428);
+            assertThat(mvc.perform(request.header("If-Match", "\"99\"")).andReturn().getResponse().getStatus()).as(action + " with an old version").isEqualTo(412);
+        }
+        var weak = post(url + ":enable").with(xsrf()).with(admin).header("If-Match", "W/" + etag);
+        assertThat(mvc.perform(weak).andReturn().getResponse().getStatus()).as("a weak tag").isEqualTo(400);
+        assertThat(mvc.perform(post(url + ":enable").with(xsrf()).with(admin).header("If-Match", "abc")).andReturn().getResponse().getStatus())
+                .as("an unreadable tag").isEqualTo(400);
+
+        MvcResult changed = mvc.perform(post(url + ":replace-roles").with(xsrf()).with(admin).header("If-Match", etag)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andReturn();
+        assertThat(changed.getResponse().getStatus()).isEqualTo(204);
+        assertThat(changed.getResponse().getHeader("ETag")).isNotEqualTo(etag);
+    }
+
+    @Test
+    @DisplayName("Nit replacing the roles with the roles the account already has changes nothing: no event, no new version, the sessions stay")
+    void sameRolesChangeNothing() throws Exception {
+        createRole("analyst", "Analyst", "", null);
+        createAccount(1001, "analyst");
+        String before = accountVersion(1001);
+
+        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(admin).header("If-Match", before)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"analyst\"]}")).andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(204);
+        assertThat(accountVersion(1001)).isEqualTo(before);
     }
 }

@@ -9,6 +9,8 @@ import com.forcitis.one.platform.identity.application.ChangeAccountStatus;
 import com.forcitis.one.platform.identity.application.CreateRole;
 import com.forcitis.one.platform.identity.application.DeleteRole;
 import com.forcitis.one.platform.identity.application.GetRole;
+import com.forcitis.one.platform.identity.application.GetUserAccount;
+import com.forcitis.one.platform.identity.application.UserAccountView;
 import com.forcitis.one.platform.identity.application.ListRoles;
 import com.forcitis.one.platform.identity.application.ReplaceAccountRoles;
 import com.forcitis.one.platform.identity.application.RoleView;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,9 +47,11 @@ class RoleController {
     private final DeleteRole deleteRole;
     private final ReplaceAccountRoles replaceAccountRoles;
     private final ChangeAccountStatus changeAccountStatus;
+    private final GetUserAccount getUserAccount;
 
     RoleController(ListRoles listRoles, GetRole getRole, CreateRole createRole, UpdateRole updateRole, DeleteRole deleteRole,
-            ReplaceAccountRoles replaceAccountRoles, ChangeAccountStatus changeAccountStatus) {
+            ReplaceAccountRoles replaceAccountRoles, ChangeAccountStatus changeAccountStatus, GetUserAccount getUserAccount) {
+        this.getUserAccount = getUserAccount;
         this.listRoles = listRoles;
         this.getRole = getRole;
         this.createRole = createRole;
@@ -96,24 +101,32 @@ class RoleController {
 
     @PostMapping(path = "/user-accounts/{userId}:replace-roles")
     @PreAuthorize(UPDATE)
-    ResponseEntity<Void> replaceRoles(@PathVariable long userId, @RequestBody ReplaceRolesRequest request) {
+    ResponseEntity<Void> replaceRoles(@PathVariable long userId, @RequestBody ReplaceRolesRequest request,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         Set<String> codes = request.roleCodes() == null ? Set.of() : request.roleCodes();
-        replaceAccountRoles.execute(userId, codes);
-        return ResponseEntity.noContent().build();
+        long version = replaceAccountRoles.execute(userId, codes, ExpectedVersion.fromHeaders(ifMatch, null));
+        return ResponseEntity.noContent().eTag(ExpectedVersion.etag(version)).build();
+    }
+
+    @GetMapping(path = "/user-accounts/{userId}")
+    @PreAuthorize(READ)
+    ResponseEntity<UserAccountResponse> account(@PathVariable long userId) {
+        UserAccountView view = getUserAccount.execute(userId);
+        return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(UserAccountResponse.of(view));
     }
 
     @PostMapping(path = "/user-accounts/{userId}:enable")
     @PreAuthorize(UPDATE)
-    ResponseEntity<Void> enable(@PathVariable long userId) {
-        changeAccountStatus.execute(userId, true);
-        return ResponseEntity.noContent().build();
+    ResponseEntity<Void> enable(@PathVariable long userId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
+        long version = changeAccountStatus.execute(userId, true, ExpectedVersion.fromHeaders(ifMatch, null));
+        return ResponseEntity.noContent().eTag(ExpectedVersion.etag(version)).build();
     }
 
     @PostMapping(path = "/user-accounts/{userId}:disable")
     @PreAuthorize(UPDATE)
-    ResponseEntity<Void> disable(@PathVariable long userId) {
-        changeAccountStatus.execute(userId, false);
-        return ResponseEntity.noContent().build();
+    ResponseEntity<Void> disable(@PathVariable long userId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
+        long version = changeAccountStatus.execute(userId, false, ExpectedVersion.fromHeaders(ifMatch, null));
+        return ResponseEntity.noContent().eTag(ExpectedVersion.etag(version)).build();
     }
 
     private static SaveRoleCommand command(RoleRequest request) {

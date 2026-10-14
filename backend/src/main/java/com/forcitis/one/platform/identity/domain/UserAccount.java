@@ -103,6 +103,9 @@ public final class UserAccount extends AggregateRoot {
     }
 
     public void replaceRoles(Set<RoleId> roleIds) {
+        if (roles.equals(Set.copyOf(roleIds))) {
+            return;
+        }
         this.roles = Set.copyOf(roleIds);
         List<RoleId> ordered = orderedRoles();
         record((envelopes, version) -> new AccountRolesReplaced(envelopes.wrap(draft("AccountRolesReplaced", version)), userId, ordered));

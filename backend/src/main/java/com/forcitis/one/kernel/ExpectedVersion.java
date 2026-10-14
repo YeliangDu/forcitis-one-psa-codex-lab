@@ -18,16 +18,17 @@ public record ExpectedVersion(long value, boolean mustNotExist) {
     public static ExpectedVersion fromHeaders(String ifMatch, String ifNoneMatch) {
         if (ifMatch != null && !ifMatch.isBlank()) {
             String text = ifMatch.trim();
-            if (text.startsWith("W/")) {
-                text = text.substring(2);
-            }
-            if (text.length() >= 2 && text.startsWith("\"") && text.endsWith("\"")) {
-                text = text.substring(1, text.length() - 1);
+            if (text.length() < 2 || !text.startsWith("\"") || !text.endsWith("\"")) {
+                throw new InvalidRequestException("If-Match must be a strong entity tag in quotes, as the ETag of the resource");
             }
             try {
-                return of(Long.parseLong(text));
+                long value = Long.parseLong(text.substring(1, text.length() - 1));
+                if (value < 0) {
+                    throw new NumberFormatException(text);
+                }
+                return of(value);
             } catch (NumberFormatException malformed) {
-                throw new VersionMismatchException("If-Match is not a version this server issued");
+                throw new InvalidRequestException("If-Match is not a version this server issued");
             }
         }
         if (ifNoneMatch != null && ifNoneMatch.trim().equals("*")) {

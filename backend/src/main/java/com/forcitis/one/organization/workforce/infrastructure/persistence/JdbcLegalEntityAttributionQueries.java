@@ -17,6 +17,12 @@ class JdbcLegalEntityAttributionQueries implements LegalEntityAttributionQueries
     }
 
     @Override
+    public java.util.Optional<Long> versionOf(AttributionSubject subject) {
+        return jdbc.sql("select version from organization_workforce.legal_entity_attributions where subject_kind = :kind and subject_id = :id")
+                .param("kind", subject.kind().name()).param("id", subject.subjectKey()).query(Long.class).optional();
+    }
+
+    @Override
     public List<AttributionPeriod> periodsOf(AttributionSubject subject) {
         String table = subject.kind() == com.forcitis.one.organization.workforce.api.AttributionKind.ORG_UNIT ? "org_unit_legal_entities" : "employee_legal_entities";
         String column = subject.kind() == com.forcitis.one.organization.workforce.api.AttributionKind.ORG_UNIT ? "org_unit_id" : "employee_id";

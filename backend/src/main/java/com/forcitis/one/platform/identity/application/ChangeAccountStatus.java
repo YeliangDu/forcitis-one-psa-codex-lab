@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.api.IdentityError;
@@ -27,11 +28,12 @@ public class ChangeAccountStatus {
     }
 
     @Transactional
-    public void execute(long userId, boolean enable) {
+    public long execute(long userId, boolean enable, ExpectedVersion expected) {
         UserAccount account = userId == 0 ? null : accounts.find(new UserId(userId)).orElse(null);
         if (account == null) {
             throw IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account " + userId);
         }
+        expected.check(account.version());
         account.declareEnabled(enable);
         if (account.hasPendingEvents()) {
             accounts.save(account);
@@ -42,5 +44,6 @@ public class ChangeAccountStatus {
             revokeBrowserIdentifiers.execute(account.userId());
         }
         cache.evict(account.userId());
+        return account.version();
     }
 }

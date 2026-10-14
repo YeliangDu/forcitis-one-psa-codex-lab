@@ -3,6 +3,7 @@ package com.forcitis.one.platform.web;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.InvalidCursorException;
+import com.forcitis.one.kernel.InvalidRequestException;
 import com.forcitis.one.kernel.VersionMismatchException;
 import com.forcitis.one.kernel.VersionRequiredException;
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
@@ -47,6 +48,11 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(VersionMismatchException.class)
     ResponseEntity<ProblemDetail> versionMismatch(VersionMismatchException failure) {
         return refused(new DomainException(WebError.PLATFORM_WEB_VERSION_MISMATCH, ErrorKind.PRECONDITION_FAILED, failure.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    ResponseEntity<ProblemDetail> invalidRequest(InvalidRequestException failure) {
+        return refused(new DomainException(WebError.PLATFORM_WEB_REQUEST_INVALID, ErrorKind.INVALID, failure.getMessage()));
     }
 
     @ExceptionHandler(InvalidCursorException.class)

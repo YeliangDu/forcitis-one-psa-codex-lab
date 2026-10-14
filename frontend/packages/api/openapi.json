@@ -1068,6 +1068,24 @@
         },
         "type" : "object"
       },
+      "UserAccountResponse" : {
+        "properties" : {
+          "roleCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "roleCodes", "status", "userId" ],
+        "type" : "object"
+      },
       "WecomLoginRequest" : {
         "properties" : {
           "code" : {
@@ -1341,6 +1359,20 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-None-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -1387,6 +1419,13 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         }, {
           "description" : "The same key with the same request within 24 hours gets the first answer again",
@@ -1656,6 +1695,20 @@
             "format" : "int64",
             "type" : "integer"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-None-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -1702,6 +1755,13 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         }, {
           "description" : "The same key with the same request within 24 hours gets the first answer again",
@@ -3195,6 +3255,43 @@
         "tags" : [ "session-controller" ]
       }
     },
+    "/api/v1/platform/user-accounts/{userId}" : {
+      "get" : {
+        "operationId" : "account",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserAccountResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "role-controller" ]
+      }
+    },
     "/api/v1/platform/user-accounts/{userId}:disable" : {
       "post" : {
         "operationId" : "disable",
@@ -3205,6 +3302,13 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         }, {
           "description" : "The same key with the same request within 24 hours gets the first answer again",
@@ -3245,6 +3349,13 @@
             "type" : "integer"
           }
         }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
           "description" : "The same key with the same request within 24 hours gets the first answer again",
           "in" : "header",
           "name" : "Idempotency-Key",
@@ -3281,6 +3392,13 @@
           "schema" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         }, {
           "description" : "The same key with the same request within 24 hours gets the first answer again",

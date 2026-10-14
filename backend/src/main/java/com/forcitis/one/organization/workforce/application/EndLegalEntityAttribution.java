@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
@@ -25,10 +26,11 @@ public class EndLegalEntityAttribution {
     }
 
     @Transactional
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LocalDate effectiveTo) {
+    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LocalDate effectiveTo, ExpectedVersion expected) {
         AttributionSubject subject = subjects.require(kind, subjectId);
         LegalEntityAttribution attribution = attributions.find(subject).orElseThrow(() -> new DomainException(
                 WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND, ErrorKind.NOT_FOUND, "nothing is attributed to this subject"));
+        expected.check(attribution.version());
         attribution.end(effectiveTo);
         attributions.save(attribution);
         events.publish(attribution);

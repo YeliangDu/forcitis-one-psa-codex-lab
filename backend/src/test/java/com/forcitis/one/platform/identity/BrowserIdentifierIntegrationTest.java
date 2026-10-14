@@ -143,10 +143,10 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         var manager = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE);
         createAccount(9, "super_admin");
 
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").with(xsrf()).with(manager)).andReturn().getResponse().getStatus())
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").header("If-Match", accountVersion(1001)).with(xsrf()).with(manager)).andReturn().getResponse().getStatus())
                 .isEqualTo(204);
         assertThat(storedIdentifiers(1001)).isZero();
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:enable").with(xsrf()).with(manager)).andReturn().getResponse().getStatus())
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:enable").header("If-Match", accountVersion(1001)).with(xsrf()).with(manager)).andReturn().getResponse().getStatus())
                 .isEqualTo(204);
 
         MvcResult result = login(1001, issued);
