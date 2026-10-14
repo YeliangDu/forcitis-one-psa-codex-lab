@@ -16,13 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Replays recorded approver sequences on the new engine's AssigneeResolver (REIMAGINED_ARCHITECTURE §3.5 (a)). For every node
- * of every exported instance it computes the candidate set from the OLD organisation snapshot and compares by
- * "every old approver is in the new candidate set" (RULE-249 turned a random pick into a candidate group), and the set of nodes
- * by the routing flags the old hour types map to (the branches run in parallel, so no order is compared). Mismatches are
- * classified: reviewed corrections are accepted by category, everything else is a DEFECT.
- */
+/** Compares by "every old approver is in the new candidate set" and by routing flags (branches run in parallel, so order is not compared). */
 final class TimesheetApproverReplay {
 
     private TimesheetApproverReplay() {

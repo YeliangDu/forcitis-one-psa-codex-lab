@@ -10,11 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * What a person may do, from their ENABLED roles only (RULE-343). A person with no enabled role has no permissions.
- * super_admin is the break-glass role and holds every permission (RULE-340); everyone else gets exactly what their
- * roles link (RULE-341) - a permission nobody links is denied.
- */
+/** super_admin holds every permission; for everyone else a permission nobody links is denied. */
 public final class AccessProfile {
 
     private final Set<RoleCode> roleCodes;
@@ -58,7 +54,7 @@ public final class AccessProfile {
         return permissionCodes.contains(permissionCode);
     }
 
-    /** RULE-342: any of the codes; an empty list passes; super_admin always passes. */
+    /** Any of the codes; an empty list passes; super_admin always passes. */
     public boolean hasAnyRole(Collection<RoleCode> codes) {
         return superAdmin || codes.isEmpty() || codes.stream().anyMatch(roleCodes::contains);
     }

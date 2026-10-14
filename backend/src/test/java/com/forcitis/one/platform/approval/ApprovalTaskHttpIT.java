@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-/** The HTTP contract of the task endpoints (paths pass G41, permissions G43, bodies carry no identity G33). */
+/** Paths pass G41, permissions G43, bodies carry no identity G33. */
 class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
 
     static RequestPostProcessor as(long id, String... permissions) {
@@ -42,7 +42,6 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(approve)).andExpect(status().isNoContent());
         mvc.perform(get(BASE + "/" + task).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.assignee").value(String.valueOf(manager)))
                 .andExpect(jsonPath("$.nodeKey").value("projectManagerReview")).andExpect(jsonPath("$.canAct").value(true));
-        // a repeated claim by the claimer is harmless
         mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(approve)).andExpect(status().isNoContent());
         mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"APPROVE\"}"))
@@ -71,7 +70,6 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         mvc.perform(post(BASE + "/" + task + ":return").with(csrf()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reason\":\"incomplete\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RETURNED"));
-        // the task is gone after the return
         mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"APPROVE\"}"))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_TASK_NOT_FOUND"));

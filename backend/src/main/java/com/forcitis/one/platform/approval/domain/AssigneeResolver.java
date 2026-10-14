@@ -13,24 +13,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Pure function: assignment rule + organisation snapshot + process variables -> candidate set. The same code decides the
- * candidates of a live task and replays the old TIMESHEET approver sequences (REIMAGINED_ARCHITECTURE §3.4/§3.5).
- * It reads the snapshot only through the read-side contracts {@link OrgDirectory} and {@link RoleDirectory}; it has no
- * clock, no randomness, no side effects (RULE-249: nobody is picked at random any more).
- *
- * <p>Guarantees: the result never contains a null or a separated person (RULE-253); nobody found -> the process
- * administrator (RULE-250/254), reported through {@link ResolutionKind}; the initiator never approves their own request
- * unless the node says so, and only when no other candidate exists is the task escalated to the initiator's direct
- * leader (RULE-307).
- */
+/** Pure function: no clock, no randomness, no side effects; the same code decides live candidates and replays old sequences. */
 public final class AssigneeResolver {
 
     private final OrgDirectory org;
     private final RoleDirectory roles;
     private final UserId administrator;
 
-    /** administrator may be null: then an empty candidate set is reported as UNRESOLVED instead of being routed. */
+    /** administrator may be null: then an empty candidate set is UNRESOLVED instead of routed. */
     public AssigneeResolver(OrgDirectory org, RoleDirectory roles, UserId administrator) {
         this.org = org;
         this.roles = roles;
@@ -90,9 +80,6 @@ public final class AssigneeResolver {
         };
     }
 
-    // ---------- rule helpers ----------
-
-    /** The unit named by a process variable, or the initiator's own unit when no variable is named. */
     private Optional<OrgUnitId> departmentOf(String variable, UserId initiator, ProcessVariables variables) {
         if (variable == null || variable.isBlank()) {
             return org.findEmployee(initiator).map(EmployeeProfile::orgUnitId);
@@ -109,7 +96,7 @@ public final class AssigneeResolver {
         }
     }
 
-    /** Head of the unit, else of the nearest ancestor that has an employed head (RULE-253/257). */
+    /** Head of the unit, else of the nearest ancestor that has an employed head. */
     private Optional<UserId> nearestHead(OrgUnitId unit) {
         return headFrom(unit, Set.of());
     }
@@ -131,7 +118,7 @@ public final class AssigneeResolver {
         return Optional.empty();
     }
 
-    /** RULE-250: level n supervisor; an incomplete line pushes up to the nearest department head not already on the line. */
+    /** Level n supervisor; an incomplete line pushes up to the nearest department head not already on the line. */
     private Collected initiatorSupervisor(UserId initiator, int level) {
         Set<UserId> line = new LinkedHashSet<>();
         line.add(initiator);

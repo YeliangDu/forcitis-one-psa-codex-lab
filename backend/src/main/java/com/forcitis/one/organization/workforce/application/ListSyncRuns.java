@@ -4,10 +4,8 @@ import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-/** Most recent sync runs first. */
 @Service
 public class ListSyncRuns {
-
     private static final int MAX = 200;
 
     private final SyncRunRepository runs;

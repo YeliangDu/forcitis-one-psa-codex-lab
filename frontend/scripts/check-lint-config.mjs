@@ -21,7 +21,7 @@ const without = (...excluded) => all.filter((c) => !excluded.includes(c));
 const PROBES = [
   { rule: 'F5 axios', code: "import 'axios';", ruleId: 'no-restricted-imports', blocked: all },
   { rule: 'F5 fetch', code: 'export const call = () => fetch("x");', ruleId: 'no-restricted-globals', blocked: without('apiPackage') },
-  { rule: 'F5 API URL', code: "export const url = '/api/1/platform/x';", ruleId: 'no-restricted-syntax', blocked: all },
+  { rule: 'F5 API URL', code: "export const url = '/api/v1/platform/x';", ruleId: 'no-restricted-syntax', blocked: all },
   { rule: 'F10 api package', code: "import '@forcitis/api';", ruleId: 'no-restricted-imports', blocked: without('moduleApi', 'apiPackage') },
   { rule: 'F9 react in pure code', code: "import 'react';", ruleId: 'no-restricted-imports', blocked: ['model', 'sharedLib'] },
   { rule: 'F9 api in pure code', code: "import '../api/probe-api';", ruleId: 'no-restricted-imports', blocked: ['model', 'sharedLib'] },

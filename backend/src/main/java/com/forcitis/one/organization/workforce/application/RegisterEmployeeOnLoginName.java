@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RegisterEmployeeOnLoginName {
-
     private static final Logger LOG = LoggerFactory.getLogger(RegisterEmployeeOnLoginName.class);
 
     private final OrgSource source;

@@ -12,13 +12,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Daily refresh of org unit short names from the old system (read-only: id and short_name only) until the
- * maintenance page exists. A short name is not an the source column, so the sync never touches it. Returns how many units changed.
- */
+/** A short name is not a source column, so the sync never touches it. */
 @Service
 public class RefreshShortNames {
-
     private static final Logger LOG = LoggerFactory.getLogger(RefreshShortNames.class);
 
     private final ShortNameSource source;

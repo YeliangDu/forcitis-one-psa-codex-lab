@@ -4,12 +4,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * Acceptance skeletons of the approval rules that Q-3 (checkpoint 2) moved out of Phase 1a: they ship with the first consumer
- * (1b quotation: countersign, transfer, return to a node, withdraw / cancel with cut-off; Phase 2 timesheet: row-level
- * approval). Each skeleton states Given / When / Then of the rule card (BUSINESS_RULES.md) and the reviewed correction
- * (RULE_REVIEWS.md); enable it, fill the body and delete the @Disabled when the capability is built.
- */
+/** Skeletons of rules moved out of Phase 1a; enable and fill each when its capability is built. */
 class PendingApprovalRulesTest {
 
     @Test
@@ -17,7 +12,7 @@ class PendingApprovalRulesTest {
     @DisplayName("RULE-248 a countersign node creates one task per distinct approver; the model's completion condition ends the node")
     void countersignNodeCreatesOneTaskPerApprover() {
         // Given a multi-instance node whose rule resolves to {201, 202, 203}; When the node is entered; Then 3 tasks, one each.
-        // Given skip-when-empty and 0 candidates; Then the node is passed through (see RULE-300).
+        // Given skip-when-empty and 0 candidates; Then the node is passed through.
     }
 
     @Test
@@ -123,7 +118,6 @@ class PendingApprovalRulesTest {
     @Disabled("pending RULE-293: Phase 2 first consumer (row approval: the other unreviewed rows become 已退回, whole sheet re-approved)")
     @DisplayName("RULE-293 return to initiator marks the remaining unreviewed rows RETURNED; the resubmission re-approves the whole sheet")
     void returnMarksRemainingRows() {
-        // The header-level return (RULE-275) is done: TaskLifecycleIT.
     }
 
     @Test
@@ -142,14 +136,12 @@ class PendingApprovalRulesTest {
     @Disabled("pending RULE-300: 1b first consumer (skip-when-empty only when the node is configured to; misconfiguration fails loudly)")
     @DisplayName("RULE-300 a node configured allowSkip with nobody to assign is skipped; any error or missing rule is reported, never skipped silently")
     void skipWhenEmpty() {
-        // Done in 1a: a missing / invalid rule fails loudly (BpmnRuleConventionsTest); the explicit allow-skip configuration is not built yet.
     }
 
     @Test
     @Disabled("pending RULE-301: 1b first consumer (auto-complete cascade for notify nodes, skip-initiator-approval and empty nodes)")
     @DisplayName("RULE-301 after a task is created, notify / skip-initiator-approval / empty nodes complete automatically in a fixed order")
     void autoCompleteCascade() {
-        // Done in 1a: the initiator node is skipped on the first pass and stops on a rework round (TaskLifecycleIT).
     }
 
     @Test
@@ -168,7 +160,6 @@ class PendingApprovalRulesTest {
     @Disabled("pending RULE-310: 1b first consumer (document detail visible to function-permission holders or process participants)")
     @DisplayName("RULE-310 a business document is visible to holders of its permission or to participants; others get 'not found'")
     void documentDetailVisibility() {
-        // Done in 1a for the TASK detail: GetTaskDetail shows it to the initiator, assignee and candidates only (TaskActorAuthorizationIT).
     }
 
     @Test

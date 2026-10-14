@@ -10,11 +10,7 @@ import com.forcitis.one.platform.audit.api.AuditLog;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
-/**
- * The server-side actor check for EVERY task operation (I-7, RULE-276): the actor must be the assignee, or, while nobody
- * has claimed the task, one of its candidates. A refusal is audited in its own transaction (it survives the rollback)
- * and answered with AccessDeniedException (403) before anything changes.
- */
+/** Audits a refusal in its own transaction so it survives the rollback, then throws AccessDeniedException (I-7). */
 @Component
 class TaskGuard {
 

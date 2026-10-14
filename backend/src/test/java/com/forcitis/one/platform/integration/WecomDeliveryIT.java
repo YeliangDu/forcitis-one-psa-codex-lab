@@ -40,10 +40,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * The WeCom gateway end to end: the real application context on PostgreSQL 18, WeCom replaced by WireMock. The corp id,
- * secret and agent id are made up for each run.
- */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000"})

@@ -2,7 +2,7 @@ package com.forcitis.one.platform.approval.infrastructure.notification;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** taskUrlTemplate: the page a WeCom card opens; {taskId} is replaced by the task id (no buttons in 1a, architecture §3.7). */
+/** {taskId} in taskUrlTemplate is replaced by the task id. */
 @ConfigurationProperties("forcitis.platform.approval.notification")
 record NotificationProperties(String taskUrlTemplate) {
 

@@ -10,10 +10,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Task details for its participants: the initiator, the assignee and the candidates (RULE-310, fail closed). Anybody else is
- * told the task does not exist.
- */
+/** Anybody but the initiator, assignee and candidates is told the task does not exist (fail closed). */
 @Service
 public class GetTaskDetail {
 

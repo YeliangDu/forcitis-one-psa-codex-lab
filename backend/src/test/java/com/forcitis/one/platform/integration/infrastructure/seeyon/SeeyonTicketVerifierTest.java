@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
 
-/** RULE-320/321 against a stand-in OA: the ACL's request, its reading of the answer, its limits. */
 class SeeyonTicketVerifierTest {
 
     static final String PATH = "/seeyon/thirdpartyController.do";

@@ -10,7 +10,7 @@ import java.util.Base64;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Issues the one-time OAuth state the browser must send back with the WeCom code (I-9). Only its hash is stored. */
+/** Only the hash of the one-time state is stored (I-9). */
 @Service
 public class BeginWecomLogin {
 

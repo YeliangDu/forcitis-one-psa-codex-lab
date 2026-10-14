@@ -11,10 +11,6 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * The SQL sent to the Seeyon database is a set of constants that can be tested on its own: only SELECTs, only the whitelisted views and
- * columns, one shared scope for bulk and single lookup, and no Seeyon-instance ids hard-coded in SQL.
- */
 class SeeyonViewSqlTest {
 
     static final List<String> STATEMENTS = List.of(SeeyonViewSql.ORG_UNITS, SeeyonViewSql.RELATIONSHIPS, SeeyonViewSql.POSITIONS,

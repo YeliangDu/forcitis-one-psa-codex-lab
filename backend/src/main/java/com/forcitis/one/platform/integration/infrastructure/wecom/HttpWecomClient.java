@@ -30,10 +30,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * The WeCom HTTP API. The access token is cached and renewed 5 minutes before it expires; a token WeCom reports as
- * invalid is dropped and the call is repeated once. Neither the secret nor the token is ever logged or put in a message.
- */
+/** Token cached and renewed 5 minutes early; a token WeCom reports invalid is dropped and the call repeated once. */
 class HttpWecomClient implements WecomClient {
 
     private static final Logger log = LoggerFactory.getLogger(HttpWecomClient.class);

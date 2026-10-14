@@ -3,7 +3,7 @@ package com.forcitis.one.platform.numbering.api;
 import com.forcitis.one.kernel.ValueObject;
 import java.util.Optional;
 
-/** Read model of a numbering rule for the rule page. {@code capacity} is the highest sequence the template can hold. */
+/** capacity is the highest sequence the template can hold. */
 @ValueObject
 public record NumberingRuleView(DocumentType documentType, Optional<String> typeCode, String pattern, ResetPolicy resetPolicy,
         long startValue, long capacity, ConfirmationStatus confirmation) {

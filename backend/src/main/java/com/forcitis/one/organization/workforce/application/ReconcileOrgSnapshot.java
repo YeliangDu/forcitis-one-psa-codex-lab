@@ -6,13 +6,8 @@ import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
 import com.forcitis.one.organization.workforce.domain.OrgSource;
 import org.springframework.stereotype.Service;
 
-/**
- * Exit criterion "组织零差异": read the source now, compare with the stored snapshot - people count, org unit count and the
- * reporting relations (org unit parent, person's direct leader). Read-only; the source read happens outside any transaction.
- */
 @Service
 public class ReconcileOrgSnapshot {
-
     private final OrgSource source;
     private final OrgSnapshotRepository snapshots;
 

@@ -5,13 +5,9 @@ import java.math.RoundingMode;
 import java.util.Currency;
 import java.util.Objects;
 
-/**
- * Amount + currency (ADR-0001 hard constraint 1). Always normalised to 2 decimals HALF_UP, so equals/hashCode
- * are scale-safe (1.0 CNY == 1.00 CNY). Arithmetic across currencies is refused.
- */
+/** Normalised to 2 decimals HALF_UP so equals/hashCode are scale-safe; cross-currency arithmetic is refused. */
 @ValueObject
 public record Money(BigDecimal amount, Currency currency) {
-
     public static final int SCALE = 2;
 
     public Money {
@@ -56,7 +52,6 @@ public record Money(BigDecimal amount, Currency currency) {
         return amount.signum() > 0;
     }
 
-    /** Orders amounts of the same currency; comparing different currencies is refused. */
     public int compareTo(Money other) {
         return amount.compareTo(sameCurrency(other).amount);
     }

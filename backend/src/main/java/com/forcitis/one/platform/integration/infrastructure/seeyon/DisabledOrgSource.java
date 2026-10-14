@@ -7,7 +7,6 @@ import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourcePerson;
 import java.util.List;
 
-/** Used while the organisation views are switched off (forcitis.platform.integration.seeyon.views.enabled=false): the snapshot is never touched. */
 final class DisabledOrgSource implements OrgSource {
 
     @Override

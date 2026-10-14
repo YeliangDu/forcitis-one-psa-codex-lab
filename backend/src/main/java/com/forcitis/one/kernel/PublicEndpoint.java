@@ -6,14 +6,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * The ONLY way to expose a handler without @PreAuthorize. Requires a reason that cites a reviewed decision
- * (e.g. "SSO ticket exchange, SEC-001"). Anything else is denied by default.
- */
+/** The only way to expose a handler without @PreAuthorize; the reason must cite a reviewed decision (e.g. SEC-001). */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface PublicEndpoint {
-
     String reason();
 }

@@ -13,10 +13,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * The merged inbox (C1a-14, REIMAGINED_ARCHITECTURE §3.6): new tasks of the user and of the groups the user belongs to,
- * plus the old system's tasks read live from the read-only view. Nothing is cached, so the two counts are always current.
- */
+/** Nothing is cached, so the two counts are always current. */
 @Service
 public class ListInbox {
 

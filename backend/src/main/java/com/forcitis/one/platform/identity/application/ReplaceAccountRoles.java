@@ -16,10 +16,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Replaces the whole set of roles of an account (RULE-346). A role change takes effect at once: the account's sessions
- * are deleted (RULE-338) and the cache evicted. The caller may only hand out permissions and roles they hold themselves.
- */
+/** A role change takes effect at once: the account's sessions are deleted and the cache evicted. */
 @Service
 public class ReplaceAccountRoles {
 

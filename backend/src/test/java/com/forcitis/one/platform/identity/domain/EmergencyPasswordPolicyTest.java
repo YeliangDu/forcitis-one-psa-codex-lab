@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** RULE-317 (user decision): employees have no password; emergency accounts need at least 12 characters and complexity. */
 class EmergencyPasswordPolicyTest {
 
     @Test

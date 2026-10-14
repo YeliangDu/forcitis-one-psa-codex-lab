@@ -1,4 +1,5 @@
 import { Button, ResultPage } from '@forcitis/ui';
+import { Suspense } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router';
 import { InboxPage, TaskDetailPage } from '@/modules/approval';
 import { NumberingRulesPage } from '@/modules/numbering';
@@ -21,22 +22,24 @@ function NotMigratedPage() {
 export function AppRoutes() {
   useApiGuards();
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/login/wecom" element={<LoginCallbackPage kind="wecom" />} />
-      <Route path="/login/sso" element={<LoginCallbackPage kind="sso" />} />
-      <Route path="/emergency" element={<EmergencyLoginPage />} />
-      <Route path="/session-expired" element={<SessionExpiredPage />} />
-      <Route path="/forbidden" element={<ForbiddenPage />} />
-      <Route element={<AppLayout />}>
-        <Route index element={<Navigate to="/inbox" replace />} />
-        <Route path="/inbox" element={<InboxPage />} />
-        <Route path="/approval/tasks/:taskId" element={<TaskDetailPage />} />
-        <Route path="/admin/numbering-rules" element={<NumberingRulesPage />} />
-        <Route path="/admin/org-units" element={<OrgUnitsPage />} />
-        <Route path="/admin/sync-runs" element={<SyncRunsPage />} />
-        <Route path="*" element={<NotMigratedPage />} />
-      </Route>
-    </Routes>
+    <Suspense fallback={null}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login/wecom" element={<LoginCallbackPage kind="wecom" />} />
+        <Route path="/login/sso" element={<LoginCallbackPage kind="sso" />} />
+        <Route path="/emergency" element={<EmergencyLoginPage />} />
+        <Route path="/session-expired" element={<SessionExpiredPage />} />
+        <Route path="/forbidden" element={<ForbiddenPage />} />
+        <Route element={<AppLayout />}>
+          <Route index element={<Navigate to="/inbox" replace />} />
+          <Route path="/inbox" element={<InboxPage />} />
+          <Route path="/approval/tasks/:taskId" element={<TaskDetailPage />} />
+          <Route path="/admin/numbering-rules" element={<NumberingRulesPage />} />
+          <Route path="/admin/org-units" element={<OrgUnitsPage />} />
+          <Route path="/admin/sync-runs" element={<SyncRunsPage />} />
+          <Route path="*" element={<NotMigratedPage />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 }

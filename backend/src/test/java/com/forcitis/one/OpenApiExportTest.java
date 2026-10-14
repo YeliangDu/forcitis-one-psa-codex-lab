@@ -25,11 +25,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.SerializationFeature;
 
-/**
- * Writes the application's OpenAPI document to frontend/packages/api/openapi.json. The frontend generates its types from
- * that file and its verify step fails when the generated code and the file differ. Keys are sorted so the file only
- * changes when the contract does.
- */
+/** Keys are sorted so the file only changes when the contract does. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000",
@@ -37,7 +33,6 @@ import tools.jackson.databind.SerializationFeature;
 @AutoConfigureMockMvc
 @Testcontainers
 class OpenApiExportTest {
-
     @MockitoBean
     OrgDirectory orgDirectory;
 
@@ -73,5 +68,15 @@ class OpenApiExportTest {
         JsonMapper sorted = json.rebuild().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
                 .enable(SerializationFeature.INDENT_OUTPUT).build();
         Files.writeString(target, sorted.writeValueAsString(sorted.treeToValue(document, Object.class)) + "\n");
+    }
+
+    @Test
+    void pathsUseTheVersionSegmentAndResponseComponentsAreRequiredUnlessNullable() throws Exception {
+        JsonNode document = json.readTree(mvc.perform(get("/v3/api-docs").with(user("1"))).andReturn().getResponse().getContentAsString());
+        document.path("paths").propertyNames().forEach(path -> assertThat(path).startsWith("/api/v1/"));
+        JsonNode syncRun = document.path("components").path("schemas").path("SyncRunResponse").path("required");
+        assertThat(json.convertValue(syncRun, String[].class)).contains("syncRunId", "status", "startedAt")
+                .doesNotContain("finishedAt", "heldReason", "releasedBy");
+        assertThat(document.path("components").path("schemas").path("DecideTaskRequest").path("required").toString()).doesNotContain("reason");
     }
 }

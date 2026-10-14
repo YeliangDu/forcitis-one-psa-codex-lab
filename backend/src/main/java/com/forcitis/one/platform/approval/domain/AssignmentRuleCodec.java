@@ -4,19 +4,18 @@ import com.forcitis.one.platform.identity.api.RoleCode;
 import java.util.Set;
 import java.util.function.Function;
 
-/** The vocabulary of assignment rules outside Java: the same type names are written in BPMN (forcitis:assignmentRule type=...) and in TIMESHEET replay exports. */
+/** Same type names are written in BPMN and in TIMESHEET replay exports. */
 public final class AssignmentRuleCodec {
 
     /** Types that exist in the rule cards but are not built yet; a process that uses one does not deploy. */
     public static final Set<String> DEFERRED_TYPES = Set.of("REGIONAL_RECEIVABLES_MANAGER", "DEPARTMENT_DIRECTOR",
             "FORM_FIELD_USER_SUPERVISORS");
-    /** Types that are not built at all (decision 2026-10-14); a role or a form field takes their place. */
+    /** Types that are not built at all; a role or a form field takes their place. */
     public static final Set<String> NOT_BUILT_TYPES = Set.of("NAMED_USERS", "PROCESS_VARIABLE_USERS");
 
     private AssignmentRuleCodec() {
     }
 
-    /** @param type ROLE, DEPARTMENT_HEAD, INITIATOR_SUPERVISOR or FORM_FIELD_USERS @param attribute reads an attribute of the rule element (role, department, level, field); null when absent */
     public static AssignmentRule parse(String type, Function<String, String> attribute) {
         if (type == null || type.isBlank()) {
             throw new IllegalStateException("Assignment rule without a type");

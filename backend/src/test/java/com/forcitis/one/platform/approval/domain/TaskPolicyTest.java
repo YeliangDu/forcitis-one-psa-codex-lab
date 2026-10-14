@@ -12,7 +12,6 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Pure policies: who may act on a task (I-7, RULE-276) and how the old row tasks merge (RULE-261). */
 class TaskPolicyTest {
 
     static TaskView task(UserId assignee, Set<UserId> candidates) {

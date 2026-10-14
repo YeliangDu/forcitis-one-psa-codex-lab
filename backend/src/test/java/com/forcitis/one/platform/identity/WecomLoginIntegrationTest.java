@@ -18,7 +18,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
 
-/** RULE-322/323/324/326/327/330/344 and the shared login gate: every WeCom entry ends in the same "enabled and employed" check. */
 class WecomLoginIntegrationTest extends IdentityIntegrationTest {
 
     static final String LOGIN = "/api/v1/platform/sessions:wecom-login";
@@ -185,7 +184,6 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
                 """).query(String.class).list()).containsExactly("employee");
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.account.created", "platform.identity.role.granted");
 
-        // an administrator removes the role; the next login must not give it back
         jdbc.sql("delete from platform_identity.account_roles where user_id = 1001").update();
         loginWithWecom(1001);
         assertThat(count("account_roles")).isZero();

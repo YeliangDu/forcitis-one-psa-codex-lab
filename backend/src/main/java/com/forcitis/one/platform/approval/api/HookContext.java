@@ -3,7 +3,7 @@ package com.forcitis.one.platform.approval.api;
 import com.forcitis.one.kernel.UserId;
 import java.util.Objects;
 
-/** What the server tells a BEFORE hook; rebuilt from the engine, never from the client (RULE-283). */
+/** Rebuilt from the engine, never from the client. */
 public record HookContext(ProcessKey processKey, String businessKey, ApprovalInstanceId instanceId, ApprovalTaskId taskId,
                           String nodeKey, UserId actor, HookAction action, String reason) {
 

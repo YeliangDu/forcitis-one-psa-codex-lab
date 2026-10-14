@@ -15,16 +15,10 @@ import java.util.Map;
 import java.util.Set;
 import org.yaml.snakeyaml.Yaml;
 
-/**
- * glossary/terms.yaml loaded once, plus the word splitting and lookup every naming guard shares (G37-G48).
- * A word is registered when it comes from a term's en / snake (approved or proposed) or from common_words.
- */
 final class Glossary {
-
     static final Path FILE = Path.of("glossary/terms.yaml");
-    /** Official glossary (293 approved terms, ADR-0018) - the single source the business confirmed. */
     static final Path OFFICIAL = Path.of("../docs/modernization/glossary/terms.yaml");
-    /** Per-module proposed terms (status: proposed), one file per module so parallel work never edits the same file. */
+    /** One file per module so parallel work never edits the same file. */
     static final Path PROPOSED_DIR = Path.of("glossary/proposed");
     static final Set<String> STATUSES = Set.of("approved", "proposed");
     static final List<String> FIELDS = List.of("id", "zh", "en", "snake", "kind", "bc", "definition", "standard_ref",
@@ -42,7 +36,6 @@ final class Glossary {
     private static final Set<String> COMMON_WORDS = new LinkedHashSet<>();
     private static final Set<String> STANDARD_ACTIONS = new LinkedHashSet<>();
     private static final List<String> PROBLEMS = new ArrayList<>();
-    /** singular word -> "approved" or the id of the proposed term that registers it. */
     private static final Map<String, String> REGISTERED = new LinkedHashMap<>();
 
     static {
@@ -70,7 +63,6 @@ final class Glossary {
         return COMMON_WORDS;
     }
 
-    /** standard_actions: the only actions a permission code may end with (G43). */
     static Set<String> standardActions() {
         return STANDARD_ACTIONS;
     }
@@ -88,12 +80,10 @@ final class Glossary {
         return status(word) != null;
     }
 
-    /** Words of the identifier that no term (approved or proposed) and no common word registers. */
     static List<String> unregisteredWords(String identifier) {
         return split(identifier).stream().filter(w -> !isRegistered(w)).distinct().toList();
     }
 
-    /** Standard ending of a readable failure line for unregistered words. */
     static String registerHint(List<String> words) {
         return "unregistered word(s) " + words + ": add a term to " + FILE + " (status: proposed is enough, ADR-0018) or use the glossary word";
     }
@@ -159,9 +149,6 @@ final class Glossary {
         }
     }
 
-    // ---------- words ----------
-
-    /** PascalCase / camelCase / snake_case / kebab-case / SCREAMING_CASE / dot.case -> lower-case words; digits are dropped. */
     static List<String> split(String identifier) {
         String spaced = identifier.replaceAll("([a-z0-9])([A-Z])", "$1 $2").replaceAll("([A-Z])([A-Z][a-z])", "$1 $2");
         return Arrays.stream(spaced.split("[^A-Za-z0-9]+|(?<=[A-Za-z])(?=[0-9])|(?<=[0-9])(?=[A-Za-z])"))

@@ -15,13 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/**
- * Anti-corruption layer to the Seeyon OA ticket check (RULE-320/321): GET {baseUrl}/seeyon/thirdpartyController.do?ticket=...
- * answers 200 text/plain with the URL-encoded login name, or an empty body / an HTML login page for a ticket it does not know.
- * Connect and read time out after 5 s (configurable); redirects are not followed; a non-200 answer means OA is unavailable.
- * The login name is accepted only if it is non-blank, at most 64 characters, and free of '&lt;', '&gt;', blanks, CR and LF.
- * Only platform.integration may talk to OA (SECURITY_INVARIANTS, REIMAGINED_ARCHITECTURE §3.3). The ticket is never logged.
- */
+/** 200 text/plain with the URL-encoded login name; empty body or HTML login page means unknown ticket; non-200 means OA unavailable; ticket never logged. */
 @Component
 class SeeyonTicketVerifier implements SsoTicketVerifier {
 

@@ -4,12 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Ask for an approval. The initiator is the CURRENT user, passed by the owning module after it has checked that the
- * caller owns the business document (I-5, RULE-265): approval never takes an initiator from a client.
- * routingFlags are named booleans pre-computed by the owning module (e.g. "needs-seal"); BPMN only reads them.
- * formFields carry the business values assignment rules need (RULE-258..260).
- */
+/** The initiator is the current user, passed by the owning module after it checked document ownership (I-5); never taken from a client. */
 public record ApprovalRequest(ProcessKey processKey, String businessKey, UserId initiator, Set<String> routingFlags,
                               List<ApprovalField> formFields) {
 

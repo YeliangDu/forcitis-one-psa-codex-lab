@@ -5,7 +5,6 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Every 10 minutes (single node, ShedLock): removes expired OAuth states and used-ticket records. */
 @Component
 class CredentialPurgeJob {
 

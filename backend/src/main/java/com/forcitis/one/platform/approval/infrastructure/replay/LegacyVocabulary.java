@@ -4,16 +4,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** The one place where old names are written down: old name to new name; unlisted names pass through. */
 final class LegacyVocabulary {
 
-    /** Old business form field and process variable names -> the names in the glossary. */
     static final Map<String, String> FIELD_NAMES = table(
             "manager_id", "projectManagerId",
             "area_leader", "regionalHeadId",
             "deliveryDeptId", "deliveryUnitId");
 
-    /** Old rule type names -> the rule type names of the codec. */
     static final Map<String, String> RULE_TYPES = table(
             "INITIATOR_LEADER", "INITIATOR_SUPERVISOR");
 
@@ -23,16 +20,14 @@ final class LegacyVocabulary {
             "1", "preSalesHours",
             "2", "overheadHours");
 
-    /** Old task names -> node keys of the BPMN. */
     static final Map<String, String> NODE_KEYS = table(
             "项目经理审批", "projectManagerReview",
             "区域负责人审批", "regionalHeadReview",
             "一级汇报人审批", "supervisorReview");
 
-    /** The old employee key of the person-level supervisor in the exported snapshot. */
     static final String SUPERVISOR_KEY = "leaderUserId";
 
-    /** The old rework node (script 10: the initiator redoes the form after a return) has no counterpart: a return ends the round and the initiator starts a new one, so the node is left out of the replay. */
+    /** The old rework node has no counterpart: a return ends the round and the initiator starts a new one, so the node is left out of the replay. */
     static final String REWORK_RULE_TYPE = "INITIATOR";
 
     private LegacyVocabulary() {
@@ -68,7 +63,6 @@ final class LegacyVocabulary {
         return out;
     }
 
-    /** A rule element with the new type name and, where the attribute names a field or variable, the new field name. */
     static Map<String, String> rule(Map<String, String> rule) {
         Map<String, String> out = new LinkedHashMap<>(rule);
         out.computeIfPresent("type", (k, v) -> ruleType(v));

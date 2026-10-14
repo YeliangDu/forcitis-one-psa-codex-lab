@@ -40,12 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * Shared set-up of the platform.approval integration tests: one PostgreSQL 18 container for the whole test JVM, the full
- * application context (cached across the test classes), Flowable's schema created by the engine (tests set
- * flowable.database-schema-update=true; production does not), and doubles for what other modules provide: a synthetic
- * organisation (OrgDirectory + RoleDirectory), WecomGateway and AuditLog. No real system is contacted.
- */
+/** One PostgreSQL 18 container per test JVM and a cached application context; the Flowable schema is created by the engine only in tests; other modules' dependencies are doubles. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=" + ApprovalIntegrationSupport.ADMINISTRATOR,
         "spring.datasource.hikari.connection-timeout=2000"})
@@ -59,7 +54,7 @@ public abstract class ApprovalIntegrationSupport {
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
-    /** Throw-away credentials of the stand-in for the old system's read-only account (generated per run, never a real secret). */
+    /** Throw-away credentials for the stand-in read-only account, generated per run. */
     static final String LEGACY_PASSWORD = java.util.UUID.randomUUID().toString();
 
     static {
@@ -67,10 +62,7 @@ public abstract class ApprovalIntegrationSupport {
         prepareLegacyStandIn();
     }
 
-    /**
-     * A stand-in for the old system's inbox view in the same container: a table of in-progress task rows, the view the new
-     * system may read, and a read-only account that can SELECT that view and nothing else (REIMAGINED_ARCHITECTURE §3.6).
-     */
+    /** Stand-in for the old inbox view, with a read-only account that can SELECT that view and nothing else. */
     private static void prepareLegacyStandIn() {
         try (var connection = java.sql.DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
                 var statement = connection.createStatement()) {
@@ -135,7 +127,7 @@ public abstract class ApprovalIntegrationSupport {
         organisation.person(ADMINISTRATOR, 1, null);
     }
 
-    /** A user id nobody else uses, so tests sharing the database and context cannot see each other's data. */
+    /** Unique ids so tests sharing database and context cannot see each other's data. */
     protected static long newId() {
         return IDS.incrementAndGet();
     }
@@ -183,7 +175,6 @@ public abstract class ApprovalIntegrationSupport {
         Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).untilAsserted(assertion::run);
     }
 
-    /** Records module events (they are delivered through the event publication registry, like a business module would get them). */
     public static class EventRecorder {
         // The bean is proxied (@Async listener methods): tests read through the accessor methods, not the fields.
         private final List<ApprovalCompleted> completed = new CopyOnWriteArrayList<>();
@@ -209,7 +200,7 @@ public abstract class ApprovalIntegrationSupport {
 
         @ApplicationModuleListener
         void on(ApprovalCompleted event) {
-            // A business module's listener may fail; the registry keeps the publication and redelivers it (RULE-295/303).
+            // A business module's listener may fail; the registry keeps the publication and redelivers it.
             if (event.businessKey().startsWith("flaky-") && failedOnce.add(event.businessKey())) {
                 throw new IllegalStateException("first delivery fails on purpose");
             }
@@ -227,7 +218,6 @@ public abstract class ApprovalIntegrationSupport {
         }
     }
 
-    /** A scripted BEFORE hook for the tests; production hooks come from business modules. */
     public static class ScriptedHook implements ApprovalHook {
         public volatile com.forcitis.one.platform.approval.api.HookDecision next = com.forcitis.one.platform.approval.api.HookDecision.allow();
         public final List<com.forcitis.one.platform.approval.api.HookContext> calls = new CopyOnWriteArrayList<>();

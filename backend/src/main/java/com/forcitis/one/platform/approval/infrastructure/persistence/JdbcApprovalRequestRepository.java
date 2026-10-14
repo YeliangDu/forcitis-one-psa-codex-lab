@@ -14,11 +14,7 @@ import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/**
- * approval_requests (one row per document, unique on process key + business key) and start_rounds (one row per start,
- * unique on process key + business key + round). The unique constraints, not application checks, are what make starts
- * idempotent and round numbers collision-free under concurrency (RULE-264/266/278).
- */
+/** Unique constraints, not application checks, make starts idempotent and round numbers collision-free under concurrency. */
 @Repository
 class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
 

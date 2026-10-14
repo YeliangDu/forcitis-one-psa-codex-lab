@@ -12,13 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Tree questions over the snapshot's org units. Cycle-safe: a corrupt parent chain never loops. */
+/** Cycle-safe: a corrupt parent chain never loops. */
 public final class OrgHierarchy {
-
     private OrgHierarchy() {
     }
 
-    /** Parents before children (depth along the parent chain), then display order, then id. Cycle-safe. */
     public static List<OrgUnit> parentsFirst(Collection<OrgUnit> units) {
         Map<OrgUnitId, OrgUnit> byId = new LinkedHashMap<>();
         units.forEach(u -> byId.put(u.orgUnitId(), u));
@@ -29,7 +27,7 @@ public final class OrgHierarchy {
                 .toList();
     }
 
-    /** Ancestors, nearest first, excluding the unit itself; revoked ancestors are still part of the structure. */
+    /** Revoked ancestors are still part of the structure. */
     public static List<OrgUnitId> ancestors(Map<OrgUnitId, OrgUnit> unitsById, OrgUnitId orgUnitId) {
         List<OrgUnitId> chain = new ArrayList<>();
         Set<OrgUnitId> seen = new HashSet<>();
@@ -42,10 +40,7 @@ public final class OrgHierarchy {
         return chain;
     }
 
-    /**
-     * "Org unit and below" for scope expansion (RULE-360): the unit and its descendants, parents first, without any
-     * revoked unit and without anything below a revoked unit. Disabled units are kept: only REVOKED means dissolved.
-     */
+    /** Without revoked units and anything below them; disabled units are kept, only REVOKED means dissolved. */
     public static List<OrgUnitId> unitAndBelow(Collection<OrgUnit> units, OrgUnitId root) {
         Map<OrgUnitId, List<OrgUnit>> childrenOf = new LinkedHashMap<>();
         Map<OrgUnitId, OrgUnit> byId = new LinkedHashMap<>();

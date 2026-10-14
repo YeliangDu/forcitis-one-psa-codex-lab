@@ -11,13 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-/**
- * Login miss by WeCom user id (a new hire not synced yet): ask the organisation source for this one person and register
- * them if every check of the sync holds (see {@link LoginMissRegistration}). Source unavailable answers "unknown".
- */
 @Service
 public class RegisterEmployeeOnLogin {
-
     private static final Logger LOG = LoggerFactory.getLogger(RegisterEmployeeOnLogin.class);
 
     private final OrgSource source;

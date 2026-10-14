@@ -17,14 +17,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
-/**
- * The notification port of approval (kept inside the module until a second user appears, architecture §3.7). Q-3: when a task
- * is assigned to a candidate group, EVERY candidate gets a card (one send, recipients by exact WeCom user id, never a
- * broadcast: I-6); when somebody claims the task, the same cards (dedup key approval-task:{taskId}) become "handled by X"
- * and nobody else is reminded. A candidate without a WeCom id is skipped with a warning (RULE-374); a task whose
- * candidates all lack one sends nothing. Listeners are driven by the event publication registry: at least once, so
- * sending is idempotent through the dedup key.
- */
+/** Recipients are exact WeCom user ids, never a broadcast (I-6); the dedup key approval-task:{taskId} makes at-least-once sending idempotent. */
 @Component
 @EnableConfigurationProperties(NotificationProperties.class)
 class TaskNotifier {

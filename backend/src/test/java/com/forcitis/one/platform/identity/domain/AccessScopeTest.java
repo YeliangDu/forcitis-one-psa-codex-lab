@@ -17,21 +17,19 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** C1a-09: AccessScope = legal entity x org-unit subtree x project role; RULE-349 union over enabled roles, RULE-351 empty = zero rows. */
 class AccessScopeTest {
 
     static final LegalEntityId LE1 = new LegalEntityId(1);
     static final LegalEntityId LE2 = new LegalEntityId(2);
     static final OrgUnitId ROOT = new OrgUnitId(1);
     static final OrgUnitId DEPT_15 = new OrgUnitId(15);
-    static final OrgUnitId DEPT_16 = new OrgUnitId(16); // child of 15
-    static final OrgUnitId DEPT_20 = new OrgUnitId(20); // sibling branch
+    static final OrgUnitId DEPT_16 = new OrgUnitId(16);
+    static final OrgUnitId DEPT_20 = new OrgUnitId(20);
     static final UserId ME = new UserId(1001);
     static final UserId REPORT = new UserId(2001);
     static final UserId REPORTS_REPORT = new UserId(3001);
     static final UserId STRANGER = new UserId(9999);
 
-    /** A row of the given owner in the unit (path = unit first, then its ancestors up to the root). */
     static AccessTarget row(LegalEntityId le, OrgUnitId unit, UserId owner) {
         List<OrgUnitId> path = unit.equals(DEPT_16) ? List.of(DEPT_16, DEPT_15, ROOT) : unit.equals(DEPT_15) ? List.of(DEPT_15, ROOT)
                 : List.of(unit, ROOT);

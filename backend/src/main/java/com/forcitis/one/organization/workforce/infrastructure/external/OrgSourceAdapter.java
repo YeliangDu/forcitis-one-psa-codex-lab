@@ -30,7 +30,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 class OrgSourceAdapter implements OrgSource {
-
     private final com.forcitis.one.platform.integration.api.OrgSource integration;
 
     OrgSourceAdapter(com.forcitis.one.platform.integration.api.OrgSource integration) {

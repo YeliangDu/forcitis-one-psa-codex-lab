@@ -14,9 +14,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
-/** Enforces architecture/module-dependencies.txt: the approved context map. Changing it needs review. */
 class ModuleDependencyTest {
-
     static final String ROOT = ArchitectureRulesTest.ROOT + ".";
 
     @Test

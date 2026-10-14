@@ -17,13 +17,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Pure computation of what a sync run changes: current snapshot + one full read of the source = changed rows,
- * report rows, event content and figures. No I/O, no clock; the same function builds the expected state for the
- * reconciliation against the source. Rules: RULE-354..356, 360..367, 372, 373 (see the tests named after them).
- */
+/** Pure: no I/O, no clock; the same function builds the expected state for reconciliation against the source. */
 public final class SnapshotReconciler {
-
     private SnapshotReconciler() {
     }
 
@@ -41,8 +36,6 @@ public final class SnapshotReconciler {
         return new Reconciliation(changedPositions, units.changed(), staff.changed(), diffs, staff.changedEmployees(),
                 staff.separatedEmployees(), units.changed().stream().map(OrgUnit::orgUnitId).toList(), stats);
     }
-
-    // ---------------------------------------------------------------- positions (RULE-367)
 
     private static List<Position> reconcilePositions(OrgSnapshot current, SourceSnapshot source, List<SyncDiff> diffs) {
         Map<PositionId, Position> before = current.positionsById();
@@ -73,8 +66,6 @@ public final class SnapshotReconciler {
         });
         return changed;
     }
-
-    // ---------------------------------------------------------------- people (RULE-361..366, 372)
 
     private record Staff(List<StaffMember> changed, List<UserId> changedEmployees, List<UserId> separatedEmployees,
                          Set<UserId> isolated, Map<UserId, EmploymentStatus> statusAfter, int incomingEmployed,
@@ -166,7 +157,6 @@ public final class SnapshotReconciler {
             after.put(id, desired);
         });
 
-        // RULE-366: people the source no longer returns (and that were not isolated) are leaver candidates.
         currentStaff.forEach((id, before) -> {
             if (seen.contains(id) || before.employee().employmentStatus() == EmploymentStatus.SEPARATED) {
                 return;
@@ -184,10 +174,7 @@ public final class SnapshotReconciler {
         return new Staff(changed, changedEmployees, separatedEmployees, isolated, statusAfter, incomingEmployed, withoutWecom);
     }
 
-    /**
-     * A WeCom user id is the login key, so it must identify at most one employed person: when several employed rows
-     * carry the same id, none of them keeps it (login fails closed) and the data stewards are told (RULE-322/362).
-     */
+    /** A WeCom user id is the login key: when several employed rows share it, none keeps it (login fails closed). */
     private static Set<UserId> wecomUserIdsToKeep(Map<UserId, SourceMember> valid, Set<UserId> isolated,
                                                   Map<UserId, StaffMember> currentStaff, List<SyncDiff> diffs) {
         Map<WecomUserId, Integer> employedHolders = new HashMap<>();
@@ -214,8 +201,6 @@ public final class SnapshotReconciler {
         });
         return keep;
     }
-
-    // ---------------------------------------------------------------- org units (RULE-354..357)
 
     private record Units(List<OrgUnit> changed) {
     }
@@ -267,7 +252,7 @@ public final class SnapshotReconciler {
                         old.status() == OrgUnitStatus.REVOKED ? ChangeKind.REVIVED : ChangeKind.UPDATED, fields));
             }
         }
-        // RULE-355/357: no longer returned = revoked (a state of its own, not "disabled"); never repeated.
+        // No longer returned = revoked (not "disabled"); never repeated.
         before.forEach((id, old) -> {
             if (!sourceIds.contains(id) && old.status() != OrgUnitStatus.REVOKED) {
                 changed.add(old.withStatus(OrgUnitStatus.REVOKED));
@@ -277,7 +262,6 @@ public final class SnapshotReconciler {
         return new Units(changed);
     }
 
-    /** Parents before children (depth along the parent chain, cycle-safe), then display order, then id. */
     private static List<SourceOrgUnit> parentsFirst(List<SourceOrgUnit> units) {
         Map<OrgUnitId, SourceOrgUnit> byId = new HashMap<>();
         units.forEach(u -> byId.putIfAbsent(u.orgUnitId(), u));
@@ -311,7 +295,7 @@ public final class SnapshotReconciler {
         return person;
     }
 
-    /** RULE-356: several people for one unit - the smallest id wins, deterministically, and the stewards are told. */
+    /** Several people for one unit: the smallest id wins, deterministically. */
     private static Map<OrgUnitId, UserId> pickSmallest(SourceSnapshot source, RelationshipKind kind, IssueKind multiple,
                                                        List<SyncDiff> diffs) {
         Map<OrgUnitId, List<UserId>> byUnit = new LinkedHashMap<>();

@@ -12,7 +12,6 @@ import com.forcitis.one.platform.identity.domain.RoleViolation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** New role (RULE-345): never the reserved code, unique name and code, starts at scope SELF unless the caller narrows or widens it. */
 @Service
 public class CreateRole {
 

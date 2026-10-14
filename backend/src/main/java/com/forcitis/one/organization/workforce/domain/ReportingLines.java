@@ -11,23 +11,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-/**
- * Validation of the person-level direct leader (RULE-372): the leader must exist, be employed, not be the person
- * themselves, and the chain must not loop. Invalid leaders are not written (empty reporting line) and reported to the
- * data stewards; valid ones, including an explicit "no leader" from the source, are synced as they are (RULE-365).
- */
+/** Invalid leaders are not written and are reported; the chain must not loop. */
 final class ReportingLines {
-
     private ReportingLines() {
     }
 
-    /**
-     * @param claimed     employed people with the leader the source names (non-null leaders only)
-     * @param statusOf    employment status of every person known after this run
-     * @param storedSupervisor leader of people this run does not touch (their stored leader keeps chains continuous)
-     * @param diffs       receives one ISSUE per rejected leader
-     * @return the accepted leader per person
-     */
     static Map<UserId, UserId> accept(Map<UserId, UserId> claimed, Map<UserId, EmploymentStatus> statusOf,
                                       Function<UserId, UserId> storedSupervisor, List<SyncDiff> diffs) {
         Map<UserId, UserId> candidates = new LinkedHashMap<>();

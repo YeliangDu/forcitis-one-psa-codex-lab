@@ -58,19 +58,15 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Boot 4.1 + Flowable 8 + PostgreSQL 17: security default-deny, API versioning, typed outcomes, engine schema. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
-        // The cached context is closed by the JVM shutdown hook after the container is gone; without a short timeout the
-        // engine's close command (and the event publication registry) wait 30 s for a connection that can never come.
+        // The cached context closes after the container is gone; without a short timeout the engine's close waits 30 s for a connection.
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
 @Testcontainers
 class ApplicationIntegrationTest {
-
-    // platform.approval resolves approvers from the organisation snapshot and roles (provided by other modules in the
-    // finished application); here empty doubles stand in, so every task goes to the process administrator.
+    // Empty doubles stand in for approver resolution: every task goes to the process administrator.
     @MockitoBean
     OrgDirectory orgDirectory;
 
@@ -113,12 +109,7 @@ class ApplicationIntegrationTest {
     @Qualifier("requestMappingHandlerMapping")
     RequestMappingHandlerMapping handlerMapping;
 
-    /**
-     * Anonymous access (SECURITY_INVARIANTS I-3, REIMAGINED_ARCHITECTURE §3.8, revised wording of the exit condition):
-     * every handler that is not @PublicEndpoint answers 401; the @PublicEndpoint handlers are exactly the reviewed
-     * snapshot architecture/public-endpoints.txt (same lines, same reasons); a public handler never grants anything to a
-     * caller who proves nothing.
-     */
+    /** I-3: only @PublicEndpoint handlers answer anonymously, exactly those in architecture/public-endpoints.txt; the rest answer 401. */
     @Test
     void anonymousCallersAreRefusedExceptOnTheReviewedPublicEndpoints() throws Exception {
         List<String> checked = new ArrayList<>();
@@ -207,7 +198,12 @@ class ApplicationIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // ---------- configurable business numbering ----------
+    @Test
+    void bareNumericVersionSegmentIsNotAccepted() throws Exception {
+        mvc.perform(post("/api/1/cost/timesheets/7:submit").with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
+                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isBadRequest());
+    }
 
     @BeforeEach
     void legalEntitiesExist() {
@@ -276,8 +272,6 @@ class ApplicationIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1}"))
                 .andExpect(status().isForbidden());
     }
-
-    // ---------- G42: every JSON name is camelCase and made of glossary words ----------
 
     @Test
     void openApiSchemaNamesArePascalCaseAndJsonPropertiesAndParametersCamelCaseGlossaryWords() throws Exception {
@@ -372,7 +366,6 @@ class ApplicationIntegrationTest {
         }
     }
 
-    /** A valid instance of an event record: records are filled recursively with small positive / non-blank values. */
     private static Object sample(Class<?> type) {
         if (type == long.class || type == Long.class) {
             return 1L;
@@ -425,8 +418,6 @@ class ApplicationIntegrationTest {
         }
         throw new IllegalStateException("no sample value for " + type.getName() + " in an event payload; extend sample()");
     }
-
-    // ---------- data dictionary generated from the database ----------
 
     @Test
     void everyTableAndColumnIsDocumentedAndTheDictionaryIsGenerated() throws Exception {

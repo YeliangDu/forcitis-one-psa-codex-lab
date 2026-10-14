@@ -5,14 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-/**
- * The single list of synced fields per entity (RULE-373): it decides what the sync writes, what lands in the diff
- * report and when the org-change event is published. Not in the list: shortName (refreshed separately),
- * revokedAt and other bookkeeping.
- */
+/** Single list of synced fields: decides what is written, diffed and when the event is published; shortName and bookkeeping are not in it. */
 public final class SyncedFields {
-
-    /** One synced field: its name in the report and how to read it. */
     public record Field<T>(String name, Function<T, Object> reader) {
     }
 
@@ -49,7 +43,6 @@ public final class SyncedFields {
     private SyncedFields() {
     }
 
-    /** Names of the fields whose values differ between the two versions. */
     public static <T> List<String> differences(List<Field<T>> fields, T before, T after) {
         List<String> changed = new ArrayList<>();
         for (Field<T> field : fields) {

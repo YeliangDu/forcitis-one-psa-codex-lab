@@ -6,10 +6,9 @@ import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-/** The org tree as a flat list (parents first); the client builds the tree from parentOrgUnitId. */
+/** Flat list, parents first; the client builds the tree from parentOrgUnitId. */
 @Service
 public class ListOrgUnits {
-
     private final OrgSnapshotRepository snapshots;
 
     ListOrgUnits(OrgSnapshotRepository snapshots) {

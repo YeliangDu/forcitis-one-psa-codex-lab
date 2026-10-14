@@ -7,13 +7,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 
-/**
- * Startup check of the Seeyon side (REIMAGINED_ARCHITECTURE §3.3, RULE-356): the columns the account can see in the view
- * schema must be EQUAL to the whitelist - not merely contain the needed ones - so an extra column (say, a birthday
- * or a bank card) or an extra view makes the application refuse to start. The configured relationship-type and enum
- * ids must exist in the data, and the account must not hold write or database-wide read permissions.
- * Switchable by configuration; tests inject an in-memory inspector.
- */
+/** The visible columns must EQUAL the whitelist, not merely contain it, so an extra column or view refuses start-up. */
 final class SeeyonStartupCheck implements SmartInitializingSingleton {
 
     private final SeeyonSchemaInspector inspector;
@@ -32,7 +26,6 @@ final class SeeyonStartupCheck implements SmartInitializingSingleton {
         }
     }
 
-    /** Empty when everything holds. */
     List<String> problems() {
         List<String> problems = new ArrayList<>(mapping.configurationProblems());
         try {
@@ -64,7 +57,6 @@ final class SeeyonStartupCheck implements SmartInitializingSingleton {
         return problems;
     }
 
-    /** Exact equality of views and columns with the whitelist, in both directions. */
     static List<String> columnProblems(Map<String, Set<String>> actual) {
         List<String> problems = new ArrayList<>();
         Set<String> expectedViews = new TreeSet<>();

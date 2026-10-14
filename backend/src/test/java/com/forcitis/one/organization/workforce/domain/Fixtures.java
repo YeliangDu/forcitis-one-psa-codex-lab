@@ -7,9 +7,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Small builders for the reconciler tests: org tree 1 > 2 > 3, positions 100 / 101, people 1001... */
 public final class Fixtures {
-
     private Fixtures() {
     }
 
@@ -21,7 +19,6 @@ public final class Fixtures {
         return new UserId(id);
     }
 
-    /** An active unit below the unit with id {@code parent} (null = the root). */
     public static SourceOrgUnit unit(long id, Long parent) {
         return unit(id, parent, OrgUnitStatus.ACTIVE);
     }
@@ -39,7 +36,6 @@ public final class Fixtures {
         return new SourcePosition(new PositionId(id), "P" + id, "Post " + id, (int) id, status);
     }
 
-    /** An employed person with login name "13900000000" and WeCom id "wx-<id>". */
     public static SourceMember member(long id, long unit, Long post, Long leader) {
         return member(id, unit, post, leader, "139" + id, "wx-" + id);
     }
@@ -63,7 +59,6 @@ public final class Fixtures {
         return new SourceSnapshot(units, relationships, positions, members);
     }
 
-    /** Tree 1 > 2 > 3, posts 100 and 101, no people. */
     public static SourceSnapshot tree(SourceMember... members) {
         return source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(),
                 List.of(post(100), post(101)), List.of(members));
@@ -73,7 +68,6 @@ public final class Fixtures {
         return SnapshotReconciler.reconcile(OrgSnapshot.empty(), source);
     }
 
-    /** The snapshot as it would be stored after applying the reconciliation to the snapshot it was computed from. */
     public static OrgSnapshot apply(OrgSnapshot before, Reconciliation changes) {
         List<OrgUnit> units = new ArrayList<>(before.orgUnitsById().values());
         units.removeIf(u -> changes.orgUnits().stream().anyMatch(c -> c.orgUnitId().equals(u.orgUnitId())));

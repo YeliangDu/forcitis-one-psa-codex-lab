@@ -15,11 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/**
- * Wires the read-only connection to the old system. The DataSource exists only when forcitis.platform.approval.legacy.url
- * is set, is qualified "legacy-approval" and is NOT an autowire default (so the application's own DataSource, Flowable and
- * Flyway never pick it up). Read-only, two connections, no write path (I-1, REIMAGINED_ARCHITECTURE §3.6).
- */
+/** The legacy DataSource is qualified 'legacy-approval' and not an autowire default, so the application's DataSource, Flowable and Flyway never pick it up. */
 @Configuration
 @EnableConfigurationProperties(LegacyProperties.class)
 class LegacyInboxConfiguration {

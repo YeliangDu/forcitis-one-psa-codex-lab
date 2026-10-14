@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 /** The code is never changed: issued document numbers carry it. */
 @Service
 public class UpdateLegalEntity {
-
     private final LegalEntityRepository legalEntities;
     private final AuditLog audit;
 

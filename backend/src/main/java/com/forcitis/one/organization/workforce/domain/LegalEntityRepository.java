@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface LegalEntityRepository {
-
     List<LegalEntity> findAll();
 
     Optional<LegalEntity> find(LegalEntityId legalEntityId);

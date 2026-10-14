@@ -39,6 +39,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "displayName", "navigation", "permissionCodes", "userId" ],
         "type" : "object"
       },
       "DecideTaskRequest" : {
@@ -62,6 +63,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "instanceId", "status" ],
         "type" : "object"
       },
       "EmergencyLoginRequest" : {
@@ -104,6 +106,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "claimed", "source", "taskId", "title" ],
         "type" : "object"
       },
       "LegacyNumberResponse" : {
@@ -124,6 +127,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "documentId", "documentType", "importBatch", "legacyNumber", "legalEntityId" ],
         "type" : "object"
       },
       "LegalEntityResponse" : {
@@ -141,6 +145,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "code", "legalEntityId", "name", "status" ],
         "type" : "object"
       },
       "LoginStateRequest" : {
@@ -176,6 +181,7 @@
             "type" : "integer"
           }
         },
+        "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "totalCount" ],
         "type" : "object"
       },
       "NavigationResponse" : {
@@ -193,6 +199,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "children", "name" ],
         "type" : "object"
       },
       "NumberingRuleRequest" : {
@@ -236,6 +243,7 @@
             "type" : "integer"
           }
         },
+        "required" : [ "capacity", "confirmationStatus", "documentType", "pattern", "resetPolicy", "startValue" ],
         "type" : "object"
       },
       "OrgUnitDetailResponse" : {
@@ -256,6 +264,7 @@
             "type" : "array"
           }
         },
+        "required" : [ "ancestorOrgUnitIds", "orgUnit", "orgUnitAndBelowIds" ],
         "type" : "object"
       },
       "OrgUnitResponse" : {
@@ -295,6 +304,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "code", "deliveryUnit", "name", "orgUnitId", "status" ],
         "type" : "object"
       },
       "ReleaseResponse" : {
@@ -309,6 +319,7 @@
             "$ref" : "#/components/schemas/SyncRunResponse"
           }
         },
+        "required" : [ "outcome" ],
         "type" : "object"
       },
       "ReplaceRolesRequest" : {
@@ -387,6 +398,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "accessScope", "administrative", "code", "enabled", "kind", "name", "permissionCodes", "roleId" ],
         "type" : "object"
       },
       "SubmitTimesheetRequest" : {
@@ -416,6 +428,7 @@
             "type" : "number"
           }
         },
+        "required" : [ "outcome" ],
         "type" : "object"
       },
       "SyncDiffResponse" : {
@@ -442,6 +455,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "changeKind", "changedFields", "entityKind", "subjectKey" ],
         "type" : "object"
       },
       "SyncRunDetailResponse" : {
@@ -456,6 +470,7 @@
             "$ref" : "#/components/schemas/SyncRunResponse"
           }
         },
+        "required" : [ "diffs", "syncRun" ],
         "type" : "object"
       },
       "SyncRunResponse" : {
@@ -542,6 +557,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "startedAt", "status", "syncRunId", "trigger" ],
         "type" : "object"
       },
       "TaskDetail" : {
@@ -584,6 +600,7 @@
             "type" : "string"
           }
         },
+        "required" : [ "businessKey", "canAct", "candidates", "createdAt", "initiator", "instanceId", "nodeKey", "nodeName", "processKey", "taskId" ],
         "type" : "object"
       },
       "TicketLoginRequest" : {
@@ -628,7 +645,7 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
-    "/api/1/cost/timesheets/{id}:submit" : {
+    "/api/v1/cost/timesheets/{id}:submit" : {
       "post" : {
         "operationId" : "submit",
         "parameters" : [ {
@@ -665,7 +682,7 @@
         "tags" : [ "timesheet-controller" ]
       }
     },
-    "/api/1/organization/legal-entities" : {
+    "/api/v1/organization/legal-entities" : {
       "get" : {
         "operationId" : "list_1",
         "responses" : {
@@ -712,7 +729,7 @@
         "tags" : [ "legal-entity-controller" ]
       }
     },
-    "/api/1/organization/legal-entities/{legalEntityId}" : {
+    "/api/v1/organization/legal-entities/{legalEntityId}" : {
       "put" : {
         "operationId" : "update_1",
         "parameters" : [ {
@@ -749,7 +766,7 @@
         "tags" : [ "legal-entity-controller" ]
       }
     },
-    "/api/1/organization/org-units" : {
+    "/api/v1/organization/org-units" : {
       "get" : {
         "operationId" : "list_6",
         "parameters" : [ {
@@ -779,7 +796,7 @@
         "tags" : [ "org-unit-controller" ]
       }
     },
-    "/api/1/organization/org-units/{orgUnitId}" : {
+    "/api/v1/organization/org-units/{orgUnitId}" : {
       "get" : {
         "operationId" : "get_4",
         "parameters" : [ {
@@ -806,7 +823,7 @@
         "tags" : [ "org-unit-controller" ]
       }
     },
-    "/api/1/organization/sync-runs" : {
+    "/api/v1/organization/sync-runs" : {
       "get" : {
         "operationId" : "list_5",
         "parameters" : [ {
@@ -837,7 +854,7 @@
         "tags" : [ "sync-run-controller" ]
       }
     },
-    "/api/1/organization/sync-runs/{syncRunId}" : {
+    "/api/v1/organization/sync-runs/{syncRunId}" : {
       "get" : {
         "operationId" : "get_3",
         "parameters" : [ {
@@ -864,7 +881,7 @@
         "tags" : [ "sync-run-controller" ]
       }
     },
-    "/api/1/organization/sync-runs/{syncRunId}:release" : {
+    "/api/v1/organization/sync-runs/{syncRunId}:release" : {
       "post" : {
         "operationId" : "release",
         "parameters" : [ {
@@ -891,7 +908,7 @@
         "tags" : [ "sync-run-controller" ]
       }
     },
-    "/api/1/platform/approval-tasks" : {
+    "/api/v1/platform/approval-tasks" : {
       "get" : {
         "operationId" : "list_4",
         "responses" : {
@@ -909,7 +926,7 @@
         "tags" : [ "approval-task-controller" ]
       }
     },
-    "/api/1/platform/approval-tasks/{taskId}" : {
+    "/api/v1/platform/approval-tasks/{taskId}" : {
       "get" : {
         "operationId" : "get_2",
         "parameters" : [ {
@@ -935,7 +952,7 @@
         "tags" : [ "approval-task-controller" ]
       }
     },
-    "/api/1/platform/approval-tasks/{taskId}:claim" : {
+    "/api/v1/platform/approval-tasks/{taskId}:claim" : {
       "post" : {
         "operationId" : "claim",
         "parameters" : [ {
@@ -954,7 +971,7 @@
         "tags" : [ "approval-task-controller" ]
       }
     },
-    "/api/1/platform/approval-tasks/{taskId}:decide" : {
+    "/api/v1/platform/approval-tasks/{taskId}:decide" : {
       "post" : {
         "operationId" : "decide",
         "parameters" : [ {
@@ -990,7 +1007,7 @@
         "tags" : [ "approval-task-controller" ]
       }
     },
-    "/api/1/platform/approval-tasks/{taskId}:return" : {
+    "/api/v1/platform/approval-tasks/{taskId}:return" : {
       "post" : {
         "operationId" : "returnTask",
         "parameters" : [ {
@@ -1026,7 +1043,7 @@
         "tags" : [ "approval-task-controller" ]
       }
     },
-    "/api/1/platform/audit-entries" : {
+    "/api/v1/platform/audit-entries" : {
       "get" : {
         "operationId" : "list_3",
         "parameters" : [ {
@@ -1101,7 +1118,7 @@
         "tags" : [ "audit-entry-controller" ]
       }
     },
-    "/api/1/platform/legacy-numbers" : {
+    "/api/v1/platform/legacy-numbers" : {
       "get" : {
         "operationId" : "byLegacyNumber",
         "parameters" : [ {
@@ -1150,7 +1167,7 @@
         "tags" : [ "legacy-number-controller" ]
       }
     },
-    "/api/1/platform/login-states" : {
+    "/api/v1/platform/login-states" : {
       "post" : {
         "operationId" : "beginWecomLogin",
         "requestBody" : {
@@ -1178,7 +1195,7 @@
         "tags" : [ "session-controller" ]
       }
     },
-    "/api/1/platform/numbering-rules" : {
+    "/api/v1/platform/numbering-rules" : {
       "get" : {
         "operationId" : "list_2",
         "responses" : {
@@ -1199,7 +1216,7 @@
         "tags" : [ "numbering-rule-controller" ]
       }
     },
-    "/api/1/platform/numbering-rules/{documentType}" : {
+    "/api/v1/platform/numbering-rules/{documentType}" : {
       "get" : {
         "operationId" : "get_1",
         "parameters" : [ {
@@ -1261,7 +1278,7 @@
         "tags" : [ "numbering-rule-controller" ]
       }
     },
-    "/api/1/platform/roles" : {
+    "/api/v1/platform/roles" : {
       "get" : {
         "operationId" : "list",
         "responses" : {
@@ -1308,7 +1325,7 @@
         "tags" : [ "role-controller" ]
       }
     },
-    "/api/1/platform/roles/{roleId}" : {
+    "/api/v1/platform/roles/{roleId}" : {
       "delete" : {
         "operationId" : "delete",
         "parameters" : [ {
@@ -1395,7 +1412,7 @@
         "tags" : [ "role-controller" ]
       }
     },
-    "/api/1/platform/sessions:current" : {
+    "/api/v1/platform/sessions:current" : {
       "get" : {
         "operationId" : "current",
         "responses" : {
@@ -1413,7 +1430,7 @@
         "tags" : [ "session-controller" ]
       }
     },
-    "/api/1/platform/sessions:emergency-login" : {
+    "/api/v1/platform/sessions:emergency-login" : {
       "post" : {
         "operationId" : "loginAsEmergencyAdmin",
         "requestBody" : {
@@ -1441,7 +1458,7 @@
         "tags" : [ "session-controller" ]
       }
     },
-    "/api/1/platform/sessions:logout" : {
+    "/api/v1/platform/sessions:logout" : {
       "post" : {
         "operationId" : "logout",
         "responses" : {
@@ -1452,7 +1469,7 @@
         "tags" : [ "session-controller" ]
       }
     },
-    "/api/1/platform/sessions:sso-login" : {
+    "/api/v1/platform/sessions:sso-login" : {
       "post" : {
         "operationId" : "loginWithSso",
         "requestBody" : {
@@ -1480,7 +1497,7 @@
         "tags" : [ "session-controller" ]
       }
     },
-    "/api/1/platform/sessions:ticket-login" : {
+    "/api/v1/platform/sessions:ticket-login" : {
       "post" : {
         "operationId" : "loginWithSignedTicket",
         "requestBody" : {
@@ -1508,7 +1525,7 @@
         "tags" : [ "session-controller" ]
       }
     },
-    "/api/1/platform/sessions:wecom-login" : {
+    "/api/v1/platform/sessions:wecom-login" : {
       "post" : {
         "operationId" : "loginWithWecom",
         "requestBody" : {
@@ -1536,7 +1553,7 @@
         "tags" : [ "session-controller" ]
       }
     },
-    "/api/1/platform/user-accounts/{userId}:disable" : {
+    "/api/v1/platform/user-accounts/{userId}:disable" : {
       "post" : {
         "operationId" : "disable",
         "parameters" : [ {
@@ -1563,7 +1580,7 @@
         "tags" : [ "role-controller" ]
       }
     },
-    "/api/1/platform/user-accounts/{userId}:enable" : {
+    "/api/v1/platform/user-accounts/{userId}:enable" : {
       "post" : {
         "operationId" : "enable",
         "parameters" : [ {
@@ -1590,7 +1607,7 @@
         "tags" : [ "role-controller" ]
       }
     },
-    "/api/1/platform/user-accounts/{userId}:replace-roles" : {
+    "/api/v1/platform/user-accounts/{userId}:replace-roles" : {
       "post" : {
         "operationId" : "replaceRoles",
         "parameters" : [ {

@@ -17,17 +17,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Starts the approval of one business document, idempotently (RULE-264/266/278). The unique key is (process type,
- * business key); the row is locked first, so concurrent starts of one document produce exactly one instance. The
- * initiator is whoever the OWNING MODULE passes (the current user it has verified owns the document); approval only
- * guarantees that nobody else can start a new round of that document's approval afterwards (I-5, SEC-117).
- *
- * <p>Rounds (RULE-278/287): a return ends the round, so a document in status RETURNED opens round + 1 with a new
- * instance; the idempotency key is (process, document, round) - the unique key of start_rounds - so a repeated call of
- * the same start returns the running instance instead of opening another round. Only the initiator of the previous round
- * may open the next one.
- */
+/** The row is locked first, so concurrent starts of one document give one instance; a return opens round + 1, and only the previous round's initiator may open it. */
 @Service
 public class StartApproval {
 

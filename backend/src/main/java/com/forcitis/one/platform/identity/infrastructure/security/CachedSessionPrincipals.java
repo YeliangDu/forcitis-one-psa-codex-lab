@@ -13,11 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/**
- * Caffeine cache in front of {@link SessionPrincipals}: the per-request check of "account enabled and employee employed"
- * plus permissions costs a database round trip at most once per user per TTL (at most 60 s, enforced by SessionSettings).
- * Every change evicts - after the commit when a transaction is running - so changes take effect at once.
- */
+/** Every change evicts, after the commit when a transaction is running, so changes take effect at once. */
 @Component
 class CachedSessionPrincipals implements AccessCache {
 

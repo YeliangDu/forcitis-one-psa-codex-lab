@@ -31,14 +31,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/** platform.audit on PostgreSQL 18: the append-only table, the two ways of recording, and the search. All data is synthetic. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
 @Testcontainers
 class AuditLogIT {
-
     @MockitoBean
     OrgDirectory orgDirectory;
 

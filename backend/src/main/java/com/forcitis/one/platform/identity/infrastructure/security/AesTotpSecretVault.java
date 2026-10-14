@@ -11,7 +11,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.stereotype.Component;
 
-/** AES-256-GCM for TOTP secrets at rest; key (Base64, 32 bytes) from the environment / KMS, never from the database. */
+/** The key (Base64, 32 bytes) comes from the environment / KMS, never from the database. */
 @Component
 class AesTotpSecretVault implements TotpSecretVault {
 

@@ -15,11 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
-/**
- * backend/architecture/seeyon-view-columns.yaml is the reviewed whitelist (CODEOWNERS); the start-up check compares the
- * database with the code constant SeeyonViewSql.VIEW_COLUMNS. This test keeps both equal, and keeps the DBA proposal
- * docs/modernization/phase1a/SEEYON_VIEWS.sql in line with them.
- */
+/** Keeps seeyon-view-columns.yaml, SeeyonViewSql.VIEW_COLUMNS and the DBA SQL in line with each other. */
 class SeeyonViewColumnWhitelistTest {
 
     static final Path YAML = Path.of("architecture/seeyon-view-columns.yaml");

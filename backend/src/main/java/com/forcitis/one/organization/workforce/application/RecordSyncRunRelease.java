@@ -11,10 +11,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Marks the held run released and audits who did it, in one transaction: no audit entry without the release, and vice versa. */
+/** Release and audit in one transaction: no audit entry without the release, and vice versa. */
 @Service
 class RecordSyncRunRelease {
-
     private final SyncRunRepository runs;
     private final ObjectProvider<AuditLog> audit;
     private final Clock clock;

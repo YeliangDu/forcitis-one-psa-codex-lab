@@ -5,10 +5,7 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
-/**
- * Emergency admin: internal networks only (seen through the trusted proxy), 5 failures lock for 15 minutes (RULE-316).
- * totpEncryptionKey is a Base64 AES-256 key from the environment / KMS; without it emergency login is impossible.
- */
+/** totpEncryptionKey is a Base64 AES-256 key from the environment / KMS; without it emergency login is impossible. */
 @ConfigurationProperties("forcitis.platform.identity.emergency")
 public record EmergencySettings(@DefaultValue({"127.0.0.1/32", "::1/128"}) List<String> internalNetworks,
                                 @DefaultValue("5") int maxAttempts, @DefaultValue("15m") Duration lockDuration,

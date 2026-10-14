@@ -7,7 +7,6 @@ import java.util.Optional;
 
 public interface OutboundDeliveryRepository {
 
-    /** False when a delivery with the same deduplication key already exists; nothing is stored then. */
     boolean insert(NewDelivery delivery, Instant now);
 
     Optional<OutboundDelivery> findByKey(String deduplicationKey);

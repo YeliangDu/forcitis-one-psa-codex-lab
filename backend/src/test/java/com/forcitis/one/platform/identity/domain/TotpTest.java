@@ -7,7 +7,6 @@ import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** C1a-04: TOTP per RFC 6238 (HMAC-SHA1, 30 s, 6 digits = the last six digits of the RFC's 8-digit test values). */
 class TotpTest {
 
     static final byte[] RFC_SECRET = "12345678901234567890".getBytes(StandardCharsets.US_ASCII);

@@ -8,12 +8,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Wiring of the Seeyon anti-corruption layer. The organisation views connection is qualified "seeyon"; it is off by
- * default (a disabled stand-in answers instead). Switching it on requires its connection settings (environment
- * variables) and, unless explicitly turned off, its start-up check must pass. The single-sign-on ticket check needs no
- * connection; it answers "unavailable" while its base URL is not configured.
- */
+/** Views connection is off by default; when on, the start-up check must pass unless explicitly turned off. */
 @Configuration
 @EnableConfigurationProperties(SeeyonProperties.class)
 class SeeyonConfiguration {
@@ -45,7 +40,7 @@ class SeeyonConfiguration {
             return new JdbcSeeyonSchemaInspector(connection.jdbc());
         }
 
-        /** Switchable (validate-on-startup, on by default in the shipped configuration): a wrong view, id or permission stops the application. */
+        /** Validate-on-startup: a wrong view, id or permission stops the application. */
         @Bean
         @ConditionalOnProperty(prefix = "forcitis.platform.integration.seeyon.views", name = "validate-on-startup", havingValue = "true")
         SmartInitializingSingleton seeyonStartupCheck(SeeyonSchemaInspector inspector, SeeyonProperties properties) {

@@ -23,7 +23,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** RULE-331..334, 338, 339, 344 and the CSRF handshake: server-side sessions, their lifetime, and immediate revocation. */
 class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
 
     static final String CURRENT = "/api/v1/platform/sessions:current";
@@ -183,7 +182,6 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
                  where ar.user_id = 2001
                 """).query(String.class).list()).containsExactly("employee");
 
-        // an administrator takes the role away; a later sync must not give it back
         jdbc.sql("delete from platform_identity.account_roles where user_id = 2001").update();
         publish(new OrgSnapshotChanged(List.of(new UserId(2001)), List.of(), List.of()));
         Thread.sleep(1000);

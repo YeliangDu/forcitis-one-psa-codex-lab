@@ -18,11 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-/**
- * Row to api mapping for the Seeyon views. One mapper serves the bulk read and the single-person lookups, so the same
- * interpretation (NULL flags, enum ids, gender, login name) applies everywhere. Reading is tolerant about column
- * types (the source stores ids and flags as numbers or digit strings); rows that cannot be identified are skipped.
- */
+/** One mapper serves bulk and single lookups; tolerant about column types (ids and flags may be numbers or digit strings). */
 final class SeeyonViewReader {
 
     private final SeeyonMapping mapping;
@@ -31,10 +27,7 @@ final class SeeyonViewReader {
         this.mapping = mapping;
     }
 
-    /**
-     * RULE-355: disabled when IS_DELETED = 1, or IS_INTERNAL != 1, or IS_ENABLE != 1; a NULL flag counts as valid and is
-     * reported by its role name. The hierarchy path stays inside this package: {@link SeeyonOrgTree} turns it into a parent.
-     */
+    /** Disabled when IS_DELETED = 1, IS_INTERNAL != 1 or IS_ENABLE != 1; a NULL flag counts as valid. */
     Optional<OrgUnitRow> orgUnit(ResultSet rs) throws SQLException {
         Long id = longOrNull(rs, "ID");
         String name = text(rs, "NAME");
@@ -84,7 +77,7 @@ final class SeeyonViewReader {
         return Optional.of(new SourceRelationship(kind, new SourceUnitId(unit), new SourcePersonId(member), deleted != null && deleted == 1));
     }
 
-    /** RULE-367: deleted and disabled positions are read too, so they can be followed. */
+    /** Deleted and disabled positions are read too, so they can be followed. */
     Optional<SourcePosition> position(ResultSet rs) throws SQLException {
         Long id = longOrNull(rs, "ID");
         String name = text(rs, "NAME");
@@ -141,8 +134,6 @@ final class SeeyonViewReader {
         };
     }
 
-    // ---- tolerant column readers
-
     static String text(ResultSet rs, String column) throws SQLException {
         String value = rs.getString(column);
         return value == null || value.isBlank() ? null : value.trim();
@@ -172,7 +163,6 @@ final class SeeyonViewReader {
         return value == null ? null : Math.toIntExact(value);
     }
 
-    /** Flags are numeric or bit columns: 1 / true is 1, 0 / false is 0, NULL stays null. */
     static Integer flag(ResultSet rs, String column) throws SQLException {
         Object value = rs.getObject(column);
         if (value == null) {

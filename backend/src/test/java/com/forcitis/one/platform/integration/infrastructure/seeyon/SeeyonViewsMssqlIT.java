@@ -32,14 +32,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mssqlserver.MSSQLServerContainer;
 
-/**
- * Real SQL Server (Testcontainers), only under the Maven profile legacy-it: ./mvnw -B verify -Plegacy-it.
- * Runs the DBA proposal docs/modernization/phase1a/SEEYON_VIEWS.sql against stand-in base tables and proves the §9a
- * claims: the views return the whitelisted columns (and only those) through the ownership chain, the account can
- * read the views but not the base tables, every write / execute / DDL is refused, and the start-up check passes
- * - and refuses an extra column.
- * No real account, password or host appears here: passwords are generated per run.
- */
+/** Real SQL Server (Testcontainers), only under Maven profile legacy-it. */
 @Testcontainers
 class SeeyonViewsMssqlIT {
 
@@ -84,8 +77,6 @@ class SeeyonViewsMssqlIT {
             reader.close();
         }
     }
-
-    // ---------------------------------------------------------------- stand-in Seeyon base tables and the DBA script
 
     private static void createBaseTables() throws SQLException {
         run("seeyontest",
@@ -147,8 +138,6 @@ class SeeyonViewsMssqlIT {
             }
         }
     }
-
-    // ---------------------------------------------------------------- the claims
 
     @Test
     @DisplayName("§9a the views carry exactly the whitelisted columns, and the start-up check passes against the real catalog")

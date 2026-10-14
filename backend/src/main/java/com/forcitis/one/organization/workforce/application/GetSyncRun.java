@@ -5,10 +5,8 @@ import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
-/** One sync run with the differences and data exceptions it found. */
 @Service
 public class GetSyncRun {
-
     private final SyncRunRepository runs;
 
     GetSyncRun(SyncRunRepository runs) {

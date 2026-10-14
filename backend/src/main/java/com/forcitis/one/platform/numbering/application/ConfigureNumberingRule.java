@@ -8,10 +8,8 @@ import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Admin use case: define or change how a document type is numbered. Invalid patterns are rejected by NumberingPattern. */
 @Service
 public class ConfigureNumberingRule {
-
     private final NumberingRuleRepository rules;
 
     ConfigureNumberingRule(NumberingRuleRepository rules) {

@@ -12,11 +12,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * WeCom login for all three entries (workbench, mini program, PC scan; RULE-322/323/324). The OAuth state is consumed
- * atomically before anything else (I-9); the person is found by exact WeCom user id only - no guessing from e-mail or
- * name - and must be employed with an enabled account (RULE-326/327).
- */
+/** The OAuth state is consumed atomically first (I-9); the person is found by exact WeCom user id only, never by e-mail or name. */
 @Service
 public class LoginWithWecom {
 

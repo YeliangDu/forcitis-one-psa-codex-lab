@@ -17,13 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
-/**
- * Document type codes (ADR-0010 decision 5, G45): 2-4 capital letters, unique, and every code is a glossary word - a term
- * with the lower-case code as its snake name exists in this module's proposed glossary or in the official one.
- * Phase 1a registers the quote code QT (first user: 1b); the other types are registered in the stage that numbers them.
- */
 class DocumentTypeCodeTest {
-
     static final Path OFFICIAL = Path.of("../docs/modernization/glossary/terms.yaml");
     static final Path PROPOSED = Path.of("glossary/proposed/platform-numbering.yaml");
 

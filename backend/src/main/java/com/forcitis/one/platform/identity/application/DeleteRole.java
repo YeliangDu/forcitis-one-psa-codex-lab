@@ -11,7 +11,6 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Deletes a custom role together with its permission and account links (RULE-345); system roles cannot be deleted. */
 @Service
 public class DeleteRole {
 
