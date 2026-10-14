@@ -1,4 +1,5 @@
 """Git helpers shared by the scripts in this directory: every call runs with `git -C <repository root>`."""
+import re
 import subprocess
 
 
@@ -46,3 +47,10 @@ def comparison_point(base_sha, root):
         return base_sha
     result = run("merge-base", base_sha, "HEAD", cwd=root)
     return result.stdout.strip() if result.returncode == 0 else base_sha
+
+
+def require_version(minimum, root):
+    text = git("--version", cwd=root).strip()
+    match = re.search(r"(\d+)\.(\d+)", text)
+    if not match or (int(match.group(1)), int(match.group(2))) < minimum:
+        raise CiError(f"git {minimum[0]}.{minimum[1]} or newer is required (merge-tree --write-tree), found: {text}")
