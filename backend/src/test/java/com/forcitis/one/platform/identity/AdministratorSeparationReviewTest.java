@@ -28,8 +28,8 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(3, "employee");
 
-        assertThat(review.holdReason(List.of(new UserId(3), new UserId(404)), null)).isEmpty();
-        assertThat(review.holdReason(List.of(), null)).isEmpty();
+        assertThat(review.review(List.of(new UserId(3), new UserId(404)), null).separatedAdministrators()).isEmpty();
+        assertThat(review.review(List.of(), null).separatedAdministrators()).isEmpty();
     }
 
     @Test
@@ -39,8 +39,8 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(3, "super_admin");
 
-        assertThat(review.holdReason(List.of(new UserId(1)), null)).hasValueSatisfying(reason -> assertThat(reason)
-                .contains("1 separated person(s)").contains("another holder must confirm").doesNotContain("would remain"));
+        assertThat(review.review(List.of(new UserId(1)), null).reason())
+                .contains("1 separated person(s)").contains("another holder must confirm").doesNotContain("would remain");
     }
 
     @Test
@@ -50,10 +50,10 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(3, "employee");
 
-        assertThat(review.holdReason(List.of(new UserId(1), new UserId(3)), null)).hasValueSatisfying(reason -> assertThat(reason)
-                .contains("only 1 usable super_admin holder(s) would remain"));
-        assertThat(review.holdReason(List.of(new UserId(1), new UserId(2)), null)).hasValueSatisfying(reason -> assertThat(reason)
-                .contains("only 0 usable"));
+        assertThat(review.review(List.of(new UserId(1), new UserId(3)), null).reason())
+                .contains("only 1 usable super_admin holder(s) would remain");
+        assertThat(review.review(List.of(new UserId(1), new UserId(2)), null).reason())
+                .contains("only 0 usable");
     }
 
     @Test
@@ -63,7 +63,7 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(5, "security_auditor");
 
-        assertThat(review.holdReason(List.of(new UserId(5)), null)).isPresent();
+        assertThat(review.review(List.of(new UserId(5)), null).separatedAdministrators()).containsExactly(new UserId(5));
     }
 
     @Test
@@ -75,7 +75,7 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         knownEmployee(3, EmploymentStatus.SEPARATED);
         jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where user_id = 2").update();
 
-        assertThat(review.holdReason(List.of(new UserId(1)), null)).hasValueSatisfying(reason -> assertThat(reason).contains("only 0 usable"));
+        assertThat(review.review(List.of(new UserId(1)), null).reason()).contains("only 0 usable");
     }
 
     @Test
@@ -87,10 +87,10 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(7, "org_data_admin");
         List<UserId> separating = List.of(new UserId(1));
 
-        assertThat(review.holdReason(separating, new UserId(2))).isEmpty();
-        assertThat(review.holdReason(separating, new UserId(5))).isEmpty();
-        assertThat(review.holdReason(separating, new UserId(1))).as("not the person leaving").isPresent();
-        assertThat(review.holdReason(separating, new UserId(7))).as("the organisation data administrator alone is not enough").isPresent();
-        assertThat(review.holdReason(separating, new UserId(404))).isPresent();
+        assertThat(review.review(separating, new UserId(2)).actorRetained()).isTrue();
+        assertThat(review.review(separating, new UserId(5)).actorRetained()).isTrue();
+        assertThat(review.review(separating, new UserId(1)).actorRetained()).as("not the person leaving").isFalse();
+        assertThat(review.review(separating, new UserId(7)).actorRetained()).as("the organisation data administrator alone is not enough").isFalse();
+        assertThat(review.review(separating, new UserId(404)).actorRetained()).isFalse();
     }
 }

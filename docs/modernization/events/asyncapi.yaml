@@ -186,6 +186,11 @@ channels:
     messages:
       SyncRunReleased:
         $ref: '#/components/messages/SyncRunReleased'
+  syncRunHoldReleased:
+    address: organization.workforce.SyncRunHoldReleased
+    messages:
+      SyncRunHoldReleased:
+        $ref: '#/components/messages/SyncRunHoldReleased'
   orgSnapshotChanged:
     address: organization.workforce.OrgSnapshotChanged
     messages:
@@ -771,6 +776,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/syncRunReleased/messages/SyncRunReleased'
+  publishSyncRunHoldReleased:
+    action: send
+    channel:
+      $ref: '#/channels/syncRunHoldReleased'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/syncRunHoldReleased/messages/SyncRunHoldReleased'
+  handleSyncRunHoldReleasedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/syncRunHoldReleased'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/syncRunHoldReleased/messages/SyncRunHoldReleased'
   publishOrgSnapshotChanged:
     action: send
     channel:
@@ -2780,6 +2799,48 @@ components:
           releasedByRunId:
             type: string
             x-type: SyncRunId
+            description: 稳定 ID 的字符串形式
+    SyncRunHoldReleased:
+      name: SyncRunHoldReleased
+      title: 被暂停的同步的一类暂停已被有权的人解除，另一类仍在时运行保持暂停
+      x-event:
+        eventType: organization.workforce.SyncRunHoldReleased
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.SyncRunHoldReleased
+        aggregate: SyncRun
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
+        noConsumer: 暂无消费方：放行告警（告警通道待用户指定）将订阅；现在就发布，是因为放行只在发生当时有告警价值，事后补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - syncRunId
+        - holdKind
+        - releasedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          syncRunId:
+            type: string
+            x-type: SyncRunId
+            description: 稳定 ID 的字符串形式
+          holdKind:
+            type: string
+            enum:
+            - SHRINK_GUARD
+            - ADMINISTRATOR_SEPARATION
+            x-type: HoldKind
+          releasedBy:
+            type: string
+            x-type: UserId
             description: 稳定 ID 的字符串形式
     OrgSnapshotChanged:
       name: OrgSnapshotChanged

@@ -406,6 +406,62 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: retained
+  zh: 留任
+  en: Retained
+  snake: retained
+  kind: concept
+  bc: organization.workforce
+  definition: 放行同步暂停的人必须仍是启用账号、持有 super_admin 或安全审计员、在组织快照中明确在职且不在离职名单上（ADR-0028）
+  standard_ref:
+  - adr/src/ADR-0028.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_separation_hold_forbidden
+  zh: 无权解除该暂停
+  en: OrganizationWorkforceSeparationHoldForbidden
+  snake: organization_workforce_separation_hold_forbidden
+  kind: error_code
+  bc: organization.workforce
+  definition: 操作人没有任何一类仍在等待的暂停的解除资格：持有 sync-run:execute 才能解除缩水保护，留任的超级管理员或安全审计员持有 separation-hold:approve 才能解除管理员离职暂停（403，ADR-0028）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_separation_hold_refused
+  zh: 不能在界面放行
+  en: OrganizationWorkforceSeparationHoldRefused
+  snake: organization_workforce_separation_hold_refused
+  kind: error_code
+  bc: organization.workforce
+  definition: 放行后将没有可用的超级管理员，界面拒绝，只能走运维命令（409，ADR-0028）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_release_reason_required
+  zh: 放行需要理由
+  en: OrganizationWorkforceReleaseReasonRequired
+  snake: organization_workforce_release_reason_required
+  kind: error_code
+  bc: organization.workforce
+  definition: 放行被暂停的同步必须写明理由（400，ADR-0028）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - decided
 - sensitive

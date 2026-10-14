@@ -33,7 +33,7 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("every refusal of a signed-in person is an audit entry, written once a minute per person and resource")
     void everyRefusalIsAudited() throws Exception {
-        String session = loginWithWecom(1001);
+        String session = loginWithWecom(1771);
         String path = "/api/v1/platform/roles";
 
         assertThat(mvc.perform(get(path).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus()).isEqualTo(403);
@@ -41,7 +41,7 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.access.denied")).hasSize(1)
                 .singleElement().satisfies(entry -> {
-                    assertThat(entry.actorId().value()).isEqualTo(1001);
+                    assertThat(entry.actorId().value()).isEqualTo(1771);
                     assertThat(entry.subjectKey()).startsWith("operation:RoleController.list");
                 });
     }

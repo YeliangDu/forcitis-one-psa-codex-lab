@@ -197,6 +197,7 @@ abstract class IdentityIntegrationTest {
             jdbc.sql("""
                             insert into platform_identity.account_roles (user_id, role_id)
                             select :id, role_id from platform_identity.roles where lower(code) = lower(:code)
+                            on conflict do nothing
                             """)
                     .param("id", id).param("code", code).update();
         }

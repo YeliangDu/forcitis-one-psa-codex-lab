@@ -201,7 +201,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        ReleaseResult released = release.execute(held.syncRunId().value(), 9001L);
+        ReleaseResult released = release.execute(held.syncRunId().value(), 9001L, "source repaired by hand", true, false);
 
         assertThat(released).isInstanceOf(ReleaseResult.Released.class);
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(3);
@@ -214,8 +214,8 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
-        assertThat(release.execute(held.syncRunId().value(), 9001L)).isInstanceOf(ReleaseResult.NotHeld.class);
-        assertThat(release.execute(424242L, 9001L)).isInstanceOf(ReleaseResult.NotFound.class);
+        assertThat(release.execute(held.syncRunId().value(), 9001L, "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotHeld.class);
+        assertThat(release.execute(424242L, 9001L, "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotFound.class);
     }
 
     @Test

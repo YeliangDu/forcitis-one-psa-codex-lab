@@ -35,9 +35,9 @@ public class SyncOrgSnapshot {
         return execute(trigger, bypassShrinkGuard, null);
     }
 
-    /** A held run is released by a person: the run reads the source afresh with the guards bypassed in that person's name. */
+    /** A held run is released by a person: the run reads the source afresh in that person's name; only the kinds of hold already lifted are bypassed. */
     SyncResult release(SyncTrigger trigger, UserId releasedBy) {
-        return execute(trigger, true, releasedBy);
+        return execute(trigger, false, releasedBy);
     }
 
     private SyncResult execute(SyncTrigger trigger, boolean bypassShrinkGuard, UserId releasedBy) {

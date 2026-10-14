@@ -24,6 +24,48 @@
         },
         "type" : "object"
       },
+      "AuthorizationRequestView" : {
+        "properties" : {
+          "kind" : {
+            "type" : "string"
+          },
+          "permissionCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "requestedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "requestedBy" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "roleCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "roleId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "roleName" : {
+            "type" : "string"
+          },
+          "subjectUserId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "CalendarDayRequest" : {
         "properties" : {
           "calendarDate" : {
@@ -47,6 +89,15 @@
           }
         },
         "required" : [ "calendarDate", "dayKind" ],
+        "type" : "object"
+      },
+      "ConfirmNumberingRuleRequest" : {
+        "properties" : {
+          "templateVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "CreateLegalEntityRequest" : {
@@ -304,6 +355,10 @@
       },
       "NumberingRuleRequest" : {
         "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
           "pattern" : {
             "type" : "string"
           },
@@ -332,6 +387,10 @@
           "documentTypeCode" : {
             "type" : "string"
           },
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
           "pattern" : {
             "type" : "string"
           },
@@ -357,7 +416,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "capacity", "confirmationStatus", "documentType", "pattern", "requiresFinanceConfirmation", "resetPolicy", "startValue", "templateVersion", "version" ],
+        "required" : [ "capacity", "confirmationStatus", "documentType", "effectiveFrom", "pattern", "requiresFinanceConfirmation", "resetPolicy", "startValue", "templateVersion", "version" ],
         "type" : "object"
       },
       "OrgUnitDetailResponse" : {
@@ -459,6 +518,10 @@
           "confirmedBy" : {
             "type" : "string"
           },
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
           "financeConfirmedBy" : {
             "type" : "string"
           },
@@ -477,7 +540,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "authoredAt", "capacity", "pattern", "resetPolicy", "startValue", "templateVersion" ],
+        "required" : [ "authoredAt", "capacity", "effectiveFrom", "pattern", "resetPolicy", "startValue", "templateVersion" ],
         "type" : "object"
       },
       "Period" : {
@@ -495,6 +558,14 @@
           }
         },
         "required" : [ "effectiveFrom", "effectiveTo", "legalEntityId" ],
+        "type" : "object"
+      },
+      "ReleaseRequest" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
+          }
+        },
         "type" : "object"
       },
       "ReleaseResponse" : {
@@ -695,6 +766,18 @@
           "heldReason" : {
             "type" : "string"
           },
+          "heldSeparations" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "holdKinds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "incomingActiveOrgUnitCount" : {
             "format" : "int32",
             "type" : "integer"
@@ -737,6 +820,12 @@
           "releasedByRunId" : {
             "type" : "string"
           },
+          "releasedKinds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "sourceEmployeeCount" : {
             "format" : "int32",
             "type" : "integer"
@@ -759,7 +848,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "startedAt", "status", "syncRunId", "trigger" ],
+        "required" : [ "heldSeparations", "holdKinds", "releasedKinds", "startedAt", "status", "syncRunId", "trigger" ],
         "type" : "object"
       },
       "TaskDetailResponse" : {
@@ -1375,6 +1464,13 @@
             "format" : "int32",
             "type" : "integer"
           }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -1433,6 +1529,16 @@
             "type" : "integer"
           }
         } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReleaseRequest"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "200" : {
             "content" : {
@@ -1829,6 +1935,67 @@
         "tags" : [ "audit-export-controller" ]
       }
     },
+    "/api/v1/platform/authorization-requests" : {
+      "get" : {
+        "operationId" : "pending",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AuthorizationRequestView"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "authorization-request-controller" ]
+      }
+    },
+    "/api/v1/platform/authorization-requests/{requestId}:confirm" : {
+      "post" : {
+        "operationId" : "confirm_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "requestId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "authorization-request-controller" ]
+      }
+    },
+    "/api/v1/platform/authorization-requests/{requestId}:reject" : {
+      "post" : {
+        "operationId" : "reject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "requestId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "authorization-request-controller" ]
+      }
+    },
     "/api/v1/platform/legacy-numbers" : {
       "get" : {
         "operationId" : "byLegacyNumber",
@@ -1994,6 +2161,16 @@
             "type" : "string"
           }
         } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmNumberingRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "200" : {
             "content" : {
@@ -2021,6 +2198,16 @@
             "type" : "string"
           }
         } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmNumberingRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "200" : {
             "content" : {

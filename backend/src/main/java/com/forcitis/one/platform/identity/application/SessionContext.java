@@ -8,6 +8,9 @@ public interface SessionContext {
 
     SessionMode mode();
 
+    /** Empty outside a signed-in request. */
+    Optional<SessionMode> modeIfSignedIn();
+
     Optional<Instant> administratorModeExpiresAt();
 
     LoginMethod loginMethod();

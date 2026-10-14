@@ -114,6 +114,12 @@ class ServletSessionRegistry implements SessionRegistry, SessionContext {
     }
 
     @Override
+    public Optional<SessionMode> modeIfSignedIn() {
+        return SecurityContextHolder.getContext().getAuthentication() instanceof IdentityAuthentication identity
+                ? Optional.of(identity.modeAt(clock.instant())) : Optional.empty();
+    }
+
+    @Override
     public Optional<Instant> administratorModeExpiresAt() {
         IdentityAuthentication current = currentAuthentication();
         return current.modeAt(clock.instant()) == SessionMode.ADMINISTRATOR ? Optional.of(current.administratorModeUntil()) : Optional.empty();

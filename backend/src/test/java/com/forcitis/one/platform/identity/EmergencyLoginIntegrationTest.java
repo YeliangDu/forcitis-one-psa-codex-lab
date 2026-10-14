@@ -286,6 +286,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(me.path("permissionCodes").valueStream().map(n -> n.asString()).toList()).containsExactlyInAnyOrder(
                 Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
-                Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE);
+                Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE,
+                Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
     }
 }

@@ -89,7 +89,8 @@ class RoleTest {
         assertThat(admin.isAdministrator()).isTrue();
         assertThat(admin.permissionCodes()).isEmpty();
         assertThat(admin.administratorModePermissionCodes()).containsExactlyInAnyOrder(Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
-                Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE);
+                Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE,
+                Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
 
         Role disabledAdmin = Role.restore(new RoleId(1), new RoleCode("super_admin"), "x", "SYSTEM", "DISABLED", AccessScopeKind.ALL, true, Set.of(), 0, 0);
         assertThat(AccessProfile.of(List.of(disabledAdmin)).isAdministrator()).isFalse();

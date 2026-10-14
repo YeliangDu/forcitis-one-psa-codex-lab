@@ -63,10 +63,10 @@ public class ForceUserLogout {
         cache.evict(target);
         audit.record(new AuditEntry("platform.identity.session.revoked", actor, null, "user-account:" + targetUserId,
                 "forced logout: " + cleaned).withTrace(null, AuditOutcome.SUCCEEDED, null));
-        if (held.isAdministrator() || held.roleCodes().contains(AdministratorSeparationReview.SECURITY_AUDITOR)) {
+        if (held.isAdministrator() || held.roleCodes().contains(Role.SECURITY_AUDITOR)) {
             meters.counter("forcitis.platform.identity.administrator.logouts").increment();
             log.error("ALERT platform.identity user {} ended the sessions of user {}, who holds {}: {}", actor.value(), targetUserId,
-                    held.isAdministrator() ? Role.SUPER_ADMIN.value() : AdministratorSeparationReview.SECURITY_AUDITOR.value(), cleaned);
+                    held.isAdministrator() ? Role.SUPER_ADMIN.value() : Role.SECURITY_AUDITOR.value(), cleaned);
         }
     }
 }

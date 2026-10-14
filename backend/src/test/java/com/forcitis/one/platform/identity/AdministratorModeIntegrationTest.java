@@ -25,7 +25,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
     static final String EXIT = "/api/v1/platform/sessions:exit-administrator-mode";
     static final List<String> PLATFORM_PERMISSIONS = List.of(Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
             Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE,
-            Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE);
+            Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE, Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
 
     @Autowired
     MeterRegistry meters;
