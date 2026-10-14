@@ -64,6 +64,7 @@ CA 证书：实例 SSL 已开启（阿里云签发，`ApsaraDB cn-hangzhou regio
 | STEP 0 | 4 项冲突检查全为空；`max_connections` 1620 |
 | 建库与授权 | `c3_dev_db.sql` 退出码 0；`c3_dev_db_verify.sql`：4 个角色、10 个 schema 属主 `one_dev_owner`、默认权限 18 项、连接上限合计 45、无外来属主（云助手 t-hz0701ctw0hn3eo） |
 | 口令 | `scripts/c3_set_role_passwords.py dev <RDS 内网地址>`（t-hz0701cxo2kjbpc）：在 ECS 上生成，数据库只收到 SCRAM-SHA-256 校验值；app → `one.env`，migrator → `/etc/forcitis-one/migrate/spring.flyway.{user,password}`，readonly → `/etc/forcitis-one/one-dev-readonly.pgpass`；三个角色真实登录，readonly 确认只读 |
+| 增量补齐（2026-10-15，one-coordinator 批准） | dev 库按旧版脚本建成、未执行过迁移，不删库：以 `one_admin` 执行 `btree_gist`、`platform_idempotency` schema、USAGE、三条默认权限与 REVOKE CREATE（云助手 t-hz070246r8f8074）；新版 verify：11 个 schema 属主均为 `one_dev_owner`，默认权限 20 行（含 `platform_idempotency`），运行角色无 CREATE。`c3_dev_db_after_migrations.sql` 待首次迁移后执行；首次部署前不执行任何迁移（W1 仍在改基线） |
 | verify-full | 三个角色与 `one_admin` 均以 `sslmode=verify-full` 连通（TLS 1.3，t-hz0701ffbczsglc）；改用 IP 连接时证书校验失败，主机名校验生效 |
 | 安全事件 | 查 SSL 状态时直接打印了 `DescribeDBInstanceSSL` 的返回，实例证书私钥进入会话记录。影响：须能截获 VPC 内网流量才可利用。处置：用户决定「和生产前维护一并做」——生产前维护窗口重签证书（必要时重启，与 IT 门户协调）；已加「不得调用会返回密钥的接口」注意事项 |
 
