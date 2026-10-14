@@ -1,6 +1,6 @@
 import type { Schema } from '@forcitis/api';
 
-export type ProcessKey = Schema<'ProcessKey'>;
+export type ProcessKey = NonNullable<Schema<'ProcessKey'>>;
 export type DocumentType = Schema<'DocumentType'>;
 export type TaskRecordAction = Schema<'TaskRecordAction'>;
 
@@ -24,19 +24,27 @@ export const DOCUMENT_TYPE_LABELS: Readonly<Record<DocumentType, string>> = {
   TIMESHEET: '工时单',
 };
 
-export type OutcomeTone = 'posted' | 'pending' | 'rejected' | 'info';
+export type OutcomeTone = 'posted' | 'pending' | 'rejected' | 'info' | 'neutral';
 
 export const TASK_RECORD_ACTION_TONES: Readonly<Record<TaskRecordAction, OutcomeTone>> = {
+  ADVISED: 'info',
   APPROVED: 'posted',
-  AUTO_APPROVED: 'posted',
+  CLAIMED: 'info',
+  PASSED_AUTOMATICALLY: 'posted',
+  REASSIGNED: 'info',
+  RELEASED: 'neutral',
   REJECTED: 'rejected',
   RETURNED: 'pending',
   TRANSFERRED: 'info',
 };
 
 export const TASK_RECORD_ACTION_LABELS: Readonly<Record<TaskRecordAction, string>> = {
+  ADVISED: '加签建议',
   APPROVED: '通过',
-  AUTO_APPROVED: '自动通过',
+  CLAIMED: '认领',
+  PASSED_AUTOMATICALLY: '自动通过',
+  REASSIGNED: '改派',
+  RELEASED: '释放',
   REJECTED: '驳回',
   RETURNED: '退回',
   TRANSFERRED: '转交',

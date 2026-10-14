@@ -2,7 +2,7 @@ import {
   PROCESS_LABELS,
   TASK_RECORD_ACTION_LABELS,
   TASK_RECORD_ACTION_TONES,
-  type TaskRecord,
+  type TaskHistoryEntry,
   availableActions,
   describeFailure,
   documentText,
@@ -18,7 +18,7 @@ import { DataTable, DescriptionList, LoadingState, Notice, PageTitle, StatusBadg
 import { useNavigate, useParams } from 'react-router';
 import { TaskActionBar } from '../components/task-action-bar';
 
-const HISTORY_COLUMNS: DataColumn<TaskRecord>[] = [
+const HISTORY_COLUMNS: DataColumn<TaskHistoryEntry>[] = [
   { key: 'node', title: '节点', render: (record) => record.nodeName },
   { key: 'action', title: '办理结果', render: (record) => <StatusBadge tone={toneOf(TASK_RECORD_ACTION_TONES, record.action)}>{labelOf(TASK_RECORD_ACTION_LABELS, record.action)}</StatusBadge> },
   { key: 'actor', title: '办理人', render: (record) => handlerText(record) },
@@ -48,7 +48,7 @@ export function TaskDetailPage() {
         items={[
           { label: '审批流程', value: labelOf(PROCESS_LABELS, detail.processKey) },
           { label: '单据', value: documentText(detail) },
-          { label: '当前节点', value: detail.nodeName },
+          { label: '当前节点', value: detail.nodeName ?? '—' },
           { label: '发起人', value: detail.initiatorName },
           ...(detail.initiatorOrgUnitName === undefined ? [] : [{ label: '发起人部门', value: detail.initiatorOrgUnitName }]),
           { label: '处理人', value: detail.assigneeName ?? '—' },

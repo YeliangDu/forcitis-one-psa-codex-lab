@@ -338,3 +338,16 @@ terms:
   forbidden: []
   status: proposed
   note: 工作日历的展示用语，与「工作日」相对
+- id: ui_advisory_note
+  zh: 加签建议
+  en: AdvisoryNote
+  snake: advisory_note
+  kind: value
+  bc: platform.approval
+  definition: 加签人给出的参考意见，不算正式的办理结果
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: D-1a-76；办理结果的取值 ADVISED

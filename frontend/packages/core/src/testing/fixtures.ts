@@ -1,13 +1,16 @@
 export const VERSION_HEADER = { ETag: '"1"' } as const;
 
-export function currentUserBody(permissionCodes: string[], navigation: unknown[] = []) {
+export function currentUserBody(permissionCodes: string[], navigation: unknown[] = [], overrides: Record<string, unknown> = {}) {
   return {
+    identityConfirmed: true,
+    mode: 'ORDINARY',
     userId: '1001',
     displayName: '张三',
     orgUnitId: '10',
     orgUnitName: '交付一部',
     permissionCodes,
     navigation,
+    ...overrides,
   };
 }
 
@@ -26,6 +29,7 @@ export function taskDetailBody(overrides: Record<string, unknown> = {}) {
     candidateNames: ['张三', '王五'],
     createdAt: '2026-10-14T01:00:00Z',
     canAct: true,
+    status: 'OPEN',
     overdue: false,
     history: [],
     ...overrides,

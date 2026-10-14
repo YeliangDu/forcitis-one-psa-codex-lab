@@ -191,18 +191,17 @@ describe('HTTP client', () => {
       expect(calls).toHaveLength(0);
     });
 
-    it('creating a resource that does not exist yet sends If-None-Match: * instead of a version', async () => {
+    it('creating a resource that does not exist yet sends If-Match: "0" (B3), never If-None-Match', async () => {
       const { client, calls } = clientWith({ status: 200, body: {} });
       await client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { createOnly: true }, undefined, versioned);
-      expect(headersOf(calls[0]).get('If-None-Match')).toBe('*');
-      expect(headersOf(calls[0]).has('If-Match')).toBe(false);
+      expect(headersOf(calls[0]).get('If-Match')).toBe('"0"');
+      expect(headersOf(calls[0]).has('If-None-Match')).toBe(false);
     });
 
     it('a version that is given wins over createOnly', async () => {
       const { client, calls } = clientWith({ status: 200, body: {} });
       await client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { createOnly: true, ifMatch: '"2"' }, undefined, versioned);
       expect(headersOf(calls[0]).get('If-Match')).toBe('"2"');
-      expect(headersOf(calls[0]).has('If-None-Match')).toBe(false);
     });
 
     it('a 412 is a plain error with its code; nothing is remembered that a retry could reuse', async () => {

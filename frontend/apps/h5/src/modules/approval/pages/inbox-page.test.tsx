@@ -17,7 +17,7 @@ const INBOX = {
   legacyAvailable: true,
   items: [
     { category: 'TODO', overdue: false, source: 'NEW', taskId: 'n-1', processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS202610140001', title: 'COST_TIMESHEET_APPROVAL 1', nodeName: '部门负责人审核', createdAt: '2026-10-14T01:00:00Z', claimed: true },
-    { category: 'TODO', overdue: false, source: 'NEW', taskId: 'n 2', processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS202610140002', nodeName: '部门负责人审核', createdAt: '2026-10-14T02:00:00Z', claimed: false },
+    { category: 'TODO', overdue: false, source: 'NEW', taskId: 'n 2', processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS202610140002', title: 'COST_TIMESHEET_APPROVAL 2', nodeName: '部门负责人审核', createdAt: '2026-10-14T02:00:00Z', claimed: false },
     { category: 'TODO', overdue: false, source: 'LEGACY', taskId: 'l-1', title: '合同评审 HT-2026-001', nodeName: '法务审核', createdAt: '2026-10-13T08:00:00Z', claimed: false, detailUrl: 'https://old.example.com/todo/detail?id=l-1' },
     { category: 'TODO', overdue: false, source: 'LEGACY', taskId: 'l-2', title: '异常链接的老待办', nodeName: '财务审核', createdAt: '2026-10-13T09:00:00Z', claimed: false, detailUrl: 'javascript:alert(1)' },
   ],

@@ -19,7 +19,7 @@ export interface RequestOptions {
   idempotencyKey?: string;
   /** The version (ETag) of the data the update is based on: `versionOf(data)` of what was read. A versioned update without it is refused. */
   ifMatch?: string | undefined;
-  /** The versioned update creates a resource that does not exist yet: with no version, send If-None-Match: * instead of refusing. */
+  /** The versioned update creates a resource that does not exist yet (B3): with no version, send If-Match: "0", the version of a resource that is not there, instead of refusing. */
   createOnly?: boolean;
 }
 
@@ -103,6 +103,7 @@ function dropNulls(value: unknown): unknown {
   return Object.fromEntries(Object.entries(value).filter(([, member]) => member !== null).map(([key, member]) => [key, dropNulls(member)]));
 }
 
+const NO_VERSION = '"0"';
 const SAFE_METHODS = new Set<HttpMethod>(['get']);
 const CSRF_COOKIE = 'XSRF-TOKEN';
 const CSRF_HEADER = 'X-XSRF-TOKEN';
@@ -172,7 +173,7 @@ export function createHttpClient(config: HttpClientConfig = {}) {
     }
     if (traits.versioned === true) {
       if (options.ifMatch !== undefined) headers['If-Match'] = options.ifMatch;
-      else if (options.createOnly === true) headers['If-None-Match'] = '*';
+      else if (options.createOnly === true) headers['If-Match'] = NO_VERSION;
       else throw new MissingVersionError(operation);
     }
     if (traits.idempotent === true) headers['Idempotency-Key'] = options.idempotencyKey ?? newKey();

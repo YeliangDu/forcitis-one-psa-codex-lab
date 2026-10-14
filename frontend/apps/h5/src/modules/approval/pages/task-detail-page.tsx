@@ -41,7 +41,7 @@ export function TaskDetailPage() {
         rows={[
           { label: '审批流程', value: labelOf(PROCESS_LABELS, detail.processKey) },
           { label: '单据', value: documentText(detail) },
-          { label: '当前节点', value: detail.nodeName },
+          { label: '当前节点', value: detail.nodeName ?? '—' },
           { label: '发起人', value: detail.initiatorName },
           ...(detail.initiatorOrgUnitName === undefined ? [] : [{ label: '发起人部门', value: detail.initiatorOrgUnitName }]),
           { label: '处理人', value: detail.assigneeName ?? '—' },

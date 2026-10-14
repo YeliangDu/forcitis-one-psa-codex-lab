@@ -107,4 +107,31 @@ describe('企业微信工作台静默登录', () => {
     expect(await screen.findByText('服务暂时不可用，请稍后重试')).toBeInTheDocument();
     expect(server.calls.some((call) => call.method === 'POST')).toBe(false);
   });
+
+  describe('确认身份（C-M7）', () => {
+    it('身份没有确认之前，页面内容不显示：只显示“将以……身份登录”', async () => {
+      stubServer({ 'GET sessions:current': { body: currentUserBody([], [], { identityConfirmed: false }) } });
+      renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
+
+      expect(await screen.findByText('将以张三身份登录')).toBeInTheDocument();
+      expect(screen.queryByText('待办内容')).not.toBeInTheDocument();
+    });
+
+    it('确认身份：请求确认接口，随后页面内容显示', async () => {
+      let confirmed = false;
+      const server = stubServer({
+        'GET sessions:current': () => ({ body: currentUserBody([], [], { identityConfirmed: confirmed }) }),
+        'POST sessions:confirm-identity': () => {
+          confirmed = true;
+          return { status: 204 };
+        },
+      });
+      renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
+
+      await userEvent.click(await screen.findByRole('button', { name: '确认身份' }));
+
+      expect(await screen.findByText('待办内容')).toBeInTheDocument();
+      expect(server.calls.filter((call) => call.method === 'POST').map((call) => call.url.split('/').pop())).toEqual(['sessions:confirm-identity']);
+    });
+  });
 });

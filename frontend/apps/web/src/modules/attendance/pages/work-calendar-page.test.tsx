@@ -16,7 +16,7 @@ function server(extra: Parameters<typeof stubServer>[0] = {}, permissions: strin
     'GET sessions:current': { body: currentUserBody(permissions) },
     'GET work-calendars/2020': { body: PAST, headers: VERSION_HEADER },
     'GET work-calendars/2999': { body: FUTURE, headers: VERSION_HEADER },
-    'GET work-calendars': { body: [2020, 2999] },
+    'GET work-calendars': { body: { items: [{ calendarYear: 2020 }, { calendarYear: 2999 }] } },
     ...extra,
   });
 }
@@ -102,7 +102,7 @@ describe('工作日历维护页', () => {
     expect(screen.queryByRole('button', { name: '保存修改' })).not.toBeInTheDocument();
   });
 
-  it('这一年还没有维护过时提示，保存第一份日历时说明是新建，而不是带版本更新', async () => {
+  it('这一年还没有维护过时提示，保存第一份日历时带 If-Match "0"（B3），不带 If-None-Match', async () => {
     const requests = server({
       'GET work-calendars/2999': { status: 404, body: problemBody(404, 'ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND') },
       'PUT work-calendars/2999': { body: FUTURE },
@@ -117,8 +117,8 @@ describe('工作日历维护页', () => {
 
     await waitFor(() => expect(requests.calls.some((call) => call.method === 'PUT')).toBe(true));
     const put = requests.calls.find((call) => call.method === 'PUT');
-    expect(put?.headers.get('If-None-Match')).toBe('*');
-    expect(put?.headers.has('If-Match')).toBe(false);
+    expect(put?.headers.get('If-Match')).toBe('"0"');
+    expect(put?.headers.has('If-None-Match')).toBe(false);
   });
 
   it('保存时日历已被别人修改（412）：提示刷新，重新读到新版本，草稿被丢弃并说明', async () => {

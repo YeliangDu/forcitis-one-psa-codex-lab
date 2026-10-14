@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { formatDateTime } from './format-date-time';
 import { safeExternalUrl, safeInternalPath } from './safe-url';
 
 describe('safeExternalUrl', () => {
@@ -17,13 +16,5 @@ describe('safeInternalPath', () => {
     for (const bad of ['//evil.example.com', 'https://evil.example.com', 'inbox', '/\\evil', null, undefined]) {
       expect(safeInternalPath(bad)).toBeUndefined();
     }
-  });
-});
-
-describe('formatDateTime', () => {
-  it('没有时间或时间无效时显示破折号', () => {
-    expect(formatDateTime(null)).toBe('—');
-    expect(formatDateTime('not a date')).toBe('—');
-    expect(formatDateTime('2026-10-14T01:00:00Z')).toMatch(/2026/);
   });
 });

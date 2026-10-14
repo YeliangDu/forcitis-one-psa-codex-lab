@@ -186,3 +186,4 @@
 | `ui_maintain` | 维护 | Maintain | 录入和修改工作日历这类基础数据 |  |
 | `ui_calculation` | 计算 | Calculation | 按规则得出日期、时限、编号等的过程 |  |
 | `ui_outcome_result` | 结果 | OutcomeResult | 一次办理或一次计算得出的结论 |  |
+| `ui_advisory_note` | 加签建议 | AdvisoryNote | 加签人给出的参考意见，不算正式的办理结果 |  |

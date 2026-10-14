@@ -23,7 +23,3 @@ export async function loginWithSignedTicket(ticket: string): Promise<void> {
 export async function loginAsEmergencyAdmin(loginName: string, password: string, totpCode: string): Promise<void> {
   await operations.postPlatformSessionsEmergencyLogin({ body: { loginName, password, totpCode } }, UNGUARDED);
 }
-
-export async function logout(): Promise<void> {
-  await operations.postPlatformSessionsLogout(undefined, UNGUARDED);
-}

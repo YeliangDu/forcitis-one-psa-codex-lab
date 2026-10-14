@@ -45,7 +45,9 @@ test('a document without ProblemDetail or the ErrorCode enum is refused', () => 
 });
 
 test('an operation without a ProblemDetail error answer is refused, and so is a foreign error answer', () => {
-  const missing = generate((spec) => delete decide(spec).responses.default);
+  const missing = generate((spec) => {
+    for (const status of Object.keys(decide(spec).responses)) if (status === 'default' || /^[45]/.test(status)) delete decide(spec).responses[status];
+  });
   assert.notEqual(missing.status, 0);
   assert.match(missing.stderr, /approval-tasks\/\{taskId\}:decide: declares no application\/problem\+json ProblemDetail/);
   const foreign = generate((spec) => { decide(spec).responses['409'] = { description: 'x', content: { 'application/json': { schema: { type: 'object' } } } }; });
