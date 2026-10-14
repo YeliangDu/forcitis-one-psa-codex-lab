@@ -121,7 +121,7 @@ Exit criteria:
 - [ ] 组织快照与 A8 的对账查询结果为零差异（人员数、部门数、上级关系）
 - [ ] 回放从生产导出的 TIMESHEET 流程实例，`platform.approval` 解析出的审批人序列与老系统一致；每条差异都在 `RULE_REVIEWS.json` 中被接受
 - [ ] 合并待办中，同一用户在新旧系统中的待办数量与老系统一致
-- [ ] 业务编号规则已配置；QUOTE 的起始值等于老系统当年的最大流水号 + 1
+- [ ] 业务编号规则已按统一新格式配置并经管理员确认；老编号作为「原编号」可检索，新旧编号对照可查
 - [ ] 同步延迟、未完成的事件发布、作业失败、登录失败率四类告警已接入，并在 dev 上演练触发
 - [ ] 回滚演练：撤销 nginx 路由后，老系统登录和审批不受影响
 - [ ] 首次 `/design-sync` 完成：正本由 `shared/ui` 同步生成，原有全部组件逐个比对预览无缺失，`_ds_sync.json` 锚点已写入；1a 的差距（合并待办收件箱、登录页、权限不足 / 会话过期页）已补入正本
@@ -234,15 +234,15 @@ Exit criteria:
 行为契约取自 `BUSINESS_RULES.md` 的 **189 条 P0 规则**（全部 315 条）。它们构成回归测试集：每条在其所属阶段上线前，都必须证明等价，或以 `RULE_REVIEWS.json` 中的业务决定为准证明「按决定修正」。
 
 - **已定行为（97 条）**：置信度 High 且无疑似缺陷，按老系统行为复刻。
-- **阻塞项（92 条）**：置信度低于 High，或抽取时发现疑似缺陷（老行为看起来有误，或与文档不一致）。按用户要求「顺手修已知 bug、行为现代化」，这些规则**在所属阶段开工前必须经 `/code-modernization:modernize-review psa` 由业务逐条决定**：保持原行为、按修正行为实现，或列入讨论。未决定的规则阻塞该阶段的入口条件。
+- **阻塞项（92 条，已评审 28 条）**：置信度低于 High，或抽取时发现疑似缺陷（老行为看起来有误，或与文档不一致）。按用户要求「顺手修已知 bug、行为现代化」，这些规则**在所属阶段开工前必须经 `/code-modernization:modernize-review psa` 由业务逐条决定**：保持原行为、按修正行为实现，或列入讨论。未决定的规则阻塞该阶段的入口条件。已评审的条目按 `RULE_REVIEWS.json` 呈现：**不复刻** = 新系统按「新系统做法」实现，老行为不作为基准；「修正：」= 规则保留、按修正实现；「已评审」= 按老行为复刻。
 
-| 域 | 阶段 | 已定（P0） | 阻塞（P0，需评审） |
-|---|---|---|---|
-| 工时与资源 | Phase 2 | 21 | 9 |
-| 项目成本与核算 | Phase 4 | 29 | 23 |
-| 售前与报价 | Phase 1b | 8 | 14 |
-| 交付、预算与收入 | Phase 2（收入确认部分在 Phase 4） | 19 | 18 |
-| 审批（platform.approval） | Phase 1a | 20 | 28 |
+| 域 | 阶段 | 已定（P0） | 阻塞（P0，需评审） | 其中已评审 |
+|---|---|---|---|---|
+| 工时与资源 | Phase 2 | 21 | 9 | 0 |
+| 项目成本与核算 | Phase 4 | 29 | 23 | 0 |
+| 售前与报价 | Phase 1b | 8 | 14 | 0 |
+| 交付、预算与收入 | Phase 2（收入确认部分在 Phase 4） | 19 | 18 | 0 |
+| 审批（platform.approval） | Phase 1a | 20 | 28 | 28 |
 
 ### 工时与资源（Phase 2）
 
@@ -337,34 +337,34 @@ Exit criteria:
 **已定：** RULE-251 Row reachability: a row reaches a node if its routing value activates a path to it、RULE-262 Each node must have exactly one assignment rule、RULE-263 A row-approval node requires row units, and the row set is narrowed by routing、RULE-264 Idempotent process start by idempotency key、RULE-268 Only the initiator may cancel, before any cutoff node, with a reason、RULE-271 A reject inside a subprocess returns to the initiator; a top-level reject terminates the process、RULE-272 Validation for the unified "decide" action、RULE-273 A reject from an added countersigner is advisory only、RULE-274 Row-by-row approval must cover every pending row, and any rejected row rejects the node、RULE-275 Return to initiator requires a reason and passes the node's BEFORE hook、RULE-277 BEFORE-hook commit gate、RULE-287 Resubmission chooses between continuing the same instance, blocking, and starting a new instance、RULE-290 A top-level rejection ends the whole process; a rejection inside a sub-process sends it back to the initiator、RULE-294 Task result lifecycle (bpm_task_ext)、RULE-301 Auto-complete cascade order after each task creation、RULE-305 Task-result messages (topic-bpm-approval-task-result)、RULE-306 Which process endings reach business modules、RULE-309 Withdraw/cancel cutoff = any marked node with a completed task、RULE-310 Document detail is visible to holders of the function permission or to process participants (fail-closed)、RULE-312 The process-end consumer runs the hook and then the handler, and must be idempotent
 
 **阻塞，需评审：**
-- [ ] RULE-248 Countersign/or-sign nodes create one task per distinct approver（`BpmParallelMultiInstanceBehavior.java:45-93`，置信度 Medium）
-- [ ] RULE-249 A single-approver node picks one candidate at random（`BpmUserTaskActivityBehavior.java:73-100`，置信度 High） — Routing is non-deterministic. If a role or department is configured on a single-instance node, an arbitrary member becomes the sole approver.
-- [ ] RULE-250 Initiator-leader scripts pick the 1st or 2nd reporting-line leader（`BpmTaskAssignLeaderAbstractScript.java:39-73`，置信度 High） — If the initiator has no leader, there is a NullPointerException at line 50, even for level 1. If the leader has no leader, level 2 throws an NPE at line 72. Combined with RULE-05, a skip-when-empty node is then silently 
-- [ ] RULE-252 Per-row approver resolution（`BpmTaskAssignRuleServiceImpl.java:343-426`，置信度 High） — For non-row-specific types the "first" element of a HashSet is taken, so the choice is arbitrary but deterministic per JVM. This differs from the single-instance random pick (RULE-03).
-- [ ] RULE-253 Approvers are resolved from the node's assignment-rule type（`BpmTaskAssignRuleServiceImpl.java:476-616`，置信度 High） — `removeDisableUsers` (lines 692-701) exists but nothing calls it, so disabled or deleted users can still be made approvers. For DEPT_LEADER, a department with no leader adds `null` to the candidate set. If the random pic
-- [ ] RULE-254 "Custom data" approvers come from form fields, with a hard-coded fallback person（`BpmTaskAssignRuleServiceImpl.java:665-689`，置信度 High） — The hard-coded personal fallback silently routes business approvals to one IT person. There is also a leftover `System.out.println` that dumps all process variables to stdout (line 673).
-- [ ] RULE-265 The initiator of a customized OA process is the caller-supplied `creator`, otherwise the logged-in user（`CustomizedBpmOAServiceImpl.java:105-110`，置信度 High） — The HTTP endpoint is `@PermitAll` with `@DataPermission(enable=false)` (CustomizedBpmController.java:29-38) and accepts `creator` from the request body. An unauthenticated caller could therefore start, or resume (see RUL
-- [ ] RULE-266 Duplicate-start guard: one live process per business document, reused on resubmission（`CustomizedBpmOAServiceImpl.java:135-198`，置信度 High） — The lookup is by `params_id` alone, not (params_id, processKey). The comment in WorkflowReturnStateQuery.java:17 says paramsIds are 16-digit snowflakes that are unique across tables, but no code enforces that. Two proces
-- [ ] RULE-267 A resubmission after a return must belong to the current return round（`CustomizedBpmOAServiceImpl.java:229-283`，置信度 High） — RULE-03's resume branch inside createOA performs the same resume without this round check, and it accepts any caller (see RULE-02).
-- [ ] RULE-269 Withdraw to initiator: initiator only, before cutoff, single-instance current node, not already at initiator（`BpmProcessInstanceServiceImpl.java:360-420`，置信度 High） — `getWithdrawable` can show "allow" when the actual withdraw will fail (MI node or already at initiator).
-- [ ] RULE-270 Batch approve acts on every user's pending tasks in each assignee's name（`BpmTaskServiceImpl.java:430-466`，置信度 High） — - This bypasses RULE-01. The audit trail shows the assignee, not the operator.
-- [ ] RULE-276 Only the assigned approver may act on a task（`BpmTaskServiceImpl.java:1303-1312`，置信度 High） — The fst unified-approve gate accepts unclaimed candidates (`taskCandidateOrAssigned`), but this check and `validateApprovalTaskFacts` (BpmProcessTaskApiImpl.java:494-497) require the exact assignee. See RULE-25.
-- [ ] RULE-278 Approval start rounds: a monotonic round number per (processKey, businessId) defines the idempotency key（`WorkflowStartRoundService.java:20-55`，置信度 Medium） — `selectMaxRound` followed by insert is not locked. Two concurrent submissions could compute the same round. Whether a unique index exists is not visible here.
-- [ ] RULE-279 Process-result handling is idempotent per instance and status (reference: quotation)（`DecideQuotationUseCase.java:32-75`，置信度 Medium） — - Cancelled (4) is mapped to a quotation reject, which conflates initiator withdrawal with an approver rejection.
-- [ ] RULE-280 Unified approve: ownership gate before any field write, fail-closed field permission, default reasons（`WorkflowApproveServiceImpl.java:52-174`，置信度 High） — - `handler.applyApproved` commits on its own before `completeApprovalTask`. The fst gate accepts candidates, but BPM then requires the exact assignee and taskDefinitionKey (BpmProcessTaskApiImpl.java:494-506). An unclaim
-- [ ] RULE-288 Initiator cancels the whole process（`BpmProcessInstanceServiceImpl.java:237-356`，置信度 High） — Deleting history removes approval participation, so former approvers lose their participant visibility of the document (see RULE-12).
-- [ ] RULE-289 Process-instance status and result lifecycle（`BpmProcessInstanceServiceImpl.java:555-650`，置信度 High） — Telling a rejection apart from a cancellation depends only on the prefix of a Chinese reason string (`BpmProcessInstanceDeleteReasonEnum.isRejectReason`). If that wording changes, rejected instances would be recorded and
-- [ ] RULE-291 A rejection by an added co-signer is advisory only（`BpmTaskServiceImpl.java:982-1006`，置信度 High） — The task-level reconcile job (RULE-20) re-sends every bpm_task_ext row with result in {2,3} that has no sent marker. So this "advisory" REJECT would be published to the business module 2 minutes to 24 hours later. That d
-- [ ] RULE-292 Row approval: any rejected row rejects the whole submission, but all rows still finish（`BpmTaskServiceImpl.java:1068-1098`，置信度 Medium） — Unlike the per-person path (`dispatchSingleDecision`, lines 982-1006), this path does not check whether a row task was added by countersign. A countersign participant's rejection on a row node would set `rejected=true` a
-- [ ] RULE-293 Return to initiator using the `rejected` flag（`BpmTaskServiceImpl.java:1107-1152`，置信度 Medium） — A comment at lines 1134-1135 says the remaining rows staying "in approval" after a return is still waiting for business confirmation (都业梁) on whether they should revert to "rejected".
-- [ ] RULE-295 Reliable delivery task lifecycle (psa_reliable_delivery_task)（`ReliableDeliveryDispatcher.java:127-251`，置信度 High） — A null maxRetryCount is treated as 0, so the first failure goes straight to DEAD.
-- [ ] RULE-300 "Skip when empty" bypasses a node that has no approver（`BpmUserTaskActivityBehavior.java:40-60`，置信度 High） — Swallowing exceptions means a misconfiguration (missing rule, or a leader-script NPE per RULE-09) is skipped silently. The approval is effectively waived without any error.
-- [ ] RULE-302 Repeat approver on the same node is auto-approved, except on rework or "reapprove on return"（`BpmTaskEventListener.java:334-409`，置信度 High） — Row data changes are not detected. A row that was edited but kept its row id is auto-approved after resubmission.
-- [ ] RULE-303 Outbox redelivery, backoff and dead-letter（`BpmApprovalMqReliableSender.java:355-398`，置信度 High） — Rows written by persistTaskResult or persistProcessResult also go through asyncSend after commit. The drainer can pick a row up before markSent, so duplicate delivery is possible. Consumers must be idempotent.
-- [ ] RULE-304 Reconcile job re-sends missed results from the bpm records（`BpmApprovalMqReliableSender.java:402-485`，置信度 Medium） — (a) Any task completed by the engine gets result=2 from RULE-02, even when nothing was published: initiator auto-skip, resubmit completion, same-approver auto-approve. The same applies to advisory co-sign rejections (RUL
-- [ ] RULE-307 Anti-self-approval escalates to the initiator's direct leader（`BpmTaskAssignRuleServiceImpl.java:504-550`，置信度 High） — When other non-initiator candidates exist, the leader is still added. Combined with the random pick (RULE-03), the leader may become the approver even though a peer was available.
-- [ ] RULE-308 End-of-process write-back of approve_status to the business table（`CustomizedBpmOAServiceImpl.java:303-337`，置信度 Medium） — - The table name is interpolated as `${tableName}` (SqlActionMapper.java:15), so it relies on trusted definition configuration.
-- [ ] RULE-311 The task-result consumer routes by business key, and a hook replaces the handler（`ApprovalTaskResultConsumer.java:41-75`，置信度 Medium） — This is inconsistent with the process consumer (RULE-22), which runs both the hook and the handler.
+- [x] RULE-248 Countersign/or-sign nodes create one task per distinct approver（`BpmParallelMultiInstanceBehavior.java:45-93`，置信度 Medium）（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-249 A single-approver node picks one candidate at random（`BpmUserTaskActivityBehavior.java:73-100`，置信度 High） → 新系统做法：改成候选组认领（不复刻；评审 2026-10-14）
+- [x] RULE-250 Initiator-leader scripts pick the 1st or 2nd reporting-line leader（`BpmTaskAssignLeaderAbstractScript.java:39-73`，置信度 High） — 修正：汇报线不完整时往上推一级；一直找不到就转给流程管理员并告警。不能空指针，也不能静默跳过（已评审 2026-10-14）
+- [x] RULE-252 Per-row approver resolution（`BpmTaskAssignRuleServiceImpl.java:343-426`，置信度 High） — 修正：行级类型照旧。非行级类型不再取 HashSet里的「第一个」，和节点级用同一种解析方式（候选组）（已评审 2026-10-14）
+- [x] RULE-253 Approvers are resolved from the node's assignment-rule type（`BpmTaskAssignRuleServiceImpl.java:476-616`，置信度 High） — 修正：排除停用/离职人员；部门无负责人时取上级部门负责人；候选集永不含空值。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-254 "Custom data" approvers come from form fields, with a hard-coded fallback person（`BpmTaskAssignRuleServiceImpl.java:665-689`，置信度 High） → 新系统做法：去掉写死的个人兜底，取不到人转流程管理员并告警；删 System.out。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-265 The initiator of a customized OA process is the caller-supplied `creator`, otherwise the logged-in user（`CustomizedBpmOAServiceImpl.java:105-110`，置信度 High） → 新系统做法：发起人只能是当前登录用户（ADR-0009、G33）；老系统已由 SEC-005 补丁修复。（不复刻；评审 2026-10-14）
+- [x] RULE-266 Duplicate-start guard: one live process per business document, reused on resubmission（`CustomizedBpmOAServiceImpl.java:135-198`，置信度 High） — 修正：唯一键改为（流程类型，单据 ID），数据库唯一约束保证。（已评审 2026-10-14）
+- [x] RULE-267 A resubmission after a return must belong to the current return round（`CustomizedBpmOAServiceImpl.java:229-283`，置信度 High）（已评审 2026-10-14：所有续跑入口都执行该检查。）
+- [x] RULE-269 Withdraw to initiator: initiator only, before cutoff, single-instance current node, not already at initiator（`BpmProcessInstanceServiceImpl.java:360-420`，置信度 High） — 修正：「能否撤回」的显示与实际执行用同一判断。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-270 Batch approve acts on every user's pending tasks in each assignee's name（`BpmTaskServiceImpl.java:430-466`，置信度 High） → 新系统做法：只能批量处理本人待办；管理员代办须显式「代理」，审计记录操作人与被代理人。（不复刻；评审 2026-10-14）
+- [x] RULE-276 Only the assigned approver may act on a task（`BpmTaskServiceImpl.java:1303-1312`，置信度 High）（已评审 2026-10-14：与 249 配套，先认领再处理，各入口口径统一。）
+- [x] RULE-278 Approval start rounds: a monotonic round number per (processKey, businessId) defines the idempotency key（`WorkflowStartRoundService.java:20-55`，置信度 Medium） — 修正：加唯一约束（流程类型，单据 ID，轮次）消除并发重号。（已评审 2026-10-14）
+- [x] RULE-279 Process-result handling is idempotent per instance and status (reference: quotation)（`DecideQuotationUseCase.java:32-75`，置信度 Medium） — 修正：幂等保留；发起人撤销后单据回到草稿，不记为驳回。（已评审 2026-10-14）
+- [x] RULE-280 Unified approve: ownership gate before any field write, fail-closed field permission, default reasons（`WorkflowApproveServiceImpl.java:52-174`，置信度 High） — 修正：字段写入与任务完成同一事务（单体+单库可做到）。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-288 Initiator cancels the whole process（`BpmProcessInstanceServiceImpl.java:237-356`，置信度 High） → 新系统做法：撤销不删历史，原审批人仍可见单据与审批记录。（不复刻；评审 2026-10-14）
+- [x] RULE-289 Process-instance status and result lifecycle（`BpmProcessInstanceServiceImpl.java:555-650`，置信度 High） — 修正：生命周期保留，结果用枚举（已通过/已驳回/已撤销），不靠文案。（已评审 2026-10-14）
+- [x] RULE-291 A rejection by an added co-signer is advisory only（`BpmTaskServiceImpl.java:982-1006`，置信度 High） — 修正：补偿任务不得把建议当正式驳回发出。（已评审 2026-10-14）
+- [x] RULE-292 Row approval: any rejected row rejects the whole submission, but all rows still finish（`BpmTaskServiceImpl.java:1068-1098`，置信度 Medium） — 修正：加签人在行节点上的驳回同样只算建议（与 291 一致）。（已评审 2026-10-14）
+- [x] RULE-293 Return to initiator using the `rejected` flag（`BpmTaskServiceImpl.java:1107-1152`，置信度 Medium） — 修正：按建议：改为「已退回」——退回发起人后其余未审行统一改为「已退回」，重提时整单重新审批（用户亲自决定）。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-295 Reliable delivery task lifecycle (psa_reliable_delivery_task)（`ReliableDeliveryDispatcher.java:127-251`，置信度 High） → 新系统做法：新系统用 Modulith 事件发布登记表，重试有默认次数与退避。（不复刻；评审 2026-10-14）
+- [x] RULE-300 "Skip when empty" bypasses a node that has no approver（`BpmUserTaskActivityBehavior.java:40-60`，置信度 High） — 修正：仅在节点显式配置「允许跳过」且确实无人时跳过；配置错误或脚本异常一律报错告警，不静默放行。（已评审 2026-10-14）
+- [x] RULE-302 Repeat approver on the same node is auto-approved, except on rework or "reapprove on return"（`BpmTaskEventListener.java:334-409`，置信度 High） — 修正：行内容在上次审批后有变化（按内容比对）则必须重审。（已评审 2026-10-14）
+- [x] RULE-303 Outbox redelivery, backoff and dead-letter（`BpmApprovalMqReliableSender.java:355-398`，置信度 High）（已评审 2026-10-14：新系统由事件发布登记表承担，消费方必须幂等。）
+- [x] **不复刻** · 老行为：RULE-304 Reconcile job re-sends missed results from the bpm records（`BpmApprovalMqReliableSender.java:402-485`，置信度 Medium） → 新系统做法：投递由事件发布登记表保证，不再从引擎记录反推（老做法会把自动跳过、加签建议当结果发出）。（不复刻；评审 2026-10-14）
+- [x] RULE-307 Anti-self-approval escalates to the initiator's direct leader（`BpmTaskAssignRuleServiceImpl.java:504-550`，置信度 High） — 修正：只有在没有其他非发起人候选时才升级。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-308 End-of-process write-back of approve_status to the business table（`CustomizedBpmOAServiceImpl.java:303-337`，置信度 Medium） → 新系统做法：各业务模块通过类型化结果事件自行处理，去掉按表名拼 SQL 的通用回写。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-311 The task-result consumer routes by business key, and a hook replaces the handler（`ApprovalTaskResultConsumer.java:41-75`，置信度 Medium） → 新系统做法：统一为钩子与业务处理都执行、顺序固定，与流程结果处理一致。（不复刻；评审 2026-10-14）
 
 ## 6. Validation Strategy
 
@@ -387,30 +387,30 @@ Exit criteria:
 Phase 1a 开始前需要决定的事项（逐项勾选）：
 
 - [x] **代码仓库**：新建 `forcitis-one-psa`（用户 2026-10-14 决定）
-- [ ] **SEC-001 的止血方式**：先做网络层止血，还是直接部署签名补丁并协调 A8、YD、BI 调用方同步改造（`security_remediation.notes.md`）
-- [ ] **SEC-003 的角色授权**：确认新增的 `cost:opening:*`、`cost:correction:*` 权限点按「已有页面权限」自动授权的范围
+- [x] **SEC-001 的止血方式**：先网络层止血（收窄 48088 安全组、nginx 拒绝免密端点），签名补丁在 dev 实测通过并与 A8、YD、BI 协调后再部署（用户 2026-10-14 决定）
+- [x] **SEC-003 的角色授权**：按已有页面权限自动授权（迁移脚本已实现）（用户 2026-10-14 决定）
 - [x] **前端栈**：PC 采用 React 19 + TS + Vite + Ant Design 5 + TanStack Query + Zod，与 H5 统一为 React（ADR-0013，用户 2026-10-14 决定：「前端就用 React」）
 - [x] **设计正本**：「Forcitis One Design System」（用户 2026-10-14 决定）；「FORCITIS one（Storm）」只作交互参考
 - [x] **权责发生制主干**：已采纳 ADR-0016（用户 2026-10-14）（单一过账管道、事实只追加、(期间, 法人) 期间闸门、新增 `accounting.period`、U8C 本期仍为法定账）
 - [x] **与边界蓝图的关系**：已采纳 ADR-0017（用户 2026-10-14）（模块沿用 PSA 子域划分并登记蓝图 BC 编号；蓝图的财务不变量作为硬约束；技术栈按本项目评估确定、不沿用 DD-8；D11 / D12 / DD-6 不在本 brief 范围）
-- [ ] **SEC-107**：删除生产 nginx 的 `/other-api` location（发布阻断项，见 SECURITY_FINDINGS.md）
+- [x] **SEC-107**：立即删除生产 nginx 的 `/other-api` location（由运维执行后 reload）（用户 2026-10-14 决定）
 - [x] **用语确认**：2026-10-14 业务 Admin 在用语确认页确认全部 197 项（A 组 4 项为方言、B 组 59 项同意改为标准用语、C 组 134 项确认为正式用语），`terms.yaml` 293 条全部已批准（ADR-0018）
-- [ ] **BC slug**：批准 GLOSSARY §1 中的 BC 英文 slug（例如 `cost.timesheet`、`presales.quoting`）
+- [x] **BC slug**：批准 GLOSSARY §1 的现有 slug，含新增 `accounting.period`（用户 2026-10-14 决定）
 - [x] **数据库版本**：PostgreSQL 18（用户 2026-10-14 决定：「就用 PG 18」）
-- [ ] **数据迁移工具**：确认阿里云 DTS 是否支持 SQL Server → PG 18，不支持则用自建 ETL
+- [x] **数据迁移工具**：自建 ETL（JdbcClient 编写、可重跑、可对账，承载逐列所有权映射、翻译表与冲销关系重建），不依赖 DTS（用户 2026-10-14 决定）
 - [x] **脚手架退出**：已采纳 ADR-0019（用户 2026-10-14）
 - [x] **短信**：不迁移，审批通知统一走企业微信（用户 2026-10-14 决定；生产核实短信从未真正发出）
-- [ ] **会话管理**：批准 ADR-0020；确认是否把 `analysis/psa/` 移入 `forcitis-one-psa/docs/modernization/` 并按会话提交
-- [ ] **基础设施**：开通 FORCITIS one 专用主机和 PSA 专用 RDS PG 18；选定可观测性后端（ARMS / SLS 或 Prometheus）
-- [ ] **规则评审**：按阶段分批执行 `/code-modernization:modernize-review psa`（行为契约中有 92 条 P0 阻塞项）
-- [ ] **业务编号**：确认各单据类型的编号模板和起始值（当前预置了 QUOTE、TIMESHEET、JOURNAL_VOUCHER）
-- [ ] **BI 负责人**：指定 BI 用表和用列清单的负责人
+- [x] **会话管理**：采纳 ADR-0020；`analysis/psa/`（不含任何凭据）移入 `forcitis-one-psa/docs/modernization/`，每个会话收尾时提交；首次提交与推送前列出范围待用户确认（用户 2026-10-14 决定）
+- [x] **基础设施**：杭州独立 ECS（4 核 16G）部署新单体；RDS PostgreSQL 18 高可用版（2 核 8G 起）；可观测性接 ARMS 与 SLS（用户 2026-10-14 决定）；开通由运维执行
+- [x] **规则评审**：按阶段分批——Phase 1a 前评审审批 28 条，1b 前评审售前报价 14 条，其余在对应阶段前评审，每批一个会话（用户 2026-10-14 决定）
+- [x] **业务编号**：**统一新格式**（用户 2026-10-14 决定）。默认模板提议 `{单据类型代码}-{法人代码}-{yyyyMM}-{流水 4 位}`（例如 `QT-FST-202610-0001`），按法人与月份计数、不重号不跳号；老编号作为「原编号」只读保留并可检索。具体模板在 Phase 1a 由管理员在编号规则页确认
+- [x] **BI 负责人**：业务 Admin 都业梁（用户 2026-10-14 决定）
 
 ## 8. Approval Block
 
 ```
-Approved by: ________________  Date: __________
-Approval covers: Phase 1 only | Full plan
+Approved by: 用户（业务侧，会话内明确批准：「待决问题给我建议选项，批准」，审批范围选「批准 Phase 1a 和 1b」）  Date: 2026-10-14
+Approval covers: Phase 1 only（Phase 1a 与 1b；试点后按结果重新生成 brief，再审批后续阶段）
 ```
 
 审批人通过编辑本文件来调控执行：被修改的入口 / 出口条件会被执行命令遵守，聊天消息不会。执行命令只会勾选条件或追加 `Proposed revision:` 行，不会改写条件。
