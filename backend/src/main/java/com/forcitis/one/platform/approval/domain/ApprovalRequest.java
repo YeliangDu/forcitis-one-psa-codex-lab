@@ -42,8 +42,6 @@ import java.time.Instant;
 import com.forcitis.one.platform.approval.api.TaskRecordAction;
 import com.forcitis.one.platform.approval.api.TaskRecordId;
 import com.forcitis.one.kernel.Uuids;
-import java.time.Clock;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -302,7 +300,7 @@ public final class ApprovalRequest extends AggregateRoot {
     }
 
     private void note(ApprovalTask task, TaskRecordAction action, UserId actor, UserId onBehalfOf, UserId assignee, Reason reason, Moment now) {
-        handlings.add(new TaskHandling(new TaskRecordId(Uuids.timeOrdered(Clock.fixed(now.at(), ZoneOffset.UTC))), processKey, document, round, task.taskId(),
+        handlings.add(new TaskHandling(new TaskRecordId(Uuids.timeOrdered(now.at())), processKey, document, round, task.taskId(),
                 task.instanceId(), task.nodeKey(), task.nodeName(), action, actor, Optional.ofNullable(onBehalfOf), Optional.ofNullable(assignee),
                 Optional.ofNullable(reason), now.at()));
     }
