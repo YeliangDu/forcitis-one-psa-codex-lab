@@ -71,6 +71,11 @@ channels:
     messages:
       WorkCalendarYearMaintained:
         $ref: '#/components/messages/WorkCalendarYearMaintained'
+  workCalendarLockedDaysChanged:
+    address: organization.attendance.WorkCalendarLockedDaysChanged
+    messages:
+      WorkCalendarLockedDaysChanged:
+        $ref: '#/components/messages/WorkCalendarLockedDaysChanged'
   roleCreated:
     address: platform.identity.RoleCreated
     messages:
@@ -462,6 +467,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/workCalendarYearMaintained/messages/WorkCalendarYearMaintained'
+  publishWorkCalendarLockedDaysChanged:
+    action: send
+    channel:
+      $ref: '#/channels/workCalendarLockedDaysChanged'
+    summary: organization.attendance 发布
+    messages:
+    - $ref: '#/channels/workCalendarLockedDaysChanged/messages/WorkCalendarLockedDaysChanged'
+  handleWorkCalendarLockedDaysChangedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/workCalendarLockedDaysChanged'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/workCalendarLockedDaysChanged/messages/WorkCalendarLockedDaysChanged'
   publishRoleCreated:
     action: send
     channel:
@@ -2019,6 +2038,43 @@ components:
               type: string
               x-type: LocalDate
             description: 本次保存新增、删除或改变类型的日期，按日期升序；原样重存时为空
+    WorkCalendarLockedDaysChanged:
+      name: WorkCalendarLockedDaysChanged
+      title: 工作日历中已过去的日期被组织数据管理员确认修改
+      x-event:
+        eventType: organization.attendance.WorkCalendarLockedDaysChanged
+        version: 1
+        class: com.forcitis.one.organization.attendance.events.WorkCalendarLockedDaysChanged
+        aggregate: WorkCalendarYear
+        idempotencyKey: eventId
+        publisher: organization.attendance
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：载荷 changes 列出被改的日期及其改前改后的类别；已算出的审批时效不因此重算
+        audit: audited
+        publisherTest: com.forcitis.one.organization.attendance.domain.WorkCalendarYearTest
+        noConsumer: 暂无消费方：这是对工作日历例外修改的审计留痕；现在就发布，是因为例外修改的操作人与日期事后无法还原
+      payload:
+        type: object
+        required:
+        - envelope
+        - calendarYear
+        - changes
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          calendarYear:
+            type: integer
+            x-type: Year
+            description: 日历年份
+          changes:
+            type: array
+            items:
+              type: object
+              x-type: LockedDayChange
+              description: 被修改的、早于操作当天的日期，及其修改前后的类别（NONE 表示按周一至周五上班、周末休息的常规）
     RoleCreated:
       name: RoleCreated
       title: 角色新增

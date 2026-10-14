@@ -4,7 +4,6 @@
 column organization_workforce.employees.email | 改名为 email_address
 column organization_workforce.employees.gender | 改名为 gender_code
 column organization_workforce.org_units.region_category | 改名为 region_kind（加 CHECK：总部 / 区域枚举）
-column organization_workforce.sync_diffs.changed_fields | 改名为 changed_fields_text
 column organization_workforce.sync_diffs.detail | 改名为 detail_text
 column organization_workforce.sync_diffs.issue_kind | 改名为 保留列名，补 CHECK 列出枚举名
 column platform_approval.approval_requests.current_round | 改名为 current_round_number
@@ -20,8 +19,6 @@ column platform_identity.sso_ticket_uses.ticket_source | 改名为 ticket_source
 column platform_identity.ticket_issuers.key_reference | 改名为 key_reference_name
 column platform_integration.outbound_deliveries.handled_result | 改名为 handled_result_kind（加 CHECK）
 column platform_integration.outbound_deliveries.last_error | 改名为 last_error_message
-column platform_integration.outbound_deliveries.recipients | 改名为 recipients_text
-column platform_integration.outbound_deliveries.skipped_recipients | 改名为 skipped_recipients_text
 column platform_numbering.legacy_numbers.document_type | 改名为 document_type_code（单据类型代码是可扩展的登记项，G45；或保留并补 CHECK）
 column platform_numbering.legacy_numbers.import_batch | 改名为 import_batch_key
 column platform_numbering.numbering_counters.document_type | 改名为 document_type_code（同上）

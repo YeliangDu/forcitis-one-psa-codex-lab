@@ -5,6 +5,8 @@ import java.lang.reflect.Method;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.Advisor;
 import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.aop.support.annotation.AnnotationMatchingPointcut;
@@ -29,6 +31,7 @@ import org.springframework.util.ClassUtils;
  */
 @Configuration
 class ScheduledJobMetrics implements ApplicationListener<ContextRefreshedEvent> {
+    private static final Logger LOG = LoggerFactory.getLogger(ScheduledJobMetrics.class);
     private final MeterRegistry registry;
 
     ScheduledJobMetrics(MeterRegistry registry) {
@@ -43,7 +46,9 @@ class ScheduledJobMetrics implements ApplicationListener<ContextRefreshedEvent> 
             try {
                 return invocation.proceed();
             } catch (Throwable failure) {
-                registry.getObject().counter("forcitis.platform.scheduling.job.failures", "job", jobName(invocation.getMethod())).increment();
+                String job = jobName(invocation.getMethod());
+                LOG.error("ALERT job {} failed: {}", job, failure.toString(), failure);
+                registry.getObject().counter("forcitis.platform.scheduling.job.failures", "job", job).increment();
                 throw failure;
             }
         };

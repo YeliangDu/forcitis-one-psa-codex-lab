@@ -67,7 +67,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
 
     @BeforeEach
     void twoLegalEntities() {
-        jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
+        com.forcitis.one.organization.workforce.application.VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
         le1 = new LegalEntityId(createLegalEntity.execute("FST", "Synthetic one").legalEntityId());
         le2 = new LegalEntityId(createLegalEntity.execute("FIT", "Synthetic two").legalEntityId());
     }

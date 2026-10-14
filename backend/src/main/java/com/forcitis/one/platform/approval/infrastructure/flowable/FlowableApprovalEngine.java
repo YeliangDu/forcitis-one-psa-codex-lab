@@ -62,6 +62,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
     static final String VARIABLE_APPROVER_INVALID = "approverInvalid";
     static final String VARIABLE_ASSIGNED_AT = "assignedAtMillis";
     static final String VARIABLE_ADVISORY = "advisory";
+    static final String VARIABLE_ROUTED_PREFIX = "routed_";
 
     private final RuntimeService runtime;
     private final TaskService tasks;
@@ -132,7 +133,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
         });
         Map<String, Object> variables = new LinkedHashMap<>();
         for (UserTask node : latestNodes(start.processKey())) {
-            variables.put("routed_" + node.getId(), NodePolicyReader.read(node).routingFlag().map(facts::contains).orElse(true));
+            variables.put(VARIABLE_ROUTED_PREFIX + node.getId(), NodePolicyReader.read(node).routingFlag().map(facts::contains).orElse(true));
         }
         return variables;
     }

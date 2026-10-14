@@ -37,10 +37,13 @@
 
 与 it_portal 隔离：所有 schema 和角色都以本系统模块名或 `one_` 为前缀；不触碰 it_portal 的 schema；连接数上限分别设为 one_dev_app 40、one_dev_migrator 2、one_dev_readonly 3。
 
-应用侧需要的配置（随骨架补齐，属代码改动，由本会话完成；**截至 2026-10-14 `application.properties` 尚未包含以下三项**，首次迁移时以环境变量 `SPRING_FLYWAY_DEFAULT_SCHEMA=one_migration` 兜底，见 `runbooks/C-4-ecs-init.md`「首次部署」）：
-- `spring.flyway.default-schema=one_migration`
-- `spring.flyway.schemas` 列出全部模块 schema，`create-schemas=false`（由 DBA 预建）
-- 部署时迁移连接用 one_dev_migrator，运行连接用 one_dev_app。分开配置 `spring.flyway.user` / `password` 和 `spring.datasource.*`。
+应用侧的 Flyway 与 Flowable 配置（已在 `application.properties`，用 `SchemaPlacementIT` 断言）：
+- `spring.flyway.default-schema=one_migration`：历史表 `flyway_schema_history` 只在 `one_migration`，不落在任何模块 schema。
+- `spring.flyway.schemas` 列出 `one_migration` 与全部模块 schema，`spring.flyway.create-schemas=false`：schema 由 DBA 预建，应用不替 DBA 建。测试库是空库，测试配置里为 `true`。
+- `flowable.database-schema=platform_approval`：引擎表 `ACT_*` 一律落在 `platform_approval`，业务模块不连接它们；安装 / 升级时的连接串也加 `currentSchema=platform_approval`，建完用 `SELECT table_schema FROM information_schema.tables WHERE table_name LIKE 'act\_%' GROUP BY 1` 核对只有这一个 schema。
+- **首次运行 Flyway 需要库级 CREATE 权限**：每个模块的第一个迁移都以 `CREATE SCHEMA IF NOT EXISTS` 开头，PostgreSQL 先检查库级 CREATE 权限再判断 schema 是否已存在，所以迁移角色（继承 `one_dev_owner`）要有 `GRANT CREATE ON DATABASE forcitis_one_dev TO one_dev_owner`（`one_db_roles_schemas.sql` §0 已列出）。应用运行角色不需要。
+- 部署时迁移连接用 `one_dev_migrator`，运行连接用 `one_dev_app`，分开配置 `spring.flyway.user` / `password` 与 `spring.datasource.*`。
+- 每次发布迁移之后执行 `one_db_roles_schemas.sql` 的 §4b：对运行角色撤销版本表的 DELETE 和 TRUNCATE（版本表只追加）。
 
 ## 3. ECS 初始化（i-bp122xlpar8w2uylmal2）
 
@@ -105,12 +108,19 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 | 变量 | 用途 | 必需 |
 |---|---|---|
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | PG 运行连接 | 是 |
-| `SPRING_FLYWAY_USER` / `_PASSWORD` | 迁移（仅部署） | 部署时 |
+| `SPRING_FLYWAY_URL` / `SPRING_FLYWAY_USER` / `_PASSWORD` | 迁移账号的连接，只给 `migrate` 步骤（缺省 URL 取 `SPRING_DATASOURCE_URL`） | 部署时 |
+| `SPRING_FLYWAY_ENABLED` | 常驻服务必须为 `false`（生产 profile 已默认） | 是 |
+| `ARCHIVE_STORE_BUCKET` / `_REGION` / `_PREFIX` | 归档库（OSS）的 bucket、地域（只允许国内地域，如 `cn-hangzhou`）和对象前缀（§5.3）；缺任一项启动失败 | 是 |
+| `ARCHIVE_STORE_LOCAL_DIRECTORY` | 本机只留最近一份归档的目录（绝对路径） | 是 |
+| `ARCHIVE_STORE_WORM_LOCK_DAYS` | bucket 已锁定的 WORM 保留天数，随发行物默认 2557（约 7 年；探针核对桶上已锁定的天数等于它，延长保留期时与 `total-keep-years` 一起改） | 否 |
+| `ARCHIVE_STORE_ECS_ROLE_NAME` | 绑定给 ECS 的 RAM 角色名（推荐，应用经 STS 临时凭证访问归档库，§5.3）；与 AccessKey 二选一，都不设时读 `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET` | 否 |
+| `ARCHIVE_STORE_ACCESS_KEY_ID` / `_SECRET` | 归档用 RAM 子账号的密钥，只写入 one.env 或 KMS；绑定 ECS RAM 角色时两项都不设，应用走默认凭证链 | 否 |
 | `FLOWABLE_SCHEMA_UPDATE` | 仅引擎安装 / 升级时为 true | 否 |
 | `FLOWABLE_ASYNC_EXECUTOR` | 流程引擎异步执行器开关（默认 true） | 否 |
 | `APPROVAL_PROCESS_ADMINISTRATOR_USER_ID` | 取不到审批人时的兜底人 | 是 |
 | `APPROVAL_TASK_URL_TEMPLATE` | 卡片跳转地址 | 否（有默认值） |
 | `EMERGENCY_TOTP_ENCRYPTION_KEY` | 应急管理员 TOTP 密钥加密（32 字节 Base64） | 是 |
+| 归档用 RAM 子账号的 AccessKey（只在不用 ECS RAM 角色时存在） | one.env / KMS | 不设到期 | 每 90 天：在 RAM 控制台新建第二把、写入 one.env、重启应用确认归档探针通过，再停用并删除旧的；RAM 角色（STS）无需轮换 |
 | `FORCITIS_TICKET_KEY_<KID>` | 签名票据签发方密钥；签发方默认关闭，当前白名单为空 | 否 |
 | `FORCITIS_TRUSTED_PROXIES` | 只信任 nginx（127.0.0.1） | 是 |
 | `SEEYON_OA_BASE_URL`、`LEGACY_LOGIN_URL` | 致远验票地址；失败时回老系统登录 | 是 |
@@ -136,11 +146,61 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 | `INTEGRATION_LEGACY_VALIDATE_ON_STARTUP` | 启动时校验该账号只能读部门简称视图（默认 true） | 否 |
 | `WORKFORCE_SYNC_ENABLED` | 从 A8 视图同步组织与人员的定时任务开关（默认 false） | 否 |
 | `WORKFORCE_SHORT_NAME_ENABLED` | 从老库同步组织短名的定时任务开关（默认 false） | 否 |
-| `SPRING_PROFILES_ACTIVE=dev` | 环境 | 是 |
-| 生产附加 | `SPRINGDOC_API_DOCS_ENABLED=false` | 生产 |
+| `SPRING_PROFILES_ACTIVE` | `dev` 或 `prod`；决定数据库连接的 TLS 要求（§5.1） | 是 |
+| 生产附加 | `springdoc.api-docs.enabled=false` | 生产 |
 | 前端构建时（CI 变量，非机密） | `VITE_WECOM_CORP_ID`、`VITE_WECOM_AGENT_ID`、`VITE_SSO_PORTAL_URL`（PC）；`TARO_APP_WECOM_CORP_ID`（H5） | 构建时 |
 
 模板：`runbooks/files/one.env.template`（只有变量名与非机密默认值）。
+
+### 5.1 数据库连接的 TLS 与 CA（用户决定 N-3）
+
+- **应用侧的硬规则**（`DatabaseTransportConfiguration`，在任何连接建立之前检查）：
+  - 激活 `prod` 时，主库、迁移连接（`spring.flyway.url`）、A8 视图、老系统短名视图、老待办视图的 JDBC URL 都必须验证服务端证书和主机名，且 CA 文件可读；否则**启动失败**，日志列出是哪条连接、缺什么。
+  - 激活 `dev` 时至少加密：PostgreSQL `sslmode` 为 `require`、`verify-ca` 或 `verify-full`；SQL Server `encrypt=true`。
+  - 没有激活这两个 profile（本地、测试）不检查。
+  - 未启用的 A8 / 老系统视图连接不检查。
+- **PostgreSQL（RDS）**：URL 带 `sslmode=verify-full&sslrootcert=/etc/forcitis-one/rds-ca.pem`。`prod` 不接受 `require`。
+- **SQL Server（A8、老系统）**：驱动没有 PEM 形式的 CA 路径，URL 用 `encrypt=true;trustServerCertificate=false;trustStore=/etc/forcitis-one/sqlserver-ca.p12;trustStorePassword=<取自 one.env>`。`prod` 不接受 `trustServerCertificate=true`、`encrypt=false` 或缺 `trustStore`。
+- **CA 的放置与下发**：
+  1. 在 RDS 控制台开启 SSL 并下载 CA 证书链（PEM），在另一条渠道核对指纹。SQL Server 两边向对方 DBA 要各自的 CA 证书，不信任 `trustServerCertificate`。
+  2. 运维经云助手把 PEM 放到 `/etc/forcitis-one/rds-ca.pem`，属主 `root:forcitis`，权限 `0640`；SQL Server 的 CA 用 `keytool -importcert` 导入 PKCS12 信任库 `/etc/forcitis-one/sqlserver-ca.p12`，权限同上。CA 是公开证书，不是密钥，但文件被替换等于信任被替换，所以只由 root 写。
+  3. 同一份文件被运行连接和迁移连接共用；文件不进仓库、镜像和聊天，下发动作记入运维记录。
+  4. 证书到期前 30 天更新文件并重启应用；到期日列入证书监控（与 `one.forcitis.com` 的证书一起）。RDS 控制台更换服务端证书后必须同步更新 CA 文件，否则应用重启后连不上，而不是静默降级。
+- **验证**：`psql "host=<RDS 内网地址> dbname=forcitis_one_dev user=one_dev_app sslmode=verify-full sslrootcert=/etc/forcitis-one/rds-ca.pem" -c "select ssl, version from pg_stat_ssl where pid = pg_backend_pid()"`，应返回 `t`。
+
+### 5.2 密钥清单与轮换（用户决定 N-2：服务账号口令不设到期，每 90 天轮换）
+
+| 密钥 | 存放 | 到期 | 轮换 |
+|---|---|---|---|
+| `one_dev_app`、`one_dev_migrator`、`one_dev_readonly` 的口令 | one.env / KMS（迁移口令只在部署步骤注入） | 不设到期（PostgreSQL 角色不加 `VALID UNTIL`） | 每 90 天：RDS 控制台改口令 → 写入 one.env → 重启；迁移口令随部署轮换 |
+| A8 只读账号、老系统两个只读账号的口令 | one.env / KMS | 不设到期（SQL Server 登录 `CHECK_EXPIRATION = OFF`） | 每 90 天：对方 DBA 改口令 → 写入 one.env → 重启 |
+| `WECOM_APP_SECRET` | one.env / KMS | 以企业微信后台为准 | 每 90 天在企业微信后台重置并更新 |
+| `EMERGENCY_TOTP_ENCRYPTION_KEY` | one.env / KMS | 不到期 | 不随 90 天轮换：轮换要重加密全部应急管理员的 TOTP 密钥，单独写手册后才能做 |
+| `FORCITIS_TICKET_KEY_<KID>` | one.env / KMS | 签发方默认关闭 | 启用某个签发方时，按该签发方的约定轮换（`kid` 并存期内可平滑换） |
+
+- 轮换到点由运维日历提醒；任何一项逾期 7 天按 P2 报告 psa-coordinator。
+- 口令只在服务器受保护文件或 KMS 中出现，轮换过程不经聊天、工单和仓库。
+
+### 5.3 数据保留作业与归档去向（数据打分卡 T3；用户决定 2026-10-15：用国内 OSS 归档存储）
+
+| 数据 | 在线保留 | 到期后 | 作业（ShedLock 名） | 配置项（缺失则启动失败） |
+|---|---|---|---|---|
+| `cost_timesheet.consumed_events` | 90 天 | 删除 | `cost.timesheet.consumed.events.purge`，每日 04:20 | `forcitis.cost.timesheet.consumed-events.keep-period`、`.cron` |
+| `organization_workforce.sync_runs` / `sync_diffs` | 运行 2 年、差异 1 年（已放行的从放行日算；未放行的中止运行不删） | 删除 | `organization.workforce.sync.purge`，每日 03:50 | `forcitis.organization.workforce.sync-purge.*` |
+| `platform_integration.outbound_deliveries` | 成功或跳过 90 天、失败 1 年 | 删除 | `platform.integration.outbound.purge`，每日 04:10 | `forcitis.platform.integration.outbound-purge.*` |
+| 引擎历史 `ACT_HI_*`（已结束的流程实例） | 3 年 | 先写入归档库，库确认后才从引擎删除 | `platform.approval.process.archive`，每日 03:40 | `forcitis.platform.approval.process-archive.*` |
+| `platform_audit.audit_entries` | 3 年 | 先写入归档库；**在线行暂不删除**（表有触发器拒绝 DELETE，删除要单独决定） | `platform.audit.entry.archive`，每日 02:00 | `forcitis.platform.audit.archive.*` |
+
+- **归档库**：阿里云 OSS，**与 ECS 同地域的国内地域**（应用只接受国内地域，拒绝 `eu-central-1` 等；归档含个人信息，不得放到法兰克福），存储类型 Archive，开启 WORM 合规保留（锁定天数等于 `ARCHIVE_STORE_WORM_LOCK_DAYS`）。bucket 和 RAM 子账号由用户创建，名字、账号、密钥都不进仓库。RAM 子账号只授予该 bucket 前缀下的写入（`oss:PutObject`、分片上传的发起与中止）和读元数据，不授予删除。
+- **写入方式**：每批一个不可变对象，键为 `<前缀>/<类别>/<年>/<类别>-<UTC 时间>-<SHA-256 前 12 位>.ndjson.gz`；写入前算 SHA-256，上传带 `Content-MD5`、禁止覆盖、归档存储类型，SHA-256 同时写进对象元数据；上传后读回元数据，哈希或大小不符则整批失败，引擎和在线行都不动。多节点下由 ShedLock 保证同一时刻只有一个节点归档，对象名也各不相同。
+- **本机**：数据盘 `ARCHIVE_STORE_LOCAL_DIRECTORY/<类别>/latest.ndjson.gz` 只留最近一份（目录属主 `forcitis`，权限 `0750`，systemd 单元的 `ReadWritePaths` 要加上它）。
+- **保留与到期（单一 bucket）**：流程归档与审计归档共用同一个 bucket，用前缀区分类别，WORM 合规保留 **2557 天（约 7 年）**：依据是在线 3 年加归档 7 年，从数据产生起算满 10 年（用户已定）；以后需要时还可以延长，只增不减。天数是配置项 `ARCHIVE_STORE_WORM_LOCK_DAYS`（`forcitis.platform.integration.archive-store.worm-lock-days`，随发行物默认 2557），总保留期 10 年是另一个配置项 `total-keep-years`；每类数据的「在线保留期 + WORM 天数」必须等于总保留期，不一致则启动失败（`ArchiveVault.requireTotalKeepPeriod`，并有守护测试 `ArchiveKeepPeriodTest` 核对随发行物的配置）。建桶时在控制台按 2557 天锁定。
+- **生命周期**：bucket 配置生命周期规则，对象保留期满（创建后满 WORM 天数）后过期删除；应用不删除归档。过账类单据按 30 年保存，存放另行安排，见 `phase1a/DEFERRED.md`（用户已定，主分支提交 7d5b9d3），不在这个 bucket 的 10 年规则里。
+- **凭证与 RAM 策略**：推荐给 ECS 绑定 RAM 角色（STS 临时凭证），应用走默认凭证链，不配置 AccessKey；不用角色时才配置 `ARCHIVE_STORE_ACCESS_KEY_ID` / `_SECRET`（见 §5.2 的轮换）。策略（草稿，由用户在 RAM 控制台建）：Allow `oss:PutObject`、`oss:InitiateMultipartUpload`、`oss:AbortMultipartUpload`、`oss:GetObjectMetadata`（`oss:GetObject` 仅排障需要，默认不给）、`oss:GetBucketInfo`、`oss:GetBucketWorm`、`oss:GetBucketLocation`，资源限定在该 bucket 及 `<前缀>/*`；**显式 Deny** `oss:DeleteObject*`（含 `DeleteObject`、`DeleteMultipleObjects`、`DeleteObjectVersion`）于同一资源，显式 Deny 优先于任何 Allow。
+- **探针**：应用启动时和每天一次，检查本机目录可写、bucket 在配置的地域、WORM 已锁定且天数等于配置值、有写入权限（发起并中止一次分片上传，不在 WORM 桶里留对象）。失败不阻止启动，记 `ALERT` 日志并计数 `forcitis.platform.approval.archive.probe.failures`、`forcitis.platform.audit.archive.probe.failures`；归档作业本身失败记 `ALERT` 并计数 `forcitis.platform.scheduling.job.failures{job=…}`（所有带锁作业共用）。生产缺少上述配置项则**启动失败**。
+- **归档内容**：流程实例的 ID、流程定义键、版本与部署 ID、业务键、起止时间、发起人、删除原因，任务（办理人、认领、办结、到期时间）、活动、身份关联（候选人、转交、升级追加的人），以及白名单内的变量（`architecture/archive-variables.txt`：`contentDigest`、`routed_*`，任务级 `systemComplete`、`advisory`、`assignedAt`），不含其他流程变量。任务级的结论与理由由审批的只追加办理记录表负责。
+- 一个实例写入归档后引擎删除失败，则跳过、记 `ALERT`、计数 `forcitis.platform.approval.archive.skipped`，并记入只追加表 `platform_approval.process_archive_skips`，之后不再重复归档；仍在引擎里的每次运行结束时再告警一次，直到人工处理。
+- 审计 3 年归档按 id 前缀成批，进度记在 `platform_audit.audit_archive_batches`。
 
 ## 6. 应急管理员开通（设计，执行需用户确认）
 
@@ -159,7 +219,10 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 
 1. CI 在 main 上构建 jar 和前端 dist，产物附带版本号与 SHA256。（**CI 目前只做 verify，不产出发布包**；Maven 产物名为 `forcitis-one-<版本>.jar`，上传时改名为 `forcitis-one.jar` 以符合 E-6。）
 2. 经云助手上传到 `/data/forcitis-one/releases/<ver>/`，校验 SHA256。
-3. 迁移：以 one_dev_migrator 运行 Flyway（`--spring.main.web-application-type=none` 的迁移模式）。首次还要以 `FLOWABLE_SCHEMA_UPDATE=true` 建 ACT_*。
+3. 迁移（只迁移后退出）：用迁移账号启动一次，带 profile `migrate`，进程在建立应用上下文之前直接执行 Flyway 迁移并退出，不启动 web、作业、流程引擎和事件监听。迁移成功退出码 0，输出 `MIGRATE-ONLY OK`；失败退出码 1，输出 `MIGRATE-ONLY FAILED: <原因>`，部署在这一步停下。
+   - 命令：`SPRING_PROFILES_ACTIVE=migrate,dev java -jar forcitis-one.jar`（生产用 `migrate,prod`），环境变量只给迁移账号：`SPRING_FLYWAY_URL`（缺省取 `SPRING_DATASOURCE_URL`）、`SPRING_FLYWAY_USER`、`SPRING_FLYWAY_PASSWORD`；schema 与历史表的设置见 §2。连接的 TLS 要求同 §5.1（`dev` / `prod` 同时写上才会检查）。
+   - 首次还要以 `FLOWABLE_SCHEMA_UPDATE=true` 启动常驻服务一次建 `ACT_*`（见 §2）。
+   - **常驻服务不自己迁移**：生产 profile 的 `application-prod.properties` 已设 `spring.flyway.enabled=false`，环境里也写 `SPRING_FLYWAY_ENABLED=false`；常驻进程不持有迁移凭据。
 4. 切换 `current` 软链，`systemctl restart forcitis-one`，检查健康。
 5. 冒烟：匿名访问返回 401；企业微信 / 致远登录；`/me` 正常；组织同步跑一轮，sync_runs 为 SUCCEEDED。
 6. 回滚：`current` 指回上一版本并重启。数据库迁移只做向前兼容的变更，1a 期间不做破坏性迁移。
@@ -174,6 +237,7 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 - **指标命名**：`forcitis.<子域>.<bc>.…`，例如 `forcitis.platform.integration.deliveries.dead.letters`；看板和告警规则用新名字。
 - **新增 schema**：`organization_attendance`（工作日历），已写入 `one_db_roles_schemas.sql`；上线前需在每个环境执行该脚本中对应的建 schema 与授权语句，再启动应用。
 - **工作日历要先维护**：依赖工作日历的计算（审批时限等）在所属年份没有维护时失败（提交本身已成功，失败的是审批发起，单据保持已提交，补录日历后重投）并记 `ALERT` 日志与指标 `forcitis.organization.attendance.calendar.unmaintained`；管理员用 `PUT /api/v1/organization/work-calendars/{年}` 维护（权限 `organization.attendance:work-calendar:update`），每年底前维护下一年。
+- **今天之前的日期不可修改**（T2）：已维护过的年份里，改动早于今天的日期会得到 422 `ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED`；一个年份的首次维护不受此限。例外是独立用例 `MaintainLockedWorkCalendarDays`，要求权限 `organization.attendance:locked-day:update`（只授给组织数据管理员），并发出 `WorkCalendarLockedDaysChanged`：载荷与审计条目的说明里列出每个被改日期及其改前改后的类别。已算出的审批截止时刻不重算。
 
 ## 9. 事件发布登记表的运维（ADR-0025 评审 C-4、C-8）
 

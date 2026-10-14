@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Business fields live under the "field:" prefix so they can never overwrite an engine variable; "true" / "false" engine variables become booleans for BPMN conditions. */
+/** Business fields live under the "field:" prefix so they can never overwrite an engine variable, and the routed_ variables are reserved for the engine; "true" / "false" engine variables become booleans for BPMN conditions. */
 final class EngineVariables {
 
     static final String FIELD_PREFIX = "field:";
@@ -18,7 +18,12 @@ final class EngineVariables {
 
     static Map<String, Object> toEngine(ProcessVariables values) {
         Map<String, Object> out = new LinkedHashMap<>();
-        values.variables().forEach((name, list) -> out.put(name, scalar(list)));
+        values.variables().forEach((name, list) -> {
+            if (name.startsWith(FlowableApprovalEngine.VARIABLE_ROUTED_PREFIX)) {
+                throw new IllegalArgumentException("Variable " + name + " is reserved: routing flags are decided by the engine, not supplied by a module");
+            }
+            out.put(name, scalar(list));
+        });
         values.formFields().forEach((name, list) -> {
             for (String value : list) {
                 if (value != null && value.contains(SEPARATOR)) {

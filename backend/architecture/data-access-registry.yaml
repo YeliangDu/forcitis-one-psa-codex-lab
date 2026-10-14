@@ -1,0 +1,360 @@
+# Data access registry (ADR-0026 item 5, data scorecard K15). The single place that says, for every table: what it is, how it may change,
+# how long it lives, where its content comes from and which module reads or writes it. DataArchitectureTest checks the registry
+# against the migrations (the resulting database) and against the SQL in src/main/java, in both directions.
+#
+# role         AGGREGATE_ROOT | AGGREGATE_CHILD | BUSINESS_DOCUMENT | DIMENSION_VERSIONED | SNAPSHOT | CONFIG | CONFIG_VERSIONED |
+#              LOG_APPEND_ONLY | QUEUE | ONE_TIME | LINEAGE | COUNTER | IDEMPOTENCY | FRAMEWORK | PLACEHOLDER
+# mutability   MUTABLE (needs a version column) | CONDITIONAL_UPDATE (needs `condition`) | REPLACE_SET | APPEND_ONLY | INSERT_DELETE |
+#              MIGRATION_ONLY | FRAMEWORK
+# retention    policy PERMANENT | BUSINESS_RECORD | CURRENT_STATE | FRAMEWORK | EXPIRY | <n>d | <n>y; a time-bound policy names the ShedLock job (`job`)
+# lineage      source NEW | ORG_SOURCE | MIGRATION | FRAMEWORK; migrated_from lists the old-system objects, via says how they are traced (legacy_numbers | ONE_OFF_IMPORT)
+# writers      modules whose code writes the table; readers: modules that only read it. A module outside the schema's own module needs `cross_module`.
+# references   role columns that point at a table of the same schema although the name does not say which (K6)
+# optional     the table exists only on one side of a pending integration; the entry is checked when the table is there and then removed or made required.
+#              An optional entry carries a due date (due) and fails once it has passed.
+# gaps         known violations with an owner: {rule, column?, due, owner, ref, note}. Only D3 and D4 may leave out the column; a gap past its due date fails the test. A gap that is no longer violated fails the test, so it is removed in the
+#              same change that fixes it. Gaps are handed over to the owner named; none may be added to hide a new violation.
+tables:
+  cost_timesheet.consumed_events:
+    role: IDEMPOTENCY
+    mutability: APPEND_ONLY
+    retention: {policy: 90d, job: cost.timesheet.consumed.events.purge}
+    lineage: {source: NEW}
+    writers: [cost.timesheet]
+  cost_timesheet.timesheets:
+    role: BUSINESS_DOCUMENT
+    aggregate: Timesheet
+    mutability: MUTABLE
+    business_date_column: work_date
+    document_number_column: timesheet_number
+    retention: {policy: BUSINESS_RECORD}
+    lineage: {source: NEW, migrated_from: [old timesheet rows], via: legacy_numbers}
+    writers: [cost.timesheet]
+
+
+  organization_attendance.work_calendar_years:
+    role: AGGREGATE_ROOT
+    aggregate: WorkCalendarYear
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
+    writers: [organization.attendance]
+  organization_attendance.work_calendar_days:
+    role: AGGREGATE_CHILD
+    aggregate: WorkCalendarYear
+    mutability: REPLACE_SET
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
+    writers: [organization.attendance]
+
+  organization_workforce.positions:
+    role: SNAPSHOT
+    mutability: MUTABLE
+    retention: {policy: CURRENT_STATE}
+    lineage: {source: ORG_SOURCE}
+    writers: [organization.workforce]
+  organization_workforce.org_units:
+    role: SNAPSHOT
+    mutability: MUTABLE
+    retention: {policy: CURRENT_STATE}
+    lineage: {source: ORG_SOURCE}
+    fk_exceptions:
+      last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
+    references: {regional_receivables_manager_id: organization_workforce.employees}
+    writers: [organization.workforce]
+  organization_workforce.employees:
+    role: SNAPSHOT
+    mutability: MUTABLE
+    retention: {policy: CURRENT_STATE}
+    lineage: {source: ORG_SOURCE}
+    fk_exceptions:
+      last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
+    writers: [organization.workforce]
+  organization_workforce.assignments:
+    role: SNAPSHOT
+    mutability: MUTABLE
+    retention: {policy: CURRENT_STATE}
+    lineage: {source: ORG_SOURCE}
+    writers: [organization.workforce]
+  organization_workforce.org_unit_versions:
+    role: DIMENSION_VERSIONED
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: ORG_SOURCE}
+    fk_exceptions:
+      parent_org_unit_id: a past version points at units and people as they were; snapshot rows are never deleted, but a version carries no key of its own
+      head_employee_id: same as parent_org_unit_id
+      regional_receivables_manager_id: same as parent_org_unit_id
+    writers: [organization.workforce]
+  organization_workforce.assignment_versions:
+    role: DIMENSION_VERSIONED
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: ORG_SOURCE}
+    fk_exceptions:
+      position_id: a past version points at the post as it was; see org_unit_versions
+      reports_to_employee_id: same as position_id
+    writers: [organization.workforce]
+  organization_workforce.sync_runs:
+    role: AGGREGATE_ROOT
+    aggregate: SyncRun
+    mutability: MUTABLE
+    retention: {policy: 2y, job: organization.workforce.sync.purge}
+    lineage: {source: NEW}
+    writers: [organization.workforce]
+  organization_workforce.sync_diffs:
+    role: AGGREGATE_CHILD
+    aggregate: SyncRun
+    mutability: APPEND_ONLY
+    retention: {policy: 1y, job: organization.workforce.sync.purge}
+    lineage: {source: NEW}
+    writers: [organization.workforce]
+  organization_workforce.legal_entities:
+    role: AGGREGATE_ROOT
+    aggregate: LegalEntity
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [organization.workforce]
+  organization_workforce.legal_entity_versions:
+    role: DIMENSION_VERSIONED
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [organization.workforce]
+  organization_workforce.legal_entity_attributions:
+    role: AGGREGATE_ROOT
+    aggregate: LegalEntityAttribution
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [organization.workforce]
+  organization_workforce.legal_entity_attribution_periods:
+    optional: true
+    due: "2026-11-30"
+    role: DIMENSION_VERSIONED
+    aggregate: LegalEntityAttribution
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [organization.workforce]
+
+  organization_workforce.org_unit_legal_entities:
+    optional: true
+    due: "2026-11-30"
+    role: DIMENSION_VERSIONED
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [organization.workforce]
+  organization_workforce.employee_legal_entities:
+    optional: true
+    due: "2026-11-30"
+    role: DIMENSION_VERSIONED
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [organization.workforce]
+
+  platform_approval.approval_requests:
+    role: AGGREGATE_ROOT
+    aggregate: ApprovalRequest
+    mutability: MUTABLE
+    retention: {policy: BUSINESS_RECORD}
+    lineage: {source: NEW}
+    writers: [platform.approval]
+  platform_approval.approval_task_records:
+    role: AGGREGATE_CHILD
+    aggregate: ApprovalRequest
+    mutability: APPEND_ONLY
+    retention: {policy: BUSINESS_RECORD}
+    lineage: {source: NEW}
+    writers: [platform.approval]
+  platform_approval.start_rounds:
+    role: AGGREGATE_CHILD
+    aggregate: ApprovalRequest
+    mutability: APPEND_ONLY
+    retention: {policy: BUSINESS_RECORD}
+    lineage: {source: NEW}
+    writers: [platform.approval]
+  platform_approval.approval_tasks:
+    role: AGGREGATE_CHILD
+    aggregate: ApprovalRequest
+    mutability: CONDITIONAL_UPDATE
+    condition: "written only in the save of its ApprovalRequest, after the request row's version check (H-1: tasks are inner entities sharing the request's version)"
+    retention: {policy: BUSINESS_RECORD}
+    lineage: {source: NEW}
+    writers: [platform.approval]
+  platform_approval.process_archive_skips:
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.approval]
+  platform_approval.act_*:
+    role: FRAMEWORK
+    mutability: FRAMEWORK
+    retention: {policy: 3y, job: platform.approval.process.archive}
+    lineage: {source: FRAMEWORK}
+    readers: [platform.approval]
+
+  platform_audit.audit_entries:
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    retention: {policy: 3y, job: platform.audit.entry.archive}
+    lineage: {source: NEW}
+    writers: [platform.audit]
+  platform_audit.audit_archive_batches:
+    role: LOG_APPEND_ONLY
+    fk_exceptions:
+      first_entry_id: the batch row marks how far the archive reached and must outlive the online rows if they are ever removed
+      last_entry_id: same as first_entry_id
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.audit]
+
+  platform_identity.user_accounts:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: AGGREGATE_ROOT
+    aggregate: UserAccount
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.identity]
+  platform_identity.roles:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: AGGREGATE_ROOT
+    aggregate: Role
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.identity]
+  platform_identity.role_permissions:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: AGGREGATE_CHILD
+    aggregate: Role
+    mutability: REPLACE_SET
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.identity]
+  platform_identity.account_roles:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: AGGREGATE_CHILD
+    aggregate: UserAccount
+    mutability: REPLACE_SET
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.identity]
+  platform_identity.navigation_items:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: CONFIG
+    mutability: MIGRATION_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.identity]
+  platform_identity.login_states:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: ONE_TIME
+    mutability: INSERT_DELETE
+    retention: {policy: EXPIRY, job: platform.identity.credential.purge}
+    lineage: {source: NEW}
+    writers: [platform.identity]
+  platform_identity.sso_ticket_uses:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: ONE_TIME
+    mutability: INSERT_DELETE
+    retention: {policy: EXPIRY, job: platform.identity.credential.purge}
+    lineage: {source: NEW}
+    writers: [platform.identity]
+  platform_identity.ticket_issuers:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: CONFIG
+    mutability: MIGRATION_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.identity]
+  platform_identity.emergency_admins:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+      - {rule: D5, column: account_name, due: "2026-11-30", owner: B1, ref: K10, note: "classify account_name in data-classification.txt"}
+    role: AGGREGATE_ROOT
+    aggregate: EmergencyAdmin
+    mutability: CONDITIONAL_UPDATE
+    condition: failure counter, lock-out and TOTP step change only through single conditional UPDATE statements (repository-write-exceptions.txt)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.identity]
+  platform_identity.sessions:
+    gaps:
+      - {rule: D5, column: principal_name, due: "2026-11-30", owner: B1, ref: K10, note: "classify principal_name (framework column, personal data)"}
+    role: FRAMEWORK
+    mutability: FRAMEWORK
+    retention: {policy: FRAMEWORK}
+    lineage: {source: FRAMEWORK}
+  platform_identity.sessions_attributes:
+    role: FRAMEWORK
+    mutability: FRAMEWORK
+    retention: {policy: FRAMEWORK}
+    lineage: {source: FRAMEWORK}
+
+  platform_integration.event_publication:
+    role: FRAMEWORK
+    mutability: FRAMEWORK
+    retention: {policy: FRAMEWORK}
+    lineage: {source: FRAMEWORK}
+    readers: [platform.integration]
+  platform_integration.event_publication_archive:
+    role: FRAMEWORK
+    mutability: FRAMEWORK
+    retention: {policy: 30d, job: platform.integration.event.cleanup}
+    lineage: {source: FRAMEWORK}
+  platform_integration.outbound_deliveries:
+    role: QUEUE
+    aggregate: OutboundDelivery
+    mutability: MUTABLE
+    retention: {policy: 90d, job: platform.integration.outbound.purge}
+    lineage: {source: NEW}
+    writers: [platform.integration]
+
+  platform_numbering.numbering_rules:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+      - {rule: D10, column: versions_table, due: "2026-11-30", owner: B1, ref: K11, note: "numbering_rule_versions (append-only, effective_from_date, confirmed_by, confirmed_at) and versions_table here"}
+    role: CONFIG_VERSIONED
+    aggregate: NumberingRule
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.numbering]
+  platform_numbering.numbering_counters:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: COUNTER
+    mutability: CONDITIONAL_UPDATE
+    condition: allocated by one atomic upsert (repository-write-exceptions.txt, reserveNext)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.numbering]
+  platform_numbering.legacy_numbers:
+    gaps:
+      - {rule: D3, due: "2026-11-30", owner: B1, ref: K9, note: "table comment without the grain (K9); handed to B1 with the identity and numbering work"}
+    role: LINEAGE
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: MIGRATION, migrated_from: [old document numbers], via: legacy_numbers}
+    writers: [platform.numbering]
+
+  platform_scheduling.scheduler_locks:
+    role: FRAMEWORK
+    mutability: FRAMEWORK
+    retention: {policy: FRAMEWORK}
+    lineage: {source: FRAMEWORK}

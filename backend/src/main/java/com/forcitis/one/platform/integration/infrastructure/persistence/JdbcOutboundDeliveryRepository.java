@@ -15,14 +15,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
 
-    private static final String COLUMNS = "id, deduplication_key, recipients, title, description, target_url, status, attempt_count, "
+    private static final String COLUMNS = "id, deduplication_key, recipient_codes, title, description, target_url, status, attempt_count, "
             + "response_code, handled_note, handled_result, kind, target_key, correlation_id, version, event_count";
 
     private final JdbcClient jdbc;
@@ -35,15 +34,15 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     public boolean insert(OutboundDelivery unsaved, Instant now) {
         return jdbc.sql("""
                         insert into platform_integration.outbound_deliveries
-                               (deduplication_key, recipients, skipped_recipients, title, description, target_url, status,
+                               (deduplication_key, recipient_codes, skipped_recipient_codes, title, description, target_url, status,
                                 next_attempt_at, last_error, kind, target_key, correlation_id, created_at, updated_at, version, event_count)
                         values (:key, :recipients, :skipped, :title, :description, :url, :status, :next, :reason, :kind, :target,
                                 :correlation, :now, :now, 0, 0)
                         on conflict (deduplication_key) do nothing
                         """)
                 .param("key", unsaved.deduplicationKey())
-                .param("recipients", join(unsaved.recipients()))
-                .param("skipped", unsaved.skippedRecipients().isEmpty() ? null : join(unsaved.skippedRecipients()), Types.VARCHAR)
+                .param("recipients", codes(unsaved.recipients()))
+                .param("skipped", unsaved.skippedRecipients().isEmpty() ? null : codes(unsaved.skippedRecipients()), Types.ARRAY)
                 .param("title", unsaved.title())
                 .param("description", unsaved.description(), Types.VARCHAR)
                 .param("url", unsaved.targetUrl())
@@ -129,17 +128,17 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
 
     private static OutboundDelivery row(ResultSet rs) throws SQLException {
         return OutboundDelivery.restore(new OutboundDeliveryId(rs.getLong("id")), rs.getString("deduplication_key"),
-                split(rs.getString("recipients")), rs.getString("title"), rs.getString("description"), rs.getString("target_url"),
+                recipients(rs), rs.getString("title"), rs.getString("description"), rs.getString("target_url"),
                 rs.getString("status"), rs.getInt("attempt_count"), rs.getString("response_code"), rs.getString("handled_note"), rs.getString("handled_result"),
                 DeliveryKind.valueOf(rs.getString("kind")), rs.getString("target_key"), rs.getObject("correlation_id", UUID.class),
                 rs.getLong("version"), rs.getLong("event_count"));
     }
 
-    private static String join(List<WecomUserId> ids) {
-        return ids.stream().map(WecomUserId::value).collect(Collectors.joining("|"));
+    private static String[] codes(List<WecomUserId> ids) {
+        return ids.stream().map(WecomUserId::value).toArray(String[]::new);
     }
 
-    private static List<WecomUserId> split(String joined) {
-        return Arrays.stream(joined.split("\\|")).filter(id -> !id.isEmpty()).map(WecomUserId::new).toList();
+    private static List<WecomUserId> recipients(ResultSet rs) throws SQLException {
+        return Arrays.stream((String[]) rs.getArray("recipient_codes").getArray()).map(WecomUserId::new).toList();
     }
 }

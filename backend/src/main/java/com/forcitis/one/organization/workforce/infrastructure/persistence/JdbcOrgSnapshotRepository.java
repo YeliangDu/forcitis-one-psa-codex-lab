@@ -78,8 +78,9 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                     .param("sortOrder", p.sortOrder()).param("status", p.status().name()).param("now", at).update();
         }
         for (OrgUnit u : changes.orgUnits()) {
-            upsertOrgUnit(u, run, at, snapshotDate);
+            upsertOrgUnit(u, run, at);
         }
+        history.recordOrgUnits(changes.orgUnits(), snapshotDate);
         // The unique WeCom key covers employed people only; clearing the batch first makes the write order irrelevant.
         List<Long> staffIds = changes.staff().stream().map(s -> s.userId().value()).toList();
         if (!staffIds.isEmpty()) {
@@ -87,13 +88,16 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                     .param("ids", staffIds).update();
         }
         for (StaffEmployee s : changes.staff()) {
-            upsertStaff(s, run, at, snapshotDate);
+            upsertStaff(s, run, at);
         }
+        history.recordAssignments(changes.staff().stream().map(StaffEmployee::assignment).toList(), snapshotDate);
     }
 
     @Override
     public void saveRegisteredEmployee(RegisteredEmployee registered, Instant now) {
-        upsertStaff(registered.staff(), null, Timestamp.from(now), zone.dateOf(now));
+        LocalDate day = zone.dateOf(now);
+        upsertStaff(registered.staff(), null, Timestamp.from(now));
+        history.recordAssignments(List.of(registered.staff().assignment()), day);
         jdbc.sql("update organization_workforce.employees set event_count = :sequence where id = :id")
                 .param("sequence", registered.eventSequenceAfterSave()).param("id", registered.staff().userId().value()).update();
     }
@@ -104,7 +108,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .query(Long.class).optional().orElse(0L);
     }
 
-    private void upsertOrgUnit(OrgUnit u, Long run, Timestamp now, LocalDate effectiveFrom) {
+    private void upsertOrgUnit(OrgUnit u, Long run, Timestamp now) {
         jdbc.sql("""
                 insert into organization_workforce.org_units (id, code, name, parent_org_unit_id, sort_order, status,
                        head_employee_id, regional_receivables_manager_id, region_category, is_delivery_unit, short_name,
@@ -127,10 +131,9 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .param("category", u.regionCategory() == null ? null : u.regionCategory().name())
                 .param("delivery", u.deliveryUnit()).param("shortName", u.shortName())
                 .param("run", run).param("now", now).update();
-        history.recordOrgUnit(u, effectiveFrom);
     }
 
-    private void upsertStaff(StaffEmployee s, Long run, Timestamp now, LocalDate effectiveFrom) {
+    private void upsertStaff(StaffEmployee s, Long run, Timestamp now) {
         Employee e = s.employee();
         Assignment a = s.assignment();
         jdbc.sql("""
@@ -163,7 +166,6 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .param("position", a.positionId() == null ? null : a.positionId().value())
                 .param("reportsTo", a.reportsToEmployeeId() == null ? null : a.reportsToEmployeeId().value())
                 .param("now", now).update();
-        history.recordAssignment(a, effectiveFrom);
     }
 
     @Override

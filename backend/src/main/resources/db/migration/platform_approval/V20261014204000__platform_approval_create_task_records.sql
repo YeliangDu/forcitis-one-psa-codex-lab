@@ -25,7 +25,7 @@ CREATE TABLE platform_approval.approval_task_records (
     CONSTRAINT fk_approval_task_records_document_key FOREIGN KEY (process_key, document_key)
         REFERENCES platform_approval.approval_requests (process_key, document_key)
 );
-COMMENT ON TABLE platform_approval.approval_task_records IS '任务办理记录：只追加；粒度：对任务做的每一次认领、释放、办理、转交、改派一行；已办列表与逐轮历史从这里查，不更新、不删除';
+COMMENT ON TABLE platform_approval.approval_task_records IS '任务办理记录：只追加；粒度：每次对任务的认领、释放、办理、转交、改派一行；已办列表与逐轮历史从这里查，不更新、不删除';
 COMMENT ON COLUMN platform_approval.approval_task_records.record_id IS '记录标识：按时间有序的 UUID，列表翻页的游标取它';
 COMMENT ON COLUMN platform_approval.approval_task_records.process_key IS '流程标识（ProcessKey 枚举名）';
 COMMENT ON COLUMN platform_approval.approval_task_records.document_key IS '单据键';

@@ -14,11 +14,13 @@
 -- ---------------------------------------------------------------------------------------------------------------------
 -- CREATE DATABASE forcitis_one_dev ENCODING 'UTF8' LC_COLLATE 'C.UTF-8' LC_CTYPE 'C.UTF-8' TEMPLATE template0;  -- 在 forcitis_one 之外执行
 -- REVOKE ALL ON DATABASE forcitis_one_dev FROM PUBLIC;   -- 新库，不影响 it_portal
+-- 迁移角色在首次运行 Flyway 时需要库级 CREATE：每个模块的第一个迁移以 CREATE SCHEMA IF NOT EXISTS 开头，PostgreSQL 先查库级 CREATE 权限再判断是否已存在
+-- GRANT CREATE ON DATABASE forcitis_one_dev TO one_dev_owner;
 -- 以下检查连到 forcitis_one_dev 执行（角色是实例级，库内 schema 检查针对新库）
 SELECT rolname FROM pg_roles WHERE rolname LIKE 'one\_dev\_%';
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'cost_timesheet', 'one_migration');
 -- it_portal 现有对象一览（供核对，不修改）
 SELECT nspname, pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname NOT LIKE 'pg\_%' AND nspname <> 'information_schema';
 
@@ -58,6 +60,7 @@ CREATE SCHEMA platform_numbering     AUTHORIZATION one_dev_owner;  -- 单据编�
 CREATE SCHEMA platform_scheduling    AUTHORIZATION one_dev_owner;  -- ShedLock
 CREATE SCHEMA organization_workforce AUTHORIZATION one_dev_owner;  -- 组织快照（过渡态，来源可替换）
 CREATE SCHEMA organization_attendance AUTHORIZATION one_dev_owner;  -- 工作日历（考勤与休假 BC，1a 只含工作日历）
+CREATE SCHEMA cost_timesheet         AUTHORIZATION one_dev_owner;  -- 工时单与幂等记录（cost.timesheet 是 1a 正式模块）
 -- 注：delivery.execution（delivery_execution）已删除（D-1a-127），不建 schema
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -67,7 +70,7 @@ DO $$
 DECLARE s text;
 BEGIN
   FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering',
-                           'platform_scheduling', 'organization_workforce', 'organization_attendance']
+                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_dev_app, one_dev_readonly', s);
     EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_dev_app', s);
@@ -84,7 +87,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT S
 
 -- 运行角色不得建对象
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
-                        platform_scheduling, organization_workforce, organization_attendance, one_migration FROM one_dev_app, one_dev_readonly;
+                        platform_scheduling, organization_workforce, organization_attendance, cost_timesheet, one_migration FROM one_dev_app, one_dev_readonly;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §4 Flowable 引擎表（ACT_*）
@@ -94,8 +97,26 @@ REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integrati
 -- 上面的默认授权自动覆盖到 one_dev_app。
 
 -- ---------------------------------------------------------------------------------------------------------------------
+-- §4b 迁移之后：版本表只追加（B2-M5；每次发布迁移后再执行一遍，幂等）
+-- ---------------------------------------------------------------------------------------------------------------------
+-- 版本表上的触发器已拒绝删除、清空和改写已关闭的行；运行角色再不持有 DELETE 与 TRUNCATE（只留 SELECT、INSERT、UPDATE，UPDATE 用来关闭开放版本）。
+-- 新增版本表（数据访问注册表中角色为 DIMENSION_VERSIONED 的表）时，在这里补一项；DataArchitectureTest 核对此清单与注册表一致。
+-- 法人归属的期间表旧版叫 legal_entity_attribution_periods，按契约改名后是后两项；集成后从清单和注册表里删去旧名。
+DO $$
+DECLARE t text;
+BEGIN
+    FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
+                             'organization_workforce.legal_entity_versions', 'organization_workforce.legal_entity_attribution_periods',
+                             'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities'] LOOP
+        IF to_regclass(t) IS NOT NULL THEN
+            EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
+        END IF;
+    END LOOP;
+END $$;
+
+-- ---------------------------------------------------------------------------------------------------------------------
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
---             platform_scheduling, organization_workforce, organization_attendance, one_migration CASCADE;
+--             platform_scheduling, organization_workforce, organization_attendance, cost_timesheet, one_migration CASCADE;
 -- DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_owner;

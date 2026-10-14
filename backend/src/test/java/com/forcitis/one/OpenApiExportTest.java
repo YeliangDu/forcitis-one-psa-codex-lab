@@ -27,7 +27,6 @@ import tools.jackson.databind.SerializationFeature;
 
 /** Keys are sorted so the file only changes when the contract does. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc

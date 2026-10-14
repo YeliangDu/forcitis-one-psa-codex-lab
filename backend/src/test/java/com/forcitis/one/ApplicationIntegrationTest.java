@@ -64,7 +64,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
-        "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         // The cached context closes after the container is gone; without a short timeout the engine's close waits 30 s for a connection.
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
