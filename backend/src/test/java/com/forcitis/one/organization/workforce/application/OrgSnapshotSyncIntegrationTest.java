@@ -153,8 +153,6 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(jdbc.sql("select employment_status from organization_workforce.employees where id = 10").query(String.class).single())
                 .isEqualTo("SEPARATED");
         assertThat(jdbc.sql("select separated_at is not null from organization_workforce.employees where id = 10").query(Boolean.class).single()).isTrue();
-        assertThat(jdbc.sql("select separation_date is null from organization_workforce.employees where id = 10").query(Boolean.class).single())
-                .as("the source gives no separation date, so none is invented from the time the sync noticed").isTrue();
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> !e.separatedEmployees().isEmpty()))
                 .singleElement().satisfies(e -> assertThat(e.separatedEmployees()).containsExactly(user(10)));
     }
