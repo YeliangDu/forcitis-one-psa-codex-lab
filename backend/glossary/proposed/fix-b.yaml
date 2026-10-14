@@ -658,6 +658,20 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_numbering_legacy_prefix_invalid
+  zh: 老编号前缀无效
+  en: PlatformNumberingLegacyPrefixInvalid
+  snake: platform_numbering_legacy_prefix_invalid
+  kind: error_code
+  bc: platform.numbering
+  definition: "按前缀检索老编号时前缀少于 2 个字符（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - opened
 - clock

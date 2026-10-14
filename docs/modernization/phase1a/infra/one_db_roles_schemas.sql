@@ -17,7 +17,7 @@
 SELECT rolname FROM pg_roles WHERE rolname LIKE 'one\_dev\_%';
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'one_migration');
 -- it_portal 现有对象一览（供核对，不修改）
 SELECT nspname, pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname NOT LIKE 'pg\_%' AND nspname <> 'information_schema';
 
@@ -57,6 +57,7 @@ CREATE SCHEMA platform_numbering     AUTHORIZATION one_dev_owner;  -- 单据编�
 CREATE SCHEMA platform_scheduling    AUTHORIZATION one_dev_owner;  -- ShedLock
 CREATE SCHEMA organization_workforce AUTHORIZATION one_dev_owner;  -- 组织快照（过渡态，来源可替换）
 CREATE SCHEMA organization_attendance AUTHORIZATION one_dev_owner;  -- 工作日历（考勤与休假 BC，1a 只含工作日历）
+CREATE SCHEMA platform_idempotency AUTHORIZATION one_dev_owner;  -- 幂等键：写请求重复发送时的应答存储（24 小时）
 -- 注：骨架中的样例模块 cost.timesheet / delivery.execution（delivery_execution）不在 1a 上线范围，生产前移除，不建 schema
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -66,7 +67,7 @@ DO $$
 DECLARE s text;
 BEGIN
   FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering',
-                           'platform_scheduling', 'organization_workforce', 'organization_attendance']
+                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_dev_app, one_dev_readonly', s);
     EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_dev_app', s);
@@ -83,7 +84,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT S
 
 -- 运行角色不得建对象
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
-                        platform_scheduling, organization_workforce, organization_attendance, one_migration FROM one_dev_app, one_dev_readonly;
+                        platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, one_migration FROM one_dev_app, one_dev_readonly;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §4 Flowable 引擎表（ACT_*）
@@ -96,5 +97,5 @@ REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integrati
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
---             platform_scheduling, organization_workforce, organization_attendance, one_migration CASCADE;
+--             platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, one_migration CASCADE;
 -- DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_owner;

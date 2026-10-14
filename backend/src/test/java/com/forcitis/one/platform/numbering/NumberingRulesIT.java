@@ -229,6 +229,26 @@ class NumberingRulesIT {
     }
 
     @Test
+    @DisplayName("D-1a-160 an original number is found by its beginning, a page at a time; a prefix shorter than 2 characters is refused")
+    void legacyNumbersAreSearchableByPrefix() throws Exception {
+        String[] numbers = {"SYN-PX-0001", "SYN-PX-0002", "SYN-PX-0003", "OTHER-0001"};
+        for (int i = 0; i < numbers.length; i++) {
+            register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId(String.valueOf(7000 + i))), numbers[i], LE1, "synthetic-prefix"));
+        }
+
+        String first = mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumberPrefix", "SYN-PX").param("limit", "2").with(LEGACY_READER))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].legacyNumber").value("SYN-PX-0001")).andExpect(jsonPath("$.nextCursor").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+        String cursor = new tools.jackson.databind.json.JsonMapper().readTree(first).path("nextCursor").asString();
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumberPrefix", "SYN-PX").param("limit", "2").param("cursor", cursor).with(LEGACY_READER))
+                .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].legacyNumber").value("SYN-PX-0003"))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumberPrefix", "S").with(LEGACY_READER))
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID"));
+    }
+
+    @Test
     @DisplayName("C1a-16 an original number finds the new document, and the new document finds its original numbers")
     void legacyNumbersAreSearchableBothWays() throws Exception {
         register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001", LE1, "synthetic-batch-1"));

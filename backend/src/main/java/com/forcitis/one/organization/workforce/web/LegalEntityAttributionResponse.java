@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 record LegalEntityAttributionResponse(String kind, String subjectId, List<Period> periods) {
-    record Period(String legalEntityId, LocalDate effectiveFrom, LocalDate effectiveTo) {
+    record Period(String legalEntityId, LocalDate effectiveFrom, @org.jspecify.annotations.Nullable LocalDate effectiveTo) {
     }
 
     static LegalEntityAttributionResponse of(LegalEntityAttributionView view) {

@@ -149,3 +149,25 @@
 - **清理作业**（`platform.integration.event.cleanup`，每日 04:30）：删除归档中超过 30 天的行。
 - 开关：环境变量 `EVENT_PUBLICATION_JOBS_ENABLED`（默认 true）；其余参数见 `config/platform_integration.properties` 的 `forcitis.platform.integration.event-publication.*`。
 - 人工处理用尽次数的发布：先看 `event_publication` 里该行的 `listener_id` 与应用日志中同一 `correlationId` 的错误，修复原因后把 `completion_attempts` 清零，重投作业会再次接手。
+
+## 10. 备份与恢复（平台约定，目标值用户已定）
+
+- **目标**：数据丢失窗口 RPO ≤ 5 分钟，恢复时间 RTO ≤ 1 小时。
+- **做法**：RDS 开启日志备份（实时增量）与每日全量，保留 ≥ 7 天；恢复到同实例新库或新实例，应用改连接串后启动（Flyway 与 Flowable 不再建表，见 §2、§7）。
+- **恢复演练**：上线前一次、之后每季度一次，计时并留记录（恢复到新库 → 应用启动 → 冒烟：登录、取待办、取号、查审计）。演练超过 RTO 即视为未达标，列入下一轮改进。
+- **应用状态**：应用本身无状态（会话在 `platform_identity.sessions`，随库恢复，恢复后所有会话仍有效；如恢复到较早时间点，建议同时清空会话表让所有人重新登录）。ECS 数据盘快照策略见 E-17。
+- **取号连续性**：计数器在 `platform_numbering.numbering_counters`，随库恢复；恢复到较早时间点会让已发出的号码重复，因此**恢复后先用「计数器对账」核对**每个计数器不小于已发单据的最大序号，再放行取号。
+
+## 11. 分级告警（平台约定）
+
+接收群与值班人**部署前由用户决定**（不在仓库中写任何人名、群号或 webhook）；下表只定级别与响应时限。
+
+| 级别 | 含义 | 例子 | 响应 |
+|---|---|---|---|
+| P1 | 业务中断或数据风险 | 应用不可用；数据库连接耗尽；取号失败；审计写入失败；事件发布用尽次数 | 立即通知值班人，30 分钟内处理 |
+| P2 | 功能降级但可绕过 | 组织同步延迟超过两个周期；定时作业连续失败；企业微信投递死信；对账有差异 | 当班工作日内处理 |
+| P3 | 需要关注 | 序号用到 90 %；登录失败率偏高；缩水保护扣留；未维护的工作日历年度 | 每周例会处理 |
+
+- 规则放在 ARMS / SLS 中，名称以 `forcitis.<子域>.<bc>.…` 指标为准；每条告警写明级别、阈值、处理手册链接。
+- 新增指标：`forcitis.organization.workforce.reconciliation.differences`（每日对账差异数，非零为 P2）。
+- 新增限流：登录请求每个客户端地址每分钟 `forcitis.platform.identity.login-throttle.max-per-minute`（默认 30）次，超出返回 429；计数器在单个节点内，多节点部署时总额 = 节点数 × 限额。

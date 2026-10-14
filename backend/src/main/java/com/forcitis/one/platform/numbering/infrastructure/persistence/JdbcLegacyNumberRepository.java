@@ -26,6 +26,19 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
     }
 
     @Override
+    public List<LegacyNumberEntry> findByPrefix(DocumentType type, String prefix, String after, int limit) {
+        return jdbc.sql("""
+                        select document_type, legacy_number, document_id, legal_entity_id, import_batch
+                          from platform_numbering.legacy_numbers
+                         where document_type = :type and starts_with(legacy_number, :prefix)
+                           and (cast(:after as text) is null or legacy_number > :after)
+                         order by legacy_number limit :limit
+                        """)
+                .param("type", type.name()).param("prefix", prefix).param("after", after, java.sql.Types.VARCHAR).param("limit", limit)
+                .query(MAPPER).list();
+    }
+
+    @Override
     public Optional<LegacyNumberEntry> find(DocumentType type, String legacyNumber) {
         return jdbc.sql("""
                         select document_type, legacy_number, document_id, legal_entity_id, import_batch
