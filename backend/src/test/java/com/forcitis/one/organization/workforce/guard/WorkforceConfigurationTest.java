@@ -60,11 +60,12 @@ class WorkforceConfigurationTest {
                 {"ORG_UNIT_READ", Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ},
                 {"SYNC_RUN_READ", Permission.Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_READ},
                 {"SYNC_RUN_EXECUTE", Permission.Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE},
-                {"LEGAL_ENTITY_UPDATE", Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE}}) {
+                {"LEGAL_ENTITY_UPDATE", Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE},
+                {"LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE", Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE}}) {
             Field field = local.getDeclaredField(pair[0]);
             field.setAccessible(true);
             assertThat(field.get(null)).as(pair[0]).isEqualTo(pair[1]);
         }
-        assertThat(local.getDeclaredFields()).filteredOn(f -> f.getType() == String.class).hasSize(4);
+        assertThat(local.getDeclaredFields()).filteredOn(f -> f.getType() == String.class).hasSize(5);
     }
 }

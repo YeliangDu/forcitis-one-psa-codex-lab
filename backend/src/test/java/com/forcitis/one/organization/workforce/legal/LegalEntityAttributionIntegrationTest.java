@@ -43,6 +43,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport {
     static final RequestPostProcessor MAINTAINER = user("9001").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
+    static final RequestPostProcessor CORRECTOR = user("9003").authorities(
+            () -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE, () -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
     static final RequestPostProcessor READER = user("9002").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
 
     @Autowired
@@ -68,6 +70,9 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
 
     @BeforeEach
     void twoLegalEntities() {
+        jdbc.sql("alter table organization_workforce.legal_entity_attribution_corrections disable trigger user").update();
+        jdbc.sql("delete from organization_workforce.legal_entity_attribution_corrections").update();
+        jdbc.sql("alter table organization_workforce.legal_entity_attribution_corrections enable trigger user").update();
         jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
         le1 = new LegalEntityId(createLegalEntity.execute("FST", "Synthetic one", null).legalEntityId());
         le2 = new LegalEntityId(createLegalEntity.execute("FIT", "Synthetic two", null).legalEntityId());
@@ -217,5 +222,76 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
                 .content("{\"effectiveTo\":\"" + day.plusDays(3) + "\"}")).andExpect(status().isPreconditionRequired());
         mvc.perform(post(url + ":end").header("If-Match", etag).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"effectiveTo\":\"" + day.plusDays(3) + "\"}")).andExpect(status().isOk());
+    }
+
+    private String correct(String url, String etag, String body, RequestPostProcessor caller, int expectedStatus) throws Exception {
+        var request = post(url + ":correct").with(csrf()).with(caller).contentType(MediaType.APPLICATION_JSON).content(body);
+        if (etag != null) {
+            request = request.header("If-Match", etag);
+        }
+        var result = mvc.perform(request).andExpect(status().is(expectedStatus)).andReturn();
+        return result.getResponse().getContentAsString();
+    }
+
+    @Test
+    @DisplayName("RULE-385 a closed period is not rewritten: the correction is appended, the date resolves with the new end, the event is published")
+    void rule385CorrectionIsAppendedAndResolutionFollowsIt() throws Exception {
+        synced(2L);
+        LocalDate day = today();
+        String url = "/api/v1/organization/org-unit-legal-entities/1";
+        attributeOrgUnit(1, le1, day);
+        attributeOrgUnit(1, le2, day.plusDays(10));
+        assertThat(resolver.on(user(1), day.plusDays(7))).isEqualTo(le1);
+
+        String body = "{\"periodFrom\":\"" + day + "\",\"effectiveTo\":\"" + day.plusDays(5) + "\",\"reason\":\"typed the wrong end day\"}";
+        String answer = correct(url, etagOf(url), body, CORRECTOR, 200);
+
+        assertThat(answer).contains(day.plusDays(5).toString());
+        assertThat(jdbc.sql("select effective_to_date from organization_workforce.org_unit_legal_entities where org_unit_id = 1 and effective_from_date = :d")
+                .param("d", java.sql.Date.valueOf(day)).query(java.sql.Date.class).single().toLocalDate()).as("the stored row is not rewritten").isEqualTo(day.plusDays(10));
+        assertThat(jdbc.sql("select count(*) from organization_workforce.legal_entity_attribution_corrections").query(Long.class).single()).isEqualTo(1);
+        assertThat(resolver.on(user(1), day.plusDays(4))).isEqualTo(le1);
+        assertThatThrownBy(() -> resolver.on(user(1), day.plusDays(7))).as("the day is no longer covered").isInstanceOf(DomainException.class);
+        assertThat(resolver.on(user(1), day.plusDays(10))).isEqualTo(le2);
+        assertThat(events.stream(com.forcitis.one.organization.workforce.events.LegalEntityAttributionCorrected.class)).singleElement()
+                .satisfies(e -> {
+                    assertThat(e.previousEffectiveTo()).isEqualTo(day.plusDays(10));
+                    assertThat(e.newEffectiveTo()).isEqualTo(day.plusDays(5));
+                    assertThat(e.reason().value()).isEqualTo("typed the wrong end day");
+                    assertThat(e.envelope().actorId()).isEqualTo("9003");
+                });
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.legal_entity_attribution_corrections set correction_reason = 'x'").update())
+                .hasMessageContaining("append-only");
+        assertThatThrownBy(() -> jdbc.sql("delete from organization_workforce.legal_entity_attribution_corrections").update()).hasMessageContaining("append-only");
+        assertThatThrownBy(() -> jdbc.sql("truncate table organization_workforce.legal_entity_attribution_corrections").update()).hasMessageContaining("append-only");
+
+        attributeOrgUnit(1, le1, day.plusDays(20));
+        assertThat(jdbc.sql("select effective_to_date from organization_workforce.org_unit_legal_entities where org_unit_id = 1 and effective_from_date = :d")
+                .param("d", java.sql.Date.valueOf(day)).query(java.sql.Date.class).single().toLocalDate()).as("a later attribution leaves the corrected period alone").isEqualTo(day.plusDays(10));
+        assertThat(resolver.on(user(1), day.plusDays(25))).isEqualTo(le1);
+    }
+
+    @Test
+    @DisplayName("RULE-385 a correction that runs into another period, names an open period, has no reason or no version is refused and writes nothing")
+    void rule385Refusals() throws Exception {
+        synced(2L);
+        LocalDate day = today();
+        String url = "/api/v1/organization/org-unit-legal-entities/1";
+        attributeOrgUnit(1, le1, day);
+        attributeOrgUnit(1, le2, day.plusDays(10));
+        String etag = etagOf(url);
+        String overlap = "{\"periodFrom\":\"" + day + "\",\"effectiveTo\":\"" + day.plusDays(15) + "\",\"reason\":\"r\"}";
+        String open = "{\"periodFrom\":\"" + day.plusDays(10) + "\",\"effectiveTo\":\"" + day.plusDays(15) + "\",\"reason\":\"r\"}";
+        String noReason = "{\"periodFrom\":\"" + day + "\",\"effectiveTo\":\"" + day.plusDays(5) + "\",\"reason\":\" \"}";
+        String ok = "{\"periodFrom\":\"" + day + "\",\"effectiveTo\":\"" + day.plusDays(5) + "\",\"reason\":\"r\"}";
+
+        assertThat(correct(url, etag, overlap, CORRECTOR, 422)).contains("ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP");
+        assertThat(correct(url, etag, open, CORRECTOR, 422)).contains("ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED");
+        assertThat(correct(url, etag, noReason, CORRECTOR, 422)).contains("ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED");
+        correct(url, null, ok, CORRECTOR, 428);
+        correct(url, "\"99\"", ok, CORRECTOR, 412);
+        correct(url, etag, ok, MAINTAINER, 403);
+        correct(url, etag, ok, READER, 403);
+        assertThat(jdbc.sql("select count(*) from organization_workforce.legal_entity_attribution_corrections").query(Long.class).single()).isZero();
     }
 }

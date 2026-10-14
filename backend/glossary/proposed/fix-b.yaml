@@ -700,6 +700,62 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__organization_workforce_attribution_period_not_found
+  zh: 归属期间不存在
+  en: OrganizationWorkforceAttributionPeriodNotFound
+  snake: organization_workforce_attribution_period_not_found
+  kind: error_code
+  bc: organization.workforce
+  definition: "没有从该日起的归属期间（404）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_attribution_period_not_closed
+  zh: 归属期间尚未关闭
+  en: OrganizationWorkforceAttributionPeriodNotClosed
+  snake: organization_workforce_attribution_period_not_closed
+  kind: error_code
+  bc: organization.workforce
+  definition: "未关闭的期间不能更正，应结束它（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_attribution_correction_overlap
+  zh: 更正后期间重叠
+  en: OrganizationWorkforceAttributionCorrectionOverlap
+  snake: organization_workforce_attribution_correction_overlap
+  kind: error_code
+  bc: organization.workforce
+  definition: "更正后的结束日会使期间与同一对象的其他期间重叠（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_attribution_correction_reason_required
+  zh: 更正需要原因
+  en: OrganizationWorkforceAttributionCorrectionReasonRequired
+  snake: organization_workforce_attribution_correction_reason_required
+  kind: error_code
+  bc: organization.workforce
+  definition: "更正归属期间必须填写原因（422）"
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - opened
 - clock
@@ -747,3 +803,5 @@ common_words:
 - retired
 - timeout
 - caller
+- correction
+- corrected

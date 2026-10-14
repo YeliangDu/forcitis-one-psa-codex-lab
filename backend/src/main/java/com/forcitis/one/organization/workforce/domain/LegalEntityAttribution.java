@@ -4,12 +4,15 @@ import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Reason;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.events.LegalEntityAttributed;
+import com.forcitis.one.organization.workforce.events.LegalEntityAttributionCorrected;
 import com.forcitis.one.organization.workforce.events.LegalEntityAttributionEnded;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -26,6 +29,7 @@ public final class LegalEntityAttribution extends AggregateRoot {
     private final AttributionSubject subject;
     private final int storedPeriodCount;
     private List<AttributionPeriod> periods;
+    private final List<AttributionCorrection> pendingCorrections = new ArrayList<>();
 
     private LegalEntityAttribution(Long storedRow, AttributionSubject subject, List<AttributionPeriod> periods, long version,
                                    long eventCount) {
@@ -60,6 +64,10 @@ public final class LegalEntityAttribution extends AggregateRoot {
 
     public int storedPeriodCount() {
         return storedPeriodCount;
+    }
+
+    public List<AttributionCorrection> pendingCorrections() {
+        return List.copyOf(pendingCorrections);
     }
 
     public Optional<AttributionPeriod> on(LocalDate date) {
@@ -104,6 +112,44 @@ public final class LegalEntityAttribution extends AggregateRoot {
         this.periods = List.copyOf(next);
         record((envelopes, sequence) -> new LegalEntityAttributionEnded(envelopes.wrap(draft("LegalEntityAttributionEnded", sequence,
                 open.legalEntityId(), to)), subject, open.legalEntityId(), to));
+    }
+
+    /**
+     * A closed period is never rewritten: the correction is appended and the period reads as ending on the new day from then on. The
+     * corrected period must not run into another period of the subject. Correcting to the day it already ends on changes nothing.
+     */
+    public void correct(LocalDate periodFrom, LocalDate newEffectiveTo, Reason reason, UserId correctedBy) {
+        Objects.requireNonNull(periodFrom, "periodFrom");
+        Objects.requireNonNull(newEffectiveTo, "newEffectiveTo");
+        Objects.requireNonNull(reason, "reason");
+        Objects.requireNonNull(correctedBy, "correctedBy");
+        AttributionPeriod period = periods.stream().filter(p -> p.effectiveFrom().equals(periodFrom)).findFirst().orElseThrow(
+                () -> new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND, ErrorKind.NOT_FOUND,
+                        "no attribution period starts on " + periodFrom));
+        if (period.isOpen()) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED, ErrorKind.UNPROCESSABLE,
+                    "the period that starts on " + periodFrom + " is still open: end it instead of correcting it");
+        }
+        if (!newEffectiveTo.isAfter(periodFrom)) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID, ErrorKind.UNPROCESSABLE,
+                    "a period ends after " + periodFrom);
+        }
+        if (newEffectiveTo.equals(period.effectiveTo())) {
+            return;
+        }
+        for (AttributionPeriod other : periods) {
+            if (other.effectiveFrom().isAfter(periodFrom) && other.effectiveFrom().isBefore(newEffectiveTo)) {
+                throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP, ErrorKind.UNPROCESSABLE,
+                        "ending on " + newEffectiveTo + " would run into the period that starts on " + other.effectiveFrom());
+            }
+        }
+        LocalDate previous = period.effectiveTo();
+        List<AttributionPeriod> next = new ArrayList<>(periods);
+        next.set(next.indexOf(period), period.closedOn(newEffectiveTo));
+        this.periods = List.copyOf(next);
+        pendingCorrections.add(new AttributionCorrection(periodFrom, previous, newEffectiveTo, reason, correctedBy));
+        record((envelopes, sequence) -> new LegalEntityAttributionCorrected(envelopes.wrap(draft("LegalEntityAttributionCorrected", sequence,
+                period.legalEntityId(), newEffectiveTo)), subject, period.legalEntityId(), periodFrom, previous, newEffectiveTo, reason));
     }
 
     private EventDraft draft(String eventName, long sequence, LegalEntityId legalEntityId, LocalDate businessDate) {

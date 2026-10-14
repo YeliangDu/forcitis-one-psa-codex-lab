@@ -1,11 +1,14 @@
 package com.forcitis.one.organization.workforce.web;
 
 import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.application.AttributeLegalEntity;
+import com.forcitis.one.organization.workforce.application.CorrectLegalEntityAttribution;
 import com.forcitis.one.organization.workforce.application.EndLegalEntityAttribution;
 import com.forcitis.one.organization.workforce.application.GetLegalEntityAttribution;
 import com.forcitis.one.organization.workforce.application.LegalEntityAttributionView;
+import java.security.Principal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,8 +26,11 @@ class LegalEntityAttributionController {
     private final GetLegalEntityAttribution get;
     private final AttributeLegalEntity attribute;
     private final EndLegalEntityAttribution end;
+    private final CorrectLegalEntityAttribution correct;
 
-    LegalEntityAttributionController(GetLegalEntityAttribution get, AttributeLegalEntity attribute, EndLegalEntityAttribution end) {
+    LegalEntityAttributionController(GetLegalEntityAttribution get, AttributeLegalEntity attribute, EndLegalEntityAttribution end,
+            CorrectLegalEntityAttribution correct) {
+        this.correct = correct;
         this.get = get;
         this.attribute = attribute;
         this.end = end;
@@ -72,6 +78,22 @@ class LegalEntityAttributionController {
     ResponseEntity<LegalEntityAttributionResponse> endEmployee(@PathVariable long employeeId, @RequestBody EndLegalEntityAttributionRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         return answer(end.execute(AttributionKind.EMPLOYEE, employeeId, request.effectiveTo(), ExpectedVersion.fromHeaders(ifMatch, null)));
+    }
+
+    @PostMapping("/org-unit-legal-entities/{orgUnitId}:correct")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE + "')")
+    ResponseEntity<LegalEntityAttributionResponse> correctOrgUnit(@PathVariable long orgUnitId, @RequestBody CorrectLegalEntityAttributionRequest request,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch, Principal caller) {
+        return answer(correct.execute(AttributionKind.ORG_UNIT, orgUnitId, request.periodFrom(), request.effectiveTo(), request.reason(),
+                new UserId(Long.parseLong(caller.getName())), ExpectedVersion.fromHeaders(ifMatch, null)));
+    }
+
+    @PostMapping("/employee-legal-entities/{employeeId}:correct")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE + "')")
+    ResponseEntity<LegalEntityAttributionResponse> correctEmployee(@PathVariable long employeeId, @RequestBody CorrectLegalEntityAttributionRequest request,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch, Principal caller) {
+        return answer(correct.execute(AttributionKind.EMPLOYEE, employeeId, request.periodFrom(), request.effectiveTo(), request.reason(),
+                new UserId(Long.parseLong(caller.getName())), ExpectedVersion.fromHeaders(ifMatch, null)));
     }
 
     private static ResponseEntity<LegalEntityAttributionResponse> answer(LegalEntityAttributionView view) {

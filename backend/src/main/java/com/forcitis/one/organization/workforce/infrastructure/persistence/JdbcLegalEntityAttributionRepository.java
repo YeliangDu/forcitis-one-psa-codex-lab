@@ -2,10 +2,12 @@ package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.domain.AttributionCorrection;
 import com.forcitis.one.organization.workforce.domain.AttributionPeriod;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttribution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionRepository;
@@ -19,9 +21,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepository {
     private final JdbcClient jdbc;
+    private final IdGenerator ids;
 
-    JdbcLegalEntityAttributionRepository(JdbcClient jdbc) {
+    JdbcLegalEntityAttributionRepository(JdbcClient jdbc, IdGenerator ids) {
         this.jdbc = jdbc;
+        this.ids = ids;
     }
 
     @Override
@@ -82,8 +86,7 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
     }
 
     private List<AttributionPeriod> periods(AttributionSubject subject) {
-        return jdbc.sql("select legal_entity_id, effective_from_date, effective_to_date from organization_workforce." + table(subject)
-                        + " where " + column(subject) + " = :id")
+        return jdbc.sql(EffectiveAttributionPeriods.select(subject.kind()))
                 .param("id", subject.subjectKey())
                 .query((rs, n) -> new AttributionPeriod(new LegalEntityId(rs.getLong("legal_entity_id")),
                         rs.getDate("effective_from_date").toLocalDate(),
@@ -118,15 +121,22 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
                 throw conflict(attribution);
             }
         }
+        insertCorrections(attribution);
         writePeriods(attribution);
     }
 
-    private static String table(AttributionSubject subject) {
-        return subject.kind() == AttributionKind.ORG_UNIT ? "org_unit_legal_entities" : "employee_legal_entities";
-    }
-
-    private static String column(AttributionSubject subject) {
-        return subject.kind() == AttributionKind.ORG_UNIT ? "org_unit_id" : "employee_id";
+    private void insertCorrections(LegalEntityAttribution attribution) {
+        for (AttributionCorrection correction : attribution.pendingCorrections()) {
+            jdbc.sql("""
+                    insert into organization_workforce.legal_entity_attribution_corrections (correction_id, subject_kind, subject_id,
+                           period_effective_from_date, previous_effective_to_date, new_effective_to_date, correction_reason, corrected_by_user_id)
+                    values (:id, :kind, :subject, :from, :previous, :next, :reason, :by)
+                    """)
+                    .param("id", ids.next()).param("kind", attribution.subject().kind().name()).param("subject", attribution.subject().subjectKey())
+                    .param("from", Date.valueOf(correction.periodFrom())).param("previous", Date.valueOf(correction.previousEffectiveTo()))
+                    .param("next", Date.valueOf(correction.newEffectiveTo())).param("reason", correction.reason().value())
+                    .param("by", correction.correctedBy().value()).update();
+        }
     }
 
     private static DomainException conflict(LegalEntityAttribution attribution) {

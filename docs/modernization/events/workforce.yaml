@@ -364,6 +364,47 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityAttributionTest
         noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为归属变化只在发生当时可被记录，补不回
+    LegalEntityAttributionCorrected:
+      name: LegalEntityAttributionCorrected
+      title: 已关闭的法人归属期间的结束日被更正
+      payload:
+        type: object
+        properties:
+          subject:
+            type: string
+            x-type: AttributionSubject
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+          periodFrom:
+            type: string
+            x-type: LocalDate
+            description: 被更正期间的生效日
+          previousEffectiveTo:
+            type: string
+            x-type: LocalDate
+          newEffectiveTo:
+            type: string
+            x-type: LocalDate
+          reason:
+            type: string
+            x-type: Reason
+            description: 操作人填写的更正原因
+      x-event:
+        eventType: organization.workforce.LegalEntityAttributionCorrected
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityAttributionCorrected
+        aggregate: LegalEntityAttribution
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 更正后的结束日（newEffectiveTo）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityAttributionTest
+        noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为更正只在发生当时可被记录，补不回
     LegalEntityAccountingNumberAssigned:
       name: LegalEntityAccountingNumberAssigned
       title: 法人取得或更换了核算组织编码

@@ -24,11 +24,8 @@ class JdbcLegalEntityAttributionQueries implements LegalEntityAttributionQueries
 
     @Override
     public List<AttributionPeriod> periodsOf(AttributionSubject subject) {
-        String table = subject.kind() == com.forcitis.one.organization.workforce.api.AttributionKind.ORG_UNIT ? "org_unit_legal_entities" : "employee_legal_entities";
-        String column = subject.kind() == com.forcitis.one.organization.workforce.api.AttributionKind.ORG_UNIT ? "org_unit_id" : "employee_id";
-        return jdbc.sql("select legal_entity_id, effective_from_date, effective_to_date from organization_workforce." + table + " where " + column
-                        + " = :key order by effective_from_date")
-                .param("key", subject.subjectKey())
+        return jdbc.sql(EffectiveAttributionPeriods.select(subject.kind()) + " order by p.effective_from_date")
+                .param("id", subject.subjectKey())
                 .query((rs, n) -> new AttributionPeriod(new LegalEntityId(rs.getLong("legal_entity_id")),
                         rs.getDate("effective_from_date").toLocalDate(),
                         rs.getDate("effective_to_date") == null ? null : rs.getDate("effective_to_date").toLocalDate())).list();

@@ -154,4 +154,49 @@ class LegalEntityAttributionTest {
 
         assertThat(LegalEntityResolution.resolve(new Sources(), new UserId(8), JAN)).as("an unknown employee").isEmpty();
     }
+
+    @Test
+    @DisplayName("RULE-385 correcting a closed period moves its end, records one pending correction and one event; the same end again changes nothing")
+    void correctingAClosedPeriod() {
+        LegalEntityAttribution attribution = unit();
+        attribution.attribute(LE1, JAN);
+        attribution.attribute(LE2, JUL);
+        attribution.drainEvents(TestEnvelopes.INSTANCE);
+        LocalDate earlier = LocalDate.of(2026, 5, 1);
+
+        attribution.correct(JAN, earlier, new com.forcitis.one.kernel.Reason("typo"), new UserId(7));
+        attribution.correct(JAN, earlier, new com.forcitis.one.kernel.Reason("typo"), new UserId(7));
+
+        assertThat(attribution.periods()).containsExactly(new AttributionPeriod(LE1, JAN, earlier), new AttributionPeriod(LE2, JUL, null));
+        assertThat(attribution.pendingCorrections()).singleElement().satisfies(c -> {
+            assertThat(c.previousEffectiveTo()).isEqualTo(JUL);
+            assertThat(c.newEffectiveTo()).isEqualTo(earlier);
+            assertThat(c.correctedBy()).isEqualTo(new UserId(7));
+        });
+        assertThat(attribution.drainEvents(TestEnvelopes.INSTANCE)).singleElement()
+                .isInstanceOfSatisfying(com.forcitis.one.organization.workforce.events.LegalEntityAttributionCorrected.class, e -> {
+                    assertThat(e.previousEffectiveTo()).isEqualTo(JUL);
+                    assertThat(e.newEffectiveTo()).isEqualTo(earlier);
+                    assertThat(e.reason().value()).isEqualTo("typo");
+                });
+    }
+
+    @Test
+    @DisplayName("RULE-385 an open period, an unknown period, an end that overlaps the next period and an end before the start are refused")
+    void correctionRefusals() {
+        LegalEntityAttribution attribution = unit();
+        attribution.attribute(LE1, JAN);
+        attribution.attribute(LE2, JUL);
+        var reason = new com.forcitis.one.kernel.Reason("typo");
+
+        assertThatThrownBy(() -> attribution.correct(JUL, LocalDate.of(2026, 9, 1), reason, new UserId(7)))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED));
+        assertThatThrownBy(() -> attribution.correct(LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 1), reason, new UserId(7)))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND));
+        assertThatThrownBy(() -> attribution.correct(JAN, LocalDate.of(2026, 8, 1), reason, new UserId(7)))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP));
+        assertThatThrownBy(() -> attribution.correct(JAN, JAN, reason, new UserId(7)))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID));
+        assertThat(attribution.pendingCorrections()).isEmpty();
+    }
 }
