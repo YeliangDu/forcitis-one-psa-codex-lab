@@ -60,7 +60,7 @@ CREATE SCHEMA platform_scheduling    AUTHORIZATION one_dev_owner;  -- ShedLock
 CREATE SCHEMA organization_workforce AUTHORIZATION one_dev_owner;  -- 组织快照（过渡态，来源可替换）
 CREATE SCHEMA organization_attendance AUTHORIZATION one_dev_owner;  -- 工作日历（考勤与休假 BC，1a 只含工作日历）
 CREATE SCHEMA cost_timesheet         AUTHORIZATION one_dev_owner;  -- 工时单与幂等记录（cost.timesheet 是 1a 正式模块）
--- 注：样例模块 delivery.execution（delivery_execution）不在 1a 上线范围，不建 schema；其源码与表随工时单不再引用工作包后删除
+-- 注：delivery.execution（delivery_execution）暂时保留（工时单经它的 api 取工作包与剩余工时），去留待调度确认；脚本不为它建 schema，其迁移自行建
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §3 运行角色授权（对现有与将来由 one_dev_owner 建出的对象都生效）
