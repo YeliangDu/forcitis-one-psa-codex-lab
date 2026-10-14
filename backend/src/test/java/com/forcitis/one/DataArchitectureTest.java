@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -59,7 +60,8 @@ class DataArchitectureTest {
         String comment;
         final Map<String, Column> columns = new LinkedHashMap<>();
         final List<Constraint> constraints = new ArrayList<>();
-        final Set<String> triggers = new TreeSet<>();
+        final List<Trigger> triggers = new ArrayList<>();
+        boolean truncateRefused;
 
         Table(String name) {
             this.name = name;
@@ -74,7 +76,14 @@ class DataArchitectureTest {
         }
     }
 
-    record Gap(String rule, String column, String owner, String ref, String note) {
+    /** type is pg_trigger.tgtype: 1 row, 2 before, 4 insert, 8 delete, 16 update, 32 truncate. */
+    record Trigger(String name, int type, boolean enabled, String body) {
+        boolean refuses(int operation, boolean row) {
+            return enabled && (type & 2) != 0 && (type & 1) == (row ? 1 : 0) && (type & operation) != 0 && body.toLowerCase(Locale.ROOT).contains("raise exception");
+        }
+    }
+
+    record Gap(String rule, String column, String owner, String ref, String note, LocalDate due) {
     }
 
     record Entry(String table, Map<String, Object> raw, List<Gap> gaps) {
@@ -162,18 +171,36 @@ class DataArchitectureTest {
                 }
             }
             try (ResultSet rs = c.createStatement().executeQuery("""
-                    select n.nspname || '.' || r.relname, g.tgname
-                      from pg_trigger g join pg_class r on r.oid = g.tgrelid join pg_namespace n on n.oid = r.relnamespace where not g.tgisinternal
+                    select n.nspname || '.' || r.relname, g.tgname, g.tgtype, g.tgenabled = 'O', p.prosrc
+                      from pg_trigger g join pg_class r on r.oid = g.tgrelid join pg_namespace n on n.oid = r.relnamespace join pg_proc p on p.oid = g.tgfoid
+                     where not g.tgisinternal
                     """)) {
                 while (rs.next()) {
                     Table t = found.get(rs.getString(1));
                     if (t != null) {
-                        t.triggers.add(rs.getString(2));
+                        t.triggers.add(new Trigger(rs.getString(2), rs.getInt(3), rs.getBoolean(4), rs.getString(5)));
                     }
                 }
             }
+            for (Table t : found.values()) {
+                t.truncateRefused = truncateIsRefused(c, t.name);
+            }
         }
         return found;
+    }
+
+    /** Behaviour, not names: TRUNCATE inside a transaction that is rolled back; refused means the restrict_violation of a trigger, not a foreign key. */
+    static boolean truncateIsRefused(Connection c, String table) throws SQLException {
+        c.setAutoCommit(false);
+        try (var statement = c.createStatement()) {
+            statement.execute("truncate table " + table);
+            return false;
+        } catch (SQLException refused) {
+            return "23001".equals(refused.getSQLState());
+        } finally {
+            c.rollback();
+            c.setAutoCommit(true);
+        }
     }
 
     // ---------- the registry ----------
@@ -189,7 +216,8 @@ class DataArchitectureTest {
             List<Gap> gaps = new ArrayList<>();
             for (Map<String, Object> g : (List<Map<String, Object>>) raw.getOrDefault("gaps", List.of())) {
                 gaps.add(new Gap(String.valueOf(g.get("rule")), g.get("column") == null ? null : String.valueOf(g.get("column")),
-                        String.valueOf(g.get("owner")), String.valueOf(g.get("ref")), String.valueOf(g.get("note"))));
+                        String.valueOf(g.get("owner")), String.valueOf(g.get("ref")), String.valueOf(g.get("note")),
+                        g.get("due") == null ? null : LocalDate.parse(String.valueOf(g.get("due")))));
             }
             entries.put(table, new Entry(table, raw, gaps));
         });
@@ -223,7 +251,7 @@ class DataArchitectureTest {
             String role = e.text("role");
             String mutability = e.text("mutability");
             d1(v, t, e, role, mutability);
-            d2(v, t, role);
+            d2(v, t, e, role);
             if (!"FRAMEWORK".equals(role)) {
                 d3(v, t);
             }
@@ -246,17 +274,23 @@ class DataArchitectureTest {
             }
         }
         if ("CONDITIONAL_UPDATE".equals(mutability) && (e.text("condition") == null || e.text("condition").isBlank())) {
-            v.add(new Violation("D1", t.name, null, "a CONDITIONAL_UPDATE table names the condition that makes the update safe"));
+            v.add(new Violation("D1", t.name, "condition", "a CONDITIONAL_UPDATE table names the condition that makes the update safe"));
         }
-        boolean guarded = t.triggers.stream().anyMatch(n -> n.contains("append_only") || n.contains("reject_update"));
-        if ("APPEND_ONLY".equals(mutability) && ("LOG_APPEND_ONLY".equals(role) || "DIMENSION_VERSIONED".equals(role)) && !guarded) {
-            v.add(new Violation("D1", t.name, null, "an append-only log or version table needs a trigger (tg_*_append_only) that refuses the rewrite"));
+        if ("APPEND_ONLY".equals(mutability) && ("LOG_APPEND_ONLY".equals(role) || "DIMENSION_VERSIONED".equals(role)) && !refusesRewrite(t)) {
+            v.add(new Violation("D1", t.name, "trigger", "an append-only log or version table has triggers that refuse DELETE and rewriting UPDATE per row and refuse TRUNCATE (checked by running it)"));
         }
     }
 
-    private static void d2(List<Violation> v, Table t, String role) {
+    static boolean refusesRewrite(Table t) {
+        return t.triggers.stream().anyMatch(g -> g.refuses(16, true)) && t.triggers.stream().anyMatch(g -> g.refuses(8, true)) && t.truncateRefused;
+    }
+
+    private static void d2(List<Violation> v, Table t, Entry e, String role) {
         if (!"DIMENSION_VERSIONED".equals(role)) {
             return;
+        }
+        if (!"APPEND_ONLY".equals(e.text("mutability"))) {
+            v.add(new Violation("D2", t.name, "mutability", "a versioned dimension is APPEND_ONLY: history is closed and appended to, never rewritten"));
         }
         Column from = t.columns.get("effective_from_date");
         Column to = t.columns.get("effective_to_date");
@@ -267,7 +301,7 @@ class DataArchitectureTest {
             v.add(new Violation("D2", t.name, "effective_to_date", "a versioned dimension has a nullable effective_to_date date (empty = still valid)"));
         }
         if (t.constraints.stream().noneMatch(c -> c.kind() == 'x')) {
-            v.add(new Violation("D2", t.name, null, "a versioned dimension has an EXCLUDE USING gist constraint against overlapping periods"));
+            v.add(new Violation("D2", t.name, "exclude", "a versioned dimension has an EXCLUDE USING gist constraint against overlapping periods"));
         }
     }
 
@@ -373,12 +407,12 @@ class DataArchitectureTest {
     private static void d8(List<Violation> v, Table t, Entry e) {
         Map<String, Object> lineage = e.map("lineage");
         if (lineage.isEmpty() || !SOURCES.contains(String.valueOf(lineage.get("source")))) {
-            v.add(new Violation("D8", t.name, null, "lineage.source is one of " + SOURCES));
+            v.add(new Violation("D8", t.name, "lineage", "lineage.source is one of " + SOURCES));
             return;
         }
         Object migrated = lineage.get("migrated_from");
         if (migrated instanceof List<?> l && !l.isEmpty() && !TRACES.contains(String.valueOf(lineage.get("via")))) {
-            v.add(new Violation("D8", t.name, null, "migrated_from needs via: " + TRACES));
+            v.add(new Violation("D8", t.name, "lineage", "migrated_from needs via: " + TRACES));
         }
     }
 
@@ -400,7 +434,7 @@ class DataArchitectureTest {
         String name = e.text("versions_table");
         Table versions = name == null ? null : tables.get(name);
         if (versions == null) {
-            v.add(new Violation("D10", t.name, null, "a versioned configuration has an append-only versions table (versions_table)"));
+            v.add(new Violation("D10", t.name, "versions_table", "a versioned configuration has an append-only versions table (versions_table)"));
             return;
         }
         for (String column : List.of("effective_from_date", "confirmed_by", "confirmed_at")) {
@@ -408,13 +442,13 @@ class DataArchitectureTest {
                 v.add(new Violation("D10", t.name, column, "the versions table " + name + " carries " + column));
             }
         }
-        if (versions.triggers.stream().noneMatch(n -> n.contains("append_only"))) {
-            v.add(new Violation("D10", t.name, null, "the versions table " + name + " refuses UPDATE and DELETE"));
+        if (!refusesRewrite(versions)) {
+            v.add(new Violation("D10", t.name, "versions_table", "the versions table " + name + " refuses rewriting UPDATE, DELETE and TRUNCATE"));
         }
     }
 
     /** Violations not covered by a gap, plus gaps that cover nothing any more. */
-    static List<String> problems(List<Violation> violations, Map<String, Entry> registry) {
+    static List<String> problems(List<Violation> violations, Map<String, Entry> registry, LocalDate today) {
         List<String> problems = new ArrayList<>();
         Set<String> covered = new LinkedHashSet<>();
         for (Violation violation : violations) {
@@ -429,14 +463,23 @@ class DataArchitectureTest {
             }
         }
         registry.values().forEach(entry -> entry.gaps().forEach(g -> {
-            if (g.owner().equals("null") || g.ref().equals("null") || g.note().equals("null")) {
-                problems.add("gap " + g + " needs owner, ref and note");
+            if (blank(g.owner()) || blank(g.ref()) || blank(g.note()) || g.due() == null) {
+                problems.add("gap " + g.rule() + " " + entry.table() + " needs owner, ref, note and due");
+            } else if (g.due().isBefore(today)) {
+                problems.add("gap " + g.rule() + " " + entry.table() + (g.column() == null ? "" : "." + g.column()) + " was due on " + g.due() + " (owner " + g.owner() + "): fix it");
+            }
+            if (g.column() == null && !Set.of("D3", "D4").contains(g.rule())) {
+                problems.add("gap " + g.rule() + " " + entry.table() + " names no column: only D3 and D4 may cover a whole table");
             }
             if (!covered.contains(entry.table() + "|" + g.rule() + "|" + g.column())) {
                 problems.add("stale gap " + g.rule() + " " + entry.table() + (g.column() == null ? "" : "." + g.column()) + ": no longer violated, remove it");
             }
         }));
         return problems;
+    }
+
+    private static boolean blank(String text) {
+        return text == null || text.isBlank() || text.equals("null");
     }
 
     static Set<String> lockNames() throws IOException {
@@ -486,7 +529,7 @@ class DataArchitectureTest {
     @Test
     @DisplayName("D1..D10 the tables follow the data scorecard rules; the only tolerated violations are the gaps listed (with an owner) in the registry, and a fixed gap must be removed")
     void scorecardRulesHold() throws IOException {
-        List<String> problems = problems(violations(tables, registry, DdlNamingTest.readClassification(), lockNames()), registry);
+        List<String> problems = problems(violations(tables, registry, DdlNamingTest.readClassification(), lockNames()), registry, LocalDate.now());
         assertThat(problems).as("data scorecard D1..D10 (DATA_SCORECARD section 4)").isEmpty();
     }
 
@@ -578,23 +621,67 @@ class DataArchitectureTest {
         Map<String, Table> model = Map.of(bad.name, bad, owners.name, owners);
         Map<String, Object> raw = new LinkedHashMap<>(Map.of("role", "BUSINESS_DOCUMENT", "mutability", "MUTABLE",
                 "retention", Map.of("policy", "90d"), "lineage", Map.of("source", "OLD")));
-        Entry entry = new Entry(bad.name, raw, List.of(new Gap("D5", "display_name", "X", "ref", "note")));
+        Entry entry = new Entry(bad.name, raw, List.of(new Gap("D5", "display_name", "X", "ref", "note", LocalDate.of(2026, 12, 31))));
         Entry ownersEntry = new Entry(owners.name, new LinkedHashMap<>(Map.of("role", "DIMENSION_VERSIONED", "mutability", "APPEND_ONLY",
-                "retention", Map.of("policy", "PERMANENT"), "lineage", Map.of("source", "NEW"))), List.of(new Gap("D2", "effective_to_date", "X", "ref", "note")));
+                "retention", Map.of("policy", "PERMANENT"), "lineage", Map.of("source", "NEW"))), List.of(new Gap("D2", "effective_to_date", "X", "ref", "note", LocalDate.of(2026, 12, 31))));
         Map<String, Entry> entries = new LinkedHashMap<>(Map.of(bad.name, entry, owners.name, ownersEntry));
         {
             List<Violation> found = violations(model, entries, Map.of(), Set.of());
             Set<String> rules = new TreeSet<>();
             found.forEach(x -> rules.add(x.rule()));
             assertThat(rules).containsExactlyInAnyOrder("D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9");
-            List<String> problems = problems(found, entries);
+            List<String> problems = problems(found, entries, LocalDate.of(2026, 10, 15));
             assertThat(problems).noneMatch(p -> p.startsWith("D5 platform_audit.demo_rows.display_name"));
             assertThat(problems).anyMatch(p -> p.startsWith("D1 ")).anyMatch(p -> p.startsWith("D6 ")).anyMatch(p -> p.startsWith("D9 "));
             assertThat(problems).anyMatch(p -> p.startsWith("D2 platform_audit.owners.effective_from_date")).noneMatch(p -> p.startsWith("D2 platform_audit.owners.effective_to_date"));
             assertThat(problems).noneMatch(p -> p.startsWith("stale gap"));
 
-            Entry stale = new Entry(owners.name, ownersEntry.raw(), List.of(new Gap("D7", null, "X", "ref", "note")));
-            assertThat(problems(List.of(), Map.of(owners.name, stale))).singleElement().asString().contains("stale gap D7");
+            Entry stale = new Entry(owners.name, ownersEntry.raw(), List.of(new Gap("D7", null, "X", "ref", null, null)));
+            assertThat(problems(List.of(), Map.of(owners.name, stale), LocalDate.of(2026, 10, 15))).anyMatch(p -> p.contains("stale gap D7"))
+                    .anyMatch(p -> p.contains("names no column")).anyMatch(p -> p.contains("needs owner, ref, note and due"));
+
+            Entry overdue = new Entry(bad.name, entry.raw(), List.of(new Gap("D5", "display_name", "X", "ref", "note", LocalDate.of(2026, 10, 1))));
+            assertThat(problems(found, Map.of(bad.name, overdue, owners.name, ownersEntry), LocalDate.of(2026, 10, 15))).anyMatch(p -> p.contains("was due on 2026-10-01"));
         }
+    }
+
+    static final Pattern DML = Pattern.compile("^\\s*(insert\\s+into|update|delete\\s+from|truncate\\s+table|truncate)\\s+([a-z0-9_.\"]+)", Pattern.CASE_INSENSITIVE);
+
+    @Test
+    @DisplayName("M6 every SQL literal that writes names its schema, so the access check sees it and no search_path decides where it goes")
+    void writingSqlNamesItsSchema() throws IOException {
+        List<String> problems = new ArrayList<>();
+        for (Path file : javaFiles()) {
+            Matcher string = STRING.matcher(Files.readString(file));
+            while (string.find()) {
+                String sql = string.group(1) != null ? string.group(1) : string.group(2);
+                Matcher dml = DML.matcher(sql);
+                if (dml.find() && !dml.group(2).contains(".")) {
+                    problems.add(file + ": " + dml.group(1).trim() + " " + dml.group(2) + " has no schema prefix");
+                }
+            }
+        }
+        assertThat(problems).isEmpty();
+    }
+
+    @Test
+    @DisplayName("M5 the runtime role loses DELETE and TRUNCATE on every versioned dimension: the database script revokes them for exactly the registered tables")
+    void databaseScriptRevokesWritesOnVersionTables() throws IOException {
+        String script = Files.readString(Path.of("../docs/modernization/phase1a/infra/one_db_roles_schemas.sql"));
+        int at = script.indexOf("REVOKE DELETE, TRUNCATE ON");
+        assertThat(at).as("one_db_roles_schemas.sql has the REVOKE for version tables").isGreaterThan(0);
+        String revoke = script.substring(at, script.indexOf("FROM one_dev_app;", at));
+        Set<String> revoked = new TreeSet<>();
+        Matcher name = Pattern.compile("([a-z_]+\\.[a-z_]+)").matcher(revoke.substring("REVOKE DELETE, TRUNCATE ON".length()));
+        while (name.find()) {
+            revoked.add(name.group(1));
+        }
+        Set<String> registered = new TreeSet<>();
+        registry.forEach((table, e) -> {
+            if ("DIMENSION_VERSIONED".equals(e.text("role"))) {
+                registered.add(table);
+            }
+        });
+        assertThat(revoked).isEqualTo(registered);
     }
 }

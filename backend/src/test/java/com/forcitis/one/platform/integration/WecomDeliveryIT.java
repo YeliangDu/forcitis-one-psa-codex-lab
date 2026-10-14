@@ -124,13 +124,13 @@ class WecomDeliveryIT {
         Map<String, Object> raw = jdbc.sql("select * from platform_integration.outbound_deliveries where deduplication_key = :key").param("key", key)
                 .query().singleRow();
         Map<String, Object> row = new java.util.HashMap<>(raw);
-        row.replaceAll((column, value) -> value instanceof java.sql.Array array ? joined(array) : value);
+        row.replaceAll((column, value) -> value instanceof java.sql.Array array ? elements(array) : value);
         return row;
     }
 
-    private static String joined(java.sql.Array array) {
+    private static List<String> elements(java.sql.Array array) {
         try {
-            return String.join("|", (String[]) array.getArray());
+            return List.of((String[]) array.getArray());
         } catch (java.sql.SQLException e) {
             throw new IllegalStateException(e);
         }
@@ -210,7 +210,7 @@ class WecomDeliveryIT {
 
         wecom.verify(1, postRequestedFor(urlPathEqualTo(SEND_PATH)).withRequestBody(containing("\"touser\":\"alice|carol\""))
                 .withRequestBody(notContaining("bob")));
-        assertThat(row("approval-task:5")).containsEntry("status", "SENT").containsEntry("skipped_recipient_codes", "bob");
+        assertThat(row("approval-task:5")).containsEntry("status", "SENT").containsEntry("skipped_recipient_codes", List.of("bob"));
     }
 
     @Test
@@ -220,7 +220,7 @@ class WecomDeliveryIT {
 
         assertThat(deliver.execute()).isZero();
 
-        assertThat(row("approval-task:6")).containsEntry("status", "SKIPPED").containsEntry("skipped_recipient_codes", "bob");
+        assertThat(row("approval-task:6")).containsEntry("status", "SKIPPED").containsEntry("skipped_recipient_codes", List.of("bob"));
         wecom.verify(0, postRequestedFor(urlPathEqualTo(SEND_PATH)));
     }
 

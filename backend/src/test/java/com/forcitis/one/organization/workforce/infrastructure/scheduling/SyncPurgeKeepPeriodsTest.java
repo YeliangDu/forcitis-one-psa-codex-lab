@@ -21,6 +21,8 @@ class SyncPurgeKeepPeriodsTest {
         runner.withPropertyValues("forcitis.organization.workforce.sync-purge.run-keep-period=P2Y",
                 "forcitis.organization.workforce.sync-purge.diff-keep-period=P1Y").run(context -> assertThat(context).hasNotFailed());
         runner.withPropertyValues("forcitis.organization.workforce.sync-purge.run-keep-period=P2Y").run(context -> assertThat(context).hasFailed());
+        runner.withPropertyValues("forcitis.organization.workforce.sync-purge.run-keep-period=P1Y",
+                "forcitis.organization.workforce.sync-purge.diff-keep-period=P2Y").run(context -> assertThat(context).as("diffs outliving their run").hasFailed());
         runner.withPropertyValues("forcitis.organization.workforce.sync-purge.diff-keep-period=P1Y").run(context -> assertThat(context).hasFailed());
     }
 }

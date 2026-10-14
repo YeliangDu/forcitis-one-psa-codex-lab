@@ -58,4 +58,48 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: revision_number
+  zh: 修订序号
+  en: RevisionNumber
+  snake: revision_number
+  kind: value
+  bc: organization.workforce
+  definition: 版本表同一生效日内的修订序号：同日再次变化时关闭当天版本（空区间）并以加 1 的序号追加新行
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
+- id: work_calendar_locked_days_changed
+  zh: 工作日历锁定日期被修改
+  en: WorkCalendarLockedDaysChanged
+  snake: work_calendar_locked_days_changed
+  kind: event
+  bc: organization.attendance
+  definition: 组织数据管理员确认修改了工作日历中早于今天的日期；载荷列出每个被改日期的改前改后类别，进审计
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
+- id: locked_days_confirmed
+  zh: 确认修改锁定日期
+  en: LockedDaysConfirmed
+  snake: locked_days_confirmed
+  kind: command
+  bc: organization.attendance
+  definition: 调用方（组织数据管理员）确认要修改工作日历中早于今天的日期；没有该确认的修改一律被拒绝
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 

@@ -30,6 +30,9 @@ class SyncPurgeJob {
         KeepPeriods {
             require(runKeepPeriod, "run-keep-period");
             require(diffKeepPeriod, "diff-keep-period");
+            if (diffKeepPeriod.toTotalMonths() > runKeepPeriod.toTotalMonths()) {
+                throw new IllegalArgumentException("forcitis.organization.workforce.sync-purge.diff-keep-period must not be longer than run-keep-period: a diff belongs to its run");
+            }
         }
 
         private static void require(Period period, String key) {
