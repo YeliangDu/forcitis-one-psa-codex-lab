@@ -9,10 +9,10 @@ import java.util.List;
 
 /**
  * Published when a sync run changes the snapshot; identity revokes sessions of separatedEmployees. The envelope's businessDate is the
- * snapshot cut-off day; effectiveDate is the day the changes take effect, which the source does not state, so it is that same day.
+ * snapshot cut-off day; effectiveFrom is the day the changes take effect, which the source does not state, so it is that same day.
  */
 public record OrgSnapshotChanged(EventEnvelope envelope, List<UserId> changedEmployees, List<UserId> separatedEmployees,
-                                 List<OrgUnitId> changedOrgUnits, LocalDate effectiveDate) implements DomainEvent {
+                                 List<OrgUnitId> changedOrgUnits, LocalDate effectiveFrom) implements DomainEvent {
     public OrgSnapshotChanged {
         changedEmployees = List.copyOf(changedEmployees);
         separatedEmployees = List.copyOf(separatedEmployees);

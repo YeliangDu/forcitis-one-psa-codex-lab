@@ -91,7 +91,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
             assertThat(e.separatedEmployees()).isEmpty();
             assertThat(e.envelope().businessDate()).as("the snapshot cut-off day is the Shanghai day the run started")
                     .isEqualTo(runStartDay());
-            assertThat(e.effectiveDate()).isEqualTo(e.envelope().businessDate());
+            assertThat(e.effectiveFrom()).isEqualTo(e.envelope().businessDate());
         });
     }
 
@@ -117,7 +117,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         LocalDate assignmentFrom = jdbc.sql("select min(effective_from_date) from organization_workforce.assignment_versions").query(LocalDate.class).single();
         assertThat(events.stream(OrgSnapshotChanged.class)).singleElement().satisfies(e -> {
             assertThat(e.envelope().businessDate()).isEqualTo(readDay).isEqualTo(orgUnitFrom).isEqualTo(assignmentFrom);
-            assertThat(e.effectiveDate()).isEqualTo(readDay);
+            assertThat(e.effectiveFrom()).isEqualTo(readDay);
         });
     }
 

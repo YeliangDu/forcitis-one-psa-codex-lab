@@ -82,14 +82,14 @@ class SyncRunStateMachineTest {
     }
 
     @Test
-    @DisplayName("OrgSnapshotChanged takes its businessDate and effectiveDate from the snapshot day it is given, not from the clock")
+    @DisplayName("OrgSnapshotChanged takes its businessDate and effectiveFrom from the snapshot day it is given, not from the clock")
     void snapshotChangedIsDatedBySnapshotDay() {
         SyncRun run = at(RUNNING);
         run.succeed(NOW, STATS, new SnapshotChange(List.of(new UserId(1)), List.of(), List.of()), SNAPSHOT_DAY);
 
         assertThat(run.drainEvents(TestEnvelopes.INSTANCE)).last().isInstanceOfSatisfying(OrgSnapshotChanged.class, e -> {
             assertThat(e.envelope().businessDate()).isEqualTo(SNAPSHOT_DAY).isNotEqualTo(LocalDate.of(2026, 10, 14));
-            assertThat(e.effectiveDate()).isEqualTo(SNAPSHOT_DAY);
+            assertThat(e.effectiveFrom()).isEqualTo(SNAPSHOT_DAY);
         });
     }
 
