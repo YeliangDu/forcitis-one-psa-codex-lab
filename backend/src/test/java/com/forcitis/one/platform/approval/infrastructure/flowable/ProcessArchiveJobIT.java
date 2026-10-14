@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.approval.infrastructure.archive;
+package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;

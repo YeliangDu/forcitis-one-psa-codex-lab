@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.approval.infrastructure.archive;
+package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,7 +33,7 @@ class ProcessArchivePolicyTest {
     }
 
     @Test
-    @DisplayName("T3 the variables an archive may carry are exactly the ones registered in architecture/archive-variables.txt (data classification)")
+    @DisplayName("T3 the variables an archive may carry are the engine's own constants and exactly the ones registered in architecture/archive-variables.txt (data classification)")
     void archivedVariablesAreRegistered() throws Exception {
         List<String> registered = new ArrayList<>();
         for (String line : Files.readAllLines(Path.of("architecture/archive-variables.txt"))) {
@@ -44,9 +44,15 @@ class ProcessArchivePolicyTest {
             }
         }
         List<String> inCode = new ArrayList<>();
-        ProcessArchiveJob.PROCESS_VARIABLES.forEach(n -> inCode.add("PROCESS:" + n));
-        inCode.add("PROCESS:" + ProcessArchiveJob.ROUTING_VARIABLE_PREFIX.replace("\\", "") + "*");
-        ProcessArchiveJob.TASK_VARIABLES.forEach(n -> inCode.add("TASK:" + n));
+        inCode.add("PROCESS:" + FlowableApprovalEngine.VARIABLE_CONTENT_DIGEST);
+        inCode.add("PROCESS:" + FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY);
+        inCode.add("PROCESS:" + FlowableApprovalEngine.VARIABLE_SUBMITTED_ON);
+        inCode.add("PROCESS:" + NodeDecisions.ROUTED + "*");
+        inCode.add("TASK:" + FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE);
+        inCode.add("TASK:" + FlowableApprovalEngine.VARIABLE_ADVISORY);
+        inCode.add("TASK:" + FlowableApprovalEngine.VARIABLE_ASSIGNED_AT);
+        assertThat(new TreeSet<>(ProcessArchiveJob.PROCESS_VARIABLES)).isEqualTo(new TreeSet<>(List.of(FlowableApprovalEngine.VARIABLE_CONTENT_DIGEST,
+                FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY, FlowableApprovalEngine.VARIABLE_SUBMITTED_ON)));
         assertThat(new TreeSet<>(inCode)).isEqualTo(new TreeSet<>(registered));
     }
 }

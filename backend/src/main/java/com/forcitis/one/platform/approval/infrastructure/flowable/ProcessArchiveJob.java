@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.approval.infrastructure.archive;
+package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.platform.integration.api.ArchiveVault;
@@ -33,7 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
  * and counted, so one bad instance does not stop the batch; a batch identical to the previous one ends the run. An instance written
  * but not deleted is written again by a later run, so readers deduplicate by instanceId.
  * The archive holds ids, the definition key, version and deployment, times, assignees, candidates and delegations, the delete reason
- * and the whitelisted variables in architecture/archive-variables.txt, never other variables.
+ * and the whitelisted variables in architecture/archive-variables.txt (the names are the engine constants; routing flags only as booleans), never other variables.
  */
 @Component
 @EnableConfigurationProperties(ProcessArchivePolicy.class)
@@ -42,9 +42,11 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
     private static final Logger LOG = LoggerFactory.getLogger(ProcessArchiveJob.class);
     static final String KIND = "process";
     static final int BATCH = 100;
-    static final List<String> PROCESS_VARIABLES = List.of("contentDigest");
-    static final String ROUTING_VARIABLE_PREFIX = "routed\\_";
-    static final List<String> TASK_VARIABLES = List.of("systemComplete", "advisory", "assignedAt");
+    static final List<String> PROCESS_VARIABLES = List.of(FlowableApprovalEngine.VARIABLE_CONTENT_DIGEST, FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY,
+            FlowableApprovalEngine.VARIABLE_SUBMITTED_ON);
+    static final String ROUTING_VARIABLE_PREFIX = NodeDecisions.ROUTED;
+    static final List<String> TASK_VARIABLES = List.of(FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE, FlowableApprovalEngine.VARIABLE_ADVISORY,
+            FlowableApprovalEngine.VARIABLE_ASSIGNED_AT);
 
     record ArchivedTask(String taskId, String name, String taskDefinitionKey, String assignee, String createdAt, String claimedAt,
                         String endedAt, String dueAt, String deleteReason) {
@@ -199,10 +201,10 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
                 select proc_inst_id_, name_, task_id_, coalesce(text_, cast(long_ as text), cast(double_ as text)) as value_
                   from platform_approval.act_hi_varinst
                  where proc_inst_id_ in (:ids)
-                   and ((task_id_ is null and (name_ in (:processNames) or name_ like :routing))
+                   and ((task_id_ is null and (name_ in (:processNames) or (name_ like :routing and var_type_ = 'boolean')))
                         or (task_id_ is not null and name_ in (:taskNames)))
                  order by id_
-                """).param("ids", ids).param("processNames", PROCESS_VARIABLES).param("routing", ROUTING_VARIABLE_PREFIX + "%").param("taskNames", TASK_VARIABLES)
+                """).param("ids", ids).param("processNames", PROCESS_VARIABLES).param("routing", ROUTING_VARIABLE_PREFIX.replace("_", "\\_") + "%").param("taskNames", TASK_VARIABLES)
                 .query((v, n) -> {
                     byId.get(v.getString("proc_inst_id_")).variables().add(new ArchivedVariable(v.getString("name_"), v.getString("task_id_"), v.getString("value_")));
                     return null;
