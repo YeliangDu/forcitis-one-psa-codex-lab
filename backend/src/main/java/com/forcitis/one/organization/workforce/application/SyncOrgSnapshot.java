@@ -39,8 +39,7 @@ public class SyncOrgSnapshot {
         } catch (RuntimeException failure) {
             LOG.error("organization.workforce sync {} failed: {}", run.value(), failure.toString(), failure);
             String reason = failure.getClass().getSimpleName() + ": " + failure.getMessage();
-            failRun.execute(run, reason);
-            result = new SyncResult(run, SyncRunStatus.FAILED, reason);
+            result = new SyncResult(run, failRun.execute(run, reason), reason);
         }
         Counter.builder("forcitis.organization.workforce.sync.runs")
                 .description("Org snapshot sync runs by result")

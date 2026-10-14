@@ -185,10 +185,12 @@ class ApplicationIntegrationTest {
     void submitWithoutAnExistingProjectManagerFailsInsteadOfPassingSilently() throws Exception {
         String unknownManager = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":424242}";
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> mvc.perform(post("/api/v1/cost/timesheets/8:submit").with(csrf())
+        String body = mvc.perform(post("/api/v1/cost/timesheets/8:submit").with(csrf())
                         .with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content(unknownManager)))
-                .hasStackTraceContaining("missing or invalid");
+                        .contentType(MediaType.APPLICATION_JSON).content(unknownManager))
+                .andExpect(status().isInternalServerError()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_UNEXPECTED"))
+                .andReturn().getResponse().getContentAsString();
+        org.assertj.core.api.Assertions.assertThat(body).doesNotContain("missing or invalid");
     }
 
     @Test
@@ -203,17 +205,17 @@ class ApplicationIntegrationTest {
     }
 
     @Test
-    void unsupportedApiVersionIsRejected() throws Exception {
+    void unsupportedApiVersionIsNotARoute() throws Exception {
         mvc.perform(post("/api/v2/cost/timesheets/7:submit").with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void bareNumericVersionSegmentIsNotAccepted() throws Exception {
+    void bareNumericVersionSegmentIsNotARoute() throws Exception {
         mvc.perform(post("/api/1/cost/timesheets/7:submit").with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     @BeforeEach
@@ -395,6 +397,18 @@ class ApplicationIntegrationTest {
         }
         if (type == String.class) {
             return "x";
+        }
+        if (type == java.util.UUID.class) {
+            return java.util.UUID.fromString("0198a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b");
+        }
+        if (type == com.forcitis.one.kernel.AccountingPeriod.class) {
+            return new com.forcitis.one.kernel.AccountingPeriod(2026, 10);
+        }
+        if (type == com.forcitis.one.organization.workforce.api.LegalEntityCode.class) {
+            return new com.forcitis.one.organization.workforce.api.LegalEntityCode("FST");
+        }
+        if (type == java.time.Year.class) {
+            return java.time.Year.of(2026);
         }
         if (type == BigDecimal.class) {
             return BigDecimal.ONE;

@@ -1,0 +1,7 @@
+# Files in application / infrastructure that may still write a status, one reviewed line each: <path under src/main/java>  # why.
+# StateWriteGuardTest fails for a violation outside this list and for a line here that is no longer needed. Changes need design review.
+com/forcitis/one/platform/approval/application/ApprovalLifecycle.java  # approval status machine is moved into the aggregate by the approval work stream; delete the line when that merges
+com/forcitis/one/platform/approval/application/DecideTasks.java  # same
+com/forcitis/one/platform/approval/application/StartApproval.java  # same
+com/forcitis/one/platform/approval/infrastructure/persistence/JdbcApprovalRequestRepository.java  # same (status literals in SQL)
+com/forcitis/one/platform/approval/infrastructure/replay/ExportedSnapshot.java  # replay export builds employment status of a synthetic snapshot; owned by the approval work stream

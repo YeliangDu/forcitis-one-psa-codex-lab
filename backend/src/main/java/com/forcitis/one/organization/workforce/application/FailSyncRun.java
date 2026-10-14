@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.SyncRun;
 import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
+import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import java.time.Clock;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -22,10 +23,11 @@ class FailSyncRun {
     }
 
     @Transactional
-    public void execute(SyncRunId syncRunId, String reason) {
+    public SyncRunStatus execute(SyncRunId syncRunId, String reason) {
         SyncRun run = runs.find(syncRunId).orElseThrow();
         run.fail(clock.instant(), reason);
         runs.save(run);
         events.publish(run);
+        return run.status();
     }
 }

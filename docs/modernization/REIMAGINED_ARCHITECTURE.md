@@ -84,10 +84,73 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 | `event_publication` 归 `platform_integration` schema | psa-coordinator 同意 | Flyway 创建，关闭自动建表 |
 | **审批路由引入 DMN**（修订检查点 2「1a 不引入 DMN」） | 「B 决策表管业务判断 (Recommended)」 | DMN 只负责：走哪几路、能否跳过、能否自动通过、节点时限。用 Flowable DMN 执行，按部署版本生效，业务可评审。「取谁」仍由 BPMN 上的类型化指派规则决定，AssigneeResolver 只执行决策结果 |
 | **新建 `platform.web`** | 「新建 platform.web (Recommended)」 | 技术模块，承载跨模块的 web 装配：领域异常 → ErrorCode → ProblemDetail 的全局处理器、OpenAPI 定制 |
+| **新建 `platform.eventing`**（事件信封的实现位置，实现 `kernel.event.EventEnvelopes` 与 `DomainEvents`） | 「事件信封实现放在符合依赖图的位置，可以新建技术模块」 | 技术模块，不被任何模块依赖（各模块只用 kernel 里的端口），只依赖 `platform.identity` 的 `CurrentUser`；eventId 用 UUIDv7，时间取注入的 Clock，关联号从 `X-Correlation-Id` 经 MDC 带入事件信封与出站投递，行为人在请求里是用户、在作业或事件处理里是作业名 |
+| **`organization.attendance` 提前到 1a 建**（工作日历） | 「BC 提前到 1a 建；默认日历一份，预留法人专属日历」 | schema `organization_attendance`；`WorkCalendar` 周末休息、其余上班，叠加按年维护的节假日与调休上班日，业务时区 Asia/Shanghai（`forcitis.kernel.business-zone`）；依赖的年份未维护则失败并告警；维护权限 `organization.attendance:work-calendar:update` |
+| **版本只写在路径里**（复审 M3） | 「删除 ApiVersioning，@RequestMapping 写死 /api/v1」 | 控制器直接写 `/api/v1/...`，`/api/1/...` 是 404；破坏性变更另开 `/api/v2/` 控制器 |
 | **审计订阅领域事件** | 「B 审计订阅领域事件 (Recommended)」 | 对外有意义的业务状态变化，审计统一订阅领域事件（事件发布登记表保证不漏记）；安全事件（登录失败、拒绝访问）仍用 `recordIndependently` |
 | **审批时限 T+1 工作日** | 「工时要求T+1 审批完毕……」；T 从提交当天起算，+1 按工作日（需要工作日历）；超时提醒、升级给上级、计入时效统计，不自动通过 | 引擎通用的审批时限能力，时限由 DMN 或配置给出；工作日历由管理员维护；事件 `ApprovalTaskOverdue`、`ApprovalTaskEscalated` |
 
 无环要点：integration 不认识 PSA 用户；企业微信 userid 由 workforce 快照持有，identity 在登录时按 userid 查 workforce 的 api（取消 `external_identities` 表，评审 #8）；通知时 approval 从 workforce 取收件人的 userid，再调 integration 发送；审计由各模块调用 audit 的 api。各模块 api 方法数 ≤ 12（`ArchitectureRulesTest`）。
+
+### 2.2 上下文映射图（SESSION_PLAYBOOK §13 第 11 项）
+
+箭头从下游指向上游（下游依赖上游的 `api` 或 `events`）；边与 `architecture/module-dependencies.txt` 一致，`ModuleDependencyTest` 守护。
+
+```mermaid
+flowchart LR
+  subgraph SK["共享内核 kernel（OPEN 模块，所有模块可用）"]
+    K["Money · Hours · LegalEntityId · UserId · DocumentReference<br/>DomainException / ErrorCode · 事件信封与 DomainEvent（发布语言）"]
+  end
+  subgraph EXT["外部系统（只在 platform.integration 的适配器里出现名字）"]
+    WX["企业微信"]
+    SY["致远 A8 / 组织视图"]
+    LG["老系统只读视图"]
+  end
+  subgraph INT["platform.integration（防腐层 ACL + 开放主机服务）"]
+    ACL["seeyon · wecom · legacy 适配器<br/>api：OrgSource、WecomGateway、SsoTicketVerifier"]
+  end
+  WF["organization.workforce<br/>组织快照 · 法人 · 同步记录"]
+  AT["organization.attendance<br/>工作日历（WorkCalendar）"]
+  ID["platform.identity<br/>登录 · RBAC · 账号与角色"]
+  AP["platform.approval<br/>审批（另一工作流负责）"]
+  NM["platform.numbering<br/>单据编号"]
+  AU["platform.audit<br/>只追加审计"]
+  TS["cost.timesheet"]
+  DE["delivery.execution"]
+  EV["platform.eventing<br/>事件信封实现（技术模块）"]
+  WB["platform.web<br/>错误链 · 关联号过滤器（技术模块）"]
+  ACL -->|"ACL：翻译为 Source* 类型"| WX
+  ACL --> SY
+  ACL --> LG
+  WF -->|"Customer-Supplier：读 OrgSource"| ACL
+  ID -->|"Customer-Supplier"| WF
+  ID --> ACL
+  NM -->|"Customer-Supplier：读 LegalEntityDirectory"| WF
+  NM --> ID
+  AP --> ID
+  AP --> WF
+  AP --> ACL
+  AP -->|"Customer-Supplier：WorkCalendar"| AT
+  TS --> AP
+  TS --> ID
+  TS --> DE
+  EV -->|"CurrentUser"| ID
+  AU -. "订阅全部 DomainEvent（发布语言）" .-> WF
+  AU -.-> ID
+  AU -.-> NM
+  AU -.-> AT
+  ID -. "订阅 OrgSnapshotChanged" .-> WF
+  WF -. "LegalEntityNumberUsage 由 numbering 实现（依赖倒置，避免环）" .-> NM
+  classDef tech fill:#eee,stroke:#999
+  class EV,WB tech
+```
+
+- **共享内核**：`kernel` 只放不含业务行为的类型与端口；`WorkContext`（关联号、行为人）、`AggregateRoot`、`StateMachine` 也在这里。
+- **发布语言**：领域事件的信封与负载约束见 `proposals/EVENT_ANALYTICS_FIELDS.md` §6，目录在 `docs/modernization/events/asyncapi.yaml`（`EventCatalogueTest` 守护）。
+- **防腐层**：外部系统名只出现在 `platform.integration.infrastructure.*`；workforce 直接用 `platform.integration.api` 的 `Source*` 类型，不再有镜像类型。
+- **开放主机服务**：每个模块的 `api` 包（窄接口，`ArchitectureRulesTest` 守护）。
+- **依赖倒置**：workforce 需要知道某法人是否已发过号，却不能依赖 numbering（numbering 已依赖 workforce）；接口 `LegalEntityNumberUsage` 放在 workforce 的 api，由 numbering 实现。
+- **一致性**：同一事务只改一个聚合；跨聚合协作经事件（至少一次，按 eventId 幂等）或按 ID 查询。
 
 ## 3. 关键设计
 

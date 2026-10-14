@@ -71,7 +71,7 @@ public class ApplySourceSnapshot {
                 events.publish(held);
             }
         }
-        return new SyncResult(syncRunId, SyncRunStatus.SUCCEEDED, null);
+        return new SyncResult(syncRunId, run.status(), null);
     }
 
     /** While an earlier run is still held it is refreshed instead, so a stuck hold adds no row every five minutes. */
@@ -86,6 +86,6 @@ public class ApplySourceSnapshot {
         runs.save(held);
         events.publish(held);
         LOG.error("ALERT organization.workforce sync {} held by the shrink guard: {}", held.syncRunId().value(), reason);
-        return new SyncResult(held.syncRunId(), SyncRunStatus.HELD, reason);
+        return new SyncResult(held.syncRunId(), held.status(), reason);
     }
 }
