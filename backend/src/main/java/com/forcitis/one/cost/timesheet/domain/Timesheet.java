@@ -13,13 +13,15 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
-import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.RoundNumber;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -133,35 +135,35 @@ public final class Timesheet {
         approvalInstanceId = Objects.requireNonNull(instance, "instance");
         Snapshot at = snapshot();
         record("TimesheetSubmitted", envelope -> new TimesheetSubmitted(envelope, at.document(), at.employee(), instance, at.workPackageId(),
-                at.submittedHours(), at.round()));
+                at.submittedHours(), new RoundNumber(at.round())));
     }
 
     public void approve() {
         status = target(Action.APPROVE);
         Snapshot at = snapshot();
         record("TimesheetApproved", envelope -> new TimesheetApproved(envelope, at.document(), at.employee(), at.workPackageId(),
-                at.submittedHours(), at.round()));
+                at.submittedHours(), new RoundNumber(at.round())));
     }
 
     public void reject(String reason) {
         status = target(Action.REJECT);
         Snapshot at = snapshot();
         record("TimesheetRejected", envelope -> new TimesheetRejected(envelope, at.document(), at.employee(), at.workPackageId(),
-                at.submittedHours(), at.round(), reason));
+                at.submittedHours(), new RoundNumber(at.round()), Reason.ofNullable(reason)));
     }
 
     public void returnForRevision(String reason) {
         status = target(Action.RETURN);
         Snapshot at = snapshot();
         record("TimesheetReturned", envelope -> new TimesheetReturned(envelope, at.document(), at.employee(), at.workPackageId(),
-                at.submittedHours(), at.round(), reason));
+                at.submittedHours(), new RoundNumber(at.round()), Reason.ofNullable(reason)));
     }
 
     public void cancelSubmission(String reason) {
         status = target(Action.CANCEL);
         Snapshot at = snapshot();
         record("TimesheetCancelled", envelope -> new TimesheetCancelled(envelope, at.document(), at.employee(), at.workPackageId(),
-                at.submittedHours(), at.round(), reason));
+                at.submittedHours(), new RoundNumber(at.round()), Reason.ofNullable(reason)));
     }
 
     /** What an event reports is fixed when it is recorded, not when it is published. */

@@ -3,6 +3,8 @@ package com.forcitis.one.cost.timesheet.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.Reason;
+import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.events.TimesheetApproved;
@@ -143,7 +145,7 @@ class TimesheetStateMachineTest {
 
         TimesheetSubmitted submitted = (TimesheetSubmitted) events.get(0).assemble().apply(envelope(events.get(0)));
         assertThat(submitted.approvalInstanceId()).isEqualTo(new ApprovalInstanceId("i-3"));
-        assertThat(submitted.round()).isEqualTo(3);
+        assertThat(submitted.round()).isEqualTo(new RoundNumber(3));
         assertThat(submitted.document().documentId().value()).isEqualTo("7");
         assertThat(events.get(1).assemble().apply(envelope(events.get(1)))).isInstanceOf(TimesheetReturned.class);
         TimesheetApproved approved = (TimesheetApproved) events.get(3).assemble().apply(envelope(events.get(3)));
@@ -156,12 +158,12 @@ class TimesheetStateMachineTest {
         Timesheet refused = in(TimesheetStatus.SUBMITTED);
         refused.reject("over budget");
         PendingEvent rejected = refused.pullEvents().getFirst();
-        assertThat(((TimesheetRejected) rejected.assemble().apply(envelope(rejected))).reason()).isEqualTo("over budget");
+        assertThat(((TimesheetRejected) rejected.assemble().apply(envelope(rejected))).reason()).isEqualTo(new Reason("over budget"));
 
         Timesheet cancelled = in(TimesheetStatus.SUBMITTED);
         cancelled.cancelSubmission("duplicate");
         PendingEvent cancel = cancelled.pullEvents().getFirst();
-        assertThat(((TimesheetCancelled) cancel.assemble().apply(envelope(cancel))).reason()).isEqualTo("duplicate");
+        assertThat(((TimesheetCancelled) cancel.assemble().apply(envelope(cancel))).reason()).isEqualTo(new Reason("duplicate"));
     }
 
     private static EventEnvelope envelope(PendingEvent event) {

@@ -1,120 +1,355 @@
-# cost.timesheet 的事件条目（AsyncAPI 3.0 片段），由事件目录 docs/modernization/events/asyncapi.yaml 合并。
-# 字段含义同 approval.yaml 的文件头。聚合是 Timesheet，aggregateId 是工时单标识，事件序号存放在 cost_timesheet.timesheets.event_count。
-# 工时单事件的 businessDate 一律取工作日期（work_date，工时所属的业务日期）：提交、办理的日期不是 businessDate，
-# 需要的话由分析层从事件的 occurredAt 或 approval 的事件里取。
-asyncapi: 3.0.0
-info:
-  title: cost.timesheet events
-  version: 1.0.0
-channels:
-  TimesheetSubmitted: {address: cost.timesheet.TimesheetSubmitted, messages: {TimesheetSubmitted: {$ref: '#/components/messages/TimesheetSubmitted'}}}
-  TimesheetApproved: {address: cost.timesheet.TimesheetApproved, messages: {TimesheetApproved: {$ref: '#/components/messages/TimesheetApproved'}}}
-  TimesheetRejected: {address: cost.timesheet.TimesheetRejected, messages: {TimesheetRejected: {$ref: '#/components/messages/TimesheetRejected'}}}
-  TimesheetReturned: {address: cost.timesheet.TimesheetReturned, messages: {TimesheetReturned: {$ref: '#/components/messages/TimesheetReturned'}}}
-  TimesheetCancelled: {address: cost.timesheet.TimesheetCancelled, messages: {TimesheetCancelled: {$ref: '#/components/messages/TimesheetCancelled'}}}
+# 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
 components:
-  schemas:
-    DocumentReference:
-      type: object
-      required: [documentType, documentId]
-      properties:
-        documentType: {type: string, enum: [QUOTE, TIMESHEET, JOURNAL_VOUCHER]}
-        documentId: {type: object, properties: {value: {type: string}}}
-    UserId:
-      type: object
-      properties: {value: {type: integer, format: int64}}
-    TimesheetFacts:
-      type: object
-      required: [envelope, document, employee, workPackageId, submittedHours, round]
-      properties:
-        envelope: {$ref: '#/components/schemas/EventEnvelope'}
-        document: {$ref: '#/components/schemas/DocumentReference'}
-        employee: {$ref: '#/components/schemas/UserId'}
-        workPackageId: {type: object, properties: {value: {type: integer, format: int64}}, description: 任务包}
-        submittedHours: {type: object, properties: {value: {type: number}}, description: 填报工时，非负，两位小数}
-        round: {type: integer, description: 轮次，与审批请求的轮次一致}
   messages:
     TimesheetSubmitted:
+      name: TimesheetSubmitted
       title: 工时单提交审批（进入新一轮）
-      x-event-type: cost.timesheet.TimesheetSubmitted
-      x-aggregate: Timesheet
-      x-forms-fact: false（过程里程碑）
-      x-business-date: 工作日期（work_date）
-      x-idempotency-key: envelope.eventId
-      x-publisher: cost.timesheet
-      x-consumers:
-        - 分析层 L1：工时提交里程碑
-        - platform.audit：对外有意义的状态变化由审计订阅
-      x-delivery: 至少一次，与业务事务同提交，写入事件发布登记表；消费方必须幂等
+      description: 工时单提交审批，进入新一轮；过程里程碑，不过账。工时单事件的 businessDate 一律取工作日期（work_date），提交、办理的日期不是 businessDate，需要的话由分析层从事件的 occurredAt 或审批事件里取。
       payload:
-        allOf:
-          - $ref: '#/components/schemas/TimesheetFacts'
-          - type: object
-            required: [approvalInstanceId]
+        type: object
+        properties:
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
             properties:
-              approvalInstanceId: {type: object, properties: {value: {type: string}}, description: 本轮审批流程实例 ID}
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          approvalInstanceId:
+            type: object
+            properties:
+              value:
+                type: string
+            description: 本轮审批流程实例 ID
+      x-event:
+        eventType: cost.timesheet.TimesheetSubmitted
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetSubmitted
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时提交里程碑将订阅；现在就发布，是因为提交时刻只在发生当时可记录，事后补不回
     TimesheetApproved:
+      name: TimesheetApproved
       title: 工时单审批通过，工时成立
-      x-event-type: cost.timesheet.TimesheetApproved
-      x-aggregate: Timesheet
-      x-forms-fact: false（过程里程碑；形成成本事实的是 Phase 2 的过账事件，使用本事件时再定）
-      x-business-date: 工作日期（work_date）
-      x-idempotency-key: envelope.eventId
-      x-publisher: cost.timesheet
-      x-consumers:
-        - 分析层 L1：工时累积快照
-        - Phase 2 成本过账（使用时再定）
-      x-delivery: 至少一次，同上
-      payload: {$ref: '#/components/schemas/TimesheetFacts'}
+      description: 工时单审批通过，工时成立；过程里程碑，形成成本事实的是 Phase 2 的过账事件，届时再定是否使用本事件。businessDate 为工作日期。
+      payload:
+        type: object
+        properties:
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+      x-event:
+        eventType: cost.timesheet.TimesheetApproved
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetApproved
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时累积快照与 Phase 2 成本过账将订阅；现在就发布，是因为工时成立的时刻只在发生当时可记录，事后补不回
     TimesheetRejected:
+      name: TimesheetRejected
       title: 工时单被驳回，工时不成立
-      x-event-type: cost.timesheet.TimesheetRejected
-      x-aggregate: Timesheet
-      x-forms-fact: false
-      x-business-date: 工作日期（work_date）
-      x-idempotency-key: envelope.eventId
-      x-publisher: cost.timesheet
-      x-consumers:
-        - 分析层 L1：工时累积快照
-      x-delivery: 至少一次，同上
-      x-note: 现行 TIMESHEET 流程的三路都在子流程内，驳回即退回，所以这个事件目前只在流程以 REJECTED 结束时才会出现
+      description: 工时单被驳回，工时不成立；过程里程碑。现行 TIMESHEET 流程的三路都在子流程内，驳回即退回，所以这个事件目前只在流程以 REJECTED 结束时才会出现。businessDate 为工作日期。
       payload:
-        allOf:
-          - $ref: '#/components/schemas/TimesheetFacts'
-          - type: object
+        type: object
+        properties:
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
             properties:
-              reason: {type: string, description: 驳回原因}
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 驳回原因
+      x-event:
+        eventType: cost.timesheet.TimesheetRejected
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetRejected
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为驳回时刻只在发生当时可记录，事后补不回
     TimesheetReturned:
+      name: TimesheetReturned
       title: 工时单被退回（审批人退回或填报人撤回），回到可修改状态，下一轮重新提交
-      x-event-type: cost.timesheet.TimesheetReturned
-      x-aggregate: Timesheet
-      x-forms-fact: false
-      x-business-date: 工作日期（work_date）
-      x-idempotency-key: envelope.eventId
-      x-publisher: cost.timesheet
-      x-consumers:
-        - 分析层 L1：工时累积快照
-      x-delivery: 至少一次，同上
+      description: 工时单被退回（审批人退回或填报人撤回），回到可修改状态，下一轮重新提交；过程里程碑。businessDate 为工作日期。
       payload:
-        allOf:
-          - $ref: '#/components/schemas/TimesheetFacts'
-          - type: object
+        type: object
+        properties:
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
             properties:
-              reason: {type: string, description: 退回或撤回原因}
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 退回或撤回原因
+      x-event:
+        eventType: cost.timesheet.TimesheetReturned
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetReturned
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为退回时刻只在发生当时可记录，事后补不回
     TimesheetCancelled:
+      name: TimesheetCancelled
       title: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）
-      x-event-type: cost.timesheet.TimesheetCancelled
-      x-aggregate: Timesheet
-      x-forms-fact: false
-      x-business-date: 工作日期（work_date）
-      x-idempotency-key: envelope.eventId
-      x-publisher: cost.timesheet
-      x-consumers:
-        - 分析层 L1：工时累积快照
-      x-delivery: 至少一次，同上
+      description: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）；过程里程碑。businessDate 为工作日期。
       payload:
-        allOf:
-          - $ref: '#/components/schemas/TimesheetFacts'
-          - type: object
+        type: object
+        properties:
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
             properties:
-              reason: {type: string, description: 撤销原因}
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 撤销原因
+      x-event:
+        eventType: cost.timesheet.TimesheetCancelled
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetCancelled
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为撤销时刻只在发生当时可记录，事后补不回

@@ -2,6 +2,7 @@ package com.forcitis.one.platform.approval.domain;
 
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
@@ -10,7 +11,12 @@ import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.EscalationTarget;
+import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.NodeName;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.ProcessName;
+import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
@@ -82,7 +88,7 @@ public final class ApprovalTask {
                 null, dueAt, escalateAt, null, null, null, 0, 0, true);
         List<UserId> offered = List.copyOf(candidates);
         task.record("TaskAssigned", businessDate, envelope -> new TaskAssigned(envelope, taskId, instanceId, processKey,
-                processName, document, nodeKey, nodeName, initiator, offered));
+                new ProcessName(processName), document, new NodeKey(nodeKey), new NodeName(nodeName), initiator, offered));
         return task;
     }
 
@@ -115,7 +121,7 @@ public final class ApprovalTask {
             approvedDigest = Objects.requireNonNull(contentDigest, "contentDigest");
         }
         record("TaskResulted", businessDate, envelope -> new TaskResulted(envelope, taskId, instanceId, processKey, document,
-                nodeKey, by, outcome, advisory, reason));
+                new NodeKey(nodeKey), by, outcome, advisory ? TaskEffect.ADVISORY : TaskEffect.BINDING, Reason.ofNullable(reason)));
     }
 
     public void completeAutomatically() {
@@ -132,7 +138,7 @@ public final class ApprovalTask {
         require(status == ApprovalTaskStatus.CLAIMED && assignee.equals(from) && !from.equals(to), "transfer");
         assignee = Objects.requireNonNull(to, "to");
         record("TaskTransferred", businessDate, envelope -> new TaskTransferred(envelope, taskId, instanceId, document,
-                nodeKey, from, to));
+                new NodeKey(nodeKey), from, to));
     }
 
     public void markOverdue(List<UserId> holders, Instant now, LocalDate businessDate) {
@@ -141,7 +147,7 @@ public final class ApprovalTask {
         List<UserId> reminded = List.copyOf(holders);
         Instant due = dueAt;
         record("ApprovalTaskOverdue", businessDate, envelope -> new ApprovalTaskOverdue(envelope, taskId, instanceId,
-                document, nodeKey, due, reminded));
+                document, new NodeKey(nodeKey), due, reminded));
     }
 
     /** A claimed task goes back to the pool so that the people it was escalated to can take it. */
@@ -155,7 +161,8 @@ public final class ApprovalTask {
         }
         List<UserId> receivers = List.copyOf(escalatedTo);
         record("ApprovalTaskEscalated", businessDate, envelope -> new ApprovalTaskEscalated(envelope, taskId, instanceId,
-                document, nodeKey, receivers, toProcessAdministrator));
+                document, new NodeKey(nodeKey), receivers,
+                toProcessAdministrator ? EscalationTarget.PROCESS_ADMINISTRATOR : EscalationTarget.SUPERVISOR));
     }
 
     private void require(boolean legal, String action) {

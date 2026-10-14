@@ -12,7 +12,9 @@ import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.EscalationTarget;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
@@ -202,11 +204,11 @@ class ApprovalTaskStateMachineTest {
         assertThat(overdue.holders()).containsExactly(HOLDER);
         ApprovalTaskEscalated escalated = (ApprovalTaskEscalated) events.get(3).assemble().apply(envelope(events.get(3)));
         assertThat(escalated.escalatedTo()).containsExactly(OTHER);
-        assertThat(escalated.toProcessAdministrator()).isFalse();
+        assertThat(escalated.target()).isEqualTo(EscalationTarget.SUPERVISOR);
         assertThat(events.get(5).assemble().apply(envelope(events.get(5)))).isInstanceOf(TaskTransferred.class);
         TaskResulted resulted = (TaskResulted) events.get(6).assemble().apply(envelope(events.get(6)));
         assertThat(resulted.outcome()).isEqualTo(TaskOutcome.APPROVED);
-        assertThat(resulted.advisory()).isFalse();
+        assertThat(resulted.effect()).isEqualTo(TaskEffect.BINDING);
     }
 
     private static EventEnvelope envelope(PendingEvent event) {

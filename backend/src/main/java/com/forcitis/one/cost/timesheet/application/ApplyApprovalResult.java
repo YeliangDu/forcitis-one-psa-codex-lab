@@ -48,23 +48,27 @@ class ApplyApprovalResult {
         if (found.isEmpty()) {
             log.warn("The approval result {} names timesheet {}, which does not exist", event.envelope().eventId(),
                     event.document().documentId().value());
-            meters.counter("cost.timesheet.approval.result.unknown").increment();
+            meters.counter("forcitis.cost.timesheet.approval.result.unknown").increment();
             return;
         }
         Timesheet timesheet = found.get();
-        if (!timesheet.isAwaitingResultOfRound(event.round())) {
-            log.info("Timesheet {} is not waiting for the result of round {}: ignored", event.document().documentId().value(), event.round());
+        if (!timesheet.isAwaitingResultOfRound(event.round().value())) {
+            log.info("Timesheet {} is not waiting for the result of round {}: ignored", event.document().documentId().value(), event.round().value());
             return;
         }
         Transitions.run(() -> {
             switch (event.outcome()) {
                 case APPROVED -> timesheet.approve();
-                case REJECTED -> timesheet.reject(event.reason());
-                case RETURNED -> timesheet.returnForRevision(event.reason());
-                case CANCELLED -> timesheet.cancelSubmission(event.reason());
+                case REJECTED -> timesheet.reject(reasonOf(event));
+                case RETURNED -> timesheet.returnForRevision(reasonOf(event));
+                case CANCELLED -> timesheet.cancelSubmission(reasonOf(event));
             }
         });
         timesheets.save(timesheet);
+    }
+
+    private static String reasonOf(ApprovalCompleted event) {
+        return event.reason() == null ? null : event.reason().value();
     }
 
     private Optional<Timesheet> timesheetOf(ApprovalCompleted event) {
