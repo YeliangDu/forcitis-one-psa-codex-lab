@@ -231,10 +231,10 @@ Exit criteria:
 
 ## 5. Behavior Contract
 
-行为契约取自 `BUSINESS_RULES.md` 的 **189 条 P0 规则**（全部 315 条）。它们构成回归测试集：每条在其所属阶段上线前，都必须证明等价，或以 `RULE_REVIEWS.json` 中的业务决定为准证明「按决定修正」。
+行为契约取自 `BUSINESS_RULES.md` 与 `rules/IDENTITY_ORG_RULES.md` 的 **226 条 P0 规则**（全部 376 条）。它们构成回归测试集：每条在其所属阶段上线前，都必须证明等价，或以 `RULE_REVIEWS.json` 中的业务决定为准证明「按决定修正」。
 
-- **已定行为（97 条）**：置信度 High 且无疑似缺陷，按老系统行为复刻。
-- **阻塞项（92 条，已评审 42 条）**：置信度低于 High，或抽取时发现疑似缺陷（老行为看起来有误，或与文档不一致）。按用户要求「顺手修已知 bug、行为现代化」，这些规则**在所属阶段开工前必须经 `/code-modernization:modernize-review psa` 由业务逐条决定**：保持原行为、按修正行为实现，或列入讨论。未决定的规则阻塞该阶段的入口条件。已评审的条目按 `RULE_REVIEWS.json` 呈现：**不复刻** = 新系统按「新系统做法」实现，老行为不作为基准；「修正：」= 规则保留、按修正实现；「已评审」= 按老行为复刻。
+- **已定行为（103 条）**：置信度 High 且无疑似缺陷（身份与组织域以抽取时的 Review=No 为准），按老系统行为复刻。
+- **阻塞项（123 条，已评审 73 条）**：置信度低于 High，或抽取时发现疑似缺陷（老行为看起来有误，或与文档不一致）。按用户要求「顺手修已知 bug、行为现代化」，这些规则**在所属阶段开工前必须经 `/code-modernization:modernize-review psa` 由业务逐条决定**：保持原行为、按修正行为实现，或列入讨论。未决定的规则阻塞该阶段的入口条件。已评审的条目按 `RULE_REVIEWS.json` 呈现：**不复刻** = 新系统按「新系统做法」实现，老行为不作为基准；「修正：」= 规则保留、按修正实现；「已评审」= 按老行为复刻。
 
 | 域 | 阶段 | 已定（P0） | 阻塞（P0，需评审） | 其中已评审 |
 |---|---|---|---|---|
@@ -243,6 +243,7 @@ Exit criteria:
 | 售前与报价 | Phase 1b | 8 | 14 | 14 |
 | 交付、预算与收入 | Phase 2（收入确认部分在 Phase 4） | 19 | 18 | 0 |
 | 审批（platform.approval） | Phase 1a | 20 | 28 | 28 |
+| 身份与组织（platform.identity、organization.workforce） | Phase 1a | 6 | 31 | 31 |
 
 ### 工时与资源（Phase 2）
 
@@ -365,6 +366,43 @@ Exit criteria:
 - [x] RULE-307 Anti-self-approval escalates to the initiator's direct leader（`BpmTaskAssignRuleServiceImpl.java:504-550`，置信度 High） — 修正：只有在没有其他非发起人候选时才升级。（已评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-308 End-of-process write-back of approve_status to the business table（`CustomizedBpmOAServiceImpl.java:303-337`，置信度 Medium） → 新系统做法：各业务模块通过类型化结果事件自行处理，去掉按表名拼 SQL 的通用回写。（不复刻；评审 2026-10-14）
 - [x] **不复刻** · 老行为：RULE-311 The task-result consumer routes by business key, and a hook replaces the handler（`ApprovalTaskResultConsumer.java:41-75`，置信度 Medium） → 新系统做法：统一为钩子与业务处理都执行、顺序固定，与流程结果处理一致。（不复刻；评审 2026-10-14）
+
+### 身份与组织（platform.identity、organization.workforce）（Phase 1a）
+
+**已定：** RULE-320 Seeyon (A8 portal) SSO: server-side ticket check, one use per ticket, enabled users only、RULE-340 Role code `super_admin` bypasses every permission and role check、RULE-341 A function permission is granted when an enabled role links a menu with that permission string、RULE-343 Only enabled roles count; a user with no roles has no function permissions、RULE-354 A8 dept tree: prefix scope, parent from PATH, fail on a broken tree、RULE-358 Dept sync aborts if A8 returns < 80 % of active depts
+
+**阻塞，需评审：**
+- [x] RULE-316 Password login: same error for unknown user and wrong password; disabled users refused（`AdminAuthServiceImpl.java:114-151`，置信度 High） — 修正：只保留管理员应急账号（强口令 + MFA + 锁定，C1a-04）；未知账号与错误口令仍报同一错误；员工不再口令登录（D-02）。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-318 Passwordless "customization" login issues real tokens for any username or user id（`AuthController.java:88-102`，置信度 High） → 新系统做法：免密端点不迁移（D-04），外部调用方改用签名、短时效、一次性票据并服务端校验，拒绝停用用户与超管（C1a-03、SEC-001）。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-319 A8 login trusts the memberId in the request and redirects with tokens in the URL（`AuthController.java:104-117`，置信度 High） → 新系统做法：A8 入口统一走致远服务端验票（RULE-320），不信任请求中的 memberId，令牌不进 URL。（不复刻；评审 2026-10-14）
+- [x] RULE-322 WeCom H5 OAuth login maps the WeCom userid to `we_com_id` exactly（`AdminAuthServiceImpl.java:543-626`，置信度 High） — 修正：按 we_com_id 精确映射保留；映射后必须「启用且在职」；删 local 环境固定用户后门；密钥由配置注入并轮换（SEC-006）。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-324 PC WeCom web login guesses the user from the email local part or an "f-stripped" id（`SocialUserServiceImpl.java:169-194`，置信度 High） → 新系统做法：不按邮箱前缀或去掉 f 猜人，只按 we_com_id 精确映射（与 H5 同一键），未映射拒绝；令牌不进 URL。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-326 Only password and Seeyon logins check the disabled status（`AdminAuthServiceImpl.java:153-216`，置信度 High） → 新系统做法：所有登录入口在建会话前过同一道检查：启用且未删除（identity BC 一处实现）。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-327 Resigned (soft-deleted) users are kept out only by the lookup filter（`AdminAuthServiceImpl.java:153-164`，置信度 Medium） → 新系统做法：显式检查「已离职」并返回明确业务错误，不依赖 ORM 逻辑删除过滤，不抛空指针或越界。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-329 KM token: anonymous caller, memberId used as a mobile number or a PSA id（`AdminAuthServiceImpl.java:253-281`，置信度 High） → 新系统做法：跳转 KM 须已登录，KM 身份取自会话；签名票据、HTTPS；集成密钥移到配置并轮换（SEC-002）。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-331 Every login creates a refresh token and an access token for client "default"（`OAuth2TokenServiceImpl.java:54-62`，置信度 Medium） → 新系统做法：不再签发令牌对，改服务端会话（ADR-0009 §2，Spring Session JDBC + HttpOnly/SameSite Cookie）；时长为配置项（见 332）。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-332 Access-token expiry slides to now + 10 h on every check（`OAuth2TokenServiceImpl.java:95-137`，置信度 High） → 新系统做法：会话时长「空闲 10h + 上限 24h」——10 小时无活动过期，登录 24 小时后无论是否活跃都须重新登录；均为配置项；令牌不打印到日志。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-333 Refresh revokes sibling access tokens but never rotates the refresh token（`OAuth2TokenServiceImpl.java:64-93`，置信度 High） → 新系统做法：新系统无刷新令牌；登录时轮换会话 ID；过渡期对老令牌只读校验后换发新会话（C1a-06）。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-335 Four SSO paths put access and refresh tokens in the redirect URL（`AuthController.java:104-132`，置信度 High） → 新系统做法：令牌不进 URL；SSO 回跳用一次性 code，在服务端换取 HttpOnly 会话 Cookie。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-336 Services trust the `login-user` header, treat a bad token as anonymous, and ignore user type（`TokenAuthenticationFilter.java:40-135`，置信度 High） → 新系统做法：身份只来自服务端会话（CurrentUser），不信任任何外部身份请求头；无效会话返回 401 而非匿名；按接口族校验用户类型；mock 登录只限本地。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-337 The gateway does no authentication（`TokenAuthenticationFilter.java:86-128`，置信度 High） → 新系统做法：默认拒绝集中在 platform.identity 一处（G28/G33）；匿名遍历全部接口返回 401（C1a-07）。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-338 Disabling, deleting or a resignation via sync does not revoke live tokens（`AdminUserServiceImpl.java:338-412`，置信度 High） → 新系统做法：停用、删除、离职（含同步）、角色变更时即时吊销该用户全部会话；解析会话时校验用户状态。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-344 Every user without a role silently gets role 2 whenever the user cache reloads（`PermissionServiceImpl.java:512-534`，置信度 Medium） → 新系统做法：不再在缓存刷新时隐式补授角色 2（C1a-08）；A8 新建在职员工时显式授予一次基础角色并审计；管理员移除后不补回；离职或已删除员工不授。（不复刻；评审 2026-10-14）
+- [x] RULE-345 Role maintenance: reserved code, unique name and code, system roles frozen, default scope ALL（`RoleServiceImpl.java:90-173`，置信度 High） — 修正：保留 super_admin 预留码、名称与编码唯一、系统角色冻结、删角色连带删关联；新角色默认数据范围 SELF（最小权限），不再默认 ALL。（已评审 2026-10-14）
+- [x] RULE-349 Business data scope = union over roles; ALL anywhere means unrestricted（`RoleServiceImpl.java:289-345`，置信度 High） — 修正：各角色并集保留；只计启用角色；自定义部门只在 DEPT_CUSTOM 下生效；排除已离职用户；「本人及下属」只算直接下属（问题「只算直接下属」，与老系统一致）；以显式 AccessScope（法人 × 部门 × 项目角色）表达。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-350 Row filtering applies only to opt-in methods with `@DataOwner` fields（`DataPermissionDatabaseInterceptor.java:68-195`，置信度 High） → 新系统做法：不用注解开启的隐式 SQL 改写；AccessScope 显式传入仓储，异常即拒绝（fail-closed）（ADR-0009 §4、ADR-0019）。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-351 An empty data scope fails open（`DataPermissionDatabaseInterceptor.java:108-112`，置信度 High） → 新系统做法：空数据范围返回零行，不放行。（不复刻；评审 2026-10-14）
+- [x] RULE-355 A8 dept "disabled" test and how it maps to PSA status and deleted（`A8DeptMapper.java:35-48`，置信度 High） — 修正：停用判定保留；NULL 的处理写成显式规则（仍视为有效，同步报告列出 NULL 行，与 A8 负责人确认）；「停用」与「撤销」分为两个状态，不再混同。（已评审 2026-10-14）
+- [x] RULE-356 A8 is authoritative for dept leader, regional AR, category and delivery flag（`SyncServiceImpl.java:184-221`，置信度 High） — 修正：A8 为部门负责人、区域 AR、类别、交付标识的权威来源；关系类型 ID 等改为配置并在启动时校验；多名负责人时取 ID 最小者并告警给数据管理员（确定性、不阻塞）。（已评审 2026-10-14）
+- [x] RULE-357 Dept sync: insert, update on change, soft-delete what A8 no longer returns, revive（`DeptServiceImpl.java:200-305`，置信度 High） — 修正：A8 部门随 A8 新增、更新、撤销、恢复；PSA 不再有手工部门（D-06）；PSA 自有列不被同步覆盖（按所有权矩阵，ADR-0011）。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-361 A8 user sync scope uses a substring match, unlike the dept prefix rule（`A8UserMapper.java:24-40`，置信度 High） → 新系统做法：人员同步范围改用与部门同步相同的前缀规则（PATH 以 00000001 开头），人员不指向未同步部门。（不复刻；评审 2026-10-14）
+- [x] RULE-362 A new A8 person becomes a PSA user with username = phone and a default password（`SyncServiceImpl.java:299-340`，置信度 High） — 修正：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。（已评审 2026-10-14）
+- [x] RULE-363 Resignation = A8 login name is null → PSA user soft-deleted（`SyncServiceImpl.java:359-369`，置信度 High） — 修正：统一「有登录名」判定（null 与空串都视为无）；离职时吊销会话、收回角色；离职后 HR 字段继续更新以保留历史。（已评审 2026-10-14）
+- [x] RULE-364 Rehire and phone change restore and re-enable the PSA user（`SyncServiceImpl.java:380-398`，置信度 High） — 修正：复职（A8 重新有登录名）时恢复；换手机号不覆盖 PSA 的手工停用（启用状态由 PSA 拥有）；用户名跟随 A8 登录名同步。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-365 Per-field update semantics in user sync are asymmetric（`SyncServiceImpl.java:342-441`，置信度 High） → 新系统做法：A8 权威列按值同步并显式写 NULL（汇报线清空也同步）；单行缺部门或岗位时隔离该行并告警，不中断整批。（不复刻；评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-366 Users that drop out of the A8 result set are never deactivated（`SyncServiceImpl.java:283-441`，置信度 Medium） → 新系统做法：不在 A8 结果中的人员视为离职候选，经与部门同步相同的 80% 缩水保护后停用并吊销会话。（不复刻；评审 2026-10-14）
+- [x] RULE-372 Two separate leader concepts: person leader and dept leader（`SyncServiceImpl.java:324-405`，置信度 High） — 修正：「直属领导」（人员 leader）与「部门负责人」两个概念保留，每个流程写明用哪一个；同步时校验存在、在职、非本人、无环，不合格的报告数据管理员；审批取人按 RULE-250 往上推一级。（已评审 2026-10-14）
+- [x] **不复刻** · 老行为：RULE-376 WeCom card callback takes the acting user from the button key, not from FromUserName（`WeComCallbackController.java:65-135`，置信度 High） → 新系统做法：操作人按 FromUserName → we_com_id → 用户确定，且必须是该任务处理人；回调 token 与 AES key 移到配置并轮换（SEC-006）。（不复刻；评审 2026-10-14）
 
 ## 6. Validation Strategy
 
