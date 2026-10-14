@@ -14,7 +14,8 @@
 | `one_dev_app` 加 `work_mem = 16MB`；`one_dev_readonly` 加只读事务、60 s 语句超时、`work_mem = 8MB` | 清单 C-3 与 ADR-0025 第 2 条要求按角色设超时与 work_mem；数值为**建议**，C-1 后按实例规格调整 |
 | `one_dev_migrator` 加 `lock_timeout = 10s` | 同实例共用，迁移拿不到锁时尽快失败，不长时间挡住 IT 服务门户 |
 | 增加 STEP 0 的库存在、连接预算查询与 V1–V8 校验 | 执行前后可核对 |
-| 增加 `cost_timesheet` schema 及其授权（2026-10-15 one-ops-1a） | 工时迁移 `V20261014140000` 起在该 schema 建表；不预建时 Flyway 会自行建出（属主 one_dev_owner），但运行角色没有 USAGE 与默认权限，工时接口在运行时报权限错误。`delivery_execution` 不预建：修复批的迁移先建后删，由迁移自己处理 |
+| 增加 `platform_idempotency` schema 及其授权、预建 `btree_gist`（2026-10-15 one-ops，R-3a 复核发现） | 幂等键模块的基线迁移在该 schema 建表；不预建时 Flyway 自行建出，运行角色没有 USAGE 与默认权限，带幂等键的写请求报权限错误。`btree_gist` 与 `one_db_roles_schemas.sql` 对齐预建。另新增 `sql/c3_dev_db_after_migrations.sql`（§4b：每次迁移后撤销运行角色对版本表的 DELETE、TRUNCATE）。验证：`sql/c3_dev_db_check.sh` 在本机临时 postgres:18 容器里建库建角色、以迁移角色执行全部基线迁移、再以运行角色检查 8 项（修复前幂等表读写被拒、版本表可删除；修复后 8 项全部通过） |
+| 增加 `cost_timesheet` schema 及其授权（2026-10-15 one-ops-1a） | 工时迁移 `V20261014140000` 起在该 schema 建表；不预建时 Flyway 会自行建出（属主 one_dev_owner），但运行角色没有 USAGE 与默认权限，工时接口在运行时报权限错误。迁移基线合并（R-3a，#103）后 `delivery_execution` 已退役，不再有对应迁移与 schema。 |
 
 ## 执行前确认点
 
@@ -32,6 +33,14 @@
 psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f sql/c3_dev_db.sql
 psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_dev -f sql/c3_dev_db_verify.sql | tee c3-verify-$(date +%F).txt
 ```
+
+每次发布迁移之后（首次部署起）执行一次，幂等：
+
+```bash
+psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_dev -f sql/c3_dev_db_after_migrations.sql
+```
+
+改脚本后先在本机验证（需要 docker，临时 postgres:18 容器用完即删，口令运行时生成）：`sql/c3_dev_db_check.sh`。
 
 STEP 0 / STEP 2 的冲突检查有任何一行返回即停止（`ON_ERROR_STOP` 不会因查询有结果而停，须人工看输出；用 DMS 时逐段执行）。
 
@@ -55,8 +64,23 @@ CA 证书：实例 SSL 已开启（阿里云签发，`ApsaraDB cn-hangzhou regio
 | STEP 0 | 4 项冲突检查全为空；`max_connections` 1620 |
 | 建库与授权 | `c3_dev_db.sql` 退出码 0；`c3_dev_db_verify.sql`：4 个角色、10 个 schema 属主 `one_dev_owner`、默认权限 18 项、连接上限合计 45、无外来属主（云助手 t-hz0701ctw0hn3eo） |
 | 口令 | `scripts/c3_set_role_passwords.py dev <RDS 内网地址>`（t-hz0701cxo2kjbpc）：在 ECS 上生成，数据库只收到 SCRAM-SHA-256 校验值；app → `one.env`，migrator → `/etc/forcitis-one/migrate/spring.flyway.{user,password}`，readonly → `/etc/forcitis-one/one-dev-readonly.pgpass`；三个角色真实登录，readonly 确认只读 |
+| 增量补齐（2026-10-15，one-coordinator 批准） | dev 库按旧版脚本建成、未执行过迁移，不删库：以 `one_admin` 执行 `btree_gist`、`platform_idempotency` schema、USAGE、三条默认权限与 REVOKE CREATE（云助手 t-hz070246r8f8074）；新版 verify：11 个 schema 属主均为 `one_dev_owner`，默认权限 20 行（含 `platform_idempotency`），运行角色无 CREATE。`c3_dev_db_after_migrations.sql` 待首次迁移后执行；首次部署前不执行任何迁移（W1 仍在改基线） |
 | verify-full | 三个角色与 `one_admin` 均以 `sslmode=verify-full` 连通（TLS 1.3，t-hz0701ffbczsglc）；改用 IP 连接时证书校验失败，主机名校验生效 |
 | 安全事件 | 查 SSL 状态时直接打印了 `DescribeDBInstanceSSL` 的返回，实例证书私钥进入会话记录。影响：须能截获 VPC 内网流量才可利用。处置：用户决定「和生产前维护一并做」——生产前维护窗口重签证书（必要时重启，与 IT 门户协调）；已加「不得调用会返回密钥的接口」注意事项 |
+
+### 2026-10-15 对已建 dev 库执行的增量（以 one_admin 在 forcitis_one_dev 执行，云助手 t-hz070246r8f8074）
+
+```sql
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE SCHEMA IF NOT EXISTS platform_idempotency AUTHORIZATION one_dev_owner;
+GRANT USAGE ON SCHEMA platform_idempotency TO one_dev_app, one_dev_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_idempotency GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_dev_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_idempotency GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO one_dev_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_idempotency GRANT SELECT ON TABLES TO one_dev_readonly;
+REVOKE CREATE ON SCHEMA platform_idempotency FROM one_dev_app, one_dev_readonly;
+```
+
+须由当初执行 c3 的同一个高权限账号执行（它持有 one_dev_owner 的 SET 成员关系且是库属主）。执行后 `c3_dev_db_verify.sql` 期望：V3 为 11 行；默认权限由 18 行变为 20 行。
 
 ## 回滚
 

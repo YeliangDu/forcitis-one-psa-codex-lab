@@ -16,7 +16,7 @@ render() {
 }
 
 status=0
-for suffix in "" _verify _rollback; do
+for suffix in "" _verify _rollback _after_migrations; do
   src="c3_dev_db${suffix}.sql"
   dst="c9_prod_db${suffix}.sql"
   if [[ "${1:-}" == "--check" ]]; then
