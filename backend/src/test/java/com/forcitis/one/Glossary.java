@@ -22,6 +22,10 @@ import org.yaml.snakeyaml.Yaml;
 final class Glossary {
 
     static final Path FILE = Path.of("glossary/terms.yaml");
+    /** Official glossary (293 approved terms, ADR-0018) - the single source the business confirmed. */
+    static final Path OFFICIAL = Path.of("../docs/modernization/glossary/terms.yaml");
+    /** Per-module proposed terms (status: proposed), one file per module so parallel work never edits the same file. */
+    static final Path PROPOSED_DIR = Path.of("glossary/proposed");
     static final Set<String> STATUSES = Set.of("approved", "proposed");
     static final List<String> FIELDS = List.of("id", "zh", "en", "snake", "kind", "bc", "definition", "standard_ref",
             "confidence", "aliases", "forbidden", "status");
@@ -94,16 +98,31 @@ final class Glossary {
         return "unregistered word(s) " + words + ": add a term to " + FILE + " (status: proposed is enough, ADR-0018) or use the glossary word";
     }
 
-    @SuppressWarnings("unchecked")
     private static void load() throws IOException {
+        List<Path> files = new ArrayList<>(List.of(FILE));
+        if (Files.exists(OFFICIAL)) {
+            files.add(OFFICIAL);
+        }
+        if (Files.isDirectory(PROPOSED_DIR)) {
+            try (var stream = Files.list(PROPOSED_DIR)) {
+                stream.filter(f -> f.toString().endsWith(".yaml")).sorted().forEach(files::add);
+            }
+        }
+        Set<String> ids = new LinkedHashSet<>();
+        for (Path file : files) {
+            load(file, ids);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void load(Path file, Set<String> ids) throws IOException {
         Map<String, Object> root;
-        try (InputStream in = Files.newInputStream(FILE)) {
+        try (InputStream in = Files.newInputStream(file)) {
             root = new Yaml().load(in);
         }
         ((List<Object>) root.getOrDefault("common_words", List.of())).forEach(w -> COMMON_WORDS.add(String.valueOf(w).toLowerCase(Locale.ROOT)));
         ((List<Object>) root.getOrDefault("standard_actions", List.of())).forEach(w -> STANDARD_ACTIONS.add(String.valueOf(w).toLowerCase(Locale.ROOT)));
-        Set<String> ids = new LinkedHashSet<>();
-        for (Map<String, Object> raw : (List<Map<String, Object>>) root.get("terms")) {
+        for (Map<String, Object> raw : (List<Map<String, Object>>) root.getOrDefault("terms", List.of())) {
             String id = String.valueOf(raw.get("id"));
             for (String field : FIELDS) {
                 if (!raw.containsKey(field)) {
