@@ -14,6 +14,8 @@
 4. `EMERGENCY_TOTP_ENCRYPTION_KEY` 已生成并写入 one.env（下面第 1 步）。
 5. 持有人手机已装 TOTP 应用（例如企业微信以外的认证器），并在场。
 
+> **流程管理员（清单 B-12）**：`process_administrator` 角色没有任何持有人时，应用在任何环境都拒绝启动。dev 阶段授给平台负责人本人（用户「我们开发过程中所有操作只有我一个人」），在首次部署时与本剧本一并执行：`--operation=grant-role --role-code=process_administrator`（命令形式见 INFRA_RUNBOOK §6）。同样须等 ADR-0030（dev 单人例外）获批并实现后再做，不以单人绕过双人确认。
+
 ## 步骤
 
 1. 生成 TOTP 加密密钥（只一次；轮换见 C-8）：

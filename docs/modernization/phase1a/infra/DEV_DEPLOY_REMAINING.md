@@ -47,7 +47,7 @@
 | R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15；dev / prod 另加 `v*` 标签部署策略（用户「允许，首次部署前加上 (Recommended)」） |
 | R-2 | 仓库级 Actions variables：8 个构建期变量 | 用户 | 否 | 0.2 h | B-2、B-3 完成后填 |
 | R-3 | ~~发布用 OSS bucket~~ | — | — | — | **不再需要**：改为 ECS 自取 GitHub Release（用户「先测 GitHub 直拉，可行就用 (Recommended)」；ECS 夜间实测约 9 MB/s） |
-| R-4 | RAM：每环境部署子账号与 AccessKey，策略只许对该命令与该实例 `ecs:InvokeCommand`、`ecs:DescribeInvocationResults`、`ecs:DescribeInvocations`（RELEASE.md §8.2） | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.3 h | 发布不需要实例 RAM 角色（1-12、B-11 另定） |
+| R-4 | RAM：每环境部署子账号与 AccessKey，策略只许对该命令与该实例 `ecs:InvokeCommand`、`ecs:DescribeInvocationResults`、`ecs:DescribeInvocations`（RELEASE.md §8.2） | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.3 h | 发布不需要实例 RAM 角色（1-12 已不需要；B-13 另定） |
 | R-5 | 各 environment 的 secrets（含 `RELEASE_SIGNING_KEY`） | 用户 | 否 | 0.2 h | R-4、R-12 |
 | R-6 | 各 environment 的 variables（`DEPLOY_TRIGGER=cloud-assistant`、`ECS_REGION`、`ECS_INSTANCE_ID`、`ECS_COMMAND_ID`） | 用户 | 否 | 0.1 h | R-7；不再有 `OSS_*`；企业微信校验文件名改在 ECS 的 `release-source`（R-7） |
 | R-7 | ECS：安装器、签名公钥、`release-source`（`ENVIRONMENT`、`GITHUB_REPOSITORY`、`WECOM_VERIFY_FILE`）、令牌文件与到期日、令牌到期检查定时器、云助手固定命令（无参数 `install-pending`） | ops | 否 | 1 h | R-12、R-13；E-3 / E-9 / E-10 部分已完成；ECS 上不再需要 aliyun CLI 与实例角色配置 |
@@ -72,7 +72,7 @@
 
 | 事项 | 谁 | 花钱 | 说明 |
 |---|---|---|---|
-| B-11 归档 OSS bucket（在线 3 年 + 归档 7 年） | 用户建；ops 演练 | 是：归档存储按量 | [`handoff/B-11-archive-oss-bucket.md`](handoff/B-11-archive-oss-bucket.md)：创建步骤、WORM 2557 天、写入方 / 调阅方最小权限策略、演练 |
+| B-13 归档 OSS bucket（在线 3 年 + 归档 7 年） | 用户建；ops 演练 | 是：归档存储按量 | [`handoff/B-13-archive-oss-bucket.md`](handoff/B-13-archive-oss-bucket.md)：创建步骤、WORM 2557 天、写入方 / 调阅方最小权限策略、演练 |
 | C-1 RDS 扩容 | 用户 | 是 | 用户「现在还在开发阶段，生产阶段可以扩容的现在不做」：移到生产前 |
 | C-8 KMS、C-9 生产库、A-6 云安全中心付费版 | 用户 / ops | C-8、A-6 是 | 生产前 |
 | 生产前：维护窗口开启 SQL Server 实例 `rm-bp1690ep53t9778dp` 的 SSL，生产连接强制校验证书 | 用户定时间；ops | 否 | 用户「dev 先信任服务器证书，生产前开 SSL (Recommended)」；开 SSL 会重启承载 A8 与老系统的实例 |
