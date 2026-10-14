@@ -203,6 +203,7 @@ flowchart TB
 | 人工成本 / 薪酬 | 一人一期间 | `organization.payroll` | 6e | ✔ | ✔ | ✔ | ✔ | — | — | ✔ | — | ✔ | — |
 | 计划目标、预测 | 一个目标 × 版本 | `operations.planning` | R4 | ✔ | ✔ | ✔ | ✔ | — | ✔ | ✔ | ✔ | — | — |
 | 预算执行 | 一次占用 / 释放 / 消耗 | `operations.budgeting` | R4 | ✔ | ✔ | ✔ | ✔ | — | — | ✔ | — | ✔ | ✔ |
+| 审批时效（累积快照） | 一个审批任务（指派 → 超时 → 升级 → 办理） | `platform.approval`（领域事件，不过账；ADR-0025） | R1 | ✔ | ✔ | ✔ | ✔ | — | — | ✔ | — | — | — |
 | **期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制 | 一个对象 × 期间 | 由 L1 生成 | 随来源 | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | — | — | — | — |
 
 ### 3.3 口径按 OAT 声明、与 terms.yaml 对齐
@@ -301,8 +302,8 @@ ADR-0018 记录的缺口「OAT 正本不在本机」由此可以补上，但它�
 | `PROJECTBUDGET`、`QUOTAION` | 老系统 | `delivery.execution`、`presales.quoting` | Phase 1b / 2 | 反向同步 |
 | `CONTRACT`、`SIGNCONTRACT*`、`CONTTRACTTERMS`、`PROJECT`、`CUVALUE*`、`TOBCUVALUE`、`BADCUVALUE`、`INVOICING_CUVALUE`、`INVALID_DELIVERY`、`COMMITDELIVERY`、`TOSING_CONSTATUS` | A8 合同、项目档案、收入确认单 | `contract.*`、`receivables.wip`、`delivery.*` | 6a | 过渡镜像 |
 | `INVOICING`、`COLLECTION`、`ACCOUNTREC`、`RECEIVABLE`、`BILL_RECEIVABLE`、`BADDEBT`、`COMMITINVOICING`、`NOTINVOICEREASON` | A8 开票、回款、应收 | `receivables.wip`、`receivables.collection` | 6b | 过渡镜像；应收以单一口径替代 E1 的四套算法（老页面读到的数随之改变，须在切换前由财务确认，§6 Q6） |
-| `PAY`、`PAY_DAILY`、`PAY_TRAVEL`、`PAY_SPECIAL`、`PAY_PAYMENTAPPLICATION`、`INFOFEE`、`INVENTORY` | A8 报销、付款（存货视图关联老系统工时） | `expense.spend`、`payables.payment`、`cost.costing` | 6c（差旅在 Phase 3） | 过渡镜像 |
-| `PAY_SALARY*`、`EMPLOYEE*`、`EMPLOYEESALARY`、`EMPLOYEEPAY`、`DEPARTMENT`、`POST`、`USER`、`LEAVE`、`ATTENDANCE*`、`CALENDAR` | A8 人事、组织、假勤；BI 本地考勤表 | `organization.*`（自建 HRM）、`platform` 日历 | 6e（组织主数据在 6e 前仍以 A8 为源） | 过渡镜像；BI 的考勤加工作业停用 |
+| `PAY`、`PAY_DAILY`、`PAY_TRAVEL`、`PAY_SPECIAL`、`PAY_PAYMENTAPPLICATION`、`INFOFEE`、`INVENTORY` | A8 报销、付款（存货视图关联老系统 工时） | `expense.spend`、`payables.payment`、`cost.costing` | 6c（差旅在 Phase 3） | 过渡镜像 |
+| `PAY_SALARY*`、`EMPLOYEE*`、`EMPLOYEESALARY`、`EMPLOYEEPAY`、`DEPARTMENT`、`POST`、`USER`、`LEAVE`、`ATTENDANCE*`、`CALENDAR` | A8 人事、组织、假勤；BI 本地考勤表 | `organization.*`（自建 HRM）；工作日历归 `organization.attendance`（1a 建，ADR-0025） | 6e（组织主数据在 6e 前仍以 A8 为源；`CALENDAR` 随 1a 的工作日历迁入） | 过渡镜像；BI 的考勤加工作业停用 |
 | `OPPORTUNITY*`、`LEADS*`、`CUSTOMERVISIT`、`CUSTOMERCONTACTS`、`GROUPS`、`RISKCUSTOMER*`、`SATISFACTION`、`COMMITCALL*`、`OPPFORECAST` | A8 营销 | `presales.*`、`operations.planning` | 6f（客商主档随 6b / 6c 先行） | 过渡镜像 |
 | `DEPARTMENTKPI`、`MANAGERKPI`、`SALESKPI`、`ZONEKPI`、`*KPITYPE` | A8 目标表单 | `operations.planning` | R4 | 过渡镜像 |
 | `PROJECTAUDIT`、`PROJECTREVIEW`、`PROJECTSTARTUP` | A8 交付质量（视情况） | `delivery.*` | 视情况 | 迁入前保持原样 |
