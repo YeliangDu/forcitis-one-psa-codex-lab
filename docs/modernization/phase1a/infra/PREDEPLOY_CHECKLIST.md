@@ -53,6 +53,7 @@
 | C-7 | 告警规则配置与 dev 演练（四类告警，含 NaN 缺数据规则与各模块自己的失败指标，见 INFRA_RUNBOOK E-13 补充） | 出口前 | E-13（出口条件） | [C-7](runbooks/C-7-alerts.md) · `runbooks/files/alert-rules.yaml` | 🟨 另加：证书剩余不足 20 天告警（A-1 改选 Let's Encrypt 的前提） |
 | C-8 | 配置与密钥从 `one.env` 迁到 KMS，确定轮换周期 | 生产前 | 平台约定方案 §6 | [C-8](runbooks/C-8-kms.md)（应用读取 KMS 需代码改动） | 🟨 |
 | C-9 | 生产库 `forcitis_one_prod` 与 `one_prod_*` 角色 | 生产前 | ADR-0025 第 2 条 | [C-9](runbooks/C-9-prod-db.md) · `runbooks/sql/c9_prod_db*.sql` | 🟨 |
+| C-12 | 生产主机上身份运维命令（`identity-operations`）的「见证人」`--witness` 只是自报文本：有服务器 shell 权限的人即可一人填两个名字执行。生产前定方案（例如见证人须在命令执行时以其本人凭据确认，或改为两人分持的审批步骤），与 C-11（关闭单人模式，ADR-0030）同批落实 | 生产前 | ADR-0027 双人在场；ADR-0030；INFRA_RUNBOOK §6 | — | ⬜ |
 | C-10 | 每个环境的 one.env 设置 `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED`（`true` 或 `false`）；没有默认值，缺失则应用启动失败（交叉检查 7） | dev 前 | INFRA_RUNBOOK §5 | — | ⬜ |
 
 ## D. 部署后验证（Phase 1a 出口条件）

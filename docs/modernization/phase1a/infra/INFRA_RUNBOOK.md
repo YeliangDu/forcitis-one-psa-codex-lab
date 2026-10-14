@@ -216,6 +216,8 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 
 - 不提供 HTTP 开通接口（设计如此）。入口是同一个 jar 以档案 `identity-operations` 启动，**一次只做一个命令，做完进程结束**：
 
+  > **待改（F-12）**：`--spring.profiles.active=identity-operations` 会顶掉环境档案（dev / prod），跳过 `VERIFIED_SERVER` 等环境校验。one-1a-next 在 F-12 改为追加档案（include）写法，届时本节与 C-5 的命令形式同步修改；在此之前不在生产使用。
+
   ```
   java -jar forcitis-one.jar --spring.profiles.active=identity-operations --operation=<命令> --user-id=<人员 ID> \
        [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人> --witness=<见证人>
