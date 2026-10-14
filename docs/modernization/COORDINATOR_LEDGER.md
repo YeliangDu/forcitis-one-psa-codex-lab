@@ -2,7 +2,7 @@
 
 调度会话的工作记忆。会话被压缩或重开时，先读本文件（调度会话名为 one-coordinator；工作会话向它报告）、`python3 docs/modernization/build_all.py` 生成的 STATUS.md（或 generated-docs 分支）、SESSION_PLAYBOOK §11–§14。只记「正在进行」的东西，完成即删；历史在 intent/、session-log/ 与 git 记录里。本文件只由调度会话维护，不拆片段。
 
-更新：2026-10-15 20:50（one-coordinator）
+更新：2026-10-15 23:10（one-coordinator）
 
 ## 用户授权调度会话自行决定的事
 - 审核并合并 PR（「合 PR 交给你审核，决定权给你」）。main 受保护：只要求 backend / frontend / gitleaks 三项 CI 通过（另有 assertion drift 仅警告），管理员也受限。
@@ -22,10 +22,20 @@
 | 会话 | 在做 | 下一步 |
 |---|---|---|
 | psa-1a-platform-bridge-reimagine | 修复批六路（A 审批/工时、B1 身份授权、B2 数据架构、B2b 事件指标、B3 平台约定、C 前端）；A、C、B2b 可整合，B2 终核中，B1、B3 修复中；已按 §6.1 改为滚动整合、复核按严重度分流 | 整合分支逐路并入 → 整体 opus 复审 → 我核对合并 → 删除 status/blockers/080。紧接下一批（首次部署前必须）：全部聚合主键 UUIDv7（用户已定，B3 曾擅自推迟）、84 项改名、迁移基线（含「只增不删」守护）、OneApplication main 与 spring-boot-maven-plugin（ZIP layout，回放命令走 PropertiesLauncher）、G-T1..G-T4 守护。下一批按 §6.1 七条派工 |
-| one-ops | 运维线长期会话。已做：C-3 dev 库与角色（one_admin 先建后轮换，builtin C.UTF-8）、B-5 A8 与老系统只读视图、C-4（Temurin 25、证书目录新布局、TLS 收紧、出站白名单、单元已装未启用）、C-6 角色与日历导出（回放导出进行中）、C-7 证书检查定时器、SLS 开通 | PR：C-3 / C-6 工具、nginx 模板、install-enable（#67 待解冲突）；DEV_DEPLOY_REMAINING 并入 #59 的 R-0..R-12；C-2 备份窗口改 02:00–03:00（先核门户夜间负载）；RDS 10-18 到期续费核对；RDS PG verify-full（CA 链） |
+| one-ops | 运维线长期会话。已做：C-3 dev 库与角色（one_admin 先建后轮换，builtin C.UTF-8）、B-5 A8 与老系统只读视图、C-4（Temurin 25、证书目录新布局、TLS 收紧、出站白名单、单元已装未启用）、C-6 角色与日历导出（回放导出进行中）、C-7 证书检查定时器、SLS 开通 | PR：C-3 / C-6 工具、nginx 模板、install-enable（#67 待解冲突）；DEV_DEPLOY_REMAINING 并入 #59 的 R-0..R-12；C-2 备份窗口改 02:00–03:00（先核门户夜间负载）；RDS PG verify-full（CA 链） |
 | forcitis-one-psa-36（design-sync 预演） | 已交 #64（字体令牌、预演项目同步） | 遗留：品牌字体入库、SelectField 出错样式、token 与 VI 标准色（#CF000E / #595757、Montserrat）对齐；正本同步前做 |
 
 已完成、可复用：psa-repo-fragments、psa-olap-architecture、psa-terms-review（第三轮用语确认待启动）、psa-1a-process-review、psa-authz-model、one-docs-naming、psa-gl-finance-review、psa-review-*。旧调度会话 psa-coordinator-1 已交接。
+
+## 后台任务与持久配置（SESSION_PLAYBOOK §2.1 第 9 条）
+| 位置 | 项 | 性质 | 负责 | 清理 |
+|---|---|---|---|---|
+| ECS i-bp122xlpar8w2uylmal2 | systemd 单元 one-ops-ghtest + /root/one-ops-ghtest.{sh,log} | 临时（GitHub 直拉测速，6 次） | one-ops | 出结果后删除，结果入记录 |
+| ECS | one-cert-check.timer、LoongCollector（ilogtaild / loongcollectord）、/etc/forcitis-one/ops-alert.env（群机器人 Webhook，root 0600）、/etc/forcitis-one/one.env、one-admin.pgpass、migrate/ | 长期 | one-ops | — |
+| 本机 Mac | 自托管 runner mac-one-1..4（~/actions-runners/one-N，LaunchAgent，用户 yeliang）与 mac-one-deploy（/opt/forcitis-one-runner，LaunchDaemon，用户 forcitis-deploy，pre-job hook） | 长期 | one-coordinator / one-ops | — |
+| 本机 Mac | ~/.modernize/psa/infra/role_holders.md（人名，0600）、~/.modernize/psa/finance/FINANCE_CONFIRM_v3.html（0600） | 长期私有 | one-coordinator | — |
+| 阿里云 | SLS Project forcitis-one-observability（30 天）、云监控 OS 指标、ECS 快照策略 forcitis-one-daily | 长期付费（约 40 元/月以内） | one-ops | — |
+| GitHub | environments release / dev / prod、签名私钥 secret（release）、v* 标签规则（仓库级，组织级待用户定）、immutable releases | 长期 | one-ops | — |
 
 ## 重要阻塞
 - 1a 修复批合并前禁止部署任何环境（status/blockers/080）。修复批合并前须 opus 复审。

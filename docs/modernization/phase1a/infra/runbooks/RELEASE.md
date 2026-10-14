@@ -151,6 +151,18 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 ### R-0 专用部署 runner 重建（必需；只有 deploy 作业依赖它，release 在 GitHub 托管机上）
 
+**已完成（2026-10-15，one-ops 引导、用户输入口令）**：脚本 `scripts/release/runner_rebuild.sh`（参数：发行包、GitHub 公布的 SHA256、注册令牌文件）。runner 2.338.0（osx-arm64，SHA256 与发布页一致），`mac-one-deploy` 在线，标签 `self-hosted, macOS, ARM64, forcitis-one-deploy`，进程以 `forcitis-deploy` 运行。
+
+**第 8 步演练结果（2026-10-15，临时分支 `drill/r0-runner-refusal`，演练后分支与运行记录已删除）**：
+| 情形 | 结果 |
+|---|---|
+| 分支上新增工作流，作业 `runs-on: [self-hosted, forcitis-one-deploy]`，push 触发 | 在「Set up runner」被 hook 拒绝：`workflow '…/r0-drill.yml@refs/heads/drill/r0-runner-refusal' is not deploy.yml on main` |
+| 同一工作流在工作流级与作业级 `env` 伪造 `GITHUB_REF`、`GITHUB_EVENT_NAME`、`GITHUB_WORKFLOW_REF` | 同样被拒绝，拒绝理由显示的是真实的工作流来源（伪造不生效） |
+| 分支上手动运行 release.yml | 两个作业因 `if: github.ref == 'refs/heads/main'` 跳过，未进入任何 runner |
+| 分支上手动运行 deploy.yml | 两个作业同样跳过 |
+| main 上手动运行 release.yml 并把作业指到部署 runner | 不做：须改 main 上的工作流，等于真实变更 |
+| main 上手动运行 deploy.yml（放行路径） | 不做：部署仍被 blockers/080 挡住，gate 先失败、到不了部署 runner；首次 dev 部署时验证放行 |
+
 原 `mac-one-deploy` 已从 GitHub 注销（从未接过作业），本机 LaunchDaemon 仍在。按下列方案重建，使作业改不了 runner 本身、改不了 hook、也用不到任何用户可写的程序：
 
 1. 停掉旧服务：`sudo launchctl bootout system/actions.runner.forcitis-one-deploy`；删除旧 runner 目录与 plist，清空 `forcitis-deploy` 主目录后重建为空目录（属主 `forcitis-deploy`，700）。`forcitis-deploy` 不在 admin 组。
@@ -158,7 +170,7 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 3. 在该目录解压 runner 发行包（核对 GitHub 公布的 SHA256），临时把目录交给 `forcitis-deploy` 完成注册：`./config.sh --url https://github.com/FORCITIS/forcitis-one-psa --token <一次性令牌> --name mac-one-deploy --labels forcitis-one-deploy --work _work --disableupdate --unattended`。
 4. **收回所有权**：除 `_work`、`_diag` 外全部改回 root:wheel、只读（`bin/`、`externals/`、`run.sh`、`runsvc.sh`、`env.sh` 等）；`.runner`、`.credentials`、`.credentials_rsaparams` 改为 root:forcitis-deploy 0640（runner 要读，作业改不了）；`.env` 与 `.path` 改为 root:wheel 0644，`.path` 内容只写 `/usr/bin:/bin:/usr/sbin:/sbin`；`_work`、`_diag` 归 `forcitis-deploy`。`--disableupdate` 使 runner 不自行改写程序文件，升级按 `CI_RUNNERS.md` 手工做。
 5. **hook**：`sudo install -o root -g wheel -m 0755 scripts/release/runner_job_started.sh /usr/local/libexec/forcitis-one/runner-job-started.sh`（目录 root 755）。
-6. **LaunchDaemon**：`/Library/LaunchDaemons/actions.runner.forcitis-one-deploy.plist`（root:wheel 0644）：`UserName` 为 `forcitis-deploy`，`ProgramArguments` 为 `/opt/forcitis-one-runner/run.sh`，`EnvironmentVariables` 中写 `ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/forcitis-one/runner-job-started.sh`、`PATH=/usr/bin:/bin:/usr/sbin:/sbin`、`PYTHONNOUSERSITE=1`、`GIT_CONFIG_GLOBAL=/dev/null`、`HOME=/opt/forcitis-one-runner-home`（root:wheel 555 的空目录：runner 进程本身没有可写、可被投放配置的主目录；每个作业第一步改用 `$RUNNER_TEMP/home`）。hook 变量放在 root 所有的 plist，而非 runner 可写的位置。账号主目录 `/Users/forcitis-deploy` 中不得有 `Library/Python`、`.gitconfig`、`.config/git`、`.aliyun`、`.curlrc`（`toolchain.sh` 断言，存在即失败）。`sudo launchctl bootstrap system <plist>`。
+6. **LaunchDaemon**：`/Library/LaunchDaemons/actions.runner.forcitis-one-deploy.plist`（root:wheel 0644）：`UserName` 为 `forcitis-deploy`，`ProgramArguments` 为 `/opt/forcitis-one-runner/run-helper.sh`（`run.sh` 每次启动都把 `run-helper.sh.template` 复制成 `run-helper.sh` 写进 runner 目录；该目录归 root、对 runner 用户只读，复制失败、服务反复重启，所以由 root 预先生成 `run-helper.sh` 并直接启动它），`EnvironmentVariables` 中写 `ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/libexec/forcitis-one/runner-job-started.sh`、`PATH=/usr/bin:/bin:/usr/sbin:/sbin`、`PYTHONNOUSERSITE=1`、`GIT_CONFIG_GLOBAL=/dev/null`、`HOME=/opt/forcitis-one-runner-home`（root:wheel 555 的空目录：runner 进程本身没有可写、可被投放配置的主目录；每个作业第一步改用 `$RUNNER_TEMP/home`）。hook 变量放在 root 所有的 plist，而非 runner 可写的位置。账号主目录 `/Users/forcitis-deploy` 中不得有 `Library/Python`、`.gitconfig`、`.config/git`、`.aliyun`、`.curlrc`（`toolchain.sh` 断言，存在即失败）。`sudo launchctl bootstrap system <plist>`。
 7. **程序可信**（复核 B-2）：部署 runner 只运行 root 所有、组与他人不可写（含全部上级目录）的程序，或按 SHA256 锁定下载到 `$RUNNER_TEMP` 的程序。`toolchain.sh` 每个作业开头检查 PATH 各项与 `bash python3 git curl tar shasum unzip ssh ssh-keygen …` 的真实路径，不满足即失败。`/opt/homebrew` 归 `yeliang:admin`，CI 作业可改写其中的 python3 / gh / java，因此不在 PATH 中、也不被使用：python3、git 用 Command Line Tools（`/usr/bin`，root 所有）；Java 25、gh、Node、aliyun CLI 每个作业按 SHA256 下载（可选：以 root 安装 Temurin 25 的 .pkg 到 `/Library/Java/JavaVirtualMachines/temurin-25.jdk`，`toolchain.sh` 核验后直接使用，省去每次下载约 200 MB）。
 8. **重新注册后演练**（全部应被拒，在第一步之前失败）：
    - 在一个分支上手动运行 release.yml；
@@ -174,18 +186,18 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 | # | 步骤 | 位置 / 做法 |
 |---|---|---|
-| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 | 仓库 Settings → Environments |
+| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 **✅ 2026-10-15**：三个 environment 已建，部署分支策略均只有 `main`。 | 仓库 Settings → Environments |
 | R-2 | 仓库级 Actions variables：§6 的 8 个构建期变量（B-2、B-3 完成后填） | Settings → Secrets and variables → Actions → Variables |
 | R-3 | **OSS bucket（首次 dev 部署前）**：用户暂不建（「现在还在开发阶段，生产阶段可以扩容的现在不做」）。首次 dev 部署前在**法兰克福（eu-central-1）**建私有 bucket（阻止公共访问、服务端加密、生命周期规则：`<前缀>/` 下版本目录 30 天后删除，`requests/` 不设过期）；按 §8.3 决定是否开传输加速。在此之前 `deploy` 因缺 `OSS_*` 变量失败关闭 | 阿里云 OSS 控制台 |
 | R-4 | RAM：每环境一个部署用子账号（只开 OpenAPI 访问），绑 §8.2 的「部署用户」策略，生成 AccessKey，每 90 天轮换；另建 ECS 实例 RAM 角色，绑 §8.2 的「实例角色」策略，授予实例 i-bp122xlpar8w2uylmal2 | 阿里云 RAM / ECS 控制台 |
 | R-5 | 每个 environment 的 secrets：`ALIBABA_CLOUD_ACCESS_KEY_ID`、`ALIBABA_CLOUD_ACCESS_KEY_SECRET`；SSH 方式另加 `DEPLOY_SSH_KEY`、`DEPLOY_KNOWN_HOSTS`（主机公钥由运维经云助手读 `/etc/ssh/ssh_host_ed25519_key.pub` 交来，不用 `ssh-keyscan`）；environment `release` 的 `RELEASE_SIGNING_KEY`（R-12） | Environments |
 | R-6 | 每个 environment 的 variables：`OSS_BUCKET`、`OSS_REGION=eu-central-1`、`OSS_PREFIX`（如 `forcitis-one/dev`）、`DEPLOY_TRIGGER`（`cloud-assistant` 或 `ssh`）、`WECOM_VERIFY_FILE`（企业微信校验文件名，C-4 E-10）；云助手方式 `ECS_REGION=cn-hangzhou`、`ECS_INSTANCE_ID=i-bp122xlpar8w2uylmal2`、`ECS_COMMAND_ID`（R-7 建的该环境命令）；SSH 方式 `DEPLOY_HOST`、`DEPLOY_USER=forcitis-deploy`、可选 `DEPLOY_PORT` | Environments → dev / prod |
 | R-7 | ECS（运维经云助手，root）：C-4 E-3、E-5、E-9、E-10 的新做法；安装器、签名公钥、`release-source`、aliyun CLI 与实例角色配置、云助手固定命令（下方命令块）；SSH 方式另建部署用户与受限密钥 | ECS；云助手控制台 |
-| R-8 | 标签保护：Rules → Rulesets 新建标签规则 `v*`，限制创建、更新、删除（仅管理员与 release 工作流） | Settings → Rules |
-| R-9 | 启用 immutable releases（本仓库 API 返回 `enabled:false`：功能存在、未启用；只对启用后的新 Release 生效）；确认 Actions 允许工作流声明 `contents: write`，且允许使用 GitHub 托管 runner 运行 `publish`（Team 计划含托管分钟数） | Settings → General（Releases）/ Actions |
+| R-8 | 标签保护：Rules → Rulesets 新建标签规则 `v*`，限制创建、更新、删除（仅管理员与 release 工作流） **✅ 2026-10-15（偏差）**：仓库级规则不允许把 GitHub Actions 设为例外（须组织级规则），若限制创建，release 工作流打不了新标签；因此规则「release tags v*」只限制**更新与删除**（例外：仓库管理员），不限制创建。残余：有写权限者可新建 `v*` 标签，但产生不了签名的发布声明，部署验签不过。 | Settings → Rules |
+| R-9 | 启用 immutable releases（本仓库 API 返回 `enabled:false`：功能存在、未启用；只对启用后的新 Release 生效）；确认 Actions 允许工作流声明 `contents: write`，且允许使用 GitHub 托管 runner 运行 `publish`（Team 计划含托管分钟数） **✅ 2026-10-15**：immutable releases 已启用；Actions 允许全部、默认令牌只读（工作流按需声明 `contents: write`）、托管 runner 可用。 | Settings → General（Releases）/ Actions |
 | R-10 | 首次部署前 `/etc/forcitis-one/one.env` 补 `SPRING_FLYWAY_ENABLED=false`；按 §4 在 `/etc/forcitis-one/migrate/` 放迁移凭据文件（首次另加 Flowable 安装项） | ECS |
 | R-11 | bucket 建好后的连通演练（不部署）：部署 runner 上用 dev 凭据上传一个测试对象到 `<前缀>/requests/`；ECS 上 `aliyun --profile forcitis-release oss cp` 读回；云助手对 ECS 执行 `forcitis-one-release status`；记录下载速度（§8.3） | 运维 |
-| R-12 | **发布签名密钥**：在可信机器上 `ssh-keygen -t ed25519 -N '' -C forcitis-one-release -f release_signing`；私钥存为 environment `release` 的 secret `RELEASE_SIGNING_KEY`，随后删除本地私钥文件；公钥写成一行 `forcitis-one-release namespaces="forcitis-one-release" ssh-ed25519 AAAA… forcitis-one-release`，经 PR 写入 `scripts/release/allowed_signers`，并由运维装到 ECS `/etc/forcitis-one/release-signers`（root 0644）。轮换：两处同时替换；旧版本的声明随之不可验证，回滚到旧版本需用新钥重签或临时并列两把公钥 | 可信机器；GitHub；ECS |
+| R-12 | **发布签名密钥**：在可信机器上 `ssh-keygen -t ed25519 -N '' -C forcitis-one-release -f release_signing`；私钥存为 environment `release` 的 secret `RELEASE_SIGNING_KEY`，随后删除本地私钥文件；公钥写成一行 `forcitis-one-release namespaces="forcitis-one-release" ssh-ed25519 AAAA… forcitis-one-release`，经 PR 写入 `scripts/release/allowed_signers`，并由运维装到 ECS `/etc/forcitis-one/release-signers`（root 0644）。轮换：两处同时替换；旧版本的声明随之不可验证，回滚到旧版本需用新钥重签或临时并列两把公钥 **✅ 2026-10-15**：在用户本机生成，私钥直接存为 environment `release` 的 secret `RELEASE_SIGNING_KEY` 后删除（未显示、未落盘他处）；公钥写入 `scripts/release/allowed_signers`；ECS 侧 `/etc/forcitis-one/release-signers` 随 R-7 安装。 | 可信机器；GitHub；ECS |
 
 R-7 命令（`<version>` 用将要部署的发布包；先在可信机器上 `verify_bundle.sh` 校验，再经云助手上传其中的 `deploy/remote_install.sh`）：
 
