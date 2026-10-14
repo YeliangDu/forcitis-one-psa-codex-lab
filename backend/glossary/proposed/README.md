@@ -124,8 +124,18 @@
 | `tail_adjustment` | 尾调 | TailAdjustment | 报价整单的人工调整额（RULE-142） | 「尾差」为方言，已禁用 |
 | `rounding_residual` | 舍入差 | RoundingResidual | 舍入到分后各份之和与总额之间的分厘差 | 「尾差」为方言 |
 | `prorate` | 按权重拆分 | Prorate | kernel 金额原语：按权重拆分，各份之和恰等于原额 |  |
+| `reversal_document` | 冲销单 | ReversalDocument | 只冲不重做的更正单据，可全额也可部分（ADR-0031） | 待确认（已批准词条「冲销」的 bc 拟改通用） |
+| `correction_document` | 修正单 | CorrectionDocument | 完成一次冲销重做的更正单据，「重做」为同义词（ADR-0031） | 待确认（与事实重述、成本调整、期间调整的关系） |
+| `document_nature` | 单据性质 | DocumentNature | 原单、冲销单、修正单三者之一（ADR-0031） | 待确认 |
+| `reversal_category` | 冲销类别 | ReversalCategory | 差错或业务冲回（ADR-0031） | 待确认（会计用语由财务） |
+| `reversible_balance` | 可冲销余额 | ReversibleBalance | 原额减去已生效冲销合计（ADR-0031） | 待确认 |
+| `derived_reversal` | 派生冲销 | DerivedReversal | 上游单据被冲销后由下游自动生成的冲销（ADR-0031） | 待确认 |
+| `original_period` | 原期间 | OriginalPeriod | 被冲销或被更正的单据所属的会计期间（ADR-0031） | 待确认 |
+| `change_order_document` | 变更单 | ChangeOrderDocument | 合同变更的单据形态（ADR-0031） | 待确认（与已批准词条「变更」的关系） |
+| `reverse_action` | 冲销动作 | ReverseAction | 权限码动作 reverse，与 ADR-0022:125 的提议合并评审 | 待确认 |
+| `correct_action` | 修正动作 | CorrectAction | 权限码动作 correct，随 reverse 合并评审 | 待确认 |
 
-以上三条由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。另有 `migration`、`work_calendar`、`workday` 等提议术语，以及若干技术词在 `common_words`。
+前三条（尾调、舍入差、按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。冲销单至冲销动作、修正动作十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。另有 `migration`、`work_calendar`、`workday` 等提议术语，以及若干技术词在 `common_words`。
 
 ## 前端界面用语（`frontend-ui.yaml`）
 
