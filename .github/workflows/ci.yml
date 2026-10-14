@@ -12,66 +12,90 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Self-hosted runners (docs/modernization/CI_RUNNERS.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
+# A pull request that only changes documentation still runs every job and ends green: the required checks must always report.
 jobs:
   backend:
     name: backend verify (Modulith + ArchUnit guardrails + integration tests)
-    runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: backend
+    runs-on: [self-hosted, forcitis-one]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
       - name: Flyway migrations are append-only (SESSION_PLAYBOOK §12)
-        working-directory: .
         run: |
           python3 scripts/ci/migrations_immutable.py --self-test
           python3 scripts/ci/migrations_immutable.py origin/${{ github.base_ref || 'main' }}
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: maven
-      - run: ./mvnw -B verify
+      - name: backend or frontend inputs changed?
+        id: change
+        run: |
+          python3 scripts/ci/relevant_change.py --self-test
+          python3 scripts/ci/relevant_change.py "${{ github.base_ref }}"
+      - name: toolchain is Java 25
+        if: steps.change.outputs.relevant == 'true'
+        run: java -version 2>&1 | head -1 | grep -q '"25'
+      - name: test images are present
+        if: steps.change.outputs.relevant == 'true'
+        run: |
+          for image in postgres:18 testcontainers/ryuk:0.14.0; do
+            docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image"
+          done
+      - name: surefire and failsafe, side by side
+        if: steps.change.outputs.relevant == 'true'
+        run: scripts/ci/backend_verify.sh
       - name: OpenAPI contract unchanged (OpenApiExportTest rewrites frontend/packages/api/openapi.json)
-        run: git diff --exit-code -- ../frontend/packages/api/openapi.json
+        if: steps.change.outputs.relevant == 'true'
+        run: git diff --exit-code -- frontend/packages/api/openapi.json
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
-          name: surefire-reports
-          path: backend/target/surefire-reports
+          name: test-reports
+          path: |
+            backend/target/surefire-reports
+            backend/target/failsafe-reports
 
   frontend:
     name: frontend verify (typecheck + lint guardrails F1-F14 + structure + build)
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, forcitis-one]
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v4.2.2
         with:
-          package_json_file: frontend/package.json
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm verify
+          fetch-depth: 0
+      - name: backend or frontend inputs changed?
+        id: change
+        working-directory: .
+        run: python3 scripts/ci/relevant_change.py "${{ github.base_ref }}"
+      - name: toolchain is Node 24 and the pinned pnpm
+        if: steps.change.outputs.relevant == 'true'
+        run: |
+          node --version | grep -q '^v24\.'
+          test "$(pnpm --version)" = "$(node -p "require('./package.json').packageManager.split('@')[1].split('+')[0]")"
+      - if: steps.change.outputs.relevant == 'true'
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - if: steps.change.outputs.relevant == 'true'
+        run: pnpm verify
 
   gitleaks:
     name: secret scan (gitleaks)
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, forcitis-one]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
-      - name: install gitleaks 8.30.1
+      - name: gitleaks 8.30.1 (machine install, else verified download)
         run: |
-          curl -sSL -o gl.tgz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
-          tar -xzf gl.tgz gitleaks && sudo mv gitleaks /usr/local/bin/
+          if [ "$(gitleaks version 2>/dev/null)" != "8.30.1" ]; then
+            base=https://github.com/gitleaks/gitleaks/releases/download/v8.30.1
+            mkdir -p "$RUNNER_TEMP/gitleaks" && cd "$RUNNER_TEMP/gitleaks"
+            curl -sSLO "$base/gitleaks_8.30.1_darwin_arm64.tar.gz"
+            curl -sSLO "$base/gitleaks_8.30.1_checksums.txt"
+            grep ' gitleaks_8.30.1_darwin_arm64.tar.gz$' gitleaks_8.30.1_checksums.txt | shasum -a 256 -c -
+            tar -xzf gitleaks_8.30.1_darwin_arm64.tar.gz gitleaks
+            echo "$PWD" >> "$GITHUB_PATH"
+          fi
       - run: gitleaks git --redact --no-banner --exit-code 1 .
       # 记录与 ADR 由片段生成：ADR、brief 与已提交产物不一致即失败；INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成
       - name: generated docs match fragments
@@ -83,9 +107,9 @@ jobs:
   assertion-drift:
     name: assertion drift (warning only)
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, forcitis-one]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
       - run: python3 scripts/ci/assertion_drift.py origin/${{ github.base_ref }}

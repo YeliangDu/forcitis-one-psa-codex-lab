@@ -13,7 +13,7 @@
     "check:lint-config": "node scripts/check-lint-config.mjs",
     "test": "pnpm -r --workspace-concurrency=1 run test",
     "build": "pnpm -r --workspace-concurrency=1 run build",
-    "verify": "pnpm check:generated && pnpm typecheck && pnpm check:lint-config && pnpm lint && pnpm check:structure && pnpm check:copy && pnpm test:scripts && pnpm test && pnpm build"
+    "verify": "node scripts/verify.mjs"
   },
   "devDependencies": {
     "eslint": "^9.39.5",
