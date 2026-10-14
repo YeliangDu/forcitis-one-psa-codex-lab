@@ -356,7 +356,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
                 .isEqualTo("Renamed in the source/Delivery");
 
         oldSystem.unavailable = true;
+        double failuresBefore = registry.counter("forcitis.organization.workforce.short.name.refresh.failures").count();
         assertThat(refreshShortNames.execute()).isZero();
+        assertThat(registry.counter("forcitis.organization.workforce.short.name.refresh.failures").count()).isEqualTo(failuresBefore + 1);
         assertThat(jdbc.sql("select short_name from organization_workforce.org_units where id = 1").query(String.class).single()).isEqualTo("HQ");
 
         oldSystem.unavailable = false;

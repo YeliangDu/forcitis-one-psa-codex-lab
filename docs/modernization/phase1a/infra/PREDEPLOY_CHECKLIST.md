@@ -41,7 +41,7 @@
 | C-4 | ECS 初始化 E-1..E-17（数据盘、运行时、systemd、nginx、TLS、Logtail、ARMS、出站白名单） | dev 前 | INFRA_RUNBOOK §3 | ⬜ |
 | C-5 | 应急管理员与首任超管开通（运维命令，双人在场） | dev 前 | INFRA_RUNBOOK §6、ADR-0027 | ⬜ |
 | C-6 | 老系统数据只读导出：老角色与权限（ADR-0026 D-9 已授权）、TIMESHEET 流程实例（回放用）、`psa_calendar` 2016–2026（迁入工作日历） | dev 前 | ADR-0026、TIMESHEET_REPLAY、D-1a-110 | ⬜ |
-| C-7 | 告警规则配置与 dev 演练（四类告警） | 出口前 | E-13（出口条件） | ⬜ |
+| C-7 | 告警规则配置与 dev 演练（四类告警，含 NaN 缺数据规则与各模块自己的失败指标，见 INFRA_RUNBOOK E-13 补充） | 出口前 | E-13（出口条件） | ⬜ |
 | C-8 | 配置与密钥从 `one.env` 迁到 KMS，确定轮换周期 | 生产前 | 平台约定第 6 项 | ⬜ |
 | C-9 | 生产库 `forcitis_one_prod` 与 `one_prod_*` 角色 | 生产前 | ADR-0025 第 2 条 | ⬜ |
 
