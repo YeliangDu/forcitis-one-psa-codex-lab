@@ -6,4 +6,8 @@ import java.util.Optional;
 public interface ProcessAdministrator {
 
     Optional<UserId> current();
+
+    default boolean isAdministrator(UserId user) {
+        return current().map(user::equals).orElse(false);
+    }
 }

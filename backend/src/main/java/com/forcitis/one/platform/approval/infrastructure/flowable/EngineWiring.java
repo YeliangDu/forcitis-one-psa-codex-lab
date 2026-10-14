@@ -15,6 +15,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 
 /** Runs once the application is ready (BPMN deployed) and fails startup on a process that breaks the BPMN conventions. */
 @Configuration
@@ -27,19 +29,23 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
     private final RepositoryService repository;
     private final TaskAssignmentListener listener;
     private final AssignmentProperties properties;
-    private final NodeDecisions decisions;
+    private final Environment environment;
 
     EngineWiring(ProcessEngine engine, RepositoryService repository, TaskAssignmentListener listener, AssignmentProperties properties,
-            NodeDecisions decisions) {
+            Environment environment) {
         this.engine = engine;
         this.repository = repository;
         this.listener = listener;
         this.properties = properties;
-        this.decisions = decisions;
+        this.environment = environment;
     }
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
+        if (properties.processAdministratorUserId() == null && environment.acceptsProfiles(Profiles.of("prod"))) {
+            throw new IllegalStateException("forcitis.platform.approval.assignment.process-administrator-user-id must be set in production: "
+                    + "a task nobody can be found for would otherwise have nowhere to go (D-1a-61)");
+        }
         if (properties.processAdministratorUserId() == null) {
             log.warn("forcitis.platform.approval.assignment.process-administrator-user-id is not set: a task nobody can be found for "
                     + "will fail its approval instead of going to the process administrator (RULE-250/254)");
@@ -56,9 +62,6 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
             if (definition == null) {
                 problems.add(key + ": no deployed process definition " + key.key());
                 continue;
-            }
-            if (!decisions.isDeployed(key)) {
-                problems.add(key + ": no deployed decision table " + NodeDecisions.decisionKey(key));
             }
             BpmnModel model = repository.getBpmnModel(definition.getId());
             for (UserTask task : model.getMainProcess().findFlowElementsOfType(UserTask.class)) {

@@ -1,9 +1,6 @@
 package com.forcitis.one.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
@@ -14,6 +11,7 @@ import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.HookDecision;
 import com.forcitis.one.platform.approval.api.HookOutcome;
+import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -64,16 +62,16 @@ class RepeatApproverIT extends ApprovalIntegrationSupport {
         assertThat(visits.get(1).getAssignee()).as("nobody claimed the repeat: the system completed it").isNull();
         assertThat(jdbc.queryForList("select status from platform_approval.approval_tasks where instance_id = ? order by created_at", String.class,
                 instance.value())).containsExactly("COMPLETED", "COMPLETED");
-        verify(audit, atLeastOnce()).record(argThat(entry -> entry.action().equals("platform.approval.task.auto-approve")
-                && entry.actorId() == null && entry.subjectKey().startsWith("approval-task:")));
-        eventually(() -> {
-            assertThat(events.assigned().stream().filter(e -> e.document().documentId().value().equals(key)).count())
-                    .as("no card for a task the system passes").isEqualTo(1);
-            assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(key)).map(e -> e.outcome()).toList())
-                    .as("no result for an automatic pass").containsExactly(TaskOutcome.APPROVED);
-            assertThat(events.completed().stream().filter(e -> e.document().documentId().value().equals(key)).map(e -> e.outcome()).toList())
-                    .containsExactly(ApprovalOutcome.APPROVED);
-        });
+        assertThat(jdbc.queryForList("select effect_kind from platform_approval.approval_tasks where instance_id = ? order by created_at",
+                String.class, instance.value())).as("the second visit is marked as passed by the system").containsExactly("BINDING", "AUTOMATIC");
+        assertThat(events.assigned().stream().filter(e -> e.document().documentId().value().equals(key)).count())
+                .as("no card for a task the system passes").isEqualTo(1);
+        assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(key)).map(e -> e.effect()).toList())
+                .as("D-1a-66 the automatic pass is a result too, marked automatic").containsExactly(TaskEffect.BINDING, TaskEffect.AUTOMATIC);
+        assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(key)).map(e -> e.outcome()).toList())
+                .containsExactly(TaskOutcome.APPROVED, TaskOutcome.APPROVED);
+        assertThat(events.completed().stream().filter(e -> e.document().documentId().value().equals(key)).map(e -> e.outcome()).toList())
+                .containsExactly(ApprovalOutcome.APPROVED);
     }
 
     @Test
@@ -85,7 +83,7 @@ class RepeatApproverIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null).person(manager, 1, null);
         String key = newKey("repeat-changed");
         ApprovalInstanceId instance = startRepeating(key, initiator, manager);
-        hook.next = new HookDecision(HookOutcome.ALLOW, null, List.of(new ApprovalField("contentDigest", List.of("digest-after-edit"))));
+        hook.next = new HookDecision(HookOutcome.ALLOW, null, List.of(new ApprovalField("contentHash", List.of("hash-after-edit"))));
         hook.calls.clear();
 
         ApprovalStatus afterFirst = decideTasks.execute(new UserId(manager),

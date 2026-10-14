@@ -97,11 +97,11 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         Scene scene = scene();
         String id = scene.task().value();
         for (long outsider : new long[] {scene.stranger(), scene.initiator()}) {
-            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf())
+            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag())
                     .with(approver(outsider)), 403));
-            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf())
+            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf()).with(currentEtag())
                     .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"x\"}"), 403));
-            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":return").with(csrf())
+            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":return").with(csrf()).with(currentEtag())
                     .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 403));
         }
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.task.denied")
@@ -115,7 +115,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         String id = scene.task().value();
         org.mockito.Mockito.doThrow(new IllegalStateException("audit store is down")).when(audit).recordIndependently(any());
         try {
-            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf())
+            assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag())
                     .with(approver(scene.stranger())), 403));
         } finally {
             org.mockito.Mockito.reset(audit);
@@ -127,16 +127,16 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     void afterAClaimOnlyTheClaimerActs() throws Exception {
         Scene scene = scene();
         String id = scene.task().value();
-        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(approver(scene.candidate())))
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag()).with(approver(scene.candidate())))
                 .andExpect(status().isNoContent());
         assertThat(snapshot(scene).assignee()).isEqualTo(String.valueOf(scene.candidate()));
 
-        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf())
+        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag())
                 .with(approver(scene.otherCandidate())), 403));
-        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf())
+        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf()).with(currentEtag())
                 .with(approver(scene.otherCandidate())).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"outcome\":\"APPROVE\",\"reason\":\"x\"}"), 403));
-        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":return").with(csrf())
+        assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":return").with(csrf()).with(currentEtag())
                 .with(approver(scene.otherCandidate())).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 403));
         assertThat(snapshot(scene).assignee()).isEqualTo(String.valueOf(scene.candidate()));
     }
@@ -176,7 +176,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         Scene scene = scene();
         String id = scene.task().value();
         Snapshot before = snapshot(scene);
-        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf()).with(approver(scene.stranger()))
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf()).with(currentEtag()).with(approver(scene.stranger()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"userId\":" + scene.candidate() + ",\"approverId\":" + scene.candidate() + "}"))
                 .andExpect(status().isForbidden());
@@ -248,15 +248,15 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("the menu permission is required on top: claim / decide / return without it are 403, the inbox needs the read permission")
-    void permissionsAreRequiredAsWell() throws Exception {
+    @DisplayName("D-1a-179 acting on a task needs to be its handler or candidate and no permission code; the inbox needs a signed-in session only")
+    void noPermissionCodeIsNeededToAct() throws Exception {
         Scene scene = scene();
         String id = scene.task().value();
-        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(reader(scene.candidate())))
-                .andExpect(status().isForbidden());
-        mvc.perform(get("/api/v1/platform/approval-tasks").with(approver(scene.candidate()))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/platform/approval-tasks").with(approver(scene.candidate()))).andExpect(status().isOk());
         mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(scene.candidate()))).andExpect(status().isOk());
-        assertThat(snapshot(scene).assignee()).isNull();
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag()).with(reader(scene.candidate())))
+                .andExpect(status().isNoContent());
+        assertThat(snapshot(scene).assignee()).isEqualTo(String.valueOf(scene.candidate()));
     }
 
     @Test
@@ -275,9 +275,9 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("an unknown task is 404 for every operation, not 403 and not a server error")
     void unknownTaskIsNotFound() throws Exception {
-        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:claim").with(csrf()).with(approver(newId())))
+        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:claim").with(csrf()).with(currentEtag()).with(approver(newId())))
                 .andExpect(status().isNotFound());
-        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:decide").with(csrf()).with(approver(newId()))
+        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:decide").with(csrf()).with(currentEtag()).with(approver(newId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\"}")).andExpect(status().isNotFound());
     }
 

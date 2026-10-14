@@ -1,21 +1,20 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
-import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.ContentHash;
+import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.NodeName;
+import com.forcitis.one.platform.approval.api.ProcessName;
 import com.forcitis.one.platform.approval.application.TaskRegistrar;
 import com.forcitis.one.platform.approval.application.TaskRegistration;
+import com.forcitis.one.platform.approval.domain.NodePolicy;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.Resolution;
 import java.time.Clock;
-import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
-import java.util.OptionalInt;
 import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.UserTask;
 import org.flowable.common.engine.api.delegate.event.FlowableEngineEntityEvent;
@@ -23,7 +22,6 @@ import org.flowable.common.engine.api.delegate.event.FlowableEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEventListener;
 import org.flowable.engine.impl.util.ProcessDefinitionUtil;
 import org.flowable.task.service.impl.persistence.entity.TaskEntity;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /**
@@ -35,9 +33,9 @@ class TaskAssignmentListener implements FlowableEventListener {
 
     private final NodeAssignment assignment;
     private final TaskRegistrar registrar;
-    private final ObjectProvider<Clock> clock;
+    private final Clock clock;
 
-    TaskAssignmentListener(NodeAssignment assignment, TaskRegistrar registrar, ObjectProvider<Clock> clock) {
+    TaskAssignmentListener(NodeAssignment assignment, TaskRegistrar registrar, Clock clock) {
         this.assignment = assignment;
         this.registrar = registrar;
         this.clock = clock;
@@ -52,6 +50,7 @@ class TaskAssignmentListener implements FlowableEventListener {
         BpmnModel model = ProcessDefinitionUtil.getBpmnModel(task.getProcessDefinitionId());
         UserTask node = (UserTask) model.getFlowElement(task.getTaskDefinitionKey());
         ProcessVariables variables = EngineVariables.fromEngine(task.getVariables());
+        NodePolicy policy = NodePolicyReader.read(node);
 
         List<UserId> candidates;
         if (node.getLoopCharacteristics() != null) {
@@ -66,21 +65,14 @@ class TaskAssignmentListener implements FlowableEventListener {
             candidates = resolution.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
         }
 
-        task.setVariableLocal(FlowableApprovalEngine.VARIABLE_ASSIGNED_AT, clock.getIfAvailable(Clock::systemUTC).millis());
+        task.setVariableLocal(FlowableApprovalEngine.VARIABLE_ASSIGNED_AT, clock.millis());
         candidates.forEach(candidate -> task.addCandidateUser(String.valueOf(candidate.value())));
 
-        ProcessKey processKey = ProcessKey.valueOf(ProcessDefinitionUtil.getProcessDefinition(task.getProcessDefinitionId())
-                .getKey().toUpperCase(Locale.ROOT));
-        String nodeKey = node.getId();
         boolean passedBySystem = registrar.register(new TaskRegistration(new ApprovalTaskId(task.getId()),
-                new ApprovalInstanceId(task.getProcessInstanceId()), processKey,
-                ProcessDefinitionUtil.getProcessDefinition(task.getProcessDefinitionId()).getName(),
-                FlowableApprovalEngine.documentOf(variables), new LegalEntityId(Long.parseLong(required(variables, FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY))),
-                nodeKey, task.getName(), new UserId(Long.parseLong(required(variables, FlowableApprovalEngine.VARIABLE_INITIATOR))), candidates,
-                LocalDate.parse(required(variables, FlowableApprovalEngine.VARIABLE_SUBMITTED_ON)),
-                workdays(variables, NodeDecisions.DEADLINE_WORKDAYS + nodeKey), workdays(variables, NodeDecisions.ESCALATION_WORKDAYS + nodeKey),
-                variables.firstVariable(NodeDecisions.AUTO_APPROVE_REPEAT + nodeKey).map(Boolean::parseBoolean).orElse(false),
-                required(variables, FlowableApprovalEngine.VARIABLE_CONTENT_DIGEST)));
+                new ApprovalInstanceId(task.getProcessInstanceId()),
+                new ProcessName(ProcessDefinitionUtil.getProcessDefinition(task.getProcessDefinitionId()).getName()),
+                new NodeKey(node.getId()), new NodeName(task.getName()), candidates, policy.autoApproveRepeat(), policy.deadline(),
+                new ContentHash(required(variables, FlowableApprovalEngine.VARIABLE_CONTENT_HASH))));
         if (passedBySystem) {
             task.setVariableLocal(FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE, Boolean.TRUE);
         }
@@ -88,10 +80,6 @@ class TaskAssignmentListener implements FlowableEventListener {
 
     private static String required(ProcessVariables variables, String name) {
         return variables.firstVariable(name).orElseThrow(() -> new IllegalStateException("Process variable " + name + " is missing"));
-    }
-
-    private static OptionalInt workdays(ProcessVariables variables, String name) {
-        return variables.firstVariable(name).map(raw -> OptionalInt.of(Integer.parseInt(raw))).orElse(OptionalInt.empty());
     }
 
     @Override

@@ -1,32 +1,72 @@
 package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
+import com.forcitis.one.platform.approval.domain.ApprovalTaskQueries;
 import com.forcitis.one.platform.approval.domain.TaskActors;
+import com.forcitis.one.platform.approval.domain.TaskRecord;
 import com.forcitis.one.platform.approval.domain.TaskView;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Anybody but the initiator, assignee and candidates is told the task does not exist (fail closed). */
+/** Anybody but the initiator, the assignee and the candidates is told the task does not exist (fail closed). */
 @Service
 public class GetTaskDetail {
 
     private final ApprovalEngine engine;
+    private final ApprovalTaskQueries tasks;
+    private final OrgDirectory org;
+    private final BusinessTime time;
 
-    GetTaskDetail(ApprovalEngine engine) {
+    GetTaskDetail(ApprovalEngine engine, ApprovalTaskQueries tasks, OrgDirectory org, BusinessTime time) {
         this.engine = engine;
+        this.tasks = tasks;
+        this.org = org;
+        this.time = time;
     }
 
     @Transactional(readOnly = true)
     public TaskDetail execute(ApprovalTaskId taskId, UserId viewer) {
-        TaskView task = engine.findTask(taskId).filter(t -> isParticipant(t, viewer)).orElseThrow(
-                () -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " does not exist"));
-        List<UserId> candidates = task.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
-        return new TaskDetail(task.taskId(), task.instanceId(), task.processKey(), task.document(), task.nodeKey(), task.nodeName(),
-                task.initiator(), task.assignee(), candidates, task.createdAt(), TaskActors.mayAct(task, viewer));
+        Optional<TaskView> open = engine.findTask(taskId).filter(task -> isParticipant(task, viewer));
+        Optional<TaskRecord> record = tasks.find(taskId);
+        Instant now = time.now();
+        if (open.isPresent()) {
+            TaskView task = open.get();
+            TaskRecord row = record.orElseThrow();
+            List<UserId> candidates = task.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
+            return detail(row, Optional.of(task.nodeName()), task.assignee(), candidates, TaskActors.mayAct(task, viewer), now);
+        }
+        TaskRecord decided = record.filter(r -> !r.status().isOpen())
+                .filter(r -> r.initiator().equals(viewer) || r.assignee().map(viewer::equals).orElse(false))
+                .orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " does not exist"));
+        return detail(decided, Optional.empty(), decided.assignee(), List.of(), false, now);
+    }
+
+    private TaskDetail detail(TaskRecord row, Optional<String> nodeName, Optional<UserId> assignee, List<UserId> candidates, boolean canAct,
+            Instant now) {
+        Optional<EmployeeProfile> initiator = org.findEmployee(row.initiator());
+        List<TaskDetail.Entry> history = tasks.historyOf(row.processKey(), row.document().documentId().value()).stream()
+                .map(r -> new TaskDetail.Entry(r.taskId(), r.nodeKey(), r.round(), r.status(), r.assignee(), r.outcome(), r.effect(), r.reason(),
+                        r.completedAt())).toList();
+        return new TaskDetail(row.taskId(), row.instanceId(), row.processKey(), row.document(), row.nodeKey().value(), nodeName, row.initiator(),
+                initiator.map(EmployeeProfile::name).orElse(String.valueOf(row.initiator().value())),
+                initiator.flatMap(profile -> org.findOrgUnit(profile.orgUnitId())).map(OrgUnitProfile::name), assignee,
+                assignee.map(this::nameOf), candidates, candidates.stream().map(this::nameOf).toList(), row.createdAt(), row.status(),
+                row.dueAt(), row.status().isOpen() && row.dueAt().map(now::isAfter).orElse(false), row.completedAt(), row.outcome(), row.effect(),
+                row.reason(), Optional.of(row.summary()), canAct, row.requestVersion(), history);
+    }
+
+    private String nameOf(UserId user) {
+        return org.findEmployee(user).map(EmployeeProfile::name).orElse(String.valueOf(user.value()));
     }
 
     private static boolean isParticipant(TaskView task, UserId viewer) {

@@ -4,7 +4,10 @@ import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.delivery.execution.api.WorkPackageId;
+import com.forcitis.one.delivery.execution.api.WorkPackageQueries;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
@@ -12,17 +15,28 @@ import com.forcitis.one.platform.approval.api.ApprovalHook;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
+import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
+import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
+import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskResulted;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.integration.api.WecomGateway;
+import com.forcitis.one.platform.numbering.api.DocumentNumber;
+import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import org.awaitility.Awaitility;
@@ -41,6 +55,8 @@ import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -51,6 +67,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
+@RecordApplicationEvents
 @Import(ApprovalIntegrationSupport.Doubles.class)
 public abstract class ApprovalIntegrationSupport {
 
@@ -62,7 +79,7 @@ public abstract class ApprovalIntegrationSupport {
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
     /** Throw-away credentials for the stand-in read-only account, generated per run. */
-    static final String LEGACY_PASSWORD = java.util.UUID.randomUUID().toString();
+    static final String LEGACY_PASSWORD = UUID.randomUUID().toString();
 
     static {
         POSTGRES.start();
@@ -105,6 +122,12 @@ public abstract class ApprovalIntegrationSupport {
     @MockitoBean
     protected AuditLog audit;
 
+    @MockitoBean
+    protected DocumentNumbers numbers;
+
+    @MockitoBean
+    protected WorkPackageQueries workPackages;
+
     @Autowired
     protected ApprovalProcesses approvals;
 
@@ -112,7 +135,10 @@ public abstract class ApprovalIntegrationSupport {
     protected FakeOrganisation organisation;
 
     @Autowired
-    protected EventRecorder events;
+    protected ApplicationEvents recorded;
+
+    @Autowired
+    protected FlakyListener flaky;
 
     @Autowired
     protected TransactionTemplate tx;
@@ -132,23 +158,18 @@ public abstract class ApprovalIntegrationSupport {
     @Autowired
     protected org.flowable.engine.RepositoryService repository;
 
-    @Autowired
-    protected org.flowable.dmn.api.DmnRepositoryService dmnRepository;
+    protected Events events;
 
     private final List<Runnable> variantCleanup = new java.util.ArrayList<>();
 
-    /** Deploys a test variant of the timesheet process and / or its decision table (whichever the directory has) as the newest version; removed after the test. */
+    /** Deploys a test variant of the timesheet process as the newest version; removed after the test. */
     protected void deployVariant(String directory) {
         String bpmnResource = directory + "/cost_timesheet_approval.bpmn20.xml";
-        if (getClass().getClassLoader().getResource(bpmnResource) != null) {
-            String bpmn = repository.createDeployment().addClasspathResource(bpmnResource).deploy().getId();
-            variantCleanup.add(() -> repository.deleteDeployment(bpmn, true));
+        if (getClass().getClassLoader().getResource(bpmnResource) == null) {
+            throw new IllegalArgumentException("No process variant " + bpmnResource);
         }
-        String dmnResource = directory + "/cost_timesheet_approval_nodes.dmn";
-        if (getClass().getClassLoader().getResource(dmnResource) != null) {
-            String dmn = dmnRepository.createDeployment().addClasspathResource(dmnResource).deploy().getId();
-            variantCleanup.add(() -> dmnRepository.deleteDeployment(dmn));
-        }
+        String bpmn = repository.createDeployment().addClasspathResource(bpmnResource).deploy().getId();
+        variantCleanup.add(() -> repository.deleteDeployment(bpmn, true));
     }
 
     @org.junit.jupiter.api.AfterEach
@@ -158,9 +179,27 @@ public abstract class ApprovalIntegrationSupport {
         variantCleanup.clear();
     }
 
+    static final AtomicLong NUMBERS = new AtomicLong();
+    static final Map<Long, Optional<Hours>> REMAINING = new ConcurrentHashMap<>();
+
     @BeforeEach
     void administratorExists() {
+        com.forcitis.one.fixture.doubles.AggregateWriteGuard.forget();
+        events = new Events(recorded);
         organisation.person(ADMINISTRATOR, 1, null);
+        org.mockito.Mockito.when(numbers.next(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(call -> new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()));
+        org.mockito.Mockito.when(workPackages.remainingHours(org.mockito.ArgumentMatchers.any())).thenAnswer(call ->
+                REMAINING.getOrDefault(((WorkPackageId) call.getArgument(0)).value(), Optional.of(Hours.of("400"))));
+    }
+
+    /** What the work package module answers for one work package: the hours left, or nothing for an unknown one. */
+    protected static void workPackageHas(long id, String hoursLeft) {
+        REMAINING.put(id, Optional.of(Hours.of(hoursLeft)));
+    }
+
+    protected static void workPackageIsUnknown(long id) {
+        REMAINING.put(id, Optional.empty());
     }
 
     /** Unique ids so tests sharing database and context cannot see each other's data. */
@@ -182,9 +221,8 @@ public abstract class ApprovalIntegrationSupport {
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager, TimesheetRoutingFlag... flags) {
         Set<String> flagNames = java.util.Arrays.stream(flags).map(TimesheetRoutingFlag::flagName).collect(java.util.stream.Collectors.toSet());
-        return tx.execute(status -> approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document(businessKey),
-                LEGAL_ENTITY, new UserId(initiator), flagNames,
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))), "digest")));
+        return tx.execute(status -> approvals.start(startRequest(businessKey, new UserId(initiator), flagNames,
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
     }
 
     protected Task openTask(ApprovalInstanceId instance) {
@@ -203,8 +241,38 @@ public abstract class ApprovalIntegrationSupport {
         return new ApprovalTaskId(openTask(instance).getId());
     }
 
-    protected static ApprovalStartRequest startRequest(String key, UserId initiator, Set<String> flags, List<ApprovalField> fields) {
-        return new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, initiator, flags, fields, "digest");
+    /** The round a person starting the document again would get: the running one while it runs, the next one after it ended. */
+    protected ApprovalStartRequest startRequest(String key, UserId initiator, Set<String> flags, List<ApprovalField> fields) {
+        return startRequest(key, initiator, flags, fields, nextRoundOf(key));
+    }
+
+    protected static ApprovalStartRequest startRequest(String key, UserId initiator, Set<String> flags, List<ApprovalField> fields, int round) {
+        return new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, initiator, new RoundNumber(round),
+                UUID.randomUUID(), flags, fields, new ContentHash("hash"), new ApprovalSummary("summary of " + key));
+    }
+
+    protected int nextRoundOf(String key) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "select current_round, status from platform_approval.approval_requests where document_key = ?", key);
+        if (rows.isEmpty()) {
+            return 1;
+        }
+        int round = ((Number) rows.getFirst().get("current_round")).intValue();
+        return "RUNNING".equals(rows.getFirst().get("status")) ? round : round + 1;
+    }
+
+    /** If-Match for a task action sent over HTTP: the version of the task's request as it is now, or 1 for a task nobody knows. */
+    protected org.springframework.test.web.servlet.request.RequestPostProcessor currentEtag() {
+        return request -> {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("/approval-tasks/([^/:]+):(claim|release|decide|return|transfer)$")
+                    .matcher(request.getRequestURI());
+            if (m.find() && request.getHeader("If-Match") == null) {
+                List<Long> versions = jdbc.queryForList("select r.version from platform_approval.approval_requests r join platform_approval.approval_tasks t"
+                        + " on t.process_key = r.process_key and t.document_key = r.document_key where t.task_id = ?", Long.class, m.group(1));
+                request.addHeader("If-Match", "\"" + (versions.isEmpty() ? 1L : versions.getFirst()) + "\"");
+            }
+            return request;
+        };
     }
 
     protected static DocumentReference document(String key) {
@@ -213,14 +281,6 @@ public abstract class ApprovalIntegrationSupport {
 
     protected String requestStatus(String key) {
         return jdbc.queryForObject("select status from platform_approval.approval_requests where document_key = ?", String.class, key);
-    }
-
-    protected List<String> auditActions(String subjectKey) {
-        return jdbc.queryForList("select action from platform_audit.audit_entries where subject_key = ?", String.class, subjectKey);
-    }
-
-    protected List<Long> auditActors(String subjectKey, String action) {
-        return jdbc.queryForList("select actor_id from platform_audit.audit_entries where subject_key = ? and action = ?", Long.class, subjectKey, action);
     }
 
     protected static void eventually(Runnable assertion) {
@@ -245,47 +305,57 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     @org.junit.jupiter.api.AfterEach
+    void oneAggregatePerTransaction() {
+        List<String> violations = com.forcitis.one.fixture.doubles.AggregateWriteGuard.violations();
+        com.forcitis.one.fixture.doubles.AggregateWriteGuard.forget();
+        org.assertj.core.api.Assertions.assertThat(violations).as("DDD-1 one transaction changes one aggregate").isEmpty();
+    }
+
+    @org.junit.jupiter.api.AfterEach
     void signOut() {
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
-    public static class EventRecorder {
-        // The bean is proxied (@Async listener methods): tests read through the accessor methods, not the fields.
-        private final List<ApprovalCompleted> completed = new CopyOnWriteArrayList<>();
-        private final List<TaskResulted> resulted = new CopyOnWriteArrayList<>();
-        private final List<TaskAssigned> assigned = new CopyOnWriteArrayList<>();
-        private final List<com.forcitis.one.platform.approval.events.ApprovalTaskOverdue> overdue = new CopyOnWriteArrayList<>();
-        private final List<com.forcitis.one.platform.approval.events.ApprovalTaskEscalated> escalated = new CopyOnWriteArrayList<>();
-        private final Set<String> failedOnce = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    /** The events this test's own thread published, by type: what the module published is seen without waiting for any listener. */
+    public static class Events {
+        private final ApplicationEvents recorded;
+
+        Events(ApplicationEvents recorded) {
+            this.recorded = recorded;
+        }
 
         public List<ApprovalCompleted> completed() {
-            return completed;
+            return recorded.stream(ApprovalCompleted.class).toList();
         }
 
         public List<TaskResulted> resulted() {
-            return resulted;
+            return recorded.stream(TaskResulted.class).toList();
         }
 
         public List<TaskAssigned> assigned() {
-            return assigned;
+            return recorded.stream(TaskAssigned.class).toList();
         }
 
-        public List<com.forcitis.one.platform.approval.events.ApprovalTaskOverdue> overdue() {
-            return overdue;
+        public List<ApprovalTaskOverdue> overdue() {
+            return recorded.stream(ApprovalTaskOverdue.class).toList();
         }
 
-        public List<com.forcitis.one.platform.approval.events.ApprovalTaskEscalated> escalated() {
-            return escalated;
+        public List<ApprovalTaskEscalated> escalated() {
+            return recorded.stream(ApprovalTaskEscalated.class).toList();
         }
 
-        @ApplicationModuleListener
-        void on(com.forcitis.one.platform.approval.events.ApprovalTaskOverdue event) {
-            overdue.add(event);
+        public <T> List<T> of(Class<T> type) {
+            return recorded.stream(type).toList();
         }
+    }
 
-        @ApplicationModuleListener
-        void on(com.forcitis.one.platform.approval.events.ApprovalTaskEscalated event) {
-            escalated.add(event);
+    /** A business module's listener that fails the first delivery of a document called flaky-*, so the registry's redelivery can be shown. */
+    public static class FlakyListener {
+        private final List<ApprovalCompleted> delivered = new CopyOnWriteArrayList<>();
+        private final Set<String> failedOnce = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+        public List<ApprovalCompleted> delivered() {
+            return delivered;
         }
 
         public Set<String> failedOnce() {
@@ -294,21 +364,10 @@ public abstract class ApprovalIntegrationSupport {
 
         @ApplicationModuleListener
         void on(ApprovalCompleted event) {
-            // A business module's listener may fail; the registry keeps the publication and redelivers it.
             if (event.document().documentId().value().startsWith("flaky-") && failedOnce.add(event.document().documentId().value())) {
                 throw new IllegalStateException("first delivery fails on purpose");
             }
-            completed.add(event);
-        }
-
-        @ApplicationModuleListener
-        void on(TaskResulted event) {
-            resulted.add(event);
-        }
-
-        @ApplicationModuleListener
-        void on(TaskAssigned event) {
-            assigned.add(event);
+            delivered.add(event);
         }
     }
 
@@ -360,13 +419,18 @@ public abstract class ApprovalIntegrationSupport {
         }
 
         @Bean
+        com.forcitis.one.fixture.doubles.AggregateWriteGuard aggregateWriteGuard() {
+            return new com.forcitis.one.fixture.doubles.AggregateWriteGuard();
+        }
+
+        @Bean
         CommitGate commitGate() {
             return new CommitGate();
         }
 
         @Bean
-        EventRecorder eventRecorder() {
-            return new EventRecorder();
+        FlakyListener flakyListener() {
+            return new FlakyListener();
         }
 
         @Bean

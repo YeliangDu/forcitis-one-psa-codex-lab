@@ -8,6 +8,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.domain.AssignmentRule;
 import com.forcitis.one.platform.approval.domain.AssignmentRuleCodec;
+import com.forcitis.one.platform.approval.domain.NodeDeadline;
 import com.forcitis.one.platform.approval.domain.NodePolicy;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import java.io.ByteArrayInputStream;
@@ -133,7 +134,7 @@ class BpmnRuleConventionsTest {
     }
 
     @Test
-    @DisplayName("H2 the timesheet BPMN uses exactly the names cost.timesheet publishes: its form fields and its routing flag")
+    @DisplayName("H2 D-1a-100 the timesheet BPMN uses exactly the names cost.timesheet publishes: its form fields and its routing flags, and no decision table exists")
     void timesheetProcessUsesThePublishedNames() throws Exception {
         String xml = Files.readString(Path.of("src/main/resources/processes/cost_timesheet_approval.bpmn20.xml"));
         List<String> fields = new java.util.ArrayList<>();
@@ -143,27 +144,69 @@ class BpmnRuleConventionsTest {
         }
 
         assertThat(fields).containsExactlyInAnyOrder(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), TimesheetApprovalField.REGIONAL_HEAD.fieldName());
-        String nodesTable = Files.readString(Path.of("src/main/resources/dmn/cost_timesheet_approval_nodes.dmn"));
-        for (TimesheetRoutingFlag flag : TimesheetRoutingFlag.values()) {
-            assertThat(nodesTable).contains("<text>" + flag.flagName() + "</text>");
+        List<String> flags = new java.util.ArrayList<>();
+        try (InputStream in = getClass().getResourceAsStream("/processes/cost_timesheet_approval.bpmn20.xml")) {
+            BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);
+            model.getMainProcess().findFlowElementsOfType(UserTask.class)
+                    .forEach(node -> NodePolicyReader.read(node).routingFlag().ifPresent(flags::add));
         }
+        assertThat(flags).containsExactlyInAnyOrder(java.util.Arrays.stream(TimesheetRoutingFlag.values()).map(TimesheetRoutingFlag::flagName).toArray(String[]::new));
+        assertThat(Path.of("src/main/resources/dmn")).as("1a has no decision table").doesNotExist();
     }
 
     @Test
-    @DisplayName("RULE-248/300 every node of the timesheet process is a countersign node and leaves the permission to skip to the decision table")
-    void timesheetNodesAreCountersignAndLeaveSkippingToTheTable() throws Exception {
+    @DisplayName("RULE-248/300 D-1a-84 every node of the timesheet process is a countersign node with explicit skip, repeat-approver and paired deadline attributes")
+    void timesheetNodesAreCountersignWithExplicitAttributes() throws Exception {
         try (InputStream in = getClass().getResourceAsStream("/processes/cost_timesheet_approval.bpmn20.xml")) {
             BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);
             List<UserTask> nodes = model.getMainProcess().findFlowElementsOfType(UserTask.class);
             assertThat(nodes).hasSize(3);
             nodes.forEach(node -> {
-                assertThat(NodePolicyReader.read(node).skipWhenEmpty()).as(node.getId()).isFalse();
+                NodePolicy policy = NodePolicyReader.read(node);
+                assertThat(policy.skipWhenEmpty()).as(node.getId()).isTrue();
+                assertThat(policy.autoApproveRepeat()).as(node.getId()).isTrue();
+                assertThat(policy.deadline()).as(node.getId()).contains(new NodeDeadline(1, 1));
                 assertThat(node.getLoopCharacteristics()).as(node.getId()).isNotNull();
                 assertThat(node.getLoopCharacteristics().isSequential()).isFalse();
                 assertThat(node.getLoopCharacteristics().getInputDataItem()).isEqualTo("${approverResolution.apply(execution)}");
                 assertThat(node.getLoopCharacteristics().getElementVariable()).isEqualTo("approver");
             });
         }
+    }
+
+    @Test
+    @DisplayName("D-1a-84 M-10 a deadline needs its escalation interval and the reverse; both are whole workdays of at least one")
+    void deadlineParametersComeAsAPair() {
+        assertThat(NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\""
+                + " deadlineWorkdays=\"2\" escalationWorkdays=\"3\"/></extensionElements>"))).deadline()).contains(new NodeDeadline(2, 3));
+        assertThat(NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\"/></extensionElements>")))
+                .deadline()).isEmpty();
+        for (String unpaired : List.of("deadlineWorkdays=\"1\"", "escalationWorkdays=\"1\"")) {
+            assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\" "
+                    + unpaired + "/></extensionElements>")))).as(unpaired).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("review").hasMessageContaining("pair");
+        }
+        for (String bad : List.of("deadlineWorkdays=\"0\" escalationWorkdays=\"1\"", "deadlineWorkdays=\"1\" escalationWorkdays=\"-2\"",
+                "deadlineWorkdays=\"x\" escalationWorkdays=\"1\"", "deadlineWorkdays=\"1.5\" escalationWorkdays=\"1\"")) {
+            assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\" "
+                    + bad + "/></extensionElements>")))).as(bad).isInstanceOf(IllegalStateException.class).hasMessageContaining("review");
+        }
+    }
+
+    @Test
+    @DisplayName("G-1 an attribute that is neither true nor false does not read as false: the node does not load")
+    void aFlagMustBeTrueOrFalse() {
+        for (String attribute : List.of("skipWhenEmpty", "autoApproveRepeat", "cutoff")) {
+            assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\" "
+                    + attribute + "=\"yes\"/></extensionElements>")))).as(attribute).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(attribute);
+        }
+        NodePolicy policy = NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\""
+                + " routingFlag=\"projectHours\" skipWhenEmpty=\"true\" autoApproveRepeat=\"true\" cutoff=\"true\"/></extensionElements>")));
+        assertThat(policy.routingFlag()).contains("projectHours");
+        assertThat(policy.skipWhenEmpty()).isTrue();
+        assertThat(policy.autoApproveRepeat()).isTrue();
+        assertThat(policy.cutoff()).isTrue();
     }
 
     @Test

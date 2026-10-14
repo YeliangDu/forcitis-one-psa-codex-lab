@@ -2,7 +2,7 @@ package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.domain.ApprovalTask;
+import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,13 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClaimTask {
 
     private final TaskGuard guard;
-    private final ApprovalLifecycle lifecycle;
-    private final Aggregates aggregates;
+    private final Approvals approvals;
 
-    ClaimTask(TaskGuard guard, ApprovalLifecycle lifecycle, Aggregates aggregates) {
+    ClaimTask(TaskGuard guard, Approvals approvals) {
         this.guard = guard;
-        this.lifecycle = lifecycle;
-        this.aggregates = aggregates;
+        this.approvals = approvals;
     }
 
     @Transactional
@@ -27,13 +25,12 @@ public class ClaimTask {
         if (view.isClaimed()) {
             return;
         }
-        lifecycle.lock(view.instanceId());
+        ApprovalRequest request = approvals.lock(view.instanceId());
         TaskView current = guard.requireActor(taskId, actor, "claim");
         if (current.isClaimed()) {
             return;
         }
-        ApprovalTask task = aggregates.task(taskId);
-        lifecycle.claim(task, current, actor);
-        aggregates.save(task);
+        approvals.claim(request, current, actor);
+        approvals.save(request);
     }
 }

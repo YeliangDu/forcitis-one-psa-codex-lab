@@ -71,7 +71,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-269 the initiator withdraws a running approval with a reason: the round ends RETURNED, the tasks close, a new round can start")
+    @DisplayName("RULE-269 D-1a-72 the initiator withdraws a running approval with a reason: the round ends RETURNED, the tasks close, a new round can start")
     void withdrawEndsTheRoundAndAllowsANewOne() {
         Staff s = staff();
         actAs(s.initiator());
@@ -92,7 +92,9 @@ class RetractionIT extends ApprovalIntegrationSupport {
             assertThat(e.reason()).isEqualTo(new Reason("wrong hours"));
             assertThat(e.round()).isEqualTo(new RoundNumber(1));
         }));
-        eventually(() -> assertThat(auditActors("ApprovalRequest:TIMESHEET:" + key, "platform.approval.ApprovalCompleted")).containsExactly(s.initiator()));
+        assertThat(events.completed().getFirst().returnSource()).as("D-1a-72 a withdrawal is a return whose source is the initiator")
+                .isEqualTo(com.forcitis.one.platform.approval.api.ReturnSource.INITIATOR);
+        assertThat(events.completed().getFirst().envelope().actorId()).isEqualTo(String.valueOf(s.initiator()));
 
         ApprovalInstanceId second = startFor(key, s);
         assertThat(second).isNotEqualTo(first);

@@ -129,17 +129,20 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-278 the database itself refuses a duplicate (process type, business key, round)")
+    @DisplayName("RULE-278 the database itself refuses a duplicate (process type, document, round) and a second round started by the same event")
     void roundsAreUniqueInTheDatabase() {
         String key = newKey("unique");
-        jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number, initiator_id, instance_id)"
-                + " values ('COST_TIMESHEET_APPROVAL', ?, 1, 5, 'a')", key);
+        jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key, legal_entity_id, initiator_id,"
+                + " current_round, status, summary_text) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 5, 1, 'RUNNING', 's')", key);
+        String event = java.util.UUID.randomUUID().toString();
+        jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number, initiator_id, instance_id,"
+                + " trigger_event_id) values ('COST_TIMESHEET_APPROVAL', ?, 1, 5, 'a', ?::uuid)", key, event);
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number,"
-                + " initiator_id, instance_id) values ('COST_TIMESHEET_APPROVAL', ?, 1, 5, 'b')", key))
+                + " initiator_id, instance_id, trigger_event_id) values ('COST_TIMESHEET_APPROVAL', ?, 1, 5, 'b', gen_random_uuid())", key))
                 .isInstanceOf(DuplicateKeyException.class);
-        // the same business key under another process type is another document
-        jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number, initiator_id, instance_id)"
-                + " values ('OTHER_TYPE', ?, 1, 5, 'c')", key);
+        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number,"
+                + " initiator_id, instance_id, trigger_event_id) values ('COST_TIMESHEET_APPROVAL', ?, 2, 5, 'b', ?::uuid)", key, event))
+                .isInstanceOf(DuplicateKeyException.class);
     }
 
     @Test
@@ -147,10 +150,52 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     void requestsAreUniqueInTheDatabase() {
         String key = newKey("unique-request");
         jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key, legal_entity_id, initiator_id,"
-                + " current_round, status) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 5, 1, 'RUNNING')", key);
+                + " current_round, status, summary_text) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 5, 1, 'RUNNING', 's')", key);
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key,"
-                + " legal_entity_id, initiator_id, current_round, status) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 6, 1, 'RUNNING')", key))
-                .isInstanceOf(DuplicateKeyException.class);
+                + " legal_entity_id, initiator_id, current_round, status, summary_text) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 6, 1,"
+                + " 'RUNNING', 's')", key)).isInstanceOf(DuplicateKeyException.class);
+    }
+
+    @Test
+    @DisplayName("D-1a-78 asking for the round that exists is a retry and returns its instance; skipping a round, or starting round 2 while round 1 runs, is refused")
+    void roundsAreAskedForInOrder() {
+        long initiator = newId();
+        long manager = newId();
+        organisation.person(initiator, 1, null).person(manager, 1, null);
+        String key = newKey("round-order");
+        ApprovalInstanceId first = start(key, initiator, manager);
+        java.util.function.Function<Integer, ApprovalInstanceId> ask = round -> tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator),
+                Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))), round)));
+
+        assertThat(ask.apply(1)).isEqualTo(first);
+        assertThatThrownBy(() -> ask.apply(2)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL));
+        assertThatThrownBy(() -> ask.apply(3)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ROUND_MISMATCH));
+        assertThat(requestStatus(key)).isEqualTo("RUNNING");
+    }
+
+    @Test
+    @DisplayName("D-1a-78 a returned, a rejected and a cancelled approval can start the next round; an approved one cannot be started again")
+    void whichEndedApprovalsMayStartAgain() {
+        long initiator = newId();
+        long manager = newId();
+        organisation.person(initiator, 1, null).person(manager, 1, null);
+        for (String ended : List.of("RETURNED", "REJECTED", "CANCELLED")) {
+            String key = newKey("again-" + ended.toLowerCase());
+            start(key, initiator, manager);
+            jdbc.update("update platform_approval.approval_requests set status = ? where document_key = ?", ended, key);
+            assertThat(start(key, initiator, manager)).as(ended).isNotNull();
+            assertThat(requestStatus(key)).as(ended).isEqualTo("RUNNING");
+            assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_key = ?", Integer.class, key))
+                    .isEqualTo(2);
+        }
+        String approved = newKey("again-approved");
+        start(approved, initiator, manager);
+        jdbc.update("update platform_approval.approval_requests set status = 'APPROVED' where document_key = ?", approved);
+        assertThatThrownBy(() -> start(approved, initiator, manager)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ALREADY_APPROVED));
     }
 
     @Test
@@ -160,9 +205,8 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null);
         String key = newKey("rollback");
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
-            approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, new UserId(initiator),
-                    Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                    List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(initiator)))), "digest"));
+            approvals.start(startRequest(key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+                    List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(initiator))))));
             throw new IllegalStateException("business transaction fails after the start");
         })).isInstanceOf(IllegalStateException.class);
         assertThat(instancesOf(key)).isZero();

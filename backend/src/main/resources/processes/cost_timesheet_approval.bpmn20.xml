@@ -3,8 +3,10 @@
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xmlns:forcitis="https://forcitis.com/psa/approval/extension"
              targetNamespace="https://forcitis.com/psa/approval">
-  <!-- Which routes run, whether a node may be skipped, whether a repeat approver passes automatically and the node deadlines come from the
-       decision table cost_timesheet_approval_nodes (routed_<node> and the other answers are process variables set at the start).
+  <!-- Everything a node needs is an attribute of its forcitis:assignmentRule: routingFlag (the node runs only when the owning module set the
+       flag), skipWhenEmpty, autoApproveRepeat, and deadlineWorkdays with escalationWorkdays (both or neither; D-1a-110..113: the deadline is
+       23:59 of the n-th workday after the day the task is created, the reminder 09:00 of the next workday, the escalation 09:00 of the m-th
+       workday after the reminder). A new version of this file applies to the approvals started after it is deployed.
        Each node is a countersign: one task per distinct approver, all must approve. -->
   <process id="cost_timesheet_approval" name="工时审批" isExecutable="true">
     <startEvent id="start"/>
@@ -24,21 +26,24 @@
       </sequenceFlow>
       <userTask id="projectManagerReview" name="项目经理审批">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" routingFlag="projectHours" skipWhenEmpty="true"
+                                   autoApproveRepeat="true" deadlineWorkdays="1" escalationWorkdays="1"/>
         </extensionElements>
         <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
                                           flowable:elementVariable="approver"/>
       </userTask>
       <userTask id="regionalHeadReview" name="区域负责人审批">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId"/>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId" routingFlag="preSalesHours" skipWhenEmpty="true"
+                                   autoApproveRepeat="true" deadlineWorkdays="1" escalationWorkdays="1"/>
         </extensionElements>
         <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
                                           flowable:elementVariable="approver"/>
       </userTask>
       <userTask id="supervisorReview" name="一级汇报人审批">
         <extensionElements>
-          <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1"/>
+          <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1" routingFlag="overheadHours" skipWhenEmpty="true"
+                                   autoApproveRepeat="true" deadlineWorkdays="1" escalationWorkdays="1"/>
         </extensionElements>
         <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
                                           flowable:elementVariable="approver"/>

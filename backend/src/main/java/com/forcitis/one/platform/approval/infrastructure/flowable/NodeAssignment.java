@@ -2,7 +2,7 @@ package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.platform.approval.application.ApprovalError;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.domain.AssigneeResolver;
 import com.forcitis.one.platform.approval.domain.NodePolicy;
 import com.forcitis.one.platform.approval.domain.ProcessAdministrator;
@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Who a node is for: the node's own typed rule decides, and the node's decision-table answer decides whether finding nobody may skip it.
- * Nobody found without permission to skip goes to the process administrator; a missing or invalid input, or no administrator, fails.
+ * Who a node is for: the node's own typed rule decides, and the node's skipWhenEmpty attribute decides whether finding nobody may skip
+ * it. Nobody found without permission to skip goes to the process administrator; a missing or invalid input, or no administrator, fails.
  */
 @Component
 class NodeAssignment {
@@ -45,13 +45,11 @@ class NodeAssignment {
         ProcessVariables variables = EngineVariables.fromEngine(engineVariables);
         UserId initiator = new UserId(Long.parseLong(variables.firstVariable(FlowableApprovalEngine.VARIABLE_INITIATOR)
                 .orElseThrow(() -> new IllegalStateException("Instance " + instanceId + " has no initiator"))));
-        boolean skipWhenEmpty = variables.firstVariable(NodeDecisions.SKIP_WHEN_EMPTY + node.getId())
-                .map(Boolean::parseBoolean).orElse(policy.skipWhenEmpty());
 
         Resolution resolution;
         try {
             resolution = new AssigneeResolver(org, roles, administrator.current().orElse(null))
-                    .resolve(policy.rule(), policy.selfApprovalAllowed(), skipWhenEmpty, initiator, variables);
+                    .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
         } catch (RuntimeException failed) {
             log.error("Resolving the assignees of node {} (instance {}) failed: {}", node.getId(), instanceId, failed.toString());
             meters.counter("forcitis.platform.approval.assignee.resolution.failed").increment();
@@ -69,8 +67,9 @@ class NodeAssignment {
                 throw ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID.refusal("The approver field read by node " + node.getId()
                         + " is not an employed person");
             }
-            case UNRESOLVED -> throw new IllegalStateException("Nobody can handle node " + node.getId() + " of instance " + instanceId
-                    + " and no process administrator is configured (forcitis.platform.approval.assignment.process-administrator-user-id)");
+            case UNRESOLVED -> throw ApprovalError.PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND.refusal("Nobody can handle node " + node.getId()
+                    + " of instance " + instanceId + " and no process administrator is configured"
+                    + " (forcitis.platform.approval.assignment.process-administrator-user-id)");
             case RESOLVED -> {
             }
             default -> {

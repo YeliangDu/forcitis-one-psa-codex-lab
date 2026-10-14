@@ -10,7 +10,7 @@ import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
-import com.forcitis.one.platform.approval.application.ApprovalError;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -161,7 +161,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         double before = counter("forcitis.platform.approval.assignee.invalid.input");
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(), TimesheetRoutingFlag.PROJECT_HOURS))
-                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
 
         assertThat(counter("forcitis.platform.approval.assignee.invalid.input")).isEqualTo(before + 1);
     }
@@ -172,9 +172,9 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         Staff s = staff();
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers(String.valueOf(newId()))),
-                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
+                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
         assertThatThrownBy(() -> startWith(newKey("branches"), s, List.of(projectManagers("not-an-id")),
-                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
+                TimesheetRoutingFlag.PROJECT_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
     }
 
     @Test

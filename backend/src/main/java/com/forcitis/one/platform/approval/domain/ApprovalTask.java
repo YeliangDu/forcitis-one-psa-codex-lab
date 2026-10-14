@@ -1,187 +1,171 @@
 package com.forcitis.one.platform.approval.domain;
 
-import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.kernel.Reason;
+import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.kernel.event.DomainEvent;
-import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.api.EscalationTarget;
+import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.NodeKey;
-import com.forcitis.one.platform.approval.api.NodeName;
-import com.forcitis.one.platform.approval.api.ProcessKey;
-import com.forcitis.one.platform.approval.api.ProcessName;
 import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
-import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
-import com.forcitis.one.platform.approval.events.TaskAssigned;
-import com.forcitis.one.platform.approval.events.TaskClaimed;
-import com.forcitis.one.platform.approval.events.TaskResulted;
-import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 
+/** Part of an {@link ApprovalRequest}: it changes only through the request, which records the events and owns the version. */
 public final class ApprovalTask {
 
-    private static final String AGGREGATE_TYPE = "ApprovalTask";
-    private static final String EVENT_PREFIX = "platform.approval.";
+    public static final StateMachine<ApprovalTaskStatus> MACHINE = StateMachine.of(ApprovalTaskStatus.class)
+            .allow(ApprovalTaskStatus.PENDING, ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.COMPLETED, ApprovalTaskStatus.CLOSED)
+            .allow(ApprovalTaskStatus.CLAIMED, ApprovalTaskStatus.PENDING, ApprovalTaskStatus.COMPLETED, ApprovalTaskStatus.CLOSED)
+            .build();
 
     private final ApprovalTaskId taskId;
     private final ApprovalInstanceId instanceId;
-    private final ProcessKey processKey;
-    private final DocumentReference document;
-    private final LegalEntityId legalEntityId;
-    private final String nodeKey;
-    private final Instant dueAt;
-    private final Instant escalateAt;
-    private final long loadedVersion;
-    private final ApprovalTaskStatus loadedStatus;
+    private final NodeKey nodeKey;
+    private final Instant createdAt;
+    private final DeadlinePlan deadline;
     private final boolean isNew;
+    private boolean changed;
     private ApprovalTaskStatus status;
     private UserId assignee;
+    private Instant claimedAt;
+    private Instant completedAt;
     private Instant overdueAt;
     private Instant escalatedAt;
-    private String approvedDigest;
-    private long eventSequence;
-    private final List<PendingEvent> events = new ArrayList<>();
+    private TaskOutcome outcome;
+    private TaskEffect effect;
+    private Reason resultReason;
+    private ContentHash approvedHash;
 
-    private ApprovalTask(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey, DocumentReference document,
-            LegalEntityId legalEntityId, String nodeKey, ApprovalTaskStatus status, UserId assignee, Instant dueAt, Instant escalateAt,
-            Instant overdueAt, Instant escalatedAt, String approvedDigest, long eventSequence, long version, boolean isNew) {
+    private ApprovalTask(ApprovalTaskId taskId, ApprovalInstanceId instanceId, NodeKey nodeKey, Instant createdAt, DeadlinePlan deadline,
+            ApprovalTaskStatus status, boolean isNew) {
         this.taskId = Objects.requireNonNull(taskId, "taskId");
         this.instanceId = Objects.requireNonNull(instanceId, "instanceId");
-        this.processKey = Objects.requireNonNull(processKey, "processKey");
-        this.document = Objects.requireNonNull(document, "document");
-        this.legalEntityId = Objects.requireNonNull(legalEntityId, "legalEntityId");
         this.nodeKey = Objects.requireNonNull(nodeKey, "nodeKey");
+        this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
+        this.deadline = deadline;
         this.status = Objects.requireNonNull(status, "status");
-        this.assignee = assignee;
-        this.dueAt = dueAt;
-        this.escalateAt = escalateAt;
-        this.overdueAt = overdueAt;
-        this.escalatedAt = escalatedAt;
-        this.approvedDigest = approvedDigest;
-        this.eventSequence = eventSequence;
-        this.loadedVersion = version;
-        this.loadedStatus = status;
         this.isNew = isNew;
-        if ((dueAt == null) != (escalateAt == null)) {
-            throw new IllegalArgumentException("a deadline needs both the due and the escalation time");
-        }
+        this.changed = isNew;
     }
 
-    public static ApprovalTask assign(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey, String processName,
-            DocumentReference document, LegalEntityId legalEntityId, String nodeKey, String nodeName, UserId initiator,
-            List<UserId> candidates, Instant dueAt, Instant escalateAt, LocalDate businessDate) {
-        ApprovalTask task = new ApprovalTask(taskId, instanceId, processKey, document, legalEntityId, nodeKey, ApprovalTaskStatus.PENDING,
-                null, dueAt, escalateAt, null, null, null, 0, 0, true);
-        List<UserId> offered = List.copyOf(candidates);
-        task.record("TaskAssigned", businessDate, envelope -> new TaskAssigned(envelope, taskId, instanceId, processKey,
-                new ProcessName(processName), document, new NodeKey(nodeKey), new NodeName(nodeName), initiator, offered));
+    static ApprovalTask assigned(TaskAssignment assignment, Instant at) {
+        return new ApprovalTask(assignment.taskId(), assignment.instanceId(), assignment.nodeKey(), at,
+                assignment.deadline().orElse(null), ApprovalTaskStatus.PENDING, true);
+    }
+
+    static ApprovalTask passedBySystem(TaskAssignment assignment, UserId approver, Instant at) {
+        ApprovalTask task = new ApprovalTask(assignment.taskId(), assignment.instanceId(), assignment.nodeKey(), at, null,
+                ApprovalTaskStatus.COMPLETED, true);
+        task.assignee = approver;
+        task.completedAt = at;
+        task.outcome = TaskOutcome.APPROVED;
+        task.effect = TaskEffect.AUTOMATIC;
         return task;
     }
 
-    /** A repeat approver whose earlier approval still covers the same content: passed by the system, no card and no result event. */
-    public static ApprovalTask assignAutomatically(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey,
-            DocumentReference document, LegalEntityId legalEntityId, String nodeKey) {
-        return new ApprovalTask(taskId, instanceId, processKey, document, legalEntityId, nodeKey, ApprovalTaskStatus.COMPLETED, null,
-                null, null, null, null, null, 0, 0, true);
+    public static ApprovalTask restore(ApprovalTaskId taskId, ApprovalInstanceId instanceId, NodeKey nodeKey, ApprovalTaskStatus status,
+            UserId assignee, Instant createdAt, DeadlinePlan deadline, Instant claimedAt, Instant completedAt, Instant overdueAt,
+            Instant escalatedAt, TaskOutcome outcome, TaskEffect effect, Reason resultReason, ContentHash approvedHash) {
+        ApprovalTask task = new ApprovalTask(taskId, instanceId, nodeKey, createdAt, deadline, status, false);
+        task.assignee = assignee;
+        task.claimedAt = claimedAt;
+        task.completedAt = completedAt;
+        task.overdueAt = overdueAt;
+        task.escalatedAt = escalatedAt;
+        task.outcome = outcome;
+        task.effect = effect;
+        task.resultReason = resultReason;
+        task.approvedHash = approvedHash;
+        return task;
     }
 
-    public static ApprovalTask restore(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey,
-            DocumentReference document, LegalEntityId legalEntityId, String nodeKey, ApprovalTaskStatus status, UserId assignee,
-            Instant dueAt, Instant escalateAt, Instant overdueAt, Instant escalatedAt, String approvedDigest, long eventSequence,
-            long version) {
-        return new ApprovalTask(taskId, instanceId, processKey, document, legalEntityId, nodeKey, status, assignee, dueAt, escalateAt,
-                overdueAt, escalatedAt, approvedDigest, eventSequence, version, false);
-    }
-
-    public void claim(UserId by, LocalDate businessDate) {
-        require(status == ApprovalTaskStatus.PENDING, "claim");
-        status = ApprovalTaskStatus.CLAIMED;
+    void claim(UserId by, Instant at) {
+        move(ApprovalTaskStatus.CLAIMED);
         assignee = Objects.requireNonNull(by, "by");
-        record("TaskClaimed", businessDate, envelope -> new TaskClaimed(envelope, taskId, instanceId, document, by));
+        claimedAt = at;
     }
 
-    public void complete(UserId by, TaskOutcome outcome, boolean advisory, String reason, String contentDigest, LocalDate businessDate) {
-        require(status == ApprovalTaskStatus.CLAIMED && assignee.equals(by), "complete");
-        status = ApprovalTaskStatus.COMPLETED;
-        if (outcome == TaskOutcome.APPROVED && !advisory) {
-            approvedDigest = Objects.requireNonNull(contentDigest, "contentDigest");
+    void release(UserId by) {
+        requireHeldBy(by, "release");
+        move(ApprovalTaskStatus.PENDING);
+        assignee = null;
+        claimedAt = null;
+    }
+
+    void transfer(UserId from, UserId to) {
+        requireHeldBy(from, "transfer");
+        if (from.equals(to)) {
+            throw illegal("transfer to the person who holds it");
         }
-        record("TaskResulted", businessDate, envelope -> new TaskResulted(envelope, taskId, instanceId, processKey, document,
-                new NodeKey(nodeKey), by, outcome, advisory ? TaskEffect.ADVISORY : TaskEffect.BINDING, Reason.ofNullable(reason)));
-    }
-
-    public void completeAutomatically() {
-        require(status == ApprovalTaskStatus.PENDING, "complete automatically");
-        status = ApprovalTaskStatus.COMPLETED;
-    }
-
-    public void close() {
-        require(status.isOpen(), "close");
-        status = ApprovalTaskStatus.CLOSED;
-    }
-
-    public void transfer(UserId from, UserId to, LocalDate businessDate) {
-        require(status == ApprovalTaskStatus.CLAIMED && assignee.equals(from) && !from.equals(to), "transfer");
         assignee = Objects.requireNonNull(to, "to");
-        record("TaskTransferred", businessDate, envelope -> new TaskTransferred(envelope, taskId, instanceId, document,
-                new NodeKey(nodeKey), from, to));
+        changed = true;
     }
 
-    public void markOverdue(List<UserId> holders, Instant now, LocalDate businessDate) {
-        require(status.isOpen() && dueAt != null && overdueAt == null && !now.isBefore(dueAt), "mark overdue");
+    void reassign(UserId to, Instant at) {
+        if (!status.isOpen()) {
+            throw illegal("reassign");
+        }
+        status = ApprovalTaskStatus.CLAIMED;
+        assignee = Objects.requireNonNull(to, "to");
+        claimedAt = at;
+        changed = true;
+    }
+
+    void complete(UserId by, TaskOutcome result, boolean advisory, Reason reason, ContentHash digest, Instant at) {
+        requireHeldBy(by, "complete");
+        move(ApprovalTaskStatus.COMPLETED);
+        completedAt = at;
+        outcome = Objects.requireNonNull(result, "result");
+        effect = advisory ? TaskEffect.ADVISORY : TaskEffect.BINDING;
+        resultReason = reason;
+        if (result == TaskOutcome.APPROVED && !advisory) {
+            approvedHash = Objects.requireNonNull(digest, "digest");
+        }
+    }
+
+    void close() {
+        move(ApprovalTaskStatus.CLOSED);
+    }
+
+    void markOverdue(Instant now) {
+        if (!status.isOpen() || deadline == null || overdueAt != null || now.isBefore(deadline.remindAt())) {
+            throw illegal("be marked overdue");
+        }
         overdueAt = now;
-        List<UserId> reminded = List.copyOf(holders);
-        Instant due = dueAt;
-        record("ApprovalTaskOverdue", businessDate, envelope -> new ApprovalTaskOverdue(envelope, taskId, instanceId,
-                document, new NodeKey(nodeKey), due, reminded));
+        changed = true;
     }
 
-    /** A claimed task goes back to the pool so that the people it was escalated to can take it. */
-    public void escalate(List<UserId> escalatedTo, boolean toProcessAdministrator, Instant now, LocalDate businessDate) {
-        require(status.isOpen() && overdueAt != null && escalatedAt == null && escalateAt != null && !now.isBefore(escalateAt),
-                "escalate");
+    void escalate(Instant now) {
+        if (!status.isOpen() || overdueAt == null || escalatedAt != null || deadline == null || now.isBefore(deadline.escalateAt())) {
+            throw illegal("escalate");
+        }
         escalatedAt = now;
         if (status == ApprovalTaskStatus.CLAIMED) {
             status = ApprovalTaskStatus.PENDING;
             assignee = null;
+            claimedAt = null;
         }
-        List<UserId> receivers = List.copyOf(escalatedTo);
-        record("ApprovalTaskEscalated", businessDate, envelope -> new ApprovalTaskEscalated(envelope, taskId, instanceId,
-                document, new NodeKey(nodeKey), receivers,
-                toProcessAdministrator ? EscalationTarget.PROCESS_ADMINISTRATOR : EscalationTarget.SUPERVISOR));
+        changed = true;
     }
 
-    private void require(boolean legal, String action) {
-        if (!legal) {
-            throw new ApprovalTransitionException(ApprovalTransitionException.Violation.ILLEGAL_TRANSITION,
-                    "Task " + taskId.value() + " cannot " + action + " while " + status);
+    private void requireHeldBy(UserId user, String action) {
+        if (status != ApprovalTaskStatus.CLAIMED || !assignee.equals(user)) {
+            throw illegal(action);
         }
     }
 
-    private void record(String eventName, LocalDate businessDate, Function<EventEnvelope, DomainEvent> assemble) {
-        EventDraft draft = new EventDraft(EVENT_PREFIX + eventName, 1, AGGREGATE_TYPE, taskId.value(), ++eventSequence, legalEntityId,
-                businessDate, new EventSource(SourceSystem.ONE, null), List.of());
-        events.add(new PendingEvent(draft, assemble));
+    private void move(ApprovalTaskStatus target) {
+        status = MACHINE.require(status, target, ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL);
+        changed = true;
     }
 
-    public List<PendingEvent> pullEvents() {
-        List<PendingEvent> pulled = List.copyOf(events);
-        events.clear();
-        return pulled;
+    private com.forcitis.one.kernel.DomainException illegal(String action) {
+        return ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal("Task " + taskId.value() + " cannot " + action + " while " + status);
     }
 
     public ApprovalTaskId taskId() {
@@ -192,19 +176,7 @@ public final class ApprovalTask {
         return instanceId;
     }
 
-    public ProcessKey processKey() {
-        return processKey;
-    }
-
-    public DocumentReference document() {
-        return document;
-    }
-
-    public LegalEntityId legalEntityId() {
-        return legalEntityId;
-    }
-
-    public String nodeKey() {
+    public NodeKey nodeKey() {
         return nodeKey;
     }
 
@@ -216,12 +188,20 @@ public final class ApprovalTask {
         return Optional.ofNullable(assignee);
     }
 
-    public Optional<Instant> dueAt() {
-        return Optional.ofNullable(dueAt);
+    public Instant createdAt() {
+        return createdAt;
     }
 
-    public Optional<Instant> escalateAt() {
-        return Optional.ofNullable(escalateAt);
+    public Optional<DeadlinePlan> deadline() {
+        return Optional.ofNullable(deadline);
+    }
+
+    public Optional<Instant> claimedAt() {
+        return Optional.ofNullable(claimedAt);
+    }
+
+    public Optional<Instant> completedAt() {
+        return Optional.ofNullable(completedAt);
     }
 
     public Optional<Instant> overdueAt() {
@@ -232,23 +212,27 @@ public final class ApprovalTask {
         return Optional.ofNullable(escalatedAt);
     }
 
-    public Optional<String> approvedDigest() {
-        return Optional.ofNullable(approvedDigest);
+    public Optional<TaskOutcome> outcome() {
+        return Optional.ofNullable(outcome);
     }
 
-    public long eventSequence() {
-        return eventSequence;
+    public Optional<TaskEffect> effect() {
+        return Optional.ofNullable(effect);
     }
 
-    public long loadedVersion() {
-        return loadedVersion;
+    public Optional<Reason> resultReason() {
+        return Optional.ofNullable(resultReason);
     }
 
-    public ApprovalTaskStatus loadedStatus() {
-        return loadedStatus;
+    public Optional<ContentHash> approvedHash() {
+        return Optional.ofNullable(approvedHash);
     }
 
     public boolean isNew() {
         return isNew;
+    }
+
+    public boolean isChanged() {
+        return changed;
     }
 }

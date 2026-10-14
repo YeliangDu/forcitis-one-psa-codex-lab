@@ -69,7 +69,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
                 new WecomUserId(organisation.wecomOf(second)));
         assertThat(card.title()).contains("项目经理审批");
         assertThat(card.targetUrl()).contains(task.value());
-        assertThat(card.description()).contains("工时审批").contains("单据 " + key.substring(key.lastIndexOf(':') + 1));
+        assertThat(card.description()).contains("工时审批").contains("summary of " + key).contains("发起人").contains("发起时间").contains("截止");
         assertThat(card.title() + card.description()).doesNotContain("COST_TIMESHEET_APPROVAL").doesNotContain("timesheet:");
     }
 
@@ -133,8 +133,8 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("a return ends the round: no further task exists and no further card is sent")
-    void returnSendsNoFurtherCard() {
+    @DisplayName("D-1a-135 a return ends the round: no further task exists, no further task card goes out, and the initiator gets the completion card")
+    void returnSendsTheCompletionCardOnly() {
         long initiator = newId();
         long manager = newId();
         organisation.person(initiator, 1, null).person(manager, 1, null);
@@ -145,6 +145,9 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.REJECT, "again")));
 
         assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).count()).isZero();
-        verify(wecom, after(1_500).never()).send(argThat(card -> card.wecomUserIds().contains(new WecomUserId(organisation.wecomOf(initiator)))));
+        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-instance:" + instance.value() + ":completed")
+                && card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(initiator))))
+                && card.title().contains("已退回") && card.description().contains("again")));
+        verify(wecom, after(1_000).times(1)).send(argThat(card -> card.deduplicationKey().startsWith("approval-task:" + task.value())));
     }
 }

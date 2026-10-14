@@ -7,6 +7,7 @@ import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** Takes no lock, so looking at a document never waits for an approver who is deciding it. */
 @Service
 public class CheckWithdraw {
 
@@ -16,7 +17,7 @@ public class CheckWithdraw {
         this.retraction = retraction;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public WithdrawCheck execute(ProcessKey processKey, DocumentReference document, UserId actor) {
         return retraction.check(processKey, document, actor);
     }

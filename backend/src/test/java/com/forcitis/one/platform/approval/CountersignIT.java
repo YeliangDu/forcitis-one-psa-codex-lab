@@ -168,6 +168,6 @@ class CountersignIT extends ApprovalIntegrationSupport {
     void invalidApproverFailsInsteadOfSkipping() {
         Staff s = staff();
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> start(newKey("countersign-invalid"), s, 424242L))
-                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
     }
 }
