@@ -8,7 +8,7 @@
 
 | 资源 | 标识 | 说明 |
 |---|---|---|
-| RDS PostgreSQL | pgm-bp13vak0sew3m003 · 杭州 · PG 18.6 高可用 · 4C16G · ESSD 40G · 库 `forcitis_one` | 用户：「这个就是你需要的 RDS……目前是测试开发用」。同库已有 IT 服务门户（`it_portal_runtime`） |
+| RDS PostgreSQL | pgm-bp13vak0sew3m003 · 杭州 · PG 18.6 高可用 · 4C16G · ESSD 40G · 库 `forcitis_one`（it_portal）；FORCITIS one dev 用新库 `forcitis_one_dev` | 用户：「这个就是你需要的 RDS……目前是测试开发用」。同库已有 IT 服务门户（`it_portal_runtime`） |
 | ECS | i-bp122xlpar8w2uylmal2（forcitis-one-production）· 杭州 K 区 · g8i.xlarge 4C16G · Alibaba Cloud Linux 4 · 系统盘 100G + 数据盘 200G（未挂载）· 内网 172.16.89.86 · 公网 47.114.56.157 | 用户：「新开专用 ECS」。不设登录密码和密钥，运维经云助手 / Workbench 操作 |
 | 网络 | VPC vpc-bp1ovla4k0s9pl70fs5jl · 安全组 sg-bp1hjbq8dkoaxa2nljzq 入方向只开 80/443 · RDS 白名单分组 `forcitis_one` = 172.16.89.86 | |
 
@@ -16,29 +16,29 @@
 
 | # | 问题 | 建议 |
 |---|---|---|
-| D-1 | **环境划分**：RDS 现在用于测试开发。生产切换前，dev 和 prod 是否共用一个实例？ | 建议生产另开一个实例，或至少另建一个库（`forcitis_one_prod`）并配独立角色。dev 不得持有生产凭据；生产库只接受生产 ECS 访问。决定前，本清单只开 dev |
-| D-2 | 这台 ECS 名为 forcitis-one-production，dev 阶段是否也部署在它上面？ | 建议 dev 也先部署在这台，使用 dev 库；切生产时换配置文件、清空 dev 数据。也可以另开一台小规格 dev 机 |
-| D-3 | `one.forcitis.com` 的 DNS 与证书由谁办理 | 证书建议用阿里云 SSL 证书服务（或 ACME），DNS 由域名管理员添加 A 记录指向 47.114.56.157 |
-| D-4 | A8 库（SQL Server）与老 PSA 库（SQL Server RDS）的只读视图和账号由谁建 | 见 §4。需要 A8 管理员和老 RDS 的 DBA 分别执行，并把 172.16.89.86 加入两库白名单 |
-| D-5 | 应急管理员开通方式 | 见 §6，建议使用一次性运维命令，不提供 HTTP 接口 |
+| D-1 | 环境划分 | **已定**（用户 2026-10-14：「同实例分库，生产前再定」）：dev 用同实例独立库 `forcitis_one_dev` + `one_dev_*` 角色；生产前再决定是否另开生产 RDS（若同实例，另建库与 `one_prod_*` 角色） |
+| D-2 | dev 部署位置 | **已定**（同上）：dev 部署在 forcitis-one-production（i-bp122xlpar8w2uylmal2）；切生产时换配置与库 |
+| D-3（部署前再问） | `one.forcitis.com` 的 DNS 与证书由谁办理 | 证书建议用阿里云 SSL 证书服务（或 ACME），DNS 由域名管理员添加 A 记录指向 47.114.56.157 |
+| D-4（部署前再问） | A8 库（SQL Server）与老 PSA 库（SQL Server RDS）的只读视图和账号由谁建 | 见 §4。需要 A8 管理员和老 RDS 的 DBA 分别执行，并把 172.16.89.86 加入两库白名单 |
+| D-5（部署前再问） | 应急管理员开通方式 | 见 §6，建议使用一次性运维命令，不提供 HTTP 接口 |
 
-## 2. PostgreSQL（`forcitis_one`）
+## 2. PostgreSQL（`forcitis_one_dev`）
 
 脚本见 `one_db_roles_schemas.sql`。执行顺序：
 1. 用 RDS 高权限账号执行 §0 冲突检查。任何一项查到结果就停止，并把结果报给 psa-coordinator。
 2. 执行 §1 至 §3：
-   - 建角色：`one_owner`（属主，不可登录）、`one_migrator`（迁移）、`one_app`（运行）、`one_readonly`（排障，可选）；
+   - 建角色：`one_dev_owner`（属主，不可登录）、`one_dev_migrator`（迁移）、`one_dev_app`（运行）、`one_dev_readonly`（排障，可选）；
    - 建 schema，共 8 个：`one_migration`（Flyway 历史表）和 7 个模块 schema；
    - 授权：运行角色只有 DML，审计表只有 INSERT 和 SELECT；只授权本系统自己的 schema，不改数据库级授权和 `public` 的现有授权。
-3. 在 RDS 控制台为 `one_migrator`、`one_app`、`one_readonly` 设置随机口令（≥24 位）。口令只写入服务器受保护文件（§5）或 KMS，不经过聊天、不进仓库。
-4. 首次部署（§7）：用 `one_migrator` 运行 Flyway；再以 `FLOWABLE_SCHEMA_UPDATE=true` 启动一次，建 `ACT_*`；之后改用 `one_app` 常驻运行。
+3. 在 RDS 控制台为 `one_dev_migrator`、`one_dev_app`、`one_dev_readonly` 设置随机口令（≥24 位）。口令只写入服务器受保护文件（§5）或 KMS，不经过聊天、不进仓库。
+4. 首次部署（§7）：用 `one_dev_migrator` 运行 Flyway；再以 `FLOWABLE_SCHEMA_UPDATE=true` 启动一次，建 `ACT_*`；之后改用 `one_dev_app` 常驻运行。
 
-与 it_portal 隔离：所有 schema 和角色都以本系统模块名或 `one_` 为前缀；不触碰 it_portal 的 schema；连接数上限分别设为 one_app 40、one_migrator 2、one_readonly 3。
+与 it_portal 隔离：所有 schema 和角色都以本系统模块名或 `one_` 为前缀；不触碰 it_portal 的 schema；连接数上限分别设为 one_dev_app 40、one_dev_migrator 2、one_dev_readonly 3。
 
 应用侧需要的配置（随骨架补齐，属代码改动，由本会话完成）：
 - `spring.flyway.default-schema=one_migration`
 - `spring.flyway.schemas` 列出全部模块 schema，`create-schemas=false`（由 DBA 预建）
-- 部署时迁移连接用 one_migrator，运行连接用 one_app。分开配置 `spring.flyway.user` / `password` 和 `spring.datasource.*`。
+- 部署时迁移连接用 one_dev_migrator，运行连接用 one_dev_app。分开配置 `spring.flyway.user` / `password` 和 `spring.datasource.*`。
 
 ## 3. ECS 初始化（i-bp122xlpar8w2uylmal2）
 
@@ -76,7 +76,7 @@
 
 - **唯一来源**：服务器上的 `/etc/forcitis-one/one.env`，权限 `0640 root:forcitis`，由 systemd 的 `EnvironmentFile` 加载。仓库、镜像、聊天、工单中都不出现这些值。
 - **后续计划**：迁到阿里云 KMS 凭据管家，启动时拉取，one.env 只保留 KMS 引用。上线前完成。
-- **PG 连接**：`SPRING_DATASOURCE_URL=jdbc:postgresql://<RDS 内网地址>:5432/forcitis_one?sslmode=verify-full&sslrootcert=/etc/forcitis-one/rds-ca.pem`，`SPRING_DATASOURCE_USERNAME=one_app`，口令单独一行。迁移连接用 `SPRING_FLYWAY_USER` / `SPRING_FLYWAY_PASSWORD`（one_migrator），只在部署步骤注入，常驻进程不持有迁移凭据。
+- **PG 连接**：`SPRING_DATASOURCE_URL=jdbc:postgresql://<RDS 内网地址>:5432/forcitis_one_dev?sslmode=verify-full&sslrootcert=/etc/forcitis-one/rds-ca.pem`，`SPRING_DATASOURCE_USERNAME=one_dev_app`，口令单独一行。迁移连接用 `SPRING_FLYWAY_USER` / `SPRING_FLYWAY_PASSWORD`（one_dev_migrator），只在部署步骤注入，常驻进程不持有迁移凭据。
 - **应用变量清单**（以代码为准，重构后键名改为按角色命名）：
 
 | 变量 | 用途 | 必需 |
@@ -112,7 +112,7 @@
 
 1. CI 在 main 上构建 jar 和前端 dist，产物附带版本号与 SHA256。
 2. 经云助手上传到 `/data/forcitis-one/releases/<ver>/`，校验 SHA256。
-3. 迁移：以 one_migrator 运行 Flyway（`--spring.main.web-application-type=none` 的迁移模式）。首次还要以 `FLOWABLE_SCHEMA_UPDATE=true` 建 ACT_*。
+3. 迁移：以 one_dev_migrator 运行 Flyway（`--spring.main.web-application-type=none` 的迁移模式）。首次还要以 `FLOWABLE_SCHEMA_UPDATE=true` 建 ACT_*。
 4. 切换 `current` 软链，`systemctl restart forcitis-one`，检查健康。
 5. 冒烟：匿名访问返回 401；企业微信 / 致远登录；`/me` 正常；组织同步跑一轮，sync_runs 为 SUCCEEDED。
 6. 回滚：`current` 指回上一版本并重启。数据库迁移只做向前兼容的变更，1a 期间不做破坏性迁移。
