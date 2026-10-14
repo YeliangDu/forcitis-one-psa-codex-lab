@@ -56,6 +56,48 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: source_reference
+  zh: 来源对照
+  en: SourceReference
+  snake: source_reference
+  kind: entity
+  bc: platform.integration
+  definition: 外部系统或老系统中一个对象的标识与 FORCITIS one 自有 ID 的对应；只在集成层，领域只用自有 ID；同一来源系统、同一类别下来源 ID 与自有 ID 在任一时点各自唯一
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ADR-0033（提议）登记，待用语确认
+- id: source_system
+  zh: 来源系统
+  en: SourceSystem
+  snake: source_system
+  kind: enum
+  bc: platform.integration
+  definition: 来源对照所属的外部系统（组织源、老系统、核算系统等），取值只在集成层出现
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ADR-0033（提议）登记，待用语确认
+- id: source_object_kind
+  zh: 来源对象类别
+  en: SourceObjectKind
+  snake: source_object_kind
+  kind: enum
+  bc: platform.integration
+  definition: 来源对照所指的自有对象类别（员工、组织单元、岗位、法人主体等），决定自有 ID 指向哪类对象
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ADR-0033（提议）登记，待用语确认
 common_words:
 - external
 - listener
