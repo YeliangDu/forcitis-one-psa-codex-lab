@@ -168,4 +168,19 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         assertThat(storedIdentifiers(1001)).isEqualTo(2);
         assertThat(body(login(1001, cookie(session, IDENTIFIER))).path("identityConfirmationRequired").asBoolean()).isFalse();
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    com.forcitis.one.platform.identity.application.RevokeBrowserIdentifiers revoke;
+
+    @Test
+    @DisplayName("C-M7 the departure trigger invalidates the identifiers, and running it again changes nothing")
+    void departureTriggerIsIdempotent() throws Exception {
+        confirmedIdentifier(1001, null);
+        assertThat(storedIdentifiers(1001)).isPositive();
+
+        revoke.execute(new com.forcitis.one.kernel.UserId(1001));
+        revoke.execute(new com.forcitis.one.kernel.UserId(1001));
+
+        assertThat(storedIdentifiers(1001)).isZero();
+    }
 }

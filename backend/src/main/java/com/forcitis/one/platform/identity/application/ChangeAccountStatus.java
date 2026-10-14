@@ -15,11 +15,11 @@ public class ChangeAccountStatus {
     private final SessionRegistry sessions;
     private final AccessCache cache;
     private final DomainEvents events;
-    private final BrowserIdentity browserIdentity;
+    private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
 
     ChangeAccountStatus(AccountRepository accounts, SessionRegistry sessions, AccessCache cache, DomainEvents events,
-            BrowserIdentity browserIdentity) {
-        this.browserIdentity = browserIdentity;
+            RevokeBrowserIdentifiers revokeBrowserIdentifiers) {
+        this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
         this.accounts = accounts;
         this.sessions = sessions;
         this.cache = cache;
@@ -39,7 +39,7 @@ public class ChangeAccountStatus {
         }
         if (!enable) {
             sessions.revokeAll(account.userId());
-            browserIdentity.invalidateAll(account.userId());
+            revokeBrowserIdentifiers.execute(account.userId());
         }
         cache.evict(account.userId());
     }
