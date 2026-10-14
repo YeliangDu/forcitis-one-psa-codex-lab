@@ -1,0 +1,80 @@
+{
+  "formatVersion": 1,
+  "processKey": "TIMESHEET",
+  "processAdministratorUserId": 900,
+  "legacyFallbackUserIds": [500],
+  "snapshot": {
+    "employees": [
+      {"userId": 101, "orgUnitId": 1,  "leaderUserId": null, "employed": true},
+      {"userId": 105, "orgUnitId": 10, "leaderUserId": 110,  "employed": true},
+      {"userId": 110, "orgUnitId": 10, "leaderUserId": 101,  "employed": true},
+      {"userId": 111, "orgUnitId": 10, "leaderUserId": 110,  "employed": true},
+      {"userId": 112, "orgUnitId": 10, "leaderUserId": 110,  "employed": true},
+      {"userId": 201, "orgUnitId": 11, "leaderUserId": 111,  "employed": true},
+      {"userId": 202, "orgUnitId": 11, "leaderUserId": null, "employed": true},
+      {"userId": 301, "orgUnitId": 11, "leaderUserId": 111,  "employed": false},
+      {"userId": 500, "orgUnitId": 1,  "leaderUserId": null, "employed": true},
+      {"userId": 900, "orgUnitId": 1,  "leaderUserId": null, "employed": true}
+    ],
+    "orgUnits": [
+      {"orgUnitId": 1,  "parentOrgUnitId": null, "headUserId": 101,  "regionalReceivablesManagerId": null, "active": true},
+      {"orgUnitId": 10, "parentOrgUnitId": 1,    "headUserId": 110,  "regionalReceivablesManagerId": null, "active": true},
+      {"orgUnitId": 11, "parentOrgUnitId": 10,   "headUserId": null, "regionalReceivablesManagerId": null, "active": true}
+    ],
+    "roleHolders": {"BU-002": [110, 112]}
+  },
+  "instances": [
+    {
+      "instanceId": "SYN-1", "initiatorId": 201,
+      "formFields": {"manager_id": ["111"]}, "variables": {},
+      "nodes": [
+        {"nodeKey": "managerReview", "rule": {"type": "FORM_FIELD_USERS", "field": "manager_id"}, "actualApprovers": [111]},
+        {"nodeKey": "leaderReview",  "rule": {"type": "INITIATOR_LEADER", "level": "1"}, "actualApprovers": [111]},
+        {"nodeKey": "departmentReview", "rule": {"type": "DEPARTMENT_HEAD"}, "actualApprovers": [110]}
+      ]
+    },
+    {
+      "instanceId": "SYN-2", "initiatorId": 202, "formFields": {}, "variables": {},
+      "nodes": [
+        {"nodeKey": "leaderReview", "rule": {"type": "INITIATOR_LEADER", "level": "1"}, "actualApprovers": [105]}
+      ]
+    },
+    {
+      "instanceId": "SYN-3", "initiatorId": 201, "formFields": {"manager_id": ["301"]}, "variables": {},
+      "nodes": [
+        {"nodeKey": "managerReview", "rule": {"type": "FORM_FIELD_USERS", "field": "manager_id"}, "actualApprovers": [301]}
+      ]
+    },
+    {
+      "instanceId": "SYN-4", "initiatorId": 201, "formFields": {}, "variables": {},
+      "nodes": [
+        {"nodeKey": "managerReview", "rule": {"type": "FORM_FIELD_USERS", "field": "manager_id"}, "actualApprovers": [500]}
+      ]
+    },
+    {
+      "instanceId": "SYN-5", "initiatorId": 111, "formFields": {"manager_id": ["111"]}, "variables": {},
+      "nodes": [
+        {"nodeKey": "managerReview", "rule": {"type": "FORM_FIELD_USERS", "field": "manager_id"}, "actualApprovers": [111]}
+      ]
+    },
+    {
+      "instanceId": "SYN-6", "initiatorId": 201, "formFields": {}, "variables": {"deliveryDeptId": ["11"]},
+      "nodes": [
+        {"nodeKey": "receivablesReview", "rule": {"type": "REGIONAL_RECEIVABLES_MANAGER", "department": "deliveryDeptId"}, "actualApprovers": [105]}
+      ]
+    },
+    {
+      "instanceId": "SYN-7", "initiatorId": 201, "formFields": {}, "variables": {},
+      "nodes": [
+        {"nodeKey": "directorReview", "rule": {"type": "ROLE", "role": "BU-002"}, "actualApprovers": [105]}
+      ]
+    },
+    {
+      "instanceId": "SYN-8", "initiatorId": 201, "formFields": {}, "variables": {},
+      "nodes": [
+        {"nodeKey": "directorReview", "rule": {"type": "ROLE", "role": "BU-002"}, "actualApprovers": [112]},
+        {"nodeKey": "countersign", "rule": {"type": "NAMED_USERS", "users": "111,110"}, "actualApprovers": [111, 110]}
+      ]
+    }
+  ]
+}

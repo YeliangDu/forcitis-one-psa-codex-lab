@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test-only variant of the timesheet process whose nodes name BEFORE hooks (RULE-277/283). BeforeHookIT deploys it as a newer
+     version, uses it, and deletes the deployment again. Not on the auto-deploy path (processes/). -->
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:forcitis="https://forcitis.com/psa/approval/extension"
+             targetNamespace="https://forcitis.com/psa/approval">
+  <process id="cost_timesheet_approval" name="Timesheet approval (hooks)" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="toInitiatorRework" sourceRef="start" targetRef="initiatorRework"/>
+    <userTask id="initiatorRework" name="Initiator rework" flowable:skipExpression="${!returned}">
+      <extensionElements>
+        <forcitis:assignmentRule type="INITIATOR" initiatorNode="true"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toReviewStage" sourceRef="initiatorRework" targetRef="reviewStage"/>
+    <subProcess id="reviewStage" name="Manager review">
+      <startEvent id="reviewStart"/>
+      <sequenceFlow id="toApproverReview" sourceRef="reviewStart" targetRef="approverReview"/>
+      <userTask id="approverReview" name="Approver review">
+        <extensionElements>
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="manager_id"/>
+        </extensionElements>
+      </userTask>
+      <sequenceFlow id="toReviewEnd" sourceRef="approverReview" targetRef="reviewEnd"/>
+      <endEvent id="reviewEnd"/>
+    </subProcess>
+    <sequenceFlow id="toDepartmentReview" sourceRef="reviewStage" targetRef="departmentReview"/>
+    <userTask id="departmentReview" name="Department review">
+      <extensionElements>
+        <forcitis:assignmentRule type="DEPARTMENT_HEAD" beforeHook="TEST_DEPARTMENT_REVIEW"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toEnd" sourceRef="departmentReview" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>

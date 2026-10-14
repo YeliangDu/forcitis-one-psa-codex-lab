@@ -1,0 +1,216 @@
+package com.forcitis.one.platform.approval;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.approval.api.ApprovalField;
+import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.HookAction;
+import com.forcitis.one.platform.approval.api.HookDecision;
+import com.forcitis.one.platform.approval.api.HookOutcome;
+import com.forcitis.one.platform.approval.application.ApprovalError;
+import com.forcitis.one.platform.approval.application.ApprovalOperationException;
+import com.forcitis.one.platform.approval.application.DecideTasks;
+import com.forcitis.one.platform.approval.application.DecisionOutcome;
+import com.forcitis.one.platform.approval.application.ReturnToInitiator;
+import com.forcitis.one.platform.approval.application.TaskDecision;
+import java.util.List;
+import org.flowable.engine.HistoryService;
+import org.flowable.engine.RepositoryService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+/**
+ * RULE-275/277/280/283: the BEFORE hook SPI. A test variant of the timesheet process names a hook on its department node; the
+ * test deploys it as a newer version and removes it again. The hook is a scripted test double: 1a ships the SPI and the gate only.
+ */
+class BeforeHookIT extends ApprovalIntegrationSupport {
+
+    @Autowired
+    RepositoryService repository;
+
+    @Autowired
+    HistoryService history;
+
+    @Autowired
+    ScriptedHook hook;
+
+    @Autowired
+    DecideTasks decideTasks;
+
+    @Autowired
+    ReturnToInitiator returnToInitiator;
+
+    String deployment;
+
+    void deploy(String resource) {
+        deployment = repository.createDeployment().addClasspathResource(resource).deploy().getId();
+        hook.next = HookDecision.allow();
+        hook.onCall = null;
+        hook.calls.clear();
+    }
+
+    @AfterEach
+    void undeploy() {
+        if (deployment != null) {
+            repository.deleteDeployment(deployment, true);
+            deployment = null;
+        }
+    }
+
+    record Staff(long initiator, long manager, long head) {
+    }
+
+    Staff staff() {
+        long unit = newId();
+        Staff s = new Staff(newId(), newId(), newId());
+        organisation.unit(unit, null, s.head()).person(s.head(), unit, null).person(s.initiator(), unit, null).person(s.manager(), unit, null);
+        return s;
+    }
+
+    /** Starts the hooked process and approves the manager node, so that the department node (with the hook) is open. */
+    ApprovalInstanceId atDepartmentNode(Staff s, String key) {
+        ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "ok")));
+        assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("departmentReview");
+        return instance;
+    }
+
+    @Test
+    @DisplayName("RULE-277 the hook runs inside the decide transaction, before the task completes, with a server-built context")
+    void hookRunsInsideTheTransactionBeforeCompletion() {
+        deploy("hooked/cost_timesheet_approval.bpmn20.xml");
+        Staff s = staff();
+        String key = newKey("hook");
+        ApprovalInstanceId instance = atDepartmentNode(s, key);
+        ApprovalTaskId task = openTaskId(instance);
+        boolean[] observed = new boolean[2];
+        hook.onCall = context -> {
+            observed[0] = TransactionSynchronizationManager.isActualTransactionActive();
+            observed[1] = taskService.createTaskQuery().taskId(context.taskId().value()).count() == 1;
+        };
+
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")));
+
+        assertThat(observed).containsExactly(true, true);
+        assertThat(hook.calls).hasSize(1);
+        var context = hook.calls.getFirst();
+        assertThat(context.action()).isEqualTo(HookAction.APPROVE);
+        assertThat(context.businessKey()).isEqualTo(key);
+        assertThat(context.nodeKey()).isEqualTo("departmentReview");
+        assertThat(context.actor()).isEqualTo(new UserId(s.head()));
+        assertThat(context.instanceId()).isEqualTo(instance);
+        assertThat(context.processKey()).isEqualTo(com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL);
+        assertThat(requestStatus(key)).isEqualTo("APPROVED");
+    }
+
+    @Test
+    @DisplayName("RULE-277 only ALLOW and NOT_APPLICABLE commit: WARN, REJECT and SUPPLEMENT block and change nothing")
+    void blockingOutcomesChangeNothing() {
+        deploy("hooked/cost_timesheet_approval.bpmn20.xml");
+        Staff s = staff();
+        String key = newKey("hook");
+        ApprovalInstanceId instance = atDepartmentNode(s, key);
+        ApprovalTaskId task = openTaskId(instance);
+        for (HookOutcome outcome : List.of(HookOutcome.WARN, HookOutcome.REJECT, HookOutcome.SUPPLEMENT)) {
+            hook.next = HookDecision.block(outcome, "not yet");
+            assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
+                    .isInstanceOfSatisfying(ApprovalOperationException.class,
+                            e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
+            assertThat(openTaskId(instance)).isEqualTo(task);
+            assertThat(taskService.createTaskQuery().taskId(task.value()).singleResult().getAssignee()).isNull();
+            assertThat(requestStatus(key)).isEqualTo("RUNNING");
+        }
+        hook.next = new HookDecision(HookOutcome.NOT_APPLICABLE, null, List.of());
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x")));
+        assertThat(requestStatus(key)).isEqualTo("APPROVED");
+    }
+
+    @Test
+    @DisplayName("RULE-280 variable updates of the hook and the task completion are one transaction: if completion fails, neither happens")
+    void variableUpdatesAndCompletionAreAtomic() {
+        deploy("hooked/cost_timesheet_approval.bpmn20.xml");
+        Staff s = staff();
+        String key = newKey("hook");
+        ApprovalInstanceId instance = atDepartmentNode(s, key);
+        ApprovalTaskId task = openTaskId(instance);
+        hook.next = new HookDecision(HookOutcome.ALLOW, null, List.of(new ApprovalField("approvedAmount", List.of("100"))));
+
+        doThrow(new IllegalStateException("audit store is down")).when(audit).record(any());
+        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
+                .isInstanceOf(IllegalStateException.class);
+
+        assertThat(runtime.getVariable(instance.value(), "approvedAmount")).isNull();
+        assertThat(openTaskId(instance)).isEqualTo(task);
+        assertThat(requestStatus(key)).isEqualTo("RUNNING");
+    }
+
+    @Test
+    @DisplayName("RULE-277 an allowing hook's variable updates are written to the process before the task completes")
+    void variableUpdatesAreWritten() {
+        deploy("hooked/cost_timesheet_approval.bpmn20.xml");
+        Staff s = staff();
+        String key = newKey("hook");
+        ApprovalInstanceId instance = atDepartmentNode(s, key);
+        hook.next = new HookDecision(HookOutcome.ALLOW, null, List.of(new ApprovalField("approvedAmount", List.of("100"))));
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "x")));
+        assertThat(history.createHistoricVariableInstanceQuery().processInstanceId(instance.value()).variableName("approvedAmount")
+                .singleResult().getValue()).isEqualTo("100");
+    }
+
+    @Test
+    @DisplayName("RULE-275 return to initiator passes the node's BEFORE hook too; a blocking hook leaves the task where it was")
+    void returnPassesTheHook() {
+        deploy("hooked/cost_timesheet_approval.bpmn20.xml");
+        Staff s = staff();
+        String key = newKey("hook");
+        ApprovalInstanceId instance = atDepartmentNode(s, key);
+        ApprovalTaskId task = openTaskId(instance);
+
+        hook.next = HookDecision.block(HookOutcome.WARN, "attachments missing in the business document");
+        assertThatThrownBy(() -> returnToInitiator.execute(task, new UserId(s.head()), "cannot approve"))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
+        assertThat(openTaskId(instance)).isEqualTo(task);
+        assertThat(requestStatus(key)).isEqualTo("RUNNING");
+
+        hook.next = HookDecision.allow();
+        returnToInitiator.execute(task, new UserId(s.head()), "cannot approve");
+        assertThat(hook.calls).extracting(c -> c.action()).containsExactly(HookAction.RETURN, HookAction.RETURN);
+        assertThat(requestStatus(key)).isEqualTo("RETURNED");
+    }
+
+    @Test
+    @DisplayName("RULE-272 a rejection may omit its reason when the node's hook decides it; the hook sees REJECT")
+    void rejectionReasonCanBeLeftToTheHook() {
+        deploy("hooked/cost_timesheet_approval.bpmn20.xml");
+        Staff s = staff();
+        String key = newKey("hook");
+        ApprovalInstanceId instance = atDepartmentNode(s, key);
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.REJECT, null)));
+        assertThat(hook.calls.getFirst().action()).isEqualTo(HookAction.REJECT);
+        assertThat(requestStatus(key)).isEqualTo("REJECTED");
+    }
+
+    @Test
+    @DisplayName("RULE-283 a node naming a hook key nobody registered blocks the action (never passes silently)")
+    void unregisteredHookBlocks() {
+        deploy("hooked-missing/cost_timesheet_approval.bpmn20.xml");
+        Staff s = staff();
+        String key = newKey("hook");
+        ApprovalInstanceId instance = atDepartmentNode(s, key);
+        ApprovalTaskId task = openTaskId(instance);
+        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
+                .isInstanceOfSatisfying(ApprovalOperationException.class,
+                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED));
+        assertThat(openTaskId(instance)).isEqualTo(task);
+        assertThat(hook.calls).isEmpty();
+    }
+}
