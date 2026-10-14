@@ -25,8 +25,7 @@ interface TextFieldProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  type?: 'text' | 'password' | 'number' | 'date';
-  max?: string;
+  type?: 'text' | 'password' | 'number';
   hint?: string;
   error?: string;
   disabled?: boolean;
@@ -34,12 +33,12 @@ interface TextFieldProps {
   inputMode?: 'numeric' | 'text';
 }
 
-export function TextField({ label, value, onChange, type = 'text', max, hint, error, disabled = false, autoComplete, inputMode }: TextFieldProps) {
+export function TextField({ label, value, onChange, type = 'text', hint, error, disabled = false, autoComplete, inputMode }: TextFieldProps) {
   return (
     <FieldFrame label={label} {...(hint === undefined ? {} : { hint })} {...(error === undefined ? {} : { error })}>
       {(id) => type === 'password'
         ? <Input.Password id={id} value={value} disabled={disabled} {...(autoComplete === undefined ? {} : { autoComplete })} status={error === undefined ? '' : 'error'} onChange={(event) => onChange(event.target.value)} />
-        : <Input id={id} type={type} value={value} disabled={disabled} {...(max === undefined ? {} : { max })} {...(autoComplete === undefined ? {} : { autoComplete })} {...(inputMode === undefined ? {} : { inputMode })} status={error === undefined ? '' : 'error'} onChange={(event) => onChange(event.target.value)} />}
+        : <Input id={id} type={type} value={value} disabled={disabled} {...(autoComplete === undefined ? {} : { autoComplete })} {...(inputMode === undefined ? {} : { inputMode })} status={error === undefined ? '' : 'error'} onChange={(event) => onChange(event.target.value)} />}
     </FieldFrame>
   );
 }

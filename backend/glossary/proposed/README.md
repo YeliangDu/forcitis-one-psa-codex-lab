@@ -181,3 +181,4 @@
 | `ui_business_summary` | 业务摘要 | BusinessSummary | 业务模块在发起审批时随请求提供的单据摘要，待办与通知据此显示，不回查业务单据 |  |
 | `ui_proxy_handling` | 代理 | ProxyHandling | 流程管理员替被代理人办理任务；审批记录同时显示操作人与被代理人 |  |
 | `ui_rest_day` | 休息日 | RestDay | 周末且不是调休上班日的日期 |  |
+| `ui_task_deadline` | 截止时间 | TaskDeadline | 审批任务应办理完的时刻；超过则提醒并升级，待办标出已超时 |  |

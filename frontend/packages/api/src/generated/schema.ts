@@ -16,54 +16,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/cost/timesheets/{id}:cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["cancel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cost/timesheets/{id}:submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["submit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cost/timesheets/{id}:withdraw": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["withdraw"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/organization/legal-entities": {
         parameters: {
             query?: never;
@@ -637,7 +589,7 @@ export interface components {
             totpCode?: string;
         };
         /** @enum {string} */
-        ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE" | "COST_TIMESHEET_CUTOFF_PASSED" | "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS" | "COST_TIMESHEET_NOT_FOUND" | "COST_TIMESHEET_REASON_REQUIRED" | "COST_TIMESHEET_TRANSITION_ILLEGAL" | "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE" | "COST_TIMESHEET_WORK_DATE_IN_FUTURE" | "COST_TIMESHEET_WORK_DATE_REQUIRED" | "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE" | "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN" | "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR" | "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED" | "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY" | "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED" | "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE" | "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL" | "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND" | "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL" | "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID" | "PLATFORM_APPROVAL_CONCURRENT_CHANGE" | "PLATFORM_APPROVAL_CUTOFF_PASSED" | "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE" | "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK" | "PLATFORM_APPROVAL_DECISION_EMPTY" | "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY" | "PLATFORM_APPROVAL_HOOK_BLOCKED" | "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED" | "PLATFORM_APPROVAL_NOT_INITIATOR" | "PLATFORM_APPROVAL_NO_ROUTE" | "PLATFORM_APPROVAL_REASON_REQUIRED" | "PLATFORM_APPROVAL_REQUEST_NOT_FOUND" | "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED" | "PLATFORM_APPROVAL_TASK_NOT_FOUND" | "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID" | "PLATFORM_APPROVAL_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_ACCOUNT_DISABLED" | "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND" | "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_CONCURRENT_UPDATE" | "PLATFORM_IDENTITY_CREDENTIALS_INVALID" | "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED" | "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN" | "PLATFORM_IDENTITY_NETWORK_DENIED" | "PLATFORM_IDENTITY_PERMISSION_UNKNOWN" | "PLATFORM_IDENTITY_ROLE_BLANK_NAME" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME" | "PLATFORM_IDENTITY_ROLE_INVALID_CODE" | "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED" | "PLATFORM_IDENTITY_ROLE_NOT_FOUND" | "PLATFORM_IDENTITY_ROLE_RESERVED_CODE" | "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN" | "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_SSO_UNAVAILABLE" | "PLATFORM_IDENTITY_STATE_INVALID" | "PLATFORM_IDENTITY_TICKET_INVALID" | "PLATFORM_IDENTITY_TICKET_REPLAYED" | "PLATFORM_IDENTITY_WECOM_CODE_INVALID" | "PLATFORM_IDENTITY_WECOM_NOT_BOUND" | "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_CONCURRENT_UPDATE" | "PLATFORM_NUMBERING_RULE_INVALID" | "PLATFORM_NUMBERING_RULE_NOT_FOUND" | "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL" | "PLATFORM_WEB_ACCESS_DENIED" | "PLATFORM_WEB_CORRELATION_INVALID" | "PLATFORM_WEB_CURSOR_INVALID" | "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED" | "PLATFORM_WEB_REQUEST_INVALID" | "PLATFORM_WEB_SOURCE_BROKEN" | "PLATFORM_WEB_SOURCE_UNAVAILABLE" | "PLATFORM_WEB_UNAUTHENTICATED" | "PLATFORM_WEB_UNEXPECTED" | "PLATFORM_WEB_VERSION_MISMATCH" | "PLATFORM_WEB_VERSION_REQUIRED";
+        ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE" | "COST_TIMESHEET_CUTOFF_PASSED" | "COST_TIMESHEET_EXCEEDS_REMAINING_HOURS" | "COST_TIMESHEET_NOT_FOUND" | "COST_TIMESHEET_REASON_REQUIRED" | "COST_TIMESHEET_TRANSITION_ILLEGAL" | "COST_TIMESHEET_UNKNOWN_WORK_PACKAGE" | "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE" | "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN" | "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR" | "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED" | "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY" | "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED" | "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE" | "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL" | "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND" | "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL" | "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID" | "PLATFORM_APPROVAL_CONCURRENT_CHANGE" | "PLATFORM_APPROVAL_CUTOFF_PASSED" | "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE" | "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK" | "PLATFORM_APPROVAL_DECISION_EMPTY" | "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY" | "PLATFORM_APPROVAL_HOOK_BLOCKED" | "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED" | "PLATFORM_APPROVAL_NOT_INITIATOR" | "PLATFORM_APPROVAL_NO_ROUTE" | "PLATFORM_APPROVAL_REASON_REQUIRED" | "PLATFORM_APPROVAL_REQUEST_NOT_FOUND" | "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED" | "PLATFORM_APPROVAL_TASK_NOT_FOUND" | "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID" | "PLATFORM_APPROVAL_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_ACCOUNT_DISABLED" | "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND" | "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_CONCURRENT_UPDATE" | "PLATFORM_IDENTITY_CREDENTIALS_INVALID" | "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED" | "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN" | "PLATFORM_IDENTITY_NETWORK_DENIED" | "PLATFORM_IDENTITY_PERMISSION_UNKNOWN" | "PLATFORM_IDENTITY_ROLE_BLANK_NAME" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME" | "PLATFORM_IDENTITY_ROLE_INVALID_CODE" | "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED" | "PLATFORM_IDENTITY_ROLE_NOT_FOUND" | "PLATFORM_IDENTITY_ROLE_RESERVED_CODE" | "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN" | "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_SSO_UNAVAILABLE" | "PLATFORM_IDENTITY_STATE_INVALID" | "PLATFORM_IDENTITY_TICKET_INVALID" | "PLATFORM_IDENTITY_TICKET_REPLAYED" | "PLATFORM_IDENTITY_WECOM_CODE_INVALID" | "PLATFORM_IDENTITY_WECOM_NOT_BOUND" | "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_CONCURRENT_UPDATE" | "PLATFORM_NUMBERING_RULE_INVALID" | "PLATFORM_NUMBERING_RULE_NOT_FOUND" | "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL" | "PLATFORM_WEB_ACCESS_DENIED" | "PLATFORM_WEB_CORRELATION_INVALID" | "PLATFORM_WEB_CURSOR_INVALID" | "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED" | "PLATFORM_WEB_REQUEST_INVALID" | "PLATFORM_WEB_SOURCE_BROKEN" | "PLATFORM_WEB_SOURCE_UNAVAILABLE" | "PLATFORM_WEB_UNAUTHENTICATED" | "PLATFORM_WEB_UNEXPECTED" | "PLATFORM_WEB_VERSION_MISMATCH" | "PLATFORM_WEB_VERSION_REQUIRED";
         /** @enum {string} */
         InboxCategory: "NOTICE" | "TODO";
         InboxItemResponse: {
@@ -757,9 +709,6 @@ export interface components {
         ReplaceRolesRequest: {
             roleCodes?: string[];
         };
-        RetractTimesheetRequest: {
-            reason?: string;
-        };
         ReturnTaskRequest: {
             reason?: string;
         };
@@ -781,15 +730,6 @@ export interface components {
             name: string;
             permissionCodes: string[];
             roleId: string;
-        };
-        SubmitTimesheetRequest: {
-            hours: number;
-            /** Format: int64 */
-            projectManagerId: number;
-            /** Format: date */
-            workDate: string;
-            /** Format: int64 */
-            workPackageId: number;
         };
         SyncDiffResponse: {
             changeKind: string;
@@ -895,16 +835,13 @@ export interface components {
             ticket?: string;
         };
         TimesheetResponse: {
+            approvalInstanceId?: string;
             canWithdraw: boolean;
             /** Format: int32 */
             round: number;
-            status: components["schemas"]["TimesheetStatus"];
+            status: string;
             timesheetId: string;
-            /** Format: date */
-            workDate: string;
         };
-        /** @enum {string} */
-        TimesheetStatus: "APPROVED" | "DRAFT" | "REJECTED" | "RETURNED" | "SUBMITTED";
         TransferTaskRequest: {
             /** Format: int64 */
             assigneeId?: number;
@@ -953,114 +890,6 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["TimesheetResponse"];
                 };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    cancel: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": string;
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RetractTimesheetRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    submit: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": string;
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubmitTimesheetRequest"];
-            };
-        };
-        responses: {
-            /** @description Accepted */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetail"];
-                };
-            };
-        };
-    };
-    withdraw: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": string;
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RetractTimesheetRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Error */
             default: {

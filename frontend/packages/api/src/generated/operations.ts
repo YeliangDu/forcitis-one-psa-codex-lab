@@ -6,15 +6,6 @@ import { responseSchemas } from './validators';
 export const getCostTimesheetsById = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}']['get']>) =>
   request<Result<paths['/api/v1/cost/timesheets/{id}']['get']>>('get', '/api/v1/cost/timesheets/{id}', args, options, responseSchemas.getCostTimesheetsById);
 
-export const postCostTimesheetsByIdCancel = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}:cancel']['post']>) =>
-  request<Result<paths['/api/v1/cost/timesheets/{id}:cancel']['post']>>('post', '/api/v1/cost/timesheets/{id}:cancel', args, options, undefined, { versioned: true, idempotent: true });
-
-export const postCostTimesheetsByIdSubmit = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}:submit']['post']>) =>
-  request<Result<paths['/api/v1/cost/timesheets/{id}:submit']['post']>>('post', '/api/v1/cost/timesheets/{id}:submit', args, options, undefined, { versioned: true, idempotent: true });
-
-export const postCostTimesheetsByIdWithdraw = (...[args, options]: Call<paths['/api/v1/cost/timesheets/{id}:withdraw']['post']>) =>
-  request<Result<paths['/api/v1/cost/timesheets/{id}:withdraw']['post']>>('post', '/api/v1/cost/timesheets/{id}:withdraw', args, options, undefined, { versioned: true, idempotent: true });
-
 export const getOrganizationLegalEntities = (...[args, options]: Call<paths['/api/v1/organization/legal-entities']['get']>) =>
   request<Result<paths['/api/v1/organization/legal-entities']['get']>>('get', '/api/v1/organization/legal-entities', args, options, responseSchemas.getOrganizationLegalEntities);
 

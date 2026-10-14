@@ -208,45 +208,6 @@ terms:
   forbidden: []
   status: proposed
   note: 展示用语；重置周期 NEVER
-- id: ui_submit
-  zh: 提交
-  en: Submit
-  snake: submit
-  kind: command
-  bc: cost.timesheet
-  definition: 把工时单交给审批；提交之后工时单进入审批中，提交接口不返回审批实例
-  standard_ref: []
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 用户决定 H-1：提交不再同步返回审批编号
-- id: ui_draft
-  zh: 草稿
-  en: Draft
-  snake: draft
-  kind: state
-  bc: cost.timesheet
-  definition: 工时单还没有提交，内容可以修改
-  standard_ref: []
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 展示用语；工时单状态 DRAFT
-- id: ui_cutoff_time
-  zh: 截止时间
-  en: CutoffTime
-  snake: cutoff_time
-  kind: value
-  bc: cost.timesheet
-  definition: 工时单可以提交的最后时刻；过了截止时间不能再提交
-  standard_ref: []
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 错误提示用语
 - id: ui_locked_day
   zh: 已锁定
   en: LockedDay
@@ -299,6 +260,19 @@ terms:
   forbidden: []
   status: proposed
   note: D-1a-77
+- id: ui_task_deadline
+  zh: 截止时间
+  en: TaskDeadline
+  snake: task_deadline
+  kind: value
+  bc: platform.approval
+  definition: 审批任务应办理完的时刻；超过则提醒并升级，待办标出已超时
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: D-1a-84、D-1a-110；任务详情的字段名
 - id: ui_rest_day
   zh: 休息日
   en: RestDay
