@@ -1,3 +1,5 @@
-# A module that was deleted keeps its Flyway folder: applied migrations are never edited or moved, and a later migration of the same folder drops its schema.
-# <schema>  # why the module is gone. NamingSurfaceTest accepts the folder only while the last migration in it drops the schema.
+# A module that was deleted has no Flyway folder while the migration baseline is open (SESSION_PLAYBOOK 12.2). Once applied migrations are append-only again,
+# a deleted module keeps its folder and the last migration in it drops its schema. NamingSurfaceTest accepts such a folder only when the last migration drops the schema;
+# SchemaPlacementIT checks that spring.flyway.schemas does not list a retired schema and that the migrated database has none.
+# <schema>  # why the module is gone
 delivery_execution  # D-1a-127: the work package module was deleted; timesheets no longer check remaining hours against work packages
