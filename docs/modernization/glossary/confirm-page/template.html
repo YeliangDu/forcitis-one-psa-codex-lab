@@ -58,6 +58,12 @@ main{display:grid;gap:26px;min-width:0}
 .entry[data-state="formal"]{box-shadow:inset 3px 0 0 var(--formal)}
 .entry[data-state="dialect"]{box-shadow:inset 3px 0 0 var(--dialect)}
 .entry[data-state="rename"]{box-shadow:inset 3px 0 0 var(--rename)}
+.entry[data-state="suggest"]{box-shadow:inset 3px 0 0 var(--rename-soft)}
+.to{font-size:13px;margin-top:4px;color:var(--rename)}
+.to b{font-weight:500}
+.why{font-size:12.5px;color:var(--muted);margin:4px 0 0;max-width:68ch}
+.code{font-size:12px;color:var(--money);margin-top:4px}
+.from code{font-family:var(--f-mono);font-size:11.5px}
 .no{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);margin-right:6px}
 .hw{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
 .hw .zh{font-family:var(--f-head);font-size:19px;font-weight:700}
@@ -86,7 +92,7 @@ main{display:grid;gap:26px;min-width:0}
 <aside>
   <div>
     <h1>用语确认</h1>
-    <p class="lede">FORCITIS one 统一语言 · 词表 terms.yaml 待确认项</p>
+    <p class="lede">FORCITIS one 统一语言 · 第二轮（2026-10-14）：模块提议术语、A8 叫法、新 BC 命名。第一轮 197 项已全部确认。</p>
   </div>
   <p class="rule">与正式用语不符的叫法一律归为公司内部方言，新系统只用正式用语。逐项选择后自动保存。</p>
   <div class="stats" aria-live="polite">
@@ -102,9 +108,9 @@ main{display:grid;gap:26px;min-width:0}
     <p class="lab">分组</p>
     <div class="seg" id="fGroup">
       <button data-g="all" aria-pressed="true">全部</button>
-      <button data-g="A" aria-pressed="false">A 公司叫法</button>
-      <button data-g="B" aria-pressed="false">B 改名建议</button>
-      <button data-g="C" aria-pressed="false">C 自有概念</button>
+      <button data-g="P" aria-pressed="false">P 提议术语</button>
+      <button data-g="A" aria-pressed="false">A A8 叫法</button>
+      <button data-g="N" aria-pressed="false">N BC 命名</button>
     </div>
   </div>
   <div>
@@ -113,7 +119,7 @@ main{display:grid;gap:26px;min-width:0}
       <button data-s="all" aria-pressed="true">全部</button>
       <button data-s="todo" aria-pressed="false">待确认</button>
       <button data-s="done" aria-pressed="false">已确认</button>
-      <button data-s="money" aria-pressed="false">涉及会计口径</button>
+      <button data-s="money" aria-pressed="false">需改代码</button>
     </div>
   </div>
   <div>
@@ -128,6 +134,10 @@ main{display:grid;gap:26px;min-width:0}
 <script>
 const ITEMS = /*__ITEMS__*/[];
 const GROUPS = {
+  P:{title:"P · 模块提议术语转正式",desc:"架构守护模板与 Phase 1a 平台契约带来的术语，目前是「提议中」。多数建议原样转正式；标紫色的建议改中文名、英文名或并入已有正式用语。选「同意建议」即按建议处理。",
+     opts:[["approve","同意建议"],["keep","保持原提议"],["rename","改为…"]]},
+  N:{title:"N · 新 BC 命名",desc:"OA 盘点新增的两个业务模块。模块路径与蓝图编号由总账范围评估会话统一，这里只确认中英文名。",
+     opts:[["approve","同意建议"],["rename","改为…"]]},
   A:{title:"A · 公司叫法：正式用语还是方言",desc:"公司在用、审计无法判定的叫法。选「方言」后禁止进入新系统，新系统改用右侧的正式用语。",
      opts:[["formal","正式"],["dialect","方言"],["rename","改为…"]]},
   B:{title:"B · 改为标准用语",desc:"原用语不符合准则或行业标准。同意后，原叫法归为方言。标「会计口径」的建议同时请财务确认。",
@@ -135,7 +145,7 @@ const GROUPS = {
   C:{title:"C · 公司自有概念",desc:"准则、国标、PMBOK、FIDIC 都没有对应条目的经营管理概念，建议以词表定义为正式用语。可按模块整组确认。",
      opts:[["formal","正式"],["dialect","方言，另取名"],["rename","改为…"]]}
 };
-const SUG = {formal:"建议：正式",dialect:"建议：方言",approve:"建议：同意改名"};
+const SUG = {formal:"建议：正式",dialect:"建议：方言",approve:"建议：原样转正式",change:"建议：修改后转正式",merge:"建议：并入已有正式用语"};
 const decisions = new Map();   // key -> {choice, renameTo, note, at}
 let db = null, user = null, myId = null;
 let fGroup = "all", fState = "all", q = "";
@@ -148,9 +158,9 @@ function matches(it){
   const dec = decisions.get(it.key);
   if (fState === "todo" && dec) return false;
   if (fState === "done" && !dec) return false;
-  if (fState === "money" && !it.fin) return false;
+  if (fState === "money" && !it.code) return false;
   if (q){
-    const hay = (it.zh+" "+it.en+" "+it.bc+" "+it.say+" "+it.no).toLowerCase();
+    const hay = (it.zh+" "+it.en+" "+it.bc+" "+it.say+" "+it.no+" "+(it.to||"")).toLowerCase();
     if (!hay.includes(q)) return false;
   }
   return true;
@@ -158,11 +168,17 @@ function matches(it){
 
 function entryHTML(it){
   const dec = decisions.get(it.key);
-  const st = dec ? (dec.choice==="approve"||dec.choice==="formal" ? "formal" : dec.choice==="rename" ? "rename" : "dialect") : "";
-  const opts = GROUPS[it.grp].opts.map(([v,l]) =>
+  const st = dec ? (dec.choice==="approve"||dec.choice==="formal" ? "formal" : dec.choice==="rename" ? "rename" : "dialect") : (it.sug==="change"||it.sug==="merge" ? "suggest" : "");
+  const opts = (it.opts || GROUPS[it.grp].opts).map(([v,l]) =>
     `<button data-v="${v}" aria-pressed="${dec&&dec.choice===v}">${l}</button>`).join("");
   const from = it.grp==="A" ? `<div class="from">公司叫法 <s>${esc(it.say)}</s> → 正式用语</div>`
-             : it.grp==="B" ? `<div class="from">原用语 <s>${esc(it.say)}</s> → 建议</div>` : "";
+             : it.grp==="B" ? `<div class="from">原用语 <s>${esc(it.say)}</s> → 建议</div>`
+             : it.grp==="N" ? `<div class="from">暂定名 ${esc(it.say)}</div>`
+             : it.grp==="P" ? `<div class="from"><code>${esc(it.src)}</code> · 提议：${esc(it.say)}</div>` : "";
+  const to = it.to ? `<div class="to">建议：<b>${esc(it.to)}</b></div>` : "";
+  const why = it.why ? `<p class="why">${esc(it.why)}</p>` : "";
+  const code = it.code ? `<div class="code">需改代码：${esc(it.code)}</div>` : "";
+  const dia = it.dialect && it.dialect.length ? `<div class="refs">归为方言：${esc(it.dialect.join("、"))}</div>` : "";
   const refs = it.refs && it.refs.length ? `<div class="refs">依据：${esc(it.refs.join("；"))}</div>` : "";
   const money = it.fin ? `<span class="money">会计口径 · 请财务确认</span>` : "";
   const g = it.g ? `<span class="no">${esc(it.g)}</span>` : "";
@@ -175,7 +191,9 @@ function entryHTML(it){
     <div>
       ${from}
       <div class="hw"><span class="no">${esc(it.no)}</span><span class="zh">${esc(it.zh)}</span><span class="en">${esc(it.en)}</span>${g}${money}</div>
+      ${to}
       ${it.defn?`<p class="defn">${esc(it.defn)}</p>`:""}
+      ${why}${dia}${code}
       ${refs}
     </div>
     <div class="act">
@@ -188,17 +206,18 @@ function entryHTML(it){
 function render(){
   const vis = ITEMS.filter(matches);
   const parts = [];
-  for (const g of ["A","B","C"]){
+  for (const g of ["P","A","N","B","C"]){
     const list = vis.filter(i => i.grp === g);
     if (!list.length) continue;
     const all = ITEMS.filter(i => i.grp === g), done = all.filter(i => decisions.has(i.key)).length;
     parts.push(`<section><div class="ghead"><h2>${GROUPS[g].title}</h2><span class="no">${done} / ${all.length}</span><p>${GROUPS[g].desc}</p></div>`);
-    if (g === "C"){
+    if (g === "C" || g === "P"){
       const byBc = new Map();
       list.forEach(i => { if(!byBc.has(i.bc)) byBc.set(i.bc,[]); byBc.get(i.bc).push(i); });
       for (const [bc, ls] of byBc){
         const open = ls.filter(i => !decisions.has(i.key)).length;
-        parts.push(`<div class="bc"><div class="bchead"><code>${esc(bc)}</code>${open?`<button class="bulk" data-bulk="${esc(bc)}">本组未确认的 ${open} 项设为正式</button>`:""}</div>${ls.map(entryHTML).join("")}</div>`);
+        const lab = g==="P" ? "同意建议" : "设为正式";
+        parts.push(`<div class="bc"><div class="bchead"><code>${esc(bc)}</code>${open?`<button class="bulk" data-bulk="${esc(bc)}" data-grp="${g}">本组未确认的 ${open} 项${lab}</button>`:""}</div>${ls.map(entryHTML).join("")}</div>`);
       }
     } else {
       parts.push(`<div class="bc">${list.map(entryHTML).join("")}</div>`);
@@ -236,9 +255,9 @@ document.addEventListener("click", e => {
   if (sb){ fState = sb.dataset.s; document.querySelectorAll("#fState button").forEach(b => b.setAttribute("aria-pressed", b===sb)); render(); return; }
   const bulk = e.target.closest("[data-bulk]");
   if (bulk){
-    const bc = bulk.dataset.bulk;
-    (async () => { for (const it of ITEMS.filter(i => i.grp==="C" && i.bc===bc && !decisions.has(i.key))){
-      await save(it.key, {item:it.no, zh:it.zh, en:it.en, choice:"formal", renameTo:"", note:"整组确认", by:myId, at:new Date().toISOString()}); } })();
+    const bc = bulk.dataset.bulk, grp = bulk.dataset.grp || "C";
+    (async () => { for (const it of ITEMS.filter(i => i.grp===grp && i.bc===bc && !decisions.has(i.key))){
+      await save(it.key, {item:it.no, zh:it.zh, en:it.en, choice:grp==="P"?"approve":"formal", renameTo:"", note:"整组确认", by:myId, at:new Date().toISOString()}); } })();
     return;
   }
   const btn = e.target.closest(".choice button");

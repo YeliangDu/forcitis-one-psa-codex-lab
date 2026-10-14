@@ -46,3 +46,77 @@
 
 | 编号 | 模块 | 用语（中 / 英） | 确认 |
 |---|---|---|---|
+
+## P. 模块提议术语转正式（58 项，第二轮）
+
+架构守护模板与 Phase 1a 平台契约带来的术语（`backend/glossary/proposed/`）。回复「P 组全部同意建议」即可，有异议的单独标出。
+
+| 编号 | 提议（中 / 英） | 模块 | 建议 | 理由 | 需改代码 | 确认 |
+|---|---|---|---|---|---|---|
+| P1 | 工时 / `Hours` | `kernel` | 修改后转正式：小时数 | 正式用语「工时」已是 TimeEntry（工时条目）的中文名；值对象 Hours 只是小时数量，再叫「工时」会同名异义。英文不变。 |  |  |
+| P2 | 填报工时 / `DeclaredHours` | `cost.timesheet` | 修改后转正式：填报工时 / `SubmittedHours` | 「填报」的正式英文已定为 Submit（SubmitTimesheet，第一轮 C66），同一动作不另用 Declared。 | cost.timesheet.domain.Timesheet 的组件 declaredHours → submittedHours（及其调用、JSON 字段、列名 declared_hours 如有） |  |
+| P3 | 工作日期 / `WorkDate` | `cost.timesheet` | 原样转正式 |  |  |  |
+| P4 | 计划工时 / `PlannedHours` | `delivery.execution` | 修改后转正式：只改定义 | 原定义用了方言「任务包」（第一轮已定为工作包 WorkPackage），只改定义。 |  |  |
+| P5 | 实际工时 / `ActualHours` | `delivery.execution` | 修改后转正式：只改定义 | 同上，定义中的「任务包」改为「工作包」。 |  |  |
+| P6 | 剩余工时 / `RemainingHours` | `delivery.execution` | 原样转正式 | 计划工时减实际工时的机械差额；与 EVM 的完工尚需估算 ETC（estimate_to_complete，人工估计）不同，两者并存。 |  |  |
+| P7 | 预算 / `Budget` | `delivery.execution` | 并入已有正式用语：项目预算（WBS 预算） / `ProjectBudget` | 已有正式用语「项目预算 ProjectBudget」（WBS 预算）与「成本预算 CostBudget」；单独的「预算 Budget」会与二者重叠。 | 权限码 delivery.execution:budget:update → delivery.execution:project-budget:update（Permission.DELIVERY_BUDGET_UPDATE） |  |
+| P8 | 项目交付 / `Delivery` | `delivery` | 原样转正式 |  |  |  |
+| P9 | 单据 / `Document` | `platform.numbering` | 原样转正式 |  |  |  |
+| P10 | 单据类型 / `DocumentType` | `platform.numbering` | 原样转正式 |  |  |  |
+| P11 | 单据编号 / `DocumentNumber` | `platform.numbering` | 原样转正式；方言：业务编号 | 同一概念只留一个正式名「单据编号」，「业务编号」归方言。 | platform_numbering schema 注释「业务编号（…）」改为「单据编号（…）」；文档中的「业务编号」随后替换 |  |
+| P12 | 编号规则 / `NumberingRule` | `platform.numbering` | 原样转正式 |  |  |  |
+| P13 | 编号模板 / `NumberingPattern` | `platform.numbering` | 原样转正式 |  |  |  |
+| P14 | 编号计数器 / `NumberingCounter` | `platform.numbering` | 原样转正式 |  |  |  |
+| P15 | 流水号重置周期 / `ResetPolicy` | `platform.numbering` | 原样转正式 | ResetPolicy 已用于枚举、接口字段与列名；Policy 在经营口径 BC 另有含义，但按 BC 隔离可接受，不值得改名。 |  |  |
+| P16 | 周期键 / `PeriodKey` | `platform.numbering` | 原样转正式 |  |  |  |
+| P17 | 审批实例 / `ApprovalInstance` | `platform.approval` | 原样转正式；方言：流程实例 | 界面与文档统一称「审批实例」；Flowable 的 ProcessInstance 是第三方类型，不受影响。 |  |  |
+| P18 | 审批流程 / `ApprovalProcess` | `platform.approval` | 原样转正式 |  |  |  |
+| P19 | 流程标识 / `ProcessKey` | `platform.approval` | 原样转正式 |  |  |  |
+| P20 | 业务键 / `BusinessKey` | `platform.approval` | 原样转正式 |  |  |  |
+| P21 | 发起人 / `Initiator` | `platform.approval` | 原样转正式 |  |  |  |
+| P22 | 审批人 / `Approver` | `platform.approval` | 原样转正式 |  |  |  |
+| P23 | 审批任务 / `Task` | `platform.approval` | 修改后转正式：`ApprovalTask` | 单独的 Task 会与「工作包」（原「任务包」）、「任务订单 TaskOrder」同名异义；用 ApprovalTask 限定为审批任务。 |  |  |
+| P24 | 路由标记 / `RoutingFlag` | `platform.approval` | 原样转正式 |  |  |  |
+| P25 | 金额 / `Money` | `kernel` | 原样转正式 |  |  |  |
+| P26 | 数额 / `Amount` | `kernel` | 原样转正式 |  |  |  |
+| P27 | 币种 / `Currency` | `kernel` | 原样转正式 |  |  |  |
+| P28 | 业务日期 / `BusinessDate` | `kernel` | 原样转正式 |  |  |  |
+| P29 | 收入确认准备 / `ProgressRecognition` | `receivables.wip` | 并入已有正式用语：收入确认单 / `RevenueRecognition` | 第一轮已裁定「收入确认准备」「产值」是「收入确认单 RevenueRecognition」的方言；不再单立。 |  |  |
+| P30 | 成本 / `Cost` | `cost` | 原样转正式 |  |  |  |
+| P31 | 错误码 / `ErrorCode` | `kernel` | 原样转正式 |  |  |  |
+| P32 | 编号容量 / `Capacity` | `platform.numbering` | 修改后转正式：`NumberingCapacity` | Capacity 在工时 BC 已是「产能」（闲置产能 IdleCapacity、产能变现）；编号模块的容量用 NumberingCapacity 限定。 |  |  |
+| P33 | 调度锁 / `SchedulerLock` | `platform.scheduling` | 原样转正式；方言：作业锁 |  |  |  |
+| P34 | 企业微信 / `Wecom` | `platform.integration` | 原样转正式 | 腾讯官方英文名 WeCom，按「缩写按单词处理」写作 Wecom。 |  |  |
+| P35 | 企业微信登录入口 / `WecomEntry` | `platform.integration` | 原样转正式 |  |  |  |
+| P36 | 企业微信工作台 / `Workbench` | `platform.integration` | 原样转正式；方言：H5 | 老系统把工作台网页叫 H5，归方言。 |  |  |
+| P37 | 小程序 / `MiniProgram` | `platform.integration` | 原样转正式 |  |  |  |
+| P38 | 扫码登录 / `WebScan` | `platform.integration` | 修改后转正式：`QrCodeLogin` | WebScan 易读成「网页扫描」；企业微信文档的说法是扫码登录（QR code login）。 | platform.integration.api.WecomEntry 枚举常量 WEB_SCAN → QR_CODE_LOGIN（及调用、测试） |  |
+| P39 | 身份 / `Identity` | `platform.identity` | 原样转正式 |  |  |  |
+| P40 | 组织 / `Organization` | `organization` | 原样转正式 |  |  |  |
+| P41 | 组织人事 / `Workforce` | `organization.workforce` | 原样转正式 |  |  |  |
+| P42 | 在职状态 / `EmploymentStatus` | `organization.workforce` | 原样转正式 |  |  |  |
+| P43 | 在职 / `Employed` | `organization.workforce` | 原样转正式 |  |  |  |
+| P44 | 离职 / `Separated` | `organization.workforce` | 原样转正式 |  |  |  |
+| P45 | 收费员工标识 / `FeeEarner` | `organization.workforce` | 原样转正式 | Fee earner 是专业服务业通行写法；定义已写明它不是可计费性判定。 |  |  |
+| P46 | 直属领导 / `DirectLeader` | `organization.workforce` | 修改后转正式：直属上级 / `Supervisor`；方言：直属领导 | DirectLeader 是中式英文；HR 系统通行 Supervisor（直属上级）。不用 LineManager，避免与禁用后缀 Manager 混淆。 | organization.workforce.api.OrgDirectory#findDirectLeader → findSupervisor（及实现、测试） |  |
+| P47 | 部门负责人 / `OrgUnitHead` | `organization.workforce` | 原样转正式 |  |  |  |
+| P48 | 区域应收负责人 / `RegionalReceivablesManager` | `organization.workforce` | 原样转正式；方言：区域 AR |  |  |  |
+| P49 | 上级组织链 / `Ancestor` | `organization.workforce` | 原样转正式 |  |  |  |
+| P50 | 员工快照 / `EmployeeProfile` | `organization.workforce` | 修改后转正式：员工概况 | Profile 不是「快照」；快照是 OrgSnapshot。英文不变。 |  |  |
+| P51 | 组织单元快照 / `OrgUnitProfile` | `organization.workforce` | 修改后转正式：组织单元概况 | 同上。 |  |  |
+| P52 | 组织快照 / `OrgSnapshot` | `organization.workforce` | 原样转正式 |  |  |  |
+| P53 | 同步运行 / `SyncRun` | `organization.workforce` | 修改后转正式：同步记录 | 「同步运行」不是通顺的中文；英文 SyncRun 不变。 |  |  |
+| P54 | 角色持有人 / `RoleHolder` | `platform.identity` | 原样转正式 |  |  |  |
+| P55 | 审计轨迹 / `AuditTrail` | `platform.audit` | 并入已有正式用语：审计日志 / `AuditLog`；方言：审计轨迹 | 与已批准的「审计日志 AuditLog」（只追加、不可篡改、可回放）是同一概念，两个名字会漂移。 | platform.audit.api.AuditTrail 接口改名 AuditLog（及实现、注入点、测试） |  |
+| P56 | 操作人 / `Actor` | `platform.audit` | 原样转正式 |  |  |  |
+| P57 | 被代理人 / `OnBehalfOf` | `platform.audit` | 原样转正式 |  |  |  |
+| P58 | 审计对象 / `Subject` | `platform.audit` | 修改后转正式：`AuditSubject` | Subject 在身份认证里指登录主体（JWT sub），用 AuditSubject 限定为审计对象。 |  |  |
+
+## N. 新 BC 命名（2 项，第二轮）
+
+模块路径与蓝图编号由 psa-gl-scope 统一，这里只确认中英文名。
+
+| 编号 | 暂定名 | 建议（中 / 英） | 理由 | 确认 |
+|---|---|---|---|---|
+| N1 | 假勤（暂定 organization.attendance，6e） | 考勤与休假 / `organization.attendance`；方言：假勤 | Time and Attendance 是 SAP、Oracle 等 HR 系统的通行模块名，含休假（absence）；「假勤」是企业微信、钉钉的产品叫法，归方言。 |  |
+| N2 | 应付与付款（新建 BC，6c） | 应付与付款 / `payables.payment` | 与 receivables.collection 对称；中文「应付」对应《企业会计准则第 30 号》报表项目应付账款。不用 disbursement：在专业服务业它指代垫费用（可向客户转收的支出），会同名异义。子域 payables 是否单设由 psa-gl-scope 定。 |  |

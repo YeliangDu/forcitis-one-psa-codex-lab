@@ -44,5 +44,31 @@ for j, (bc, ts) in enumerate(sorted(byb.items()), 1):
     L.append(f"| C{j} | `{bc}`（{len(ts)} 项） | {names} |  |")
 if not (A or B or C):
     L += ["", "## 状态：全部已确认", "", "2026-10-14 业务 Admin 在用语确认页上确认了全部 197 项：A 组 4 项判为方言；B 组 59 项同意改为标准用语（原叫法归为方言）；C 组 134 项公司自有概念确认为正式用语。确认记录见 `glossary/decisions-2026-10-14.json`，已写入 `terms.yaml`（全部 293 条为已批准）。今后新出现的待确认用语会重新出现在本表。"]
+# 第二轮（2026-10-14）：P 组模块提议术语、N 组新 BC 命名，建议来自 glossary/round2-proposals.yaml（确认页同源）
+import glob, os
+PROP = yaml.safe_load(open("glossary/round2-proposals.yaml", encoding="utf-8"))
+BYID = {t["id"]: t for t in T}
+PT = [(os.path.basename(f), t) for f in sorted(glob.glob("../../backend/glossary/proposed/*.yaml"), reverse=True)
+      for t in yaml.safe_load(open(f, encoding="utf-8"))["terms"] if t["id"] in PROP["P"]]
+if PT:
+    SUGT = {"approve": "原样转正式", "change": "修改后转正式", "merge": "并入已有正式用语"}
+    L += ["", f"## P. 模块提议术语转正式（{len(PT)} 项，第二轮）", "",
+          "架构守护模板与 Phase 1a 平台契约带来的术语（`backend/glossary/proposed/`）。回复「P 组全部同意建议」即可，有异议的单独标出。", "",
+          "| 编号 | 提议（中 / 英） | 模块 | 建议 | 理由 | 需改代码 | 确认 |", "|---|---|---|---|---|---|---|"]
+    for i, (src, t) in enumerate(PT, 1):
+        q = PROP["P"][t["id"]]
+        to = SUGT[q["sug"]]
+        if q["sug"] == "change":
+            to += "：" + " / ".join(x for x in (q.get("zh"), q.get("en") and f"`{q['en']}`") if x) if (q.get("zh") or q.get("en")) else "：只改定义"
+        if q["sug"] == "merge":
+            to += f"：{BYID[q['into']]['zh']} / `{BYID[q['into']]['en']}`"
+        if q.get("dialect"):
+            to += "；方言：" + "、".join(q["dialect"])
+        code = "" if q.get("code", "").startswith("无") else q.get("code", "")
+        L.append(f"| P{i} | {t['zh']} / `{t['en']}` | `{t['bc']}` | {to} | {q.get('why', '')} | {code} |  |")
+    L += ["", f"## N. 新 BC 命名（{len(PROP['N'])} 项，第二轮）", "", "模块路径与蓝图编号由 psa-gl-scope 统一，这里只确认中英文名。", "",
+          "| 编号 | 暂定名 | 建议（中 / 英） | 理由 | 确认 |", "|---|---|---|---|---|"]
+    for i, q in enumerate(PROP["N"].values(), 1):
+        L.append(f"| N{i} | {q['old']} | {q['zh']} / `{q['en']}`{'；方言：' + '、'.join(q['dialect']) if q.get('dialect') else ''} | {q['why']} |  |")
 open("glossary/TERM_CONFIRMATION.md", "w", encoding="utf-8").write("\n".join(L) + "\n")
 print("A", len(A), "B", len(B), "C", len(C), "groups", len(byb))
