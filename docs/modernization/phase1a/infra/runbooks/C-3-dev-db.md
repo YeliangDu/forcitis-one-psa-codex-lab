@@ -26,6 +26,8 @@
 
 ## 步骤
 
+0. **首次部署 dev 之前，单独开一个 PR 删除 `backend/architecture/migration-baseline-open`**（SESSION_PLAYBOOK §12.2：首次部署前删除基线开放标记，此后迁移恢复只追加）。该标记存在时 `deploy_gate` 拒绝部署（W0 #97）。这个 PR 只做这一件事，不夹带其他改动；计划在 W4 执行。建库建角色（下面的步骤）不受影响，已于 2026-10-15 完成。
+
 ```bash
 psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f sql/c3_dev_db.sql
 psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_dev -f sql/c3_dev_db_verify.sql | tee c3-verify-$(date +%F).txt

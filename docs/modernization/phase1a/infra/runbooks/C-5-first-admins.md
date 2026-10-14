@@ -16,6 +16,8 @@
 
 > **流程管理员（清单 B-12）**：`process_administrator` 角色没有任何持有人时，应用在任何环境都拒绝启动。dev 阶段授给平台负责人本人（用户「我们开发过程中所有操作只有我一个人」），在首次部署时与本剧本一并执行：`--operation=grant-role --role-code=process_administrator`（命令形式见 INFRA_RUNBOOK §6）。同样须等 ADR-0030（dev 单人例外）获批并实现后再做，不以单人绕过双人确认。
 
+> **命令形式待改（F-12）**：下面命令中的 `--spring.profiles.active=identity-operations` 会顶掉环境档案、跳过环境校验；1a 在 F-12 改为追加档案写法后，按 INFRA_RUNBOOK §6 同步修改。
+
 ## 步骤
 
 1. 生成 TOTP 加密密钥（只一次；轮换见 C-8）：
