@@ -9,10 +9,12 @@
 | # | 项 | 依据 | 备注 |
 |---|---|---|---|
 | F-1 | ADR-0026「1a 交付范围」整套数据范围机制：类型下沉、`CurrentAccess`、角色范围授予明细表、直接下属查询、注册表 SCOPED / GLOBAL、`DataAccessRegistryTest` / `onlyRegisteredPersistenceTouchesTheDatabase` / `ScopedRepositoryContract`、部门浏览与人员详情接入范围 | 用户「本批堵漏洞，整套放下一批」；status/blockers/090 | **首次部署任何环境前必须完成**；完成后删 090 |
-| F-2 | 守护 G-T1（应用服务只写一个聚合的仓储，读 §14 已登记例外）、G-T2（法人 / 组织 / 员工维度 ID 写死或默认值，全生产代码）、G-T4（contract.md 与本阶段 ADR 交付条款到测试的对照，豁免清单入仓） | 用户采纳 PR #57；SESSION_PLAYBOOK §14 | G-T3 已由 B3 的 TestIsolationGuardTest 覆盖，核对后关闭 |
+| F-2 | 守护 G-T1（应用服务只写一个聚合的仓储，读 §14 已登记例外）、G-T2（法人 / 组织 / 员工维度 ID 写死或默认值，全生产代码）、G-T4（contract.md 与本阶段 ADR 交付条款到测试的对照，豁免清单入仓） | 用户采纳 PR #57；SESSION_PLAYBOOK §14 | G-T1 已有 SingleAggregateGuardTest（核对是否按仓储判定并读 §14 例外）；G-T2 仅部分覆盖（CurrentUserGuardTest），补全到全生产代码；G-T3 已由 TestIsolationGuardTest 覆盖 |
 | F-3 | 前端运行时配置：PC `login-config.ts`、`login-page.tsx`，H5 `config/index.ts` 的构建期变量改为运行时配置（一次构建、多环境部署） | PR #59 第 4 项 | |
 | F-4 | 契约中前端未做的条目：D-1a-139 管理员全部待办视图、D-1a-75 转交 / D-1a-77 批量与代理界面、D-1a-47/48 管理模式 1 小时横幅（`administratorModeExpiresAt`） | 修复批 C 报告 | 后端接口已有的先做 |
 | F-5 | 审批契约未做条目：D-1a-67、76、91、128、130、131、181（逐条核对契约原文是否 1a 必做） | 修复批 A 报告 | |
+| F-7 | 金额内核：`Money` 构造不再隐式舍入（超过币种小数位报错；只支持 2 位小数币种，其余拒绝）；精确的中间运算类型；`Rate` / `Ratio`（0–1 小数）；按权重拆分原语（守恒、确定性、负数对称、冲销镜像，最大余数法）；舍入口径集中一处（四舍五入到分，财务答复不同时按配置从期首起改）；守护：领域代码禁止 `setScale` / `divide` / `RoundingMode`、DDL 金额精度（numeric 位数、`ALTER ADD COLUMN` 的金额与币种配对）、OpenAPI 金额为十进制字符串 + 币种、前端金额格式化 lint | 用户决定 XD-01「十进制字符串 + 币种」、XD-02「一律 0–1 小数」、XD-08「先按建议建」、XD-07 术语「尾调 / 舍入差 / 按权重拆分」（「尾差」为方言）；普查 PR #75 | 验收测试按 §6.1 第 8 条由测试代理先写 |
+| F-8 | 平台共用件：统一事件消费幂等、列表分页契约与上限、共用脱敏组件、共用导出控制、日期边界测试夹具（日 / 月 / 年 / 2 月 29 日）、中文排序按拼音（ICU zh）的约定与守护 G-X2 | 普查 PR #75；用户决定 XD-03「按拼音」；XD-05 / XD-06 已有决定（日历过去日期锁定、组织单元版本表，修复批已落地） | |
 | F-6 | D-1a-08：同步 HELD 与每日问题汇总经企业微信发给「组织数据管理员」角色（按角色取人） | 修复批 B3 报告 | 依赖 B1 的系统角色，已具备 |
 
 ## 二、结构性重构（单独派，不与缺陷混）
