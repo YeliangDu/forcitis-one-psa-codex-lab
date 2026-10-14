@@ -1,5 +1,6 @@
-package com.forcitis.one.platform.identity;
+package com.forcitis.one.scenario;
 
+import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;

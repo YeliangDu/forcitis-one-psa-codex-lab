@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 
-final class MutableClock extends Clock {
+public final class MutableClock extends Clock {
 
     private volatile Duration offset = Duration.ZERO;
 
