@@ -1,0 +1,59 @@
+# 过渡文件：用语确认第二轮（2026-10-14，psa-terms-review）已把 backend/glossary/proposed 的 58 条提议术语转为正式（docs/modernization/glossary/terms.yaml）。
+# 下列 4 条的旧英文写法仍被代码使用，改名由 1a 会话完成；改完后删除对应条目（全部删完即删除本文件），
+# 并在 docs/modernization/glossary/round2-proposals.yaml 的 code_renamed 中登记 id，重跑 build_terms.py 把旧写法写入禁用。
+terms:
+- id: declared-hours
+  zh: 填报工时（旧写法）
+  en: DeclaredHours
+  snake: declared_hours
+  kind: attribute
+  bc: cost.timesheet
+  definition: 员工在工时单上申报的小时数，审批前不计入实际工时。
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 过渡登记：用语确认第二轮（2026-10-14）已定正式写法 SubmittedHours（submitted_hours）；1a 会话改名后删除本条，并在 docs/modernization/glossary/round2-proposals.yaml 的 code_renamed 中登记 declared-hours
+- id: web_scan
+  zh: 扫码登录（旧写法）
+  en: WebScan
+  snake: web_scan
+  kind: value
+  bc: platform.integration
+  definition: PC 端企业微信扫码登录
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 过渡登记：用语确认第二轮（2026-10-14）已定正式写法 QrCodeLogin（qr_code_login）；1a 会话改名后删除本条，并在 docs/modernization/glossary/round2-proposals.yaml 的 code_renamed 中登记 web_scan
+- id: direct_leader
+  zh: 直属领导（旧写法）
+  en: DirectLeader
+  snake: direct_leader
+  kind: role
+  bc: organization.workforce
+  definition: 人员级汇报对象（A8 ORG_MEMBER.EXT_ATTR_37，RULE-372）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 过渡登记：用语确认第二轮（2026-10-14）已定正式写法 Supervisor（supervisor）；1a 会话改名后删除本条，并在 docs/modernization/glossary/round2-proposals.yaml 的 code_renamed 中登记 direct_leader
+- id: audit_trail
+  zh: 审计轨迹（旧写法）
+  en: AuditTrail
+  snake: audit_trail
+  kind: entity
+  bc: platform.audit
+  definition: 只追加的审计记录集合
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md（Phase 1a）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 过渡登记：用语确认第二轮（2026-10-14）已定正式写法 AuditLog（audit_log）；1a 会话改名后删除本条，并在 docs/modernization/glossary/round2-proposals.yaml 的 code_renamed 中登记 audit_trail

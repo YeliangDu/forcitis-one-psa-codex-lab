@@ -156,8 +156,8 @@ P:
 
 # A 组：OA 盘点登记的 A8 叫法，键 = 「词条 id / 叫法」。含「产值」的 2 个已按用户裁定自动归为方言，不在表中；其余 20 个全部建议归为方言；note 写明需另行确认的口径。
 A:
-  ar_written_off/应收坏账申请: {sug: dialect, note: 这张单是计提坏账准备还是核销，请财务确认；归属词条可能改为坏账准备计提}
-  subcontract_cost/项目委外: {sug: dialect, note: 委外按成果验收计价的对应「分包成本」，按工时 / 人月计价且人员受我方管理的对应「外包成本 OutsourcingCost」；请业务确认 A8 这类单据属哪种或两者都有}
+  ar_written_off/应收坏账申请: {sug: dialect, note: 用户 2026-10-14 答复：这张单是「计提」坏账准备，不是核销；坏账准备计提词条（预期信用损失）在 6b 起草后，本叫法改挂到该词条下}
+  subcontract_cost/项目委外: {sug: dialect, note: 用户 2026-10-14 答复：「两种都有，按单据区分」——按成果验收计价的进「分包成本 SubcontractCost」，按工时 / 人月计价且人员受我方管理的进「外包成本 OutsourcingCost」}
   contract_liability/预收款单: {sug: dialect, note: 预收款单是收款单据，合同负债是余额；新系统中单据叫回款单（预收款类型），余额叫合同负债}
   final_account/项目结算: {sug: dialect}
 

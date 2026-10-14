@@ -220,7 +220,9 @@ function render(){
         parts.push(`<div class="bc"><div class="bchead"><code>${esc(bc)}</code>${open?`<button class="bulk" data-bulk="${esc(bc)}" data-grp="${g}">本组未确认的 ${open} 项${lab}</button>`:""}</div>${ls.map(entryHTML).join("")}</div>`);
       }
     } else {
-      parts.push(`<div class="bc">${list.map(entryHTML).join("")}</div>`);
+      const open = g==="A" ? list.filter(i => !decisions.has(i.key)).length : 0;
+      const head = open ? `<div class="bchead"><span></span><button class="bulk" data-bulk="*" data-grp="A">未确认的 ${open} 项全部按建议设为方言</button></div>` : "";
+      parts.push(`<div class="bc">${head}${list.map(entryHTML).join("")}</div>`);
     }
     parts.push(`</section>`);
   }
@@ -256,8 +258,8 @@ document.addEventListener("click", e => {
   const bulk = e.target.closest("[data-bulk]");
   if (bulk){
     const bc = bulk.dataset.bulk, grp = bulk.dataset.grp || "C";
-    (async () => { for (const it of ITEMS.filter(i => i.grp===grp && i.bc===bc && !decisions.has(i.key))){
-      await save(it.key, {item:it.no, zh:it.zh, en:it.en, choice:grp==="P"?"approve":"formal", renameTo:"", note:"整组确认", by:myId, at:new Date().toISOString()}); } })();
+    (async () => { for (const it of ITEMS.filter(i => i.grp===grp && (bc==="*" || i.bc===bc) && !decisions.has(i.key))){
+      await save(it.key, {item:it.no, zh:it.zh, en:it.en, choice:grp==="P"?"approve":grp==="A"?"dialect":"formal", renameTo:"", note:"整组确认", by:myId, at:new Date().toISOString()}); } })();
     return;
   }
   const btn = e.target.closest(".choice button");

@@ -33,11 +33,12 @@ for f in sorted(glob.glob(f"{PROPOSED_DIR}/*.yaml"), reverse=True):   # template
 # A: undetermined company terms (OA inventory) on approved entries
 n = 0
 for t in T:
-    for al in t.get("aliases") or []:
+    for k, al in enumerate(t.get("aliases") or []):
         if al.get("type") == "undetermined" and al["name"] != t["zh"]:
             n += 1
             p = PROP["A"].get(f"{t['id']}/{al['name']}", {"sug": "dialect"})
-            items.append(dict(key=f"R2-A-{t['id']}/{al['name']}", no=f"A{n}", grp="A",
+            # 存储的文档 id 只接受 ASCII、不含「/」：用别名序号（第一轮同样做法）
+            items.append(dict(key=f"R2-A-{t['id']}-{k}", no=f"A{n}", grp="A",
                               say=al["name"] + (f"（{al['source']}）" if al.get("source") else ""), zh=t["zh"], en=t["en"], bc=t["bc"],
                               refs=(t.get("standard_ref") or [])[:2], defn=t.get("definition") or "", why=p.get("note", ""), sug=p["sug"]))
 
