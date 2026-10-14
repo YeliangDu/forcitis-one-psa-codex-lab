@@ -43,7 +43,7 @@
 
 | # | 事项 | 谁 | 花钱 | 耗时 | 状态 / 依赖 |
 |---|---|---|---|---|---|
-| R-0 | 专用部署 runner 重建（`/opt/forcitis-one-runner` 归 root、hook、LaunchDaemon、`--disableupdate`、演练） | 用户（需 Mac 管理员密码与一次性注册令牌） | 否 | 1.5 h | ✅ 2026-10-15：`mac-one-deploy` 在线（`scripts/release/runner_rebuild.sh`）；第 8 步拒绝演练待做 |
+| R-0 | 专用部署 runner 重建（`/opt/forcitis-one-runner` 归 root、hook、LaunchDaemon、`--disableupdate`、演练） | 用户（需 Mac 管理员密码与一次性注册令牌） | 否 | 1.5 h | ✅ 2026-10-15：`mac-one-deploy` 在线（`scripts/release/runner_rebuild.sh`）；第 8 步拒绝演练通过（分支工作流与伪造变量均被 hook 拒绝），放行路径在首次 dev 部署时验证 |
 | R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15 |
 | R-2 | 仓库级 Actions variables：8 个构建期变量 | 用户 | 否 | 0.2 h | B-2、B-3 完成后填 |
 | R-3 | 发布用 OSS bucket（法兰克福，30 天过期） | 用户 | 按量 | 0.3 h | 用户定首次 dev 部署前再建；与 B-11 归档 bucket 不同 |
