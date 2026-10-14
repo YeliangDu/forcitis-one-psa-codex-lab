@@ -386,7 +386,7 @@ Q1、Q2 由 psa-coordinator 询问并记入 INTENT；Q3–Q12 由 psa-bi-decisio
 
 | # | 用户决定（原话） | 落实 | 待财务 / 待业务 |
 |---|---|---|---|
-| Q1 | 「先不定，由 R0 出对比后再定 (Recommended)」 | R0 产出工具对比（§5.1 四选项与组合），R1 入口前由用户定 | — |
+| Q1 | 「先不定，由 R0 出对比后再定 (Recommended)」；R0 对比后（2026-10-14，经 psa-coordinator 转达）：「C 为主，D 待定为后期可选 (Recommended)」；透视「沿用 AG Grid 企业版」 | 以 C 为主：语义层（指标目录由 `operations.policy` 治理、编译与执行在 `reporting`）与 8 个报表包并入 FORCITIS one；B 冻结作设计输入；D（自助 BI 工具）待定为 R6 之后的可选项，若采用只连 L1 / L2 只读视图、关闭原生 SQL；A 只作过渡。前端透视沿用 AG Grid 企业版，许可采购为部署前事项，许可密钥不进仓库。依据与 R1 入口条件草稿见 `r0/TOOL_COMPARISON.md` §0、§7 | — |
 | Q2 | 「已被 10-14 的决定取代 (Recommended)」 | 2026-12-31 替换 BI、A8 财务部分年内替代、先 OLAP 后 OLTP 不再有效；以 R0–R6 与现代化阶段为准，日期在统一编排时重估；老 BI 保持运行 | — |
 | Q3 | 「冻结作设计输入 (Recommended)」 | BI-olap `analytics/` 代码冻结、不上线；PR #50–#58 不合入 BI master（保持未合并，分支保留）；其 20 份口径 ADR、11 份对账 JSON、权限模型与规模测试由 R0 / R1 / R3 引用。本仓库不对 BI 仓库做任何操作（BI 会话由用户自行处理） | — |
 | Q4 | 「按建议划分，两者都建 (Recommended)」 | `operations.planning` 管目标值（含 A8「承诺目标 / 预算目标」#90–#102，`BudgetTarget`）；`operations.budgeting` 只管额度（占用 / 释放 / 消耗 / 可用 / 调整 / 超预算审批 / 冻结），R4 建，预算占用接入 6c 的费用、付款单据 | 待业务 B3 |

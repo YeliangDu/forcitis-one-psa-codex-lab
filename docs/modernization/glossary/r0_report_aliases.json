@@ -62,9 +62,9 @@
       "source": "在用报表：交付中心汇报区域健康度"
     },
     {
-      "term": "unbilled_wip",
+      "term": "contract_asset",
       "name": "本年度未开票",
-      "source": "在用报表：交付中心汇报 3.1（本年口径，不得与全量合同资产相加）"
+      "source": "在用报表：交付中心汇报 3.1（本年形成的已确认未开票，即合同资产的「形成期间」切片，不得与全量相加；见 r0 基线 M-17、GL-024）"
     },
     {
       "term": "contract_liability",

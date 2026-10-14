@@ -23,12 +23,15 @@ out += ["", "## 结论", "", "| 编号 | 事项 | 状态 | 作答 | 结论 | 相
 for k, x in dec.items():
     ans = x["answer"] + (f"（推荐：{x['recommended']}）" if x.get("recommended") else "")
     out.append(f"| {k} | {x['title']} | {V[x['verdict']]} | {ans} | {x['decision']} | {'、'.join(x.get('rules', []))} |")
-out += ["", "## 待财务清单", "", "以下问题由用户转财务答复；答复后在 JSON 中补 `finance_answer` 并重新生成。", ""]
+out += ["", "## 待财务清单", "", "财务通过《财务确认单》第 2 版（`../r0/FINANCE_CONFIRM.html`，离线打开、不需登录，题目来自 `../r0/FINANCE_QUESTIONS.md`）作答，交回的答复文件用 `python3 ../r0/import_finance_answers.py <答复文件>` 按来源写回并重新生成。", ""]
 i = 0
 for k, x in dec.items():
-    for q in x.get("pending_finance", []):
+    fa = x.get("finance_answers", [])
+    for j, q in enumerate(x.get("pending_finance", [])):
         i += 1
-        out.append(f"{i}. **{k}** {q}")
+        a = fa[j] if j < len(fa) else None
+        ans = f" — **财务答复**（{a['role'] or '未填岗位'}，{a['date']}）：{a['choice'] or ''}{'；' if a['choice'] and a['note'] else ''}{a['note']}" if a else ""
+        out.append(f"{i}. **{k}** {q}{ans}")
 out += ["", f"记录时间：{min(x['at'] for x in dec.values())[:10]}。", ""]
 (here / "GL_FINANCE_DECISIONS.md").write_text("\n".join(out))
 print(f"{len(dec)} decisions, {i} finance questions")
