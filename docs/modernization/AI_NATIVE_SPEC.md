@@ -20,7 +20,7 @@
 | C1a-03 | **外部系统签名一次性票据**（KM、A8 门户、YD 门户、BI）替代免密端点 | X1/X2/A1/A4/K1/K2；RULE-318/319/329/335；SEC-001/002/019 | ADR-0009 §3 | P0（各调用方改造需协调） |
 | C1a-04 | **管理员应急账号**（强口令 + MFA + 锁定）；员工不再口令登录 | U1；RULE-316/317；SEC-011 | ADR-0009 §3 | P0 |
 | C1a-05 | **服务端会话**（Spring Session JDBC、HttpOnly + SameSite Cookie、CSRF）；空闲超时 + 绝对上限；登出；状态变更（停用、离职、角色变更）即时吊销 | U2/U3；RULE-331..334/338/339 | ADR-0009 §2 | P0 |
-| C1a-06 | **身份桥接**：只读校验老系统令牌，换发新会话；不向老库写令牌 | `system_oauth2_access_token` 只读 | ADR-0009 §6 | P0 |
+| C1a-06 | ~~**身份桥接**：只读校验老系统令牌，换发新会话~~ **已删除**（检查点 2 Q-1，用户：「1a 删除桥接」；ADR-0009 §6 已修订） | — | ADR-0009 §6（修订） | — |
 | C1a-07 | **默认拒绝**：所有接口需认证；方法级 `@PreAuthorize` 或带理由的 `@PublicEndpoint`；匿名遍历全部接口返回 401 | RULE-336/337；SEC-020/021 | ADR-0009 §1，G28/G33 | P0（出口条件） |
 | C1a-08 | **功能权限（RBAC）与导航**：类型化 `Permission`；角色—菜单；变更即时生效；无隐式默认角色 | RULE-340..348 | ADR-0009 §4 | P0 |
 | C1a-09 | **数据范围 `AccessScope`**：法人 × 部门 × 项目角色，显式传入仓储，空范围 = 无行（fail-closed） | RULE-349..353；SEC-009 | ADR-0009 §4 | P0（1a 只建模型，业务仓储从 1b 起用） |
@@ -54,7 +54,7 @@
 
 ## 2. Domain Model（Phase 1a）
 
-模块（子域.BC）：`platform.identity`、`organization.workforce`、`platform.approval`、`platform.integration`（企业微信 / A8 / KM 防腐层）、`platform.numbering`、`platform.audit`。schema 按 `<子域>_<BC>`（NAMING_STANDARD）。
+模块（子域.BC）：`platform.identity`、`organization.workforce`、`platform.approval`、`platform.integration`（共用企业微信客户端与出站投递；A8 防腐层归 `organization.workforce`，致远验票归 `platform.identity`，见 REIMAGINED_ARCHITECTURE §2，检查点 2 已批准）、`platform.numbering`、`platform.audit`。schema 按 `<子域>_<BC>`（NAMING_STANDARD）。
 
 ```mermaid
 erDiagram
@@ -85,7 +85,7 @@ erDiagram
 ```
 
 要点：
-- `USER_ACCOUNT.id` 与 `EMPLOYEE.id` 沿用 A8 `ORG_MEMBER.ID`（有符号 bigint，生产存在负数）；`ORG_UNIT.id` 沿用 `ORG_UNIT.ID`。老 OA 存储过程依赖此等值（所有权矩阵「外部」）。
+- `USER_ACCOUNT.id` 与 `EMPLOYEE.id` 沿用 A8 `ORG_MEMBER.ID`（有符号 bigint，生产存在负数）；`ORG_UNIT.id` 沿用 `ORG_UNIT.ID`。ID 沿用只为身份连续性；新系统不向 A8 写任何业务数据，也不为老 OA 存储过程（`oa-quotation-sync`、`oa-cuvalue-sync` 等，把权责事实写进 A8）供数，它们随所服务的 OA 流程按阶段下线（§9a，`phase1a/A8_ACCESS_REGISTER.md`）。
 - `APPROVAL_REQUEST` 唯一键（流程类型, 单据 ID）+（流程类型, 单据 ID, 轮次）（RULE-266/278 修正）。
 - `INBOX_ITEM` 是读模型：新引擎任务 + 老系统 `bpm_task_ext` 只读投影，带来源标记。
 - 内核值对象（ADR-0016）：`Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId`；1a 实际使用 `LegalEntityId`（编号、数据范围）。
