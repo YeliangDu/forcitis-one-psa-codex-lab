@@ -202,7 +202,7 @@ B1–B5 仍待用户（BI_SCOPE §6.1）。
 1. Q5：已完成——OAT 正本在 `glossary/oat/`（来源仓库中未提交，以 SHA-256 记录版本）；本稿 OAT 列的符号即该目录 `canonical_symbol`。
 2. Q11：读取 BI 审计日志计数。执行前先把访问方式报 psa-coordinator。
 3. Q12：按管理层级起草「答不了的问题」模板，请业务 Admin 补充；本稿 §2 的报表包作为验收清单的骨架。
-4. 工具对比（Q1）。
+4. 工具对比（Q1）：已完成，见 `TOOL_COMPARISON.md`（建议以 C 为主，待用户决定）。
 
 Q12 已完成：模板见 `QUESTION_TEMPLATE.md`，待填文件在仓库外 `~/.modernize/psa/bi-inputs/questions/`（questions.md、answers.md）。
 5. 用语：按用户安排并入第三轮用语确认（「1a 第二波和 R0 报表分析交了再一次做」），本会话不单独出确认页；输入已整理为 `TERMS_ROUND3_INPUT.md`，含 A 组 19 项与约 45 个新词条的起草稿。
