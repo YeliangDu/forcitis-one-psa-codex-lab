@@ -482,12 +482,117 @@ architecture-guardrails/frontend（React 版：修复了 ESLint 配置块互相�
 - Q1–Q12 的用户决定、待财务 F1–F5 与待业务 B1–B5 见 BI_SCOPE.md §6.1。""",
 "依据决定：BI_SCOPE.md §6.1 与 INTENT.md（Q1–Q12，2026-10-14；Q3–Q12 由 psa-bi-decisions 逐项确认）；BI_SCOPE.md（现状盘点、证据表、4 个 BC、分层与总线矩阵、OAT 声明字段、与 accounting.reporting 的边界、过渡方案、工具选项、阶段草案）；BI、BI-olap、BI-release 仓库（只读，含 FORCITIS/BI issue #59 与 PR #36–#58）；OAT 机器主数据（ddd-theory `cases/forcitis-aec-ops/*.csv`）与 KPI 体系设计；GLOSSARY.md、glossary/terms.yaml；ADR-0016、0017、0018、0021、ADR-0022 初稿；OA_PROCESS_INVENTORY.md；GUIDING_PRINCIPLES §8、§9a",
 "现代化只做数据层、BI 工具和看板留给 BI 项目（用户已改变边界；且看板自带算法会继续造成口径分裂）；新经营分析继续从 A8、老 PSA 采集并先上线（在老数据源上新建模已由用户暂停，6a–6f 切换后源头不再增长）；在 `reporting` 中重算三大报表（与 `accounting.reporting` 重复建设、口径不一）；过渡期写回 A8 让老视图继续可用（违反 ADR-0021）"),
+("0024", "收入确认单迁入新系统、不设双源期", "提议（依据用户 2026-10-14 H-1：「迁入新系统，不设双源期 (Recommended)」；按 SESSION_PLAYBOOK §12 以新 ADR 部分取代 ADR-0016，待用户审批）",
+"""- ADR-0016 后果第 4 条：收入有两条来源，A8 产值同步在新系统中作为防腐层输入（只读、按来源标记），直到 A8 侧停用——即设一段 A8 与新系统并存的双源期。
+- OA 流程盘点（OA_PROCESS_INVENTORY.md）发现：合同条款与收入确认行级耦合（PSA 作业回写 A8 条款累计字段）；A8 凭证插件按「客户产值确认单」直接给 U8C 制证（2,520 张单据）；双源期内两个入口并存，期间闸门和冲销规则管不到 A8 一侧。
+- 用户 2026-10-14 H-1：「迁入新系统，不设双源期 (Recommended)」；ADR-0021（已采纳）第 2 条写入「不设双源期」。
+- 该变更曾以「修订提议」段直接追加在 ADR-0016 正文（提交 1cd7219），违反后来确立的规则「已采纳的 ADR 不改正文」（SESSION_PLAYBOOK §12.1），登记在本目录 README「历史偏差」。""",
+"""1. **部分取代 ADR-0016 后果第 4 条**；ADR-0016 其余内容不变。
+2. A8「客户产值确认单（新）」（方言「产值确认单」，= 收入确认单）随 6a 在一个会计期间边界一次切换：切换日同日停用 A8 模板、`oa-cuvalue-import`（A8 → PSA）与 `oa-cuvalue-sync`（PSA → A8），并解除 A8 凭证插件对该表单的制证；切换日起收入确认只在新系统发起，经 `operations.facts` 过账。
+3. 切换后新系统不以任何形式读取 A8 的收入确认数据作为输入（没有只读接入的过渡期）；历史数据只经一次性迁入进入新系统。
+4. 历史 19,869 行收入确认与 434 行退回按冲销关系迁入，带来源标记（来源系统、原单号），原行与反向行双向关联；切换前在途实例排空或逐单给出关闭结论，老模板的 71 个在途实例一并判定。
+5. **采纳时的同一提交**（不在提议阶段执行）：ADR-0016 状态改为「已采纳（后果第 4 条已被 ADR-0024 取代）」；删除 ADR-0016 中提交 1cd7219 追加的「修订提议」段，恢复该 ADR 冻结时的原文；brief Phase 4 入口条件中关于 A8 产值只读接入的 `Proposed revision:` 转为正文。""",
+"""- 新系统中「收入确认事实只有 `receivables.wip` 一个生产者」从 6a 起成为硬约束；不存在「按来源标记、互不覆盖」的双来源逻辑。
+- 6a 没有与 A8 实时数据并行比对的窗口，影子比对改为对历史迁入数据和切换前最后一个已结期间做离线对账。
+- 财务需在 6a 切换期间协调月结：切换所在期间以新系统为准出收入凭证。""",
+"INTENT.md（H-1 原话）；ADR-0021；OA_PROCESS_INVENTORY.md §5.2、§6.3；runtime/a8_templates.tsv、a8_u8c_vouchers.tsv；提交 1cd7219（ADR-0016 追加段）",
+"保留双源期（ADR-0016 后果第 4 条原文：两个入口并存，口径漂移，A8 凭证插件旁路仍在）；先迁收入确认单、合同留在 A8（条款与收入行级耦合，形成两个写入方）",
+{"supersedes": ["ADR-0016 后果第 4 条"],
+ "impact": """- BC：`receivables.wip`（收入确认）、`contract.baseline`（条款累计金额改由新系统维护）、`operations.facts`（收入事实唯一生产者）、`platform.integration`（不再有收入确认的 A8 适配器）。
+- 老系统与 A8：`psa_pm_cuvalue`（不再接收 `source_system=0` 新行）、A8 `formmain_0581` / `formson_0583`、条款子表 `formson_0296` / `0376` 与合同档案的累计字段、SQL Agent 作业 `oa-cuvalue-import` / `oa-cuvalue-sync`、A8 凭证插件对该表单的绑定。
+- U8C：切换日起该类收入凭证只来自新系统过账序号。
+- 文档：ADR-0016（采纳时标注部分取代并删除追加段）、brief Phase 4 入口条件、OA_PROCESS_INVENTORY §5.2 / §6.3（6a）、`oa_residual_check.sql`。
+- 人：业务人员改在新系统提交收入确认；财务月结流程。""",
+ "migration": """1. 切换前一个期间：冻结 A8 收入确认模板的字段与流程变更；逐单处理在途实例（排空或给出关闭结论）。
+2. 切换日（会计期间首日）：停用 A8 模板与两条同步作业，解除凭证插件绑定；对 A8 档案做最终快照。
+3. 一次性迁入：19,869 行历史与 434 行退回进入新系统，带来源系统与原单号，保留冲销关联；条款累计金额由迁入数据重算并与 A8 字段比对。
+4. 对账：按 (期间, 法人) 比对行数与金额（含税额、不含税额、税额），并经 `V_FORMID` 与 U8C 已有凭证核对；差异为 0 或经财务签字。
+5. 执行 `oa_residual_check.sql` 第 1–3 段，确认 A8 侧无新实例、无在途、无新凭证。""",
+ "rollback": """- **切换所在期间关账前**可回滚：恢复 A8 模板与 `oa-cuvalue-import`，恢复凭证插件绑定；新系统在该期间已确认的收入一律冲销（不删除已过账事实，SESSION_PLAYBOOK §12.3），再由业务在 A8 重新提交。
+- **该期间关账后**不回退到 A8：问题在新系统内以冲销重做更正。
+- 回滚演练列入 6a 出口条件。""",
+ "guards": """- `oa_residual_check.sql` 第 1–3 段（模板停用、无新实例与在途、无新凭证）加入 6a 出口检查。
+- ArchUnit：收入确认事实（`operations.facts` 的收入类型）只能由 `receivables.wip` 提交；除 `platform.integration` 外任何模块不得引用 A8 表名，`platform.integration` 中不得存在收入确认适配器。
+- 词表：「客户产值确认单」「客户产值确认档案」已列为禁用写法（ADR-0018），保持不变。
+- 以上守护与 6a 切换实现在同一个 PR 中提交。"""}),
 ]
-import os
+LIFECYCLE = """## ADR 生命周期与变更规则
+
+用户 2026-10-14：「已采纳的 ADR 不改正文，改决定就新增 ADR，标明「取代 ADR-00xx」，旧 ADR 改为已被取代、正文保留。」「新 ADR 必须写影响面、迁移方案、回滚方案，并同步修改对应守护规则。」完整的变更治理（配置类、代码类、ADR 类，已过账事实只能冲销）见 `../SESSION_PLAYBOOK.md` §12。
+
+**状态**
+
+| 状态 | 含义 | 谁来改 |
+|---|---|---|
+| 提议 | 已起草，未经用户批准；正文可以修改 | 工作会话起草 |
+| 已采纳 | 用户批准（状态中引用用户原话）；**正文冻结** | 用户批准后由会话改状态 |
+| 已被 ADR-00yy 取代 | 决定被新 ADR 整份替换；正文保留不动，只改状态行 | 新 ADR 采纳时同一提交中修改 |
+| 已废弃 | 决定不再适用且没有替代；正文保留，状态中写明原因与用户原话 | 用户决定 |
+
+部分取代：新 ADR 只替换旧 ADR 的某一条时，新 ADR 写「取代：ADR-00xx 第 N 条」，旧 ADR 状态写「已采纳（第 N 条已被 ADR-00yy 取代）」，正文同样不动。
+
+**规则**
+1. 已采纳的 ADR 只允许改状态行；任何决定上的变化（含修订、补充、例外）都新增 ADR，并在「取代」中列出被取代的 ADR 或条款。
+2. 新 ADR 除背景、决定、后果、证据、备选方案外，必须有四个小节：**影响面**（受影响的 BC、表、接口、阶段、文档）、**迁移方案**（数据与在途单据如何过渡）、**回滚方案**（出问题时如何退回、退回的边界）、**需同步修改的守护规则**（ArchUnit、词表、DDL、lint 等，以及在哪个 PR 中修改）。
+3. 新 ADR 在提议阶段经 `code-modernization:architecture-critic`（opus）对抗性评审，评审意见与处理结果写入证据；用户批准后改为已采纳。
+4. 所有 ADR 由 `build_adrs.py` 生成，不手改 `ADR-*.md` 与本 README。生成器校验：状态必须属于上表；ADR-0024 起缺少必备小节即生成失败；声明取代时被取代 ADR 的状态必须同步标注。
+5. ADR-0001 至 ADR-0023 早于本规则，不追补必备小节；其中 ADR-0022、ADR-0023 仍为提议，采纳前补齐（用户 2026-10-14：「要，补齐后再拿来审批」）。
+6. 部分取代的写法经用户认可（2026-10-14：「认可 (Recommended)」）。
+
+## 历史偏差（规则生效前）
+
+用户 2026-10-14：「只补必要的，其余承认既成事实 (Recommended)」。以下改动发生在本规则生效前，直接改了已采纳 ADR 的正文。除 ADR-0016 的追加段由 ADR-0024 处理外，其余承认为既成事实，正文不动，只在此登记。
+
+| ADR | 改动 | 提交 | 原因与用户原话 | 处置 |
+|---|---|---|---|---|
+| ADR-0009 第 6 条 | 划线删除「只读校验老系统令牌（身份桥接）」，改为签名票据 | 5a9c69c | Phase 1a 检查点 2，用户：Q-1「1a 删除桥接 (Recommended)」 | 承认既成事实 |
+| ADR-0009 第 6 条 | 追加「补充」：老 PSA 后端在免密入口修复前不得作为签名票据签发方 | 2517ef3 | 用户：「老系统先不管，确保新系统没有这些缺陷」；「取消桥接 (Recommended)」 | 承认既成事实 |
+| ADR-0016 后果第 4 条之后 | 追加「修订提议」段（收入确认单不设双源期） | 1cd7219 | 用户 H-1：「迁入新系统，不设双源期 (Recommended)」 | 由 ADR-0024 部分取代；ADR-0024 采纳时同一提交删除该段并标注 |
+| ADR-0018 决定第 2 条 | 追加用语确认第二轮的记录（P / N / A 组结论） | 507b9bd、8d6f9d0 | 用户：用语确认「开一个会话集中确认 (Recommended)」，在确认页上逐组确认 | 承认既成事实（属于记录，不改变决定） |
+| ADR-0020 第 7 条、第 8 条 | 第 7 条由「版本化（待确认）」改为已移入新仓库；新增第 8 条总调度会话 | 62da1fc | 用户：「采纳并移入新仓库」；「新开 psa-coordinator 会话负责调度」 | 承认既成事实 |
+| ADR-0011 决定第 2–4 条 | 头部状态已为「全部定稿」，正文仍残留 3 处【提议】标记 | c4935a7（初版） | 用户 2026-10-14「全部定稿」后未清理标记 | 不清理，只登记；以头部状态为准 |"""
+import os, re, sys
+os.chdir(os.path.dirname(os.path.abspath(__file__)))   # 产物总是写在 adr/ 下，与从哪个目录运行无关
+# ── 变更治理（用户 2026-10-14，SESSION_PLAYBOOK §12；本目录 README「ADR 生命周期与变更规则」）──
+# ADRS 每项为 8 元组 (no, title, status, ctx, dec, cons, ev, alt)，或 9 元组：末尾多一个 dict，可含
+#   supersedes: ["ADR-0016", "ADR-0016 第 6 条", ...]   取代（整份）或部分取代（带「第 N 条」）
+#   impact / migration / rollback / guards: 影响面 / 迁移方案 / 回滚方案 / 需同步修改的守护规则
+# 校验（不通过则生成失败）：
+#   1. 状态以「提议」「已采纳」「已被 ADR-」「已废弃」之一开头；
+#   2. LEGACY_MAX 之后的新 ADR 必须写全 impact / migration / rollback / guards；
+#   3. 已采纳的 ADR 声明取代 ADR-x 时：整份取代 → ADR-x 状态须以「已被 ADR-本号 取代」开头；
+#      部分取代 → ADR-x 状态中须含「已被 ADR-本号 取代」（例：已采纳（第 6 条已被 ADR-0024 取代））。
+LEGACY_MAX = "0023"   # 本规则生效前已存在的 ADR，不追补必备小节（缺口清单见 README）
+STATES = ("提议", "已采纳", "已被 ADR-", "已废弃")
+REQUIRED = (("impact", "影响面"), ("migration", "迁移方案"), ("rollback", "回滚方案"), ("guards", "需同步修改的守护规则"))
+rows = [(a[:8], a[8] if len(a) > 8 else {}) for a in ADRS]
+status_of = {a[0]: a[2] for a, _ in rows}
+errors = []
+for (no, title, status, *_), ext in rows:
+    if not status.startswith(STATES):
+        errors.append(f"ADR-{no}: 状态须以 {'/'.join(STATES)} 开头：{status[:30]}")
+    if no > LEGACY_MAX:
+        for key, name in REQUIRED:
+            if not str(ext.get(key, "")).strip():
+                errors.append(f"ADR-{no}: 缺少必备小节「{name}」（{key}）")
+    if status.startswith("已采纳"):
+        for ref in ext.get("supersedes", []):
+            m = re.match(r"ADR-(\d{4})(.*)", ref)
+            if not m or m.group(1) not in status_of:
+                errors.append(f"ADR-{no}: 取代对象不存在：{ref}"); continue
+            old, partial, mark = status_of[m.group(1)], m.group(2).strip(), f"已被 ADR-{no} 取代"
+            if (partial and mark not in old) or (not partial and not old.startswith(mark)):
+                errors.append(f"ADR-{no}: 取代 {ref}，但 ADR-{m.group(1)} 的状态未标「{mark}」")
+if errors:
+    sys.exit("ADR 校验失败：\n" + "\n".join(errors))
+
 idx = ["# FORCITIS one 现代化 ADR", "", "本目录记录 PSA → FORCITIS one 现代化中的架构决策。STACK_DECISION.md、NAMING_STANDARD.md、GUIDING_PRINCIPLES.md、MODERNIZATION_BRIEF.md 只引用这里的决定，不另立结论。参照文档：forcitis-one `docs/adr/0001-tech-stack.md`（只参照文本，不参照代码）。", "", "| ADR | 标题 | 状态 |", "|---|---|---|"]
-for no, title, status, ctx, dec, cons, ev, alt in ADRS:
+for (no, title, status, ctx, dec, cons, ev, alt), ext in rows:
     fn = f"ADR-{no}.md"
-    open(fn, "w", encoding="utf-8").write(f"# ADR-{no}：{title}\n\n- **状态**：{status}\n- **日期**：2026-10-14\n\n## 背景\n\n{ctx}\n\n## 决定\n\n{dec}\n\n## 后果\n\n{cons}\n\n## 证据\n\n{ev}\n\n## 备选方案（未采用）\n\n{alt}\n")
+    sup = f"- **取代**：{'、'.join(ext['supersedes'])}\n" if ext.get("supersedes") else ""
+    extra = "".join(f"## {name}\n\n{ext[key]}\n\n" for key, name in REQUIRED if ext.get(key))
+    open(fn, "w", encoding="utf-8").write(f"# ADR-{no}：{title}\n\n- **状态**：{status}\n- **日期**：2026-10-14\n{sup}\n## 背景\n\n{ctx}\n\n## 决定\n\n{dec}\n\n{extra}## 后果\n\n{cons}\n\n## 证据\n\n{ev}\n\n## 备选方案（未采用）\n\n{alt}\n")
     idx.append(f"| [ADR-{no}](ADR-{no}.md) | {title} | {status} |")
+idx += ["", LIFECYCLE]
 open("README.md", "w", encoding="utf-8").write("\n".join(idx) + "\n")
 print(len(ADRS), "ADRs written")
