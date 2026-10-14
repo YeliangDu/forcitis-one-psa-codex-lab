@@ -96,6 +96,18 @@ REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integrati
 -- 上面的默认授权自动覆盖到 one_dev_app。
 
 -- ---------------------------------------------------------------------------------------------------------------------
+-- §4b 迁移之后：版本表只追加（B2-M5；每次发布迁移后再执行一遍，幂等）
+-- ---------------------------------------------------------------------------------------------------------------------
+-- 版本表上的触发器已拒绝删除、清空和改写已关闭的行；运行角色再不持有 DELETE 与 TRUNCATE（只留 SELECT、INSERT、UPDATE，UPDATE 用来关闭开放版本）。
+-- 新增版本表（数据访问注册表中角色为 DIMENSION_VERSIONED 的表）时，在这里补一行；DataArchitectureTest 核对此清单与注册表一致。
+REVOKE DELETE, TRUNCATE ON
+    organization_workforce.org_unit_versions,
+    organization_workforce.assignment_versions,
+    organization_workforce.legal_entity_versions,
+    organization_workforce.legal_entity_attribution_periods
+    FROM one_dev_app;
+
+-- ---------------------------------------------------------------------------------------------------------------------
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,

@@ -144,7 +144,7 @@ tables:
   organization_workforce.legal_entity_attribution_periods:
     role: DIMENSION_VERSIONED
     aggregate: LegalEntityAttribution
-    mutability: REPLACE_SET
+    mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [organization.workforce]

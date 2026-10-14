@@ -21,7 +21,7 @@ class LegalEntityHistoryIntegrationTest extends WorkforceIntegrationSupport {
 
     @BeforeEach
     void empty() {
-        jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
+        com.forcitis.one.organization.workforce.application.VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
     }
 
     private List<String> versions(long id) {

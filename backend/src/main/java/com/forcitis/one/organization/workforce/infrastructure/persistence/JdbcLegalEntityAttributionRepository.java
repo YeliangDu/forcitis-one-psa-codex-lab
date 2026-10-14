@@ -38,7 +38,7 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
     private List<AttributionPeriod> periods(long attributionId) {
         return jdbc.sql("""
                         select legal_entity_id, effective_from_date, effective_to_date
-                          from organization_workforce.legal_entity_attribution_periods where attribution_id = :id
+                          from organization_workforce.legal_entity_attribution_periods where attribution_id = :id order by effective_from_date
                         """)
                 .param("id", attributionId)
                 .query((rs, n) -> new AttributionPeriod(new LegalEntityId(rs.getLong("legal_entity_id")),
@@ -73,18 +73,35 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
             if (updated != 1) {
                 throw conflict(attribution);
             }
-            jdbc.sql("delete from organization_workforce.legal_entity_attribution_periods where attribution_id = :id").param("id", id).update();
         }
+        List<AttributionPeriod> stored = periods(id);
         for (AttributionPeriod period : attribution.periods()) {
-            jdbc.sql("""
-                            insert into organization_workforce.legal_entity_attribution_periods
-                                   (attribution_id, legal_entity_id, effective_from_date, effective_to_date)
-                            values (:id, :legalEntity, :from, :to)
-                            """)
-                    .param("id", id).param("legalEntity", period.legalEntityId().value())
-                    .param("from", Date.valueOf(period.effectiveFrom()))
-                    .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE).update();
+            AttributionPeriod existing = stored.stream().filter(p -> p.effectiveFrom().equals(period.effectiveFrom())).findFirst().orElse(null);
+            if (existing == null) {
+                insertPeriod(id, period);
+            } else if (!existing.equals(period)) {
+                updatePeriodEnd(id, period);
+            }
         }
+    }
+
+    private void insertPeriod(long attributionId, AttributionPeriod period) {
+        jdbc.sql("""
+                        insert into organization_workforce.legal_entity_attribution_periods
+                               (attribution_id, legal_entity_id, effective_from_date, effective_to_date)
+                        values (:id, :legalEntity, :from, :to)
+                        """)
+                .param("id", attributionId).param("legalEntity", period.legalEntityId().value())
+                .param("from", Date.valueOf(period.effectiveFrom()))
+                .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE).update();
+    }
+
+    private void updatePeriodEnd(long attributionId, AttributionPeriod period) {
+        jdbc.sql("""
+                        update organization_workforce.legal_entity_attribution_periods set effective_to_date = :to, updated_at = now()
+                         where attribution_id = :id and effective_from_date = :from
+                        """)
+                .param("id", attributionId).param("from", Date.valueOf(period.effectiveFrom())).param("to", Date.valueOf(period.effectiveTo())).update();
     }
 
     private static DomainException conflict(LegalEntityAttribution attribution) {
