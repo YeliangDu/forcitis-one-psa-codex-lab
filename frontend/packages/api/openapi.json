@@ -2076,6 +2076,14 @@
     "/api/v1/platform/sessions:wecom-login" : {
       "post" : {
         "operationId" : "loginWithWecom",
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "loginBinding",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {

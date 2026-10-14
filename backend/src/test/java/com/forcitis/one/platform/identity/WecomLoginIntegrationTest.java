@@ -25,12 +25,12 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
     static final String STATES = "/api/v1/platform/login-states";
 
     private String newState(String entry) throws Exception {
-        return body(postJson(STATES, "{\"entry\":\"" + entry + "\"}")).path("state").asString();
+        return newLoginState(entry);
     }
 
     private MvcResult login(String code, String state, String entry) throws Exception {
         String stateJson = state == null ? "" : ",\"state\":\"" + state + "\"";
-        return postJson(LOGIN, "{\"code\":\"" + code + "\"" + stateJson + ",\"entry\":\"" + entry + "\"}");
+        return postLogin(LOGIN, "{\"code\":\"" + code + "\"" + stateJson + ",\"entry\":\"" + entry + "\"}", state);
     }
 
     @Test
@@ -219,5 +219,39 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
 
     private String errorCode(MvcResult result) throws Exception {
         return body(result).path("errorCode").asString();
+    }
+
+    @Test
+    @DisplayName("M-13 the state is bound to the browser that asked for it: the binding cookie is HttpOnly, SameSite=Lax and short-lived, and only its hash is stored")
+    void bindingCookie() throws Exception {
+        MvcResult issued = postJson(STATES, "{\"entry\":\"WORKBENCH\"}");
+
+        String header = setCookieHeader(issued, "loginBinding");
+        assertThat(header).contains("HttpOnly", "SameSite=Lax", "Path=/api/v1/platform", "Max-Age=600", "Secure");
+        String binding = cookie(issued, "loginBinding");
+        assertThat(jdbc.sql("select count(*) from platform_identity.login_states where binding_hash = :b").param("b", binding)
+                .query(Long.class).single()).as("no clear-text binding in the database").isZero();
+        assertThat(body(issued).toString()).as("the binding never travels in the body").doesNotContain(binding);
+    }
+
+    @Test
+    @DisplayName("M-13 login CSRF: a state presented without the binding cookie, or with another browser's, is refused and stays usable for its own browser")
+    void stateFromAnotherBrowser() throws Exception {
+        knownEmployee(1001, EmploymentStatus.EMPLOYED);
+        wecomAccepts("c1", WecomEntry.WORKBENCH, 1001);
+        String state = newState("WORKBENCH");
+        String body = "{\"code\":\"c1\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}";
+
+        MvcResult withoutCookie = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(LOGIN).with(xsrf())
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(body)).andReturn();
+        MvcResult otherBrowser = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(LOGIN).with(xsrf())
+                .cookie(new jakarta.servlet.http.Cookie("loginBinding", "someone-elses-binding"))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(body)).andReturn();
+
+        assertThat(errorCode(withoutCookie)).isEqualTo("PLATFORM_IDENTITY_STATE_INVALID");
+        assertThat(errorCode(otherBrowser)).isEqualTo("PLATFORM_IDENTITY_STATE_INVALID");
+        MvcResult own = postLogin(LOGIN, body, state);
+        assertThat(own.getResponse().getStatus()).as("the state was not burnt by the attacker's attempts").isEqualTo(200);
+        assertThat(setCookieHeader(own, "loginBinding")).as("the binding is cleared after the login").contains("Max-Age=0");
     }
 }
