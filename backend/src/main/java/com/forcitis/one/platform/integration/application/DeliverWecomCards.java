@@ -73,7 +73,7 @@ public class DeliverWecomCards {
             delivery.skip("handled before it was delivered");
             transaction.executeWithoutResult(status -> {
                 if (deliveries.save(delivery)) {
-                    deliveries.recordHandledResult(delivery.deduplicationKey(), "NOT_APPLIED: handled before it was delivered");
+                    recordResultOn(delivery.deduplicationKey(), "NOT_APPLIED: handled before it was delivered");
                 }
             });
             return;
@@ -95,7 +95,7 @@ public class DeliverWecomCards {
             delivery.skip("the card to replace has no response code");
             transaction.executeWithoutResult(status -> {
                 if (deliveries.save(delivery)) {
-                    deliveries.recordHandledResult(delivery.targetKey(), "NOT_APPLIED: the card has no response code");
+                    recordResultOn(delivery.targetKey(), "NOT_APPLIED: the card has no response code");
                 }
             });
             return;
@@ -104,7 +104,7 @@ public class DeliverWecomCards {
         delivery.markSent(null, clock.instant());
         transaction.executeWithoutResult(status -> {
             if (deliveries.save(delivery)) {
-                deliveries.recordHandledResult(delivery.targetKey(), "UPDATED");
+                recordResultOn(delivery.targetKey(), "UPDATED");
             } else {
                 staleClaim(delivery);
             }
@@ -128,11 +128,18 @@ public class DeliverWecomCards {
         transaction.executeWithoutResult(status -> {
             if (deliveries.save(delivery)) {
                 if (delivery.kind() == DeliveryKind.HANDLED_NOTE) {
-                    deliveries.recordHandledResult(delivery.targetKey(), "FAILED: " + error);
+                    recordResultOn(delivery.targetKey(), "FAILED: " + error);
                 }
             } else {
                 staleClaim(delivery);
             }
+        });
+    }
+
+    private void recordResultOn(String cardKey, String result) {
+        deliveries.lockByKey(cardKey).ifPresent(card -> {
+            card.recordHandledResult(result);
+            deliveries.saveHandled(card);
         });
     }
 

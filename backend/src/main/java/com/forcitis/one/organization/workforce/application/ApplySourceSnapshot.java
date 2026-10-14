@@ -79,7 +79,7 @@ public class ApplySourceSnapshot {
         SyncRun held = run;
         if (!earlier.isEmpty()) {
             held = earlier.getFirst();
-            runs.discard(run);
+            runs.delete(run);
         }
         held.hold(now, changes.stats(), reason);
         runs.save(held);

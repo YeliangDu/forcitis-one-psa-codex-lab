@@ -60,7 +60,7 @@ class JdbcRoleRepository implements RoleRepository {
                     .param("code", role.code().value()).query(Boolean.class).single();
             throw new RoleRuleException(codeTaken ? RoleViolation.DUPLICATE_CODE : RoleViolation.DUPLICATE_NAME);
         }
-        replacePermissions(id.get(), role.permissionCodes());
+        savePermissions(id.get(), role.permissionCodes());
         return role.withId(new RoleId(id.get()));
     }
 
@@ -85,7 +85,7 @@ class JdbcRoleRepository implements RoleRepository {
         if (updated != 1) {
             throw staleRole(role);
         }
-        replacePermissions(role.roleId().value(), role.permissionCodes());
+        savePermissions(role.roleId().value(), role.permissionCodes());
     }
 
     @Override
@@ -102,7 +102,7 @@ class JdbcRoleRepository implements RoleRepository {
                 "role " + role.roleId().value() + " was changed by someone else");
     }
 
-    private void replacePermissions(long roleId, Set<String> permissionCodes) {
+    private void savePermissions(long roleId, Set<String> permissionCodes) {
         if (permissionCodes.isEmpty()) {
             jdbc.sql("delete from platform_identity.role_permissions where role_id = :id").param("id", roleId).update();
             return;

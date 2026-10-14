@@ -23,7 +23,7 @@ class OutboundDeliveryStateMachineTest {
 
     static OutboundDelivery at(DeliveryStatus status) {
         return OutboundDelivery.restore(new OutboundDeliveryId(3), "approval-task:1", List.of(ALICE), "t", "d", "https://one.example.test/x",
-                status.name(), 2, null, null, DeliveryKind.CARD, null, UUID.randomUUID(), 5, 5);
+                status.name(), 2, null, null, null, DeliveryKind.CARD, null, UUID.randomUUID(), 5, 5);
     }
 
     @Test

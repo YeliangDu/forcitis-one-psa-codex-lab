@@ -55,7 +55,7 @@ class JdbcAccountRepository implements AccountRepository {
                 .param("id", opened.userId().value()).param("status", opened.status().name())
                 .param("version", opened.versionAfterSave()).param("eventSequence", opened.eventSequenceAfterSave()).update();
         if (inserted == 1) {
-            writeRoles(opened.userId(), opened.roles());
+            saveRoles(opened.userId(), opened.roles());
         }
         return inserted == 1;
     }
@@ -75,11 +75,11 @@ class JdbcAccountRepository implements AccountRepository {
                     "account " + account.userId().value() + " was changed by someone else");
         }
         if (account.rolesChanged()) {
-            writeRoles(account.userId(), account.roles());
+            saveRoles(account.userId(), account.roles());
         }
     }
 
-    private void writeRoles(UserId userId, Set<RoleId> roleIds) {
+    private void saveRoles(UserId userId, Set<RoleId> roleIds) {
         if (roleIds.isEmpty()) {
             jdbc.sql("delete from platform_identity.account_roles where user_id = :user").param("user", userId.value()).update();
             return;

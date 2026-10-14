@@ -26,7 +26,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
     }
 
     @Override
-    public SyncRun begin(SyncTrigger trigger, Instant now) {
+    public SyncRun insertRunning(SyncTrigger trigger, Instant now) {
         SyncRun draft = SyncRun.unsaved(trigger, now);
         long id = jdbc.sql("""
                 insert into organization_workforce.sync_runs (trigger_kind, status, started_at, created_at, updated_at, version, event_count)
@@ -96,7 +96,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
     }
 
     @Override
-    public void discard(SyncRun run) {
+    public void delete(SyncRun run) {
         int removed = jdbc.sql("delete from organization_workforce.sync_runs where id = :id and version = :version and status = :loadedStatus")
                 .param("id", run.syncRunId().value()).param("version", run.version()).param("loadedStatus", run.loadedStatus().name()).update();
         if (removed != 1) {

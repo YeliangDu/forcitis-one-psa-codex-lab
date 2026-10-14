@@ -4,7 +4,10 @@ import com.forcitis.one.platform.integration.domain.DeliveryKind;
 import com.forcitis.one.platform.integration.domain.DeliveryStatus;
 import com.forcitis.one.platform.integration.domain.OutboundDelivery;
 import com.forcitis.one.platform.integration.domain.OutboundDeliveryRepository;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.platform.integration.api.IntegrationError;
 import com.forcitis.one.kernel.WorkContext;
 import java.time.Clock;
 import java.util.UUID;
@@ -38,13 +41,15 @@ public class MarkWecomCardHandled {
         if (delivery.kind() != DeliveryKind.CARD || delivery.handledNote() != null) {
             return;
         }
-        deliveries.recordHandledNote(deduplicationKey, handledNote);
-        if (delivery.status() == DeliveryStatus.SENT) {
-            queueReplacement(delivery, handledNote);
-        } else if (delivery.status() != DeliveryStatus.PENDING) {
+        delivery.noteHandled(handledNote);
+        if (delivery.status() != DeliveryStatus.SENT && delivery.status() != DeliveryStatus.PENDING) {
             String reason = "NOT_APPLIED: the card is " + delivery.status() + ", not sent";
             log.info("WeCom card {} is not replaced: {}", deduplicationKey, reason);
-            deliveries.recordHandledResult(deduplicationKey, reason);
+            delivery.recordHandledResult(reason);
+        }
+        saveHandled(delivery);
+        if (delivery.status() == DeliveryStatus.SENT) {
+            queueReplacement(delivery, handledNote);
         }
     }
 
@@ -54,11 +59,19 @@ public class MarkWecomCardHandled {
                 .ifPresent(sent -> queueReplacement(sent, sent.handledNote()));
     }
 
+    private void saveHandled(OutboundDelivery delivery) {
+        if (!deliveries.saveHandled(delivery)) {
+            throw new DomainException(IntegrationError.PLATFORM_INTEGRATION_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
+                    "delivery " + delivery.deduplicationKey() + " changed while it was being marked handled");
+        }
+    }
+
     private void queueReplacement(OutboundDelivery sent, String handledNote) {
         if (sent.responseCode() == null) {
             String reason = "NOT_APPLIED: WeCom returned no response code when the card was sent";
             log.info("WeCom card {} is not replaced: {}", sent.deduplicationKey(), reason);
-            deliveries.recordHandledResult(sent.deduplicationKey(), reason);
+            sent.recordHandledResult(reason);
+            saveHandled(sent);
             return;
         }
         UUID correlationId = WorkContext.correlationId().orElseGet(() -> Uuids.timeOrdered(clock));

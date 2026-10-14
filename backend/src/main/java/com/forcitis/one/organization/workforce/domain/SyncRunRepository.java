@@ -7,7 +7,7 @@ import java.util.Optional;
 
 /** Writing side. A save applies only to the stored status and version the run was loaded with; otherwise it is refused. */
 public interface SyncRunRepository {
-    SyncRun begin(SyncTrigger trigger, Instant now);
+    SyncRun insertRunning(SyncTrigger trigger, Instant now);
 
     Optional<SyncRun> find(SyncRunId syncRunId);
 
@@ -20,7 +20,7 @@ public interface SyncRunRepository {
     void save(SyncRun run);
 
     /** Removes a run that never got past RUNNING (its figures were merged into an earlier held run). */
-    void discard(SyncRun run);
+    void delete(SyncRun run);
 
     void saveDiffs(SyncRunId syncRunId, List<SyncDiff> diffs);
 }

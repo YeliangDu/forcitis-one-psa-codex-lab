@@ -34,6 +34,6 @@ class BeginSyncRun {
             runs.save(abandoned);
             events.publish(abandoned);
         }
-        return runs.begin(trigger, now).syncRunId();
+        return runs.insertRunning(trigger, now).syncRunId();
     }
 }

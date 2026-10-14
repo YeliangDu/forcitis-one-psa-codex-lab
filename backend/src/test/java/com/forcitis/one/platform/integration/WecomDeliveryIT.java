@@ -448,7 +448,7 @@ class WecomDeliveryIT {
     private static com.forcitis.one.platform.integration.domain.OutboundDelivery claimedAs(
             com.forcitis.one.platform.integration.domain.OutboundDelivery claim) {
         return com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(claim.deliveryId(), claim.deduplicationKey(),
-                claim.recipients(), claim.title(), claim.description(), claim.targetUrl(), "PENDING", claim.attemptCount(), null, null,
+                claim.recipients(), claim.title(), claim.description(), claim.targetUrl(), "PENDING", claim.attemptCount(), null, null, null,
                 claim.kind(), claim.targetKey(), claim.correlation(), claim.version(), claim.eventSequence());
     }
 

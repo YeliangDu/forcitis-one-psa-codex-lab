@@ -29,7 +29,8 @@ public final class OutboundDelivery extends AggregateRoot {
     private final String targetUrl;
     private final DeliveryStatus loadedStatus;
     private final int attemptCount;
-    private final String handledNote;
+    private String handledNote;
+    private String handledResult;
     private final DeliveryKind kind;
     private final String targetKey;
     private final UUID correlation;
@@ -41,7 +42,7 @@ public final class OutboundDelivery extends AggregateRoot {
 
     private OutboundDelivery(OutboundDeliveryId deliveryId, String deduplicationKey, List<WecomUserId> recipients,
                              List<WecomUserId> skippedRecipients, String title, String description, String targetUrl,
-                             DeliveryStatus status, int attemptCount, String responseCode, String handledNote, DeliveryKind kind,
+                             DeliveryStatus status, int attemptCount, String responseCode, String handledNote, String handledResult, DeliveryKind kind,
                              String targetKey, UUID correlationId, Instant nextAttemptAt, String lastError, long version, long eventSequence) {
         super(version, eventSequence);
         this.deliveryId = deliveryId;
@@ -56,6 +57,7 @@ public final class OutboundDelivery extends AggregateRoot {
         this.attemptCount = attemptCount;
         this.responseCode = responseCode;
         this.handledNote = handledNote;
+        this.handledResult = handledResult;
         this.kind = Objects.requireNonNull(kind, "kind");
         this.targetKey = targetKey;
         this.correlation = correlationId;
@@ -68,32 +70,32 @@ public final class OutboundDelivery extends AggregateRoot {
                                          String description, String targetUrl, UUID correlationId, Instant now) {
         if (asked.isEmpty()) {
             return new OutboundDelivery(null, deduplicationKey, List.of(), List.of(), title, description, targetUrl,
-                    DeliveryStatus.FAILED, 0, null, null, DeliveryKind.CARD, null, correlationId, null,
+                    DeliveryStatus.FAILED, 0, null, null, null, DeliveryKind.CARD, null, correlationId, null,
                     "no recipient with a WeCom user id", 0, 0);
         }
         RecipientPolicy.Decision decision = policy.decide(asked);
         if (decision.allowed().isEmpty()) {
             return new OutboundDelivery(null, deduplicationKey, List.of(), decision.skipped(), title, description, targetUrl,
-                    DeliveryStatus.SKIPPED, 0, null, null, DeliveryKind.CARD, null, correlationId, null,
+                    DeliveryStatus.SKIPPED, 0, null, null, null, DeliveryKind.CARD, null, correlationId, null,
                     "no recipient on the allow list", 0, 0);
         }
         return new OutboundDelivery(null, deduplicationKey, decision.allowed(), decision.skipped(), title, description, targetUrl,
-                DeliveryStatus.PENDING, 0, null, null, DeliveryKind.CARD, null, correlationId, now, null, 0, 0);
+                DeliveryStatus.PENDING, 0, null, null, null, DeliveryKind.CARD, null, correlationId, now, null, 0, 0);
     }
 
     /** The replacement of an already sent card by a note, queued as a delivery of its own. */
     public static OutboundDelivery handledNoteFor(OutboundDelivery sentCard, String note, UUID correlationId, Instant now) {
         return new OutboundDelivery(null, sentCard.deduplicationKey + HANDLED_SUFFIX, sentCard.recipients, List.of(), sentCard.title, note,
-                sentCard.targetUrl, DeliveryStatus.PENDING, 0, null, null, DeliveryKind.HANDLED_NOTE, sentCard.deduplicationKey,
+                sentCard.targetUrl, DeliveryStatus.PENDING, 0, null, null, null, DeliveryKind.HANDLED_NOTE, sentCard.deduplicationKey,
                 correlationId, now, null, 0, 0);
     }
 
     public static OutboundDelivery restore(OutboundDeliveryId deliveryId, String deduplicationKey, List<WecomUserId> recipients,
                                            String title, String description, String targetUrl, String status, int attemptCount,
-                                           String responseCode, String handledNote, DeliveryKind kind, String targetKey,
-                                           UUID correlationId, long version, long eventSequence) {
+                                           String responseCode, String handledNote, String handledResult,
+                                           DeliveryKind kind, String targetKey, UUID correlationId, long version, long eventSequence) {
         return new OutboundDelivery(Objects.requireNonNull(deliveryId, "deliveryId"), deduplicationKey, recipients, List.of(), title,
-                description, targetUrl, DeliveryStatus.valueOf(status), attemptCount, responseCode, handledNote, kind, targetKey,
+                description, targetUrl, DeliveryStatus.valueOf(status), attemptCount, responseCode, handledNote, handledResult, kind, targetKey,
                 correlationId, null, null, version, eventSequence);
     }
 
@@ -143,6 +145,21 @@ public final class OutboundDelivery extends AggregateRoot {
 
     public String handledNote() {
         return handledNote;
+    }
+
+    public String handledResult() {
+        return handledResult;
+    }
+
+    /** Remembers the note for a card once; a card that was already marked keeps its first note. */
+    public void noteHandled(String note) {
+        if (kind == DeliveryKind.CARD && handledNote == null) {
+            this.handledNote = Objects.requireNonNull(note, "note");
+        }
+    }
+
+    public void recordHandledResult(String result) {
+        this.handledResult = Objects.requireNonNull(result, "result");
     }
 
     public DeliveryKind kind() {
