@@ -1,0 +1,19 @@
+{
+  "extends": "../frontend/packages/ui/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "../frontend/packages/ui/src",
+    "outDir": "../frontend/packages/ui/dist/types",
+    "types": []
+  },
+  "include": [
+    "../frontend/packages/ui/src",
+    "raw-shim.d.ts"
+  ],
+  "exclude": [
+    "../frontend/packages/ui/src/**/*.test.tsx",
+    "../frontend/packages/ui/src/test-setup.ts"
+  ]
+}

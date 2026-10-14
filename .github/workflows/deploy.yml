@@ -1,0 +1,150 @@
+name: deploy
+
+# Deploys a published release to dev or prod: the bundle's signed release statement and checksums are verified, it is staged in the Frankfurt OSS
+# bucket with a deploy request, and the ECS fetches it with its own RAM role, verifies the statement again and installs it
+# (scripts/release/ship.sh, then scripts/release/remote_install.sh on the server), triggered by a fixed Cloud Assistant command or a
+# restricted SSH key. The deploy job never holds the release signing key.
+# Blocked while a docs/modernization/status/blockers/ entry carries `blocks: deploy`; prod also needs the Phase 1a exit conditions and C-9.
+# Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        type: choice
+        options: [dev, prod]
+        required: true
+      version:
+        description: 'Published release version without the v prefix, e.g. 0.1.0'
+        required: true
+      confirm:
+        description: 'prod only: type the version again to confirm'
+        required: false
+        default: ''
+
+permissions: {}
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  # Runs before the environment's reviewers are asked, so a blocked deployment fails without waiting for an approval
+  gate:
+    name: deployment allowed
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, forcitis-one]
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      TARGET_ENV: ${{ inputs.environment }}
+      VERSION: ${{ inputs.version }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo "version '$VERSION' is not MAJOR.MINOR.PATCH[-rc.N]" >&2; exit 1; }
+          if [ "$TARGET_ENV" = prod ] && [ "$CONFIRM" != "$VERSION" ]; then
+            echo "prod deployment needs the version typed again in 'confirm'" >&2
+            exit 1
+          fi
+          python3 -I scripts/release/deploy_gate.py --self-test
+          python3 -I scripts/release/deploy_gate.py "$TARGET_ENV" "$VERSION"
+
+  # Only the dedicated deploy runner (its own macOS user, CI_RUNNERS.md) ever sees the environment secrets
+  deploy:
+    name: deploy ${{ inputs.version }} to ${{ inputs.environment }}
+    needs: gate
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, forcitis-one-deploy]
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+    env:
+      TARGET_ENV: ${{ inputs.environment }}
+      VERSION: ${{ inputs.version }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      # The runner's own HOME is an empty root-owned directory; every job gets a fresh one, git included (RELEASE.md §7 R-0)
+      - name: fresh home for this job
+        run: |
+          mkdir -p "$RUNNER_TEMP/home" && : > "$RUNNER_TEMP/home/.gitconfig"
+          { echo "HOME=$RUNNER_TEMP/home"; echo "GIT_CONFIG_GLOBAL=$RUNNER_TEMP/home/.gitconfig"; } >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: toolchain (system tools vetted; pinned and verified downloads)
+        run: scripts/release/toolchain.sh deploy "$RUNNER_TEMP/toolchain"
+
+      # Checked again on the deploy runner: main may have gained a blocker since the gate job
+      - name: repository allows this deployment
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo "version '$VERSION' is not MAJOR.MINOR.PATCH[-rc.N]" >&2; exit 1; }
+          if [ "$TARGET_ENV" = prod ] && [ "$CONFIRM" != "$VERSION" ]; then
+            echo "prod deployment needs the version typed again in 'confirm'" >&2
+            exit 1
+          fi
+          python3 -I scripts/release/deploy_gate.py "$TARGET_ENV" "$VERSION"
+
+      - name: release is published, its tag is on main and passed ci
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          draft="$(gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json isDraft -q '.isDraft')"
+          [ "$draft" = false ] || { echo "v$VERSION is a draft; publish it before deploying" >&2; exit 1; }
+          commit="$(python3 -I scripts/release/ci_passed.py --tag-commit "v$VERSION")"
+          python3 -I scripts/release/ci_passed.py "$commit"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+      - name: download, check the signed release statement and verify the bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ steps.release.outputs.commit }}
+        run: |
+          dir="$RUNNER_TEMP/deploy"
+          archive="$dir/forcitis-one-$VERSION.tar.gz"
+          mkdir -p "$dir"
+          gh release download "v$VERSION" --repo "$GITHUB_REPOSITORY" --dir "$dir" --clobber \
+            --pattern "forcitis-one-$VERSION.tar.gz" --pattern "forcitis-one-$VERSION.tar.gz.sha256" \
+            --pattern "forcitis-one-$VERSION.release" --pattern "forcitis-one-$VERSION.release.sig"
+          scripts/release/statement.sh verify "$archive" "$dir/forcitis-one-$VERSION.release" scripts/release/allowed_signers "$VERSION" "$COMMIT"
+          scripts/release/verify_bundle.sh "$archive"
+          built_from="$(tar -xzOf "$archive" "forcitis-one-$VERSION/manifest.json" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["gitSha"])')"
+          [ "$built_from" = "$COMMIT" ] || { echo "bundle was built from $built_from, but v$VERSION points at $COMMIT" >&2; exit 1; }
+          if [ "$TARGET_ENV" = prod ]; then
+            python3 -I scripts/release/deploy_gate.py approval "$VERSION" "$COMMIT" "$(cut -d' ' -f1 "$archive.sha256")"
+          fi
+
+      - name: stage in OSS and install on the server
+        env:
+          ALIBABA_CLOUD_ACCESS_KEY_ID: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_ID }}
+          ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_SECRET }}
+          OSS_BUCKET: ${{ vars.OSS_BUCKET }}
+          OSS_REGION: ${{ vars.OSS_REGION }}
+          OSS_PREFIX: ${{ vars.OSS_PREFIX }}
+          DEPLOY_TRIGGER: ${{ vars.DEPLOY_TRIGGER }}
+          WECOM_VERIFY_FILE: ${{ vars.WECOM_VERIFY_FILE }}
+          ECS_REGION: ${{ vars.ECS_REGION }}
+          ECS_INSTANCE_ID: ${{ vars.ECS_INSTANCE_ID }}
+          ECS_COMMAND_ID: ${{ vars.ECS_COMMAND_ID }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          COMMIT: ${{ steps.release.outputs.commit }}
+        run: scripts/release/ship.sh "$RUNNER_TEMP/deploy/forcitis-one-$VERSION.tar.gz" "$TARGET_ENV" "$COMMIT"
+
+      - if: always()
+        run: rm -rf "$RUNNER_TEMP/deploy"

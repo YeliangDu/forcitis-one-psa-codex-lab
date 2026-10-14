@@ -61,6 +61,8 @@ fi
 if wanted E-3; then
   step "E-3 运行用户 forcitis"
   run "id forcitis >/dev/null 2>&1 || useradd --system --home /data/forcitis-one --shell /sbin/nologin forcitis"
+  # 迁移以独立用户运行（RELEASE.md §4）：主组 forcitis 只为读取发布目录
+  run "id forcitis-migrate >/dev/null 2>&1 || useradd --system --no-create-home --home-dir / --gid forcitis --shell /sbin/nologin forcitis-migrate"
 fi
 
 if wanted E-4; then
@@ -72,8 +74,13 @@ fi
 
 if wanted E-5; then
   step "E-5 目录与权限"
-  run "install -d -o forcitis -g forcitis -m 750 /data/forcitis-one /data/forcitis-one/releases /data/forcitis-one/logs /data/forcitis-one/tmp"
+  # 发布目录与 current 软链归 root：安装器以 root 在其中操作，应用用户不能替换其中任何东西；应用只写 logs、tmp
+  run "install -d -o root -g forcitis -m 750 /data/forcitis-one /data/forcitis-one/releases"
+  run "install -d -o forcitis -g forcitis -m 750 /data/forcitis-one/logs /data/forcitis-one/tmp"
+  # nginx 只需穿过这两层目录读取各版本的 web/（安装器给 web 授只读 ACL）
+  run "dnf -y install acl && setfacl -m u:nginx:--x /data/forcitis-one /data/forcitis-one/releases"
   run "install -d -o root -g forcitis -m 750 /etc/forcitis-one"
+  run "install -d -o root -g root -m 700 /etc/forcitis-one/migrate"
   run "test -e /etc/forcitis-one/one.env || install -o root -g forcitis -m 0640 $FILES/one.env.template /etc/forcitis-one/one.env"
 fi
 
@@ -94,19 +101,26 @@ if wanted E-8; then
   step "E-8 nginx（发行版包）"
   run "dnf -y install nginx"
   run "install -o root -g root -m 0644 $FILES/nginx-one.conf /etc/nginx/conf.d/one.conf"
+  run "install -d -o root -g root -m 700 /etc/nginx/tls"
   echo "（证书就位前 nginx -t 会失败，属预期；E-9 完成后再 enable --now nginx）"
 fi
 
 if wanted E-9; then
-  step "E-9 证书（B-4：Let's Encrypt，certbot 签发与续期；私钥 600）"
-  run "test -s /etc/letsencrypt/live/one.forcitis.com/fullchain.pem && test -s /etc/letsencrypt/live/one.forcitis.com/privkey.pem"
-  run "[[ \$(stat -L -c '%a' /etc/letsencrypt/live/one.forcitis.com/privkey.pem) == 600 ]]"
+  step "E-9 证书（B-4 交接包；私钥 600）"
+  run "test -s /etc/nginx/tls/one.forcitis.com.pem && test -s /etc/nginx/tls/one.forcitis.com.key"
+  run "chmod 600 /etc/nginx/tls/one.forcitis.com.key /etc/nginx/tls/one.forcitis.com.pem"
   run "nginx -t && systemctl enable --now nginx"
 fi
 
 if wanted E-10; then
-  step "E-10 前端静态资源目录（随发布包放入 current/web 与 current/web/h5，部署时完成）"
-  echo "（无初始化动作）"
+  step "E-10 静态资源：随发布切换的 current/web，与不随发布切换的 static-pinned（企业微信域名校验文件、ACME 校验）"
+  run "install -d -o root -g root -m 755 /data/forcitis-one/static-pinned /data/forcitis-one/static-pinned/.well-known/acme-challenge"
+  # 早先手工部署时 current 是实目录、校验文件放在 current/web：只复制到固定目录，不删原处；首次流水线部署前由运维把该目录改名移开
+  if [[ -d /data/forcitis-one/current && ! -L /data/forcitis-one/current ]]; then
+    run "find /data/forcitis-one/current/web -maxdepth 1 -name 'WW_verify_*.txt' -exec cp -p -n {} /data/forcitis-one/static-pinned/ \\;"
+    run "chown root:root /data/forcitis-one/static-pinned/WW_verify_*.txt && chmod 0644 /data/forcitis-one/static-pinned/WW_verify_*.txt"
+    echo "（/data/forcitis-one/current 是实目录：校验文件已复制到 static-pinned；nginx 换用新模板并验证后，执行 mv /data/forcitis-one/current /data/forcitis-one/current.manual-\$(date +%F)，再做首次流水线部署）"
+  fi
 fi
 
 step "E-11..E-17 控制台 / 交接事项"

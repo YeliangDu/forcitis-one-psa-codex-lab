@@ -19,7 +19,7 @@ jobs:
     name: backend verify (Modulith + ArchUnit guardrails + integration tests)
     runs-on: [self-hosted, forcitis-one]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - name: Flyway migrations are append-only (SESSION_PLAYBOOK §12)
@@ -47,7 +47,7 @@ jobs:
         if: steps.change.outputs.relevant == 'true'
         run: git diff --exit-code -- frontend/packages/api/openapi.json
       - if: failure()
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: test-reports
           path: |
@@ -61,7 +61,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - name: backend or frontend inputs changed?
@@ -82,7 +82,7 @@ jobs:
     name: secret scan (gitleaks)
     runs-on: [self-hosted, forcitis-one]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - name: gitleaks 8.30.1 (machine install, else verified download)
@@ -103,13 +103,30 @@ jobs:
       # 文档不得用「PSA」指代系统（用户 2026-10-14）；例外规则见脚本说明
       - name: no legacy system name in docs
         run: python3 docs/modernization/check_legacy_name.py
+      # 发布与部署脚本读取 ci.yml、部署前清单、阻塞条目与 runbooks/files（RELEASE.md）
+      - name: shellcheck 0.11.0 (machine install, else verified download)
+        run: |
+          if [ "$(shellcheck --version 2>/dev/null | awk '/^version:/ { print $2 }')" != "0.11.0" ]; then
+            mkdir -p "$RUNNER_TEMP/shellcheck" && cd "$RUNNER_TEMP/shellcheck"
+            curl -sSLO https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.aarch64.tar.xz
+            echo "56affdd8de5527894dca6dc3d7e0a99a873b0f004d7aabc30ae407d3f48b0a79  shellcheck-v0.11.0.darwin.aarch64.tar.xz" | shasum -a 256 -c -
+            tar -xJf shellcheck-v0.11.0.darwin.aarch64.tar.xz
+            echo "$PWD/shellcheck-v0.11.0" >> "$GITHUB_PATH"
+          fi
+      - name: release and deploy scripts self-test
+        run: |
+          for script in scripts/release/*.sh; do bash -n "$script"; done
+          shellcheck -x scripts/release/*.sh
+          python3 -I scripts/release/ci_passed.py --self-test
+          python3 -I scripts/release/manifest.py --self-test
+          python3 -I scripts/release/deploy_gate.py --self-test
 
   assertion-drift:
     name: assertion drift (warning only)
     if: github.event_name == 'pull_request'
     runs-on: [self-hosted, forcitis-one]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - run: python3 scripts/ci/assertion_drift.py origin/${{ github.base_ref }}

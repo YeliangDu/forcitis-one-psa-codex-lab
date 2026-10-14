@@ -9,4 +9,9 @@ describe('antd theme from the semantic tokens', () => {
       expect(value).toMatch(/^#[0-9a-f]{6}$/);
     }
   });
+
+  it('uses the token font stacks for body text and code', () => {
+    expect(antdTheme.token?.fontFamily).toMatch(/^'Noto Sans SC'.*sans-serif$/);
+    expect(antdTheme.token?.fontFamilyCode).toMatch(/^'IBM Plex Mono'.*monospace$/);
+  });
 });
