@@ -198,6 +198,13 @@ class ApplicationIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void bareNumericVersionSegmentIsNotAccepted() throws Exception {
+        mvc.perform(post("/api/1/cost/timesheets/7:submit").with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
+                        .contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isBadRequest());
+    }
+
     @BeforeEach
     void legalEntitiesExist() {
         jdbc.update("""

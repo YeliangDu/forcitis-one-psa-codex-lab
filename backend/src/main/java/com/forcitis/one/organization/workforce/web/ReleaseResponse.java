@@ -1,4 +1,6 @@
 package com.forcitis.one.organization.workforce.web;
 
-record ReleaseResponse(String outcome, String message, SyncRunResponse syncRun) {
+import org.jspecify.annotations.Nullable;
+
+record ReleaseResponse(String outcome, @Nullable String message, @Nullable SyncRunResponse syncRun) {
 }

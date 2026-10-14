@@ -2,14 +2,15 @@ package com.forcitis.one.organization.workforce.web;
 
 import com.forcitis.one.organization.workforce.application.SyncRunView;
 import java.time.Instant;
+import org.jspecify.annotations.Nullable;
 
-record SyncRunResponse(String syncRunId, String trigger, String status, Instant startedAt, Instant finishedAt,
-                       Integer sourceOrgUnitCount, Integer sourceEmployeeCount, Integer incomingActiveOrgUnitCount,
-                       Integer incomingEmployedCount, Integer previousActiveOrgUnitCount, Integer previousEmployedCount,
-                       Integer orgUnitChangeCount, Integer employeeChangeCount, Integer positionChangeCount,
-                       Integer isolatedRowCount, Integer issueCount, Integer employedWithoutWecomCount,
-                       String heldReason, String failureReason, String releasedBy, Instant releasedAt,
-                       String releasedByRunId) {
+record SyncRunResponse(String syncRunId, String trigger, String status, Instant startedAt, @Nullable Instant finishedAt,
+                       @Nullable Integer sourceOrgUnitCount, @Nullable Integer sourceEmployeeCount, @Nullable Integer incomingActiveOrgUnitCount,
+                       @Nullable Integer incomingEmployedCount, @Nullable Integer previousActiveOrgUnitCount, @Nullable Integer previousEmployedCount,
+                       @Nullable Integer orgUnitChangeCount, @Nullable Integer employeeChangeCount, @Nullable Integer positionChangeCount,
+                       @Nullable Integer isolatedRowCount, @Nullable Integer issueCount, @Nullable Integer employedWithoutWecomCount,
+                       @Nullable String heldReason, @Nullable String failureReason, @Nullable String releasedBy, @Nullable Instant releasedAt,
+                       @Nullable String releasedByRunId) {
     static SyncRunResponse of(SyncRunView view) {
         return new SyncRunResponse(String.valueOf(view.syncRunId()), view.trigger(), view.status(), view.startedAt(),
                 view.finishedAt(), view.sourceOrgUnitCount(), view.sourceEmployeeCount(), view.incomingActiveOrgUnitCount(),

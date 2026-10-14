@@ -69,4 +69,14 @@ class OpenApiExportTest {
                 .enable(SerializationFeature.INDENT_OUTPUT).build();
         Files.writeString(target, sorted.writeValueAsString(sorted.treeToValue(document, Object.class)) + "\n");
     }
+
+    @Test
+    void pathsUseTheVersionSegmentAndResponseComponentsAreRequiredUnlessNullable() throws Exception {
+        JsonNode document = json.readTree(mvc.perform(get("/v3/api-docs").with(user("1"))).andReturn().getResponse().getContentAsString());
+        document.path("paths").propertyNames().forEach(path -> assertThat(path).startsWith("/api/v1/"));
+        JsonNode syncRun = document.path("components").path("schemas").path("SyncRunResponse").path("required");
+        assertThat(json.convertValue(syncRun, String[].class)).contains("syncRunId", "status", "startedAt")
+                .doesNotContain("finishedAt", "heldReason", "releasedBy");
+        assertThat(document.path("components").path("schemas").path("DecideTaskRequest").path("required").toString()).doesNotContain("reason");
+    }
 }

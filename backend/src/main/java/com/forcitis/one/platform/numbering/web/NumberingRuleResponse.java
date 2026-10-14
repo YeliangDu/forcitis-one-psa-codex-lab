@@ -1,8 +1,9 @@
 package com.forcitis.one.platform.numbering.web;
 
 import com.forcitis.one.platform.numbering.api.NumberingRuleView;
+import org.jspecify.annotations.Nullable;
 
-record NumberingRuleResponse(String documentType, String documentTypeCode, String pattern, String resetPolicy, long startValue,
+record NumberingRuleResponse(String documentType, @Nullable String documentTypeCode, String pattern, String resetPolicy, long startValue,
         long capacity, String confirmationStatus) {
 
     static NumberingRuleResponse from(NumberingRuleView rule) {

@@ -1,6 +1,6 @@
 // Generated from packages/api/openapi.json by scripts/generate-api.mjs. Do not edit by hand.
 export interface paths {
-    "/api/1/cost/timesheets/{id}:submit": {
+    "/api/v1/cost/timesheets/{id}:submit": {
         parameters: {
             query?: never;
             header?: never;
@@ -16,7 +16,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/organization/legal-entities": {
+    "/api/v1/organization/legal-entities": {
         parameters: {
             query?: never;
             header?: never;
@@ -32,7 +32,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/organization/legal-entities/{legalEntityId}": {
+    "/api/v1/organization/legal-entities/{legalEntityId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -48,7 +48,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/organization/org-units": {
+    "/api/v1/organization/org-units": {
         parameters: {
             query?: never;
             header?: never;
@@ -64,7 +64,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/organization/org-units/{orgUnitId}": {
+    "/api/v1/organization/org-units/{orgUnitId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -80,7 +80,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/organization/sync-runs": {
+    "/api/v1/organization/sync-runs": {
         parameters: {
             query?: never;
             header?: never;
@@ -96,7 +96,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/organization/sync-runs/{syncRunId}": {
+    "/api/v1/organization/sync-runs/{syncRunId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -112,7 +112,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/organization/sync-runs/{syncRunId}:release": {
+    "/api/v1/organization/sync-runs/{syncRunId}:release": {
         parameters: {
             query?: never;
             header?: never;
@@ -128,7 +128,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/approval-tasks": {
+    "/api/v1/platform/approval-tasks": {
         parameters: {
             query?: never;
             header?: never;
@@ -144,7 +144,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/approval-tasks/{taskId}": {
+    "/api/v1/platform/approval-tasks/{taskId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -160,7 +160,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/approval-tasks/{taskId}:claim": {
+    "/api/v1/platform/approval-tasks/{taskId}:claim": {
         parameters: {
             query?: never;
             header?: never;
@@ -176,7 +176,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/approval-tasks/{taskId}:decide": {
+    "/api/v1/platform/approval-tasks/{taskId}:decide": {
         parameters: {
             query?: never;
             header?: never;
@@ -192,7 +192,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/approval-tasks/{taskId}:return": {
+    "/api/v1/platform/approval-tasks/{taskId}:return": {
         parameters: {
             query?: never;
             header?: never;
@@ -208,7 +208,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/audit-entries": {
+    "/api/v1/platform/audit-entries": {
         parameters: {
             query?: never;
             header?: never;
@@ -224,7 +224,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/legacy-numbers": {
+    "/api/v1/platform/legacy-numbers": {
         parameters: {
             query?: never;
             header?: never;
@@ -240,7 +240,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/login-states": {
+    "/api/v1/platform/login-states": {
         parameters: {
             query?: never;
             header?: never;
@@ -256,7 +256,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/numbering-rules": {
+    "/api/v1/platform/numbering-rules": {
         parameters: {
             query?: never;
             header?: never;
@@ -272,7 +272,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/numbering-rules/{documentType}": {
+    "/api/v1/platform/numbering-rules/{documentType}": {
         parameters: {
             query?: never;
             header?: never;
@@ -288,7 +288,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/roles": {
+    "/api/v1/platform/roles": {
         parameters: {
             query?: never;
             header?: never;
@@ -304,7 +304,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/roles/{roleId}": {
+    "/api/v1/platform/roles/{roleId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -320,7 +320,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/sessions:current": {
+    "/api/v1/platform/sessions:current": {
         parameters: {
             query?: never;
             header?: never;
@@ -336,7 +336,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/sessions:emergency-login": {
+    "/api/v1/platform/sessions:emergency-login": {
         parameters: {
             query?: never;
             header?: never;
@@ -352,7 +352,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/sessions:logout": {
+    "/api/v1/platform/sessions:logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -368,7 +368,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/sessions:sso-login": {
+    "/api/v1/platform/sessions:sso-login": {
         parameters: {
             query?: never;
             header?: never;
@@ -384,7 +384,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/sessions:ticket-login": {
+    "/api/v1/platform/sessions:ticket-login": {
         parameters: {
             query?: never;
             header?: never;
@@ -400,7 +400,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/sessions:wecom-login": {
+    "/api/v1/platform/sessions:wecom-login": {
         parameters: {
             query?: never;
             header?: never;
@@ -416,7 +416,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/user-accounts/{userId}:disable": {
+    "/api/v1/platform/user-accounts/{userId}:disable": {
         parameters: {
             query?: never;
             header?: never;
@@ -432,7 +432,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/user-accounts/{userId}:enable": {
+    "/api/v1/platform/user-accounts/{userId}:enable": {
         parameters: {
             query?: never;
             header?: never;
@@ -448,7 +448,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/1/platform/user-accounts/{userId}:replace-roles": {
+    "/api/v1/platform/user-accounts/{userId}:replace-roles": {
         parameters: {
             query?: never;
             header?: never;
@@ -473,12 +473,12 @@ export interface components {
             name?: string;
         };
         CurrentUserResponse: {
-            displayName?: string;
-            navigation?: components["schemas"]["NavigationResponse"][];
+            displayName: string;
+            navigation: components["schemas"]["NavigationResponse"][];
             orgUnitId?: string;
             orgUnitName?: string;
-            permissionCodes?: string[];
-            userId?: string;
+            permissionCodes: string[];
+            userId: string;
         };
         DecideTaskRequest: {
             /** @enum {string} */
@@ -486,8 +486,8 @@ export interface components {
             reason?: string;
         };
         DecisionResult: {
-            instanceId?: string;
-            status?: string;
+            instanceId: string;
+            status: string;
         };
         EmergencyLoginRequest: {
             loginName?: string;
@@ -495,46 +495,46 @@ export interface components {
             totpCode?: string;
         };
         InboxItem: {
-            claimed?: boolean;
+            claimed: boolean;
             /** Format: date-time */
             createdAt?: string;
             detailUrl?: string;
             nodeName?: string;
             /** @enum {string} */
-            source?: "NEW" | "LEGACY";
-            taskId?: string;
-            title?: string;
+            source: "NEW" | "LEGACY";
+            taskId: string;
+            title: string;
         };
         LegacyNumberResponse: {
-            documentId?: string;
-            documentType?: string;
-            importBatch?: string;
-            legacyNumber?: string;
-            legalEntityId?: string;
+            documentId: string;
+            documentType: string;
+            importBatch: string;
+            legacyNumber: string;
+            legalEntityId: string;
         };
         LegalEntityResponse: {
-            code?: string;
-            legalEntityId?: string;
-            name?: string;
-            status?: string;
+            code: string;
+            legalEntityId: string;
+            name: string;
+            status: string;
         };
         LoginStateRequest: {
             /** @enum {string} */
             entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
         };
         MergedInbox: {
-            items?: components["schemas"]["InboxItem"][];
-            legacyAvailable?: boolean;
+            items: components["schemas"]["InboxItem"][];
+            legacyAvailable: boolean;
             /** Format: int32 */
-            legacyCount?: number;
+            legacyCount: number;
             /** Format: int32 */
-            newCount?: number;
+            newCount: number;
             /** Format: int32 */
-            totalCount?: number;
+            totalCount: number;
         };
         NavigationResponse: {
-            children?: components["schemas"]["NavigationResponse"][];
-            name?: string;
+            children: components["schemas"]["NavigationResponse"][];
+            name: string;
             routePath?: string;
         };
         NumberingRuleRequest: {
@@ -545,37 +545,37 @@ export interface components {
         };
         NumberingRuleResponse: {
             /** Format: int64 */
-            capacity?: number;
-            confirmationStatus?: string;
-            documentType?: string;
+            capacity: number;
+            confirmationStatus: string;
+            documentType: string;
             documentTypeCode?: string;
-            pattern?: string;
-            resetPolicy?: string;
+            pattern: string;
+            resetPolicy: string;
             /** Format: int64 */
-            startValue?: number;
+            startValue: number;
         };
         OrgUnitDetailResponse: {
-            ancestorOrgUnitIds?: string[];
-            orgUnit?: components["schemas"]["OrgUnitResponse"];
-            orgUnitAndBelowIds?: string[];
+            ancestorOrgUnitIds: string[];
+            orgUnit: components["schemas"]["OrgUnitResponse"];
+            orgUnitAndBelowIds: string[];
         };
         OrgUnitResponse: {
-            code?: string;
-            deliveryUnit?: boolean;
+            code: string;
+            deliveryUnit: boolean;
             headEmployeeId?: string;
-            name?: string;
-            orgUnitId?: string;
+            name: string;
+            orgUnitId: string;
             parentOrgUnitId?: string;
             regionCategory?: string;
             regionalReceivablesManagerId?: string;
             shortName?: string;
             /** Format: int32 */
             sortOrder?: number;
-            status?: string;
+            status: string;
         };
         ReleaseResponse: {
             message?: string;
-            outcome?: string;
+            outcome: string;
             syncRun?: components["schemas"]["SyncRunResponse"];
         };
         ReplaceRolesRequest: {
@@ -594,14 +594,14 @@ export interface components {
         };
         RoleResponse: {
             /** @enum {string} */
-            accessScope?: "ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS";
-            administrative?: boolean;
-            code?: string;
-            enabled?: boolean;
-            kind?: string;
-            name?: string;
-            permissionCodes?: string[];
-            roleId?: string;
+            accessScope: "ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS";
+            administrative: boolean;
+            code: string;
+            enabled: boolean;
+            kind: string;
+            name: string;
+            permissionCodes: string[];
+            roleId: string;
         };
         SubmitTimesheetRequest: {
             hours?: number;
@@ -611,20 +611,20 @@ export interface components {
         SubmitTimesheetResponse: {
             approvalInstanceId?: string;
             errorCode?: string;
-            outcome?: string;
+            outcome: string;
             remainingHours?: number;
         };
         SyncDiffResponse: {
-            changeKind?: string;
-            changedFields?: string[];
+            changeKind: string;
+            changedFields: string[];
             detail?: string;
-            entityKind?: string;
+            entityKind: string;
             issueKind?: string;
-            subjectKey?: string;
+            subjectKey: string;
         };
         SyncRunDetailResponse: {
-            diffs?: components["schemas"]["SyncDiffResponse"][];
-            syncRun?: components["schemas"]["SyncRunResponse"];
+            diffs: components["schemas"]["SyncDiffResponse"][];
+            syncRun: components["schemas"]["SyncRunResponse"];
         };
         SyncRunResponse: {
             /** Format: int32 */
@@ -660,24 +660,24 @@ export interface components {
             /** Format: int32 */
             sourceOrgUnitCount?: number;
             /** Format: date-time */
-            startedAt?: string;
-            status?: string;
-            syncRunId?: string;
-            trigger?: string;
+            startedAt: string;
+            status: string;
+            syncRunId: string;
+            trigger: string;
         };
         TaskDetail: {
             assignee?: string;
-            businessKey?: string;
-            canAct?: boolean;
-            candidates?: string[];
+            businessKey: string;
+            canAct: boolean;
+            candidates: string[];
             /** Format: date-time */
-            createdAt?: string;
-            initiator?: string;
-            instanceId?: string;
-            nodeKey?: string;
-            nodeName?: string;
-            processKey?: string;
-            taskId?: string;
+            createdAt: string;
+            initiator: string;
+            instanceId: string;
+            nodeKey: string;
+            nodeName: string;
+            processKey: string;
+            taskId: string;
         };
         TicketLoginRequest: {
             ticket?: string;
