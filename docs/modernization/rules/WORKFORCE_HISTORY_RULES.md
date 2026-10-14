@@ -19,3 +19,47 @@ Then  登记先取得快照写锁，后到者发现已登记就不再写、不�
 ```
 
 为什么现在写成规则而不写代码：回填日是部署事实，补录的数据来自业务，需要组织数据管理员提供；在没有历史来源之前阻止比猜测安全。守护：解析找不到时失败（G-1），见 `EmployeeLegalEntities.on` 的契约测试；并发登记见 `OrgDirectoryIntegrationTest.concurrentFirstLoginsRegisterOnce`。
+
+## 候选规则：离职申请的预计离职日期与离职观察时间是两件事，不混用（1b 定，1a 不变）
+
+依据：用户 2026-10-15 问「离职申请流程会有预计离职日期，你需要的是真实的离职日期吗」，随后「安排 one-ops 去查表单字段」（intent `2026-10-15-004835-one-coordinator-离职日期-离职申请流程会有预计离.md`）。one-ops 只读查结构与计数（2026-10-15）：
+
+- 来源是 A8「员工离职申请」流程的表单主表 `a8_db.dbo.formmain_0348`。预计离职日期 = `field0031`（SQL Server `datetime`，不带时区）；人员关联 = `field0012` 员工编号 → `ORG_MEMBER.CODE`（近 12 个月 60 / 60 可对上）；流程状态 `finishedflag`（1 结束、0 未结束、3 含义待查）、`state`、`ratifyflag`。
+- 预计止薪日期 `field0032` 近 12 个月全空，不用。表单没有最后工作日、实际离职日、交接完成日。
+- **状态取证**（one-ops 2026-10-15 第二次只读取证，只有结构与计数）：表单记录 841 条；`ratifyflag` 全为 0（未用核定）。流程层在 `a8_db.dbo.COL_SUMMARY`（`FORM_RECORDID = formmain_0348.ID`，列 `STATE`、`SUB_STATE`、`FINISH_DATE`），每条表单记录都有摘要。对应关系（finishedflag / 摘要 STATE → 条数）：1 / 3 → 751（全有结束时间，近 12 个月 60）；3 / 1 → 7（全有结束时间）；0 / 2 → 54（无结束时间）；0 / 0 → 22（无结束时间）；无摘要状态 → 7（无结束时间）。含义**依据生产数据推断，未见官方字典**（库内没有系统状态码字典，与致远协同流程状态惯例 0 运行中、1 终止、2 撤销、3 结束互相印证）：摘要 STATE = 3 且有结束时间 ↔ finishedflag = 1 为正常走完（同意）；STATE = 1 ↔ finishedflag = 3 为终止（否决以终止结束，没有单独的否决状态）；STATE = 2 为撤销或退回后未再提交；STATE = 0 为仍在流转。
+- **人员关联取证**：`ORG_MEMBER.CODE` 不唯一——1,299 行人员中 5 个 CODE 出现在多行（共 11 行，其中 3 个同时出现在在职与离职记录，疑为再入职或工号复用），另有 42 人没有 CODE。流程发起人 `start_member_id` 近 12 个月 60 / 60 是离职本人。
+
+```
+Given 某员工在当前任职段（最近一次入职或复职之后）有离职申请
+ And  申请正常走完：finishedflag = 1 且 COL_SUMMARY.STATE = 3（且 FINISH_DATE 非空）
+ And  申请人员 = 流程发起人 start_member_id（A8 人员 ID，按来源 ID 对应到新系统员工），且表单 field0012 员工编号与该员工的 CODE 一致
+When  需要该员工的预计离职日期
+Then  取 FINISH_DATE 最晚的一条（相同时比记录 id）的 field0031，按 Asia/Shanghai 本地时间取日期部分（不先转 UTC）
+ And  FINISH_DATE 另记为「流程批准时间」，不等于离职日期
+ And  终止（finishedflag = 3 / STATE = 1）、撤销（STATE = 2）、在途（STATE = 0）、无摘要状态的申请都不是来源
+ And  发起人与 field0012 对不上（代人发起、工号复用、没有 CODE）时不采用，计数并告警，交组织数据管理员核对
+ And  预计离职日期已过而员工仍在职时，标为「已过期」，消费方不得当作事实
+
+Given 组织同步第一次把某员工的在职状态判为离职（RULE-363 口径：登录名为空，或 A8 不再返回该员工——后者可能是误判，例如调出组织路径）
+When  这一变化写入快照
+Then  离职观察时间 = 写入该变化的那一轮同步（SUCCEEDED 或 RELEASED）的提交时刻；HELD 期间不记，放行时才记（与 I-13 一致）
+ And  它只表示「新系统这样判定了」，不是人事生效日，不冒充预计离职日期
+ And  每次离职各记一条；复职后再离职是新的一条，不覆盖旧值
+ And  首次部署时，首轮快照里已是离职状态的员工，离职观察时间为「未知」，不记部署时刻
+
+Given 没有可对上的申请，或没有观察记录
+When  需要上述任一属性
+Then  该属性为「未知」，不推算、不编造
+
+Given 视图返回上述对应关系之外的状态组合（例如 finishedflag = 1 而 STATE ≠ 3，或出现新的取值）
+When  读取离职申请
+Then  不作为来源；计数并告警（G-1），不静默跳过
+```
+
+敏感性与最小列：未结束的离职申请意味着「某人将要离职」尚未公开，属于敏感信息。为从源头避免，新系统读取的只读视图**在 A8 库内只返回正常结束且同意的申请**，未结束的申请不离开 A8；列只取流程发起人 A8 人员 ID（`start_member_id`）、员工编号（`field0012`，仅用于核对）、预计离职日期、流程结束时间；视图在库内按「finishedflag = 1 且摘要 STATE = 3」过滤；不含姓名文本、离职原因、约谈内容。
+
+范围：两个属性目前没有具体消费方——1b 的离职者在途待办与待调整权限都由离职事件触发，工时截止需要的是实际日期，两者都给不了。因此 1b 只把来源与口径写清，在出现具体消费方之前不建列、不建视图；离职观察时间多半可由同步批次与事件审计推出，届时先评估能否不另存。实现时须同步：`forcitis_one` schema 只读视图（one-ops 建）、`backend/architecture/seeyon-view-columns.yaml` 列白名单、应用启动自检的视图清单（`phase1a/SECURITY_INVARIANTS.md` I-1，含单对象 / 列白名单校验，否则应用拒绝启动）。执行路径：视图 SQL 与白名单在同一 PR 定稿合并后，经 one-coordinator 派 one-ops，用 B-5 工具（`handoff/B-5-dba/tools`）apply → verify → 以 `one_a8_views_ro` 真实登录核对能读、越权被拒，并授 SELECT 给 `one_a8_views_ro`。
+
+用语：提议术语见 `backend/glossary/proposed/organization_workforce.yaml`（离职申请 `separation_request`、预计离职日期 `expected_separation_date`、离职观察时间 `separation_observed_at`）；单说「离职日期」/ `separation_date` 有歧义，列为禁用写法。
+
+评审：architecture-critic（opus，2026-10-15）意见 1–13 已按上文处理——第 1 条触发口径改为 RULE-363；第 2 条来源改为「正常结束且同意」，经第二次取证落为 finishedflag = 1 且摘要 STATE = 3；第 3 条「最新」按流程结束时间、限当前任职段、每次离职各一条；第 4 条首轮快照为未知；第 5 条 HELD 语义；第 6 条已过期；第 7 条 3 计数告警；第 8 条视图在库内过滤、去掉流程状态列；第 9 条本地日期；第 10 条去掉无出处的「2020-06」；第 11 条无消费方前不建列；第 12 条登记提议术语；第 13 条不越出 1a。

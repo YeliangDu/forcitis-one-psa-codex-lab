@@ -39,6 +39,7 @@
 | B-10 | 发布与部署一次性设置。**必需前置：按 RELEASE.md R-0 重建专用部署 runner `forcitis-one-deploy`**（只接 deploy；程序、hook 与空主目录归 root，PATH 只含系统目录，`--disableupdate`；原注册已注销；发布打包与签名在 GitHub 托管机器上）；发布包由 ECS 以 GitHub 只读令牌自取（不建发布用 OSS bucket，R-13 令牌由用户生成）；GitHub environments `dev` / `prod`（prod 设 required reviewers）、专用 runner 的 pre-job hook、构建期变量、environment `release` 与发布签名密钥（Team 计划私有仓库无出处证明，RELEASE.md §11）、immutable releases、`v*` 标签保护、prod 批准行；每环境 RAM 子账号（只许调用固定云助手命令）与 AccessKey；ECS 侧安装器、`forcitis-migrate` 用户、目录归属与迁移凭据目录；最后一跳推荐云助手（SSH 方式另需 22 端口只对固定出口 IP 开放） | dev 前 | 遗漏项「CI 无发布产物」、INFRA_RUNBOOK §7 | [RELEASE.md §7、§8](runbooks/RELEASE.md#7-一次性步骤用户或运维执行执行前确认) | 🟨 |
 | B-11 | dev 库按迁移基线重建：迁移基线合并（R-3a，#103，73 个迁移合为 10 份基线）后，任何执行过旧迁移的库都过不了 Flyway 校验（历史表里的版本在仓库中已不存在），只能删库重建，不能清表后续跑。dev 库 `forcitis_one_dev` 目前尚未执行过任何迁移，首次部署前按 C-3 现行脚本补齐（见 C-3）即可；若届时已执行过旧迁移则删库重建 | dev 前 | R-3a 基线；SESSION_PLAYBOOK §12.2 | [C-3](runbooks/C-3-dev-db.md) | ⬜ |
 | B-12 | 指定流程管理员：把 `process_administrator` 角色授予 1 名以上的人（建议 2 名，A-4 定人选）；该角色没有任何持有人时应用在任何环境都拒绝启动（只有测试配置可关闭） | dev 前 | D-1a-61；`process_administrator` 角色由 platform_identity 基线迁移建立（基线合并前为 V20261014205200） | — | ⬜ |
+| B-13 | 归档 OSS bucket `forcitis-one-archive`：第一个归档写入方上线前重新 `InitiateBucketWorm` 2557 天并锁定（锁定不可撤销，锁定前报 one-coordinator）；处理演练对象 `drill/20261015.txt` | 第一个归档写入方上线前 | 用户「现在不锁，第一个写入方上线前再锁 (Recommended)」 | [B-13](handoff/B-13-archive-oss-bucket.md) | 🟨 bucket 与写入方角色已建、演练通过 |
 
 ## C. 由会话执行，执行前须用户确认（对外变更或购买）
 
