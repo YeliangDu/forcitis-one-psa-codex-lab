@@ -20,7 +20,7 @@
 ## 在途工作会话
 | 会话 | 在做 | 下一步 |
 |---|---|---|
-| psa-1a-platform-bridge-reimagine | A+B 整合收尾（事件分片格式、审计去重、指标前缀、状态写入例外、ProblemDetail、「（未填写意见）」）；已修抖动测试 7cb1ca7；5 个事件补 businessDate（OLAP 结论） | 报提交号后开 PR；然后下一批三路：A 审批 / TIMESHEET / 待办通知；B 组织 / 登录 / 编号 / 审计 / 数据权限（ADR-0026/0027）/ 平台约定 / 84 项命名改名；C 前端（共用包、工作日历录入页、H5 与 PC 差异）；完成后 opus 按 §14 复审 |
+| psa-1a-platform-bridge-reimagine | A+B 整合已交（PR #50）；opus 复审本批中；起草下一批派工；5 个事件补 businessDate（OLAP 结论）未做 | 复审结论后派下一批三路：下一批三路：A 审批 / TIMESHEET / 待办通知；B 组织 / 登录 / 编号 / 审计 / 数据权限（ADR-0026/0027）/ 平台约定 / 84 项命名改名；C 前端（共用包、工作日历录入页、H5 与 PC 差异）；完成后 opus 按 §14 复审 |
 | psa-olap-architecture | 1a 数据架构逐表打分卡（34 表，OLTP / OLAP 准备 / DAMA）与守护规格、数据架构检查清单 | 报告后开 PR；要改的转 1a，取舍问用户 |
 | psa-repo-fragments | 记录类产物不入仓：INTENT / SESSION_LOG / STATUS 移出仓库，main 合并后 Action 生成到 generated-docs 分支 | 报告后开 PR；合并前通知各会话不再提交这三个文件 |
 
@@ -29,6 +29,7 @@
 ## 待合并 PR
 - #47 ADR-0027（已采纳）——已合 main，等 CI。
 - #48 Phase 1a 入口条件核对与部署前清单——已合 main，等 CI。
+- #50 1a A+B 整合（状态机、事件、错误链、工作日历、审批时限、会签等；surefire 718 / failsafe 203）——等 CI。调度会话已同意：意见字段进任务详情与已办、工时提交错误统一 ProblemDetail（下一批 A）；ExportedSnapshot 状态写入例外接受；effect / opinion / binding / nullable 交第三轮用语。
 
 ## 待用户 / 财务 / 运维决定
 - 部署前清单：`docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md`（A 需用户决定 8 项、B 只能用户或运维执行 9 项、C 执行前须确认 9 项、D 出口验证 9 项）。已发给用户；A 类人选与群名需用户直接回复；建议用户先做 B-1 `/design-sync` 与 B-2 新开企业微信应用。
@@ -37,7 +38,7 @@
 - 生产前：Phase 2 / 4 出口停用生产 SQL Agent 作业（A8_ACCESS_REGISTER #28–#31），属运维动作须用户批准。
 
 ## 排定的后续
-- 第三轮用语确认（复用 psa-terms-review）：1a 下一批交付后启动；合并 1a 全部提议术语（按业务 / 技术分组）、R0 的 TERMS_ROUND3_INPUT（A 组 19、新词约 45、NRPM 与「人工成本产出倍数」对齐）、前端用语（含同步 / 放行 / 被中止与 held_run 重叠、待办与 todo / inbox 重叠）、工时类别（项目 / 售前 / OH，OH 疑似方言）、legacy_system（老系统，方言 PSA）、TS / JV 单据类型代码。ADR-0018：阶段结束时不得留有会计类提议术语。
+- 第三轮用语确认（复用 psa-terms-review）：1a 下一批交付后启动；合并 1a 全部提议术语（按业务 / 技术分组）、R0 的 TERMS_ROUND3_INPUT（A 组 19、新词约 45、NRPM 与「人工成本产出倍数」对齐）、前端用语（含同步 / 放行 / 被中止与 held_run 重叠、待办与 todo / inbox 重叠）、工时类别（项目 / 售前 / OH，OH 疑似方言）、legacy_system（老系统，方言为旧名称）、TS / JV 单据类型代码。ADR-0018：阶段结束时不得留有会计类提议术语。
 - 统一编排路线（1a 试点结束、brief 重新生成时一起审批）：Phase 1a–5、6a–6f（ADR-0021）、G1/G2（ADR-0022）、R0–R6（ADR-0023 / 0025）统一编号与依赖；6a 入口加「收付口径推送通道就绪」「过渡镜像就绪」；Phase 4、6a–6c、G1 合为业财一体阶段作为可选方案；客商主数据是否提前；6a–6f、G 与 R 阶段并入模板时补「流程梳理」入口条件。
 - 1b 前必须：区域应收负责人指派类型按规格建；代理审批授权模型评审（RULE-270）；ADR-0026 列出的新规则先在 RULE_REVIEWS 登记（法人限定、审批参与只读访问、授予时职责分离组合）；组织数据管理员是否列敏感复核；Phase 1b 流程梳理（新会话 one-1b-process-review）。
 - 新 ECS（i-bp122xlpar8w2uylmal2）机内加固随部署清单 C-4 执行。
