@@ -15,7 +15,7 @@
 |---|---|---|---|
 | `STATUS.md`（生成，片段在 `status/`） | 现在在哪：当前阶段、各工作单元状态与负责会话、阻塞项、下一条命令。每个工作单元一个文件 `status/units/<排序>-<名称>.md`，每条阻塞一个文件 `status/blockers/`，段落在 `status/_header.md`、`_position.md` | 每个会话 | 开场认领、收尾更新（改自己单元的文件） |
 | `SESSION_LOG.md`（生成，片段在 `session-log/`） | 只追加的会话日志：每个会话一条（目标、输入、用户决定原话、产出、未完成项、下一步），一条一个文件 | 每个会话 | 收尾时用 `new_log.py` 新增片段 |
-| `INTENT.md`（生成，片段在 `intent/`） | 用户的全部要求与决定原话 → 落点，一条一个文件 | 收到用户决定时用 `new_intent.py` 新增片段 | 即时 |
+| `INTENT.md`（生成，片段在 `intent/`） | 用户的全部要求与决定原话 → 落点，一条一个文件（`<日期>-<HHMMSS>-<会话名>-<短名>.md`；迁移前的旧文件保留三位序号，生成器按日期、旧序号、时刻、文件名确定排序，旧序号重复时 `build_all.py` 警告） | 收到用户决定时用 `new_intent.py` 新增片段 | 即时 |
 | `adr/`（生成，源文件在 `adr/src/`） | 架构决策（状态：提议 / 已采纳 / 已被取代 / 已废弃；已采纳正文冻结，见 §12），每份 ADR 一个源文件 `adr/src/ADR-NNNN.md` | 产生或改变决策时 | 即时 |
 | `CONFIG_CHANGELOG.md` | 配置类变更（DMN、编号、口径、政策参数）的版本与生效日期，只追加（§12.2） | 起草配置变更的会话 | 即时 |
 | `MODERNIZATION_BRIEF.md` | 阶段计划与入口 / 出口条件（勾选即进度） | 条件满足时只勾选，不改写条件 | 即时 |
@@ -48,7 +48,7 @@
 ## 4. 收尾协议（结束前，或上下文接近上限时）
 
 0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它并把产物一起提交。CI 的「generated docs match fragments」一步会拦下不一致。
-1. 把本会话的决定（用户原话）用 `python3 docs/modernization/new_intent.py "<原话>" "<落点>"` 新增为 `intent/` 片段，并写进相应 ADR 的源文件 `adr/src/`。
+1. 把本会话的决定（用户原话）用 `python3 docs/modernization/new_intent.py --session=<会话名> "<原话>" "<落点>"` 新增为 `intent/` 片段，并写进相应 ADR 的源文件 `adr/src/`。
 2. 勾选 brief 中已满足的条件；不满足的不勾，不改写条件。
 3. 用 `python3 docs/modernization/new_log.py <会话名> "<工作单元>"` 新增一条会话日志片段（模板见 §8），填好各项，写明下一条要运行的命令。
 4. 更新本单元的 `status/units/` 片段：释放认领，标明单元状态（完成 / 部分完成 / 阻塞及原因）；新增或解除的阻塞项在 `status/blockers/` 中增删文件。
@@ -113,7 +113,7 @@
 
 ## 8. 会话日志条目模板
 
-每条日志是 `session-log/<日期>-<序号>-<会话名>.md` 一个文件，由 `new_log.py` 按下面的模板预填；文件只含这一个二级标题。
+每条日志是 `session-log/<日期>-<HHMMSS>-<会话名>.md` 一个文件，由 `new_log.py` 按下面的模板预填（文件名由日期、时刻与会话名组成，并行会话无需协调编号；不要手工起名或沿用旧的三位序号）；文件只含这一个二级标题。
 
 ```
 ## <日期> · <会话名> · <工作单元>
