@@ -27,6 +27,7 @@ REQUEST_ASSET_PARAMETERS='bundle bundle-sha256 statement statement-sig'
 MAX_PARAMETER_CHARS=4096
 METADATA_URL=http://100.100.100.200
 OOS_ENDPOINT='https://oos.{region}.aliyuncs.com'
+ALERT_SENDER=/usr/local/sbin/one_alert_send
 # GitHub serves release assets from these hosts as short-lived signed URLs; the deploy job resolves them, nothing else is fetched
 ASSET_HOSTS='objects.githubusercontent.com release-assets.githubusercontent.com'
 # Every request taken up, keyed <run_id>:<run_attempt>, with its outcome (root 0600, appended only); a key listed here is never installed again
@@ -371,7 +372,7 @@ try:
     request = json.loads(get_parameter(f"{prefix}-{env}"), object_pairs_hook=no_duplicates, parse_constant=no_constants)
 except ValueError:
     die("is not JSON")
-expected = {"version", "environment", "run_id", "run_attempt"}
+expected = {"version", "environment", "run_id", "run_attempt", "request_id", "asset_url_sha256"}
 if not isinstance(request, dict) or set(request) != expected:
     keys = sorted(request) if isinstance(request, dict) else type(request).__name__
     die(f"must be an object with exactly the keys {sorted(expected)}, got {keys}")
@@ -386,12 +387,29 @@ for key in ("run_id", "run_attempt"):
     value = request[key]
     if type(value) is not int or not 0 < value < 2**63:
         die(f"{key} must be a positive integer")
+request_id = f"{request['run_id']}:{request['run_attempt']}"
+if request["request_id"] != request_id:
+    die(f"request_id must be the string {request_id!r} (run_id:run_attempt)")
+hashes = request["asset_url_sha256"]
+if not isinstance(hashes, dict) or set(hashes) != set(asset_keys):
+    keys = sorted(hashes) if isinstance(hashes, dict) else type(hashes).__name__
+    die(f"asset_url_sha256 must have exactly the keys {sorted(asset_keys)}, got {keys}")
+for key in asset_keys:
+    if not isinstance(hashes[key], str) or not re.fullmatch(r"[0-9a-f]{64}", hashes[key]):
+        die(f"asset_url_sha256.{key} is not 64 lowercase hexadecimal characters")
+
+# The five parameters are written one by one, so a reader can meet links of another run: each link must be the one this request hashed
+links = {key: get_parameter(f"{prefix}-{env}-{key}") for key in asset_keys}
+mismatched = [f"{prefix}-{env}-{key}" for key in asset_keys if hashlib.sha256(links[key].encode("utf-8")).hexdigest() != hashes[key]]
+if mismatched:
+    print(f"{request_id} {' '.join(mismatched)}")
+    sys.exit(3)
 
 top = f"forcitis-one-{version}"
 asset_names = dict(zip(asset_keys, (f"{top}.tar.gz", f"{top}.tar.gz.sha256", f"{top}.release", f"{top}.release.sig")))
 lines = [f"{version} {request['run_id']} {request['run_attempt']}"]
 for key, name in asset_names.items():
-    url = get_parameter(f"{prefix}-{env}-{key}")
+    url = links[key]
     # No quotes, backslashes, braces or brackets: the link goes into a curl config line, and curl must not glob it
     if not re.fullmatch(r"[!-~]+", url) or re.search(r'["\\{}\[\]]', url):
         die(f"asset {name}: URL holds whitespace or one of the characters \" \\ {{ }} [ ]")
@@ -412,10 +430,17 @@ PY
 
 # Sets version, run_id, run_attempt and asset_names / asset_links (same order) from the request, after every check passed
 read_request() {
-  local out line i
+  local out line i rc=0 message
   local -a lines
   out="$(request_read "$METADATA_URL" "$OOS_ENDPOINT" "$target_env" "$VERSION_PATTERN" "$MAX_PARAMETER_CHARS" "$ASSET_HOSTS" \
-    "$REQUEST_PARAMETER_PREFIX" "$REQUEST_ASSET_PARAMETERS")" || fail "install request could not be read or was refused"
+    "$REQUEST_PARAMETER_PREFIX" "$REQUEST_ASSET_PARAMETERS")" || rc=$?
+  if [ "$rc" -eq 3 ]; then
+    # Not a replay but a write race between two runs: nothing is recorded, so the same request can be sent again once the parameters agree
+    message="one.release-request: request ${out%% *} rejected, link parameters ${out#* } do not match the request's asset_url_sha256 (parameters written by different deploy runs); rewrite them and resend"
+    "$ALERT_SENDER" P2 "$message" >/dev/null 2>&1 || log "alert delivery through $ALERT_SENDER failed"
+    fail "$message"
+  fi
+  [ "$rc" -eq 0 ] || fail "install request could not be read or was refused"
   # Split in memory: a here-string could be backed by a temporary file, and these lines hold the signed links
   lines=()
   while [ -n "$out" ]; do

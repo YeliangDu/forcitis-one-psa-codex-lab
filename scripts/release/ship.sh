@@ -90,10 +90,21 @@ print(url)' "$key" "$ASSET_HOSTS" "$MAX_PARAMETER_CHARS")" || fail "no acceptabl
 done <<< "$asset_ids"
 [ "${#asset_keys[@]}" -eq 4 ] || fail "resolved ${#asset_keys[@]} signed links, expected 4"
 
-request="$(python3 -I -c '
-import json, sys
-print(json.dumps({"version": sys.argv[1], "environment": sys.argv[2], "run_id": int(sys.argv[3]), "run_attempt": int(sys.argv[4])},
-                 separators=(",", ":")))' "$version" "$env" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT")" || fail "could not build the install request"
+# The parameters are written one at a time; the hashes let the installer refuse links that another run wrote in between
+request="$(printf '%s\n' "${asset_links[@]}" | python3 -I -c '
+import hashlib, json, sys
+version, env, run_id, run_attempt, max_chars, keys = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]), sys.argv[6:]
+links = sys.stdin.read().split("\n")[:-1]
+if len(links) != len(keys):
+    sys.exit("link count differs from asset count")
+request = json.dumps({"version": version, "environment": env, "run_id": run_id, "run_attempt": run_attempt,
+                      "request_id": f"{run_id}:{run_attempt}",
+                      "asset_url_sha256": {k: hashlib.sha256(l.encode("utf-8")).hexdigest() for k, l in zip(keys, links)}},
+                     separators=(",", ":"))
+if len(request) > max_chars:
+    sys.exit(f"install request has {len(request)} characters, OOS takes at most {max_chars}")
+print(request)' "$version" "$env" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$MAX_PARAMETER_CHARS" "${asset_keys[@]}")" \
+  || fail "could not build the install request"
 
 # GitHub OIDC token for this job (sub names repository, environment and deploy.yml on main), exchanged for temporary STS credentials in
 # one pipeline; only the error code and message of a refusal are shown

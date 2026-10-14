@@ -43,6 +43,11 @@ CURL
 if ! sha256sum --version 2>/dev/null | grep -q GNU; then
   printf '#!/bin/sh\nexec shasum -a 256 "$@"\n' > "$scratch/bin/sha256sum"
 fi
+cat > "$scratch/bin/one_alert_send" <<'ALERT'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FAKE_ALERTS"
+[ "${FAKE_ALERT_FAILS:-no}" = no ]
+ALERT
 command -v timeout >/dev/null 2>&1 || printf '#!/bin/sh\nshift\nexec "$@"\n' > "$scratch/bin/timeout"
 chmod +x "$scratch/bin"/*
 
@@ -177,38 +182,44 @@ PY
 # Writes the stand-in state: the request parameters of <env> for 0.1.0, run 4242 attempt 1, with the named change applied
 write_state() {
   python3 -I - "$scratch/state.json" "$scratch/secrets.json" "$1" "$2" "$3" <<'PY'
-import json, sys
+import hashlib, json, sys
 path, secrets_path, env, change, broken = sys.argv[1:]
 state = json.load(open(secrets_path))
 prefix = f"forcitis-one-deploy-request-{env}"
-def links(version, host="release-assets.githubusercontent.com", scheme="https", userinfo=""):
+def links(version, host="release-assets.githubusercontent.com", scheme="https", userinfo="", signature="x"):
     top = f"forcitis-one-{version}"
-    return {key: f"{scheme}://{userinfo}{host}/github-production-release-asset/1000/{top}{suffix}?sp=r&se=2026-10-15T00%3A05%3A00Z&sig=x"
+    return {key: f"{scheme}://{userinfo}{host}/github-production-release-asset/1000/{top}{suffix}?sp=r&se=2026-10-15T00%3A05%3A00Z&sig={signature}"
             for key, suffix in (("bundle", ".tar.gz"), ("bundle-sha256", ".tar.gz.sha256"), ("statement", ".release"),
                                 ("statement-sig", ".release.sig"))}
+def sha(value):
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+def complete(request, assets):
+    return dict(request, request_id=f"{request['run_id']}:{request['run_attempt']}",
+                asset_url_sha256={key: sha(value) for key, value in assets.items()})
 request = {"version": "0.1.0", "environment": env, "run_id": 4242, "run_attempt": 1}
 assets = links("0.1.0")
+after = None
 raw = None
 if change == "objects-host":
     assets = links("0.1.0", host="objects.githubusercontent.com")
 elif change == "rc-version":
     request["version"] = "0.1.0-rc.1"; assets = links("0.1.0-rc.1")
 elif change == "extra-key":
-    request["assets"] = {}
+    after = lambda r: dict(r, assets={})
 elif change == "missing-key":
-    del request["run_attempt"]
+    after = lambda r: {k: v for k, v in r.items() if k != "run_attempt"}
 elif change == "duplicate-key":
-    raw = json.dumps(request)[:-1] + ', "run_id": 4243}'
+    after = lambda r: json.dumps(r)[:-1] + ', "run_id": 4243}'
 elif change == "not-object":
-    raw = json.dumps([request])
+    after = lambda r: json.dumps([r])
 elif change == "not-json":
     raw = "version=0.1.0"
 elif change == "non-ascii":
-    raw = json.dumps(request)[:-1] + ', "note": "é"}'
+    after = lambda r: json.dumps(r)[:-1] + ', "note": "é"}'
 elif change == "nan":
-    raw = json.dumps(request)[:-1] + ', "x": NaN}'
+    after = lambda r: json.dumps(r)[:-1] + ', "x": NaN}'
 elif change == "too-long":
-    raw = json.dumps(request)[:-1] + ', "pad": "' + "a" * 4096 + '"}'
+    after = lambda r: json.dumps(r)[:-1] + ', "pad": "' + "a" * 4096 + '"}'
 elif change == "environment":
     request["environment"] = "prod" if env == "dev" else "dev"
 elif change == "environment-unknown":
@@ -223,6 +234,32 @@ elif change == "run-id-float":
     request["run_id"] = 4242.0
 elif change == "run-attempt-bool":
     request["run_attempt"] = True
+elif change == "request-id-other-attempt":
+    after = lambda r: dict(r, request_id="4242:2")
+elif change == "request-id-number":
+    after = lambda r: dict(r, request_id=4242)
+elif change == "hashes-missing":
+    after = lambda r: {k: v for k, v in r.items() if k != "asset_url_sha256"}
+elif change == "hash-key-missing":
+    after = lambda r: dict(r, asset_url_sha256={k: v for k, v in r["asset_url_sha256"].items() if k != "statement-sig"})
+elif change == "hash-key-extra":
+    after = lambda r: dict(r, asset_url_sha256=dict(r["asset_url_sha256"], manifest="0" * 64))
+elif change == "hash-upper-case":
+    after = lambda r: dict(r, asset_url_sha256=dict(r["asset_url_sha256"], bundle=r["asset_url_sha256"]["bundle"].upper()))
+elif change == "hash-short":
+    after = lambda r: dict(r, asset_url_sha256=dict(r["asset_url_sha256"], statement=r["asset_url_sha256"]["statement"][:63]))
+elif change == "hashes-not-object":
+    after = lambda r: dict(r, asset_url_sha256=sorted(r["asset_url_sha256"].values()))
+elif change == "new-request-old-link":
+    # Run 4243 wrote its request, but the bundle parameter still holds the link written by run 4242
+    old = links("0.1.0", signature="old")
+    request["run_id"] = 4243
+    request = complete(request, assets)
+    assets["bundle"] = old["bundle"]
+elif change == "old-request-new-link":
+    # The request of run 4242 meets a statement link that run 4243 has already written
+    request = complete(request, assets)
+    assets["statement"] = links("0.1.0", signature="new")["statement"]
 elif change.startswith("host="):
     assets["bundle"] = links("0.1.0", host=change.split("=", 1)[1])["bundle"]
 elif change == "http":
@@ -239,7 +276,11 @@ elif change != "none":
     sys.exit(f"unknown change {change}")
 params = {f"{prefix}-{key}": value for key, value in assets.items()}
 if request is not None:
-    params[prefix] = raw if raw is not None else json.dumps(request, separators=(",", ":"))
+    if "request_id" not in request:
+        request = complete(request, links("0.1.0") if change == "missing-asset" else assets)
+    if after:
+        request = after(request)
+    params[prefix] = raw if raw is not None else request if isinstance(request, str) else json.dumps(request, separators=(",", ":"))
 state.update(params=params, **{"break": broken})
 json.dump(state, open(path, "w"))
 PY
@@ -251,7 +292,7 @@ attempt() {
   shift 4
   (
     PATH="$scratch/bin:$PATH"
-    export FAKE_ASSETS="$case_dir/assets"
+    export FAKE_ASSETS="$case_dir/assets" FAKE_ALERTS="$case_dir/alerts"
     # shellcheck source=scripts/release/remote_install.sh
     source "$here/remote_install.sh"
     if stat -c %a / >/dev/null 2>&1; then
@@ -260,6 +301,7 @@ attempt() {
       owner_mode() { stat -f '%Su %Lp' "$1" | sed "s/^$(id -un) /root /"; }
     fi
     METADATA_URL="http://127.0.0.1:$port"
+    ALERT_SENDER="$scratch/bin/one_alert_send"
     OOS_ENDPOINT="http://127.0.0.1:$port/oos-{region}"
     RELEASE_SIGNERS="$case_dir/signers"
     STATE_DIR="$case_dir/state"
@@ -274,6 +316,7 @@ attempt() {
     case "$processed_before" in
       yes) mkdir -m 0700 "$STATE_DIR" && (umask 077 && printf '4242:1\t2026-10-14T00:00:00Z\tstarted\tv0.1.0\n' > "$PROCESSED") ;;
       unwritable) mkdir -m 0700 "$STATE_DIR" && mkdir -m 0600 "$PROCESSED" ;;
+      earlier) mkdir -m 0700 "$STATE_DIR" && (umask 077 && printf '4100:1\t2026-10-14T00:00:00Z\tsucceeded\tv0.0.9 x\n' > "$PROCESSED") ;;
     esac
     target_env="$server_env"
     accept_request "$@"
@@ -303,11 +346,13 @@ check() {
   if [ "$rc" -eq 0 ]; then status=accepted; else status=rejected; fi
   grep -q 'UNSAFE curl' "$dir/out" && status="unsafe download"
   # Nothing secret or signed may reach the log
-  leak="$(python3 -I - "$scratch/secrets.json" "$dir/out" <<'PY'
-import json, sys
+  leak="$(python3 -I - "$scratch/secrets.json" "$dir/out" "$dir/alerts" <<'PY'
+import json, os, sys
 s = json.load(open(sys.argv[1])); log = open(sys.argv[2]).read()
+log += open(sys.argv[3]).read() if os.path.exists(sys.argv[3]) else ""
 found = [k for k, v in (("metadata token", s["token"]), ("access key secret", s["credentials"]["AccessKeySecret"]),
-                        ("security token", s["credentials"]["SecurityToken"]), ("signed link", "sig=")) if v in log]
+                        ("security token", s["credentials"]["SecurityToken"]), ("signed link", "sig="),
+                        ("link host", "githubusercontent.com/")) if v in log]
 print(", ".join(found))
 PY
 )"
@@ -387,6 +432,21 @@ RUNNING=current-build check running-name-malformed "reject:cannot compare versio
 PROCESSED_BEFORE=yes check already-processed "reject:request 4242:1 (deploy run:attempt) was already taken up"
 PROCESSED_BEFORE=unwritable check started-not-recordable "reject:could not record request 4242:1 as started"
 
+# Links and request from different runs (the five parameters are written one by one): refused before any record or download, with a P2 alert
+mixed="link parameters forcitis-one-deploy-request-dev-bundle do not match the request's asset_url_sha256"
+REQUEST=new-request-old-link PROCESSED_BEFORE=earlier check mixed-new-request-old-link "reject:request 4243:1 rejected, $mixed"
+REQUEST=old-request-new-link PROCESSED_BEFORE=earlier check mixed-old-request-new-link \
+  "reject:request 4242:1 rejected, link parameters forcitis-one-deploy-request-dev-statement do not match"
+REQUEST=new-request-old-link FAKE_ALERT_FAILS=yes check mixed-alert-undeliverable "reject:alert delivery through"
+REQUEST=request-id-other-attempt check request-id-differs "reject:request_id must be the string '4242:1' (run_id:run_attempt)"
+REQUEST=request-id-number check request-id-not-string "reject:request_id must be the string '4242:1'"
+REQUEST=hashes-missing check hashes-missing "reject:must be an object with exactly the keys"
+REQUEST=hash-key-missing check hash-key-missing "reject:asset_url_sha256 must have exactly the keys"
+REQUEST=hash-key-extra check hash-key-extra "reject:asset_url_sha256 must have exactly the keys"
+REQUEST=hashes-not-object check hashes-not-object "reject:asset_url_sha256 must have exactly the keys"
+REQUEST=hash-upper-case check hash-upper-case "reject:asset_url_sha256.bundle is not 64 lowercase hexadecimal characters"
+REQUEST=hash-short check hash-short "reject:asset_url_sha256.statement is not 64 lowercase hexadecimal characters"
+
 if grep -q $'^4242:1\t.*\tstarted\tv0.1.0$' "$scratch/valid-request/state/processed-requests"; then
   passed=$((passed + 1)); echo "PASS  started-recorded: processed-requests holds 4242:1 started"
 else
@@ -396,6 +456,21 @@ if grep -q $'^4242:1\t.*\tfailed\t' "$scratch/downgrade/state/processed-requests
   passed=$((passed + 1)); echo "PASS  failure-recorded: a refused downgrade is recorded as failed"
 else
   failed=$((failed + 1)); echo "FAIL  failure-recorded: processed-requests lacks the failed downgrade"
+fi
+for case in mixed-new-request-old-link mixed-old-request-new-link; do
+  if grep -q "^P2 one.release-request: request 42[0-9][0-9]:1 rejected, link parameters forcitis-one-deploy-request-dev-" "$scratch/$case/alerts" \
+     && [ "$(cat "$scratch/$case/state/processed-requests")" = "$(printf '4100:1\t2026-10-14T00:00:00Z\tsucceeded\tv0.0.9 x')" ] \
+     && ! grep -q 'fetching' "$scratch/$case/out"; then
+    passed=$((passed + 1)); echo "PASS  $case-effects: a P2 alert naming request and parameter, replay record unchanged, nothing fetched"
+  else
+    failed=$((failed + 1)); echo "FAIL  $case-effects: alert, replay record or download not as expected"
+  fi
+done
+if grep -q 'alert delivery through' "$scratch/mixed-alert-undeliverable/out" && grep -q '^P2 ' "$scratch/mixed-alert-undeliverable/alerts" \
+   && [ ! -e "$scratch/valid-request/alerts" ]; then
+  passed=$((passed + 1)); echo "PASS  alert-only-on-mismatch: an undeliverable alert is logged and the request still refused; an accepted request sends none"
+else
+  failed=$((failed + 1)); echo "FAIL  alert-only-on-mismatch"
 fi
 if ! grep -q 'ACCEPTED' "$scratch/started-not-recordable/out" && ! grep -q 'fetching' "$scratch/started-not-recordable/out"; then
   passed=$((passed + 1)); echo "PASS  no-download-without-record: nothing fetched when the start could not be recorded"

@@ -150,8 +150,17 @@ sts_form_right() {
 parameters_in_order() {
   [ "$(cut -f1 "$1/oos" | tr '\n' ' ')" = "forcitis-one-deploy-request-dev-bundle forcitis-one-deploy-request-dev-bundle-sha256 forcitis-one-deploy-request-dev-statement forcitis-one-deploy-request-dev-statement-sig forcitis-one-deploy-request-dev " ]
 }
+# The request names this run and carries the SHA-256 of exactly the values written to the four link parameters
 request_value_right() {
-  [ "$(tail -1 "$1/oos" | cut -f2)" = '{"version":"0.1.0","environment":"dev","run_id":4242,"run_attempt":2}' ]
+  python3 -I - "$1/oos" <<'PY'
+import hashlib, json, sys
+rows = [line.rstrip("\n").split("\t", 1) for line in open(sys.argv[1])]
+request = json.loads(rows[-1][1])
+links = {name.rsplit("forcitis-one-deploy-request-dev-", 1)[1]: value for name, value in rows[:-1]}
+expected = {"version": "0.1.0", "environment": "dev", "run_id": 4242, "run_attempt": 2, "request_id": "4242:2",
+            "asset_url_sha256": {k: hashlib.sha256(v.encode("utf-8")).hexdigest() for k, v in links.items()}}
+sys.exit(0 if request == expected and len(rows[-1][1]) <= 4096 and sorted(links) == ["bundle", "bundle-sha256", "statement", "statement-sig"] else 1)
+PY
 }
 link_value_right() {
   [ "$(head -1 "$1/oos" | cut -f2)" = "https://release-assets.githubusercontent.com/github-production-release-asset/1/10?sp=r&se=2026-10-15T00%3A05%3A00Z&sig=$LINK_SIG" ]
@@ -174,7 +183,7 @@ expect success "OIDC token and the three STS values are masked" all_masked
 expect success "no token, credential or signed link outside the mask lines; no token or credential on any command line" no_leaks
 expect success "STS form names role, provider, session and reads the OIDC token from stdin" sts_form_right
 expect success "four link parameters, then the request parameter last" parameters_in_order
-expect success "request parameter holds exactly the request JSON" request_value_right
+expect success "request names this run and hashes exactly the four values written" request_value_right
 expect success "link parameters hold the signed links from Location" link_value_right
 expect success "the expiry of each link is reported without the link" expiry_reported
 
