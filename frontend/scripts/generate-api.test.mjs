@@ -16,7 +16,7 @@ function generate(change) {
   const directory = mkdtempSync(join(tmpdir(), 'generate-api-'));
   writeFileSync(join(directory, 'openapi.json'), JSON.stringify(spec));
   const run = spawnSync(process.execPath, [join(frontend, 'scripts', 'generate-api.mjs'), '--spec', join(directory, 'openapi.json'), '--out', join(directory, 'generated')], { encoding: 'utf8' });
-  return { ...run, validators: run.status === 0 ? readFileSync(join(directory, 'generated', 'validators.ts'), 'utf8') : '', operations: run.status === 0 ? readFileSync(join(directory, 'generated', 'operations.ts'), 'utf8') : '' };
+  return { ...run, validators: run.status === 0 ? readFileSync(join(directory, 'generated', 'validators.ts'), 'utf8') : '', operations: run.status === 0 ? readFileSync(join(directory, 'generated', 'operations.ts'), 'utf8') : '', types: run.status === 0 ? readFileSync(join(directory, 'generated', 'schema.ts'), 'utf8') : '' };
 }
 
 const decide = (spec) => spec.paths['/api/v1/platform/approval-tasks/{taskId}:decide'].post;
@@ -28,6 +28,13 @@ test('the committed document passes and carries the traits', () => {
   assert.match(run.validators, /export const ErrorCodeSchema = lenientEnum\("ErrorCode", \[/);
   assert.match(run.validators, /export const ErrorCodeValues = \[/);
   assert.match(run.validators, /export const ProblemDetailSchema = z\.object/);
+});
+
+test('enum-valued properties are open in the types (a newer server may send more), the enum components stay closed for exhaustive tables', () => {
+  const run = generate(() => undefined);
+  assert.match(run.types, /processKey: components\["schemas"\]\["ProcessKey"\] \| \(string & \{\}\);/);
+  assert.match(run.types, /ProcessKey: "COST_TIMESHEET_APPROVAL";/);
+  assert.match(run.types, /ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE"/);
 });
 
 test('a document without ProblemDetail or the ErrorCode enum is refused', () => {

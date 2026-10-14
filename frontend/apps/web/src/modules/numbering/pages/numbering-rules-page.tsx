@@ -1,4 +1,4 @@
-import { DOCUMENT_TYPE_LABELS, describeFailure, versionOf } from '@forcitis/core';
+import { DOCUMENT_TYPE_LABELS, describeFailure, labelOf, versionOf } from '@forcitis/core';
 import { Button, DataTable, Dialog, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextField, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { useCurrentUser } from '@/modules/session';
@@ -37,7 +37,7 @@ export function NumberingRulesPage() {
   };
 
   const columns: DataColumn<NumberingRule>[] = [
-    { key: 'type', title: '单据类型', render: (rule) => DOCUMENT_TYPE_LABELS[rule.documentType] },
+    { key: 'type', title: '单据类型', render: (rule) => labelOf(DOCUMENT_TYPE_LABELS, rule.documentType) },
     { key: 'code', title: '单据类型代码', render: (rule) => rule.documentTypeCode ?? '—' },
     { key: 'pattern', title: '编号模板', render: (rule) => <code>{rule.pattern}</code> },
     { key: 'reset', title: '流水号重置周期', render: (rule) => RESET_POLICY_LABELS[rule.resetPolicy] ?? rule.resetPolicy },
@@ -85,7 +85,7 @@ export function NumberingRulesPage() {
         {editing?.mode === 'confirm' ? <p>确认之后，这个单据类型将按下面的编号规则发号。如需调整，请先修改再确认。</p> : null}
         {editing === undefined ? null : (
           <>
-            <TextField label="单据类型" value={DOCUMENT_TYPE_LABELS[editing.rule.documentType]} onChange={() => undefined} disabled />
+            <TextField label="单据类型" value={labelOf(DOCUMENT_TYPE_LABELS, editing.rule.documentType)} onChange={() => undefined} disabled />
             <TextField label="编号模板" value={editing.draft.pattern} onChange={(pattern) => setDraft({ pattern })} {...(problems.pattern === undefined ? {} : { error: problems.pattern })} />
             <SelectField label="流水号重置周期" value={editing.draft.resetPolicy} options={RESET_POLICY_OPTIONS} onChange={(resetPolicy) => setDraft({ resetPolicy })} />
             <TextField label="起始流水号" type="number" value={editing.draft.startValue} onChange={(startValue) => setDraft({ startValue })} {...(problems.startValue === undefined ? {} : { error: problems.startValue })} />

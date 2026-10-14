@@ -551,12 +551,12 @@ export interface components {
         CalendarDayRequest: {
             /** Format: date */
             calendarDate: string;
-            dayKind: components["schemas"]["DayKind"];
+            dayKind: components["schemas"]["DayKind"] | (string & {});
         };
         CalendarDayResponse: {
             /** Format: date */
             calendarDate: string;
-            dayKind: components["schemas"]["DayKind"];
+            dayKind: components["schemas"]["DayKind"] | (string & {});
         };
         CreateLegalEntityRequest: {
             code?: string;
@@ -574,12 +574,12 @@ export interface components {
         DayKind: "HOLIDAY" | "MAKE_UP_WORKDAY";
         DecideTaskRequest: {
             /** @enum {string} */
-            outcome?: "APPROVE" | "REJECT";
+            outcome?: ("APPROVE" | "REJECT") | (string & {});
             reason?: string;
         };
         DecisionResponse: {
             instanceId: string;
-            status: components["schemas"]["ApprovalStatus"];
+            status: components["schemas"]["ApprovalStatus"] | (string & {});
         };
         /** @enum {string} */
         DocumentType: "JOURNAL_VOUCHER" | "QUOTE" | "TIMESHEET";
@@ -593,7 +593,7 @@ export interface components {
         /** @enum {string} */
         InboxCategory: "NOTICE" | "TODO";
         InboxItemResponse: {
-            category: components["schemas"]["InboxCategory"];
+            category: components["schemas"]["InboxCategory"] | (string & {});
             claimed: boolean;
             /** Format: date-time */
             createdAt?: string;
@@ -603,8 +603,8 @@ export interface components {
             documentId?: string;
             nodeName?: string;
             overdue: boolean;
-            processKey?: components["schemas"]["ProcessKey"];
-            source: components["schemas"]["InboxSource"];
+            processKey?: components["schemas"]["ProcessKey"] | (string & {});
+            source: components["schemas"]["InboxSource"] | (string & {});
             taskId: string;
             title?: string;
         };
@@ -638,7 +638,7 @@ export interface components {
         };
         LoginStateRequest: {
             /** @enum {string} */
-            entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
+            entry?: ("WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN") | (string & {});
         };
         LoginStateResponse: {
             state: string;
@@ -662,7 +662,7 @@ export interface components {
             /** Format: int64 */
             capacity: number;
             confirmationStatus: string;
-            documentType: components["schemas"]["DocumentType"];
+            documentType: components["schemas"]["DocumentType"] | (string & {});
             documentTypeCode?: string;
             pattern: string;
             resetPolicy: string;
@@ -691,7 +691,7 @@ export interface components {
         ProblemDetail: {
             correlationId?: string;
             detail?: string;
-            errorCode: components["schemas"]["ErrorCode"];
+            errorCode: components["schemas"]["ErrorCode"] | (string & {});
             instance?: string;
             legacyLoginUrl?: string;
             /** Format: int32 */
@@ -714,7 +714,7 @@ export interface components {
         };
         RoleRequest: {
             /** @enum {string} */
-            accessScope?: "ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS";
+            accessScope?: ("ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS") | (string & {});
             code?: string;
             enabled?: boolean;
             name?: string;
@@ -722,7 +722,7 @@ export interface components {
         };
         RoleResponse: {
             /** @enum {string} */
-            accessScope: "ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS";
+            accessScope: ("ALL" | "CUSTOM_ORG_UNITS" | "OWN_ORG_UNIT" | "OWN_ORG_UNIT_SUBTREE" | "SELF" | "SELF_AND_DIRECT_REPORTS") | (string & {});
             administrative: boolean;
             code: string;
             enabled: boolean;
@@ -793,7 +793,7 @@ export interface components {
             /** Format: date-time */
             deadlineAt?: string;
             documentId: string;
-            documentType: components["schemas"]["DocumentType"];
+            documentType: components["schemas"]["DocumentType"] | (string & {});
             history: components["schemas"]["TaskRecordResponse"][];
             initiator: string;
             initiatorName: string;
@@ -802,7 +802,7 @@ export interface components {
             nodeKey: string;
             nodeName: string;
             overdue: boolean;
-            processKey: components["schemas"]["ProcessKey"];
+            processKey: components["schemas"]["ProcessKey"] | (string & {});
             summary?: string;
             taskId: string;
         };
@@ -813,18 +813,18 @@ export interface components {
             nextCursor?: string;
         };
         TaskRecordResponse: {
-            action: components["schemas"]["TaskRecordAction"];
+            action: components["schemas"]["TaskRecordAction"] | (string & {});
             actorId: string;
             actorName: string;
             /** Format: date-time */
             decidedAt: string;
             documentId: string;
-            documentType: components["schemas"]["DocumentType"];
+            documentType: components["schemas"]["DocumentType"] | (string & {});
             instanceId: string;
             nodeKey: string;
             nodeName: string;
             onBehalfOfName?: string;
-            processKey: components["schemas"]["ProcessKey"];
+            processKey: components["schemas"]["ProcessKey"] | (string & {});
             reason?: string;
             recordId: string;
             /** Format: int32 */
@@ -854,7 +854,7 @@ export interface components {
         WecomLoginRequest: {
             code?: string;
             /** @enum {string} */
-            entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
+            entry?: ("WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN") | (string & {});
             state?: string;
         };
         WorkCalendarYearResponse: {

@@ -120,3 +120,14 @@ describe('待办的行', () => {
     expect(inboxTitle({ ...NEW_ITEM, processKey: 'FUTURE_PROCESS' as 'COST_TIMESHEET_APPROVAL' })).toBe('— TS-1');
   });
 });
+
+describe('服务端新加的枚举值', () => {
+  it('类型上就是开放的：直接用它查表无法通过类型检查，必须经过 labelOf', () => {
+    const key = NEW_ITEM.processKey ?? 'COST_TIMESHEET_APPROVAL';
+    // @ts-expect-error a value of a newer server may be outside the table; look it up with labelOf
+    const direct: string = PROCESS_LABELS[key];
+    expect(direct).toBe(PROCESS_LABELS.COST_TIMESHEET_APPROVAL);
+    expect(labelOf(PROCESS_LABELS, key)).toBe(PROCESS_LABELS.COST_TIMESHEET_APPROVAL);
+  });
+});
+

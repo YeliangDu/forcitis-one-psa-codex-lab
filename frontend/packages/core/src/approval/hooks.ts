@@ -1,8 +1,9 @@
 import { nextCursorOf, versionOf } from '@forcitis/api';
-import { type InfiniteData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type InfiniteData, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { isVersionConflict } from '../failure';
 import { useIntentKeys } from '../intent-keys';
+import { useVersionedQuery } from '../versioned-query';
 import { claimTask, decideTask, fetchInboxPage, fetchTask, fetchTaskRecordPage, returnTask } from './api';
 import { type InboxResponse, type TaskDetail, inboxOf } from './model';
 
@@ -57,9 +58,8 @@ export function useTaskRecords(enabled: boolean) {
   return { ...query, records: query.data?.pages.flatMap((page) => page.items) };
 }
 
-/** Not shared between renders: the version belongs to this very object, so a task read again is a new object with its own version. */
 export function useTask(taskId: string) {
-  return useQuery({ queryKey: taskKey(taskId), queryFn: () => fetchTask(taskId), enabled: taskId !== '', structuralSharing: false });
+  return useVersionedQuery({ queryKey: taskKey(taskId), queryFn: () => fetchTask(taskId), enabled: taskId !== '' });
 }
 
 /** `task` is the task as read: its version goes with every action, and a refused version (412) reads the task again. */

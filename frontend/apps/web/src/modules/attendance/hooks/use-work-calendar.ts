@@ -1,4 +1,4 @@
-import { failureOf, isVersionConflict } from '@forcitis/core';
+import { failureOf, isVersionConflict, useVersionedQuery } from '@forcitis/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchMaintainedYears, fetchWorkCalendarYear, saveWorkCalendarYear } from '../api/attendance-api';
 import type { DayEntry } from '../model/work-calendar';
@@ -12,10 +12,9 @@ export function useMaintainedYears() {
 
 /** A year nobody has maintained yet answers 404; that is a blank calendar to start from, not a failure. */
 export function useWorkCalendarYear(calendarYear: number) {
-  return useQuery({
+  return useVersionedQuery({
     queryKey: yearKey(calendarYear),
     gcTime: 0,
-    structuralSharing: false,
     queryFn: async () => {
       try {
         return await fetchWorkCalendarYear(calendarYear);
@@ -30,7 +29,7 @@ export function useWorkCalendarYear(calendarYear: number) {
 export function useSaveWorkCalendar(calendarYear: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ days, lockedDaysConfirmed, version }: { days: DayEntry[]; lockedDaysConfirmed: boolean; version: string | undefined }) => saveWorkCalendarYear(calendarYear, days, lockedDaysConfirmed, version),
+    mutationFn: ({ days, lockedDaysConfirmed, version, firstMaintenance }: { days: DayEntry[]; lockedDaysConfirmed: boolean; version: string | undefined; firstMaintenance: boolean }) => saveWorkCalendarYear(calendarYear, days, lockedDaysConfirmed, version, firstMaintenance),
     onError: (error) => {
       if (isVersionConflict(error)) void queryClient.invalidateQueries({ queryKey: yearKey(calendarYear) });
     },

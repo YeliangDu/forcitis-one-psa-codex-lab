@@ -4,10 +4,11 @@ export { versionOf } from '@forcitis/api';
 export { describeFailure, failureOf, isVersionConflict } from './failure';
 export { formatDateTime } from './format-date-time';
 export { useIntentKeys } from './intent-keys';
+export { useVersionedQuery } from './versioned-query';
 export { safeExternalUrl, safeInternalPath } from './safe-url';
 
 export { useInbox, useTask, useTaskActions, useTaskRecords } from './approval/hooks';
-export { DOCUMENT_TYPE_LABELS, PROCESS_LABELS, TASK_RECORD_ACTION_LABELS, TASK_RECORD_ACTION_TONES, labelOf } from './approval/labels';
+export { DOCUMENT_TYPE_LABELS, PROCESS_LABELS, TASK_RECORD_ACTION_LABELS, TASK_RECORD_ACTION_TONES, labelOf, toneOf } from './approval/labels';
 export type { DocumentType } from './approval/labels';
 export {
   REASON_RULES,

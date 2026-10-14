@@ -140,6 +140,21 @@ describe('已办', () => {
     expect(screen.getByText('驳回')).toBeInTheDocument();
   });
 
+  it('服务端新加了办理结果：显示破折号，不显示 undefined，其余的行照常显示', async () => {
+    stubServer({
+      'GET approval-task-records': { body: { items: [taskRecordBody({ recordId: 'r-1', documentId: 'TS1', action: 'ADVISED' }), taskRecordBody({ recordId: 'r-2', documentId: 'TS2' })] } },
+      'GET approval-tasks': { body: INBOX },
+    });
+    renderWithProviders(<InboxPage />);
+
+    await userEvent.click(await screen.findByText('已办'));
+
+    expect(await screen.findByText('工时单审批 TS2')).toBeInTheDocument();
+    expect(screen.getByText('工时单审批 TS1')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
+  });
+
   it('没有已办时说明没有已办', async () => {
     stubServer({ 'GET approval-task-records': { body: { items: [] } }, 'GET approval-tasks': { body: INBOX } });
     renderWithProviders(<InboxPage />);

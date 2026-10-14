@@ -11,9 +11,11 @@ import {
   inboxStateOf,
   inboxTitle,
   inboxViewOf,
+  labelOf,
   opinionText,
   recordTitle,
   safeExternalUrl,
+  toneOf,
   useInbox,
   useTaskRecords,
 } from '@forcitis/core';
@@ -29,7 +31,7 @@ function recordRow(record: TaskRecord): InboxRow {
     subtitle: record.nodeName,
     note: `意见：${opinionText(record.reason)}`,
     timeText: formatDateTime(record.decidedAt),
-    tag: { label: TASK_RECORD_ACTION_LABELS[record.action], tone: TASK_RECORD_ACTION_TONES[record.action] },
+    tag: { label: labelOf(TASK_RECORD_ACTION_LABELS, record.action), tone: toneOf(TASK_RECORD_ACTION_TONES, record.action) },
     external: false,
   };
 }

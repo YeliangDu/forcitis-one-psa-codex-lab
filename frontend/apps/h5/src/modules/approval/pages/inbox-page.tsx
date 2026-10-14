@@ -15,6 +15,7 @@ import {
   opinionText,
   recordTitle,
   safeExternalUrl,
+  toneOf,
   useInbox,
   useTaskRecords,
 } from '@forcitis/core';
@@ -43,7 +44,7 @@ function RecordCard({ record }: { record: TaskRecord }) {
       subtitle={record.nodeName}
       note={`意见：${opinionText(record.reason)}`}
       footnote={formatDateTime(record.decidedAt)}
-      tag={<Tag tone={TASK_RECORD_ACTION_TONES[record.action] ?? 'neutral'}>{labelOf(TASK_RECORD_ACTION_LABELS, record.action)}</Tag>}
+      tag={<Tag tone={toneOf(TASK_RECORD_ACTION_TONES, record.action)}>{labelOf(TASK_RECORD_ACTION_LABELS, record.action)}</Tag>}
       onOpen={undefined}
     />
   );

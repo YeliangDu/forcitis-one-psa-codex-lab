@@ -1,4 +1,4 @@
-import { businessToday, describeFailure, useCurrentUser, versionOf } from '@forcitis/core';
+import { businessToday, describeFailure, labelOf, useCurrentUser, versionOf } from '@forcitis/core';
 import { Button, Dialog, LoadingState, Notice, PageTitle, SelectField, StatusBadge } from '@forcitis/ui';
 import { useState } from 'react';
 import { useMaintainedYears, useSaveWorkCalendar, useWorkCalendarYear } from '../hooks/use-work-calendar';
@@ -29,7 +29,7 @@ const LEGEND_TONES: Readonly<Record<EffectiveKind, 'posted' | 'pending' | 'neutr
   WORKDAY: 'neutral',
 };
 
-const DAY_CLASSES: Readonly<Record<EffectiveKind, string>> = {
+const DAY_CLASSES: Readonly<Record<string, string>> = {
   HOLIDAY: 'work-calendar__day--holiday',
   MAKE_UP_WORKDAY: 'work-calendar__day--make-up',
   REST_DAY: 'work-calendar__day--rest',
@@ -50,18 +50,31 @@ function CalendarEditor({ year, saved, mayUpdate, today, save }: EditorProps) {
   const [editing, setEditing] = useState<string>();
   const [choice, setChoice] = useState<DayKind | ''>('');
   const [confirming, setConfirming] = useState(false);
+  const [discarded, setDiscarded] = useState(false);
+  const [seenVersion, setSeenVersion] = useState(versionOf(saved));
+  const [base, setBase] = useState<Exceptions>(savedExceptions);
   const changed = changedDates(savedExceptions, draft);
+  if (seenVersion !== versionOf(saved)) {
+    setSeenVersion(versionOf(saved));
+    setBase(savedExceptions);
+    if (changedDates(base, savedExceptions).length > 0 && changed.length > 0) {
+      setDraft(savedExceptions);
+      setDiscarded(true);
+    }
+  }
   const lockedChanges = changed.filter((date) => isLocked(date, today));
 
   const send = (lockedDaysConfirmed: boolean) => {
-    save.mutate({ days: entriesOf(draft), lockedDaysConfirmed, version: versionOf(saved) }, { onSuccess: () => setConfirming(false) });
+    save.mutate({ days: entriesOf(draft), lockedDaysConfirmed, version: versionOf(saved), firstMaintenance: saved === null }, { onSuccess: () => setConfirming(false) });
   };
   const open = (date: string) => {
-    setChoice(draft.get(date) ?? '');
+    const current = draft.get(date);
+    setChoice(current === 'HOLIDAY' || current === 'MAKE_UP_WORKDAY' ? current : '');
     setEditing(date);
   };
   const apply = () => {
     if (editing !== undefined) setDraft((current) => withKind(current, editing, choice));
+    setDiscarded(false);
     setEditing(undefined);
   };
 
@@ -88,8 +101,8 @@ function CalendarEditor({ year, saved, mayUpdate, today, save }: EditorProps) {
                   <button
                     key={date}
                     type="button"
-                    className={['work-calendar__day', DAY_CLASSES[kind], locked ? 'work-calendar__day--locked' : '', edited ? 'work-calendar__day--edited' : ''].filter(Boolean).join(' ')}
-                    aria-label={`${date} ${EFFECTIVE_KIND_LABELS[kind]}${locked ? ' 已锁定' : ''}`}
+                    className={['work-calendar__day', DAY_CLASSES[kind] ?? '', locked ? 'work-calendar__day--locked' : '', edited ? 'work-calendar__day--edited' : ''].filter(Boolean).join(' ')}
+                    aria-label={`${date} ${labelOf(EFFECTIVE_KIND_LABELS, kind)}${locked ? ' 已锁定' : ''}`}
                     disabled={!mayUpdate}
                     onClick={() => open(date)}
                   >
@@ -101,6 +114,7 @@ function CalendarEditor({ year, saved, mayUpdate, today, save }: EditorProps) {
           </section>
         ))}
       </div>
+      {discarded ? <Notice tone="warning" title="已载入最新内容，你的修改未保存" /> : null}
       {save.isError && !confirming ? <Notice tone="error" title="保存失败">{describeFailure(save.error)}</Notice> : null}
       {save.isSuccess && changed.length === 0 ? <Notice tone="success" title="已保存" /> : null}
       {mayUpdate
@@ -150,7 +164,7 @@ export function WorkCalendarPage() {
       {calendar.isError ? <Notice tone="error" title="工作日历加载失败">{describeFailure(calendar.error)}</Notice> : null}
       {calendar.isSuccess && calendar.data === null ? <Notice tone="info" title="这个年度还没有维护工作日历">保存之后开始使用。</Notice> : null}
       {calendar.isSuccess
-        ? <CalendarEditor key={`${year}-${versionOf(calendar.data) ?? 'new'}`} year={year} saved={calendar.data} mayUpdate={session.can(WORK_CALENDAR_UPDATE_PERMISSION)} today={today} save={save} />
+        ? <CalendarEditor key={year} year={year} saved={calendar.data} mayUpdate={session.can(WORK_CALENDAR_UPDATE_PERMISSION)} today={today} save={save} />
         : null}
     </>
   );

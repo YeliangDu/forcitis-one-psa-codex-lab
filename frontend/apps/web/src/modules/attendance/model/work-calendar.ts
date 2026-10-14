@@ -19,10 +19,10 @@ export const EFFECTIVE_KIND_LABELS: Readonly<Record<EffectiveKind, string>> = {
 
 export const WEEKDAY_HEADERS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] as const;
 
-/** Exceptions of the year by ISO date. */
-export type Exceptions = ReadonlyMap<string, DayKind>;
+/** Exceptions of the year by ISO date. A kind this client does not know is kept as it came (and sent back unchanged), shown with a dash. */
+export type Exceptions = ReadonlyMap<string, string>;
 
-export function exceptionsOf(year: WorkCalendarYear | null): Map<string, DayKind> {
+export function exceptionsOf(year: WorkCalendarYear | null): Map<string, string> {
   return new Map((year?.days ?? []).map((day) => [day.calendarDate, day.dayKind]));
 }
 
@@ -39,7 +39,7 @@ export function isWeekend(date: string): boolean {
   return mondayBasedWeekday(new Date(`${date}T00:00:00Z`)) >= 5;
 }
 
-export function effectiveKind(date: string, exceptions: Exceptions): EffectiveKind {
+export function effectiveKind(date: string, exceptions: Exceptions): string {
   return exceptions.get(date) ?? (isWeekend(date) ? 'REST_DAY' : 'WORKDAY');
 }
 
@@ -72,7 +72,7 @@ export function kindChoices(date: string): { value: DayKind | ''; label: string 
   ];
 }
 
-export function withKind(exceptions: Exceptions, date: string, kind: DayKind | ''): Map<string, DayKind> {
+export function withKind(exceptions: Exceptions, date: string, kind: DayKind | ''): Map<string, string> {
   const next = new Map(exceptions);
   if (kind === '') next.delete(date);
   else next.set(date, kind);

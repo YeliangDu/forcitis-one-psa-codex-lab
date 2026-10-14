@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import openapiTS, { astToString } from 'openapi-typescript';
+import ts from 'typescript';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'api');
 const valueOf = (flag) => process.argv.find((argument, index, all) => all[index - 1] === flag);
@@ -188,7 +189,20 @@ const responseEntries = operations.map(({ name, method, path }) => {
 }).filter((entry) => entry !== undefined);
 
 const HEADER = '// Generated from packages/api/openapi.json by scripts/generate-api.mjs. Do not edit by hand.\n';
-const schema = HEADER + astToString(await openapiTS(spec));
+const isEnum = (node) => node.enum !== undefined || (node.$ref !== undefined && spec.components?.schemas?.[refName(node.$ref)]?.enum !== undefined);
+
+/**
+ * The Zod validators let a value a newer server added pass through (lenientEnum), so the type of an enum-valued property is
+ * `Union | (string & {})`: a table lookup by it does not compile without a fallback (labelOf). The enum components themselves stay closed unions,
+ * so `Record<Union, ...>` tables remain exhaustive.
+ */
+function openEnumProperty(property, schemaObject) {
+  if (!isEnum(schemaObject) || property.type === undefined) return undefined;
+  const open = ts.factory.createIntersectionTypeNode([ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword), ts.factory.createTypeLiteralNode([])]);
+  return ts.factory.updatePropertySignature(property, property.modifiers, property.name, property.questionToken, ts.factory.createUnionTypeNode([property.type, open]));
+}
+
+const schema = HEADER + astToString(await openapiTS(spec, { transformProperty: openEnumProperty }));
 const errorCodeValues = `export const ErrorCodeValues = [${spec.components.schemas.ErrorCode.enum.map(literal).join(', ')}] as const;`;
 
 const validatorsSource = `${HEADER}import { z } from 'zod';

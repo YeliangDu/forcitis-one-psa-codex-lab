@@ -10,6 +10,7 @@ import {
   handlerText,
   labelOf,
   opinionText,
+  toneOf,
   useTask,
   useTaskActions,
 } from '@forcitis/core';
@@ -19,7 +20,7 @@ import { TaskActionBar } from '../components/task-action-bar';
 
 const HISTORY_COLUMNS: DataColumn<TaskRecord>[] = [
   { key: 'node', title: '节点', render: (record) => record.nodeName },
-  { key: 'action', title: '办理结果', render: (record) => <StatusBadge tone={TASK_RECORD_ACTION_TONES[record.action] ?? 'neutral'}>{labelOf(TASK_RECORD_ACTION_LABELS, record.action)}</StatusBadge> },
+  { key: 'action', title: '办理结果', render: (record) => <StatusBadge tone={toneOf(TASK_RECORD_ACTION_TONES, record.action)}>{labelOf(TASK_RECORD_ACTION_LABELS, record.action)}</StatusBadge> },
   { key: 'actor', title: '办理人', render: (record) => handlerText(record) },
   { key: 'time', title: '办理时间', render: (record) => formatDateTime(record.decidedAt) },
   { key: 'opinion', title: '意见', render: (record) => opinionText(record.reason) },

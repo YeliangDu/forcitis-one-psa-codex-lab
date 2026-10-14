@@ -9,6 +9,11 @@ export function labelOf(labels: Readonly<Record<string, string>>, value: string)
   return labels[value] ?? '—';
 }
 
+/** The tone of a value the table does not know is neutral. */
+export function toneOf<Tone extends string>(tones: Readonly<Record<string, Tone>>, value: string): Tone | 'neutral' {
+  return tones[value] ?? 'neutral';
+}
+
 export const PROCESS_LABELS: Readonly<Record<ProcessKey, string>> = {
   COST_TIMESHEET_APPROVAL: '工时单审批',
 };

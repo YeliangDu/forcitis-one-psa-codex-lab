@@ -31,6 +31,14 @@ describe('编号规则页', () => {
     expect(screen.getByText('每月重置')).toBeInTheDocument();
   });
 
+  it('服务端新加了单据类型：显示破折号，不显示 undefined', async () => {
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET numbering-rules': { body: [{ ...RULES[0], documentType: 'CONTRACT' }] } });
+    renderWithProviders(<NumberingRulesPage />);
+
+    expect(await screen.findByText('—')).toBeInTheDocument();
+    expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
+  });
+
   it('没有修改权限时不显示编辑和确认', async () => {
     stubServer({ 'GET sessions:current': { body: currentUserBody([READ]) }, 'GET numbering-rules': { body: RULES } });
     renderWithProviders(<NumberingRulesPage />);
