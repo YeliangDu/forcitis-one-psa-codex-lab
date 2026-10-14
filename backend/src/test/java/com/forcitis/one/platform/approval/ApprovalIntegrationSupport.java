@@ -128,6 +128,16 @@ public abstract class ApprovalIntegrationSupport {
     @Autowired
     protected FakeOrganisation organisation;
 
+    /** The context's envelope factory: every envelope a test builds goes through it, so a check wrapped around it sees them all. */
+    @Autowired
+    protected com.forcitis.one.kernel.event.EventEnvelopes envelopes;
+
+    protected com.forcitis.one.kernel.event.EventEnvelope envelope(String eventType, String aggregateType, String aggregateId, long aggregateVersion) {
+        return envelopes.wrap(new com.forcitis.one.kernel.event.EventDraft(eventType, 1, aggregateType, aggregateId, aggregateVersion, LEGAL_ENTITY,
+                java.time.LocalDate.now(), new com.forcitis.one.kernel.event.EventSource(com.forcitis.one.kernel.event.SourceSystem.ONE, null),
+                java.util.List.of()));
+    }
+
     @Autowired
     protected ApplicationEvents recorded;
 

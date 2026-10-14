@@ -262,9 +262,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         TimesheetId id = newTimesheet();
         DocumentReference document = documentOf(id);
         submit(id, "5");
-        EventEnvelope envelope = new EventEnvelope(UUID.randomUUID(), "platform.approval.ApprovalCompleted", 1, Instant.now(), "ApprovalRequest",
-                "TIMESHEET:" + id.value(), 9, UUID.randomUUID(), null, ActorType.SYSTEM, "test", LEGAL_ENTITY, LocalDate.now(),
-                new EventSource(SourceSystem.ONE, null), null, List.of());
+        EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", "TIMESHEET:" + id.value(), 9);
 
         tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope, document, ProcessKey.COST_TIMESHEET_APPROVAL,
                 new ApprovalInstanceId("i"), new RoundNumber(7), new UserId(employee), ApprovalOutcome.APPROVED, null, null)));
@@ -278,9 +276,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     void resultsForUnknownTimesheetsAreCounted() {
         double before = meters.counter("forcitis.cost.timesheet.approval.result.unknown").count();
         for (String documentId : List.of("not-a-number", "999999999")) {
-            EventEnvelope envelope = new EventEnvelope(UUID.randomUUID(), "platform.approval.ApprovalCompleted", 1, Instant.now(), "ApprovalRequest",
-                    "TIMESHEET:" + documentId, 1, UUID.randomUUID(), null, ActorType.SYSTEM, "test", LEGAL_ENTITY, LocalDate.now(),
-                    new EventSource(SourceSystem.ONE, null), null, List.of());
+            EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", "TIMESHEET:" + documentId, 1);
             tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope,
                     new DocumentReference(DocumentType.TIMESHEET, new DocumentId(documentId)), ProcessKey.COST_TIMESHEET_APPROVAL,
                     new ApprovalInstanceId("i"), new RoundNumber(1), new UserId(employee), ApprovalOutcome.APPROVED, null, null)));

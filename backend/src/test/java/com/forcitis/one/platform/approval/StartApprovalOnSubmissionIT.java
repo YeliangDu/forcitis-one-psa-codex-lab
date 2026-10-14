@@ -36,9 +36,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
     MeterRegistry meters;
 
     DocumentSubmittedForApproval request(String key, long initiator, long manager, int round, String flag) {
-        EventEnvelope envelope = new EventEnvelope(UUID.randomUUID(), "platform.approval.DocumentSubmittedForApproval", 1, Instant.now(), "Timesheet", key,
-                round, UUID.randomUUID(), null, ActorType.SYSTEM, "test", LEGAL_ENTITY, LocalDate.now(), new EventSource(SourceSystem.ONE, null),
-                null, List.of());
+        EventEnvelope envelope = envelope("platform.approval.DocumentSubmittedForApproval", "Timesheet", key, round);
         return new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL, document(key), new UserId(initiator), new RoundNumber(round),
                 List.of(new RoutingFlag(flag)), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))),
                 new ContentHash("hash"), new ApprovalSummary("summary of " + key));
