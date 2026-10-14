@@ -21,8 +21,12 @@ public class CreateLegalEntity {
     }
 
     @Transactional
-    public LegalEntityView execute(String code, String name) {
-        LegalEntity saved = legalEntities.insert(LegalEntity.register(parse(code), name));
+    public LegalEntityView execute(String code, String name, Long accountingOrganizationNumber) {
+        LegalEntity entity = LegalEntity.register(parse(code), name);
+        if (accountingOrganizationNumber != null) {
+            entity.assignAccountingNumber(UpdateLegalEntity.accountingNumber(accountingOrganizationNumber));
+        }
+        LegalEntity saved = legalEntities.insert(entity);
         events.publish(saved);
         return LegalEntityView.of(saved);
     }

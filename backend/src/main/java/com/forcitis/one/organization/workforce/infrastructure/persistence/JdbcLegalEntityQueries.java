@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcLegalEntityQueries implements LegalEntityQueries {
-    private static final String COLUMNS = "id, code, name, status, version";
+    private static final String COLUMNS = "id, code, name, status, accounting_organization_number, version";
 
     private final JdbcClient jdbc;
 
@@ -41,6 +41,7 @@ class JdbcLegalEntityQueries implements LegalEntityQueries {
 
     private static LegalEntityRecord row(ResultSet rs) throws SQLException {
         return new LegalEntityRecord(new LegalEntityId(rs.getLong("id")), new LegalEntityCode(rs.getString("code")), rs.getString("name"),
-                LegalEntityStatus.valueOf(rs.getString("status")), rs.getLong("version"));
+                LegalEntityStatus.valueOf(rs.getString("status")),
+                rs.getObject("accounting_organization_number", Long.class), rs.getLong("version"));
     }
 }

@@ -74,7 +74,7 @@ class LegalEntityCodeRaceIT {
 
     private LegalEntityId legalEntity(String code) {
         try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "numbering.race.test")) {
-            return new LegalEntityId(createLegalEntity.execute(code, "Synthetic " + code).legalEntityId());
+            return new LegalEntityId(createLegalEntity.execute(code, "Synthetic " + code, null).legalEntityId());
         }
     }
 
@@ -104,7 +104,7 @@ class LegalEntityCodeRaceIT {
         assertThat(issued.await(10, TimeUnit.SECONDS)).isTrue();
         CompletableFuture<Object> correction = CompletableFuture.supplyAsync(() -> {
             try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "numbering.race.test")) {
-                return updateLegalEntity.execute(le.value(), com.forcitis.one.kernel.ExpectedVersion.of(1), "RAB", "Synthetic RAA", "ACTIVE");
+                return updateLegalEntity.execute(le.value(), com.forcitis.one.kernel.ExpectedVersion.of(1), "RAB", "Synthetic RAA", "ACTIVE", null);
             }
         });
         awaitBlockedStatement();
@@ -127,7 +127,7 @@ class LegalEntityCodeRaceIT {
         CountDownLatch commit = new CountDownLatch(1);
         CompletableFuture<Object> correction = CompletableFuture.supplyAsync(() -> tx.execute(status -> {
             try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "numbering.race.test")) {
-                Object view = updateLegalEntity.execute(le.value(), com.forcitis.one.kernel.ExpectedVersion.of(1), "RBB", "Synthetic RBA", "ACTIVE");
+                Object view = updateLegalEntity.execute(le.value(), com.forcitis.one.kernel.ExpectedVersion.of(1), "RBB", "Synthetic RBA", "ACTIVE", null);
                 corrected.countDown();
                 await(commit);
                 return view;

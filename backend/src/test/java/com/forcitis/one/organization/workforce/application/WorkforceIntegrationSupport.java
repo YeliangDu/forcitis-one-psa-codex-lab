@@ -67,7 +67,7 @@ public abstract class WorkforceIntegrationSupport {
         awaitEventListeners();
         jdbc.sql("""
                 truncate table organization_workforce.sync_diffs, organization_workforce.sync_runs,
-                       organization_workforce.legal_entity_attribution_periods, organization_workforce.legal_entity_attributions,
+                       organization_workforce.org_unit_legal_entities, organization_workforce.employee_legal_entities, organization_workforce.legal_entity_attributions,
                        organization_workforce.org_unit_versions, organization_workforce.assignment_versions,
                        organization_workforce.assignments, organization_workforce.employees,
                        organization_workforce.org_units, organization_workforce.positions restart identity cascade

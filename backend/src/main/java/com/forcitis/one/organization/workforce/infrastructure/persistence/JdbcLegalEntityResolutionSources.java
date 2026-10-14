@@ -20,23 +20,18 @@ class JdbcLegalEntityResolutionSources implements LegalEntityResolutionSources {
 
     @Override
     public Optional<LegalEntityId> employeeAttribution(UserId employee, LocalDate date) {
-        return attribution("EMPLOYEE", employee.value(), date);
+        return attribution("employee_legal_entities", "employee_id", employee.value(), date);
     }
 
     @Override
     public Optional<LegalEntityId> orgUnitAttribution(OrgUnitId orgUnit, LocalDate date) {
-        return attribution("ORG_UNIT", orgUnit.value(), date);
+        return attribution("org_unit_legal_entities", "org_unit_id", orgUnit.value(), date);
     }
 
-    private Optional<LegalEntityId> attribution(String kind, long subjectId, LocalDate date) {
-        return jdbc.sql("""
-                        select p.legal_entity_id
-                          from organization_workforce.legal_entity_attributions a
-                          join organization_workforce.legal_entity_attribution_periods p on p.attribution_id = a.attribution_id
-                         where a.subject_kind = :kind and a.subject_id = :id
-                           and p.effective_from_date <= :date and (p.effective_to_date is null or :date < p.effective_to_date)
-                        """)
-                .param("kind", kind).param("id", subjectId).param("date", Date.valueOf(date))
+    private Optional<LegalEntityId> attribution(String table, String column, long subjectId, LocalDate date) {
+        return jdbc.sql("select legal_entity_id from organization_workforce." + table + " where " + column + " = :id"
+                        + " and effective_from_date <= :date and (effective_to_date is null or :date < effective_to_date)")
+                .param("id", subjectId).param("date", Date.valueOf(date))
                 .query(Long.class).optional().map(LegalEntityId::new);
     }
 

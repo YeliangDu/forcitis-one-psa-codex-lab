@@ -32,15 +32,29 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
                         """)
                 .param("kind", subject.kind().name()).param("id", subject.subjectKey())
                 .query((rs, n) -> new long[] {rs.getLong("attribution_id"), rs.getLong("version"), rs.getLong("event_count")}).optional()
-                .map(row -> LegalEntityAttribution.restore(row[0], subject, periods(row[0]), row[1], row[2]));
+                .map(row -> LegalEntityAttribution.restore(row[0], subject, periods(subject), row[1], row[2]));
     }
 
-    private List<AttributionPeriod> periods(long attributionId) {
-        return jdbc.sql("""
-                        select legal_entity_id, effective_from_date, effective_to_date
-                          from organization_workforce.legal_entity_attribution_periods where attribution_id = :id
-                        """)
-                .param("id", attributionId)
+    private void deletePeriods(AttributionSubject subject) {
+        String sql = subject.kind() == AttributionKind.ORG_UNIT
+                ? "delete from organization_workforce.org_unit_legal_entities where org_unit_id = :id"
+                : "delete from organization_workforce.employee_legal_entities where employee_id = :id";
+        jdbc.sql(sql).param("id", subject.subjectKey()).update();
+    }
+
+    private void insertPeriod(AttributionSubject subject, AttributionPeriod period) {
+        String sql = subject.kind() == AttributionKind.ORG_UNIT
+                ? "insert into organization_workforce.org_unit_legal_entities (org_unit_id, legal_entity_id, effective_from_date, effective_to_date) values (:id, :legalEntity, :from, :to)"
+                : "insert into organization_workforce.employee_legal_entities (employee_id, legal_entity_id, effective_from_date, effective_to_date) values (:id, :legalEntity, :from, :to)";
+        jdbc.sql(sql).param("id", subject.subjectKey()).param("legalEntity", period.legalEntityId().value())
+                .param("from", Date.valueOf(period.effectiveFrom()))
+                .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE).update();
+    }
+
+    private List<AttributionPeriod> periods(AttributionSubject subject) {
+        return jdbc.sql("select legal_entity_id, effective_from_date, effective_to_date from organization_workforce." + table(subject)
+                        + " where " + column(subject) + " = :id")
+                .param("id", subject.subjectKey())
                 .query((rs, n) -> new AttributionPeriod(new LegalEntityId(rs.getLong("legal_entity_id")),
                         rs.getDate("effective_from_date").toLocalDate(),
                         rs.getDate("effective_to_date") == null ? null : rs.getDate("effective_to_date").toLocalDate())).list();
@@ -73,18 +87,19 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
             if (updated != 1) {
                 throw conflict(attribution);
             }
-            jdbc.sql("delete from organization_workforce.legal_entity_attribution_periods where attribution_id = :id").param("id", id).update();
+            deletePeriods(attribution.subject());
         }
         for (AttributionPeriod period : attribution.periods()) {
-            jdbc.sql("""
-                            insert into organization_workforce.legal_entity_attribution_periods
-                                   (attribution_id, legal_entity_id, effective_from_date, effective_to_date)
-                            values (:id, :legalEntity, :from, :to)
-                            """)
-                    .param("id", id).param("legalEntity", period.legalEntityId().value())
-                    .param("from", Date.valueOf(period.effectiveFrom()))
-                    .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE).update();
+            insertPeriod(attribution.subject(), period);
         }
+    }
+
+    private static String table(AttributionSubject subject) {
+        return subject.kind() == AttributionKind.ORG_UNIT ? "org_unit_legal_entities" : "employee_legal_entities";
+    }
+
+    private static String column(AttributionSubject subject) {
+        return subject.kind() == AttributionKind.ORG_UNIT ? "org_unit_id" : "employee_id";
     }
 
     private static DomainException conflict(LegalEntityAttribution attribution) {

@@ -616,6 +616,34 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__organization_workforce_accounting_number_invalid
+  zh: 核算组织编码非法
+  en: OrganizationWorkforceAccountingNumberInvalid
+  snake: organization_workforce_accounting_number_invalid
+  kind: error_code
+  bc: organization.workforce
+  definition: 核算组织编码必须是正整数（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_accounting_number_taken
+  zh: 核算组织编码已被占用
+  en: OrganizationWorkforceAccountingNumberTaken
+  snake: organization_workforce_accounting_number_taken
+  kind: error_code
+  bc: organization.workforce
+  definition: 该核算组织编码已属于另一个法人（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - opened
 - clock

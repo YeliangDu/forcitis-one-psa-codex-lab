@@ -13,7 +13,7 @@ CREATE TABLE organization_workforce.legal_entity_attributions (
     CONSTRAINT pk_legal_entity_attributions PRIMARY KEY (attribution_id),
     CONSTRAINT uk_legal_entity_attributions_subject_id UNIQUE (subject_kind, subject_id)
 );
-COMMENT ON TABLE organization_workforce.legal_entity_attributions IS '法人归属：部门或员工的法人归属聚合；粒度：每个部门、每个员工至多一行；归属期间在 legal_entity_attribution_periods';
+COMMENT ON TABLE organization_workforce.legal_entity_attributions IS '法人归属：部门或员工的法人归属聚合的版本与事件序号；粒度：每个部门、每个员工至多一行；归属期间在 org_unit_legal_entities 与 employee_legal_entities';
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.attribution_id IS '法人归属 ID';
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.subject_kind IS '归属对象类别：ORG_UNIT 部门（子部门继承，可在子树上覆盖）/ EMPLOYEE 员工（单独指定优先于部门）';
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.subject_id IS '归属对象 ID：部门 ID 或员工 ID（沿用组织源）';
@@ -22,29 +22,47 @@ COMMENT ON COLUMN organization_workforce.legal_entity_attributions.event_count I
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.updated_at IS '更新时间';
 
-CREATE TABLE organization_workforce.legal_entity_attribution_periods (
-    attribution_id bigint      NOT NULL,
-    legal_entity_id bigint     NOT NULL,
+CREATE TABLE organization_workforce.org_unit_legal_entities (
+    org_unit_id         bigint      NOT NULL,
     effective_from_date date        NOT NULL,
     effective_to_date   date,
-    created_at     timestamptz NOT NULL DEFAULT now(),
-    updated_at     timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_legal_entity_attribution_periods PRIMARY KEY (attribution_id, effective_from_date),
-    CONSTRAINT fk_legal_entity_attribution_periods_attribution_id FOREIGN KEY (attribution_id)
-        REFERENCES organization_workforce.legal_entity_attributions (attribution_id),
-    CONSTRAINT fk_legal_entity_attribution_periods_legal_entity_id FOREIGN KEY (legal_entity_id)
-        REFERENCES organization_workforce.legal_entities (id),
-    CONSTRAINT ck_legal_entity_attribution_periods_range CHECK (effective_to_date IS NULL OR effective_to_date > effective_from_date),
-    CONSTRAINT ex_legal_entity_attribution_periods_overlap EXCLUDE USING gist (
-        attribution_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
+    legal_entity_id     bigint      NOT NULL,
+    created_at          timestamptz NOT NULL DEFAULT now(),
+    updated_at          timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_org_unit_legal_entities PRIMARY KEY (org_unit_id, effective_from_date),
+    CONSTRAINT fk_org_unit_legal_entities_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
+    CONSTRAINT fk_org_unit_legal_entities_legal_entity_id FOREIGN KEY (legal_entity_id) REFERENCES organization_workforce.legal_entities (id),
+    CONSTRAINT ck_org_unit_legal_entities_range CHECK (effective_to_date IS NULL OR effective_to_date > effective_from_date),
+    CONSTRAINT ex_org_unit_legal_entities_overlap EXCLUDE USING gist (org_unit_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
-COMMENT ON TABLE organization_workforce.legal_entity_attribution_periods IS '法人归属期间：生效区间维度；粒度：每个归属对象的每个归属期间一行，同一对象的期间不重叠';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_periods.attribution_id IS '法人归属 ID';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_periods.legal_entity_id IS '法人主体 ID：归属的法人';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_periods.effective_from_date IS '生效日（含）';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_periods.effective_to_date IS '失效日（不含）；为空表示至今';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_periods.created_at IS '创建时间';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_periods.updated_at IS '更新时间';
+COMMENT ON TABLE organization_workforce.org_unit_legal_entities IS '部门法人对照：部门默认归属的法人，子部门继承，可在子树上覆盖；生效区间维度；粒度：每个部门的每个归属期间一行，同一部门的期间不重叠';
+COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.org_unit_id IS '组织单元 ID：被归属的部门';
+COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.effective_from_date IS '生效日（含）';
+COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.effective_to_date IS '失效日（不含）；为空表示至今';
+COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.legal_entity_id IS '法人主体 ID：归属的法人';
+COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.created_at IS '创建时间';
+COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.updated_at IS '更新时间';
+
+CREATE TABLE organization_workforce.employee_legal_entities (
+    employee_id         bigint      NOT NULL,
+    effective_from_date date        NOT NULL,
+    effective_to_date   date,
+    legal_entity_id     bigint      NOT NULL,
+    created_at          timestamptz NOT NULL DEFAULT now(),
+    updated_at          timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_employee_legal_entities PRIMARY KEY (employee_id, effective_from_date),
+    CONSTRAINT fk_employee_legal_entities_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id),
+    CONSTRAINT fk_employee_legal_entities_legal_entity_id FOREIGN KEY (legal_entity_id) REFERENCES organization_workforce.legal_entities (id),
+    CONSTRAINT ck_employee_legal_entities_range CHECK (effective_to_date IS NULL OR effective_to_date > effective_from_date),
+    CONSTRAINT ex_employee_legal_entities_overlap EXCLUDE USING gist (employee_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
+);
+COMMENT ON TABLE organization_workforce.employee_legal_entities IS '员工法人归属：个别员工单独指定的法人，优先于部门对照；生效区间维度；粒度：每个员工的每个归属期间一行，同一员工的期间不重叠';
+COMMENT ON COLUMN organization_workforce.employee_legal_entities.employee_id IS '员工 ID：被归属的员工';
+COMMENT ON COLUMN organization_workforce.employee_legal_entities.effective_from_date IS '生效日（含）';
+COMMENT ON COLUMN organization_workforce.employee_legal_entities.effective_to_date IS '失效日（不含）；为空表示至今';
+COMMENT ON COLUMN organization_workforce.employee_legal_entities.legal_entity_id IS '法人主体 ID：归属的法人';
+COMMENT ON COLUMN organization_workforce.employee_legal_entities.created_at IS '创建时间';
+COMMENT ON COLUMN organization_workforce.employee_legal_entities.updated_at IS '更新时间';
 
 CREATE TABLE organization_workforce.org_unit_versions (
     org_unit_id                     bigint      NOT NULL,

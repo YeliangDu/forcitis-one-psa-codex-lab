@@ -239,4 +239,21 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     private long count() {
         return jdbc.sql("select count(*) from organization_workforce.legal_entities").query(Long.class).single();
     }
+
+    @Test
+    @DisplayName("D-1a-28 a legal entity carries a numeric accounting organization number: unique, positive, optional at the start")
+    void accountingOrganizationNumber() throws Exception {
+        mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"NUM\",\"name\":\"Numbered\",\"accountingOrganizationNumber\":1021}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.accountingOrganizationNumber").value(1021));
+        mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"NUN\",\"name\":\"Other\",\"accountingOrganizationNumber\":1021}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN"));
+        mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"NUZ\",\"name\":\"Zero\",\"accountingOrganizationNumber\":0}"))
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID"));
+        mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"NUL\",\"name\":\"Later\"}")).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.accountingOrganizationNumber").doesNotExist());
+    }
 }

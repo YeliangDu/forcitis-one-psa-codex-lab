@@ -191,6 +191,11 @@ channels:
     messages:
       LegalEntityAttributionEnded:
         $ref: '#/components/messages/LegalEntityAttributionEnded'
+  legalEntityAccountingNumberAssigned:
+    address: organization.workforce.LegalEntityAccountingNumberAssigned
+    messages:
+      LegalEntityAccountingNumberAssigned:
+        $ref: '#/components/messages/LegalEntityAccountingNumberAssigned'
 operations:
   publishApprovalCompleted:
     action: send
@@ -752,6 +757,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/legalEntityAttributionEnded/messages/LegalEntityAttributionEnded'
+  publishLegalEntityAccountingNumberAssigned:
+    action: send
+    channel:
+      $ref: '#/channels/legalEntityAccountingNumberAssigned'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/legalEntityAccountingNumberAssigned/messages/LegalEntityAccountingNumberAssigned'
+  handleLegalEntityAccountingNumberAssignedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/legalEntityAccountingNumberAssigned'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/legalEntityAccountingNumberAssigned/messages/LegalEntityAccountingNumberAssigned'
 components:
   schemas:
     EventEnvelope:
@@ -2639,3 +2658,37 @@ components:
           effectiveTo:
             type: string
             x-type: LocalDate
+    LegalEntityAccountingNumberAssigned:
+      name: LegalEntityAccountingNumberAssigned
+      title: 法人取得或更换了核算组织编码
+      x-event:
+        eventType: organization.workforce.LegalEntityAccountingNumberAssigned
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.LegalEntityAccountingNumberAssigned
+        aggregate: LegalEntity
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
+        noConsumer: 暂无消费方：核算对接将按数字编码识别法人；现在就发布，是因为编码变更只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - legalEntityId
+        - accountingOrganizationNumber
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          legalEntityId:
+            type: string
+            x-type: LegalEntityId
+            description: 稳定 ID 的字符串形式
+          accountingOrganizationNumber:
+            type: integer
+            x-type: AccountingOrganizationNumber

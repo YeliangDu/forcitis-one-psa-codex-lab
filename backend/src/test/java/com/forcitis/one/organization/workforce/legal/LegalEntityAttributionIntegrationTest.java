@@ -68,8 +68,8 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     @BeforeEach
     void twoLegalEntities() {
         jdbc.sql("truncate table organization_workforce.legal_entities restart identity cascade").update();
-        le1 = new LegalEntityId(createLegalEntity.execute("FST", "Synthetic one").legalEntityId());
-        le2 = new LegalEntityId(createLegalEntity.execute("FIT", "Synthetic two").legalEntityId());
+        le1 = new LegalEntityId(createLegalEntity.execute("FST", "Synthetic one", null).legalEntityId());
+        le2 = new LegalEntityId(createLegalEntity.execute("FIT", "Synthetic two", null).legalEntityId());
     }
 
     private void synced(Long parentOfUnit3) {
