@@ -8,6 +8,8 @@
 - Any environment: a blocker entry under docs/modernization/status/blockers/ whose line carries the marker `blocks: deploy` stops the
   deployment. Blocker fragments are single lines (build_records.py), so the marker sits in the line instead of front matter. The
   coordinating session deletes the entry, or the marker, when the blocking work is merged.
+- Any environment: the migration baseline-open marker (backend/architecture/migration-baseline-open) stops the deployment; it is removed
+  as the first step of C-3 (SESSION_PLAYBOOK §12.2 step 4), in a pull request of its own.
 - prod: no pre-release version (-rc.N); every Phase 1a exit condition in section D of PREDEPLOY_CHECKLIST.md is done (verified on dev);
   C-9 (the production database) is done. "Done" means the status cell is exactly the done mark, nothing else. The version is listed in
   prod-approvals.txt as "<version> <commit> <bundle sha256> <YYYY-MM-DD> <approver>": on the GitHub Team plan a private repository has
@@ -22,6 +24,7 @@ BLOCKERS = "docs/modernization/status/blockers"
 CHECKLIST = "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md"
 PROD_APPROVALS = "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt"
 DEPLOY_MARKER = "`blocks: deploy`"
+BASELINE_MARKER = "backend/architecture/migration-baseline-open"
 DONE = "✅"
 EXPECTED_EXIT_CONDITIONS = 9
 PROD_PREREQUISITES = ("C-9",)
@@ -38,6 +41,11 @@ def deploy_blockers(root):
                 if DEPLOY_MARKER in handle.read():
                     found.append(name)
     return found
+
+
+def baseline_open(root):
+    directory, name = os.path.split(os.path.join(root, BASELINE_MARKER))
+    return os.path.isdir(directory) and any(entry.lower() == name.lower() for entry in os.listdir(directory))
 
 
 def table_rows(checklist_text, section_letter):
@@ -79,6 +87,8 @@ def approval_problems(root, version, commit, bundle_sha256):
 
 def check(root, environment, version):
     problems = [f"deployment blocked by {BLOCKERS}/{name}" for name in deploy_blockers(root)]
+    if baseline_open(root):
+        problems.append(f"{BASELINE_MARKER} exists: the migration baseline is still open; remove the marker first (SESSION_PLAYBOOK §12.2 step 4, C-3)")
     if environment == "prod":
         if "-" in version:
             problems.append(f"prod takes released versions only, not the pre-release {version}")
@@ -120,6 +130,16 @@ def self_test():
 
         checklist([DONE] * 9)
         assert check(root, "dev", "0.1.0-rc.1") == [] and check(root, "prod", "0.1.0") == []
+        marker = os.path.join(root, BASELINE_MARKER)
+        os.makedirs(os.path.dirname(marker))
+        with open(marker, "w", encoding="utf-8") as handle:
+            handle.write("open\n")
+        assert any("baseline is still open" in p for p in check(root, "dev", "0.1.0")), "an open migration baseline stops dev"
+        assert any("baseline is still open" in p for p in check(root, "prod", "0.1.0")), "an open migration baseline stops prod"
+        os.rename(marker, marker.replace("migration-baseline-open", "Migration-Baseline-Open"))
+        assert check(root, "dev", "0.1.0"), "a marker differing only in case still stops the deployment"
+        os.remove(marker.replace("migration-baseline-open", "Migration-Baseline-Open"))
+        assert check(root, "dev", "0.1.0") == [], "removing the marker lifts the stop"
         assert check(root, "prod", "0.1.0-rc.1"), "prod refuses pre-releases"
         assert any("not approved" in p for p in check(root, "prod", "0.2.0")), "prod needs an approval line"
         assert approval_problems(root, "0.1.0", "c" * 40, "d" * 64) == []
