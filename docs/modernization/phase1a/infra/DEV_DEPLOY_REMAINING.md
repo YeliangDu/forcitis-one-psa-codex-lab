@@ -26,7 +26,7 @@
 | 1-8 | C-7 证书到期检查安装（`one_cert_check.sh` + 定时器） | ops | 否 | 0.5 h | ✅ 2026-10-15 已安装（t-hz0701b833ib7r4）；告警经 `one_alert_send` 推送到运维群 |
 | 1-9 | 付费决定 | 用户 | 是 | — | ✅ 用户选开 P-1、P-2、P-4、P-5，P-3 不开；P-4 快照策略已存在（含系统盘，保留现状）；P-5 无超额；P-1 / P-2 已开通（SLS 按使用功能计费、指标走 SLS Prometheus 指标库） |
 | 1-10 | B-3 在 A8「第三方应用」新建「FORCITIS one」单点登录入口（仿照未启用的「`FORCITIS PSA`」，页面地址 `https://one.forcitis.com/login/sso`） | 用户 / A8 管理员（A8 后台） | 否 | 0.5 h | ops 已查清：老系统现用的「数字运营平台」关联系统只 POST `memberId`、不验票，不可照搬；票据方式见 `handoff/B-3`；A8 验票根地址 `https://bpm.forcitis.com`，ECS 可达；`one.env` 已设 `SEEYON_OA_BASE_URL`、`FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED=true`、`LEGACY_LOGIN_URL` |
-| 1-12 | C-3 `one_admin` 口令轮换：R-4 实例 RAM 角色就绪后在 ECS 上生成新口令并经接口重置（用户「先建后轮换」） | ops | 否 | 0.5 h | 依赖 R-4 |
+| 1-12 | C-3 `one_admin` 口令轮换（用户「先建后轮换」） | ops | 否 | — | ✅ 2026-10-15：ECS 上以 `ALTER ROLE` 自改口令（`scripts/c3_rotate_admin_password.py`），不依赖 R-4 |
 | 1-11 | B-2 余项：企业可信 IP 47.114.56.157；H5 工作台入口（依赖 1a 改 H5 子路径，CROSSCHECK 第 4 条） | 用户（企业微信后台） | 否 | — | 可信 IP ✅ 2026-10-15（用户配置；ECS 出口 47.114.56.157 调 message/send 得 81013 而非 60020，IP 检查已通过，未发出消息）；H5 入口待 1a |
 
 ## 第 2 层：代码侧前置（1a）
