@@ -12,6 +12,11 @@ READ_BY_BUILDS = (
     "docs/modernization/glossary/",
     "docs/modernization/events/",
     "docs/modernization/phase1a/SEEYON_VIEWS.sql",
+    # read by scripts/release (deploy gate, release bundle); their self-tests run in ci
+    "docs/modernization/status/blockers/",
+    "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
+    "docs/modernization/phase1a/infra/runbooks/files/",
+    "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
 )
 
 
@@ -65,6 +70,7 @@ def self_test():
     assert is_relevant("docs/modernization/glossary/terms.yaml")
     assert is_relevant("docs/modernization/events/asyncapi.yaml")
     assert is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
+    assert is_relevant("docs/modernization/status/blockers/080-1a-no-deploy-until-fix.md")
     assert not is_relevant("docs/modernization/adr/src/ADR-0001.md")
     assert not is_relevant("docs/modernization/phase1a/INTERFACES.md")
     assert not is_relevant("README.md")

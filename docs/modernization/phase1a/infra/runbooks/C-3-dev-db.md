@@ -31,7 +31,7 @@ psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_o
 
 STEP 0 / STEP 2 的冲突检查有任何一行返回即停止（`ON_ERROR_STOP` 不会因查询有结果而停，须人工看输出；用 DMS 时逐段执行）。
 
-设口令：RDS 控制台「账号管理」为 `one_dev_migrator`、`one_dev_app`、`one_dev_readonly` 重置口令（≥ 24 位随机，用密码管理器生成）。`one_dev_app` 写入 `/etc/forcitis-one/one.env` 的 `SPRING_DATASOURCE_PASSWORD`；`one_dev_migrator` 写入 `/etc/forcitis-one/migrate.env`（`0600 root:root`，只在部署步骤使用，见 C-4「首次部署」）；`one_dev_readonly` 存运维密码管理器。
+设口令：RDS 控制台「账号管理」为 `one_dev_migrator`、`one_dev_app`、`one_dev_readonly` 重置口令（≥ 24 位随机，用密码管理器生成）。`one_dev_app` 写入 `/etc/forcitis-one/one.env` 的 `SPRING_DATASOURCE_PASSWORD`；`one_dev_migrator` 写入 `/etc/forcitis-one/migrate/spring.flyway.user` 与 `spring.flyway.password`（目录 root 700、文件 root 600，只由安装器的迁移步骤经 `LoadCredential` 读取，见 RELEASE.md §4）；`one_dev_readonly` 存运维密码管理器。
 
 另需（RDS 控制台）：开启 SSL 并下载 CA 证书到 `/etc/forcitis-one/rds-ca.pem`（`0644`），否则 `sslmode=verify-full` 连不上。
 

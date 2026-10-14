@@ -36,6 +36,7 @@
 | B-7 | 组织数据管理员录入 2027 年工作日历（节假日与调休） | 出口前（且每年 12 月 1 日前录入下一年） | D-1a-110..117 | [B-7](handoff/B-7-work-calendar-2027.md) | 🟨 |
 | B-8 | 业务管理员（用户）确认各单据编号模板；凭证号模板另需财务确认 | 出口前 | ADR-0027、出口条件「编号规则经管理员确认」 | [B-8](handoff/B-8-numbering-templates.md)（四眼确认待 ADR-0027 下一批实现） | 🟨 |
 | B-9 | 企业微信接口真实返回核对（`task_id` 重复的错误码、模板卡片更新） | 出口前 | 1a 第二波报告 | [B-9](handoff/B-9-wecom-api-check.md) | 🟨 |
+| B-10 | 发布与部署一次性设置。**必需前置：按 RELEASE.md R-0 重建专用部署 runner `forcitis-one-deploy`**（只接 deploy；程序、hook 与空主目录归 root，PATH 只含系统目录，`--disableupdate`；原注册已注销；发布打包与签名在 GitHub 托管机器上）；法兰克福 OSS bucket 用户定于首次 dev 部署前再建；GitHub environments `dev` / `prod`（prod 设 required reviewers）、专用 runner 的 pre-job hook、构建期变量、environment `release` 与发布签名密钥（Team 计划私有仓库无出处证明，RELEASE.md §11）、immutable releases、`v*` 标签保护、prod 批准行；法兰克福 OSS bucket、每环境 RAM 子账号（最小策略）与 AccessKey；ECS 侧安装器、`forcitis-migrate` 用户、目录归属与迁移凭据目录；最后一跳推荐云助手（SSH 方式另需 22 端口只对固定出口 IP 开放） | dev 前 | 遗漏项「CI 无发布产物」、INFRA_RUNBOOK §7 | [RELEASE.md §7、§8](runbooks/RELEASE.md#7-一次性步骤用户或运维执行执行前确认) | 🟨 |
 
 ## C. 由会话执行，执行前须用户确认（对外变更或购买）
 
@@ -75,7 +76,8 @@
 
 ## 核对中发现、清单尚未列出的前置项（供 one-coordinator 决定是否立项）
 
-- **发布流水线**：CI 只做 verify，不产出 jar / 前端 dist / SHA256 发布包（INFRA_RUNBOOK §7 第 1 步），首次部署前须补（代码会话）。
+- **发布流水线**：已补 `release` / `deploy` 工作流与 [RELEASE.md](runbooks/RELEASE.md)（法兰克福 OSS 中转、专用 runner、出处证明），用户侧一次性设置列为 B-10。仍待 1a 代码修复：`OneApplication` 无 `main`、POM 未声明 `spring-boot-maven-plugin`，当前构建不出可启动的 jar（`build.sh` 拒绝出包）。
+- **迁移执行方式**：代码只有启动时以运行账号自动跑 Flyway，与剧本「迁移账号单独执行」不一致，且运行账号对 `one_migration` 无权限会拒绝启动；发布流水线以 `SPRING_FLYWAY_ENABLED=false` + 安装器单独迁移绕行（[RELEASE.md §4](runbooks/RELEASE.md#4-数据库迁移)），1a 的 migrate profile（已排入 B2）合入后安装器自动改用；「只增不删不改名」的迁移守护由 1a 在迁移基线 PR 实现。
 - **运维命令**：首任超管与应急账号登记命令（C-5 的前提，ADR-0027 下一批）。
 - **工作日历录入页**：B-7 与 C-6 日历导入目前只能调接口；PC 管理端尚无页面。
 - **RDS SSL 与 CA 证书**：`sslmode=verify-full` 的前提（`DECISIONS_A.md` N-3）。
