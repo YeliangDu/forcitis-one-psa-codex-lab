@@ -208,6 +208,19 @@ export default tseslint.config(
     },
   },
   {
+    // M-6: packages/core runs under React 19 (apps/web) and React 18 (apps/h5, Taro). H5 code and the shared package may only use what both have.
+    // A separate rule id, because a later block would replace the no-restricted-imports lists above.
+    files: [`${H5}/**/*.{ts,tsx}`, 'packages/core/src/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': ['error', {
+        paths: [
+          { name: 'react', importNames: ['use', 'useActionState', 'useOptimistic'], message: 'React 19 only; apps/h5 runs React 18 and packages/core is shared with it.' },
+          { name: 'react-dom', importNames: ['useFormStatus', 'useFormState'], message: 'React 19 only; apps/h5 runs React 18 and packages/core is shared with it.' },
+        ],
+      }],
+    },
+  },
+  {
     files: ['packages/api/src/generated/**'],
     rules: { 'no-restricted-syntax': 'off', 'unicorn/filename-case': 'off', '@typescript-eslint/naming-convention': 'off' },
   },

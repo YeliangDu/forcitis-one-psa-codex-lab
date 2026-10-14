@@ -1,7 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { stubServer, taskRecordBody } from '@forcitis/core/testing';
+import { problemBody, stubServer, taskRecordBody } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
 import { InboxPage } from './inbox-page';
 
@@ -186,5 +186,21 @@ describe('知会与超时', () => {
     renderWithProviders(<InboxPage />);
 
     expect(await screen.findByText('已超时')).toBeInTheDocument();
+  });
+});
+
+describe('刷新失败', () => {
+  it('已经有数据时，刷新失败只在列表上方提示，列表仍然保留', async () => {
+    let healthy = true;
+    stubServer({ 'GET approval-tasks': () => (healthy ? { body: INBOX } : { status: 503, body: problemBody(503, 'PLATFORM_WEB_UNEXPECTED') }) });
+    renderWithProviders(<InboxPage />);
+    await screen.findByText('工时单审批 TS202610140001');
+
+    healthy = false;
+    act(() => { window.dispatchEvent(new Event('focus')); });
+
+    expect(await screen.findByText('服务暂时不可用，请稍后重试')).toBeInTheDocument();
+    expect(screen.getByText('工时单审批 TS202610140001')).toBeInTheDocument();
+    expect(screen.getByText('合同评审 HT-2026-001')).toBeInTheDocument();
   });
 });

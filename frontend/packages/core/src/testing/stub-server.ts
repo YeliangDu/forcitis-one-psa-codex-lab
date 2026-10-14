@@ -1,4 +1,3 @@
-import { forgetVersions } from '@forcitis/api';
 import { vi } from 'vitest';
 
 export interface StubRequest {
@@ -11,7 +10,7 @@ export interface StubRequest {
 export type StubReply = { status?: number; body?: unknown; headers?: Record<string, string> };
 type StubHandler = StubReply | ((request: StubRequest) => StubReply);
 
-/** Replaces fetch for one test: the first table entry whose method matches and whose fragment is part of the URL answers; anything else is 404 and listed in `unmatched`. */
+/** Replaces fetch for one test. A table key is "METHOD path-tail": it answers a request of that method whose path ends with the tail at a segment boundary ("approval-tasks" is not "approval-tasks/t-1"); anything else is 404 and listed in `unmatched`. */
 export function stubServer(table: Record<string, StubHandler>) {
   const calls: StubRequest[] = [];
   const unmatched: string[] = [];
@@ -20,7 +19,6 @@ export function stubServer(table: Record<string, StubHandler>) {
     return { method, fragment: rest.join(' '), handler };
   });
 
-  forgetVersions();
   vi.stubGlobal('fetch', async (input: string, init: RequestInit = {}) => {
     const method = (init.method ?? 'GET').toUpperCase();
     const request: StubRequest = {
@@ -30,7 +28,8 @@ export function stubServer(table: Record<string, StubHandler>) {
       body: typeof init.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
     };
     calls.push(request);
-    const entry = entries.find((candidate) => candidate.method === method && input.includes(candidate.fragment));
+    const path = new URL(input, 'http://localhost').pathname;
+    const entry = entries.find((candidate) => candidate.method === method && path.endsWith(`/${candidate.fragment}`));
     if (entry === undefined) {
       unmatched.push(`${method} ${input}`);
       return new Response(null, { status: 404 });

@@ -1,4 +1,4 @@
-import { DOCUMENT_TYPE_LABELS, describeFailure } from '@forcitis/core';
+import { DOCUMENT_TYPE_LABELS, describeFailure, versionOf } from '@forcitis/core';
 import { Button, DataTable, Dialog, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextField, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { useCurrentUser } from '@/modules/session';
@@ -33,7 +33,7 @@ export function NumberingRulesPage() {
   };
   const submit = () => {
     if (editing === undefined) return;
-    save.mutate({ documentType: editing.rule.documentType, draft: editing.draft }, { onSuccess: close });
+    save.mutate({ documentType: editing.rule.documentType, draft: editing.draft, version: versionOf(editedRule.data) }, { onSuccess: close });
   };
 
   const columns: DataColumn<NumberingRule>[] = [

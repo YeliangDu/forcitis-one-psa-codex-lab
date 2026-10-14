@@ -7,6 +7,7 @@ import {
   documentText,
   formatDateTime,
   handlerText,
+  labelOf,
   opinionText,
   useTask,
   useTaskActions,
@@ -20,7 +21,7 @@ import { INBOX_PAGE } from '../model/paths';
 export function TaskDetailPage() {
   const taskId = useRouteParam('taskId') ?? '';
   const task = useTask(taskId);
-  const actions = useTaskActions(taskId, () => replacePage(INBOX_PAGE));
+  const actions = useTaskActions(taskId, task.data, () => replacePage(INBOX_PAGE));
 
   if (taskId === '') return <Screen><Notice tone="error" title="审批任务加载失败">{ERROR_MESSAGES.PLATFORM_APPROVAL_TASK_NOT_FOUND}</Notice></Screen>;
   if (task.isPending) return <Screen><LoadingHint label="加载中" /></Screen>;
@@ -38,7 +39,7 @@ export function TaskDetailPage() {
       {failed === undefined ? null : <Notice tone="error" title="操作失败">{describeFailure(failed.error)}</Notice>}
       <FieldList
         rows={[
-          { label: '审批流程', value: PROCESS_LABELS[detail.processKey] },
+          { label: '审批流程', value: labelOf(PROCESS_LABELS, detail.processKey) },
           { label: '单据', value: documentText(detail) },
           { label: '当前节点', value: detail.nodeName },
           { label: '发起人', value: detail.initiatorName },
@@ -65,7 +66,7 @@ export function TaskDetailPage() {
           <FieldList
             rows={[
               { label: '节点', value: record.nodeName },
-              { label: '办理结果', value: TASK_RECORD_ACTION_LABELS[record.action] },
+              { label: '办理结果', value: labelOf(TASK_RECORD_ACTION_LABELS, record.action) },
               { label: '办理人', value: handlerText(record) },
               { label: '办理时间', value: formatDateTime(record.decidedAt) },
               { label: '意见', value: opinionText(record.reason) },

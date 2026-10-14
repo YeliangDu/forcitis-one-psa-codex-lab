@@ -1,7 +1,6 @@
 import {
-  type InboxFilterKey,
   type InboxItem,
-  PROCESS_LABELS,
+  type InboxView,
   type TaskRecord,
   TASK_RECORD_ACTION_LABELS,
   TASK_RECORD_ACTION_TONES,
@@ -9,8 +8,12 @@ import {
   filterInbox,
   formatDateTime,
   inboxRowId,
+  inboxStateOf,
   inboxTitle,
+  inboxViewOf,
+  labelOf,
   opinionText,
+  recordTitle,
   safeExternalUrl,
   useInbox,
   useTaskRecords,
@@ -24,17 +27,6 @@ import { ListCard } from '@/shared/ui/list-card';
 import { Screen, ScreenTitle } from '@/shared/ui/screen';
 import { taskPath } from '../model/paths';
 
-type View = InboxFilterKey | 'done';
-
-function viewOf(key: string): View {
-  return key === 'new' || key === 'legacy' || key === 'notice' || key === 'done' ? key : 'all';
-}
-
-function badgeOf(item: InboxItem): string | undefined {
-  if (item.overdue) return '已超时';
-  return item.claimed ? '已认领' : undefined;
-}
-
 function openerOf(item: InboxItem): (() => void) | undefined {
   if (item.source === 'NEW') {
     const path = taskPath(item.taskId);
@@ -47,23 +39,23 @@ function openerOf(item: InboxItem): (() => void) | undefined {
 function RecordCard({ record }: { record: TaskRecord }) {
   return (
     <ListCard
-      title={`${PROCESS_LABELS[record.processKey]} ${record.documentId}`}
+      title={recordTitle(record)}
       subtitle={record.nodeName}
       note={`意见：${opinionText(record.reason)}`}
       footnote={formatDateTime(record.decidedAt)}
-      tag={<Tag tone={TASK_RECORD_ACTION_TONES[record.action]}>{TASK_RECORD_ACTION_LABELS[record.action]}</Tag>}
+      tag={<Tag tone={TASK_RECORD_ACTION_TONES[record.action] ?? 'neutral'}>{labelOf(TASK_RECORD_ACTION_LABELS, record.action)}</Tag>}
       onOpen={undefined}
     />
   );
 }
 
 export function InboxPage() {
-  const [view, setView] = useState<View>('all');
+  const [view, setView] = useState<InboxView>('all');
   const pending = useInbox();
   const done = useTaskRecords(view === 'done');
 
   if (pending.isPending) return <Screen><LoadingHint label="加载中" /></Screen>;
-  if (pending.isError || pending.inbox === undefined) {
+  if (pending.inbox === undefined) {
     return (
       <Screen>
         <Notice tone="error" title="待办加载失败">{describeFailure(pending.error)}</Notice>
@@ -81,10 +73,16 @@ export function InboxPage() {
   return (
     <Screen>
       <ScreenTitle text="待办" />
+      {pending.isError ? (
+        <>
+          <Notice tone="error" title="待办加载失败">{describeFailure(pending.error)}</Notice>
+          <ActionButton variant="default" onClick={() => void pending.refetch()}>刷新</ActionButton>
+        </>
+      ) : null}
       {inbox.legacyAvailable ? null : <Notice tone="warning" title="老系统的待办暂时无法读取">当前只显示新系统的待办，请稍后刷新。</Notice>}
       <Segments
         active={view}
-        onChange={(key) => setView(viewOf(key))}
+        onChange={(key) => setView(inboxViewOf(key))}
         options={[
           { key: 'all', label: `全部 ${inbox.totalCount}` },
           { key: 'new', label: `新系统 ${inbox.newCount}` },
@@ -107,7 +105,7 @@ export function InboxPage() {
             subtitle={item.nodeName ?? ''}
             footnote={formatDateTime(item.createdAt)}
             tag={item.source === 'NEW' ? <Tag tone="info">新系统</Tag> : <Tag tone="neutral">{item.category === 'NOTICE' ? '知会' : '老系统'}</Tag>}
-            badge={badgeOf(item)}
+            badge={inboxStateOf(item)}
             onOpen={openerOf(item)}
           />
         ))}

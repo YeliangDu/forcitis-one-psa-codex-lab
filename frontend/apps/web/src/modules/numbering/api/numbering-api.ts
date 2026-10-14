@@ -10,9 +10,10 @@ export function fetchNumberingRule(documentType: DocumentType) {
   return operations.getPlatformNumberingRulesByDocumentType({ path: { documentType } });
 }
 
-export async function saveNumberingRule(documentType: DocumentType, draft: RuleDraft): Promise<void> {
+/** `version` is versionOf(the rule as read for editing). */
+export async function saveNumberingRule(documentType: DocumentType, draft: RuleDraft, version: string | undefined): Promise<void> {
   await operations.putPlatformNumberingRulesByDocumentType({
     path: { documentType },
     body: { pattern: draft.pattern.trim(), resetPolicy: draft.resetPolicy, startValue: Number(draft.startValue) },
-  });
+  }, { ifMatch: version });
 }

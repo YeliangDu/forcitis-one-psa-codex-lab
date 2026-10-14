@@ -273,6 +273,58 @@ terms:
   forbidden: []
   status: proposed
   note: D-1a-84、D-1a-110；任务详情的字段名
+- id: ui_external_system
+  zh: 外部系统
+  en: ExternalSystem
+  snake: external_system
+  kind: entity
+  bc: platform.integration
+  definition: 本系统之外、通过防腐层接入的系统，如企业微信、致远、组织来源
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 错误提示用语
+- id: ui_maintain
+  zh: 维护
+  en: Maintain
+  snake: maintain
+  kind: command
+  bc: organization.attendance
+  definition: 录入和修改工作日历这类基础数据
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 界面与提示用语
+- id: ui_calculation
+  zh: 计算
+  en: Calculation
+  snake: calculation
+  kind: command
+  bc: kernel
+  definition: 按规则得出日期、时限、编号等的过程
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 提示用语
+- id: ui_outcome_result
+  zh: 结果
+  en: OutcomeResult
+  snake: outcome_result
+  kind: value
+  bc: platform.approval
+  definition: 一次办理或一次计算得出的结论
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 提示用语；「办理结果」是它在审批记录里的特指
 - id: ui_rest_day
   zh: 休息日
   en: RestDay

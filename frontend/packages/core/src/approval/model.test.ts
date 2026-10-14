@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { taskDetailBody } from '../testing/fixtures';
-import { PROCESS_LABELS } from './labels';
+import { PROCESS_LABELS, labelOf } from './labels';
 import {
   type InboxItem,
   type TaskDetail,
@@ -10,8 +10,12 @@ import {
   documentText,
   filterInbox,
   inboxOf,
+  inboxRowId,
+  inboxStateOf,
   inboxTitle,
+  inboxViewOf,
   opinionText,
+  recordTitle,
 } from './model';
 
 const TASK = taskDetailBody() as unknown as TaskDetail;
@@ -86,5 +90,33 @@ describe('待办列表', () => {
     expect(filterInbox(all, 'legacy')).toEqual([legacy]);
     expect(filterInbox(all, 'notice')).toEqual([notice]);
     expect(filterInbox(all, 'all')).toHaveLength(3);
+  });
+});
+
+describe('待办的行', () => {
+  it('新旧待办的编号相同时，行的标识仍然不同', () => {
+    const fresh: InboxItem = { ...NEW_ITEM, taskId: '42' };
+    const old: InboxItem = { source: 'LEGACY', category: 'TODO', overdue: false, taskId: '42', claimed: false, title: 'x' };
+    expect(inboxRowId(fresh)).not.toBe(inboxRowId(old));
+    expect(new Set([inboxRowId(fresh), inboxRowId(old)]).size).toBe(2);
+  });
+
+  it('已超时盖过已认领；两者都没有就没有标记', () => {
+    expect(inboxStateOf({ overdue: true, claimed: true })).toBe('已超时');
+    expect(inboxStateOf({ overdue: false, claimed: true })).toBe('已认领');
+    expect(inboxStateOf({ overdue: false, claimed: false })).toBeUndefined();
+  });
+
+  it('页签的值不认识时回到全部', () => {
+    expect(['new', 'legacy', 'notice', 'done', 'all', 'other'].map(inboxViewOf)).toEqual(['new', 'legacy', 'notice', 'done', 'all', 'all']);
+  });
+
+  it('已办的标题和待办一样由流程名称与单据号拼出', () => {
+    expect(recordTitle({ processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS-9' })).toBe(`${PROCESS_LABELS.COST_TIMESHEET_APPROVAL} TS-9`);
+  });
+
+  it('服务端新加的流程或单据类型，名称显示为破折号而不是 undefined', () => {
+    expect(labelOf(PROCESS_LABELS, 'FUTURE_PROCESS')).toBe('—');
+    expect(inboxTitle({ ...NEW_ITEM, processKey: 'FUTURE_PROCESS' as 'COST_TIMESHEET_APPROVAL' })).toBe('— TS-1');
   });
 });

@@ -19,8 +19,6 @@ export const EFFECTIVE_KIND_LABELS: Readonly<Record<EffectiveKind, string>> = {
 
 export const WEEKDAY_HEADERS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] as const;
 
-const BUSINESS_ZONE = 'Asia/Shanghai';
-
 /** Exceptions of the year by ISO date. */
 export type Exceptions = ReadonlyMap<string, DayKind>;
 
@@ -58,12 +56,6 @@ export function monthsOf(year: number): MonthGrid[] {
     for (let day = new Date(first); day.getUTCMonth() === index; day.setUTCDate(day.getUTCDate() + 1)) dates.push(isoDate(day));
     return { month: `${year}-${String(index + 1).padStart(2, '0')}`, leadingBlanks: mondayBasedWeekday(first), dates };
   });
-}
-
-export function businessToday(now: Date): string {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: BUSINESS_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
-  const part = (type: string) => parts.find((candidate) => candidate.type === type)?.value ?? '';
-  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 /** A date before today is locked: the organization data administrator may still change it, but only after confirming (T2). */

@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { duplicatesAcrossApps } from './check-structure.mjs';
+import { duplicatesAcrossRoots } from './check-structure.mjs';
 
 const frontend = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -19,7 +19,7 @@ function workspace(files) {
   return base;
 }
 
-const APPS = ['apps/web/src', 'apps/h5/src'];
+const ROOTS = ['apps/web/src', 'apps/h5/src', 'packages/core/src'];
 
 test('the same content in both apps is reported, whatever the file is called', () => {
   const base = workspace({
@@ -28,7 +28,23 @@ test('the same content in both apps is reported, whatever the file is called', (
     'apps/web/src/only-web.ts': 'export const web = 1;\n',
     'apps/h5/src/only-h5.ts': 'export const h5 = 1;\n',
   });
-  assert.deepEqual(duplicatesAcrossApps(APPS, base), [['apps/h5/src/shared/helpers/errors.ts', 'apps/web/src/shared/lib/failure.ts']]);
+  assert.deepEqual(duplicatesAcrossRoots(ROOTS, base), [['apps/h5/src/shared/helpers/errors.ts', 'apps/web/src/shared/lib/failure.ts']]);
+});
+
+test('reformatting or re-commenting a copy does not hide it', () => {
+  const base = workspace({
+    'apps/web/src/a.ts': 'export function total(a: number, b: number) {\n  return a + b;\n}\n',
+    'apps/h5/src/b.ts': '// the sum\nexport function total(a: number,\n  b: number) { /* add */ return a + b; } // done\n',
+  });
+  assert.deepEqual(duplicatesAcrossRoots(ROOTS, base), [['apps/h5/src/b.ts', 'apps/web/src/a.ts']]);
+});
+
+test('a copy of a file of packages/core inside an app is reported too', () => {
+  const base = workspace({
+    'packages/core/src/safe-url.ts': 'export const safe = (v: string) => v.startsWith("https:");\n',
+    'apps/h5/src/shared/safe-url.ts': 'export const safe = (v: string) => v.startsWith("https:");\n',
+  });
+  assert.deepEqual(duplicatesAcrossRoots(ROOTS, base), [['apps/h5/src/shared/safe-url.ts', 'packages/core/src/safe-url.ts']]);
 });
 
 test('files that merely look alike, a copy inside one app and empty placeholders are not duplicates', () => {
@@ -39,12 +55,14 @@ test('files that merely look alike, a copy inside one app and empty placeholders
     'apps/web/src/c.ts': 'same inside web\n',
     'apps/web/src/.gitkeep': '',
     'apps/h5/src/.gitkeep': '',
+    'apps/web/src/only-comment.ts': '// nothing here\n',
+    'apps/h5/src/only-comment.ts': '/* nothing, differently said */\n',
   });
-  assert.deepEqual(duplicatesAcrossApps(APPS, base), []);
+  assert.deepEqual(duplicatesAcrossRoots(ROOTS, base), []);
 });
 
-test('the repository itself has no file shared by both apps', () => {
-  assert.deepEqual(duplicatesAcrossApps(APPS, frontend), []);
+test('the repository itself has no code that exists twice', () => {
+  assert.deepEqual(duplicatesAcrossRoots(ROOTS, frontend), []);
 });
 
 test('the command line fails on a copy and names both files, and passes once the copy is gone', () => {

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ERROR_CODES, MissingVersionError, ResponseShapeError, forgetVersions, operations, setApiHandlers } from './index';
+import { forgetReportedViolations, setContractViolationSink } from './contract';
+import { MissingVersionError, ResponseShapeError, operations, setApiHandlers, versionOf } from './index';
 
 function stubFetch(status: number, body: unknown, headers: Record<string, string> = {}) {
   const calls: { url: string; init: RequestInit }[] = [];
@@ -31,16 +32,15 @@ const TASK_DETAIL = {
 describe('generated operations over the default client', () => {
   afterEach(() => {
     setApiHandlers({});
-    forgetVersions();
     vi.unstubAllGlobals();
   });
 
   it('calls the path from openapi.json with the path parameter filled in and the CSRF header', async () => {
     document.cookie = 'XSRF-TOKEN=t-1; path=/';
     stubFetch(200, TASK_DETAIL, { ETag: '"1"' });
-    await operations.getPlatformApprovalTasksByTaskId({ path: { taskId: '42' } });
+    const task = await operations.getPlatformApprovalTasksByTaskId({ path: { taskId: '42' } });
     const calls = stubFetch(200, { instanceId: '9', status: 'APPROVED' });
-    const result = await operations.postPlatformApprovalTasksByTaskIdDecide({ path: { taskId: '42' }, body: { outcome: 'APPROVE', reason: 'ok' } });
+    const result = await operations.postPlatformApprovalTasksByTaskIdDecide({ path: { taskId: '42' }, body: { outcome: 'APPROVE', reason: 'ok' } }, { ifMatch: versionOf(task) });
     expect(result).toEqual({ instanceId: '9', status: 'APPROVED' });
     expect(calls[0]?.url.endsWith('/platform/approval-tasks/42:decide')).toBe(true);
     expect(new Headers(calls[0]?.init.headers).get('X-XSRF-TOKEN')).toBe('t-1');
@@ -89,22 +89,19 @@ describe('generated operations over the default client', () => {
 });
 
 describe('platform traits declared in openapi.json', () => {
-  afterEach(() => {
-    forgetVersions();
-    vi.unstubAllGlobals();
-  });
+  afterEach(() => vi.unstubAllGlobals());
 
-  it('an update of a resource that was read sends its ETag as If-Match and a fresh Idempotency-Key', async () => {
+  it('an update sends the version of the data it is based on as If-Match, and a fresh Idempotency-Key', async () => {
     stubFetch(200, TASK_DETAIL, { ETag: '"5"' });
-    await operations.getPlatformApprovalTasksByTaskId({ path: { taskId: '42' } });
+    const task = await operations.getPlatformApprovalTasksByTaskId({ path: { taskId: '42' } });
     const calls = stubFetch(200, { instanceId: '9', status: 'APPROVED' });
-    await operations.postPlatformApprovalTasksByTaskIdDecide({ path: { taskId: '42' }, body: { outcome: 'APPROVE' } });
+    await operations.postPlatformApprovalTasksByTaskIdDecide({ path: { taskId: '42' }, body: { outcome: 'APPROVE' } }, { ifMatch: versionOf(task) });
     const headers = new Headers(calls[0]?.init.headers);
     expect(headers.get('If-Match')).toBe('"5"');
     expect(headers.get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it('an update without a prior read fails before anything is sent', async () => {
+  it('an update without a version fails before anything is sent', async () => {
     const calls = stubFetch(200, {});
     await expect(operations.postPlatformApprovalTasksByTaskIdDecide({ path: { taskId: '42' }, body: { outcome: 'APPROVE' } })).rejects.toBeInstanceOf(MissingVersionError);
     expect(calls).toHaveLength(0);
@@ -117,9 +114,29 @@ describe('platform traits declared in openapi.json', () => {
     expect(headers.has('If-Match')).toBe(false);
     expect(headers.has('Idempotency-Key')).toBe(false);
   });
+});
 
-  it('the error codes of the document are available as a list', () => {
-    expect(ERROR_CODES).toContain('PLATFORM_WEB_VERSION_MISMATCH');
-    expect(new Set(ERROR_CODES).size).toBe(ERROR_CODES.length);
+describe('a value outside the contract', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    setContractViolationSink((message) => console.error(message));
+  });
+
+  it('an enum value a newer server added does not fail the whole list; it is kept and reported once', async () => {
+    forgetReportedViolations();
+    const reports: string[] = [];
+    setContractViolationSink((message) => reports.push(message));
+    const record = { recordId: 'r', taskId: 't', instanceId: 'i', processKey: 'COST_TIMESHEET_APPROVAL', documentType: 'TIMESHEET', documentId: 'D', nodeKey: 'n', nodeName: 'N', actorId: '1', actorName: 'A', decidedAt: '2026-10-14T00:00:00Z', round: 1 };
+    const page = { items: [{ ...record, action: 'APPROVED' }, { ...record, recordId: 'r2', action: 'ADVISED' }, { ...record, recordId: 'r3', action: 'ADVISED' }] };
+    stubFetch(200, page);
+    const result = await operations.getPlatformApprovalTaskRecords();
+    expect(result.items.map((item) => item.action)).toEqual(['APPROVED', 'ADVISED', 'ADVISED']);
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toContain('ADVISED');
+  });
+
+  it('a required field that is missing still fails the answer', async () => {
+    stubFetch(200, { items: [{ recordId: 'r' }] });
+    await expect(operations.getPlatformApprovalTaskRecords()).rejects.toBeInstanceOf(ResponseShapeError);
   });
 });

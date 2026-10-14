@@ -3,10 +3,9 @@ import { formatDateTime } from './format-date-time';
 import { safeExternalUrl, safeInternalPath } from './safe-url';
 
 describe('safeExternalUrl', () => {
-  it('只放行绝对的 http(s) 地址', () => {
+  it('只放行绝对的 https 地址', () => {
     expect(safeExternalUrl('https://old.example.com/a?b=1')).toBe('https://old.example.com/a?b=1');
-    expect(safeExternalUrl('http://old.example.com/')).toBe('http://old.example.com/');
-    for (const bad of ['javascript:alert(1)', 'data:text/html,x', '/relative/path', '//evil.example.com', '', '  ', null, undefined]) {
+    for (const bad of ['http://old.example.com/', 'javascript:alert(1)', 'data:text/html,x', '/relative/path', '//evil.example.com', '', '  ', null, undefined]) {
       expect(safeExternalUrl(bad)).toBeUndefined();
     }
   });

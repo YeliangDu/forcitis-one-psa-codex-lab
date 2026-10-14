@@ -1,6 +1,7 @@
 // F13 narrow-interface budget: each apps/web and apps/h5 module's index.ts exists and exports at most MAX names.
 // F6 (file half): a file name must not end in a vague suffix (the identifier half is @typescript-eslint/naming-convention).
-// M-15: no file of apps/web/src may have the same content as a file of apps/h5/src (shared code lives in packages/core, never copied).
+// M-15: no file of apps/web/src, apps/h5/src or packages/core/src may have the same content as a file of another of them (shared code lives in packages/core, never copied).
+// Content is compared without whitespace and comments, so reformatting or re-commenting a copy does not hide it.
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -10,7 +11,8 @@ const MAX = 8;
 const VAGUE = /(^|[-/\\])(util|utils|helper|manager|info|data|impl)\.tsx?$/;
 const MODULE_ROOTS = ['apps/web/src/modules', 'apps/h5/src/modules'];
 const SOURCE_ROOTS = ['apps/web/src', 'apps/h5/src', 'packages/api/src', 'packages/core/src', 'packages/ui/src', 'packages/design-system/src'];
-const APP_ROOTS = ['apps/web/src', 'apps/h5/src'];
+const SHARED_ROOTS = ['apps/web/src', 'apps/h5/src', 'packages/core/src'];
+const CODE_FILE = /\.(ts|tsx|js|mjs|css)$/;
 
 function filesUnder(root) {
   return readdirSync(root, { recursive: true, withFileTypes: true })
@@ -18,21 +20,28 @@ function filesUnder(root) {
     .map((entry) => join(entry.parentPath, entry.name));
 }
 
-/** Groups of files from different apps that have identical bytes. Empty files (placeholders such as .gitkeep) do not count. */
-export function duplicatesAcrossApps(appRoots, base = '.') {
+export function normalised(file) {
+  const bytes = readFileSync(file);
+  if (!CODE_FILE.test(file)) return bytes;
+  return bytes.toString('utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/[^\n]*/g, '$1').replace(/\s+/g, '');
+}
+
+/** Groups of files from different roots that are the same code. Files that are empty once whitespace and comments are gone (placeholders such as .gitkeep) do not count. */
+export function duplicatesAcrossRoots(roots, base = '.') {
   const byHash = new Map();
-  for (const appRoot of appRoots) {
-    const root = join(base, appRoot);
+  for (const sharedRoot of roots) {
+    const root = join(base, sharedRoot);
     if (!existsSync(root)) continue;
     for (const file of filesUnder(root)) {
-      if (statSync(file).size === 0) continue;
-      const hash = createHash('sha256').update(readFileSync(file)).digest('hex');
+      const content = normalised(file);
+      if (content.length === 0 || statSync(file).size === 0) continue;
+      const hash = createHash('sha256').update(content).digest('hex');
       const group = byHash.get(hash) ?? [];
-      group.push({ app: appRoot, file: relative(base, file) });
+      group.push({ root: sharedRoot, file: relative(base, file) });
       byHash.set(hash, group);
     }
   }
-  return [...byHash.values()].filter((group) => new Set(group.map((member) => member.app)).size > 1).map((group) => group.map((member) => member.file).sort());
+  return [...byHash.values()].filter((group) => new Set(group.map((member) => member.root)).size > 1).map((group) => group.map((member) => member.file).sort());
 }
 
 function main() {
@@ -64,8 +73,8 @@ function main() {
     }
   }
 
-  for (const group of duplicatesAcrossApps(APP_ROOTS)) {
-    console.error(`${group.join(' = ')}: the same file in two apps. Move it to packages/core (code both apps need is shared, never copied).`);
+  for (const group of duplicatesAcrossRoots(SHARED_ROOTS)) {
+    console.error(`${group.join(' = ')}: the same code in two places. Code both apps need lives once in packages/core, never copied.`);
     failed = true;
   }
 

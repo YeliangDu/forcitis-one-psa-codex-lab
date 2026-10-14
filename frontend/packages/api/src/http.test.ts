@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, MissingVersionError, createHttpClient } from './http';
+import { forgetReportedViolations, setContractViolationSink } from './contract';
+import { ApiError, MissingVersionError, createHttpClient, versionOf } from './http';
 
 interface Recorded {
   url: string;
@@ -133,33 +134,58 @@ describe('HTTP client', () => {
     const failure = await client.request('post', '/things', { body: {} }).catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(ApiError);
     expect((failure as ApiError).problem).toMatchObject({ errorCode: 'PLATFORM_APPROVAL_REASON_REQUIRED', status: 422, correlationId: 'c-1' });
-    expect((failure as ApiError).malformedProblem).toBe(false);
   });
 
-  it('flags an error body that is not a ProblemDetail instead of trusting its fields', async () => {
-    for (const body of [{ errorCode: 'PLATFORM_WEB_UNEXPECTED' }, { errorCode: 'NOT_A_CODE', status: 500 }, { outcome: 'NOT_HELD' }]) {
+  it('an error code this client does not know keeps the whole body (legacyLoginUrl included), has no known code, and is reported once', async () => {
+    forgetReportedViolations();
+    const reports: string[] = [];
+    setContractViolationSink((message) => reports.push(message));
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const { client } = clientWith({ status: 503, body: { ...problem(503, 'PLATFORM_FUTURE_CODE'), legacyLoginUrl: 'https://old.example.com/login' } });
+      const failure = (await client.request('post', '/login', { body: {} }).catch((error: unknown) => error)) as ApiError;
+      expect(failure.status).toBe(503);
+      expect(failure.code).toBeUndefined();
+      expect(failure.problem).toMatchObject({ errorCode: 'PLATFORM_FUTURE_CODE', legacyLoginUrl: 'https://old.example.com/login' });
+    }
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toContain('PLATFORM_FUTURE_CODE');
+    setContractViolationSink((message) => console.error(message));
+  });
+
+  it('an error body that is not a ProblemDetail leaves only the status to trust', async () => {
+    for (const body of [{ errorCode: 'PLATFORM_WEB_UNEXPECTED' }, { outcome: 'NOT_HELD' }, '<html>bad gateway</html>']) {
       const { client } = clientWith({ status: 500, body });
       const failure = (await client.request('get', '/things').catch((error: unknown) => error)) as ApiError;
       expect(failure.status).toBe(500);
       expect(failure.code).toBeUndefined();
-      expect(failure.malformedProblem).toBe(true);
+      expect(failure.problem).toBeUndefined();
     }
     const empty = (await clientWith({ status: 502 }).client.request('get', '/things').catch((error: unknown) => error)) as ApiError;
-    expect(empty.malformedProblem).toBe(false);
-    expect(empty.code).toBeUndefined();
+    expect(empty.problem).toBeUndefined();
   });
 
   describe('If-Match', () => {
     const versioned = { versioned: true } as const;
 
-    it('sends the ETag of the last read of the resource, also for an :action on it', async () => {
+    it('the version travels with the data that was read, and the caller hands it back explicitly', async () => {
       const { client, calls } = clientWith(() => ({ status: 200, body: {}, headers: { ETag: '"7"' } }));
-      await client.request('get', '/tasks/{id}', { path: { id: 5 } });
-      await client.request('post', '/tasks/{id}:decide', { path: { id: 5 }, body: {} }, {}, undefined, versioned);
+      const read = await client.request('get', '/tasks/{id}', { path: { id: 5 } });
+      expect(versionOf(read)).toBe('"7"');
+      await client.request('post', '/tasks/{id}:decide', { path: { id: 5 }, body: {} }, { ifMatch: versionOf(read) }, undefined, versioned);
       expect(headersOf(calls[1]).get('If-Match')).toBe('"7"');
     });
 
-    it('refuses to send a versioned update for a resource it never read, and sends nothing', async () => {
+    it('an answer without an ETag carries no version, and a later answer never inherits an earlier one', async () => {
+      let etag: string | undefined = '"1"';
+      const { client } = clientWith(() => ({ status: 200, body: {}, ...(etag === undefined ? {} : { headers: { ETag: etag } }) }));
+      const first = await client.request('get', '/tasks/{id}', { path: { id: 5 } });
+      etag = undefined;
+      const second = await client.request('get', '/tasks/{id}', { path: { id: 5 } });
+      expect(versionOf(first)).toBe('"1"');
+      expect(versionOf(second)).toBeUndefined();
+    });
+
+    it('refuses a versioned update that has no version, and sends nothing', async () => {
       const { client, calls } = clientWith({ status: 200, body: {} });
       await expect(client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, {}, undefined, versioned)).rejects.toBeInstanceOf(MissingVersionError);
       expect(calls).toHaveLength(0);
@@ -172,28 +198,18 @@ describe('HTTP client', () => {
       expect(headersOf(calls[0]).has('If-Match')).toBe(false);
     });
 
-    it('a version that was read wins over createOnly', async () => {
-      const { client, calls } = clientWith({ status: 200, body: {}, headers: { ETag: '"2"' } });
-      await client.request('get', '/tasks/{id}', { path: { id: 5 } });
-      await client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { createOnly: true }, undefined, versioned);
-      expect(headersOf(calls[1]).get('If-Match')).toBe('"2"');
-      expect(headersOf(calls[1]).has('If-None-Match')).toBe(false);
+    it('a version that is given wins over createOnly', async () => {
+      const { client, calls } = clientWith({ status: 200, body: {} });
+      await client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { createOnly: true, ifMatch: '"2"' }, undefined, versioned);
+      expect(headersOf(calls[0]).get('If-Match')).toBe('"2"');
+      expect(headersOf(calls[0]).has('If-None-Match')).toBe(false);
     });
 
-    it('does not reuse a version for another resource', async () => {
-      const { client } = clientWith({ status: 200, body: {}, headers: { ETag: '"1"' } });
-      await client.request('get', '/tasks/{id}', { path: { id: 5 } });
-      await expect(client.request('put', '/tasks/{id}', { path: { id: 6 }, body: {} }, {}, undefined, versioned)).rejects.toBeInstanceOf(MissingVersionError);
-    });
-
-    it('forgets the version after a 412 and after a change that brought no new ETag, so a stale one is never sent twice', async () => {
-      let status = 200;
-      const { client, calls } = clientWith(() => ({ status, body: status === 200 ? {} : problem(412, 'PLATFORM_WEB_VERSION_MISMATCH'), headers: { ETag: '"3"' } }));
-      await client.request('get', '/tasks/{id}', { path: { id: 5 } });
-      status = 412;
-      await expect(client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, {}, undefined, versioned)).rejects.toMatchObject({ status: 412, code: 'PLATFORM_WEB_VERSION_MISMATCH' });
+    it('a 412 is a plain error with its code; nothing is remembered that a retry could reuse', async () => {
+      const { client, calls } = clientWith({ status: 412, body: problem(412, 'PLATFORM_WEB_VERSION_MISMATCH') });
+      await expect(client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, { ifMatch: '"3"' }, undefined, versioned)).rejects.toMatchObject({ status: 412, code: 'PLATFORM_WEB_VERSION_MISMATCH' });
       await expect(client.request('put', '/tasks/{id}', { path: { id: 5 }, body: {} }, {}, undefined, versioned)).rejects.toBeInstanceOf(MissingVersionError);
-      expect(calls).toHaveLength(2);
+      expect(calls).toHaveLength(1);
     });
   });
 

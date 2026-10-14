@@ -25,7 +25,8 @@ test('the committed document passes and carries the traits', () => {
   const run = generate(() => undefined);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.operations, /'\/api\/v1\/platform\/approval-tasks\/\{taskId\}:decide', args, options, responseSchemas\.postPlatformApprovalTasksByTaskIdDecide, \{ versioned: true, idempotent: true \}/);
-  assert.match(run.validators, /export const ErrorCodeSchema = z\.enum\(\[/);
+  assert.match(run.validators, /export const ErrorCodeSchema = lenientEnum\("ErrorCode", \[/);
+  assert.match(run.validators, /export const ErrorCodeValues = \[/);
   assert.match(run.validators, /export const ProblemDetailSchema = z\.object/);
 });
 

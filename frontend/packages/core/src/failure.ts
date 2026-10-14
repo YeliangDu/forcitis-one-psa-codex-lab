@@ -13,7 +13,7 @@ export function failureOf(error: unknown): Failure {
   return { status: undefined, code: undefined, legacyLoginUrl: undefined, malformedAnswer: error instanceof ResponseShapeError };
 }
 
-export function messageForStatus(status: number | undefined): string {
+function messageForStatus(status: number | undefined): string {
   if (status === undefined) return '无法连接服务器，请检查网络后重试';
   if (status === 401) return '登录已失效，请重新登录';
   if (status === 403) return '没有权限执行这个操作';

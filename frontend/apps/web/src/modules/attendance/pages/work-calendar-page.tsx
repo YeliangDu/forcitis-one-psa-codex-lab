@@ -1,4 +1,4 @@
-import { describeFailure, useCurrentUser } from '@forcitis/core';
+import { businessToday, describeFailure, useCurrentUser, versionOf } from '@forcitis/core';
 import { Button, Dialog, LoadingState, Notice, PageTitle, SelectField, StatusBadge } from '@forcitis/ui';
 import { useState } from 'react';
 import { useMaintainedYears, useSaveWorkCalendar, useWorkCalendarYear } from '../hooks/use-work-calendar';
@@ -10,7 +10,6 @@ import {
   WEEKDAY_HEADERS,
   WORK_CALENDAR_UPDATE_PERMISSION,
   type WorkCalendarYear,
-  businessToday,
   changedDates,
   effectiveKind,
   entriesOf,
@@ -42,20 +41,20 @@ interface EditorProps {
   saved: WorkCalendarYear | null;
   mayUpdate: boolean;
   today: string;
+  save: ReturnType<typeof useSaveWorkCalendar>;
 }
 
-function CalendarEditor({ year, saved, mayUpdate, today }: EditorProps) {
+function CalendarEditor({ year, saved, mayUpdate, today, save }: EditorProps) {
   const savedExceptions = exceptionsOf(saved);
   const [draft, setDraft] = useState<Exceptions>(savedExceptions);
   const [editing, setEditing] = useState<string>();
   const [choice, setChoice] = useState<DayKind | ''>('');
   const [confirming, setConfirming] = useState(false);
-  const save = useSaveWorkCalendar(year);
   const changed = changedDates(savedExceptions, draft);
   const lockedChanges = changed.filter((date) => isLocked(date, today));
 
   const send = (lockedDaysConfirmed: boolean) => {
-    save.mutate({ days: entriesOf(draft), lockedDaysConfirmed, firstMaintenance: saved === null }, { onSuccess: () => setConfirming(false) });
+    save.mutate({ days: entriesOf(draft), lockedDaysConfirmed, version: versionOf(saved) }, { onSuccess: () => setConfirming(false) });
   };
   const open = (date: string) => {
     setChoice(draft.get(date) ?? '');
@@ -138,6 +137,7 @@ export function WorkCalendarPage() {
   const [year, setYear] = useState(Number(today.slice(0, 4)));
   const years = useMaintainedYears();
   const calendar = useWorkCalendarYear(year);
+  const save = useSaveWorkCalendar(year);
 
   if (years.isPending) return <LoadingState />;
   if (years.isError) return <Notice tone="error" title="工作日历加载失败">{describeFailure(years.error)}</Notice>;
@@ -150,7 +150,7 @@ export function WorkCalendarPage() {
       {calendar.isError ? <Notice tone="error" title="工作日历加载失败">{describeFailure(calendar.error)}</Notice> : null}
       {calendar.isSuccess && calendar.data === null ? <Notice tone="info" title="这个年度还没有维护工作日历">保存之后开始使用。</Notice> : null}
       {calendar.isSuccess
-        ? <CalendarEditor key={year} year={year} saved={calendar.data} mayUpdate={session.can(WORK_CALENDAR_UPDATE_PERMISSION)} today={today} />
+        ? <CalendarEditor key={`${year}-${versionOf(calendar.data) ?? 'new'}`} year={year} saved={calendar.data} mayUpdate={session.can(WORK_CALENDAR_UPDATE_PERMISSION)} today={today} save={save} />
         : null}
     </>
   );

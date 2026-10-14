@@ -1,7 +1,6 @@
 import {
-  type InboxFilterKey,
   type InboxItem,
-  PROCESS_LABELS,
+  type InboxView,
   type TaskRecord,
   TASK_RECORD_ACTION_LABELS,
   TASK_RECORD_ACTION_TONES,
@@ -9,8 +8,11 @@ import {
   filterInbox,
   formatDateTime,
   inboxRowId,
+  inboxStateOf,
   inboxTitle,
+  inboxViewOf,
   opinionText,
+  recordTitle,
   safeExternalUrl,
   useInbox,
   useTaskRecords,
@@ -18,26 +20,12 @@ import {
 import { Button, InboxList, LoadingState, Notice, PageTitle, type InboxRow } from '@forcitis/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-
-type View = InboxFilterKey | 'done';
-
-function taskPath(taskId: string): string {
-  return `/approval/tasks/${encodeURIComponent(taskId)}`;
-}
-
-function stateOf(item: InboxItem): string | undefined {
-  if (item.overdue) return '已超时';
-  return item.claimed ? '已认领' : undefined;
-}
-
-function viewOf(key: string): View {
-  return key === 'new' || key === 'legacy' || key === 'notice' || key === 'done' ? key : 'all';
-}
+import { taskPath } from '../model/paths';
 
 function recordRow(record: TaskRecord): InboxRow {
   return {
     id: record.recordId,
-    title: `${PROCESS_LABELS[record.processKey]} ${record.documentId}`,
+    title: recordTitle(record),
     subtitle: record.nodeName,
     note: `意见：${opinionText(record.reason)}`,
     timeText: formatDateTime(record.decidedAt),
@@ -48,14 +36,13 @@ function recordRow(record: TaskRecord): InboxRow {
 
 export function InboxPage() {
   const navigate = useNavigate();
-  const [view, setView] = useState<View>('all');
+  const [view, setView] = useState<InboxView>('all');
   const pending = useInbox();
   const done = useTaskRecords(view === 'done');
 
   if (pending.isPending) return <LoadingState />;
-  if (pending.isError && !pending.isFetchNextPageError) return <Notice tone="error" title="待办加载失败">{describeFailure(pending.error)}</Notice>;
   const inbox = pending.inbox;
-  if (inbox === undefined) return <LoadingState />;
+  if (inbox === undefined) return <Notice tone="error" title="待办加载失败">{describeFailure(pending.error)}</Notice>;
 
   const toRow = (item: InboxItem): InboxRow => {
     const common = { id: inboxRowId(item), title: inboxTitle(item), subtitle: item.nodeName ?? '', timeText: formatDateTime(item.createdAt) };
@@ -64,14 +51,14 @@ export function InboxPage() {
       return {
         ...common,
         tag: { label: '新系统', tone: 'info' },
-        state: stateOf(item),
+        state: inboxStateOf(item),
         href: path,
         external: false,
         onOpen: () => void navigate(path),
       };
     }
     const target = safeExternalUrl(item.detailUrl);
-    return { ...common, state: stateOf(item), tag: { label: item.category === 'NOTICE' ? '知会' : '老系统', tone: 'neutral' }, ...(target === undefined ? {} : { href: target }), external: true };
+    return { ...common, state: inboxStateOf(item), tag: { label: item.category === 'NOTICE' ? '知会' : '老系统', tone: 'neutral' }, ...(target === undefined ? {} : { href: target }), external: true };
   };
 
   const showingDone = view === 'done';
@@ -81,6 +68,7 @@ export function InboxPage() {
   return (
     <>
       <PageTitle text="待办" />
+      {pending.isError ? <Notice tone="error" title="待办加载失败">{describeFailure(pending.error)}</Notice> : null}
       <InboxList
         rows={rows}
         filters={[
@@ -91,11 +79,10 @@ export function InboxPage() {
           { key: 'done', label: '已办' },
         ]}
         activeFilter={view}
-        onFilterChange={(key) => setView(viewOf(key))}
+        onFilterChange={(key) => setView(inboxViewOf(key))}
         emptyText={showingDone ? '暂无已办' : '暂无待办'}
         {...(inbox.legacyAvailable ? {} : { notice: <Notice tone="warning" title="老系统的待办暂时无法读取">当前只显示新系统的待办，请稍后刷新。</Notice> })}
       />
-      {!showingDone && pending.isFetchNextPageError ? <Notice tone="error" title="待办加载失败">{describeFailure(pending.error)}</Notice> : null}
       {showingDone && done.isError ? <Notice tone="error" title="已办加载失败">{describeFailure(done.error)}</Notice> : null}
       {showingDone && done.isPending ? <LoadingState /> : null}
       {list.hasNextPage ? <Button variant="default" loading={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>显示更多</Button> : null}

@@ -1,4 +1,4 @@
-import { failureOf } from '@forcitis/core';
+import { failureOf, isVersionConflict } from '@forcitis/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchMaintainedYears, fetchWorkCalendarYear, saveWorkCalendarYear } from '../api/attendance-api';
 import type { DayEntry } from '../model/work-calendar';
@@ -15,6 +15,7 @@ export function useWorkCalendarYear(calendarYear: number) {
   return useQuery({
     queryKey: yearKey(calendarYear),
     gcTime: 0,
+    structuralSharing: false,
     queryFn: async () => {
       try {
         return await fetchWorkCalendarYear(calendarYear);
@@ -29,7 +30,10 @@ export function useWorkCalendarYear(calendarYear: number) {
 export function useSaveWorkCalendar(calendarYear: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ days, lockedDaysConfirmed, firstMaintenance }: { days: DayEntry[]; lockedDaysConfirmed: boolean; firstMaintenance: boolean }) => saveWorkCalendarYear(calendarYear, days, lockedDaysConfirmed, firstMaintenance),
+    mutationFn: ({ days, lockedDaysConfirmed, version }: { days: DayEntry[]; lockedDaysConfirmed: boolean; version: string | undefined }) => saveWorkCalendarYear(calendarYear, days, lockedDaysConfirmed, version),
+    onError: (error) => {
+      if (isVersionConflict(error)) void queryClient.invalidateQueries({ queryKey: yearKey(calendarYear) });
+    },
     onSuccess: async () => {
       await Promise.all([queryClient.invalidateQueries({ queryKey: YEARS_KEY }), queryClient.invalidateQueries({ queryKey: yearKey(calendarYear) })]);
     },

@@ -163,7 +163,7 @@ describe('任务详情的审批意见', () => {
 });
 
 describe('版本冲突', () => {
-  it('办理时别人已经改过任务（412），提示刷新，并重新读取任务', async () => {
+  it('办理时别人已经改过任务（412），提示刷新，并立即重新读取任务拿到新版本', async () => {
     let reads = 0;
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ, APPROVE]) },
@@ -179,7 +179,7 @@ describe('版本冲突', () => {
     await userEvent.click(await screen.findByRole('button', { name: '确认通过' }));
 
     expect(await screen.findByText('内容刚刚被其他人修改，请刷新后重试')).toBeInTheDocument();
-    expect(reads).toBe(1);
+    await waitFor(() => expect(reads).toBe(2));
   });
 
   it('办理请求带着读到的版本和幂等键', async () => {

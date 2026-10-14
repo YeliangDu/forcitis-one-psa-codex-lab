@@ -129,7 +129,7 @@ function zodOf(node, where) {
   let expression;
   switch (type) {
     case 'string': {
-      expression = node.enum === undefined ? 'z.string()' : `z.enum([${node.enum.map(literal).join(', ')}])`;
+      expression = node.enum === undefined ? 'z.string()' : `lenientEnum(${literal(where)}, [${node.enum.map(literal).join(', ')}])`;
       if (node.pattern !== undefined) expression += `.regex(new RegExp(${literal(node.pattern)}))`;
       break;
     }
@@ -189,7 +189,12 @@ const responseEntries = operations.map(({ name, method, path }) => {
 
 const HEADER = '// Generated from packages/api/openapi.json by scripts/generate-api.mjs. Do not edit by hand.\n';
 const schema = HEADER + astToString(await openapiTS(spec));
+const errorCodeValues = `export const ErrorCodeValues = [${spec.components.schemas.ErrorCode.enum.map(literal).join(', ')}] as const;`;
+
 const validatorsSource = `${HEADER}import { z } from 'zod';
+import { lenientEnum } from '../contract';
+
+${errorCodeValues}
 
 ${componentSource}
 

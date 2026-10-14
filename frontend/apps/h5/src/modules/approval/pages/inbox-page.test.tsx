@@ -1,7 +1,7 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { problemBody, stubServer, taskRecordBody } from '@forcitis/core/testing';
+import { problemBody, reactVersion, stubServer, taskRecordBody } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
 import { navigation } from '@/shared/testing/taro-stub';
 import { InboxPage } from './inbox-page';
@@ -144,5 +144,27 @@ describe('已办', () => {
     await userEvent.click(screen.getByRole('button', { name: '显示更多' }));
     expect(await screen.findByText('合同评审 HT-2026-001')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '显示更多' })).not.toBeInTheDocument();
+  });
+});
+
+describe('刷新失败', () => {
+  it('已经有数据时，刷新失败只在列表上方提示，列表仍然保留', async () => {
+    let healthy = true;
+    stubServer({ 'GET approval-tasks': () => (healthy ? { body: INBOX } : { status: 503, body: problemBody(503, 'PLATFORM_WEB_UNEXPECTED') }) });
+    renderWithProviders(<InboxPage />);
+    await screen.findByText('工时单审批 TS202610140001');
+
+    healthy = false;
+    act(() => { window.dispatchEvent(new Event('focus')); });
+
+    expect(await screen.findByText('服务暂时不可用，请稍后重试')).toBeInTheDocument();
+    expect(screen.getByText('工时单审批 TS202610140001')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '刷新' })).toBeInTheDocument();
+  });
+});
+
+describe('运行期的 React 版本', () => {
+  it('共享包的 hooks 用的是 H5 自己的 React 18，没有带进 React 19', () => {
+    expect(reactVersion).toMatch(/^18\./);
   });
 });

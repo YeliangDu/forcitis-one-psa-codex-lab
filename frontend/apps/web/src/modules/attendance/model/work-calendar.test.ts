@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  businessToday,
   changedDates,
   effectiveKind,
   entriesOf,
@@ -42,11 +41,10 @@ describe('一年的月历', () => {
 });
 
 describe('已锁定的日期', () => {
-  it('今天之前的日期已锁定，今天和以后不锁定；今天按上海时间算', () => {
+  it('今天之前的日期已锁定，今天和以后不锁定', () => {
     expect(isLocked('2026-10-13', '2026-10-14')).toBe(true);
     expect(isLocked('2026-10-14', '2026-10-14')).toBe(false);
     expect(isLocked('2026-10-15', '2026-10-14')).toBe(false);
-    expect(businessToday(new Date('2026-12-31T16:30:00Z'))).toBe('2027-01-01');
   });
 });
 

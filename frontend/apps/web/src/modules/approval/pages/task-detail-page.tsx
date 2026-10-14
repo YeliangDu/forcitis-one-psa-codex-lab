@@ -8,6 +8,7 @@ import {
   documentText,
   formatDateTime,
   handlerText,
+  labelOf,
   opinionText,
   useTask,
   useTaskActions,
@@ -18,7 +19,7 @@ import { TaskActionBar } from '../components/task-action-bar';
 
 const HISTORY_COLUMNS: DataColumn<TaskRecord>[] = [
   { key: 'node', title: '节点', render: (record) => record.nodeName },
-  { key: 'action', title: '办理结果', render: (record) => <StatusBadge tone={TASK_RECORD_ACTION_TONES[record.action]}>{TASK_RECORD_ACTION_LABELS[record.action]}</StatusBadge> },
+  { key: 'action', title: '办理结果', render: (record) => <StatusBadge tone={TASK_RECORD_ACTION_TONES[record.action] ?? 'neutral'}>{labelOf(TASK_RECORD_ACTION_LABELS, record.action)}</StatusBadge> },
   { key: 'actor', title: '办理人', render: (record) => handlerText(record) },
   { key: 'time', title: '办理时间', render: (record) => formatDateTime(record.decidedAt) },
   { key: 'opinion', title: '意见', render: (record) => opinionText(record.reason) },
@@ -28,7 +29,7 @@ export function TaskDetailPage() {
   const { taskId = '' } = useParams();
   const navigate = useNavigate();
   const task = useTask(taskId);
-  const actions = useTaskActions(taskId, () => void navigate('/inbox'));
+  const actions = useTaskActions(taskId, task.data, () => void navigate('/inbox'));
 
   if (task.isPending) return <LoadingState />;
   if (task.isError) return <Notice tone="error" title="审批任务加载失败">{describeFailure(task.error)}</Notice>;
@@ -44,7 +45,7 @@ export function TaskDetailPage() {
       {failed === undefined ? null : <Notice tone="error" title="操作失败">{describeFailure(failed.error)}</Notice>}
       <DescriptionList
         items={[
-          { label: '审批流程', value: PROCESS_LABELS[detail.processKey] },
+          { label: '审批流程', value: labelOf(PROCESS_LABELS, detail.processKey) },
           { label: '单据', value: documentText(detail) },
           { label: '当前节点', value: detail.nodeName },
           { label: '发起人', value: detail.initiatorName },

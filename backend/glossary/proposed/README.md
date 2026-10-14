@@ -182,3 +182,7 @@
 | `ui_proxy_handling` | 代理 | ProxyHandling | 流程管理员替被代理人办理任务；审批记录同时显示操作人与被代理人 |  |
 | `ui_rest_day` | 休息日 | RestDay | 周末且不是调休上班日的日期 |  |
 | `ui_task_deadline` | 截止时间 | TaskDeadline | 审批任务应办理完的时刻；超过则提醒并升级，待办标出已超时 |  |
+| `ui_external_system` | 外部系统 | ExternalSystem | 本系统之外、通过防腐层接入的系统，如企业微信、致远、组织来源 |  |
+| `ui_maintain` | 维护 | Maintain | 录入和修改工作日历这类基础数据 |  |
+| `ui_calculation` | 计算 | Calculation | 按规则得出日期、时限、编号等的过程 |  |
+| `ui_outcome_result` | 结果 | OutcomeResult | 一次办理或一次计算得出的结论 |  |

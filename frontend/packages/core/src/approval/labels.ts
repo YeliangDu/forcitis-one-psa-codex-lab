@@ -2,8 +2,12 @@ import type { Schema } from '@forcitis/api';
 
 export type ProcessKey = Schema<'ProcessKey'>;
 export type DocumentType = Schema<'DocumentType'>;
-export type ApprovalStatus = Schema<'ApprovalStatus'>;
 export type TaskRecordAction = Schema<'TaskRecordAction'>;
+
+/** A value the table does not know (a newer server) shows as a dash; the client reports it once (G-1). */
+export function labelOf(labels: Readonly<Record<string, string>>, value: string): string {
+  return labels[value] ?? '—';
+}
 
 export const PROCESS_LABELS: Readonly<Record<ProcessKey, string>> = {
   COST_TIMESHEET_APPROVAL: '工时单审批',
@@ -13,14 +17,6 @@ export const DOCUMENT_TYPE_LABELS: Readonly<Record<DocumentType, string>> = {
   JOURNAL_VOUCHER: '会计凭证',
   QUOTE: '报价单',
   TIMESHEET: '工时单',
-};
-
-export const APPROVAL_STATUS_LABELS: Readonly<Record<ApprovalStatus, string>> = {
-  APPROVED: '已通过',
-  CANCELLED: '已撤销',
-  REJECTED: '已驳回',
-  RETURNED: '已退回',
-  RUNNING: '审批中',
 };
 
 export type OutcomeTone = 'posted' | 'pending' | 'rejected' | 'info';

@@ -37,6 +37,12 @@ describe('describeFailure', () => {
     expect(failureOf('boom')).toEqual({ status: undefined, code: undefined, legacyLoginUrl: undefined, malformedAnswer: false });
   });
 
+  it('服务端新加了客户端还不认识的错误码时，仍按状态码提示，并保留回到老系统登录的地址', () => {
+    const unknown = new ApiError(503, { status: 503, errorCode: 'PLATFORM_FUTURE_CODE', legacyLoginUrl: 'https://old.example.com/login' }, undefined);
+    expect(describeFailure(unknown)).toBe('服务暂时不可用，请稍后重试');
+    expect(failureOf(unknown)).toMatchObject({ status: 503, code: undefined, legacyLoginUrl: 'https://old.example.com/login' });
+  });
+
   it('登录失败时带出回到老系统登录的地址', () => {
     expect(failureOf(apiError(503, 'PLATFORM_IDENTITY_SSO_UNAVAILABLE', { legacyLoginUrl: 'https://old.example.com/login' })).legacyLoginUrl).toBe('https://old.example.com/login');
   });
@@ -56,11 +62,6 @@ describe('ERROR_MESSAGES', () => {
     // @ts-expect-error a table that misses an error code does not satisfy Record<ErrorCode, ...>
     const incomplete: Readonly<Record<ErrorCode, string | null>> = { PLATFORM_WEB_UNEXPECTED: null };
     expect(Object.keys(incomplete)).toHaveLength(1);
-  });
-
-  it('文案表里的每个键都是接口文档中的错误码，没有多余的键', async () => {
-    const { ERROR_CODES } = await import('@forcitis/api');
-    expect(Object.keys(ERROR_MESSAGES).sort()).toEqual([...ERROR_CODES].sort());
   });
 
   it('文案不为空，没有专用文案的明确写为 null', () => {

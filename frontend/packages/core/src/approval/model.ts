@@ -1,5 +1,5 @@
 import type { Schema } from '@forcitis/api';
-import { DOCUMENT_TYPE_LABELS, PROCESS_LABELS } from './labels';
+import { DOCUMENT_TYPE_LABELS, PROCESS_LABELS, labelOf } from './labels';
 
 export type InboxItem = Schema<'InboxItemResponse'>;
 export type InboxResponse = Schema<'InboxResponse'>;
@@ -9,6 +9,12 @@ export type TaskRecordPage = Schema<'TaskRecordPageResponse'>;
 export type DecisionResult = Schema<'DecisionResponse'>;
 
 export type InboxFilterKey = 'all' | 'new' | 'legacy' | 'notice';
+/** The tabs of the inbox page: the filters of the open tasks, and the tasks already handled. */
+export type InboxView = InboxFilterKey | 'done';
+
+export function inboxViewOf(key: string): InboxView {
+  return key === 'new' || key === 'legacy' || key === 'notice' || key === 'done' ? key : 'all';
+}
 
 export interface Inbox {
   items: InboxItem[];
@@ -56,11 +62,21 @@ export const UNRECOGNISED_TASK_TITLE = '（无法显示的审批）';
 export function inboxTitle(item: InboxItem): string {
   if (item.source === 'LEGACY') return item.title ?? '';
   if (item.processKey === undefined || item.documentId === undefined) return UNRECOGNISED_TASK_TITLE;
-  return `${PROCESS_LABELS[item.processKey]} ${item.documentId}`;
+  return `${labelOf(PROCESS_LABELS, item.processKey)} ${item.documentId}`;
+}
+
+export function recordTitle(record: Pick<TaskRecord, 'processKey' | 'documentId'>): string {
+  return `${labelOf(PROCESS_LABELS, record.processKey)} ${record.documentId}`;
+}
+
+/** What marks an open task besides its title; overdue wins over claimed. */
+export function inboxStateOf(item: Pick<InboxItem, 'overdue' | 'claimed'>): string | undefined {
+  if (item.overdue) return '已超时';
+  return item.claimed ? '已认领' : undefined;
 }
 
 export function documentText(task: Pick<TaskDetail, 'documentType' | 'documentId'> | Pick<TaskRecord, 'documentType' | 'documentId'>): string {
-  return `${DOCUMENT_TYPE_LABELS[task.documentType]} ${task.documentId}`;
+  return `${labelOf(DOCUMENT_TYPE_LABELS, task.documentType)} ${task.documentId}`;
 }
 
 export function handlerText(record: Pick<TaskRecord, 'actorName' | 'onBehalfOfName'>): string {
