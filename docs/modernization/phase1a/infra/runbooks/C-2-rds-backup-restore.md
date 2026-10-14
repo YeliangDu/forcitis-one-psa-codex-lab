@@ -30,6 +30,7 @@
 | 续费 | 自动续费已开（每次 1 个月），实例 2026-10-18 到期；账户现金余额充足、无信用额度依赖。到期前一天（10-17）再核对一次扣款结果 |
 | 付费项 P-5 | 日志备份已开启；备份总量约 36 GB，`PaidBackupSize=0`，未超免费额度 |
 | RPO | 日志备份频率不能经接口设置（`LogBackupFrequency` 为空、`archive_timeout` 不可改），实测 7 天 71 个日志文件、平均约 2.4 小时一个。用户决定「你在控制台查频率选项，查不到再接受 (Recommended)」：用户在控制台「备份恢复 › 备份设置」查。**查到**则按 RPO ≤ 5 分钟设置；**查不到**则平台约定改为「主机故障不丢数据（高可用）；误操作恢复精度取决于日志备份频率（实测约 2.4 小时），生产前再评估」，并列为生产前复核项 |
+| RPO 结论（2026-10-15） | 官方文档：`LogBackupFrequency` 仅适用于 SQL Server，PostgreSQL 没有日志备份频率选项（[ModifyBackupPolicy](https://help.aliyun.com/zh/rds/developer-reference/api-rds-2014-08-15-modifybackuppolicy)）。按用户决定「你在控制台查频率选项，查不到再接受 (Recommended)」接受现状，平台约定改为：**主机故障不丢数据（高可用）；误操作恢复精度取决于日志备份频率（实测约 2.4 小时），生产前再评估**。生产前可选：PostgreSQL 高频快照备份（`BackupInterval`，云盘实例、开启秒级备份，按快照存储计费，[高频快照](https://help.aliyun.com/en/rds/apsaradb-rds-for-postgresql/use-the-high-frequency-snapshot-backup-feature-for-an-apsaradb-rds-for-postgresql-instance)），由用户届时决定 |
 | SSL | 实例 SSL 已开启（阿里云签发，2027-09-18 到期），dev 已用 `verify-full`（C-3）。证书私钥曾进入会话记录，生产前维护窗口重签（C-3 执行记录「安全事件」） |
 
 > **注意：不得调用会返回密钥的接口。** `rds DescribeDBInstanceSSL` 的返回含实例证书私钥；查询云资源时在进程内只取所需字段，不打印原始返回。
