@@ -12,6 +12,7 @@ import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import java.util.Map;
+import java.util.OptionalLong;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +35,14 @@ public class ReturnToInitiator {
     }
 
     @Transactional
-    public DecisionResult execute(ApprovalTaskId taskId, UserId actor, String reason) {
+    public DecisionResult execute(ApprovalTaskId taskId, UserId actor, String reason, OptionalLong expectedVersion) {
         TaskView task = guard.requireActor(taskId, actor, "return");
         Reason given = Reason.ofNullable(reason);
         if (given == null) {
             throw ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED.refusal("A return needs a reason");
         }
         ApprovalRequest request = approvals.lock(task.instanceId());
+        approvals.requireVersion(request, expectedVersion);
         TaskView current = guard.requireActor(taskId, actor, "return");
         HookDecision hook = hooks.check(current, actor, HookAction.RETURN, reason);
         hook.variableUpdates().forEach(update -> engine.updateVariables(current.instanceId(),

@@ -12,6 +12,7 @@ import com.forcitis.one.platform.approval.domain.ProcessAdministrator;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import org.springframework.security.access.AccessDeniedException;
+import java.util.OptionalLong;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,13 +40,14 @@ public class ReassignTask {
     }
 
     @Transactional
-    public void execute(ApprovalTaskId taskId, UserId actor, UserId to, String reason) {
+    public void execute(ApprovalTaskId taskId, UserId actor, UserId to, String reason, OptionalLong expectedVersion) {
         if (!administrator.isAdministrator(actor)) {
             denials.record(new AuditEntry("platform.approval.task.denied", actor, null, "approval-task:" + taskId.value(), "reassign"));
             throw new AccessDeniedException("User " + actor.value() + " is not the process administrator");
         }
         TaskView first = guard.requireTask(taskId);
         ApprovalRequest request = approvals.lock(first.instanceId());
+        approvals.requireVersion(request, expectedVersion);
         TaskView task = guard.requireTask(taskId);
         boolean employed = org.findEmployee(to).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
         if (!employed || to.equals(task.initiator())) {

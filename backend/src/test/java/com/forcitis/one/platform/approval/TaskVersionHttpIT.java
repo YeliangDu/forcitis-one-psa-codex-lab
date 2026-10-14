@@ -52,10 +52,10 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("claim, decide, return and transfer without If-Match are 428 problem details with PLATFORM_WEB_VERSION_REQUIRED, and change nothing")
+    @DisplayName("claim, release, decide, return, transfer and reassign without If-Match are 428 problem details with PLATFORM_WEB_VERSION_REQUIRED, and change nothing")
     void withoutIfMatchIsRefused() throws Exception {
         Scene s = scene();
-        for (String action : List.of(":claim", ":decide", ":return", ":transfer")) {
+        for (String action : List.of(":claim", ":release", ":decide", ":return", ":transfer", ":reassign")) {
             mvc.perform(post(BASE + s.task().value() + action).with(csrf()).with(user(String.valueOf(s.manager()))).contentType(MediaType.APPLICATION_JSON)
                     .content("{\"outcome\":\"APPROVE\",\"reason\":\"r\",\"assigneeId\":" + s.colleague() + "}"))
                     .andExpect(status().isPreconditionRequired()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
@@ -80,10 +80,22 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
             mvc.perform(post(BASE + s.task().value() + action).with(csrf()).with(user(String.valueOf(s.manager()))).header("If-Match", stale)
                     .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"r\",\"assigneeId\":" + s.colleague() + "}"))
                     .andExpect(status().isPreconditionFailed()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                    .andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_CONCURRENT_CHANGE"));
+                    .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_MISMATCH"));
         }
         mvc.perform(post(BASE + s.task().value() + ":decide").with(csrf()).with(user(String.valueOf(s.manager()))).header("If-Match", etag(s))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\"}")).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("an If-Match that is not one strong ETag (weak, unquoted, a list, not a number) is 400 and changes nothing")
+    void aMalformedIfMatchIsRefused() throws Exception {
+        Scene s = scene();
+        for (String malformed : List.of("W/\"1\"", "1", "\"1\", \"2\"", "\"abc\"", "*")) {
+            mvc.perform(post(BASE + s.task().value() + ":claim").with(csrf()).with(user(String.valueOf(s.manager()))).header("If-Match", malformed))
+                    .andExpect(status().isBadRequest()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_MALFORMED"));
+        }
+        org.assertj.core.api.Assertions.assertThat(openTask(taskInstance(s)).getAssignee()).isNull();
     }
 
     @Test

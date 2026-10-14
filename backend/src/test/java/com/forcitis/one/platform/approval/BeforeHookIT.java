@@ -64,7 +64,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
 
     ApprovalInstanceId atDepartmentNode(Staff s, String key) {
         ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "ok")));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
         assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("departmentReview");
         return instance;
     }
@@ -78,7 +78,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = atDepartmentNode(s, key);
 
         var rejected = decideTasks.execute(new UserId(s.head()),
-                List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.REJECT, "price too low")));
+                List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.REJECT, "price too low")), java.util.OptionalLong.empty());
 
         assertThat(rejected.status()).isEqualTo(ApprovalStatus.REJECTED);
         assertThat(requestStatus(key)).isEqualTo("REJECTED");
@@ -105,7 +105,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
             observed[1] = taskService.createTaskQuery().taskId(context.taskId().value()).count() == 1;
         };
 
-        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")));
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), java.util.OptionalLong.empty());
 
         assertThat(observed).containsExactly(true, true);
         assertThat(hook.calls).hasSize(1);
@@ -129,7 +129,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         ApprovalTaskId task = openTaskId(instance);
         for (HookOutcome outcome : List.of(HookOutcome.WARN, HookOutcome.REJECT, HookOutcome.SUPPLEMENT)) {
             hook.next = HookDecision.block(outcome, "not yet");
-            assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
+            assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x")), java.util.OptionalLong.empty()))
                     .isInstanceOfSatisfying(DomainException.class,
                             e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
             assertThat(openTaskId(instance)).isEqualTo(task);
@@ -137,7 +137,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
             assertThat(requestStatus(key)).isEqualTo("RUNNING");
         }
         hook.next = new HookDecision(HookOutcome.NOT_APPLICABLE, null, List.of());
-        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x")));
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x")), java.util.OptionalLong.empty());
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
     }
 
@@ -153,7 +153,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
 
         commitGate.failing = true;
         try {
-            assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
+            assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x")), java.util.OptionalLong.empty()))
                     .isInstanceOf(IllegalStateException.class);
         } finally {
             commitGate.failing = false;
@@ -172,7 +172,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         String key = newKey("hook");
         ApprovalInstanceId instance = atDepartmentNode(s, key);
         hook.next = new HookDecision(HookOutcome.ALLOW, null, List.of(new ApprovalField("approvedAmount", List.of("100"))));
-        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "x")));
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "x")), java.util.OptionalLong.empty());
         assertThat(history.createHistoricVariableInstanceQuery().processInstanceId(instance.value()).variableName("approvedAmount")
                 .singleResult().getValue()).isEqualTo("100");
     }
@@ -187,14 +187,14 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         ApprovalTaskId task = openTaskId(instance);
 
         hook.next = HookDecision.block(HookOutcome.WARN, "attachments missing in the business document");
-        assertThatThrownBy(() -> returnToInitiator.execute(task, new UserId(s.head()), "cannot approve"))
+        assertThatThrownBy(() -> returnToInitiator.execute(task, new UserId(s.head()), "cannot approve", java.util.OptionalLong.empty()))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
         assertThat(openTaskId(instance)).isEqualTo(task);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
 
         hook.next = HookDecision.allow();
-        returnToInitiator.execute(task, new UserId(s.head()), "cannot approve");
+        returnToInitiator.execute(task, new UserId(s.head()), "cannot approve", java.util.OptionalLong.empty());
         assertThat(hook.calls).extracting(c -> c.action()).containsExactly(HookAction.RETURN, HookAction.RETURN);
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
     }
@@ -206,7 +206,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         Staff s = staff();
         String key = newKey("hook");
         ApprovalInstanceId instance = atDepartmentNode(s, key);
-        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.REJECT, null)));
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.REJECT, null)), java.util.OptionalLong.empty());
         assertThat(hook.calls.getFirst().action()).isEqualTo(HookAction.REJECT);
         assertThat(requestStatus(key)).isEqualTo("REJECTED");
     }
@@ -219,7 +219,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         String key = newKey("hook");
         ApprovalInstanceId instance = atDepartmentNode(s, key);
         ApprovalTaskId task = openTaskId(instance);
-        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
+        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x")), java.util.OptionalLong.empty()))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED));
         assertThat(openTaskId(instance)).isEqualTo(task);

@@ -504,6 +504,48 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_web_version_required
+  zh: 缺少版本条件
+  en: PlatformWebVersionRequired
+  snake: platform_web_version_required
+  kind: error_code
+  bc: platform.approval
+  definition: 改变审批的请求没有带 If-Match（428）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_version_malformed
+  zh: 版本条件格式错误
+  en: PlatformWebVersionMalformed
+  snake: platform_web_version_malformed
+  kind: error_code
+  bc: platform.approval
+  definition: If-Match 不是一个强校验的 ETag（400）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_version_mismatch
+  zh: 版本条件不符
+  en: PlatformWebVersionMismatch
+  snake: platform_web_version_mismatch
+  kind: error_code
+  bc: platform.approval
+  definition: If-Match 与审批请求当前版本不一致，需重新读取（412）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - auto
 - customize

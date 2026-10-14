@@ -133,7 +133,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(newKey("manual-repeat"), new UserId(initiator), Set.of("again"),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
 
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
 
         assertThat(approvals.isFinished(instance)).as("unchanged content, but the node does not allow the automatic pass").isFalse();
         assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("repeatReview");

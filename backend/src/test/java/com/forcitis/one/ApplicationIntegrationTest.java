@@ -275,6 +275,9 @@ class ApplicationIntegrationTest {
             for (Map.Entry<String, JsonNode> operation : path.getValue().properties()) {
                 for (JsonNode parameter : operation.getValue().path("parameters")) {
                     String name = parameter.path("name").asString();
+                    if ("header".equals(parameter.path("in").asString()) && STANDARD_HEADERS.contains(name)) {
+                        continue;
+                    }
                     camelCase(operation.getKey().toUpperCase() + " " + path.getKey() + " " + parameter.path("in").asString()
                             + " parameter '" + name + "'", name, problems);
                 }
@@ -326,6 +329,9 @@ class ApplicationIntegrationTest {
             node.forEach(child -> jsonKeys(where + "[]", child, problems));
         }
     }
+
+    /** Header names are fixed by HTTP (RFC 9110, IETF Idempotency-Key), not chosen by this contract. */
+    private static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key");
 
     private static void camelCase(String where, String name, List<String> problems) {
         if (!name.matches("[a-z][a-zA-Z0-9]*")) {

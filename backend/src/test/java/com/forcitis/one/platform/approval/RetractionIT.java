@@ -159,7 +159,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
         Staff s = staff();
         String key = newKey("retract-finished");
         ApprovalInstanceId instance = startFor(key, s);
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
 
         assertThat(check(key, s.initiator())).isEqualTo(WithdrawCheck.NOT_RUNNING);
@@ -175,10 +175,10 @@ class RetractionIT extends ApprovalIntegrationSupport {
         String key = newKey("cutoff");
         ApprovalInstanceId instance = startFor(key, s);
 
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "firstReview"), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "firstReview"), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(check(key, s.initiator())).as("a finished task before the cut-off node does not block").isEqualTo(WithdrawCheck.ALLOWED);
 
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "cutoffReview"), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "cutoffReview"), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(check(key, s.initiator())).isEqualTo(WithdrawCheck.CUTOFF_PASSED);
         assertThat(withdraw(key, s.initiator(), "regret")).isEqualTo(RetractionResult.CUTOFF_PASSED);
         assertThat(cancel(key, s.initiator(), "regret")).isEqualTo(RetractionResult.CUTOFF_PASSED);
@@ -193,7 +193,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
         Staff s = staff();
         String key = newKey("cutoff-reached");
         ApprovalInstanceId instance = startFor(key, s);
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "firstReview"), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance, "firstReview"), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("cutoffReview");
 
         assertThat(check(key, s.initiator())).isEqualTo(WithdrawCheck.ALLOWED);

@@ -84,7 +84,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         ApprovalTaskId task = openTaskId(instance);
         verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
 
-        claimTask.execute(task, new UserId(second));
+        claimTask.execute(task, new UserId(second), java.util.OptionalLong.empty());
 
         verify(wecom, timeout(10_000).times(1)).markHandled(eq(dedupKey(task)), argThat(note -> note.contains("person-" + second)));
         verify(wecom, after(1_000).times(1)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
@@ -100,7 +100,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = startWithManagers(newKey("notify"), initiator, first, second);
         ApprovalTaskId task = openTaskId(instance);
 
-        decideTasks.execute(new UserId(first), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "ok")));
+        decideTasks.execute(new UserId(first), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
 
         verify(wecom, timeout(10_000).times(1)).markHandled(eq(dedupKey(task)), argThat(note -> note.contains("person-" + first)));
     }
@@ -142,7 +142,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         ApprovalTaskId task = openTaskId(instance);
         verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
 
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.REJECT, "again")));
+        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.REJECT, "again")), java.util.OptionalLong.empty());
 
         assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).count()).isZero();
         verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-instance:" + instance.value() + ":completed")

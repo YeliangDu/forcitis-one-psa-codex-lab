@@ -70,14 +70,14 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
     void handlerTransfersTheTask() {
         Scene s = scene();
         actAs(s.handler());
-        claimTask.execute(s.task(), new UserId(s.handler()));
+        claimTask.execute(s.task(), new UserId(s.handler()), java.util.OptionalLong.empty());
 
-        transferTask.execute(s.task(), new UserId(s.handler()), new UserId(s.colleague()), "on leave");
+        transferTask.execute(s.task(), new UserId(s.handler()), new UserId(s.colleague()), "on leave", java.util.OptionalLong.empty());
 
         assertThat(openTask(s.instance()).getAssignee()).isEqualTo(String.valueOf(s.colleague()));
         assertThat(jdbc.queryForObject("select assignee_id from platform_approval.approval_tasks where task_id = ?", Long.class, s.task().value()))
                 .isEqualTo(s.colleague());
-        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.handler()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null))))
+        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.handler()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty()))
                 .isInstanceOf(AccessDeniedException.class);
         assertThat(events.of(TaskTransferred.class)).singleElement().satisfies(event -> {
             assertThat(event.from()).isEqualTo(new UserId(s.handler()));
@@ -88,7 +88,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         verify(wecom, timeout(10_000)).send(argThat(card -> card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(s.colleague()))))
                 && card.deduplicationKey().startsWith("approval-task:" + s.task().value() + ":transfer:")));
 
-        decideTasks.execute(new UserId(s.colleague()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.colleague()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
     }
 
@@ -97,12 +97,12 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
     void onlyTheHolderMayTransfer() {
         Scene s = scene();
 
-        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new UserId(s.colleague()), "r"))
+        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new UserId(s.colleague()), "r", java.util.OptionalLong.empty()))
                 .as("a candidate that has not claimed it").isInstanceOf(AccessDeniedException.class);
-        claimTask.execute(s.task(), new UserId(s.handler()));
-        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.other()), new UserId(s.colleague()), "r"))
+        claimTask.execute(s.task(), new UserId(s.handler()), java.util.OptionalLong.empty());
+        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.other()), new UserId(s.colleague()), "r", java.util.OptionalLong.empty()))
                 .as("a stranger").isInstanceOf(AccessDeniedException.class);
-        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.initiator()), new UserId(s.colleague()), "r"))
+        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.initiator()), new UserId(s.colleague()), "r", java.util.OptionalLong.empty()))
                 .as("the initiator").isInstanceOf(AccessDeniedException.class);
 
         assertThat(openTask(s.instance()).getAssignee()).isEqualTo(String.valueOf(s.handler()));
@@ -116,10 +116,10 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         Scene s = scene();
         long separated = newId();
         organisation.separated(separated, 1, null);
-        claimTask.execute(s.task(), new UserId(s.handler()));
+        claimTask.execute(s.task(), new UserId(s.handler()), java.util.OptionalLong.empty());
 
         for (long invalid : new long[] {424242L, separated, s.handler(), s.initiator()}) {
-            assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new UserId(invalid), "r"))
+            assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new UserId(invalid), "r", java.util.OptionalLong.empty()))
                     .as("target %s", invalid).isInstanceOfSatisfying(DomainException.class,
                             e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID));
         }
@@ -139,9 +139,9 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
                         TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(first), String.valueOf(second)))))));
         ApprovalTaskId firstTask = new ApprovalTaskId(taskService.createTaskQuery().processInstanceId(instance.value()).taskCandidateUser(String.valueOf(first))
                 .singleResult().getId());
-        claimTask.execute(firstTask, new UserId(first));
+        claimTask.execute(firstTask, new UserId(first), java.util.OptionalLong.empty());
 
-        assertThatThrownBy(() -> transferTask.execute(firstTask, new UserId(first), new UserId(second), "r")).isInstanceOfSatisfying(
+        assertThatThrownBy(() -> transferTask.execute(firstTask, new UserId(first), new UserId(second), "r", java.util.OptionalLong.empty())).isInstanceOfSatisfying(
                 DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID));
     }
 
@@ -149,7 +149,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-285 D-1a-179 over HTTP the caller is the session user: the holder gets 204 whatever permission codes the session has, anybody else 403, the body names the new handler and the reason")
     void overHttp() throws Exception {
         Scene s = scene();
-        claimTask.execute(s.task(), new UserId(s.handler()));
+        claimTask.execute(s.task(), new UserId(s.handler()), java.util.OptionalLong.empty());
         String url = "/api/v1/platform/approval-tasks/" + s.task().value() + ":transfer";
         String body = "{\"assigneeId\":" + s.colleague() + ",\"reason\":\"on leave\"}";
 

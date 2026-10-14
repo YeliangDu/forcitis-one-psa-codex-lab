@@ -116,7 +116,7 @@ class CorrelationIT {
 
     static final class ThingAggregate extends AggregateRoot {
         ThingAggregate() {
-            super(0);
+            super(0, 0);
         }
 
         void happen() {

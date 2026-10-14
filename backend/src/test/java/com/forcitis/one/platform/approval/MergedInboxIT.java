@@ -133,7 +133,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         assertThat(listInbox.execute(new UserId(second)).newCount()).isEqualTo(1);
         assertThat(listInbox.execute(new UserId(first)).items().getFirst().claimed()).isFalse();
 
-        claimTask.execute(openTaskId(instance), new UserId(first));
+        claimTask.execute(openTaskId(instance), new UserId(first), java.util.OptionalLong.empty());
 
         assertThat(listInbox.execute(new UserId(first)).newCount()).isEqualTo(1);
         assertThat(listInbox.execute(new UserId(first)).items().getFirst().claimed()).isTrue();

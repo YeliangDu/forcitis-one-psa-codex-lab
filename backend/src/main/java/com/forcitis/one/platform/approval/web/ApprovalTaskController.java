@@ -1,8 +1,6 @@
 package com.forcitis.one.platform.approval.web;
 
-import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.DecideTasks;
@@ -14,9 +12,10 @@ import com.forcitis.one.platform.approval.application.ReturnToInitiator;
 import com.forcitis.one.platform.approval.application.TaskDecision;
 import com.forcitis.one.platform.approval.application.TaskDetail;
 import com.forcitis.one.platform.approval.application.TransferTask;
+import com.forcitis.one.platform.approval.application.VersionMismatchException;
 import com.forcitis.one.platform.identity.api.CurrentUser;
-import io.swagger.v3.oas.annotations.Parameter;
 import java.util.List;
+import java.util.OptionalLong;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -41,8 +40,9 @@ import org.springframework.web.bind.annotation.RestController;
 class ApprovalTaskController {
 
     private static final String SIGNED_IN = "isAuthenticated()";
-    /** The name platform.web gives this code; kept here until that constant is public. */
     private static final String VERSION_REQUIRED = "PLATFORM_WEB_VERSION_REQUIRED";
+    private static final String VERSION_MALFORMED = "PLATFORM_WEB_VERSION_MALFORMED";
+    private static final String VERSION_MISMATCH = "PLATFORM_WEB_VERSION_MISMATCH";
 
     private final ListInbox listInbox;
     private final GetTaskDetail getTaskDetail;
@@ -83,75 +83,71 @@ class ApprovalTaskController {
 
     @PostMapping(path = "/{taskId}:claim")
     @PreAuthorize(SIGNED_IN)
-    ResponseEntity<Void> claim(@PathVariable String taskId, @Parameter(hidden = true) @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
-        requireFresh(taskId, ifMatch);
-        claimTask.execute(new ApprovalTaskId(taskId), currentUser.userId());
+    ResponseEntity<Void> claim(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        claimTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(path = "/{taskId}:release")
     @PreAuthorize(SIGNED_IN)
-    ResponseEntity<Void> release(@PathVariable String taskId, @Parameter(hidden = true) @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
-        requireFresh(taskId, ifMatch);
-        releaseTask.execute(new ApprovalTaskId(taskId), currentUser.userId());
+    ResponseEntity<Void> release(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        releaseTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(path = "/{taskId}:decide")
     @PreAuthorize(SIGNED_IN)
-    DecisionResponse decide(@PathVariable String taskId, @Parameter(hidden = true) @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch, @RequestBody DecideTaskRequest request) {
-        requireFresh(taskId, ifMatch);
+    DecisionResponse decide(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+            @RequestBody DecideTaskRequest request) {
         return DecisionResponse.of(decideTasks.execute(currentUser.userId(),
-                List.of(new TaskDecision(new ApprovalTaskId(taskId), request.outcome(), request.reason()))));
+                List.of(new TaskDecision(new ApprovalTaskId(taskId), request.outcome(), request.reason())), expectedVersion(ifMatch)));
     }
 
     @PostMapping(path = "/{taskId}:return")
     @PreAuthorize(SIGNED_IN)
-    DecisionResponse returnTask(@PathVariable String taskId, @Parameter(hidden = true) @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch, @RequestBody ReturnTaskRequest request) {
-        requireFresh(taskId, ifMatch);
-        return DecisionResponse.of(returnToInitiator.execute(new ApprovalTaskId(taskId), currentUser.userId(), request.reason()));
+    DecisionResponse returnTask(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+            @RequestBody ReturnTaskRequest request) {
+        return DecisionResponse.of(returnToInitiator.execute(new ApprovalTaskId(taskId), currentUser.userId(), request.reason(),
+                expectedVersion(ifMatch)));
     }
 
     @PostMapping("/{taskId}:transfer")
     @PreAuthorize(SIGNED_IN)
-    ResponseEntity<Void> transfer(@PathVariable String taskId, @Parameter(hidden = true) @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch, @RequestBody TransferTaskRequest request) {
-        requireFresh(taskId, ifMatch);
-        transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new UserId(request.assigneeId()), request.reason());
+    ResponseEntity<Void> transfer(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+            @RequestBody TransferTaskRequest request) {
+        transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new UserId(request.assigneeId()), request.reason(),
+                expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{taskId}:reassign")
     @PreAuthorize(SIGNED_IN)
-    ResponseEntity<Void> reassign(@PathVariable String taskId, @RequestBody ReassignTaskRequest request) {
-        reassignTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new UserId(request.assigneeId()), request.reason());
+    ResponseEntity<Void> reassign(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+            @RequestBody ReassignTaskRequest request) {
+        reassignTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new UserId(request.assigneeId()), request.reason(),
+                expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
 
-    /** The caller must send the ETag of the task as it read it; another version means somebody acted meanwhile. */
-    private void requireFresh(String taskId, String ifMatch) {
+    /** Only a strong entity tag is accepted: the version is compared exactly, not weakly. */
+    private static OptionalLong expectedVersion(String ifMatch) {
         if (ifMatch == null || ifMatch.isBlank()) {
-            throw problem(HttpStatus.PRECONDITION_REQUIRED, VERSION_REQUIRED, "Send the ETag of the task as If-Match");
+            throw new PreconditionFailure(HttpStatus.PRECONDITION_REQUIRED, VERSION_REQUIRED, "Send the ETag of the approval as If-Match");
         }
-        long expected;
+        String tag = ifMatch.trim();
+        if (tag.length() < 3 || tag.charAt(0) != '"' || tag.charAt(tag.length() - 1) != '"') {
+            throw new PreconditionFailure(HttpStatus.BAD_REQUEST, VERSION_MALFORMED, "If-Match must be one strong ETag as read");
+        }
         try {
-            expected = Long.parseLong(ifMatch.replace("W/", "").replace("\"", "").trim());
+            return OptionalLong.of(Long.parseLong(tag.substring(1, tag.length() - 1)));
         } catch (NumberFormatException malformed) {
-            throw problem(HttpStatus.PRECONDITION_REQUIRED, VERSION_REQUIRED, "If-Match must be the ETag of the task as read");
-        }
-        long current;
-        try {
-            current = getTaskDetail.execute(new ApprovalTaskId(taskId), currentUser.userId()).version();
-        } catch (DomainException unknownToTheCaller) {
-            return;
-        }
-        if (current != expected) {
-            throw problem(HttpStatus.PRECONDITION_FAILED, ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.code(),
-                    "Task " + taskId + " changed since it was read");
+            throw new PreconditionFailure(HttpStatus.BAD_REQUEST, VERSION_MALFORMED, "If-Match must be one strong ETag as read");
         }
     }
 
-    private static PreconditionFailure problem(HttpStatus status, String errorCode, String detail) {
-        return new PreconditionFailure(status, errorCode, detail);
+    @ExceptionHandler(VersionMismatchException.class)
+    ResponseEntity<ProblemDetail> versionMismatch(VersionMismatchException mismatch) {
+        return preconditionFailed(new PreconditionFailure(HttpStatus.PRECONDITION_FAILED, VERSION_MISMATCH, mismatch.getMessage()));
     }
 
     @ExceptionHandler(PreconditionFailure.class)
@@ -161,7 +157,7 @@ class ApprovalTaskController {
         return ResponseEntity.status(failure.status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(body);
     }
 
-    /** The caller sent no ETag (428) or an old one (412): a refusal of its own, with the error code in the body. */
+    /** No ETag (428), a malformed one (400) or an old one (412): a refusal of its own, with the error code in the body. */
     private static final class PreconditionFailure extends RuntimeException {
         private final transient HttpStatus status;
         private final String errorCode;

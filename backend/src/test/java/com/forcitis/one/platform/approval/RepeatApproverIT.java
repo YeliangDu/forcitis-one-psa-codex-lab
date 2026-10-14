@@ -51,7 +51,7 @@ class RepeatApproverIT extends ApprovalIntegrationSupport {
         String key = newKey("repeat");
         ApprovalInstanceId instance = startRepeating(key, initiator, manager);
 
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
 
         assertThat(approvals.isFinished(instance)).isTrue();
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
@@ -87,14 +87,14 @@ class RepeatApproverIT extends ApprovalIntegrationSupport {
         hook.calls.clear();
 
         ApprovalStatus afterFirst = decideTasks.execute(new UserId(manager),
-                List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null))).status();
+                List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty()).status();
 
         assertThat(afterFirst).isEqualTo(ApprovalStatus.RUNNING);
         assertThat(approvals.isFinished(instance)).isFalse();
         assertThat(openTask(instance).getAssignee()).isNull();
 
         hook.next = HookDecision.allow();
-        assertThat(decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "again")))
+        assertThat(decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "again")), java.util.OptionalLong.empty())
                 .status()).isEqualTo(ApprovalStatus.APPROVED);
         assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(instance.value()).taskDefinitionKey("repeatReview").list())
                 .extracting(HistoricTaskInstance::getAssignee).containsOnly(String.valueOf(manager));
@@ -113,7 +113,7 @@ class RepeatApproverIT extends ApprovalIntegrationSupport {
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(person)))))));
 
         assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).count()).isEqualTo(2);
-        decideTasks.execute(new UserId(person), List.of(new TaskDecision(openTaskId(instance, "projectManagerReview"), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(person), List.of(new TaskDecision(openTaskId(instance, "projectManagerReview"), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).taskDefinitionKey("supervisorReview").count())
                 .as("still waiting for the person's own decision on the other node").isEqualTo(1);
         assertThat(approvals.isFinished(instance)).isFalse();

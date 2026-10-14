@@ -147,10 +147,10 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         Scene scene = scene();
         Snapshot before = snapshot(scene);
         UserId stranger = new UserId(scene.stranger());
-        assertThatThrownBy(() -> claimTask.execute(scene.task(), stranger)).isInstanceOf(AccessDeniedException.class);
-        assertThatThrownBy(() -> decideTasks.execute(stranger, List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "x"))))
+        assertThatThrownBy(() -> claimTask.execute(scene.task(), stranger, java.util.OptionalLong.empty())).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> decideTasks.execute(stranger, List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "x")), java.util.OptionalLong.empty()))
                 .isInstanceOf(AccessDeniedException.class);
-        assertThatThrownBy(() -> returnToInitiator.execute(scene.task(), stranger, "x")).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> returnToInitiator.execute(scene.task(), stranger, "x", java.util.OptionalLong.empty())).isInstanceOf(AccessDeniedException.class);
         assertThat(snapshot(scene)).isEqualTo(before);
     }
 
@@ -164,7 +164,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         Snapshot beforeMine = snapshot(mine);
         Snapshot beforeForeign = snapshot(foreign);
         assertThatThrownBy(() -> decideTasks.execute(actor, List.of(
-                new TaskDecision(mine.task(), DecisionOutcome.APPROVE, "ok"), new TaskDecision(foreign.task(), DecisionOutcome.APPROVE, "ok"))))
+                new TaskDecision(mine.task(), DecisionOutcome.APPROVE, "ok"), new TaskDecision(foreign.task(), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty()))
                 .isInstanceOf(AccessDeniedException.class);
         assertThat(snapshot(mine)).isEqualTo(beforeMine);
         assertThat(snapshot(foreign)).isEqualTo(beforeForeign);
@@ -194,7 +194,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
             outcomes.add(pool.submit(() -> {
                 go.await();
                 try {
-                    claimTask.execute(scene.task(), new UserId(candidate));
+                    claimTask.execute(scene.task(), new UserId(candidate), java.util.OptionalLong.empty());
                     return "won";
                 } catch (AccessDeniedException e) {
                     return "denied";
@@ -225,7 +225,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
             outcomes.add(pool.submit(() -> {
                 go.await();
                 try {
-                    decideTasks.execute(new UserId(candidate), List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "ok")));
+                    decideTasks.execute(new UserId(candidate), List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
                     return "won";
                 } catch (AccessDeniedException e) {
                     return "denied";

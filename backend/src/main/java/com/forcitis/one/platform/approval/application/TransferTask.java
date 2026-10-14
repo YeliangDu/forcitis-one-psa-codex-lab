@@ -10,6 +10,7 @@ import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.TaskView;
+import java.util.OptionalLong;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,9 +33,10 @@ public class TransferTask {
     }
 
     @Transactional
-    public void execute(ApprovalTaskId taskId, UserId actor, UserId to, String reason) {
+    public void execute(ApprovalTaskId taskId, UserId actor, UserId to, String reason, OptionalLong expectedVersion) {
         TaskView first = guard.requireHandler(taskId, actor, "transfer");
         ApprovalRequest request = approvals.lock(first.instanceId());
+        approvals.requireVersion(request, expectedVersion);
         TaskView task = guard.requireHandler(taskId, actor, "transfer");
         requireValidTarget(task, actor, to);
         engine.reassignTask(taskId, to);

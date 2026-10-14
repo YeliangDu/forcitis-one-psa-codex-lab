@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.TaskView;
+import java.util.OptionalLong;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,12 +21,13 @@ public class ClaimTask {
     }
 
     @Transactional
-    public void execute(ApprovalTaskId taskId, UserId actor) {
+    public void execute(ApprovalTaskId taskId, UserId actor, OptionalLong expectedVersion) {
         TaskView view = guard.requireActor(taskId, actor, "claim");
-        if (view.isClaimed()) {
+        if (view.isClaimed() && expectedVersion.isEmpty()) {
             return;
         }
         ApprovalRequest request = approvals.lock(view.instanceId());
+        approvals.requireVersion(request, expectedVersion);
         TaskView current = guard.requireActor(taskId, actor, "claim");
         if (current.isClaimed()) {
             return;

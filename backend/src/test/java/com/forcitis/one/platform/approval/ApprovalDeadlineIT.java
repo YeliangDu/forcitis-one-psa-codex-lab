@@ -259,7 +259,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     @DisplayName("D-1a-84 a task decided in time is never reminded")
     void decidedInTimeIsNotReminded() {
         Scene s = scene(true);
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)));
+        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
 
         clock.set(escalateAtOf(s).plusSeconds(1));
 
@@ -272,7 +272,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     @DisplayName("D-1a-113 a claimed task that is still unhandled at the escalation time goes to the claimant's superior; the claimant stays a candidate")
     void aClaimedTaskEscalatesToTheSuperior() {
         Scene s = scene(true);
-        claimTask.execute(s.task(), new UserId(s.manager()));
+        claimTask.execute(s.task(), new UserId(s.manager()), java.util.OptionalLong.empty());
         clock.set(escalateAtOf(s).plusSeconds(1));
 
         enforceDeadlines.execute();
@@ -289,7 +289,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         assertThat(escalated.envelope().aggregateVersion()).as("round, assigned, claimed, overdue, escalated").isEqualTo(5);
         assertThat(requestStatus(s.key())).isEqualTo("RUNNING");
 
-        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")));
+        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
         assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
     }
 
@@ -307,7 +307,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         assertThat(escalated.target()).isEqualTo(EscalationTarget.PROCESS_ADMINISTRATOR);
         assertThat(escalated.escalatedTo()).containsExactly(new UserId(ADMINISTRATOR));
         assertThat(meters.counter("forcitis.platform.approval.task.escalation.administrator").count()).isEqualTo(before + 1);
-        decideTasks.execute(new UserId(ADMINISTRATOR), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")));
+        decideTasks.execute(new UserId(ADMINISTRATOR), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
         assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
     }
 
@@ -315,7 +315,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     @DisplayName("D-1a-113 a claimed task whose holder has no superior goes to the process administrator and raises the alert counter")
     void noSuperiorGoesToTheAdministrator() {
         Scene s = scene(false);
-        claimTask.execute(s.task(), new UserId(s.manager()));
+        claimTask.execute(s.task(), new UserId(s.manager()), java.util.OptionalLong.empty());
         double before = meters.counter("forcitis.platform.approval.task.escalation.administrator").count();
         clock.set(escalateAtOf(s).plusSeconds(1));
 

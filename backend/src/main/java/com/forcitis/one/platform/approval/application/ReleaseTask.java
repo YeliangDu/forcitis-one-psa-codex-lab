@@ -5,6 +5,7 @@ import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.TaskView;
+import java.util.OptionalLong;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +26,10 @@ public class ReleaseTask {
     }
 
     @Transactional
-    public void execute(ApprovalTaskId taskId, UserId actor) {
+    public void execute(ApprovalTaskId taskId, UserId actor, OptionalLong expectedVersion) {
         TaskView first = guard.requireHandler(taskId, actor, "release");
         ApprovalRequest request = approvals.lock(first.instanceId());
+        approvals.requireVersion(request, expectedVersion);
         TaskView task = guard.requireHandler(taskId, actor, "release");
         engine.releaseClaim(task.taskId());
         request.releaseTask(taskId, actor, time.moment());

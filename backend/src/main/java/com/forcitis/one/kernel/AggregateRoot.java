@@ -24,12 +24,6 @@ public abstract class AggregateRoot {
         this.eventSequence = eventSequence;
     }
 
-    /** Transitional: aggregates that do not persist eventSequence yet; remove once every aggregate stores it. */
-    @Deprecated(forRemoval = true)
-    protected AggregateRoot(long version) {
-        this(version, version);
-    }
-
     public final long version() {
         return version;
     }

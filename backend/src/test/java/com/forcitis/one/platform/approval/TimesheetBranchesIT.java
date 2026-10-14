@@ -59,7 +59,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     }
 
     void approve(long actor, ApprovalInstanceId instance, String node) {
-        decideTasks.execute(new UserId(actor), List.of(new TaskDecision(openTaskId(instance, node), DecisionOutcome.APPROVE, "ok")));
+        decideTasks.execute(new UserId(actor), List.of(new TaskDecision(openTaskId(instance, node), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
     }
 
     @Test
@@ -114,7 +114,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
                 TimesheetRoutingFlag.OVERHEAD_HOURS);
 
         decideTasks.execute(new UserId(s.supervisor()),
-                List.of(new TaskDecision(openTaskId(instance, "supervisorReview"), DecisionOutcome.REJECT, "wrong hours")));
+                List.of(new TaskDecision(openTaskId(instance, "supervisorReview"), DecisionOutcome.REJECT, "wrong hours")), java.util.OptionalLong.empty());
 
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
         assertThat(openNodes(instance)).isEmpty();

@@ -9,9 +9,11 @@ import com.forcitis.one.delivery.execution.api.WorkPackageQueries;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.Hours;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.EmployeeLegalEntities;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
@@ -42,6 +44,7 @@ public class SubmitTimesheet {
     private final ApprovalProcesses approvals;
     private final CurrentUser currentUser;
     private final OrgDirectory org;
+    private final EmployeeLegalEntities legalEntities;
     private final DocumentNumbers numbers;
     private final TimesheetRepository repository;
     private final DomainEvents events;
@@ -49,11 +52,12 @@ public class SubmitTimesheet {
     private final BusinessZone zone;
 
     SubmitTimesheet(WorkPackageQueries workPackages, ApprovalProcesses approvals, CurrentUser currentUser, OrgDirectory org,
-            DocumentNumbers numbers, TimesheetRepository repository, DomainEvents events, Clock clock, BusinessZone zone) {
+            EmployeeLegalEntities legalEntities, DocumentNumbers numbers, TimesheetRepository repository, DomainEvents events, Clock clock, BusinessZone zone) {
         this.workPackages = workPackages;
         this.approvals = approvals;
         this.currentUser = currentUser;
         this.org = org;
+        this.legalEntities = legalEntities;
         this.numbers = numbers;
         this.repository = repository;
         this.events = events;
@@ -83,9 +87,10 @@ public class SubmitTimesheet {
             requireEnoughHours(command.workPackageId(), command.hours(), command);
             OrgUnitId orgUnit = org.findEmployee(employee).map(profile -> profile.orgUnitId()).orElseThrow(
                     () -> TimesheetError.COST_TIMESHEET_EMPLOYEE_UNKNOWN.refusal("User " + employee.value() + " is not in the organisation"));
-            DocumentNumber number = numbers.next(DocumentType.TIMESHEET, currentUser.legalEntityId(), today);
+            LegalEntityId legalEntity = legalEntities.on(employee, command.workDate());
+            DocumentNumber number = numbers.next(DocumentType.TIMESHEET, legalEntity, today);
             timesheet = Timesheet.draft(command.timesheetId(), number, new AggregateReference("NumberingRule", DocumentType.TIMESHEET.name()),
-                    employee, currentUser.legalEntityId(), orgUnit, command.workPackageId(), command.workDate(), command.hours(),
+                    employee, legalEntity, orgUnit, command.workPackageId(), command.workDate(), command.hours(),
                     command.projectManager(), today);
         }
         timesheet.submit(employee, today);

@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.OptionalLong;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +48,7 @@ public class DecideTasks {
     }
 
     @Transactional
-    public DecisionResult execute(UserId actor, List<TaskDecision> decisions) {
+    public DecisionResult execute(UserId actor, List<TaskDecision> decisions, OptionalLong expectedVersion) {
         if (decisions == null || decisions.isEmpty()) {
             throw ApprovalError.PLATFORM_APPROVAL_DECISION_EMPTY.refusal("No decision given");
         }
@@ -60,6 +61,7 @@ public class DecideTasks {
         }
         ApprovalInstanceId instanceId = guard.requireTask(decisions.getFirst().taskId()).instanceId();
         ApprovalRequest request = approvals.lock(instanceId);
+        approvals.requireVersion(request, expectedVersion);
         Map<TaskDecision, TaskView> tasks = new LinkedHashMap<>();
         for (TaskDecision decision : decisions) {
             TaskView fresh = guard.requireTask(decision.taskId());

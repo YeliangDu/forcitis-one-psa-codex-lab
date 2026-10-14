@@ -10,6 +10,7 @@ import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import com.forcitis.one.platform.approval.domain.TaskView;
+import java.util.OptionalLong;
 import org.springframework.stereotype.Component;
 
 /**
@@ -34,6 +35,14 @@ class Approvals {
     ApprovalRequest lock(ApprovalInstanceId instanceId) {
         return requests.findByInstanceForUpdate(instanceId).orElseThrow(
                 () -> ApprovalError.PLATFORM_APPROVAL_REQUEST_NOT_FOUND.refusal("No approval request for instance " + instanceId.value()));
+    }
+
+    /** Strong comparison with the version of the request as locked; a caller that sent none (a job, another module) is not held to one. */
+    void requireVersion(ApprovalRequest request, OptionalLong expected) {
+        if (expected.isPresent() && expected.getAsLong() != request.version()) {
+            throw new VersionMismatchException("Approval " + request.aggregateId() + " is at version " + request.version() + ", the caller read "
+                    + expected.getAsLong());
+        }
     }
 
     /** A lost race against another candidate is a refusal (409), not a server error. */

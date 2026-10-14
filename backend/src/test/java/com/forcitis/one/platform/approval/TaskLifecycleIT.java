@@ -60,7 +60,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
     }
 
     DecisionResult decide(long actor, ApprovalTaskId task, DecisionOutcome outcome, String reason) {
-        return decideTasks.execute(new UserId(actor), List.of(new TaskDecision(task, outcome, reason)));
+        return decideTasks.execute(new UserId(actor), List.of(new TaskDecision(task, outcome, reason)), java.util.OptionalLong.empty());
     }
 
     @Test
@@ -90,7 +90,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = startWithSupervisor(key, s.initiator(), s.manager());
         ApprovalTaskId review = openTaskId(instance, "projectManagerReview");
 
-        claimTask.execute(review, new UserId(s.manager()));
+        claimTask.execute(review, new UserId(s.manager()), java.util.OptionalLong.empty());
         assertThat(openTask(instance, "projectManagerReview").getAssignee()).isEqualTo(String.valueOf(s.manager()));
 
         DecisionResult afterReview = decide(s.manager(), review, DecisionOutcome.APPROVE, "");
@@ -126,7 +126,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         String key = newKey("facts-once");
         ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
         ApprovalTaskId review = openTaskId(instance);
-        claimTask.execute(review, new UserId(s.manager()));
+        claimTask.execute(review, new UserId(s.manager()), java.util.OptionalLong.empty());
 
         decide(s.manager(), review, DecisionOutcome.APPROVE, "");
 
@@ -186,12 +186,12 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
         ApprovalTaskId review = openTaskId(instance);
 
-        assertThatThrownBy(() -> returnToInitiator.execute(review, new UserId(s.manager()), " "))
+        assertThatThrownBy(() -> returnToInitiator.execute(review, new UserId(s.manager()), " ", java.util.OptionalLong.empty()))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
         assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
 
-        DecisionResult result = returnToInitiator.execute(review, new UserId(s.manager()), "missing attachment");
+        DecisionResult result = returnToInitiator.execute(review, new UserId(s.manager()), "missing attachment", java.util.OptionalLong.empty());
         assertThat(result.status()).isEqualTo(ApprovalStatus.RETURNED);
         assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).count()).isZero();
         assertThat(approvals.isFinished(instance)).isTrue();
@@ -215,14 +215,14 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
         assertThatThrownBy(() -> decideTasks.execute(new UserId(s.manager()), List.of(
-                new TaskDecision(t1, DecisionOutcome.APPROVE, "ok"), new TaskDecision(t2, DecisionOutcome.APPROVE, "ok"))))
+                new TaskDecision(t1, DecisionOutcome.APPROVE, "ok"), new TaskDecision(t2, DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty()))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE));
         assertThatThrownBy(() -> decideTasks.execute(new UserId(s.manager()), List.of(
-                new TaskDecision(t1, DecisionOutcome.APPROVE, "ok"), new TaskDecision(t1, DecisionOutcome.APPROVE, "ok"))))
+                new TaskDecision(t1, DecisionOutcome.APPROVE, "ok"), new TaskDecision(t1, DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty()))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK));
-        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.manager()), List.of()))
+        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.manager()), List.of(), java.util.OptionalLong.empty()))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_DECISION_EMPTY));
         assertThat(openTaskId(first)).isEqualTo(t1);

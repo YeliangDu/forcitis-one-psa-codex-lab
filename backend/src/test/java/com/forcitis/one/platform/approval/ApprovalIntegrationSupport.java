@@ -128,6 +128,9 @@ public abstract class ApprovalIntegrationSupport {
     @MockitoBean
     protected WorkPackageQueries workPackages;
 
+    @MockitoBean
+    protected com.forcitis.one.organization.workforce.api.EmployeeLegalEntities employeeLegalEntities;
+
     @Autowired
     protected ApprovalProcesses approvals;
 
@@ -184,6 +187,7 @@ public abstract class ApprovalIntegrationSupport {
 
     @BeforeEach
     void administratorExists() {
+        org.mockito.Mockito.when(employeeLegalEntities.on(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(LEGAL_ENTITY);
         com.forcitis.one.fixture.doubles.AggregateWriteGuard.forget();
         events = new Events(recorded);
         organisation.person(ADMINISTRATOR, 1, null);

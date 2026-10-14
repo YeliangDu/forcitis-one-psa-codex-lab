@@ -57,7 +57,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
     }
 
     DecisionResult decide(long actor, Task task, DecisionOutcome outcome, String reason) {
-        return decideTasks.execute(new UserId(actor), List.of(new TaskDecision(new ApprovalTaskId(task.getId()), outcome, reason)));
+        return decideTasks.execute(new UserId(actor), List.of(new TaskDecision(new ApprovalTaskId(task.getId()), outcome, reason)), java.util.OptionalLong.empty());
     }
 
     @Test

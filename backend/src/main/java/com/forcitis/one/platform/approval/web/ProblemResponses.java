@@ -17,14 +17,14 @@ import org.springframework.web.method.HandlerMethod;
 class ProblemResponses implements OperationCustomizer {
 
     private static final Map<String, String> REFUSALS = Map.of(
-            "400", "The request is malformed",
+            "400", "The request is malformed, or If-Match is not one strong ETag",
             "401", "Nobody is signed in",
             "403", "The caller may not do this",
             "404", "No such task, or the caller may not know it",
             "409", "The task or the approval is not in a state that allows this",
-            "412", "The task changed since the caller read it (If-Match)",
+            "412", "The approval changed since the caller read it; the ETag of a task is the version of its approval request (If-Match)",
             "422", "The request breaks a rule; errorCode says which",
-            "428", "If-Match with the ETag of the task as read is required");
+            "428", "If-Match with the ETag of the task as read (the version of its approval request) is required");
 
     @Override
     public Operation customize(Operation operation, HandlerMethod handlerMethod) {
