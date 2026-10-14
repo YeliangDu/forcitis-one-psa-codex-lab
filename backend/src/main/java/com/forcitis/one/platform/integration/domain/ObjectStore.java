@@ -1,5 +1,6 @@
-package com.forcitis.one.platform.integration.api;
+package com.forcitis.one.platform.integration.domain;
 
+import com.forcitis.one.platform.integration.api.ArchivedObject;
 import java.nio.file.Path;
 
 /** Write-once storage for archives. Failures surface as ExternalSystemUnavailableException; nothing is deleted anywhere before put has returned. */

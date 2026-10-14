@@ -105,6 +105,9 @@ class ProcessArchiveJobIT {
     @Autowired
     MeterRegistry meters;
 
+    @Autowired
+    org.springframework.jdbc.core.simple.JdbcClient jdbc;
+
     @BeforeEach
     void deployProbe() {
         Mockito.reset(history);
@@ -182,6 +185,11 @@ class ProcessArchiveJobIT {
         assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(bad).count()).isEqualTo(1);
         assertThat(meters.counter("forcitis.platform.approval.archive.skipped").count()).isEqualTo(before + 1);
         assertThat(vault.batches).hasSize(1);
+        assertThat(jdbc.sql("select count(*) from platform_approval.process_archive_skips where process_instance_id = :id").param("id", bad)
+                .query(Long.class).single()).as("the skipped instance is recorded").isEqualTo(1L);
+
+        job.run();
+        assertThat(vault.batches).as("a skipped instance is not archived again").hasSize(1);
 
         Mockito.reset(history);
         history.deleteHistoricProcessInstance(bad);

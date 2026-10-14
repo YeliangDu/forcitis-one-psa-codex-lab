@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.api;
 
+import java.time.Period;
 import java.util.List;
 
 /**
@@ -13,4 +14,10 @@ public interface ArchiveVault {
 
     /** Writes and removes a local probe file and probes the object store. */
     void probe(String kind);
+
+    /**
+     * Fails unless the time online plus the days the bucket is locked (WORM) equal the one total keep period; call it when a job starts, so
+     * changing one of the three alone stops the start-up.
+     */
+    void requireTotalKeepPeriod(String what, Period online);
 }

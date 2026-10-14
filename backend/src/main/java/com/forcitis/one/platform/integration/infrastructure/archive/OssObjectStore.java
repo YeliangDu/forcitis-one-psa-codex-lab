@@ -11,7 +11,7 @@ import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.StorageClass;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.platform.integration.api.ArchivedObject;
-import com.forcitis.one.platform.integration.api.ObjectStore;
+import com.forcitis.one.platform.integration.domain.ObjectStore;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.HexFormat;
 import java.util.UUID;
 
 /**
@@ -43,7 +44,8 @@ final class OssObjectStore implements ObjectStore {
         try {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(Files.size(file));
-            metadata.setContentMD5(md5(file));
+            String md5 = md5(file);
+            metadata.setContentMD5(Base64.getEncoder().encodeToString(HexFormat.of().parseHex(md5)));
             metadata.setHeader("x-oss-storage-class", StorageClass.Archive.toString());
             metadata.setHeader("x-oss-forbid-overwrite", "true");
             metadata.addUserMetadata(SHA256, sha256);
@@ -57,6 +59,10 @@ final class OssObjectStore implements ObjectStore {
             ObjectMetadata stored = client.getObjectMetadata(properties.bucket(), key);
             if (stored.getObjectStorageClass() != StorageClass.Archive) {
                 throw new ExternalSystemUnavailableException("object " + key + " is stored as " + stored.getObjectStorageClass() + ", not Archive");
+            }
+            String etag = stored.getETag() == null ? "" : stored.getETag().replace("\"", "");
+            if (!etag.equalsIgnoreCase(md5)) {
+                throw new ExternalSystemUnavailableException("object " + key + " has ETag " + etag + ", the local MD5 is " + md5);
             }
             return new ArchivedObject(key, stored.getContentLength(), stored.getUserMetadata().get(SHA256));
         } catch (OSSException | ClientException | IOException failure) {
@@ -91,7 +97,7 @@ final class OssObjectStore implements ObjectStore {
             for (int read = in.read(buffer); read >= 0; read = in.read(buffer)) {
                 digest.update(buffer, 0, read);
             }
-            return Base64.getEncoder().encodeToString(digest.digest());
+            return HexFormat.of().formatHex(digest.digest());
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }

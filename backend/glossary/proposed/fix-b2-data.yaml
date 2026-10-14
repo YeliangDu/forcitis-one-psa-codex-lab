@@ -87,3 +87,33 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: keep
+  zh: 保留
+  en: Keep
+  snake: keep
+  kind: action
+  bc: platform.integration
+  definition: 把数据留在在线库或归档库的期限，到期后删除或转归档；与「质保金」无关
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+
+- id: worm
+  zh: 一次写入多次读取
+  en: Worm
+  snake: worm
+  kind: concept
+  bc: platform.integration
+  definition: 归档库的合规保留锁：锁定期内对象不能被覆盖或删除
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+

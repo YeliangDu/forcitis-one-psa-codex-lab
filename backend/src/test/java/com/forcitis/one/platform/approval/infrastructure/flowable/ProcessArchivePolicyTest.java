@@ -55,4 +55,16 @@ class ProcessArchivePolicyTest {
                 FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY, FlowableApprovalEngine.VARIABLE_SUBMITTED_ON)));
         assertThat(new TreeSet<>(inCode)).isEqualTo(new TreeSet<>(registered));
     }
+
+    @Test
+    @DisplayName("T3 the job refuses to start when the vault says online period plus WORM days is not the total keep period")
+    void jobChecksTheTotalKeepPeriod() {
+        var vault = new com.forcitis.one.fixture.doubles.RecordingArchiveVault();
+        vault.retentionFailure = new IllegalStateException("not the total keep period");
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new ProcessArchiveJob(org.mockito.Mockito.mock(org.springframework.jdbc.core.simple.JdbcClient.class),
+                org.mockito.Mockito.mock(org.flowable.engine.HistoryService.class), vault, java.time.Clock.systemUTC(),
+                new com.forcitis.one.kernel.BusinessZone(java.time.ZoneId.of("Asia/Shanghai")), new ProcessArchivePolicy(java.time.Period.ofYears(3)),
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry())).hasMessageContaining("total keep period");
+    }
 }

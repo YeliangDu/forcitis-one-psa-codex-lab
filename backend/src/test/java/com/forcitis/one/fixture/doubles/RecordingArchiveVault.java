@@ -11,11 +11,13 @@ public final class RecordingArchiveVault implements ArchiveVault {
     public final List<List<String>> batches = new CopyOnWriteArrayList<>();
     public volatile RuntimeException failure;
     public volatile int probes;
+    public volatile RuntimeException retentionFailure;
 
     public void reset() {
         batches.clear();
         failure = null;
         probes = 0;
+        retentionFailure = null;
     }
 
     public List<String> lines() {
@@ -31,6 +33,13 @@ public final class RecordingArchiveVault implements ArchiveVault {
         }
         batches.add(List.copyOf(lines));
         return new ArchivedObject("test/" + kind + "/" + batches.size(), 1, "0".repeat(64));
+    }
+
+    @Override
+    public void requireTotalKeepPeriod(String what, java.time.Period online) {
+        if (retentionFailure != null) {
+            throw retentionFailure;
+        }
     }
 
     @Override

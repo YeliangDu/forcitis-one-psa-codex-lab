@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.platform.integration.api.ArchivedObject;
-import com.forcitis.one.platform.integration.api.ObjectStore;
+import com.forcitis.one.platform.integration.domain.ObjectStore;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -61,7 +61,7 @@ class ObjectStoreArchiveVaultTest {
     private final MemoryStore store = new MemoryStore();
 
     private ObjectStoreArchiveVault vault() {
-        return new ObjectStoreArchiveVault(store, local, "one-test", CLOCK);
+        return new ObjectStoreArchiveVault(store, local, "one-test", 2557, 10, CLOCK);
     }
 
     private List<Path> files(String kind) throws IOException {

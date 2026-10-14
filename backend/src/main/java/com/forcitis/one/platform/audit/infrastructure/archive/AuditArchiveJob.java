@@ -65,6 +65,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         this.clock = clock;
         this.zone = zone;
         this.policy = policy;
+        vault.requireTotalKeepPeriod("audit archive", policy.onlinePeriod());
         this.probeFailures = Counter.builder("forcitis.platform.audit.archive.probe.failures")
                 .description("Failed write probes of the audit archive target").register(meters);
     }

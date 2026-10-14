@@ -19,3 +19,4 @@ com/forcitis/one/cost/timesheet/infrastructure/persistence/JdbcConsumedEvents.ja
 com/forcitis/one/cost/timesheet/infrastructure/persistence/ConsumedEventsPurgeJob.java#cost_timesheet.consumed_events  # retention: rows older than the keep period are deleted, nothing updates them
 com/forcitis/one/organization/workforce/infrastructure/scheduling/SyncPurgeJob.java#organization_workforce.sync_diffs  # retention: diffs of settled runs older than the keep period are deleted, nothing updates them
 com/forcitis/one/platform/audit/infrastructure/archive/AuditArchiveJob.java#platform_audit.audit_archive_batches  # append-only progress of the archive: one row per archived batch, a trigger refuses update and delete
+com/forcitis/one/platform/approval/infrastructure/flowable/ProcessArchiveJob.java#platform_approval.process_archive_skips  # append-only record of instances that were archived but could not be deleted; a trigger refuses update and delete

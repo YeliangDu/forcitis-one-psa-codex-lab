@@ -3,7 +3,7 @@ package com.forcitis.one.platform.integration.infrastructure.archive;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.platform.integration.api.ArchiveVault;
 import com.forcitis.one.platform.integration.api.ArchivedObject;
-import com.forcitis.one.platform.integration.api.ObjectStore;
+import com.forcitis.one.platform.integration.domain.ObjectStore;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
@@ -15,6 +15,7 @@ import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.Period;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
@@ -37,12 +38,21 @@ final class ObjectStoreArchiveVault implements ArchiveVault {
     private final Path localDirectory;
     private final String prefix;
     private final Clock clock;
+    private final int wormLockDays;
+    private final int totalKeepYears;
 
-    ObjectStoreArchiveVault(ObjectStore store, Path localDirectory, String prefix, Clock clock) {
+    ObjectStoreArchiveVault(ObjectStore store, Path localDirectory, String prefix, int wormLockDays, int totalKeepYears, Clock clock) {
         this.store = store;
         this.localDirectory = localDirectory;
         this.prefix = prefix;
+        this.wormLockDays = wormLockDays;
+        this.totalKeepYears = totalKeepYears;
         this.clock = clock;
+    }
+
+    @Override
+    public void requireTotalKeepPeriod(String what, Period online) {
+        KeepPeriodRule.require(what, online, wormLockDays, totalKeepYears);
     }
 
     @Override

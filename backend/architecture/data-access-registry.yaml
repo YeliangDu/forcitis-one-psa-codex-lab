@@ -193,6 +193,12 @@ tables:
     retention: {policy: BUSINESS_RECORD}
     lineage: {source: NEW}
     writers: [platform.approval]
+  platform_approval.process_archive_skips:
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.approval]
   platform_approval.act_*:
     role: FRAMEWORK
     mutability: FRAMEWORK

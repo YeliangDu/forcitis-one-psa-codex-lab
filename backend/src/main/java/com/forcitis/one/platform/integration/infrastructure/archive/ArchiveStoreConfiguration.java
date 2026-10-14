@@ -3,7 +3,7 @@ package com.forcitis.one.platform.integration.infrastructure.archive;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.forcitis.one.platform.integration.api.ArchiveVault;
-import com.forcitis.one.platform.integration.api.ObjectStore;
+import com.forcitis.one.platform.integration.domain.ObjectStore;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,7 +18,7 @@ class ArchiveStoreConfiguration {
 
     @Bean(destroyMethod = "shutdown")
     OSS archiveStoreClient(ArchiveStoreProperties properties) {
-        return new OSSClientBuilder().build(properties.endpoint(), properties.accessKeyId(), properties.accessKeySecret());
+        return new OSSClientBuilder().build(properties.endpoint(), properties.credentials());
     }
 
     @Bean
@@ -28,6 +28,6 @@ class ArchiveStoreConfiguration {
 
     @Bean
     ArchiveVault archiveVault(ObjectStore store, ArchiveStoreProperties properties, Clock clock) {
-        return new ObjectStoreArchiveVault(store, properties.localDirectory(), properties.prefix(), clock);
+        return new ObjectStoreArchiveVault(store, properties.localDirectory(), properties.prefix(), properties.wormLockDays(), properties.totalKeepYears(), clock);
     }
 }

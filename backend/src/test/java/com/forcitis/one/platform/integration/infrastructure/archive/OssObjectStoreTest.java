@@ -33,12 +33,15 @@ class OssObjectStoreTest {
     Path directory;
 
     private final OSS client = mock(OSS.class);
-    private final ArchiveStoreProperties properties = new ArchiveStoreProperties("archive-bucket", "cn-hangzhou", "one", Path.of("/data/archive"), 3650, true,
-            "key-id", "key-secret");
+    private final ArchiveStoreProperties properties = new ArchiveStoreProperties("archive-bucket", "cn-hangzhou", "one", Path.of("/data/archive"), 2557, 10, true,
+            "key-id", "key-secret", null);
     private final OssObjectStore store = new OssObjectStore(client, properties);
+
+    private static final String CONTENT_MD5 = "9a0364b9e99bb480dd25e1f0284c8555";
 
     private ObjectMetadata stored(String sha, StorageClass storageClass, long length) {
         ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setHeader("ETag", "\"" + CONTENT_MD5.toUpperCase() + "\"");
         metadata.setHeader("x-oss-storage-class", storageClass.toString());
         metadata.setHeader("Content-Length", length);
         metadata.addUserMetadata(OssObjectStore.SHA256, sha);
@@ -89,7 +92,7 @@ class OssObjectStoreTest {
     void probeLeavesNothingBehind() {
         GetBucketWormResult worm = new GetBucketWormResult();
         worm.setWormState("Locked");
-        worm.setRetentionPeriodInDays(3650);
+        worm.setRetentionPeriodInDays(2557);
         when(client.getBucketLocation("archive-bucket")).thenReturn("oss-cn-hangzhou");
         when(client.getBucketWorm("archive-bucket")).thenReturn(worm);
         InitiateMultipartUploadResult upload = new InitiateMultipartUploadResult();
@@ -106,7 +109,7 @@ class OssObjectStoreTest {
     void probeRefusesAWrongBucket() {
         GetBucketWormResult worm = new GetBucketWormResult();
         worm.setWormState("InProgress");
-        worm.setRetentionPeriodInDays(3650);
+        worm.setRetentionPeriodInDays(2557);
         when(client.getBucketLocation("archive-bucket")).thenReturn("oss-eu-central-1");
         assertThatThrownBy(store::probe).hasMessageContaining("oss-eu-central-1");
 
@@ -115,7 +118,7 @@ class OssObjectStoreTest {
         assertThatThrownBy(store::probe).hasMessageContaining("Locked");
         worm.setWormState("Locked");
         worm.setRetentionPeriodInDays(365);
-        assertThatThrownBy(store::probe).hasMessageContaining("3650");
+        assertThatThrownBy(store::probe).hasMessageContaining("2557");
     }
 
     @Configuration
@@ -123,10 +126,9 @@ class OssObjectStoreTest {
     static class Enabled {
     }
 
-    private static final String[] COMPLETE = {"forcitis.platform.integration.archive-store.bucket=b", "forcitis.platform.integration.archive-store.region=cn-hangzhou",
-            "forcitis.platform.integration.archive-store.prefix=one", "forcitis.platform.integration.archive-store.local-directory=/data/archive",
-            "forcitis.platform.integration.archive-store.worm-lock-days=3650", "forcitis.platform.integration.archive-store.access-key-id=i",
-            "forcitis.platform.integration.archive-store.access-key-secret=s"};
+    private static final String PREFIX = "forcitis.platform.integration.archive-store.";
+    private static final String[] COMPLETE = {PREFIX + "bucket=b", PREFIX + "region=cn-hangzhou", PREFIX + "prefix=one", PREFIX + "local-directory=/data/archive",
+            PREFIX + "worm-lock-days=2557", PREFIX + "total-keep-years=10"};
 
     @Test
     @DisplayName("the archive store configuration is complete and in mainland China: any missing value, Frankfurt or another foreign region stops the start-up")
@@ -148,11 +150,42 @@ class OssObjectStoreTest {
         }
         for (String region : new String[] {"eu-central-1", "cn-hongkong", "us-west-1", ""}) {
             String[] foreign = COMPLETE.clone();
-            foreign[1] = "forcitis.platform.integration.archive-store.region=" + region;
+            foreign[1] = PREFIX + "region=" + region;
             runner.withPropertyValues(foreign).run(context -> assertThat(context).as(region).hasFailed());
         }
         String[] relative = COMPLETE.clone();
-        relative[3] = "forcitis.platform.integration.archive-store.local-directory=archive";
+        relative[3] = PREFIX + "local-directory=archive";
         runner.withPropertyValues(relative).run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    @DisplayName("credentials come as an AccessKey pair (both halves), an ECS RAM role name, or the default chain; half a pair stops the start-up")
+    void credentialModes() {
+        var runner = new ApplicationContextRunner().withUserConfiguration(Enabled.class).withPropertyValues(COMPLETE);
+        runner.withPropertyValues(PREFIX + "access-key-id=i", PREFIX + "access-key-secret=s")
+                .run(context -> assertThat(context.getBean(ArchiveStoreProperties.class).credentials().getCredentials().getAccessKeyId()).isEqualTo("i"));
+        runner.run(context -> assertThat(context).hasNotFailed());
+        runner.withPropertyValues(PREFIX + "ecs-role-name=one-archive").run(context -> assertThat(context).hasNotFailed());
+        runner.withPropertyValues(PREFIX + "access-key-id=i").run(context -> assertThat(context).hasFailed());
+        runner.withPropertyValues(PREFIX + "access-key-secret=s").run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    @DisplayName("the secret never shows when the configuration is printed")
+    void secretIsMasked() {
+        ArchiveStoreProperties withKeys = new ArchiveStoreProperties("b", "cn-hangzhou", "one", Path.of("/data/archive"), 2557, 10, true, "AKID-PUBLIC-PART", "very-secret-value", null);
+
+        assertThat(withKeys.toString()).doesNotContain("very-secret-value").doesNotContain("AKID-PUBLIC-PART").contains("accessKeySecret=***");
+    }
+
+    @Test
+    @DisplayName("an object whose ETag differs from the MD5 of the file that was sent is an error, even if the SHA-256 metadata matches")
+    void etagIsCompared() throws Exception {
+        Path file = Files.writeString(directory.resolve("a.gz"), "content");
+        ObjectMetadata other = stored("abc", StorageClass.Archive, 7);
+        other.setHeader("ETag", "\"not-the-md5\"");
+        when(client.getObjectMetadata("archive-bucket", "k")).thenReturn(other);
+
+        assertThatThrownBy(() -> store.put("k", file, "abc")).isInstanceOf(ExternalSystemUnavailableException.class).hasMessageContaining("ETag");
     }
 }
