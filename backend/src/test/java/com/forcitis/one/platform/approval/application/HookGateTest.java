@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -67,8 +68,8 @@ class HookGateTest {
         assertThat(gate.check(task(null), new UserId(2), HookAction.APPROVE, null).outcome().commits()).isTrue();
         assertThat(gate.check(task(" "), new UserId(2), HookAction.APPROVE, null).outcome().commits()).isTrue();
         assertThatThrownBy(() -> gate.check(task("OTHER"), new UserId(2), HookAction.APPROVE, null))
-                .isInstanceOfSatisfying(ApprovalOperationException.class,
-                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED));
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED));
     }
 
     @Test
@@ -76,7 +77,7 @@ class HookGateTest {
     void nullDecisionBlocks() {
         HookGate gate = gate(hook("K", null));
         assertThatThrownBy(() -> gate.check(task("K"), new UserId(2), HookAction.APPROVE, null))
-                .isInstanceOfSatisfying(ApprovalOperationException.class,
-                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
     }
 }

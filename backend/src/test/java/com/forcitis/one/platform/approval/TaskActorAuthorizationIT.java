@@ -198,8 +198,8 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                     return "won";
                 } catch (AccessDeniedException e) {
                     return "denied";
-                } catch (com.forcitis.one.platform.approval.application.ApprovalOperationException e) {
-                    return e.error().name();
+                } catch (com.forcitis.one.kernel.DomainException e) {
+                    return e.errorCode().name();
                 }
             }));
         }
@@ -229,8 +229,8 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                     return "won";
                 } catch (AccessDeniedException e) {
                     return "denied";
-                } catch (com.forcitis.one.platform.approval.application.ApprovalOperationException e) {
-                    return e.error().name();
+                } catch (com.forcitis.one.kernel.DomainException e) {
+                    return e.errorCode().name();
                 }
             }));
         }

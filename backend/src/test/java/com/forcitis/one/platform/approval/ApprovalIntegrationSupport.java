@@ -18,6 +18,7 @@ import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskResulted;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.time.Duration;
 import java.util.List;
@@ -47,7 +48,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /** One PostgreSQL 18 container per test JVM and a cached application context; the Flowable schema is created by the engine only in tests; other modules' dependencies are doubles. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "forcitis.platform.approval.deadline.enabled=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=" + ApprovalIntegrationSupport.ADMINISTRATOR,
-        "spring.datasource.hikari.connection-timeout=2000"})
+        "spring.datasource.hikari.connection-timeout=2000",
+        "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
 @Import(ApprovalIntegrationSupport.Doubles.class)
 public abstract class ApprovalIntegrationSupport {
@@ -213,8 +215,38 @@ public abstract class ApprovalIntegrationSupport {
         return jdbc.queryForObject("select status from platform_approval.approval_requests where document_key = ?", String.class, key);
     }
 
+    protected List<String> auditActions(String subjectKey) {
+        return jdbc.queryForList("select action from platform_audit.audit_entries where subject_key = ?", String.class, subjectKey);
+    }
+
+    protected List<Long> auditActors(String subjectKey, String action) {
+        return jdbc.queryForList("select actor_id from platform_audit.audit_entries where subject_key = ? and action = ?", Long.class, subjectKey, action);
+    }
+
     protected static void eventually(Runnable assertion) {
         Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).untilAsserted(assertion::run);
+    }
+
+    /** Makes the commit of a decision fail on demand, to prove that everything the decision did is one transaction. */
+    public static class CommitGate {
+        public volatile boolean failing;
+
+        @org.springframework.transaction.event.TransactionalEventListener(phase = org.springframework.transaction.event.TransactionPhase.BEFORE_COMMIT)
+        void on(TaskResulted event) {
+            if (failing) {
+                throw new IllegalStateException("the event store is down");
+            }
+        }
+    }
+
+    protected void actAs(long user) {
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(String.valueOf(user), "n/a", List.of()));
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void signOut() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
     public static class EventRecorder {
@@ -307,6 +339,29 @@ public abstract class ApprovalIntegrationSupport {
         @Primary
         FakeOrganisation fakeOrganisation() {
             return new FakeOrganisation();
+        }
+
+        @Bean
+        @Primary
+        CurrentUser administratorUnlessSignedIn() {
+            return new CurrentUser() {
+                @Override
+                public UserId userId() {
+                    var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                    return authentication != null && authentication.isAuthenticated() ? new UserId(Long.parseLong(authentication.getName()))
+                            : new UserId(ADMINISTRATOR);
+                }
+
+                @Override
+                public LegalEntityId legalEntityId() {
+                    return LEGAL_ENTITY;
+                }
+            };
+        }
+
+        @Bean
+        CommitGate commitGate() {
+            return new CommitGate();
         }
 
         @Bean

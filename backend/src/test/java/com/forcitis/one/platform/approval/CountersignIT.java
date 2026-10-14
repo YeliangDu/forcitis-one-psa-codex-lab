@@ -2,6 +2,7 @@ package com.forcitis.one.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.UserId;
@@ -10,6 +11,7 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -128,7 +130,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
             assertThat(e.document().documentId().value()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
-            assertThat(e.reason()).isEqualTo("price too high");
+            assertThat(e.reason()).isEqualTo(new Reason("price too high"));
         }));
     }
 
@@ -152,9 +154,9 @@ class CountersignIT extends ApprovalIntegrationSupport {
         eventually(() -> {
             assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(key)).toList())
                     .anySatisfy(e -> {
-                        assertThat(e.advisory()).isTrue();
+                        assertThat(e.effect()).isEqualTo(TaskEffect.ADVISORY);
                         assertThat(e.outcome()).isEqualTo(TaskOutcome.REJECTED);
-                        assertThat(e.reason()).isEqualTo("I would not");
+                        assertThat(e.reason()).isEqualTo(new Reason("I would not"));
                     });
             assertThat(events.completed().stream().filter(e -> e.document().documentId().value().equals(key)).map(e -> e.outcome()).toList())
                     .containsExactly(ApprovalOutcome.APPROVED);
@@ -166,6 +168,6 @@ class CountersignIT extends ApprovalIntegrationSupport {
     void invalidApproverFailsInsteadOfSkipping() {
         Staff s = staff();
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> start(newKey("countersign-invalid"), s, 424242L))
-                .hasStackTraceContaining("missing or invalid");
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.application.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
     }
 }

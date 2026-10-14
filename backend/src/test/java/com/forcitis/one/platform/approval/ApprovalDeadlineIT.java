@@ -17,6 +17,7 @@ import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.EscalationTarget;
 import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -248,7 +249,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         eventually(() -> {
             ApprovalTaskEscalated escalated = events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow();
             assertThat(escalated.escalatedTo()).containsExactly(new UserId(s.head()));
-            assertThat(escalated.toProcessAdministrator()).isFalse();
+            assertThat(escalated.target()).isEqualTo(EscalationTarget.SUPERVISOR);
             assertThat(escalated.envelope().aggregateVersion()).as("assigned, overdue, escalated").isEqualTo(3);
         });
         assertThat(requestStatus(s.key())).isEqualTo("RUNNING");
@@ -277,16 +278,16 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     @DisplayName("platform.approval deadline: with no superior known the task goes to the process administrator and the alert counter rises")
     void noSuperiorGoesToTheAdministrator() {
         Scene s = scene(false);
-        double before = meters.counter("platform.approval.task.escalation.administrator").count();
+        double before = meters.counter("forcitis.platform.approval.task.escalation.administrator").count();
         clock.set(escalateAtOf(s).plusSeconds(1));
 
         enforceDeadlines.execute();
 
-        assertThat(meters.counter("platform.approval.task.escalation.administrator").count()).isEqualTo(before + 1);
+        assertThat(meters.counter("forcitis.platform.approval.task.escalation.administrator").count()).isEqualTo(before + 1);
         assertThat(taskService.getIdentityLinksForTask(s.task().value()).stream().filter(l -> "candidate".equals(l.getType()))
                 .map(l -> l.getUserId()).toList()).contains(String.valueOf(ADMINISTRATOR));
         eventually(() -> assertThat(events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow()
-                .toProcessAdministrator()).isTrue());
+                .target()).isEqualTo(EscalationTarget.PROCESS_ADMINISTRATOR));
     }
 
     @Test

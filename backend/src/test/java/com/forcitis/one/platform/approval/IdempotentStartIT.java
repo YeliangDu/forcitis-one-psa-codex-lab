@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -122,7 +123,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         decideTasks.execute(new UserId(head), List.of(new TaskDecision(openTaskId(third, "supervisorReview"), DecisionOutcome.APPROVE, "ok")));
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
             assertThat(e.document().documentId().value()).isEqualTo(key);
-            assertThat(e.round()).isEqualTo(3);
+            assertThat(e.round()).isEqualTo(new RoundNumber(3));
             assertThat(e.outcome()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalOutcome.APPROVED);
         }));
     }

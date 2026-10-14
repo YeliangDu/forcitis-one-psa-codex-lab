@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
+import com.forcitis.one.platform.approval.api.RoundNumber;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.UserId;
@@ -72,6 +74,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-269 the initiator withdraws a running approval with a reason: the round ends RETURNED, the tasks close, a new round can start")
     void withdrawEndsTheRoundAndAllowsANewOne() {
         Staff s = staff();
+        actAs(s.initiator());
         String key = newKey("withdraw");
         ApprovalInstanceId first = startFor(key, s);
         assertThat(check(key, s.initiator())).isEqualTo(WithdrawCheck.ALLOWED);
@@ -86,11 +89,10 @@ class RetractionIT extends ApprovalIntegrationSupport {
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
             assertThat(e.document().documentId().value()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
-            assertThat(e.reason()).isEqualTo("wrong hours");
-            assertThat(e.round()).isEqualTo(1);
+            assertThat(e.reason()).isEqualTo(new Reason("wrong hours"));
+            assertThat(e.round()).isEqualTo(new RoundNumber(1));
         }));
-        verify(audit, atLeastOnce()).record(argThat(entry -> entry.action().equals("platform.approval.request.withdraw")
-                && entry.actorId().equals(new UserId(s.initiator()))));
+        eventually(() -> assertThat(auditActors("ApprovalRequest:TIMESHEET:" + key, "platform.approval.ApprovalCompleted")).containsExactly(s.initiator()));
 
         ApprovalInstanceId second = startFor(key, s);
         assertThat(second).isNotEqualTo(first);

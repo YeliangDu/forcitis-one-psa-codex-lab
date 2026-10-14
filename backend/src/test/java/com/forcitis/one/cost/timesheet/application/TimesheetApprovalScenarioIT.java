@@ -3,6 +3,7 @@ package com.forcitis.one.cost.timesheet.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.events.TimesheetApproved;
@@ -26,6 +27,7 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -143,7 +145,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThat(view(id).canWithdraw()).isTrue();
         assertThat(published.ofType(TimesheetSubmitted.class).matching(e -> e.document().equals(document))).hasSize(1);
         TimesheetSubmitted submitted = published.ofType(TimesheetSubmitted.class).matching(e -> e.document().equals(document)).iterator().next();
-        assertThat(submitted.round()).isEqualTo(1);
+        assertThat(submitted.round()).isEqualTo(new RoundNumber(1));
         assertThat(submitted.approvalInstanceId()).isEqualTo(instance[0]);
         assertThat(submitted.submittedHours()).isEqualTo(Hours.of("8"));
         assertThat(submitted.envelope().aggregateType()).isEqualTo("Timesheet");
@@ -157,7 +159,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
 
         scenario.stimulate(() -> decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, null))))
                 .andWaitForEventOfType(TimesheetApproved.class).matching(e -> e.document().equals(document)).toArriveAndVerify(e -> {
-                    assertThat(e.round()).isEqualTo(1);
+                    assertThat(e.round()).isEqualTo(new RoundNumber(1));
                     assertThat(e.employee()).isEqualTo(new UserId(employee));
                     assertThat(e.submittedHours()).isEqualTo(Hours.of("8"));
                     assertThat(e.envelope().aggregateVersion()).as("submitted = 1, approved = 2").isEqualTo(2);
@@ -203,7 +205,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
                 "TIMESHEET:" + id.value(), 9, UUID.randomUUID(), null, ActorType.SYSTEM, "test", new LegalEntityId(1), LocalDate.now(),
                 new EventSource(SourceSystem.ONE, null), null, List.of());
 
-        tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope, document, ProcessKey.COST_TIMESHEET_APPROVAL, instance, 7,
+        tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope, document, ProcessKey.COST_TIMESHEET_APPROVAL, instance, new RoundNumber(7),
                 ApprovalOutcome.APPROVED, null)));
 
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.SUBMITTED);
@@ -213,16 +215,16 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("G-1 an approval result that names no timesheet of ours is counted and logged, never thrown into the retry loop")
     void resultsForUnknownTimesheetsAreCounted() {
-        double before = meters.counter("cost.timesheet.approval.result.unknown").count();
+        double before = meters.counter("forcitis.cost.timesheet.approval.result.unknown").count();
         for (String documentId : List.of("not-a-number", "999999999")) {
             EventEnvelope envelope = new EventEnvelope(UUID.randomUUID(), "platform.approval.ApprovalCompleted", 1, Instant.now(), "ApprovalRequest",
                     "TIMESHEET:" + documentId, 1, UUID.randomUUID(), null, ActorType.SYSTEM, "test", new LegalEntityId(1), LocalDate.now(),
                     new EventSource(SourceSystem.ONE, null), null, List.of());
             tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope,
                     new DocumentReference(DocumentType.TIMESHEET, new DocumentId(documentId)), ProcessKey.COST_TIMESHEET_APPROVAL,
-                    new ApprovalInstanceId("i"), 1, ApprovalOutcome.APPROVED, null)));
+                    new ApprovalInstanceId("i"), new RoundNumber(1), ApprovalOutcome.APPROVED, null)));
         }
-        assertThat(meters.counter("cost.timesheet.approval.result.unknown").count()).isEqualTo(before + 2);
+        assertThat(meters.counter("forcitis.cost.timesheet.approval.result.unknown").count()).isEqualTo(before + 2);
     }
 
     @Test
@@ -235,8 +237,8 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
 
         scenario.stimulate(() -> decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.REJECT, "too many hours"))))
                 .andWaitForEventOfType(TimesheetReturned.class).matching(e -> e.document().equals(document)).toArriveAndVerify(e -> {
-                    assertThat(e.reason()).isEqualTo("too many hours");
-                    assertThat(e.round()).isEqualTo(1);
+                    assertThat(e.reason()).isEqualTo(new Reason("too many hours"));
+                    assertThat(e.round()).isEqualTo(new RoundNumber(1));
                 });
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.RETURNED);
         assertThat(published.ofType(TimesheetRejected.class).matching(e -> e.document().equals(document))).isEmpty();
@@ -247,7 +249,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         ApprovalTaskId secondTask = taskOf(second);
         scenario.stimulate(() -> decideTasks.execute(new UserId(manager), List.of(new TaskDecision(secondTask, DecisionOutcome.APPROVE, "ok"))))
                 .andWaitForEventOfType(TimesheetApproved.class).matching(e -> e.document().equals(document)).toArriveAndVerify(e -> {
-                    assertThat(e.round()).isEqualTo(2);
+                    assertThat(e.round()).isEqualTo(new RoundNumber(2));
                     assertThat(e.submittedHours()).isEqualTo(Hours.of("7.5"));
                 });
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.APPROVED);
@@ -264,7 +266,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
             signInAs(employee);
             withdrawTimesheet.execute(id, "wrong work package");
         }).andWaitForEventOfType(TimesheetReturned.class).matching(e -> e.document().equals(document))
-                .toArriveAndVerify(e -> assertThat(e.reason()).isEqualTo("wrong work package"));
+                .toArriveAndVerify(e -> assertThat(e.reason()).isEqualTo(new Reason("wrong work package")));
 
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.RETURNED);
         assertThat(submit(id, "4.5")).isInstanceOf(SubmissionResult.Submitted.class);
@@ -283,7 +285,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
             signInAs(employee);
             cancelTimesheet.execute(id, "duplicate");
         }).andWaitForEventOfType(TimesheetCancelled.class).matching(e -> e.document().equals(document))
-                .toArriveAndVerify(e -> assertThat(e.reason()).isEqualTo("duplicate"));
+                .toArriveAndVerify(e -> assertThat(e.reason()).isEqualTo(new Reason("duplicate")));
 
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.DRAFT);
         assertThat(published.ofType(TimesheetRejected.class).matching(e -> e.document().equals(document))).isEmpty();

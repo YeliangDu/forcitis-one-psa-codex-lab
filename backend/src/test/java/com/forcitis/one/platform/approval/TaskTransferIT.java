@@ -19,7 +19,7 @@ import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.application.ApprovalError;
-import com.forcitis.one.platform.approval.application.ApprovalOperationException;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -68,6 +68,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-285 the current handler hands the task over: the new handler decides, the old one no longer may; audited and announced")
     void handlerTransfersTheTask() {
         Scene s = scene();
+        actAs(s.handler());
         claimTask.execute(s.task(), new UserId(s.handler()));
 
         transferTask.execute(s.task(), new UserId(s.handler()), new UserId(s.colleague()));
@@ -77,8 +78,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
                 .isEqualTo(s.colleague());
         assertThatThrownBy(() -> decideTasks.execute(new UserId(s.handler()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null))))
                 .isInstanceOf(AccessDeniedException.class);
-        verify(audit, atLeastOnce()).record(argThat(entry -> entry.action().equals("platform.approval.task.transfer")
-                && entry.actorId().equals(new UserId(s.handler())) && entry.detail().equals("to:" + s.colleague())));
+        eventually(() -> assertThat(auditActors("ApprovalTask:" + s.task().value(), "platform.approval.TaskTransferred")).containsExactly(s.handler()));
         verify(wecom, timeout(10_000)).send(argThat(card -> card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(s.colleague()))))
                 && card.deduplicationKey().startsWith("approval-task:" + s.task().value() + ":transfer:")));
 
@@ -114,8 +114,8 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
 
         for (long invalid : new long[] {424242L, separated, s.handler(), s.initiator()}) {
             assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new UserId(invalid)))
-                    .as("target %s", invalid).isInstanceOfSatisfying(ApprovalOperationException.class,
-                            e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID));
+                    .as("target %s", invalid).isInstanceOfSatisfying(DomainException.class,
+                            e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID));
         }
         assertThat(openTask(s.instance()).getAssignee()).isEqualTo(String.valueOf(s.handler()));
     }
@@ -136,7 +136,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         claimTask.execute(firstTask, new UserId(first));
 
         assertThatThrownBy(() -> transferTask.execute(firstTask, new UserId(first), new UserId(second))).isInstanceOfSatisfying(
-                ApprovalOperationException.class, e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID));
+                DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID));
     }
 
     @Test
