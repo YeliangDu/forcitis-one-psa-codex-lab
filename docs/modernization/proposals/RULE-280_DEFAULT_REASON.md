@@ -1,6 +1,6 @@
 # RULE-280 修订建议：通过时不再补默认意见「同意」
 
-日期：2026-10-14 · 起草：psa-1a-platform-bridge-reimagine · 状态：**草稿，待用户确认**（由 psa-coordinator 转交）
+日期：2026-10-14 · 起草：psa-1a-platform-bridge-reimagine · 状态：**已确认**（用户 2026-10-14：「留空并如实审计 (Recommended)」，经 psa-coordinator 转达）；代码在 Phase 1a 下一轮实现
 
 确认前不改动代码行为。当前实现（`DecideTasks.DEFAULT_APPROVE_REASON = "同意"`）保持不变。
 
