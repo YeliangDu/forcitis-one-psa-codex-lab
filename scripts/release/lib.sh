@@ -46,6 +46,21 @@ release_check_jar_runnable() {
   fi
 }
 
+# The jar must carry the release version in both build-info and the manifest, so a running instance reports what was deployed.
+release_check_jar_version() {
+  local jar="$1" version="$2" built manifest
+  built="$(unzip -p "$jar" META-INF/build-info.properties 2>/dev/null | tr -d '\r' | sed -n 's/^build\.version=//p')"
+  if [ "$built" != "$version" ]; then
+    echo "jar check: build-info version is '${built}', expected ${version}" >&2
+    return 1
+  fi
+  manifest="$(unzip -p "$jar" META-INF/MANIFEST.MF | tr -d '\r' | sed -n 's/^Implementation-Version: //p')"
+  if [ "$manifest" != "$version" ]; then
+    echo "jar check: manifest Implementation-Version is '${manifest}', expected ${version}" >&2
+    return 1
+  fi
+}
+
 # Deterministic-enough archive: fixed owner and mtime, no macOS metadata, entries sorted by the file walk.
 release_pack() {
   local parent="$1" name="$2" archive="$3" epoch="$4"

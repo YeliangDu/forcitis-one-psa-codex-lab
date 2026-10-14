@@ -24,7 +24,7 @@
 
 - 形如 `MAJOR.MINOR.PATCH`，预发布加 `-rc.N`（`0.1.0`、`0.1.0-rc.1`）；标签为 `v<版本>`。Phase 1a 期间用 `0.x`。预发布版本只能部署 dev。
 - 一个版本只构建一次：同名 Release 已存在则 `release` 失败；仓库启用 immutable releases（R-9）后，发布后的附件与标签不可再改；附件即使被替换，也过不了签名发布声明的校验；ECS 上同一版本内容不同则拒绝安装。修复一律发新版本。
-- `backend/pom.xml` 的 `<version>` 目前固定为 `0.0.1`，jar 内的 `Implementation-Version` 与发布版本不一致；以 `manifest.json` 的 `version` 与 `gitSha` 为准（给 1a 的建议见 PR）。
+- `backend/pom.xml` 的版本为 `${revision}`（默认 `0.0.1`），`build.sh` 以 `-Drevision=<发布版本>` 打包，jar 的 build-info 与清单 `Implementation-Version` 都等于发布版本（不一致即构建失败）；部署核对仍以 `manifest.json` 的 `version` 与 `gitSha` 为准。
 
 ## 2. 发布（`release`）
 
@@ -39,7 +39,7 @@
    - 按工作流运行判定：`actions/runs?head_sha=<sha>&event=push&branch=main` 中 `path` 为 `.github/workflows/ci.yml` 的最新一次运行 `completed/success`，且其三项必需作业（backend verify、frontend verify、secret scan）都是 `success`；pull_request 事件的运行、其他分支或其他工作流的运行都不算。不重跑测试。作业名取自 `ci.yml`，改名而脚本未同步时直接失败。
 4. 同名 Release 不存在；同名标签若已存在必须指向该提交。
 5. 检出已证明的提交到 `source/`；**构建**（`tools/` 的 `build.sh --source source --commit <sha>`）：`source/` 必须干净且恰在该提交；全新的 `HOME`、Maven 仓库与 pnpm store（`--isolated-caches`）；`pnpm install --ignore-scripts`（依赖的安装脚本一律不跑，已验证构建不受影响）；Maven Wrapper 按 `distributionSha256Sum` 校验下载的 Maven；校验 Java 25、Node 24、锁定的 pnpm；
-   - 后端：`./mvnw -B clean package -DskipTests`。POM 尚未声明 `spring-boot-maven-plugin` 时，脚本临时加 `repackage` 目标并指定启动类，然后检查 jar 能被 `java -jar` 启动（Boot 可执行 jar、Start-Class 是 `OneApplication`、该类有 `main`），不满足即失败。
+   - 后端：`./mvnw -B clean package -DskipTests -Drevision=<发布版本>`（POM 版本为 `${revision}`，默认 `0.0.1`）。POM 尚未声明 `spring-boot-maven-plugin` 时，脚本临时加 `repackage` 目标并指定启动类。`backend/target` 中匹配 `forcitis-one-[0-9]*.jar`（不含 `-sources`、`-javadoc`、`-tests`）的必须恰好一个、且名为 `forcitis-one-<发布版本>.jar`，多于一个或没有即失败（避免误选测试产物 `forcitis-one-arch-proof-*.jar`）。然后检查 jar 能被 `java -jar` 启动（Boot 可执行 jar、Start-Class 是 `OneApplication`、该类有 `main`），并断言 jar 内 `META-INF/build-info.properties` 的 `build.version` 与清单的 `Implementation-Version` 都等于发布版本，不满足即失败。
    - 前端：PC（web）与 H5 按 dev、prod 各构建一份（构建期变量不同，见 §6），H5 放在 PC 产物的 `h5/` 下。
 6. 打包、`verify_bundle.sh` 复核，作为 Actions artifact（保留 1 天）交给下一作业。
 
