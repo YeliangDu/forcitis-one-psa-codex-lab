@@ -142,3 +142,7 @@
 | 「1a 涉及哪些聚合？状态机是怎样的？」→ 状态机收进聚合并加守护：「现在就改，并加守护 (Recommended)」（2026-10-14，psa-coordinator 询问） | 审批请求（含轮次）、同步批次、出站投递、工时单、账号 / 角色 / 法人 / 编号规则的启停与确认：合法转换表进领域对象、领域方法改状态、非法转换抛领域异常、仓储带前置状态条件或乐观锁；每个状态机穷举测试；守护禁止 application / infrastructure 直接写状态与 SQL 状态字面量赋值；状态机图写进架构 §3（Phase 1a 下一轮代理 A / B） |
 | 「领域事件是在1a 要考虑的吗」→「在 1a 做全 (Recommended)」（2026-10-14，psa-coordinator 询问） | 聚合在状态转换时记录事件、同事务交 Modulith 发布登记表、消费方幂等；打通 ApprovalCompleted → cost.timesheet；补法人、编号规则、账号、角色等对外有意义的事件；AsyncAPI 事件目录与代码一致；事件守护；架构 §3 事件流图（Phase 1a 下一轮） |
 | 「1a 还有哪些 DDD 设计需要现在考虑？」→「全部在 1a 做，并建 DDD 检查清单 (Recommended)」（2026-10-14，psa-coordinator 询问） | 法人维度与乐观锁直接实施；DMN 路由、审批与单据编排、跨模块强类型、错误链、读模型、上下文映射、审计与事件原则先出方案报用户；DDD 检查清单进 SESSION_PLAYBOOK 与 opus 复审提示 |
+| DDD 第 3 项审批路由 DMN（2026-10-14，psa-coordinator 询问）：「B 决策表管业务判断 (Recommended)」——修订检查点 2「1a 不引入 DMN」 | DMN 只管走哪几路、能否跳过、能否自动通过；取谁仍用类型化指派规则；REIMAGINED_ARCHITECTURE §2.1 注明修订 |
+| DDD 第 6 项错误链位置：「新建 platform.web (Recommended)」（2026-10-14） | platform.web 技术模块：全局 ProblemDetail 处理器、OpenApiRequiredProperties 等跨模块 web 装配 |
+| DDD 第 9 项审计与领域事件：「B 审计订阅领域事件 (Recommended)」；安全事件仍 recordIndependently（2026-10-14） | platform.audit 订阅领域事件（事件发布登记表保证不漏）；登录失败 / 拒绝访问直接独立事务记录 |
+| 审批超时：「工时要求T+1 审批完毕，这个是不是要现在考虑？」；T 从「提交审批当天 (Recommended)」起算；+1 按「工作日，需要工作日历 (Recommended)」；超时「提醒审批人」「升级给审批人的上级」「计入审批时效统计」（均 Recommended，不自动通过）（2026-10-14） | 1a 实现审批时限能力（时限由 DMN / 配置给出，TIMESHEET=提交日后第 1 个工作日结束前）、工作日历（节假日与调休）、到期提醒与升级（取不到上级给流程管理员并告警）、事件 ApprovalTaskOverdue / ApprovalTaskEscalated；不自动通过 |
