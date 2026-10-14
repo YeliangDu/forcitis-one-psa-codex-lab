@@ -13,7 +13,9 @@ import com.forcitis.one.platform.numbering.domain.TemplateVersion;
 import com.forcitis.one.platform.numbering.domain.VersionStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -27,8 +29,10 @@ import org.springframework.stereotype.Repository;
 class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcNumberingRuleRepository(JdbcClient jdbc) {
+    JdbcNumberingRuleRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -103,11 +107,12 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     public void save(NumberingRule rule) {
         int updated = jdbc.sql("""
                         update platform_numbering.numbering_rules
-                           set updated_at = now(), version = :next, event_count = :eventSequence
+                           set updated_at = :updatedAt, version = :next, event_count = :eventSequence
                          where document_type = :type and version = :version
                         """)
                 .param("type", rule.documentType().name())
                 .param("next", rule.versionAfterSave()).param("eventSequence", rule.eventSequenceAfterSave()).param("version", rule.version())
+                .param("updatedAt", Timestamp.from(clock.instant()))
                 .update();
         if (updated != 1) {
             throw concurrentUpdate(rule);
@@ -138,14 +143,15 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
         int updated = jdbc.sql("""
                         update platform_numbering.numbering_rule_versions
                            set status = :status, confirmed_by = :confirmedBy, confirmed_at = :confirmedAt,
-                               finance_confirmed_by = :financeBy, finance_confirmed_at = :financeAt, updated_at = now()
+                               finance_confirmed_by = :financeBy, finance_confirmed_at = :financeAt, updated_at = :updatedAt
                          where document_type = :type and version_number = :number and status = :before
                         """)
                 .param("status", changed.status().name()).param("confirmedBy", changed.confirmedBy() == null ? null : changed.confirmedBy().value(), Types.BIGINT)
                 .param("confirmedAt", changed.confirmedAt() == null ? null : OffsetDateTime.ofInstant(changed.confirmedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("financeBy", changed.financeConfirmedBy() == null ? null : changed.financeConfirmedBy().value(), Types.BIGINT)
                 .param("financeAt", changed.financeConfirmedAt() == null ? null : OffsetDateTime.ofInstant(changed.financeConfirmedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
-                .param("type", rule.documentType().name()).param("number", changed.number()).param("before", before.name()).update();
+                .param("type", rule.documentType().name()).param("number", changed.number()).param("before", before.name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
         if (updated != 1) {
             throw concurrentUpdate(rule);
         }
@@ -162,13 +168,14 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                         insert into platform_numbering.numbering_counters (document_type, legal_entity_id, period_key, last_value)
                         values (:type, :le, :period, :start)
                         on conflict (document_type, legal_entity_id, period_key) do update
-                           set last_value = platform_numbering.numbering_counters.last_value + 1, updated_at = now()
+                           set last_value = platform_numbering.numbering_counters.last_value + 1, updated_at = :updatedAt
                         returning last_value
                         """)
                 .param("type", type.name())
                 .param("le", counterScope)
                 .param("period", periodKey)
                 .param("start", startValue)
+                .param("updatedAt", Timestamp.from(clock.instant()))
                 .query(Long.class)
                 .single();
     }

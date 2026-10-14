@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -25,8 +26,10 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
             + "response_code, handled_note, handled_result, kind, target_key, correlation_id, version, event_count";
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcOutboundDeliveryRepository(JdbcClient jdbc) {
+    JdbcOutboundDeliveryRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -90,7 +93,7 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
         return jdbc.sql("""
                         update platform_integration.outbound_deliveries
                            set status = :status, response_code = :code, sent_at = :sentAt, next_attempt_at = :next,
-                               last_error = :error, version = version + 1, updated_at = now()
+                               last_error = :error, version = version + 1, updated_at = :updatedAt
                          where id = :id and status = :loadedStatus and attempt_count = :claimedAttempt
                         """)
                 .param("status", claimed.status().name())
@@ -99,19 +102,21 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                 .param("next", claimed.nextAttemptAt() == null ? null : Timestamp.from(claimed.nextAttemptAt()), Types.TIMESTAMP)
                 .param("error", claimed.lastError(), Types.VARCHAR)
                 .param("id", claimed.deliveryId().value()).param("loadedStatus", claimed.loadedStatus().name())
-                .param("claimedAttempt", claimed.attemptCount()).update() > 0;
+                .param("claimedAttempt", claimed.attemptCount()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update() > 0;
     }
 
     @Override
     public boolean saveHandled(OutboundDelivery delivery) {
         return jdbc.sql("""
                         update platform_integration.outbound_deliveries
-                           set handled_note = :note, handled_result = :result, version = version + 1, updated_at = now()
+                           set handled_note = :note, handled_result = :result, version = version + 1, updated_at = :updatedAt
                          where id = :id and status = :loadedStatus and attempt_count = :attempt
                         """)
                 .param("note", delivery.handledNote(), Types.VARCHAR).param("result", delivery.handledResult(), Types.VARCHAR)
                 .param("id", delivery.deliveryId().value()).param("loadedStatus", delivery.loadedStatus().name())
-                .param("attempt", delivery.attemptCount()).update() > 0;
+                .param("attempt", delivery.attemptCount()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update() > 0;
     }
 
     @Override

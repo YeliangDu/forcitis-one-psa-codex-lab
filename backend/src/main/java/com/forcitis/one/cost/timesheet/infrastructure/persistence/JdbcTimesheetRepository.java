@@ -13,6 +13,8 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
@@ -26,8 +28,10 @@ class JdbcTimesheetRepository implements TimesheetRepository {
             + " submitted_hours, project_manager_id, status, round_number, submitted_date, event_count, version";
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcTimesheetRepository(JdbcClient jdbc) {
+    JdbcTimesheetRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -74,7 +78,7 @@ class JdbcTimesheetRepository implements TimesheetRepository {
         int updated = jdbc.sql("""
                 UPDATE cost_timesheet.timesheets
                    SET submitted_hours = :hours, project_manager_id = :manager, status = :status,
-                       round_number = :round, submitted_date = :submittedDate, event_count = :sequence, updated_at = now(), version = :next
+                       round_number = :round, submitted_date = :submittedDate, event_count = :sequence, updated_at = :updatedAt, version = :next
                  WHERE id = :id AND version = :version AND status = :previous
                 """)
                 .param("hours", timesheet.submittedHours().value())
@@ -82,7 +86,8 @@ class JdbcTimesheetRepository implements TimesheetRepository {
                 .param("round", timesheet.round()).param("submittedDate", timesheet.submittedOn().orElse(null))
                 .param("sequence", timesheet.eventSequenceAfterSave()).param("next", timesheet.versionAfterSave())
                 .param("id", timesheet.timesheetId().value()).param("version", timesheet.version())
-                .param("previous", timesheet.loadedStatus().name()).update();
+                .param("previous", timesheet.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
         if (updated != 1) {
             throw changedByOthers(timesheet);
         }

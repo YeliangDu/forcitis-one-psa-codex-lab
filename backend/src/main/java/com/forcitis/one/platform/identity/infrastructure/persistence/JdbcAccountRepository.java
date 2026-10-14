@@ -9,6 +9,8 @@ import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.UserAccount;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -25,8 +27,10 @@ import org.springframework.stereotype.Repository;
 class JdbcAccountRepository implements AccountRepository {
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcAccountRepository(JdbcClient jdbc) {
+    JdbcAccountRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -64,12 +68,13 @@ class JdbcAccountRepository implements AccountRepository {
     public void save(UserAccount account) {
         int updated = jdbc.sql("""
                         update platform_identity.user_accounts
-                           set status = :status, updated_at = now(), version = :next, event_count = :eventSequence
+                           set status = :status, updated_at = :updatedAt, version = :next, event_count = :eventSequence
                          where user_id = :id and version = :version and status = :loadedStatus
                         """)
                 .param("status", account.status().name()).param("next", account.versionAfterSave())
                 .param("eventSequence", account.eventSequenceAfterSave()).param("id", account.userId().value())
-                .param("version", account.version()).param("loadedStatus", account.loadedStatus().name()).update();
+                .param("version", account.version()).param("loadedStatus", account.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
         if (updated != 1) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
                     "account " + account.userId().value() + " was changed by someone else");
@@ -96,10 +101,11 @@ class JdbcAccountRepository implements AccountRepository {
     public void recordLogin(UserId userId, Instant at, String address) {
         jdbc.sql("""
                         update platform_identity.user_accounts
-                           set last_login_at = :at, last_login_address = :address, updated_at = now()
+                           set last_login_at = :at, last_login_address = :address, updated_at = :updatedAt
                          where user_id = :id
                         """)
                 .param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC)).param("address", address).param("id", userId.value())
+                .param("updatedAt", Timestamp.from(clock.instant()))
                 .update();
     }
 

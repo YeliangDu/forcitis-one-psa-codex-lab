@@ -9,6 +9,8 @@ import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.RoleRuleException;
 import com.forcitis.one.platform.identity.domain.RoleViolation;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,8 +22,10 @@ import org.springframework.stereotype.Repository;
 class JdbcRoleRepository implements RoleRepository {
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcRoleRepository(JdbcClient jdbc) {
+    JdbcRoleRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -76,12 +80,13 @@ class JdbcRoleRepository implements RoleRepository {
         int updated = jdbc.sql("""
                         update platform_identity.roles
                            set name = :name, status = :status, access_scope = :scope,
-                               updated_at = now(), version = :next, event_count = :eventSequence
+                               updated_at = :updatedAt, version = :next, event_count = :eventSequence
                          where role_id = :id and version = :version and status = :loadedStatus
                         """)
                 .param("name", role.name()).param("status", role.status().name()).param("scope", role.accessScope().name())
                 .param("next", role.versionAfterSave()).param("eventSequence", role.eventSequenceAfterSave()).param("id", role.roleId().value()).param("version", role.version())
-                .param("loadedStatus", role.loadedStatus().name()).update();
+                .param("loadedStatus", role.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
         if (updated != 1) {
             throw staleRole(role);
         }
