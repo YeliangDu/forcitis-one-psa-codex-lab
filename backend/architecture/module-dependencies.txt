@@ -2,8 +2,7 @@
 # Format: <module> -> <module>, <module>   (module = <subdomain>.<bc>; "kernel" is always allowed and omitted)
 # A module may only use the api / events of the modules listed here; anything else fails ModuleDependencyTest.
 # Phase 1a additions: REIMAGINED_ARCHITECTURE.md §2 (approved at checkpoint 2, 2026-10-14).
-cost.timesheet -> delivery.execution, organization.workforce, platform.approval, platform.identity, platform.numbering
-delivery.execution ->
+cost.timesheet -> organization.workforce, platform.approval, platform.identity, platform.numbering
 organization.attendance ->
 organization.workforce -> platform.audit, platform.integration
 platform.approval -> platform.identity, organization.workforce, platform.integration, platform.audit, organization.attendance

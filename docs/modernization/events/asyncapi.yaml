@@ -2243,7 +2243,6 @@ components:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
         - number
@@ -2278,13 +2277,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -2364,7 +2356,6 @@ components:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
         properties:
@@ -2393,13 +2384,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -2438,7 +2422,6 @@ components:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
         - reason
@@ -2468,13 +2451,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -2520,7 +2496,6 @@ components:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
         - reason
@@ -2550,13 +2525,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -2602,7 +2570,6 @@ components:
         - envelope
         - document
         - employee
-        - workPackageId
         - submittedHours
         - round
         - reason
@@ -2632,13 +2599,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:

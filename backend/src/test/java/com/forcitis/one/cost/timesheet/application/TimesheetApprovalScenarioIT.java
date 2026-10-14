@@ -11,7 +11,6 @@ import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
-import com.forcitis.one.delivery.execution.api.WorkPackageId;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
@@ -68,7 +67,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
 
     static final AtomicLong TIMESHEETS = new AtomicLong(50_000);
-    static final long WORK_PACKAGE = 7_001;
     static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
 
     @Autowired
@@ -130,25 +128,25 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     TimesheetView submit(TimesheetId id, String hours) {
-        return submit(id, WORK_PACKAGE, workDay(), hours);
+        return submit(id, workDay(), hours);
     }
 
-    TimesheetView submit(TimesheetId id, long workPackage, LocalDate workDate, String hours) {
+    TimesheetView submit(TimesheetId id, LocalDate workDate, String hours) {
         signInAs(employee);
-        return submitTimesheet.execute(new SubmitTimesheetCommand(id, new WorkPackageId(workPackage), workDate, Hours.of(hours), new UserId(manager)));
+        return submitTimesheet.execute(new SubmitTimesheetCommand(id, workDate, Hours.of(hours), new UserId(manager)));
     }
 
     /** Submits and waits until the approval has started from the event: its first task has been assigned. */
-    TimesheetView submitAndAwaitApproval(Scenario scenario, TimesheetId id, long workPackage, LocalDate workDate, String hours) {
+    TimesheetView submitAndAwaitApproval(Scenario scenario, TimesheetId id, LocalDate workDate, String hours) {
         java.util.concurrent.atomic.AtomicReference<TimesheetView> answer = new java.util.concurrent.atomic.AtomicReference<>();
         DocumentReference document = documentOf(id);
-        scenario.stimulate(() -> answer.updateAndGet(previous -> submit(id, workPackage, workDate, hours)))
+        scenario.stimulate(() -> answer.updateAndGet(previous -> submit(id, workDate, hours)))
                 .andWaitForEventOfType(TaskAssigned.class).matching(e -> e.document().equals(document)).toArrive();
         return answer.get();
     }
 
     TimesheetView submitAndAwaitApproval(Scenario scenario, TimesheetId id, String hours) {
-        return submitAndAwaitApproval(scenario, id, WORK_PACKAGE, workDay(), hours);
+        return submitAndAwaitApproval(scenario, id, workDay(), hours);
     }
 
     TimesheetView view(TimesheetId id) {
@@ -285,7 +283,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         TimesheetId id = newTimesheet();
         DocumentReference document = documentOf(id);
         LocalDate workDate = workDay();
-        submitAndAwaitApproval(scenario, id, 7_001, workDate, "9");
+        submitAndAwaitApproval(scenario, id, workDate, "9");
         ApprovalTaskId task = taskOf(id);
 
         scenario.stimulate(() -> decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.REJECT, "too many hours")), java.util.OptionalLong.empty()))
@@ -296,7 +294,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.RETURNED);
         assertThat(published.ofType(TimesheetRejected.class).matching(e -> e.document().equals(document))).isEmpty();
 
-        assertThatThrownBy(() -> submit(id, 7_001, workDate.minusDays(1), "7.5")).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_WORK_DATE_FIXED));
+        assertThatThrownBy(() -> submit(id, workDate.minusDays(1), "7.5")).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_WORK_DATE_FIXED));
         scenario.stimulate(() -> submit(id, "7.5")).andWaitForEventOfType(TaskAssigned.class)
                 .matching(e -> e.document().equals(document) && !e.taskId().equals(task)).toArrive();
         assertThat(view(id).round()).isEqualTo(2);
@@ -372,7 +370,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         organisation.person(stranger, 1, null);
         signInAs(stranger);
 
-        assertThatThrownBy(() -> submitTimesheet.execute(new SubmitTimesheetCommand(id, new WorkPackageId(WORK_PACKAGE), workDay(), Hours.of("1"),
+        assertThatThrownBy(() -> submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("1"),
                 new UserId(manager)))).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_OWNER));
         assertThatThrownBy(() -> withdrawTimesheet.execute(id, "mine", java.util.OptionalLong.empty())).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_OWNER));
         assertThatThrownBy(() -> cancelTimesheet.execute(id, "mine", java.util.OptionalLong.empty())).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_OWNER));
@@ -396,7 +394,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     @DisplayName("H-6 the work date cannot be after today; K1/K2 the timesheet keeps its number and the department of the employee")
     void workDateAndTheNumberAndDepartmentAreStored() {
         TimesheetId future = newTimesheet();
-        assertThatThrownBy(() -> submit(future, WORK_PACKAGE, LocalDate.now(ZONE).plusDays(1), "1"))
+        assertThatThrownBy(() -> submit(future, LocalDate.now(ZONE).plusDays(1), "1"))
                 .satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_WORK_DATE_IN_FUTURE));
         assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where id = ?", Integer.class, future.value())).isZero();
 
@@ -423,55 +421,34 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("M-3 two submissions on one work package cannot both pass the check: hours already submitted count as taken")
-    void concurrentSubmissionsCannotExceedTheWorkPackage() throws Exception {
-        long scarce = 7_500 + newId() % 1_000;
-        workPackageHas(scarce, "10");
-        long other = newId();
-        organisation.person(other, 1, null);
+    @DisplayName("two first submissions of the same timesheet at once create one timesheet, one number and one TimesheetSubmitted")
+    void concurrentFirstSubmissionsOfOneTimesheetCreateOne() throws Exception {
+        TimesheetId id = newTimesheet();
         ExecutorService pool = Executors.newFixedThreadPool(2);
         CountDownLatch go = new CountDownLatch(1);
         try {
-            List<Future<Object>> results = List.of(pool.submit(() -> submitOnThread(employee, scarce, go)), pool.submit(() -> submitOnThread(other, scarce, go)));
+            List<Future<Object>> results = List.of(pool.submit(() -> submitOnThread(id, go)), pool.submit(() -> submitOnThread(id, go)));
             go.countDown();
-            int succeeded = 0;
-            int refused = 0;
             for (Future<Object> result : results) {
-                Object outcome = result.get();
-                if (outcome instanceof TimesheetView) {
-                    succeeded++;
-                } else {
-                    domainError((Throwable) outcome, TimesheetError.COST_TIMESHEET_EXCEEDS_REMAINING_HOURS);
-                    refused++;
-                }
+                assertThat(result.get()).isInstanceOf(TimesheetView.class);
             }
-            assertThat(succeeded).isEqualTo(1);
-            assertThat(refused).isEqualTo(1);
         } finally {
             pool.shutdownNow();
         }
-        assertThat(jdbc.queryForObject("select coalesce(sum(submitted_hours), 0) from cost_timesheet.timesheets where work_package_id = ?", BigDecimal.class,
-                scarce)).isEqualByComparingTo("6");
+        assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where id = ?", Integer.class, id.value())).isEqualTo(1);
+        assertThat(jdbc.queryForMap("select version, event_count from cost_timesheet.timesheets where id = ?", id.value()))
+                .containsEntry("version", 1L).containsEntry("event_count", 1L);
     }
 
-    Object submitOnThread(long user, long workPackage, CountDownLatch go) throws InterruptedException {
+    Object submitOnThread(TimesheetId id, CountDownLatch go) throws InterruptedException {
         go.await();
-        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(String.valueOf(user), "x", "ROLE_TEST"));
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(String.valueOf(employee), "x", "ROLE_TEST"));
         try {
-            return submitTimesheet.execute(new SubmitTimesheetCommand(newTimesheet(), new WorkPackageId(workPackage), workDay(), Hours.of("6"),
-                    new UserId(manager)));
+            return submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("6"), new UserId(manager)));
         } catch (RuntimeException refused) {
             return refused;
         } finally {
             SecurityContextHolder.clearContext();
         }
-    }
-
-    @Test
-    @DisplayName("an unknown work package is refused with its own code")
-    void unknownWorkPackage() {
-        workPackageIsUnknown(7_999);
-        assertThatThrownBy(() -> submit(newTimesheet(), 7_999, workDay(), "1"))
-                .satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_UNKNOWN_WORK_PACKAGE));
     }
 }

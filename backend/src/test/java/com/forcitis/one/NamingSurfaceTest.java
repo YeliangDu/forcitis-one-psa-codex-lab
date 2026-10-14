@@ -217,12 +217,25 @@ class NamingSurfaceTest {
     static final Pattern MIGRATION = Pattern.compile("V(?<ts>\\d{14})__(?<module>[a-z]+_[a-z]+)_(?<description>.+)\\.sql");
     static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("uuuuMMddHHmmss").withResolverStyle(ResolverStyle.STRICT);
 
+    static Set<String> retiredSchemas() throws IOException {
+        return Files.readAllLines(Path.of("architecture/retired-module-schemas.txt")).stream().filter(l -> !l.isBlank() && !l.startsWith("#"))
+                .map(l -> l.split("#")[0].trim()).collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
     @Test
     void flywayFilesAreTimestampModuleEnglishSnakeCaseInTheModuleFolder() throws IOException {
         List<String> problems = new ArrayList<>();
         Map<String, Path> versions = new LinkedHashMap<>();
         Set<String> schemas = MODULES.keySet().stream().filter(m -> m.contains(".")).map(m -> m.replace('.', '_'))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> retired = retiredSchemas();
+        schemas.addAll(retired);
+        for (String schema : retired) {
+            List<Path> inFolder = files(MIGRATIONS.resolve(schema), ".sql").stream().sorted().toList();
+            if (inFolder.isEmpty() || !Files.readString(inFolder.get(inFolder.size() - 1)).contains("DROP SCHEMA " + schema + ";")) {
+                problems.add("architecture/retired-module-schemas.txt: the last migration in " + schema + " must drop the schema");
+            }
+        }
         for (Path file : files(MIGRATIONS, ".sql")) {
             String folder = file.getParent().getFileName().toString();
             String name = file.getFileName().toString();

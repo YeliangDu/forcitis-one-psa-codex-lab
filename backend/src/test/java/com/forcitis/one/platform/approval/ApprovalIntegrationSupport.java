@@ -4,10 +4,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.delivery.execution.api.WorkPackageId;
-import com.forcitis.one.delivery.execution.api.WorkPackageQueries;
 import com.forcitis.one.kernel.DocumentType;
-import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
@@ -33,10 +30,8 @@ import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import org.awaitility.Awaitility;
@@ -126,9 +121,6 @@ public abstract class ApprovalIntegrationSupport {
     protected DocumentNumbers numbers;
 
     @MockitoBean
-    protected WorkPackageQueries workPackages;
-
-    @MockitoBean
     protected com.forcitis.one.organization.workforce.api.EmployeeLegalEntities employeeLegalEntities;
 
     @Autowired
@@ -183,7 +175,6 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     static final AtomicLong NUMBERS = new AtomicLong();
-    static final Map<Long, Optional<Hours>> REMAINING = new ConcurrentHashMap<>();
 
     @BeforeEach
     void administratorExists() {
@@ -193,17 +184,6 @@ public abstract class ApprovalIntegrationSupport {
         organisation.person(ADMINISTRATOR, 1, null);
         org.mockito.Mockito.when(numbers.next(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .thenAnswer(call -> new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()));
-        org.mockito.Mockito.when(workPackages.remainingHours(org.mockito.ArgumentMatchers.any())).thenAnswer(call ->
-                REMAINING.getOrDefault(((WorkPackageId) call.getArgument(0)).value(), Optional.of(Hours.of("400"))));
-    }
-
-    /** What the work package module answers for one work package: the hours left, or nothing for an unknown one. */
-    protected static void workPackageHas(long id, String hoursLeft) {
-        REMAINING.put(id, Optional.of(Hours.of(hoursLeft)));
-    }
-
-    protected static void workPackageIsUnknown(long id) {
-        REMAINING.put(id, Optional.empty());
     }
 
     /** Unique ids so tests sharing database and context cannot see each other's data. */

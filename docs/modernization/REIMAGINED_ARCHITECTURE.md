@@ -118,7 +118,6 @@ flowchart LR
   NM["platform.numbering<br/>单据编号"]
   AU["platform.audit<br/>只追加审计"]
   TS["cost.timesheet"]
-  DE["delivery.execution"]
   EV["platform.eventing<br/>事件信封实现（技术模块）"]
   WB["platform.web<br/>错误链 · 关联号过滤器（技术模块）"]
   ACL -->|"ACL：翻译为 Source* 类型"| WX
@@ -135,7 +134,8 @@ flowchart LR
   AP -->|"Customer-Supplier：WorkCalendar"| AT
   TS --> AP
   TS --> ID
-  TS --> DE
+  TS -->|"Customer-Supplier：EmployeeLegalEntities、OrgDirectory"| WF
+  TS -->|"DocumentNumbers"| NM
   EV -->|"CurrentUser"| ID
   AU -. "订阅全部 DomainEvent（发布语言）" .-> WF
   AU -.-> ID

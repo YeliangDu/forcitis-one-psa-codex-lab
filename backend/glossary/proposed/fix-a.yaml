@@ -322,34 +322,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__cost_timesheet_exceeds_remaining_hours
-  zh: 超出剩余工时
-  en: CostTimesheetExceedsRemainingHours
-  snake: cost_timesheet_exceeds_remaining_hours
-  kind: error_code
-  bc: cost.timesheet
-  definition: 提交工时超过工作包剩余工时（422）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__cost_timesheet_unknown_work_package
-  zh: 工作包不存在
-  en: CostTimesheetUnknownWorkPackage
-  snake: cost_timesheet_unknown_work_package
-  kind: error_code
-  bc: cost.timesheet
-  definition: 找不到该工作包（404）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__cost_timesheet_not_found
   zh: 工时单不存在
   en: CostTimesheetNotFound

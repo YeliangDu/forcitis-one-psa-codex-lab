@@ -1,7 +1,6 @@
 package com.forcitis.one.cost.timesheet.events;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
-import com.forcitis.one.delivery.execution.api.WorkPackageId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.UserId;
@@ -19,7 +18,7 @@ import java.util.List;
  * envelope's business date is the work date; submittedOn is the day the employee sent it.
  */
 public record TimesheetSubmitted(EventEnvelope envelope, DocumentReference document, DocumentNumber number, UserId employee,
-                                 UserId projectManager, WorkPackageId workPackageId, Hours submittedHours, LocalDate submittedOn,
+                                 UserId projectManager, Hours submittedHours, LocalDate submittedOn,
                                  RoundNumber round, List<TimesheetRoutingFlag> routingFlags, ContentHash contentHash,
                                  ApprovalSummary summary) implements DomainEvent {
 

@@ -96,7 +96,7 @@ class ApplicationIntegrationTest {
     static final LegalEntityId LE1 = new LegalEntityId(1L);
 
     static final String SUBMIT = "/api/v1/cost/timesheets/7:submit";
-    static final String BODY = "{\"workPackageId\":1,\"hours\":8,\"projectManagerId\":2002}";
+    static final String BODY = "{\"hours\":8,\"projectManagerId\":2002}";
 
     @Autowired
     MockMvc mvc;
@@ -432,7 +432,7 @@ class ApplicationIntegrationTest {
                        col_description(format('%I.%I', c.table_schema, c.table_name)::regclass, c.ordinal_position) as column_comment,
                        obj_description(format('%I.%I', c.table_schema, c.table_name)::regclass, 'pg_class') as table_comment
                   from information_schema.columns c
-                 where c.table_schema in ('delivery_execution', 'platform_numbering', 'platform_scheduling')
+                 where c.table_schema in ('platform_numbering', 'platform_scheduling')
                  order by c.table_schema, c.table_name, c.ordinal_position
                 """);
         assertThat(rows).isNotEmpty();

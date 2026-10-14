@@ -30,13 +30,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -137,13 +130,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -202,13 +188,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -274,13 +253,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:
@@ -346,13 +318,6 @@ components:
               value:
                 type: integer
                 format: int64
-          workPackageId:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
-            description: 任务包
           submittedHours:
             type: object
             properties:

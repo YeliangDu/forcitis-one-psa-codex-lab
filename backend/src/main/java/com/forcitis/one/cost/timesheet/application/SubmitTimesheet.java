@@ -4,11 +4,8 @@ import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
-import com.forcitis.one.delivery.execution.api.WorkPackageId;
-import com.forcitis.one.delivery.execution.api.WorkPackageQueries;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DocumentType;
-import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.AggregateReference;
@@ -23,7 +20,6 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -32,15 +28,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The submitter and the legal entity come from the session, never from the request. Submitting changes this timesheet only; the
- * approval starts when the event it publishes is handled. Hours already submitted on the work package count as taken, and the
- * submissions on one work package are serialised, so two of them cannot both pass the check and together exceed what is left.
+ * approval starts when the event it publishes is handled.
  * A timesheet already in approval is answered as it is; one whose round has ended but whose result is not applied yet cannot be
  * submitted again; one that was approved or refused cannot be submitted at all.
  */
 @Service
 public class SubmitTimesheet {
 
-    private final WorkPackageQueries workPackages;
     private final ApprovalProcesses approvals;
     private final CurrentUser currentUser;
     private final OrgDirectory org;
@@ -51,9 +45,8 @@ public class SubmitTimesheet {
     private final Clock clock;
     private final BusinessZone zone;
 
-    SubmitTimesheet(WorkPackageQueries workPackages, ApprovalProcesses approvals, CurrentUser currentUser, OrgDirectory org,
+    SubmitTimesheet(ApprovalProcesses approvals, CurrentUser currentUser, OrgDirectory org,
             EmployeeLegalEntities legalEntities, DocumentNumbers numbers, TimesheetRepository repository, DomainEvents events, Clock clock, BusinessZone zone) {
-        this.workPackages = workPackages;
         this.approvals = approvals;
         this.currentUser = currentUser;
         this.org = org;
@@ -69,7 +62,6 @@ public class SubmitTimesheet {
     public TimesheetView execute(SubmitTimesheetCommand command) {
         UserId employee = currentUser.userId();
         LocalDate today = zone.today(clock);
-        repository.lockWorkPackage(command.workPackageId());
         repository.lockForCreate(command.timesheetId());
         Optional<Timesheet> existing = repository.findForUpdate(command.timesheetId());
         Timesheet timesheet;
@@ -81,32 +73,20 @@ public class SubmitTimesheet {
                 requireRoundStillRunning(timesheet);
                 return view(timesheet, false);
             }
-            requireEnoughHours(command.workPackageId(), command.hours(), command);
-            timesheet.revise(employee, command.workPackageId(), command.workDate(), command.hours(), command.projectManager());
+            timesheet.revise(employee, command.workDate(), command.hours(), command.projectManager());
         } else {
-            requireEnoughHours(command.workPackageId(), command.hours(), command);
             OrgUnitId orgUnit = org.findEmployee(employee).map(profile -> profile.orgUnitId()).orElseThrow(
                     () -> TimesheetError.COST_TIMESHEET_EMPLOYEE_UNKNOWN.refusal("User " + employee.value() + " is not in the organisation"));
             LegalEntityId legalEntity = legalEntities.on(employee, command.workDate());
             DocumentNumber number = numbers.next(DocumentType.TIMESHEET, legalEntity, today);
             timesheet = Timesheet.draft(command.timesheetId(), number, new AggregateReference("NumberingRule", DocumentType.TIMESHEET.name()),
-                    employee, legalEntity, orgUnit, command.workPackageId(), command.workDate(), command.hours(),
+                    employee, legalEntity, orgUnit, command.workDate(), command.hours(),
                     command.projectManager(), today);
         }
         timesheet.submit(employee, today);
         repository.save(timesheet);
         events.publish(timesheet);
         return view(timesheet, false);
-    }
-
-    private void requireEnoughHours(WorkPackageId workPackage, Hours wanted, SubmitTimesheetCommand command) {
-        Hours remaining = workPackages.remainingHours(workPackage).orElseThrow(
-                () -> TimesheetError.COST_TIMESHEET_UNKNOWN_WORK_PACKAGE.refusal("No work package " + workPackage.value()));
-        BigDecimal available = remaining.value().subtract(repository.pendingHours(workPackage, command.timesheetId()).value());
-        if (wanted.value().compareTo(available) > 0) {
-            throw TimesheetError.COST_TIMESHEET_EXCEEDS_REMAINING_HOURS.refusal("Work package " + workPackage.value() + " has "
-                    + available.max(BigDecimal.ZERO).toPlainString() + " hours left, " + wanted.value().toPlainString() + " were submitted");
-        }
     }
 
     private void requireRoundStillRunning(Timesheet timesheet) {

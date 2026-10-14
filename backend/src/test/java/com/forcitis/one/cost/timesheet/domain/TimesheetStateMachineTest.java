@@ -12,7 +12,6 @@ import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
-import com.forcitis.one.delivery.execution.api.WorkPackageId;
 import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
 import com.forcitis.one.kernel.AccountingPeriod;
 import com.forcitis.one.kernel.DomainException;
@@ -43,19 +42,19 @@ class TimesheetStateMachineTest {
 
     static Timesheet in(TimesheetStatus status) {
         return Timesheet.restore(new TimesheetId(7), new DocumentNumber("TS-ABC-202610-0007"), OWNER, new LegalEntityId(1), new OrgUnitId(5),
-                new WorkPackageId(1), WORK_DATE, Hours.of("8"), new UserId(40), status, 2, TODAY.minusDays(1), 6, 4);
+                WORK_DATE, Hours.of("8"), new UserId(40), status, 2, TODAY.minusDays(1), 6, 4);
     }
 
     static Timesheet drafted() {
         return Timesheet.draft(new TimesheetId(7), new DocumentNumber("TS-ABC-202610-0007"), new AggregateReference("NumberingRule", "TIMESHEET"),
-                OWNER, new LegalEntityId(1), new OrgUnitId(5), new WorkPackageId(1), WORK_DATE, Hours.of("8"), new UserId(40), TODAY);
+                OWNER, new LegalEntityId(1), new OrgUnitId(5), WORK_DATE, Hours.of("8"), new UserId(40), TODAY);
     }
 
     @Test
     @DisplayName("RULE-279/289 every timesheet operation is tried from every status: only the table's pairs move, every other pair is refused with a conflict and changes nothing")
     void everyOperationInEveryStatus() {
         List<String> tried = new TransitionTable<TimesheetStatus, Timesheet>(TimesheetStatus.class, TimesheetStateMachineTest::in, Timesheet::status)
-                .operation("revise", t -> t.revise(OWNER, new WorkPackageId(2), WORK_DATE, Hours.of("6"), new UserId(41)),
+                .operation("revise", t -> t.revise(OWNER, WORK_DATE, Hours.of("6"), new UserId(41)),
                         TimesheetStatus.DRAFT, TimesheetStatus.DRAFT, TimesheetStatus.RETURNED, TimesheetStatus.RETURNED)
                 .operation("submit", t -> t.submit(OWNER, TODAY), TimesheetStatus.DRAFT, TimesheetStatus.SUBMITTED, TimesheetStatus.RETURNED,
                         TimesheetStatus.SUBMITTED)
@@ -72,7 +71,7 @@ class TimesheetStateMachineTest {
     void onlyTheOwnerChangesAndSubmits() {
         assertThatThrownBy(() -> in(TimesheetStatus.DRAFT).submit(STRANGER, TODAY)).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_NOT_OWNER));
-        assertThatThrownBy(() -> in(TimesheetStatus.RETURNED).revise(STRANGER, new WorkPackageId(2), WORK_DATE, Hours.of("1"), new UserId(41)))
+        assertThatThrownBy(() -> in(TimesheetStatus.RETURNED).revise(STRANGER, WORK_DATE, Hours.of("1"), new UserId(41)))
                 .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_NOT_OWNER));
     }
 
@@ -80,18 +79,18 @@ class TimesheetStateMachineTest {
     @DisplayName("H-6 D-1a-126 the work date is what the employee entered: it cannot be after today, and a resubmission cannot rewrite it")
     void theWorkDateIsEnteredAndKept() {
         assertThatThrownBy(() -> Timesheet.draft(new TimesheetId(7), new DocumentNumber("TS-1"), new AggregateReference("NumberingRule", "TIMESHEET"),
-                OWNER, new LegalEntityId(1), new OrgUnitId(5), new WorkPackageId(1), TODAY.plusDays(1), Hours.of("8"), new UserId(40), TODAY))
+                OWNER, new LegalEntityId(1), new OrgUnitId(5), TODAY.plusDays(1), Hours.of("8"), new UserId(40), TODAY))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_WORK_DATE_IN_FUTURE));
         Timesheet today = Timesheet.draft(new TimesheetId(8), new DocumentNumber("TS-2"), new AggregateReference("NumberingRule", "TIMESHEET"),
-                OWNER, new LegalEntityId(1), new OrgUnitId(5), new WorkPackageId(1), TODAY, Hours.of("8"), new UserId(40), TODAY);
+                OWNER, new LegalEntityId(1), new OrgUnitId(5), TODAY, Hours.of("8"), new UserId(40), TODAY);
         assertThat(today.workDate()).isEqualTo(TODAY);
 
         Timesheet returned = in(TimesheetStatus.RETURNED);
-        assertThatThrownBy(() -> returned.revise(OWNER, new WorkPackageId(1), WORK_DATE.plusDays(1), Hours.of("8"), new UserId(40)))
+        assertThatThrownBy(() -> returned.revise(OWNER, WORK_DATE.plusDays(1), Hours.of("8"), new UserId(40)))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_WORK_DATE_FIXED));
-        returned.revise(OWNER, new WorkPackageId(1), WORK_DATE, Hours.of("7.5"), new UserId(40));
+        returned.revise(OWNER, WORK_DATE, Hours.of("7.5"), new UserId(40));
         returned.submit(OWNER, TODAY.plusDays(3));
         assertThat(returned.workDate()).as("submitting days later does not move the hours to another day").isEqualTo(WORK_DATE);
         assertThat(returned.submittedOn()).as("the day of submission is a fact of its own").contains(TODAY.plusDays(3));
@@ -103,7 +102,7 @@ class TimesheetStateMachineTest {
     void returnedThenRevisedThenSubmittedAgain() {
         Timesheet timesheet = in(TimesheetStatus.RETURNED);
         var before = timesheet.contentHash();
-        timesheet.revise(OWNER, new WorkPackageId(1), WORK_DATE, Hours.of("7.5"), new UserId(40));
+        timesheet.revise(OWNER, WORK_DATE, Hours.of("7.5"), new UserId(40));
         assertThat(timesheet.contentHash()).isNotEqualTo(before);
         timesheet.submit(OWNER, TODAY);
         assertThat(timesheet.status()).isEqualTo(TimesheetStatus.SUBMITTED);
@@ -195,7 +194,7 @@ class TimesheetStateMachineTest {
             for (int step = 0; step < 25; step++) {
                 try {
                     switch (random.nextInt(7)) {
-                        case 0 -> timesheet.revise(OWNER, new WorkPackageId(1 + random.nextInt(3)), WORK_DATE, Hours.of("8"), new UserId(40));
+                        case 0 -> timesheet.revise(OWNER, WORK_DATE, Hours.of("8"), new UserId(40));
                         case 1 -> timesheet.submit(OWNER, TODAY);
                         case 2 -> timesheet.approve();
                         case 3 -> timesheet.reject(new Reason("no"));

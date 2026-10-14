@@ -9,7 +9,6 @@ import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
-import com.forcitis.one.delivery.execution.api.WorkPackageId;
 import com.forcitis.one.kernel.AccountingPeriod;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DocumentId;
@@ -66,7 +65,6 @@ public final class Timesheet extends AggregateRoot {
     private final TimesheetStatus loadedStatus;
     private final boolean isNew;
     private final List<AggregateReference> touchedTogether;
-    private WorkPackageId workPackageId;
     private Hours submittedHours;
     private UserId projectManager;
     private TimesheetStatus status;
@@ -74,7 +72,7 @@ public final class Timesheet extends AggregateRoot {
     private LocalDate submittedOn;
 
     private Timesheet(TimesheetId timesheetId, DocumentNumber number, UserId employee, LegalEntityId legalEntityId, OrgUnitId orgUnitId,
-            WorkPackageId workPackageId, LocalDate workDate, Hours submittedHours, UserId projectManager, TimesheetStatus status,
+            LocalDate workDate, Hours submittedHours, UserId projectManager, TimesheetStatus status,
             int round, LocalDate submittedOn, List<AggregateReference> touchedTogether, long version, long eventSequence, boolean isNew) {
         super(version, eventSequence);
         this.timesheetId = Objects.requireNonNull(timesheetId, "timesheetId");
@@ -82,7 +80,6 @@ public final class Timesheet extends AggregateRoot {
         this.employee = Objects.requireNonNull(employee, "employee");
         this.legalEntityId = Objects.requireNonNull(legalEntityId, "legalEntityId");
         this.orgUnitId = Objects.requireNonNull(orgUnitId, "orgUnitId");
-        this.workPackageId = Objects.requireNonNull(workPackageId, "workPackageId");
         this.workDate = Objects.requireNonNull(workDate, "workDate");
         this.submittedHours = Objects.requireNonNull(submittedHours, "submittedHours");
         this.projectManager = Objects.requireNonNull(projectManager, "projectManager");
@@ -99,23 +96,23 @@ public final class Timesheet extends AggregateRoot {
      * unit of work name it as a related aggregate.
      */
     public static Timesheet draft(TimesheetId timesheetId, DocumentNumber number, AggregateReference counter, UserId employee,
-            LegalEntityId legalEntityId, OrgUnitId orgUnitId, WorkPackageId workPackageId, LocalDate workDate, Hours submittedHours,
+            LegalEntityId legalEntityId, OrgUnitId orgUnitId, LocalDate workDate, Hours submittedHours,
             UserId projectManager, LocalDate today) {
         if (workDate.isAfter(today)) {
             throw TimesheetError.COST_TIMESHEET_WORK_DATE_IN_FUTURE.refusal("The work date " + workDate + " is after today, " + today);
         }
-        return new Timesheet(timesheetId, number, employee, legalEntityId, orgUnitId, workPackageId, workDate, submittedHours,
+        return new Timesheet(timesheetId, number, employee, legalEntityId, orgUnitId, workDate, submittedHours,
                 projectManager, TimesheetStatus.DRAFT, 0, null, List.of(counter), 0, 0, true);
     }
 
     public static Timesheet restore(TimesheetId timesheetId, DocumentNumber number, UserId employee, LegalEntityId legalEntityId,
-            OrgUnitId orgUnitId, WorkPackageId workPackageId, LocalDate workDate, Hours submittedHours, UserId projectManager,
+            OrgUnitId orgUnitId, LocalDate workDate, Hours submittedHours, UserId projectManager,
             TimesheetStatus status, int round, LocalDate submittedOn, long version, long eventSequence) {
-        return new Timesheet(timesheetId, number, employee, legalEntityId, orgUnitId, workPackageId, workDate, submittedHours,
+        return new Timesheet(timesheetId, number, employee, legalEntityId, orgUnitId, workDate, submittedHours,
                 projectManager, status, round, submittedOn, List.of(), version, eventSequence, false);
     }
 
-    public void revise(UserId by, WorkPackageId newWorkPackage, LocalDate newWorkDate, Hours newHours, UserId newProjectManager) {
+    public void revise(UserId by, LocalDate newWorkDate, Hours newHours, UserId newProjectManager) {
         requireOwner(by);
         if (!status.isEditable()) {
             throw TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL.refusal("The timesheet cannot be changed while it is " + status);
@@ -124,7 +121,6 @@ public final class Timesheet extends AggregateRoot {
             throw TimesheetError.COST_TIMESHEET_WORK_DATE_FIXED.refusal(
                     "The work date " + workDate + " was entered with the timesheet and is not rewritten by a resubmission");
         }
-        workPackageId = Objects.requireNonNull(newWorkPackage, "newWorkPackage");
         submittedHours = Objects.requireNonNull(newHours, "newHours");
         projectManager = Objects.requireNonNull(newProjectManager, "newProjectManager");
     }
@@ -139,44 +135,44 @@ public final class Timesheet extends AggregateRoot {
         ContentHash hash = contentHash();
         ApprovalSummary summary = new ApprovalSummary(number.value() + " " + workDate + " " + submittedHours.value().toPlainString() + "h");
         record("TimesheetSubmitted", envelope -> new TimesheetSubmitted(envelope, at.document(), number, at.employee(), projectManager,
-                at.workPackageId(), at.submittedHours(), at.submittedOn(), new RoundNumber(at.round()), flags, hash, summary));
+                at.submittedHours(), at.submittedOn(), new RoundNumber(at.round()), flags, hash, summary));
     }
 
     public void approve() {
         status = MACHINE.require(status, TimesheetStatus.APPROVED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("TimesheetApproved", envelope -> new TimesheetApproved(envelope, at.document(), at.employee(), at.workPackageId(),
+        record("TimesheetApproved", envelope -> new TimesheetApproved(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round())));
     }
 
     public void reject(Reason reason) {
         status = MACHINE.require(status, TimesheetStatus.REJECTED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("TimesheetRejected", envelope -> new TimesheetRejected(envelope, at.document(), at.employee(), at.workPackageId(),
+        record("TimesheetRejected", envelope -> new TimesheetRejected(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 
     public void returnForRevision(Reason reason) {
         status = MACHINE.require(status, TimesheetStatus.RETURNED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("TimesheetReturned", envelope -> new TimesheetReturned(envelope, at.document(), at.employee(), at.workPackageId(),
+        record("TimesheetReturned", envelope -> new TimesheetReturned(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 
     public void cancelSubmission(Reason reason) {
         status = MACHINE.require(status, TimesheetStatus.DRAFT, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("TimesheetCancelled", envelope -> new TimesheetCancelled(envelope, at.document(), at.employee(), at.workPackageId(),
+        record("TimesheetCancelled", envelope -> new TimesheetCancelled(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 
     /** What an event reports is fixed when it is recorded, not when it is published. */
-    private record Snapshot(DocumentReference document, UserId employee, WorkPackageId workPackageId, Hours submittedHours,
+    private record Snapshot(DocumentReference document, UserId employee, Hours submittedHours,
                             LocalDate submittedOn, int round) {
     }
 
     private Snapshot snapshot() {
-        return new Snapshot(document(), employee, workPackageId, submittedHours, submittedOn, round);
+        return new Snapshot(document(), employee, submittedHours, submittedOn, round);
     }
 
     public boolean isAwaitingResultOfRound(int resultRound) {
@@ -184,7 +180,7 @@ public final class Timesheet extends AggregateRoot {
     }
 
     public ContentHash contentHash() {
-        String content = workPackageId.value() + "|" + workDate + "|" + submittedHours.value().toPlainString() + "|" + projectManager.value();
+        String content = workDate + "|" + submittedHours.value().toPlainString() + "|" + projectManager.value();
         try {
             return new ContentHash(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content.getBytes(StandardCharsets.UTF_8))));
         } catch (NoSuchAlgorithmException e) {
@@ -230,10 +226,6 @@ public final class Timesheet extends AggregateRoot {
 
     public OrgUnitId orgUnitId() {
         return orgUnitId;
-    }
-
-    public WorkPackageId workPackageId() {
-        return workPackageId;
     }
 
     public LocalDate workDate() {

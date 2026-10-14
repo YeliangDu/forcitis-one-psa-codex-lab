@@ -5,8 +5,6 @@ import com.forcitis.one.kernel.ErrorCode;
 import com.forcitis.one.kernel.ErrorKind;
 
 public enum TimesheetError implements ErrorCode {
-    COST_TIMESHEET_EXCEEDS_REMAINING_HOURS(ErrorKind.UNPROCESSABLE),
-    COST_TIMESHEET_UNKNOWN_WORK_PACKAGE(ErrorKind.NOT_FOUND),
     COST_TIMESHEET_NOT_FOUND(ErrorKind.NOT_FOUND),
     COST_TIMESHEET_NOT_OWNER(ErrorKind.FORBIDDEN),
     COST_TIMESHEET_TRANSITION_ILLEGAL(ErrorKind.CONFLICT),
