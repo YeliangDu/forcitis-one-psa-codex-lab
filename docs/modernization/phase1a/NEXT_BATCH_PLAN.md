@@ -107,7 +107,7 @@
 | R-3a 纯合并基线 | 重构 | sonnet 执行，opus 复核 | 每个 schema 的迁移合并为一个基线文件；`application.properties:15`；建库脚本 §4b；`retired-module-schemas.txt` 与 `delivery_execution` 目录（基线中直接不再出现） | 任何表结构变化 | 两个空库各跑合并前、合并后的迁移，`pg_dump --schema-only` 的 diff 为空，证据写进 PR 正文 |
 | R-1 UUIDv7 | 重构 | sonnet 执行，opus 复审 | ID 值对象；`KernelConfiguration` 的默认 `IdGenerator` 改为 `Uuids.timeOrdered`；每个 schema 的主键与外键列；事件负载与 `events/*.yaml`；OpenAPI；`primary-key-type-baseline.txt` 删行；前端生成物 | 外部来源 ID：`SourceUnitId`、`SourcePersonId`、`SourcePositionId`；快照表按平台约定 §1 沿用 A8 ID，列入白名单 | 25 张基线表逐一处理：改为 uuid，或按约定列入快照白名单并写明理由。15 个 long 型 ID 值对象、OpenAPI 中 39 处 int64 逐一给出结论。一并解决 Flowable 顺序数字 ID（b12-M-12：`StrongUuidGenerator`）。全量测试与守护通过 |
 | R-2 改名 79 条 | 重构 | sonnet | 基线文件中的列、约束、索引名；引用这些名称的 SQL 与仓储；`ddl-naming-baseline.txt` 删行；`SensitiveColumnExposureGuardTest` 若未完成则补上 | 业务语义 | 基线清零，`DdlNamingTest` 通过 |
-| R-4 数据库时钟 | 重构 | sonnet | 基线中 99 处 `DEFAULT` 时钟与 3 处 `now()` 去掉；各 INSERT 显式传入注入 Clock 的时刻；迁移文件守护（扩展 `TimeSourceGuardTest`，扫描迁移） | — | 守护对迁移生效，`sql-database-clock-exceptions.txt` 仍为空 |
+| R-4 数据库时钟 | 重构 | **Codex 试点**（用户「用最合适的模型，你试试」；one-coordinator 派 Codex 在独立 worktree 实现，验收测试仍由测试代理先写，opus 复审，PR 正文注明 Codex 实现） | 基线中 99 处 `DEFAULT` 时钟与 3 处 `now()` 去掉；各 INSERT 显式传入注入 Clock 的时刻；迁移文件守护（扩展 `TimeSourceGuardTest`，扫描迁移） | — | 守护对迁移生效，`sql-database-clock-exceptions.txt` 仍为空 |
 
 ### 2.3 W2 公共基础（三路，冻结后只由整合者改）
 
@@ -132,7 +132,7 @@
 | F-14 离职者在途待办重新取人（INT-M13，应交付未做） | sonnet 执行，opus 复审 | approval 按需要 | — | 消费离职事件 | `platform.approval` 新增离职监听：D-1a-18 / 108 / 168，重新取人，取不到转流程管理员并告警、审计 | W1；W3 首批 |
 | F-9 ADR-0029 | opus 起草，`architecture-critic` opus 评审 | — | — | — | `adr/src/ADR-0029.md`（提议） | 无；**批准前不实现** |
 | F-11 业务单据锁定、红冲、修正 | opus 起草，`architecture-critic` opus 评审 | — | — | — | `adr/src/ADR-0031.md`（提议），与 ADR-0016:23、ADR-0022:32、CC-N05 衔接 | 无；1a 只定设计，Phase 2 实现 |
-| F-12 非生产环境单人运维例外 ★ | opus 起草，`architecture-critic` opus 评审；批准后由 sonnet 实现、opus 复审 | 不新增表；审计记录标注 single-operator | — | — | `adr/src/ADR-0030.md`（提议）。批准后实现：只在非生产 profile 下由显式配置（暂名 `forcitis.security.single-operator-dev`，以 terms.yaml 为准）开启。开启后：①两人确认可由一人完成，照常写审计；②超管与应急账号下限降为 1；③同步锁死阈值相应调整。**生产 profile 下该配置存在即启动失败**：`ProductionConfigSanityTest` 加守护，部署流水线对 prod 再校验一次。生产部署前清单（PREDEPLOY_CHECKLIST）加一项：关闭单人例外，启用第二名超管与第二个应急账号。 | 用户 2026-10-15「dev 白名单把我也加上……这些安全措施等到生产部署前再真正落实」（one-ops 已记 intent）。该例外放宽的规则散见于已采纳的 ADR-0026 / 0027 / 0028（敏感权限两人确认、编号四眼确认、至少 2 名超管与 2 个应急账号、同步锁死在可用超管少于 2 时 HELD、放行人不得在离职名单中），按 §12.1 须新 ADR 取代对应条款的适用范围。实现时会碰到 F-1（敏感权限授予）与 B1 已交付的确认流程，所以排在 F-1 合并之后，并以同一个配置开关接入 |
+| F-12 非生产环境单人运维例外 ★ | ADR-0030 已采纳；sonnet 实现、opus 复审 | 不新增表；审计记录标注 single-operator | — | — | `adr/src/ADR-0030.md`（提议）。批准后实现：只在非生产 profile 下由显式配置（暂名 `forcitis.security.single-operator-dev`，以 terms.yaml 为准）开启。开启后：①两人确认可由一人完成，照常写审计；②超管与应急账号下限降为 1；③同步锁死阈值相应调整。**生产 profile 下该配置存在即启动失败**：`ProductionConfigSanityTest` 加守护，部署流水线对 prod 再校验一次。生产部署前清单（PREDEPLOY_CHECKLIST）加一项：关闭单人例外，启用第二名超管与第二个应急账号。 | 用户 2026-10-15「dev 白名单把我也加上……这些安全措施等到生产部署前再真正落实」（one-ops 已记 intent）。该例外放宽的规则散见于已采纳的 ADR-0026 / 0027 / 0028（敏感权限两人确认、编号四眼确认、至少 2 名超管与 2 个应急账号、同步锁死在可用超管少于 2 时 HELD、放行人不得在离职名单中），按 §12.1 须新 ADR 取代对应条款的适用范围。实现时会碰到 F-1（敏感权限授予）与 B1 已交付的确认流程，所以排在 F-1 合并之后，并以同一个配置开关接入 |
 
 F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包划界：F-1 只改部门浏览与人员详情的查询路径；F-6 只改通知；F-10 新建自己的包。三者都要在 `Permission.java` 中追加，按 2.1 的约定处理。
 
@@ -156,6 +156,13 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
 - 并入功能补做：INT-M16、INT-L6、INT-L19、INT-L22、INT-L26 → F-2；INT-L29（系统角色豁免）→ F-1；INT-L15（敏感清单集合相等）→ ADR-0032 及其实现。
 - 文档项：INT-L16 已由 one-coordinator 在 #85 写入 §14，关闭；INT-L32 在本更正 PR 中处理（DEFERRED 删过期行并补「专业产值切分 → Phase 2」，CROSSCHECK 第 4 条改为已解决）；INT-L10 按 one-coordinator 核对以 D-1a-78 为准，contract.md D-1a-89 措辞补全（不改语义），回归测试 `INT-L10 重启起点与契约一致` 按 D-1a-78 断言。
 - 其余（INT-M1..M8、M11、M14、M15，INT-L9..L11、L13、L14、L17、L20、L21、L25、L27、L28、L30、L31）为缺陷卡。
+
+另有 one-coordinator 2026-10-15 登记的缺陷卡（来自 ADR-0030 起草时的核查）：
+- **ADR28-1**：ADR-0028 第 1 条「同步会使可用 `super_admin` 少于 2 名时暂停」未实现——`ApplySourceSnapshot.java:85` 只在离职名单含超管或安全审计员时进入 HELD，人数不足只写进原因文本（`AdministratorSeparationReview.java:47-51`）。回归测试 `ADR28-1 可用超管将少于下限时同步暂停`；下限按 ADR-0030 在单人运维模式下为 1。
+- **ADR28-2**：ADR-0028 第 4 条所说「放行后超管将为 0 时只能走运维命令」的运维放行命令不存在（`OperationsCommands` 无 release）。回归测试 `ADR28-2 运维命令放行同步暂停（带见证人，审计）`。
+- **FLW-1 Flowable 引擎时间来源**（one-coordinator 2026-10-15 登记，**首次部署前须有结论**）：`act_*` 由引擎自建，不在 R-4 范围；须核实引擎内部时间（任务创建、到期、计时器）是否取注入的 Clock（`ProcessEngineConfiguration` 的 clock / Spring `Clock` bean），以及审批时限、超期提醒与升级（D-1a 时限细则）、F-14 改派、ADR-0032 待办 5 个工作日升级用到的时刻从哪里取。结论写进规则卡与 INFRA_RUNBOOK；若需改动按缺陷卡手术式修复，回归测试 `FLW-1 引擎时间取注入 Clock，固定 Clock 下任务创建与到期时刻确定`。opus 核实（判断类）。
+
+ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先写失败测试、一卡一最小改动、小 PR），排在 W3 与 F-12 同期（都动 `platform.identity` 运维命令，与 F-12 不并行，F-12 之后做）。
 
 首次部署前要先修的几张：
 - 安全相关：B3-R3 幂等抢占与防护令牌、B3-R4 吊销会话审计、B3-R5 必记动作守护、B3-R2 仓储写入守护堵口；
@@ -181,6 +188,15 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
   - 因此不再另设可见状态，状态名在 Phase 2 定。
 
 ## 4. 用户决定
+
+**ADR 与仓库设置**（2026-10-15，经 one-coordinator，intent 见 #98，已在其会话记录中核实）：
+- ADR-0030（#93）「批准并接受例外 (Recommended)」，U-2 / U-3 保留，U-4 / U-5 不做，U-6 不放宽 → F-12 可实现（W3，F-1 之后）。
+- ADR-0032（#94）「按建议批准 (Recommended)」：0032-Q1 (a) 双人逐人级角色只许 `ALL` / `CUSTOM_ORG_UNITS` / `SELF`；Q2 确认；Q3 5 个工作日；Q4「现在不开，生产前再定 (Recommended)」——不设 CODEOWNERS，改守护文件的 PR 在正文单列、合并前 opus 复审。随 F-1 落地。
+- ADR-0031（#95）「按建议批准 (Recommended)」：U-1..U-3 按建议，U-4 进第三轮用语确认；1a 只定设计。
+- ADR-0029（#96）：0029-Q2 生产只读计数「授权 (Recommended)」，由 one-ops 执行，结果写入证据后再报批。
+- main 分支保护 strict 状态检查「开启 (Recommended)」，已开。
+- W1 临时容器「允许，用完即删 (Recommended)」：仅本机临时 postgres:18 空库，不连外部库，用完即删，报告中写明已清理。
+
 
 **Q1　迁移基线开放期间的写法**
 
