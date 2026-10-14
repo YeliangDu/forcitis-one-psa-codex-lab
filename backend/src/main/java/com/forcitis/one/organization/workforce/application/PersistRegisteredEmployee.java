@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
-import com.forcitis.one.organization.workforce.domain.StaffMember;
+import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -29,8 +29,8 @@ class PersistRegisteredEmployee {
     }
 
     @Transactional
-    public void execute(StaffMember member) {
-        snapshots.saveStaffMember(member, null, clock.instant());
+    public void execute(StaffEmployee member) {
+        snapshots.saveStaffEmployee(member, null, clock.instant());
         audit.getObject().record(new AuditEntry("organization.workforce.employee.registered-on-login", null, null,
                 "employee:" + member.userId().value(),
                 "first login before the next sync: person found in the organisation source and registered"));

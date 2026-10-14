@@ -41,7 +41,7 @@ class ErrorChainTest {
 
         @GetMapping("/stub/unavailable")
         String unavailable() {
-            throw new ExternalSystemUnavailableException("seeyon down");
+            throw new ExternalSystemUnavailableException("source down");
         }
 
         @GetMapping("/stub/broken")
@@ -100,7 +100,7 @@ class ErrorChainTest {
     void externalFailures() throws Exception {
         mvc.perform(get("/stub/unavailable")).andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_SOURCE_UNAVAILABLE"))
-                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("seeyon"))));
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("source down"))));
         mvc.perform(get("/stub/broken")).andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_SOURCE_BROKEN"));
     }

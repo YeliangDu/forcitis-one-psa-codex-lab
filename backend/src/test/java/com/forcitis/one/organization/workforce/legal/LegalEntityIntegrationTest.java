@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.legal;
 
-import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.tree;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -158,7 +158,7 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("the organisation sync never creates, changes or removes legal entities")
     void syncLeavesLegalEntitiesAlone() throws Exception {
         create("FST", "One");
-        orgSource.snapshot = tree(member(1, 2, 100L, null));
+        orgSource.snapshot = tree(person(1, 2, 100L, null));
 
         sync.execute(SyncTrigger.SCHEDULED, false);
         sync.execute(SyncTrigger.SCHEDULED, false);

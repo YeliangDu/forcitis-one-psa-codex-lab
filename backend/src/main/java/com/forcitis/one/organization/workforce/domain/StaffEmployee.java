@@ -3,8 +3,8 @@ package com.forcitis.one.organization.workforce.domain;
 import com.forcitis.one.kernel.UserId;
 import java.util.Objects;
 
-public record StaffMember(Employee employee, Assignment assignment) {
-    public StaffMember {
+public record StaffEmployee(Employee employee, Assignment assignment) {
+    public StaffEmployee {
         Objects.requireNonNull(employee, "employee");
         Objects.requireNonNull(assignment, "assignment");
     }

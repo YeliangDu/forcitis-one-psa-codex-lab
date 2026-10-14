@@ -5,7 +5,7 @@ import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
 import com.forcitis.one.organization.workforce.domain.Reconciliation;
 import com.forcitis.one.organization.workforce.domain.ShrinkGuard;
 import com.forcitis.one.organization.workforce.domain.SnapshotReconciler;
-import com.forcitis.one.organization.workforce.domain.SourceSnapshot;
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.organization.workforce.domain.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
@@ -42,7 +42,7 @@ public class ApplySourceSnapshot {
     }
 
     @Transactional
-    public SyncResult execute(SyncRunId syncRunId, SourceSnapshot source, boolean bypassShrinkGuard) {
+    public SyncResult execute(SyncRunId syncRunId, SourceOrgSnapshot source, boolean bypassShrinkGuard) {
         snapshots.lockForWrite();
         OrgSnapshot current = snapshots.loadAll();
         Reconciliation changes = SnapshotReconciler.reconcile(current, source);

@@ -5,7 +5,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.List;
 
 /** Already-separated or already-revoked rows are never repeated in the event lists. */
-public record Reconciliation(List<Position> positions, List<OrgUnit> orgUnits, List<StaffMember> staff,
+public record Reconciliation(List<Position> positions, List<OrgUnit> orgUnits, List<StaffEmployee> staff,
                              List<SyncDiff> diffs, List<UserId> changedEmployees, List<UserId> separatedEmployees,
                              List<OrgUnitId> changedOrgUnits, RunStats stats) {
     public Reconciliation {

@@ -16,7 +16,7 @@ import com.forcitis.one.organization.workforce.domain.PositionId;
 import com.forcitis.one.organization.workforce.domain.PositionStatus;
 import com.forcitis.one.organization.workforce.domain.Reconciliation;
 import com.forcitis.one.organization.workforce.domain.RegionCategory;
-import com.forcitis.one.organization.workforce.domain.StaffMember;
+import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import com.forcitis.one.organization.workforce.domain.SyncRunId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -66,7 +66,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
         List<Position> positions = jdbc.sql("select id, code, name, sort_order, status from organization_workforce.positions")
                 .query((rs, n) -> new Position(new PositionId(rs.getLong("id")), rs.getString("code"), rs.getString("name"),
                         integer(rs, "sort_order"), PositionStatus.valueOf(rs.getString("status")))).list();
-        List<StaffMember> staff = jdbc.sql(SELECT_STAFF).query((rs, n) -> staff(rs)).list();
+        List<StaffEmployee> staff = jdbc.sql(SELECT_STAFF).query((rs, n) -> staff(rs)).list();
         return new OrgSnapshot(units, positions, staff);
     }
 
@@ -93,13 +93,13 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
             jdbc.sql("update organization_workforce.employees set wecom_user_id = null where id in (:ids) and wecom_user_id is not null")
                     .param("ids", staffIds).update();
         }
-        for (StaffMember s : changes.staff()) {
+        for (StaffEmployee s : changes.staff()) {
             upsertStaff(s, run, at);
         }
     }
 
     @Override
-    public void saveStaffMember(StaffMember member, SyncRunId syncRunId, Instant now) {
+    public void saveStaffEmployee(StaffEmployee member, SyncRunId syncRunId, Instant now) {
         upsertStaff(member, syncRunId == null ? null : syncRunId.value(), Timestamp.from(now));
     }
 
@@ -128,7 +128,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .param("run", run).param("now", now).update();
     }
 
-    private void upsertStaff(StaffMember s, Long run, Timestamp now) {
+    private void upsertStaff(StaffEmployee s, Long run, Timestamp now) {
         Employee e = s.employee();
         Assignment a = s.assignment();
         jdbc.sql("""
@@ -164,18 +164,18 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     }
 
     @Override
-    public Optional<StaffMember> findStaff(UserId userId) {
+    public Optional<StaffEmployee> findStaff(UserId userId) {
         return jdbc.sql(SELECT_STAFF + " where e.id = :id").param("id", userId.value()).query((rs, n) -> staff(rs)).optional();
     }
 
     @Override
-    public Optional<StaffMember> findStaffByWecomUserId(WecomUserId wecomUserId) {
+    public Optional<StaffEmployee> findStaffByWecomUserId(WecomUserId wecomUserId) {
         return jdbc.sql(SELECT_STAFF + " where e.wecom_user_id = :wecom order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1")
                 .param("wecom", wecomUserId.value()).query((rs, n) -> staff(rs)).optional();
     }
 
     @Override
-    public Optional<StaffMember> findStaffByLoginName(String loginName) {
+    public Optional<StaffEmployee> findStaffByLoginName(String loginName) {
         return jdbc.sql(SELECT_STAFF + " where e.login_name = :login order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1")
                 .param("login", loginName).query((rs, n) -> staff(rs)).optional();
     }
@@ -243,7 +243,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 rs.getBoolean("is_delivery_unit"), rs.getString("short_name"));
     }
 
-    private static StaffMember staff(ResultSet rs) throws SQLException {
+    private static StaffEmployee staff(ResultSet rs) throws SQLException {
         UserId id = new UserId(rs.getLong("id"));
         String wecom = rs.getString("wecom_user_id");
         String gender = rs.getString("gender");
@@ -255,7 +255,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
         long position = rs.getLong("position_id");
         PositionId positionId = rs.wasNull() ? null : new PositionId(position);
         Assignment assignment = new Assignment(id, orgUnit, positionId, userId(rs, "reports_to_employee_id"));
-        return new StaffMember(employee, assignment);
+        return new StaffEmployee(employee, assignment);
     }
 
     private static Integer integer(ResultSet rs, String column) throws SQLException {

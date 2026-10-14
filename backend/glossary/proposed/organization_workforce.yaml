@@ -170,10 +170,10 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: workforce__staff_member
+- id: workforce__staff_employee
   zh: 人员
-  en: StaffMember
-  snake: staff_member
+  en: StaffEmployee
+  snake: staff_employee
   kind: value
   bc: organization.workforce
   definition: 一名员工连同其任职，是同步比较与写入的单位

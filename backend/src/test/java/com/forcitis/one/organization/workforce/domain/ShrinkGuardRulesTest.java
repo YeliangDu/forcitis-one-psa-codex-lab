@@ -1,8 +1,11 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+import com.forcitis.one.platform.integration.api.SourcePerson;
+
 import static com.forcitis.one.organization.workforce.domain.Fixtures.apply;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.first;
-import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
@@ -46,11 +49,11 @@ class ShrinkGuardRulesTest {
     @Test
     @DisplayName("RULE-366 the figures come from the reconciliation: mass absence is visible before anything is written")
     void reconciliationFeedsTheGuard() {
-        List<SourceMember> everyone = new ArrayList<>();
+        List<SourcePerson> everyone = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
-            everyone.add(member(i, 1, 100L, null));
+            everyone.add(person(i, 1, 100L, null));
         }
-        SourceSnapshot full = source(List.of(unit(1, null)), List.of(), List.of(post(100)), everyone);
+        SourceOrgSnapshot full = source(List.of(unit(1, null)), List.of(), List.of(post(100)), everyone);
         OrgSnapshot stored = apply(OrgSnapshot.empty(), first(full));
 
         Reconciliation shrunk = SnapshotReconciler.reconcile(stored,

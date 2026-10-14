@@ -3,10 +3,11 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.domain.Assignment;
-import com.forcitis.one.organization.workforce.domain.MemberChecks;
+import com.forcitis.one.organization.workforce.domain.EmployeeChecks;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
-import com.forcitis.one.organization.workforce.domain.SourceMember;
-import com.forcitis.one.organization.workforce.domain.StaffMember;
+import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.organization.workforce.domain.SourceTerms;
+import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import com.forcitis.one.organization.workforce.domain.SyncDiff;
 import java.util.List;
 import java.util.Optional;
@@ -27,32 +28,33 @@ class LoginMissRegistration {
         this.persist = persist;
     }
 
-    Optional<StaffMember> register(List<SourceMember> found, String keyKind) {
-        Optional<SourceMember> chosen = choose(found, keyKind);
+    Optional<StaffEmployee> register(List<SourcePerson> found, String keyKind) {
+        Optional<SourcePerson> chosen = choose(found, keyKind);
         if (chosen.isEmpty()) {
             return Optional.empty();
         }
-        SourceMember member = chosen.get();
+        SourcePerson person = chosen.get();
         var orgUnits = snapshots.findOrgUnitIds();
         var positions = snapshots.findPositionIds();
-        Optional<SyncDiff> isolation = MemberChecks.isolation(member, orgUnits::contains, positions::contains);
+        Optional<SyncDiff> isolation = EmployeeChecks.isolation(person, orgUnits::contains, positions::contains);
         if (isolation.isPresent()) {
-            LOG.warn("organization.workforce login-miss person {} not registered: {}", member.userId().value(),
+            LOG.warn("organization.workforce login-miss person {} not registered: {}", person.personId().value(),
                     isolation.get().detail());
             return Optional.empty();
         }
-        StaffMember staff = new StaffMember(MemberChecks.toEmployee(member, true),
-                new Assignment(member.userId(), member.orgUnitId(), member.positionId(), validSupervisor(member)));
+        UserId userId = SourceTerms.person(person.personId());
+        StaffEmployee staff = new StaffEmployee(EmployeeChecks.toEmployee(person, true),
+                new Assignment(userId, SourceTerms.unit(person.unitId()), SourceTerms.position(person.positionId()), validSupervisor(person)));
         persist.execute(staff);
         return Optional.of(staff);
     }
 
     /** Several rows for one key are ambiguous unless exactly one of them is employed. */
-    private static Optional<SourceMember> choose(List<SourceMember> found, String keyKind) {
+    private static Optional<SourcePerson> choose(List<SourcePerson> found, String keyKind) {
         if (found.isEmpty()) {
             return Optional.empty();
         }
-        List<SourceMember> employed = found.stream().filter(m -> MemberChecks.employmentOf(m) == EmploymentStatus.EMPLOYED).toList();
+        List<SourcePerson> employed = found.stream().filter(m -> EmployeeChecks.employmentOf(m) == EmploymentStatus.EMPLOYED).toList();
         if (employed.size() == 1) {
             return Optional.of(employed.getFirst());
         }
@@ -63,14 +65,14 @@ class LoginMissRegistration {
         return Optional.empty();
     }
 
-    private UserId validSupervisor(SourceMember member) {
-        UserId leader = member.supervisorId();
-        if (leader == null || leader.equals(member.userId())) {
+    private UserId validSupervisor(SourcePerson person) {
+        UserId leader = SourceTerms.person(person.supervisorId());
+        if (leader == null || leader.equals(SourceTerms.person(person.personId()))) {
             return null;
         }
         return snapshots.findStaff(leader)
                 .filter(s -> s.employee().employmentStatus() == EmploymentStatus.EMPLOYED)
-                .map(StaffMember::userId)
+                .map(StaffEmployee::userId)
                 .orElse(null);
     }
 }

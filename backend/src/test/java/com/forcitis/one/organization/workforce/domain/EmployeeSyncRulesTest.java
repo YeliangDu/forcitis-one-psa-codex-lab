@@ -1,15 +1,20 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.platform.integration.api.SourceRecordState;
+
 import static com.forcitis.one.organization.workforce.domain.Fixtures.apply;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.employed;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.first;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.issues;
-import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.staff;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.tree;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.sourcePerson;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.user;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,9 +28,9 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-362 a new person is registered with the source id and the WeCom user id from the first sync")
     void newPersonIsCreatedWithWecomUserId() {
-        Reconciliation changes = first(tree(member(2001, 2, 100L, null, "13900000000", "wx-2001")));
+        Reconciliation changes = first(tree(person(2001, 2, 100L, null, "13900000000", "wx-2001")));
 
-        StaffMember created = staff(apply(OrgSnapshot.empty(), changes), 2001);
+        StaffEmployee created = staff(apply(OrgSnapshot.empty(), changes), 2001);
 
         assertThat(created.employee().wecomUserId()).isEqualTo(new WecomUserId("wx-2001"));
         assertThat(created.employee().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
@@ -37,8 +42,8 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-363 one login test: null, empty and blank login names all mean separated")
     void loginNameTestIsUnified() {
-        Reconciliation changes = first(tree(member(1, 2, 100L, null, null, null), member(2, 2, 100L, null, "", null),
-                member(3, 2, 100L, null, "   ", null), member(4, 2, 100L, null, "13900000004", null)));
+        Reconciliation changes = first(tree(person(1, 2, 100L, null, null, null), person(2, 2, 100L, null, "", null),
+                person(3, 2, 100L, null, "   ", null), person(4, 2, 100L, null, "13900000004", null)));
         OrgSnapshot snapshot = apply(OrgSnapshot.empty(), changes);
 
         assertThat(employed(staff(snapshot, 1))).isFalse();
@@ -51,15 +56,15 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-363 resignation: the employee is separated, announced once, and HR fields keep updating afterwards")
     void resignationKeepsHistoryUpdating() {
-        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(member(2001, 2, 100L, null))));
+        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(person(2001, 2, 100L, null))));
 
-        Reconciliation leaves = SnapshotReconciler.reconcile(v1, tree(member(2001, 2, 100L, null, null, "wx-2001")));
+        Reconciliation leaves = SnapshotReconciler.reconcile(v1, tree(person(2001, 2, 100L, null, null, "wx-2001")));
         OrgSnapshot v2 = apply(v1, leaves);
         assertThat(employed(staff(v2, 2001))).isFalse();
         assertThat(leaves.separatedEmployees()).containsExactly(user(2001));
         assertThat(leaves.diffs()).anyMatch(d -> d.changeKind() == ChangeKind.SEPARATED);
 
-        Reconciliation moves = SnapshotReconciler.reconcile(v2, tree(member(2001, 3, 101L, null, null, "wx-2001")));
+        Reconciliation moves = SnapshotReconciler.reconcile(v2, tree(person(2001, 3, 101L, null, null, "wx-2001")));
         OrgSnapshot v3 = apply(v2, moves);
         assertThat(staff(v3, 2001).assignment().orgUnitId().value()).isEqualTo(3);
         assertThat(moves.separatedEmployees()).isEmpty();
@@ -69,10 +74,10 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-364 rehire: the source gives a login name again, the employee is employed again")
     void rehireRestoresTheEmployee() {
-        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(member(2001, 2, 100L, null, null, "wx-2001"))));
+        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(person(2001, 2, 100L, null, null, "wx-2001"))));
         assertThat(employed(staff(v1, 2001))).isFalse();
 
-        Reconciliation rehire = SnapshotReconciler.reconcile(v1, tree(member(2001, 2, 100L, null, "13900000000", "wx-2001")));
+        Reconciliation rehire = SnapshotReconciler.reconcile(v1, tree(person(2001, 2, 100L, null, "13900000000", "wx-2001")));
 
         assertThat(employed(staff(apply(v1, rehire), 2001))).isTrue();
         assertThat(rehire.diffs()).anyMatch(d -> d.changeKind() == ChangeKind.REHIRED);
@@ -83,12 +88,12 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-365 source-authoritative columns are synced by value, an emptied leader and e-mail are written as empty")
     void explicitNullsAreWritten() {
-        SourceMember boss = member(1000, 2, 100L, null);
-        SourceMember withSupervisor = member(2001, 2, 100L, 1000L);
+        SourcePerson boss = person(1000, 2, 100L, null);
+        SourcePerson withSupervisor = person(2001, 2, 100L, 1000L);
         OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(boss, withSupervisor)));
         assertThat(staff(v1, 2001).assignment().reportsToEmployeeId()).isEqualTo(user(1000));
 
-        SourceMember cleared = new SourceMember(user(2001), "E2001", "Person 2001", withSupervisor.orgUnitId(), withSupervisor.positionId(), null,
+        SourcePerson cleared = new SourcePerson(sourcePerson(2001), "E2001", "Person 2001", withSupervisor.unitId(), withSupervisor.positionId(), null,
                 withSupervisor.loginName(), null, withSupervisor.gender(), withSupervisor.wecomUserId(), false);
         OrgSnapshot v2 = apply(v1, SnapshotReconciler.reconcile(v1, tree(boss, cleared)));
 
@@ -99,8 +104,8 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-365 a row without a known org unit or position is isolated and reported; the batch continues")
     void rowsWithoutOrgUnitOrPositionAreIsolated() {
-        Reconciliation changes = first(tree(member(1, 2, 100L, null), member(2, 99, 100L, null), member(3, 2, null, null),
-                member(4, 2, 555L, null)));
+        Reconciliation changes = first(tree(person(1, 2, 100L, null), person(2, 99, 100L, null), person(3, 2, null, null),
+                person(4, 2, 555L, null)));
         OrgSnapshot snapshot = apply(OrgSnapshot.empty(), changes);
 
         assertThat(snapshot.staffById()).containsOnlyKeys(user(1));
@@ -112,9 +117,9 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-365 an isolated row keeps its stored state and is not treated as a leaver")
     void isolatedRowIsNotSeparated() {
-        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(member(2001, 2, 100L, null))));
+        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(person(2001, 2, 100L, null))));
 
-        Reconciliation next = SnapshotReconciler.reconcile(v1, tree(member(2001, 2, null, null)));
+        Reconciliation next = SnapshotReconciler.reconcile(v1, tree(person(2001, 2, null, null)));
 
         assertThat(next.staff()).isEmpty();
         assertThat(next.separatedEmployees()).isEmpty();
@@ -124,15 +129,15 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-366 an employee who drops out of the source result set is a leaver candidate and is separated once")
     void missingPersonBecomesSeparated() {
-        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(member(1, 2, 100L, null), member(2001, 2, 100L, null))));
+        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(person(1, 2, 100L, null), person(2001, 2, 100L, null))));
 
-        Reconciliation gone = SnapshotReconciler.reconcile(v1, tree(member(1, 2, 100L, null)));
+        Reconciliation gone = SnapshotReconciler.reconcile(v1, tree(person(1, 2, 100L, null)));
         OrgSnapshot v2 = apply(v1, gone);
 
         assertThat(employed(staff(v2, 2001))).isFalse();
         assertThat(gone.separatedEmployees()).containsExactly(user(2001));
 
-        Reconciliation again = SnapshotReconciler.reconcile(v2, tree(member(1, 2, 100L, null)));
+        Reconciliation again = SnapshotReconciler.reconcile(v2, tree(person(1, 2, 100L, null)));
         assertThat(again.hasChanges()).isFalse();
         assertThat(again.separatedEmployees()).isEmpty();
     }
@@ -143,8 +148,8 @@ class EmployeeSyncRulesTest {
         OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree()));
         assertThat(v1.positionsById().get(new PositionId(100)).status()).isEqualTo(PositionStatus.ACTIVE);
 
-        SourceSnapshot next = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(),
-                List.of(post(100, PositionStatus.DISABLED), post(102)), List.of());
+        SourceOrgSnapshot next = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(),
+                List.of(post(100, SourceRecordState.DISABLED), post(102)), List.of());
         Reconciliation changes = SnapshotReconciler.reconcile(v1, next);
         OrgSnapshot v2 = apply(v1, changes);
 
@@ -157,14 +162,14 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-372 a leader must exist, be employed, not be the person and not close a loop; failures are reported and not written")
     void leadersAreValidated() {
-        SourceMember self = member(1, 2, 100L, 1L);
-        SourceMember unknownSupervisor = member(2, 2, 100L, 99L);
-        SourceMember leaverSupervisor = member(3, 2, 100L, 4L);
-        SourceMember leaver = member(4, 2, 100L, null, null, null);
-        SourceMember loopA = member(5, 2, 100L, 6L);
-        SourceMember loopB = member(6, 2, 100L, 5L);
-        SourceMember fine = member(7, 2, 100L, 8L);
-        SourceMember boss = member(8, 2, 100L, null);
+        SourcePerson self = person(1, 2, 100L, 1L);
+        SourcePerson unknownSupervisor = person(2, 2, 100L, 99L);
+        SourcePerson leaverSupervisor = person(3, 2, 100L, 4L);
+        SourcePerson leaver = person(4, 2, 100L, null, null, null);
+        SourcePerson loopA = person(5, 2, 100L, 6L);
+        SourcePerson loopB = person(6, 2, 100L, 5L);
+        SourcePerson fine = person(7, 2, 100L, 8L);
+        SourcePerson boss = person(8, 2, 100L, null);
 
         Reconciliation changes = first(tree(self, unknownSupervisor, leaverSupervisor, leaver, loopA, loopB, fine, boss));
         OrgSnapshot snapshot = apply(OrgSnapshot.empty(), changes);
@@ -182,8 +187,8 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-362 one WeCom user id identifies one employed person: duplicates are stored for nobody and reported")
     void duplicateWecomUserIdIsNotStored() {
-        Reconciliation changes = first(tree(member(1, 2, 100L, null, "13900000001", "wx-same"),
-                member(2, 2, 100L, null, "13900000002", "wx-same"), member(3, 2, 100L, null, null, "wx-same")));
+        Reconciliation changes = first(tree(person(1, 2, 100L, null, "13900000001", "wx-same"),
+                person(2, 2, 100L, null, "13900000002", "wx-same"), person(3, 2, 100L, null, null, "wx-same")));
         OrgSnapshot snapshot = apply(OrgSnapshot.empty(), changes);
 
         assertThat(staff(snapshot, 1).employee().wecomUserId()).isNull();
@@ -195,8 +200,8 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-374 the data-quality count of employed people without a WeCom user id is output on every run")
     void employedWithoutWecomIsCounted() {
-        Reconciliation changes = first(tree(member(1, 2, 100L, null, "13900000001", null), member(2, 2, 100L, null),
-                member(3, 2, 100L, null, null, null)));
+        Reconciliation changes = first(tree(person(1, 2, 100L, null, "13900000001", null), person(2, 2, 100L, null),
+                person(3, 2, 100L, null, null, null)));
 
         assertThat(changes.stats().employedWithoutWecomCount()).isEqualTo(1);
         assertThat(changes.stats().incomingEmployedCount()).isEqualTo(2);
@@ -205,11 +210,11 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-373 the change event and the diff report come from the same synced-field list; no change, no event content")
     void eventContentFollowsTheSyncedFields() {
-        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(member(2001, 2, 100L, null), member(2002, 2, 100L, null))));
-        assertThat(SnapshotReconciler.reconcile(v1, tree(member(2001, 2, 100L, null), member(2002, 2, 100L, null))).hasEventContent())
+        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(person(2001, 2, 100L, null), person(2002, 2, 100L, null))));
+        assertThat(SnapshotReconciler.reconcile(v1, tree(person(2001, 2, 100L, null), person(2002, 2, 100L, null))).hasEventContent())
                 .isFalse();
 
-        Reconciliation moved = SnapshotReconciler.reconcile(v1, tree(member(2001, 3, 100L, null), member(2002, 2, 100L, null)));
+        Reconciliation moved = SnapshotReconciler.reconcile(v1, tree(person(2001, 3, 100L, null), person(2002, 2, 100L, null)));
 
         assertThat(moved.changedEmployees()).containsExactly(user(2001));
         assertThat(moved.diffs()).filteredOn(d -> d.subjectKey().equals("employee:2001"))
@@ -221,16 +226,16 @@ class EmployeeSyncRulesTest {
     @Test
     @DisplayName("RULE-373 a unit's head change reaches the event; revocation is announced once and never repeated")
     void orgUnitEventsAreNotRepeated() {
-        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(member(801, 2, 100L, null))));
-        SourceSnapshot withHead = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)),
-                List.of(Fixtures.head(2, 801)), List.of(post(100), post(101)), List.of(member(801, 2, 100L, null)));
+        OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree(person(801, 2, 100L, null))));
+        SourceOrgSnapshot withHead = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)),
+                List.of(Fixtures.head(2, 801)), List.of(post(100), post(101)), List.of(person(801, 2, 100L, null)));
 
         Reconciliation headChange = SnapshotReconciler.reconcile(v1, withHead);
         assertThat(headChange.changedOrgUnits()).containsExactly(Fixtures.unitId(2));
 
         OrgSnapshot v2 = apply(v1, headChange);
-        SourceSnapshot gone = source(List.of(unit(1, null), unit(2, 1L)), List.of(Fixtures.head(2, 801)),
-                List.of(post(100), post(101)), List.of(member(801, 2, 100L, null)));
+        SourceOrgSnapshot gone = source(List.of(unit(1, null), unit(2, 1L)), List.of(Fixtures.head(2, 801)),
+                List.of(post(100), post(101)), List.of(person(801, 2, 100L, null)));
         Reconciliation revoke = SnapshotReconciler.reconcile(v2, gone);
         assertThat(revoke.changedOrgUnits()).containsExactly(Fixtures.unitId(3));
 

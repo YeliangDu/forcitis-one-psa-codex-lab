@@ -1,8 +1,11 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.platform.integration.api.SourceRecordState;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.sourceUnit;
+
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
-import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
@@ -18,7 +21,7 @@ import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
-import com.forcitis.one.organization.workforce.domain.SourceOrgUnit;
+import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -41,9 +44,9 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
 
     private void synced() {
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L),
-                        new SourceOrgUnit(unitId(4), "C4", "Stopped", unitId(1), 4, OrgUnitStatus.DISABLED, List.of(), null, null, false, null)),
+                        new SourceOrgUnit(sourceUnit(4), "C4", "Stopped", sourceUnit(1), 4, SourceRecordState.DISABLED, List.of(), null, null, false, null)),
                 List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
-                List.of(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 2L)));
+                List.of(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 2L)));
         sync.execute(SyncTrigger.SCHEDULED, false);
     }
 
@@ -68,7 +71,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("login miss: an unknown WeCom user id asks the same the source view for this one person, registers them and audits it")
     void loginMissRegistersTheNewHire() {
         synced();
-        orgSource.singleLookupResult = List.of(member(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
+        orgSource.singleLookupResult = List.of(person(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
 
         Optional<EmployeeProfile> found = directory.findEmployeeByWecomUserId(new WecomUserId("wx-new-hire"));
 
@@ -90,18 +93,18 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     void loginMissFailsClosed() {
         synced();
 
-        orgSource.singleLookupResult = List.of(member(3002, 99, 100L, null, "13900003002", "wx-no-unit"));
+        orgSource.singleLookupResult = List.of(person(3002, 99, 100L, null, "13900003002", "wx-no-unit"));
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-no-unit"))).isEmpty();
 
-        orgSource.singleLookupResult = List.of(member(3003, 2, 555L, null, "13900003003", "wx-no-post"));
+        orgSource.singleLookupResult = List.of(person(3003, 2, 555L, null, "13900003003", "wx-no-post"));
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-no-post"))).isEmpty();
 
-        orgSource.singleLookupResult = List.of(member(3004, 2, 100L, null, "13900003004", "wx-twice"), member(3005, 2, 100L, null, "13900003005", "wx-twice"));
+        orgSource.singleLookupResult = List.of(person(3004, 2, 100L, null, "13900003004", "wx-twice"), person(3005, 2, 100L, null, "13900003005", "wx-twice"));
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-twice"))).isEmpty();
 
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-nobody"))).isEmpty();
 
-        orgSource.singleLookupResult = List.of(member(3006, 2, 100L, null, "13900003006", "wx-while-down"));
+        orgSource.singleLookupResult = List.of(person(3006, 2, 100L, null, "13900003006", "wx-while-down"));
         orgSource.unavailable = true;
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-while-down"))).isEmpty();
 
@@ -128,7 +131,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("login miss by login name: an unknown login name asks the source for this one person, registers them and audits it - like the WeCom lookup")
     void loginNameMissRegistersTheNewHire() {
         synced();
-        orgSource.singleLookupResult = List.of(member(3101, 2, 100L, 1L, "13900003101", "wx-by-login"));
+        orgSource.singleLookupResult = List.of(person(3101, 2, 100L, 1L, "13900003101", "wx-by-login"));
 
         Optional<EmployeeProfile> found = directory.findEmployeeByLoginName("13900003101");
 
@@ -147,18 +150,18 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     void loginNameMissFailsClosed() {
         synced();
 
-        orgSource.singleLookupResult = List.of(member(3102, 99, 100L, null, "13900003102", "wx-a"));
+        orgSource.singleLookupResult = List.of(person(3102, 99, 100L, null, "13900003102", "wx-a"));
         assertThat(directory.findEmployeeByLoginName("13900003102")).isEmpty();
 
-        orgSource.singleLookupResult = List.of(member(3103, 2, 555L, null, "13900003103", "wx-b"));
+        orgSource.singleLookupResult = List.of(person(3103, 2, 555L, null, "13900003103", "wx-b"));
         assertThat(directory.findEmployeeByLoginName("13900003103")).isEmpty();
 
-        orgSource.singleLookupResult = List.of(member(3104, 2, 100L, null, "same-login", "wx-c"), member(3105, 2, 100L, null, "same-login", "wx-d"));
+        orgSource.singleLookupResult = List.of(person(3104, 2, 100L, null, "same-login", "wx-c"), person(3105, 2, 100L, null, "same-login", "wx-d"));
         assertThat(directory.findEmployeeByLoginName("same-login")).isEmpty();
 
         assertThat(directory.findEmployeeByLoginName("nobody")).isEmpty();
 
-        orgSource.singleLookupResult = List.of(member(3106, 2, 100L, null, "13900003106", "wx-e"));
+        orgSource.singleLookupResult = List.of(person(3106, 2, 100L, null, "13900003106", "wx-e"));
         orgSource.unavailable = true;
         assertThat(directory.findEmployeeByLoginName("13900003106")).isEmpty();
 
@@ -170,7 +173,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("login miss: a person without a login name is registered as separated, so the login check refuses them")
     void loginMissRegistersALeaverAsSeparated() {
         synced();
-        orgSource.singleLookupResult = List.of(member(3007, 2, 100L, null, null, "wx-leaver"));
+        orgSource.singleLookupResult = List.of(person(3007, 2, 100L, null, null, "wx-leaver"));
 
         Optional<EmployeeProfile> found = directory.findEmployeeByWecomUserId(new WecomUserId("wx-leaver"));
 
@@ -182,7 +185,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("login miss: a leader who is unknown or not employed is not stored (RULE-372)")
     void loginMissValidatesTheSupervisor() {
         synced();
-        orgSource.singleLookupResult = List.of(member(3008, 2, 100L, 99999L, "13900003008", "wx-bad-leader"));
+        orgSource.singleLookupResult = List.of(person(3008, 2, 100L, 99999L, "13900003008", "wx-bad-leader"));
 
         assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-bad-leader"))).isPresent();
 
@@ -230,7 +233,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
 
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)),
                 List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
-                List.of(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 2L)));
+                List.of(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 2L)));
         sync.execute(SyncTrigger.SCHEDULED, false);
         assertThat(jdbc.sql("select status from organization_workforce.org_units where id = 4").query(String.class).single()).isEqualTo("REVOKED");
         assertThat(directory.findOrgUnit(unitId(4))).get().satisfies(u -> assertThat(u.active()).isFalse());

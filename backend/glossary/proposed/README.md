@@ -42,7 +42,7 @@
 | `workforce__gender` | 性别 | Gender | 员工性别；A8 未维护或无法识别时为空，不默认写成女 |  |
 | `workforce__login_name` | 登录名 | LoginName | 员工在组织源的登录名（手机号）；没有即离职（RULE-363） |  |
 | `workforce__short_name` | 部门简称 | ShortName | 组织单元简称；A8 视图里没有，每天从老系统只读刷新 |  |
-| `workforce__staff_member` | 人员 | StaffMember | 一名员工连同其任职，是同步比较与写入的单位 |  |
+| `workforce__staff_employee` | 人员 | StaffEmployee | 一名员工连同其任职，是同步比较与写入的单位 |  |
 | `workforce__relationship` | 关系 | Relationship | A8 中人员与组织单元之间的关系（部门负责人、区域应收负责人），类型 ID 为配置项 |  |
 | `workforce__headquarters` | 总部 | Headquarters | 组织单元的总部 / 区域类别中的「总部」 |  |
 | `workforce__revoked` | 已撤销 | Revoked | A8 不再返回的组织单元；与「停用」是两个不同状态（RULE-355） |  |

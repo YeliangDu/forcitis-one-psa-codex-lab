@@ -19,15 +19,15 @@ public interface OrgSnapshotRepository {
     /** The order never trips the unique keys. */
     void save(Reconciliation changes, SyncRunId syncRunId, Instant now);
 
-    void saveStaffMember(StaffMember member, SyncRunId syncRunId, Instant now);
+    void saveStaffEmployee(StaffEmployee member, SyncRunId syncRunId, Instant now);
 
-    Optional<StaffMember> findStaff(UserId userId);
+    Optional<StaffEmployee> findStaff(UserId userId);
 
     /** Prefers the employed person. */
-    Optional<StaffMember> findStaffByWecomUserId(WecomUserId wecomUserId);
+    Optional<StaffEmployee> findStaffByWecomUserId(WecomUserId wecomUserId);
 
     /** Only employed people carry a login name. */
-    Optional<StaffMember> findStaffByLoginName(String loginName);
+    Optional<StaffEmployee> findStaffByLoginName(String loginName);
 
     Optional<OrgUnit> findOrgUnit(OrgUnitId orgUnitId);
 

@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.organization.workforce.domain.OrgSource;
-import com.forcitis.one.organization.workforce.domain.SourceSnapshot;
+import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.organization.workforce.domain.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
@@ -38,7 +38,7 @@ public class SyncOrgSnapshot {
         SyncRunId run = runs.begin(trigger, clock.instant());
         SyncResult result;
         try {
-            SourceSnapshot snapshot = source.fetchAll();
+            SourceOrgSnapshot snapshot = source.readSnapshot();
             result = apply.execute(run, snapshot, bypassShrinkGuard);
         } catch (RuntimeException failure) {
             LOG.error("organization.workforce sync {} failed: {}", run.value(), failure.toString(), failure);

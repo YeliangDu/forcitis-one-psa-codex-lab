@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
-import static com.forcitis.one.organization.workforce.domain.Fixtures.member;
+import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.tree;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,7 +21,7 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("组织零差异: after a sync the stored snapshot equals the source in people, org units and reporting relations")
     void zeroDifferenceAfterSync() {
-        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 1L), member(4, 2, 100L, null, null, null));
+        orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 1L), person(4, 2, 100L, null, null, null));
         sync.execute(SyncTrigger.SCHEDULED, false);
 
         OrgReconciliationReport report = reconcile.execute();
@@ -36,10 +36,10 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("组织零差异: a change in the source that is not synced yet, and a hand edit of the snapshot, both show up as differences")
     void driftIsVisible() {
-        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 1L));
+        orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 1L));
         sync.execute(SyncTrigger.SCHEDULED, false);
 
-        orgSource.snapshot = tree(member(1, 2, 100L, null), member(2, 3, 101L, 3L), member(3, 3, 101L, 1L), member(4, 2, 100L, null));
+        orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 3, 101L, 3L), person(3, 3, 101L, 1L), person(4, 2, 100L, null));
         OrgReconciliationReport beforeNextSync = reconcile.execute();
         assertThat(beforeNextSync.isZeroDifference()).isFalse();
         assertThat(beforeNextSync.missingInSnapshot()).containsExactly("employee:4");
