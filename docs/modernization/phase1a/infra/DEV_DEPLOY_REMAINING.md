@@ -44,7 +44,7 @@
 | # | 事项 | 谁 | 花钱 | 耗时 | 状态 / 依赖 |
 |---|---|---|---|---|---|
 | R-0 | 专用部署 runner 重建（`/opt/forcitis-one-runner` 归 root、hook、LaunchDaemon、`--disableupdate`、演练） | 用户（需 Mac 管理员密码与一次性注册令牌） | 否 | 1.5 h | ✅ 2026-10-15：`mac-one-deploy` 在线（`scripts/release/runner_rebuild.sh`）；第 8 步拒绝演练通过（分支工作流与伪造变量均被 hook 拒绝），放行路径在首次 dev 部署时验证 |
-| R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15 |
+| R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15；dev / prod 另加 `v*` 标签部署策略（用户「允许，首次部署前加上 (Recommended)」） |
 | R-2 | 仓库级 Actions variables：8 个构建期变量 | 用户 | 否 | 0.2 h | B-2、B-3 完成后填 |
 | R-3 | ~~发布用 OSS bucket~~ | — | — | — | **不再需要**：改为 ECS 自取 GitHub Release（用户「先测 GitHub 直拉，可行就用 (Recommended)」；ECS 夜间实测约 9 MB/s） |
 | R-4 | RAM：每环境部署子账号与 AccessKey，策略只许对该命令与该实例 `ecs:InvokeCommand`、`ecs:DescribeInvocationResults`、`ecs:DescribeInvocations`（RELEASE.md §8.2） | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.3 h | 发布不需要实例 RAM 角色（1-12、B-11 另定） |

@@ -195,7 +195,7 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 | # | 步骤 | 位置 / 做法 |
 |---|---|---|
-| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 **✅ 2026-10-15**：三个 environment 已建，部署分支策略均只有 `main`。 | 仓库 Settings → Environments |
+| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 **✅ 2026-10-15**：三个 environment 已建，部署分支策略均只有 `main`。 **补充（2026-10-15）**：dev、prod 另加标签部署策略 `v*`（deployment 的 ref 是标签 `v<版本>`，只允许 `main` 时可能被拒；用户「允许，首次部署前加上 (Recommended)」）；回读：release=main，dev / prod=main + v*（tag）。 | 仓库 Settings → Environments |
 | R-2 | 仓库级 Actions variables：§6 的 8 个构建期变量（B-2、B-3 完成后填） | Settings → Secrets and variables → Actions → Variables |
 | R-3 | ~~OSS bucket~~ **不再需要**：发布包改由 ECS 自取 GitHub Release（§8，用户「先测 GitHub 直拉，可行就用 (Recommended)」），不建发布用 bucket；B-11 归档 bucket 与此无关 | — |
 | R-4 | RAM：每环境一个部署用子账号（只开 OpenAPI 访问），绑 §8.2 的策略：只允许对**该命令与该实例**的 `ecs:InvokeCommand`，以及 `ecs:DescribeInvocationResults`、`ecs:DescribeInvocations`；生成 AccessKey，每 90 天轮换。**发布不需要 ECS 实例 RAM 角色**（不授任何 OSS 权限）；SSH 方式不需要该子账号 | 阿里云 RAM 控制台 |
