@@ -2,6 +2,8 @@
 
 日期：2026-10-14 · 起草：psa-1a-platform-bridge-reimagine · 用户决定：「全部在 1a 做 (Recommended)」。
 
+**状态：已决定**（2026-10-14，经 psa-coordinator 询问）：主键「UUIDv7 (Recommended)」；分页「游标分页 (Recommended)」；备份恢复「RPO ≤ 5 分钟、RTO ≤ 1 小时 (Recommended)」；告警「按级别分通道 (Recommended)」，接收群与值班人部署前定；并发版本传递按建议采用 If-Match / ETag（未单独作答）。
+
 本文先给方案，标「**待定**」的取舍由 psa-coordinator 请用户决定，其余按建议直接实施。实施由下一轮代理完成，每条都配守护或契约测试。
 
 ## 1. ID 策略

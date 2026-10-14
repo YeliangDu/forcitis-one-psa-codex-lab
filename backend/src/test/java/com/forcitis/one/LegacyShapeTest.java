@@ -129,7 +129,12 @@ class LegacyShapeTest {
 
     /** Files that carry an external name on purpose and permanently. */
     static final List<Allowed> STANDING = List.of(new Allowed("src/main/java/com/forcitis/one/kernel/WecomUserId.java",
-            Set.of(Rule.EXTERNAL_SYSTEM_NAME), "企业微信 userid 是全系统共用的外部标识"));
+            Set.of(Rule.EXTERNAL_SYSTEM_NAME), "企业微信 userid 是全系统共用的外部标识"),
+            new Allowed("src/main/resources/db/migration/platform_numbering/V20261014100100__platform_numbering_create_numbering.sql",
+                    Set.of(Rule.OLD_DOCUMENT_FORMAT), "已合入 main 的历史迁移，Flyway 只追加不可改（SESSION_PLAYBOOK §12）；"
+                            + "V20261014135200 / 135300 已把种子改为统一新格式"),
+            new Allowed("src/main/resources/db/migration/platform_numbering/V20261014135200__platform_numbering_add_confirmation_status.sql",
+                    Set.of(Rule.OLD_DOCUMENT_FORMAT), "已合入 main 的历史迁移，Flyway 只追加不可改；该处只在注释中说明老格式不沿用"));
 
     private static Allowed pending(String file) {
         return new Allowed(file, Set.of(Rule.EXTERNAL_SYSTEM_NAME), "待用户决定（复审 M6）");

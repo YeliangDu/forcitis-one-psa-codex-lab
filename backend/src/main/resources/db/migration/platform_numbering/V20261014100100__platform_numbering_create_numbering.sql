@@ -39,6 +39,6 @@ COMMENT ON COLUMN platform_numbering.numbering_counters.created_at IS '创建时
 COMMENT ON COLUMN platform_numbering.numbering_counters.updated_at IS '更新时间';
 
 INSERT INTO platform_numbering.numbering_rules (document_type, pattern, reset_policy, start_value) VALUES
-    ('QUOTE', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1),
-    ('TIMESHEET', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1),
-    ('JOURNAL_VOUCHER', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1);
+    ('QUOTE', 'PSAQU{yyyy}{seq:5}', 'YEARLY', 103),
+    ('TIMESHEET', 'TS{yyyyMMdd}{seq:4}', 'DAILY', 1),
+    ('JOURNAL_VOUCHER', 'JV-{LE}-{yyyy}{MM}-{seq:6}', 'MONTHLY', 1);

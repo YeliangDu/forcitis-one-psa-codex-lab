@@ -5,7 +5,7 @@ COMMENT ON COLUMN platform_numbering.numbering_rules.confirmation_status IS '确
 COMMENT ON COLUMN platform_numbering.numbering_rules.pattern IS '编号模板，如 {TYPE}-{LE}-{yyyyMM}-{seq:4}；占位符 {TYPE} {LE} {yyyy} {yy} {MM} {dd} {seq:N}';
 
 -- ADR-0010 decision 5: unified new format. The quote starts on the default template (code QT), awaiting the administrator's
--- confirmation; the old number format is not carried over (old numbers become "original numbers", see legacy_numbers).
+-- confirmation; the old PSAQU format is not carried over (old numbers become "original numbers", see legacy_numbers).
 UPDATE platform_numbering.numbering_rules
    SET pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}', reset_policy = 'MONTHLY', start_value = 1,
        confirmation_status = 'PENDING_CONFIRMATION', updated_at = now(), version = version + 1
