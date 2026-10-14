@@ -30,16 +30,16 @@
 - 1a 修复批合并前禁止部署任何环境（status/blockers/080）。修复批合并前须 opus 复审。
 
 ## 待合并 PR
-- #55 部署前清单交接包、执行剧本、A 类决定单（DECISIONS_A.md）、CROSSCHECK——文档 PR，CI 过即合。
-- 本 PR：采纳的五条规则（SESSION_PLAYBOOK §6、§12.2、§13、§14）与台账。
-- 已合并：#51、#52、#53（记录产物不入仓，generated-docs 首次发布成功）。
+- #54 CI 提速（本机自托管 runner）——等子代理改 openapi.json 竞争与 READ_BY_BUILDS 自检后合并。
+- 本 PR：A 类决定记录。
+- 已合并：#51、#52、#53、#55、#57。
 
 ## 采纳的规则待落地（用户「采纳」，2026-10-14）
 - 守护 G-T1..G-T4（§14）、规格到测试对照（§13）、迁移基线开放标记与 migrations_immutable.py 放行（§12.2）→ 1a 修复批之后派。
 - brief 各阶段入口条件加「表结构评审已完成」「公共基础已冻结」→ brief 重新生成时一起审批（与统一编排路线同批）。
 
 ## 待用户 / 财务 / 运维决定
-- 部署前清单：`phase1a/infra/PREDEPLOY_CHECKLIST.md` 与决定单 `phase1a/infra/DECISIONS_A.md`（#55）：A-1..A-8 与 N-2、N-3 待用户答（N-1 已定 `/h5/`）；人名留空待填。B 类只能用户或运维执行；C 类执行前须确认，C-5 等运维命令实现。建议用户先做 B-1 `/design-sync` 与 B-2 新开企业微信应用。CI 无发布流水线（清单遗漏项）——待安排。
+- 部署前清单：A 类与 N-1..N-3 已决定（用户「A 类全部按建议」「其他人选先空着，N-2、N-3 也采纳」）；平台负责人为用户本人，其余人选待定（本机私有记录 `~/.modernize/psa/infra/role_holders.md`，不入仓库）——生产前须补齐第二名超管（运维）、安全审计员（不能是超管）、组织数据管理员、DBA。B 类只能用户或运维执行（先做 B-1 `/design-sync`、B-2 企业微信应用）；C 类执行前须确认，C-5 等运维命令实现。CI 无发布流水线（清单遗漏项）——待安排。
 - 财务：确认单 v2（`~/.modernize/psa/finance/FINANCE_CONFIRM_v2.html`，FQ-01..FQ-22 + 7 份 ADR），答复用 `r0/import_finance_answers.py` 导入；G1 开工前必须。FQ-18 需先跑 U8C 分类查询另行发送。
 - 用户：B1–B5 与经营问题清单（`~/.modernize/psa/bi-inputs/questions/`）；OAT 4 个文件在 ddd-theory 提交后改引提交号；确认单末尾「会计类新术语由财务逐条确认」是否保留（未答）。
 - 生产前：Phase 2 / 4 出口停用生产 SQL Agent 作业（A8_ACCESS_REGISTER #28–#31），属运维动作须用户批准。
