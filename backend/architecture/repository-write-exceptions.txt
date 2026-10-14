@@ -1,0 +1,23 @@
+# A write in a persistence adapter whose method is not a save / insert / update / upsert / delete: <path under src/main/java>#<method>  # why.
+# RepositoryWriteGuardTest fails for a write outside this list and for a line here that is no longer needed. Changes need design review.
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcAccountRepository.java#recordLogin  # last-login time and address are access metadata, not an invariant of the account; an unconditional update that must not bump the account version and so must not fail a concurrent role change
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcEmergencyAdminRepository.java#reserveAttempt  # atomic check-and-increment of the attempt counter and lock-out time; the condition is the lock itself, a version would serialise nothing more
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcEmergencyAdminRepository.java#recordSuccess  # resets the failure counter in one statement
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcEmergencyAdminRepository.java#acceptTotpStep  # one-time use of a TOTP step: the update applies only while the stored step is smaller, so a replayed code changes nothing
+com/forcitis/one/platform/integration/infrastructure/persistence/JdbcOutboundDeliveryRepository.java#claimDue  # claiming due deliveries is a queue operation: one statement counts the attempt and pushes next_attempt_at out by the lease, with FOR UPDATE SKIP LOCKED so that workers never claim the same row
+com/forcitis/one/platform/numbering/infrastructure/persistence/JdbcNumberingRuleRepository.java#reserveNext  # the counter is allocated by one atomic upsert; a read-modify-write through an aggregate would let two issuers read the same value
+com/forcitis/one/cost/timesheet/infrastructure/persistence/JdbcConsumedEvents.java#firstTime  # the insert is the idempotency check: the unique key tells a first delivery from a repeat
+com/forcitis/one/organization/workforce/infrastructure/persistence/OrgHistory.java#recordOrgUnits  # effective-dated history of the snapshot, closed and appended in the snapshot's own transaction under the snapshot writer lock
+com/forcitis/one/organization/workforce/infrastructure/persistence/OrgHistory.java#recordAssignments  # effective-dated history of the snapshot, closed and appended in the snapshot's own transaction under the snapshot writer lock
+com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#claim  # the claim is the insert of the unique (user, key) row, or the takeover of an expired one in the same statement; it is not an aggregate
+com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#finish  # completes the row this request claimed; no other writer holds it
+com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#release  # drops the claim of a request that failed so that the key can be retried
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredentials.java#storeLoginState  # one-time credential, not an aggregate: stored once, consumed once
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredentials.java#consumeLoginState  # the atomic delete is the consumption, so a replay finds nothing
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredentials.java#markTicketUsed  # the unique key is the replay check
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredentials.java#purgeExpired  # removes expired one-time credentials; nothing refers to them
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#replace  # a browser identifier is a credential, not an aggregate: the old value is retired, the other accounts of the browser move to the new value and the new value is recorded in one transaction
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#invalidateAll  # removes every identifier of an account when it is disabled or its person leaves, in the transaction that ends its sessions
+com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#purge  # removes identifiers past their lifetime; nothing refers to them
+com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#purgeExpired  # removes answers past their 24 hours; nothing refers to them
+com/forcitis/one/organization/workforce/infrastructure/persistence/LegalEntityHistory.java#recordLegalEntity  # effective-dated history of the legal entity: closed and appended in the transaction of the save that changed it

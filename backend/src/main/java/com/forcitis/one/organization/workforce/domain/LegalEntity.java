@@ -8,8 +8,10 @@ import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
+import com.forcitis.one.organization.workforce.api.AccountingOrganizationNumber;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.events.LegalEntityAccountingNumberAssigned;
 import com.forcitis.one.organization.workforce.events.LegalEntityActivated;
 import com.forcitis.one.organization.workforce.events.LegalEntityCodeCorrected;
 import com.forcitis.one.organization.workforce.events.LegalEntityDeactivated;
@@ -30,15 +32,17 @@ public final class LegalEntity extends AggregateRoot {
             .allow(LegalEntityStatus.INACTIVE, LegalEntityStatus.ACTIVE)
             .build();
 
-    private final LegalEntityId legalEntityId;
+    private LegalEntityId legalEntityId;
     private final LegalEntityStatus loadedStatus;
     private final LegalEntityCode loadedCode;
     private LegalEntityCode code;
     private String name;
     private LegalEntityStatus status;
+    private AccountingOrganizationNumber accountingOrganizationNumber;
 
-    private LegalEntity(LegalEntityId legalEntityId, LegalEntityCode code, String name, LegalEntityStatus status, long version) {
-        super(version);
+    private LegalEntity(LegalEntityId legalEntityId, LegalEntityCode code, String name, LegalEntityStatus status, AccountingOrganizationNumber accountingOrganizationNumber, long version, long eventSequence) {
+        super(version, eventSequence);
+        this.accountingOrganizationNumber = accountingOrganizationNumber;
         this.legalEntityId = legalEntityId;
         this.code = Objects.requireNonNull(code, "code");
         this.loadedCode = code;
@@ -47,20 +51,23 @@ public final class LegalEntity extends AggregateRoot {
         this.loadedStatus = status;
     }
 
-    /** A legal entity about to be inserted; it announces itself once the repository has given it an id (withId). */
+    /** A legal entity about to be inserted; the repository gives it its id (withId) before the registration event is sealed. */
     public static LegalEntity register(LegalEntityCode code, String name) {
-        return new LegalEntity(null, code, name, LegalEntityStatus.ACTIVE, 0);
+        LegalEntity entity = new LegalEntity(null, code, name, LegalEntityStatus.ACTIVE, null, 0, 0);
+        entity.record((envelopes, version) -> new LegalEntityRegistered(envelopes.wrap(entity.draft("LegalEntityRegistered", version)),
+                entity.legalEntityId, entity.code));
+        return entity;
     }
 
-    public static LegalEntity restore(LegalEntityId legalEntityId, LegalEntityCode code, String name, String status, long version) {
-        return new LegalEntity(Objects.requireNonNull(legalEntityId, "legalEntityId"), code, name, LegalEntityStatus.valueOf(status), version);
+    public static LegalEntity restore(LegalEntityId legalEntityId, LegalEntityCode code, String name, String status,
+                                      AccountingOrganizationNumber accountingOrganizationNumber, long version, long eventSequence) {
+        return new LegalEntity(Objects.requireNonNull(legalEntityId, "legalEntityId"), code, name, LegalEntityStatus.valueOf(status),
+                accountingOrganizationNumber, version, eventSequence);
     }
 
     public LegalEntity withId(LegalEntityId id) {
-        LegalEntity saved = new LegalEntity(Objects.requireNonNull(id, "id"), code, name, status, version());
-        saved.record((envelopes, version) -> new LegalEntityRegistered(envelopes.wrap(saved.draft("LegalEntityRegistered", version)),
-                saved.legalEntityId, saved.code));
-        return saved;
+        this.legalEntityId = Objects.requireNonNull(id, "id");
+        return this;
     }
 
     public LegalEntityId legalEntityId() {
@@ -77,6 +84,21 @@ public final class LegalEntity extends AggregateRoot {
 
     public String name() {
         return name;
+    }
+
+    public AccountingOrganizationNumber accountingOrganizationNumber() {
+        return accountingOrganizationNumber;
+    }
+
+    /** Asking for the number it already has changes nothing. */
+    public void assignAccountingNumber(AccountingOrganizationNumber number) {
+        Objects.requireNonNull(number, "number");
+        if (number.equals(accountingOrganizationNumber)) {
+            return;
+        }
+        this.accountingOrganizationNumber = number;
+        record((envelopes, version) -> new LegalEntityAccountingNumberAssigned(envelopes.wrap(draft("LegalEntityAccountingNumberAssigned", version)),
+                legalEntityId, number));
     }
 
     public LegalEntityStatus status() {

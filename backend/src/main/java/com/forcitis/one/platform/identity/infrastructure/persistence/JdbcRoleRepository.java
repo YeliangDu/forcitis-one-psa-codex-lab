@@ -9,6 +9,8 @@ import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.RoleRuleException;
 import com.forcitis.one.platform.identity.domain.RoleViolation;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,8 +22,10 @@ import org.springframework.stereotype.Repository;
 class JdbcRoleRepository implements RoleRepository {
 
     private final JdbcClient jdbc;
+    private final Clock clock;
 
-    JdbcRoleRepository(JdbcClient jdbc) {
+    JdbcRoleRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -45,21 +49,22 @@ class JdbcRoleRepository implements RoleRepository {
     @Override
     public Role insert(Role role) {
         Optional<Long> id = jdbc.sql("""
-                        insert into platform_identity.roles (code, name, kind, status, access_scope, is_administrative, version)
-                        values (:code, :name, :kind, :status, :scope, :administrative, :version)
+                        insert into platform_identity.roles (code, name, kind, status, access_scope, is_administrative, version, event_count)
+                        values (:code, :name, :kind, :status, :scope, :administrative, :version, :eventSequence)
                         on conflict do nothing
                         returning role_id
                         """)
                 .param("code", role.code().value()).param("name", role.name()).param("kind", role.kind().name())
                 .param("status", role.status().name()).param("scope", role.accessScope().name())
                 .param("administrative", role.administrative()).param("version", role.versionAfterSave())
+                .param("eventSequence", role.eventSequenceAfterSave())
                 .query(Long.class).optional();
         if (id.isEmpty()) {
             boolean codeTaken = jdbc.sql("select exists (select 1 from platform_identity.roles where lower(code) = lower(:code))")
                     .param("code", role.code().value()).query(Boolean.class).single();
             throw new RoleRuleException(codeTaken ? RoleViolation.DUPLICATE_CODE : RoleViolation.DUPLICATE_NAME);
         }
-        replacePermissions(id.get(), role.permissionCodes());
+        savePermissions(id.get(), role.permissionCodes());
         return role.withId(new RoleId(id.get()));
     }
 
@@ -75,22 +80,28 @@ class JdbcRoleRepository implements RoleRepository {
         int updated = jdbc.sql("""
                         update platform_identity.roles
                            set name = :name, status = :status, access_scope = :scope,
-                               updated_at = now(), version = :next
+                               updated_at = :updatedAt, version = :next, event_count = :eventSequence
                          where role_id = :id and version = :version and status = :loadedStatus
                         """)
                 .param("name", role.name()).param("status", role.status().name()).param("scope", role.accessScope().name())
-                .param("next", role.versionAfterSave()).param("id", role.roleId().value()).param("version", role.version())
-                .param("loadedStatus", role.loadedStatus().name()).update();
+                .param("next", role.versionAfterSave()).param("eventSequence", role.eventSequenceAfterSave()).param("id", role.roleId().value()).param("version", role.version())
+                .param("loadedStatus", role.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .update();
         if (updated != 1) {
             throw staleRole(role);
         }
-        replacePermissions(role.roleId().value(), role.permissionCodes());
+        savePermissions(role.roleId().value(), role.permissionCodes());
     }
 
     @Override
     public void delete(Role role) {
-        int removed = jdbc.sql("delete from platform_identity.roles where role_id = :id and version = :version")
-                .param("id", role.roleId().value()).param("version", role.version()).update();
+        int removed;
+        try {
+            removed = jdbc.sql("delete from platform_identity.roles where role_id = :id and version = :version")
+                    .param("id", role.roleId().value()).param("version", role.version()).update();
+        } catch (org.springframework.dao.DataIntegrityViolationException held) {
+            throw IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE.refusal("role " + role.roleId().value() + " is still held by accounts");
+        }
         if (removed != 1) {
             throw staleRole(role);
         }
@@ -101,7 +112,7 @@ class JdbcRoleRepository implements RoleRepository {
                 "role " + role.roleId().value() + " was changed by someone else");
     }
 
-    private void replacePermissions(long roleId, Set<String> permissionCodes) {
+    private void savePermissions(long roleId, Set<String> permissionCodes) {
         if (permissionCodes.isEmpty()) {
             jdbc.sql("delete from platform_identity.role_permissions where role_id = :id").param("id", roleId).update();
             return;

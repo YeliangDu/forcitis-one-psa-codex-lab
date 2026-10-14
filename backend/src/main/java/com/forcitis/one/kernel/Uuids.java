@@ -13,7 +13,11 @@ public final class Uuids {
     }
 
     public static UUID timeOrdered(Clock clock) {
-        long millis = clock.millis();
+        return timeOrdered(clock.instant());
+    }
+
+    public static UUID timeOrdered(Instant at) {
+        long millis = at.toEpochMilli();
         if (millis < 0 || millis >= 1L << 48) {
             throw new IllegalArgumentException("clock outside the UUIDv7 range: " + millis);
         }

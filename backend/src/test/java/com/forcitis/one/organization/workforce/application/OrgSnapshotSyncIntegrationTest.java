@@ -13,6 +13,7 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.unitId;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.user;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -24,6 +25,11 @@ import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.organization.workforce.events.SyncRunReleased;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.LocalDate;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +38,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.kernel.WorkContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,6 +71,23 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @DisplayName("INT-DDD-H2 同步应用快照的多聚合写已登记，事件 relatedAggregates 列出快照")
+    void applyingTheSnapshotIsARegisteredMultiAggregateWrite() throws java.io.IOException {
+        orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L)), List.of(head(2, 1)), List.of(post(100)), people(2));
+
+        SyncResult result = sync.execute(SyncTrigger.SCHEDULED, false);
+
+        assertThat(com.forcitis.one.fixture.doubles.AggregateWriteGuard.multiAggregateTransactions())
+                .as("the guard sees the run and the snapshot written together").contains(java.util.Set.of("OrgSnapshot", "SyncRun"));
+        assertThat(com.forcitis.one.fixture.doubles.AggregateWriteGuard.entries(java.nio.file.Files.readAllLines(java.nio.file.Path.of("architecture/multi-aggregate-exceptions.txt"))))
+                .as("and that pair is registered").anyMatch(set -> set.containsAll(java.util.Set.of("OrgSnapshot", "SyncRun")));
+        var snapshot = new com.forcitis.one.kernel.event.AggregateReference("OrgSnapshot", String.valueOf(result.syncRunId().value()));
+        assertThat(events.stream(com.forcitis.one.organization.workforce.events.SyncRunSucceeded.class)).singleElement()
+                .satisfies(e -> assertThat(e.envelope().relatedAggregates()).containsExactly(snapshot));
+        assertThat(events.stream(OrgSnapshotChanged.class)).singleElement().satisfies(e -> assertThat(e.envelope().relatedAggregates()).containsExactly(snapshot));
+    }
+
+    @Test
     @DisplayName("RULE-357/373 the first run builds the snapshot in one transaction, logs run and differences, announces the change")
     void firstRunBuildsTheSnapshot() {
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(head(2, 1)),
@@ -84,6 +109,35 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
             assertThat(e.changedEmployees()).containsExactlyInAnyOrder(user(1), user(2), user(3));
             assertThat(e.changedOrgUnits()).containsExactlyInAnyOrder(unitId(1), unitId(2), unitId(3));
             assertThat(e.separatedEmployees()).isEmpty();
+            assertThat(e.envelope().businessDate()).as("the snapshot cut-off day is the Shanghai day the run started")
+                    .isEqualTo(runStartDay());
+            assertThat(e.effectiveFrom()).isEqualTo(e.envelope().businessDate());
+        });
+    }
+
+    private LocalDate runStartDay() {
+        return jdbc.sql("select started_at from organization_workforce.sync_runs").query((rs, n) -> rs.getObject(1, OffsetDateTime.class))
+                .single().atZoneSameInstant(ZoneId.of("Asia/Shanghai")).toLocalDate();
+    }
+
+    @Test
+    @DisplayName("B2b-H2 a run that crosses Shanghai midnight dates its event and its history rows with the same day: the one the source was read on")
+    void snapshotDayIsTheSameForTheEventAndTheHistoryRowsAcrossMidnight() {
+        ZoneId shanghai = ZoneId.of("Asia/Shanghai");
+        Instant nextMidnight = LocalDate.now(shanghai).plusDays(1).atStartOfDay(shanghai).toInstant();
+        clock.advance(Duration.between(Instant.now(), nextMidnight.minusSeconds(60)));
+        LocalDate readDay = LocalDate.ofInstant(clock.instant(), shanghai);
+        orgSource.snapshot = tree(person(1, 2, 100L, null));
+        orgSource.afterRead = () -> clock.advance(Duration.ofMinutes(5));
+
+        sync.execute(SyncTrigger.SCHEDULED, false);
+
+        assertThat(LocalDate.ofInstant(clock.instant(), shanghai)).as("the run really crossed midnight").isEqualTo(readDay.plusDays(1));
+        LocalDate orgUnitFrom = jdbc.sql("select min(effective_from_date) from organization_workforce.org_unit_versions").query(LocalDate.class).single();
+        LocalDate assignmentFrom = jdbc.sql("select min(effective_from_date) from organization_workforce.assignment_versions").query(LocalDate.class).single();
+        assertThat(events.stream(OrgSnapshotChanged.class)).singleElement().satisfies(e -> {
+            assertThat(e.envelope().businessDate()).isEqualTo(readDay).isEqualTo(orgUnitFrom).isEqualTo(assignmentFrom);
+            assertThat(e.effectiveFrom()).isEqualTo(readDay);
         });
     }
 
@@ -201,9 +255,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        ReleaseResult released = release.execute(held.syncRunId().value(), 9001L);
+        ReleaseResult released = release.execute(held.syncRunId().value(), 9001L, "source repaired by hand", true, false);
 
-        assertThat(released).isInstanceOf(ReleaseResult.Released.class);
+        assertThat(released).isInstanceOfSatisfying(ReleaseResult.Released.class, r -> assertThat(r.releasedRun().status()).isEqualTo("SUCCEEDED"));
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(3);
         assertThat(jdbc.sql("select status || ':' || released_by from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value())
                 .query(String.class).single()).isEqualTo("RELEASED:9001");
@@ -214,8 +268,8 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
-        assertThat(release.execute(held.syncRunId().value(), 9001L)).isInstanceOf(ReleaseResult.NotHeld.class);
-        assertThat(release.execute(424242L, 9001L)).isInstanceOf(ReleaseResult.NotFound.class);
+        assertThat(release.execute(held.syncRunId().value(), 9001L, "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotHeld.class);
+        assertThat(release.execute(424242L, 9001L, "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotFound.class);
     }
 
     @Test
@@ -322,7 +376,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
                 .isEqualTo("Renamed in the source/Delivery");
 
         oldSystem.unavailable = true;
+        double failuresBefore = registry.counter("forcitis.organization.workforce.short.name.refresh.failures").count();
         assertThat(refreshShortNames.execute()).isZero();
+        assertThat(registry.counter("forcitis.organization.workforce.short.name.refresh.failures").count()).isEqualTo(failuresBefore + 1);
         assertThat(jdbc.sql("select short_name from organization_workforce.org_units where id = 1").query(String.class).single()).isEqualTo("HQ");
 
         oldSystem.unavailable = false;

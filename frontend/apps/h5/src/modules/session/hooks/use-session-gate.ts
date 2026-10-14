@@ -1,11 +1,16 @@
+import {
+  CURRENT_USER_KEY,
+  describeFailure,
+  failureOf,
+  installApiGuards,
+  loginWithWecom,
+  requestLoginState,
+  useCurrentUserQuery,
+} from '@forcitis/core';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { currentUrl, leaveTo, replaceUrl } from '@/shared/platform/browser';
-import { describeFailure, failureOf } from '@/shared/lib/failure';
-import { installApiGuards } from '../api/api-guards';
-import { loginWithWecom, requestLoginState } from '../api/session-api';
 import {
-  LOGIN_ERROR_MESSAGES,
   NOT_CONFIGURED_MESSAGE,
   SESSION_NOT_KEPT_MESSAGE,
   type LoginConfig,
@@ -13,7 +18,8 @@ import {
   authorizeUrl,
   withoutAuthorizationReply,
 } from '../model/wecom-login';
-import { CURRENT_USER_KEY, useCurrentUserQuery } from './use-current-user';
+
+const ENTRY = 'WORKBENCH' as const;
 
 export type GatePhase = 'checking' | 'ready' | 'failed';
 
@@ -39,7 +45,7 @@ export function useSessionGate(config: LoginConfig): SessionGate {
       const reply = authorizationReplyOf(currentUrl());
       if (reply !== undefined) {
         replaceUrl(withoutAuthorizationReply(currentUrl()));
-        await loginWithWecom(reply.code, reply.state);
+        await loginWithWecom(reply.code, reply.state, ENTRY);
         await queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY });
         if (queryClient.getQueryState(CURRENT_USER_KEY)?.status === 'error') setProblem(SESSION_NOT_KEPT_MESSAGE);
         return;
@@ -48,9 +54,9 @@ export function useSessionGate(config: LoginConfig): SessionGate {
         setProblem(NOT_CONFIGURED_MESSAGE);
         return;
       }
-      leaveTo(authorizeUrl(config, await requestLoginState(), currentUrl()));
+      leaveTo(authorizeUrl(config, await requestLoginState(ENTRY), currentUrl()));
     } catch (error: unknown) {
-      setProblem(describeFailure(error, LOGIN_ERROR_MESSAGES));
+      setProblem(describeFailure(error));
     } finally {
       busy.current = false;
     }

@@ -24,7 +24,7 @@ final class TimesheetApproverReplay {
 
     static ReplayReport replay(ReplayExport export) {
         ExportedSnapshot snapshot = new ExportedSnapshot(export.snapshot());
-        UserId administrator = export.processAdministratorUserId() == null ? null : new UserId(export.processAdministratorUserId());
+        java.util.Set<UserId> administrator = export.processAdministratorUserId() == null ? java.util.Set.of() : java.util.Set.of(new UserId(export.processAdministratorUserId()));
         AssigneeResolver resolver = new AssigneeResolver(snapshot, snapshot, administrator);
         Set<Long> hardCoded = new HashSet<>(export.legacyFallbackUserIds());
 

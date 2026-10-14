@@ -10,6 +10,7 @@ import com.forcitis.one.kernel.UserId;
 import java.util.Optional;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.time.Instant;
 import java.util.List;
@@ -23,7 +24,7 @@ class TaskPolicyTest {
         return new TaskView(new ApprovalTaskId("t1"), new ApprovalInstanceId("i1"), ProcessKey.COST_TIMESHEET_APPROVAL,
                 new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc-1")), new LegalEntityId(1), "approverReview",
                 "Approver review", new UserId(1), Optional.ofNullable(assignee), candidates, Instant.EPOCH, true, Optional.empty(), false,
-                "digest");
+                new ContentHash("hash"));
     }
 
     @Test

@@ -3,36 +3,32 @@ package com.forcitis.one.platform.approval;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.forcitis.one.cost.timesheet.api.TimesheetId;
-import com.forcitis.one.cost.timesheet.domain.StaleTimesheetException;
-import com.forcitis.one.cost.timesheet.domain.Timesheet;
-import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
-import com.forcitis.one.delivery.execution.api.WorkPackageId;
-import com.forcitis.one.kernel.Hours;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalStatus;
+import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
-import com.forcitis.one.platform.approval.domain.ApprovalTask;
-import com.forcitis.one.platform.approval.domain.ApprovalTaskRepository;
-import com.forcitis.one.platform.approval.domain.StaleAggregateException;
+import com.forcitis.one.platform.approval.domain.Moment;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/** Repositories write only what the aggregate holds, and only if nobody changed the row since it was loaded. */
+/** The repository writes the request and its tasks only if nobody changed the request row since it was loaded. */
 class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
+
+    static final Moment NOW = new Moment(Instant.parse("2026-10-14T02:00:00Z"), LocalDate.of(2026, 10, 14));
 
     @Autowired
     ApprovalRequestRepository requests;
-
-    @Autowired
-    ApprovalTaskRepository tasks;
-
-    @Autowired
-    TimesheetRepository timesheets;
 
     @Test
     @DisplayName("DDD-4 an approval request saved from a stale copy is refused; the first writer's change stands and the version counts it")
@@ -44,21 +40,42 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
         start(key, initiator, manager);
 
         tx.executeWithoutResult(s -> {
-            ApprovalRequest request = requests.find(com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow();
-            request.returnRound("first writer", LocalDate.of(2026, 10, 14));
+            ApprovalRequest request = requests.findForUpdate(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow();
+            request.returnRound(new Reason("first writer"), NOW);
             requests.save(request);
         });
-        assertThat(jdbc.queryForObject("select version from platform_approval.approval_requests where document_key = ?", Long.class, key)).isEqualTo(1L);
+        assertThat(jdbc.queryForObject("select version from platform_approval.approval_requests where document_key = ?", Long.class, key))
+                .as("one save after the start's save").isEqualTo(2L);
 
         assertThatThrownBy(() -> tx.executeWithoutResult(s -> {
-            ApprovalRequest staleCopy = ApprovalRequest.restore(com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, document(key),
-                    LEGAL_ENTITY, new UserId(initiator), 1, new ApprovalInstanceId("irrelevant"),
-                    com.forcitis.one.platform.approval.api.ApprovalStatus.RUNNING, null, 0, 0);
-            staleCopy.approve(LocalDate.of(2026, 10, 14));
+            ApprovalRequest staleCopy = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY,
+                    new UserId(initiator), 1, new ApprovalInstanceId("irrelevant"), ApprovalStatus.RUNNING, null,
+                    new ApprovalSummary("stale"), List.of(), 1, 0);
+            staleCopy.approve(NOW);
             requests.save(staleCopy);
-        })).isInstanceOf(StaleAggregateException.class);
+        })).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE));
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
-        assertThat(jdbc.queryForObject("select event_count from platform_approval.approval_requests where document_key = ?", Long.class, key)).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("DDD-3 the event sequence and the lock version are two counters: a save moves the version by one whatever the number of events")
+    void versionAndEventSequenceAreSeparate() {
+        long initiator = newId();
+        long manager = newId();
+        organisation.person(initiator, 1, null).person(manager, 1, null);
+        String key = newKey("counters");
+        ApprovalInstanceId instance = start(key, initiator, manager);
+
+        assertThat(jdbc.queryForMap("select version, event_count from platform_approval.approval_requests where document_key = ?", key))
+                .as("the start recorded the round and one task in one save").containsEntry("version", 1L).containsEntry("event_count", 2L);
+        tx.executeWithoutResult(s -> {
+            ApprovalRequest request = requests.findForUpdate(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow();
+            request.claimTask(new ApprovalTaskId(openTask(instance).getId()), new UserId(manager), NOW);
+            requests.save(request);
+        });
+        assertThat(jdbc.queryForMap("select version, event_count from platform_approval.approval_requests where document_key = ?", key))
+                .containsEntry("version", 2L).containsEntry("event_count", 3L);
     }
 
     @Test
@@ -74,71 +91,52 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
                 "select current_instance_id from platform_approval.approval_requests where document_key = ?", String.class, key));
         jdbc.update("update platform_approval.approval_requests set status = 'CANCELLED' where document_key = ?", key);
 
-        ApprovalRequest copy = ApprovalRequest.restore(com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, document(key),
-                LEGAL_ENTITY, new UserId(initiator), 1, instance, com.forcitis.one.platform.approval.api.ApprovalStatus.RUNNING, null, 0, version);
-        copy.approve(LocalDate.of(2026, 10, 14));
+        ApprovalRequest copy = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, new UserId(initiator), 1,
+                instance, ApprovalStatus.RUNNING, null, new ApprovalSummary("copy"), List.of(), version, 0);
+        copy.approve(NOW);
 
-        assertThatThrownBy(() -> tx.executeWithoutResult(s -> requests.save(copy))).isInstanceOf(StaleAggregateException.class);
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> requests.save(copy))).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE));
         assertThat(requestStatus(key)).isEqualTo("CANCELLED");
     }
 
     @Test
-    @DisplayName("DDD-4 an approval task saved from a stale copy is refused")
-    void staleApprovalTaskIsRefused() {
+    @DisplayName("DDD-4 a change of a task saved from a stale copy of its request is refused: tasks have no version of their own")
+    void staleTaskChangeIsRefused() {
         long initiator = newId();
         long manager = newId();
         organisation.person(initiator, 1, null).person(manager, 1, null);
         ApprovalInstanceId instance = start(newKey("task-versioning"), initiator, manager);
         ApprovalTaskId task = openTaskId(instance);
+        String key = jdbc.queryForObject("select document_key from platform_approval.approval_tasks where task_id = ?", String.class, task.value());
 
+        ApprovalRequest stale = tx.execute(s -> requests.find(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow());
         tx.executeWithoutResult(s -> {
-            ApprovalTask loaded = tasks.find(task).orElseThrow();
-            loaded.claim(new UserId(manager), LocalDate.of(2026, 10, 14));
-            tasks.save(loaded);
+            ApprovalRequest loaded = requests.findForUpdate(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow();
+            loaded.claimTask(task, new UserId(manager), NOW);
+            requests.save(loaded);
         });
+        stale.claimTask(task, new UserId(initiator), NOW);
 
-        assertThatThrownBy(() -> tx.executeWithoutResult(s -> {
-            ApprovalTask stale = ApprovalTask.restore(task, instance, com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL,
-                    document("x"), LEGAL_ENTITY, "projectManagerReview", com.forcitis.one.platform.approval.domain.ApprovalTaskStatus.PENDING, null,
-                    null, null, null, null, null, 1, 0);
-            stale.claim(new UserId(initiator), LocalDate.of(2026, 10, 14));
-            tasks.save(stale);
-        })).isInstanceOf(StaleAggregateException.class);
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> requests.save(stale))).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE));
         assertThat(jdbc.queryForObject("select assignee_id from platform_approval.approval_tasks where task_id = ?", Long.class, task.value()))
                 .isEqualTo(manager);
     }
 
     @Test
-    @DisplayName("DDD-4 a timesheet saved from a stale copy is refused")
-    void staleTimesheetIsRefused() {
-        TimesheetId id = new TimesheetId(80_000 + newId() % 10_000);
-        jdbc.update("insert into delivery_execution.work_packages (id, planned_hours, actual_hours, status) values (7003, 40, 0, 'IN_PROGRESS')"
-                + " on conflict (id) do nothing");
-        Timesheet draft = Timesheet.draft(id, new UserId(5), LEGAL_ENTITY, new WorkPackageId(7003), LocalDate.of(2026, 10, 13), Hours.of("8"), new UserId(6));
-        tx.executeWithoutResult(s -> timesheets.save(draft));
-
-        tx.executeWithoutResult(s -> {
-            Timesheet loaded = timesheets.find(id).orElseThrow();
-            loaded.revise(new UserId(5), new WorkPackageId(7003), LocalDate.of(2026, 10, 13), Hours.of("7"), new UserId(6));
-            timesheets.save(loaded);
-        });
-        Timesheet stale = Timesheet.restore(id, new UserId(5), LEGAL_ENTITY, new WorkPackageId(7003), LocalDate.of(2026, 10, 13), Hours.of("8"),
-                new UserId(6), com.forcitis.one.cost.timesheet.api.TimesheetStatus.DRAFT, 0, null, 0, 0);
-        stale.revise(new UserId(5), new WorkPackageId(7003), LocalDate.of(2026, 10, 13), Hours.of("1"), new UserId(6));
-
-        assertThatThrownBy(() -> tx.executeWithoutResult(s -> timesheets.save(stale))).isInstanceOf(StaleTimesheetException.class);
-        assertThat(jdbc.queryForObject("select submitted_hours from cost_timesheet.timesheets where id = ?", java.math.BigDecimal.class, id.value()))
-                .isEqualByComparingTo("7");
+    @DisplayName("DDD-5 the database refuses a request without a legal entity")
+    void legalEntityIsMandatoryInTheDatabase() {
+        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key, initiator_id,"
+                + " current_round, status, summary_text) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', 'no-le', 1, 1, 'RUNNING', 's')"))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 
     @Test
-    @DisplayName("DDD-5 the database refuses a request or a timesheet without a legal entity")
-    void legalEntityIsMandatoryInTheDatabase() {
-        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key, initiator_id,"
-                + " current_round, status) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', 'no-le', 1, 1, 'RUNNING')"))
-                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
-        assertThatThrownBy(() -> jdbc.update("insert into cost_timesheet.timesheets (id, employee_id, work_package_id, work_date, submitted_hours,"
-                + " project_manager_id, status) values (90001, 1, 1, '2026-10-13', 1, 1, 'DRAFT')"))
+    @DisplayName("K6 a task cannot exist without its request: the database holds the reference")
+    void aTaskNeedsItsRequest() {
+        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_tasks (task_id, instance_id, process_key, document_key, node_key,"
+                + " status) values ('orphan', 'i', 'COST_TIMESHEET_APPROVAL', 'no-such-document', 'n', 'PENDING')"))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 }

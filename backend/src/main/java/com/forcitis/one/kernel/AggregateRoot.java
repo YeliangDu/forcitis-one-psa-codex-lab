@@ -7,27 +7,37 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * version is the optimistic-lock counter and doubles as the per-aggregate event sequence: an event recorded on the n-th place after
- * the loaded version carries aggregateVersion = loaded + n, and a save moves the stored version to loaded + max(1, events).
+ * Two counters, never mixed: version is the optimistic lock and moves by one per save; eventSequence moves by one per event
+ * and is the envelope's aggregateVersion (EVENT_ANALYTICS_FIELDS §6.3), so it has no gaps. Both are persisted.
  */
 public abstract class AggregateRoot {
 
     private long version;
+    private long eventSequence;
     private final List<PendingEvent> pending = new ArrayList<>();
 
-    protected AggregateRoot(long version) {
-        if (version < 0) {
-            throw new IllegalArgumentException("version must not be negative");
+    protected AggregateRoot(long version, long eventSequence) {
+        if (version < 0 || eventSequence < 0) {
+            throw new IllegalArgumentException("version and eventSequence must not be negative");
         }
         this.version = version;
+        this.eventSequence = eventSequence;
     }
 
     public final long version() {
         return version;
     }
 
+    public final long eventSequence() {
+        return eventSequence;
+    }
+
     public final long versionAfterSave() {
-        return version + Math.max(1, pending.size());
+        return version + 1;
+    }
+
+    public final long eventSequenceAfterSave() {
+        return eventSequence + pending.size();
     }
 
     protected final void record(PendingEvent event) {
@@ -38,14 +48,12 @@ public abstract class AggregateRoot {
         return !pending.isEmpty();
     }
 
-    /** Seals and clears the recorded events and advances the version to what the save stored. */
     public final List<DomainEvent> drainEvents(EventEnvelopes envelopes) {
         List<DomainEvent> sealed = new ArrayList<>(pending.size());
-        long sequence = version;
         for (PendingEvent event : pending) {
-            sealed.add(event.seal(envelopes, ++sequence));
+            sealed.add(event.seal(envelopes, ++eventSequence));
         }
-        version = version + Math.max(1, pending.size());
+        version = version + 1;
         pending.clear();
         return sealed;
     }

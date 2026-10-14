@@ -134,13 +134,12 @@ class TimesheetApproverReplayIT {
     }
 
     @Test
-    @DisplayName("TIMESHEET v15 the replay's branch table equals the shipped BPMN and decision table: flags, nodes, rules and routing-flag constants")
+    @DisplayName("TIMESHEET v15 the replay's branch table equals the shipped BPMN: flags, nodes, rules and routing-flag constants")
     void branchTableEqualsTheProcess() throws Exception {
         String xml = Files.readString(Path.of("src/main/resources/processes/cost_timesheet_approval.bpmn20.xml"));
-        String nodesTable = Files.readString(Path.of("src/main/resources/dmn/cost_timesheet_approval_nodes.dmn"));
         for (TimesheetBranches.Branch branch : TimesheetBranches.ALL) {
             assertThat(xml).contains("getOrDefault('routed_" + branch.nodeKey() + "', false)").contains("<userTask id=\"" + branch.nodeKey() + "\"");
-            assertThat(nodesTable).contains("<text>" + branch.flag() + "</text>").contains("== \"" + branch.nodeKey() + "\"");
+            assertThat(xml).contains("routingFlag=\"" + branch.flag() + "\"");
             String attributes = branch.rule().entrySet().stream().filter(e -> !e.getKey().equals("type"))
                     .map(e -> e.getKey() + "=\"" + e.getValue() + "\"").sorted().collect(java.util.stream.Collectors.joining(" "));
             assertThat(xml).contains("type=\"" + branch.rule().get("type") + "\" " + attributes);

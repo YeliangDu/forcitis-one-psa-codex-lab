@@ -1,17 +1,22 @@
 package com.forcitis.one.platform.audit.domain;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
 import java.time.Instant;
 
-/** Every filter is optional; from is inclusive, to is exclusive. */
-public record AuditQuery(UserId actorId, String action, String subjectKey, Instant from, Instant to, int page, int limit) {
+/**
+ * Every filter is optional; from is inclusive, to is exclusive; action matches exactly, actionPrefix by its beginning. after is the
+ * position the previous page ended at.
+ */
+public record AuditQuery(UserId actorId, UserId onBehalfOfId, String action, String actionPrefix, String subjectKey, String sourceAddress,
+                         AuditOutcome outcome, Instant from, Instant to, Position after, int limit) {
 
     public static final int MAX_LIMIT = 200;
 
+    public record Position(Instant createdAt, AuditEntryId entryId) {
+    }
+
     public AuditQuery {
-        if (page < 0) {
-            throw new IllegalArgumentException("page must not be negative");
-        }
         if (limit < 1 || limit > MAX_LIMIT) {
             throw new IllegalArgumentException("limit must be 1.." + MAX_LIMIT);
         }

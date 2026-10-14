@@ -9,13 +9,17 @@ import java.util.Optional;
 public interface SyncRunQueries {
     Optional<SyncRunRecord> find(SyncRunId syncRunId);
 
-    List<SyncRunRecord> findRecent(int limit);
+    /** Newest first: runs with an id below beforeId (null for the first page), at most limit. */
+    List<SyncRunRecord> findBefore(Long beforeId, int limit);
 
     List<SyncDiff> findDiffs(SyncRunId syncRunId);
 
     Optional<Instant> findLastSucceededAt();
 
     int countHeld();
+
+    /** Runs waiting for a person, oldest first. */
+    List<SyncRunRecord> findHeld();
 
     Optional<Integer> findLatestEmployedWithoutWecomCount();
 }

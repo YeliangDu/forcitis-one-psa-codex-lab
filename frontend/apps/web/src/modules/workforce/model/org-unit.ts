@@ -10,7 +10,7 @@ export function buildOrgTree(units: readonly OrgUnit[]): OrgUnitNode[] {
   const nodes = new Map<string, OrgUnitNode>(units.map((unit) => [unit.orgUnitId, { ...unit }]));
   const roots: OrgUnitNode[] = [];
   for (const node of nodes.values()) {
-    const parent = node.parentOrgUnitId === undefined ? undefined : nodes.get(node.parentOrgUnitId);
+    const parent = node.parentOrgUnitId == null ? undefined : nodes.get(node.parentOrgUnitId);
     if (parent === undefined) {
       roots.push(node);
     } else {

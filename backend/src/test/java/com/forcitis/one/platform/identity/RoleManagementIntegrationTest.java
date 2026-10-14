@@ -13,7 +13,9 @@ import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
+import com.forcitis.one.platform.identity.events.RoleCreated;
 import jakarta.servlet.http.Cookie;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,7 +38,8 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @BeforeEach
     void callers() {
         createAccount(9, "super_admin");
-        admin = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, () -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
+        admin = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, () -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
+                () -> Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE);
         reader = user("8").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
     }
 
@@ -53,6 +56,10 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
 
     private String errorCode(MvcResult result) throws Exception {
         return body(result).path("errorCode").asString();
+    }
+
+    private String versionOf(long roleId) {
+        return "\"" + jdbc.sql("select version from platform_identity.roles where role_id = :id").param("id", roleId).query(Long.class).single() + "\"";
     }
 
     @Test
@@ -75,7 +82,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(result).path("kind").asString()).isEqualTo("CUSTOM");
         assertThat(body(result).path("enabled").asBoolean()).isTrue();
         assertThat(jdbc.sql("select access_scope from platform_identity.roles where code = 'analyst'").query(String.class).single()).isEqualTo("SELF");
-        assertThat(recordedEvents.stream(com.forcitis.one.platform.identity.events.RoleCreated.class)).hasSize(1);
+        assertThat(recordedEvents.stream(RoleCreated.class)).hasSize(1);
     }
 
     @Test
@@ -98,21 +105,21 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("RULE-345 system roles are frozen: no update, no delete; custom roles can be changed and deleted with their links")
+    @DisplayName("RULE-345 system roles are frozen: no update, no delete; custom roles can be changed, and deleted once no account holds them")
     void systemRolesAreFrozen() throws Exception {
         long employee = roleId("employee");
         long superAdmin = roleId("super_admin");
         for (long id : new long[] {employee, superAdmin}) {
-            assertThat(mvc.perform(put(ROLES + "/" + id).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+            assertThat(mvc.perform(put(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
                     .content("{\"name\":\"Renamed\",\"enabled\":false,\"permissionCodes\":[]}")).andReturn().getResponse().getStatus())
                     .isEqualTo(409);
-            assertThat(mvc.perform(delete(ROLES + "/" + id).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(409);
+            assertThat(mvc.perform(delete(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(409);
         }
 
         createRole("analyst", "Analyst", "\"platform.approval:task:read\"", null);
         long analyst = roleId("analyst");
         createAccount(1001, "analyst");
-        MvcResult renamed = mvc.perform(put(ROLES + "/" + analyst).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+        MvcResult renamed = mvc.perform(put(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Senior analyst\",\"enabled\":true,\"accessScope\":\"OWN_ORG_UNIT_SUBTREE\",\"permissionCodes\":[\"platform.approval:task:approve\"]}"))
                 .andReturn();
         assertThat(renamed.getResponse().getStatus()).isEqualTo(200);
@@ -121,11 +128,17 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 .query(String.class).list()).as("the permission set is replaced as a whole (RULE-346)")
                 .containsExactly("platform.approval:task:approve");
 
-        assertThat(mvc.perform(delete(ROLES + "/" + analyst).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(204);
+        MvcResult held = mvc.perform(delete(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin)).andReturn();
+        assertThat(held.getResponse().getStatus()).isEqualTo(409);
+        assertThat(errorCode(held)).isEqualTo("PLATFORM_IDENTITY_ROLE_IN_USE");
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles where role_id = :id").param("id", analyst)
+                .query(Long.class).single()).as("a role held by an account is not deleted and its link stays").isEqualTo(1);
+
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andReturn().getResponse().getStatus()).isEqualTo(204);
+        assertThat(mvc.perform(delete(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(204);
         assertThat(jdbc.sql("select count(*) from platform_identity.role_permissions where role_id = :id").param("id", analyst)
                 .query(Long.class).single()).isZero();
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles where role_id = :id").param("id", analyst)
-                .query(Long.class).single()).as("RULE-345: links go with the role").isZero();
     }
 
     @Test
@@ -136,7 +149,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         String session = loginWithWecom(1001);
         assertThat(permissionsOf(session)).contains("platform.numbering:numbering-rule:read");
 
-        MvcResult disabled = mvc.perform(put(ROLES + "/" + roleId("analyst")).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+        MvcResult disabled = mvc.perform(put(ROLES + "/" + roleId("analyst")).header("If-Match", versionOf(roleId("analyst"))).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Analyst\",\"enabled\":false,\"permissionCodes\":[\"platform.numbering:numbering-rule:read\"]}")).andReturn();
         assertThat(disabled.getResponse().getStatus()).isEqualTo(200);
 
@@ -162,7 +175,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         createAccount(1001, "analyst", "auditor");
         String session = loginWithWecom(1001);
 
-        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(admin)
+        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"auditor\",\"planner\"]}")).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(204);
@@ -172,10 +185,10 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 """).query(String.class).list()).containsExactly("auditor", "planner");
         assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus())
                 .as("RULE-338: a role change ends the sessions").isEqualTo(401);
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(admin)
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"ghost\"]}")).andReturn().getResponse().getStatus())
                 .isEqualTo(404);
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/555:replace-roles").with(xsrf()).with(admin)
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/555:replace-roles").header("If-Match", accountVersion(555)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andReturn().getResponse().getStatus()).isEqualTo(404);
     }
 
@@ -185,22 +198,25 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         jdbc.sql("insert into platform_identity.roles (code, name) values ('role-editor', 'Role editor')").update();
         jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'role-editor'")
                 .param("p", Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE).update();
+        jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'role-editor'")
+                .param("p", Permission.Codes.PLATFORM_APPROVAL_TASK_READ).update();
         createAccount(5, "role-editor");
         createAccount(1001);
-        RequestPostProcessor editor = user("5").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE);
+        RequestPostProcessor editor = user("5").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+                () -> Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE);
 
         MvcResult broad = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"mine\",\"name\":\"Mine\",\"permissionCodes\":[\"cost.timesheet:timesheet:approve\"]}")).andReturn();
-        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/5:replace-roles").with(xsrf()).with(editor)
+        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(editor)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"role-editor\",\"super_admin\"]}")).andReturn();
         MvcResult within = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"code\":\"small\",\"name\":\"Small\",\"permissionCodes\":[\"" + Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE + "\"]}")).andReturn();
+                .content("{\"code\":\"small\",\"name\":\"Small\",\"permissionCodes\":[\"" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "\"]}")).andReturn();
 
         assertThat(broad.getResponse().getStatus()).isEqualTo(403);
         assertThat(errorCode(broad)).isEqualTo("PLATFORM_IDENTITY_ROLE_NOT_ALLOWED");
         assertThat(toSuperAdmin.getResponse().getStatus()).isEqualTo(403);
         assertThat(within.getResponse().getStatus()).isEqualTo(201);
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = 5")
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = 1001")
                 .query(Long.class).single()).isZero();
     }
 
@@ -224,5 +240,90 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     private Set<String> permissionsOf(String session) throws Exception {
         var me = body(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn());
         return Set.copyOf(me.path("permissionCodes").valueStream().map(n -> n.asString()).toList());
+    }
+
+    @Test
+    @DisplayName("B3-M4 account writes need the version of the account: none is 428, an old one 412, a weak or unreadable tag 400; the GET gives the ETag")
+    void accountWritesNeedTheVersion() throws Exception {
+        createRole("analyst", "Analyst", "", null);
+        createAccount(1001, "analyst");
+        String url = "/api/v1/platform/user-accounts/1001";
+        String etag = mvc.perform(get(url).with(admin)).andReturn().getResponse().getHeader("ETag");
+        assertThat(etag).isEqualTo(accountVersion(1001));
+
+        for (String action : new String[] {":replace-roles", ":enable", ":disable"}) {
+            var request = post(url + action).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}");
+            assertThat(mvc.perform(request).andReturn().getResponse().getStatus()).as(action + " without a version").isEqualTo(428);
+            assertThat(mvc.perform(request.header("If-Match", "\"99\"")).andReturn().getResponse().getStatus()).as(action + " with an old version").isEqualTo(412);
+        }
+        var weak = post(url + ":enable").with(xsrf()).with(admin).header("If-Match", "W/" + etag);
+        assertThat(mvc.perform(weak).andReturn().getResponse().getStatus()).as("a weak tag").isEqualTo(400);
+        assertThat(mvc.perform(post(url + ":enable").with(xsrf()).with(admin).header("If-Match", "abc")).andReturn().getResponse().getStatus())
+                .as("an unreadable tag").isEqualTo(400);
+
+        MvcResult changed = mvc.perform(post(url + ":replace-roles").with(xsrf()).with(admin).header("If-Match", etag)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andReturn();
+        assertThat(changed.getResponse().getStatus()).isEqualTo(204);
+        assertThat(changed.getResponse().getHeader("ETag")).isNotEqualTo(etag);
+    }
+
+    @Test
+    @DisplayName("Nit replacing the roles with the roles the account already has changes nothing: no event, no new version, the sessions stay")
+    void sameRolesChangeNothing() throws Exception {
+        createRole("analyst", "Analyst", "", null);
+        createAccount(1001, "analyst");
+        String before = accountVersion(1001);
+
+        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(admin).header("If-Match", before)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"analyst\"]}")).andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(204);
+        assertThat(accountVersion(1001)).isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("a role and an account keep the lock version and the event count apart: both are stored and move once per change that announces an event")
+    void storedCountersFollowTheChanges() throws Exception {
+        createRole("analyst", "Analyst", "", null);
+        long id = roleId("analyst");
+        mvc.perform(put(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Senior analyst\",\"enabled\":true,\"permissionCodes\":[]}")).andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(200));
+        mvc.perform(put(ROLES + "/" + id).header("If-Match", versionOf(id)).with(xsrf()).with(admin).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Senior analyst\",\"enabled\":false,\"permissionCodes\":[]}")).andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(200));
+
+        assertThat(jdbc.sql("select version, event_count from platform_identity.roles where role_id = :id").param("id", id)
+                .query((rs, n) -> List.of(rs.getLong(1), rs.getLong(2))).single()).as("three saves; the last one revised and disabled the role, so it announced two events: 1 + 1 + 2").isEqualTo(List.of(3L, 4L));
+
+        createAccount(1001, "analyst");
+        mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(204));
+        mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin))
+                .andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(204));
+
+        assertThat(jdbc.sql("select version, event_count from platform_identity.user_accounts where user_id = 1001")
+                .query((rs, n) -> List.of(rs.getLong(1), rs.getLong(2))).single()).as("roles replaced, disabled").isEqualTo(List.of(2L, 2L));
+    }
+
+    @Test
+    @DisplayName("INT-SEC-H2 platformPermissionsStayInTheAdministratorMode: a custom role cannot be created or revised with a platform permission, and one that already holds it gives none in an ordinary session")
+    void platformPermissionsStayInTheAdministratorMode() throws Exception {
+        MvcResult created = createRole("ops", "Ops", "\"" + Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE + "\"", null);
+        assertThat(created.getResponse().getStatus()).isEqualTo(422);
+        assertThat(errorCode(created)).isEqualTo("PLATFORM_IDENTITY_PERMISSION_ADMINISTRATOR_MODE_ONLY");
+        assertThat(createRole("hold", "Hold", "\"" + Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE + "\"", null).getResponse().getStatus())
+                .as("separation-hold:approve is allowed outside the administrator mode (ADR-0028)").isNotEqualTo(422);
+
+        jdbc.sql("insert into platform_identity.roles (code, name) values ('legacy-editor', 'Legacy editor')").update();
+        for (String code : new String[] {Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE,
+                Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE, Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_APPROVAL_TASK_READ}) {
+            jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'legacy-editor'")
+                    .param("p", code).update();
+        }
+        createAccount(1001, "employee", "legacy-editor");
+        String session = loginWithWecom(1001);
+
+        assertThat(permissionsOf(session)).contains(Permission.Codes.PLATFORM_APPROVAL_TASK_READ).doesNotContain(Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+                Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE, Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
+        assertThat(mvc.perform(get(ROLES).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus()).isEqualTo(403);
     }
 }

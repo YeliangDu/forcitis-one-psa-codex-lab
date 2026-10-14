@@ -1,0 +1,3 @@
+# A test of one module whose SQL names the schema of another: <path under src/test/java/com/forcitis/one>#<schema>  # why.
+# TestIsolationGuardTest fails for a reference outside this list and for a line here that is no longer needed. Framework tables
+# (Spring Session, Modulith event publication, ShedLock) are not another module's data. Cross-module scenarios belong in scenario/.

@@ -560,6 +560,398 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_approval_task_not_found
+  zh: 任务不存在
+  en: PlatformApprovalTaskNotFound
+  snake: platform_approval_task_not_found
+  kind: error_code
+  bc: platform.approval
+  definition: 审批任务不存在或已办结，或办理人无权看到它（404）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_task_already_claimed
+  zh: 任务已被认领
+  en: PlatformApprovalTaskAlreadyClaimed
+  snake: platform_approval_task_already_claimed
+  kind: error_code
+  bc: platform.approval
+  definition: 任务已被另一位候选人认领（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_decision_empty
+  zh: 未给出办理决定
+  en: PlatformApprovalDecisionEmpty
+  snake: platform_approval_decision_empty
+  kind: error_code
+  bc: platform.approval
+  definition: 一次办理没有任何决定（400）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_decision_duplicate_task
+  zh: 任务重复办理
+  en: PlatformApprovalDecisionDuplicateTask
+  snake: platform_approval_decision_duplicate_task
+  kind: error_code
+  bc: platform.approval
+  definition: 同一次办理里同一任务出现两次（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_decision_cross_instance
+  zh: 跨流程实例办理
+  en: PlatformApprovalDecisionCrossInstance
+  snake: platform_approval_decision_cross_instance
+  kind: error_code
+  bc: platform.approval
+  definition: 一次办理只能处理同一个审批的任务（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_decision_single_only
+  zh: 同一节点只办一次
+  en: PlatformApprovalDecisionSingleOnly
+  snake: platform_approval_decision_single_only
+  kind: error_code
+  bc: platform.approval
+  definition: 同一节点在一次办理里只接受一个决定（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_reason_required
+  zh: 必须填写原因
+  en: PlatformApprovalReasonRequired
+  snake: platform_approval_reason_required
+  kind: error_code
+  bc: platform.approval
+  definition: 驳回、退回、转交、改派、撤回、撤销必须填写原因（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_hook_blocked
+  zh: 钩子拒绝办理
+  en: PlatformApprovalHookBlocked
+  snake: platform_approval_hook_blocked
+  kind: error_code
+  bc: platform.approval
+  definition: 节点的办理前钩子没有放行（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_hook_not_registered
+  zh: 钩子未登记
+  en: PlatformApprovalHookNotRegistered
+  snake: platform_approval_hook_not_registered
+  kind: error_code
+  bc: platform.approval
+  definition: 节点指定的办理前钩子没有登记（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_request_not_found
+  zh: 审批请求不存在
+  en: PlatformApprovalRequestNotFound
+  snake: platform_approval_request_not_found
+  kind: error_code
+  bc: platform.approval
+  definition: 找不到审批请求（404）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_no_route
+  zh: 没有走向
+  en: PlatformApprovalNoRoute
+  snake: platform_approval_no_route
+  kind: error_code
+  bc: platform.approval
+  definition: 发起时没有设置任何路由标记，流程无处可走（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_routing_flag_unknown
+  zh: 路由标记未知
+  en: PlatformApprovalRoutingFlagUnknown
+  snake: platform_approval_routing_flag_unknown
+  kind: error_code
+  bc: platform.approval
+  definition: 发起时给出的路由标记不是该流程任何节点声明的（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_transition_illegal
+  zh: 状态转换不合法
+  en: PlatformApprovalTransitionIllegal
+  snake: platform_approval_transition_illegal
+  kind: error_code
+  bc: platform.approval
+  definition: 审批请求或任务在当前状态下不能做这个操作（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_round_mismatch
+  zh: 轮次不符
+  en: PlatformApprovalRoundMismatch
+  snake: platform_approval_round_mismatch
+  kind: error_code
+  bc: platform.approval
+  definition: 要求发起的轮次与审批请求当前轮次不衔接（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_already_approved
+  zh: 审批已通过
+  en: PlatformApprovalAlreadyApproved
+  snake: platform_approval_already_approved
+  kind: error_code
+  bc: platform.approval
+  definition: 已通过的审批不允许再发起（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_cutoff_passed
+  zh: 已过撤回截止点
+  en: PlatformApprovalCutoffPassed
+  snake: platform_approval_cutoff_passed
+  kind: error_code
+  bc: platform.approval
+  definition: 截止节点已有办结任务，不能再撤回或撤销（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_not_initiator
+  zh: 不是发起人
+  en: PlatformApprovalNotInitiator
+  snake: platform_approval_not_initiator
+  kind: error_code
+  bc: platform.approval
+  definition: 只有发起人能做这个操作（403）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_not_administrator
+  zh: 不是流程管理员
+  en: PlatformApprovalNotAdministrator
+  snake: platform_approval_not_administrator
+  kind: error_code
+  bc: platform.approval
+  definition: 只有流程管理员能做这个操作（403）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_concurrent_change
+  zh: 被他人同时修改
+  en: PlatformApprovalConcurrentChange
+  snake: platform_approval_concurrent_change
+  kind: error_code
+  bc: platform.approval
+  definition: 审批请求在读取后被别人改过，需重新读取（409）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_transfer_target_invalid
+  zh: 转交对象无效
+  en: PlatformApprovalTransferTargetInvalid
+  snake: platform_approval_transfer_target_invalid
+  kind: error_code
+  bc: platform.approval
+  definition: 被转交或改派的人必须在职、不是发起人、在该节点还没有任务（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_assignee_input_invalid
+  zh: 取人输入无效
+  en: PlatformApprovalAssigneeInputInvalid
+  snake: platform_approval_assignee_input_invalid
+  kind: error_code
+  bc: platform.approval
+  definition: 取人所读的表单字段缺失或指向不存在或已离职的人（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_no_assignee_found
+  zh: 找不到处理人
+  en: PlatformApprovalNoAssigneeFound
+  snake: platform_approval_no_assignee_found
+  kind: error_code
+  bc: platform.approval
+  definition: 节点找不到任何人，也没有配置流程管理员（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_escalation_target_missing
+  zh: 升级对象缺失
+  en: PlatformApprovalEscalationTargetMissing
+  snake: platform_approval_escalation_target_missing
+  kind: error_code
+  bc: platform.approval
+  definition: 超时任务找不到上级也没有流程管理员可升级（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_version_required
+  zh: 缺少版本条件
+  en: PlatformWebVersionRequired
+  snake: platform_web_version_required
+  kind: error_code
+  bc: platform.approval
+  definition: 改变审批的请求没有带 If-Match（428）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_version_malformed
+  zh: 版本条件格式错误
+  en: PlatformWebVersionMalformed
+  snake: platform_web_version_malformed
+  kind: error_code
+  bc: platform.approval
+  definition: If-Match 不是一个强校验的 ETag（400）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_web_version_mismatch
+  zh: 版本条件不符
+  en: PlatformWebVersionMismatch
+  snake: platform_web_version_mismatch
+  kind: error_code
+  bc: platform.approval
+  definition: If-Match 与审批请求当前版本不一致，需重新读取（412）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_node_config_invalid
+  zh: 节点配置无效
+  en: PlatformApprovalNodeConfigInvalid
+  snake: platform_approval_node_config_invalid
+  kind: error_code
+  bc: platform.approval
+  definition: 流程文件里节点的指派规则或时限配置缺失或不合法，该节点无法创建任务（503）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_approval_page_invalid
+  zh: 翻页参数无效
+  en: PlatformApprovalPageInvalid
+  snake: platform_approval_page_invalid
+  kind: error_code
+  bc: platform.approval
+  definition: 列表的游标不是本模块给出的，或每页条数超出范围（400）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - advice
 - already
@@ -655,3 +1047,20 @@ common_words:
 - retraction
 - binding
 - nullable
+- advised
+- cursor
+- decided
+- handling
+- notice
+- ignored
+- auto
+- customize
+- history
+- automatic
+- future
+- moment
+- overview
+- precondition
+- reassigned
+- refusal
+- remind

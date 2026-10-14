@@ -97,6 +97,10 @@ public final class SnapshotReconciler {
                         "the source returned this person more than once; the first row is used"));
                 continue;
             }
+            if (person.internalFlagMissing()) {
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + userId.value(), IssueKind.NULL_FLAG,
+                        "the internal flag is NULL in the source; the person is treated as internal"));
+            }
             if (EmployeeChecks.employmentOf(person) == EmploymentStatus.EMPLOYED) {
                 incomingEmployed++;
             }
@@ -233,12 +237,19 @@ public final class SnapshotReconciler {
 
         Map<OrgUnitId, OrgUnit> before = current.orgUnitsById();
         Set<OrgUnitId> sourceIds = new HashSet<>();
+        Set<OrgUnitId> knownUnits = new HashSet<>(before.keySet());
+        sorted.forEach(u -> knownUnits.add(SourceTerms.unit(u.unitId())));
         List<OrgUnit> changed = new ArrayList<>();
         for (SourceOrgUnit unit : sorted) {
             OrgUnitId unitId = SourceTerms.unit(unit.unitId());
             sourceIds.add(unitId);
             String subject = "org-unit:" + unitId.value();
             OrgUnitId parent = SourceTerms.unit(unit.parentUnitId());
+            if (parent != null && !knownUnits.contains(parent)) {
+                diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, subject, IssueKind.PARENT_NOT_FOUND,
+                        "parent org unit " + parent.value() + " is neither in the snapshot nor stored; stored empty"));
+                parent = null;
+            }
             RegionCategory region = SourceTerms.region(unit.regionKind());
             if (!unit.emptyFlags().isEmpty()) {
                 diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, subject, IssueKind.NULL_FLAG,

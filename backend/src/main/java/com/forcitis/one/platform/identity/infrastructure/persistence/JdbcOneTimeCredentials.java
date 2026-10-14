@@ -20,15 +20,15 @@ class JdbcOneTimeCredentials implements OneTimeCredentials {
     }
 
     @Override
-    public void storeLoginState(String stateHash, WecomEntry entry, Instant expiresAt) {
-        jdbc.sql("insert into platform_identity.login_states (state_hash, entry, expires_at) values (:hash, :entry, :expires)")
-                .param("hash", stateHash).param("entry", entry.name()).param("expires", utc(expiresAt)).update();
+    public void storeLoginState(String stateHash, String bindingHash, WecomEntry entry, Instant expiresAt) {
+        jdbc.sql("insert into platform_identity.login_states (state_hash, binding_hash, entry, expires_at) values (:hash, :binding, :entry, :expires)")
+                .param("hash", stateHash).param("binding", bindingHash).param("entry", entry.name()).param("expires", utc(expiresAt)).update();
     }
 
     @Override
-    public Optional<WecomEntry> consumeLoginState(String stateHash, Instant now) {
-        return jdbc.sql("delete from platform_identity.login_states where state_hash = :hash and expires_at > :now returning entry")
-                .param("hash", stateHash).param("now", utc(now))
+    public Optional<WecomEntry> consumeLoginState(String stateHash, String bindingHash, Instant now) {
+        return jdbc.sql("delete from platform_identity.login_states where state_hash = :hash and binding_hash = :binding and expires_at > :now returning entry")
+                .param("hash", stateHash).param("binding", bindingHash).param("now", utc(now))
                 .query(String.class).optional().map(WecomEntry::valueOf);
     }
 

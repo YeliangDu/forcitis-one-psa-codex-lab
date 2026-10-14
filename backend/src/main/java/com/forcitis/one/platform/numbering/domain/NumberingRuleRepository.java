@@ -17,7 +17,7 @@ public interface NumberingRuleRepository {
     /** True once any counter of any type is kept for the legal entity, that is, a number carrying its code was issued. */
     boolean hasCounterFor(long legalEntityId);
 
-    /** Applies only to the version and confirmation the rule was loaded with; otherwise a DomainException (CONFLICT). */
+    /** Applies only to the version the rule was loaded with and to versions still in the status they were loaded in; otherwise a DomainException (CONFLICT). */
     void save(NumberingRule rule);
 
     /** Atomically reserves the next value of the counter (row lock until the surrounding transaction ends).

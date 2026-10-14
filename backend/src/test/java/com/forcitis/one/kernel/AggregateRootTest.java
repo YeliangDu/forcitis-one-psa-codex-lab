@@ -26,8 +26,8 @@ class AggregateRootTest {
     }
 
     static final class Counter extends AggregateRoot {
-        Counter(long version) {
-            super(version);
+        Counter(long version, long eventSequence) {
+            super(version, eventSequence);
         }
 
         void change() {
@@ -41,33 +41,36 @@ class AggregateRootTest {
             null, null, draft.source(), null, List.of());
 
     @Test
-    @DisplayName("events recorded in one unit are numbered contiguously after the loaded version and the version advances by their number")
+    @DisplayName("events recorded in one unit are numbered contiguously after the loaded event sequence; the lock version moves by one per save")
     void contiguousSequence() {
-        Counter counter = new Counter(4);
+        Counter counter = new Counter(9, 4);
         counter.change();
         counter.change();
-        assertThat(counter.versionAfterSave()).isEqualTo(6);
+        assertThat(counter.versionAfterSave()).isEqualTo(10);
+        assertThat(counter.eventSequenceAfterSave()).isEqualTo(6);
 
         List<DomainEvent> events = counter.drainEvents(ENVELOPES);
 
         assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(5L, 6L);
-        assertThat(counter.version()).isEqualTo(6);
+        assertThat(counter.version()).isEqualTo(10);
+        assertThat(counter.eventSequence()).isEqualTo(6);
         assertThat(counter.hasPendingEvents()).isFalse();
     }
 
     @Test
-    @DisplayName("a save without events still moves the optimistic version by one")
+    @DisplayName("a save without events moves the optimistic version by one and leaves the event sequence alone")
     void saveWithoutEventsMovesTheVersion() {
-        Counter counter = new Counter(3);
+        Counter counter = new Counter(3, 2);
         assertThat(counter.versionAfterSave()).isEqualTo(4);
         assertThat(counter.drainEvents(ENVELOPES)).isEmpty();
         assertThat(counter.version()).isEqualTo(4);
+        assertThat(counter.eventSequence()).isEqualTo(2);
     }
 
     @Test
     @DisplayName("a negative version is refused")
     void negativeVersion() {
-        assertThatThrownBy(() -> new Counter(-1)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new Counter(-1, 0)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

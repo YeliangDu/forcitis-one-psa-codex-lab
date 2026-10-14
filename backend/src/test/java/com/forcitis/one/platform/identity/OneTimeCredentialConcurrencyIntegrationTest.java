@@ -87,10 +87,10 @@ class OneTimeCredentialConcurrencyIntegrationTest extends IdentityIntegrationTes
     void oauthState() throws Exception {
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         wecomAccepts("race-code", WecomEntry.WORKBENCH, 1001);
-        String state = body(postJson(WecomLoginIntegrationTest.STATES, "{\"entry\":\"WORKBENCH\"}")).path("state").asString();
+        String state = newLoginState("WORKBENCH");
 
-        List<Integer> statuses = race(() -> postJson(WecomLoginIntegrationTest.LOGIN,
-                "{\"code\":\"race-code\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}").getResponse().getStatus());
+        List<Integer> statuses = race(() -> postLogin(WecomLoginIntegrationTest.LOGIN,
+                "{\"code\":\"race-code\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}", state).getResponse().getStatus());
 
         assertExactlyOneSucceeded(statuses);
     }

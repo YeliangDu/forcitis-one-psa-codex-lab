@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.approval;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -18,8 +18,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
 
     static RequestPostProcessor as(long id, String... permissions) {
-        return user(String.valueOf(id)).authorities(java.util.Arrays.stream(permissions)
-                .map(p -> (org.springframework.security.core.GrantedAuthority) () -> p).toList());
+        return user(String.valueOf(id)).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(permissions));
     }
 
     static final String BASE = "/api/v1/platform/approval-tasks";
@@ -39,11 +38,11 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         mvc.perform(get(BASE).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.newCount").value(1))
                 .andExpect(jsonPath("$.items[0].source").value("NEW")).andExpect(jsonPath("$.items[0].taskId").value(task))
                 .andExpect(jsonPath("$.items[0].claimed").value(false));
-        mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(approve)).andExpect(status().isNoContent());
+        mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(currentEtag()).with(approve)).andExpect(status().isNoContent());
         mvc.perform(get(BASE + "/" + task).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.assignee").value(String.valueOf(manager)))
                 .andExpect(jsonPath("$.nodeKey").value("projectManagerReview")).andExpect(jsonPath("$.canAct").value(true));
-        mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(approve)).andExpect(status().isNoContent());
-        mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(approve).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(currentEtag()).with(approve)).andExpect(status().isNoContent());
+        mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"APPROVE\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RUNNING"))
                 .andExpect(jsonPath("$.instanceId").value(instance.value()));
@@ -61,16 +60,16 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         String task = openTaskId(instance).value();
         RequestPostProcessor approve = as(manager, Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE);
 
-        mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(approve).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"REJECT\",\"reason\":\"\"}"))
                 .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_REASON_REQUIRED"));
-        mvc.perform(post(BASE + "/" + task + ":return").with(csrf()).with(approve).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(BASE + "/" + task + ":return").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reason\":\"  \"}"))
                 .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_REASON_REQUIRED"));
-        mvc.perform(post(BASE + "/" + task + ":return").with(csrf()).with(approve).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(BASE + "/" + task + ":return").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reason\":\"incomplete\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RETURNED"));
-        mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(approve).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"APPROVE\"}"))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_TASK_NOT_FOUND"));
     }

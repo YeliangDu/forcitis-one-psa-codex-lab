@@ -72,7 +72,7 @@ class ErrorChainTest {
         StaticListableBeanFactory beans = new StaticListableBeanFactory();
         beans.addBean("clock", Clock.systemUTC());
         mvc = MockMvcBuilders.standaloneSetup(new StubController()).setControllerAdvice(new GlobalExceptionHandler())
-                .addFilters(new CorrelationIdFilter(beans.getBeanProvider(Clock.class))).build();
+                .addFilters(new CorrelationIdFilter(Clock.systemUTC())).build();
     }
 
     @Test
@@ -122,10 +122,11 @@ class ErrorChainTest {
     }
 
     @Test
-    @DisplayName("access denial is left to the security chain, not turned into a 500")
-    void accessDeniedIsNotSwallowed() {
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> mvc.perform(get("/stub/denied")))
-                .hasRootCauseInstanceOf(AccessDeniedException.class);
+    @DisplayName("access denial is a 403 ProblemDetail with its own error code, not a 500")
+    void accessDeniedIsNotSwallowed() throws Exception {
+        mvc.perform(get("/stub/denied")).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_ACCESS_DENIED"))
+                .andExpect(header().string("Content-Type", "application/problem+json"));
     }
 
     @Test

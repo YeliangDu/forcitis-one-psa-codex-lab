@@ -48,13 +48,13 @@ class IntegrationConfigurationTest {
     }
 
     @Test
-    @DisplayName("RULE-356 relationship type ids and enum ids are configuration items (with the known values of today's instance)")
+    @DisplayName("RULE-356 / M-18 relationship type ids and enum ids are configuration items without a shipped default: missing means the start-up check refuses")
     void instanceIdsAreConfiguration() throws IOException {
         Properties p = load();
 
-        assertThat(p.stringPropertyNames()).contains(SEEYON + "views.head-relationship-type-id",
+        assertThat(p.stringPropertyNames()).doesNotContain(SEEYON + "views.head-relationship-type-id",
                 SEEYON + "views.regional-receivables-manager-relationship-type-id",
-                SEEYON + "views.delivery-unit-yes-enum-id", SEEYON + "views.fee-earner-yes-enum-id");
+                SEEYON + "views.delivery-unit-yes-enum-id", SEEYON + "views.fee-earner-yes-enum-id", SEEYON + "views.root-path");
     }
 
     @Test

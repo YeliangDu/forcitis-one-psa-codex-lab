@@ -17,17 +17,17 @@ import org.springframework.stereotype.Component;
 @Component
 class ContextualEventEnvelopes implements EventEnvelopes {
 
-    private final ObjectProvider<Clock> clock;
+    private final Clock clock;
     private final ObjectProvider<CurrentUser> currentUser;
 
-    ContextualEventEnvelopes(ObjectProvider<Clock> clock, ObjectProvider<CurrentUser> currentUser) {
+    ContextualEventEnvelopes(Clock clock, ObjectProvider<CurrentUser> currentUser) {
         this.clock = clock;
         this.currentUser = currentUser;
     }
 
     @Override
     public EventEnvelope wrap(EventDraft draft) {
-        Clock now = clock.getIfAvailable(Clock::systemUTC);
+        Clock now = clock;
         Instant occurredAt = now.instant();
         UUID correlationId = WorkContext.correlationId().orElseGet(() -> Uuids.timeOrdered(now));
         ActorType actorType;

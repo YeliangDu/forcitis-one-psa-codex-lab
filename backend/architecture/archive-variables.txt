@@ -1,0 +1,10 @@
+# Variables of the process engine that an archive may carry (ProcessArchiveJob) and how they are classified. Everything else in ACT_HI_VARINST is left out:
+# process variables hold form content. The names are the constants of FlowableApprovalEngine; ProcessArchivePolicyTest keeps this list
+# equal to them. Routing flags (routed_*) are archived only when the engine stored them as booleans.
+# Format: <PROCESS|TASK> | <variable name, * at the end for a prefix> | <level> | <why it is safe>
+PROCESS | contentHash | INTERNAL | fingerprint of the content, no content itself
+PROCESS | legalEntityId | INTERNAL | id of the legal entity the document belongs to
+PROCESS | routed_* | INTERNAL | which routes the instance took (booleans derived from the form), no personal data
+TASK | systemComplete | INTERNAL | the task was completed by the system, not by a person
+TASK | advisory | INTERNAL | the task is advisory only
+TASK | assignedAtMillis | INTERNAL | when the task was assigned (epoch milliseconds)

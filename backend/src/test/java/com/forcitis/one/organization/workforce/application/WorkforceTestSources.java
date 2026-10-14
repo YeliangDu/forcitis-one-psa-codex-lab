@@ -8,8 +8,19 @@ import org.springframework.context.annotation.Primary;
 public class WorkforceTestSources {
     @Bean
     @Primary
+    public AdjustableClock adjustableClock() {
+        return new AdjustableClock();
+    }
+
+    @Bean
+    @Primary
     public FakeOrgSource fakeOrgSource() {
         return new FakeOrgSource();
+    }
+
+    @Bean
+    public com.forcitis.one.fixture.doubles.AggregateWriteGuard aggregateWriteGuard() {
+        return new com.forcitis.one.fixture.doubles.AggregateWriteGuard();
     }
 
     @Bean
