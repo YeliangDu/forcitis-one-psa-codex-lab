@@ -37,20 +37,18 @@ class ApprovalLifecycle {
     /** A lost race against another candidate is a refusal (409), not a server error. */
     void claim(ApprovalTask task, TaskView view, UserId actor) {
         if (!engine.claimTask(view.taskId(), actor)) {
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED,
-                    "Task " + view.taskId().value() + " was claimed by somebody else");
+            throw ApprovalError.PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED.refusal("Task " + view.taskId().value() + " was claimed by somebody else");
         }
         Transitions.run(() -> task.claim(actor, time.today()));
     }
 
-    /** APPROVED when the engine has no live instance left. */
+    /** The request approves itself when the engine has no live instance left. */
     ApprovalStatus finishIfDone(ApprovalRequest request) {
-        if (engine.isRunning(request.instanceId())) {
-            return ApprovalStatus.RUNNING;
+        if (!engine.isRunning(request.instanceId())) {
+            Transitions.run(() -> request.approve(time.today()));
+            aggregates.save(request);
         }
-        Transitions.run(() -> request.approve(time.today()));
-        aggregates.save(request);
-        return ApprovalStatus.APPROVED;
+        return request.status();
     }
 
     /** A return ends the round, the initiator starts a new one; history stays. */
@@ -59,7 +57,7 @@ class ApprovalLifecycle {
         Transitions.run(() -> request.returnRound(reason, time.today()));
         aggregates.save(request);
         closeOpenTasks(request.instanceId());
-        return ApprovalStatus.RETURNED;
+        return request.status();
     }
 
     ApprovalStatus reject(ApprovalRequest request, String reason) {
@@ -67,7 +65,7 @@ class ApprovalLifecycle {
         Transitions.run(() -> request.reject(reason, time.today()));
         aggregates.save(request);
         closeOpenTasks(request.instanceId());
-        return ApprovalStatus.REJECTED;
+        return request.status();
     }
 
     void closeOpenTasks(ApprovalInstanceId instanceId) {

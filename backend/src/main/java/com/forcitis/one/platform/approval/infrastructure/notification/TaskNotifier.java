@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.EscalationTarget;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
@@ -43,8 +44,8 @@ class TaskNotifier {
     @ApplicationModuleListener
     void onTaskAssigned(TaskAssigned event) {
         String initiatorName = org.findEmployee(event.initiator()).map(EmployeeProfile::name).orElse("");
-        send(event.taskId(), event.candidates(), "审批待办：" + event.nodeName(),
-                event.processName() + " 单据 " + event.document().documentId().value()
+        send(event.taskId(), event.candidates(), "审批待办：" + event.nodeName().value(),
+                event.processName().value() + " 单据 " + event.document().documentId().value()
                         + (initiatorName.isEmpty() ? "" : "，发起人 " + initiatorName), dedupKey(event.taskId()));
     }
 
@@ -57,21 +58,21 @@ class TaskNotifier {
     @ApplicationModuleListener
     void onTaskTransferred(TaskTransferred event) {
         String name = org.findEmployee(event.from()).map(EmployeeProfile::name).orElse("同事");
-        send(event.taskId(), List.of(event.to()), "审批待办（转交）：" + event.nodeKey(),
+        send(event.taskId(), List.of(event.to()), "审批待办（转交）：" + event.nodeKey().value(),
                 "单据 " + event.document().documentId().value() + "，由 " + name + " 转交给你", dedupKey(event.taskId()) + ":transfer:" + event.envelope().eventId());
     }
 
     @ApplicationModuleListener
     void onTaskOverdue(ApprovalTaskOverdue event) {
-        send(event.taskId(), event.holders(), "审批已超时：" + event.nodeKey(),
+        send(event.taskId(), event.holders(), "审批已超时：" + event.nodeKey().value(),
                 "单据 " + event.document().documentId().value() + " 的审批已超过时限，请尽快处理", dedupKey(event.taskId()) + ":overdue");
     }
 
     @ApplicationModuleListener
     void onTaskEscalated(ApprovalTaskEscalated event) {
-        send(event.taskId(), event.escalatedTo(), "审批升级：" + event.nodeKey(),
+        send(event.taskId(), event.escalatedTo(), "审批升级：" + event.nodeKey().value(),
                 "单据 " + event.document().documentId().value() + " 的审批超时未处理，已升级给你"
-                        + (event.toProcessAdministrator() ? "（流程管理员）" : ""), dedupKey(event.taskId()) + ":escalated");
+                        + (event.target() == EscalationTarget.PROCESS_ADMINISTRATOR ? "（流程管理员）" : ""), dedupKey(event.taskId()) + ":escalated");
     }
 
     private void send(ApprovalTaskId taskId, List<UserId> recipients, String title, String description, String dedupKey) {
@@ -80,7 +81,7 @@ class TaskNotifier {
             WecomUserId wecomUserId = org.findEmployee(recipient).map(EmployeeProfile::wecomUserId).orElse(null);
             if (wecomUserId == null) {
                 log.warn("Approval task {}: {} has no WeCom user id, no card sent", taskId.value(), recipient.value());
-                meters.counter("platform.approval.notification.skipped").increment();
+                meters.counter("forcitis.platform.approval.notification.skipped").increment();
             } else {
                 wecomIds.add(wecomUserId);
             }

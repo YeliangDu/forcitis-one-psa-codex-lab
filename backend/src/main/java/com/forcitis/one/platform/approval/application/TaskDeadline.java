@@ -72,7 +72,7 @@ class TaskDeadline {
         Instant now = time.now();
         if (task.overdueAt().isEmpty() && task.dueAt().map(due -> !now.isBefore(due)).orElse(false)) {
             Transitions.run(() -> task.markOverdue(holders(view.get()), now, time.today()));
-            meters.counter("platform.approval.task.overdue").increment();
+            meters.counter("forcitis.platform.approval.task.overdue").increment();
         }
         if (task.overdueAt().isPresent() && task.escalatedAt().isEmpty() && task.escalateAt().map(at -> !now.isBefore(at)).orElse(false)) {
             escalate(task, view.get(), now);
@@ -89,12 +89,12 @@ class TaskDeadline {
         boolean toAdministrator = superiors.isEmpty();
         if (toAdministrator) {
             UserId fallback = administrator.current().orElseThrow(() -> {
-                meters.counter("platform.approval.task.escalation.unresolved").increment();
+                meters.counter("forcitis.platform.approval.task.escalation.unresolved").increment();
                 log.error("Task {} is overdue, none of {} has a superior and no process administrator is configured", task.taskId().value(), holders);
                 return new IllegalStateException("Nobody to escalate task " + task.taskId().value() + " to");
             });
             superiors.add(fallback);
-            meters.counter("platform.approval.task.escalation.administrator").increment();
+            meters.counter("forcitis.platform.approval.task.escalation.administrator").increment();
             log.error("Task {} is overdue and none of {} has a superior: handed to the process administrator", task.taskId().value(), holders);
         }
         List<UserId> receivers = new ArrayList<>(superiors);
@@ -103,7 +103,7 @@ class TaskDeadline {
         }
         engine.addCandidates(view.taskId(), receivers);
         Transitions.run(() -> task.escalate(receivers, toAdministrator, now, time.today()));
-        meters.counter("platform.approval.task.escalated").increment();
+        meters.counter("forcitis.platform.approval.task.escalated").increment();
     }
 
     private static List<UserId> holders(TaskView view) {

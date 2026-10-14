@@ -23,20 +23,18 @@ class Aggregates {
     }
 
     ApprovalRequest requestOf(ApprovalInstanceId instanceId) {
-        return requests.findByInstance(instanceId).orElseThrow(() -> new ApprovalOperationException(
-                ApprovalError.PLATFORM_APPROVAL_REQUEST_NOT_FOUND, "No approval request for instance " + instanceId.value()));
+        return requests.findByInstance(instanceId).orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_REQUEST_NOT_FOUND.refusal("No approval request for instance " + instanceId.value()));
     }
 
     ApprovalTask task(ApprovalTaskId taskId) {
-        return tasks.find(taskId).orElseThrow(() -> new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND,
-                "Task " + taskId.value() + " does not exist or is finished"));
+        return tasks.find(taskId).orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " does not exist or is finished"));
     }
 
     void save(ApprovalRequest request) {
         try {
             requests.save(request);
         } catch (StaleAggregateException stale) {
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE, stale.getMessage());
+            throw ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.refusal(stale.getMessage());
         }
         events.publish(request.pullEvents());
     }
@@ -45,7 +43,7 @@ class Aggregates {
         try {
             tasks.save(task);
         } catch (StaleAggregateException stale) {
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE, stale.getMessage());
+            throw ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.refusal(stale.getMessage());
         }
         events.publish(task.pullEvents());
     }

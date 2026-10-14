@@ -33,14 +33,13 @@ class HookGate {
         }
         ApprovalHook hook = hooks.get(key.get());
         if (hook == null) {
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED,
-                    "Node " + task.nodeKey() + " names the BEFORE hook " + key.get() + ", which is not registered");
+            throw ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED.refusal("Node " + task.nodeKey() + " names the BEFORE hook " + key.get() + ", which is not registered");
         }
         HookDecision decision = hook.before(new HookContext(task.processKey(), task.document(), task.instanceId(),
                 task.taskId(), task.nodeKey(), actor, action, reason));
         if (decision == null || !decision.outcome().commits()) {
             String message = decision == null ? "The hook returned no decision" : decision.outcome() + ": " + decision.message();
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED, message);
+            throw ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED.refusal(message);
         }
         return decision;
     }

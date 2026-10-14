@@ -26,7 +26,7 @@ import org.yaml.snakeyaml.Yaml;
 class EventCatalogueTest {
     static final Path EVENTS = Path.of("../docs/modernization/events");
     /** Modules whose events are catalogued by their own work stream: remove the entry when its fragment is merged. */
-    static final Map<String, String> PENDING_FRAGMENTS = Map.of("platform.approval", "approval.yaml", "cost.timesheet", "timesheet.yaml");
+    static final Map<String, String> PENDING_FRAGMENTS = Map.of();
 
     static final List<Class<?>> ALL = ArchitectureRulesTest.CLASSES.stream().<Class<?>>map(JavaClass::reflect).toList();
 

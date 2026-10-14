@@ -6,6 +6,41 @@ info:
   description: 由 events/*.yaml 分片合成（build_asyncapi.py），不要手工编辑；事件由聚合记录，与业务写入同事务交给事件发布登记表。
 defaultContentType: application/json
 channels:
+  approvalCompleted:
+    address: platform.approval.ApprovalCompleted
+    messages:
+      ApprovalCompleted:
+        $ref: '#/components/messages/ApprovalCompleted'
+  taskAssigned:
+    address: platform.approval.TaskAssigned
+    messages:
+      TaskAssigned:
+        $ref: '#/components/messages/TaskAssigned'
+  taskClaimed:
+    address: platform.approval.TaskClaimed
+    messages:
+      TaskClaimed:
+        $ref: '#/components/messages/TaskClaimed'
+  taskResulted:
+    address: platform.approval.TaskResulted
+    messages:
+      TaskResulted:
+        $ref: '#/components/messages/TaskResulted'
+  taskTransferred:
+    address: platform.approval.TaskTransferred
+    messages:
+      TaskTransferred:
+        $ref: '#/components/messages/TaskTransferred'
+  approvalTaskOverdue:
+    address: platform.approval.ApprovalTaskOverdue
+    messages:
+      ApprovalTaskOverdue:
+        $ref: '#/components/messages/ApprovalTaskOverdue'
+  approvalTaskEscalated:
+    address: platform.approval.ApprovalTaskEscalated
+    messages:
+      ApprovalTaskEscalated:
+        $ref: '#/components/messages/ApprovalTaskEscalated'
   workCalendarYearMaintained:
     address: organization.attendance.WorkCalendarYearMaintained
     messages:
@@ -61,6 +96,31 @@ channels:
     messages:
       NumberingRuleReconfigured:
         $ref: '#/components/messages/NumberingRuleReconfigured'
+  timesheetSubmitted:
+    address: cost.timesheet.TimesheetSubmitted
+    messages:
+      TimesheetSubmitted:
+        $ref: '#/components/messages/TimesheetSubmitted'
+  timesheetApproved:
+    address: cost.timesheet.TimesheetApproved
+    messages:
+      TimesheetApproved:
+        $ref: '#/components/messages/TimesheetApproved'
+  timesheetRejected:
+    address: cost.timesheet.TimesheetRejected
+    messages:
+      TimesheetRejected:
+        $ref: '#/components/messages/TimesheetRejected'
+  timesheetReturned:
+    address: cost.timesheet.TimesheetReturned
+    messages:
+      TimesheetReturned:
+        $ref: '#/components/messages/TimesheetReturned'
+  timesheetCancelled:
+    address: cost.timesheet.TimesheetCancelled
+    messages:
+      TimesheetCancelled:
+        $ref: '#/components/messages/TimesheetCancelled'
   syncRunSucceeded:
     address: organization.workforce.SyncRunSucceeded
     messages:
@@ -112,6 +172,139 @@ channels:
       LegalEntityCodeCorrected:
         $ref: '#/components/messages/LegalEntityCodeCorrected'
 operations:
+  publishApprovalCompleted:
+    action: send
+    channel:
+      $ref: '#/channels/approvalCompleted'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  handleApprovalCompletedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalCompleted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  handleApprovalCompletedInCostTimesheet:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalCompleted'
+    summary: cost.timesheet 消费
+    messages:
+    - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  publishTaskAssigned:
+    action: send
+    channel:
+      $ref: '#/channels/taskAssigned'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/taskAssigned/messages/TaskAssigned'
+  handleTaskAssignedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/taskAssigned'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/taskAssigned/messages/TaskAssigned'
+  handleTaskAssignedInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/taskAssigned'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/taskAssigned/messages/TaskAssigned'
+  publishTaskClaimed:
+    action: send
+    channel:
+      $ref: '#/channels/taskClaimed'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/taskClaimed/messages/TaskClaimed'
+  handleTaskClaimedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/taskClaimed'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/taskClaimed/messages/TaskClaimed'
+  handleTaskClaimedInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/taskClaimed'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/taskClaimed/messages/TaskClaimed'
+  publishTaskResulted:
+    action: send
+    channel:
+      $ref: '#/channels/taskResulted'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/taskResulted/messages/TaskResulted'
+  handleTaskResultedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/taskResulted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/taskResulted/messages/TaskResulted'
+  publishTaskTransferred:
+    action: send
+    channel:
+      $ref: '#/channels/taskTransferred'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/taskTransferred/messages/TaskTransferred'
+  handleTaskTransferredInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/taskTransferred'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/taskTransferred/messages/TaskTransferred'
+  handleTaskTransferredInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/taskTransferred'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/taskTransferred/messages/TaskTransferred'
+  publishApprovalTaskOverdue:
+    action: send
+    channel:
+      $ref: '#/channels/approvalTaskOverdue'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/approvalTaskOverdue/messages/ApprovalTaskOverdue'
+  handleApprovalTaskOverdueInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalTaskOverdue'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/approvalTaskOverdue/messages/ApprovalTaskOverdue'
+  publishApprovalTaskEscalated:
+    action: send
+    channel:
+      $ref: '#/channels/approvalTaskEscalated'
+    summary: platform.approval 发布
+    messages:
+    - $ref: '#/channels/approvalTaskEscalated/messages/ApprovalTaskEscalated'
+  handleApprovalTaskEscalatedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalTaskEscalated'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/approvalTaskEscalated/messages/ApprovalTaskEscalated'
+  handleApprovalTaskEscalatedInPlatformApproval:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalTaskEscalated'
+    summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/approvalTaskEscalated/messages/ApprovalTaskEscalated'
   publishWorkCalendarYearMaintained:
     action: send
     channel:
@@ -266,6 +459,76 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/numberingRuleReconfigured/messages/NumberingRuleReconfigured'
+  publishTimesheetSubmitted:
+    action: send
+    channel:
+      $ref: '#/channels/timesheetSubmitted'
+    summary: cost.timesheet 发布
+    messages:
+    - $ref: '#/channels/timesheetSubmitted/messages/TimesheetSubmitted'
+  handleTimesheetSubmittedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/timesheetSubmitted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/timesheetSubmitted/messages/TimesheetSubmitted'
+  publishTimesheetApproved:
+    action: send
+    channel:
+      $ref: '#/channels/timesheetApproved'
+    summary: cost.timesheet 发布
+    messages:
+    - $ref: '#/channels/timesheetApproved/messages/TimesheetApproved'
+  handleTimesheetApprovedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/timesheetApproved'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/timesheetApproved/messages/TimesheetApproved'
+  publishTimesheetRejected:
+    action: send
+    channel:
+      $ref: '#/channels/timesheetRejected'
+    summary: cost.timesheet 发布
+    messages:
+    - $ref: '#/channels/timesheetRejected/messages/TimesheetRejected'
+  handleTimesheetRejectedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/timesheetRejected'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/timesheetRejected/messages/TimesheetRejected'
+  publishTimesheetReturned:
+    action: send
+    channel:
+      $ref: '#/channels/timesheetReturned'
+    summary: cost.timesheet 发布
+    messages:
+    - $ref: '#/channels/timesheetReturned/messages/TimesheetReturned'
+  handleTimesheetReturnedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/timesheetReturned'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/timesheetReturned/messages/TimesheetReturned'
+  publishTimesheetCancelled:
+    action: send
+    channel:
+      $ref: '#/channels/timesheetCancelled'
+    summary: cost.timesheet 发布
+    messages:
+    - $ref: '#/channels/timesheetCancelled/messages/TimesheetCancelled'
+  handleTimesheetCancelledInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/timesheetCancelled'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/timesheetCancelled/messages/TimesheetCancelled'
   publishSyncRunSucceeded:
     action: send
     channel:
@@ -498,6 +761,581 @@ components:
               aggregateId:
                 type: string
   messages:
+    ApprovalCompleted:
+      name: ApprovalCompleted
+      title: 审批结束（已通过 / 已驳回 / 已退回 / 已撤销）
+      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是 单据类型:单据标识，如 TIMESHEET:7；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层 L1 用于审批时效。
+      x-event:
+        eventType: platform.approval.ApprovalCompleted
+        version: 1
+        class: com.forcitis.one.platform.approval.events.ApprovalCompleted
+        aggregate: ApprovalRequest
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - cost.timesheet
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 审批结束当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalRequestStateMachineTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - document
+        - processKey
+        - instanceId
+        - round
+        - outcome
+        - reason
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          processKey:
+            type: string
+            enum:
+            - COST_TIMESHEET_APPROVAL
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+            description: 流程实例 ID
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          outcome:
+            type: string
+            enum:
+            - APPROVED
+            - REJECTED
+            - RETURNED
+            - CANCELLED
+            description: 类型化结果，不靠文案
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 驳回、退回、撤销原因；通过时为空（RULE-280）
+    TaskAssigned:
+      name: TaskAssigned
+      title: 任务已分配（每位会签审批人一个任务）
+      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键 approval-task:{taskId}）。系统自动通过的任务（RULE-302）不发此事件。分析层 L1 以此为审批等待时长的起点。
+      x-event:
+        eventType: platform.approval.TaskAssigned
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskAssigned
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 任务创建当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - taskId
+        - instanceId
+        - processKey
+        - processName
+        - document
+        - nodeKey
+        - nodeName
+        - initiator
+        - candidates
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          processKey:
+            type: string
+          processName:
+            type: object
+            x-type: ProcessName
+            properties:
+              value:
+                type: string
+            description: 流程显示名
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          nodeName:
+            type: object
+            x-type: NodeName
+            properties:
+              value:
+                type: string
+            description: 节点显示名
+          initiator:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          candidates:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: integer
+                  format: int64
+    TaskClaimed:
+      name: TaskClaimed
+      title: 任务已被候选人认领
+      description: 任务已被候选人认领；过程事实，不过账。通知监听器据此把其他候选人的卡片改为已处理。
+      x-event:
+        eventType: platform.approval.TaskClaimed
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskClaimed
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 认领当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - taskId
+        - instanceId
+        - document
+        - claimedBy
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          claimedBy:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+    TaskResulted:
+      name: TaskResulted
+      title: 任务已办理（通过 / 驳回 / 退回）
+      description: 任务已办理（通过、驳回、退回）；过程事实，不过账。系统自动通过与被跳过的节点不发此事件。effect=ADVISORY 是加签人的驳回，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。
+      x-event:
+        eventType: platform.approval.TaskResulted
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskResulted
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 办理当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的审批办理时效与 1b 业务模块的任务级钩子将订阅；现在就发布，是因为办理时刻只在发生当时可记录，事后补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - taskId
+        - instanceId
+        - processKey
+        - document
+        - nodeKey
+        - assignee
+        - outcome
+        - effect
+        - reason
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          processKey:
+            type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          assignee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          outcome:
+            type: string
+            enum:
+            - APPROVED
+            - REJECTED
+            - RETURNED
+          effect:
+            type: string
+            enum:
+            - BINDING
+            - ADVISORY
+            description: ADVISORY 是加签人的驳回：只记录意见，不结束本轮（RULE-273、RULE-291）
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 原因；通过时为空
+    TaskTransferred:
+      name: TaskTransferred
+      title: 当前处理人把任务转交给他人（RULE-285）
+      description: 当前处理人把任务转交给他人（RULE-285）；过程事实，不过账。通知监听器据此给新处理人发卡片。
+      x-event:
+        eventType: platform.approval.TaskTransferred
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskTransferred
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 转交当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - taskId
+        - instanceId
+        - document
+        - nodeKey
+        - from
+        - to
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          from:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          to:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+    ApprovalTaskOverdue:
+      name: ApprovalTaskOverdue
+      title: 任务超过审批时限仍未处理（只提醒，不自动通过）
+      description: 任务超过审批时限仍未处理，只提醒，不自动通过；过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给处理人发企业微信提醒。
+      x-event:
+        eventType: platform.approval.ApprovalTaskOverdue
+        version: 1
+        class: com.forcitis.one.platform.approval.events.ApprovalTaskOverdue
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 记录超时当日（Asia/Shanghai）；截止时刻在负载 dueAt
+        audit: 'not-audited: 只是提醒，不改变任何人的处理权限；超时升级（ApprovalTaskEscalated）才改变处理人，并被审计'
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - taskId
+        - instanceId
+        - document
+        - nodeKey
+        - dueAt
+        - holders
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          dueAt:
+            type: string
+            format: date-time
+            description: 截止时刻，提交日起第 n 个工作日结束（工作日历按法人）
+          holders:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: integer
+                  format: int64
+            description: 被提醒的人
+    ApprovalTaskEscalated:
+      name: ApprovalTaskEscalated
+      title: 超时后仍未处理，已升级给审批人的上级（取不到上级则交流程管理员并告警）
+      description: 超时后仍未处理，已升级给审批人的上级；取不到上级则交流程管理员并告警（target=PROCESS_ADMINISTRATOR）。过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给升级对象发卡片。
+      x-event:
+        eventType: platform.approval.ApprovalTaskEscalated
+        version: 1
+        class: com.forcitis.one.platform.approval.events.ApprovalTaskEscalated
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 升级当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - taskId
+        - instanceId
+        - document
+        - nodeKey
+        - escalatedTo
+        - target
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          escalatedTo:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: integer
+                  format: int64
+          target:
+            type: string
+            enum:
+            - SUPERVISOR
+            - PROCESS_ADMINISTRATOR
+            description: PROCESS_ADMINISTRATOR 表示取不到上级、交给了流程管理员（同时告警）
     WorkCalendarYearMaintained:
       name: WorkCalendarYearMaintained
       title: 工作日历的某一年被维护
@@ -834,6 +1672,407 @@ components:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
           documentType: *id001
+    TimesheetSubmitted:
+      name: TimesheetSubmitted
+      title: 工时单提交审批（进入新一轮）
+      description: 工时单提交审批，进入新一轮；过程里程碑，不过账。工时单事件的 businessDate 一律取工作日期（work_date），提交、办理的日期不是 businessDate，需要的话由分析层从事件的 occurredAt 或审批事件里取。
+      x-event:
+        eventType: cost.timesheet.TimesheetSubmitted
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetSubmitted
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时提交里程碑将订阅；现在就发布，是因为提交时刻只在发生当时可记录，事后补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - document
+        - employee
+        - workPackageId
+        - submittedHours
+        - round
+        - approvalInstanceId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          approvalInstanceId:
+            type: object
+            properties:
+              value:
+                type: string
+            description: 本轮审批流程实例 ID
+    TimesheetApproved:
+      name: TimesheetApproved
+      title: 工时单审批通过，工时成立
+      description: 工时单审批通过，工时成立；过程里程碑，形成成本事实的是 Phase 2 的过账事件，届时再定是否使用本事件。businessDate 为工作日期。
+      x-event:
+        eventType: cost.timesheet.TimesheetApproved
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetApproved
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时累积快照与 Phase 2 成本过账将订阅；现在就发布，是因为工时成立的时刻只在发生当时可记录，事后补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - document
+        - employee
+        - workPackageId
+        - submittedHours
+        - round
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+    TimesheetRejected:
+      name: TimesheetRejected
+      title: 工时单被驳回，工时不成立
+      description: 工时单被驳回，工时不成立；过程里程碑。现行 TIMESHEET 流程的三路都在子流程内，驳回即退回，所以这个事件目前只在流程以 REJECTED 结束时才会出现。businessDate 为工作日期。
+      x-event:
+        eventType: cost.timesheet.TimesheetRejected
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetRejected
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为驳回时刻只在发生当时可记录，事后补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - document
+        - employee
+        - workPackageId
+        - submittedHours
+        - round
+        - reason
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 驳回原因
+    TimesheetReturned:
+      name: TimesheetReturned
+      title: 工时单被退回（审批人退回或填报人撤回），回到可修改状态，下一轮重新提交
+      description: 工时单被退回（审批人退回或填报人撤回），回到可修改状态，下一轮重新提交；过程里程碑。businessDate 为工作日期。
+      x-event:
+        eventType: cost.timesheet.TimesheetReturned
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetReturned
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为退回时刻只在发生当时可记录，事后补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - document
+        - employee
+        - workPackageId
+        - submittedHours
+        - round
+        - reason
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 退回或撤回原因
+    TimesheetCancelled:
+      name: TimesheetCancelled
+      title: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）
+      description: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）；过程里程碑。businessDate 为工作日期。
+      x-event:
+        eventType: cost.timesheet.TimesheetCancelled
+        version: 1
+        class: com.forcitis.one.cost.timesheet.events.TimesheetCancelled
+        aggregate: Timesheet
+        idempotencyKey: eventId
+        publisher: cost.timesheet
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 工作日期（work_date）
+        audit: audited
+        publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为撤销时刻只在发生当时可记录，事后补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - document
+        - employee
+        - workPackageId
+        - submittedHours
+        - round
+        - reason
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          employee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          workPackageId:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 任务包
+          submittedHours:
+            type: object
+            properties:
+              value:
+                type: number
+            description: 填报工时，非负，两位小数
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 撤销原因
     SyncRunSucceeded:
       name: SyncRunSucceeded
       title: 组织同步成功

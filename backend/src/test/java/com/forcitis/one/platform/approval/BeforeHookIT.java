@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -14,7 +15,7 @@ import com.forcitis.one.platform.approval.api.HookAction;
 import com.forcitis.one.platform.approval.api.HookDecision;
 import com.forcitis.one.platform.approval.api.HookOutcome;
 import com.forcitis.one.platform.approval.application.ApprovalError;
-import com.forcitis.one.platform.approval.application.ApprovalOperationException;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
 import com.forcitis.one.platform.approval.application.ReturnToInitiator;
@@ -28,6 +29,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 /** The hook is a scripted test double; a test variant of the timesheet process names it on the department node and is deployed as a newer version. */
 class BeforeHookIT extends ApprovalIntegrationSupport {
+
+    @org.springframework.beans.factory.annotation.Autowired
+    CommitGate commitGate;
 
     @Autowired
     HistoryService history;
@@ -83,7 +87,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
             assertThat(e.document().documentId().value()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalOutcome.REJECTED);
-            assertThat(e.reason()).isEqualTo("price too low");
+            assertThat(e.reason()).isEqualTo(new Reason("price too low"));
         }));
     }
 
@@ -126,8 +130,8 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         for (HookOutcome outcome : List.of(HookOutcome.WARN, HookOutcome.REJECT, HookOutcome.SUPPLEMENT)) {
             hook.next = HookDecision.block(outcome, "not yet");
             assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
-                    .isInstanceOfSatisfying(ApprovalOperationException.class,
-                            e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
+                    .isInstanceOfSatisfying(DomainException.class,
+                            e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
             assertThat(openTaskId(instance)).isEqualTo(task);
             assertThat(taskService.createTaskQuery().taskId(task.value()).singleResult().getAssignee()).isNull();
             assertThat(requestStatus(key)).isEqualTo("RUNNING");
@@ -147,9 +151,13 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         ApprovalTaskId task = openTaskId(instance);
         hook.next = new HookDecision(HookOutcome.ALLOW, null, List.of(new ApprovalField("approvedAmount", List.of("100"))));
 
-        doThrow(new IllegalStateException("audit store is down")).when(audit).record(any());
-        assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
-                .isInstanceOf(IllegalStateException.class);
+        commitGate.failing = true;
+        try {
+            assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
+                    .isInstanceOf(IllegalStateException.class);
+        } finally {
+            commitGate.failing = false;
+        }
 
         assertThat(runtime.getVariable(instance.value(), "approvedAmount")).isNull();
         assertThat(openTaskId(instance)).isEqualTo(task);
@@ -180,8 +188,8 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
 
         hook.next = HookDecision.block(HookOutcome.WARN, "attachments missing in the business document");
         assertThatThrownBy(() -> returnToInitiator.execute(task, new UserId(s.head()), "cannot approve"))
-                .isInstanceOfSatisfying(ApprovalOperationException.class,
-                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
         assertThat(openTaskId(instance)).isEqualTo(task);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
 
@@ -212,8 +220,8 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = atDepartmentNode(s, key);
         ApprovalTaskId task = openTaskId(instance);
         assertThatThrownBy(() -> decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "x"))))
-                .isInstanceOfSatisfying(ApprovalOperationException.class,
-                        e -> assertThat(e.error()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED));
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED));
         assertThat(openTaskId(instance)).isEqualTo(task);
         assertThat(hook.calls).isEmpty();
     }

@@ -52,8 +52,7 @@ public class StartApproval {
             }
         }
         if (request.processKey().routingFlagRequired() && request.routingFlags().isEmpty()) {
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_NO_ROUTE,
-                    "No routing flag is set: " + request.processKey() + " would route nowhere");
+            throw ApprovalError.PLATFORM_APPROVAL_NO_ROUTE.refusal("No routing flag is set: " + request.processKey() + " would route nowhere");
         }
         ApprovalInstanceId instanceId = engine.startInstance(new InstanceStart(request.processKey(), request.document(),
                 request.legalEntityId(), request.initiator(), time.today(), request.contentDigest(), variablesOf(request)));

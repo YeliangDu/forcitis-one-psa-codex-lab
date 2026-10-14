@@ -3,6 +3,8 @@ package com.forcitis.one.platform.approval.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.platform.approval.api.RoundNumber;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
@@ -116,9 +118,9 @@ class ApprovalRequestStateMachineTest {
                 pending.getFirst().draft().source(), null, List.of());
         ApprovalCompleted event = (ApprovalCompleted) pending.getFirst().assemble().apply(envelope);
         assertThat(event.outcome()).isEqualTo(outcome);
-        assertThat(event.round()).isEqualTo(2);
+        assertThat(event.round()).isEqualTo(new RoundNumber(2));
         assertThat(event.document()).isEqualTo(DOCUMENT);
-        assertThat(event.reason()).isEqualTo(reason);
+        assertThat(event.reason()).isEqualTo(Reason.ofNullable(reason));
         assertThat(request.eventSequence()).isEqualTo(4);
         assertThat(request.pullEvents()).as("pulled once").isEmpty();
     }

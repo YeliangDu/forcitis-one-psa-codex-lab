@@ -40,13 +40,13 @@ export const postOrganizationSyncRunsBySyncRunIdRelease = (...[args, options]: C
   request<Result<paths['/api/v1/organization/sync-runs/{syncRunId}:release']['post']>>('post', '/api/v1/organization/sync-runs/{syncRunId}:release', args, options, responseSchemas.postOrganizationSyncRunsBySyncRunIdRelease);
 
 export const getOrganizationWorkCalendars = (...[args, options]: Call<paths['/api/v1/organization/work-calendars']['get']>) =>
-  request<Result<paths['/api/v1/organization/work-calendars']['get']>>('get', '/api/v1/organization/work-calendars', args, options);
+  request<Result<paths['/api/v1/organization/work-calendars']['get']>>('get', '/api/v1/organization/work-calendars', args, options, responseSchemas.getOrganizationWorkCalendars);
 
 export const getOrganizationWorkCalendarsByCalendarYear = (...[args, options]: Call<paths['/api/v1/organization/work-calendars/{calendarYear}']['get']>) =>
-  request<Result<paths['/api/v1/organization/work-calendars/{calendarYear}']['get']>>('get', '/api/v1/organization/work-calendars/{calendarYear}', args, options);
+  request<Result<paths['/api/v1/organization/work-calendars/{calendarYear}']['get']>>('get', '/api/v1/organization/work-calendars/{calendarYear}', args, options, responseSchemas.getOrganizationWorkCalendarsByCalendarYear);
 
 export const putOrganizationWorkCalendarsByCalendarYear = (...[args, options]: Call<paths['/api/v1/organization/work-calendars/{calendarYear}']['put']>) =>
-  request<Result<paths['/api/v1/organization/work-calendars/{calendarYear}']['put']>>('put', '/api/v1/organization/work-calendars/{calendarYear}', args, options);
+  request<Result<paths['/api/v1/organization/work-calendars/{calendarYear}']['put']>>('put', '/api/v1/organization/work-calendars/{calendarYear}', args, options, responseSchemas.putOrganizationWorkCalendarsByCalendarYear);
 
 export const getPlatformApprovalTasks = (...[args, options]: Call<paths['/api/v1/platform/approval-tasks']['get']>) =>
   request<Result<paths['/api/v1/platform/approval-tasks']['get']>>('get', '/api/v1/platform/approval-tasks', args, options, responseSchemas.getPlatformApprovalTasks);
@@ -82,7 +82,7 @@ export const getPlatformNumberingRulesByDocumentType = (...[args, options]: Call
   request<Result<paths['/api/v1/platform/numbering-rules/{documentType}']['get']>>('get', '/api/v1/platform/numbering-rules/{documentType}', args, options, responseSchemas.getPlatformNumberingRulesByDocumentType);
 
 export const putPlatformNumberingRulesByDocumentType = (...[args, options]: Call<paths['/api/v1/platform/numbering-rules/{documentType}']['put']>) =>
-  request<Result<paths['/api/v1/platform/numbering-rules/{documentType}']['put']>>('put', '/api/v1/platform/numbering-rules/{documentType}', args, options, responseSchemas.putPlatformNumberingRulesByDocumentType);
+  request<Result<paths['/api/v1/platform/numbering-rules/{documentType}']['put']>>('put', '/api/v1/platform/numbering-rules/{documentType}', args, options);
 
 export const getPlatformRoles = (...[args, options]: Call<paths['/api/v1/platform/roles']['get']>) =>
   request<Result<paths['/api/v1/platform/roles']['get']>>('get', '/api/v1/platform/roles', args, options, responseSchemas.getPlatformRoles);

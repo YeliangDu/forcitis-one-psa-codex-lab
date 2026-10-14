@@ -2,6 +2,7 @@ package com.forcitis.one.platform.approval.domain;
 
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventSource;
@@ -10,6 +11,7 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import java.time.LocalDate;
@@ -170,7 +172,7 @@ public final class ApprovalRequest {
         EventDraft draft = new EventDraft(EVENT_TYPE, 1, AGGREGATE_TYPE, aggregateId(), ++eventSequence, legalEntityId, businessDate,
                 new EventSource(SourceSystem.ONE, null), List.of());
         events.add(new PendingEvent(draft, envelope -> new ApprovalCompleted(envelope, document, processKey, instance,
-                completedRound, outcome, reason)));
+                new RoundNumber(completedRound), outcome, Reason.ofNullable(reason))));
     }
 
     public String aggregateId() {

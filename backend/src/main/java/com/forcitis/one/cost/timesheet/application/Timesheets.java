@@ -32,15 +32,14 @@ class Timesheets {
     }
 
     Timesheet require(TimesheetId id) {
-        return repository.find(id).orElseThrow(() -> new TimesheetOperationException(TimesheetError.COST_TIMESHEET_NOT_FOUND,
-                "No timesheet " + id.value()));
+        return repository.find(id).orElseThrow(() -> TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No timesheet " + id.value()));
     }
 
     void save(Timesheet timesheet) {
         try {
             repository.save(timesheet);
         } catch (StaleTimesheetException stale) {
-            throw new TimesheetOperationException(TimesheetError.COST_TIMESHEET_CONCURRENT_CHANGE, stale.getMessage());
+            throw TimesheetError.COST_TIMESHEET_CONCURRENT_CHANGE.refusal(stale.getMessage());
         }
         events.publish(timesheet.pullEvents());
     }

@@ -12,14 +12,11 @@ import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.domain.ApprovalTask;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.TaskView;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -38,30 +35,27 @@ public class DecideTasks {
     private final ApprovalEngine engine;
     private final ApprovalLifecycle lifecycle;
     private final Aggregates aggregates;
-    private final AuditLog audit;
     private final BusinessTime time;
 
     DecideTasks(TaskGuard guard, HookGate hooks, ApprovalEngine engine, ApprovalLifecycle lifecycle, Aggregates aggregates,
-            AuditLog audit, BusinessTime time) {
+            BusinessTime time) {
         this.guard = guard;
         this.hooks = hooks;
         this.engine = engine;
         this.lifecycle = lifecycle;
         this.aggregates = aggregates;
-        this.audit = audit;
         this.time = time;
     }
 
     @Transactional
     public DecisionResult execute(UserId actor, List<TaskDecision> decisions) {
         if (decisions == null || decisions.isEmpty()) {
-            throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_DECISION_EMPTY, "No decision given");
+            throw ApprovalError.PLATFORM_APPROVAL_DECISION_EMPTY.refusal("No decision given");
         }
         Set<ApprovalTaskId> seen = new HashSet<>();
         for (TaskDecision decision : decisions) {
             if (!seen.add(decision.taskId())) {
-                throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK,
-                        "Task " + decision.taskId().value() + " appears twice");
+                throw ApprovalError.PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK.refusal("Task " + decision.taskId().value() + " appears twice");
             }
             guard.requireMayAct(guard.requireTask(decision.taskId()), actor, "decide");
         }
@@ -86,7 +80,7 @@ public class DecideTasks {
         hookDecisions.stream().flatMap(d -> d.variableUpdates().stream()).forEach(update -> engine.updateVariables(instanceId,
                 new ProcessVariables(Map.of(), Map.of(update.name(), update.values()))));
 
-        ApprovalStatus status = ApprovalStatus.RUNNING;
+        ApprovalStatus status = request.status();
         for (Map.Entry<TaskDecision, TaskView> entry : ordered) {
             status = apply(request, entry.getKey(), entry.getValue(), actor);
         }
@@ -102,17 +96,14 @@ public class DecideTasks {
             if (instance == null) {
                 instance = task.instanceId();
             } else if (!instance.equals(task.instanceId())) {
-                throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE,
-                        "One submission may only decide tasks of one approval");
+                throw ApprovalError.PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE.refusal("One submission may only decide tasks of one approval");
             }
             if (!nodes.add(task.nodeKey())) {
-                throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_DECISION_SINGLE_ONLY,
-                        "Node " + task.nodeKey() + " takes exactly one decision per submission");
+                throw ApprovalError.PLATFORM_APPROVAL_DECISION_SINGLE_ONLY.refusal("Node " + task.nodeKey() + " takes exactly one decision per submission");
             }
             boolean hookDecidesReason = task.beforeHookKey().filter(key -> !key.isBlank()).isPresent();
             if (decision.outcome() == DecisionOutcome.REJECT && isBlank(decision.reason()) && !hookDecidesReason) {
-                throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED,
-                        "A rejection needs a reason");
+                throw ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED.refusal("A rejection needs a reason");
             }
         }
     }
@@ -123,8 +114,6 @@ public class DecideTasks {
             lifecycle.claim(task, view, actor);
         }
         String reason = isBlank(decision.reason()) ? null : decision.reason();
-        audit.record(new AuditEntry("platform.approval.task." + decision.outcome().name().toLowerCase(Locale.ROOT),
-                actor, null, "approval-task:" + view.taskId().value(), reason));
         if (decision.outcome() == DecisionOutcome.APPROVE) {
             Transitions.run(() -> task.complete(actor, TaskOutcome.APPROVED, false, reason, view.contentDigest(), time.today()));
             aggregates.save(task);

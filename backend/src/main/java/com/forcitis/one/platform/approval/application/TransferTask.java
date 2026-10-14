@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -7,8 +8,6 @@ import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalTask;
 import com.forcitis.one.platform.approval.domain.TaskView;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,17 +20,15 @@ public class TransferTask {
     private final ApprovalLifecycle lifecycle;
     private final Aggregates aggregates;
     private final OrgDirectory org;
-    private final AuditLog audit;
     private final BusinessTime time;
 
     TransferTask(TaskGuard guard, ApprovalEngine engine, ApprovalLifecycle lifecycle, Aggregates aggregates, OrgDirectory org,
-            AuditLog audit, BusinessTime time) {
+            BusinessTime time) {
         this.guard = guard;
         this.engine = engine;
         this.lifecycle = lifecycle;
         this.aggregates = aggregates;
         this.org = org;
-        this.audit = audit;
         this.time = time;
     }
 
@@ -45,8 +42,6 @@ public class TransferTask {
         engine.reassignTask(taskId, to);
         Transitions.run(() -> aggregate.transfer(actor, to, time.today()));
         aggregates.save(aggregate);
-        audit.record(new AuditEntry("platform.approval.task.transfer", actor, null, "approval-task:" + taskId.value(),
-                "to:" + to.value()));
     }
 
     private void requireValidTarget(TaskView task, UserId actor, UserId to) {
@@ -65,7 +60,7 @@ public class TransferTask {
         }
     }
 
-    private static ApprovalOperationException refused(String message) {
-        return new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID, message);
+    private static DomainException refused(String message) {
+        return ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(message);
     }
 }

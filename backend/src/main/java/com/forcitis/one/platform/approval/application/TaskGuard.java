@@ -22,8 +22,7 @@ class TaskGuard {
     }
 
     TaskView requireTask(ApprovalTaskId taskId) {
-        return engine.findTask(taskId).orElseThrow(() -> new ApprovalOperationException(
-                ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND, "Task " + taskId.value() + " does not exist or is finished"));
+        return engine.findTask(taskId).orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " does not exist or is finished"));
     }
 
     TaskView requireActor(ApprovalTaskId taskId, UserId actor, String action) {

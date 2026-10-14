@@ -1,206 +1,504 @@
-# platform.approval 的事件条目（AsyncAPI 3.0 片段），由事件目录 docs/modernization/events/asyncapi.yaml 合并。
-# 每个事件写明五件事（proposals/EVENT_ANALYTICS_FIELDS.md §4 第 5 条与 §6）：
-#   x-forms-fact        是否形成事实（这里的事件都是过程事实，不过账；形成财务事实的是过账事件）
-#   x-business-date     信封的 businessDate 取哪个日期（按法人所在时区 Asia/Shanghai 截日）
-#   x-idempotency-key   消费方的幂等键（信封的 eventId，UUIDv7）
-#   x-publisher         发布方模块
-#   x-consumers         消费方
-#   x-delivery          投递保证
-# 信封（EventEnvelope）字段见 kernel.event；负载只放业务字段，跨模块标识用 DocumentReference（单据类型 + 单据标识）。
-asyncapi: 3.0.0
-info:
-  title: platform.approval events
-  version: 1.0.0
-  description: >-
-    审批请求（ApprovalRequest）与审批任务（ApprovalTask）两个聚合发布的事件。请求聚合的事件序号存放在 approval_requests.event_count，
-    任务聚合的存放在 approval_tasks.event_count；aggregateVersion 就是该聚合已发布的事件数，同一事务内连续编号。
-    ApprovalTaskOverdue 与 ApprovalTaskEscalated 由定时作业触发，aggregateVersion 取所属任务聚合的序号。
-channels:
-  ApprovalCompleted: {address: platform.approval.ApprovalCompleted, messages: {ApprovalCompleted: {$ref: '#/components/messages/ApprovalCompleted'}}}
-  TaskAssigned: {address: platform.approval.TaskAssigned, messages: {TaskAssigned: {$ref: '#/components/messages/TaskAssigned'}}}
-  TaskClaimed: {address: platform.approval.TaskClaimed, messages: {TaskClaimed: {$ref: '#/components/messages/TaskClaimed'}}}
-  TaskResulted: {address: platform.approval.TaskResulted, messages: {TaskResulted: {$ref: '#/components/messages/TaskResulted'}}}
-  TaskTransferred: {address: platform.approval.TaskTransferred, messages: {TaskTransferred: {$ref: '#/components/messages/TaskTransferred'}}}
-  ApprovalTaskOverdue: {address: platform.approval.ApprovalTaskOverdue, messages: {ApprovalTaskOverdue: {$ref: '#/components/messages/ApprovalTaskOverdue'}}}
-  ApprovalTaskEscalated: {address: platform.approval.ApprovalTaskEscalated, messages: {ApprovalTaskEscalated: {$ref: '#/components/messages/ApprovalTaskEscalated'}}}
+# 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
 components:
-  schemas:
-    DocumentReference:
-      type: object
-      required: [documentType, documentId]
-      properties:
-        documentType: {type: string, enum: [QUOTE, TIMESHEET, JOURNAL_VOUCHER]}
-        documentId: {type: object, properties: {value: {type: string}}}
-    UserId:
-      type: object
-      properties: {value: {type: integer, format: int64}}
   messages:
     ApprovalCompleted:
+      name: ApprovalCompleted
       title: 审批结束（已通过 / 已驳回 / 已退回 / 已撤销）
-      x-event-type: platform.approval.ApprovalCompleted
-      x-aggregate: ApprovalRequest（aggregateId = 单据类型:单据标识，如 TIMESHEET:7）
-      x-forms-fact: false（过程里程碑，不过账）
-      x-business-date: 审批结束当日（Asia/Shanghai）
-      x-idempotency-key: envelope.eventId
-      x-publisher: platform.approval
-      x-consumers:
-        - cost.timesheet：ApplyApprovalResult，按 eventId 幂等；轮次与等待中的轮次不符则忽略
-        - platform.audit：对外有意义的状态变化由审计订阅（B 方案）
-        - 分析层 L1：审批时效
-      x-delivery: 至少一次。与业务事务同提交，写入事件发布登记表 platform_integration.event_publication，失败重投；消费方必须幂等
-      x-note: 发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason
+      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是 单据类型:单据标识，如 TIMESHEET:7；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层 L1 用于审批时效。
       payload:
         type: object
-        required: [envelope, document, processKey, instanceId, round, outcome]
         properties:
-          envelope: {$ref: '#/components/schemas/EventEnvelope'}
-          document: {$ref: '#/components/schemas/DocumentReference'}
-          processKey: {type: string, enum: [COST_TIMESHEET_APPROVAL]}
-          instanceId: {type: object, properties: {value: {type: string}}, description: 流程实例 ID}
-          round: {type: integer, description: 轮次，同一单据第几次发起}
-          outcome: {type: string, enum: [APPROVED, REJECTED, RETURNED, CANCELLED], description: 类型化结果，不靠文案}
-          reason: {type: string, description: 驳回、退回、撤销原因；通过时为空（RULE-280）}
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          processKey:
+            type: string
+            enum:
+            - COST_TIMESHEET_APPROVAL
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+            description: 流程实例 ID
+          round:
+            type: object
+            x-type: RoundNumber
+            properties:
+              value:
+                type: integer
+            description: 轮次，同一单据第几次发起，从 1 起
+          outcome:
+            type: string
+            enum:
+            - APPROVED
+            - REJECTED
+            - RETURNED
+            - CANCELLED
+            description: 类型化结果，不靠文案
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 驳回、退回、撤销原因；通过时为空（RULE-280）
+      x-event:
+        eventType: platform.approval.ApprovalCompleted
+        version: 1
+        class: com.forcitis.one.platform.approval.events.ApprovalCompleted
+        aggregate: ApprovalRequest
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - cost.timesheet
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 审批结束当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalRequestStateMachineTest
     TaskAssigned:
+      name: TaskAssigned
       title: 任务已分配（每位会签审批人一个任务）
-      x-event-type: platform.approval.TaskAssigned
-      x-aggregate: ApprovalTask（aggregateId = 任务 ID）
-      x-forms-fact: false
-      x-business-date: 任务创建当日（Asia/Shanghai）
-      x-idempotency-key: envelope.eventId
-      x-publisher: platform.approval
-      x-consumers:
-        - platform.approval：通知，企业微信文本卡片发给每个候选人（去重键 approval-task:{taskId}）
-        - 分析层 L1：审批等待时长的起点
-      x-delivery: 至少一次，同上
-      x-note: 系统自动通过的任务（RULE-302）不发此事件
+      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键 approval-task:{taskId}）。系统自动通过的任务（RULE-302）不发此事件。分析层 L1 以此为审批等待时长的起点。
       payload:
         type: object
-        required: [envelope, taskId, instanceId, processKey, processName, document, nodeKey, nodeName, initiator, candidates]
         properties:
-          envelope: {$ref: '#/components/schemas/EventEnvelope'}
-          taskId: {type: object, properties: {value: {type: string}}}
-          instanceId: {type: object, properties: {value: {type: string}}}
-          processKey: {type: string}
-          processName: {type: string, description: 流程显示名}
-          document: {$ref: '#/components/schemas/DocumentReference'}
-          nodeKey: {type: string}
-          nodeName: {type: string}
-          initiator: {$ref: '#/components/schemas/UserId'}
-          candidates: {type: array, items: {$ref: '#/components/schemas/UserId'}}
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          processKey:
+            type: string
+          processName:
+            type: object
+            x-type: ProcessName
+            properties:
+              value:
+                type: string
+            description: 流程显示名
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          nodeName:
+            type: object
+            x-type: NodeName
+            properties:
+              value:
+                type: string
+            description: 节点显示名
+          initiator:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          candidates:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: integer
+                  format: int64
+      x-event:
+        eventType: platform.approval.TaskAssigned
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskAssigned
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 任务创建当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     TaskClaimed:
+      name: TaskClaimed
       title: 任务已被候选人认领
-      x-event-type: platform.approval.TaskClaimed
-      x-aggregate: ApprovalTask
-      x-forms-fact: false
-      x-business-date: 认领当日（Asia/Shanghai）
-      x-idempotency-key: envelope.eventId
-      x-publisher: platform.approval
-      x-consumers:
-        - platform.approval：通知，其他候选人的卡片改为已处理
-      x-delivery: 至少一次，同上
+      description: 任务已被候选人认领；过程事实，不过账。通知监听器据此把其他候选人的卡片改为已处理。
       payload:
         type: object
-        required: [envelope, taskId, instanceId, document, claimedBy]
         properties:
-          envelope: {$ref: '#/components/schemas/EventEnvelope'}
-          taskId: {type: object, properties: {value: {type: string}}}
-          instanceId: {type: object, properties: {value: {type: string}}}
-          document: {$ref: '#/components/schemas/DocumentReference'}
-          claimedBy: {$ref: '#/components/schemas/UserId'}
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          claimedBy:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+      x-event:
+        eventType: platform.approval.TaskClaimed
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskClaimed
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 认领当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     TaskResulted:
+      name: TaskResulted
       title: 任务已办理（通过 / 驳回 / 退回）
-      x-event-type: platform.approval.TaskResulted
-      x-aggregate: ApprovalTask
-      x-forms-fact: false
-      x-business-date: 办理当日（Asia/Shanghai）
-      x-idempotency-key: envelope.eventId
-      x-publisher: platform.approval
-      x-consumers:
-        - 分析层 L1：审批办理时效
-        - 业务模块的任务级钩子（1b）
-      x-delivery: 至少一次，同上
-      x-note: 系统自动通过与被跳过的节点不发此事件；advisory=true 是加签人的驳回，只记录意见，不结束本轮（RULE-273/291）
+      description: 任务已办理（通过、驳回、退回）；过程事实，不过账。系统自动通过与被跳过的节点不发此事件。effect=ADVISORY 是加签人的驳回，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。
       payload:
         type: object
-        required: [envelope, taskId, instanceId, processKey, document, nodeKey, assignee, outcome, advisory]
         properties:
-          envelope: {$ref: '#/components/schemas/EventEnvelope'}
-          taskId: {type: object, properties: {value: {type: string}}}
-          instanceId: {type: object, properties: {value: {type: string}}}
-          processKey: {type: string}
-          document: {$ref: '#/components/schemas/DocumentReference'}
-          nodeKey: {type: string}
-          assignee: {$ref: '#/components/schemas/UserId'}
-          outcome: {type: string, enum: [APPROVED, REJECTED, RETURNED]}
-          advisory: {type: boolean}
-          reason: {type: string, description: 原因；通过时为空}
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          processKey:
+            type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          assignee:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          outcome:
+            type: string
+            enum:
+            - APPROVED
+            - REJECTED
+            - RETURNED
+          effect:
+            type: string
+            enum:
+            - BINDING
+            - ADVISORY
+            description: ADVISORY 是加签人的驳回：只记录意见，不结束本轮（RULE-273、RULE-291）
+          reason:
+            type: object
+            x-type: Reason
+            properties:
+              value:
+                type: string
+            description: 原因；通过时为空
+      x-event:
+        eventType: platform.approval.TaskResulted
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskResulted
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 办理当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
+        noConsumer: 暂无消费方：分析层 L1 的审批办理时效与 1b 业务模块的任务级钩子将订阅；现在就发布，是因为办理时刻只在发生当时可记录，事后补不回
     TaskTransferred:
+      name: TaskTransferred
       title: 当前处理人把任务转交给他人（RULE-285）
-      x-event-type: platform.approval.TaskTransferred
-      x-aggregate: ApprovalTask
-      x-forms-fact: false
-      x-business-date: 转交当日（Asia/Shanghai）
-      x-idempotency-key: envelope.eventId
-      x-publisher: platform.approval
-      x-consumers:
-        - platform.approval：通知，新处理人收到卡片
-      x-delivery: 至少一次，同上
+      description: 当前处理人把任务转交给他人（RULE-285）；过程事实，不过账。通知监听器据此给新处理人发卡片。
       payload:
         type: object
-        required: [envelope, taskId, instanceId, document, nodeKey, from, to]
         properties:
-          envelope: {$ref: '#/components/schemas/EventEnvelope'}
-          taskId: {type: object, properties: {value: {type: string}}}
-          instanceId: {type: object, properties: {value: {type: string}}}
-          document: {$ref: '#/components/schemas/DocumentReference'}
-          nodeKey: {type: string}
-          from: {$ref: '#/components/schemas/UserId'}
-          to: {$ref: '#/components/schemas/UserId'}
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          from:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+          to:
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+      x-event:
+        eventType: platform.approval.TaskTransferred
+        version: 1
+        class: com.forcitis.one.platform.approval.events.TaskTransferred
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 转交当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     ApprovalTaskOverdue:
+      name: ApprovalTaskOverdue
       title: 任务超过审批时限仍未处理（只提醒，不自动通过）
-      x-event-type: platform.approval.ApprovalTaskOverdue
-      x-aggregate: ApprovalTask
-      x-aggregate-version: 所属任务聚合的事件序号（定时作业触发）
-      x-forms-fact: false（过程事实，计入时效统计）
-      x-business-date: 记录超时当日（Asia/Shanghai）；截止时刻在负载 dueAt
-      x-idempotency-key: envelope.eventId
-      x-publisher: platform.approval
-      x-consumers:
-        - platform.approval：通知，企业微信提醒发给处理人
-        - 分析层 L1：审批时效统计
-      x-delivery: 至少一次，同上
+      description: 任务超过审批时限仍未处理，只提醒，不自动通过；过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给处理人发企业微信提醒。
       payload:
         type: object
-        required: [envelope, taskId, instanceId, document, nodeKey, dueAt, holders]
         properties:
-          envelope: {$ref: '#/components/schemas/EventEnvelope'}
-          taskId: {type: object, properties: {value: {type: string}}}
-          instanceId: {type: object, properties: {value: {type: string}}}
-          document: {$ref: '#/components/schemas/DocumentReference'}
-          nodeKey: {type: string}
-          dueAt: {type: string, format: date-time, description: 截止时刻，提交日起第 n 个工作日结束（工作日历按法人）}
-          holders: {type: array, items: {$ref: '#/components/schemas/UserId'}, description: 被提醒的人}
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          dueAt:
+            type: string
+            format: date-time
+            description: 截止时刻，提交日起第 n 个工作日结束（工作日历按法人）
+          holders:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: integer
+                  format: int64
+            description: 被提醒的人
+      x-event:
+        eventType: platform.approval.ApprovalTaskOverdue
+        version: 1
+        class: com.forcitis.one.platform.approval.events.ApprovalTaskOverdue
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 记录超时当日（Asia/Shanghai）；截止时刻在负载 dueAt
+        audit: 'not-audited: 只是提醒，不改变任何人的处理权限；超时升级（ApprovalTaskEscalated）才改变处理人，并被审计'
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     ApprovalTaskEscalated:
+      name: ApprovalTaskEscalated
       title: 超时后仍未处理，已升级给审批人的上级（取不到上级则交流程管理员并告警）
-      x-event-type: platform.approval.ApprovalTaskEscalated
-      x-aggregate: ApprovalTask
-      x-aggregate-version: 所属任务聚合的事件序号（定时作业触发）
-      x-forms-fact: false（过程事实，计入时效统计）
-      x-business-date: 升级当日（Asia/Shanghai）
-      x-idempotency-key: envelope.eventId
-      x-publisher: platform.approval
-      x-consumers:
-        - platform.approval：通知，企业微信卡片发给升级对象
-        - 分析层 L1：审批时效统计
-      x-delivery: 至少一次，同上
+      description: 超时后仍未处理，已升级给审批人的上级；取不到上级则交流程管理员并告警（target=PROCESS_ADMINISTRATOR）。过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给升级对象发卡片。
       payload:
         type: object
-        required: [envelope, taskId, instanceId, document, nodeKey, escalatedTo, toProcessAdministrator]
         properties:
-          envelope: {$ref: '#/components/schemas/EventEnvelope'}
-          taskId: {type: object, properties: {value: {type: string}}}
-          instanceId: {type: object, properties: {value: {type: string}}}
-          document: {$ref: '#/components/schemas/DocumentReference'}
-          nodeKey: {type: string}
-          escalatedTo: {type: array, items: {$ref: '#/components/schemas/UserId'}}
-          toProcessAdministrator: {type: boolean, description: true 表示取不到上级、交给了流程管理员（同时告警）}
+          taskId:
+            type: object
+            properties:
+              value:
+                type: string
+          instanceId:
+            type: object
+            properties:
+              value:
+                type: string
+          document:
+            type: object
+            required:
+            - documentType
+            - documentId
+            properties:
+              documentType:
+                type: string
+                enum:
+                - QUOTE
+                - TIMESHEET
+                - JOURNAL_VOUCHER
+              documentId:
+                type: object
+                properties:
+                  value:
+                    type: string
+          nodeKey:
+            type: object
+            x-type: NodeKey
+            properties:
+              value:
+                type: string
+            description: 流程节点标识
+          escalatedTo:
+            type: array
+            items:
+              type: object
+              properties:
+                value:
+                  type: integer
+                  format: int64
+          target:
+            type: string
+            enum:
+            - SUPERVISOR
+            - PROCESS_ADMINISTRATOR
+            description: PROCESS_ADMINISTRATOR 表示取不到上级、交给了流程管理员（同时告警）
+      x-event:
+        eventType: platform.approval.ApprovalTaskEscalated
+        version: 1
+        class: com.forcitis.one.platform.approval.events.ApprovalTaskEscalated
+        aggregate: ApprovalTask
+        idempotencyKey: eventId
+        publisher: platform.approval
+        consumers:
+        - platform.audit
+        - platform.approval
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 升级当日（Asia/Shanghai）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest

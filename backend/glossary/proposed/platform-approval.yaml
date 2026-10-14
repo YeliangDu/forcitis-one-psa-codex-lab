@@ -546,6 +546,20 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: effect
+  zh: 效力
+  en: Effect
+  snake: effect
+  kind: value
+  bc: platform.approval
+  definition: 任务办理结果对本轮审批的效力：约束性的结束本轮，建议性的（加签人的驳回）只记录意见（RULE-273、RULE-291）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - advice
 - already
@@ -639,3 +653,5 @@ common_words:
 - restore
 - revision
 - retraction
+- binding
+- nullable

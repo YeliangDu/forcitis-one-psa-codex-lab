@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.infrastructure.flowable;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -25,8 +26,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.UserTask;
+import org.flowable.common.engine.api.FlowableException;
 import org.flowable.common.engine.api.FlowableOptimisticLockingException;
 import org.flowable.common.engine.api.FlowableTaskAlreadyClaimedException;
 import org.flowable.engine.HistoryService;
@@ -96,7 +99,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
         engine.put(VARIABLE_SUBMITTED_ON, start.submittedOn().toString());
         engine.put(VARIABLE_CONTENT_DIGEST, start.contentDigest());
         engine.putAll(nodeDecisions(start));
-        String instanceId = runtime.startProcessInstanceByKey(start.processKey().key(), businessKey, engine).getId();
+        String instanceId = refusing(() -> runtime.startProcessInstanceByKey(start.processKey().key(), businessKey, engine).getId());
         rejectWhenEveryNodeWasSkipped(instanceId);
         completeSystemTasks(instanceId);
         return new ApprovalInstanceId(instanceId);
@@ -182,8 +185,25 @@ class FlowableApprovalEngine implements ApprovalEngine {
         if (task == null) {
             throw new IllegalStateException("Task " + taskId.value() + " is gone");
         }
-        tasks.complete(taskId.value());
+        refusing(() -> {
+            tasks.complete(taskId.value());
+            return null;
+        });
         completeSystemTasks(task.getProcessInstanceId());
+    }
+
+    /** A refusal raised while the engine assigns the next node reaches the caller as itself, not wrapped in the engine's exception. */
+    private static <T> T refusing(Supplier<T> command) {
+        try {
+            return command.get();
+        } catch (FlowableException failed) {
+            for (Throwable cause = failed; cause != null; cause = cause.getCause()) {
+                if (cause instanceof DomainException refusal) {
+                    throw refusal;
+                }
+            }
+            throw failed;
+        }
     }
 
     private void rejectWhenEveryNodeWasSkipped(String instanceId) {
@@ -191,7 +211,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
         boolean nothingEverAssigned = open == 0 && history.createHistoricTaskInstanceQuery().processInstanceId(instanceId).count() == 0;
         if (nothingEverAssigned || (open > 0 && systemTasks(instanceId).size() == open)) {
             log.error("Every node of instance {} was skipped for lack of an approver: the approval is refused, not passed", instanceId);
-            meters.counter("platform.approval.all.nodes.skipped").increment();
+            meters.counter("forcitis.platform.approval.all.nodes.skipped").increment();
             throw new IllegalStateException("Every node of approval instance " + instanceId + " found nobody to assign");
         }
     }
@@ -199,7 +219,10 @@ class FlowableApprovalEngine implements ApprovalEngine {
     private void completeSystemTasks(String instanceId) {
         List<Task> pending = systemTasks(instanceId);
         while (!pending.isEmpty()) {
-            pending.forEach(task -> tasks.complete(task.getId()));
+            pending.forEach(task -> refusing(() -> {
+                tasks.complete(task.getId());
+                return null;
+            }));
             pending = systemTasks(instanceId);
         }
     }

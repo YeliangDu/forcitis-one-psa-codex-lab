@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -188,9 +189,10 @@ class ApplicationIntegrationTest {
         String body = mvc.perform(post("/api/v1/cost/timesheets/8:submit").with(csrf())
                         .with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(unknownManager))
-                .andExpect(status().isInternalServerError()).andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_UNEXPECTED"))
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andReturn().getResponse().getContentAsString();
-        org.assertj.core.api.Assertions.assertThat(body).doesNotContain("missing or invalid");
+        org.assertj.core.api.Assertions.assertThat(body).contains("\"status\":422");
     }
 
     @Test

@@ -14,8 +14,7 @@ import org.junit.jupiter.api.Test;
 /** A business document is identified across modules by kernel.DocumentReference, never by a bare String or long. */
 class DocumentReferenceGuardTest {
     static final Pattern DOCUMENT_NAME = Pattern.compile("(?i)(document|business)(id|key|ref|reference)");
-    /** The approval work stream converts businessKey; remove its entry when that merges. */
-    static final Set<String> PENDING_MODULES = Set.of("platform.approval", "cost.timesheet");
+    static final Set<String> PENDING_MODULES = Set.of();
 
     static List<String> violations(Iterable<Class<?>> classes, Set<String> pendingModules) {
         List<String> problems = new ArrayList<>();

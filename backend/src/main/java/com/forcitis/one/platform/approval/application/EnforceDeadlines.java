@@ -33,7 +33,7 @@ public class EnforceDeadlines {
                 handled++;
             } catch (RuntimeException failed) {
                 log.error("Enforcing the deadline of task {} failed: {}", id.value(), failed.toString());
-                meters.counter("platform.approval.deadline.failed").increment();
+                meters.counter("forcitis.platform.approval.deadline.failed").increment();
             }
         }
         return handled;

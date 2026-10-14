@@ -1,6 +1,6 @@
 import { Button, Dialog, TextAreaField } from '@forcitis/ui';
 import { useState } from 'react';
-import { type TaskActions } from '../model/task';
+import { type TaskActions, opinionText } from '../model/task';
 import './task-action-bar.css';
 
 type ReasonAction = 'approve' | 'reject' | 'return';
@@ -52,6 +52,7 @@ export function TaskActionBar({ actions, busy, onClaim, onApprove, onReject, onR
         onClose={close}
       >
         <TextAreaField label={dialog?.required === true ? '理由（必填）' : '理由（选填）'} value={reason} onChange={setReason} />
+        {open === 'approve' ? <p>意见显示为：{opinionText(reason)}</p> : null}
       </Dialog>
     </div>
   );
