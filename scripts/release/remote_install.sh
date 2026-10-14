@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # FORCITIS one release installer on the ECS. Installed as /usr/local/sbin/forcitis-one-release (root:root 0755) by the one-time setup in
-# RELEASE.md (Phase 1a infra runbooks). Run as root by a fixed, parameterless Cloud Assistant command. The install request is not passed
-# through the command: Cloud Assistant substitutes parameters into the script text, so a crafted value could run as root. The deploy job
-# writes the request into fixed OOS parameters (only its RAM role may update them, and only deploy.yml on main for this environment may
-# assume that role, RELEASE.md §8.2); this installer reads them back with the instance RAM role, checks them strictly, and installs only a
-# release whose signed statement verifies against the signer key on this server and names the requested version.
+# RELEASE.md (Phase 1a infra runbooks). Pull model: forcitis-one-release-pull.timer runs `pull` as root every minute. Nothing outside
+# this server can make it execute anything: the deploy job (only deploy.yml on main for this environment can assume its RAM role, RELEASE.md
+# §8.2) can only write this environment's OOS request parameters and read the result parameter. `pull` reads the request with the instance
+# RAM role, checks it strictly, installs only a release whose signed statement verifies against the signer key on this server and names the
+# requested version, and writes the outcome to the result parameter, which only reports and is never trusted by anyone.
 #
-#   install-pending              install the release named by this environment's OOS request parameters (contract: RELEASE.md §3)
+#   pull                         take up this environment's request in OOS, if it is new (contract: RELEASE.md §3)
 #   rollback [<version>]         back to the previous release, or to <version> (local only, no network)
 #   status
 #
@@ -24,15 +24,21 @@ RELEASE_SOURCE="$ETC/release-source"
 # OOS parameters <prefix>-<env> (the request) and <prefix>-<env>-<asset> (one signed link each; four links exceed one 4096-character value)
 REQUEST_PARAMETER_PREFIX=forcitis-one-deploy-request
 REQUEST_ASSET_PARAMETERS='bundle bundle-sha256 statement statement-sig'
+RESULT_PARAMETER_PREFIX=forcitis-one-deploy-result
+REQUEST_PLACEHOLDER='{}'
 MAX_PARAMETER_CHARS=4096
 METADATA_URL=http://100.100.100.200
 OOS_ENDPOINT='https://oos.{region}.aliyuncs.com'
 ALERT_SENDER=/usr/local/sbin/one_alert_send
+# Failures that belong to no request (configuration, metadata, OOS) alert at most once per this many seconds per cause
+GLOBAL_ALERT_SECONDS=3600
 # GitHub serves release assets from these hosts as short-lived signed URLs; the deploy job resolves them, nothing else is fetched
 ASSET_HOSTS='objects.githubusercontent.com release-assets.githubusercontent.com'
 # Every request taken up, keyed <run_id>:<run_attempt>, with its outcome (root 0600, appended only); a key listed here is never installed again
 STATE_DIR=/var/lib/forcitis-one-release
 PROCESSED="$STATE_DIR/processed-requests"
+# Alerts already sent: "<request_id or global> <cause>" and the time (root 0600, appended only)
+ALERTS="$STATE_DIR/alerts-sent"
 # Files nginx serves outside the releases, untouched by any deployment (WeCom trusted-domain verification, C-4 E-10)
 PINNED="$BASE/static-pinned"
 PINNED_PATTERN='^WW_verify_[A-Za-z0-9]{1,64}\.txt$'
@@ -59,10 +65,41 @@ KEEP_RELEASES=5
 FIRST_INSTALL_ONLY='^(spring\.datasource\..+|flowable\.database-schema-update)$'
 
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
+# In `pull`, stage names the cause; a cause already reported for this request (or, without a request, within the hour) ends quietly, so
+# the timer does not repeat the same alert and log every minute
 fail() {
+  local cause="${stage:-install}"
+  if [ -n "${pulling:-}" ] && ! alert_due "$cause"; then exit 0; fi
   log "FAILED: $*"
-  [ -z "${request_in_progress:-}" ] || record_request "$request_in_progress" failed "$*" || log "could not record request $request_in_progress as failed"
+  [ -z "${request_in_progress:-}" ] || record_request "$request_in_progress" failed "$cause: $*" || log "could not record request $request_in_progress as failed"
+  if [ -n "${pulling:-}" ]; then
+    [ -z "${request_id:-}" ] || write_result failed "$cause"
+    send_alert "$cause" "$*"
+  fi
   exit 1
+}
+
+# True when an alert for <cause> should go out now; remembers that it did
+alert_due() {
+  local cause="$1" key last
+  [ -d "$STATE_DIR" ] || return 0
+  if [ -n "${alert_key:-}" ]; then
+    key="$alert_key $cause"
+    if [ -f "$ALERTS" ] && awk -F'\t' -v key="$key" '$1 == key { found = 1 } END { exit !found }' "$ALERTS"; then return 1; fi
+  else
+    key="global $cause"
+    last=0
+    [ ! -f "$ALERTS" ] || last="$(awk -F'\t' -v key="$key" '$1 == key { t = $2 } END { print t + 0 }' "$ALERTS")"
+    [ $(($(date +%s) - last)) -ge "$GLOBAL_ALERT_SECONDS" ] || return 1
+  fi
+  (umask 077 && printf '%s\t%s\n' "$key" "$(date +%s)" >> "$ALERTS") || log "could not record the alert in $ALERTS"
+  return 0
+}
+
+# Alerts carry the cause and a message built here, never a link or a credential
+send_alert() {
+  "$ALERT_SENDER" P2 "one.release-pull ${target_env:-?}: ${request_id:+request $request_id }$1: $2" >/dev/null 2>&1 \
+    || log "alert delivery through $ALERT_SENDER failed"
 }
 
 cleanup_paths=()
@@ -252,6 +289,10 @@ check_server_files() {
   cmp -s "$dir/deploy/forcitis-one.service" /etc/systemd/system/forcitis-one.service || drift+=(/etc/systemd/system/forcitis-one.service)
   cmp -s "$dir/deploy/nginx-one.conf" /etc/nginx/conf.d/one.conf || drift+=(/etc/nginx/conf.d/one.conf)
   cmp -s "$dir/deploy/forcitis-one.logrotate" /etc/logrotate.d/forcitis-one || drift+=(/etc/logrotate.d/forcitis-one)
+  cmp -s "$dir/deploy/forcitis-one-release-pull.service" /etc/systemd/system/forcitis-one-release-pull.service \
+    || drift+=(/etc/systemd/system/forcitis-one-release-pull.service)
+  cmp -s "$dir/deploy/forcitis-one-release-pull.timer" /etc/systemd/system/forcitis-one-release-pull.timer \
+    || drift+=(/etc/systemd/system/forcitis-one-release-pull.timer)
   [ "${#drift[@]}" -eq 0 ] || fail "server files differ from this release; apply them as in RELEASE.md §5 first: ${drift[*]}"
   grep -Eq "^ExecStart=/usr/bin/java .*${JVM_TIMEZONE}( |$)" /etc/systemd/system/forcitis-one.service \
     || fail "forcitis-one.service does not start the JVM with ${JVM_TIMEZONE}; the application would refuse to start"
@@ -286,27 +327,39 @@ read_release_source() {
     || fail "$RELEASE_SOURCE: WECOM_VERIFY_FILE must name a WW_verify_*.txt file or be absent"
 }
 
-# Reads this environment's request parameters from OOS with the instance RAM role (metadata service in hardened mode: a session token
-# first) and checks them; on success prints "<version> <run_id> <run_attempt>", then one "<asset name> <url>" line per asset. Credentials
-# and signed links stay inside this process and its stdout pipe: never printed, written to disk or put on a command line.
-request_read() {
-  python3 -I - "$@" <<'PY'
+# OOS with the instance RAM role: `get <name>...` prints each value on a line, `put <name>` writes the value read from stdin, `self-test`
+# checks the signer against Aliyun's published example. The metadata service is used in hardened mode (a session token first), with no
+# proxy and no redirects. Credentials and values stay inside this process and its pipes: never printed, written to disk or put on a command line.
+read -r -d '' OOS_PY <<'PY' || true
 import base64, datetime, hashlib, hmac, json, re, sys, uuid
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlencode, urlsplit
+from urllib.parse import quote
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
-metadata, oos_endpoint, env, version_pattern, max_chars, hosts, prefix, asset_keys = (
-    sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]), sys.argv[6].split(), sys.argv[7], sys.argv[8].split())
 def die(message):
-    sys.exit("install request: " + message)
+    sys.exit("oos: " + message)
+def encode(value):
+    return quote(value, safe="-_.~")
+def signature(query, secret):
+    canonical = "&".join(f"{encode(k)}={encode(v)}" for k, v in sorted(query.items()))
+    digest = hmac.new((secret + "&").encode(), ("GET&%2F&" + encode(canonical)).encode(), hashlib.sha1).digest()
+    return canonical, base64.b64encode(digest).decode()
+
+metadata, endpoint, max_chars, mode, names = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5:]
+if mode == "self-test":
+    # RPC signature example of the Aliyun SDK documentation (help.aliyun.com/zh/sdk/product-overview/rpc-mechanism)
+    example = {"Timestamp": "2016-02-23T12:46:24Z", "Format": "XML", "AccessKeyId": "testid", "Action": "DescribeRegions",
+               "SignatureMethod": "HMAC-SHA1", "SignatureNonce": "3ee8c1b8-83d3-44af-a94f-4e0ad82fd6cf", "Version": "2014-05-26",
+               "SignatureVersion": "1.0"}
+    if signature(example, "testsecret")[1] != "OLeaidS1JvxuMvnyHOwuJ+uX5qY=":
+        die("signer does not reproduce the documented example")
+    print("oos signer self-test passed")
+    sys.exit(0)
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, *args):
         return None
-# No proxy: the metadata service must be reached directly, and no other hop should see the credentials
 opener = build_opener(ProxyHandler({}), NoRedirect())
-
 def call(method, url, headers, what):
     try:
         with opener.open(Request(url, method=method, headers=headers), timeout=15) as response:
@@ -315,6 +368,14 @@ def call(method, url, headers, what):
         return error.code, error.read(65536 + 1)
     except (URLError, OSError) as error:
         die(f"{what} unreachable ({type(error).__name__})")
+def load(body, what):
+    try:
+        value = json.loads(body)
+    except ValueError:
+        die(f"{what} is not JSON")
+    if not isinstance(value, dict):
+        die(f"{what} is not a JSON object")
+    return value
 
 status, token = call("PUT", metadata + "/latest/api/token", {"X-aliyun-ecs-metadata-token-ttl-seconds": "60"}, "metadata token")
 if status != 200 or not re.fullmatch(rb"[!-~]{1,1024}", token):
@@ -331,36 +392,42 @@ if not re.fullmatch(r"[a-z0-9-]{1,64}", region):
 roles = metadata_get("/latest/meta-data/ram/security-credentials/", "the instance role").split()
 if len(roles) != 1 or not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", roles[0]):
     die(f"this instance must have exactly one RAM role, found {len(roles)}")
-try:
-    credentials = json.loads(metadata_get("/latest/meta-data/ram/security-credentials/" + roles[0], "the role credentials"))
-except ValueError:
-    die("role credentials are not JSON")
+credentials = load(metadata_get("/latest/meta-data/ram/security-credentials/" + roles[0], "the role credentials"), "role credentials")
 if credentials.get("Code") != "Success" or not all(isinstance(credentials.get(k), str) and credentials[k]
                                                     for k in ("AccessKeyId", "AccessKeySecret", "SecurityToken")):
     die(f"role credentials unavailable (Code {credentials.get('Code')!r})")
 
-def encode(value):
-    return quote(value, safe="-_.~")
-def get_parameter(name):
-    query = {"Action": "GetParameter", "Version": "2019-06-01", "Format": "JSON", "RegionId": region, "Name": name,
-             "AccessKeyId": credentials["AccessKeyId"], "SecurityToken": credentials["SecurityToken"],
-             "SignatureMethod": "HMAC-SHA1", "SignatureVersion": "1.0", "SignatureNonce": uuid.uuid4().hex,
-             "Timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
-    canonical = "&".join(f"{encode(k)}={encode(v)}" for k, v in sorted(query.items()))
-    to_sign = "GET&%2F&" + encode(canonical)
-    signature = base64.b64encode(hmac.new((credentials["AccessKeySecret"] + "&").encode(), to_sign.encode(), hashlib.sha1).digest()).decode()
-    status, body = call("GET", oos_endpoint.format(region=region) + "/?" + canonical + "&Signature=" + encode(signature), {}, "OOS")
-    try:
-        answer = json.loads(body)
-    except ValueError:
-        die(f"OOS answered HTTP {status} without JSON for {name}")
-    value = (answer.get("Parameter") or {}).get("Value") if status == 200 else None
-    if not isinstance(value, str):
-        die(f"cannot read OOS parameter {name}: HTTP {status} {answer.get('Code')} (request {answer.get('RequestId')})")
-    if not 0 < len(value) <= max_chars or not re.fullmatch(r"[ -~]+", value):
+def rpc(action, params):
+    query = dict(params, Action=action, Version="2019-06-01", Format="JSON", RegionId=region,
+                 AccessKeyId=credentials["AccessKeyId"], SecurityToken=credentials["SecurityToken"],
+                 SignatureMethod="HMAC-SHA1", SignatureVersion="1.0", SignatureNonce=uuid.uuid4().hex,
+                 Timestamp=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+    canonical, signed = signature(query, credentials["AccessKeySecret"])
+    status, body = call("GET", endpoint.format(region=region) + "/?" + canonical + "&Signature=" + encode(signed), {}, "OOS")
+    answer = load(body, f"OOS answer to {action} {params['Name']} (HTTP {status})")
+    parameter = answer.get("Parameter") if status == 200 else None
+    if not isinstance(parameter, dict):
+        die(f"OOS {action} {params['Name']}: HTTP {status} {answer.get('Code')} (request {answer.get('RequestId')})")
+    return parameter
+def acceptable(name, value):
+    if not isinstance(value, str) or not 0 < len(value) <= max_chars or not re.fullmatch(r"[ -~]+", value):
         die(f"OOS parameter {name} is not 1..{max_chars} printable ASCII characters")
     return value
 
+if mode == "get":
+    print("\n".join(acceptable(name, rpc("GetParameter", {"Name": name}).get("Value")) for name in names))
+elif mode == "put" and len(names) == 1:
+    rpc("UpdateParameter", {"Name": names[0], "Value": acceptable(names[0], sys.stdin.read())})
+else:
+    die(f"unknown mode {mode}")
+PY
+
+# Strict check of the request JSON (stdin) for this environment; prints "<version> <run_id> <run_attempt> <request_id> <hash>..."
+read -r -d '' REQUEST_CHECK_PY <<'PY' || true
+import json, re, sys
+env, version_pattern, asset_keys = sys.argv[1], sys.argv[2], sys.argv[3:]
+def die(message):
+    sys.exit("install request: " + message)
 def no_duplicates(pairs):
     keys = [k for k, _ in pairs]
     if len(keys) != len(set(keys)):
@@ -369,7 +436,7 @@ def no_duplicates(pairs):
 def no_constants(name):
     die(f"has the non-JSON constant {name}")
 try:
-    request = json.loads(get_parameter(f"{prefix}-{env}"), object_pairs_hook=no_duplicates, parse_constant=no_constants)
+    request = json.loads(sys.stdin.read(), object_pairs_hook=no_duplicates, parse_constant=no_constants)
 except ValueError:
     die("is not JSON")
 expected = {"version", "environment", "run_id", "run_attempt", "request_id", "asset_url_sha256"}
@@ -397,89 +464,70 @@ if not isinstance(hashes, dict) or set(hashes) != set(asset_keys):
 for key in asset_keys:
     if not isinstance(hashes[key], str) or not re.fullmatch(r"[0-9a-f]{64}", hashes[key]):
         die(f"asset_url_sha256.{key} is not 64 lowercase hexadecimal characters")
+print(version, request["run_id"], request["run_attempt"], request_id, *(hashes[key] for key in asset_keys))
+PY
 
-# The five parameters are written one by one, so a reader can meet links of another run: each link must be the one this request hashed
-links = {key: get_parameter(f"{prefix}-{env}-{key}") for key in asset_keys}
-mismatched = [f"{prefix}-{env}-{key}" for key in asset_keys if hashlib.sha256(links[key].encode("utf-8")).hexdigest() != hashes[key]]
+# The four links (stdin, one per line, in parameter order) against the request's hashes, then each on its own. A hash mismatch prints the
+# parameter names and exits 3: the five parameters are written one by one, so a reader can meet links that another run wrote.
+read -r -d '' LINKS_PY <<'PY' || true
+import hashlib, re, sys
+from urllib.parse import urlsplit
+hosts, rest = sys.argv[1].split(), sys.argv[2:]
+names, hashes, assets = rest[0:4], rest[4:8], rest[8:12]
+links = sys.stdin.read().split("\n")[:4]
+def die(message):
+    sys.exit("install request: " + message)
+if len(links) != 4:
+    die("four link parameters expected")
+mismatched = [name for name, link, digest in zip(names, links, hashes) if hashlib.sha256(link.encode("utf-8")).hexdigest() != digest]
 if mismatched:
-    print(f"{request_id} {' '.join(mismatched)}")
+    print(" ".join(mismatched))
     sys.exit(3)
-
-top = f"forcitis-one-{version}"
-asset_names = dict(zip(asset_keys, (f"{top}.tar.gz", f"{top}.tar.gz.sha256", f"{top}.release", f"{top}.release.sig")))
-lines = [f"{version} {request['run_id']} {request['run_attempt']}"]
-for key, name in asset_names.items():
-    url = links[key]
+for asset, url in zip(assets, links):
     # No quotes, backslashes, braces or brackets: the link goes into a curl config line, and curl must not glob it
     if not re.fullmatch(r"[!-~]+", url) or re.search(r'["\\{}\[\]]', url):
-        die(f"asset {name}: URL holds whitespace or one of the characters \" \\ {{ }} [ ]")
+        die(f"asset {asset}: URL holds whitespace or one of the characters \" \\ {{ }} [ ]")
     try:
         parts = urlsplit(url)
         port = parts.port
     except ValueError:
-        die(f"asset {name}: URL cannot be parsed")
+        die(f"asset {asset}: URL cannot be parsed")
     # The whole netloc must equal an allowed host: this rules out userinfo, any explicit port (even :443), a trailing dot or other spellings
     if parts.scheme != "https" or parts.netloc not in hosts or port is not None or parts.username is not None:
-        die(f"asset {name}: URL must be https on {' or '.join(hosts)} without user or port; got scheme {parts.scheme!r}, host {parts.netloc!r}")
+        die(f"asset {asset}: URL must be https on {' or '.join(hosts)} without user or port; got scheme {parts.scheme!r}, host {parts.netloc!r}")
     if not parts.path.startswith("/") or parts.fragment:
-        die(f"asset {name}: URL has no path or carries a fragment")
-    lines.append(f"{name} {url}")
-print("\n".join(lines))
+        die(f"asset {asset}: URL has no path or carries a fragment")
 PY
-}
 
-# Sets version, run_id, run_attempt and asset_names / asset_links (same order) from the request, after every check passed
-read_request() {
-  local out line i rc=0 message
-  local -a lines
-  out="$(request_read "$METADATA_URL" "$OOS_ENDPOINT" "$target_env" "$VERSION_PATTERN" "$MAX_PARAMETER_CHARS" "$ASSET_HOSTS" \
-    "$REQUEST_PARAMETER_PREFIX" "$REQUEST_ASSET_PARAMETERS")" || rc=$?
-  if [ "$rc" -eq 3 ]; then
-    # Not a replay but a write race between two runs: nothing is recorded, so the same request can be sent again once the parameters agree
-    message="one.release-request: request ${out%% *} rejected, link parameters ${out#* } do not match the request's asset_url_sha256 (parameters written by different deploy runs); rewrite them and resend"
-    "$ALERT_SENDER" P2 "$message" >/dev/null 2>&1 || log "alert delivery through $ALERT_SENDER failed"
-    fail "$message"
-  fi
-  [ "$rc" -eq 0 ] || fail "install request could not be read or was refused"
-  # Split in memory: a here-string could be backed by a temporary file, and these lines hold the signed links
-  lines=()
-  while [ -n "$out" ]; do
-    line="${out%%$'\n'*}"
-    lines+=("$line")
-    [ "$line" != "$out" ] || break
-    out="${out#*$'\n'}"
-  done
-  [ "${#lines[@]}" -eq 5 ] || fail "install request has ${#lines[@]} lines, expected 5"
-  version="${lines[0]%% *}"
-  run_attempt="${lines[0]##* }"
-  run_id="${lines[0]#* }"; run_id="${run_id%% *}"
-  valid_version "$version" || fail "invalid version '$version'"
-  [[ "$run_id" =~ ^[1-9][0-9]*$ && "$run_attempt" =~ ^[1-9][0-9]*$ ]] || fail "invalid run id or attempt"
-  asset_names=() asset_links=()
-  for i in 1 2 3 4; do
-    asset_names+=("${lines[$i]%% *}")
-    asset_links+=("${lines[$i]#* }")
-  done
-  log "install request: v$version for $target_env from deploy run $run_id attempt $run_attempt"
-}
+oos_call() { python3 -I -c "$OOS_PY" "$METADATA_URL" "$OOS_ENDPOINT" "$MAX_PARAMETER_CHARS" "$@"; }
 
-# Refuses a request key that was taken up before
-processed_check() {
-  local key="$1"
+prepare_state() {
   [ -d "$STATE_DIR" ] || mkdir -m 0700 "$STATE_DIR"
   [ "$(owner_mode "$STATE_DIR")" = "root 700" ] || fail "$STATE_DIR must be root-owned 0700"
   if [ -e "$PROCESSED" ]; then
     [ "$(owner_mode "$PROCESSED")" = "root 600" ] || fail "$PROCESSED must be root-owned 0600"
-    if awk -F'\t' -v key="$key" '$1 == key { found = 1 } END { exit !found }' "$PROCESSED" 2>/dev/null; then
-      fail "request $key (deploy run:attempt) was already taken up (see $PROCESSED); start a new deploy run"
-    fi
   else
     (umask 077 && : > "$PROCESSED")
   fi
 }
 
+# True when the request was taken up before, whatever its outcome
+processed_has() { awk -F'\t' -v key="$1" '$1 == key { found = 1 } END { exit !found }' "$PROCESSED" 2>/dev/null; }
+
 record_request() {
   printf '%s\t%s\t%s\t%s\n' "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "${3:-}" >> "$PROCESSED"
+}
+
+# The result parameter only reports to the deploy job; a failed write is logged and alerted (hourly), it changes nothing here
+write_result() {
+  local status="$1" cause="${2:-}" alert_key=""
+  python3 -I -c '
+import datetime, json, sys
+print(json.dumps({"request_id": sys.argv[1], "status": sys.argv[2], "reason": sys.argv[3] or None,
+                  "time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}, separators=(",", ":")), end="")' \
+    "$request_id" "$status" "$cause" | oos_call put "$RESULT_PARAMETER_PREFIX-$target_env" && return 0
+  log "could not write $status for request $request_id to $RESULT_PARAMETER_PREFIX-$target_env"
+  if alert_due result-write; then send_alert result-write "could not write $status to $RESULT_PARAMETER_PREFIX-$target_env"; fi
 }
 
 # No redirect is followed and no credential is sent: the URL already is GitHub's final signed download link. It reaches curl through a
@@ -494,6 +542,7 @@ download_asset() {
     -L --max-redirs 0 --max-filesize "$MAX_BUNDLE_BYTES" -o "$out" -K - \
     || fail "could not download release asset $name (the signed link may have expired; start a new deploy run)"
 }
+
 # Downloads the requested release into a new directory under releases/ and verifies it; sets staged (the unpacked bundle) and commit
 fetch_release() {
   local version="$1" incoming archive top expected_sha
@@ -502,12 +551,14 @@ fetch_release() {
   top="forcitis-one-$version"
   archive="$incoming/bundle.tar.gz"
   log "fetching $top from the GitHub release v$version"
+  stage=download
   download_asset "$top.tar.gz.sha256" "$incoming/bundle.sha256"
   download_asset "$top.release" "$incoming/statement"
   download_asset "$top.release.sig" "$incoming/statement.sig"
   download_asset "$top.tar.gz" "$archive"
   [ "$(wc -c < "$archive")" -le "$MAX_BUNDLE_BYTES" ] || fail "bundle larger than $MAX_BUNDLE_BYTES bytes"
   log "fetched $(wc -c < "$archive" | tr -d ' ') bytes"
+  stage=verification
   expected_sha="$(cut -d' ' -f1 "$incoming/bundle.sha256")"
   [[ "$expected_sha" =~ ^[0-9a-f]{64}$ ]] || fail "cannot read the bundle's .sha256 asset"
   [ "$(sha256sum < "$archive" | cut -d' ' -f1)" = "$expected_sha" ] || fail "bundle sha256 differs from the release's .sha256 asset"
@@ -525,6 +576,7 @@ fetch_release() {
 place() {
   local version="$1" env="$2" existing
   fetch_release "$version"
+  stage=placement
   [ -d "$staged/web-$env" ] || fail "bundle has no static files for $env"
 
   existing="$releases/$version"
@@ -648,26 +700,56 @@ lock() {
   flock -n 9 || fail "another release operation is running"
 }
 
-# Takes up this environment's request for target_env: sets version, run_id, run_attempt and the asset URLs, records the request as started
-accept_request() {
-  local running
-  [ "$#" -eq 0 ] || fail "install-pending takes no arguments; the request is read from OOS (RELEASE.md §3)"
-  read_request
-  processed_check "$run_id:$run_attempt"
-  # Taken up before anything is installed, so a crash half-way is never replayed by the same request; without that record, no install
-  record_request "$run_id:$run_attempt" started "v$version" \
-    || fail "could not record request $run_id:$run_attempt as started in $PROCESSED; not installing without replay protection"
-  request_in_progress="$run_id:$run_attempt"
+# Reads and checks this environment's request; sets version, request_id and the asset links. Sets nothing_new, and
+# says nothing, for the placeholder or a request taken up before (whatever its outcome).
+read_request() {
+  local raw header links mismatched rc=0 i key h0 h1 h2 h3
+  local -a hashes names assets
+  stage="read-parameters"
+  # Error text is captured, not printed: a cause already reported must not reach the log again on the next round
+  raw="$(oos_call get "$REQUEST_PARAMETER_PREFIX-$target_env" 2>&1)" \
+    || fail "cannot read the request parameter $REQUEST_PARAMETER_PREFIX-$target_env: $raw"
+  [ "$raw" != "$REQUEST_PLACEHOLDER" ] || { nothing_new=1; return 0; }
+  stage="invalid-request"
+  alert_key="value-$(printf '%s' "$raw" | sha256sum | cut -c1-16)"
+  # shellcheck disable=SC2086
+  header="$(printf '%s' "$raw" | python3 -I -c "$REQUEST_CHECK_PY" "$target_env" "$VERSION_PATTERN" $REQUEST_ASSET_PARAMETERS 2>&1)" \
+    || fail "$header"
+  read -r version _ _ request_id h0 h1 h2 h3 <<< "$header"
+  hashes=("$h0" "$h1" "$h2" "$h3")
+  alert_key="$request_id"
+  ! processed_has "$request_id" || { nothing_new=1; return 0; }
 
-  [[ "$target_env" != prod || "$version" != *-* ]] || fail "prod takes released versions only, not the pre-release $version"
-  running="$(linked_version "$current_link")"
-  if [ -n "$running" ] && version_lower "$version" "$running"; then
-    fail "$version is lower than the running $running; going back is an explicit operator rollback (forcitis-one-release rollback), never a deployment"
-  fi
+  names=() assets=()
+  for key in $REQUEST_ASSET_PARAMETERS; do names+=("$REQUEST_PARAMETER_PREFIX-$target_env-$key"); done
+  assets=("forcitis-one-$version.tar.gz" "forcitis-one-$version.tar.gz.sha256" "forcitis-one-$version.release" "forcitis-one-$version.release.sig")
+  stage="read-parameters"
+  links="$(oos_call get "${names[@]}" 2>&1)" || fail "cannot read the link parameters: $links"
+  stage="link-mismatch"
+  mismatched="$(printf '%s\n' "$links" | python3 -I -c "$LINKS_PY" "$ASSET_HOSTS" "${names[@]}" "${hashes[@]}" "${assets[@]}" 2>&1)" || rc=$?
+  # Not a replay but a write race between two runs: nothing is recorded, so the same request is taken up once the parameters agree
+  [ "$rc" -ne 3 ] || fail "link parameters $mismatched do not match the request's asset_url_sha256 (written by different deploy runs); rewrite them and resend"
+  stage="invalid-link"
+  [ "$rc" -eq 0 ] || fail "$mismatched"
+
+  # Split in memory: a here-string could be backed by a temporary file, and these lines hold the signed links
+  asset_names=("${assets[@]}") asset_links=()
+  for i in 0 1 2 3; do
+    asset_links+=("${links%%$'\n'*}")
+    links="${links#*$'\n'}"
+  done
+  log "install request $request_id: v$version for $target_env"
 }
 
-cmd_install_pending() {
-  local target_env pinned_expected profile running new first_install=false version run_id run_attempt commit staged
+cmd_pull() {
+  [ "$#" -eq 0 ] || fail "pull takes no arguments; the request is read from OOS (RELEASE.md §3)"
+  local target_env pinned_expected profile running new first_install=false version commit staged
+  request_id="" alert_key="" nothing_new="" pulling=1
+  exec 9>"$LOCK"
+  # Another pull or an operator's rollback is running: this round has nothing to do
+  flock -n 9 || exit 0
+  stage=configuration
+  prepare_state
   read_release_source
   profile="$(env_value SPRING_PROFILES_ACTIVE)"
   [ "$profile" = "$target_env" ] || fail "$RELEASE_SOURCE says '$target_env', but one.env SPRING_PROFILES_ACTIVE is '$profile'"
@@ -675,12 +757,28 @@ cmd_install_pending() {
   [[ ! -e "$current_link" || -L "$current_link" ]] \
     || fail "$current_link is a directory, not the release link; move pinned files to $PINNED and remove it first (C-4 E-10)"
   assert_root_owned "$BASE" "$releases"
-  lock
-  accept_request "$@"
+  read_request
+  [ -z "$nothing_new" ] || exit 0
+
+  stage="replay-record"
+  # Taken up before anything is installed, so a crash half-way is never replayed by the same request; without that record, no install
+  record_request "$request_id" started "v$version" \
+    || fail "could not record request $request_id as started in $PROCESSED; not installing without replay protection"
+  request_in_progress="$request_id"
+  write_result started
+
+  stage="version-rejected"
+  [[ "$target_env" != prod || "$version" != *-* ]] || fail "prod takes released versions only, not the pre-release $version"
+  running="$(linked_version "$current_link")"
+  if [ -n "$running" ] && version_lower "$version" "$running"; then
+    fail "$version is lower than the running $running; going back is an explicit operator rollback (forcitis-one-release rollback), never a deployment"
+  fi
+  stage=configuration
   if [ -n "$pinned_expected" ]; then
     [ -s "$PINNED/$pinned_expected" ] || fail "WECOM_VERIFY_FILE names $pinned_expected, missing in $PINNED; WeCom would drop the trusted domain (C-4 E-10)"
   fi
   place "$version" "$target_env"
+  stage=migration
   running="$(linked_version "$current_link")"
   [ -n "$running" ] || first_install=true
   if [ -n "$running" ] && [ "$running" != "$version" ]; then
@@ -696,9 +794,11 @@ cmd_install_pending() {
     log "no new migrations; the run still validates the applied ones against this release"
   fi
   migrate "$version" "$first_install"
+  stage=activation
   activate "$version"
-  record_request "$run_id:$run_attempt" succeeded "v$version $commit" || log "could not record request $run_id:$run_attempt as succeeded"
+  record_request "$request_id" succeeded "v$version $commit" || log "could not record request $request_id as succeeded"
   request_in_progress=""
+  write_result succeeded
   prune
 }
 
@@ -724,17 +824,18 @@ cmd_status() {
   find "$releases" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '  %f\n' | sort
   [ ! -f "$releases/HISTORY" ] || { echo "recent history:"; tail -5 "$releases/HISTORY"; }
   [ ! -f "$PROCESSED" ] || { echo "recent install requests:"; tail -5 "$PROCESSED"; }
+  [ ! -f "$ALERTS" ] || { echo "recent alerts:"; tail -5 "$ALERTS"; }
 }
 
 main() {
-  [ "$(id -u)" -eq 0 ] || fail "run as root (the Cloud Assistant command runs as root)"
+  [ "$(id -u)" -eq 0 ] || fail "run as root (forcitis-one-release-pull.service runs as root)"
   local command="${1:-}"
   shift || true
   case "$command" in
-    install-pending) cmd_install_pending "$@" ;;
+    pull) cmd_pull "$@" ;;
     rollback) cmd_rollback "$@" ;;
     status) [ "$#" -eq 0 ] || fail "status takes no arguments"; cmd_status ;;
-    *) fail "usage: install-pending | rollback [<version>] | status" ;;
+    *) fail "usage: pull | rollback [<version>] | status" ;;
   esac
 }
 

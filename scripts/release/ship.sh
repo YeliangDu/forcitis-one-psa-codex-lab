@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 # Deploy job, after the release was verified: resolves the four release assets of v<version> to GitHub's short-lived signed download
 # links, takes temporary Aliyun credentials for this job through GitHub OIDC (STS AssumeRoleWithOIDC), writes the install request into
-# this environment's fixed OOS parameters, invokes the fixed, parameterless Cloud Assistant command, and waits for the installer's result.
+# this environment's fixed OOS parameters and waits for the ECS, which pulls them every minute, to report in the result parameter. This job
+# has no way to make the ECS execute anything.
 # Runbook: RELEASE.md §3, §8 among the Phase 1a infra runbooks.
 #
 #   scripts/release/ship.sh <dev|prod> <version>
 #
 # Inputs (environment): GH_TOKEN (the job's GITHUB_TOKEN, contents: read), GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT,
 # ACTIONS_ID_TOKEN_REQUEST_URL / _TOKEN (id-token: write), ALIYUN_CLI_VERSION (toolchain.sh), and the environment variables
-# ALIBABA_CLOUD_ROLE_ARN, ALIBABA_CLOUD_OIDC_PROVIDER_ARN, ECS_REGION, ECS_INSTANCE_ID, ECS_COMMAND_ID.
+# ALIBABA_CLOUD_ROLE_ARN, ALIBABA_CLOUD_OIDC_PROVIDER_ARN, ECS_REGION.
 set -euo pipefail
 umask 077
+# aliyun reads credentials from this process's environment only, never from a profile in the job's home
+export ALIBABA_CLOUD_IGNORE_PROFILE=TRUE
 # Workflow commands (::add-mask::) must reach the job log even from inside command substitutions
 exec 3>&1
 
@@ -23,16 +26,18 @@ need() {
   [ "${#missing[@]}" -eq 0 ] || fail "environment $env lacks ${missing[*]} (RELEASE.md §7)"
 }
 
-INVOCATION_TIMEOUT_SECONDS=2700
-POLL_SECONDS=10
+# Timer period (60) + forcitis-one-release-pull.service TimeoutStartSec (2700) + margin
+WAIT_SECONDS=2940
+POLL_SECONDS=15
 MAX_POLL_FAILURES=6
 # Same names, limit and hosts as the installer (remote_install.sh)
 REQUEST_PARAMETER_PREFIX=forcitis-one-deploy-request
+RESULT_PARAMETER_PREFIX=forcitis-one-deploy-result
 MAX_PARAMETER_CHARS=4096
 ASSET_HOSTS='objects.githubusercontent.com release-assets.githubusercontent.com'
 OIDC_AUDIENCE=sts.aliyuncs.com
 STS_ENDPOINT=https://sts.aliyuncs.com
-# Covers the invocation timeout and polling; AssumeRoleWithOIDC allows up to the role's maximum session duration (default 3600)
+# Covers the wait for the result; AssumeRoleWithOIDC allows up to the role's maximum session duration (default 3600)
 SESSION_SECONDS=3600
 
 case "$env" in dev|prod) ;; *) fail "environment must be dev or prod" ;; esac
@@ -40,7 +45,7 @@ case "$env" in dev|prod) ;; *) fail "environment must be dev or prod" ;; esac
 source "$(dirname "$0")/lib.sh"
 release_version_valid "$version" || fail "version '$version' is not MAJOR.MINOR.PATCH[-rc.N]"
 need GH_TOKEN GITHUB_REPOSITORY GITHUB_RUN_ID GITHUB_RUN_ATTEMPT ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_ID_TOKEN_REQUEST_TOKEN \
-  ALIYUN_CLI_VERSION ALIBABA_CLOUD_ROLE_ARN ALIBABA_CLOUD_OIDC_PROVIDER_ARN ECS_REGION ECS_INSTANCE_ID ECS_COMMAND_ID
+  ALIYUN_CLI_VERSION ALIBABA_CLOUD_ROLE_ARN ALIBABA_CLOUD_OIDC_PROVIDER_ARN ECS_REGION
 installed_cli="$(aliyun version 2>/dev/null || true)"
 [ "$installed_cli" = "$ALIYUN_CLI_VERSION" ] || fail "aliyun CLI $ALIYUN_CLI_VERSION required, found '${installed_cli:-none}'"
 
@@ -155,38 +160,42 @@ for i in 0 1 2 3; do
 done
 aliyun oos UpdateParameter --region "$ECS_REGION" --RegionId "$ECS_REGION" --Name "$parameter" --Value "$request" > /dev/null \
   || fail "could not write OOS parameter $parameter"
-echo "install request in OOS $parameter: $request"
+request_id="$GITHUB_RUN_ID:$GITHUB_RUN_ATTEMPT"
+echo "install request $request_id in OOS $parameter: $request"
 
-invoke_id="$(aliyun ecs InvokeCommand --region "$ECS_REGION" --RegionId "$ECS_REGION" --CommandId "$ECS_COMMAND_ID" \
-  --InstanceId.1 "$ECS_INSTANCE_ID" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["InvokeId"])')" \
-  || fail "InvokeCommand failed"
-echo "Cloud Assistant invocation $invoke_id of $ECS_COMMAND_ID"
-deadline=$((SECONDS + INVOCATION_TIMEOUT_SECONDS + 120))
+# The result parameter only reports what the ECS did; nothing here or anywhere else trusts it for a security decision. A result naming
+# another request_id means this request has not been taken up yet.
+echo "waiting for the ECS (forcitis-one-release-pull.timer) to take up request $request_id"
+deadline=$(($(date +%s) + WAIT_SECONDS))
 failures=0
+announced=""
+stale_hint="the ECS may still take up request $request_id later: check the pull timer's log on the ECS (journalctl -u forcitis-one-release-pull.service) and forcitis-one-release status; to withdraw the request, set $parameter back to {}"
 while :; do
-  if result="$(aliyun ecs DescribeInvocationResults --region "$ECS_REGION" --RegionId "$ECS_REGION" --InvokeId "$invoke_id" \
-       --InstanceId "$ECS_INSTANCE_ID")" \
-     && status="$(printf '%s' "$result" | python3 -I -c '
+  if answer="$(aliyun oos GetParameter --region "$ECS_REGION" --RegionId "$ECS_REGION" --Name "$RESULT_PARAMETER_PREFIX-$env")" \
+     && state="$(printf '%s' "$answer" | python3 -I -c '
 import json, sys
-r = json.load(sys.stdin)["Invocation"]["InvocationResults"]["InvocationResult"]
-print(r[0]["InvocationStatus"] if r else "Pending")')"; then
+try:
+    result = json.loads(json.load(sys.stdin)["Parameter"]["Value"])
+except (ValueError, KeyError, TypeError):
+    result = None
+if not isinstance(result, dict) or not all(isinstance(result.get(k), str) for k in ("request_id", "status")):
+    print("none - -")
+else:
+    print(result["request_id"], result["status"], result.get("reason") or "-")')"; then
     failures=0
-    case "$status" in
-      Success|Failed|Error|Timeout|Cancelled|Terminated|Invalid|Aborted|Stopped) break ;;
-    esac
+    read -r seen status reason <<< "$state"
+    if [ "$seen" = "$request_id" ]; then
+      case "$status" in
+        succeeded) echo "request $request_id: succeeded on the ECS"; exit 0 ;;
+        failed) fail "request $request_id: the ECS reports failed ($reason); details in the pull timer's log on the ECS (journalctl -u forcitis-one-release-pull.service)" ;;
+        started) [ -n "$announced" ] || { echo "request $request_id: the ECS started installing"; announced=yes; } ;;
+      esac
+    fi
   else
     failures=$((failures + 1))
-    echo "ship.sh: DescribeInvocationResults for $invoke_id failed ($failures of $MAX_POLL_FAILURES in a row)" >&2
-    [ "$failures" -lt "$MAX_POLL_FAILURES" ] \
-      || fail "cannot read the result of invocation $invoke_id; the installation may still be running: check it in the Cloud Assistant console and with forcitis-one-release status"
-    status=unknown
+    echo "ship.sh: reading $RESULT_PARAMETER_PREFIX-$env failed ($failures of $MAX_POLL_FAILURES in a row)" >&2
+    [ "$failures" -lt "$MAX_POLL_FAILURES" ] || fail "cannot read the result of request $request_id; $stale_hint"
   fi
-  [ "$SECONDS" -lt "$deadline" ] || fail "invocation $invoke_id still $status after the timeout"
+  [ "$(date +%s)" -lt "$deadline" ] || fail "no result for request $request_id after ${WAIT_SECONDS}s; $stale_hint"
   sleep "$POLL_SECONDS"
 done
-printf '%s' "$result" | python3 -I -c '
-import base64, json, sys
-r = json.load(sys.stdin)["Invocation"]["InvocationResults"]["InvocationResult"][0]
-print(base64.b64decode(r.get("Output") or "").decode("utf-8", "replace"))
-print("invocation status %s, exit code %s, error %s" % (r.get("InvocationStatus"), r.get("ExitCode"), r.get("ErrorCode") or "-"))
-sys.exit(0 if r.get("InvocationStatus") == "Success" and r.get("ExitCode") == 0 else 1)'

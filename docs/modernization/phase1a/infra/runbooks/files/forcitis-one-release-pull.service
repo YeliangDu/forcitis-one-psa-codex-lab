@@ -1,0 +1,11 @@
+# /etc/systemd/system/forcitis-one-release-pull.service（RELEASE.md R-7）
+[Unit]
+Description=FORCITIS one release pull: install this environment's new request from OOS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/forcitis-one-release pull
+# Download, migration and health check together stay below this; ship.sh waits a little longer than timer period plus this
+TimeoutStartSec=2700

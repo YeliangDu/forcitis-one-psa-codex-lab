@@ -33,6 +33,7 @@ check "E-5 nginx 可穿过发布目录"            "getfacl -p /data/forcitis-on
 check "E-5 发布签名公钥 root 0644 且非空" "[[ -s /etc/forcitis-one/release-signers && \$(stat -c '%U %a' /etc/forcitis-one/release-signers) == 'root 644' ]]"
 check "E-5 发布来源配置 root 0644，环境与 one.env 一致" release_source_ok
 check "E-5 安装器 root 0755"                "[[ \$(stat -c '%U %a' /usr/local/sbin/forcitis-one-release) == 'root 755' ]]"
+check "R-7 发布拉取定时器启用"             "systemctl is-enabled --quiet forcitis-one-release-pull.timer && systemctl is-active --quiet forcitis-one-release-pull.timer"
 check "E-5 迁移凭据目录 root 700"           "[[ \$(stat -c '%U %a' /etc/forcitis-one/migrate) == 'root 700' ]]"
 check "E-5 /etc/forcitis-one 属 root:forcitis、750" "[[ \$(stat -c '%U:%G %a' /etc/forcitis-one) == 'root:forcitis 750' ]]"
 check "E-5 one.env 为 0640 root:forcitis"   "[[ \$(stat -c '%U:%G %a' /etc/forcitis-one/one.env) == 'root:forcitis 640' ]]"
