@@ -13,7 +13,7 @@
 
 ## 0. 对草案的更正
 
-`NEXT_BATCH_DRAFT.md`、`DEFERRED.md` 与 `application.properties` 目前只在 #72 分支上。one-coordinator 定：#72 合并后，由本会话开小 PR 按本表更正；`application.properties` 的残留由 R-3a 处理。
+#72 已合并（main `3485e880`）。草案与 DEFERRED 已按本表更正（one-1a-next 更正 PR）；`application.properties` 的残留由 R-3a 处理（即 INT-L24）。草案与本计划不一致处以本计划与 one-coordinator 的答复为准。
 
 | 草案原文 | 实际（`27ac707`） | 处理 |
 |---|---|---|
@@ -36,7 +36,7 @@
 - R-3（基线收口）；
 - F-2 守护；
 - F-3：一次构建、多环境部署，dev 首次部署就要用；
-- 本批缺陷卡中涉及安全的几张；
+- 本批缺陷卡中涉及安全的几张（含 INT-M4 浏览器标识重放、INT-M5 重新启用敏感角色或账号需第二人、INT-L30 幂等重放前复核授权）；
 - F-12：ADR-0030 非生产环境单人运维例外，须经用户批准后实现。否则 dev 上单人无法完成 C-5、编号确认等两人确认操作。
 
 ```
@@ -128,6 +128,8 @@
 | F-5 审批契约 | sonnet | approval 按条目需要 | 按条目需要 | 按条目需要 | `platform.approval` | K-3。逐条核对范围：D-1a-181 契约原文写「1b 交付」，不做；D-1a-67 与 D-1a-128 的知会部分「随第一个用到知会的流程交付」（RULE-299 已推迟），1a 的 TIMESHEET 流程如果没有知会节点就不做。其余 D-1a-76、91、130、131 核对后实现 |
 | F-6 HELD 按角色通知 | sonnet | — | — | 消费同步暂停与每日汇总 | workforce 通知部分、integration 企业微信发送（按角色取人） | W1；企业微信应用（B-2）就绪前用测试替身验收 |
 | F-10 利润中心标识 | sonnet | workforce 新增利润中心标识版本表（只追加，带生效区间）；`COLUMN_OWNERSHIP` 与注册表登记为新系统所有 | 利润中心标识维护（组织数据管理员） | 标识指定 / 结束；失效提醒待办 | `organization.workforce` 中利润中心部分；组织同步不得覆盖（守护） | K-2 |
+| F-13 复职重授 employee（INT-M12，应交付未做） | sonnet | — | — | 复用账号授予事件 | `platform.identity` 的 `AccountProvisioning` 与 `HandleOrgSnapshotChange` 复职路径；D-1a-17：只重授基础角色，其余由管理员重新分配；写审计 | W1；W3 首批 |
+| F-14 离职者在途待办重新取人（INT-M13，应交付未做） | sonnet 执行，opus 复审 | approval 按需要 | — | 消费离职事件 | `platform.approval` 新增离职监听：D-1a-18 / 108 / 168，重新取人，取不到转流程管理员并告警、审计 | W1；W3 首批 |
 | F-9 ADR-0029 | opus 起草，`architecture-critic` opus 评审 | — | — | — | `adr/src/ADR-0029.md`（提议） | 无；**批准前不实现** |
 | F-11 业务单据锁定、红冲、修正 | opus 起草，`architecture-critic` opus 评审 | — | — | — | `adr/src/ADR-0031.md`（提议），与 ADR-0016:23、ADR-0022:32、CC-N05 衔接 | 无；1a 只定设计，Phase 2 实现 |
 | F-12 非生产环境单人运维例外 ★ | opus 起草，`architecture-critic` opus 评审；批准后由 sonnet 实现、opus 复审 | 不新增表；审计记录标注 single-operator | — | — | `adr/src/ADR-0030.md`（提议）。批准后实现：只在非生产 profile 下由显式配置（暂名 `forcitis.security.single-operator-dev`，以 terms.yaml 为准）开启。开启后：①两人确认可由一人完成，照常写审计；②超管与应急账号下限降为 1；③同步锁死阈值相应调整。**生产 profile 下该配置存在即启动失败**：`ProductionConfigSanityTest` 加守护，部署流水线对 prod 再校验一次。生产部署前清单（PREDEPLOY_CHECKLIST）加一项：关闭单人例外，启用第二名超管与第二个应急账号。 | 用户 2026-10-15「dev 白名单把我也加上……这些安全措施等到生产部署前再真正落实」（one-ops 已记 intent）。该例外放宽的规则散见于已采纳的 ADR-0026 / 0027 / 0028（敏感权限两人确认、编号四眼确认、至少 2 名超管与 2 个应急账号、同步锁死在可用超管少于 2 时 HELD、放行人不得在离职名单中），按 §12.1 须新 ADR 取代对应条款的适用范围。实现时会碰到 F-1（敏感权限授予）与 B1 已交付的确认流程，所以排在 F-1 合并之后，并以同一个配置开关接入 |
@@ -147,6 +149,13 @@ F-1、F-6、F-10 都会在 `organization.workforce` 中写代码，所以按包�
 2. 余下条目写成卡：复审编号、复现步骤、预计改动的文件。
 3. 测试代理先写失败测试，再由 sonnet 修复。
 4. 一张或几张相关卡开一个小 PR。Medium / Low 补上测试、CI 通过即关闭（§6.1 第 4 条），one-1a-next 抽查。
+
+#72 整合复审 `phase1a/review/REVIEW_integration.md` §7 另列 INT-M1..M16、INT-L6..L32，归类如下（与上文各路复审的卡合并出卡，同一文件的卡并为一个小 PR）：
+- 转功能补做：INT-M12 → F-13，INT-M13 → F-14（前任建议优先，排 W3 首批）。
+- 并入结构性重构：INT-M9、INT-L12（Flowable `StrongUuidGenerator`）、INT-M10 与 INT-L18（裸 long 改类型化 ID）→ R-1；INT-L23 → R-4；INT-L24 → R-3a。
+- 并入功能补做：INT-M16、INT-L6、INT-L19、INT-L22、INT-L26 → F-2；INT-L29（系统角色豁免）→ F-1；INT-L15（敏感清单集合相等）→ ADR-0032 及其实现。
+- 文档项交 one-coordinator：INT-L16（§14 已登记例外）、INT-L32（DEFERRED / CROSSCHECK 过期条目）。
+- 其余（INT-M1..M8、M11、M14、M15，INT-L9..L11、L13、L14、L17、L20、L21、L25、L27、L28、L30、L31）为缺陷卡；INT-L10 需 one-coordinator 先核对契约（D-1a-78 与 D-1a-89）。
 
 首次部署前要先修的几张：
 - 安全相关：B3-R3 幂等抢占与防护令牌、B3-R4 吊销会话审计、B3-R5 必记动作守护、B3-R2 仓储写入守护堵口；
