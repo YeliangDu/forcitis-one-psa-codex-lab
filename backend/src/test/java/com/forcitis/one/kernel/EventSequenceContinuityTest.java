@@ -102,7 +102,7 @@ class EventSequenceContinuityTest {
     void syncRun() {
         RunStats stats = new RunStats(1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0);
         checkMany(() -> SyncRun.restore(new SyncRunId(1), SyncTrigger.SCHEDULED, "RUNNING", NOW, null, null, null, null, null, null, null, 0, 0),
-                List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of())), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
+                List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of()), LocalDate.of(2026, 10, 13)), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
                         r -> r.release(null, new SyncRunId(2), NOW)));
     }
 
@@ -118,8 +118,9 @@ class EventSequenceContinuityTest {
     @DisplayName("NumberingRule: events are numbered 1..n")
     void numberingRule() {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);
-        checkMany(() -> NumberingRule.restore(DocumentType.QUOTE, pattern, 1, "PENDING_CONFIRMATION", 0, 0), List.of(
-                NumberingRule::confirm, r -> r.reconfigure(pattern, 5), r -> r.reconfigure(pattern, 0)));
+        checkMany(() -> NumberingRule.restore(DocumentType.QUOTE, pattern, 1, "PENDING_CONFIRMATION", 1, null, 0, 0), List.of(
+                r -> r.confirm(LocalDate.of(2026, 10, 14)), r -> r.reconfigure(pattern, 5, LocalDate.of(2026, 10, 15)),
+                r -> r.reconfigure(pattern, 0, LocalDate.of(2026, 10, 16))));
     }
 
     @Test

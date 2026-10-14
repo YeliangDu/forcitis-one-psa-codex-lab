@@ -23,11 +23,19 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.numbering.api.FindDocumentByLegacyNumber;
 import com.forcitis.one.platform.numbering.api.FindLegacyNumbersOfDocument;
 import com.forcitis.one.platform.numbering.api.RegisterLegacyNumbers;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -47,7 +55,17 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
 @Testcontainers
+@Import(NumberingRulesIT.FixedClock.class)
 class NumberingRulesIT {
+    @TestConfiguration
+    static class FixedClock {
+        @Bean
+        @Primary
+        Clock fixedClock() {
+            return Clock.fixed(Instant.parse("2026-10-14T04:00:00Z"), ZoneOffset.UTC);
+        }
+    }
+
     @MockitoBean
     OrgDirectory orgDirectory;
 
@@ -216,19 +234,44 @@ class NumberingRulesIT {
             mvc.perform(get(RULES + "/QUOTE").with(READER))
                     .andExpect(jsonPath("$.confirmationStatus").value("CONFIRMED"))
                     .andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"));
+            assertThat(quoteRuleVersionAndEffectiveDay()).isEqualTo("1/" + today());
+
+            mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
+                    .andExpect(status().isNoContent());
+            assertThat(quoteRuleVersionAndEffectiveDay()).as("replacing a confirmed template starts the next version").isEqualTo("2/" + today());
+            long versionAfterSecondSave = jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'")
+                    .query(Long.class).single();
+
+            mvc.perform(put(RULES + "/QUOTE").with(csrf()).with(UPDATER).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1}"))
+                    .andExpect(status().isNoContent());
+            assertThat(quoteRuleVersionAndEffectiveDay()).as("saving the same template again changes nothing").isEqualTo("2/" + today());
+            assertThat(jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'").query(Long.class).single())
+                    .as("and does not even touch the row").isEqualTo(versionAfterSecondSave);
         } finally {
             // put the shared fixture back to the seeded default so other tests keep seeing the pending template
             jdbc.sql("update platform_numbering.numbering_rules set pattern = '{TYPE}-{LE}-{yyyyMM}-{seq:4}',"
-                    + " confirmation_status = 'PENDING_CONFIRMATION' where document_type = 'QUOTE'").update();
+                    + " confirmation_status = 'PENDING_CONFIRMATION', rule_version_number = 1, effective_from_date = null"
+                    + " where document_type = 'QUOTE'").update();
         }
+    }
+
+    private String quoteRuleVersionAndEffectiveDay() {
+        return jdbc.sql("select rule_version_number || '/' || effective_from_date from platform_numbering.numbering_rules where document_type = 'QUOTE'")
+                .query(String.class).single();
+    }
+
+    private static LocalDate today() {
+        return LocalDate.of(2026, 10, 14);
     }
 
     @Test
     @DisplayName("C1a-16 an original number finds the new document, and the new document finds its original numbers")
     void legacyNumbersAreSearchableBothWays() throws Exception {
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001", LE1, "synthetic-batch-1"));
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001-R2", LE1, "synthetic-batch-1"));
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("502")), "SYN-QU-0002", new LegalEntityId(2), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001", Optional.of(LE1), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("501")), "SYN-QU-0001-R2", Optional.of(LE1), "synthetic-batch-1"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("502")), "SYN-QU-0002", Optional.of(new LegalEntityId(2)), "synthetic-batch-1"));
 
         mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-0001").with(LEGACY_READER))
                 .andExpect(status().isOk())
@@ -258,17 +301,35 @@ class NumberingRulesIT {
     }
 
     @Test
+    @DisplayName("D-1a-152 an original number whose legal entity could not be worked out is stored without one and stays searchable")
+    void legacyNumberWithoutLegalEntityIsStoredAndFound() throws Exception {
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("601")), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("601")), "SYN-QU-NOLE", Optional.empty(), "synthetic-batch-5"));
+
+        assertThat(jdbc.sql("select count(*) from platform_numbering.legacy_numbers where legacy_number = 'SYN-QU-NOLE' and legal_entity_id is null")
+                .query(Integer.class).single()).isEqualTo(1);
+        assertThat(findDocument.find(DocumentType.QUOTE, "SYN-QU-NOLE")).hasValueSatisfying(e -> assertThat(e.legalEntity()).isEmpty());
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("legacyNumber", "SYN-QU-NOLE").with(LEGACY_READER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.documentId").value("601"))
+                .andExpect(jsonPath("$.legalEntityId").doesNotExist());
+        mvc.perform(get(LEGACY).param("documentType", "QUOTE").param("documentId", "601").with(LEGACY_READER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].legacyNumber").value("SYN-QU-NOLE"));
+    }
+
+    @Test
     @DisplayName("(document type, original number) is unique: re-running an import is a no-op, a second owner is refused")
     void legacyNumberIsUniquePerDocumentType() {
-        LegacyNumberEntry first = new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("11")), "SYN-TS-1", LE1, "synthetic-batch-2");
+        LegacyNumberEntry first = new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("11")), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-2");
         register.register(first);
         register.register(first);
 
         assertThat(jdbc.sql("select count(*) from platform_numbering.legacy_numbers where legacy_number = 'SYN-TS-1'")
                 .query(Integer.class).single()).isEqualTo(1);
-        assertThatThrownBy(() -> register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("12")), "SYN-TS-1", LE1, "synthetic-batch-3")))
+        assertThatThrownBy(() -> register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.TIMESHEET, new DocumentId("12")), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-3")))
                 .isInstanceOf(IllegalStateException.class);
-        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.JOURNAL_VOUCHER, new DocumentId("12")), "SYN-TS-1", LE1, "synthetic-batch-3"));
+        register.register(new LegacyNumberEntry(new DocumentReference(DocumentType.JOURNAL_VOUCHER, new DocumentId("12")), "SYN-TS-1", Optional.of(LE1), "synthetic-batch-3"));
         assertThat(findDocument.find(DocumentType.JOURNAL_VOUCHER, "SYN-TS-1")).isPresent();
     }
 
@@ -283,9 +344,9 @@ class NumberingRulesIT {
 
     @Test
     void entriesValidateThemselves() {
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), " ", LE1, "b")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("0")), "X", LE1, "b")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "X", LE1, "")).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "x".repeat(129), LE1, "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), " ", Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("0")), "X", Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "X", Optional.of(LE1), "")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, new DocumentId("1")), "x".repeat(129), Optional.of(LE1), "b")).isInstanceOf(IllegalArgumentException.class);
     }
 }

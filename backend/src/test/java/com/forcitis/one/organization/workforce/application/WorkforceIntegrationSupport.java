@@ -75,6 +75,7 @@ public abstract class WorkforceIntegrationSupport {
         clock.reset();
         orgSource.unavailable = false;
         orgSource.failure = null;
+        orgSource.afterRead = () -> { };
         orgSource.singleLookupResult = java.util.List.of();
         orgSource.singleLookups.set(0);
         oldSystem.unavailable = false;

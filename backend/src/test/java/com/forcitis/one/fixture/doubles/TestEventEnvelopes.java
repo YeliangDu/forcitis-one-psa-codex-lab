@@ -11,7 +11,8 @@ import java.util.UUID;
 public class TestEventEnvelopes implements EventEnvelopes {
 
     @Override
-    public EventEnvelope wrap(EventDraft draft) {
+    public EventEnvelope wrap(EventDraft unchecked) {
+        EventDraft draft = CatalogueBusinessDates.check(unchecked);
         return new EventEnvelope(UUID.randomUUID(), draft.eventType(), draft.schemaVersion(), Instant.now(), draft.aggregateType(),
                 draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null, ActorType.USER, "test", draft.legalEntityId(),
                 draft.businessDate(), draft.source(), null, draft.relatedAggregates());

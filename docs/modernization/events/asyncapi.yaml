@@ -1996,7 +1996,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 无：一次保存可涉及多个日期，取不出唯一的业务日期，被修改的日期在负载 changedDates
         audit: audited
         publisherTest: com.forcitis.one.organization.attendance.domain.WorkCalendarYearTest
         noConsumer: 暂无消费方：审批超时提醒将在日历变更后重算截止时间（approval 依赖 attendance）；现在就发布，是因为日历变更之后已算出的截止时间需要有据可查
@@ -2005,6 +2005,7 @@ components:
         required:
         - envelope
         - calendarYear
+        - changedDates
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -2012,6 +2013,12 @@ components:
             type: integer
             x-type: Year
             description: 日历年份
+          changedDates:
+            type: array
+            items:
+              type: string
+              x-type: LocalDate
+            description: 本次保存新增、删除或改变类型的日期，按日期升序；原样重存时为空
     RoleCreated:
       name: RoleCreated
       title: 角色新增
@@ -2308,7 +2315,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 模板的生效日（effectiveFrom），同在负载
         audit: audited
         publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
         noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
@@ -2317,6 +2324,8 @@ components:
         required:
         - envelope
         - documentType
+        - ruleVersion
+        - effectiveFrom
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -2327,6 +2336,17 @@ components:
             - TIMESHEET
             - JOURNAL_VOUCHER
             x-type: DocumentType
+          ruleVersion: &id002
+            type: object
+            properties:
+              value:
+                type: integer
+                format: int64
+            description: 生效模板的版本号，从 1 起，已确认的模板被替换时加 1
+          effectiveFrom: &id003
+            type: string
+            x-type: LocalDate
+            description: 该模板的生效日（含）
     NumberingRuleReconfigured:
       name: NumberingRuleReconfigured
       title: 编号规则的模板或起始值被修改
@@ -2341,7 +2361,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 模板的生效日（effectiveFrom），同在负载
         audit: audited
         publisherTest: com.forcitis.one.platform.numbering.domain.NumberingRuleStateMachineTest
         noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
@@ -2350,10 +2370,14 @@ components:
         required:
         - envelope
         - documentType
+        - ruleVersion
+        - effectiveFrom
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
           documentType: *id001
+          ruleVersion: *id002
+          effectiveFrom: *id003
     TimesheetSubmitted:
       name: TimesheetSubmitted
       title: 工时单提交审批（进入新一轮）
@@ -2869,7 +2893,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 快照截止日：同步运行开始当天（Asia/Shanghai），即读取组织源快照的业务日；effectiveFrom 在负载
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
       payload:
@@ -2879,6 +2903,7 @@ components:
         - changedEmployees
         - separatedEmployees
         - changedOrgUnits
+        - effectiveFrom
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -2897,6 +2922,10 @@ components:
             items:
               type: string
               x-type: OrgUnitId
+          effectiveFrom:
+            type: string
+            x-type: LocalDate
+            description: 变化从哪一天起生效（含）；组织源不给变更日期，取快照截止日
     LegalEntityRegistered:
       name: LegalEntityRegistered
       title: 法人新增

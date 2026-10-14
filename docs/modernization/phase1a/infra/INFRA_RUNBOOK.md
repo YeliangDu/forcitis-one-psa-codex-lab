@@ -55,14 +55,33 @@
 | E-7 | 应用端口 | 应用只监听 `127.0.0.1:8080`；管理端点另设 `127.0.0.1:8081`，只开放 health 和 prometheus。代码默认未设监听地址与管理端口、只暴露 health，须在 one.env 设 `SERVER_ADDRESS`、`MANAGEMENT_SERVER_ADDRESS`、`MANAGEMENT_SERVER_PORT`、`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,prometheus`（`runbooks/files/one.env.template`） | 外网扫描只看到 80/443 |
 | E-8 | 反向代理 | nginx（发行版包）：80 端口 301 跳转到 443；443 用 TLS 1.2/1.3；`proxy_pass http://127.0.0.1:8080`；**覆盖** `X-Forwarded-For` 和 `X-Forwarded-Proto`（应用的 `FORCITIS_TRUSTED_PROXIES` 只信任 127.0.0.1）；开启 HSTS；`client_max_body_size` 20m；不转发 `/actuator`、`/v3/api-docs`；**访问日志不记查询串**（`/login/wecom?code=&state=`、`/login/sso?ticket=` 的一次性凭证，D-1a-39），并加 `Referrer-Policy: no-referrer`（`runbooks/files/nginx-one.conf`） | SSL Labs A；`curl -I` |
 | E-9 | 证书 | `one.forcitis.com` 证书放在 `/etc/nginx/tls/`，权限 600；如用 ACME，配置自动续期 | 到期日监控 |
-| E-10 | 前端静态资源 | PC 端 `dist` 放到 `/data/forcitis-one/current/web`，由 nginx 直接提供；H5 同理放到 `/h5`（**待定**：H5 构建的 `publicPath` 目前是 `/`，放在 `/h5` 下资源路径会错，见 `CROSSCHECK.md` 第 4 条与 `DECISIONS_A.md` N-1） | |
+| E-10 | 前端静态资源 | PC 端 `dist` 放到 `/data/forcitis-one/current/web`，由 nginx 直接提供；H5 同理放到 `/h5`（构建期 `H5_PUBLIC_PATH` 默认 `/h5/`，用户决定 N-1，构建检查断言资源路径带子路径） | |
 | E-11 | 日志接 SLS | 安装 Logtail；采集 `/data/forcitis-one/logs/*.json`（应用输出结构化 JSON）和 nginx access / error 日志；Project 与门户分开或按 Logstore 区分 | SLS 能检索到日志 |
 | E-12 | 指标接 ARMS | 方案 A：ARMS Prometheus 抓取 `127.0.0.1:8081/actuator/prometheus`。方案 B：ARMS Java 探针，需先核实对 Java 25 的支持，不支持就用方案 A | ARMS 看板有数据 |
-| E-13 | 四类告警 | 在 ARMS / SLS 中配置以下四类，并在 dev 上用故障注入演练（出口条件）：<br>• 组织同步延迟：`organization.workforce.sync.*` 指标，或缩水保护中止<br>• 未完成事件发布：event_publication 中超过 10 分钟仍未完成，或出站投递进入死信<br>• 作业失败：定时任务观测指标，或 Flowable 死信任务数（**代码中暂无 Flowable 死信任务数指标**）<br>• 登录失败率：5 分钟内失败率超过 20 % 且失败数 ≥ 20 | 演练记录 |
+| E-13 | 四类告警 | 在 ARMS / SLS 中配置以下四类，并在 dev 上用故障注入演练（出口条件）：<br>• 组织同步延迟：`organization.workforce.sync.*` 指标，或缩水保护中止<br>• 未完成事件发布：event_publication 中超过 10 分钟仍未完成，或出站投递进入死信<br>• 作业失败：`forcitis_platform_scheduling_job_failures_total{job}` 与 `forcitis_platform_approval_dead_letter_jobs`，规则见下方「E-13 补充」<br>• 登录失败率：5 分钟内失败率超过 20 % 且失败数 ≥ 20 | 演练记录 |
 | E-14 | 出站网络 | 安全组出方向放行：RDS 5432（同 VPC）、`qyapi.weixin.qq.com:443`、致远 OA 验票地址、A8 SQL Server、老系统 SQL Server（经白名单）；其余出站按需收紧 | |
 | E-15 | 企业微信 | 在企业微信后台为新应用配置：可信域名 `one.forcitis.com`、扫码登录回调域、企业可信 IP 47.114.56.157；工作台**新增**「FORCITIS one」入口，**不替换**老 H5（切换手册 §3.11） | 登录冒烟 |
 | E-16 | 致远 | 由 A8 管理员登记新系统的验票回跳地址，**不替换**老 SSO | 登录冒烟 |
 | E-17 | 备份 | RDS 自动备份保留 ≥7 天；ECS 数据盘设快照策略；日志在 SLS 中保留 30 天 | |
+
+**E-13 补充：作业失败告警（部署前清单 C-7）**
+
+Prometheus 里的名字是 Micrometer 名字把点换成下划线、计数器加 `_total`。
+
+| 指标 | 含义 | 规则 |
+|---|---|---|
+| `forcitis_platform_scheduling_job_failures_total{job}` | 带 `@SchedulerLock` 的定时作业抛出异常的次数，`job` 为锁名；启动时每个作业从 0 起，第一次失败就能看到增量。另一节点持锁而被跳过的运行不抛异常，不计数 | `increase(…[10m]) > 0` 按 `job` 分组告警 |
+| `forcitis_platform_approval_dead_letter_jobs` | 流程引擎用尽重试、进入死信表的作业数，需要运维处理 | `> 0` 告警 |
+
+**读不到时是 NaN，不是 0。** 死信指标查询引擎失败时返回 NaN（日志里有一条限频的警告），NaN 与任何数比较都为假，`> 0` 永远不会触发，所以必须再配一条缺数据规则：`forcitis_platform_approval_dead_letter_jobs != forcitis_platform_approval_dead_letter_jobs`（NaN 的特征），或 `absent(forcitis_platform_approval_dead_letter_jobs)`，持续 5 分钟告警。出站投递死信、事件发布积压的指标（`forcitis_platform_integration_deliveries_dead_letters`、`…_pending_overdue`）同理加这两条。
+
+**模块内部吞掉的失败，由各模块自己的指标覆盖。** 下面这些作业自己捕获了异常（只记日志、不抛出），上面的作业失败计数看不到，必须单独告警：
+
+| 作业 | 指标 | 规则 |
+|---|---|---|
+| `SyncOrgSnapshot`（组织同步，失败写成 FAILED 记录，不抛出） | `forcitis_organization_workforce_sync_runs_total{status="FAILED"}` 与 `{status="HELD"}`；另有 `forcitis_organization_workforce_sync_lag_seconds`、`forcitis_organization_workforce_sync_held_runs` | `increase(…{status="FAILED"}[30m]) > 0`；`held_runs > 0` |
+| `EnforceDeadlines`（审批时限，单个任务失败只记日志） | `forcitis_platform_approval_deadline_failed_total`（第一次失败时才出现，用 `increase`，不要用 `absent` 判断它） | `increase(…[10m]) > 0` |
+| `RefreshShortNames`（部门简称刷新，老系统不可用时跳过） | `forcitis_organization_workforce_short_name_refresh_failures_total`（启动时为 0） | `increase(…[1d]) > 0` 仅提示，不升级为 P1：简称保持上一次的值 |
 
 ## 4. 外部只读账号（SQL Server，由对方 DBA 执行）
 

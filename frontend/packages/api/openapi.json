@@ -335,7 +335,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "documentId", "documentType", "importBatch", "legacyNumber", "legalEntityId" ],
+        "required" : [ "documentId", "documentType", "importBatch", "legacyNumber" ],
         "type" : "object"
       },
       "LegalEntityAttributionResponse" : {
