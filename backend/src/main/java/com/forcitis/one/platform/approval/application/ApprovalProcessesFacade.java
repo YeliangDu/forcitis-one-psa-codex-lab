@@ -6,7 +6,7 @@ import com.forcitis.one.platform.approval.api.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import org.springframework.stereotype.Component;
 
-/** The module api for business modules: delegates to the use cases; offers nothing that acts on a task (I-5, I-7). */
+/** Offers nothing that acts on a task (I-5, I-7). */
 @Component
 class ApprovalProcessesFacade implements ApprovalProcesses {
 

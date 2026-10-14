@@ -22,11 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Inbox, task details and the task actions. The caller is always CurrentUser (the session): no request carries an identity
- * (G33), and every action is checked against the task on the server (I-7). There is no start endpoint: approvals are started
- * only by the module that owns the document (I-5).
- */
+/** The caller is always the session user, no request carries an identity (G33); there is no start endpoint (I-5). */
 @RestController
 @RequestMapping("/api/{version}/platform/approval-tasks")
 class ApprovalTaskController {

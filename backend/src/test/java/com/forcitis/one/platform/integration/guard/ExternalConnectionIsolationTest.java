@@ -19,17 +19,7 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * §9a ArchUnit guard for the external connections:
- * <ul>
- *   <li>only {@code platform.integration.infrastructure.seeyon..} may connect to the Seeyon database or to the Seeyon portal;</li>
- *   <li>the old system's database may be read only by two approved read-only adapters: approval's old to-do view
- *       ({@code platform.approval.infrastructure.legacy..}) and the short-name view, which is read from
- *       {@code platform.integration.infrastructure.legacy..} (judgement: it is the same kind of anti-corruption read as the
- *       Seeyon one, so it lives in the module that owns external reads and workforce keeps no connection at all).</li>
- * </ul>
- * Nothing else may build a connection pool, name an SQL Server driver class, open an HTTP client or inject those connections.
- */
+/** Only integration.infrastructure.seeyon connects to Seeyon; the old database is read only by approval's and integration's legacy adapters; nothing else builds a pool, driver or HTTP client. */
 class ExternalConnectionIsolationTest {
 
     static final String ROOT = "com.forcitis.one";

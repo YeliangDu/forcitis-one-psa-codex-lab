@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ListLegalEntities {
-
     private final LegalEntityRepository legalEntities;
 
     ListLegalEntities(LegalEntityRepository legalEntities) {

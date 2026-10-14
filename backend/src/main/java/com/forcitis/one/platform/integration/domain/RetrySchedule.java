@@ -14,7 +14,6 @@ public final class RetrySchedule {
     private RetrySchedule() {
     }
 
-    /** Empty when the attempts are used up: the delivery goes to the dead letters. */
     public static Optional<Instant> afterFailure(int attemptsMade, Instant now) {
         if (attemptsMade >= MAX_ATTEMPTS) {
             return Optional.empty();

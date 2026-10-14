@@ -12,13 +12,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Writes the one person found by the login-miss lookup, audits it and announces the change in the same transaction.
- * The audit entry joins the transaction: if the audit cannot be written, the person is not created.
- */
+/** The audit entry joins the transaction: if it cannot be written, the person is not created. */
 @Service
 class PersistRegisteredEmployee {
-
     private final OrgSnapshotRepository snapshots;
     private final ObjectProvider<AuditLog> audit;
     private final ApplicationEventPublisher events;

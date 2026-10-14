@@ -6,11 +6,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Daily, read-only refresh of org unit short names from the old system. Present only when that read is enabled. */
 @Component
 @ConditionalOnProperty(prefix = "forcitis.organization.workforce.short-name", name = "enabled", havingValue = "true")
 class ShortNameRefreshJob {
-
     private final RefreshShortNames refresh;
 
     ShortNameRefreshJob(RefreshShortNames refresh) {

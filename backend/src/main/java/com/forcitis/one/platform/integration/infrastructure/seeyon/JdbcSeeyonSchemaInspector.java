@@ -8,7 +8,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** Reads the facts the startup check needs, through the read-only Seeyon connection. */
 final class JdbcSeeyonSchemaInspector implements SeeyonSchemaInspector {
 
     private final JdbcClient jdbc;

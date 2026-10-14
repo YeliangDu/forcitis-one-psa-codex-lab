@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** SECURITY_INVARIANTS I-6 (SEC-118): every WeCom request body addresses exact users and nothing broader. */
 class WecomMessagePayloadTest {
 
     static final JsonMapper JSON = JsonMapper.builder().build();

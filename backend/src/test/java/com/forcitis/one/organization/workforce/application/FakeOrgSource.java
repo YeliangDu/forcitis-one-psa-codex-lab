@@ -8,12 +8,9 @@ import com.forcitis.one.organization.workforce.domain.SourceUnavailableException
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** In-memory stand-in for the organisation source: no real the source is ever contacted in tests. */
 public class FakeOrgSource implements OrgSource {
-
     public volatile SourceSnapshot snapshot = new SourceSnapshot(List.of(), List.of(), List.of(), List.of());
     public volatile boolean unavailable;
-    /** When set, the next full read throws it (for example a broken tree reported by the adapter). */
     public volatile RuntimeException failure;
     public volatile List<SourceMember> singleLookupResult = List.of();
     public final AtomicInteger singleLookups = new AtomicInteger();

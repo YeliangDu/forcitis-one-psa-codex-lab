@@ -12,11 +12,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
-/**
- * Data-dictionary guard: every Flyway script must follow NAMING_STANDARD.md §2.3. Failures say exactly what to rename.
- */
 class DdlNamingTest {
-
     static final Path MIGRATIONS = Path.of("src/main/resources/db/migration");
     static final Pattern FILE = Pattern.compile("V\\d{14}__([a-z]+_[a-z]+)_[a-z0-9_]+\\.sql");
     static final Pattern CREATE_TABLE = Pattern.compile("CREATE TABLE\\s+([a-z0-9_]+)\\.([a-z0-9_]+)\\s*\\((.*?)\\n\\);", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);

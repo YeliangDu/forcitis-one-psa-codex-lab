@@ -10,11 +10,7 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-/**
- * The handlers that opted out of authentication with {@link PublicEndpoint}, read from the MVC mappings at start-up (method +
- * path pattern). The security chain permits exactly these; everything else is default-deny (C1a-07). The set must equal
- * architecture/public-endpoints.txt (checked by ApplicationIntegrationTest, I-3).
- */
+/** The set must equal architecture/public-endpoints.txt (checked by ApplicationIntegrationTest, I-3). */
 @Component
 class PublicEndpointRegistry {
 

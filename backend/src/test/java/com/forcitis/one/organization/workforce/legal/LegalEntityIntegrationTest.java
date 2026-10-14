@@ -32,9 +32,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-/** The legal entity table is maintained by administrators in the new system (user decision 2026-10-14) and never synchronised. */
 class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
-
     static final String LEGAL_ENTITIES = "/api/v1/organization/legal-entities";
     static final RequestPostProcessor MAINTAINER = user("9001").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
     static final RequestPostProcessor READER = user("9002").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);

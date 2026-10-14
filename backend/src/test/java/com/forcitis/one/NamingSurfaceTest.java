@@ -50,18 +50,12 @@ import org.w3c.dom.NodeList;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Unified naming beyond Java identifiers and DDL (G41, G43-G48; G42's OpenAPI / event-JSON half runs in
- * ApplicationIntegrationTest). Everything is derived from the Modulith module structure (module id = subdomain.bc)
- * and glossary/terms.yaml (via {@link Glossary}); there are no hand-written lists of allowed names.
- */
+/** Derived from the Modulith module structure and glossary/terms.yaml; no hand-written lists of allowed names. */
 class NamingSurfaceTest {
-
     static final Path MAIN_JAVA = Path.of("src/main/java");
     static final Path MAIN_RESOURCES = Path.of("src/main/resources");
     static final Path MIGRATIONS = MAIN_RESOURCES.resolve("db/migration");
 
-    /** Module id (subdomain.bc, or kernel) -> base package; derived by Modulith with SubdomainModuleDetection. */
     static final Map<String, String> MODULES = new TreeMap<>();
 
     static {
@@ -75,8 +69,6 @@ class NamingSurfaceTest {
     static final Pattern KEBAB = Pattern.compile("[a-z]+(-[a-z]+)*");
     static final Pattern UPPER_SNAKE = Pattern.compile("[A-Z]+(_[A-Z]+)*");
     static final Pattern DOTTED = Pattern.compile("([a-z]+)\\.([a-z]+)(\\.[a-z][a-z0-9]*)+");
-
-    // ---------- G41: HTTP paths ----------
 
     static final Pattern HTTP_PATH = Pattern.compile(
             "/api/\\{version}/(?<slug>[^/]+)/(?<resource>[^/:{}]+)(?:/\\{(?<id>[^}]+)})?(?::(?<action>[^/]+))?");
@@ -149,8 +141,6 @@ class NamingSurfaceTest {
         }
     }
 
-    // ---------- G42 (static half): event payload components ----------
-
     @Test
     void domainEventRecordComponentsAreCamelCaseGlossaryWords() {
         List<String> problems = new ArrayList<>();
@@ -168,8 +158,6 @@ class NamingSurfaceTest {
         }
         fail("G42 domain event components must be camelCase glossary words", problems);
     }
-
-    // ---------- G43: permission codes ----------
 
     static final Pattern PERMISSION = Pattern.compile("(?<module>[a-z]+\\.[a-z]+):(?<resource>[a-z]+(?:-[a-z]+)*):(?<action>[a-z]+)");
     static final Pattern AUTHORITY = Pattern.compile("has(?:Any)?Authority\\(([^)]*)\\)");
@@ -228,8 +216,6 @@ class NamingSurfaceTest {
         }
     }
 
-    // ---------- G44: Flyway file names ----------
-
     static final Pattern MIGRATION = Pattern.compile("V(?<ts>\\d{14})__(?<module>[a-z]+_[a-z]+)_(?<description>.+)\\.sql");
     static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("uuuuMMddHHmmss").withResolverStyle(ResolverStyle.STRICT);
 
@@ -271,8 +257,6 @@ class NamingSurfaceTest {
         fail("G44 Flyway file must be V{14-digit timestamp}__{module}_{english_snake_case}.sql in db/migration/{module}/", problems);
     }
 
-    // ---------- G45: numbering document type codes ----------
-
     @Test
     void numberingDocumentTypesAreUpperSnakeGlossaryWordsAndEachHasExactlyTheSeededRule() throws IOException {
         List<String> problems = new ArrayList<>();
@@ -295,8 +279,6 @@ class NamingSurfaceTest {
         }
         fail("G45 numbering rule codes (platform.numbering DocumentType + numbering_rules seed)", problems);
     }
-
-    // ---------- G46: jobs, locks, metrics, configuration keys ----------
 
     static final Pattern METER_BUILDER = Pattern.compile(
             "\\b(Counter|Gauge|Timer|DistributionSummary|LongTaskTimer|FunctionCounter|FunctionTimer|TimeGauge)\\.builder\\(\\s*([^,)]*)");
@@ -407,7 +389,6 @@ class NamingSurfaceTest {
         }
     }
 
-    /** All properties declared in META-INF/(additional-)spring-configuration-metadata.json on the classpath -> type. */
     private static Map<String, String> frameworkKeys() throws IOException {
         Map<String, String> keys = new LinkedHashMap<>();
         JsonMapper json = JsonMapper.builder().build();
@@ -452,8 +433,6 @@ class NamingSurfaceTest {
         }
         words(where + ": ", name.substring(owner.length() + 1), problems);
     }
-
-    // ---------- G47: BPMN / DMN ids ----------
 
     static final Pattern DEFINITION_ID = Pattern.compile("(?<subdomain>[a-z]+)_(?<bc>[a-z]+)_(?<name>[a-z]+(?:_[a-z]+)*)");
 
@@ -519,8 +498,6 @@ class NamingSurfaceTest {
         words(where + ": ", d.group("name"), problems);
     }
 
-    // ---------- G48: error codes ----------
-
     @Test
     void errorCodesAreEnumConstantsNamedSubdomainBcReasonInUpperSnakeGlossaryWords() {
         List<String> problems = new ArrayList<>();
@@ -556,8 +533,6 @@ class NamingSurfaceTest {
         }
         fail("G48 error code must be {SUBDOMAIN}_{BC}_{REASON} (upper snake_case, glossary words)", problems);
     }
-
-    // ---------- shared ----------
 
     private static void words(String where, String identifier, List<String> problems) {
         List<String> missing = Glossary.unregisteredWords(identifier);
@@ -605,7 +580,6 @@ class NamingSurfaceTest {
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     static final Pattern TUPLE = Pattern.compile("\\(((?:[^()']|'(?:[^']|'')*')*)\\)");
 
-    /** Values of {@code column} in every INSERT ... VALUES of the table (any table when schema is null) -> migration file. */
     private static Map<String, String> insertedValues(String schema, String table, String column) throws IOException {
         Map<String, String> values = new LinkedHashMap<>();
         for (Path file : files(MIGRATIONS, ".sql")) {

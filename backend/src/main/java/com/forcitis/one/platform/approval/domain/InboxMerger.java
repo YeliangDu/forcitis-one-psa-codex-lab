@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** RULE-261: several row tasks of one (instance, node) are ONE to-do; the newest task represents it. */
+/** Several row tasks of one (instance, node) are ONE to-do; the newest represents it. */
 public final class InboxMerger {
 
     private InboxMerger() {

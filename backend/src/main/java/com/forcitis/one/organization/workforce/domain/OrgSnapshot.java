@@ -7,9 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** The snapshot as stored: every org unit (including revoked ones), position and staff member. */
 public record OrgSnapshot(List<OrgUnit> orgUnits, List<Position> positions, List<StaffMember> staff) {
-
     public OrgSnapshot {
         orgUnits = List.copyOf(orgUnits);
         positions = List.copyOf(positions);

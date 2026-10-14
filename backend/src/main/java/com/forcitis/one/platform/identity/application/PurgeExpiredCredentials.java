@@ -5,7 +5,6 @@ import java.time.Clock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Housekeeping: drops expired OAuth states and used-ticket records. Returns how many rows were removed. */
 @Service
 public class PurgeExpiredCredentials {
 

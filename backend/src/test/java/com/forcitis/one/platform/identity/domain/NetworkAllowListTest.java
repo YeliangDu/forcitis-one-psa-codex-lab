@@ -7,7 +7,6 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** C1a-04: "internal network only" - CIDR membership without any DNS lookup, fail-closed for everything unparsable. */
 class NetworkAllowListTest {
 
     static final NetworkAllowList INTERNAL = NetworkAllowList.of(List.of("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/32", "::1/128", "fd00::/8"));

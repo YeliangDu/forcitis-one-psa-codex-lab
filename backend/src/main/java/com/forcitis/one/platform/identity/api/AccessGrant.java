@@ -4,11 +4,7 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.Objects;
 
-/**
- * One cell of an access scope: legal entity x org unit (optionally with everything below it) x project role. A row is
- * covered when all three match. projectRole is null when the grant does not depend on a project role (it then matches
- * any row, with or without one).
- */
+/** projectRole null matches any row, with or without one. */
 public record AccessGrant(LegalEntityId legalEntityId, OrgUnitId orgUnitId, boolean withDescendants, ProjectRole projectRole) {
 
     public AccessGrant {

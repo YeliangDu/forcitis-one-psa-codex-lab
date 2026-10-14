@@ -10,7 +10,6 @@ import java.util.OptionalLong;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Time-based one-time password, RFC 6238 (HMAC-SHA1, 30 s step, 6 digits) with RFC 4226 truncation. */
 public final class Totp {
 
     public static final int STEP_SECONDS = 30;
@@ -39,10 +38,7 @@ public final class Totp {
         }
     }
 
-    /**
-     * The step the submitted code belongs to, if it matches the current step or one within windowSteps either side (clock
-     * drift); empty otherwise. The caller must refuse a step it has already accepted (see EmergencyAdminRepository).
-     */
+    /** The caller must refuse a step it has already accepted (see EmergencyAdminRepository). */
     public static OptionalLong verify(byte[] secret, String submitted, Instant now, int windowSteps) {
         if (submitted == null || !submitted.matches("\\d{" + DIGITS + "}")) {
             return OptionalLong.empty();

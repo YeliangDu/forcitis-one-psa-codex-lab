@@ -24,13 +24,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * The unified "decide" action (RULE-272/280): pass or fail one or several of the actor's OWN tasks of ONE instance.
- * Order of checks: tasks exist (404) -> the actor may act on EVERY task, else the whole batch is refused with 403 and
- * nothing changes (I-7) -> shape rules (one instance, one decision per node, reason on reject) -> every BEFORE hook
- * (RULE-277) -> only then tasks are completed, approvals first and rejections last. Field writes (hook variable updates)
- * and task completion share this transaction (RULE-280); the engine's own complete() is never trusted to check the actor.
- */
+/** Order: tasks exist (404), actor may act on every task else whole batch 403, shape rules, every BEFORE hook, then complete (approvals first, rejections last). */
 @Service
 public class DecideTasks {
 
@@ -63,8 +57,7 @@ public class DecideTasks {
             }
             guard.requireMayAct(guard.requireTask(decision.taskId()), actor, "decide");
         }
-        // Every task is the actor's own. Now serialise with other decisions of the same approval and look again: another
-        // candidate may have claimed or finished a task while we waited for the lock.
+        // Serialise with other decisions, then look again: another candidate may have claimed or finished a task while we waited.
         ApprovalInstanceId instanceId = guard.requireTask(decisions.getFirst().taskId()).instanceId();
         ApprovalRequestRecord request = lifecycle.lock(instanceId);
         Map<TaskDecision, TaskView> tasks = new LinkedHashMap<>();

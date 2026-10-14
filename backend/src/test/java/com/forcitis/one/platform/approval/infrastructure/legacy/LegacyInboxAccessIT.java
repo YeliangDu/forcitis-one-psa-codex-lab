@@ -17,12 +17,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
-/**
- * I-1 and the column-level grant (SECURITY_INVARIANTS I-1, REIMAGINED_ARCHITECTURE §3.6): the legacy connection is a separate,
- * qualified, read-only DataSource that cannot disturb the application's own; the application refuses to start when the account
- * can read anything but the inbox view (so it can read no token table); an unreachable old database degrades to
- * legacyAvailable = false instead of failing the inbox.
- */
 class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
 
     @Autowired

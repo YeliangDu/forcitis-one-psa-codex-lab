@@ -18,10 +18,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Synthetic organisation for tests: in-memory OrgDirectory + RoleDirectory (the contracts other modules provide). All data is
- * made up by the tests; no real person appears anywhere.
- */
 public class FakeOrganisation implements OrgDirectory, RoleDirectory {
 
     record Person(long id, long unit, Long leader, String wecom, boolean employed) {
@@ -33,8 +29,6 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     private final Map<Long, Person> people = new ConcurrentHashMap<>();
     private final Map<Long, Unit> units = new ConcurrentHashMap<>();
     private final Map<String, Set<Long>> roles = new ConcurrentHashMap<>();
-
-    // ---------- building ----------
 
     public FakeOrganisation unit(long id, Long parent, Long head) {
         units.put(id, new Unit(id, parent, head, null, true));
@@ -72,8 +66,6 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     public String wecomOf(long id) {
         return people.get(id).wecom();
     }
-
-    // ---------- OrgDirectory ----------
 
     @Override
     public Optional<EmployeeProfile> findEmployee(UserId userId) {
@@ -126,8 +118,6 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
         }
         return ancestors;
     }
-
-    // ---------- RoleDirectory ----------
 
     @Override
     public Set<UserId> findRoleHolders(RoleCode roleCode) {

@@ -12,11 +12,6 @@ import java.util.Optional;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/**
- * Anti-corruption layer to the Seeyon organisation data: reads only the whitelisted read-only views through a
- * connection that cannot write. The connection is the one qualified "seeyon" (see {@link ReadOnlyConnection}); nothing
- * outside platform.integration.infrastructure.seeyon may reach it. Hierarchy paths are turned into parent ids here.
- */
 final class SeeyonOrgSource implements OrgSource {
 
     private final JdbcClient jdbc;

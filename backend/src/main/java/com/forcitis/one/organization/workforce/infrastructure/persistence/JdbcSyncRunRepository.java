@@ -21,10 +21,8 @@ import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** SQL touches only the organization_workforce schema (sync_runs, sync_diffs). */
 @Repository
 class JdbcSyncRunRepository implements SyncRunRepository {
-
     private static final String SELECT_RUN = """
             select id, trigger_kind, status, started_at, finished_at, source_org_unit_count, source_employee_count,
                    incoming_active_org_unit_count, incoming_employed_count, previous_active_org_unit_count,
@@ -42,7 +40,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
 
     @Override
     public SyncRunId begin(SyncTrigger trigger, Instant now) {
-        // A run that was killed mid-way (restart, crash) never finishes; close it so it does not look alive forever.
+        // A run killed mid-way (restart, crash) never finishes; close it so it does not look alive forever.
         jdbc.sql("""
                 update organization_workforce.sync_runs set status = 'FAILED', finished_at = :now,
                        failure_reason = 'interrupted: the run never finished', updated_at = :now
@@ -58,7 +56,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
     @Override
     public void markSucceeded(SyncRunId syncRunId, Instant now, RunStats stats) {
         writeStats(syncRunId, now, stats, "SUCCEEDED", null);
-        // the source is back to normal figures: older holds are obsolete (no administrator needed, no user recorded).
+        // The source is back to normal figures: older holds are obsolete.
         jdbc.sql("""
                 update organization_workforce.sync_runs set status = 'RELEASED', released_at = :now,
                        released_by_run_id = :run, updated_at = :now

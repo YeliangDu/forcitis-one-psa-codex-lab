@@ -8,11 +8,7 @@ import org.flowable.bpmn.model.ExtensionAttribute;
 import org.flowable.bpmn.model.ExtensionElement;
 import org.flowable.bpmn.model.UserTask;
 
-/**
- * Reads the assignment rule written in a user task's extension element
- * {@code <forcitis:assignmentRule type="ROLE" role="reviewer" selfApproval="allowed" beforeHook="KEY"/>}.
- * RULE-262: a node has exactly one rule; none or several is a hard error and no task is created.
- */
+/** A node has exactly one rule; none or several is a hard error and no task is created. */
 final class NodePolicyReader {
 
     static final String NAMESPACE = "https://forcitis.com/psa/approval/extension";

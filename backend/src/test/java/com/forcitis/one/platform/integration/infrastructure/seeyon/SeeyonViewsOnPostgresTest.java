@@ -29,11 +29,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * The Seeyon anti-corruption layer against stand-in tables that carry the view names (PostgreSQL). The SQL constants are
- * ANSI enough to run here; no real Seeyon database is ever contacted. The SQL Server specifics (INFORMATION_SCHEMA
- * permissions, ownership chaining, write denial) are covered by SeeyonViewsMssqlIT under the legacy-it profile.
- */
+/** Stand-in tables on PostgreSQL; SQL Server specifics are covered by SeeyonViewsMssqlIT. */
 @Testcontainers
 class SeeyonViewsOnPostgresTest {
 
@@ -233,8 +229,6 @@ class SeeyonViewsOnPostgresTest {
         assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-none"))).isEmpty();
         assertThat(source.findStaffByLoginName("nobody")).isEmpty();
     }
-
-    // ---------------------------------------------------------------- the startup check (columns EQUAL the whitelist)
 
     private static SeeyonSchemaInspector inspector(List<String> excessive) {
         JdbcSeeyonSchemaInspector real = new JdbcSeeyonSchemaInspector(connection.jdbc());

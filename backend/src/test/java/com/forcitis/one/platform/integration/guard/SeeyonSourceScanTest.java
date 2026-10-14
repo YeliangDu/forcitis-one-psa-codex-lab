@@ -16,11 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
-/**
- * §9a source scan (REIMAGINED_ARCHITECTURE §3.3): src/main and the Flyway scripts must never name A8 form tables,
- * the A8 database, the LEXMIS accounting-mapping tables or the U8C tables. Accrual-basis business facts are not
- * readable from A8 in the new system; the only A8 names allowed are the whitelisted view names.
- */
+/** src/main and the Flyway scripts must never name A8 form tables, the A8 database, LEXMIS or U8C tables. */
 class SeeyonSourceScanTest {
 
     static final Path MAIN = Path.of("src/main");
@@ -29,10 +25,7 @@ class SeeyonSourceScanTest {
 
     static final Pattern FORBIDDEN = Pattern.compile("formmain_|formson_|a8_db|LEXMIS|T_U8C_", Pattern.CASE_INSENSITIVE);
 
-    /**
-     * The environment variable names of the A8 connection (AI_NATIVE_SPEC §3.3 names ${A8_DB_URL}). They are
-     * variable names, not database objects; everything else that spells a8_db stays forbidden.
-     */
+    /** Variable names, not database objects; everything else that spells a8_db stays forbidden. */
     static final List<String> ENVIRONMENT_VARIABLES = List.of("A8_DB_URL", "A8_DB_USERNAME", "A8_DB_PASSWORD");
 
     @SuppressWarnings("unchecked")
@@ -47,7 +40,6 @@ class SeeyonSourceScanTest {
         return names;
     }
 
-    /** Every line of the files that contains a forbidden token once the whitelisted view names are taken out. */
     static List<String> violations(Path root, List<String> allowedNames) {
         List<String> hits = new ArrayList<>();
         try (Stream<Path> files = Files.walk(root)) {

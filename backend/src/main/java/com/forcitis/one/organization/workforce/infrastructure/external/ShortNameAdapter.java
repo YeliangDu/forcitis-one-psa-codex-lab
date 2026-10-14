@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 class ShortNameAdapter implements ShortNameSource {
-
     private final OrgShortNames integration;
 
     ShortNameAdapter(OrgShortNames integration) {

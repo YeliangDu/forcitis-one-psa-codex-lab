@@ -10,12 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/**
- * OrgReconciliationIT (exit criterion "组织零差异"): people count, org unit count and reporting relations of the stored
- * snapshot against the source now. Named *Test so Surefire runs it in the default build.
- */
+/** Named *Test so Surefire runs it in the default build. */
 class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
-
     @Autowired
     SyncOrgSnapshot sync;
 

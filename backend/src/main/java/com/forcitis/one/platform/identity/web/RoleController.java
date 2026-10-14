@@ -26,11 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Role administration (RULE-345/346): read with platform.identity:role:read, every change with platform.identity:role:update.
- * Assigning roles and switching an account on or off use the same update permission (the permission catalogue has no
- * separate account permission yet). Callers can only hand out what they hold themselves.
- */
+/** Assigning roles and switching an account on or off use the role update permission (no separate account permission yet). */
 @RestController
 @RequestMapping("/api/{version}/platform")
 class RoleController {

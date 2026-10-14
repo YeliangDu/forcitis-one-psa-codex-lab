@@ -4,7 +4,6 @@ import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import java.util.Optional;
 
-/** Every failure to reach or use WeCom is an ExternalSystemUnavailableException. */
 public interface WecomClient {
 
     Optional<WecomUserId> userIdOfCode(String code, WecomEntry entry);

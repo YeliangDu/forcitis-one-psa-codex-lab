@@ -9,7 +9,6 @@ import com.forcitis.one.platform.identity.domain.AccountStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Enables or disables an account; disabling deletes the person's sessions at once (RULE-338). */
 @Service
 public class ChangeAccountStatus {
 

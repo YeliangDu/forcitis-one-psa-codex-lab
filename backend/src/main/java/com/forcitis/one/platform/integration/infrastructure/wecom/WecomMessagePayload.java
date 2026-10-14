@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/** Request bodies for WeCom. Recipients are always exact user ids; no body can address a department, a tag or everyone (I-6). */
+/** Recipients are always exact user ids; no body can address a department, a tag or everyone (I-6). */
 final class WecomMessagePayload {
 
     static final int MAX_TITLE_CHARS = 40;

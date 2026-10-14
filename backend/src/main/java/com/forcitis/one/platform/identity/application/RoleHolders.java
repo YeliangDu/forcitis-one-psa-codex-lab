@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Who holds a role: enabled accounts of employed people through enabled roles only (RULE-343/349). */
 @Service
 class RoleHolders implements RoleDirectory {
 

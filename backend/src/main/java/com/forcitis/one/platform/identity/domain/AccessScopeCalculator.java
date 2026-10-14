@@ -10,13 +10,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * One scope model for reads and writes (RULE-349/352): the union over the person's ENABLED roles (RULE-343/349).
- * Nothing enabled, or nothing granted, gives {@link AccessScope#none()} - never "everything" (RULE-351).
- */
+/** Nothing enabled, or nothing granted, gives AccessScope.none(), never "everything". */
 public final class AccessScopeCalculator {
 
-    /** One role as the calculation sees it. customOrgUnits only counts for CUSTOM_ORG_UNITS (RULE-349). */
+    /** customOrgUnits only counts for CUSTOM_ORG_UNITS. */
     public record RoleScope(AccessScopeKind kind, boolean enabled, Set<OrgUnitId> customOrgUnits) {
 
         public RoleScope {
@@ -24,7 +21,7 @@ public final class AccessScopeCalculator {
         }
     }
 
-    /** Organisation facts about the person: directReports must already exclude separated people (RULE-349). */
+    /** directReports must already exclude separated people. */
     public record Person(UserId userId, LegalEntityId legalEntityId, OrgUnitId orgUnitId, Set<UserId> directReports) {
 
         public Person {

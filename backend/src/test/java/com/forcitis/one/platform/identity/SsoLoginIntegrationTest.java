@@ -14,11 +14,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
 
-/**
- * C1a-02 / RULE-320 / RULE-321: single sign-on from the portal with a server-side ticket check. The portal is platform.integration's
- * SsoTicketVerifier port and the person is looked up through OrgDirectory.findEmployeeByLoginName; both are doubles here (the
- * HTTP details of the ticket check are tested in platform.integration).
- */
 class SsoLoginIntegrationTest extends IdentityIntegrationTest {
 
     static final String LOGIN = "/api/v1/platform/sessions:sso-login";

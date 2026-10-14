@@ -11,11 +11,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Portal single sign-on (RULE-320/321): the server asks the portal whether the ticket is genuine, the ticket can be used once
- * (atomic unique-key insert, so concurrent replays give one winner, I-9), and the person must be employed and enabled.
- * The ticket arrives in the request body, never in a URL we keep.
- */
+/** Ticket use is an atomic unique-key insert, so concurrent replays give one winner (I-9). */
 @Service
 public class LoginWithSso {
 
@@ -55,7 +51,7 @@ public class LoginWithSso {
         if (!(verdict instanceof SsoVerdict.LoginName loginName)) {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_TICKET_INVALID, method, null, "portal does not know the ticket");
         }
-        // Marked before the person is looked up, like the old system: a ticket for an unknown person is burned too (RULE-320).
+        // Marked before the person is looked up, like the old system: a ticket for an unknown person is burned too.
         boolean firstUse = credentials.markTicketUsed(SOURCE, Digests.sha256Hex(ticket),
                 clock.instant().plus(settings.replayWindow()));
         if (!firstUse) {

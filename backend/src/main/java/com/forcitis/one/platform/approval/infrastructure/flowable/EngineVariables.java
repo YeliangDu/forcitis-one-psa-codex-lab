@@ -7,11 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Maps {@link ProcessVariables} to Flowable variables and back. Business fields live under the "field:" prefix, so a
- * business value can never overwrite an engine variable (initiatorId, businessKey). A multi-valued field is stored
- * as one newline-joined text; "true" / "false" engine variables become booleans so BPMN conditions can read them.
- */
+/** Business fields live under the "field:" prefix so they can never overwrite an engine variable; "true" / "false" engine variables become booleans for BPMN conditions. */
 final class EngineVariables {
 
     static final String FIELD_PREFIX = "field:";

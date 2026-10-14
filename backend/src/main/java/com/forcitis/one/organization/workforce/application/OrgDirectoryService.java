@@ -14,13 +14,8 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
-/**
- * The read side other modules use. Every method is a plain read of the snapshot, except that an unknown WeCom user id
- * falls back to the single-person source lookup (RegisterEmployeeOnLogin). Implements the fixed OrgDirectory contract.
- */
 @Component
 class OrgDirectoryService implements OrgDirectory {
-
     private final OrgSnapshotRepository snapshots;
     private final RegisterEmployeeOnLogin registerOnLogin;
     private final RegisterEmployeeOnLoginName registerOnLoginName;

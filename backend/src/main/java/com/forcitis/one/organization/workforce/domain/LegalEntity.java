@@ -5,7 +5,6 @@ import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import java.util.Objects;
 
 public record LegalEntity(LegalEntityId legalEntityId, LegalEntityCode code, String name, LegalEntityStatus status) {
-
     public static final int MAX_NAME_LENGTH = 100;
 
     public LegalEntity {

@@ -7,10 +7,8 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Query side of the numbering rule page: the active rule of one document type. */
 @Service
 public class FindNumberingRule {
-
     private final NumberingRuleRepository rules;
 
     FindNumberingRule(NumberingRuleRepository rules) {

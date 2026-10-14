@@ -2,11 +2,9 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
 
-/** An org unit for the read-only organisation browser. */
 public record OrgUnitView(long orgUnitId, String code, String name, Long parentOrgUnitId, Integer sortOrder,
                           String status, Long headEmployeeId, Long regionalReceivablesManagerId, String regionCategory,
                           boolean deliveryUnit, String shortName) {
-
     static OrgUnitView of(OrgUnit unit) {
         return new OrgUnitView(unit.orgUnitId().value(), unit.code(), unit.name(),
                 unit.parentOrgUnitId() == null ? null : unit.parentOrgUnitId().value(), unit.sortOrder(),

@@ -32,12 +32,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-/**
- * I-7 (SEC-120): every task operation is checked on the server against the assignee, or, before a claim, the candidates.
- * Flowable's own complete() checks nothing, so a missing check would let anybody with the menu permission act. For each
- * operation a non-handler gets 403 and the task, its candidates, its assignee, the request status and the published results
- * are unchanged.
- */
+/** Flowable's own complete() checks nothing, so a non-handler must get 403 with task, candidates, assignee, status and published results unchanged. */
 class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
 
     @Autowired
@@ -61,7 +56,6 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                  long stranger) {
     }
 
-    /** One open manager-review task with two candidates, an initiator and a stranger who holds the approve permission too. */
     Scene scene() {
         long initiator = newId();
         long candidate = newId();
@@ -76,7 +70,6 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         return new Scene(key, instance, openTaskId(instance), initiator, candidate, other, stranger);
     }
 
-    /** Everything an unauthorised operation must leave exactly as it was. */
     record Snapshot(String taskId, String assignee, List<String> candidates, String status, int results) {
     }
 
@@ -148,7 +141,6 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         Scene mine = scene();
         Scene foreign = scene();
         UserId actor = new UserId(mine.candidate());
-        // make the actor a candidate of `mine` only; `foreign` was created with its own candidates
         assertThat(foreign.candidate()).isNotEqualTo(mine.candidate());
         Snapshot beforeMine = snapshot(mine);
         Snapshot beforeForeign = snapshot(foreign);

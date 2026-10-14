@@ -10,7 +10,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-/** Wiring of the Seeyon anti-corruption layer: off by default, bound from configuration, and the start-up check can stop the application. */
 class SeeyonConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(SeeyonConfiguration.class);

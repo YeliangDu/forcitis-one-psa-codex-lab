@@ -17,11 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/**
- * Reads the old system's in-progress tasks of one user from the read-only view. SELECT only, one object, no cache: every
- * call queries (about 540 calls a day). An unreachable database yields available = false, never an exception that would
- * hide the new tasks too.
- */
+/** No cache: every call queries (about 540 a day); an unreachable database yields available = false, never an exception that would hide the new tasks. */
 class JdbcLegacyInbox implements LegacyInbox {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcLegacyInbox.class);

@@ -13,10 +13,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Replaces the definition of a custom role: name, status, scope and the whole permission set (RULE-346). System roles are
- * frozen (RULE-345). Permissions are resolved on every request, so the change is live as soon as the cache is evicted.
- */
+/** Permissions are resolved on every request, so a change is live once the cache is evicted. */
 @Service
 public class UpdateRole {
 

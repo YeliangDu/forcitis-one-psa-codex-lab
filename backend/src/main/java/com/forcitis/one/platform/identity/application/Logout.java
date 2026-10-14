@@ -7,7 +7,6 @@ import com.forcitis.one.platform.identity.api.CurrentUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Ends the caller's session on the server (RULE-334) and records it. */
 @Service
 public class Logout {
 

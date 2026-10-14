@@ -20,11 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Login, logout and "who am I". Identity and tokens never appear in a URL, and no request carries a user id: who logs in
- * is decided by the proof (WeCom code, OA ticket, signed ticket, password + code), who is calling by the session only.
- * The public handlers are the ones listed in architecture/public-endpoints.txt (I-3).
- */
+/** No request carries a user id: who logs in is decided by the proof, who is calling by the session only (I-3). */
 @RestController
 @RequestMapping("/api/{version}/platform")
 class SessionController {

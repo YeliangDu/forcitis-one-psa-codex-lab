@@ -13,17 +13,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * Whole-application context on PostgreSQL 18 with in-memory the source / old-system stand-ins and a mocked audit trail
- * (platform.audit is a separate module). One container for all workforce integration tests: they share one
- * Spring context, and every test starts from empty snapshot tables.
- */
+/** One container and Spring context for all workforce integration tests; every test starts from empty snapshot tables. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false"})
 @AutoConfigureMockMvc
 @Import(WorkforceTestSources.class)
 @RecordApplicationEvents
 public abstract class WorkforceIntegrationSupport {
-
     @ServiceConnection
     static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
             .withInitScript("init-schemas.sql")
@@ -36,7 +31,7 @@ public abstract class WorkforceIntegrationSupport {
     @MockitoBean
     protected AuditLog audit;
 
-    // platform.approval (same application context) sends WeCom cards; integration is not wired in this test.
+    // platform.approval sends WeCom cards; integration is not wired in this test.
     @MockitoBean
     protected WecomGateway wecomGateway;
 

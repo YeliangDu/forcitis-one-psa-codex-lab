@@ -5,11 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Command line entry of the TIMESHEET approver replay (no Spring, no database): reads the export file, replays it with the
- * AssigneeResolver and writes replay-report.json and replay-report.md into the output directory. Exit status 1 when the report
- * contains DEFECTs. Usage and file format: docs/modernization/phase1a/TIMESHEET_REPLAY.md.
- */
+/** No Spring, no database; exit status 1 when the report contains DEFECTs. */
 final class TimesheetApproverReplayCommand {
 
     private TimesheetApproverReplayCommand() {

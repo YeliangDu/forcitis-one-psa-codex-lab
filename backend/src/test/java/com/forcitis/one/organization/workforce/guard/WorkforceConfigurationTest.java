@@ -14,9 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.support.CronExpression;
 
-/** Configuration hygiene: no credentials in the repository, safe defaults, the agreed periods, and the permission codes. */
 class WorkforceConfigurationTest {
-
     static final Path CONFIG = Path.of("src/main/resources/config/organization_workforce.properties");
 
     private static Properties load() throws IOException {

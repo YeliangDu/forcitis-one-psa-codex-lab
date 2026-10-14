@@ -15,7 +15,6 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The caller's own profile for the front end: identity, permissions of enabled roles, and the navigation they may see (RULE-348). */
 @Service
 public class GetCurrentUserProfile {
 

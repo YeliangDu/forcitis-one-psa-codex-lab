@@ -31,9 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.event.ApplicationEvents;
 
-/** The sync end to end on PostgreSQL: single write transaction, run log, shrink guard, release, events, short names. */
 class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
-
     @Autowired
     SyncOrgSnapshot sync;
 

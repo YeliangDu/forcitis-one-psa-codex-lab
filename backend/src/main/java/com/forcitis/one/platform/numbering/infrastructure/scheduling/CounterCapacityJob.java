@@ -10,13 +10,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * Daily check that numbering counters are not about to overflow their {seq:N} width; alert on the gauge.
- * Job / lock / metric names are {subdomain}.{bc}.{name}; configuration lives under forcitis.platform.numbering. (G46).
- */
+/** Job / lock / metric names are {subdomain}.{bc}.{name} (G46). */
 @Component
 class CounterCapacityJob {
-
     private final CheckCounterCapacity checkCounterCapacity;
     private final BigDecimal warningRatio;
     private final AtomicLong countersNearCapacity = new AtomicLong();

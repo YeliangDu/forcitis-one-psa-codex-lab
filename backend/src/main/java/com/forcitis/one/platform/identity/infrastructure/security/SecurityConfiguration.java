@@ -15,14 +15,7 @@ import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
-/**
- * The only Spring Security configuration of the application (G33). Default deny: every request needs a login session, except
- * the handlers marked with @PublicEndpoint (login callbacks, listed in architecture/public-endpoints.txt) and the health probe.
- * Every handler additionally needs @PreAuthorize or @PublicEndpoint with a reason (ArchitectureRulesTest). Sessions are
- * server-side (Spring Session JDBC, cookie HttpOnly / Secure / SameSite=Lax, see config/platform_identity.properties);
- * CSRF uses the XSRF-TOKEN cookie written back in a header; identity comes from the session only - never from a request
- * header (RULE-336).
- */
+/** Default deny: only @PublicEndpoint handlers and the health probe are open; identity comes from the session only, never a request header. */
 @Configuration
 @EnableMethodSecurity
 class SecurityConfiguration {

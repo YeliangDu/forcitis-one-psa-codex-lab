@@ -86,7 +86,6 @@ class JdbcRoleRepository implements RoleRepository {
         jdbc.sql("delete from platform_identity.roles where role_id = :id").param("id", roleId.value()).update();
     }
 
-    /** The whole set is replaced: missing links are added, the rest removed (RULE-346). */
     private void replacePermissions(long roleId, Set<String> permissionCodes) {
         if (permissionCodes.isEmpty()) {
             jdbc.sql("delete from platform_identity.role_permissions where role_id = :id").param("id", roleId).update();

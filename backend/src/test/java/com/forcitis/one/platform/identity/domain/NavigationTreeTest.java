@@ -7,7 +7,6 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** RULE-348: navigation shows enabled directories and pages the person's permissions allow; empty directories disappear. */
 class NavigationTreeTest {
 
     static NavigationItem item(long id, Long parent, String name, String route, String permission, int order) {

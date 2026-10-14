@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
-/** RULE-316/317 and C1a-04: the break-glass administrator - Argon2id + TOTP, internal network only, locked after 5 failures. */
 class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
 
     static final String LOGIN = "/api/v1/platform/sessions:emergency-login";

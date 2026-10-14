@@ -5,9 +5,7 @@ import com.forcitis.one.organization.workforce.domain.ShortNameSource;
 import com.forcitis.one.organization.workforce.domain.SourceUnavailableException;
 import java.util.Map;
 
-/** In-memory stand-in for the old system's department table. */
 public class FakeShortNameSource implements ShortNameSource {
-
     public volatile Map<OrgUnitId, String> names = Map.of();
     public volatile boolean unavailable;
 

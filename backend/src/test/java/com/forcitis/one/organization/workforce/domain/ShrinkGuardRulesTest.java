@@ -13,9 +13,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** The shrink guard of RULE-358 (org units) and RULE-366 (people), both with a 20 % maximum drop. */
 class ShrinkGuardRulesTest {
-
     private static RunStats stats(int incomingUnits, int previousUnits, int incomingPeople, int previousPeople) {
         return new RunStats(incomingUnits, incomingPeople, incomingUnits, incomingPeople, previousUnits, previousPeople, 0, 0, 0, 0, 0, 0);
     }

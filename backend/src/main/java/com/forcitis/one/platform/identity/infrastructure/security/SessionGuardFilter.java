@@ -16,13 +16,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Runs right after the session's security context is loaded, on every request that carries a login session:
- * the absolute cap (24 h by default) ends the session even if it is active; and the account / employment state is checked
- * (cached at most 60 s, evicted on change) - a disabled account or a separated employee loses the session on the very next
- * request, even if no event reached us (RULE-326/327/338). Authorities are refreshed from the live roles. Not a Spring bean on
- * purpose: Boot would also register a bean Filter in the servlet container.
- */
+/** Not a Spring bean on purpose: Boot would also register a bean Filter in the servlet container. */
 final class SessionGuardFilter extends OncePerRequestFilter {
 
     private final CachedSessionPrincipals principals;

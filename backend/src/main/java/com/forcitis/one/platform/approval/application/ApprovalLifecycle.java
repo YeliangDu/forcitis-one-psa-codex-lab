@@ -15,11 +15,7 @@ import com.forcitis.one.platform.approval.events.TaskResulted;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-/**
- * State transitions of one approval request and the typed events that announce them (RULE-289/306). Every transition runs
- * inside the caller's transaction: the engine change, the status row and the event registry entry commit together, which
- * is what makes delivery to business modules at-least-once (RULE-295/303).
- */
+/** Every transition runs in the caller's transaction, so engine change, status row and event commit together (at-least-once delivery). */
 @Component
 class ApprovalLifecycle {
 
@@ -33,13 +29,13 @@ class ApprovalLifecycle {
         this.events = events;
     }
 
-    /** Locks the request row of the instance for the rest of the transaction (serialises concurrent decisions). */
+    /** Serialises concurrent decisions for the rest of the transaction. */
     ApprovalRequestRecord lock(ApprovalInstanceId instanceId) {
         return requests.lockByInstance(instanceId).orElseThrow(() -> new ApprovalOperationException(
                 ApprovalError.PLATFORM_APPROVAL_REQUEST_NOT_FOUND, "No approval request for instance " + instanceId.value()));
     }
 
-    /** Claims for the actor; a lost race against another candidate is a refusal (409), not a server error. */
+    /** A lost race against another candidate is a refusal (409), not a server error. */
     void claim(TaskView task, UserId actor) {
         if (!engine.claimTask(task.taskId(), actor)) {
             throw new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED,
@@ -53,7 +49,7 @@ class ApprovalLifecycle {
                 task.nodeKey(), actor, outcome, false, reason));
     }
 
-    /** After a task completed (or the instance started): if the engine has no live instance left, the approval is APPROVED. */
+    /** APPROVED when the engine has no live instance left. */
     ApprovalStatus finishIfDone(ApprovalRequestRecord request, ApprovalStatus current) {
         if (engine.isRunning(request.instanceId())) {
             return current;
@@ -62,7 +58,7 @@ class ApprovalLifecycle {
         return ApprovalStatus.APPROVED;
     }
 
-    /** A return ends the round (RULE-271/275): the instance ends as "returned", the initiator starts a new round; history stays. */
+    /** A return ends the round, the initiator starts a new one; history stays. */
     ApprovalStatus returned(ApprovalRequestRecord request, TaskView task, UserId actor, String reason) {
         engine.endAsReturned(task.instanceId());
         publishTaskResult(task, actor, TaskOutcome.RETURNED, reason);
@@ -70,7 +66,6 @@ class ApprovalLifecycle {
         return ApprovalStatus.RETURNED;
     }
 
-    /** A top-level reject ends the whole approval (RULE-271/290); history stays (RULE-288). */
     ApprovalStatus reject(ApprovalRequestRecord request, TaskView task, UserId actor, String reason) {
         engine.terminate(task.instanceId(), "REJECTED");
         publishTaskResult(task, actor, TaskOutcome.REJECTED, reason);

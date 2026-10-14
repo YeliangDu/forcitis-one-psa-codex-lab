@@ -6,16 +6,11 @@ import java.util.Map;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * The export file of the TIMESHEET approver replay (JSON, formatVersion 1; documented in
- * docs/modernization/phase1a/TIMESHEET_REPLAY.md). It carries the OLD organisation snapshot of the time the instances ran,
- * the assignment rule of every node and the approvers who actually acted. Exports contain real people: they live in
- * ~/.modernize/psa/ and never in the repository; tests use synthetic fixtures only.
- */
+/** Exports contain real people: they live in ~/.modernize/psa/ and never in the repository; tests use synthetic fixtures only. */
 record ReplayExport(int formatVersion, String processKey, Long processAdministratorUserId, List<Long> legacyFallbackUserIds,
                     Snapshot snapshot, List<InstanceRecord> instances) {
 
-    /** The one JSON reader / writer of the replay: absent flags mean false, so exports stay terse. */
+    /** Absent flags mean false, so exports stay terse. */
     static JsonMapper mapper() {
         return JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES).build();
     }
@@ -34,7 +29,7 @@ record ReplayExport(int formatVersion, String processKey, Long processAdministra
         }
     }
 
-    /** employed = false for a disabled or separated user; supervisorUserId is the person-level supervisor (RULE-372). */
+    /** employed = false for a disabled or separated user. */
     record EmployeeRecord(long userId, long orgUnitId,
                           @JsonAlias(LegacyVocabulary.SUPERVISOR_KEY) Long supervisorUserId, boolean employed) {
     }
@@ -53,7 +48,6 @@ record ReplayExport(int formatVersion, String processKey, Long processAdministra
         }
     }
 
-    /** rule: the type plus its attributes (role, department, level, users, field, variable); selfApproval: "allowed" exempts. */
     record NodeRecord(String nodeKey, Map<String, String> rule, boolean selfApprovalAllowed, List<Long> actualApprovers) {
 
         NodeRecord {

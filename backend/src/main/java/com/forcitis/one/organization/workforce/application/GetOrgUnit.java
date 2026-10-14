@@ -8,10 +8,8 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
-/** One org unit with its ancestors and its unit-and-below scope (RULE-360: revoked units excluded). */
 @Service
 public class GetOrgUnit {
-
     private final OrgSnapshotRepository snapshots;
 
     GetOrgUnit(OrgSnapshotRepository snapshots) {

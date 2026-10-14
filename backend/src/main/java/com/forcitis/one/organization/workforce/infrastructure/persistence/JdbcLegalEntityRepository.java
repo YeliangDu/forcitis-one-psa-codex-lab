@@ -14,7 +14,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcLegalEntityRepository implements LegalEntityRepository {
-
     private static final String COLUMNS = "id, code, name, status";
 
     private final JdbcClient jdbc;

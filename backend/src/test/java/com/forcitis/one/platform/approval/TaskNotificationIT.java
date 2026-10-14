@@ -28,11 +28,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/**
- * Q-3 / I-6 / RULE-374: a task assigned to a candidate group sends ONE text card to every candidate (exact WeCom user ids, dedup
- * key approval-task:{taskId}); a claim turns the same card into "handled by X" and reminds nobody else; a candidate without a WeCom id
- * is skipped with a warning, and a task with no reachable candidate sends nothing. WecomGateway is a test double.
- */
 class TaskNotificationIT extends ApprovalIntegrationSupport {
 
     @Autowired

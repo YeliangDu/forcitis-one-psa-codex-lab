@@ -6,13 +6,7 @@ import java.util.Map;
 import java.util.TreeSet;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/**
- * Start-up proof of I-1 and of the column-level grant (REIMAGINED_ARCHITECTURE §3.6, SECURITY_INVARIANTS I-1): the read-only
- * account may SELECT exactly the inbox view and nothing else, so it can read no token table (nor any other table). Asks the
- * database itself (information_schema works on SQL Server and PostgreSQL), without naming any table. A grant on anything else
- * stops the application. Grants given through database roles are invisible to this query: the DBA instructions in
- * LEGACY_INBOX_VIEW.sql forbid role membership for this account.
- */
+/** I-1 proof: asks information_schema (SQL Server and PostgreSQL) that only the inbox view is SELECT-able; grants via database roles are invisible, so role membership is forbidden for this account. */
 class LegacyAccessGuard {
 
     private final JdbcClient jdbc;

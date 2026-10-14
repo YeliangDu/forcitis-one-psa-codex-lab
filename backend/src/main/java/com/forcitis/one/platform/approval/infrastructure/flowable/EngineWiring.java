@@ -16,11 +16,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Connects the assignment listener to the engine once the application is ready (the BPMN files are deployed by then), and refuses to start when a deployed process
- * breaks the BPMN conventions: every user task has exactly one valid assignment rule (RULE-262) and every process has exactly
- * one initiator node. A broken process fails at startup, not when the first approval reaches the bad node.
- */
+/** Runs once the application is ready (BPMN deployed) and fails startup on a process that breaks the BPMN conventions. */
 @Configuration
 @EnableConfigurationProperties(AssignmentProperties.class)
 class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {

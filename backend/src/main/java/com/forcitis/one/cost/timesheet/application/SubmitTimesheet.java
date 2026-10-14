@@ -16,10 +16,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** One use case, one public method, one transaction. The submitter comes from the session, never from the request. */
+/** The submitter comes from the session, never from the request. */
 @Service
 public class SubmitTimesheet {
-
     private final WorkPackageQueries workPackages;
     private final ApprovalProcesses approvals;
     private final CurrentUser currentUser;

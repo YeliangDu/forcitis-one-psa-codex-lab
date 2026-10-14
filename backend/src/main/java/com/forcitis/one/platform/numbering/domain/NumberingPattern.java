@@ -9,17 +9,10 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Admin-defined template, e.g. "{TYPE}-{LE}-{yyyyMM}-{seq:4}". Validated on construction so an invalid rule can never be saved:
- * exactly one {seq:N} (N 1..12), only known tokens, and the date part must be at least as fine as the reset policy
- * (otherwise two periods would produce the same number).
- */
+/** Validated on construction: one {seq:N} (N 1..12), known tokens, date part at least as fine as the reset policy. */
 @ValueObject
 public record NumberingPattern(String value, ResetPolicy resetPolicy) {
-
-    /** Placeholder for the registered document type code (ADR-0010 decision 5), e.g. QT for a quote. */
     public static final String TYPE_TOKEN = "TYPE";
-    /** Default template of the unified new format (ADR-0010 decision 5). */
     public static final String DEFAULT_TEMPLATE = "{TYPE}-{LE}-{yyyyMM}-{seq:4}";
 
     private static final Pattern TOKEN = Pattern.compile("\\{([^}]*)}");
@@ -67,7 +60,7 @@ public record NumberingPattern(String value, ResetPolicy resetPolicy) {
         }
     }
 
-    /** Highest sequence the {seq:N} placeholder can hold (10^N - 1); issuing beyond it fails. */
+    /** 10^N - 1; issuing beyond it fails. */
     public long capacity() {
         Matcher m = TOKEN.matcher(value);
         while (m.find()) {
@@ -79,7 +72,6 @@ public record NumberingPattern(String value, ResetPolicy resetPolicy) {
         throw new IllegalStateException("validated pattern without {seq:N}: " + value);
     }
 
-    /** Whether the template contains the document type code placeholder. */
     public boolean usesTypeCode() {
         return TOKEN.matcher(value).results().anyMatch(m -> m.group(1).equals(TYPE_TOKEN));
     }
@@ -90,10 +82,7 @@ public record NumberingPattern(String value, ResetPolicy resetPolicy) {
         return TOKEN.matcher(value).results().anyMatch(m -> m.group(1).equals(LEGAL_ENTITY_TOKEN));
     }
 
-    /**
-     * @param typeCode the registered code of the document type; may be null only when the template has no {TYPE}
-     * @param legalEntityCode may be null only when the template has no {LE}
-     */
+    /** typeCode / legalEntityCode may be null only when the template has no {TYPE} / {LE}. */
     public String render(String typeCode, LegalEntityCode legalEntityCode, LocalDate date, long sequence) {
         Matcher m = TOKEN.matcher(value);
         StringBuilder out = new StringBuilder();

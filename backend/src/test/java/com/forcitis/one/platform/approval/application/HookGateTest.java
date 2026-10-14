@@ -18,7 +18,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 
-/** The commit gate without Spring context: key registration (RULE-283) and the committing outcomes (RULE-277). */
 class HookGateTest {
 
     static ApprovalHook hook(String key, HookDecision decision) {

@@ -30,13 +30,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-/**
- * Runs inside the engine command that creates a user task (so inside the caller's transaction): reads the node's single
- * assignment rule (RULE-262), lets {@link AssigneeResolver} decide the candidates, stores them as the task's candidate
- * group (RULE-249: nobody is picked at random; the candidates claim) and announces the task (TaskAssigned -> WeCom cards).
- * A node nobody can be found for goes to the process administrator and raises an alert (RULE-250/254); with no
- * administrator configured the whole command fails and rolls back, never a silent skip (RULE-300).
- */
+/** Runs inside the engine command creating the task; nobody found goes to the process administrator, and without one the whole command rolls back (never a silent skip). */
 @Component
 class TaskAssignmentListener implements FlowableEventListener {
 

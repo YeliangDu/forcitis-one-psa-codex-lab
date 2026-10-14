@@ -23,7 +23,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-/** RULE-340..349: roles, permissions, assignments, RoleDirectory; role administration over HTTP with its own permissions. */
 class RoleManagementIntegrationTest extends IdentityIntegrationTest {
 
     static final String ROLES = "/api/v1/platform/roles";
@@ -183,7 +182,6 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("RULE-345 nobody can hand out more than they hold: no escalation through role editing")
     void noEscalation() throws Exception {
-        // caller 5 may edit roles, and holds only that
         jdbc.sql("insert into platform_identity.roles (code, name) values ('role-editor', 'Role editor')").update();
         jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'role-editor'")
                 .param("p", Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE).update();

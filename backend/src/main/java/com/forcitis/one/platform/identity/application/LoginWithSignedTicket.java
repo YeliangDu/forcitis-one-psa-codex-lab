@@ -18,12 +18,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Login with a one-time signed ticket from an external system (C1a-03; replaces the passwordless endpoints, RULE-318/329).
- * Each issuer has its own key and an on/off switch (default off); the ticket lives at most 60 s; its nonce is consumed
- * atomically (I-9); the person must be employed and enabled, inside the issuer's user scope, and never an administrator.
- * Every failure looks the same to the caller.
- */
+/** Every failure looks the same to the caller. */
 @Service
 public class LoginWithSignedTicket {
 

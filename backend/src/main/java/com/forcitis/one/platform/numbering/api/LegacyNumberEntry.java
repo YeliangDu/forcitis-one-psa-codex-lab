@@ -4,14 +4,9 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.ValueObject;
 import java.util.Objects;
 
-/**
- * Link between a document of the new system and the number it carried before the unified format (the read-only "original
- * number"). Unique per (document type, legacy number).
- */
 @ValueObject
 public record LegacyNumberEntry(DocumentType documentType, String legacyNumber, DocumentId documentId, LegalEntityId legalEntity,
         String importBatch) {
-
     public static final int MAX_LENGTH = 128;
 
     public LegacyNumberEntry {

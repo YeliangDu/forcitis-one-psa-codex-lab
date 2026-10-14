@@ -4,6 +4,5 @@ import java.util.List;
 
 public interface NavigationRepository {
 
-    /** Enabled items only. */
     List<NavigationItem> findEnabled();
 }

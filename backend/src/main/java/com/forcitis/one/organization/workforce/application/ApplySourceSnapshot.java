@@ -20,14 +20,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * The single write transaction of a sync run: take the writer lock, read the current snapshot, compute the
- * differences, apply the shrink guard, write rows + report + run result, and publish the org-change event. The event
- * is published inside the transaction; listeners run after commit, so a rolled-back run announces nothing (RULE-373).
- */
+/** The event is published inside the transaction; listeners run after commit, so a rolled-back run announces nothing. */
 @Service
 public class ApplySourceSnapshot {
-
     private static final Logger LOG = LoggerFactory.getLogger(ApplySourceSnapshot.class);
 
     private final OrgSnapshotRepository snapshots;

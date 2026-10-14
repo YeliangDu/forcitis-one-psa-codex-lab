@@ -18,10 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * The exported OLD organisation snapshot, presented through the same read contracts the live system uses, so the very same
- * AssigneeResolver runs in the replay (REIMAGINED_ARCHITECTURE §3.5 (a)). Read-only and in memory.
- */
+/** Presented through the live read contracts so the very same AssigneeResolver runs in the replay. */
 final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
 
     private final Map<Long, ReplayExport.EmployeeRecord> employees = new HashMap<>();

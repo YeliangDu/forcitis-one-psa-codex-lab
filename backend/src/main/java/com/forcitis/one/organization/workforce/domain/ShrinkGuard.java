@@ -1,22 +1,14 @@
 package com.forcitis.one.organization.workforce.domain;
 
-/**
- * Shrink protection (RULE-358/366): when the source returns clearly fewer active org units or employed people than the
- * snapshot holds, the run is aborted instead of mass-revoking and mass-separating. Integer arithmetic, no rounding.
- */
+/** Integer arithmetic, no rounding. */
 public final class ShrinkGuard {
-
     private ShrinkGuard() {
     }
 
-    /** held = true means: do not write, record the run as HELD and alert. */
     public record Verdict(boolean held, String reason) {
     }
 
-    /**
-     * @param maxDropPercent largest allowed drop, e.g. 20: incoming * 100 &lt; previous * (100 - 20) holds the run;
-     *                       a previous count of 0 (first run) never holds
-     */
+    /** maxDropPercent 20: incoming * 100 &lt; previous * 80 holds the run; a previous count of 0 (first run) never holds. */
     public static Verdict evaluate(RunStats stats, int maxDropPercent) {
         StringBuilder reason = new StringBuilder();
         if (shrunk(stats.incomingActiveOrgUnitCount(), stats.previousActiveOrgUnitCount(), maxDropPercent)) {

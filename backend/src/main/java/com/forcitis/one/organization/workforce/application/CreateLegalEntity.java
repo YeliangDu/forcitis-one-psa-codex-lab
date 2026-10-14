@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CreateLegalEntity {
-
     private final LegalEntityRepository legalEntities;
     private final AuditLog audit;
 

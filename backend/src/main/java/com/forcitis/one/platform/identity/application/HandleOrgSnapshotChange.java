@@ -11,12 +11,7 @@ import java.util.Optional;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Service;
 
-/**
- * Reacts to a committed organisation sync (RULE-338/344/363/366): separated people lose every session at once; people who
- * changed are looked up again - an employed person without an account gets one, with the default role granted once and
- * audited; a separated person is cut off and gets nothing. The per-request check of account and employment state
- * (SessionPrincipals) holds even if this event is late or lost, so revocation does not depend on it.
- */
+/** The per-request check (SessionPrincipals) holds even if this event is late or lost, so revocation does not depend on it. */
 @Service
 public class HandleOrgSnapshotChange {
 

@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.identity.domain;
 
-/** Port for password hashing (Argon2id lives in infrastructure). */
 public interface PasswordHasher {
 
     String hash(String password);

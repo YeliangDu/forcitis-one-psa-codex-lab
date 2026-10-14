@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.domain;
 
-/** Data exceptions found while syncing (reported to data stewards, never silently dropped). */
 public enum IssueKind {
     NULL_FLAG,
     DUPLICATE_UNIT,

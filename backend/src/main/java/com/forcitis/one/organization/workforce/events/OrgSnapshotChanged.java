@@ -4,10 +4,9 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.List;
 
-/** Published after a sync run commits (RULE-373). Identity revokes sessions of separatedEmployees (RULE-338/363/366). */
+/** Published after a sync run commits; identity revokes sessions of separatedEmployees. */
 public record OrgSnapshotChanged(List<UserId> changedEmployees, List<UserId> separatedEmployees,
                                  List<OrgUnitId> changedOrgUnits) {
-
     public OrgSnapshotChanged {
         changedEmployees = List.copyOf(changedEmployees);
         separatedEmployees = List.copyOf(separatedEmployees);

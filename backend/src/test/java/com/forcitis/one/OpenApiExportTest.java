@@ -25,11 +25,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.SerializationFeature;
 
-/**
- * Writes the application's OpenAPI document to frontend/packages/api/openapi.json. The frontend generates its types from
- * that file and its verify step fails when the generated code and the file differ. Keys are sorted so the file only
- * changes when the contract does.
- */
+/** Keys are sorted so the file only changes when the contract does. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000",
@@ -37,7 +33,6 @@ import tools.jackson.databind.SerializationFeature;
 @AutoConfigureMockMvc
 @Testcontainers
 class OpenApiExportTest {
-
     @MockitoBean
     OrgDirectory orgDirectory;
 

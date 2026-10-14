@@ -4,10 +4,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
 
-/** Non-negative duration in hours, 2 decimals. Use instead of a bare BigDecimal for any hours field. */
 @ValueObject
 public record Hours(BigDecimal value) {
-
     public static final Hours ZERO = new Hours(BigDecimal.ZERO);
 
     public Hours {
