@@ -223,3 +223,7 @@
 | 问「办理审批是否另需权限码、主管与 PMO 是否可看下属审批件」：「只认处理人；审批件跟随单据范围 (Recommended)」——办理只要求是处理人或候选人（含流程管理员），不另需权限码；待办列表登录即可；主管 / PMO 不因身份看审批件，按业务单据的数据范围（ADR-0026）看单据，审批记录跟随单据显示 | process/1a/审批通用流程.md（权限）；contract.md；需改代码清单 |
 | 问「1a 还有哪些设计需要现在考虑？所有表命名是否有标准？需要借鉴 dama 的标准吗」，选「全部在 1a 做 (Recommended)」（2026-10-14，psa-coordinator 当面询问） | NAMING_STANDARD §2.4（列名类别词、约束与索引命名）、§2.5（列级敏感分级）；backend DdlNamingTest、architecture/ddl-naming-baseline.txt、data-classification.txt；GUIDING_PRINCIPLES §6（主数据、数据安全、1a 表保留期建议值、ID 策略待定）；1a 改名清单交 psa-coordinator |
 | 命名标准两处改动（_number 代替 _no、补充的类别词）与 1a 表保留期建议值：「都认可 (Recommended)」（2026-10-14，psa-coordinator 当面询问） | NAMING_STANDARD §2.4 维持（已认可）；GUIDING_PRINCIPLES §6「Phase 1a 表的保留与归档」改为已决定；删除对应 STATUS 阻塞 |
+| 数据打分卡 T1：「现在就在交易库建版本表 (Recommended)」 | org_unit_versions、assignment_versions 只追加、带生效区间与排他约束，同步时写入；按事实发生时组织授权与 L1 以此为准（下一批 B） |
+| 数据打分卡 T2：「禁止修改，例外由组织数据管理员操作并审计 (Recommended)」 | 工作日历今天之前的日期不可改；例外入口限组织数据管理员、必审计；已算出的审批时效不重算（下一批 B） |
+| 数据打分卡 T3 / ACT_HI_* / T5：「三项都按建议 (Recommended)」 | consumed_events 保留 90 天并有清理作业；ACT_HI_* 在线 3 年、归档至满 10 年；员工加 separation_date（A8 视图能提供时；不能提供则报 psa-coordinator）（下一批 B） |
+| 数据打分卡 T4：「Phase 2 定：删除或登记为可重算投影 (Recommended)」 | phase1a/DEFERRED.md（工作包属交付模块，1a 只是骨架） |
