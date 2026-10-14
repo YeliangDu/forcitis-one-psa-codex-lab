@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 /** Doubtful or out-of-scope people answer "unknown": login fails closed and the next sync decides. */
 @Component
 class LoginMissRegistration {
-
     private static final Logger LOG = LoggerFactory.getLogger(LoginMissRegistration.class);
 
     private final OrgSnapshotRepository snapshots;
@@ -64,7 +63,6 @@ class LoginMissRegistration {
         return Optional.empty();
     }
 
-    /** Same leader rule as the sync (RULE-372): exists, employed, not the person. */
     private UserId validSupervisor(SourceMember member) {
         UserId leader = member.supervisorId();
         if (leader == null || leader.equals(member.userId())) {

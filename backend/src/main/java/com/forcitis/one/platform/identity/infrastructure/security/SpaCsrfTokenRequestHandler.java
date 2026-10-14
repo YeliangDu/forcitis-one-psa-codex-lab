@@ -9,10 +9,7 @@ import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.util.StringUtils;
 
-/**
- * CSRF for a single-page app (Spring Security reference, "Single-Page Applications"): the token is BREACH-protected when
- * rendered, but the SPA reads the raw value from the XSRF-TOKEN cookie and writes it back in the X-XSRF-TOKEN header.
- */
+/** The rendered token is BREACH-protected, but the SPA reads the raw value from the XSRF-TOKEN cookie and writes it back in the X-XSRF-TOKEN header. */
 final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
 
     private final CsrfTokenRequestHandler plain = new CsrfTokenRequestAttributeHandler();

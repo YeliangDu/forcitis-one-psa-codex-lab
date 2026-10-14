@@ -29,9 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.event.ApplicationEvents;
 
-/** The OrgDirectory contract over a synced snapshot, including the single-person lookup at login. */
 class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
-
     @Autowired
     OrgDirectory directory;
 

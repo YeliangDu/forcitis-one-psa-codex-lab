@@ -14,9 +14,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Reconciliation queries of the exit criterion "组织零差异": employed people, org units, reporting relations. */
 class OrgReconciliationTest {
-
     private static SourceSnapshot sourceSnapshot() {
         return tree(member(1, 2, 100L, null), member(2, 3, 101L, 1L), member(3, 3, 101L, 1L), member(4, 2, 100L, null, null, null));
     }

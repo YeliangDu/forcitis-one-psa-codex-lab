@@ -26,11 +26,7 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-/**
- * Starts and ends the server-side session of the current request. Starting a session changes the session id (no session
- * fixation, RULE-333) and rotates the CSRF token; the principal name index (the user id) lets every session of a user be
- * found and deleted at once (RULE-338).
- */
+/** The principal name index (the user id) lets every session of a user be found and deleted at once. */
 @Component
 class ServletSessionRegistry implements SessionRegistry {
 

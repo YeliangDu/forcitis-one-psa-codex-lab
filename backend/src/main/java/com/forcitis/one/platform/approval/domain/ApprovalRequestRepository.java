@@ -6,22 +6,15 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.util.List;
 import java.util.Optional;
 
-/** Port for approval_requests and start_rounds (JDBC in infrastructure.persistence). */
 public interface ApprovalRequestRepository {
 
-    /**
-     * Inserts the row if absent and returns it locked (FOR UPDATE) until the transaction ends, so concurrent starts of
-     * the same document serialise (RULE-264/266). The unique key is (processKey, businessKey).
-     */
+    /** Returns the row locked (FOR UPDATE) until the transaction ends, so concurrent starts of one document serialise. */
     ApprovalRequestRecord lockOrCreate(ProcessKey processKey, String businessKey, UserId initiator);
 
-    /** Locks the request of an instance for the rest of the transaction; empty when the instance is unknown. */
     Optional<ApprovalRequestRecord> lockByInstance(ApprovalInstanceId instanceId);
 
-    /** Records round number {@code round} with its instance (start_rounds unique on type, key, round) and sets RUNNING. */
     void beginRound(ProcessKey processKey, String businessKey, int round, UserId initiator, ApprovalInstanceId instanceId);
 
-    /** Every round of the document, oldest first: who started it and which instance ran it (history is kept round by round). */
     List<ApprovalRound> rounds(ProcessKey processKey, String businessKey);
 
     void updateStatus(ApprovalInstanceId instanceId, ApprovalStatus status, String reason);

@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
-/** Alert inputs of REIMAGINED_ARCHITECTURE section 3.9: deliveries still pending after 10 minutes, and dead letters. */
 @Component
 class DeliveryMetrics {
 

@@ -15,11 +15,7 @@ import java.util.OptionalLong;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Break-glass login (C1a-04, RULE-316/317): only from the internal network, Argon2id password plus TOTP, 5 failures lock the
- * account for 15 minutes. Unknown login name, wrong password, wrong code, locked and disabled all look the same to the
- * caller and cost about the same time (RULE-316). The caller's address is the one resolved through the trusted proxies.
- */
+/** Unknown login name, wrong password, wrong code, locked and disabled all look the same and cost about the same time. */
 @Service
 public class LoginAsEmergencyAdmin {
 
@@ -92,7 +88,7 @@ public class LoginAsEmergencyAdmin {
         try {
             return Totp.verify(vault.open(admin.totpSecretEncrypted()), code, now, TOTP_WINDOW_STEPS);
         } catch (IllegalStateException vaultUnavailable) {
-            // no encryption key configured, or the stored secret cannot be opened: fail closed, same answer as a wrong code
+            // fail closed: no key or an unreadable secret gives the same answer as a wrong code
             return OptionalLong.empty();
         }
     }

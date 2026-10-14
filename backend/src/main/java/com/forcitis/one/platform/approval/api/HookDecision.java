@@ -3,7 +3,7 @@ package com.forcitis.one.platform.approval.api;
 import java.util.List;
 import java.util.Objects;
 
-/** A hook's verdict. variableUpdates are written to the process before the task completes (RULE-277). */
+/** variableUpdates are written to the process before the task completes. */
 public record HookDecision(HookOutcome outcome, String message, List<ApprovalField> variableUpdates) {
 
     public HookDecision {

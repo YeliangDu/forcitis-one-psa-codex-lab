@@ -25,7 +25,6 @@ import org.flowable.common.engine.impl.util.io.InputStreamSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** The BPMN conventions that need no engine: one assignment rule per user task (RULE-262), strict rule types, variable mapping. */
 class BpmnRuleConventionsTest {
 
     static BpmnModel parse(String userTaskBody) {
@@ -190,7 +189,6 @@ class BpmnRuleConventionsTest {
         assertThat(back.formField("projectManagerId")).containsExactly("1", "2");
         assertThat(back.variable("initiatorId")).containsExactly("7");
         assertThat(back.variable("needs-seal")).containsExactly("true");
-        // a business field called initiatorId stays a business field
         ProcessVariables clash = new ProcessVariables(Map.of("initiatorId", List.of("999")), Map.of("initiatorId", List.of("7")));
         assertThat(EngineVariables.fromEngine(EngineVariables.toEngine(clash)).variable("initiatorId")).containsExactly("7");
     }

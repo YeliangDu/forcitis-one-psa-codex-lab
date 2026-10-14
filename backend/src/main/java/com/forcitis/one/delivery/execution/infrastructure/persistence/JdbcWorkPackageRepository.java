@@ -9,10 +9,8 @@ import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** SQL touches only the delivery schema; rows are mapped straight into typed value objects. */
 @Repository
 class JdbcWorkPackageRepository implements WorkPackageRepository {
-
     private final JdbcClient jdbc;
 
     JdbcWorkPackageRepository(JdbcClient jdbc) {

@@ -4,7 +4,7 @@ import com.forcitis.one.platform.approval.domain.ResolutionKind;
 import java.util.List;
 import java.util.Map;
 
-/** Outcome of a replay: counts per verdict and the details of every node that is not a plain MATCH. Ids only, no names. */
+/** Ids only, no names. */
 record ReplayReport(String processKey, int instances, int nodes, Map<ReplayVerdict, Integer> verdictCounts,
                     Map<ResolutionKind, Integer> resolutionCounts, List<Difference> differences) {
 
@@ -14,7 +14,6 @@ record ReplayReport(String processKey, int instances, int nodes, Map<ReplayVerdi
         differences = List.copyOf(differences);
     }
 
-    /** One node whose old approvers are not all in the new candidate set. */
     record Difference(String instanceId, String nodeKey, String ruleType, ReplayVerdict verdict, ResolutionKind resolution,
                       List<Long> candidates, List<Long> actualApprovers, String note) {
     }
@@ -23,7 +22,6 @@ record ReplayReport(String processKey, int instances, int nodes, Map<ReplayVerdi
         return verdictCounts.getOrDefault(verdict, 0);
     }
 
-    /** The gate of the exit condition: no unexplained difference. */
     boolean hasDefects() {
         return count(ReplayVerdict.DEFECT) > 0;
     }

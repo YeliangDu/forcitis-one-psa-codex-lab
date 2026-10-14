@@ -9,14 +9,10 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * Role maintenance rules (RULE-345): reserved code super_admin, unique name and code (checked by the repository), system
- * roles frozen, new roles start at the least-privilege scope SELF. roleId is null until the role is stored.
- */
+/** Reserved code super_admin; new roles start at the least-privilege scope SELF. */
 public record Role(RoleId roleId, RoleCode code, String name, RoleKind kind, RoleStatus status, AccessScopeKind accessScope,
                    boolean administrative, Set<String> permissionCodes) {
 
-    /** The reserved break-glass role code (RULE-340). */
     public static final RoleCode SUPER_ADMIN = new RoleCode("super_admin");
     private static final Pattern CODE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,63}");
     private static final Set<String> KNOWN_PERMISSIONS = Arrays.stream(Permission.values())
@@ -35,7 +31,6 @@ public record Role(RoleId roleId, RoleCode code, String name, RoleKind kind, Rol
         return code.value().equalsIgnoreCase(SUPER_ADMIN.value());
     }
 
-    /** A new custom role: enabled, default scope SELF (RULE-345), never administrative, never the reserved code. */
     public static Role newCustom(RoleCode code, String name, Set<String> permissionCodes) {
         if (isReserved(code)) {
             throw new RoleRuleException(RoleViolation.RESERVED_CODE);
@@ -48,7 +43,6 @@ public record Role(RoleId roleId, RoleCode code, String name, RoleKind kind, Rol
         return new Role(null, code, name.strip(), RoleKind.CUSTOM, RoleStatus.ENABLED, AccessScopeKind.SELF, false, permissionCodes);
     }
 
-    /** Edit a custom role; the code never changes. System roles are frozen. */
     public Role revise(String newName, RoleStatus newStatus, AccessScopeKind newScope, Set<String> newPermissionCodes) {
         requireModifiable();
         requireName(newName);

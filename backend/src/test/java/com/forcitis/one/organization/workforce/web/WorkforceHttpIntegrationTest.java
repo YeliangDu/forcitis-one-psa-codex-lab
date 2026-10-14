@@ -31,9 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-/** The three HTTP surfaces: org tree, sync records, release of a held run - permissions, shapes and statuses. */
 class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
-
     static final String ORG_UNITS = "/api/v1/organization/org-units";
     static final String SYNC_RUNS = "/api/v1/organization/sync-runs";
 

@@ -20,15 +20,10 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * SECURITY_INVARIANTS I-9 (SEC-121): one-time credentials are consumed atomically. N parallel presentations of the same
- * Seeyon ticket, signed-ticket nonce or OAuth state give exactly one session.
- */
 class OneTimeCredentialConcurrencyIntegrationTest extends IdentityIntegrationTest {
 
     static final int ATTEMPTS = 16;
 
-    /** Runs the same request on ATTEMPTS threads released together; returns the HTTP statuses. */
     private List<Integer> race(Callable<Integer> request) throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(ATTEMPTS);
         CountDownLatch ready = new CountDownLatch(ATTEMPTS);

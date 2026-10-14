@@ -20,9 +20,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Org unit rules of RULE-354..357 and 360 (acceptance tests named after the rule ids). */
 class OrgUnitSyncRulesTest {
-
     @Test
     @DisplayName("RULE-354 the parent is the one the source names (the adapter has resolved it); the root has none")
     void parentComesFromTheSource() {

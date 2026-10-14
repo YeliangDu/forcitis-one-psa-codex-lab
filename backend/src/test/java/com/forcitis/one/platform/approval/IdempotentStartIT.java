@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 
-/** RULE-264/266/278/314: starts are idempotent per (process type, business key) and rounds are unique, even under concurrency. */
 class IdempotentStartIT extends ApprovalIntegrationSupport {
 
     @Autowired
@@ -137,7 +136,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (process_key, business_key, round_number,"
                 + " initiator_id, instance_id) values ('COST_TIMESHEET_APPROVAL', ?, 1, 5, 'b')", key))
                 .isInstanceOf(DuplicateKeyException.class);
-        // the same business key under another process type is another document (RULE-266 keyed by process type)
+        // the same business key under another process type is another document
         jdbc.update("insert into platform_approval.start_rounds (process_key, business_key, round_number, initiator_id, instance_id)"
                 + " values ('OTHER_TYPE', ?, 1, 5, 'c')", key);
     }

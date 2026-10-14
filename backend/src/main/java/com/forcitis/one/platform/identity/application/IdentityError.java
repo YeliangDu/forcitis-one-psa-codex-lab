@@ -2,10 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.ErrorCode;
 
-/**
- * Business errors of platform.identity (G48: {SUBDOMAIN}_{BC}_{REASON}). Login errors are deliberately coarse: a caller
- * learns "the credential is not acceptable", never which check failed; the precise reason goes to the audit trail.
- */
+/** Login errors are coarse: the caller never learns which check failed; the audit trail has the reason. */
 public enum IdentityError implements ErrorCode {
     PLATFORM_IDENTITY_CREDENTIALS_INVALID,
     PLATFORM_IDENTITY_NETWORK_DENIED,

@@ -44,11 +44,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Shared set-up of the identity integration tests: one PostgreSQL 18 container for the whole test run, so the Spring context is
- * built once. WeCom, the portal ticket check, the organisation directory and the audit trail belong to other modules and are
- * doubles; nothing real is contacted.
- */
+/** WeCom, the portal ticket check, the organisation directory and the audit trail belong to other modules and are doubles. */
 @SpringBootTest(properties = {
         "flowable.async-executor-activate=false",
         "forcitis.platform.identity.sso.enabled=true",
@@ -58,9 +54,8 @@ import tools.jackson.databind.json.JsonMapper;
 @Import(IdentityIntegrationTest.ClockConfiguration.class)
 abstract class IdentityIntegrationTest {
 
-    /** Base64 of 32 random bytes, generated per test run: a throw-away key for the TOTP vault (no key literal in the repo). */
+    /** Throw-away key per test run (no key literal in the repo). */
     static final String TOTP_KEY = Base64.getEncoder().encodeToString(randomBytes(32));
-    /** HMAC key of the ticket issuer "km", generated per test run (64 hex characters). */
     static final String KM_KEY = HexFormat.of().formatHex(randomBytes(32));
 
     static byte[] randomBytes(int length) {
@@ -122,10 +117,7 @@ abstract class IdentityIntegrationTest {
     @Autowired
     AccessCache accessCache;
 
-    /**
-     * The real CSRF handshake of the single-page app: the XSRF-TOKEN cookie written back in the X-XSRF-TOKEN header. (Not
-     * spring-security-test's csrf(): that swaps the CSRF repository of the whole shared context for one that uses sessions.)
-     */
+    /** Not spring-security-test's csrf(): that swaps the CSRF repository of the whole shared context. */
     static RequestPostProcessor xsrf() {
         return request -> {
             request.setCookies(java.util.stream.Stream.concat(
@@ -151,13 +143,10 @@ abstract class IdentityIntegrationTest {
         jdbc.sql("delete from platform_identity.roles where kind = 'CUSTOM'").update();
     }
 
-    // ---------- organisation doubles ----------
-
     static EmployeeProfile profile(long id, EmploymentStatus status) {
         return new EmployeeProfile(new UserId(id), "Employee " + id, new OrgUnitId(10), new WecomUserId("wx" + id), status, false);
     }
 
-    /** The directory knows this person, by id and by WeCom user id wx{id}; their org unit exists. */
     EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
         EmployeeProfile profile = profile(id, status);
         when(orgDirectory.findEmployee(profile.userId())).thenReturn(Optional.of(profile));
@@ -166,12 +155,9 @@ abstract class IdentityIntegrationTest {
         return profile;
     }
 
-    /** A WeCom code that WeCom accepts for this person. */
     void wecomAccepts(String code, WecomEntry entry, long id) {
         when(wecomGateway.resolveWecomUserId(code, entry)).thenReturn(Optional.of(new WecomUserId("wx" + id)));
     }
-
-    // ---------- database helpers ----------
 
     void createAccount(long id, String... roleCodes) {
         jdbc.sql("insert into platform_identity.user_accounts (user_id) values (:id) on conflict do nothing").param("id", id).update();
@@ -188,8 +174,6 @@ abstract class IdentityIntegrationTest {
         return jdbc.sql("select count(*) from platform_identity." + table).query(Long.class).single();
     }
 
-    // ---------- HTTP helpers ----------
-
     MvcResult postJson(String url, String body) throws Exception {
         return mvc.perform(post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn();
     }
@@ -198,7 +182,6 @@ abstract class IdentityIntegrationTest {
         return json.readTree(result.getResponse().getContentAsString());
     }
 
-    /** The value of a cookie set by the response (SESSION, XSRF-TOKEN); null when it was not set. */
     static String cookie(MvcResult result, String name) {
         for (String header : result.getResponse().getHeaders("Set-Cookie")) {
             if (header.startsWith(name + "=")) {
@@ -212,7 +195,6 @@ abstract class IdentityIntegrationTest {
         return result.getResponse().getHeaders("Set-Cookie").stream().filter(h -> h.startsWith(name + "=")).findFirst().orElse(null);
     }
 
-    /** Full WeCom workbench login for an employed, known person; returns the SESSION cookie value. */
     String loginWithWecom(long id) throws Exception {
         knownEmployee(id, EmploymentStatus.EMPLOYED);
         String code = "code-" + id;
@@ -225,8 +207,6 @@ abstract class IdentityIntegrationTest {
         }
         return cookie(result, "SESSION");
     }
-
-    // ---------- audit helpers ----------
 
     List<AuditEntry> recorded() {
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);

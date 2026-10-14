@@ -7,11 +7,7 @@ import java.util.regex.Pattern;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-/**
- * Signing keys of ticket issuers from environment variables (a KMS-backed implementation replaces this later). A reference is
- * "env:FORCITIS_TICKET_KEY_<NAME>"; any other variable name is refused so a database row cannot point at an unrelated secret.
- * Keys shorter than 32 characters are refused (fail-closed).
- */
+/** Only "env:FORCITIS_TICKET_KEY_<NAME>" references are accepted so a database row cannot point at an unrelated secret; keys under 32 characters are refused. */
 @Component
 class EnvironmentIssuerKeys implements IssuerKeys {
 

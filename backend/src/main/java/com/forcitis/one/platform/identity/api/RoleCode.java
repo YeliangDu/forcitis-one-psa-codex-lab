@@ -3,7 +3,7 @@ package com.forcitis.one.platform.identity.api;
 import com.forcitis.one.kernel.ValueObject;
 import java.util.Objects;
 
-/** Code of a role, e.g. "reviewer"; roles are data of platform.identity, no module spells a role code in code. */
+/** Roles are data of platform.identity; no module spells a role code in code. */
 @ValueObject
 public record RoleCode(String value) {
 

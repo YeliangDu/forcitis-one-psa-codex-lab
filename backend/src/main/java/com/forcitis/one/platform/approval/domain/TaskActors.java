@@ -2,10 +2,7 @@ package com.forcitis.one.platform.approval.domain;
 
 import com.forcitis.one.kernel.UserId;
 
-/**
- * Who may act on a task (I-7, RULE-276): the assignee once somebody has claimed it, otherwise any candidate.
- * Decided here, on the server, for every task operation (claim, decide, return); the engine's own complete() checks nothing.
- */
+/** The assignee once somebody has claimed, otherwise any candidate; the engine's own complete() checks nothing (I-7). */
 public final class TaskActors {
 
     private TaskActors() {

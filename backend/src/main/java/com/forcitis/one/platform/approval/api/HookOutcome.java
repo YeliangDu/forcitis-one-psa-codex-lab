@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.approval.api;
 
-/** Result of a BEFORE hook. Only ALLOW and NOT_APPLICABLE let the action commit (RULE-277). */
+/** Only ALLOW and NOT_APPLICABLE let the action commit. */
 public enum HookOutcome {
     ALLOW,
     NOT_APPLICABLE,

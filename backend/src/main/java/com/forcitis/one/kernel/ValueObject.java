@@ -6,7 +6,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Marks an immutable, self-validating value object. Enforced by ArchitectureRulesTest (must be a record). */
+/** Must be a record (ArchitectureRulesTest). */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

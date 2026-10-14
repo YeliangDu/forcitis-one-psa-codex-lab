@@ -7,10 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Navigation for one person (RULE-348): enabled pages whose permission the person holds, grouped under their enabled
- * directories; a directory with nothing visible below it disappears. Items whose parent is missing are dropped.
- */
+/** A directory with nothing visible below it disappears; items whose parent is missing are dropped. */
 public final class NavigationTree {
 
     private static final Comparator<NavigationItem> ORDER = Comparator.comparingInt(NavigationItem::sortOrder)
@@ -19,7 +16,6 @@ public final class NavigationTree {
     private NavigationTree() {
     }
 
-    /** enabledItems: only enabled items (the repository filters). */
     public static List<NavigationNode> visibleTo(Set<String> permissionCodes, List<NavigationItem> enabledItems) {
         Map<NavigationItemId, List<NavigationItem>> byParent = enabledItems.stream()
                 .filter(item -> item.parentItemId() != null)

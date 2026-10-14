@@ -12,12 +12,10 @@ public interface RoleRepository {
 
     List<Role> findAll();
 
-    /** Stores a new role; throws RoleRuleException(DUPLICATE_CODE / DUPLICATE_NAME) on a clash. */
+    /** Throws RoleRuleException(DUPLICATE_CODE / DUPLICATE_NAME) on a clash. */
     Role insert(Role role);
 
-    /** Replaces name, status, scope and the whole permission set (RULE-346); same duplicate rules as insert. */
     void update(Role role);
 
-    /** Also removes the role's account links and permission links (RULE-345). */
     void delete(RoleId roleId);
 }

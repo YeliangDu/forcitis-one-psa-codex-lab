@@ -19,7 +19,7 @@ type Editing = { mode: 'edit' | 'confirm'; rule: NumberingRule; draft: RuleDraft
 
 function saveFailure(error: unknown): string {
   const { status, body } = failureOf(error);
-  if (status === 422) return `编号模板或起始值不符合规则${typeof body === 'string' && body !== '' ? `（${body}）` : ''}`;
+  if (status === 422) return `编号模板或起始流水号不符合规则${typeof body === 'string' && body !== '' ? `（${body}）` : ''}`;
   return describeFailure(error);
 }
 
@@ -47,7 +47,7 @@ export function NumberingRulesPage() {
     { key: 'code', title: '单据类型代码', render: (rule) => rule.documentTypeCode ?? '—' },
     { key: 'pattern', title: '编号模板', render: (rule) => <code>{rule.pattern}</code> },
     { key: 'reset', title: '流水号重置周期', render: (rule) => RESET_POLICY_LABELS[rule.resetPolicy] ?? rule.resetPolicy },
-    { key: 'start', title: '起始值', render: (rule) => rule.startValue },
+    { key: 'start', title: '起始流水号', render: (rule) => rule.startValue },
     { key: 'capacity', title: '编号容量', render: (rule) => rule.capacity },
     {
       key: 'status',
@@ -93,7 +93,7 @@ export function NumberingRulesPage() {
             <TextField label="单据类型" value={DOCUMENT_TYPE_LABELS[editing.rule.documentType] ?? editing.rule.documentType} onChange={() => undefined} disabled />
             <TextField label="编号模板" value={editing.draft.pattern} onChange={(pattern) => setDraft({ pattern })} {...(problems.pattern === undefined ? {} : { error: problems.pattern })} />
             <SelectField label="流水号重置周期" value={editing.draft.resetPolicy} options={RESET_POLICY_OPTIONS} onChange={(resetPolicy) => setDraft({ resetPolicy })} />
-            <TextField label="起始值" type="number" value={editing.draft.startValue} onChange={(startValue) => setDraft({ startValue })} {...(problems.startValue === undefined ? {} : { error: problems.startValue })} />
+            <TextField label="起始流水号" type="number" value={editing.draft.startValue} onChange={(startValue) => setDraft({ startValue })} {...(problems.startValue === undefined ? {} : { error: problems.startValue })} />
           </>
         )}
       </Dialog>

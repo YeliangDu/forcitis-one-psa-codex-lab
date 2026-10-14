@@ -8,13 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Reconciliation queries of the exit criterion "组织零差异" (OrgReconciliationIT: 人员数、部门数、上级关系).
- * The expected state is what a sync of the source would produce from an empty snapshot - the same reconciler, so the
- * same rules (scope, isolation, leader validation) apply on both sides and only real drift shows up.
- */
+/** Expected state = a sync from an empty snapshot with the same reconciler, so only real drift shows up. */
 public final class OrgReconciliation {
-
     private OrgReconciliation() {
     }
 

@@ -4,11 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Explicit row visibility, passed to repositories (ADR-0009 §4; replaces the old implicit SQL rewrite, RULE-350).
- * Fail-closed: a scope with no grants, no people and no unrestricted flag permits nothing (RULE-351). Unrestricted is
- * only ever set deliberately (an enabled role with {@link AccessScopeKind#ALL}). Scopes of several roles combine by union.
- */
+/** Fail-closed: a scope with no grants, no people and no unrestricted flag permits nothing. */
 public record AccessScope(boolean unrestricted, Set<AccessGrant> grants, Set<UserId> ownerIds) {
 
     public AccessScope {
@@ -16,7 +12,6 @@ public record AccessScope(boolean unrestricted, Set<AccessGrant> grants, Set<Use
         ownerIds = Set.copyOf(ownerIds);
     }
 
-    /** Sees nothing. */
     public static AccessScope none() {
         return new AccessScope(false, Set.of(), Set.of());
     }
@@ -25,7 +20,6 @@ public record AccessScope(boolean unrestricted, Set<AccessGrant> grants, Set<Use
         return new AccessScope(true, Set.of(), Set.of());
     }
 
-    /** True when the scope can never match a row (RULE-351: an empty scope returns zero rows). */
     public boolean isEmpty() {
         return !unrestricted && grants.isEmpty() && ownerIds.isEmpty();
     }

@@ -23,21 +23,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
-/**
- * Guard rails for humans and coding agents. Each rule says WHERE code goes and WHAT it may touch;
- * a violation fails the build with the rule text, which tells the agent how to fix it.
- */
 class ArchitectureRulesTest {
-
     static final String ROOT = "com.forcitis.one";
-    /** Narrow-interface budget: total public methods a module may expose in its api package. */
     static final int MAX_API_METHODS_PER_MODULE = 12;
 
     static final JavaClasses CLASSES = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages(ROOT);
-
-    // ---------- deep modules, narrow interfaces ----------
 
     @Test
     void apiPackagesContainOnlyInterfacesAndRecords() {
@@ -86,8 +78,6 @@ class ArchitectureRulesTest {
                 .check(CLASSES);
     }
 
-    // ---------- layering inside a module ----------
-
     @Test
     void domainIsFrameworkFree() {
         noClasses().that().resideInAPackage("..domain..")
@@ -135,8 +125,6 @@ class ArchitectureRulesTest {
                 .because("use Spring's @Transactional on the use case only")
                 .check(CLASSES);
     }
-
-    // ---------- naming: predictable places, predictable names ----------
 
     @Test
     void controllersLiveInWebAndEndWithController() {
@@ -222,8 +210,6 @@ class ArchitectureRulesTest {
                 .check(CLASSES);
     }
 
-    // ---------- workflow engine, API versioning ----------
-
     @Test
     void flowableOnlyInsideApprovalInfrastructure() {
         noClasses().that().resideOutsideOfPackage(ROOT + ".platform.approval.infrastructure..")
@@ -249,8 +235,6 @@ class ArchitectureRulesTest {
                 .because("every endpoint is versioned (/api/v1/...); breaking changes go to v2 alongside v1")
                 .check(CLASSES);
     }
-
-    // ---------- value objects ----------
 
     @Test
     void valueObjectsAreRecords() {
@@ -309,8 +293,6 @@ class ArchitectureRulesTest {
                 .check(CLASSES);
     }
 
-    // ---------- failure modes seen in this repository (see AGENT_FAILURE_MODES.md) ----------
-
     @Test
     void timeComesFromAnInjectedClock() {
         noClasses().that().resideInAnyPackage("..domain..", "..application..")
@@ -346,8 +328,6 @@ class ArchitectureRulesTest {
                 .because("one use case per class: no god services, and no this.call() bypassing @Transactional")
                 .check(CLASSES);
     }
-
-    // ---------- authorization, typing, module contracts ----------
 
     @Test
     void everyHandlerIsAuthorizedOrExplicitlyPublic() {

@@ -2,7 +2,6 @@ package com.forcitis.one.platform.identity.domain;
 
 import com.forcitis.one.kernel.ValueObject;
 
-/** Typed id of a role. */
 @ValueObject
 public record RoleId(long value) {
 

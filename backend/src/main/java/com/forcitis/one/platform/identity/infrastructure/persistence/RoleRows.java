@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** Loads roles together with their permission links; shared by the role and account repositories. */
 final class RoleRows {
 
     private static final String COLUMNS = "r.role_id, r.code, r.name, r.kind, r.status, r.access_scope, r.is_administrative";

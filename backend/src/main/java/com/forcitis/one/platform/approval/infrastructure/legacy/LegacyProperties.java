@@ -2,12 +2,7 @@ package com.forcitis.one.platform.approval.infrastructure.legacy;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Read-only access to the old system's to-do view (REIMAGINED_ARCHITECTURE §3.6). All values come from the environment; there
- * is no default account. url blank = the old system is not connected (the merged inbox then reports legacyAvailable=false).
- * viewName is the ONE object the account may read (docs/modernization/phase1a/LEGACY_INBOX_VIEW.sql); detailUrlTemplate is the
- * old system's detail page with {processInstanceId} and {taskId} placeholders.
- */
+/** No default account; blank url means the old system is not connected; viewName is the ONE object the account may read. */
 @ConfigurationProperties("forcitis.platform.approval.legacy")
 record LegacyProperties(String url, String username, String password, String viewName, String detailUrlTemplate) {
 

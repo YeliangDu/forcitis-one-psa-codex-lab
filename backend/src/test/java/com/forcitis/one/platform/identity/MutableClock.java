@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 
-/** Real time plus an offset the test can move forward, so 60 s caches, 15 minute locks and 24 h caps need no sleeping. */
 final class MutableClock extends Clock {
 
     private volatile Duration offset = Duration.ZERO;

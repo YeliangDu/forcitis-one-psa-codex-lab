@@ -29,11 +29,6 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-/**
- * I-5 (SEC-117, the 1a part): an approval is started only by its owner's module with the current user as initiator; another
- * user can neither start it again nor resubmit it, and approval offers no HTTP start. The business-document half (a module
- * verifying that the caller owns the document) arrives with the first module that connects documents (1b quotation).
- */
 class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
 
     @Autowired
@@ -96,7 +91,6 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
                 && entry.actorId().equals(new UserId(userA))));
 
-        // the owner's module starts again through start: round 2 with a NEW instance, the fresh values
         ApprovalInstanceId round2 = start(documentOfB, userB, manager);
         assertThat(round2).isNotEqualTo(round1);
         assertThat(requestStatus(documentOfB)).isEqualTo("RUNNING");
@@ -104,7 +98,6 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where business_key = ?",
                 Integer.class, documentOfB)).isEqualTo(2);
         assertThat(instancesOf(documentOfB)).as("round 1 has ended, only round 2 runs").isEqualTo(1);
-        // a repeated call of the same start returns the running round instead of opening round 3
         assertThat(start(documentOfB, userB, manager)).isEqualTo(round2);
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where business_key = ?", Integer.class,
                 documentOfB)).isEqualTo(2);
@@ -123,7 +116,6 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
                 approvalRoutes.computeIfAbsent(pattern, p -> new java.util.ArrayList<>())
                         .add(entry.getKey().getMethodsCondition().getMethods() + " " + handler.getMethod().getName());
             }
-            // no request body may carry a document id, process type or initiator
             for (var parameter : handler.getMethodParameters()) {
                 if (parameter.hasParameterAnnotation(org.springframework.web.bind.annotation.RequestBody.class)) {
                     for (var component : parameter.getParameterType().getRecordComponents()) {

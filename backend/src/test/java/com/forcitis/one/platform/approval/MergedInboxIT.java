@@ -27,11 +27,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-/**
- * C1a-14 / RULE-261 / REIMAGINED_ARCHITECTURE §3.6 on synthetic data: new tasks (assigned to the user or open to a group the user
- * belongs to) plus the old system's tasks from the read-only view, row tasks merged per (instance, node), counted together, read
- * live every time (no cache), every old item with the link to the old system's detail page.
- */
 class MergedInboxIT extends ApprovalIntegrationSupport {
 
     @Autowired
@@ -62,10 +57,8 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         long colleague = newId();
         long initiator = newId();
         organisation.person(me, 1, null).person(colleague, 1, null).person(initiator, 1, null);
-        // new: one task open to me and a colleague (group), one task only for me
         newTaskFor(initiator, newKey("inbox"), me, colleague);
         newTaskFor(initiator, newKey("inbox"), me);
-        // old: three row tasks of (P1, N1) -> 1 to-do; (P1, N2) -> 1; (P2, N1) -> 1; plus a finished task and somebody else's task
         legacyRow(me, "r1", "P1-" + me, "N1", "2026-10-01T01:00:00Z", 1);
         legacyRow(me, "r2", "P1-" + me, "N1", "2026-10-01T02:00:00Z", 1);
         legacyRow(me, "r3", "P1-" + me, "N1", "2026-10-01T03:00:00Z", 1);
@@ -83,7 +76,6 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         assertThat(inbox.items().stream().filter(i -> i.source().name().equals("LEGACY")).map(i -> i.taskId()).toList())
                 .containsExactlyInAnyOrder("r3", "r4", "r5");
 
-        // the same figures over HTTP; the colleague sees only the shared new task and her own old row
         mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(me))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.newCount").value(2)).andExpect(jsonPath("$.legacyCount").value(3))
                 .andExpect(jsonPath("$.totalCount").value(5)).andExpect(jsonPath("$.legacyAvailable").value(true));

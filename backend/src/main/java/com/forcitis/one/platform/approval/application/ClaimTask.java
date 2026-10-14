@@ -8,10 +8,7 @@ import com.forcitis.one.platform.audit.api.AuditLog;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * A candidate claims a task (RULE-249/276). After the claim only the claimer may act (I-7). Claiming a task one already
- * holds is a harmless repeat; claiming one somebody else holds is refused as "not your task".
- */
+/** Claiming a task one already holds is a harmless repeat; one somebody else holds is refused. */
 @Service
 public class ClaimTask {
 

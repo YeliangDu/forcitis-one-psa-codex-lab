@@ -5,7 +5,6 @@ import com.forcitis.one.platform.numbering.api.DocumentType;
 import java.util.Objects;
 
 public record NumberingRule(DocumentType documentType, NumberingPattern pattern, long startValue, ConfirmationStatus confirmation) {
-
     public NumberingRule {
         Objects.requireNonNull(documentType, "documentType");
         Objects.requireNonNull(pattern, "pattern");
@@ -19,7 +18,6 @@ public record NumberingRule(DocumentType documentType, NumberingPattern pattern,
         }
     }
 
-    /** The rule as saved by an administrator: saving is the confirmation. */
     public static NumberingRule confirmed(DocumentType documentType, NumberingPattern pattern, long startValue) {
         return new NumberingRule(documentType, pattern, startValue, ConfirmationStatus.CONFIRMED);
     }

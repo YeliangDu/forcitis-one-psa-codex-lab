@@ -46,6 +46,6 @@ export function draftOf(rule: NumberingRule): RuleDraft {
 export function draftProblems(draft: RuleDraft): { pattern?: string; startValue?: string } {
   const problems: { pattern?: string; startValue?: string } = {};
   if (draft.pattern.trim() === '') problems.pattern = '请填写编号模板';
-  if (!/^\d+$/.test(draft.startValue) || Number(draft.startValue) < 1) problems.startValue = '起始值须为大于 0 的整数';
+  if (!/^\d+$/.test(draft.startValue) || Number(draft.startValue) < 1) problems.startValue = '起始流水号须为大于 0 的整数';
   return problems;
 }

@@ -6,10 +6,7 @@ import com.forcitis.one.platform.identity.domain.AccountRepository;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
-/**
- * Nobody may hand out more than they hold: someone who can edit roles must not be able to give themselves (or anybody)
- * permissions they lack, or an administrator role. Administrators are exempt.
- */
+/** Nobody may hand out more than they hold; administrators are exempt. */
 @Component
 class PrivilegeCeiling {
 

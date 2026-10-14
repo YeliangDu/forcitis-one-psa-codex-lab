@@ -11,7 +11,6 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** RULE-340..345: role rules, effective permissions, role-code checks. */
 class RoleTest {
 
     static Role custom(String code, Set<String> permissions) {

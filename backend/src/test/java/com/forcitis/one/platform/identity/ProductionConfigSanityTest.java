@@ -15,11 +15,6 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * SECURITY_INVARIANTS I-4 (SEC-116, old fixed SMS code 9999): the configuration that ships in src/main - which is what runs in
- * production, profiles included - must not carry a fixed, test or mock value for anything authentication-related, and the code
- * must not contain a built-in verification code or a mock / local-only login switch.
- */
 class ProductionConfigSanityTest {
 
     static final Path RESOURCES = Path.of("src/main/resources");

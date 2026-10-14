@@ -5,7 +5,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
-/** SHA-256 of credentials, so the database only ever holds hashes of one-time values. */
 public final class Digests {
 
     private Digests() {

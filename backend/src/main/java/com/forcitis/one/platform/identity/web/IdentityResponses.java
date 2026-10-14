@@ -4,7 +4,6 @@ import com.forcitis.one.platform.identity.application.IdentityError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-/** One place that maps business errors of this module to HTTP statuses. */
 final class IdentityResponses {
 
     private IdentityResponses() {

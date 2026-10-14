@@ -17,12 +17,8 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * §9a schema guard: organization_workforce holds organisation and identity master data only. It has no money
- * columns, and the module's api / events do not expose Money, AccountingPeriod or any decimal.
- */
+/** organization_workforce holds organisation and identity master data only (§9a): no money columns, no Money or decimal in api / events. */
 class WorkforceSchemaGuardTest {
-
     static final Path MIGRATIONS = Path.of("src/main/resources/db/migration/organization_workforce");
     static final Pattern CREATE_TABLE = Pattern.compile("CREATE TABLE\\s+([a-z0-9_.]+)\\s*\\((.*?)\\n\\);", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
     static final Pattern MONEY_NAME = Pattern.compile("(?i)(^|_)(amount|price|cost|salary|wage|balance|revenue|total|tax|currency|money|rate)(_|$)");

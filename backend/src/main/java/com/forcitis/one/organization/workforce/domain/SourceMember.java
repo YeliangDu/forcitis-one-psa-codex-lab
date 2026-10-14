@@ -5,14 +5,10 @@ import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.Objects;
 
-/**
- * One person as read from the source view and interpreted by the shared mapper (bulk sync and single-person lookup use
- * the same mapper). positionId, supervisorId, loginName, wecomUserId may be null. loginName is trimmed; blank means none.
- */
+/** Bulk sync and single-person lookup use the same mapper; loginName is trimmed, blank means none. */
 public record SourceMember(UserId userId, String employeeCode, String displayName, OrgUnitId orgUnitId,
                            PositionId positionId, UserId supervisorId, String loginName, String email, Gender gender,
                            WecomUserId wecomUserId, boolean feeEarner) {
-
     public SourceMember {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(employeeCode, "employeeCode");

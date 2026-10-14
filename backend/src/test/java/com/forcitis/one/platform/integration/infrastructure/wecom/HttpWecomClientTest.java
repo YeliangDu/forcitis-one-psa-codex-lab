@@ -36,7 +36,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
-/** The WeCom client against a WireMock stand-in. Credentials are generated per run; nothing here is a real value. */
 class HttpWecomClientTest {
 
     static final String TOKEN_PATH = "/cgi-bin/gettoken";

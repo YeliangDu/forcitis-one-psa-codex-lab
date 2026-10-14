@@ -6,11 +6,7 @@ import java.util.Collection;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
-/**
- * The authentication stored in the server-side session: only the user id (as the principal name), when and how the person
- * logged in. Authorities are NOT stored: they are resolved on every request from the live roles (cached for at most 60 s),
- * so a role change never waits for the session to end. Everything here is plain serialisable data.
- */
+/** Authorities are not stored: they are resolved on every request from the live roles. */
 final class IdentityAuthentication extends AbstractAuthenticationToken {
 
     @Serial

@@ -4,7 +4,6 @@ import com.forcitis.one.kernel.UserId;
 import java.time.Instant;
 import java.util.Objects;
 
-/** Break-glass credential holder (Argon2id password + TOTP). The person is an existing user account (roles come from it). */
 public record EmergencyAdmin(UserId userId, String loginName, String passwordHash, String totpSecretEncrypted,
                              long lastTotpStep, int failedAttempts, Instant lockedUntil, boolean enabled) {
 

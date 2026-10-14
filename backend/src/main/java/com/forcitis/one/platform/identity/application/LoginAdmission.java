@@ -13,11 +13,7 @@ import java.time.Instant;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
-/**
- * The single gate every login entry goes through (RULE-326/327): the person must be employed and their account enabled,
- * before any session exists. Success and failure are both audited (RULE-330); failures in their own transaction so they
- * survive a rollback. Must run inside the caller's transaction.
- */
+/** Failures are audited in their own transaction so they survive a rollback; must run inside the caller's transaction. */
 @Component
 class LoginAdmission {
 
@@ -40,7 +36,6 @@ class LoginAdmission {
         this.meters = meters;
     }
 
-    /** Empty when the person may log in; otherwise why not. Creates the account of a new employee on the way (RULE-344). */
     Optional<IdentityError> check(EmployeeProfile employee) {
         if (employee.employmentStatus() != EmploymentStatus.EMPLOYED) {
             return Optional.of(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED);
@@ -61,7 +56,7 @@ class LoginAdmission {
         return new LoginResult.Authenticated(userId.value(), absoluteExpiresAt);
     }
 
-    /** reason is for the audit trail only; it never reaches the caller. actor is null when no person could be identified. */
+    /** reason is for the audit trail only; it never reaches the caller. */
     LoginResult reject(IdentityError error, LoginMethod method, UserId actor, String reason) {
         String subject = actor == null ? "login:" + method.name() : "user-account:" + actor.value();
         audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason)));

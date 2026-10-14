@@ -19,11 +19,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** People, positions and reporting-line rules of RULE-362..367, 372 and 374 (acceptance tests named after the rule ids). */
 class EmployeeSyncRulesTest {
-
-    // ---------------------------------------------------------------- RULE-362 / 363 / 364
-
     @Test
     @DisplayName("RULE-362 a new person is registered with the source id and the WeCom user id from the first sync")
     void newPersonIsCreatedWithWecomUserId() {
@@ -84,8 +80,6 @@ class EmployeeSyncRulesTest {
         assertThat(rehire.separatedEmployees()).isEmpty();
     }
 
-    // ---------------------------------------------------------------- RULE-365
-
     @Test
     @DisplayName("RULE-365 source-authoritative columns are synced by value, an emptied leader and e-mail are written as empty")
     void explicitNullsAreWritten() {
@@ -127,8 +121,6 @@ class EmployeeSyncRulesTest {
         assertThat(employed(staff(apply(v1, next), 2001))).isTrue();
     }
 
-    // ---------------------------------------------------------------- RULE-366
-
     @Test
     @DisplayName("RULE-366 an employee who drops out of the source result set is a leaver candidate and is separated once")
     void missingPersonBecomesSeparated() {
@@ -144,8 +136,6 @@ class EmployeeSyncRulesTest {
         assertThat(again.hasChanges()).isFalse();
         assertThat(again.separatedEmployees()).isEmpty();
     }
-
-    // ---------------------------------------------------------------- RULE-367
 
     @Test
     @DisplayName("RULE-367 positions: new ones are added, disabled and deleted ones follow the source, ones no longer returned are deleted")
@@ -163,8 +153,6 @@ class EmployeeSyncRulesTest {
         assertThat(v2.positionsById().get(new PositionId(102)).status()).isEqualTo(PositionStatus.ACTIVE);
         assertThat(changes.stats().positionChangeCount()).isEqualTo(3);
     }
-
-    // ---------------------------------------------------------------- RULE-372
 
     @Test
     @DisplayName("RULE-372 a leader must exist, be employed, not be the person and not close a loop; failures are reported and not written")
@@ -191,8 +179,6 @@ class EmployeeSyncRulesTest {
                 IssueKind.SUPERVISOR_SEPARATED, IssueKind.SUPERVISOR_CYCLE, IssueKind.SUPERVISOR_CYCLE);
     }
 
-    // ---------------------------------------------------------------- WeCom id (RULE-322 / 362 / 374)
-
     @Test
     @DisplayName("RULE-362 one WeCom user id identifies one employed person: duplicates are stored for nobody and reported")
     void duplicateWecomUserIdIsNotStored() {
@@ -215,8 +201,6 @@ class EmployeeSyncRulesTest {
         assertThat(changes.stats().employedWithoutWecomCount()).isEqualTo(1);
         assertThat(changes.stats().incomingEmployedCount()).isEqualTo(2);
     }
-
-    // ---------------------------------------------------------------- RULE-373
 
     @Test
     @DisplayName("RULE-373 the change event and the diff report come from the same synced-field list; no change, no event content")

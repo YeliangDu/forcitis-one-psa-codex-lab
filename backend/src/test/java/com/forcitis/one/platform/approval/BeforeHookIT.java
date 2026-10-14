@@ -27,10 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/**
- * RULE-275/277/280/283: the BEFORE hook SPI. A test variant of the timesheet process names a hook on its department node; the
- * test deploys it as a newer version and removes it again. The hook is a scripted test double: 1a ships the SPI and the gate only.
- */
+/** The hook is a scripted test double; a test variant of the timesheet process names it on the department node and is deployed as a newer version. */
 class BeforeHookIT extends ApprovalIntegrationSupport {
 
     @Autowired
@@ -75,7 +72,6 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         return s;
     }
 
-    /** Starts the hooked process and approves the manager node, so that the department node (with the hook) is open. */
     ApprovalInstanceId atDepartmentNode(Staff s, String key) {
         ApprovalInstanceId instance = start(key, s.initiator(), s.manager());
         decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "ok")));

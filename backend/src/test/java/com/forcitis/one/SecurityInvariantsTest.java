@@ -15,13 +15,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
-/**
- * Security invariants that keep the legacy system's defects out of FORCITIS one (docs/modernization/phase1a/
- * SECURITY_INVARIANTS.md; user 2026-10-14: "老系统先不管，确保新系统没有这些缺陷"). SQL and HTTP payloads live in
- * strings, so these guards scan sources instead of bytecode.
- */
+/** SQL and HTTP payloads live in strings, so these guards scan sources instead of bytecode. */
 class SecurityInvariantsTest {
-
     static final Path MAIN = Path.of("src/main");
     static final Path ISSUER_ALLOWLIST = Path.of("architecture/ticket-issuers-allowlist.txt");
 

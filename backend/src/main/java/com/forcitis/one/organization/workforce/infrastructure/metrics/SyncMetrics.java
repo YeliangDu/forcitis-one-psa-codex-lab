@@ -11,15 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
-/**
- * Gauges for the alert "组织同步延迟" (REIMAGINED_ARCHITECTURE §3.9): seconds since the last successful sync (more than
- * two periods = alert), the number of runs held by the shrink guard (above 0 = alert), and the data-quality figure of
- * employed people without a WeCom user id (RULE-374). Values are read from the run log on every scrape; a failing
- * read reports NaN instead of failing the scrape.
- */
+/** Values are read from the run log on every scrape; a failing read reports NaN instead of failing the scrape. */
 @Component
 class SyncMetrics {
-
     private static final Logger LOG = LoggerFactory.getLogger(SyncMetrics.class);
 
     private final SyncRunRepository runs;

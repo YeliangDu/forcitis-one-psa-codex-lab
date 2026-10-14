@@ -1,2 +1,4 @@
-export { OrgUnitsPage } from './pages/org-units-page';
-export { SyncRunsPage } from './pages/sync-runs-page';
+import { lazy } from 'react';
+
+export const OrgUnitsPage = lazy(() => import('./pages/org-units-page').then((m) => ({ default: m.OrgUnitsPage })));
+export const SyncRunsPage = lazy(() => import('./pages/sync-runs-page').then((m) => ({ default: m.SyncRunsPage })));

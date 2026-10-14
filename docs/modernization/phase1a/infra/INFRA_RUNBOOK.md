@@ -84,15 +84,28 @@
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | PG 运行连接 | 是 |
 | `SPRING_FLYWAY_USER` / `_PASSWORD` | 迁移（仅部署） | 部署时 |
 | `FLOWABLE_SCHEMA_UPDATE` | 仅引擎安装 / 升级时为 true | 否 |
+| `FLOWABLE_ASYNC_EXECUTOR` | 流程引擎异步执行器开关（默认 true） | 否 |
 | `APPROVAL_PROCESS_ADMINISTRATOR_USER_ID` | 取不到审批人时的兜底人 | 是 |
 | `APPROVAL_TASK_URL_TEMPLATE` | 卡片跳转地址 | 否（有默认值） |
 | `EMERGENCY_TOTP_ENCRYPTION_KEY` | 应急管理员 TOTP 密钥加密（32 字节 Base64） | 是 |
 | `FORCITIS_TICKET_KEY_<KID>` | 签名票据签发方密钥；签发方默认关闭，当前白名单为空 | 否 |
 | `FORCITIS_TRUSTED_PROXIES` | 只信任 nginx（127.0.0.1） | 是 |
 | `SEEYON_OA_BASE_URL`、`LEGACY_LOGIN_URL` | 致远验票地址；失败时回老系统登录 | 是 |
-| 企业微信 corp id / secret / agent id | 新企业微信应用的**新值**（老应用的值已在老仓历史中泄露，I-8） | 是 |
-| 组织来源（A8 视图）连接与开关 | 组织同步 | 是 |
-| 老库只读连接与开关 | 合并待办、短名 | 是 |
+| `WECOM_ENABLED` | 企业微信网关与出站投递总开关（默认 false） | 否 |
+| `WECOM_BASE_URL` | 企业微信 API 地址（默认 `https://qyapi.weixin.qq.com`） | 否 |
+| `WECOM_CORP_ID`、`WECOM_AGENT_ID` | 新企业微信应用的**新值**（老应用的值已在老仓历史中泄露，I-8） | 启用时 |
+| `WECOM_APP_SECRET` | 同上，应用 secret，只写入 one.env 或 KMS | 启用时 |
+| `WECOM_RESTRICT_RECIPIENTS` | 是否只向白名单收件人发送（默认 true）；**生产必须为 false** | 是 |
+| `WECOM_RECIPIENT_ALLOWLIST` | 收件人白名单（`WECOM_RESTRICT_RECIPIENTS=true` 时生效，dev 联调用） | 否 |
+| `INTEGRATION_SEEYON_VIEWS_ENABLED` | 致远 A8 组织视图读取开关（默认 false） | 否 |
+| `A8_DB_URL` / `A8_DB_USERNAME` / `A8_DB_PASSWORD` | A8 视图只读连接（第 4 节的专用账号） | 启用时 |
+| `INTEGRATION_SEEYON_VALIDATE_ON_STARTUP` | 启动时校验 A8 账号只能读视图（默认 true） | 否 |
+| `A8_HEAD_RELATIONSHIP_TYPE_ID`、`A8_REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID`、`A8_DELIVERY_UNIT_YES_ENUM_ID`、`A8_FEE_EARNER_YES_ENUM_ID` | A8 中关系类型与枚举的编号（有默认值，与 A8 实例不一致时覆盖） | 否 |
+| `INTEGRATION_LEGACY_ENABLED` | 老 PSA 待办视图读取开关（默认 false） | 否 |
+| `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 老库只读连接（第 4 节的专用账号） | 启用时 |
+| `INTEGRATION_LEGACY_VALIDATE_ON_STARTUP` | 启动时校验老库账号只能读那一个视图（默认 true） | 否 |
+| `WORKFORCE_SYNC_ENABLED` | 从 A8 视图同步组织与人员的定时任务开关（默认 false） | 否 |
+| `WORKFORCE_SHORT_NAME_ENABLED` | 从老库同步组织短名的定时任务开关（默认 false） | 否 |
 | `SPRING_PROFILES_ACTIVE=dev` | 环境 | 是 |
 | 生产附加 | `springdoc.api-docs.enabled=false` | 生产 |
 

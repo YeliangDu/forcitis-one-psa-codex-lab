@@ -14,12 +14,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * An approver sends the approval back to its initiator (RULE-275). A reason is required and the node's BEFORE hook must
- * allow it. A return ends the round: the instance ends as "returned", the business module is told (ApprovalCompleted with
- * RETURNED), and the initiator - and only the initiator of that round (I-5) - starts a new round by submitting again.
- * Nothing is deleted: the history of every round stays.
- */
+/** A return ends the round; only that round's initiator (I-5) starts the next, and no history is deleted. */
 @Service
 public class ReturnToInitiator {
 

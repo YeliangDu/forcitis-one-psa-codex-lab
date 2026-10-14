@@ -6,10 +6,7 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.regex.Pattern;
 
-/**
- * CIDR allow-list for "internal network only" checks (emergency admin). Only IP literals are parsed - never a host name,
- * so a check can never trigger a DNS lookup. Anything unparsable is outside the list (fail-closed).
- */
+/** Only IP literals are parsed, never a host name, so a check can never trigger a DNS lookup. */
 public final class NetworkAllowList {
 
     private static final Pattern IPV4 = Pattern.compile("\\d{1,3}(\\.\\d{1,3}){3}");
@@ -24,7 +21,6 @@ public final class NetworkAllowList {
         this.ranges = ranges;
     }
 
-    /** Each entry is "a.b.c.d/len", an IPv6 CIDR, or a single address. */
     public static NetworkAllowList of(List<String> cidrs) {
         return new NetworkAllowList(cidrs.stream().map(String::trim).filter(s -> !s.isEmpty()).map(NetworkAllowList::range).toList());
     }
@@ -65,7 +61,7 @@ public final class NetworkAllowList {
         return new Range(new BigInteger(1, raw), prefix, bits);
     }
 
-    /** Raw bytes of an IPv4 / IPv6 literal; IPv4-mapped IPv6 addresses are returned as IPv4. Null when not a literal. */
+    /** IPv4-mapped IPv6 addresses are returned as IPv4. */
     private static byte[] literal(String text) {
         if (text == null) {
             return null;
@@ -75,7 +71,6 @@ public final class NetworkAllowList {
             return null;
         }
         try {
-            // an IP literal never triggers a name lookup
             return InetAddress.getByName(address).getAddress();
         } catch (UnknownHostException e) {
             return null;

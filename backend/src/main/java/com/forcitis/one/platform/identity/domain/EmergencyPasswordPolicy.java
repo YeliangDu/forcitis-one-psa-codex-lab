@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Emergency-admin password policy (RULE-317, user decision: employees have no password; emergency accounts need at least 12
- * characters and complexity). Returns the broken rules; empty means acceptable.
- */
+/** Emergency accounts need at least 12 characters and complexity (user decision). */
 public final class EmergencyPasswordPolicy {
 
     public static final int MIN_LENGTH = 12;

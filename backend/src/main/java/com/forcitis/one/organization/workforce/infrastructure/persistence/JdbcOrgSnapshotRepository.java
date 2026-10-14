@@ -31,11 +31,8 @@ import java.util.stream.Collectors;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** SQL touches only the organization_workforce schema. Writes are upserts of exactly the changed rows. */
 @Repository
 class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
-
-    /** Fixed key of the advisory lock that serialises snapshot writers. */
     private static final long WRITER_LOCK_KEY = 20261014131000L;
 
     private static final String SELECT_ORG_UNITS = """
@@ -236,8 +233,6 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
         }
         return changed;
     }
-
-    // ---------------------------------------------------------------- row mapping
 
     private static OrgUnit orgUnit(ResultSet rs) throws SQLException {
         return new OrgUnit(new OrgUnitId(rs.getLong("id")), rs.getString("code"), rs.getString("name"),

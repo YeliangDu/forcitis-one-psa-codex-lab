@@ -1,1 +1,3 @@
-export { NumberingRulesPage } from './pages/numbering-rules-page';
+import { lazy } from 'react';
+
+export const NumberingRulesPage = lazy(() => import('./pages/numbering-rules-page').then((m) => ({ default: m.NumberingRulesPage })));

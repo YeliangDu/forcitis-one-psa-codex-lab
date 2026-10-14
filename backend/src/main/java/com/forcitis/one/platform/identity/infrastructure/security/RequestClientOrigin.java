@@ -6,12 +6,7 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-/**
- * The caller's address as the servlet container resolved it. With server.forward-headers-strategy=native and
- * server.tomcat.remoteip.internal-proxies limited to nginx (config/platform_identity.properties), X-Forwarded-For is honoured
- * only when it comes from the trusted proxy; a header sent by a client directly or through an untrusted hop is ignored.
- * This is what the emergency admin's "internal network only" rule is judged on.
- */
+/** X-Forwarded-For is honoured only from the trusted proxy (config/platform_identity.properties); a header sent by a client is ignored. */
 @Component
 class RequestClientOrigin implements ClientOrigin {
 

@@ -14,90 +14,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: external
-  zh: 外部
-  en: External
-  snake: external
-  kind: attribute
-  bc: platform.integration
-  definition: 集成模块之外的系统；读取它们只经集成模块的防腐层
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: publication
-  zh: 发布
-  en: Publication
-  snake: publication
-  kind: event
-  bc: platform.integration
-  definition: 事件发布登记中的一行：一个事件对一个监听者的一次发布
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: listener
-  zh: 监听者
-  en: Listener
-  snake: listener
-  kind: role
-  bc: platform.integration
-  definition: 接收模块事件的方法或组件
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: serialized
-  zh: 序列化
-  en: Serialized
-  snake: serialized
-  kind: attribute
-  bc: platform.integration
-  definition: 事件内容转成文本后的形式
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: resubmission
-  zh: 重新投递
-  en: Resubmission
-  snake: resubmission
-  kind: event
-  bc: platform.integration
-  definition: 未完成的事件发布被再次投递给监听者
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: verifier
-  zh: 验证器
-  en: Verifier
-  snake: verifier
-  kind: role
-  bc: platform.integration
-  definition: 服务端核对外部凭证（如门户的单点登录票据）的端口
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: outbound_delivery
   zh: 外发投递
   en: OutboundDelivery
@@ -126,31 +42,12 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: retry
-  zh: 重试
-  en: Retry
-  snake: retry
-  kind: action
-  bc: platform.integration
-  definition: 投递失败后按退避间隔再次发送（30 秒、2 分钟、10 分钟、30 分钟、2 小时，最多 8 次）
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.7
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: sent
-  zh: 已发送
-  en: Sent
-  snake: sent
-  kind: state
-  bc: platform.integration
-  definition: 外发投递已被企业微信接受
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.7
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
+common_words:
+- external
+- listener
+- publication
+- resubmission
+- retry
+- sent
+- serialized
+- verifier

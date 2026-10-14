@@ -41,18 +41,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * platform.numbering, Phase 1a (C1a-16, ADR-0010): rule list and single read, the unified default template awaiting
- * confirmation, the document type code, and the "original number" search structure. All data is synthetic; nothing is
- * imported in 1a.
- */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=9001",
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
 @Testcontainers
 class NumberingRulesIT {
-
     @MockitoBean
     OrgDirectory orgDirectory;
 
@@ -112,8 +106,6 @@ class NumberingRulesIT {
         return tx.execute(status -> numbers.next(type, legalEntity, day).value());
     }
 
-    // ---------- rule list and single read ----------
-
     @Test
     @DisplayName("C1a-16 the rule list shows every rule; the quote starts on the unified default template, pending confirmation")
     void ruleListShowsTheDefaultQuoteTemplateAsPending() throws Exception {
@@ -145,8 +137,6 @@ class NumberingRulesIT {
             mvc.perform(get(path).with(user("8").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))).andExpect(status().isForbidden());
         }
     }
-
-    // ---------- confirmation and the type code ----------
 
     @Test
     @DisplayName("the quote's first number follows the unified format with the registered code QT")
@@ -190,8 +180,6 @@ class NumberingRulesIT {
                     + " confirmation_status = 'PENDING_CONFIRMATION' where document_type = 'QUOTE'").update();
         }
     }
-
-    // ---------- original numbers ----------
 
     @Test
     @DisplayName("C1a-16 an original number finds the new document, and the new document finds its original numbers")

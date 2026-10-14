@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 class LegalEntityDirectoryService implements LegalEntityDirectory {
-
     private final LegalEntityRepository legalEntities;
 
     LegalEntityDirectoryService(LegalEntityRepository legalEntities) {

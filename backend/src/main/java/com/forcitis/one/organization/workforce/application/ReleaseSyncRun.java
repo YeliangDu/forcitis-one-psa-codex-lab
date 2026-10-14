@@ -9,14 +9,9 @@ import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
-/**
- * An administrator releases a run held by the shrink guard (RULE-358/366): the sync is executed again right now with
- * the guard bypassed (it reads the source afresh, so the administrator releases what the source says now), and the held run is marked
- * released with the actor audited. Permission ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE is checked at the HTTP edge.
- */
+/** Re-runs the sync with the guard bypassed; it reads the source afresh, so the administrator releases what the source says now. */
 @Service
 public class ReleaseSyncRun {
-
     private final SyncRunRepository runs;
     private final SyncOrgSnapshot sync;
     private final RecordSyncRunRelease record;

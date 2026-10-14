@@ -16,11 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Sync records for administrators, and the manual release of a run held by the shrink guard (RULE-358/366). */
 @RestController
 @RequestMapping("/api/{version}/organization/sync-runs")
 class SyncRunController {
-
     private final ListSyncRuns listSyncRuns;
     private final GetSyncRun getSyncRun;
     private final ReleaseSyncRun releaseSyncRun;

@@ -15,11 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * C1a-13 / REIMAGINED_ARCHITECTURE §3.5 (a) on a SYNTHETIC export (made-up ids, no real person, no real organisation): the replay
- * computes every node's candidate set with the live AssigneeResolver from the exported old snapshot and compares by "every old
- * approver is in the new candidate set". Real exports stay in ~/.modernize/psa/ and never reach the repository.
- */
 class TimesheetApproverReplayIT {
 
     static final JsonMapper MAPPER = ReplayExport.mapper();

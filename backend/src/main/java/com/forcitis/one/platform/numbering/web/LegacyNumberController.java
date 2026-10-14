@@ -13,11 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Original-number search: from a legacy number to the new document, and from a new document to its legacy numbers. */
 @RestController
 @RequestMapping("/api/{version}/platform/legacy-numbers")
 class LegacyNumberController {
-
     private final FindDocumentByLegacyNumber findDocument;
     private final FindLegacyNumbersOfDocument findLegacyNumbers;
 

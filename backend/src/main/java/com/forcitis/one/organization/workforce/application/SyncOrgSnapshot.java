@@ -14,14 +14,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
-/**
- * One sync run end to end: record the run, read the source (outside any database transaction), then hand the
- * snapshot to the single write transaction. Failures never escape: the run is recorded FAILED, a counter is raised
- * for alerting and the snapshot stays as it was.
- */
+/** Reads the source outside any database transaction; failures never escape: the run is recorded FAILED and the snapshot stays. */
 @Service
 public class SyncOrgSnapshot {
-
     private static final Logger LOG = LoggerFactory.getLogger(SyncOrgSnapshot.class);
 
     private final OrgSource source;
@@ -39,7 +34,6 @@ public class SyncOrgSnapshot {
         this.clock = Clocks.from(clock);
     }
 
-    /** @param bypassShrinkGuard true only for the administrator's release of a held run */
     public SyncResult execute(SyncTrigger trigger, boolean bypassShrinkGuard) {
         SyncRunId run = runs.begin(trigger, clock.instant());
         SyncResult result;

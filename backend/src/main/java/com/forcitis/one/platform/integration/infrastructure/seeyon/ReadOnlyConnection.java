@@ -4,13 +4,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/**
- * A small read-only connection pool to the Seeyon database.
- * It is deliberately NOT a Spring DataSource bean: a second DataSource bean would make Spring Boot back off the
- * application's own PostgreSQL DataSource (Flyway, sessions, locks). The beans are qualified "seeyon" and
- * only platform.integration.infrastructure.seeyon may use it (ArchUnit: ExternalConnectionIsolationTest). Credentials come
- * from the environment through configuration; they are never logged.
- */
+/** Deliberately NOT a Spring DataSource bean: that would make Spring Boot back off the application's own PostgreSQL DataSource. */
 final class ReadOnlyConnection implements AutoCloseable {
 
     private final HikariDataSource dataSource;

@@ -1,8 +1,9 @@
 package com.forcitis.one.platform.identity.web;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
-/** Error body: the stable business code; legacyLoginUrl is the "back to the old system login" link after a failed portal login. */
+/** legacyLoginUrl is the "back to the old system login" link after a failed portal login. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-record ErrorResponse(String errorCode, String legacyLoginUrl) {
+record ErrorResponse(String errorCode, @Nullable String legacyLoginUrl) {
 }

@@ -26,12 +26,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** The new system does not carry the shape of the old one (SESSION_PLAYBOOK section 5, "old code is evidence only"). */
 class LegacyShapeTest {
-
     static final Path EXCEPTIONS = Path.of("architecture/legacy-shape-exceptions.txt");
 
-    /** Where an old identifier may be registered at all: the approved anti-corruption layers and nothing else. */
     static final List<String> APPROVED_AREAS = List.of(
             "src/main/java/com/forcitis/one/platform/integration/infrastructure/seeyon/",
             "src/test/java/com/forcitis/one/platform/integration/infrastructure/seeyon/",
@@ -42,7 +39,6 @@ class LegacyShapeTest {
             "src/main/java/com/forcitis/one/platform/approval/infrastructure/replay/",
             "src/test/java/com/forcitis/one/platform/approval/infrastructure/replay/");
 
-    /** The rules. */
     enum Rule {
         OLD_URL_PREFIX("old URL prefix /admin-api/ /app-api/ /rpc-api/"),
         OLD_BASE_TYPE("old result / page / base-class / tenant type"),
@@ -78,8 +74,6 @@ class LegacyShapeTest {
     record Allowed(String file, Set<Rule> rules, String reason) {
     }
 
-    // ---------------------------------------------------------------- patterns
-
     static final Pattern URL_PREFIX = Pattern.compile("/(admin|app|rpc)-api/");
     static final Pattern BASE_TYPE = Pattern.compile(
             "CommonResult|PageResult|PageParam|pageNo|BaseDO|TenantBaseDO|BaseMapperX|LambdaQueryWrapper|TenantContextHolder|@TenantIgnore");
@@ -101,14 +95,11 @@ class LegacyShapeTest {
     static final Pattern RULE_TYPE_NUMBER = Pattern.compile("\\bcase\\s+(?:\\d+\\s*,\\s*)*(?:9|10|20|21|22|30|31|32|33|40|50|60|70)\\b\\s*(?:->|:|,)");
     static final Pattern EXTERNAL_NAME = Pattern.compile("a8|seeyon|u8c|fenbeitong|yudao", Pattern.CASE_INSENSITIVE);
 
-    /** The guard tests directly in com.forcitis.one spell what they forbid; they are no module code. */
+    /** Guard tests spell what they forbid; they are no module code. */
     static final Pattern GUARD_TEST = Pattern.compile("src/test/java/com/forcitis/one/[^/]+\\.java");
 
     static final Pattern COMMENT_ON_LINE = Pattern.compile("(?im)^\\s*COMMENT\\s+ON\\b.*$");
 
-    // ---------------------------------------------------------------- scan
-
-    /** The directories that make up the code base, relative to the project (backend) root. */
     static final List<String> SCAN_ROOTS = List.of("src/main/java", "src/test/java", "src/main/resources/db/migration",
             "src/main/resources/processes", "src/main/resources/config", "src/test/resources");
     static final List<String> SCAN_FILES = List.of("src/main/resources/application.properties");
@@ -138,7 +129,6 @@ class LegacyShapeTest {
         return file.endsWith(".java") ? Kind.JAVA : file.endsWith(".sql") ? Kind.SQL : Kind.OTHER;
     }
 
-    /** The module a file belongs to (subdomain.bc), or "" when it belongs to none (guard tests, application.properties). */
     static String moduleOf(String file) {
         String javaRoot = "com/forcitis/one/";
         int at = file.indexOf(javaRoot);
@@ -165,7 +155,7 @@ class LegacyShapeTest {
         for (Path path : filesOf(project)) {
             String relative = project.relativize(path).toString().replace('\\', '/');
             if (relative.endsWith("/LegacyShapeTest.java") || GUARD_TEST.matcher(relative).matches()) {
-                continue; // the guard tests spell the forbidden names they guard against
+                continue;
             }
             String text;
             try {
@@ -254,7 +244,7 @@ class LegacyShapeTest {
         return text.substring(start, end < 0 ? text.length() : end).strip();
     }
 
-    /** Java text without comments (string literals and text blocks stay, so identifiers and strings are both matched). */
+    /** Java text without comments (string literals and text blocks stay). */
     static String code(String java) {
         StringBuilder out = new StringBuilder(java.length());
         int i = 0;
@@ -295,8 +285,6 @@ class LegacyShapeTest {
         return out.toString();
     }
 
-    // ---------------------------------------------------------------- exceptions
-
     static List<Allowed> exceptions(Path file) {
         List<Allowed> list = new ArrayList<>();
         if (!Files.isRegularFile(file)) {
@@ -328,8 +316,6 @@ class LegacyShapeTest {
         }));
         return hits.stream().filter(h -> !allowed.getOrDefault(h.file(), Set.of()).contains(h.rule())).toList();
     }
-
-    // ---------------------------------------------------------------- the real guard
 
     @Test
     @DisplayName("the code base carries no old-system shape: no hit outside the registered exceptions")
@@ -364,9 +350,6 @@ class LegacyShapeTest {
                 .as("the platform.integration names rule never needs an exception").doesNotContain(Rule.EXTERNAL_SYSTEM_NAME);
     }
 
-    // ---------------------------------------------------------------- injection: every rule fails
-
-    /** One violating sample per rule: file (relative to the project) and content. */
     static final Map<Rule, Map<String, String>> SAMPLES = samples();
 
     private static Map<Rule, Map<String, String>> samples() {

@@ -12,12 +12,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * Creates the account of an employed person on first sight (sync or first login) and grants the configured default role
- * explicitly, once, with an audit entry (RULE-344). An administrator who later removes the role is not overridden: the
- * grant happens only for the call that actually created the account. Separated people get nothing.
- * Must run inside the caller's transaction.
- */
+/** The default role is granted only for the call that created the account, so an administrator's later removal is not overridden. */
 @Component
 class AccountProvisioning {
 
@@ -34,7 +29,6 @@ class AccountProvisioning {
         this.defaultRole = defaultRole;
     }
 
-    /** True when this call created the account. */
     boolean ensureAccount(EmployeeProfile employee) {
         if (employee.employmentStatus() != EmploymentStatus.EMPLOYED) {
             return false;

@@ -6,10 +6,8 @@ import java.math.BigDecimal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Ops check: how many document types have a counter at or above warningRatio of their {seq:N} capacity. */
 @Service
 public class CheckCounterCapacity {
-
     private final NumberingRuleRepository rules;
 
     CheckCounterCapacity(NumberingRuleRepository rules) {

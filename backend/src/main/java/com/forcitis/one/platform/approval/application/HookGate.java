@@ -11,11 +11,7 @@ import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
-/**
- * The BEFORE-hook commit gate (RULE-277/283). Runs inside the decide transaction, before the task completes. A node
- * without a hook key has no hook; a key nobody registered blocks the action (never silently passes); two hooks with the
- * same key stop startup.
- */
+/** A node without a hook key has no hook; an unregistered key blocks the action, never silently passes. */
 @Component
 class HookGate {
 
@@ -29,7 +25,6 @@ class HookGate {
         });
     }
 
-    /** Returns the decision of a committing hook (its variable updates are applied by the caller); throws when blocked. */
     HookDecision check(TaskView task, UserId actor, HookAction action, String reason) {
         String key = task.beforeHookKey();
         if (key == null || key.isBlank()) {

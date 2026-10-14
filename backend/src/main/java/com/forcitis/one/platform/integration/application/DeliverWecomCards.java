@@ -14,10 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
-/**
- * Not transactional on purpose: the WeCom call must not hold a database transaction. Each delivery is claimed for a
- * lease first, so a crash between sending and recording means a resend after the lease, never a lost card.
- */
+/** Not transactional on purpose: the WeCom call must not hold a database transaction; a lease makes a crash mean a resend, never a lost card. */
 @Service
 public class DeliverWecomCards {
 

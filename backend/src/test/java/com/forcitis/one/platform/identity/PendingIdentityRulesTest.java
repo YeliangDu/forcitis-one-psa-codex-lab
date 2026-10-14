@@ -4,10 +4,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * Identity rules that are not part of what Phase 1a ships (each says why). They stay visible here so nobody believes they
- * are covered; enable them in the phase named in the reason.
- */
+/** Rules outside Phase 1a stay visible here so nobody believes they are covered; enable each in the phase named in its reason. */
 class PendingIdentityRulesTest {
 
     @Test

@@ -11,10 +11,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.session.config.SessionRepositoryCustomizer;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 
-/**
- * Wiring for platform.identity: its settings records, the shared Clock (time is always injected), asynchronous module
- * listeners (@ApplicationModuleListener needs @EnableAsync), and the idle timeout of the session repository.
- */
 @Configuration
 @EnableAsync
 @ConfigurationPropertiesScan("com.forcitis.one.platform.identity")
@@ -26,10 +22,7 @@ class IdentityConfiguration {
         return Clock.systemUTC();
     }
 
-    /**
-     * The session cookie: SESSION, HttpOnly, Secure and SameSite=Lax. Boot 4 no longer maps server.servlet.session.cookie.* onto
-     * Spring Session's serializer, so it is set here (WecomLoginIntegrationTest guards the attributes).
-     */
+    /** Boot 4 no longer maps server.servlet.session.cookie.* onto Spring Session's serializer, so the cookie is set here. */
     @Bean
     DefaultCookieSerializerCustomizer identityCookieSerializerCustomizer(SessionSettings settings) {
         return serializer -> {
@@ -40,7 +33,7 @@ class IdentityConfiguration {
         };
     }
 
-    /** Idle timeout of the session: 10 h by default, configurable (RULE-332). The absolute cap is enforced by SessionGuardFilter. */
+    /** The absolute cap is enforced by SessionGuardFilter. */
     @Bean
     SessionRepositoryCustomizer<JdbcIndexedSessionRepository> identitySessionRepositoryCustomizer(SessionSettings settings) {
         return repository -> repository.setDefaultMaxInactiveInterval(settings.idleTimeout());

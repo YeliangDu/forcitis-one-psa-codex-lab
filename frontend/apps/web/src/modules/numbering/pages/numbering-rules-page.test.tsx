@@ -51,7 +51,7 @@ describe('编号规则页', () => {
     expect(rowOf('报价单').getByRole('button', { name: '确认' })).toBeInTheDocument();
   });
 
-  it('编辑：提交新的模板、重置周期和起始值', async () => {
+  it('编辑：提交新的模板、重置周期和起始流水号', async () => {
     const server = stubServer({
       'GET sessions:current': { body: currentUserBody([READ, UPDATE]) },
       'GET numbering-rules': { body: RULES },
@@ -99,6 +99,6 @@ describe('编号规则页', () => {
     await userEvent.click(await within(screen.getByText('工时单').closest('tr') as HTMLElement).findByRole('button', { name: '编辑' }));
     await userEvent.click(await screen.findByRole('button', { name: '保存' }));
 
-    expect(await screen.findByText(/编号模板或起始值不符合规则/)).toBeInTheDocument();
+    expect(await screen.findByText(/编号模板或起始流水号不符合规则/)).toBeInTheDocument();
   });
 });

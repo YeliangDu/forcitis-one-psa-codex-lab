@@ -18,11 +18,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** The legal entity table is maintained here by administrators; it is not synchronised from anywhere. */
 @RestController
 @RequestMapping("/api/{version}/organization/legal-entities")
 class LegalEntityController {
-
     private final ListLegalEntities list;
     private final CreateLegalEntity create;
     private final UpdateLegalEntity update;

@@ -7,10 +7,7 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.time.Instant;
 import java.util.Set;
 
-/**
- * An open task as the engine port reports it. assignee is null until a candidate claims it; from then on only the
- * assignee may act (I-7, RULE-276). insideSubProcess decides what a reject means (RULE-271/290).
- */
+/** assignee is null until a candidate claims it; insideSubProcess decides what a reject means. */
 public record TaskView(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey, String businessKey,
                        String nodeKey, String nodeName, UserId initiator, UserId assignee, Set<UserId> candidates,
                        Instant createdAt, boolean insideSubProcess, String beforeHookKey) {

@@ -30,18 +30,13 @@ import org.flowable.identitylink.api.IdentityLinkType;
 import org.flowable.task.api.Task;
 import org.springframework.stereotype.Component;
 
-/**
- * The only adapter of the Flowable engine services (together with the listener / verifier next to it). It translates typed
- * calls into engine calls and engine tasks into {@link TaskView}s; it does not decide who may act (I-7 is decided by the
- * use cases with {@code TaskActors}), because Flowable's own claim / complete check nothing about the actor.
- */
+/** Flowable's own claim / complete check nothing about the actor, so I-7 is decided by the use cases with TaskActors. */
 @Component
 class FlowableApprovalEngine implements ApprovalEngine {
 
     static final String VARIABLE_INITIATOR = "initiatorId";
     static final String VARIABLE_BUSINESS_KEY = "businessKey";
     static final String VARIABLE_SKIPPED = "skippedWhenEmpty";
-    /** Task-local variable: epoch milliseconds at which the task was assigned. */
     static final String VARIABLE_ASSIGNED_AT = "assignedAtMillis";
 
     private final RuntimeService runtime;
@@ -148,8 +143,6 @@ class FlowableApprovalEngine implements ApprovalEngine {
         }
     }
 
-    // ---------- mapping ----------
-
     private TaskView view(Task task) {
         Definition definition = definition(task.getProcessDefinitionId());
         NodePolicy policy = nodeOf(task);
@@ -168,7 +161,6 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 createdAt(task), node.getSubProcess() != null, policy.beforeHookKey());
     }
 
-    /** Time the task was assigned, written by the assignment listener (no java.util.Date in this code base). */
     private static Instant createdAt(Task task) {
         Object millis = task.getTaskLocalVariables().get(VARIABLE_ASSIGNED_AT);
         return millis instanceof Number n ? Instant.ofEpochMilli(n.longValue()) : Instant.EPOCH;

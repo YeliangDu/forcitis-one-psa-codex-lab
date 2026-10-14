@@ -6,13 +6,9 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Accounting period: calendar year + month (ADR-0016 decision 8). Only the coordinates of a period; whether a period is open
- * or closed for a legal entity is state owned by accounting.period, not part of this type.
- */
+/** Calendar year + month; open/closed state lives in accounting.period, not here. */
 @ValueObject
 public record AccountingPeriod(int year, int month) implements Comparable<AccountingPeriod> {
-
     public static final int MIN_YEAR = 1900;
     public static final int MAX_YEAR = 9999;
 
@@ -31,12 +27,10 @@ public record AccountingPeriod(int year, int month) implements Comparable<Accoun
         return new AccountingPeriod(year, month);
     }
 
-    /** The period a business date falls into. */
     public static AccountingPeriod containing(LocalDate date) {
         return new AccountingPeriod(date.getYear(), date.getMonthValue());
     }
 
-    /** Parses the compact form yyyyMM, e.g. 202610. */
     public static AccountingPeriod parse(String compact) {
         Matcher m = COMPACT.matcher(Objects.requireNonNull(compact, "compact"));
         if (!m.matches()) {
@@ -61,7 +55,6 @@ public record AccountingPeriod(int year, int month) implements Comparable<Accoun
         return compareTo(other) > 0;
     }
 
-    /** Whether {@code other} is the period directly after this one. */
     public boolean isFollowedBy(AccountingPeriod other) {
         return next().equals(other);
     }
@@ -84,7 +77,6 @@ public record AccountingPeriod(int year, int month) implements Comparable<Accoun
         return byYear != 0 ? byYear : Integer.compare(month, other.month);
     }
 
-    /** Compact form yyyyMM. */
     @Override
     public String toString() {
         return String.format("%04d%02d", year, month);

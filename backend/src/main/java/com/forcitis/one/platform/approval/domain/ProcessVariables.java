@@ -8,11 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * The values an assignment rule may read. formFields come from the owning module (business data, RULE-258..260);
- * variables are set by the engine or by hooks (initiator, flags). Kept apart so a business field can never shadow
- * an engine variable. Values are lists of text; scalars are one-element lists.
- */
+/** formFields and variables are kept apart so a business field can never shadow an engine variable. */
 public record ProcessVariables(Map<String, List<String>> formFields, Map<String, List<String>> variables) {
 
     public ProcessVariables {
@@ -40,7 +36,7 @@ public record ProcessVariables(Map<String, List<String>> formFields, Map<String,
         return variable(name).stream().findFirst();
     }
 
-    /** Distinct user ids found in the values; blank, non-numeric and zero values are ignored (never an NPE, RULE-253). */
+    /** Blank, non-numeric and zero values are ignored. */
     public static Set<UserId> parseUsers(List<String> values) {
         List<UserId> found = new ArrayList<>();
         for (String raw : values) {

@@ -2,10 +2,11 @@ package com.forcitis.one.platform.audit.web;
 
 import com.forcitis.one.platform.audit.application.AuditEntryView;
 import java.time.Instant;
+import org.jspecify.annotations.Nullable;
 
 /** Ids are strings: they are signed 64-bit numbers that JavaScript cannot hold exactly. */
-record AuditEntryResponse(String entryId, Instant createdAt, String action, String actorId, String onBehalfOfId, String subjectKey,
-                          String detail) {
+record AuditEntryResponse(String entryId, Instant createdAt, String action, @Nullable String actorId, @Nullable String onBehalfOfId, String subjectKey,
+                          @Nullable String detail) {
 
     static AuditEntryResponse of(AuditEntryView view) {
         return new AuditEntryResponse(String.valueOf(view.entryId()), view.createdAt(), view.action(), text(view.actorId()),

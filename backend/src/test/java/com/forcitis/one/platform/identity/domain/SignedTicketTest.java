@@ -8,7 +8,6 @@ import java.util.Base64;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** C1a-03: format, signature and time window of a signed one-time ticket. */
 class SignedTicketTest {
 
     /** Random per run: no key literal in the repository (gitleaks). */

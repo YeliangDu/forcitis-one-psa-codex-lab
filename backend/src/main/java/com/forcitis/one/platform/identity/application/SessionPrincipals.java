@@ -12,11 +12,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Resolves who a session belongs to right now: account enabled, employee employed (RULE-326/327/338), and the permissions of
- * the enabled roles (RULE-343). The infrastructure caches the answer for at most 60 s and evicts on every change; this
- * class itself never caches. Anything unknown is ineligible (fail-closed).
- */
+/** Never caches itself (infrastructure caches for at most 60 s); anything unknown is ineligible (fail-closed). */
 @Service
 public class SessionPrincipals {
 

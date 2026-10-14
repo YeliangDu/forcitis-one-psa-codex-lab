@@ -15,10 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.web.servlet.MvcResult;
 
-/**
- * C1a-03 / RULE-318 / RULE-329: external systems start sessions with signed one-time tickets - per-issuer key, per-issuer
- * switch (default off), at most 60 seconds, nonce used once, never an administrator.
- */
 class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
 
     static final String LOGIN = "/api/v1/platform/sessions:ticket-login";

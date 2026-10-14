@@ -5,10 +5,7 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
-/**
- * forcitis.platform.integration.wecom.*: credentials come from environment variables only. Off by default: no
- * WeCom call is made, the delivery job does not run, and code exchange answers "unknown".
- */
+/** Off by default: no WeCom call, no delivery job; credentials come from environment variables only. */
 @ConfigurationProperties("forcitis.platform.integration.wecom")
 record WecomProperties(@DefaultValue("false") boolean enabled, @DefaultValue("https://qyapi.weixin.qq.com") String baseUrl,
                        @DefaultValue("") String corpId, @DefaultValue("") String secret, @DefaultValue("") String agentId,

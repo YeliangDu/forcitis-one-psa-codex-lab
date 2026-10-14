@@ -27,7 +27,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/** The 1a task lifecycle on the real engine and database: candidates, claim, decide, return, reject, resubmit, results. */
 class TaskLifecycleIT extends ApprovalIntegrationSupport {
 
     @Autowired
@@ -150,7 +149,6 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         assertThat(openTask(second).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
         assertThat(requests.rounds(ProcessKey.COST_TIMESHEET_APPROVAL, key)).extracting(r -> r.round(), r -> r.instanceId())
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(1, first), org.assertj.core.groups.Tuple.tuple(2, second));
-        // the history of round 1 is still there, round by round
         assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(first.value()).count()).isEqualTo(1);
         assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(first.value()).count()).isEqualTo(1);
     }

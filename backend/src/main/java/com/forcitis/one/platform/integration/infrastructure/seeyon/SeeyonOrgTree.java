@@ -10,13 +10,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Turns the hierarchy paths of the view rows into parent ids (RULE-354) so that the encoding stays inside the anti-corruption layer. */
 final class SeeyonOrgTree {
 
     private SeeyonOrgTree() {
     }
 
-    /** @throws ExternalSourceBrokenException when a unit is outside the sync root or its parent is missing */
     static List<SourceOrgUnit> resolve(List<OrgUnitRow> rows) {
         List<OrgUnitRow> sorted = rows.stream()
                 .sorted(Comparator.comparingInt((OrgUnitRow u) -> u.path().length())

@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** The pure assignment function on a synthetic organisation. Nothing here touches Spring, a database or the engine. */
 class AssigneeResolverTest {
 
     static final long ADMIN = 900;
@@ -64,10 +63,9 @@ class AssigneeResolverTest {
         assertThat(resolve(new AssignmentRule.DepartmentHead(null), 2, ProcessVariables.empty()).candidates()).isEqualTo(ids(110));
         // initiator 1 sits in unit 11, which has no head: the head of unit 10 takes it
         assertThat(resolve(new AssignmentRule.DepartmentHead(""), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(110));
-        // the unit comes from a process variable (RULE-257); unit 12's only head is separated -> unit 10's head
+        // the unit comes from a process variable; unit 12's only head is separated -> unit 10's head
         assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", "12")).candidates())
                 .isEqualTo(ids(110));
-        // an inactive (revoked) unit is skipped
         assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", "13")).candidates())
                 .isEqualTo(ids(110));
     }
@@ -204,7 +202,6 @@ class AssigneeResolverTest {
         assertThat(AssignmentRuleCodec.parse("DEPARTMENT_HEAD", n -> null)).isEqualTo(new AssignmentRule.DepartmentHead(null));
         assertThat(AssignmentRuleCodec.parse("DEPARTMENT_HEAD", n -> n.equals("department") ? "deliveryUnitId" : null))
                 .isEqualTo(new AssignmentRule.DepartmentHead("deliveryUnitId"));
-        // not written: nothing about a delivery unit or a role is assumed, the initiator's unit decides
         assertThat(resolve(new AssignmentRule.DepartmentHead(null), 1, variable("deliveryUnitId", "12")).candidates()).isEqualTo(ids(110));
     }
 
@@ -222,7 +219,6 @@ class AssigneeResolverTest {
         assertThat(AssignmentRuleCodec.DEFERRED_TYPES).containsExactlyInAnyOrder("REGIONAL_RECEIVABLES_MANAGER", "DEPARTMENT_DIRECTOR",
                 "FORM_FIELD_USER_SUPERVISORS");
         assertThat(AssignmentRuleCodec.NOT_BUILT_TYPES).containsExactlyInAnyOrder("NAMED_USERS", "PROCESS_VARIABLE_USERS");
-        // the initiator rework node went away with the new return mechanics (a return ends the round)
         assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR", n -> null)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR_LEADER", n -> "1")).isInstanceOf(IllegalStateException.class);
     }
