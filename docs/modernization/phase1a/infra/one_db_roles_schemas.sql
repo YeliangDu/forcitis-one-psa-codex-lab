@@ -55,6 +55,7 @@ CREATE SCHEMA platform_audit         AUTHORIZATION one_dev_owner;  -- 审计（�
 CREATE SCHEMA platform_numbering     AUTHORIZATION one_dev_owner;  -- 单据编号规则与计数
 CREATE SCHEMA platform_scheduling    AUTHORIZATION one_dev_owner;  -- ShedLock
 CREATE SCHEMA organization_workforce AUTHORIZATION one_dev_owner;  -- 组织快照（过渡态，来源可替换）
+CREATE SCHEMA organization_attendance AUTHORIZATION one_dev_owner;  -- 工作日历（考勤与休假 BC，1a 只含工作日历）
 -- 注：骨架中的样例模块 cost.timesheet / delivery.execution（delivery_execution）不在 1a 上线范围，生产前移除，不建 schema
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -81,7 +82,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT S
 
 -- 运行角色不得建对象
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
-                        platform_scheduling, organization_workforce, one_migration FROM one_dev_app, one_dev_readonly;
+                        platform_scheduling, organization_workforce, organization_attendance, one_migration FROM one_dev_app, one_dev_readonly;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §4 Flowable 引擎表（ACT_*）
@@ -94,5 +95,5 @@ REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integrati
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
---             platform_scheduling, organization_workforce, one_migration CASCADE;
+--             platform_scheduling, organization_workforce, organization_attendance, one_migration CASCADE;
 -- DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_owner;
