@@ -37,8 +37,18 @@ Companion to `security_remediation.patch` (shareable) and `~/.modernize/psa/secu
   |---|---|
   | SEC-114 (Low): the framework `/rpc-api` filter ran at order 0, after Spring Security (-100) and the tenant security filter (-99) | New `WebFilterOrderEnum.INTERNAL_RPC_TOKEN_FILTER = ENV_TAG_FILTER + 1` (`Integer.MIN_VALUE + 3`); the auto-configuration uses it. A request without a valid token now gets 401 before Spring Security runs. See the SEC-114 section. |
   | SEC-115 (Low): `SocialUserApi` mappings had no `PREFIX`, so system served them at `/get-authorize-url`, `/bind`, `/unbind`, `/get-bind-user-id` | All 4 mappings now use `PREFIX` (`/rpc-api/system/social-user/...`), so the `/rpc-api` filter guards them. Every other `@FeignClient` interface was checked; none has the same gap. See the SEC-115 section. |
+- Round 7 (2026-10-14, session `psa-sec-hotfix`) adds four findings from the Phase 1a spec work (`phase1a/INTERFACES.md`, `rules/IDENTITY_ORG_RULES.md` RULE-328 / RULE-376) and two from the r7 review. Only the shareable patch changed (67 → **84** files); the local patch is unchanged and touches none of the r7 files.
+
+  | Finding | Change |
+  |---|---|
+  | SEC-116 (Critical): SMS code fixed at `9999`, `send-sms-code` / `sms-login` anonymous → passwordless login | 6-digit default range; refuse to issue codes from a range under 900,000 values; verify only the latest code, claim-then-compare (one comparison per code); switch `psa.auth.sms-login.enabled` default `false`; SMS login refuses disabled users and super admins. **No-release stopgap** in the SEC-116 section. |
+  | SEC-117 (High; Low after r3): `customized/create` resubmission completed another user's initiator task | HTTP entry points call `validateHttpSubmitOwner`: once `paramsId` is bound to an instance, only that instance's starter may submit again. |
+  | SEC-118 (Medium): WeCom messages sent with `toparty` / `totag` = `"@all"` | Fields removed; `sendMsgToWeCom` strips them and refuses blank / `@all` recipients. |
+  | SEC-119 (High; Medium after r6): card callback actor | Strict EventKey parser; `FromUserName` user must match the key **and** be the task's responder. |
+  | SEC-120 (High, r7 review): PC / App accept and refuse had no responder check | `acceptTask` / `refuseTask` reject any task whose responder is not the login user. |
+  | SEC-121 (Low, r7 review): non-atomic code burn | Conditional update claims the code before comparing. |
 - The two patches touch disjoint files and can be applied in either order. The shareable patch is safe on its own: the credential binders keep the existing in-code values when the Nacos keys are missing.
-- Verification run (round 6): `git apply --check` passes for both patches on a fresh `git archive HEAD` copy. A JDK 8 offline `mvn compile` of gateway, system-biz, bpm-biz, fst-biz and infra-biz (with `-am`, so the framework starters are compiled too) passed with both patches applied, and 19 related unit tests pass. See "Verification" at the end.
+- Verification run (round 7; see "Verification (round 7)"). Round 6: `git apply --check` passes for both patches on a fresh `git archive HEAD` copy. A JDK 8 offline `mvn compile` of gateway, system-biz, bpm-biz, fst-biz and infra-biz (with `-am`, so the framework starters are compiled too) passed with both patches applied, and 19 related unit tests pass. See "Verification" at the end.
 - No credential value appears in this file or in the shareable patch. This was checked by machine against every literal removed in the local patch.
 
 ---
@@ -650,6 +660,198 @@ Test: print an Alipay e-invoice PDF and compare the images. Load the public CVE 
 
 ---
 
+## SEC-116 (Critical): fixed SMS code `9999` + anonymous `sms-login` = passwordless login
+
+### Problem
+- `yudao.sms-code.begin-code` and `end-code` are both `9999` in system `application.yaml:192-193` and fst `application.yaml:283-284`, with no profile override in the repo. `SmsCodeServiceImpl` (base L72) draws a "random" code from that one-value range.
+- `POST /admin-api/system/auth/send-sms-code` and `/sms-login` are `@PermitAll` (base `AuthController.java:207,215`).
+- `createSmsCode` **inserts the code row before** calling the SMS sender, and nothing is transactional. Whether the SMS channel or template works does not matter: an anonymous caller sends a code to any employee mobile, then logs in with `9999` and gets that employee's access and refresh tokens.
+- Even with a random code, the base check looked the row up by `(mobile, code)` with no attempt limit, so every live code (up to 10 per day per mobile) could be guessed in parallel within its 10-minute life.
+- `send-sms-code` answers "手机号不存在" for unknown numbers, which lets an attacker enumerate employee mobiles.
+- **Not verified:** whether prod Nacos (`system-server` dataId) overrides the two keys. This is the first item for the user / ops (see "Read-only checks needing user authorisation").
+
+### Change (r7, shareable)
+- Both `application.yaml` files: `begin-code: 100000`, `end-code: 999999`.
+- `SmsCodeServiceImpl`:
+  - `createSmsCode` refuses (new `SMS_CODE_RANGE_INSECURE`, ERROR log) when the range has fewer than 900,000 values, so a Nacos value of `9999` fails closed instead of issuing a known code.
+  - Verification only ever looks at the **latest** code for `mobile + scene` (`selectLastByMobile(mobile, null, scene)`).
+  - `useSmsCode` **claims the row first** with a conditional `UPDATE … SET used = 1 WHERE id = ? AND used = 0` and compares only if it won the claim (SEC-121). Each code gets exactly one comparison, also under concurrent requests; a wrong code stays burned.
+  - `checkSmsCode` (API only, no caller in the repo) burns the code on a mismatch the same way.
+  - Constant-time compare (`MessageDigest.isEqual`).
+- `AdminAuthServiceImpl`:
+  - New switch `psa.auth.sms-login.enabled`, **default `false`**. While off, `send-sms-code` and `sms-login` throw `AUTH_SMS_LOGIN_DISABLED` (`1002000014`) before any lookup, which also closes the mobile enumeration. The PC login page's SMS tab is commented out (`login.vue:20`), and no other caller exists.
+  - `smsLogin` now refuses disabled users and super admins (`AUTH_PASSWORDLESS_SUPER_ADMIN_FORBIDDEN`, same rule as the external passwordless endpoints).
+- New error codes: `AUTH_SMS_LOGIN_DISABLED` (`1002000014`; `…012` and `…013` are taken by r1/r3) and `SMS_CODE_RANGE_INSECURE` (`1002014008`).
+
+### Immediate stopgap without a release (ops; prod changes need the user's go-ahead)
+Do these in order. The first three close the hole on the **unpatched** build; the Nacos change alone does not.
+
+1. **Gateway route that never reaches system-server** (covers every ingress, including the public `48088`). In the gateway's Nacos dataId, `spring.cloud.gateway.routes` **replaces the whole list** from `application.yaml` (Spring list binding), so copy all existing routes from `yudao-gateway/src/main/resources/application.yaml` (lines 10–62 in the base) and add, **first** in the list:
+   ```yaml
+   - id: sec116-block-sms-login
+     uri: forward:/__sec116_blocked   # no handler in the gateway → 404, never proxied
+     order: -1
+     predicates:
+       - Path=/admin-api/system/auth/sms-login/**,/admin-api/system/auth/send-sms-code/**
+   ```
+   Try it on dev first and check the actual status (404 expected; the point is that system-server's access log shows no hit). A missing route in the copied list is an outage. If the gateway's routes are not refreshed from Nacos at runtime, a gateway restart is needed (still no release).
+2. **nginx 403 on every public server block that forwards to the gateway** — `psa.forcitis.com` (`/etc/nginx3/conf.d/psa.conf`, 443) **and the server that serves `apiprod.forcitis.com`** (the prod PC build calls `https://apiprod.forcitis.com`, `psa-front-desk-pc/.env.prod:8`; which server block or SLB serves it was not verified). Use prefix locations, not a regex: if the existing gateway location is `location ^~ /admin-api/`, regex locations are never evaluated, and a longer `^~` prefix always wins:
+   ```nginx
+   location ^~ /admin-api/system/auth/sms-login     { return 403; }
+   location ^~ /admin-api/system/auth/send-sms-code { return 403; }
+   ```
+   Add the same pair under any `/api/`-style prefix that strips to the gateway (for example `/api/admin-api/system/auth/sms-login`). `nginx -t`, reload.
+3. **Security group**: `48088` (the gateway's own TLS port) is open to `0.0.0.0/0` and bypasses nginx. Narrow it to the callers that really need it (SEC-001 ops step 1, still open). Confirm `48080` stays BI-only and `48081` stays closed.
+4. **Nacos override** in `system-server` (prod dataId): `yudao.sms-code.begin-code: 100000`, `end-code: 999999`. It hot-applies: `refresh: true` is set in `bootstrap-prod.yaml`, and `SmsCodeProperties` is a plain `@ConfigurationProperties` bean that Spring Cloud rebinds on refresh. On the unpatched build this only removes the known code; the unlimited parallel guessing remains, so steps 1–3 are still required.
+5. **Not a fix:** disabling the SMS template or channel. The code row is written before sending, so `9999` still logs in.
+
+Verification of the stopgap: from outside, `POST https://<each public host>/admin-api/system/auth/sms-login` (also `…/sms-login/`, `…/SMS-LOGIN`, `…/sms-login;x`, and the same on `:48088`) → 403 from nginx or 404 from the gateway route, never a JSON `code` from system-server, and no new `sms-login` row in `infra_api_access_log`. A normal password login still works.
+
+### Tests
+- Unit: `SmsCodeServiceImplSecurityTest` (9), `AdminAuthServiceSmsLoginSwitchTest` (2).
+- dev:
+  - switch off (default) → both endpoints return `1002000014`;
+  - switch on: send a code to a test user → the stored code has 6 digits; a wrong code then the right one → second attempt `验证码已使用`; resend after 1 minute, then the right code → login OK;
+  - set Nacos `begin-code: 9999`, `end-code: 9999` → `send-sms-code` returns `1002014008` and no row is written;
+  - a super-admin mobile → refused.
+
+### Risk
+None for users: SMS login has no live caller. If the business later wants SMS login, set the switch to `true` only after a real SMS channel is configured, and add a per-IP rate limit (the code's TODO).
+
+---
+
+## SEC-117 (High; Low after r3): `customized/create` resubmission overwrote another user's returned instance
+
+### Problem
+`CustomizedBpmOAServiceImpl.submitApprovalInstance` (base L137–165) looks up the binding row by `paramsId`. If that instance is alive and parked at the initiator node, it calls `runtimeService.setVariables` with the request's variables and `taskService.complete` on the initiator task. Nothing checks that the caller started that instance. Before r3 both HTTP endpoints were `@PermitAll`, so an anonymous caller could push someone else's returned timesheet back into approval with forged routing variables. r3 gated both endpoints with the ungranted `bpm:oa:customized:create`, so today only a super admin (or a future re-enable) can reach it.
+
+### Change (r7, shareable)
+- New `CustomizedBpmOAService.validateHttpSubmitOwner(paramsId, loginUserId)`, called by `CustomizedBpmController` and `CustomizedBpmAPPController` after the r3 sanitizer and before `createOA`:
+  - no login user → 401; `paramsId` null → 400;
+  - no binding row, or a row without `process_instance_id` → allowed (first submission; the login user becomes the starter);
+  - otherwise the **historic** instance (alive or ended) must have `startUserId == loginUserId`; a missing instance is treated as not owned → 403 `无权提交他人的单据`, logged at WARN.
+- The check also covers the "instance ended → new instance on the same binding row" branch, so a caller cannot re-bind someone else's row either.
+- RPC callers (`BpmProcessTaskApiImpl` → `createOA` / `continueProcessAfterReturn`) do not call it and are unchanged.
+
+### Tests
+- Unit (`CustomizedBpmOAServiceImplHttpOwnerTest`, 5): first submission allowed; starter may resubmit; other user 403; missing historic instance 403; anonymous 401 and null `paramsId` 400.
+- dev: as super admin, POST `/admin-api/bpm/oa/customized/create` with the `paramsId` of a timesheet returned to user B → 403, B's task unchanged. The fst timesheet submit and a travel approval (RPC path) still work.
+
+### Residual (r7 review)
+- On a **first** submission nobody checks that the caller owns `paramsId`: bpm cannot see the fst timesheet. A caller who passes the gate can bind a new instance to another user's pending timesheet and delete that user's `ProcessToBeSent` outbox row. Only a super admin can reach this today (`hasAnyPermissions` is true for super admins).
+- The check and the creation run in separate transactions (small TOCTOU window), with the same super-admin-only reach.
+- **Fix: delete both HTTP endpoints** (SEC-005 open decision 4). They have had no caller since 2026-05; the only code reference is the legacy PC `createWorkflow`, whose views already get 403. This needs the user's go-ahead because it removes an API.
+
+### Risk
+None for live callers (the endpoints are disabled by r3).
+
+---
+
+## SEC-118 (Medium): WeCom app messages set `toparty` / `totag` to `"@all"`
+
+### Problem
+`MessageServiceImpl` builds four payloads (textcard, news, template_card, markdown) with `touser:<one weComId>`, `toparty:"@all"`, `totag:"@all"`. WeCom only documents `touser:"@all"` as "all members"; what it does with `"@all"` in `toparty` / `totag` is not documented and was not tested. If it is treated as all, approval titles and amounts go to everyone in the app's visible range. A blank `touser` (recipient without a WeCom binding) makes it worse.
+
+### Change (r7, shareable)
+- The four builders no longer set `toparty` / `totag`.
+- New `fst.service.common.WeComMessageRecipientGuard.restrictToUsers(contentObj)`, called first in `CommonServiceImpl.sendMsgToWeCom` (the only `message/send` exit in the repo): removes `toparty` / `totag`; returns false — and the message is **not sent**, WARN logged — when `touser` is null, blank, has an empty `|` segment, or any segment equals `@all` (case-insensitive).
+
+### Tests
+- Unit (`WeComMessageRecipientGuardTest`, 3).
+- dev: trigger a task card, a timesheet approval notice and a markdown notice; each reaches only its recipient. Compare WeCom's `invaliduser` / `invalidparty` in the send result log before and after (before: `invalidparty` / `invalidtag` expected if WeCom rejected `"@all"`).
+
+### Risk
+Messages to users without a WeCom id were already dropped upstream (`sendWeComTextCardMsgByBPM(PSAMessageModel)` checks it); other paths now drop them at the exit instead of sending with an empty `touser`.
+
+---
+
+## SEC-119 (High; Medium after r6): WeCom card callback actor checks
+
+### Problem
+Base `WeComCallbackController.savaTaskAction` (L113) set the login user from EventKey segment 4. r6 switched to the user mapped from the signed `FromUserName`, but:
+- the comparison with segment 4 was skipped when EventKey had fewer than 4 segments;
+- nothing checked that the clicker is the person who should act on that task (`acceptTask` / `refuseTask` have no ownership check of their own).
+
+The callback is anonymous and only protected by the WeCom Token / AESKey, which are in git history (SEC-006). Until they are rotated, an attacker can forge the whole message, `FromUserName` included.
+
+### Change (r7, shareable)
+- New package-private `WeComTaskCardKey.parse(eventKey)`: exactly `task_{1|0}_{taskId}_{userId}` with numeric ids; anything else → ignored (`success(false)`, WARN).
+- The `FromUserName` user must equal the key's user segment.
+- New `ResourceService.isTaskResponder(taskId, userId)`: member-initiated task (`creator == personId`) → the manager; manager-assigned → the member. Same branch as `acceptTask` / `refuseTask`, and the same recipients `TaskServiceImpl.sendTaskMsg` / `sendTaskApproveMsg` send the cards to. Not the responder → ignored.
+- The same rule is now also enforced inside `acceptTask` / `refuseTask` themselves (SEC-120), so the callback, PC and App share one check.
+
+### Tests
+- Unit: `WeComTaskCardKeyTest` (2), `ResourceServiceTaskResponderTest` (3).
+- dev: card sent to A, clicked by A → accepted, card button updated. Replay of a captured callback with EventKey edited to `task_1_<id>` (3 segments) → ignored. A card of a task whose responder changed after sending → ignored.
+
+### Risk
+Cards whose task was re-assigned after sending no longer act; the user handles it on PC. **Precondition remains SEC-006 step 2** (rotate the callback Token and AESKey). Not changed (pre-existing, Low): `ResponseCode` / `EventKey` are read without null checks (non-card events throw), and there is no timestamp or replay check beyond WeCom's signature.
+
+---
+
+## SEC-120 (High, found in the r7 review): any logged-in user could accept or refuse anyone's task
+
+### Problem
+`POST /admin-api/fst/resource/task/user/accept` and `/plan/user/refuse` (`ResourceController.java:142-153`), and the App twins `/app-api/fst/resource/task/user/create` and `/plan/user/update` (`ResourceAPPController.java:28-45`, `@PreAuthorize` commented out), pass client-supplied task ids straight to `acceptTask` / `refuseTask`. Those methods check only the task state, not who is acting. Any employee could accept or refuse another member's task, or approve or reject in place of the project manager. This also made the SEC-119 callback hardening moot.
+
+### Change (r7, shareable)
+- `ResourceServiceImpl.acceptTask` / `refuseTask`, right after loading the tasks, call `validateTaskResponders(taskIdList, tasks, WebFrameworkUtils.getLoginUserId())`:
+  - any id not found → 400 `任务不存在` (also covers an empty list);
+  - any task whose responder (same rule as `isTaskResponder`) is not the login user → 403 `无权处理该任务`, WARN log; the whole batch is rejected.
+- `WebFrameworkUtils.getLoginUserId()` reads the request attribute, which both the normal token filter and the WeCom callback (`setLoginUserId`) set.
+- The permission annotations were **not** restored: which permission the front-ends hold is unknown, and the responder check already limits each call to the user's own work.
+
+### Tests
+- Unit (`ResourceServiceTaskResponderTest`, now 5): non-responder → 403 on accept and refuse; unknown id → 400.
+- dev: as member A, accept a task assigned to A → OK; as A, POST B's task id → 403. As the manager, approve a member-initiated task → OK; as another manager → 403. Same on the App endpoints and the WeCom card.
+
+### Risk
+If someone used to act on others' tasks on purpose (an admin clearing a queue, for example), they now get 403. Ask the business in the dev test whether that happens; if it does, add an explicit admin permission rather than reopening the endpoints.
+
+---
+
+## SEC-121 (Low, found in the r7 review): SMS code burn was not atomic
+
+Covered in the SEC-116 section: `useSmsCode` claims the row with a conditional update before comparing, so concurrent guesses get one comparison per code. A per-mobile / per-IP rate limiter on `sms-login` is still not implemented (only matters if the switch is turned on).
+
+---
+
+## Round 7: deploy order and read-only checks
+
+### Deploy order (r7 hunks)
+r7 adds no new Nacos key that must exist before startup (`psa.auth.sms-login.enabled` defaults to `false`), so it follows the existing SEC-107 order (gateway first, then system, infra, bpm, fst). Within that:
+1. **Before any release:** the SEC-116 stopgap (gateway route, nginx on both hosts, security group, Nacos range).
+2. Release system (SEC-116, SEC-121). After it, the stopgap can stay; remove the gateway block route only if the business turns SMS login on.
+3. Release bpm (SEC-117) and fst (SEC-118, SEC-119, SEC-120) in the normal order.
+4. SEC-119 only holds after SEC-006 step 2 (new WeCom callback Token and AESKey in Nacos and the WeCom console in the same window).
+
+### Read-only checks needing user authorisation (not run by this session)
+Prod access is the user's call. With authorisation, run read-only, and report **counts only** (no mobile numbers or code values in shared files):
+1. **Nacos `system-server` (and `fst-server`) prod dataId:** does it set `yudao.sms-code.begin-code` / `end-code`? Values other than a 6-digit range mean SEC-116 is live in prod.
+2. **Was it used?** (SQL Server, `NOLOCK`)
+   ```sql
+   SELECT request_url, COUNT(*) AS calls, MAX(begin_time) AS last_call, COUNT(DISTINCT user_ip) AS ips
+   FROM infra_api_access_log WITH (NOLOCK)
+   WHERE request_url LIKE '%/system/auth/sms-login%' OR request_url LIKE '%/system/auth/send-sms-code%'
+   GROUP BY request_url;
+
+   SELECT COUNT(*) AS logins, COUNT(DISTINCT user_id) AS users, MAX(create_time) AS last_login
+   FROM system_login_log WITH (NOLOCK)
+   WHERE log_type = 103;            -- LOGIN_MOBILE
+
+   SELECT CASE WHEN code = '9999' THEN 'fixed' ELSE 'other' END AS kind, COUNT(*) AS n, MAX(create_time) AS last
+   FROM system_sms_code WITH (NOLOCK)
+   GROUP BY CASE WHEN code = '9999' THEN 'fixed' ELSE 'other' END;
+   ```
+   Any `sms-login` success means treat those sessions as compromised: revoke the users' tokens (`system_oauth2_access_token` / refresh tokens) and review what they did.
+3. **nginx:** which server block (or SLB) serves `apiprod.forcitis.com`, and whether the gateway-bound location there is `^~ /admin-api/` or a regex.
+4. **WeCom (SEC-118):** in the send-result log, whether `invalidparty` / `invalidtag` appear (meaning WeCom rejected `"@all"`) or not (meaning it may have been honoured).
+5. **SEC-120:** whether anyone legitimately accepts or refuses tasks for others (ask the business; or query `fst` task updates where `updater` is neither `person_id` nor `manager_id`).
+
+Also treat `system_sms_code` and `system_sms_log` as sensitive: they hold live codes (restrict read access).
+
+---
+
 ## Open decisions
 1. **SEC-001 rollout:** the patch is unsafe to deploy until the Nacos `psa.sso.trusted-callers` config exists, because the default fails closed.
    - `a8-login` and `YD-get` have **no unsigned transition**. The A8 and YD owners must ship signing, or move to `/seeyon-sso`, before this deploys.
@@ -675,6 +877,20 @@ Test: print an Alipay e-invoice PDF and compare the images. Load the public CVE 
 9. **SEC-113 hot reload (optional):** the token is still read only at startup. Reading it from the `Environment` on each request would let a Nacos change take effect without restarts, but the three phases would still be needed. Not done; decide whether it is worth it.
 10. **48088 exposure:** the gateway's own TLS port is open to `0.0.0.0/0`, so every gateway route is reachable without nginx. With SEC-108 that does not break client-IP trust, but narrowing the security group (SEC-001 ops step 1) remains open.
 11. **SEC-114 follow-up (optional):** add a runtime test (embedded Tomcat or MockMvc with the real security chain) that shows an unsigned `/rpc-api` request never reaches `TokenAuthenticationFilter`. The r6 tests check the registration order, not a live chain.
+12. **SEC-116, first action (user / ops):** confirm whether prod Nacos overrides `yudao.sms-code.*`, and approve the no-release stopgap (gateway block route, nginx on `psa.forcitis.com` **and** `apiprod.forcitis.com`, security group for `48088`, Nacos range). Then run the usage queries in "Read-only checks needing user authorisation"; any successful SMS login means revoking those users' tokens.
+13. **SEC-117 residual:** delete both HTTP `customized/create` endpoints (and PC `createWorkflow`) now rather than in a later PR? This is the only full fix for the first-submission `paramsId` binding.
+14. **SEC-120:** confirm with the business that nobody accepts or refuses tasks on behalf of others; otherwise define an explicit admin permission.
+15. **SEC-118:** dev test of what WeCom actually did with `toparty="@all"` decides whether past approval notices leaked to the whole company.
+
+## Verification (round 7)
+- Fresh `git archive` of `19d60d234`: `git apply --check` → ok for the shareable patch (**84** files: the 67 from r6, of which 5 changed — `ErrorCodeConstants`, `AdminAuthServiceImpl`, both `CustomizedBpm*Controller`, `WeComCallbackController` — plus 17 new, 6 of them tests) and for the local patch (5 files, unchanged). The other 62 r6 blocks are byte-identical.
+- The tree with both patches applied equals the edit tree (same git tree hash). `patch --dry-run` against the real legacy checkout passes; the checkout was not modified.
+- Backend compile with Corretto 8, offline: `mvn -q -o -f psa-backend/pom.xml -pl yudao-gateway,yudao-module-system/yudao-module-system-biz,yudao-module-bpm/yudao-module-bpm-biz,yudao-module-fst/yudao-module-fst-biz,yudao-module-infra/yudao-module-infra-biz -am compile -DskipTests` → exit 0.
+- Unit tests (offline, JDK 8): the r6 set (19) + bpm `CustomizedBpmOAServiceImpl{,Resubmission}Test` (11) + new `SmsCodeServiceImplSecurityTest` (9), `AdminAuthServiceSmsLoginSwitchTest` (2), `CustomizedBpmOAServiceImplHttpOwnerTest` (5), `WeComMessageRecipientGuardTest` (3), `WeComTaskCardKeyTest` (2), `ResourceServiceTaskResponderTest` (5) → **56 run, 0 failed**.
+- `AdminAuthServiceImplTest` fails on the **unpatched** base as well (its Spring context lacks a `CommonService` mock); not caused by this patch and not counted.
+- Adversarial review (security-auditor, opus): SEC-116 and SEC-118 RESOLVES; SEC-117 and SEC-119 PARTIAL; new SEC-120 and SEC-121. SEC-120 and SEC-121 were then fixed, plus the super-admin refusal on SMS login; the SEC-117 residual is open decision 13. The fixes after the review were not re-reviewed by a second agent; they have unit tests.
+- Leak scan (r7): the 13 literals removed by the local patch that do not survive into its `+` lines → 0 hits in the shareable patch, this file and `SECURITY_FINDINGS.md`. Generic patterns (private-key header, `AKIA…`, `LTAI…`, `secret: <16+ chars>`) → 0 hits. The r7 additions contain no credential; the usage queries return counts only.
+- Not verified (r7): everything at runtime (dev checklists in the SEC-116 to SEC-120 sections), the gateway block route and nginx rules, and what WeCom does with `toparty="@all"`.
 
 ## Verification (round 6)
 - Fresh `git archive HEAD` copy (`19d60d234`): `git apply --check` → ok for the shareable patch (**67** files: the 64 from r5, plus `WebFilterOrderEnum.java`, `SocialUserApi.java` and the new `SocialUserApiMappingTest.java`) and for the local patch (5 files, unchanged).

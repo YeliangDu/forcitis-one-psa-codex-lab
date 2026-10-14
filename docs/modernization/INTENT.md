@@ -90,3 +90,10 @@
 | 第三批「其余」条数复核（2026-10-14，psa-coordinator 询问）：「是，44 条都同意」 | RULE_REVIEWS.json（RULE-316..376 中除 323 外的 44 条） |
 | Phase 1a reimagine 检查点 2（架构，2026-10-14）：Q-1「1a 删除桥接 (Recommended)」；Q-2「两条都按建议修订 (Recommended)」；Q-3「收窄；通知发候选组全员 (Recommended)」；Q-4「四项都同意 (Recommended)」 | REIMAGINED_ARCHITECTURE.md §7（已批准）；ADR-0009 §6 修订；brief Phase 1a 出口条件两条 Proposed revision；AI_NATIVE_SPEC C1a-06 删除 |
 | 「确保权责业务事实全部在新系统」（2026-10-14，对 OA 流程盘点的要求） | GUIDING_PRINCIPLES §9a「权责事实全部在新系统」；OA_PROCESS_INVENTORY 分类与权责事实完整性矩阵；ADR-0021 |
+| 总账纳入新系统（2026-10-14，经评估会话转达，psa-coordinator 当面复核「是，4 项都是我的决定」）：「我要财务总账集成到新系统，通过新系统直接可以出权责口径的三大报表」；路线「两步：先管理口径，再年度切换法定账（推荐）」；PSA 以外的凭证来源「先导入 / 手工凭证，逐步自建（推荐）」；现金流量表「直接法为主 + 间接法补充（推荐）」 | ADR-0022（提议）；brief 修订稿（新增总账与报表、法定账切换阶段）；ADR-0016 第 6 条、ADR-0017 第 4 条修订稿 |
+| 「可以从我现在U8C 系统蒸馏总账做法」（2026-10-14，经评估会话转达） | U8C_GL_PRACTICE.md（只读蒸馏结构、规则、公式与计数），作为 ADR-0022 依据 |
+| 安全补丁第 7 轮后（2026-10-14，psa-sec-hotfix 会话）：「老系统先不管，确保新系统没有这些缺陷」 | 老系统安全止血搁置（STATUS）；phase1a/SECURITY_INVARIANTS.md I-1..I-9；老系统补丁与止血方案保留在 security_remediation.* 备查，不执行 |
+| 同上，问「老系统不处理的前提下，新系统如何对待老系统的登录令牌？」：「取消桥接 (Recommended)」（与检查点 2 Q-1 一致） | ADR-0009 §6 补充：老 PSA 后端在免密入口修复前不得作为签名票据签发方；SECURITY_INVARIANTS I-1、I-2 |
+| psa-coordinator 汇总决定（2026-10-14）：H-1 产值确认单「迁入新系统，不设双源期 (Recommended)」；H-3 人工成本「新系统要自建整个hrm，算薪要迁入」；M-5 客商 / 部门映射 / 银行卡「主数据全部进新系统」；1a 修订 M-4 §9a 证明项与 brief §2 integration-acl 行「两条都同意 (Recommended)」 | ADR-0016、brief 中 A8 产值只读接入的表述改为迁入（修订稿）；ADR-0021 薪酬改为迁入并自建 HRM；客商、部门映射、员工银行卡等主数据归新系统（银行卡须按敏感个人信息加密存储与最小授权）；brief Phase 1a 出口与 §2 两条 Proposed revision |
+| 老系统 SEC-116（短信验证码固定 9999）经 psa-coordinator 提示生产风险后：「仍然完全不处理」 | 老系统不做任何止血；风险由用户承担；新系统按 SECURITY_INVARIANTS I-1..I-9 隔离 |
+| OA 盘点：ADR-0021「采纳；6a–6c 并入 Phase 4 前 (Recommended)」；应付与付款「新建「应付与付款」BC (Recommended)」；非项目采购、员工借还款、合伙人注资退回「都算，都进新系统 (Recommended)」 | ADR-0021 已采纳；6a–6c 为 Phase 4 出口前置；新建应付与付款 BC（蓝图编号由 psa-gl-scope 统一）；三类事实列入权责事实矩阵 |
