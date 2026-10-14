@@ -29,6 +29,15 @@ export const getOrganizationSyncRunsBySyncRunId = (...[args, options]: Call<path
 export const postOrganizationSyncRunsBySyncRunIdRelease = (...[args, options]: Call<paths['/api/v1/organization/sync-runs/{syncRunId}:release']['post']>) =>
   request<Result<paths['/api/v1/organization/sync-runs/{syncRunId}:release']['post']>>('post', '/api/v1/organization/sync-runs/{syncRunId}:release', args, options);
 
+export const getOrganizationWorkCalendars = (...[args, options]: Call<paths['/api/v1/organization/work-calendars']['get']>) =>
+  request<Result<paths['/api/v1/organization/work-calendars']['get']>>('get', '/api/v1/organization/work-calendars', args, options);
+
+export const getOrganizationWorkCalendarsByCalendarYear = (...[args, options]: Call<paths['/api/v1/organization/work-calendars/{calendarYear}']['get']>) =>
+  request<Result<paths['/api/v1/organization/work-calendars/{calendarYear}']['get']>>('get', '/api/v1/organization/work-calendars/{calendarYear}', args, options);
+
+export const putOrganizationWorkCalendarsByCalendarYear = (...[args, options]: Call<paths['/api/v1/organization/work-calendars/{calendarYear}']['put']>) =>
+  request<Result<paths['/api/v1/organization/work-calendars/{calendarYear}']['put']>>('put', '/api/v1/organization/work-calendars/{calendarYear}', args, options);
+
 export const getPlatformApprovalTasks = (...[args, options]: Call<paths['/api/v1/platform/approval-tasks']['get']>) =>
   request<Result<paths['/api/v1/platform/approval-tasks']['get']>>('get', '/api/v1/platform/approval-tasks', args, options);
 

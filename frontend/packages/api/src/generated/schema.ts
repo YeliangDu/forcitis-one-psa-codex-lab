@@ -128,6 +128,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organization/work-calendars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["maintainedYears"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/work-calendars/{calendarYear}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["view"];
+        put: operations["maintain"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/approval-tasks": {
         parameters: {
             query?: never;
@@ -468,6 +500,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CalendarDayRequest: {
+            /** Format: date */
+            calendarDate?: string;
+            dayKind?: string;
+        };
+        CalendarDayResponse: {
+            /** Format: date */
+            calendarDate: string;
+            dayKind: string;
+        };
         CreateLegalEntityRequest: {
             code?: string;
             name?: string;
@@ -521,6 +563,9 @@ export interface components {
         LoginStateRequest: {
             /** @enum {string} */
             entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
+        };
+        MaintainWorkCalendarRequest: {
+            days?: components["schemas"]["CalendarDayRequest"][];
         };
         MergedInbox: {
             items?: components["schemas"]["InboxItem"][];
@@ -685,6 +730,7 @@ export interface components {
             ticket?: string;
         };
         UpdateLegalEntityRequest: {
+            code?: string;
             name?: string;
             status?: string;
         };
@@ -693,6 +739,11 @@ export interface components {
             /** @enum {string} */
             entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
             state?: string;
+        };
+        WorkCalendarYearResponse: {
+            /** Format: int32 */
+            calendarYear: number;
+            days: components["schemas"]["CalendarDayResponse"][];
         };
     };
     responses: never;
@@ -768,7 +819,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["LegalEntityResponse"];
                 };
             };
         };
@@ -794,7 +845,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["LegalEntityResponse"];
                 };
             };
         };
@@ -905,6 +956,74 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ReleaseResponse"];
+                };
+            };
+        };
+    };
+    maintainedYears: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": number[];
+                };
+            };
+        };
+    };
+    view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                calendarYear: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkCalendarYearResponse"];
+                };
+            };
+        };
+    };
+    maintain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                calendarYear: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintainWorkCalendarRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkCalendarYearResponse"];
                 };
             };
         };
@@ -1161,9 +1280,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "*/*": string;
-                };
+                content?: never;
             };
         };
     };
