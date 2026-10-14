@@ -6,12 +6,31 @@
 
 已确定为方言、无需再确认的（如「产值确认单」「产值」= 收入确认单）不在本表，见 `terms.yaml` 中 `type: dialect` 的别名。
 
-## A. 公司叫法：正式用语还是方言？（0 项）
+## A. 公司叫法：正式用语还是方言？（19 项）
 
 这些是公司在用的中文叫法，审计没有把握判定。选「正式」则保留并与标准用语并列为同义正式名（新系统只用一个，取右列）；选「方言」则禁止进入新系统。
 
 | 编号 | 公司叫法 | 对应正式用语（中 / 英） | 所属模块 | 依据 | 建议 | 确认 |
 |---|---|---|---|---|---|---|
+| A1 | 实际结果（来源：在用报表：运营看板） | 经营结果 / `BusinessResult` | `operations.facts` | FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
+| A2 | 待签合约（来源：在用报表：经营分析报告、交付中心汇报） | 合同草案 / `ContractDraft` | `contract.baseline` | FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
+| A3 | 待签项目投入（来源：在用报表：交付中心汇报 5.1–5.2） | 无合同风险敞口 / `UncontractedExposure` | `contract.riskdelivery` | FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
+| A4 | 收费工时（来源：在用报表：运营看板人效情况） | 可计费工时 / `BillableHours` | `cost.timesheet` | PSA 行业通行写法（Kantata / Certinia / Deltek 等） | 方言 |  |
+| A5 | 委外费（来源：在用报表：损益表、现金流量表（外包或分包待确认）） | 外包成本 / `OutsourcingCost` | `cost.costing` | FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
+| A6 | 本年度未开票（来源：在用报表：交付中心汇报 3.1（本年口径，不得与全量合同资产相加）） | 未开票在制（WIP） / `UnbilledWip` | `receivables.wip` | PSA 行业通行写法（Kantata / Certinia / Deltek 等）；FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
+| A7 | 已确认未开票（来源：在用报表：交付中心汇报、运营看板立项明细） | 合同资产 / `ContractAsset` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
+| A8 | 存量资产（来源：在用报表：交付中心汇报区域健康度） | 合同资产 / `ContractAsset` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
+| A9 | 开票收入（来源：在用报表：损益表（开票收入（含税））） | 开票 / `InvoiceIssued` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号） | 方言 |  |
+| A10 | 已开票未回款（来源：在用报表：应收账款分析底表） | 应收账款 / `AccountsReceivable` | `receivables.collection` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；企业会计准则第 22 号——金融工具确认和计量（预期信用损失） | 方言 |  |
+| A11 | 回款收入（来源：在用报表：损益表区域表（含现金、保理、商票、工抵）） | 回款 / `CashReceived` | `receivables.collection` | FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目） | 方言 |  |
+| A12 | 坏账（来源：在用报表：应收账款分析底表（OA 坏账申请导出）） | 坏账核销 / `ArWrittenOff` | `receivables.collection` | 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）；IFRS 9 Financial Instruments（expected credit losses） | 方言 |  |
+| A13 | 账龄区间（来源：在用报表：应收账款分析底表） | 账龄桶 / `AgingBucket` | `receivables.collection` | PSA 行业通行写法（Kantata / Certinia / Deltek 等） | 方言 |  |
+| A14 | 预计回款（来源：在用报表：应收账款分析底表、运营看板开票明细） | 回款计划 / `CollectionPlan` | `receivables.collection` | PSA 行业通行写法（Kantata / Certinia / Deltek 等） | 方言 |  |
+| A15 | 预收（来源：在用报表：运营看板回款明细「是否预收」） | 合同负债 / `ContractLiability` | `receivables.wip` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
+| A16 | 合同额（来源：在用报表：经营分析报告（合同额、合同额占比）） | 交易价格 / `TransactionPrice` | `contract.baseline` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
+| A17 | 剩余合同额（来源：在用报表：运营看板人效情况） | 剩余履约义务 / `RemainingPerformanceObligation` | `contract.baseline` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
+| A18 | 合约储备（来源：在用报表：经营分析报告业绩摘要） | 剩余履约义务 / `RemainingPerformanceObligation` | `contract.baseline` | 企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 Revenue from Contracts with Customers | 方言 |  |
+| A19 | 产能饱和度（来源：在用报表：运营看板人效情况、交付中心汇报） | 利用率 / `UtilizationRate` | `cost.timesheet` | PSA 行业通行写法（Kantata / Certinia / Deltek 等） | 方言 |  |
 
 ## B. 改为标准用语的建议（0 项）
 
@@ -26,10 +45,6 @@
 
 | 编号 | 模块 | 用语（中 / 英） | 确认 |
 |---|---|---|---|
-
-## 状态：全部已确认
-
-2026-10-14 业务 Admin 在用语确认页上确认了全部 197 项：A 组 4 项判为方言；B 组 59 项同意改为标准用语（原叫法归为方言）；C 组 134 项公司自有概念确认为正式用语。确认记录见 `glossary/decisions-2026-10-14.json`，已写入 `terms.yaml`（全部 293 条为已批准）。今后新出现的待确认用语会重新出现在本表。
 
 ## P. 模块提议术语转正式（58 项，第二轮）
 
