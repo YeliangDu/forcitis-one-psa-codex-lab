@@ -197,37 +197,46 @@
       },
       "HistoryEntry" : {
         "properties" : {
-          "assignee" : {
+          "action" : {
+            "type" : "string"
+          },
+          "actorId" : {
+            "type" : "string"
+          },
+          "actorName" : {
+            "type" : "string"
+          },
+          "assigneeName" : {
             "type" : [ "string", "null" ]
           },
-          "completedAt" : {
+          "decidedAt" : {
             "format" : "date-time",
-            "type" : [ "string", "null" ]
-          },
-          "effect" : {
-            "type" : [ "string", "null" ]
+            "type" : "string"
           },
           "nodeKey" : {
             "type" : "string"
           },
-          "outcome" : {
+          "nodeName" : {
+            "type" : "string"
+          },
+          "onBehalfOfName" : {
             "type" : [ "string", "null" ]
           },
           "reason" : {
             "type" : [ "string", "null" ]
           },
+          "recordId" : {
+            "type" : "string"
+          },
           "round" : {
             "format" : "int32",
             "type" : "integer"
-          },
-          "status" : {
-            "type" : "string"
           },
           "taskId" : {
             "type" : "string"
           }
         },
-        "required" : [ "assignee", "completedAt", "effect", "nodeKey", "outcome", "reason", "round", "status", "taskId" ],
+        "required" : [ "action", "actorId", "actorName", "assigneeName", "decidedAt", "nodeKey", "nodeName", "onBehalfOfName", "reason", "recordId", "round", "taskId" ],
         "type" : "object"
       },
       "InboxItemResponse" : {
@@ -2536,7 +2545,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -2786,7 +2795,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -3053,7 +3062,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -3313,7 +3322,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -3563,7 +3572,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }
@@ -3830,7 +3839,7 @@
         }, {
           "in" : "header",
           "name" : "If-Match",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }

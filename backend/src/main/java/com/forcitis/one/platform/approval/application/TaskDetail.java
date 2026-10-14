@@ -8,6 +8,9 @@ import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.NodeName;
+import com.forcitis.one.platform.approval.api.TaskRecordAction;
+import com.forcitis.one.platform.approval.api.TaskRecordId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
@@ -33,8 +36,9 @@ public record TaskDetail(ApprovalTaskId taskId, ApprovalInstanceId instanceId, P
         history = List.copyOf(history);
     }
 
-    /** One task of the same document, in the order the tasks were created. */
-    public record Entry(ApprovalTaskId taskId, NodeKey nodeKey, int round, ApprovalTaskStatus status, Optional<UserId> assignee,
-                        Optional<TaskOutcome> outcome, Optional<TaskEffect> effect, Optional<Reason> reason, Optional<Instant> completedAt) {
+    /** One thing done to a task of the same document, in the order it was done, from the append-only trail: claims, transfers and decisions alike. */
+    public record Entry(TaskRecordId recordId, ApprovalTaskId taskId, NodeKey nodeKey, NodeName nodeName, int round, TaskRecordAction action,
+                        UserId actor, String actorName, Optional<String> onBehalfOfName, Optional<String> assigneeName, Optional<Reason> reason,
+                        Instant decidedAt) {
     }
 }

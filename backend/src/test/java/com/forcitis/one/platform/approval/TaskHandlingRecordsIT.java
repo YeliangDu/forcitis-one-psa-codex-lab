@@ -89,11 +89,40 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("delete from platform_approval.approval_task_records where document_key = ?", key))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.execute("truncate platform_approval.approval_task_records"))
+                .isInstanceOf(org.springframework.dao.DataAccessException.class);
         assertThat(actionsOf(key)).containsExactly("CLAIMED");
     }
 
     @Test
-    @DisplayName("the done list is the signed-in person's decisions, newest first, one page at a time with a cursor; a malformed cursor or limit is 400")
+    @DisplayName("the history of the task detail is read from the trail: a transfer and the person who made it are in it, and the done list holds every action of the person")
+    void theHistoryComesFromTheTrail() throws Exception {
+        long unit = newId();
+        long initiator = newId();
+        long manager = newId();
+        long colleague = newId();
+        organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null).person(colleague, unit, null);
+        String key = newKey("history");
+        ApprovalTaskId task = openTaskId(start(key, initiator, manager));
+        claimTask.execute(task, new UserId(manager), OptionalLong.empty());
+        transferTask.execute(task, new UserId(manager), new UserId(colleague), "on leave", OptionalLong.empty());
+        decideTasks.execute(new UserId(colleague), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
+
+        mvc.perform(get("/api/v1/platform/approval-tasks/" + task.value()).with(user(String.valueOf(initiator)))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.history.length()").value(3))
+                .andExpect(jsonPath("$.history[0].action").value("CLAIMED"))
+                .andExpect(jsonPath("$.history[1].action").value("TRANSFERRED"))
+                .andExpect(jsonPath("$.history[1].actorId").value(String.valueOf(manager)))
+                .andExpect(jsonPath("$.history[1].assigneeName").exists())
+                .andExpect(jsonPath("$.history[2].action").value("APPROVED"));
+        mvc.perform(get(RECORDS).with(user(String.valueOf(manager)))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].action").value("TRANSFERRED"))
+                .andExpect(jsonPath("$.items[1].action").value("CLAIMED"));
+    }
+
+    @Test
+    @DisplayName("the done list is what the signed-in person did, newest first, one page at a time with a cursor; a malformed cursor or limit is 400")
     void theDoneListIsPaged() throws Exception {
         long unit = newId();
         long initiator = newId();
@@ -105,16 +134,16 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
             decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "ok " + i)), OptionalLong.empty());
         }
 
-        String first = mvc.perform(get(RECORDS).param("limit", "2").with(user(String.valueOf(manager)))).andExpect(status().isOk())
-                .andExpect(jsonPath("$.items.length()").value(2)).andExpect(jsonPath("$.items[0].action").value("APPROVED"))
+        String first = mvc.perform(get(RECORDS).param("limit", "4").with(user(String.valueOf(manager)))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(4)).andExpect(jsonPath("$.items[0].action").value("APPROVED"))
                 .andExpect(jsonPath("$.items[0].reason").value("ok 2")).andExpect(jsonPath("$.items[0].actorId").value(String.valueOf(manager)))
                 .andExpect(jsonPath("$.items[0].recordId").exists()).andExpect(jsonPath("$.items[0].nodeName").exists())
                 .andExpect(jsonPath("$.items[0].round").value(1)).andExpect(jsonPath("$.nextCursor").exists())
                 .andReturn().getResponse().getContentAsString();
         String cursor = com.jayway.jsonpath.JsonPath.read(first, "$.nextCursor");
 
-        mvc.perform(get(RECORDS).param("limit", "2").param("cursor", cursor).with(user(String.valueOf(manager)))).andExpect(status().isOk())
-                .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].reason").value("ok 0"))
+        mvc.perform(get(RECORDS).param("limit", "4").param("cursor", cursor).with(user(String.valueOf(manager)))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2)).andExpect(jsonPath("$.items[0].reason").value("ok 0"))
                 .andExpect(jsonPath("$.nextCursor").doesNotExist());
         mvc.perform(get(RECORDS).param("cursor", "not-a-cursor").with(user(String.valueOf(manager)))).andExpect(status().isBadRequest());
         mvc.perform(get(RECORDS).param("limit", "0").with(user(String.valueOf(manager)))).andExpect(status().isBadRequest());

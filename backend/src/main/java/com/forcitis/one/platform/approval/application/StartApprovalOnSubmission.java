@@ -1,6 +1,9 @@
 package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorCode;
+import com.forcitis.one.platform.approval.api.ApprovalError;
+import org.springframework.security.access.AccessDeniedException;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalProgress;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
@@ -20,14 +23,19 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Starts the round a document's owner asked for, in a transaction of its own that changes the approval request and nothing else.
  * Delivery is at least once and a round starts once per (document, round), so a redelivery returns the instance that exists, and a
- * request for a round older than the current one is ignored. A start that breaks a business rule is not retried, retrying cannot
- * help: the round ends as returned to its initiator with the reason, which the owner applies like any other return. A technical
- * failure is logged as an error, counted and left in the event registry for redelivery.
+ * request for a round older than the current one is ignored. A start that breaks a rule the initiator can put right (the approver
+ * named on the document is not an employed person) ends the round as returned to its initiator by the system, with the reason; the
+ * owner applies it like any other return. A fault of the set-up (no route, nobody for a node, a missing calendar year) and any
+ * technical failure are logged as an alert, counted and left in the event registry for redelivery. A start asked for by somebody
+ * other than the initiator is alerted and dropped: retrying cannot change who asked.
  */
 @Component
 class StartApprovalOnSubmission {
 
     private static final Logger log = LoggerFactory.getLogger(StartApprovalOnSubmission.class);
+
+    /** What the initiator can put right by revising the document; every other refusal is a fault of the set-up and is retried after it is repaired. */
+    private static final Set<ErrorCode> INITIATOR_CAN_FIX = Set.of(ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID);
 
     private final ApprovalProcesses approvals;
     private final RefuseApprovalStart refuseStart;
@@ -57,10 +65,21 @@ class StartApprovalOnSubmission {
         try {
             attempt.executeWithoutResult(status -> approvals.start(request));
         } catch (DomainException refused) {
-            log.error("ALERT the approval of {} round {} was refused and returned to its initiator: {}", event.document().documentId().value(),
-                    event.round().value(), refused.toString());
-            meters.counter("forcitis.platform.approval.start.refused").increment();
-            refuseStart.execute(request, ApprovalTexts.startRefused(refused.errorCode().code()));
+            if (INITIATOR_CAN_FIX.contains(refused.errorCode())) {
+                log.warn("The approval of {} round {} could not start and goes back to its initiator: {}", event.document().documentId().value(),
+                        event.round().value(), refused.toString());
+                meters.counter("forcitis.platform.approval.start.refused").increment();
+                refuseStart.execute(request, ApprovalTexts.startRefused(refused.errorCode().code()));
+                return;
+            }
+            log.error("ALERT the approval of {} round {} could not start for a reason the initiator cannot fix: {}",
+                    event.document().documentId().value(), event.round().value(), refused.toString());
+            meters.counter("forcitis.platform.approval.start.failed").increment();
+            throw refused;
+        } catch (AccessDeniedException foreign) {
+            log.error("ALERT the approval of {} round {} was asked for by somebody who is not its initiator: not retried, nothing started",
+                    event.document().documentId().value(), event.round().value());
+            meters.counter("forcitis.platform.approval.start.denied").increment();
         } catch (RuntimeException failed) {
             log.error("ALERT the approval of {} round {} could not start: {}", event.document().documentId().value(), event.round().value(),
                     failed.toString());

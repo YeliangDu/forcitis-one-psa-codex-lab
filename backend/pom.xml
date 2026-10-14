@@ -60,7 +60,9 @@
         <configuration><testExcludes><testExclude>**/*MssqlIT.java</testExclude></testExcludes></configuration>
       </plugin>
       <!-- *IT classes (Testcontainers) run in the integration-test phase; surefire only runs *Test (Boot parent) - added by platform.approval -->
-      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId></plugin>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId>
+        <!-- At JVM exit the cached Spring contexts close after Testcontainers stopped the database; each waits for its connection timeout (2 s, twice), so a fork with many contexts needs more than the default 30 s to leave. -->
+        <configuration><forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds></configuration></plugin>
     </plugins>
   </build>
   <profiles>

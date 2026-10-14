@@ -34,6 +34,9 @@ class ProblemResponses implements OperationCustomizer {
         Schema<?> problem = new ObjectSchema().addProperty("type", new StringSchema()).addProperty("title", new StringSchema())
                 .addProperty("status", new Schema<Integer>().type("integer")).addProperty("detail", new StringSchema())
                 .addProperty("instance", new StringSchema()).addProperty("errorCode", new StringSchema());
+        if (operation.getParameters() != null) {
+            operation.getParameters().stream().filter(parameter -> "If-Match".equals(parameter.getName())).forEach(parameter -> parameter.setRequired(true));
+        }
         REFUSALS.forEach((status, description) -> {
             if (operation.getResponses().get(status) == null) {
                 operation.getResponses().addApiResponse(status, new ApiResponse().description(description)

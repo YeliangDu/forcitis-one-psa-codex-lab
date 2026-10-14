@@ -245,6 +245,10 @@ public final class ApprovalRequest extends AggregateRoot {
         end(ApprovalStatus.RETURNED, ApprovalOutcome.RETURNED, reason, ReturnSource.APPROVER, now);
     }
 
+    public void returnRoundBySystem(Reason reason, Moment now) {
+        end(ApprovalStatus.RETURNED, ApprovalOutcome.RETURNED, reason, ReturnSource.SYSTEM, now);
+    }
+
     public WithdrawCheck checkWithdraw(UserId actor, boolean cutoffPassed) {
         if (status != ApprovalStatus.RUNNING) {
             return WithdrawCheck.NOT_RUNNING;

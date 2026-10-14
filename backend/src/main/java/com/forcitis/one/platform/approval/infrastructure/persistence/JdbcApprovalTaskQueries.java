@@ -44,6 +44,13 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
               JOIN platform_approval.approval_requests r ON r.process_key = t.process_key AND r.document_key = t.document_key
             """;
 
+    private static final String HANDLING = """
+            SELECT r.record_id, r.process_key, q.document_type, r.document_key, r.round_number, r.task_id, r.instance_id, r.node_key,
+                   r.node_name, r.action_kind, r.actor_id, r.on_behalf_of_id, r.assignee_id, r.record_reason, r.decided_at
+              FROM platform_approval.approval_task_records r
+              JOIN platform_approval.approval_requests q ON q.process_key = r.process_key AND q.document_key = r.document_key
+            """;
+
     private final JdbcClient jdbc;
 
     JdbcApprovalTaskQueries(JdbcClient jdbc) {
@@ -63,13 +70,9 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
 
     @Override
     public List<TaskHandling> handledBy(UserId user, Optional<Instant> after, Optional<UUID> afterId, int limit) {
-        return jdbc.sql("""
-                SELECT r.record_id, r.process_key, q.document_type, r.document_key, r.round_number, r.task_id, r.instance_id, r.node_key,
-                       r.node_name, r.action_kind, r.actor_id, r.on_behalf_of_id, r.assignee_id, r.record_reason, r.decided_at
-                  FROM platform_approval.approval_task_records r
-                  JOIN platform_approval.approval_requests q ON q.process_key = r.process_key AND q.document_key = r.document_key
+        return jdbc.sql(HANDLING + """
                  WHERE r.actor_id = :user
-                   AND r.action_kind IN ('APPROVED', 'REJECTED', 'RETURNED', 'ADVISED', 'PASSED_AUTOMATICALLY')
+                   AND r.action_kind <> 'PASSED_AUTOMATICALLY'
                    AND (CAST(:after AS timestamptz) IS NULL OR (r.decided_at, r.record_id) < (CAST(:after AS timestamptz), CAST(:afterId AS uuid)))
                  ORDER BY r.decided_at DESC, r.record_id DESC
                  LIMIT :limit
@@ -118,9 +121,12 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     }
 
     @Override
-    public List<TaskRecord> historyOf(ProcessKey processKey, String documentKey) {
-        return jdbc.sql(RECORD + " WHERE t.process_key = :processKey AND t.document_key = :documentKey ORDER BY t.created_at, t.task_id")
-                .param("processKey", processKey.name()).param("documentKey", documentKey).query((rs, n) -> read(rs)).list();
+    public List<TaskHandling> historyOf(ProcessKey processKey, String documentKey) {
+        return jdbc.sql(HANDLING + """
+                 WHERE r.process_key = :processKey AND r.document_key = :documentKey
+                 ORDER BY r.decided_at, r.record_id
+                """)
+                .param("processKey", processKey.name()).param("documentKey", documentKey).query((rs, n) -> readHandling(rs)).list();
     }
 
     @Override

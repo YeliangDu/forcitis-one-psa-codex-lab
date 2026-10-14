@@ -44,7 +44,7 @@ COMMENT ON COLUMN platform_approval.approval_task_records.updated_at IS '更新�
 COMMENT ON COLUMN platform_approval.approval_task_records.decided_at IS '办理时刻：这件事发生的时间';
 
 CREATE INDEX ix_approval_task_records_actor_id ON platform_approval.approval_task_records (actor_id, decided_at DESC, record_id DESC)
-    WHERE action_kind IN ('APPROVED', 'REJECTED', 'RETURNED', 'ADVISED', 'PASSED_AUTOMATICALLY');
+    WHERE action_kind <> 'PASSED_AUTOMATICALLY';
 CREATE INDEX ix_approval_task_records_task_id ON platform_approval.approval_task_records (task_id);
 CREATE INDEX ix_approval_task_records_process_key_document_key ON platform_approval.approval_task_records (process_key, document_key, round_number);
 
@@ -59,3 +59,7 @@ $$;
 CREATE TRIGGER approval_task_records_reject_update_delete
     BEFORE UPDATE OR DELETE ON platform_approval.approval_task_records
     FOR EACH ROW EXECUTE FUNCTION platform_approval.reject_task_record_change();
+
+CREATE TRIGGER approval_task_records_reject_truncate
+    BEFORE TRUNCATE ON platform_approval.approval_task_records
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_approval.reject_task_record_change();

@@ -12,7 +12,7 @@ User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 �
 | RULE-380 | approval | Still unhandled after the escalation point, the task goes to the holders' superiors | P0 | No |
 | RULE-381 | approval | With no superior known, an overdue task goes to the process administrator and raises an alert | P0 | No |
 | RULE-382 | approval | A deadline never approves, rejects or skips anything | P0 | No |
-| RULE-383 | approval | A calendar that cannot answer fails the submission | P0 | No |
+| RULE-383 | approval | A calendar that cannot answer fails the start of the approval, never the submission | P0 | No |
 | RULE-384 | approval | Overdue and escalation are events with the task's own event number, counted for timeliness statistics | P1 | No |
 
 ### RULE-377: A task's deadline is 23:59 of the n-th workday after the workday the task is created in, in the legal entity's calendar
@@ -93,11 +93,11 @@ User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 �
 **Tests:** `ApprovalDeadlineIT.reminderOnceAndNeverAnApproval`, `decidedInTimeIsNotReminded`.
 **Confidence:** High.
 
-### RULE-383: A calendar that cannot answer fails the submission
+### RULE-383: A calendar that cannot answer fails the start of the approval, never the submission
 **Category:** Validation
 **Priority:** P0
 **Source:** G-1 (missing or invalid input fails); `WorkCalendar` contract
-**Plain English:** When the calendar has no maintained data for a year the answer depends on, the task cannot get a deadline; the whole start rolls back (no request, no instance, no task) and the error is raised. "Every day is a workday" is never assumed.
+**Plain English:** When the calendar has no maintained data for a year the answer depends on, the task cannot get a deadline; the start rolls back (no request, no instance, no task) and the error is raised. The document's own submission has succeeded by then (the approval starts from the event it published): the start fails, is alerted and is retried once the calendar is maintained; the document stays submitted. "Every day is a workday" is never assumed.
 **Tests:** `ApprovalDeadlineIT.calendarFailureFailsTheStart`.
 **Confidence:** High.
 

@@ -112,6 +112,13 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
                 checked++;
                 org.assertj.core.api.Assertions.assertThat(operation.getValue().path("responses").path("422").path("content").has("application/problem+json"))
                         .as(operation.getKey() + " " + path.getKey()).isTrue();
+                if (operation.getKey().equals("post")) {
+                    boolean required = false;
+                    for (var parameter : operation.getValue().path("parameters")) {
+                        required |= "If-Match".equals(parameter.path("name").asString()) && parameter.path("required").asBoolean();
+                    }
+                    org.assertj.core.api.Assertions.assertThat(required).as("If-Match is required on " + path.getKey()).isTrue();
+                }
                 org.assertj.core.api.Assertions.assertThat(operation.getValue().path("responses").path("404").path("content").has("application/problem+json")).isTrue();
             }
         }

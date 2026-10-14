@@ -43,20 +43,22 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("D-1a-78 a request the approval cannot route is not retried: the round ends RETURNED to its initiator with the reason, and the next round starts normally")
-    void aRefusedStartEndsAsReturned(Scenario scenario) {
+    @DisplayName("D-1a-78 an approver the initiator can replace (named on the document but not a person) ends the round RETURNED by the system with the reason; the next round starts normally")
+    void aFixableRefusalEndsAsReturnedBySystem(Scenario scenario) {
         long unit = newId();
         long initiator = newId();
+        long gone = newId();
         long manager = newId();
         organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
         String key = newKey("refused");
 
-        scenario.publish(request(key, initiator, manager, 1, "noSuchFlag")).andWaitForEventOfType(ApprovalCompleted.class)
+        scenario.publish(request(key, initiator, gone, 1, "projectHours")).andWaitForEventOfType(ApprovalCompleted.class)
                 .matching(e -> e.document().equals(document(key))).toArriveAndVerify(e -> {
                     assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
+                    assertThat(e.returnSource()).isEqualTo(com.forcitis.one.platform.approval.api.ReturnSource.SYSTEM);
                     assertThat(e.round()).isEqualTo(new RoundNumber(1));
                     assertThat(e.initiator()).isEqualTo(new UserId(initiator));
-                    assertThat(e.reason().value()).contains("PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN");
+                    assertThat(e.reason().value()).contains("PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID");
                 });
 
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
@@ -65,6 +67,22 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
         scenario.publish(request(key, initiator, manager, 2, "projectHours")).andWaitForEventOfType(com.forcitis.one.platform.approval.events.TaskAssigned.class)
                 .matching(e -> e.document().equals(document(key))).toArrive();
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
+    }
+
+    @Test
+    @DisplayName("a fault of the set-up (a routing flag no node uses) is alerted and left for redelivery: nothing is returned to the initiator")
+    void aSetUpFaultIsNotReturnedToTheInitiator(Scenario scenario) {
+        long unit = newId();
+        long initiator = newId();
+        long manager = newId();
+        organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
+        String key = newKey("setup");
+        double before = meters.counter("forcitis.platform.approval.start.failed").count();
+
+        scenario.publish(request(key, initiator, manager, 1, "noSuchFlag")).andWaitForStateChange(
+                () -> meters.counter("forcitis.platform.approval.start.failed").count() > before ? Boolean.TRUE : null);
+
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_key = ?", Integer.class, key)).isZero();
     }
 
     @Test

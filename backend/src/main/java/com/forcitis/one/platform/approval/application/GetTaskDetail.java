@@ -55,8 +55,8 @@ public class GetTaskDetail {
             Instant now) {
         Optional<EmployeeProfile> initiator = org.findEmployee(row.initiator());
         List<TaskDetail.Entry> history = tasks.historyOf(row.processKey(), row.document().documentId().value()).stream()
-                .map(r -> new TaskDetail.Entry(r.taskId(), r.nodeKey(), r.round(), r.status(), r.assignee(), r.outcome(), r.effect(), r.reason(),
-                        r.completedAt())).toList();
+                .map(r -> new TaskDetail.Entry(r.recordId(), r.taskId(), r.nodeKey(), r.nodeName(), r.round(), r.action(), r.actor(),
+                        nameOf(r.actor()), r.onBehalfOf().map(this::nameOf), r.assignee().map(this::nameOf), r.reason(), r.decidedAt())).toList();
         return new TaskDetail(row.taskId(), row.instanceId(), row.processKey(), row.document(), row.nodeKey().value(), nodeName, row.initiator(),
                 initiator.map(EmployeeProfile::name).orElse(String.valueOf(row.initiator().value())),
                 initiator.flatMap(profile -> org.findOrgUnit(profile.orgUnitId())).map(OrgUnitProfile::name), assignee,

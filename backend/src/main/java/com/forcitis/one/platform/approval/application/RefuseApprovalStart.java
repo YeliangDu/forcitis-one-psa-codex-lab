@@ -39,7 +39,7 @@ public class RefuseApprovalStart {
                     + expected + " is next");
         }
         ApprovalRequest aggregate = approvals.openRound(request, existing);
-        aggregate.returnRound(new Reason(reason), time.moment());
+        aggregate.returnRoundBySystem(new Reason(reason), time.moment());
         approvals.save(aggregate);
     }
 }

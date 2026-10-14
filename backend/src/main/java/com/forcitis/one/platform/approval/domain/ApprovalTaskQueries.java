@@ -18,7 +18,7 @@ public interface ApprovalTaskQueries {
 
     Optional<ApprovalInstanceId> instanceOf(ApprovalTaskId taskId);
 
-    /** What the person decided, newest first, starting after the given place; one more than the limit when there is a next page. */
+    /** What the person did to tasks (not what the system did for them), newest first, starting after the given place; one more than the limit when there is a next page. */
     List<TaskHandling> handledBy(UserId user, Optional<Instant> after, Optional<UUID> afterId, int limit);
 
     /**
@@ -27,8 +27,8 @@ public interface ApprovalTaskQueries {
      */
     List<TaskRecord> openTasks(Optional<Instant> overdueAt, Optional<Instant> after, Optional<ApprovalTaskId> afterId, int limit);
 
-    /** Every task of one document, oldest first, whichever round it is from: the history shown next to a task. */
-    List<TaskRecord> historyOf(ProcessKey processKey, String documentKey);
+    /** Everything done to the tasks of one document, oldest first, whichever round it is from: the history shown next to a task. */
+    List<TaskHandling> historyOf(ProcessKey processKey, String documentKey);
 
     /** The deadline of each given task that has one. */
     Map<ApprovalTaskId, Instant> dueAtOf(Collection<ApprovalTaskId> taskIds);

@@ -69,7 +69,8 @@ components:
             enum:
             - APPROVER
             - INITIATOR
-            description: 退回由谁发起：审批人退回，或发起人撤回（D-1a-72）；只有退回结果有值
+            - SYSTEM
+            description: 退回由谁发起：审批人退回，发起人撤回（D-1a-72），或系统因发起人可以自行改正的原因退回；只有退回结果有值
       x-event:
         eventType: platform.approval.ApprovalCompleted
         version: 1

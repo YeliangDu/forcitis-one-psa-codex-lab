@@ -14,8 +14,4 @@ public enum TaskRecordAction {
     PASSED_AUTOMATICALLY,
     TRANSFERRED,
     REASSIGNED;
-
-    public boolean decides() {
-        return this == APPROVED || this == REJECTED || this == RETURNED || this == ADVISED || this == PASSED_AUTOMATICALLY;
-    }
 }
