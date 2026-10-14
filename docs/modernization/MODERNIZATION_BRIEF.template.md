@@ -118,6 +118,7 @@ Entry criteria:
 - [ ] 内核值对象 `Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId` 已就位（ADR-0016）
 - [x] 已对 identity、org 两个域补抽规则并完成评审（`RULE_REVIEWS.json` 中有对应记录）——61 条见 `rules/IDENTITY_ORG_RULES.md`，标记的 45 条已评审（正确 16、错误 29，2026-10-14，见 RULE_REVIEWS.md 第三批）
 - [ ] 本阶段涉及的老表（`system_users`、`system_dept`、`bpm_*`、`psa_process_to_be_sent`）已有逐列所有权矩阵
+- [ ] 本阶段涉及流程的流程梳理已完成（`process/1a/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）（Phase 1a 已在实施中，本条为补做）
 Exit criteria:
 - [ ] one.forcitis.com 上线：用企业微信 OAuth 和致远 SSO 登录都能成功；遍历全部接口的匿名访问测试返回 401
   Proposed revision:（检查点 2，用户 2026-10-14：「两条都按建议修订」）匿名访问测试改为「非 `@PublicEndpoint` 的接口一律返回 401，且 `@PublicEndpoint` 集合等于经 CODEOWNERS 评审的白名单快照」；另加无 CSRF 写操作返回 403，上线前从 nginx 外侧黑盒遍历。
@@ -144,6 +145,7 @@ Entry criteria:
 - [ ] 已列出所有调用 `/admin-api/fst/quotation/**`、`/admin-api/fst/opportunity/**` 的老调用方（PC、H5、外部系统），并为每个调用方注明：经兼容门面测试通过，或本阶段一并迁移
 - [ ] `psa_quotation*`、`psa_cost_template*`、`psa_crm_opportunity` 已有逐列所有权矩阵
 - [ ] 特征基线已录制：用 dev 库数据回放报价的保存、提交、审批，请求与结果记录在 `analysis/psa/BASELINE.md`
+- [ ] 本阶段涉及流程的流程梳理已完成（`process/1b/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
 Exit criteria:
 - [ ] 售前与报价的 P0 规则全部有以规则 ID 命名的测试，且测试通过
 - [ ] 同一组输入在新旧系统上的最终报价、毛利、条款拆分、状态完全一致，或差异已在 `RULE_REVIEWS.json` 中被接受
@@ -167,6 +169,7 @@ Entry criteria:
 - [ ] 老过账引擎最近一个已结期间的工时成本过账结果已导出，作为影子比对基线
   Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14）：追加入口条件「工时审批所需的流程字段已有来源：项目经理（`projectManagerId`）、区域负责人（`regionalHeadId`）与工时行类型路由标记（项目 / 售前 / OH）由哪个模块提供已决定（候选：delivery.execution 提供项目经理，organization.workforce 提供区域负责人）」。1a 中 TIMESHEET 只用于回放，不实际发起，取不到人时落流程管理员兜底。
   Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14，依据 R0 登记的 A8_ACCESS_REGISTER #29–#31）：追加入口条件「无效交付工时规则（生产 SQL Agent 作业第 4 步经 BI 视图 T_FST_INVALID_DELIVERY 回写，#31）已抽取为规则卡并评审；项目档案（#29）与项目预算（#30，与 PSA 预算双入口，RULE-182/239）的 A8 → 老 PSA 通道已在规则卡中登记」。
+- [ ] 本阶段涉及流程的流程梳理已完成（`process/2/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
 Exit criteria:
 - [ ] 影子计算结果：一个完整会计期间内，新旧系统逐行的审批状态、锁定费率、标准成本金额、计费金额、人天、任务包实际工时完全一致，或差异已被接受
 - [ ] 切换发生在会计期间边界；老系统中切换前发起的工时审批实例已全部结束
@@ -186,6 +189,7 @@ Entry criteria:
 - [ ] 已执行 `/code-modernization:modernize-extract-rules psa expense` 补抽差旅规则，并在 `RULE_REVIEWS.json` 中有结论
 - [ ] 分贝通沙箱可用，签名密钥存放在 KMS
 - [ ] 分贝通回调地址 `/app-api/fst/fenbeitong/events/*` 的切换方式已与分贝通确认：改为新地址，或由兼容门面转发
+- [ ] 本阶段涉及流程的流程梳理已完成（`process/3/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
 Exit criteria:
 - [ ] 差旅 P0 规则全部有测试，且测试通过
 - [ ] 一个完整月度周期（申请、订票、对账、分摊、月结审批）在新系统跑通，与老系统的对账单逐笔一致
@@ -209,6 +213,7 @@ Entry criteria:
 - [ ] 最近两个已结期间的老系统归集、分摊、结转、凭证结果已导出，作为黄金基线
 - [ ] 月结批处理的耗时基线已导出
   Proposed revision（草稿，待用户决定；Phase 1a 会话 2026-10-14，依据 R0 登记的 A8_ACCESS_REGISTER #28）：追加入口条件「成本明细 → psa_pm_pay 通道（生产 SQL Agent 作业，#28）承载的成本明细规则已抽取为规则卡并评审，含隐含规则『委外和居间付款申请不结转』」。
+- [ ] 本阶段涉及流程的流程梳理已完成（`process/4/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
 Exit criteria:
 - [ ] 两个月结期间，新旧系统的分摊行、WIP 余额、凭证分录逐笔一致，或差异已由财务在 `RULE_REVIEWS.json` 中签字接受
 - [ ] 对账等式全部成立：归集守恒、合同资产滚动恒等式（F113）、凭证借贷平衡；老系统的红冲记录已按冲销关系迁移，原行与反向行双向关联
@@ -227,6 +232,7 @@ Risk: 中。
 Entry criteria:
 - [ ] Phase 4 的出口条件满足
 - [ ] 外部调用方清单（BI、KM、A8、IT 服务门户）中，每一方都已有确认的切换步骤
+- [ ] 本阶段涉及流程的流程梳理已完成（`process/5/`，SESSION_PLAYBOOK §13），差异清单逐条有用户决定，并已写入 §5「流程梳理结论」（用户 2026-10-14：「每个阶段实施前增加「流程梳理」步骤……先把这一步写进 SESSION_PLAYBOOK 和 brief 的阶段入口条件」）
 Exit criteria:
 - [ ] BI 查询清单中的每条查询在 PostgreSQL `reporting` 上的结果，与切换前在 SQL Server 上的结果一致
 - [ ] 安全组已移除 48080 和 48088 规则，老服务进程已停止
@@ -244,6 +250,8 @@ Exit criteria:
 ## 5. Behavior Contract
 
 {{BEHAVIOR_CONTRACT}}
+
+{{PROCESS_CONTRACT}}
 
 ## 6. Validation Strategy
 

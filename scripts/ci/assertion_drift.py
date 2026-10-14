@@ -10,7 +10,7 @@ TEST_FILE = re.compile(r"(src/test/.*\.java|\.test\.tsx?|\.spec\.tsx?)$")
 ASSERTION = re.compile(r"\b(assertThat|assertEquals|assertTrue|assertFalse|assertThrows|assertThatThrownBy|verify|expect)\s*\(")
 EXACT = re.compile(r"\.(isEqualTo|containsExactly|containsExactlyInAnyOrder|hasSize|isZero|isEmpty|toBe|toEqual|toHaveLength)\(")
 RANGE = re.compile(r"\.(isGreaterThan|isGreaterThanOrEqualTo|isLessThan|isLessThanOrEqualTo|isPositive|isNotEmpty|contains|atLeast|atMost|toBeGreaterThan|toBeGreaterThanOrEqual|toContain)\(")
-FIELD = "改动的断言"
+FIELD = "改动的断言 / 测试及理由"
 
 
 def diff(base, head="HEAD"):
@@ -52,7 +52,7 @@ def pr_field_filled():
             body = (json.load(f).get("pull_request") or {}).get("body") or ""
     except (OSError, ValueError):
         return None
-    m = re.search(rf"##\s*{FIELD}\s*\n(.*?)(\n##\s|\Z)", body, re.S)
+    m = re.search(rf"##\s*{re.escape(FIELD)}\s*\n(.*?)(\n##\s|\Z)", body, re.S)
     if not m:
         return False
     text = re.sub(r"<!--.*?-->", "", m.group(1), flags=re.S).strip()
