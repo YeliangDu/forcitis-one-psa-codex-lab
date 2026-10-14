@@ -16,13 +16,13 @@
 
 | # | 问题 | 建议 |
 |---|---|---|
-| D-1 | 环境划分 | **已定**（用户 2026-10-14：「同实例分库，生产前再定」）：dev 用同实例独立库 `forcitis_one_dev` + `one_dev_*` 角色；生产前再决定是否另开生产 RDS（若同实例，另建库与 `one_prod_*` 角色） |
+| D-1 | 环境划分 | **已定**（用户 2026-10-14：dev「同实例分库，生产前再定」；生产「扩容现有实例共用」）：<ul><li>dev 使用同一实例上的独立库 `forcitis_one_dev`，角色为 `one_dev_*`。</li><li>生产沿用现有 PG 18 高可用实例，另建生产库（`forcitis_one_prod`）与 `one_prod_*` 角色。</li><li>按 ADR-0025 第 2 条设定各库、各角色的连接数预算，并按角色设置 `statement_timeout`、`idle_in_transaction_session_timeout`、`work_mem`。</li><li>实例扩容（建议 8 核 32 GB、ESSD 200 GB、开启存储自动扩容）属于部署前的购买操作，执行前须经用户确认。</li><li>dev 库在上线前迁出还是停用，部署前决定。</li></ul> |
 | D-2 | dev 部署位置 | **已定**（同上）：dev 部署在 forcitis-one-production（i-bp122xlpar8w2uylmal2）；切生产时换配置与库 |
 | D-3（部署前再问） | `one.forcitis.com` 的 DNS 与证书由谁办理 | 证书建议用阿里云 SSL 证书服务（或 ACME），DNS 由域名管理员添加 A 记录指向 47.114.56.157 |
 | D-4（部署前再问） | A8 库（SQL Server）与老系统库（SQL Server RDS）的只读视图和账号由谁建 | 见 §4。需要 A8 管理员和老 RDS 的 DBA 分别执行，并把 172.16.89.86 加入两库白名单 |
 | D-5（部署前再问） | 应急管理员开通方式 | 见 §6，建议使用一次性运维命令，不提供 HTTP 接口 |
 
-## 2. PostgreSQL（`forcitis_one_dev`）
+## 2. PostgreSQL（`forcitis_one_dev`；生产库 `forcitis_one_prod` 同实例另建，见 D-1）
 
 脚本见 `one_db_roles_schemas.sql`。执行顺序：
 1. 用 RDS 高权限账号执行 §0 冲突检查。任何一项查到结果就停止，并把结果报给 psa-coordinator。
@@ -100,8 +100,8 @@
 | `INTEGRATION_SEEYON_VIEWS_ENABLED` | 致远 A8 组织视图读取开关（默认 false） | 否 |
 | `A8_DB_URL` / `A8_DB_USERNAME` / `A8_DB_PASSWORD` | A8 视图只读连接（第 4 节的专用账号） | 启用时 |
 | `INTEGRATION_SEEYON_VALIDATE_ON_STARTUP` | 启动时校验 A8 账号只能读视图（默认 true） | 否 |
-| `A8_HEAD_RELATIONSHIP_TYPE_ID`、`A8_REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID`、`A8_DELIVERY_UNIT_YES_ENUM_ID`、`A8_FEE_EARNER_YES_ENUM_ID` | A8 中关系类型与枚举的编号（有默认值，与 A8 实例不一致时覆盖） | 否 |
-| `INTEGRATION_LEGACY_ENABLED` | 老系统待办视图读取开关（默认 false） | 否 |
+| `A8_HEAD_RELATIONSHIP_TYPE_ID`、`A8_REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID`、`A8_DELIVERY_UNIT_YES_ENUM_ID`、`A8_FEE_EARNER_YES_ENUM_ID`、`A8_ROOT_PATH` | A8 中关系类型、枚举的编号与同步根单位的层级路径（有默认值，与 A8 实例不一致时覆盖） | 否 |
+| `INTEGRATION_LEGACY_ENABLED` | 老系统 待办视图读取开关（默认 false） | 否 |
 | `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 老库只读连接（第 4 节的专用账号） | 启用时 |
 | `INTEGRATION_LEGACY_VALIDATE_ON_STARTUP` | 启动时校验老库账号只能读那一个视图（默认 true） | 否 |
 | `WORKFORCE_SYNC_ENABLED` | 从 A8 视图同步组织与人员的定时任务开关（默认 false） | 否 |

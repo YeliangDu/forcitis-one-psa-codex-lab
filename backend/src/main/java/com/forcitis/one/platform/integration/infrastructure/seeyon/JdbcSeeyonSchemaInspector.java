@@ -29,6 +29,11 @@ final class JdbcSeeyonSchemaInspector implements SeeyonSchemaInspector {
     }
 
     @Override
+    public int countUnitsAtPath(String path) {
+        return jdbc.sql(SeeyonViewSql.COUNT_UNITS_AT_ROOT).param("rootPath", path).query(Integer.class).single();
+    }
+
+    @Override
     public int countRelationshipsOfType(long relationshipTypeId) {
         return jdbc.sql(SeeyonViewSql.COUNT_RELATIONSHIPS_OF_TYPE).param("typeId", relationshipTypeId).query(Integer.class).single();
     }

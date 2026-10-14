@@ -1,5 +1,46 @@
-# kernel 提议术语（proposed，待业务评审，ADR-0018）。单词级术语：服务于 AccountingPeriod / ProjectCoordinate 等内核值对象的标识命名守护。
-terms: []
+terms:
+- id: migration
+  zh: 历史迁入
+  en: Migration
+  snake: migration
+  kind: value
+  bc: kernel
+  definition: 事件或数据来自老系统 / A8 的一次性迁入（与新系统原生相对）
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: work_calendar
+  zh: 工作日历
+  en: WorkCalendar
+  snake: work_calendar
+  kind: entity
+  bc: organization.attendance
+  definition: 按年维护的节假日与调休上班日；默认日历适用全部法人，预留法人专属日历（用户 2026-10-14）
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: workday
+  zh: 工作日
+  en: Workday
+  snake: workday
+  kind: value
+  bc: organization.attendance
+  definition: 工作日历中需要上班的日期：周一至周五且非节假日，或调休上班日
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - contain
 - containing
@@ -8,3 +49,13 @@ common_words:
 - negate
 - positive
 - whole
+- aggregate
+- causation
+- correlation
+- domain
+- envelope
+- draft
+- occurred
+- schema
+- wrap
+- related

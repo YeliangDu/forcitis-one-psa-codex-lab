@@ -68,13 +68,27 @@ class TaskAssignmentListener implements FlowableEventListener {
                 .orElseThrow(() -> new IllegalStateException("Instance " + task.getProcessInstanceId() + " has no initiator"))));
         UserId administrator = properties.processAdministratorUserId() == null ? null : new UserId(properties.processAdministratorUserId());
 
-        Resolution resolution = new AssigneeResolver(org, roles, administrator)
-                .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
+        Resolution resolution;
+        try {
+            resolution = new AssigneeResolver(org, roles, administrator)
+                    .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
+        } catch (RuntimeException failed) {
+            log.error("Resolving the assignees of node {} (instance {}) failed: {}", node.getId(), task.getProcessInstanceId(), failed.toString());
+            meters.counter("platform.approval.assignee.resolution.failed").increment();
+            throw failed;
+        }
         if (resolution.kind() == ResolutionKind.SKIPPED) {
             log.info("Node {} (instance {}) has nobody to assign and is skipped", node.getId(), task.getProcessInstanceId());
             meters.counter("platform.approval.assignee.skipped").increment();
             task.setVariableLocal(FlowableApprovalEngine.VARIABLE_SKIPPED, Boolean.TRUE);
             return;
+        }
+        if (resolution.kind() == ResolutionKind.INVALID_INPUT) {
+            log.error("Node {} (instance {}) may be skipped when nobody is found, but its input is missing or invalid: not skipped, "
+                    + "the approval fails", node.getId(), task.getProcessInstanceId());
+            meters.counter("platform.approval.assignee.invalid.input").increment();
+            throw new IllegalStateException("Node " + node.getId() + " of instance " + task.getProcessInstanceId()
+                    + " reads a missing or invalid value, so it cannot be skipped");
         }
         if (resolution.kind() == ResolutionKind.UNRESOLVED) {
             throw new IllegalStateException("Nobody can handle node " + node.getId() + " of instance " + task.getProcessInstanceId()
@@ -92,7 +106,8 @@ class TaskAssignmentListener implements FlowableEventListener {
         ProcessKey processKey = ProcessKey.valueOf(ProcessDefinitionUtil.getProcessDefinition(task.getProcessDefinitionId())
                 .getKey().toUpperCase(Locale.ROOT));
         events.publishEvent(new TaskAssigned(new ApprovalTaskId(task.getId()), new ApprovalInstanceId(task.getProcessInstanceId()),
-                processKey, variables.firstVariable(FlowableApprovalEngine.VARIABLE_BUSINESS_KEY).orElse(""), node.getId(),
+                processKey, ProcessDefinitionUtil.getProcessDefinition(task.getProcessDefinitionId()).getName(),
+                variables.firstVariable(FlowableApprovalEngine.VARIABLE_BUSINESS_KEY).orElse(""), node.getId(),
                 task.getName(), initiator, candidates));
     }
 

@@ -100,6 +100,13 @@ class AuditLogIT {
     }
 
     @Test
+    @DisplayName("record outside a transaction is refused: an audit entry is never written on its own by accident")
+    void recordNeedsTheCallersTransaction() {
+        assertThatThrownBy(() -> audit.record(new AuditEntry("platform.audit.test.recorded", null, null, unique("subject"), "x")))
+                .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
+    }
+
+    @Test
     @DisplayName("recordIndependently survives the caller's rollback (failed logins, denied actions)")
     void independentRecordSurvivesRollback() {
         String independent = unique("subject");

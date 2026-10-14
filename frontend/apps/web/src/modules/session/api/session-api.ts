@@ -1,16 +1,19 @@
 import { operations } from '@forcitis/api';
-import { currentUserSchema, loginStateSchema } from '../model/current-user';
 
 const UNGUARDED = { guards: false } as const;
 const QR_ENTRY = 'QR_CODE_LOGIN' as const;
 
-export async function fetchCurrentUser() {
-  return currentUserSchema.parse(await operations.getPlatformSessionsCurrent(undefined, UNGUARDED));
+export function fetchCurrentUser() {
+  return operations.getPlatformSessionsCurrent(undefined, UNGUARDED);
+}
+
+function stateOf(reply: unknown): string {
+  if (typeof reply === 'object' && reply !== null && 'state' in reply && typeof reply.state === 'string' && reply.state !== '') return reply.state;
+  throw new Error('The login-state answer carries no state.');
 }
 
 export async function requestWecomLoginState(): Promise<string> {
-  const reply = await operations.postPlatformLoginStates({ body: { entry: QR_ENTRY } }, UNGUARDED);
-  return loginStateSchema.parse(reply).state;
+  return stateOf(await operations.postPlatformLoginStates({ body: { entry: QR_ENTRY } }, UNGUARDED));
 }
 
 export async function loginWithWecom(code: string, state: string): Promise<void> {

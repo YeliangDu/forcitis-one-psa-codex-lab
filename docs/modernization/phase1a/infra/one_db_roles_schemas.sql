@@ -32,7 +32,8 @@ CREATE ROLE one_dev_migrator LOGIN INHERIT IN ROLE one_dev_owner CONNECTION LIMI
 ALTER ROLE one_dev_migrator SET search_path = one_migration, pg_catalog;
 ALTER ROLE one_dev_migrator SET role = one_dev_owner;          -- 迁移建出的对象属主统一为 one_dev_owner
 
--- 角色名带 dev：PG 角色是实例级的，生产若同实例另建库，须用 one_prod_* 另一套角色，dev 凭据不能连生产库
+-- 角色名带 dev：PG 角色是实例级的。生产已定沿用本实例（用户 2026-10-14：「扩容现有实例共用」），另建库 forcitis_one_prod
+-- 与 one_prod_* 一套角色（本脚本把 dev 换成 prod 即可）；dev 凭据不能连生产库。连接数预算与按角色超时、work_mem 按 ADR-0025 第 2 条设置。
 -- 运行角色：应用常驻连接，只有 DML，不能建表、改表
 CREATE ROLE one_dev_app LOGIN NOINHERIT CONNECTION LIMIT 40;
 ALTER ROLE one_dev_app SET search_path = platform_approval, pg_catalog;   -- Flowable 以 platform_approval 为默认 schema

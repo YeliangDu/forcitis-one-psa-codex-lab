@@ -40,7 +40,7 @@ class SeeyonViewsMssqlIT {
     static MSSQLServerContainer mssql = new MSSQLServerContainer("mcr.microsoft.com/mssql/server:2022-latest").acceptLicense();
 
     static final Path SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
-    static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "-2682590999914657055", "-3267712510147735998");
+    static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "-2682590999914657055", "-3267712510147735998", "00000001");
 
     static String readerPassword = "Aa1!" + UUID.randomUUID();
     static ReadOnlyConnection reader;
@@ -237,7 +237,7 @@ class SeeyonViewsMssqlIT {
     @Test
     @DisplayName("RULE-356 a Seeyon instance whose ids differ from the configuration is refused at start-up, not silently turned into 'no head'")
     void wrongIdsAreRefused() {
-        SeeyonMapping wrong = new SeeyonMapping(1, 2, "nope", "nope");
+        SeeyonMapping wrong = new SeeyonMapping(1, 2, "nope", "nope", "00000001");
 
         assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader.jdbc()), wrong).problems()).hasSize(4);
     }

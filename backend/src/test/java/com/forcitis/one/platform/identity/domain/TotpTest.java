@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 class TotpTest {
 
-    static final byte[] RFC_SECRET = "12345678901234567890".getBytes(StandardCharsets.US_ASCII);
+    static final byte[] RFC_SECRET = "1234567890".repeat(2).getBytes(StandardCharsets.US_ASCII);
 
     @Test
     @DisplayName("RFC 6238 Appendix B test vectors")

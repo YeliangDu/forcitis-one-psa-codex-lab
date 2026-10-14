@@ -115,7 +115,7 @@ final class TimesheetApproverReplay {
             case ESCALATED_REPORTING_LINE -> ReplayVerdict.REVIEWED_REPORTING_LINE;
             case ESCALATED_SELF_APPROVAL -> ReplayVerdict.REVIEWED_SELF_APPROVAL;
             case ADMINISTRATOR_FALLBACK -> ReplayVerdict.REVIEWED_ADMINISTRATOR_FALLBACK;
-            case RESOLVED, SKIPPED, UNRESOLVED -> ReplayVerdict.DEFECT;
+            case RESOLVED, SKIPPED, UNRESOLVED, INVALID_INPUT -> ReplayVerdict.DEFECT;
         };
     }
 }

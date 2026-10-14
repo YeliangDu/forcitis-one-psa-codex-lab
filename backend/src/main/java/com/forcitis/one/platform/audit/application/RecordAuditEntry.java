@@ -21,7 +21,7 @@ class RecordAuditEntry implements AuditLog {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.MANDATORY)
     public void record(AuditEntry entry) {
         entries.save(entry, clock.instant());
     }

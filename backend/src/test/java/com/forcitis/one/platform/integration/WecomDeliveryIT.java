@@ -18,6 +18,7 @@ import com.forcitis.one.platform.integration.api.WecomCard;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.forcitis.one.platform.integration.application.DeliverWecomCards;
+import com.forcitis.one.platform.integration.domain.OutboundDeliveryRepository;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -66,6 +67,7 @@ class WecomDeliveryIT {
         registry.add("forcitis.platform.integration.wecom.recipients.restricted", () -> "true");
         registry.add("forcitis.platform.integration.wecom.recipients.allowed", () -> "alice,carol");
         registry.add("forcitis.platform.integration.wecom.delivery.interval", () -> "PT1H");
+        registry.add("forcitis.platform.integration.wecom.delivery.duplicate-task-error-codes", () -> "42014");
     }
 
     @MockitoBean
@@ -85,6 +87,9 @@ class WecomDeliveryIT {
 
     @Autowired
     DeliverWecomCards deliver;
+
+    @Autowired
+    OutboundDeliveryRepository repository;
 
     @Autowired
     TransactionTemplate tx;
@@ -288,20 +293,89 @@ class WecomDeliveryIT {
         assertThat(gauge("platform.integration.deliveries.pending.overdue")).isEqualTo(before);
     }
 
+    private void markHandled(String key, String note) {
+        tx.executeWithoutResult(status -> gateway.markHandled(key, note));
+    }
+
     @Test
-    @DisplayName("Q-3 markHandled replaces the sent card using its response code, once")
+    @DisplayName("Q-3 markHandled after the card was sent queues a replacement that the job delivers with the response code, once")
     void markHandledReplacesTheCard() {
         sendSucceeds(",\"response_code\":\"rc-12\"");
         wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\"}")));
         queue(card("approval-task:12", ALICE, CAROL));
         deliver.execute();
 
-        gateway.markHandled("approval-task:12", "handled by Dave");
-        gateway.markHandled("approval-task:12", "handled by Dave");
+        markHandled("approval-task:12", "handled by Dave");
+        markHandled("approval-task:12", "handled by Dave");
+        wecom.verify(0, postRequestedFor(urlPathEqualTo(UPDATE_PATH)));
+        assertThat(deliver.execute()).isEqualTo(1);
+        assertThat(deliver.execute()).isZero();
 
         wecom.verify(1, postRequestedFor(urlPathEqualTo(UPDATE_PATH)).withRequestBody(containing("\"response_code\":\"rc-12\""))
                 .withRequestBody(containing("handled by Dave")).withRequestBody(containing("\"userids\":[\"alice\",\"carol\"]")));
         assertThat(row("approval-task:12")).containsEntry("handled_result", "UPDATED").containsEntry("handled_note", "handled by Dave");
+        assertThat(row("approval-task:12#handled")).containsEntry("status", "SENT").containsEntry("kind", "HANDLED_NOTE");
+    }
+
+    @Test
+    @DisplayName("Q-3 markHandled while the card is being sent: the card is delivered, then replaced right away")
+    void handledWhileTheCardIsInFlightIsStillReplaced() throws Exception {
+        wecom.stubFor(post(urlPathEqualTo(SEND_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\",\"response_code\":\"rc-16\"}")
+                .withFixedDelay(1500)));
+        wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\"}")));
+        queue(card("approval-task:16", ALICE));
+
+        var sending = java.util.concurrent.CompletableFuture.runAsync(deliver::execute);
+        while (wecom.countRequestsMatching(postRequestedFor(urlPathEqualTo(SEND_PATH)).build()).getCount() == 0) {
+            Thread.sleep(20);
+        }
+        markHandled("approval-task:16", "handled by Dave");
+        sending.get(10, java.util.concurrent.TimeUnit.SECONDS);
+
+        assertThat(row("approval-task:16")).containsEntry("status", "SENT");
+        assertThat(row("approval-task:16#handled")).containsEntry("status", "PENDING");
+        assertThat(deliver.execute()).isEqualTo(1);
+        wecom.verify(1, postRequestedFor(urlPathEqualTo(UPDATE_PATH)).withRequestBody(containing("\"response_code\":\"rc-16\"")));
+        assertThat(row("approval-task:16")).containsEntry("handled_result", "UPDATED");
+    }
+
+    @Test
+    @DisplayName("Q-3 a failing replacement is retried like a card; an unknown key is ignored")
+    void failingReplacementIsRetried() {
+        sendSucceeds(",\"response_code\":\"rc-15\"");
+        wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":40037,\"errmsg\":\"invalid response code\"}")));
+        queue(card("approval-task:15", ALICE));
+        deliver.execute();
+
+        markHandled("approval-task:15", "handled by Dave");
+        markHandled("approval-task:unknown", "handled by Dave");
+
+        deliver.execute();
+        assertThat(row("approval-task:15#handled")).containsEntry("status", "PENDING").containsEntry("attempt_count", 1);
+
+        wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\"}")));
+        makeDue("approval-task:15#handled");
+        deliver.execute();
+        assertThat(row("approval-task:15#handled")).containsEntry("status", "SENT").containsEntry("attempt_count", 2);
+        assertThat(row("approval-task:15")).containsEntry("handled_result", "UPDATED");
+    }
+
+    @Test
+    @DisplayName("Q-3 a replacement that fails every attempt is a dead letter and the card records the failure")
+    void exhaustedReplacementIsADeadLetter() {
+        sendSucceeds(",\"response_code\":\"rc-17\"");
+        wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":40037,\"errmsg\":\"invalid response code\"}")));
+        queue(card("approval-task:17", ALICE));
+        deliver.execute();
+        markHandled("approval-task:17", "handled by Dave");
+
+        for (int attempt = 1; attempt <= 8; attempt++) {
+            makeDue("approval-task:17#handled");
+            deliver.execute();
+        }
+
+        assertThat(row("approval-task:17#handled")).containsEntry("status", "DEAD_LETTER");
+        assertThat(row("approval-task:17").get("handled_result").toString()).startsWith("FAILED").contains("40037");
     }
 
     @Test
@@ -311,8 +385,9 @@ class WecomDeliveryIT {
         queue(card("approval-task:13", ALICE));
         deliver.execute();
 
-        gateway.markHandled("approval-task:13", "handled by Dave");
+        markHandled("approval-task:13", "handled by Dave");
 
+        assertThat(deliver.execute()).isZero();
         wecom.verify(0, postRequestedFor(urlPathEqualTo(UPDATE_PATH)));
         assertThat(row("approval-task:13").get("handled_result").toString()).startsWith("NOT_APPLIED").contains("no response code");
     }
@@ -322,7 +397,7 @@ class WecomDeliveryIT {
     void handledBeforeDeliveryIsNeverSent() {
         queue(card("approval-task:14", ALICE));
 
-        gateway.markHandled("approval-task:14", "handled by Dave");
+        markHandled("approval-task:14", "handled by Dave");
         deliver.execute();
 
         assertThat(row("approval-task:14")).containsEntry("status", "SKIPPED");
@@ -331,17 +406,50 @@ class WecomDeliveryIT {
     }
 
     @Test
-    @DisplayName("Q-3 a failing replacement is recorded and does not throw; an unknown key is ignored")
-    void markHandledFailuresDoNotPropagate() {
-        sendSucceeds(",\"response_code\":\"rc-15\"");
-        wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":40037,\"errmsg\":\"invalid response code\"}")));
-        queue(card("approval-task:15", ALICE));
+    @DisplayName("markHandled outside a transaction is refused")
+    void markHandledNeedsTheCallersTransaction() {
+        assertThatThrownBy(() -> gateway.markHandled("approval-task:x", "n")).isInstanceOf(IllegalTransactionStateException.class);
+    }
+
+    @Test
+    @DisplayName("ARCH 3.7 a claim whose lease ran out is claimed again; the first holder's late result is rejected")
+    void expiredLeaseIsReclaimedAndTheStaleWriteIsRejected() {
+        queue(card("approval-task:18", ALICE));
+        java.time.Instant now = java.time.Instant.now();
+        var first = repository.claimDue(now, java.time.Duration.ofMinutes(2), 20).getFirst();
+        assertThat(repository.claimDue(now, java.time.Duration.ofMinutes(2), 20)).as("leased, not due").isEmpty();
+
+        var second = repository.claimDue(now.plus(java.time.Duration.ofMinutes(3)), java.time.Duration.ofMinutes(2), 20).getFirst();
+
+        assertThat(first.attemptCount()).isEqualTo(1);
+        assertThat(second.attemptCount()).isEqualTo(2);
+        assertThat(repository.markSent(first, "stale-code", now)).isFalse();
+        assertThat(repository.markRetry(first, now, "stale")).isFalse();
+        assertThat(repository.markDeadLetter(first, "stale")).isFalse();
+        assertThat(repository.markSkipped(first, "stale")).isFalse();
+        assertThat(row("approval-task:18")).containsEntry("status", "PENDING").containsEntry("attempt_count", 2);
+        assertThat(repository.markSent(second, "rc-18", now)).isTrue();
+        assertThat(repository.markSent(second, "again", now)).as("already sent").isFalse();
+        assertThat(row("approval-task:18")).containsEntry("status", "SENT").containsEntry("response_code", "rc-18");
+    }
+
+    @Test
+    @DisplayName("ARCH 3.7 the claim lease covers a whole batch at the worst case per delivery")
+    void leaseCoversTheWholeBatch() {
+        assertThat(DeliverWecomCards.LEASE)
+                .isGreaterThanOrEqualTo(DeliverWecomCards.WORST_CASE_PER_DELIVERY.multipliedBy(DeliverWecomCards.BATCH_SIZE));
+    }
+
+    @Test
+    @DisplayName("ARCH 3.7 'task_id already used' on a repeated send means the card is already out: sent, not retried")
+    void repeatedSendWithUsedTaskIdIsSent() {
+        wecom.stubFor(post(urlPathEqualTo(SEND_PATH)).willReturn(okJson("{\"errcode\":42014,\"errmsg\":\"task_id used\"}")));
+        queue(card("approval-task:19", ALICE));
+
         deliver.execute();
 
-        gateway.markHandled("approval-task:15", "handled by Dave");
-        gateway.markHandled("approval-task:unknown", "handled by Dave");
-
-        assertThat(row("approval-task:15").get("handled_result").toString()).startsWith("FAILED").contains("40037");
+        assertThat(row("approval-task:19")).containsEntry("status", "SENT").containsEntry("attempt_count", 1);
+        assertThat(row("approval-task:19").get("response_code")).isNull();
     }
 
     @Test

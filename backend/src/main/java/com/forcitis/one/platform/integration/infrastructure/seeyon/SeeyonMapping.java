@@ -5,9 +5,13 @@ import java.util.List;
 
 /** Wrong values would silently turn every head / marker into "none", so the startup check verifies them against the data. */
 record SeeyonMapping(long headRelationshipTypeId, long regionalReceivablesManagerRelationshipTypeId,
-                     String deliveryUnitYesEnumId, String feeEarnerYesEnumId) {
+                     String deliveryUnitYesEnumId, String feeEarnerYesEnumId, String rootPath) {
 
     static final String KEY_PREFIX = "forcitis.platform.integration.seeyon.views.";
+
+    String rootPathPrefix() {
+        return rootPath + "%";
+    }
 
     List<String> configurationProblems() {
         List<String> problems = new ArrayList<>();
@@ -25,6 +29,9 @@ record SeeyonMapping(long headRelationshipTypeId, long regionalReceivablesManage
         }
         if (feeEarnerYesEnumId == null || feeEarnerYesEnumId.isBlank()) {
             problems.add(KEY_PREFIX + "fee-earner-yes-enum-id is not configured");
+        }
+        if (rootPath == null || !rootPath.matches("\\d+") || rootPath.length() % SeeyonViewSql.PATH_LEVEL_LENGTH != 0) {
+            problems.add(KEY_PREFIX + "root-path must be digits in whole " + SeeyonViewSql.PATH_LEVEL_LENGTH + "-digit levels");
         }
         return problems;
     }

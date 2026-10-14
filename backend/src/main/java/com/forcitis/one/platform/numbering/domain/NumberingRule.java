@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.numbering.domain;
 
 import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import java.util.Objects;
 
 public record NumberingRule(DocumentType documentType, NumberingPattern pattern, long startValue, ConfirmationStatus confirmation) {

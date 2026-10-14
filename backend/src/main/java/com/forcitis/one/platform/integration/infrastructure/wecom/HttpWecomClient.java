@@ -87,7 +87,13 @@ class HttpWecomClient implements WecomClient {
     public Optional<String> sendCard(OutboundDelivery delivery) {
         Map<String, Object> body = WecomMessagePayload.textNotice(agentId, delivery.recipients(), delivery.title(),
                 delivery.description(), delivery.targetUrl(), delivery.deduplicationKey());
-        JsonNode answer = call(token -> post("/cgi-bin/message/send", token, body));
+        int[] duplicateTask = settings.delivery().duplicateTaskErrorCodes().stream().mapToInt(Integer::intValue).toArray();
+        JsonNode answer = call(token -> post("/cgi-bin/message/send", token, body), duplicateTask);
+        int errcode = answer.path("errcode").asInt(0);
+        if (errcode != 0) {
+            log.info("WeCom card {} was sent before (errcode {}): treated as sent", delivery.deduplicationKey(), errcode);
+            return Optional.empty();
+        }
         String invalid = answer.path("invaliduser").asString("");
         if (!invalid.isBlank()) {
             log.warn("WeCom card {}: WeCom rejected {} recipient(s) as unknown", delivery.deduplicationKey(), invalid.split("\\|").length);

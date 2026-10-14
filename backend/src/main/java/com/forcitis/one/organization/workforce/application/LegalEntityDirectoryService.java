@@ -5,6 +5,7 @@ import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.LegalEntityDirectory;
 import com.forcitis.one.organization.workforce.domain.LegalEntity;
 import com.forcitis.one.organization.workforce.domain.LegalEntityRepository;
+import com.forcitis.one.organization.workforce.domain.LegalEntityStatus;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -19,5 +20,10 @@ class LegalEntityDirectoryService implements LegalEntityDirectory {
     @Override
     public Optional<LegalEntityCode> findCode(LegalEntityId legalEntityId) {
         return legalEntities.find(legalEntityId).map(LegalEntity::code);
+    }
+
+    @Override
+    public Optional<LegalEntityCode> findActiveCode(LegalEntityId legalEntityId) {
+        return legalEntities.find(legalEntityId).filter(e -> e.status() == LegalEntityStatus.ACTIVE).map(LegalEntity::code);
     }
 }

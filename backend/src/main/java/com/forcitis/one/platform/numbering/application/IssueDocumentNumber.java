@@ -5,7 +5,7 @@ import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.LegalEntityDirectory;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
 import java.time.LocalDate;
@@ -29,11 +29,11 @@ class IssueDocumentNumber implements DocumentNumbers {
     public DocumentNumber next(DocumentType type, LegalEntityId legalEntity, LocalDate businessDate) {
         NumberingRule rule = rules.findActive(type)
                 .orElseThrow(() -> new IllegalStateException("No active numbering rule for " + type));
-        LegalEntityCode legalEntityCode = rule.pattern().usesLegalEntityCode()
-                ? legalEntities.findCode(legalEntity).orElseThrow(() -> new IllegalStateException("Legal entity " + legalEntity.value() + " has no code"))
-                : null;
+        LegalEntityCode legalEntityCode = legalEntities.findActiveCode(legalEntity)
+                .orElseThrow(() -> new IllegalStateException("Legal entity " + legalEntity.value() + " does not exist or is deactivated"));
+        long counterScope = rule.pattern().usesLegalEntityCode() ? legalEntity.value() : NumberingRuleRepository.GLOBAL_COUNTER_SCOPE;
         String periodKey = rule.pattern().resetPolicy().periodKey(businessDate);
-        long sequence = rules.reserveNext(type, legalEntity, periodKey, rule.startValue());
-        return new DocumentNumber(rule.pattern().render(type.code().orElse(null), legalEntityCode, businessDate, sequence));
+        long sequence = rules.reserveNext(type, counterScope, periodKey, rule.startValue());
+        return new DocumentNumber(rule.pattern().render(type.code().orElse(null), rule.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, sequence));
     }
 }

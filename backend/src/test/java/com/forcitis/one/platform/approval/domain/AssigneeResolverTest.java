@@ -112,25 +112,59 @@ class AssigneeResolverTest {
     }
 
     @Test
-    @DisplayName("RULE-300 a node that may be skipped is skipped only when nobody is found; a node that may not be skipped goes to the administrator")
+    @DisplayName("RULE-300 a node that may be skipped is skipped only when its input is complete and valid and nobody is left; a node that may not be skipped goes to the administrator")
     void skipOnlyWhenEmptyAndAllowed() {
-        ProcessVariables none = ProcessVariables.empty();
-        Resolution skipped = resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), false, true, new UserId(1), none);
+        AssignmentRule.FormFieldUsers rule = new AssignmentRule.FormFieldUsers("projectManagerId");
+        Resolution skipped = resolver.resolve(rule, false, true, new UserId(1), fields("projectManagerId", "120"));
         assertThat(skipped.kind()).isEqualTo(ResolutionKind.SKIPPED);
         assertThat(skipped.candidates()).isEmpty();
-        assertThat(resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), false, false, new UserId(1), none).kind())
+        assertThat(resolver.resolve(rule, false, false, new UserId(1), fields("projectManagerId", "120")).kind())
                 .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
-        assertThat(resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), false, true, new UserId(1),
-                fields("projectManagerId", "2")).kind()).isEqualTo(ResolutionKind.RESOLVED);
+        assertThat(resolver.resolve(rule, false, false, new UserId(1), ProcessVariables.empty()).kind())
+                .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
+        assertThat(resolver.resolve(rule, false, true, new UserId(1), fields("projectManagerId", "2")).kind())
+                .isEqualTo(ResolutionKind.RESOLVED);
+    }
+
+    @Test
+    @DisplayName("G-1 / RULE-300 a missing field, an empty field and a value that is not an existing person are INVALID_INPUT, never SKIPPED")
+    void invalidInputIsNeverSkipped() {
+        AssignmentRule.FormFieldUsers rule = new AssignmentRule.FormFieldUsers("projectManagerId");
+        for (ProcessVariables input : List.of(ProcessVariables.empty(), fields("projectManagerId"), fields("projectManagerId", " "),
+                fields("projectManagerId", "x"), fields("projectManagerId", "0"), fields("projectManagerId", "424242"))) {
+            assertThat(resolver.resolve(rule, false, true, new UserId(1), input).kind()).as(input.toString())
+                    .isEqualTo(ResolutionKind.INVALID_INPUT);
+        }
+        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, new UserId(1),
+                variable("unitVar", "424242")).kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
+        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, new UserId(1), ProcessVariables.empty())
+                .kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
+        assertThat(resolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new UserId(424242),
+                ProcessVariables.empty()).kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("RULE-300 a complete, valid input with really nobody (no supervisor, no head, no role holder) is SKIPPED")
+    void reallyNobodyIsSkipped() {
+        FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
+        AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, new UserId(ADMIN));
+
+        assertThat(lonelyResolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new UserId(5), ProcessVariables.empty())
+                .kind()).isEqualTo(ResolutionKind.SKIPPED);
+        assertThat(lonelyResolver.resolve(new AssignmentRule.Role(new RoleCode("nobody-holds-this")), false, true, new UserId(5),
+                ProcessVariables.empty()).kind()).isEqualTo(ResolutionKind.SKIPPED);
+        assertThat(lonelyResolver.resolve(new AssignmentRule.DepartmentHead(null), false, true, new UserId(5), ProcessVariables.empty())
+                .kind()).isEqualTo(ResolutionKind.SKIPPED);
     }
 
     @Test
     @DisplayName("RULE-258/260 form field users: every distinct value is a candidate; blanks and garbage are ignored")
     void formFieldUsers() {
-        org.person(-4000000000000000001L, 10, null);
+        long negativeBigId = Long.MIN_VALUE / 2;
+        org.person(negativeBigId, 10, null);
         Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1,
-                fields("projectManagerId", "2", "3", "2", " ", "x", "-4000000000000000001"));
-        assertThat(r.candidates()).isEqualTo(ids(2, 3, -4000000000000000001L));
+                fields("projectManagerId", "2", "3", "2", " ", "x", String.valueOf(negativeBigId)));
+        assertThat(r.candidates()).isEqualTo(ids(2, 3, negativeBigId));
     }
 
     @Test
@@ -220,6 +254,6 @@ class AssigneeResolverTest {
                 "FORM_FIELD_USER_SUPERVISORS");
         assertThat(AssignmentRuleCodec.NOT_BUILT_TYPES).containsExactlyInAnyOrder("NAMED_USERS", "PROCESS_VARIABLE_USERS");
         assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR", n -> null)).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> AssignmentRuleCodec.parse("INITIATOR_LEADER", n -> "1")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> AssignmentRuleCodec.parse("SUPERVISOR_OF_INITIATOR", n -> "1")).isInstanceOf(IllegalStateException.class);
     }
 }

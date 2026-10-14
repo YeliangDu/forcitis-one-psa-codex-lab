@@ -13,7 +13,7 @@ const INBOX = {
   items: [
     { source: 'NEW', taskId: 'n-1', title: '工时单审批 TS202610140001', nodeName: '部门负责人审核', createdAt: '2026-10-14T01:00:00Z', claimed: true, detailUrl: null },
     { source: 'NEW', taskId: 'n-2', title: '工时单审批 TS202610140002', nodeName: '部门负责人审核', createdAt: '2026-10-14T02:00:00Z', claimed: false, detailUrl: null },
-    { source: 'LEGACY', taskId: 'l-1', title: '合同评审 HT-2026-001', nodeName: '法务审核', createdAt: '2026-10-13T08:00:00Z', claimed: false, detailUrl: 'https://old.example.com/bpm/task?id=l-1' },
+    { source: 'LEGACY', taskId: 'l-1', title: '合同评审 HT-2026-001', nodeName: '法务审核', createdAt: '2026-10-13T08:00:00Z', claimed: false, detailUrl: 'https://old.example.com/todo/detail?id=l-1' },
     { source: 'LEGACY', taskId: 'l-2', title: '异常链接的老待办', nodeName: '财务审核', createdAt: '2026-10-13T09:00:00Z', claimed: false, detailUrl: 'javascript:alert(1)' },
   ],
 };
@@ -38,7 +38,7 @@ describe('合并待办收件箱', () => {
     renderWithProviders(<InboxPage />);
 
     const link = await screen.findByRole('link', { name: '合同评审 HT-2026-001' });
-    expect(link).toHaveAttribute('href', 'https://old.example.com/bpm/task?id=l-1');
+    expect(link).toHaveAttribute('href', 'https://old.example.com/todo/detail?id=l-1');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
     expect(link).toHaveAttribute('rel', expect.stringContaining('noreferrer'));

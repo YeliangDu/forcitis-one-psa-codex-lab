@@ -486,8 +486,8 @@ export interface components {
             reason?: string;
         };
         DecisionResult: {
-            instanceId: string;
-            status: string;
+            instanceId?: string;
+            status?: string;
         };
         EmergencyLoginRequest: {
             loginName?: string;
@@ -495,15 +495,15 @@ export interface components {
             totpCode?: string;
         };
         InboxItem: {
-            claimed: boolean;
+            claimed?: boolean;
             /** Format: date-time */
             createdAt?: string;
             detailUrl?: string;
             nodeName?: string;
             /** @enum {string} */
-            source: "NEW" | "LEGACY";
-            taskId: string;
-            title: string;
+            source?: "NEW" | "LEGACY";
+            taskId?: string;
+            title?: string;
         };
         LegacyNumberResponse: {
             documentId: string;
@@ -523,14 +523,14 @@ export interface components {
             entry?: "WORKBENCH" | "MINI_PROGRAM" | "QR_CODE_LOGIN";
         };
         MergedInbox: {
-            items: components["schemas"]["InboxItem"][];
-            legacyAvailable: boolean;
+            items?: components["schemas"]["InboxItem"][];
+            legacyAvailable?: boolean;
             /** Format: int32 */
-            legacyCount: number;
+            legacyCount?: number;
             /** Format: int32 */
-            newCount: number;
+            newCount?: number;
             /** Format: int32 */
-            totalCount: number;
+            totalCount?: number;
         };
         NavigationResponse: {
             children: components["schemas"]["NavigationResponse"][];
@@ -606,6 +606,8 @@ export interface components {
         SubmitTimesheetRequest: {
             hours?: number;
             /** Format: int64 */
+            projectManagerId?: number;
+            /** Format: int64 */
             workPackageId?: number;
         };
         SubmitTimesheetResponse: {
@@ -667,17 +669,17 @@ export interface components {
         };
         TaskDetail: {
             assignee?: string;
-            businessKey: string;
-            canAct: boolean;
-            candidates: string[];
+            businessKey?: string;
+            canAct?: boolean;
+            candidates?: string[];
             /** Format: date-time */
-            createdAt: string;
-            initiator: string;
-            instanceId: string;
-            nodeKey: string;
-            nodeName: string;
-            processKey: string;
-            taskId: string;
+            createdAt?: string;
+            initiator?: string;
+            instanceId?: string;
+            nodeKey?: string;
+            nodeName?: string;
+            processKey?: string;
+            taskId?: string;
         };
         TicketLoginRequest: {
             ticket?: string;

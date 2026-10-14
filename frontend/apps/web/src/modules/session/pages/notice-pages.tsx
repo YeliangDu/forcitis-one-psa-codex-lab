@@ -19,7 +19,7 @@ export function ForbiddenPage() {
     <ResultPage
       kind="forbidden"
       title="权限不足"
-      description="你的账号没有访问此内容的权限，如需使用请联系管理员授权。"
+      description="你的用户账号没有访问此内容的权限，如需使用请联系管理员授权。"
       actions={<Button onClick={() => void navigate('/')}>返回首页</Button>}
     />
   );

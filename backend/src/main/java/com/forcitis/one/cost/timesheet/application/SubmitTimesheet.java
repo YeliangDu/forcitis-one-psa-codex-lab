@@ -1,5 +1,6 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalRequest;
@@ -8,8 +9,10 @@ import com.forcitis.one.delivery.execution.api.WorkPackageQueries;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.context.ApplicationEventPublisher;
@@ -43,7 +46,9 @@ public class SubmitTimesheet {
         }
         UserId employee = currentUser.userId();
         ApprovalInstanceId instanceId = approvals.start(new ApprovalRequest(ProcessKey.COST_TIMESHEET_APPROVAL,
-                "timesheet:" + command.timesheetId().value(), employee, Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName())));
+                "timesheet:" + command.timesheetId().value(), employee, Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
+                        List.of(String.valueOf(command.projectManager().value()))))));
         events.publishEvent(new TimesheetSubmitted(command.timesheetId(), employee, instanceId));
         return new SubmissionResult.Submitted(instanceId);
     }

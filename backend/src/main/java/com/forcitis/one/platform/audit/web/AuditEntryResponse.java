@@ -4,7 +4,6 @@ import com.forcitis.one.platform.audit.application.AuditEntryView;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;
 
-/** Ids are strings: they are signed 64-bit numbers that JavaScript cannot hold exactly. */
 record AuditEntryResponse(String entryId, Instant createdAt, String action, @Nullable String actorId, @Nullable String onBehalfOfId, String subjectKey,
                           @Nullable String detail) {
 

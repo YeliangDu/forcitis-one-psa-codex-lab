@@ -7,5 +7,6 @@ public enum ResolutionKind {
     ESCALATED_SELF_APPROVAL,
     ADMINISTRATOR_FALLBACK,
     SKIPPED,
+    INVALID_INPUT,
     UNRESOLVED
 }

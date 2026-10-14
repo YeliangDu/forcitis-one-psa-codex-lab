@@ -2,7 +2,7 @@ package com.forcitis.one.platform.numbering.infrastructure.persistence;
 
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.platform.numbering.api.DocumentId;
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.LegacyNumberEntry;
 import com.forcitis.one.platform.numbering.domain.LegacyNumberRepository;
 import java.util.List;

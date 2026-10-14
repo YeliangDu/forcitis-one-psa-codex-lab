@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.numbering.application;
 
-import com.forcitis.one.platform.numbering.api.DocumentType;
+import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.NumberingRuleView;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
 import java.util.Optional;

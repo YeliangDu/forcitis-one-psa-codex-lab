@@ -21,6 +21,13 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Flyway migrations are append-only (SESSION_PLAYBOOK §12)
+        working-directory: .
+        run: |
+          python3 scripts/ci/migrations_immutable.py --self-test
+          python3 scripts/ci/migrations_immutable.py origin/${{ github.base_ref || 'main' }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -72,3 +79,13 @@ jobs:
       # 文档不得用「PSA」指代系统（用户 2026-10-14）；例外规则见脚本说明
       - name: no legacy system name in docs
         run: python3 docs/modernization/check_legacy_name.py
+
+  assertion-drift:
+    name: assertion drift (warning only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python3 scripts/ci/assertion_drift.py origin/${{ github.base_ref }}
