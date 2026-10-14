@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** A port so tests can replace it with an in-memory stand-in. */
 interface SeeyonSchemaInspector {
 
     Map<String, Set<String>> viewColumns();

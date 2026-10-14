@@ -49,7 +49,6 @@ public record ProcessVariables(Map<String, List<String>> formFields, Map<String,
                     found.add(new UserId(id));
                 }
             } catch (NumberFormatException ignored) {
-                // a value that is not an id is not an approver
             }
         }
         return new LinkedHashSet<>(found);
