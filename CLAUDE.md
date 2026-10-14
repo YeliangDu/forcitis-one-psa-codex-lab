@@ -19,5 +19,5 @@
 - 能一开始做对的不留到后续阶段；推迟的工作须在规则卡或文档写明「为何后做更有价值」，否则当期做对。
 - 系统名称：新系统写 FORCITIS one，老系统写「老系统」（英文 the legacy system），不用「PSA」指代系统；老路径、表名、接口、代码标识、仓库名、会话名与用户原话照原样（`docs/modernization/check_legacy_name.py`）。
 - 派子代理必须显式指定模型（haiku / sonnet / opus，按任务难度）。
-- 记录只改片段：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `docs/modernization/build_all.py` 从 `intent/`、`session-log/`、`status/`、`adr/src/` 生成；用 `new_intent.py`、`new_log.py` 新增片段，改完运行 `build_all.py` 并连同产物提交，不直接编辑生成产物。
+- 记录只改片段：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `docs/modernization/build_all.py` 从 `intent/`、`session-log/`、`status/`、`adr/src/` 生成；用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段（文件名带时刻与会话名，不手工起名），改完运行 `build_all.py` 并连同产物提交，不直接编辑生成产物。
 - main 受分支保护：所有改动经 PR，CI 三项通过后由 psa-coordinator 合并；工作会话结束前向 psa-coordinator 报告。
