@@ -2,6 +2,7 @@ package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.platform.approval.application.ApprovalError;
 import com.forcitis.one.platform.approval.domain.AssigneeResolver;
 import com.forcitis.one.platform.approval.domain.NodePolicy;
 import com.forcitis.one.platform.approval.domain.ProcessAdministrator;
@@ -53,20 +54,20 @@ class NodeAssignment {
                     .resolve(policy.rule(), policy.selfApprovalAllowed(), skipWhenEmpty, initiator, variables);
         } catch (RuntimeException failed) {
             log.error("Resolving the assignees of node {} (instance {}) failed: {}", node.getId(), instanceId, failed.toString());
-            meters.counter("platform.approval.assignee.resolution.failed").increment();
+            meters.counter("forcitis.platform.approval.assignee.resolution.failed").increment();
             throw failed;
         }
         switch (resolution.kind()) {
             case SKIPPED -> {
                 log.info("Node {} (instance {}) has nobody to assign and is skipped", node.getId(), instanceId);
-                meters.counter("platform.approval.assignee.skipped").increment();
+                meters.counter("forcitis.platform.approval.assignee.skipped").increment();
             }
             case INVALID_INPUT -> {
                 log.error("Node {} (instance {}) may be skipped when nobody is found, but its input is missing or invalid: not skipped, "
                         + "the approval fails", node.getId(), instanceId);
-                meters.counter("platform.approval.assignee.invalid.input").increment();
-                throw new IllegalStateException("Node " + node.getId() + " of instance " + instanceId
-                        + " reads a missing or invalid value, so it cannot be skipped");
+                meters.counter("forcitis.platform.approval.assignee.invalid.input").increment();
+                throw ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID.refusal("The approver field read by node " + node.getId()
+                        + " is not an employed person");
             }
             case UNRESOLVED -> throw new IllegalStateException("Nobody can handle node " + node.getId() + " of instance " + instanceId
                     + " and no process administrator is configured (forcitis.platform.approval.assignment.process-administrator-user-id)");
@@ -75,7 +76,7 @@ class NodeAssignment {
             default -> {
                 log.warn("Assignment of node {} (instance {}) is {}: candidates {}", node.getId(), instanceId, resolution.kind(),
                         resolution.candidates());
-                meters.counter("platform.approval.assignee.fallback", "kind", resolution.kind().name().toLowerCase(Locale.ROOT)).increment();
+                meters.counter("forcitis.platform.approval.assignee.fallback", "kind", resolution.kind().name().toLowerCase(Locale.ROOT)).increment();
             }
         }
         return resolution;

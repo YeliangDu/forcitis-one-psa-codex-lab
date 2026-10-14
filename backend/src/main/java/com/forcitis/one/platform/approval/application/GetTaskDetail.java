@@ -23,8 +23,7 @@ public class GetTaskDetail {
     @Transactional(readOnly = true)
     public TaskDetail execute(ApprovalTaskId taskId, UserId viewer) {
         TaskView task = engine.findTask(taskId).filter(t -> isParticipant(t, viewer)).orElseThrow(
-                () -> new ApprovalOperationException(ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND,
-                        "Task " + taskId.value() + " does not exist"));
+                () -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " does not exist"));
         List<UserId> candidates = task.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
         return new TaskDetail(task.taskId(), task.instanceId(), task.processKey(), task.document(), task.nodeKey(), task.nodeName(),
                 task.initiator(), task.assignee(), candidates, task.createdAt(), TaskActors.mayAct(task, viewer));

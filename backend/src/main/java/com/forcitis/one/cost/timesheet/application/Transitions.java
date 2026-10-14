@@ -13,11 +13,9 @@ final class Transitions {
         switch (result) {
             case DONE -> {
             }
-            case REASON_REQUIRED -> throw new TimesheetOperationException(TimesheetError.COST_TIMESHEET_REASON_REQUIRED, "A reason is required");
-            case NOT_RUNNING -> throw new TimesheetOperationException(TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL,
-                    "The timesheet is not in a running approval");
-            case CUTOFF_PASSED -> throw new TimesheetOperationException(TimesheetError.COST_TIMESHEET_CUTOFF_PASSED,
-                    "An approval node that ends the right to retract has already finished a task");
+            case REASON_REQUIRED -> throw TimesheetError.COST_TIMESHEET_REASON_REQUIRED.refusal("A reason is required");
+            case NOT_RUNNING -> throw TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL.refusal("The timesheet is not in a running approval");
+            case CUTOFF_PASSED -> throw TimesheetError.COST_TIMESHEET_CUTOFF_PASSED.refusal("An approval node that ends the right to retract has already finished a task");
         }
     }
 
@@ -27,8 +25,7 @@ final class Transitions {
         } catch (TimesheetTransitionException refused) {
             switch (refused.violation()) {
                 case NOT_OWNER -> throw new AccessDeniedException(refused.getMessage());
-                case ILLEGAL_TRANSITION -> throw new TimesheetOperationException(TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL,
-                        refused.getMessage());
+                case ILLEGAL_TRANSITION -> throw TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL.refusal(refused.getMessage());
             }
         }
     }
