@@ -436,13 +436,7 @@ class NamingSurfaceTest {
         return key.replace("-", "").replace("_", "").toLowerCase(Locale.ROOT);
     }
 
-    /** platform.approval is renamed by its own work stream; remove the entry when that merges. */
-    static final String PENDING_METRIC_RENAME = "platform/approval/";
-
     static void checkMetricName(String where, String name, String module, List<String> problems) {
-        if (where.contains(PENDING_METRIC_RENAME)) {
-            return;
-        }
         if (!name.startsWith("forcitis.")) {
             problems.add(where + ": a metric name starts with forcitis. (forcitis.{subdomain}.{bc}.{name})");
             return;

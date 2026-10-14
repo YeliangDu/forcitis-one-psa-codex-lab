@@ -10,7 +10,6 @@ import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.Optional;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
@@ -24,17 +23,15 @@ class Retraction {
     private final ApprovalLifecycle lifecycle;
     private final Aggregates aggregates;
     private final DenialAudit denials;
-    private final AuditLog audit;
     private final BusinessTime time;
 
     Retraction(ApprovalRequestRepository requests, ApprovalEngine engine, ApprovalLifecycle lifecycle, Aggregates aggregates,
-            DenialAudit denials, AuditLog audit, BusinessTime time) {
+            DenialAudit denials, BusinessTime time) {
         this.requests = requests;
         this.engine = engine;
         this.lifecycle = lifecycle;
         this.aggregates = aggregates;
         this.denials = denials;
-        this.audit = audit;
         this.time = time;
     }
 
@@ -59,7 +56,6 @@ class Retraction {
         engine.endAsReturned(request.instanceId());
         aggregates.save(request);
         lifecycle.closeOpenTasks(request.instanceId());
-        audit.record(new AuditEntry("platform.approval.request.withdraw", actor, null, "approval-request:" + request.aggregateId(), reason));
         return RetractionResult.DONE;
     }
 
@@ -79,7 +75,6 @@ class Retraction {
         engine.terminate(request.instanceId(), "CANCELLED");
         aggregates.save(request);
         lifecycle.closeOpenTasks(request.instanceId());
-        audit.record(new AuditEntry("platform.approval.request.cancel", actor, null, "approval-request:" + request.aggregateId(), reason));
         return RetractionResult.DONE;
     }
 
