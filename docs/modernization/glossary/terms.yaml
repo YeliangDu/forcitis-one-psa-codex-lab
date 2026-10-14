@@ -412,7 +412,11 @@ terms:
   - IFRS 15 Revenue from Contracts with Customers
   - 中华人民共和国民法典·合同编
   confidence: high
-  aliases: []
+  aliases:
+  - name: 销售合同
+    type: undetermined
+    deprecated: false
+    source: A8 模板「销售合同新增 / 归档」、档案「销售合同档案」
   forbidden: []
   status: approved
   note: CAS 14 / IFRS 15 第一步「识别与客户订立的合同」；收入合同
@@ -611,7 +615,11 @@ terms:
   - 中华人民共和国民法典·合同编
   - IFRS 15 Revenue from Contracts with Customers
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 付款条件档案
+    type: undetermined
+    deprecated: false
+    source: A8 档案 formmain_1321（PSA 报价条款同步）
   forbidden: []
   status: approved
   note: IFRS 15 重大融资成分判断需读付款条件
@@ -1172,6 +1180,10 @@ terms:
   - name: ContractModification（IFRS 15 会计口径）
     type: standard-en
     deprecated: false
+  - name: 销售合同变更
+    type: undetermined
+    deprecated: false
+    source: A8 模板
   forbidden: []
   status: approved
   note: 国标「工程变更」，FIDIC Cl.13 Variation；进入核算时对应 CAS 14 / IFRS 15「合同变更」(contract modification)
@@ -2225,6 +2237,10 @@ terms:
   - name: psa_time_sheet
     type: legacy-table
     deprecated: true
+  - name: 项目工时填报单
+    type: undetermined
+    deprecated: false
+    source: A8 模板（2026-04-30 起停用）
   forbidden:
   - ManHour
   - TimeSheet
@@ -2441,7 +2457,11 @@ terms:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   - FIDIC Conditions of Contract for Construction 2017（Red Book）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 项目委外
+    type: undetermined
+    deprecated: false
+    source: A8 模板「项目委外采购申请 / 采购合同 / 交付确认单」
   forbidden: []
   status: approved
 - id: cost_accumulated
@@ -2503,7 +2523,11 @@ terms:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
   confidence: high
-  aliases: []
+  aliases:
+  - name: BU岗位人天单价
+    type: undetermined
+    deprecated: false
+    source: A8 档案 formmain_1176
   forbidden: []
   status: approved
   change_ref: G-3
@@ -3008,7 +3032,11 @@ terms:
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 发票档案
+    type: undetermined
+    deprecated: false
+    source: A8 档案 formmain_0428
   forbidden: []
   status: approved
   note: 开票 ≠ 收入；开票时合同资产转应收账款（或冲合同负债）
@@ -3026,6 +3054,14 @@ terms:
   - name: ProjectBillingView
     type: legacy-code
     deprecated: true
+  - name: 项目开票申请
+    type: undetermined
+    deprecated: false
+    source: A8 模板
+  - name: 首付款开票申请
+    type: undetermined
+    deprecated: false
+    source: A8 模板
   forbidden: []
   status: approved
   core: true
@@ -3103,6 +3139,14 @@ terms:
   - name: 收入确认准备（产值）
     type: dialect
     deprecated: true
+  - name: 客户产值确认单
+    type: dialect
+    deprecated: true
+    source: A8 模板「客户产值确认单（新）」
+  - name: 客户产值确认档案
+    type: dialect
+    deprecated: true
+    source: A8 档案 formmain_0581
   forbidden:
   - CuValue
   - Cuvalue
@@ -3112,6 +3156,8 @@ terms:
   - 产值确认单
   - 收入确认准备
   - 收入确认准备（产值）
+  - 客户产值确认单
+  - 客户产值确认档案
   status: approved
   change_ref: G-12
   note: 用户 2026-10-14 裁定：「产值确认单就是收入确认单，系统用收入确认这个语言，现在的叫法可以归为方言」。ACC-R01：客户价值确认是确认收入的唯一触发点。事件名 RevenueRecognized
@@ -3190,7 +3236,11 @@ terms:
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 回款单档案
+    type: undetermined
+    deprecated: false
+    source: A8 档案 formmain_0569
   forbidden: []
   status: approved
 - id: receipt_claiming
@@ -3245,7 +3295,11 @@ terms:
   - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
   - IFRS 9 Financial Instruments（expected credit losses）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 应收坏账申请
+    type: undetermined
+    deprecated: false
+    source: A8 模板「应收坏账申请流程」；计提还是核销待财务确认
   forbidden: []
   status: approved
 - id: aging
@@ -3501,6 +3555,10 @@ terms:
   - name: SettlementRecord
     type: old-code
     deprecated: true
+  - name: 项目结算
+    type: undetermined
+    deprecated: false
+    source: A8 模板「项目结算申请」
   forbidden:
   - SettlementRecord
   - 结算单
@@ -3858,6 +3916,10 @@ terms:
   - name: psa_quotation, psa_quotation_line, psa_quotation_seal
     type: legacy-table
     deprecated: true
+  - name: 报价档案
+    type: undetermined
+    deprecated: false
+    source: A8 档案 formmain_0366
   forbidden:
   - BaoJia
   - Quotation
@@ -3997,6 +4059,14 @@ terms:
   - name: psa_pm_project
     type: legacy-table
     deprecated: true
+  - name: 项目立项
+    type: undetermined
+    deprecated: false
+    source: A8 模板「项目立项申请」
+  - name: 项目档案
+    type: undetermined
+    deprecated: false
+    source: A8 模板「项目档案变更」、档案「项目档案底表」
   forbidden:
   - PmProject
   status: approved
@@ -4021,6 +4091,10 @@ terms:
   - name: psa_pm_project.wbs_budget_*
     type: legacy-table
     deprecated: true
+  - name: 项目预算编制
+    type: undetermined
+    deprecated: false
+    source: A8 模板
   forbidden: []
   status: approved
   change_ref: G-29
@@ -4043,6 +4117,14 @@ terms:
   - name: psa_travel_application*
     type: legacy-table
     deprecated: true
+  - name: 日常费用报销单
+    type: undetermined
+    deprecated: false
+    source: A8 模板
+  - name: 业务招待费用报销单
+    type: undetermined
+    deprecated: false
+    source: A8 模板
   forbidden: []
   status: approved
   core: true
@@ -4063,6 +4145,10 @@ terms:
   - name: psa_travel_application*
     type: legacy-table
     deprecated: true
+  - name: 差旅费用报销单
+    type: undetermined
+    deprecated: false
+    source: A8 模板
   forbidden: []
   status: approved
   core: true
@@ -4436,6 +4522,10 @@ terms:
   - name: AdvanceReceipt / DeferredRevenue
     type: old-code
     deprecated: true
+  - name: 预收款单
+    type: undetermined
+    deprecated: false
+    source: A8 模板「预收款单新增」
   forbidden:
   - DeferredRevenue
   - AdvanceReceipt

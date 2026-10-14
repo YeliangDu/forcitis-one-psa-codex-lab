@@ -1,0 +1,19 @@
+# U8C 凭证来源分布（生产只读，2026-10-14；gl_voucher 未作废、未删除，2024 年起；只含计数）。pk_system：XX=外部接口（A8 凭证插件与 PSA 推送）、GL=总账手工、FA=固定资产、TR=出纳/资金
+db	pk_system	year	vouchers	last_180d
+u8cloud	FA	2024	37	0
+u8cloud	FA	2025	44	0
+u8cloud	FA	2026	53	38
+u8cloud	GL	2025	248	0
+u8cloud	GL	2026	171	99
+u8cloud	TR	2024	102	0
+u8cloud	TR	2025	108	0
+u8cloud	TR	2026	48	29
+u8cloud	XX	2024	10431	0
+u8cloud	XX	2025	10292	0
+u8cloud	XX	2026	8124	5785
+u8cloud	gl	2024	1183	0
+u8cloud_QZ	GL	2025	463	0
+u8cloud_QZ	GL	2026	244	147
+u8cloud_QZ	TR	2025	103	0
+u8cloud_QZ	XX	2025	10019	0
+u8cloud_QZ	XX	2026	7962	5698

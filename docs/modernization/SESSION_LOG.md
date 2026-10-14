@@ -79,3 +79,24 @@
 - 未完成与阻塞：I-1..I-9 需并入 AI_NATIVE_SPEC §5.3 出口测试与守护模板（1a 会话）；brief 入口条件「老系统已止血」的 `Proposed revision:`（psa-coordinator）；AI_NATIVE_SPEC 第 132 行 OpenAPI 仍保留桥接端点注释，需随 Q-1 删除。
 - 下一步命令：Phase 1a 会话将 SECURITY_INVARIANTS 的测试列入出口条件并实现。
 - 会话 ID：本会话（worktree xin-af304c，分支 claude/psa-sec-hotfix-r7）
+
+## 2026-10-14 · psa-oa-inventory · OA 流程盘点（迁入边界与顺序）
+- 目标：只读盘点致远 A8 的流程与表单，给出迁入 FORCITIS one 的边界、顺序与阶段草案；按用户硬约束「确保权责业务事实全部在新系统」做权责事实完整性矩阵；起草 ADR-0021（提议）；A8 叫法登记为待确认用语（psa-coordinator 派工及补充）。
+- 输入：SESSION_PLAYBOOK §3/§4/§5、STATUS.md、ADR-0013/0016/0017/0018、GLOSSARY.md、runtime/README.md、phase1a/COLUMN_OWNERSHIP.md、GUIDING_PRINCIPLES §9a（main ecd53f7）；psa 仓库（只读）与其 docs/analysis/OA收入开票回款流程迁移评估.md。基线 origin/main ecd53f7。
+- 用户决定（原话见 INTENT.md，经 psa-coordinator 转达）：「是，同意只读查询」；「确保权责业务事实全部在新系统」。本会话未直接收到新的用户决定。
+- 产出：OA_PROCESS_INVENTORY.md（125 个在用模板分类：迁入 39 / 视情况 48 / 留在 OA 35 / 已停用 3；权责事实完整性矩阵 23 行；36 处 A8 集成点逐处判定，权责相关 26 处；阶段草案 6a–6f 含入口 / 出口条件草稿；待决问题 8 个）；build_oa_inventory.py（分类表生成与校验）；oa_residual_check.sql（无遗留检查只读查询模板）；ADR-0021（提议，经 build_adrs.py 生成）；runtime/a8_templates.tsv、a8_forms.tsv、a8_u8c_vouchers.tsv、a8_collab_state.tsv、u8c_voucher_sources.tsv；glossary/oa_aliases.json + build_terms.py / build_confirmation.py 接入，用语确认表 A 组新增 20 项（含「产值」的 2 项按已有裁定归方言）；INTENT、STATUS 更新。
+- 关键发现：A8 凭证插件按 16 种表单直接给 U8C 生成凭证（累计 402,285 行 / 32,339 张单据，近 180 天 99,179 行），A8 销项开票插件近 180 天开票 1,143 张——Phase 4 出口「U8C 推送权切换」须以 6a–6c 完成为前提；合同条款与收入行级耦合（PSA 作业回写 A8 条款累计字段），评估会话的顺序修正为合同与收入同阶段；U8C 自有手工、出纳、固定资产凭证须财务逐类判定。
+- 验证：生产只读 7 次轻量查询（程序拒绝非 SELECT；单条超时 150 秒；凭据未打印未回传；临时目录 /tmp/psa-oa-ro 每次删除）；build_oa_inventory.py 校验 125 个活跃模板全部分类、无多余条目；build_adrs.py 重新生成后 ADR-0001..0020 无变化；build_terms.py 前后比对：293 条词条除别名外无变化，禁用写法只新增「客户产值确认单」「客户产值确认档案」；build_glossary.py 输出不变；architecture-guardrails GlossaryTest、NamingSurfaceTest 通过（注：该测试使用自带样例词表，不覆盖本次改动）。子代理：A8 调用点逐处列举 haiku；分类、矩阵、ADR 由本会话 opus 完成。
+- 未完成与阻塞：ADR-0021 与 §9 八个问题待用户决定；6a–6f 未并入 brief（待审批）；oa_residual_check.sql 各段的查询形态已在本次采集中实测，但整份模板未带真实参数执行；U8C 手工凭证内容未读（只取计数）；A8 表单触发器（FORM_TRIGGER_RECORD_*）的隐式回写未抽规则。
+- 下一步命令：用户决定后，psa-coordinator 把 6a–6f 并入 brief；6a 前新会话 `psa-6a-contract-revenue-extract` 运行 `/code-modernization:modernize-extract-rules psa contract`（含 A8 表单与触发器）。
+- 会话 ID：本会话（worktree xin-884358，分支 claude/psa-oa-inventory）
+
+## 2026-10-14 · psa-oa-inventory · OA 盘点收尾：rebase 并落实用户决定
+- 目标：rebase 到 origin/main 0f98e10，按用户决定（psa-coordinator 转达，原话已记 INTENT 0f98e10）改 ADR-0021、盘点与 brief / ADR-0016 修订稿。
+- 输入：psa-coordinator 派工；INTENT 0f98e10 的 OA 盘点、H-1、H-3、M-5 决定。
+- 用户决定（原话见 INTENT.md，本条不重复登记）：ADR-0021「采纳；6a–6c 并入 Phase 4 前」；「新建「应付与付款」BC」；非项目采购、员工借还款、合伙人注资退回「都算，都进新系统」；「新系统要自建整个hrm，算薪要迁入」；「主数据全部进新系统」；H-1「迁入新系统，不设双源期」。
+- 产出：ADR-0021 改为已采纳（主数据、不设双源期、6e 自建 HRM、应付与付款 BC、6a–6c 为 Phase 4 出口前置）；ADR-0016 后果第 44 行后追加修订提议（未碰第 6 条）；brief 模板追加两条 `Proposed revision:`（Phase 4 入口的 A8 产值只读接入改为 6a 迁入；Phase 4 出口增加 6a–6c 前置）并重新生成 brief；OA_PROCESS_INVENTORY 分类改为迁入 80 / 视情况 30 / 留在 OA 12 / 已停用 3，矩阵增至 24 行并加主数据段（员工银行卡按敏感个人信息），§5、§6（6e 自建 HRM 范围草案）、§9（决定记录与待办）更新；build_adrs.py 补入 main 上 ADR-0009 的手改段落（此前重新生成会丢失）。rebase 冲突：STATUS、INTENT、SESSION_LOG 以 main 为底合并本单元的行。
+- 验证：build_adrs.py 重新生成后，ADR 只有 0016（追加修订提议）、0021、README 有变化，ADR-0009 与 main 一致；build_brief.py 输出与 main 相同（P0 226、已定 103、阻塞 123、已评审 73），brief 只多两行；build_terms / build_confirmation / build_glossary 重新生成无差异（A 组 20 项）；build_oa_inventory.py 校验 125 个活跃模板全部分类。REPORT.html 未刷新（仓库无生成脚本）。未使用子代理。
+- 未完成与阻塞：ADR-0016 修订提议与 brief 两条修订待用户批准；用语 A 组 20 项待确认；U8C 手工 / 出纳 / 固定资产凭证待财务判定；「应付与付款」BC 编号待 psa-gl-scope。
+- 下一步命令：6a 前新会话 `psa-6a-contract-revenue-extract` 运行 `/code-modernization:modernize-extract-rules psa contract`（含 A8 表单与触发器）。
+- 会话 ID：本会话（worktree xin-884358，分支 claude/psa-oa-inventory）

@@ -10,14 +10,14 @@ L = ["# 用语确认表", "",
      "", "**怎么确认**：在「确认」列填 `正式`、`方言` 或 `改为：<用语>`，也可以直接回复编号（例如「A3 方言，B12 同意，C 组全部同意」）。确认后由 `glossary/build_terms.py` 更新 `terms.yaml`，状态改为已批准。",
      "", "已确定为方言、无需再确认的（如「产值确认单」「产值」= 收入确认单）不在本表，见 `terms.yaml` 中 `type: dialect` 的别名。", ""]
 # A
-A = [(t, al) for t in T if t["status"] != "proposed" and not t.get("confirmed") for al in (t.get("aliases") or []) if al.get("type") == "undetermined" and al["name"] != t["zh"]]  # proposed 的在 B 组一并确认
+A = [(t, al) for t in T if t["status"] != "proposed" for al in (t.get("aliases") or []) if al.get("type") == "undetermined" and al["name"] != t["zh"] and (not t.get("confirmed") or al.get("source"))]  # source = 已确认词条上新登记的叫法（如 OA 盘点）  # proposed 的在 B 组一并确认
 L += [f"## A. 公司叫法：正式用语还是方言？（{len(A)} 项）", "",
       "这些是公司在用的中文叫法，审计没有把握判定。选「正式」则保留并与标准用语并列为同义正式名（新系统只用一个，取右列）；选「方言」则禁止进入新系统。", "",
       "| 编号 | 公司叫法 | 对应正式用语（中 / 英） | 所属模块 | 依据 | 建议 | 确认 |", "|---|---|---|---|---|---|---|"]
 for i, (t, al) in enumerate(A, 1):
     ref = "；".join((t.get("standard_ref") or [])[:2])
     sug = "方言" if t["zh"] != al["name"] else "正式"
-    L.append(f"| A{i} | {al['name']} | {t['zh']} / `{t['en']}` | `{t['bc']}` | {ref} | {sug} |  |")
+    L.append(f"| A{i} | {al['name']}{'（来源：' + al['source'] + '）' if al.get('source') else ''} | {t['zh']} / `{t['en']}` | `{t['bc']}` | {ref} | {sug} |  |")
 # B
 B = [t for t in T if t["status"] == "proposed" and not t.get("confirmed")]
 fin = {"G-8", "G-9", "G-10", "G-11", "G-12", "G-13", "G-16", "G-17", "G-20", "G-21", "G-27"}
