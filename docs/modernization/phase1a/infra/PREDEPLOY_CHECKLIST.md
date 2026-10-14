@@ -44,6 +44,7 @@
 | C-7 | 告警规则配置与 dev 演练（四类告警） | 出口前 | E-13（出口条件） | ⬜ |
 | C-8 | 配置与密钥从 `one.env` 迁到 KMS，确定轮换周期 | 生产前 | 平台约定第 6 项 | ⬜ |
 | C-9 | 生产库 `forcitis_one_prod` 与 `one_prod_*` 角色 | 生产前 | ADR-0025 第 2 条 | ⬜ |
+| C-10 | 每个环境的 one.env 设置 `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED`（`true` 或 `false`）；没有默认值，缺失则应用启动失败（交叉检查 7） | dev 前 | INFRA_RUNBOOK §5 | ⬜ |
 
 ## D. 部署后验证（Phase 1a 出口条件）
 

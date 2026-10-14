@@ -39,3 +39,32 @@
 - 能用 ArchUnit 表达的（I-1、I-2、I-6 的请求体构造入口）放进 `architecture-guardrails/backend`，CI 必跑。
 - Phase 1a 入口条件中「SEC-001 至 SEC-006、SEC-107 已在老系统止血」：按本决定不再阻塞新系统（新系统不信任老系统身份）。brief 按约定以 `Proposed revision:` 追加，不改写原条件（由 psa-coordinator 处理）。
 - 老系统中的这些缺陷仍然存在，影响的是**老系统自身的数据**（包括过渡期仍在老系统中的业务）。用户已决定老系统先不处理（2026-10-14：「老系统先不管，确保新系统没有这些缺陷」）。
+
+## 4. 测试名对照（ADR 与本表用的名字 → 代码里的测试）
+
+ADR-0026、ADR-0027、ADR-0028 与上文用的是目标名；实际类名按仓库约定带 `Integration` 后缀或合并在一个类里。守护以类名和 `@DisplayName` 的前缀为准。对应关系：
+
+| 文中的名字 | 代码里的测试 |
+|---|---|
+| `LegacyTokenIsolationTest`（I-1） | `SecurityInvariantsTest.legacyTokenTablesAreNeverTouched` |
+| `TicketIssuerAllowlistTest`（I-2） | `SecurityInvariantsTest.ticketIssuersAreReviewedAndNeverTheLegacyBackend` |
+| `AnonymousAccessIT`（I-3） | `ApplicationIntegrationTest.anonymousCallersAreRefusedExceptOnTheReviewedPublicEndpoints` |
+| `ProductionConfigSanityTest`（I-4） | `ProductionConfigSanityTest` |
+| `WecomMessagePayloadTest`（I-6） | `WecomMessagePayloadTest`、`SecurityInvariantsTest.wecomMessagesNeverBroadcast` |
+| `ApprovalStartOwnershipIT`（I-5）、`TaskActorAuthorizationIT`（I-7） | 同名 |
+| `OneTimeCredentialConcurrencyIT`（I-9） | `OneTimeCredentialConcurrencyIntegrationTest` |
+| `AdminModeBoundaryTest`（I-11） | `AdministratorModeIntegrationTest`（`@DisplayName` 以 `AdminModeBoundary` 开头）、`RoleTest.superAdmin` |
+| `EmergencyLoginIT`（I-11） | `EmergencyLoginIntegrationTest` |
+| `SeparationRevokesRolesIT`（I-11） | `SeparationRevokesRolesIntegrationTest` |
+| `SyncLockoutGuardIT`（I-11、ADR-0028 规则 1 至 3） | `SyncLockoutGuardIntegrationTest`（在 `platform.identity` 包，经 MockMvc 与真实会话）；端口本身另有 `AdministratorSeparationReviewTest` |
+| `EmergencyAccountDailyCheckTest` | `EmergencyAdminDailyCheckTest` |
+| `SelfGrantForbiddenIT`、`SensitiveGrantTwoPersonIT`（I-12） | `SensitiveGrantTwoPersonIntegrationTest`（含 `noSelfGrantAndNoWayToTheAuditTrail`：管理模式下给自己授予审计员再导出审计的路被堵死）、`RoleManagementIntegrationTest` |
+| `AccessDeniedAuditIT` | `OrgDataAdminRoleIntegrationTest`（`@DisplayName` 含 AccessDeniedAudit 与 PrivilegedRequestAudit） |
+| `OrgDataAdminRoleTest` | `OrgDataAdminRoleIntegrationTest` |
+| `SelfLegalEntityEditForbiddenIT` | `OwnLegalEntityAttributionForbiddenIntegrationTest` |
+| `NumberingRuleFourEyesIT`、`NumberingPatternTest` | 同名 |
+| `OwnLoginRecordsIT` | `AuditExportAndOwnRecordsIT` |
+| `ForcedLogoutIT` | `ForcedLogoutIntegrationTest` |
+| `DataAccessRegistryTest`、`ScopePerPermissionTest`、`ScopedRepositoryContract`（I-10）、`SensitiveFieldExposureTest`、`ParticipantProjectionReconcileIT` | 尚未落地：数据范围与敏感字段随第一个业务读模型（1b）启用 |
+| `WecomCallbackActorIT`（I-8） | 尚未落地：卡片回调已推迟 |
+
