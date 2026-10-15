@@ -22,8 +22,7 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
 )
 
-# read only by scripts in the gitleaks job, which runs on every change, or by scripts/precheck.sh, which runs that job's checks
-# itself; registered so the scan below passes without making such docs changes rebuild the backend and frontend
+# read only by steps of the gitleaks job that run unconditionally, or by scripts/precheck.sh; docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/phase1a/infra/runbooks/sql/",
     "docs/modernization/build_all.py",

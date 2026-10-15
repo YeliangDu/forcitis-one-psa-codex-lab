@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 # Self-hosted runners (docs/modernization/CI_RUNNERS.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
-# Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py.
+# Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs every step (release approval depends on it); assertion drift runs on pull requests only.
 jobs:
   backend:
     name: backend verify (Modulith + ArchUnit guardrails + integration tests)
@@ -137,7 +137,7 @@ jobs:
       # 文档不得用「PSA」指代系统（用户 2026-10-14）；例外规则见脚本说明
       - name: no legacy system name in docs
         run: python3 docs/modernization/check_legacy_name.py
-      # 发布与部署脚本读取 ci.yml、部署前清单、阻塞条目与 runbooks/files；只改与它们无关的文档时跳过下面两步
+      # 发布与部署脚本读取 ci.yml、部署前清单、阻塞条目、prod-approvals.txt 与 runbooks/files；只改与它们无关的文档时跳过下面两步
       - name: release scripts or what they read changed?
         id: change
         run: python3 scripts/ci/relevant_change.py "${{ github.base_ref }}"

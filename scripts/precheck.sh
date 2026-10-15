@@ -82,7 +82,13 @@ echo
 touches() { grep -Eq "$1" "$work/changed"; }
 
 builds_relevant=false
-if py scripts/ci/relevant_change.py --paths-from "$work/changed" | grep -qx 'relevant=true'; then
+relevant_output=$(py scripts/ci/relevant_change.py --paths-from "$work/changed" 2>&1)
+relevant_status=$?
+if [ "$relevant_status" -ne 0 ]; then
+  report FAIL "relevant_change.py" "exit $relevant_status — treated as relevant, not as no change:"
+  printf '%s\n' "$relevant_output" | sed 's/^/      | /' | tail -n 20
+  builds_relevant=true
+elif printf '%s\n' "$relevant_output" | grep -qx 'relevant=true'; then
   builds_relevant=true
 fi
 
