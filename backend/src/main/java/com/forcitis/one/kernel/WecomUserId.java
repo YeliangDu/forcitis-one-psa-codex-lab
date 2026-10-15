@@ -11,4 +11,9 @@ public record WecomUserId(String value) {
             throw new IllegalArgumentException("WecomUserId must not be blank");
         }
     }
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 }

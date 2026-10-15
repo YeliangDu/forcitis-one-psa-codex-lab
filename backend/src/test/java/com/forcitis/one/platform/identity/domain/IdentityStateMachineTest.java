@@ -5,6 +5,7 @@ import static com.forcitis.one.platform.identity.domain.AccountStatus.ENABLED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
@@ -33,7 +34,7 @@ class IdentityStateMachineTest {
     }
 
     static Role role(RoleStatus status) {
-        return Role.restore(new RoleId(7), new RoleCode("analyst"), "Analyst", "CUSTOM", status.name(), AccessScopeKind.SELF, false, Set.of(), 2, 2);
+        return Role.restore(new RoleId(TestIds.uuid(7)), new RoleCode("analyst"), "Analyst", "CUSTOM", status.name(), AccessScopeKind.SELF, false, Set.of(), 2, 2);
     }
 
     @Test
@@ -58,7 +59,7 @@ class IdentityStateMachineTest {
     @DisplayName("a system role is frozen: neither a transition nor a revision nor a deletion is possible, in any status")
     void systemRoleIsFrozen() {
         for (RoleStatus status : RoleStatus.values()) {
-            Role system = Role.restore(new RoleId(1), new RoleCode("employee"), "Employee", "SYSTEM", status.name(), AccessScopeKind.SELF, false, Set.of(), 0, 0);
+            Role system = Role.restore(new RoleId(TestIds.uuid(1)), new RoleCode("employee"), "Employee", "SYSTEM", status.name(), AccessScopeKind.SELF, false, Set.of(), 0, 0);
             for (Runnable change : List.<Runnable>of(system::enable, system::disable, system::delete, () -> system.declareEnabled(true),
                     () -> system.revise("x", AccessScopeKind.SELF, Set.of()))) {
                 assertThatThrownBy(change::run).isInstanceOfSatisfying(RoleRuleException.class,
@@ -89,11 +90,11 @@ class IdentityStateMachineTest {
     void events() {
         UserAccount account = account(ENABLED);
         account.disable();
-        account.replaceRoles(Set.of(new RoleId(9), new RoleId(3)));
+        account.replaceRoles(Set.of(new RoleId(TestIds.uuid(9)), new RoleId(TestIds.uuid(3))));
         List<DomainEvent> accountEvents = account.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(accountEvents.get(0)).isInstanceOf(AccountDisabled.class);
         assertThat(accountEvents.get(1)).isInstanceOfSatisfying(AccountRolesReplaced.class,
-                e -> assertThat(e.roleIds()).containsExactly(new RoleId(3), new RoleId(9)));
+                e -> assertThat(e.roleIds()).containsExactly(new RoleId(TestIds.uuid(3)), new RoleId(TestIds.uuid(9))));
         assertThat(accountEvents).extracting(e -> e.envelope().aggregateVersion()).containsExactly(6L, 7L);
         assertThat(accountEvents.get(0).envelope().aggregateType()).isEqualTo("UserAccount");
         assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo("1001");
@@ -112,20 +113,20 @@ class IdentityStateMachineTest {
                 .containsExactly(RoleRevised.class.getSimpleName(), RoleDisabled.class.getSimpleName(), RoleEnabled.class.getSimpleName(),
                         RoleDeleted.class.getSimpleName());
 
-        Role created = Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(11));
+        Role created = Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(TestIds.uuid(11)));
         assertThat(created.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(RoleCreated.class,
-                e -> assertThat(e.roleId()).isEqualTo(new RoleId(11)));
+                e -> assertThat(e.roleId()).isEqualTo(new RoleId(TestIds.uuid(11))));
     }
 
     @Test
     @DisplayName("opening an account is enabled from the start, holds the given roles and announces AccountOpened")
     void opening() {
-        UserAccount opened = UserAccount.open(new UserId(2002), Set.of(new RoleId(4), new RoleId(2)));
+        UserAccount opened = UserAccount.open(new UserId(2002), Set.of(new RoleId(TestIds.uuid(4)), new RoleId(TestIds.uuid(2))));
 
         assertThat(opened.status()).isEqualTo(ENABLED);
         assertThat(opened.isStored()).isFalse();
         assertThat(opened.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(AccountOpened.class, e -> {
-            assertThat(e.roleIds()).containsExactly(new RoleId(2), new RoleId(4));
+            assertThat(e.roleIds()).containsExactly(new RoleId(TestIds.uuid(2)), new RoleId(TestIds.uuid(4)));
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
         });
     }
@@ -133,7 +134,7 @@ class IdentityStateMachineTest {
     @Test
     @DisplayName("B1-M3 separating an account takes every role away and records the fact; an account without roles records nothing")
     void separationRecordsTheFact() {
-        UserAccount withRoles = UserAccount.restore(new UserId(1001), ENABLED.name(), Set.of(new RoleId(3)), 5, 5);
+        UserAccount withRoles = UserAccount.restore(new UserId(1001), ENABLED.name(), Set.of(new RoleId(TestIds.uuid(3))), 5, 5);
         withRoles.recordSeparation();
         assertThat(withRoles.roles()).isEmpty();
         assertThat(withRoles.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.getClass().getSimpleName())

@@ -27,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import org.flowable.bpmn.model.BpmnModel;
@@ -299,7 +300,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
         }
         return new TaskView(new ApprovalTaskId(task.getId()), new ApprovalInstanceId(task.getProcessInstanceId()),
                 definition.processKey(), documentOf(variables),
-                new LegalEntityId(Long.parseLong(variables.firstVariable(VARIABLE_LEGAL_ENTITY).orElseThrow())),
+                new LegalEntityId(UUID.fromString(variables.firstVariable(VARIABLE_LEGAL_ENTITY).orElseThrow())),
                 task.getTaskDefinitionKey(), task.getName(),
                 new UserId(Long.parseLong(variables.firstVariable(VARIABLE_INITIATOR).orElseThrow())),
                 Optional.ofNullable(task.getAssignee()).map(a -> new UserId(Long.parseLong(a))), candidates, createdAt(task),

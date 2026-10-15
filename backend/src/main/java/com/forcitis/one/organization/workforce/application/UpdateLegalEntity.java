@@ -27,13 +27,9 @@ public class UpdateLegalEntity {
     }
 
     @Transactional
-    public LegalEntityView execute(long legalEntityId, ExpectedVersion expected, String code, String name, String status,
+    public LegalEntityView execute(LegalEntityId id, ExpectedVersion expected, String code, String name, String status,
                                    Long accountingOrganizationNumber) {
-        if (legalEntityId <= 0) {
-            throw notFound(legalEntityId);
-        }
-        LegalEntityId id = new LegalEntityId(legalEntityId);
-        LegalEntity legalEntity = legalEntities.findForUpdate(id).orElseThrow(() -> notFound(legalEntityId));
+        LegalEntity legalEntity = legalEntities.findForUpdate(id).orElseThrow(() -> notFound(id));
         expected.check(legalEntity.version());
         if (code != null) {
             var corrected = CreateLegalEntity.parse(code);
@@ -58,8 +54,8 @@ public class UpdateLegalEntity {
         }
     }
 
-    private static DomainException notFound(long legalEntityId) {
+    private static DomainException notFound(LegalEntityId id) {
         return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND, ErrorKind.NOT_FOUND,
-                "no legal entity " + legalEntityId);
+                "no legal entity " + id.value());
     }
 }

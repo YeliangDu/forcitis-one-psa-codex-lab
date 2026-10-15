@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.web;
 
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.organization.workforce.application.CreateLegalEntity;
 import com.forcitis.one.organization.workforce.application.GetLegalEntity;
@@ -9,6 +10,7 @@ import com.forcitis.one.organization.workforce.application.LegalEntityView;
 import com.forcitis.one.organization.workforce.application.ListLegalEntities;
 import com.forcitis.one.organization.workforce.application.UpdateLegalEntity;
 import java.net.URI;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,8 +47,8 @@ class LegalEntityController {
 
     @GetMapping(path = "/{legalEntityId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_UNIT_READ + "')")
-    ResponseEntity<LegalEntityResponse> get(@PathVariable long legalEntityId) {
-        LegalEntityView view = get.execute(legalEntityId);
+    ResponseEntity<LegalEntityResponse> get(@PathVariable UUID legalEntityId) {
+        LegalEntityView view = get.execute(new LegalEntityId(legalEntityId));
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(LegalEntityResponse.of(view));
     }
 
@@ -54,15 +56,15 @@ class LegalEntityController {
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
     ResponseEntity<LegalEntityResponse> create(@RequestBody CreateLegalEntityRequest request) {
         LegalEntityView view = create.execute(request.code(), request.name(), request.accountingOrganizationNumber());
-        return ResponseEntity.created(URI.create("/api/v1/organization/legal-entities/" + view.legalEntityId()))
+        return ResponseEntity.created(URI.create("/api/v1/organization/legal-entities/" + view.legalEntityId().value()))
                 .eTag(ExpectedVersion.etag(view.version())).body(LegalEntityResponse.of(view));
     }
 
     @PutMapping(path = "/{legalEntityId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
-    ResponseEntity<LegalEntityResponse> update(@PathVariable long legalEntityId, @RequestBody UpdateLegalEntityRequest request,
+    ResponseEntity<LegalEntityResponse> update(@PathVariable UUID legalEntityId, @RequestBody UpdateLegalEntityRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
-        LegalEntityView view = update.execute(legalEntityId, ExpectedVersion.fromHeader(ifMatch), request.code(), request.name(), request.status(),
+        LegalEntityView view = update.execute(new LegalEntityId(legalEntityId), ExpectedVersion.fromHeader(ifMatch), request.code(), request.name(), request.status(),
                 request.accountingOrganizationNumber());
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(LegalEntityResponse.of(view));
     }

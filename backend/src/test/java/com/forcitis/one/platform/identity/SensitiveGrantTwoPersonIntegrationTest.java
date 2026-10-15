@@ -110,7 +110,7 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
         String first = administratorSession(9);
         String second = administratorSession(10);
         assertThat(createRole(first, "reader", "platform.approval:task:read").getResponse().getStatus()).isEqualTo(201);
-        long reader = jdbc.sql("select role_id from platform_identity.roles where code = 'reader'").query(Long.class).single();
+        java.util.UUID reader = jdbc.sql("select role_id from platform_identity.roles where code = 'reader'").query(java.util.UUID.class).single();
 
         MvcResult sensitive = mvc.perform(put("/api/v1/platform/roles/" + reader).header("If-Match", roleVersion(reader)).with(xsrf()).cookie(new Cookie("SESSION", first))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"reader\",\"enabled\":true,\"permissionCodes\":[\"platform.numbering:numbering-rule:approve\"]}")).andReturn();
@@ -170,7 +170,7 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
         String holder = administratorSession(10);
         String third = administratorSession(11);
         assertThat(createRole(first, "reader3", "platform.approval:task:read").getResponse().getStatus()).isEqualTo(201);
-        long role = jdbc.sql("select role_id from platform_identity.roles where code = 'reader3'").query(Long.class).single();
+        java.util.UUID role = jdbc.sql("select role_id from platform_identity.roles where code = 'reader3'").query(java.util.UUID.class).single();
         createAccount(10, "reader3");
         accessCache.evictAll();
 

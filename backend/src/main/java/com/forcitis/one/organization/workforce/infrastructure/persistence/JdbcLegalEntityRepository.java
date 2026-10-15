@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.infrastructure.persistence;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.AccountingOrganizationNumber;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
@@ -12,6 +13,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityRepository;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -22,10 +24,12 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     private final LegalEntityHistory history;
     private final Clock clock;
     private final BusinessZone zone;
+    private final IdGenerator ids;
 
-    JdbcLegalEntityRepository(JdbcClient jdbc, Clock clock, BusinessZone zone) {
+    JdbcLegalEntityRepository(JdbcClient jdbc, Clock clock, BusinessZone zone, IdGenerator ids) {
+        this.ids = ids;
         this.jdbc = jdbc;
-        this.history = new LegalEntityHistory(jdbc);
+        this.history = new LegalEntityHistory(jdbc, ids);
         this.clock = clock;
         this.zone = zone;
     }
@@ -43,7 +47,7 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     private Optional<LegalEntity> load(LegalEntityId legalEntityId, String lock) {
         return jdbc.sql("select id, code, name, status, accounting_organization_number, version, event_count from organization_workforce.legal_entities where id = :id" + lock)
                 .param("id", legalEntityId.value())
-                .query((rs, n) -> LegalEntity.restore(new LegalEntityId(rs.getLong("id")), new LegalEntityCode(rs.getString("code")),
+                .query((rs, n) -> LegalEntity.restore(new LegalEntityId(rs.getObject("id", UUID.class)), new LegalEntityCode(rs.getString("code")),
                         rs.getString("name"), rs.getString("status"),
                         accountingNumber(rs.getObject("accounting_organization_number", Long.class)), rs.getLong("version"), rs.getLong("event_count")))
                 .optional();
@@ -52,15 +56,16 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     @Override
     public LegalEntity insert(LegalEntity unsaved) {
         try {
-            long id = jdbc.sql("""
-                            insert into organization_workforce.legal_entities (code, name, status, accounting_organization_number, version, event_count)
-                            values (:code, :name, :status, :accounting, :version, :eventSequence) returning id
+            LegalEntityId id = new LegalEntityId(ids.next());
+            jdbc.sql("""
+                            insert into organization_workforce.legal_entities (id, code, name, status, accounting_organization_number, version, event_count)
+                            values (:id, :code, :name, :status, :accounting, :version, :eventSequence)
                             """)
-                    .param("code", unsaved.code().value()).param("name", unsaved.name()).param("status", unsaved.status().name())
+                    .param("id", id.value()).param("code", unsaved.code().value()).param("name", unsaved.name()).param("status", unsaved.status().name())
                     .param("accounting", accountingValue(unsaved), java.sql.Types.BIGINT)
                     .param("version", unsaved.versionAfterSave()).param("eventSequence", unsaved.eventSequenceAfterSave())
-                    .query(Long.class).single();
-            LegalEntity saved = unsaved.withId(new LegalEntityId(id));
+                    .update();
+            LegalEntity saved = unsaved.withId(id);
             history.recordLegalEntity(saved, zone.today(clock));
             return saved;
         } catch (DuplicateKeyException taken) {

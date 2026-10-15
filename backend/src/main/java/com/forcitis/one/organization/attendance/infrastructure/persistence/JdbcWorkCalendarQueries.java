@@ -8,6 +8,7 @@ import com.forcitis.one.organization.attendance.domain.WorkCalendarQueries;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarYearRecord;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -25,13 +26,16 @@ class JdbcWorkCalendarQueries implements WorkCalendarQueries {
                         select id, version from organization_attendance.work_calendar_years
                          where legal_entity_id is not distinct from :legalEntityId and year_number = :year
                         """)
-                .param("legalEntityId", key.legalEntityId() == null ? null : key.legalEntityId().value(), java.sql.Types.BIGINT)
+                .param("legalEntityId", key.legalEntityId() == null ? null : key.legalEntityId().value(), java.sql.Types.OTHER)
                 .param("year", key.calendarYear())
-                .query((rs, n) -> new long[] {rs.getLong("id"), rs.getLong("version")}).optional()
-                .map(row -> new WorkCalendarYearRecord(key, days(row[0]), row[1]));
+                .query((rs, n) -> new Stored(rs.getObject("id", UUID.class), rs.getLong("version"))).optional()
+                .map(row -> new WorkCalendarYearRecord(key, days(row.id()), row.version()));
     }
 
-    private List<CalendarDay> days(long yearId) {
+    private record Stored(UUID id, long version) {
+    }
+
+    private List<CalendarDay> days(UUID yearId) {
         return jdbc.sql("select calendar_date, day_kind from organization_attendance.work_calendar_days where work_calendar_year_id = :id order by calendar_date")
                 .param("id", yearId)
                 .query((rs, n) -> new CalendarDay(rs.getDate("calendar_date").toLocalDate(), DayKind.valueOf(rs.getString("day_kind")))).list();
@@ -43,7 +47,7 @@ class JdbcWorkCalendarQueries implements WorkCalendarQueries {
                         select year_number from organization_attendance.work_calendar_years
                          where legal_entity_id is not distinct from :legalEntityId order by year_number
                         """)
-                .param("legalEntityId", legalEntityId == null ? null : legalEntityId.value(), java.sql.Types.BIGINT)
+                .param("legalEntityId", legalEntityId == null ? null : legalEntityId.value(), java.sql.Types.OTHER)
                 .query(Integer.class).list();
     }
 }

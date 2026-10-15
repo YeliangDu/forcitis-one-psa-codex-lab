@@ -1,12 +1,11 @@
 package com.forcitis.one.platform.numbering.domain;
 
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.LegalEntityId;
 import java.util.List;
 import java.util.Optional;
 
 public interface NumberingRuleRepository {
-    long GLOBAL_COUNTER_SCOPE = 0;
-
     Optional<NumberingRule> findActive(DocumentType type);
 
     List<NumberingRule> findAllActive();
@@ -15,12 +14,12 @@ public interface NumberingRuleRepository {
     long maxLastValue(DocumentType type);
 
     /** True once any counter of any type is kept for the legal entity, that is, a number carrying its code was issued. */
-    boolean hasCounterFor(long legalEntityId);
+    boolean hasCounterFor(LegalEntityId legalEntityId);
 
     /** Applies only to the version the rule was loaded with and to versions still in the status they were loaded in; otherwise a DomainException (CONFLICT). */
     void save(NumberingRule rule);
 
     /** Atomically reserves the next value of the counter (row lock until the surrounding transaction ends).
-     *  counterScope is the legal entity id, or GLOBAL_COUNTER_SCOPE when the template has no {LE}. */
-    long reserveNext(DocumentType type, long counterScope, String periodKey, long startValue);
+     *  legalEntity is null when the template has no {LE}: that counter is global. */
+    long reserveNext(DocumentType type, LegalEntityId legalEntity, String periodKey, long startValue);
 }

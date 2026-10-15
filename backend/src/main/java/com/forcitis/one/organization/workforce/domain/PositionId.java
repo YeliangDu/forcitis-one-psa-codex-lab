@@ -9,4 +9,9 @@ public record PositionId(long value) {
             throw new IllegalArgumentException("PositionId must not be 0");
         }
     }
+
+    @Override
+    public String toString() {
+        return Long.toString(value);
+    }
 }
