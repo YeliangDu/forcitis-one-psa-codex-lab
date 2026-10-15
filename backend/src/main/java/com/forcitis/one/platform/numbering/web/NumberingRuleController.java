@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.numbering.web;
 
-import com.forcitis.one.kernel.CallerAccount;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
@@ -8,6 +7,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.NumberingRuleView;
@@ -39,16 +39,16 @@ class NumberingRuleController {
     private final ConfirmNumberingRuleByFinance confirmByFinance;
     private final ListNumberingRules list;
     private final FindNumberingRule find;
-    private final CallerAccount callers;
+    private final CurrentUser currentUser;
 
     NumberingRuleController(ConfigureNumberingRule configure, ConfirmNumberingRule confirm, ConfirmNumberingRuleByFinance confirmByFinance,
-            ListNumberingRules list, FindNumberingRule find, CallerAccount callers) {
+            ListNumberingRules list, FindNumberingRule find, CurrentUser currentUser) {
         this.configure = configure;
         this.confirm = confirm;
         this.confirmByFinance = confirmByFinance;
         this.list = list;
         this.find = find;
-        this.callers = callers;
+        this.currentUser = currentUser;
     }
 
     @GetMapping
@@ -74,19 +74,19 @@ class NumberingRuleController {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, "the reset policy is missing");
         }
         return answer(configure.execute(documentType, ExpectedVersion.fromHeader(ifMatch), request.pattern(), request.resetPolicy(),
-                request.startValue(), required(request.effectiveFrom()), callers.userId()));
+                request.startValue(), required(request.effectiveFrom()), currentUser.userId()));
     }
 
     @PostMapping(path = "/{documentType}:confirm")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE + "')")
     ResponseEntity<NumberingRuleResponse> confirm(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request) {
-        return answer(confirm.execute(documentType, callers.userId(), seen(request)));
+        return answer(confirm.execute(documentType, currentUser.userId(), seen(request)));
     }
 
     @PostMapping(path = "/{documentType}:confirm-finance")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE + "')")
     ResponseEntity<NumberingRuleResponse> confirmByFinance(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request) {
-        return answer(confirmByFinance.execute(documentType, callers.userId(), seen(request)));
+        return answer(confirmByFinance.execute(documentType, currentUser.userId(), seen(request)));
     }
 
     private static RuleVersion seen(ConfirmNumberingRuleRequest request) {

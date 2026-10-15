@@ -3,7 +3,7 @@
 # A module may only use the api / events of the modules listed here; anything else fails ModuleDependencyTest.
 # Phase 1a additions: REIMAGINED_ARCHITECTURE.md §2 (approved at checkpoint 2, 2026-10-14).
 # Kernel ports (no module edge): kernel.SeparationReview is asked by organization.workforce and implemented by platform.identity (REIMAGINED_ARCHITECTURE.md §2.2, ADR-0028).
-# R-1b P2 (ADR-0033 section 3): kernel.CallerAccount (the signed-in account) and kernel.AccountEmployees are implemented by platform.identity.
+# R-1b P2 (ADR-0033 section 3): kernel.AccountEmployees is implemented by platform.identity; a controller of a module without an edge to identity takes the caller as a UserId parameter that identity resolves.
 cost.timesheet -> organization.workforce, platform.approval, platform.identity, platform.numbering
 organization.attendance -> platform.audit
 organization.workforce -> platform.audit, platform.integration

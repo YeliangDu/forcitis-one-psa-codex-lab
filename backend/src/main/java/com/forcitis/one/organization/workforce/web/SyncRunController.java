@@ -1,9 +1,9 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
-import com.forcitis.one.kernel.CallerAccount;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.kernel.PageRequest;
@@ -33,11 +33,8 @@ class SyncRunController {
     private final GetSyncRun getSyncRun;
     private final ReleaseSyncRun releaseSyncRun;
     private final ListHeldSyncRuns listHeldSyncRuns;
-    private final CallerAccount callers;
 
-    SyncRunController(ListSyncRuns listSyncRuns, GetSyncRun getSyncRun, ReleaseSyncRun releaseSyncRun, ListHeldSyncRuns listHeldSyncRuns,
-            CallerAccount callers) {
-        this.callers = callers;
+    SyncRunController(ListSyncRuns listSyncRuns, GetSyncRun getSyncRun, ReleaseSyncRun releaseSyncRun, ListHeldSyncRuns listHeldSyncRuns) {
         this.listHeldSyncRuns = listHeldSyncRuns;
         this.listSyncRuns = listSyncRuns;
         this.getSyncRun = getSyncRun;
@@ -68,9 +65,9 @@ class SyncRunController {
     /** The actor is the authenticated session user, never a request field. */
     @PostMapping(path = "/{syncRunId}:release")
     @PreAuthorize("hasAnyAuthority('" + WorkforcePermissions.SYNC_RUN_EXECUTE + "', '" + WorkforcePermissions.SEPARATION_HOLD_APPROVE + "')")
-    ResponseEntity<ReleaseResponse> release(@PathVariable UUID syncRunId, @RequestBody ReleaseRequest request, Authentication caller) {
-        ReleaseResult result = releaseSyncRun.execute(new SyncRunId(syncRunId), callers.userId(), request.reason(),
-                holds(caller, WorkforcePermissions.SYNC_RUN_EXECUTE), holds(caller, WorkforcePermissions.SEPARATION_HOLD_APPROVE));
+    ResponseEntity<ReleaseResponse> release(@PathVariable UUID syncRunId, @RequestBody ReleaseRequest request, Authentication session, UserId caller) {
+        ReleaseResult result = releaseSyncRun.execute(new SyncRunId(syncRunId), caller, request.reason(),
+                holds(session, WorkforcePermissions.SYNC_RUN_EXECUTE), holds(session, WorkforcePermissions.SEPARATION_HOLD_APPROVE));
         return switch (result) {
             case ReleaseResult.PartlyReleased partly -> ResponseEntity.ok(
                     new ReleaseResponse("PARTLY_RELEASED", "a hold of another kind is still waiting", SyncRunResponse.of(partly.heldRun())));

@@ -1,10 +1,10 @@
 package com.forcitis.one.platform.audit.web;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.PageRequest;
-import com.forcitis.one.kernel.CallerAccount;
 import com.forcitis.one.platform.audit.api.AuditError;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.application.AuditEntryPageView;
@@ -24,11 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 class AuditEntryController {
 
     private final SearchAuditEntries search;
-    private final CallerAccount callers;
 
-    AuditEntryController(SearchAuditEntries search, CallerAccount callers) {
+    AuditEntryController(SearchAuditEntries search) {
         this.search = search;
-        this.callers = callers;
     }
 
     @GetMapping
@@ -39,11 +37,11 @@ class AuditEntryController {
                            @RequestParam(required = false) String subjectKey,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
-                           @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+                           @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor, UserId caller) {
         AuditEntryPageView page;
         try {
             page = search.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKey, sourceAddress, outcome, from, to,
-                    PageRequest.of(limit, cursor, "audit-entries")), callers.userId());
+                    PageRequest.of(limit, cursor, "audit-entries")), caller);
         } catch (IllegalArgumentException invalid) {
             throw new DomainException(AuditError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, invalid.getMessage());
         }

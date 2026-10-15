@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.audit.web;
 
-import com.forcitis.one.kernel.CallerAccount;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.application.AuditExport;
 import com.forcitis.one.platform.audit.application.AuditSearch;
 import com.forcitis.one.platform.audit.application.ExportAuditEntries;
@@ -24,11 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 class AuditExportController {
 
     private final ExportAuditEntries export;
-    private final CallerAccount callers;
 
-    AuditExportController(ExportAuditEntries export, CallerAccount callers) {
+    AuditExportController(ExportAuditEntries export) {
         this.export = export;
-        this.callers = callers;
     }
 
     @GetMapping(path = "/audit-entries:export")
@@ -36,8 +34,8 @@ class AuditExportController {
     ResponseEntity<byte[]> export(@RequestParam(required = false) UUID actorId, @RequestParam(required = false) String action,
                                   @RequestParam(required = false) String subjectKey,
                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
-                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
-        AuditExport result = export.execute(new AuditSearch(actorId, null, action, null, subjectKey, null, null, from, to, null), callers.userId());
+                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to, UserId caller) {
+        AuditExport result = export.execute(new AuditSearch(actorId, null, action, null, subjectKey, null, null, from, to, null), caller);
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename("audit-entries.csv").build().toString())

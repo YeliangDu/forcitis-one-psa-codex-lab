@@ -1,12 +1,12 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.application.GetOrgUnit;
 import com.forcitis.one.organization.workforce.application.ListOrgUnits;
 import com.forcitis.one.kernel.OrgUnitAccess;
-import com.forcitis.one.kernel.CallerAccount;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,10 +22,8 @@ class OrgUnitController {
     private final ListOrgUnits listOrgUnits;
     private final GetOrgUnit getOrgUnit;
     private final OrgUnitAccess access;
-    private final CallerAccount callers;
 
-    OrgUnitController(ListOrgUnits listOrgUnits, GetOrgUnit getOrgUnit, OrgUnitAccess access, CallerAccount callers) {
-        this.callers = callers;
+    OrgUnitController(ListOrgUnits listOrgUnits, GetOrgUnit getOrgUnit, OrgUnitAccess access) {
         this.access = access;
         this.listOrgUnits = listOrgUnits;
         this.getOrgUnit = getOrgUnit;
@@ -39,8 +37,8 @@ class OrgUnitController {
 
     @GetMapping(path = "/{orgUnitId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_UNIT_READ + "')")
-    OrgUnitDetailResponse get(@PathVariable long orgUnitId) {
-        return getOrgUnit.execute(orgUnitId, access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ), callers.userId())
+    OrgUnitDetailResponse get(@PathVariable long orgUnitId, UserId caller) {
+        return getOrgUnit.execute(orgUnitId, access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ), caller)
                 .map(OrgUnitDetailResponse::of).orElseThrow(() -> new DomainException(
                         WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND, ErrorKind.NOT_FOUND, "no org unit " + orgUnitId));
     }

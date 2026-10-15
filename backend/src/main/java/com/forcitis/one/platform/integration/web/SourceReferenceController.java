@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.integration.web;
 
-import com.forcitis.one.kernel.CallerAccount;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.InvalidRequestException;
 import com.forcitis.one.kernel.PageRequest;
@@ -35,15 +34,12 @@ class SourceReferenceController {
     private final ConfirmSourceReference confirm;
     private final RejectSourceReference reject;
     private final ListSourceReferences list;
-    private final CallerAccount callers;
 
-    SourceReferenceController(RegisterSourceReference register, ConfirmSourceReference confirm, RejectSourceReference reject, ListSourceReferences list,
-            CallerAccount callers) {
+    SourceReferenceController(RegisterSourceReference register, ConfirmSourceReference confirm, RejectSourceReference reject, ListSourceReferences list) {
         this.register = register;
         this.confirm = confirm;
         this.reject = reject;
         this.list = list;
-        this.callers = callers;
     }
 
     /** The maintainer sees what was registered, the approver what waits; only the category written by hand can be listed. */
@@ -59,25 +55,25 @@ class SourceReferenceController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('" + IntegrationPermissions.SOURCE_REFERENCE_UPDATE + "')")
-    ResponseEntity<SourceReferenceResponse> register(@RequestBody RegisterSourceReferenceRequest request) {
+    ResponseEntity<SourceReferenceResponse> register(@RequestBody RegisterSourceReferenceRequest request, UserId caller) {
         if (request.sourceSystem() == null || request.sourceObjectKind() == null || request.sourceId() == null || request.ownId() == null) {
             throw new InvalidRequestException("sourceSystem, sourceObjectKind, sourceId and ownId are required");
         }
         SourceReferenceView view = register.execute(request.sourceSystem(), request.sourceObjectKind(), sourceId(request.sourceId()), request.ownId(),
-                request.effectiveFrom(), callers.userId());
+                request.effectiveFrom(), caller);
         return ResponseEntity.status(HttpStatus.CREATED).body(SourceReferenceResponse.of(view));
     }
 
     @PostMapping("/{sourceReferenceId}:confirm")
     @PreAuthorize("hasAuthority('" + IntegrationPermissions.SOURCE_REFERENCE_APPROVE + "')")
-    SourceReferenceResponse confirm(@PathVariable UUID sourceReferenceId) {
-        return SourceReferenceResponse.of(confirm.execute(sourceReferenceId, callers.userId()));
+    SourceReferenceResponse confirm(@PathVariable UUID sourceReferenceId, UserId caller) {
+        return SourceReferenceResponse.of(confirm.execute(sourceReferenceId, caller));
     }
 
     @PostMapping("/{sourceReferenceId}:reject")
     @PreAuthorize("hasAuthority('" + IntegrationPermissions.SOURCE_REFERENCE_APPROVE + "')")
-    SourceReferenceResponse reject(@PathVariable UUID sourceReferenceId) {
-        return SourceReferenceResponse.of(reject.execute(sourceReferenceId, callers.userId()));
+    SourceReferenceResponse reject(@PathVariable UUID sourceReferenceId, UserId caller) {
+        return SourceReferenceResponse.of(reject.execute(sourceReferenceId, caller));
     }
 
     private static long sourceId(String text) {
