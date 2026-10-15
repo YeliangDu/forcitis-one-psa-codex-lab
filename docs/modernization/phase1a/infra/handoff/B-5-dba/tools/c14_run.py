@@ -223,7 +223,9 @@ print('PROBE_ENV_MODE', oct(os.stat({PROBE_ENV!r}).st_mode & 0o777))
               f'[ "$(sha256sum {W}/app.jar | cut -d" " -f1)" = "{jar_sha256}" ] || {{ echo JAR_MISMATCH; exit 3; }}\n'
               + put(f'{W}/secret.enc', cipher) + put(f'{W}/setup.py', py) + put(f'{W}/OneSql.java', (TOOLS / 'OneSql.java').read_text())
               + f'python3 -I {W}/setup.py; rm -f {W}/setup.py\n'
-              + f'entry=$(unzip -l {W}/app.jar | grep -oE "BOOT-INF/lib/mssql-jdbc-[^ ]+\\.jar" | head -1); unzip -p {W}/app.jar "$entry" > {W}/mssql-jdbc.jar; echo DRIVER_OK\n')
+              # The ECS image has no unzip: the driver comes out of the jar with Python's zipfile
+              + f'python3 -I -c "import sys, zipfile; z = zipfile.ZipFile(sys.argv[1]); n = [e for e in z.namelist() if e.startswith(\'BOOT-INF/lib/mssql-jdbc-\')]; '
+                f'open(sys.argv[2], \'wb\').write(z.read(n[0])) if len(n) == 1 else sys.exit(1)" {W}/app.jar {W}/mssql-jdbc.jar && echo DRIVER_OK\n')
     invoke, status, code, out = ecs(script)
     ok = status == 'Success' and 'PROBE_ENV_MODE 0o600' in out and 'DRIVER_OK' in out
     record(step='ecs setup', where='ecs', invoke=invoke, status=status, exit=code, ok=ok, jar_mismatch='JAR_MISMATCH' in out)
