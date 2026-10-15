@@ -73,10 +73,11 @@ class TimeSourceGuardTest {
     }
 
     @Test
-    @DisplayName("the registered exceptions are the class that builds the Clock and the session store clock: both are clean under the rule")
+    @DisplayName("the registered exceptions exist among the scanned classes and are clean under the rule (a stale exception fails here)")
     void theExemptClassesAreClean() {
         JavaClasses exempt = new ClassFileImporter().importPackages("com.forcitis.one.kernel", SESSION_STORE_CLOCK.substring(0, SESSION_STORE_CLOCK.lastIndexOf('.')));
 
+        assertThat(exempt.stream().map(c -> c.getName())).contains(CLOCK_BUILDER, SESSION_STORE_CLOCK);
         assertThat(noAmbientTime().evaluate(exempt).hasViolation()).isFalse();
     }
 
