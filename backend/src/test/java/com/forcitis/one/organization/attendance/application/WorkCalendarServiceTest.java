@@ -38,9 +38,10 @@ class WorkCalendarServiceTest {
         }
 
         @Override
-        public List<Integer> findMaintainedYears(LegalEntityId legalEntityId) {
+        public List<Integer> findMaintainedYearsBefore(LegalEntityId legalEntityId, Integer beforeYear, int limit) {
             return years.keySet().stream().filter(k -> java.util.Objects.equals(k.legalEntityId(), legalEntityId))
-                    .map(WorkCalendarKey::calendarYear).sorted().toList();
+                    .map(WorkCalendarKey::calendarYear).filter(year -> beforeYear == null || year < beforeYear)
+                    .sorted(java.util.Comparator.reverseOrder()).limit(limit).toList();
         }
 
         void maintain(WorkCalendarKey key, CalendarDay... days) {

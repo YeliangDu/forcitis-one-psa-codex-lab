@@ -48,7 +48,7 @@ class RoleSeparatedDeploymentIT {
             "forcitis.platform.integration.event-publication.jobs-enabled=false", "forcitis.platform.scheduling.jobs-enabled=false",
             "forcitis.platform.identity.sso.enabled=false"};
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18").withDatabaseName(DATABASE)
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container().withDatabaseName(DATABASE)
             .withCommand("sh", "-c", "openssl req -new -x509 -days 1 -nodes -subj /CN=localhost -out /var/lib/postgresql/server.crt -keyout /var/lib/postgresql/server.key"
                     + " && chmod 600 /var/lib/postgresql/server.key && chown postgres:postgres /var/lib/postgresql/server.key /var/lib/postgresql/server.crt"
                     + " && exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key");
