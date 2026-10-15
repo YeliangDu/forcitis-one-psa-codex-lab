@@ -132,10 +132,14 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     @Override
     public List<ApprovalTaskId> findDue(Instant now) {
         return jdbc.sql("""
-                SELECT task_id FROM platform_approval.approval_tasks
-                 WHERE status IN ('PENDING', 'CLAIMED')
-                   AND ((overdue_at IS NULL AND remind_at <= :now) OR (overdue_at IS NOT NULL AND escalated_at IS NULL AND escalate_at <= :now))
-                 ORDER BY remind_at
+                SELECT due.task_id FROM (
+                    SELECT task_id, remind_at FROM platform_approval.approval_tasks
+                     WHERE status IN ('PENDING', 'CLAIMED') AND overdue_at IS NULL AND remind_at <= :now
+                    UNION ALL
+                    SELECT task_id, remind_at FROM platform_approval.approval_tasks
+                     WHERE status IN ('PENDING', 'CLAIMED') AND overdue_at IS NOT NULL AND escalated_at IS NULL AND escalate_at <= :now
+                ) due
+                 ORDER BY due.remind_at
                 """)
                 .param("now", at(now)).query((rs, n) -> new ApprovalTaskId(rs.getObject("task_id", UUID.class))).list();
     }

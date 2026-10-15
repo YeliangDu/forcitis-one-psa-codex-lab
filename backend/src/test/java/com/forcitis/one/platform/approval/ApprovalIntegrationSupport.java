@@ -269,7 +269,7 @@ public abstract class ApprovalIntegrationSupport {
                     .matcher(request.getRequestURI());
             if (m.find() && request.getHeader("If-Match") == null) {
                 List<Long> versions = jdbc.queryForList("select r.version from platform_approval.approval_requests r join platform_approval.approval_tasks t"
-                        + " on t.process_key = r.process_key and t.document_key = r.document_key where t.task_id = ?", Long.class, m.group(1));
+                        + " on r.id = t.approval_request_id where t.task_id = cast(? as uuid)", Long.class, m.group(1));
                 request.addHeader("If-Match", "\"" + (versions.isEmpty() ? 1L : versions.getFirst()) + "\"");
             }
             return request;

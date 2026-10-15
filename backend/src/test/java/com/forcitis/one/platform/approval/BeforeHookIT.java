@@ -86,7 +86,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         assertThat(approvals.isFinished(instance)).isTrue();
         assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value().toString()).count()).isEqualTo(1);
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
-            assertThat(e.document().documentId().value()).isEqualTo(key);
+            assertThat(e.document().documentId().toString()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalOutcome.REJECTED);
             assertThat(e.reason()).isEqualTo(new Reason("price too low"));
         }));
@@ -112,7 +112,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         assertThat(hook.calls).hasSize(1);
         var context = hook.calls.getFirst();
         assertThat(context.action()).isEqualTo(HookAction.APPROVE);
-        assertThat(context.document().documentId().value()).isEqualTo(key);
+        assertThat(context.document().documentId().toString()).isEqualTo(key);
         assertThat(context.nodeKey()).isEqualTo("departmentReview");
         assertThat(context.actor()).isEqualTo(TestAccounts.account(s.head()));
         assertThat(context.instanceId()).isEqualTo(instance);

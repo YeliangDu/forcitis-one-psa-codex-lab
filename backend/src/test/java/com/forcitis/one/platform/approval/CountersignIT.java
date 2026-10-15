@@ -95,7 +95,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
         assertThat(decide(s.second(), secondTask, DecisionOutcome.APPROVE, "ok").status()).isEqualTo(ApprovalStatus.APPROVED);
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
-            assertThat(e.document().documentId().value()).isEqualTo(key);
+            assertThat(e.document().documentId().toString()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(ApprovalOutcome.APPROVED);
         }));
     }
@@ -130,7 +130,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
         assertThat(jdbc.queryForList("select status from platform_approval.approval_tasks where instance_id = ? order by task_id", String.class,
                 instance.value())).containsExactlyInAnyOrder("COMPLETED", "COMPLETED", "CLOSED");
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
-            assertThat(e.document().documentId().value()).isEqualTo(key);
+            assertThat(e.document().documentId().toString()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
             assertThat(e.reason()).isEqualTo(new Reason("price too high"));
         }));

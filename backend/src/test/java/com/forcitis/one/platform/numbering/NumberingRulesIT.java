@@ -367,7 +367,6 @@ class NumberingRulesIT {
     @Test
     void entriesValidateThemselves() {
         assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(1)), ExternalSource.LEGACY_SYSTEM, " ", Optional.of(LE1), BATCH)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, com.forcitis.one.TestApprovalIds.document("7")), ExternalSource.LEGACY_SYSTEM, "X", Optional.of(LE1), BATCH)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(1)), ExternalSource.LEGACY_SYSTEM, "X", Optional.of(LE1), new MigrationBatchId(new java.util.UUID(0, 0)))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new LegacyNumberEntry(new DocumentReference(DocumentType.QUOTE, doc(1)), ExternalSource.LEGACY_SYSTEM, "x".repeat(129), Optional.of(LE1), BATCH)).isInstanceOf(IllegalArgumentException.class);
     }

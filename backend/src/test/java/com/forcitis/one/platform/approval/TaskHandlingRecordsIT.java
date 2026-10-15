@@ -45,7 +45,7 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
     DecideTasks decideTasks;
 
     List<String> actionsOf(String key) {
-        return jdbc.queryForList("select action_kind from platform_approval.approval_task_records where document_key = ? order by decided_at, record_id",
+        return jdbc.queryForList("select action_kind from platform_approval.approval_task_records where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid)) order by record_number",
                 String.class, key);
     }
 
@@ -70,12 +70,12 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
 
         assertThat(actionsOf(key)).containsExactly("CLAIMED", "RELEASED", "CLAIMED", "TRANSFERRED", "REASSIGNED", "APPROVED");
         assertThat(jdbc.queryForMap("select actor_id, on_behalf_of_id, assignee_id, record_reason from platform_approval.approval_task_records"
-                + " where document_key = ? and action_kind = 'REASSIGNED'", key))
+                + " where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid)) and action_kind = 'REASSIGNED'", key))
                 .containsEntry("actor_id", TestAccounts.account(ADMINISTRATOR).value()).containsEntry("on_behalf_of_id", TestAccounts.account(colleague).value())
                 .containsEntry("assignee_id", TestAccounts.account(manager).value())
                 .containsEntry("record_reason", "back again");
         assertThat(jdbc.queryForMap("select node_name, round_number, record_reason from platform_approval.approval_task_records"
-                + " where document_key = ? and action_kind = 'APPROVED'", key)).containsEntry("round_number", 1).containsEntry("record_reason", "fine");
+                + " where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid)) and action_kind = 'APPROVED'", key)).containsEntry("round_number", 1).containsEntry("record_reason", "fine");
     }
 
     @Test
@@ -88,9 +88,9 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         String key = newKey("append");
         claimTask.execute(openTaskId(start(key, initiator, manager)), TestAccounts.account(manager), OptionalLong.empty());
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("update platform_approval.approval_task_records set actor_id = '01900000-0000-7000-8000-000000000001' where document_key = ?", key))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("update platform_approval.approval_task_records set actor_id = '01900000-0000-7000-8000-000000000001' where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", key))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("delete from platform_approval.approval_task_records where document_key = ?", key))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("delete from platform_approval.approval_task_records where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", key))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.execute("truncate platform_approval.approval_task_records"))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);

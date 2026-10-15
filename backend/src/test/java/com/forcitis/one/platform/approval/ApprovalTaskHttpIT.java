@@ -46,7 +46,7 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"APPROVE\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RUNNING"))
-                .andExpect(jsonPath("$.instanceId").value(instance.value()));
+                .andExpect(jsonPath("$.instanceId").value(instance.value().toString()));
         mvc.perform(get(BASE).with(as(head, Permission.Codes.PLATFORM_APPROVAL_TASK_READ))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].nodeName").value("一级汇报人审批"));
     }

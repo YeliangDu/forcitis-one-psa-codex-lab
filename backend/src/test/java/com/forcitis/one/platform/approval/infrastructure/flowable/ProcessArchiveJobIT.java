@@ -185,7 +185,7 @@ class ProcessArchiveJobIT {
         assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(bad).count()).isEqualTo(1);
         assertThat(meters.counter("forcitis.platform.approval.archive.skipped").count()).isEqualTo(before + 1);
         assertThat(vault.batches).hasSize(1);
-        assertThat(jdbc.sql("select count(*) from platform_approval.process_archive_skips where process_instance_id = :id").param("id", bad)
+        assertThat(jdbc.sql("select count(*) from platform_approval.process_archive_skips where process_instance_id = cast(:id as uuid)").param("id", bad)
                 .query(Long.class).single()).as("the skipped instance is recorded").isEqualTo(1L);
 
         job.run();

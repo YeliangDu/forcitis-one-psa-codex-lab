@@ -64,7 +64,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
                 });
 
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_tasks where document_key = ?", Integer.class, key)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_tasks where approval_request_id in (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", Integer.class, key)).isZero();
 
         scenario.publish(request(key, initiator, manager, 2, "projectHours")).andWaitForEventOfType(com.forcitis.one.platform.approval.events.TaskAssigned.class)
                 .matching(e -> e.document().equals(document(key))).toArrive();

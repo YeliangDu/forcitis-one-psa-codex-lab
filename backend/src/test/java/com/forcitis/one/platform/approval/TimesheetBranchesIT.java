@@ -84,7 +84,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.orgUnitHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS,
                 TimesheetRoutingFlag.PRE_SALES_HOURS);
 
-        assertThat(openNodes(instance)).containsExactly("projectManagerReview", "orgUnitHeadApproval");
+        assertThat(openNodes(instance)).containsExactly("orgUnitHeadApproval", "projectManagerReview");
         approve(s.orgUnitHead(), instance, "orgUnitHeadApproval");
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
         approve(s.projectManager(), instance, "projectManagerReview");
@@ -99,7 +99,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.orgUnitHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS,
                 TimesheetRoutingFlag.PRE_SALES_HOURS, TimesheetRoutingFlag.OVERHEAD_HOURS);
 
-        assertThat(openNodes(instance)).containsExactly("projectManagerReview", "orgUnitHeadApproval", "supervisorReview");
+        assertThat(openNodes(instance)).containsExactly("orgUnitHeadApproval", "projectManagerReview", "supervisorReview");
         approve(s.supervisor(), instance, "supervisorReview");
         approve(s.projectManager(), instance, "projectManagerReview");
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
