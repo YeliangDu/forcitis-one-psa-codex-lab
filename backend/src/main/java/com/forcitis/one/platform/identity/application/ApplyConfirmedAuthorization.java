@@ -33,9 +33,9 @@ class ApplyConfirmedAuthorization {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                 "platform.identity.authorization")) {
             AdminOutcome<?> outcome = switch (request.kind()) {
-                case REPLACE_ROLES -> replaceRoles.applyConfirmed(request.subjectUser().value(), request.roleCodes());
+                case REPLACE_ROLES -> replaceRoles.applyConfirmed(request.subjectUser(), request.roleCodes());
                 case CREATE_ROLE -> createRole.applyConfirmed(toCommand(request));
-                case UPDATE_ROLE -> updateRole.applyConfirmed(request.roleId().value(), toCommand(request));
+                case UPDATE_ROLE -> updateRole.applyConfirmed(request.roleId(), toCommand(request));
             };
             if (outcome instanceof AdminOutcome.Refused<?> refused) {
                 log.error("ALERT platform.identity the confirmed authorization request {} could not be applied: {}", request.requestId().value(),

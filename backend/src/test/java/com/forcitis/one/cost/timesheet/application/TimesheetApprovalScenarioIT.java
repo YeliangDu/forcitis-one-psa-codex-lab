@@ -3,6 +3,7 @@ package com.forcitis.one.cost.timesheet.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
@@ -125,7 +126,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     static TimesheetId newTimesheet() {
-        return new TimesheetId(TIMESHEETS.incrementAndGet());
+        return new TimesheetId(TestIds.uuid(TIMESHEETS.incrementAndGet()));
     }
 
     static LocalDate workDay() {

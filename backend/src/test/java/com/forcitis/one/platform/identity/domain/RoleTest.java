@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.domain;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.platform.identity.api.RoleId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,11 +16,11 @@ import org.junit.jupiter.api.Test;
 class RoleTest {
 
     static Role custom(String code, Set<String> permissions) {
-        return Role.restore(new RoleId(7), new RoleCode(code), code, "CUSTOM", "ENABLED", AccessScopeKind.SELF, false, permissions, 2, 2);
+        return Role.restore(new RoleId(TestIds.uuid(7)), new RoleCode(code), code, "CUSTOM", "ENABLED", AccessScopeKind.SELF, false, permissions, 2, 2);
     }
 
     static Role system(String code, Set<String> permissions) {
-        return Role.restore(new RoleId(1), new RoleCode(code), code, "SYSTEM", "ENABLED", AccessScopeKind.ALL, true, permissions, 0, 0);
+        return Role.restore(new RoleId(TestIds.uuid(1)), new RoleCode(code), code, "SYSTEM", "ENABLED", AccessScopeKind.ALL, true, permissions, 0, 0);
     }
 
     @Test
@@ -70,7 +71,7 @@ class RoleTest {
     @DisplayName("RULE-341/343 permissions come from enabled roles only; a person without roles has none")
     void effectivePermissions() {
         Role enabled = custom("a", Set.of(Permission.Codes.TIMESHEET_SUBMIT));
-        Role disabled = Role.restore(new RoleId(8), new RoleCode("b"), "b", "CUSTOM", "DISABLED", AccessScopeKind.SELF, false,
+        Role disabled = Role.restore(new RoleId(TestIds.uuid(8)), new RoleCode("b"), "b", "CUSTOM", "DISABLED", AccessScopeKind.SELF, false,
                 Set.of(Permission.Codes.TIMESHEET_APPROVE), 0, 0);
 
         AccessProfile profile = AccessProfile.of(List.of(enabled, disabled));
@@ -92,7 +93,7 @@ class RoleTest {
                 Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE,
                 Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
 
-        Role disabledAdmin = Role.restore(new RoleId(1), new RoleCode("super_admin"), "x", "SYSTEM", "DISABLED", AccessScopeKind.ALL, true, Set.of(), 0, 0);
+        Role disabledAdmin = Role.restore(new RoleId(TestIds.uuid(1)), new RoleCode("super_admin"), "x", "SYSTEM", "DISABLED", AccessScopeKind.ALL, true, Set.of(), 0, 0);
         assertThat(AccessProfile.of(List.of(disabledAdmin)).isAdministrator()).isFalse();
         assertThat(AccessProfile.of(List.of(disabledAdmin)).administratorModePermissionCodes()).isEmpty();
     }

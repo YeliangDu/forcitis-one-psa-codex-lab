@@ -9,4 +9,9 @@ public record OrgUnitId(long value) {
             throw new IllegalArgumentException("OrgUnitId must not be 0");
         }
     }
+
+    @Override
+    public String toString() {
+        return Long.toString(value);
+    }
 }

@@ -5,6 +5,7 @@ import static com.forcitis.one.organization.workforce.domain.LegalEntityStatus.I
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -23,7 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class LegalEntityStateMachineTest {
-    static final LegalEntityId ID = new LegalEntityId(4);
+    static final LegalEntityId ID = new LegalEntityId(TestIds.uuid(4));
 
     static LegalEntity at(LegalEntityStatus status) {
         return LegalEntity.restore(ID, new LegalEntityCode("FST"), "Synthetic", status.name(), null, 7, 7);
@@ -67,7 +68,7 @@ class LegalEntityStateMachineTest {
         List<DomainEvent> events = saved.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(events).singleElement().isInstanceOfSatisfying(LegalEntityRegistered.class, e -> {
             assertThat(e.code()).isEqualTo(new LegalEntityCode("FST"));
-            assertThat(e.envelope().aggregateId()).isEqualTo("4");
+            assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(4).toString());
             assertThat(e.envelope().legalEntityId()).isEqualTo(ID);
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
         });

@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.audit.infrastructure.archive;
 
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.integration.api.ArchiveVault;
 import com.forcitis.one.platform.integration.api.ArchivedObject;
 import io.micrometer.core.instrument.Counter;
@@ -16,6 +17,7 @@ import java.time.Period;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
@@ -42,6 +44,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     private static final Logger LOG = LoggerFactory.getLogger(AuditArchiveJob.class);
     static final String KIND = "audit";
     static final int BATCH = 5000;
+    private static final UUID BEFORE_ANY_ENTRY = new UUID(0, 0);
     /** The columns the archive carries; architecture/archive-columns.txt names every column of the table as archived or excluded and AuditArchiveColumnsTest keeps both equal. */
     static final List<String> COLUMNS = List.of("id", "action", "actor_id", "on_behalf_of_id", "subject_key", "detail", "event_id", "correlation_id", "source_address", "outcome_kind", "login_method_kind", "change_reason", "before_text", "after_text", "created_at");
 
@@ -57,12 +60,15 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     private final JdbcClient jdbc;
     private final ArchiveVault vault;
     private final Clock clock;
+    private final IdGenerator ids;
     private final BusinessZone zone;
     private final Policy policy;
     private final Counter probeFailures;
+    private final Counter reconciliationFailures;
     private final JsonMapper json = JsonMapper.builder().build();
 
-    AuditArchiveJob(JdbcClient jdbc, ArchiveVault vault, Clock clock, BusinessZone zone, Policy policy, MeterRegistry meters) {
+    AuditArchiveJob(JdbcClient jdbc, ArchiveVault vault, Clock clock, IdGenerator ids, BusinessZone zone, Policy policy, MeterRegistry meters) {
+        this.ids = ids;
         this.jdbc = jdbc;
         this.vault = vault;
         this.clock = clock;
@@ -71,6 +77,8 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         vault.requireTotalKeepPeriod("audit archive", policy.onlinePeriod());
         this.probeFailures = Counter.builder("forcitis.platform.audit.archive.probe.failures")
                 .description("Failed write probes of the audit archive target").register(meters);
+        this.reconciliationFailures = Counter.builder("forcitis.platform.audit.archive.reconciliation.failures")
+                .description("Runs where the entries up to the archived position differ in number from the archived batches").register(meters);
     }
 
     @Override
@@ -98,12 +106,33 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     void run() {
         int archived = archiveOlderThan(Instant.from(clock.instant().atZone(zone.zone()).minus(policy.onlinePeriod())));
         LOG.info("platform.audit archived {} audit entries", archived);
+        reconcile();
+    }
+
+    /**
+     * Archiving goes by id order and remembers the last id; an entry that gets an id below it later (another instance, a clock step) would
+     * never be archived. Every entry up to the archived position must be in a batch, and none is deleted online, so the counts must match.
+     */
+    void reconcile() {
+        Optional<UUID> last = jdbc.sql("select last_entry_id from platform_audit.audit_archive_batches order by last_entry_id desc limit 1")
+                .query(UUID.class).optional();
+        if (last.isEmpty()) {
+            return;
+        }
+        long archived = jdbc.sql("select coalesce(sum(entry_count), 0) from platform_audit.audit_archive_batches").query(Long.class).single();
+        long upToTheLast = jdbc.sql("select count(*) from platform_audit.audit_entries where id <= :last").param("last", last.get()).query(Long.class).single();
+        if (archived != upToTheLast) {
+            reconciliationFailures.increment();
+            LOG.error("ALERT platform.audit the audit trail up to entry {} has {} entries, the archived batches hold {}: entries are missing from the archive",
+                    last.get(), upToTheLast, archived);
+        }
     }
 
     int archiveOlderThan(Instant cutoff) {
         int total = 0;
         while (true) {
-            long last = jdbc.sql("select coalesce(max(last_entry_id), 0) from platform_audit.audit_archive_batches").query(Long.class).single();
+            UUID last = jdbc.sql("select last_entry_id from platform_audit.audit_archive_batches order by last_entry_id desc limit 1")
+                    .query(UUID.class).optional().orElse(BEFORE_ANY_ENTRY);
             List<Map<String, Object>> entries = jdbc.sql("select " + String.join(", ", COLUMNS) + " from platform_audit.audit_entries where id > :last order by id limit :batch")
                     .param("last", last).param("batch", BATCH).query((rs, n) -> row(rs)).list();
             int due = 0;
@@ -115,7 +144,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
             }
             List<Map<String, Object>> batch = entries.subList(0, due);
             ArchivedObject stored = vault.archive(KIND, batch.stream().map(json::writeValueAsString).toList());
-            insertBatch((Long) batch.getFirst().get("id"), (Long) batch.getLast().get("id"), batch.size(), stored);
+            insertBatch(UUID.fromString((String) batch.getFirst().get("id")), UUID.fromString((String) batch.getLast().get("id")), batch.size(), stored);
             total += batch.size();
             if (due < BATCH) {
                 return total;
@@ -146,11 +175,11 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         return row;
     }
 
-    private void insertBatch(long first, long last, int count, ArchivedObject stored) {
+    private void insertBatch(UUID first, UUID last, int count, ArchivedObject stored) {
         jdbc.sql("""
-                insert into platform_audit.audit_archive_batches (first_entry_id, last_entry_id, entry_count, object_key, sha256_hash, archived_at)
-                values (:first, :last, :count, :key, :sha, :now)
-                """).param("first", first).param("last", last).param("count", count)
+                insert into platform_audit.audit_archive_batches (id, first_entry_id, last_entry_id, entry_count, object_key, sha256_hash, archived_at)
+                values (:id, :first, :last, :count, :key, :sha, :now)
+                """).param("id", ids.next()).param("first", first).param("last", last).param("count", count)
                 .param("key", stored.key()).param("sha", stored.sha256()).param("now", Timestamp.from(clock.instant())).update();
     }
 }

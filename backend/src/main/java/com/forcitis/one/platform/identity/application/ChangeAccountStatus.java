@@ -28,10 +28,10 @@ public class ChangeAccountStatus {
     }
 
     @Transactional
-    public long execute(long userId, boolean enable, ExpectedVersion expected) {
-        UserAccount account = userId == 0 ? null : accounts.find(new UserId(userId)).orElse(null);
+    public long execute(UserId userId, boolean enable, ExpectedVersion expected) {
+        UserAccount account = accounts.find(userId).orElse(null);
         if (account == null) {
-            throw IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account " + userId);
+            throw IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account " + userId.value());
         }
         expected.check(account.version());
         account.declareEnabled(enable);

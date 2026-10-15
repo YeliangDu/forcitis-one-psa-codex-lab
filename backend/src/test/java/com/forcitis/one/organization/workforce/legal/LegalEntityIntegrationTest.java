@@ -14,12 +14,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.events.LegalEntityCodeCorrected;
 import com.forcitis.one.organization.workforce.events.LegalEntityDeactivated;
 import com.forcitis.one.organization.workforce.events.LegalEntityRegistered;
 import com.forcitis.one.organization.workforce.events.LegalEntityRenamed;
+import java.util.UUID;
 import org.springframework.test.context.event.ApplicationEvents;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.LegalEntityDirectory;
@@ -40,6 +42,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     static final String LEGAL_ENTITIES = "/api/v1/organization/legal-entities";
+    static final UUID UNKNOWN = TestIds.uuid(404);
     static final RequestPostProcessor MAINTAINER = user("9001").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
     static final RequestPostProcessor READER = user("9002").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
 
@@ -64,14 +67,16 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
         com.forcitis.one.organization.workforce.application.VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
     }
 
-    private String version(long id) {
+    private String version(UUID id) {
         return "\"" + jdbc.sql("select coalesce(max(version), 1) from organization_workforce.legal_entities where id = :id").param("id", id)
-                .query(Long.class).single() + "\"";
+                .query(Long.class).optional().orElse(1L) + "\"";
     }
 
-    private void create(String code, String name) throws Exception {
-        mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"code\":\"" + code + "\",\"name\":\"" + name + "\"}")).andExpect(status().isCreated());
+    private UUID create(String code, String name) throws Exception {
+        String body = mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"name\":\"" + name + "\"}")).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return UUID.fromString(com.jayway.jsonpath.JsonPath.read(body, "$.legalEntityId"));
     }
 
     @Test
@@ -80,7 +85,7 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
         mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"FST\",\"name\":\"Synthetic Legal Entity\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.legalEntityId").value("1"))
+                .andExpect(jsonPath("$.legalEntityId").value(org.hamcrest.Matchers.matchesPattern("[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")))
                 .andExpect(jsonPath("$.code").value("FST"))
                 .andExpect(jsonPath("$.name").value("Synthetic Legal Entity"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
@@ -89,8 +94,8 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
             assertThat(e.code()).isEqualTo(new LegalEntityCode("FST"));
             assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
             assertThat(e.envelope().actorId()).isEqualTo("9001");
-            assertThat(e.envelope().aggregateId()).isEqualTo("1");
-            assertThat(e.envelope().legalEntityId()).isEqualTo(new LegalEntityId(1));
+            assertThat(e.envelope().aggregateId()).isEqualTo(e.legalEntityId().value().toString());
+            assertThat(e.envelope().legalEntityId()).isEqualTo(e.legalEntityId());
         });
     }
 
@@ -113,65 +118,79 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @DisplayName("L-1 an id is read in its one canonical form: upper case, short forms and the nil UUID are refused with 400, in the path and in the body")
+    void idsAreReadCanonically() throws Exception {
+        UUID one = create("FST", "One");
+
+        mvc.perform(get(LEGAL_ENTITIES + "/" + one).with(READER)).andExpect(status().isOk());
+        mvc.perform(get(LEGAL_ENTITIES + "/" + one.toString().toUpperCase()).with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(get(LEGAL_ENTITIES + "/1-1-1-1-1").with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(get(LEGAL_ENTITIES + "/00000000-0000-0000-0000-000000000000").with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/2").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + one.toString().toUpperCase() + "\",\"effectiveFrom\":\"2026-10-01\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("the database itself refuses a code that is not 2 to 10 upper-case letters")
     void databaseChecksTheCodeFormat() {
-        assertThatThrownBy(() -> jdbc.sql("insert into organization_workforce.legal_entities (code, name, status) values ('fst', 'x', 'ACTIVE')").update())
+        assertThatThrownBy(() -> jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (uuidv7(), 'fst', 'x', 'ACTIVE')").update())
                 .isInstanceOf(DataAccessException.class);
     }
 
     @Test
     @DisplayName("name and status can be changed, and the code corrected while no number was issued; unknown id 404, bad status 422; each change is announced")
     void updateLegalEntity() throws Exception {
-        create("FST", "One");
+        UUID one = create("FST", "One");
 
-        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + one).header("If-Match", version(one)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"One renamed\",\"status\":\"INACTIVE\",\"code\":\"XXX\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("XXX"))
                 .andExpect(jsonPath("$.name").value("One renamed"))
                 .andExpect(jsonPath("$.status").value("INACTIVE"));
-        mvc.perform(put(LEGAL_ENTITIES + "/404").header("If-Match", version(404)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + UNKNOWN).header("If-Match", version(UNKNOWN)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"x\",\"status\":\"ACTIVE\"}")).andExpect(status().isNotFound());
-        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + one).header("If-Match", version(one)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"x\",\"status\":\"GONE\"}")).andExpect(status().isUnprocessableContent());
-        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + one).header("If-Match", version(one)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"\",\"status\":\"ACTIVE\"}")).andExpect(status().isUnprocessableContent());
 
         assertThat(events.stream(LegalEntityCodeCorrected.class)).singleElement()
                 .satisfies(e -> assertThat(e.previousCode()).isEqualTo(new LegalEntityCode("FST")));
         assertThat(events.stream(LegalEntityRenamed.class)).hasSize(1);
         assertThat(events.stream(LegalEntityDeactivated.class)).hasSize(1);
-        assertThat(jdbc.sql("select event_count from organization_workforce.legal_entities where id = 1").query(Long.class).single())
+        assertThat(jdbc.sql("select event_count from organization_workforce.legal_entities where id = :id").param("id", one).query(Long.class).single())
                 .as("registered 1, then code corrected + renamed + deactivated").isEqualTo(4L);
-        assertThat(jdbc.sql("select version from organization_workforce.legal_entities where id = 1").query(Long.class).single())
+        assertThat(jdbc.sql("select version from organization_workforce.legal_entities where id = :id").param("id", one).query(Long.class).single())
                 .as("one save: the lock version moves by one however many events it carried").isEqualTo(2L);
     }
 
     @Test
     @DisplayName("M5 the code is fixed once a number carrying it was issued: 409, nothing changes; a code nobody numbered yet stays correctable")
     void codeIsLockedByIssuedNumbers() throws Exception {
-        create("FST", "One");
-        create("QQQ", "Two");
-        org.mockito.Mockito.when(numberUsage.hasIssuedNumbers(new LegalEntityId(1))).thenReturn(true);
+        UUID one = create("FST", "One");
+        UUID two = create("QQQ", "Two");
+        org.mockito.Mockito.when(numberUsage.hasIssuedNumbers(new LegalEntityId(one))).thenReturn(true);
 
-        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + one).header("If-Match", version(one)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"FSTX\",\"name\":\"One\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED"));
-        assertThat(directory.findCode(new LegalEntityId(1))).contains(new LegalEntityCode("FST"));
+        assertThat(directory.findCode(new LegalEntityId(one))).contains(new LegalEntityCode("FST"));
         assertThat(events.stream(LegalEntityCodeCorrected.class)).isEmpty();
 
-        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + one).header("If-Match", version(one)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"FST\",\"name\":\"One renamed\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("FST"));
-        mvc.perform(put(LEGAL_ENTITIES + "/2").header("If-Match", version(2)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + two).header("If-Match", version(two)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"QQQX\",\"name\":\"Two\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("QQQX"));
-        mvc.perform(put(LEGAL_ENTITIES + "/2").header("If-Match", version(2)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + two).header("If-Match", version(two)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"FST\",\"name\":\"Two\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN"));
-        mvc.perform(put(LEGAL_ENTITIES + "/2").header("If-Match", version(2)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + two).header("If-Match", version(two)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"code\":\"bad\",\"name\":\"Two\",\"status\":\"ACTIVE\"}"))
                 .andExpect(status().isUnprocessableContent());
     }
@@ -195,7 +214,7 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
                 .andExpect(status().isUnauthorized());
         mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(READER).contentType(MediaType.APPLICATION_JSON).content("{\"code\":\"NEW\",\"name\":\"n\"}"))
                 .andExpect(status().isForbidden());
-        mvc.perform(put(LEGAL_ENTITIES + "/1").with(csrf()).with(READER).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put(LEGAL_ENTITIES + "/" + UNKNOWN).with(csrf()).with(READER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"n\",\"status\":\"ACTIVE\"}")).andExpect(status().isForbidden());
         assertThat(count()).isEqualTo(2);
     }
@@ -206,32 +225,32 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("the directory gives numbering the code of a legal entity, also a deactivated one, and nothing for an unknown id")
     void directoryFindsTheCode() throws Exception {
-        create("FST", "One");
-        mvc.perform(put(LEGAL_ENTITIES + "/1").header("If-Match", version(1)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
+        UUID one = create("FST", "One");
+        mvc.perform(put(LEGAL_ENTITIES + "/" + one).header("If-Match", version(one)).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"One\",\"status\":\"INACTIVE\"}")).andExpect(status().isOk());
 
-        assertThat(directory.findCode(new LegalEntityId(1))).contains(new LegalEntityCode("FST"));
-        assertThat(directory.findCode(new LegalEntityId(2))).isEmpty();
+        assertThat(directory.findCode(new LegalEntityId(one))).contains(new LegalEntityCode("FST"));
+        assertThat(directory.findCode(new LegalEntityId(UNKNOWN))).isEmpty();
         var inTransaction = new org.springframework.transaction.support.TransactionTemplate(transactions);
-        java.util.Optional<LegalEntityCode> deactivated = inTransaction.execute(status -> directory.lockActiveCode(new LegalEntityId(1)));
-        java.util.Optional<LegalEntityCode> unknown = inTransaction.execute(status -> directory.lockActiveCode(new LegalEntityId(2)));
+        java.util.Optional<LegalEntityCode> deactivated = inTransaction.execute(status -> directory.lockActiveCode(new LegalEntityId(one)));
+        java.util.Optional<LegalEntityCode> unknown = inTransaction.execute(status -> directory.lockActiveCode(new LegalEntityId(UNKNOWN)));
         assertThat(deactivated).isEmpty();
         assertThat(unknown).isEmpty();
-        assertThatThrownBy(() -> directory.lockActiveCode(new LegalEntityId(1))).as("the lock needs the caller's transaction")
+        assertThatThrownBy(() -> directory.lockActiveCode(new LegalEntityId(one))).as("the lock needs the caller's transaction")
                 .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
     }
 
     @Test
     @DisplayName("the organisation sync never creates, changes or removes legal entities")
     void syncLeavesLegalEntitiesAlone() throws Exception {
-        create("FST", "One");
+        UUID one = create("FST", "One");
         orgSource.snapshot = tree(person(1, 2, 100L, null));
 
         sync.execute(SyncTrigger.SCHEDULED, false);
         sync.execute(SyncTrigger.SCHEDULED, false);
 
         assertThat(count()).isEqualTo(1);
-        assertThat(directory.findCode(new LegalEntityId(1))).contains(new LegalEntityCode("FST"));
+        assertThat(directory.findCode(new LegalEntityId(one))).contains(new LegalEntityCode("FST"));
     }
 
     @Test

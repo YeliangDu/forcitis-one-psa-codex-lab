@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -19,8 +20,8 @@ import org.junit.jupiter.api.Test;
 
 class AccessScopeTest {
 
-    static final LegalEntityId LE1 = new LegalEntityId(1);
-    static final LegalEntityId LE2 = new LegalEntityId(2);
+    static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
+    static final LegalEntityId LE2 = new LegalEntityId(TestIds.uuid(2));
     static final OrgUnitId ROOT = new OrgUnitId(1);
     static final OrgUnitId DEPT_15 = new OrgUnitId(15);
     static final OrgUnitId DEPT_16 = new OrgUnitId(16);

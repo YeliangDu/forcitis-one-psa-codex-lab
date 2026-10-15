@@ -35,7 +35,7 @@ CREATE TABLE organization_workforce.org_units (
     is_delivery_unit                boolean     NOT NULL DEFAULT false,
     short_name                      text,
     revoked_at                      timestamptz,
-    last_sync_run_id                bigint,
+    last_sync_run_id                uuid,
     created_at                      timestamptz NOT NULL DEFAULT now(),
     updated_at                      timestamptz NOT NULL DEFAULT now(),
     version                         bigint      NOT NULL DEFAULT 0
@@ -70,7 +70,7 @@ CREATE TABLE organization_workforce.employees (
     employment_status text        NOT NULL CHECK (employment_status IN ('EMPLOYED', 'SEPARATED')),
     is_fee_earner     boolean     NOT NULL DEFAULT false,
     separated_at      timestamptz,
-    last_sync_run_id  bigint,
+    last_sync_run_id  uuid,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
     version           bigint      NOT NULL DEFAULT 0,
@@ -117,7 +117,7 @@ COMMENT ON COLUMN organization_workforce.assignments.version IS '乐观锁版本
 
 -- 同步记录与差异（RULE-358/366/373）：每 5 分钟一次，缩水时 HELD，管理员可放行。
 CREATE TABLE organization_workforce.sync_runs (
-    id                             bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id                             uuid        PRIMARY KEY,
     trigger_kind                   text        NOT NULL CHECK (trigger_kind IN ('SCHEDULED', 'MANUAL')),
     status                         text        NOT NULL CHECK (status IN ('RUNNING', 'SUCCEEDED', 'HELD', 'RELEASED', 'FAILED')),
     started_at                     timestamptz NOT NULL,
@@ -138,7 +138,7 @@ CREATE TABLE organization_workforce.sync_runs (
     failure_reason                 text,
     released_by                    bigint,
     released_at                    timestamptz,
-    released_by_run_id             bigint,
+    released_by_run_id             uuid,
     created_at                     timestamptz NOT NULL DEFAULT now(),
     updated_at                     timestamptz NOT NULL DEFAULT now(),
     version                        bigint      NOT NULL DEFAULT 0,
@@ -149,7 +149,7 @@ CREATE TABLE organization_workforce.sync_runs (
 CREATE INDEX sync_runs_started_at_idx ON organization_workforce.sync_runs (started_at DESC);
 CREATE INDEX sync_runs_status_idx ON organization_workforce.sync_runs (status);
 COMMENT ON TABLE organization_workforce.sync_runs IS '同步记录：组织快照每次同步的记录与缩水保护结果；粒度：每次同步运行一行';
-COMMENT ON COLUMN organization_workforce.sync_runs.id IS '同步记录 ID';
+COMMENT ON COLUMN organization_workforce.sync_runs.id IS '同步记录 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.sync_runs.trigger_kind IS '触发方式：SCHEDULED 定时 / MANUAL 管理员放行';
 COMMENT ON COLUMN organization_workforce.sync_runs.status IS '状态：RUNNING 运行中 / SUCCEEDED 成功 / HELD 因缩水保护中止 / RELEASED 已被管理员放行 / FAILED 失败';
 COMMENT ON COLUMN organization_workforce.sync_runs.started_at IS '开始时间';
@@ -179,8 +179,9 @@ COMMENT ON COLUMN organization_workforce.sync_runs.hold_kind_codes IS '暂停类
 COMMENT ON COLUMN organization_workforce.sync_runs.released_kind_codes IS '已解除的暂停类型：全部解除后才按最新源数据重跑并应用；源数据变化使暂停类型或离职名单改变时清空';
 
 CREATE TABLE organization_workforce.sync_diffs (
-    id             bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    sync_run_id    bigint      NOT NULL REFERENCES organization_workforce.sync_runs (id) ON DELETE CASCADE,
+    id             uuid        PRIMARY KEY,
+    sync_run_id    uuid        NOT NULL REFERENCES organization_workforce.sync_runs (id) ON DELETE CASCADE,
+    diff_number    integer     NOT NULL CHECK (diff_number >= 1),
     entity_kind    text        NOT NULL CHECK (entity_kind IN ('ORG_UNIT', 'EMPLOYEE', 'POSITION')),
     subject_key    text        NOT NULL,
     change_kind    text        NOT NULL CHECK (change_kind IN ('CREATED', 'UPDATED', 'SEPARATED', 'REHIRED', 'REVOKED', 'REVIVED', 'ISSUE')),
@@ -188,12 +189,14 @@ CREATE TABLE organization_workforce.sync_diffs (
     detail         text,
     created_at     timestamptz NOT NULL DEFAULT now(),
     updated_at     timestamptz NOT NULL DEFAULT now(),
-    changed_field_codes text[]
+    changed_field_codes text[],
+    CONSTRAINT uk_sync_diffs_sync_run_id_diff_number UNIQUE (sync_run_id, diff_number)
 );
 CREATE INDEX sync_diffs_sync_run_id_idx ON organization_workforce.sync_diffs (sync_run_id);
 COMMENT ON TABLE organization_workforce.sync_diffs IS '同步差异：每次同步改动的对象与字段，以及数据例外（ISSUE）；粒度：每次同步中每个被改动或有例外的对象一行';
-COMMENT ON COLUMN organization_workforce.sync_diffs.id IS '差异 ID';
+COMMENT ON COLUMN organization_workforce.sync_diffs.id IS '差异 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.sync_diffs.sync_run_id IS '同步记录 ID';
+COMMENT ON COLUMN organization_workforce.sync_diffs.diff_number IS '差异序号：在同一次同步内按发现顺序从 1 起编号，显示顺序按它排';
 COMMENT ON COLUMN organization_workforce.sync_diffs.entity_kind IS '对象类别：ORG_UNIT / EMPLOYEE / POSITION';
 COMMENT ON COLUMN organization_workforce.sync_diffs.subject_key IS '对象键，如 employee:2001';
 COMMENT ON COLUMN organization_workforce.sync_diffs.change_kind IS '变更类别：CREATED / UPDATED / SEPARATED / REHIRED / REVOKED / REVIVED / ISSUE（数据例外）';
@@ -204,7 +207,7 @@ COMMENT ON COLUMN organization_workforce.sync_diffs.updated_at IS '更新时间'
 COMMENT ON COLUMN organization_workforce.sync_diffs.changed_field_codes IS '变更的字段代码，每个字段一个元素；仅 UPDATE 类变更有值';
 
 CREATE TABLE organization_workforce.legal_entities (
-    id         bigint      GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    id         uuid        PRIMARY KEY,
     code       text        NOT NULL UNIQUE,
     name       text        NOT NULL,
     status     text        NOT NULL CHECK (status IN ('ACTIVE', 'INACTIVE')),
@@ -218,7 +221,7 @@ CREATE TABLE organization_workforce.legal_entities (
     CONSTRAINT ck_legal_entities_accounting_organization_number CHECK (accounting_organization_number IS NULL OR accounting_organization_number > 0)
 );
 COMMENT ON TABLE organization_workforce.legal_entities IS '法人主体：由管理员在新系统维护的法人小表（约 5 家），不从外部系统同步；粒度：每个法人一行，变化历史在 legal_entity_versions';
-COMMENT ON COLUMN organization_workforce.legal_entities.id IS '法人 ID';
+COMMENT ON COLUMN organization_workforce.legal_entities.id IS '法人 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.legal_entities.code IS '法人代码：2 至 10 位大写字母，全表唯一，创建后不改，用于单据编号的 {LE} 占位符';
 COMMENT ON COLUMN organization_workforce.legal_entities.name IS '法人名称';
 COMMENT ON COLUMN organization_workforce.legal_entities.status IS '状态：ACTIVE 启用 / INACTIVE 停用';
@@ -257,7 +260,7 @@ CREATE TABLE organization_workforce.org_unit_legal_entities (
     org_unit_id         bigint      NOT NULL,
     effective_from_date date        NOT NULL,
     effective_to_date   date,
-    legal_entity_id     bigint      NOT NULL,
+    legal_entity_id     uuid        NOT NULL,
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_org_unit_legal_entities PRIMARY KEY (org_unit_id, effective_from_date),
@@ -278,7 +281,7 @@ CREATE TABLE organization_workforce.employee_legal_entities (
     employee_id         bigint      NOT NULL,
     effective_from_date date        NOT NULL,
     effective_to_date   date,
-    legal_entity_id     bigint      NOT NULL,
+    legal_entity_id     uuid        NOT NULL,
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_employee_legal_entities PRIMARY KEY (employee_id, effective_from_date),
@@ -360,7 +363,8 @@ COMMENT ON COLUMN organization_workforce.assignment_versions.revision_number IS 
 
 -- 数据打分卡 K4：法人的代码、名称、状态按生效区间保留历史，只追加；与法人主表在同一事务写入，同日再次变化关闭当天版本并追加下一修订。
 CREATE TABLE organization_workforce.legal_entity_versions (
-    legal_entity_id     bigint      NOT NULL,
+    legal_entity_version_id uuid    NOT NULL,
+    legal_entity_id     uuid        NOT NULL,
     effective_from_date date        NOT NULL,
     revision_number     integer     NOT NULL DEFAULT 0,
     effective_to_date   date,
@@ -369,12 +373,14 @@ CREATE TABLE organization_workforce.legal_entity_versions (
     status              text        NOT NULL CONSTRAINT ck_legal_entity_versions_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_legal_entity_versions PRIMARY KEY (legal_entity_id, effective_from_date, revision_number),
+    CONSTRAINT pk_legal_entity_versions PRIMARY KEY (legal_entity_version_id),
+    CONSTRAINT uk_legal_entity_versions_revision UNIQUE (legal_entity_id, effective_from_date, revision_number),
     CONSTRAINT fk_legal_entity_versions_legal_entity_id FOREIGN KEY (legal_entity_id) REFERENCES organization_workforce.legal_entities (id),
     CONSTRAINT ck_legal_entity_versions_range CHECK (effective_to_date IS NULL OR effective_to_date >= effective_from_date),
     CONSTRAINT ex_legal_entity_versions_overlap EXCLUDE USING gist (legal_entity_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
 COMMENT ON TABLE organization_workforce.legal_entity_versions IS '法人版本：法人代码、名称、状态的变化历史，只追加；粒度：每个法人的每个生效区间每个修订一行';
+COMMENT ON COLUMN organization_workforce.legal_entity_versions.legal_entity_version_id IS '法人版本 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.legal_entity_versions.legal_entity_id IS '法人主体 ID';
 COMMENT ON COLUMN organization_workforce.legal_entity_versions.effective_from_date IS '生效日（含），按业务时区截日';
 COMMENT ON COLUMN organization_workforce.legal_entity_versions.revision_number IS '修订序号：同一生效日内的序号，同日再次变化时关闭当天版本（空区间）并以加 1 的序号追加新行';
@@ -419,7 +425,7 @@ COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.cr
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.updated_at IS '更新时间（行不可更新，恒等于创建时间）';
 
 CREATE TABLE organization_workforce.sync_run_held_separations (
-    sync_run_id bigint      NOT NULL,
+    sync_run_id uuid        NOT NULL,
     employee_id bigint      NOT NULL,
     created_at  timestamptz NOT NULL DEFAULT now(),
     updated_at  timestamptz NOT NULL DEFAULT now(),

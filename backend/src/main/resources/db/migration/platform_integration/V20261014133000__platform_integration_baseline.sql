@@ -33,7 +33,7 @@ COMMENT ON COLUMN platform_integration.event_publication.created_at IS '创建�
 COMMENT ON COLUMN platform_integration.event_publication.updated_at IS '更新时间';
 
 CREATE TABLE platform_integration.outbound_deliveries (
-    id                      bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id                      uuid        PRIMARY KEY,
     deduplication_key       text        NOT NULL UNIQUE,
     title                   text        NOT NULL,
     description             text,
@@ -60,7 +60,7 @@ CREATE TABLE platform_integration.outbound_deliveries (
 CREATE INDEX outbound_deliveries_due_idx ON platform_integration.outbound_deliveries (next_attempt_at) WHERE status = 'PENDING';
 CREATE INDEX outbound_deliveries_dead_idx ON platform_integration.outbound_deliveries (status) WHERE status = 'DEAD_LETTER';
 COMMENT ON TABLE platform_integration.outbound_deliveries IS '外发投递：企业微信文本卡片的待发队列与结果，事务提交后由投递作业发送，失败退避重试，超过次数进死信；粒度：每张待发或已发的卡片一行（按去重键唯一）';
-COMMENT ON COLUMN platform_integration.outbound_deliveries.id IS '投递 ID';
+COMMENT ON COLUMN platform_integration.outbound_deliveries.id IS '投递 ID（UUIDv7）';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.deduplication_key IS '去重键：同一键只投递一次，也用于事后把卡片改为已处理，如 approval-task:42';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.title IS '卡片标题';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.description IS '卡片说明';

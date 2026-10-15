@@ -45,7 +45,7 @@ class ConsumedEventsPurgeJobIT {
 
     private UUID consumedDaysAgo(int days) {
         UUID id = UUID.randomUUID();
-        jdbc.sql("insert into cost_timesheet.consumed_events (event_id, consumer_name, consumed_at) values (:id, 'purge-test', now() - make_interval(days => :days))")
+        jdbc.sql("insert into cost_timesheet.consumed_events (consumed_event_id, event_id, consumer_name, consumed_at) values (uuidv7(), :id, 'purge-test', now() - make_interval(days => :days))")
                 .param("id", id).param("days", days).update();
         return id;
     }

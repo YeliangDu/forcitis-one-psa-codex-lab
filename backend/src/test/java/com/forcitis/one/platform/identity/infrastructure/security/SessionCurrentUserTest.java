@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -45,9 +46,9 @@ class SessionCurrentUserTest {
     @DisplayName("B-1 the legal entity is the signed-in employee's on today's business day, cut in the business zone")
     void resolvedFromTheOrganisationOnTheBusinessDay() {
         signIn("1001");
-        when(employeeLegalEntities.on(new UserId(1001), LocalDate.of(2027, 1, 1))).thenReturn(new LegalEntityId(7));
+        when(employeeLegalEntities.on(new UserId(1001), LocalDate.of(2027, 1, 1))).thenReturn(new LegalEntityId(TestIds.uuid(7)));
 
-        assertThat(currentUser.legalEntityId()).isEqualTo(new LegalEntityId(7));
+        assertThat(currentUser.legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(7)));
     }
 
     @Test

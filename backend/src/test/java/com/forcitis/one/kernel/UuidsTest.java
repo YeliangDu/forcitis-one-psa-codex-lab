@@ -33,4 +33,15 @@ class UuidsTest {
     void anotherVersionHasNoInstant() {
         assertThatThrownBy(() -> Uuids.instantOf(UUID.randomUUID())).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void onlyTheCanonicalLowerCaseFormIsParsed() {
+        UUID id = Uuids.timeOrdered(Instant.parse("2026-10-14T10:00:00Z"));
+
+        assertThat(Uuids.parseCanonical(id.toString())).isEqualTo(id);
+        assertThatThrownBy(() -> Uuids.parseCanonical(id.toString().toUpperCase())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Uuids.parseCanonical("1-1-1-1-1")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Uuids.parseCanonical(" " + id)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Uuids.parseCanonical("7")).isInstanceOf(IllegalArgumentException.class);
+    }
 }

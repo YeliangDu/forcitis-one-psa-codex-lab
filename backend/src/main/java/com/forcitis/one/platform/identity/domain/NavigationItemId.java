@@ -1,13 +1,18 @@
 package com.forcitis.one.platform.identity.domain;
 
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.ValueObject;
+import java.util.UUID;
 
 @ValueObject
-public record NavigationItemId(long value) {
+public record NavigationItemId(UUID value) {
 
     public NavigationItemId {
-        if (value <= 0) {
-            throw new IllegalArgumentException("NavigationItemId must be positive");
-        }
+        value = Uuids.requireKey(value, "NavigationItemId");
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
     }
 }

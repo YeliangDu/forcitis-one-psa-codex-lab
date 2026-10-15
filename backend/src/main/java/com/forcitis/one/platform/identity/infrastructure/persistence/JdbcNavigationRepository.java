@@ -4,6 +4,7 @@ import com.forcitis.one.platform.identity.domain.NavigationItem;
 import com.forcitis.one.platform.identity.domain.NavigationItemId;
 import com.forcitis.one.platform.identity.domain.NavigationRepository;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -24,9 +25,9 @@ class JdbcNavigationRepository implements NavigationRepository {
                          where is_enabled
                         """)
                 .query((rs, n) -> {
-                    long parent = rs.getLong("parent_item_id");
-                    NavigationItemId parentItemId = rs.wasNull() ? null : new NavigationItemId(parent);
-                    return new NavigationItem(new NavigationItemId(rs.getLong("item_id")), parentItemId, rs.getString("name"),
+                    UUID parent = rs.getObject("parent_item_id", UUID.class);
+                    NavigationItemId parentItemId = parent == null ? null : new NavigationItemId(parent);
+                    return new NavigationItem(new NavigationItemId(rs.getObject("item_id", UUID.class)), parentItemId, rs.getString("name"),
                             rs.getString("route_path"), rs.getString("permission_code"), rs.getInt("sort_order"));
                 }).list();
     }

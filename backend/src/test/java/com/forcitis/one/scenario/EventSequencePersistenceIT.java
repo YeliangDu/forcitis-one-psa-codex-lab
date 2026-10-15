@@ -2,6 +2,7 @@ package com.forcitis.one.scenario;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
@@ -57,11 +58,11 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
     void timesheetEventNumbersSurviveSaves() {
         for (long seed = 0; seed < 15; seed++) {
             Random random = new Random(seed);
-            TimesheetId id = new TimesheetId(IDS.incrementAndGet());
+            TimesheetId id = new TimesheetId(TestIds.uuid(IDS.incrementAndGet()));
             LocalDate today = LocalDate.now();
             UserId owner = new UserId(newId());
             Timesheet created = Timesheet.draft(id, new DocumentNumber("TS-SEQ-" + id.value()), new AggregateReference("NumberingRule", "TIMESHEET"),
-                    owner, new LegalEntityId(1), new OrgUnitId(1), today.minusDays(1), Hours.of("8"), new UserId(newId()), today);
+                    owner, new LegalEntityId(TestIds.uuid(1)), new OrgUnitId(1), today.minusDays(1), Hours.of("8"), new UserId(newId()), today);
             List<Long> numbers = new ArrayList<>();
             tx.executeWithoutResult(s -> timesheets.save(created));
             created.drainEvents(ENVELOPES).forEach(event -> numbers.add(event.envelope().aggregateVersion()));

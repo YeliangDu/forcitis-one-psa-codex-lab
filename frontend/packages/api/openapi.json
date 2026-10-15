@@ -22,8 +22,8 @@
             "type" : "string"
           },
           "legalEntityId" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -53,6 +53,7 @@
             "type" : [ "string", "null" ]
           },
           "entryId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "loginMethod" : {
@@ -94,6 +95,7 @@
             "type" : "array"
           },
           "requestId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "requestedAt" : {
@@ -111,8 +113,8 @@
             "type" : "array"
           },
           "roleId" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           },
           "roleName" : {
             "type" : "string"
@@ -478,6 +480,7 @@
             "type" : [ "string", "null" ]
           },
           "recordId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "round" : {
@@ -522,6 +525,7 @@
             "type" : [ "string", "null" ]
           },
           "recordId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "round" : {
@@ -616,6 +620,7 @@
       "LegacyNumberResponse" : {
         "properties" : {
           "documentId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "documentType" : {
@@ -628,6 +633,7 @@
             "type" : "string"
           },
           "legalEntityId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           }
         },
@@ -662,6 +668,7 @@
             "type" : "string"
           },
           "legalEntityId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "name" : {
@@ -1015,6 +1022,7 @@
             "type" : [ "string", "null" ]
           },
           "legalEntityId" : {
+            "format" : "uuid",
             "type" : "string"
           }
         },
@@ -1167,6 +1175,7 @@
             "type" : "array"
           },
           "roleId" : {
+            "format" : "uuid",
             "type" : "string"
           }
         },
@@ -1287,6 +1296,7 @@
             "type" : [ "string", "null" ]
           },
           "releasedByRunId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "releasedKinds" : {
@@ -1311,6 +1321,7 @@
             "type" : "string"
           },
           "syncRunId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "trigger" : {
@@ -1882,8 +1893,8 @@
           "name" : "legalEntityId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -1917,8 +1928,8 @@
           "name" : "legalEntityId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -2312,8 +2323,8 @@
           "name" : "syncRunId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -2349,8 +2360,8 @@
           "name" : "syncRunId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "description" : "The same key with the same request within 24 hours gets the first answer again",
@@ -4183,8 +4194,8 @@
           "name" : "documentId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "query",
@@ -4685,8 +4696,8 @@
           "name" : "roleId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -4720,8 +4731,8 @@
           "name" : "roleId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -4755,8 +4766,8 @@
           "name" : "roleId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",

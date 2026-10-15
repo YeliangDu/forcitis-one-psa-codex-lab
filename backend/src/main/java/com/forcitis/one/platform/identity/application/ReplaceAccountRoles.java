@@ -53,8 +53,8 @@ public class ReplaceAccountRoles {
     }
 
     @Transactional
-    public AdminOutcome<Long> execute(long userId, Set<String> roleCodes, ExpectedVersion expected) {
-        Optional<UserAccount> found = userId == 0 ? Optional.empty() : accounts.find(new UserId(userId));
+    public AdminOutcome<Long> execute(UserId userId, Set<String> roleCodes, ExpectedVersion expected) {
+        Optional<UserAccount> found = accounts.find(userId);
         if (found.isEmpty()) {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND);
         }
@@ -62,7 +62,7 @@ public class ReplaceAccountRoles {
         expected.check(account.version());
         UserId caller = currentUser.userId();
         if (account.userId().equals(caller)) {
-            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, "user-account:" + userId,
+            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, "user-account:" + userId.value(),
                     "nobody changes their own roles"));
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN);
         }
@@ -106,8 +106,8 @@ public class ReplaceAccountRoles {
 
     /** The second person agreed: applied without the single-person checks, which the confirmation replaces. */
     @Transactional
-    AdminOutcome<Long> applyConfirmed(long userId, Set<String> roleCodes) {
-        Optional<UserAccount> found = accounts.find(new UserId(userId));
+    AdminOutcome<Long> applyConfirmed(UserId userId, Set<String> roleCodes) {
+        Optional<UserAccount> found = accounts.find(userId);
         if (found.isEmpty()) {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND);
         }
