@@ -23,7 +23,8 @@ class LegacyAdapterPlacementTest {
     static final String INTEGRATION = ROOT + ".platform.integration";
     static final String APPROVAL = ROOT + ".platform.approval";
     static final String APPROVAL_LEGACY = APPROVAL + ".infrastructure.legacy";
-    static final String EXTERNAL_CONNECTIONS = INTEGRATION + ".api.ExternalConnections";
+    /** The port through which an adapter obtains an external connection; since R-1b P3b in platform.integration.domain (RULING-P3B-12). */
+    static final String EXTERNAL_CONNECTIONS = INTEGRATION + ".domain.ExternalConnections";
     /** The types that move into platform.integration under their present names (RULING-P3B-D2). */
     static final List<String> MOVED_TYPES = List.of("JdbcLegacyInbox", "LegacyInboxConfiguration", "LegacyTodo", "LegacyInstanceId", "LegacyInbox");
 
@@ -54,18 +55,41 @@ class LegacyAdapterPlacementTest {
         assertThat(moved).as("the old to-do types in platform.integration").containsAll(List.of("JdbcLegacyInbox", "LegacyTodo"));
     }
 
-    @Test
-    @DisplayName("R-1b P3b ADR-0039 守护：只有 platform.integration 的适配器取得外部连接（ExternalConnections），审批模块不再在准入之列")
-    void onlyIntegrationObtainsExternalConnections() {
+    /** The classes outside platform.integration that depend on the external connection port. */
+    static TreeSet<String> outsideUsersOfExternalConnections(JavaClasses classes) {
         TreeSet<String> outside = new TreeSet<>();
-        for (JavaClass type : MAIN) {
+        for (JavaClass type : classes) {
             if (!type.getPackageName().startsWith(INTEGRATION) && type.getDirectDependenciesFromSelf().stream()
                     .anyMatch(dependency -> dependency.getTargetClass().getName().equals(EXTERNAL_CONNECTIONS))) {
                 outside.add(topLevel(type));
             }
         }
+        return outside;
+    }
 
-        assertThat(outside).as("classes outside platform.integration that obtain an external connection").isEmpty();
+    @Test
+    @DisplayName("R-1b P3b ADR-0039 守护 / RULING-P3B-12：只有 platform.integration 的适配器取得外部连接（ExternalConnections），审批模块不再在准入之列")
+    void onlyIntegrationObtainsExternalConnections() {
+        assertThat(MAIN.contain(EXTERNAL_CONNECTIONS)).as("the port %s exists, so the check below is not run against nothing", EXTERNAL_CONNECTIONS).isTrue();
+        assertThat(MAIN.stream().filter(type -> type.getPackageName().startsWith(INTEGRATION)).map(LegacyAdapterPlacementTest::topLevel)
+                .filter(name -> !name.equals(EXTERNAL_CONNECTIONS)).anyMatch(name -> MAIN.get(name).getDirectDependenciesFromSelf().stream()
+                        .anyMatch(dependency -> dependency.getTargetClass().getName().equals(EXTERNAL_CONNECTIONS))))
+                .as("the adapters of platform.integration use the port (control)").isTrue();
+
+        assertThat(outsideUsersOfExternalConnections(MAIN)).as("classes outside platform.integration that obtain an external connection").isEmpty();
+    }
+
+    /** Lies outside platform.integration and holds the port: what the check must report (CS-5.9). */
+    static final class OutsideHolder {
+        com.forcitis.one.platform.integration.domain.ExternalConnections connections;
+    }
+
+    @Test
+    @DisplayName("R-1b P3b RULING-P3B-12 注入：platform.integration 以外持有 ExternalConnections 的类被报出")
+    void anOutsideUserOfTheConnectionPortIsReported() {
+        JavaClasses sample = new ClassFileImporter().importClasses(OutsideHolder.class);
+
+        assertThat(outsideUsersOfExternalConnections(sample)).containsExactly(OutsideHolder.class.getName().replaceAll("\\$.*", ""));
     }
 
     @Test
