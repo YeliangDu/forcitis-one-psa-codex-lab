@@ -35,7 +35,7 @@ class OwnAttributionGuard {
     }
 
     void requireNotOwn(AttributionSubject subject, UserId actor) {
-        if (!concerns(subject, accountEmployees.employeeOf(actor))) {
+        if (accountEmployees.employeeOf(actor).filter(actingEmployee -> concerns(subject, actingEmployee)).isEmpty()) {
             return;
         }
         audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.refused", actor, null,

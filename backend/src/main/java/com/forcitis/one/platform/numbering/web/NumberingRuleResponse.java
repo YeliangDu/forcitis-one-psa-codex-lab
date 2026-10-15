@@ -9,6 +9,7 @@ import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -18,8 +19,8 @@ import org.jspecify.annotations.Nullable;
 record NumberingRuleResponse(DocumentType documentType, @Nullable String documentTypeCode, long version, String pattern, ResetPolicy resetPolicy, long startValue,
         long capacity, ConfirmationStatus confirmationStatus, int templateVersion, LocalDate effectiveFrom, boolean requiresFinanceConfirmation, @Nullable PendingTemplate pending) {
 
-    record PendingTemplate(int templateVersion, String pattern, ResetPolicy resetPolicy, long startValue, LocalDate effectiveFrom, long capacity, @Nullable String authorId,
-            Instant authoredAt, @Nullable String confirmedBy, @Nullable String financeConfirmedBy) {
+    record PendingTemplate(int templateVersion, String pattern, ResetPolicy resetPolicy, long startValue, LocalDate effectiveFrom, long capacity, @Nullable UUID authorId,
+            Instant authoredAt, @Nullable UUID confirmedBy, @Nullable UUID financeConfirmedBy) {
 
         static PendingTemplate of(NumberingTemplateView template) {
             return new PendingTemplate(template.versionNumber(), template.pattern(), template.resetPolicy(), template.startValue(),
@@ -35,7 +36,7 @@ record NumberingRuleResponse(DocumentType documentType, @Nullable String documen
                 template.effectiveFrom(), rule.requiresFinanceConfirmation(), rule.pending().map(PendingTemplate::of).orElse(null));
     }
 
-    private static String text(Optional<UserId> id) {
-        return id.map(user -> String.valueOf(user.value())).orElse(null);
+    private static UUID text(Optional<UserId> id) {
+        return id.map(UserId::value).orElse(null);
     }
 }

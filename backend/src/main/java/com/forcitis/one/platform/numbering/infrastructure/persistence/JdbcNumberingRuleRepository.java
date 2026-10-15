@@ -82,8 +82,8 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     }
 
     private static UserId user(ResultSet rs, String column) throws SQLException {
-        long value = rs.getLong(column);
-        return rs.wasNull() ? null : new UserId(value);
+        java.util.UUID value = rs.getObject(column, java.util.UUID.class);
+        return value == null ? null : new UserId(value);
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {
@@ -141,7 +141,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                         """)
                 .param("id", ids.next()).param("type", type.name()).param("number", saved.number()).param("template", saved.pattern().value())
                 .param("reset", saved.pattern().resetPolicy().name()).param("start", saved.startValue()).param("effectiveFrom", saved.effectiveFrom())
-                .param("author", saved.author() == null ? null : saved.author().value(), Types.BIGINT)
+                .param("author", saved.author() == null ? null : saved.author().value(), Types.OTHER)
                 .param("authoredAt", OffsetDateTime.ofInstant(saved.authoredAt(), ZoneOffset.UTC)).param("status", saved.status().name()).update();
     }
 
@@ -154,9 +154,9 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                          where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = :type)
                            and version_number = :number and status = :before
                         """)
-                .param("status", changed.status().name()).param("confirmedBy", changed.confirmedBy() == null ? null : changed.confirmedBy().value(), Types.BIGINT)
+                .param("status", changed.status().name()).param("confirmedBy", changed.confirmedBy() == null ? null : changed.confirmedBy().value(), Types.OTHER)
                 .param("confirmedAt", changed.confirmedAt() == null ? null : OffsetDateTime.ofInstant(changed.confirmedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
-                .param("financeBy", changed.financeConfirmedBy() == null ? null : changed.financeConfirmedBy().value(), Types.BIGINT)
+                .param("financeBy", changed.financeConfirmedBy() == null ? null : changed.financeConfirmedBy().value(), Types.OTHER)
                 .param("financeAt", changed.financeConfirmedAt() == null ? null : OffsetDateTime.ofInstant(changed.financeConfirmedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("type", rule.documentType().name()).param("number", changed.number()).param("before", before.name()).param("updatedAt", Timestamp.from(clock.instant()))
                 .update();

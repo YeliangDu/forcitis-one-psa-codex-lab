@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering.web;
 
+import com.forcitis.one.kernel.CallerAccount;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
@@ -16,7 +17,6 @@ import com.forcitis.one.platform.numbering.application.ConfirmNumberingRule;
 import com.forcitis.one.platform.numbering.application.ConfirmNumberingRuleByFinance;
 import com.forcitis.one.platform.numbering.application.FindNumberingRule;
 import com.forcitis.one.platform.numbering.application.ListNumberingRules;
-import java.security.Principal;
 import java.time.LocalDate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,14 +39,16 @@ class NumberingRuleController {
     private final ConfirmNumberingRuleByFinance confirmByFinance;
     private final ListNumberingRules list;
     private final FindNumberingRule find;
+    private final CallerAccount callers;
 
     NumberingRuleController(ConfigureNumberingRule configure, ConfirmNumberingRule confirm, ConfirmNumberingRuleByFinance confirmByFinance,
-            ListNumberingRules list, FindNumberingRule find) {
+            ListNumberingRules list, FindNumberingRule find, CallerAccount callers) {
         this.configure = configure;
         this.confirm = confirm;
         this.confirmByFinance = confirmByFinance;
         this.list = list;
         this.find = find;
+        this.callers = callers;
     }
 
     @GetMapping
@@ -67,26 +69,24 @@ class NumberingRuleController {
     @PutMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE + "')")
     ResponseEntity<NumberingRuleResponse> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request,
-            @RequestHeader(value = "If-Match", required = false) String ifMatch, Principal caller) {
+            @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         if (request.resetPolicy() == null) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, "the reset policy is missing");
         }
         return answer(configure.execute(documentType, ExpectedVersion.fromHeader(ifMatch), request.pattern(), request.resetPolicy(),
-                request.startValue(), required(request.effectiveFrom()), user(caller)));
+                request.startValue(), required(request.effectiveFrom()), callers.userId()));
     }
 
     @PostMapping(path = "/{documentType}:confirm")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE + "')")
-    ResponseEntity<NumberingRuleResponse> confirm(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request,
-            Principal caller) {
-        return answer(confirm.execute(documentType, user(caller), seen(request)));
+    ResponseEntity<NumberingRuleResponse> confirm(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request) {
+        return answer(confirm.execute(documentType, callers.userId(), seen(request)));
     }
 
     @PostMapping(path = "/{documentType}:confirm-finance")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE + "')")
-    ResponseEntity<NumberingRuleResponse> confirmByFinance(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request,
-            Principal caller) {
-        return answer(confirmByFinance.execute(documentType, user(caller), seen(request)));
+    ResponseEntity<NumberingRuleResponse> confirmByFinance(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request) {
+        return answer(confirmByFinance.execute(documentType, callers.userId(), seen(request)));
     }
 
     private static RuleVersion seen(ConfirmNumberingRuleRequest request) {
@@ -103,9 +103,6 @@ class NumberingRuleController {
         return effectiveFrom;
     }
 
-    private static UserId user(Principal caller) {
-        return new UserId(Long.parseLong(caller.getName()));
-    }
 
     private static ResponseEntity<NumberingRuleResponse> answer(NumberingRuleView rule) {
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(rule.version())).body(NumberingRuleResponse.from(rule));
