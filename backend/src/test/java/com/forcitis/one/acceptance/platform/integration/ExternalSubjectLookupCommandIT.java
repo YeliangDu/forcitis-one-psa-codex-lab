@@ -12,9 +12,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,10 +68,15 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
     }
 
     private Outcome find(String providerKind, String subject) {
+        return command("--" + PROVIDER_KIND + "=" + providerKind, "--" + EXTERNAL_SUBJECT + "=" + subject);
+    }
+
+    private Outcome command(String... options) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        ApplicationArguments arguments = new DefaultApplicationArguments("--operation=" + FIND_ACCOUNTS, "--" + PROVIDER_KIND + "=" + providerKind,
-                "--" + EXTERNAL_SUBJECT + "=" + subject, "--operator=acceptance-operator", "--witness=acceptance-witness");
+        List<String> line = new ArrayList<>(List.of("--operation=" + FIND_ACCOUNTS, "--operator=acceptance-operator", "--witness=acceptance-witness"));
+        line.addAll(List.of(options));
+        ApplicationArguments arguments = new DefaultApplicationArguments(line.toArray(String[]::new));
         int exit = runCommand(arguments, new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8));
         return new Outcome(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }
@@ -161,5 +168,83 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
         assertThat(found.exit()).as(found.err()).isZero();
         assertThat(found.out()).contains(person.toString(), account.toString()).doesNotContain(other.toString());
         assertThat(nobody.out()).doesNotContain(person.toString()).doesNotContain(other.toString());
+    }
+
+    /** Rows of the audit log, read once no event publication is still waiting for or in its listeners (the audit listener is asynchronous). */
+    private long auditEntriesSettled() throws SQLException {
+        Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).until(this::noPublicationInFlight);
+        try (Connection audit = schemaConnection("platform_audit");
+             PreparedStatement count = audit.prepareStatement("select count(*) from audit_entries"); ResultSet rs = count.executeQuery()) {
+            rs.next();
+            return rs.getLong(1);
+        }
+    }
+
+    private boolean noPublicationInFlight() throws SQLException {
+        try (Connection registry = schemaConnection("platform_integration");
+             PreparedStatement count = registry.prepareStatement("select count(*) from event_publication where status in ('PUBLISHED', 'PROCESSING')");
+             ResultSet rs = count.executeQuery()) {
+            rs.next();
+            return rs.getLong(1) == 0;
+        }
+    }
+
+    @Test
+    @DisplayName("R-1b P3b RULING-P3B-15：--provider-kind 不是 SEEYON_LOGIN_NAME / WECOM_USER_ID 之一时退出码 2（用法错误），不列出任何员工")
+    void anUnknownProviderKindIsWrongUsage() throws Exception {
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+
+        Outcome outcome = find("ACCEPTANCE_UNKNOWN_KIND", wecomUserIdOf(person));
+
+        assertThat(outcome.exit()).as(outcome.err()).isEqualTo(2);
+        assertThat(outcome.out()).doesNotContain(person.toString());
+    }
+
+    @Test
+    @DisplayName("R-1b P3b RULING-P3B-15：缺 --provider-kind 时退出码 2（用法错误），不按任何一种外部主体查人")
+    void aMissingProviderKindIsWrongUsage() throws Exception {
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+
+        Outcome outcome = command("--" + EXTERNAL_SUBJECT + "=" + wecomUserIdOf(person));
+
+        assertThat(outcome.exit()).as(outcome.err()).isEqualTo(2);
+        assertThat(outcome.out()).doesNotContain(person.toString());
+    }
+
+    @Test
+    @DisplayName("R-1b P3b RULING-P3B-15：--external-subject 为空白时退出码 2（用法错误）")
+    void aBlankExternalSubjectIsWrongUsage() {
+        Outcome outcome = find(WECOM_USER_ID, "   ");
+
+        assertThat(outcome.exit()).as(outcome.err()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("R-1b P3b RULING-P3B-15：查无此人时退出码 1，不列出任何员工")
+    void nobodyFoundEndsWithExitCodeOne() throws Exception {
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+
+        Outcome outcome = find(SEEYON_LOGIN_NAME, "acceptance-nobody-" + serialOf(person));
+
+        assertThat(outcome.exit()).as(outcome.err()).isEqualTo(1);
+        assertThat(outcome.out()).doesNotContain(person.toString());
+    }
+
+    @Test
+    @DisplayName("R-1b P3b RULING-P3B-15 / ADR-0037 只读：找到、查无此人、用法错误三种结果都不写审计，audit_entries 行数运行前后不变")
+    void noOutcomeWritesAnAuditEntry() throws Exception {
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+        long before = auditEntriesSettled();
+
+        Outcome found = find(WECOM_USER_ID, wecomUserIdOf(person));
+        Outcome nobody = find(WECOM_USER_ID, "acceptance-nobody-" + serialOf(person));
+        Outcome wrongUsage = find("ACCEPTANCE_UNKNOWN_KIND", wecomUserIdOf(person));
+
+        assertThat(List.of(found.exit(), nobody.exit(), wrongUsage.exit())).as(found.err() + nobody.err() + wrongUsage.err()).containsExactly(0, 1, 2);
+        assertThat(auditEntriesSettled()).as("a read-only command audits nothing").isEqualTo(before);
     }
 }
