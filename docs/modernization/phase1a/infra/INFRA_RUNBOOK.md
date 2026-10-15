@@ -328,7 +328,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - **告警**：用尽次数仍未完成的发布数 → 指标 `forcitis.platform.integration.event.publications.exhausted` 与每分钟一条 `ALERT` 日志；未完成超过 10 分钟的发布数 → `forcitis.platform.integration.event.publications.stale`。两者对应方案中的 P2 告警（未完成事件发布 / 死信）。
 - **清理作业**（`platform.integration.event.cleanup`，每日 04:30）：删除归档中超过 30 天的行。
 - 定时作业总开关：环境变量 `FORCITIS_JOBS_ENABLED` **必须设置**（`true` 或 `false`），没有默认值，缺失时应用启动失败；多个实例同时设为 `true` 没有问题，ShedLock 保证每个作业同一时刻只在一个实例上运行。
-- 开关：环境变量 `EVENT_PUBLICATION_JOBS_ENABLED`（默认 true）；其余参数见 `config/platform_integration.properties` 的 `forcitis.platform.integration.event-publication.*`。
+- 开关：环境变量 `EVENT_PUBLICATION_JOBS_ENABLED`（默认 true）；`MomentsAutoConfiguration` 已在 `application.properties` 排除（它自带 `@EnableScheduling`，会使 `FORCITIS_JOBS_ENABLED=false` 失效）。其余参数见 `config/platform_integration.properties` 的 `forcitis.platform.integration.event-publication.*`。
 - 人工处理用尽次数的发布：先看 `event_publication` 里该行的 `listener_id` 与应用日志中同一 `correlationId` 的错误，修复原因后把 `completion_attempts` 清零，重投作业会再次接手。
 
 ## 10. 备份与恢复（平台约定，目标值用户已定）

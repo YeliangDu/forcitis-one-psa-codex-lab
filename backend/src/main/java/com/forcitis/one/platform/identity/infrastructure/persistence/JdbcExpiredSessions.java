@@ -10,13 +10,14 @@ import org.springframework.stereotype.Repository;
 class JdbcExpiredSessions implements ExpiredSessions {
 
     private final JdbcClient jdbc;
+    private final SessionStoreClock storeClock = new SessionStoreClock();
 
     JdbcExpiredSessions(JdbcClient jdbc) {
         this.jdbc = jdbc;
     }
 
     @Override
-    public List<Expired> find(long nowMillis, long absoluteTimeoutMillis, int limit) {
+    public List<Expired> find(long absoluteTimeoutMillis, int limit) {
         return jdbc.sql("""
                         select primary_id, principal_name,
                                case when creation_time + :absolute < :now then 'ABSOLUTE' else 'IDLE' end as cause
@@ -25,7 +26,7 @@ class JdbcExpiredSessions implements ExpiredSessions {
                          order by expiry_time
                          limit :limit
                         """)
-                .param("now", nowMillis).param("absolute", absoluteTimeoutMillis).param("limit", limit)
+                .param("now", storeClock.millis()).param("absolute", absoluteTimeoutMillis).param("limit", limit)
                 .query((rs, n) -> new Expired(rs.getString("primary_id").trim(), rs.getString("principal_name"), Cause.valueOf(rs.getString("cause"))))
                 .list();
     }
