@@ -391,11 +391,18 @@ check_server_files() {
   done < <(grep -oE '^[A-Z][A-Z0-9_]*=' "$dir/deploy/one.env.template" | tr -d '=')
   [ "${#missing[@]}" -eq 0 ] || fail "$ETC/one.env lacks keys this release expects (add them, empty if unused): ${missing[*]}"
   prometheus_exposed || fail "$ETC/one.env MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE lacks prometheus; the post-switch metrics check would fail"
+  jobs_switch_set || fail "$ETC/one.env FORCITIS_JOBS_ENABLED must be true or false; the application has no default and would not start"
+  ! grep -qE '^SPRING_AUTOCONFIGURE_EXCLUDE=' "$ETC/one.env" \
+    || fail "$ETC/one.env sets SPRING_AUTOCONFIGURE_EXCLUDE; it replaces the application's own exclusions (INFRA_RUNBOOK §9)"
 }
 
 # The health check after a switch reads /actuator/prometheus, so one.env must expose it
 prometheus_exposed() {
   env_value MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE | tr ',' '\n' | tr -d ' ' | grep -qx -e prometheus -e '\*'
+}
+
+jobs_switch_set() {
+  case "$(env_value FORCITIS_JOBS_ENABLED)" in true|false) return 0 ;; *) return 1 ;; esac
 }
 
 grant_static_read() {
