@@ -16,7 +16,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * ADR-0037 item 6.3: the A8 login's default schema is the view schema, so an unqualified base-table name would resolve to whatever object of
- * that name sits there. The SQL of the integration layer names every A8 base table as dbo.&lt;table&gt; or [dbo].[table].
+ * that name sits there. The SQL of the integration layer names every A8 base table as dbo.&lt;table&gt; or [dbo].[table]; another schema in
+ * front of a base-table name (forcitis_one.ORG_UNIT) is reported too.
  */
 class QualifiedBaseTableGuardTest {
 
@@ -35,7 +36,7 @@ class QualifiedBaseTableGuardTest {
                 continue;
             }
             for (String table : tables) {
-                Matcher m = Pattern.compile("(?<![\\w.])\\[?" + Pattern.quote(table) + "(?![\\w])", Pattern.CASE_INSENSITIVE).matcher(literal);
+                Matcher m = Pattern.compile("(?<!\\w)\\[?" + Pattern.quote(table) + "(?![\\w])", Pattern.CASE_INSENSITIVE).matcher(literal);
                 while (m.find()) {
                     if (!QUALIFIER_BEFORE.matcher(literal.substring(Math.max(0, m.start() - 16), m.start())).find()) {
                         found.add(table + " in: " + literal.trim());
@@ -76,5 +77,23 @@ class QualifiedBaseTableGuardTest {
 
         assertThat(found).hasSize(2).anyMatch(f -> f.startsWith("ORG_UNIT in: SELECT B.TYPE FROM ORG_UNIT B"))
                 .anyMatch(f -> f.startsWith("ORG_MEMBER in: SELECT ID FROM [ORG_MEMBER]"));
+    }
+
+    @Test
+    @DisplayName("R-1b-0 限定名守护自检：基表名前写成其他 schema（含方括号与库名前缀）被报出，dbo 限定（含库名前缀）不误报")
+    void otherSchemasInFrontOfABaseTableAreFound() throws IOException {
+        Set<String> tables = a8BaseTables(ExternalReadRegister.rows());
+        String java = "class Probe {\n"
+                + "    static final String A = \"SELECT ID, TYPE FROM forcitis_one.ORG_UNIT\";\n"
+                + "    static final String B = \"SELECT ID FROM [forcitis_one].[ORG_MEMBER]\";\n"
+                + "    static final String C = \"SELECT ID FROM sys.ORG_UNIT\";\n"
+                + "    static final String D = \"SELECT B.ID FROM a8_db.dbo.ORG_UNIT B JOIN a8_db.[dbo].[ORG_MEMBER] M ON M.ORG_DEPARTMENT_ID = B.ID\";\n"
+                + "}\n";
+
+        List<String> found = unqualified(java, tables);
+
+        assertThat(found).hasSize(3).anyMatch(f -> f.startsWith("ORG_UNIT in: SELECT ID, TYPE FROM forcitis_one.ORG_UNIT"))
+                .anyMatch(f -> f.startsWith("ORG_MEMBER in: SELECT ID FROM [forcitis_one].[ORG_MEMBER]"))
+                .anyMatch(f -> f.startsWith("ORG_UNIT in: SELECT ID FROM sys.ORG_UNIT"));
     }
 }
