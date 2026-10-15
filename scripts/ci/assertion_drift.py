@@ -3,8 +3,11 @@
 import json
 import os
 import re
-import subprocess
 import sys
+import tempfile
+from pathlib import Path
+
+from ci_git import git, toplevel
 
 TEST_FILE = re.compile(r"(src/test/.*\.java|\.test\.tsx?|\.spec\.tsx?)$")
 ASSERTION = re.compile(r"\b(assertThat|assertEquals|assertTrue|assertFalse|assertThrows|assertThatThrownBy|verify|expect)\s*\(")
@@ -13,17 +16,24 @@ RANGE = re.compile(r"\.(isGreaterThan|isGreaterThanOrEqualTo|isLessThan|isLessTh
 FIELD = "改动的断言 / 测试及理由"
 
 
-def diff(base, head="HEAD"):
-    out = subprocess.run(["git", "diff", "--unified=0", f"{base}...{head}"], capture_output=True, text=True, check=True).stdout
-    files, current = {}, None
+def diff(base, head="HEAD", cwd="."):
+    out = git("diff", "--unified=0", f"{base}...{head}", cwd=toplevel(cwd))
+    files, old, current, header = {}, None, None, False
     for line in out.splitlines():
-        if line.startswith("+++ b/"):
-            current = line[6:] if TEST_FILE.search(line[6:]) else None
+        if line.startswith("diff --git "):
+            header, old, current = True, None, None
+        elif line.startswith("@@"):
+            header = False
+        elif header and line.startswith("--- "):
+            old = line[6:].rstrip("\t") if line.startswith("--- a/") else None
+        elif header and line.startswith("+++ "):
+            path = line[6:].rstrip("\t") if line.startswith("+++ b/") else old
+            current = path if path and TEST_FILE.search(path) else None
             if current:
                 files.setdefault(current, {"added": [], "removed": []})
-        elif current and line.startswith("+") and not line.startswith("+++"):
+        elif current and not header and line.startswith("+"):
             files[current]["added"].append(line[1:])
-        elif current and line.startswith("-") and not line.startswith("---"):
+        elif current and not header and line.startswith("-"):
             files[current]["removed"].append(line[1:])
     return files
 
@@ -59,7 +69,46 @@ def pr_field_filled():
     return bool(text) and text not in ("无", "-", "N/A")
 
 
+def self_test():
+    chinese = "backend/src/test/java/验收/金额Test.java"
+    gone = "frontend/src/a.test.ts"
+    dashes = "backend/src/test/java/DashesTest.java"
+    kept = "backend/src/test/java/KeptTest.java"
+    before = {
+        chinese: "assertThat(a).isEqualTo(1);\nassertThat(b).isEqualTo(2);\n",
+        gone: "expect(x).toBe(1);\n",
+        dashes: "-- assertThat(c).isTrue();\n-- assertThat(d).isTrue();\n",
+        kept: "assertThat(e).isTrue();\n",
+    }
+    after = {chinese: "assertThat(a).isEqualTo(1);\n", gone: None, dashes: "++ x\n"}
+    with tempfile.TemporaryDirectory() as repo:
+        git("init", "-q", "-b", "main", cwd=repo)
+        git("config", "user.email", "ci@example.invalid", cwd=repo)
+        git("config", "user.name", "ci", cwd=repo)
+        for path, text in before.items():
+            Path(repo, path).parent.mkdir(parents=True, exist_ok=True)
+            Path(repo, path).write_text(text, encoding="utf-8")
+        git("add", "-A", cwd=repo)
+        git("commit", "-q", "-m", "base", cwd=repo)
+        git("checkout", "-q", "-b", "change", cwd=repo)
+        for path, text in after.items():
+            if text is None:
+                Path(repo, path).unlink()
+            else:
+                Path(repo, path).write_text(text, encoding="utf-8")
+        git("commit", "-q", "-am", "change", cwd=repo)
+        notes = findings(diff("main", "HEAD", cwd=repo))
+    assert f"{chinese}: assertions 1 removed, 0 added" in notes, f"a test under a non-ASCII path must be read: {notes}"
+    assert f"{gone}: assertions 1 removed, 0 added" in notes, f"a deleted test file must be counted: {notes}"
+    assert f"{dashes}: assertions 2 removed, 0 added" in notes, f"content lines starting with -- or ++ are not file headers: {notes}"
+    assert not any(note.startswith(kept) for note in notes), notes
+    print("assertion_drift self-test: ok")
+    return 0
+
+
 def main():
+    if sys.argv[1:] == ["--self-test"]:
+        return self_test()
     base = sys.argv[1] if len(sys.argv) > 1 else "origin/main"
     head = sys.argv[2] if len(sys.argv) > 2 else "HEAD"
     notes = findings(diff(base, head))
