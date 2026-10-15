@@ -173,7 +173,7 @@
 | CS-6.5 | 凭据原值只在 `~/.modernize/psa/`（权限 600）或 KMS，不进任何可共享文件 | SESSION_PLAYBOOK §1、§4 第 6 步 | 守护：gitleaks；复审 |
 | CS-6.6 | 身份、授权、单人模式防线遵守 `phase1a/SECURITY_INVARIANTS.md` 的 I-1…I-13；这类改动不交给 Codex | SECURITY_INVARIANTS；SESSION_PLAYBOOK §5「Codex 派工」 | 守护：各不变量对应测试；复审 |
 | CS-6.7 | 生产配置不含测试值、固定验证码或 mock 取值 | SECURITY_INVARIANTS I-4 | 守护：`ProductionConfigSanityTest`（按 SECURITY_INVARIANTS） |
-| CS-6.8 | **建账号、起容器、对外调用前先问用户** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 10 条](SESSION_PLAYBOOK.md#5-上下文管理)；§7 | 复审 |
+| CS-6.8 | **建账号、起容器、对外调用前先问用户**（Testcontainers 本机临时测试容器除外） | [SESSION_PLAYBOOK §5「写代码规则第二批」第 10 条](SESSION_PLAYBOOK.md#5-上下文管理)；§7 | 复审 |
 | CS-6.9 | **生产取证不逐次请示（两条底线）** | [SESSION_PLAYBOOK §5「生产取证不逐次请示」](SESSION_PLAYBOOK.md#5-上下文管理)、ADR-0037 第 7 项 | 复审 |
 
 ## 7. 交付前自查与 PR
