@@ -3,6 +3,7 @@ package com.forcitis.one.platform.audit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventDraft;
@@ -64,7 +65,7 @@ class AuditDomainEventsIT {
 
     private static EventEnvelope envelope(String type, String aggregateId, ActorType actorType, String actorId, UUID correlationId) {
         return new EventEnvelope(UUID.randomUUID(), type, 1, Instant.parse("2026-10-14T02:00:00Z"), "LegalEntity", aggregateId, 1,
-                correlationId, null, actorType, actorId, new LegalEntityId(1), null, new EventSource(SourceSystem.ONE, null), null, List.of());
+                correlationId, null, actorType, actorId, new LegalEntityId(TestIds.uuid(1)), null, new EventSource(SourceSystem.ONE, null), null, List.of());
     }
 
     private List<Map<String, Object>> entriesOf(String subject) {
@@ -77,7 +78,7 @@ class AuditDomainEventsIT {
     void auditsAnEventOnceByItsEventId() {
         UUID correlation = UUID.randomUUID();
         LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "501", ActorType.USER, "9001", correlation),
-                new LegalEntityId(501), new LegalEntityCode("AUD"));
+                new LegalEntityId(TestIds.uuid(501)), new LegalEntityCode("AUD"));
 
         tx.executeWithoutResult(status -> publisher.publishEvent(event));
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf("LegalEntity:501")).hasSize(1));
@@ -95,7 +96,7 @@ class AuditDomainEventsIT {
     @DisplayName("a system actor is recorded in the detail, not as a user")
     void systemActorsAreNamedInTheDetail() {
         LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "502", ActorType.SYSTEM,
-                "organization.workforce.snapshot.sync", UUID.randomUUID()), new LegalEntityId(502), new LegalEntityCode("SYS"));
+                "organization.workforce.snapshot.sync", UUID.randomUUID()), new LegalEntityId(TestIds.uuid(502)), new LegalEntityCode("SYS"));
 
         tx.executeWithoutResult(status -> publisher.publishEvent(event));
 
@@ -109,9 +110,9 @@ class AuditDomainEventsIT {
     @DisplayName("an event whose record says @NotAudited writes no entry, and its neighbour in the same minute still does")
     void notAuditedEventsAreSkipped() {
         SyncRunSucceeded skipped = new SyncRunSucceeded(envelope("organization.workforce.SyncRunSucceeded", "601", ActorType.SYSTEM, "job", UUID.randomUUID()),
-                new SyncRunId(601));
+                new SyncRunId(TestIds.uuid(601)));
         LegalEntityRegistered audited = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "603", ActorType.SYSTEM, "job", UUID.randomUUID()),
-                new LegalEntityId(603), new LegalEntityCode("NEI"));
+                new LegalEntityId(TestIds.uuid(603)), new LegalEntityCode("NEI"));
 
         tx.executeWithoutResult(status -> {
             publisher.publishEvent(skipped);
@@ -127,9 +128,9 @@ class AuditDomainEventsIT {
     void oneHandlingLeavesOneEntryPerEvent() {
         UUID correlation = UUID.randomUUID();
         LegalEntityRegistered first = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "701", ActorType.USER, "9001", correlation),
-                new LegalEntityId(701), new LegalEntityCode("ONE"));
+                new LegalEntityId(TestIds.uuid(701)), new LegalEntityCode("ONE"));
         LegalEntityRegistered second = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "702", ActorType.USER, "9001", correlation),
-                new LegalEntityId(702), new LegalEntityCode("TWO"));
+                new LegalEntityId(TestIds.uuid(702)), new LegalEntityCode("TWO"));
 
         tx.executeWithoutResult(status -> {
             publisher.publishEvent(first);

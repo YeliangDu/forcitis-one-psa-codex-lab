@@ -4,7 +4,7 @@ COMMENT ON SCHEMA platform_audit IS '审计日志（权限流程与集成平台 
 -- 审计订阅领域事件：事件号兼作幂等键，重复投递不产生重复条目；关联号把条目与同一操作的事件、日志串起来。
 -- 登录与会话类条目的来源地址、结果、登录方式放在结构化列：员工查自己的登录记录只取这些列，不解析说明文字（意图 155、ADR-0027 第 3 项）。
 CREATE TABLE platform_audit.audit_entries (
-    id                bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id                uuid        PRIMARY KEY,
     action            text        NOT NULL,
     actor_id          bigint,
     on_behalf_of_id   bigint,
@@ -27,7 +27,7 @@ CREATE INDEX audit_entries_subject_idx ON platform_audit.audit_entries (subject_
 CREATE INDEX audit_entries_created_idx ON platform_audit.audit_entries (created_at DESC);
 CREATE UNIQUE INDEX uk_audit_entries_event_id ON platform_audit.audit_entries (event_id);
 COMMENT ON TABLE platform_audit.audit_entries IS '审计条目：只追加，数据库触发器禁止修改和删除（G34）；粒度：每个被审计的动作或领域事件一行';
-COMMENT ON COLUMN platform_audit.audit_entries.id IS '审计条目 ID';
+COMMENT ON COLUMN platform_audit.audit_entries.id IS '审计条目 ID（UUIDv7）';
 COMMENT ON COLUMN platform_audit.audit_entries.action IS '动作：{子域}.{限界上下文}.{对象}.{动词}，如 platform.identity.role.created';
 COMMENT ON COLUMN platform_audit.audit_entries.actor_id IS '操作人 ID；系统动作（同步作业等）为空';
 COMMENT ON COLUMN platform_audit.audit_entries.on_behalf_of_id IS '被代理人 ID；仅显式代理动作填写（RULE-270）';
@@ -62,9 +62,9 @@ CREATE TRIGGER audit_entries_reject_truncate
 
 -- 审计在线 3 年后按批写入归档库（对象存储，WORM）：每批一行记录覆盖的条目范围、对象键与校验值，只追加，作为归档进度。
 CREATE TABLE platform_audit.audit_archive_batches (
-    id             bigint      GENERATED ALWAYS AS IDENTITY,
-    first_entry_id bigint      NOT NULL,
-    last_entry_id  bigint      NOT NULL,
+    id             uuid        NOT NULL,
+    first_entry_id uuid        NOT NULL,
+    last_entry_id  uuid        NOT NULL,
     entry_count    integer     NOT NULL,
     object_key     text        NOT NULL,
     sha256_hash    text        NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE platform_audit.audit_archive_batches (
     CONSTRAINT ck_audit_archive_batches_range CHECK (first_entry_id <= last_entry_id AND entry_count > 0)
 );
 COMMENT ON TABLE platform_audit.audit_archive_batches IS '审计归档批次：已写入归档库的审计条目范围，只追加；粒度：每个归档批次一行';
-COMMENT ON COLUMN platform_audit.audit_archive_batches.id IS '归档批次 ID';
+COMMENT ON COLUMN platform_audit.audit_archive_batches.id IS '归档批次 ID（UUIDv7）';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.first_entry_id IS '本批第一条审计条目的 ID';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.last_entry_id IS '本批最后一条审计条目的 ID，也是归档进度：下一批从其后开始';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.entry_count IS '本批审计条目数';

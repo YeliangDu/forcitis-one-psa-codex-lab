@@ -10,4 +10,9 @@ public record SourcePositionId(long value) {
             throw new IllegalArgumentException("SourcePositionId must not be 0");
         }
     }
+
+    @Override
+    public String toString() {
+        return Long.toString(value);
+    }
 }

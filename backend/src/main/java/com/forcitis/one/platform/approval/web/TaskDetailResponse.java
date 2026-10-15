@@ -11,6 +11,7 @@ import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.application.TaskDetail;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.lang.Nullable;
 
 /** reason is absent when the deciding person gave none: the screen words that, the data does not pretend (RULE-280). */
@@ -21,7 +22,7 @@ record TaskDetailResponse(String taskId, String instanceId, ProcessKey processKe
                           @Nullable Instant completedAt, @Nullable String outcome, @Nullable String effect, @Nullable String reason,
                           @Nullable String summary, boolean canAct, List<HistoryEntry> history) {
 
-    record HistoryEntry(String recordId, String taskId, String nodeKey, String nodeName, int round, TaskRecordAction action, String actorId,
+    record HistoryEntry(UUID recordId, String taskId, String nodeKey, String nodeName, int round, TaskRecordAction action, String actorId,
                         String actorName, @Nullable String onBehalfOfName, @Nullable String assigneeName, @Nullable String reason,
                         Instant decidedAt) {
     }
@@ -36,7 +37,7 @@ record TaskDetailResponse(String taskId, String instanceId, ProcessKey processKe
                 detail.overdue(), detail.completedAt().orElse(null), detail.outcome().map(TaskOutcome::name).orElse(null),
                 detail.effect().map(TaskEffect::name).orElse(null), detail.reason().map(Reason::value).orElse(null),
                 detail.summary().map(ApprovalSummary::value).orElse(null), detail.canAct(),
-                detail.history().stream().map(e -> new HistoryEntry(e.recordId().value().toString(), e.taskId().value(), e.nodeKey().value(),
+                detail.history().stream().map(e -> new HistoryEntry(e.recordId().value(), e.taskId().value(), e.nodeKey().value(),
                         e.nodeName().value(), e.round(), e.action(), String.valueOf(e.actor().value()), e.actorName(),
                         e.onBehalfOfName().orElse(null), e.assigneeName().orElse(null), e.reason().map(Reason::value).orElse(null),
                         e.decidedAt())).toList());

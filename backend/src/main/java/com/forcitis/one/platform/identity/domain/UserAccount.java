@@ -122,7 +122,7 @@ public final class UserAccount extends AggregateRoot {
     }
 
     private List<RoleId> orderedRoles() {
-        return roles.stream().sorted(Comparator.comparingLong(RoleId::value)).toList();
+        return roles.stream().sorted(Comparator.comparing(RoleId::value)).toList();
     }
 
     private EventDraft draft(String eventName, long version) {

@@ -9,8 +9,8 @@ const READ = 'organization.workforce:sync-run:read';
 const EXECUTE = 'organization.workforce:sync-run:execute';
 
 const RUNS = [
-  { syncRunId: '12', trigger: 'SCHEDULED', status: 'HELD', startedAt: '2026-10-14T01:00:00Z', orgUnitChangeCount: 3, employeeChangeCount: 40, positionChangeCount: 0, issueCount: 1, holdKinds: [], heldSeparations: [], releasedKinds: [], heldReason: '在职人数比上次减少 30%' },
-  { syncRunId: '11', trigger: 'SCHEDULED', status: 'SUCCEEDED', startedAt: '2026-10-13T01:00:00Z', orgUnitChangeCount: 0, employeeChangeCount: 2, positionChangeCount: 0, issueCount: 0, holdKinds: [], heldSeparations: [], releasedKinds: [] },
+  { syncRunId: '019a0000-0000-7000-8000-000000000012', trigger: 'SCHEDULED', status: 'HELD', startedAt: '2026-10-14T01:00:00Z', orgUnitChangeCount: 3, employeeChangeCount: 40, positionChangeCount: 0, issueCount: 1, holdKinds: [], heldSeparations: [], releasedKinds: [], heldReason: '在职人数比上次减少 30%' },
+  { syncRunId: '019a0000-0000-7000-8000-000000000011', trigger: 'SCHEDULED', status: 'SUCCEEDED', startedAt: '2026-10-13T01:00:00Z', orgUnitChangeCount: 0, employeeChangeCount: 2, positionChangeCount: 0, issueCount: 0, holdKinds: [], heldSeparations: [], releasedKinds: [] },
 ];
 
 describe('同步记录页', () => {
@@ -37,7 +37,7 @@ describe('同步记录页', () => {
     const server = stubServer({
       'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) },
       'GET sync-runs': { body: { items: RUNS } },
-      'POST sync-runs/12:release': { body: { outcome: 'RELEASED', message: null, syncRun: RUNS[0] } },
+      'POST sync-runs/019a0000-0000-7000-8000-000000000012:release': { body: { outcome: 'RELEASED', message: null, syncRun: RUNS[0] } },
     });
     renderWithProviders(<SyncRunsPage />);
 
@@ -49,7 +49,7 @@ describe('同步记录页', () => {
 
     await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
     const release = server.calls.find((call) => call.method === 'POST');
-    expect(release?.url.endsWith('sync-runs/12:release')).toBe(true);
+    expect(release?.url.endsWith('sync-runs/019a0000-0000-7000-8000-000000000012:release')).toBe(true);
     expect(release?.body).toEqual({ reason: '已核对差异' });
     expect(release?.headers.get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/);
   });
@@ -58,7 +58,7 @@ describe('同步记录页', () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ, EXECUTE]) },
       'GET sync-runs': { body: { items: RUNS } },
-      'POST sync-runs/12:release': { status: 409, body: problemBody(409, 'ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL') },
+      'POST sync-runs/019a0000-0000-7000-8000-000000000012:release': { status: 409, body: problemBody(409, 'ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL') },
     });
     renderWithProviders(<SyncRunsPage />);
 
@@ -73,7 +73,7 @@ describe('同步记录页', () => {
   it('查看同步差异：显示这次同步的变化', async () => {
     stubServer({
       'GET sessions:current': { body: currentUserBody([READ]) },
-      'GET sync-runs/11': { body: { syncRun: RUNS[1], diffs: [{ entityKind: 'EMPLOYEE', subjectKey: '1001', changeKind: 'UPDATED', changedFields: ['部门'], detail: '部门变更' }] } },
+      'GET sync-runs/019a0000-0000-7000-8000-000000000011': { body: { syncRun: RUNS[1], diffs: [{ entityKind: 'EMPLOYEE', subjectKey: '1001', changeKind: 'UPDATED', changedFields: ['部门'], detail: '部门变更' }] } },
       'GET sync-runs': { body: { items: RUNS } },
     });
     renderWithProviders(<SyncRunsPage />);

@@ -17,6 +17,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -99,8 +100,8 @@ class JdbcTimesheetRepository implements TimesheetRepository {
     }
 
     private static Timesheet read(ResultSet rs) throws SQLException {
-        return Timesheet.restore(new TimesheetId(rs.getLong("id")), new DocumentNumber(rs.getString("timesheet_number")),
-                new UserId(rs.getLong("employee_id")), new LegalEntityId(rs.getLong("legal_entity_id")),
+        return Timesheet.restore(new TimesheetId(rs.getObject("id", UUID.class)), new DocumentNumber(rs.getString("timesheet_number")),
+                new UserId(rs.getLong("employee_id")), new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
                 new OrgUnitId(rs.getLong("org_unit_id")),
                 rs.getObject("work_date", LocalDate.class), new Hours(rs.getBigDecimal("submitted_hours")),
                 new UserId(rs.getLong("project_manager_id")), TimesheetStatus.valueOf(rs.getString("status")), rs.getInt("round_number"),

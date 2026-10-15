@@ -42,15 +42,11 @@ public class ReleaseSyncRun {
         this.record = record;
     }
 
-    public ReleaseResult execute(long syncRunId, long actorUserId, String reason, boolean mayLiftShrinkGuard, boolean mayLiftSeparation) {
+    public ReleaseResult execute(SyncRunId held, UserId actor, String reason, boolean mayLiftShrinkGuard, boolean mayLiftSeparation) {
         if (reason == null || reason.isBlank()) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED, ErrorKind.INVALID,
                     "a reason is required to release a held sync run");
         }
-        if (syncRunId <= 0) {
-            return new ReleaseResult.NotFound();
-        }
-        SyncRunId held = new SyncRunId(syncRunId);
         Optional<SyncRun> run = runs.find(held);
         if (run.isEmpty()) {
             return new ReleaseResult.NotFound();
@@ -58,7 +54,6 @@ public class ReleaseSyncRun {
         if (run.get().status() != SyncRunStatus.HELD) {
             return new ReleaseResult.NotHeld(run.get().status().name());
         }
-        UserId actor = new UserId(actorUserId);
         ReleaseSyncRunHolds.Lifted lifted = lift.execute(held, actor, mayLiftShrinkGuard, mayLiftSeparation).orElseThrow();
         if (!lifted.run().allHoldsReleased()) {
             return new ReleaseResult.PartlyReleased(queries.find(held).map(SyncRunView::of).orElseThrow());
@@ -72,7 +67,7 @@ public class ReleaseSyncRun {
                 + ids(lifted.run()) + "; applied: " + result.separated().stream().map(id -> String.valueOf(id.value())).collect(Collectors.joining(","))
                 + "; remaining super_admin: " + lifted.review().remainingAdministrators();
         record.execute(held, result.syncRunId(), actor, new Reason(reason.strip()), detail);
-        LOG.error("ALERT organization.workforce sync run {} released by user {}: {}", held.value(), actorUserId, detail);
+        LOG.error("ALERT organization.workforce sync run {} released by user {}: {}", held.value(), actor.value(), detail);
         return new ReleaseResult.Released(queries.find(result.syncRunId()).map(SyncRunView::of).orElseThrow());
     }
 
