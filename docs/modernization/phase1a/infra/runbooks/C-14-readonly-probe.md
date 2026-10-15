@@ -82,13 +82,29 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
 
 平台上不构造、由 `ReadOnlyAccountCheckIT` 覆盖：第 16 项「msdb 中本登录的用户加入 db_owner」（用户 2026-10-15 决定不做）；CONTROL SERVER、加入 securityadmin、多出服务器级权限（u8c 无服务器级授予权限，4613；见 B-5 README 风险登记）。
 
+## H-2：探针的 msdb 用户能否移出 SQLAgentOperatorRole（一次性例外，只此一次）
+
+背景：RDS 在建登录时自动给它在 msdb、rdscore 里各建一个用户（取证账号的这两个用户与登录同一秒创建，从未修改），msdb 用户带 SQLAgentUserRole、SQLAgentReaderRole、SQLAgentOperatorRole 三个角色。(f) 基线要不要接受 SQLAgentOperatorRole，取决于它能不能被移出。依据：用户 2026-10-16 在 one-ops 会话直接选「批准这一次」，并经 one-coordinator 转达为 intent 2026-10-15-234252；这是「共享实例上不动 msdb」的一次性例外，边界如下。
+
+- **只限探针**：语句只含 `[one_readonly_probe]`，不碰任何正式账号和 msdb 里已有的主体与对象；探针用完即删。
+- **执行条件**：只有 `c14_run.py` 带 `--msdb-role-trial` 才做；不带则完全不碰 msdb。其余项都做完、回退并复原计数后才执行。
+- **四步**（每步 `c14_run.py` 逐条记录 rc、错误号与计数，不记输出原文）：
+  1. 执行前提（只读）：以 u8c 读 msdb，确认探针用户存在，记其角色集合（只记角色名与个数）及是否在 SQLAgentOperatorRole 里。RDS 没给探针建 msdb 用户，或探针不在该角色里，则记「无需移出」，结束。
+  2. 执行语句：在 msdb 上下文以 u8c 执行 `ALTER ROLE SQLAgentOperatorRole DROP MEMBER [one_readonly_probe];`。被拒则记错误号。
+  3. 回读：以 u8c 再读 msdb.sys.database_role_members，确认探针用户是否还在 SQLAgentOperatorRole 里；成功时再用探针登录跑一次 `--connection=probe`，记 (f) 的结果与标记。
+  4. 收尾：不另做恢复。msdb 与 rdscore 里探针的用户在收尾里 `DROP USER`（先于 `DROP LOGIN`，因为删登录不会删库内用户），回读两库探针用户均为 0。
+- **结果怎么用**：能移出——正式账号的处理另报用户批准，不自行去改；移不出——(f) 基线接受该角色，由 one-architecture 写进 ADR-0037。
+- **登记**：执行后在 LEGACY_READ_REGISTER 与 OPS_CONTEXT 各登记一行（语句、回读结果、云助手调用号）。
+
 ## 收尾
 
 ```sql
--- master 上下文（第 17 项的 master 用户应已在回退中删除，这里再核对一次）
+-- 各库上下文各一条（第 17 项的 master 用户应已在回退中删除，这里再核对一次；msdb、rdscore 的探针用户是 RDS 自动建的，删登录不会带走）
+-- master：DROP USER [one_readonly_probe]（若存在）；msdb：同；rdscore：同
+-- master 上下文：
 DROP DATABASE [one_readonly_probe_db];
 DROP LOGIN [one_readonly_probe];
--- 回读：sys.server_principals 无 one_readonly_probe；sys.databases 无 one_readonly_probe_db*；master 的 sys.database_principals 无 one_readonly_probe
+-- 回读五项都应为 0：sys.server_principals 的 one_readonly_probe；sys.databases 的 one_readonly_probe_db*；master、msdb、rdscore 各自 sys.database_principals 的 one_readonly_probe
 ```
 
 ECS 删除 `/etc/forcitis-one/readonly-probe.env` 与临时目录（解开的 jar）；RESOURCES.md 记删除；执行记录写入本文件与 PREDEPLOY_CHECKLIST C-14。

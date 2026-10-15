@@ -5,8 +5,10 @@
 只读核实命令（--connection=probe），有效权限计数也以探针登录在新 ECS 上取。探针口令在 SQL Server 上生成，只以新 ECS 临时公钥加密的密文经手，
 写入 /etc/forcitis-one/readonly-probe.env（root 0600）。前提：新 ECS 的 /root/one-ops-c14/app.jar 是已验签发布包里的 jar，其 SHA-256 作为参数传入。
 每项：对照计数 → 偏离 → 跑校验 → 回退 → 计数复原，并以执行账号回读探针的授权指纹。任何意外即回退当前项后收尾；收尾逐条执行、逐条记录，
-回读不为 0/0/0 或服务器上有残留即告警并以非零退出。记录只写标记、错误号与计数，不写任何输出原文。
-用法：c14_run.py <结果文件> <app.jar 的 SHA-256>
+回读不为 0/0/0/0/0 或服务器上有残留即告警并以非零退出。记录只写标记、错误号与计数，不写任何输出原文。
+可选的 --msdb-role-trial（H-2，用户 2026-10-16 批准的一次性例外，只此一次）：全部项做完后，对探针自己的 msdb 用户试一次
+ALTER ROLE SQLAgentOperatorRole DROP MEMBER 并回读；探针的 msdb、rdscore 用户在收尾里一并删除。不带该选项时不碰 msdb。
+用法：c14_run.py <结果文件> <app.jar 的 SHA-256> [--msdb-role-trial]
 退出码：0 全部完成且收尾干净；1 中途停止（已收尾）；2 收尾不干净（须人工处理）。
 """
 import json
@@ -74,16 +76,34 @@ ITEMS = [
     (17, [('master', f'CREATE USER {P} FOR LOGIN {P};')], [('master', f'DROP USER {P};')], '(f)'),
 ]
 
+DROP_USER = f"IF USER_ID(N'{LOGIN}') IS NOT NULL DROP USER {P};"
+# RDS gives every new login a user of its own in msdb and rdscore; dropping the login leaves those users behind, so they go first (only ever the probe's)
 CLEANUP = [
-    (DB2, f"IF USER_ID(N'{LOGIN}') IS NOT NULL DROP USER {P};"),
+    (DB2, DROP_USER),
     ('master', f"IF DB_ID(N'{DB2}') IS NOT NULL DROP DATABASE [{DB2}];"),
-    ('master', f"IF USER_ID(N'{LOGIN}') IS NOT NULL DROP USER {P};"),
+    ('master', DROP_USER),
+    ('msdb', DROP_USER),
+    ('rdscore', DROP_USER),
     ('master', f"IF DB_ID(N'{DB}') IS NOT NULL DROP DATABASE [{DB}];"),
     ('master', f"IF SUSER_ID(N'{LOGIN}') IS NOT NULL DROP LOGIN {P};"),
 ]
 READBACK = (f"SELECT (SELECT COUNT(*) FROM sys.server_principals WHERE name = N'{LOGIN}') AS logins,\n"
             f"       (SELECT COUNT(*) FROM sys.databases WHERE name LIKE N'one[_]readonly[_]probe[_]db%') AS probe_databases,\n"
-            f"       (SELECT COUNT(*) FROM master.sys.database_principals WHERE name = N'{LOGIN}') AS master_users;")
+            f"       (SELECT COUNT(*) FROM master.sys.database_principals WHERE name = N'{LOGIN}') AS master_users,\n"
+            f"       (SELECT COUNT(*) FROM msdb.sys.database_principals WHERE name = N'{LOGIN}') AS msdb_users,\n"
+            f"       (SELECT COUNT(*) FROM rdscore.sys.database_principals WHERE name = N'{LOGIN}') AS rdscore_users;")
+CLEAN_READBACK = (0, 0, 0, 0, 0)
+# H-2: what the probe's own msdb user has, as numbers (user present, in SQLAgentOperatorRole, roles in all), and the role names
+MSDB_OBSERVE = (f"SELECT (SELECT COUNT(*) FROM sys.database_principals WHERE name = N'{LOGIN}') AS user_present,\n"
+                f"       (SELECT COUNT(*) FROM sys.database_role_members rm JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id\n"
+                f"         JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id\n"
+                f"         WHERE u.name = N'{LOGIN}' AND r.name = N'SQLAgentOperatorRole') AS in_operator_role,\n"
+                f"       (SELECT COUNT(*) FROM sys.database_role_members rm JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id\n"
+                f"         WHERE u.name = N'{LOGIN}') AS roles;")
+MSDB_ROLES = (f"SELECT r.name AS role_name FROM sys.database_role_members rm JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id\n"
+              f"  JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id WHERE u.name = N'{LOGIN}' ORDER BY r.name;")
+MSDB_DROP_MEMBER = f"ALTER ROLE SQLAgentOperatorRole DROP MEMBER {P};"
+KNOWN_ROLES = {'SQLAgentUserRole', 'SQLAgentReaderRole', 'SQLAgentOperatorRole', 'db_owner', 'db_datareader', 'db_datawriter', 'public'}
 # The execution account's view of everything an item may change, as one row of numbers; compared with the control after every revert
 FINGERPRINT = (f"SELECT (SELECT COUNT(*) FROM sys.database_permissions WHERE grantee_principal_id = USER_ID(N'{LOGIN}')) AS user_permissions,\n"
                f"       (SELECT ISNULL(CHECKSUM_AGG(CHECKSUM(class, major_id, minor_id, type, state)), 0) FROM sys.database_permissions\n"
@@ -183,6 +203,35 @@ def fingerprint(label):
     return value
 
 
+def msdb_observe(label):
+    rc, _, out = legacy_sql(label, 'msdb', MSDB_OBSERVE, mode='ro')
+    rows = numbers(out)
+    value = rows[-1] if rc == 0 and rows and len(rows[-1]) == 3 else None
+    rc2, _, out2 = legacy_sql(label + ' roles', 'msdb', MSDB_ROLES, mode='ro')
+    names = sorted(n for n in re.findall(r'^  ([A-Za-z_]{3,40})$', out2, re.M) if n in KNOWN_ROLES)
+    record(step=label, user_present_in_operator_role_roles=value, role_names=names)
+    if value is None:
+        raise Stop(f'{label}: msdb observation unreadable')
+    return value
+
+
+def msdb_role_trial():
+    """H-2 (user 2026-10-16, one time only): can the probe's own msdb user be taken out of SQLAgentOperatorRole on RDS? Nothing else in msdb is touched."""
+    present, in_operator, roles = msdb_observe('item 18 observe before')
+    if not present:
+        record(item=18, outcome='RDS did not create a msdb user for the probe login; nothing to remove')
+        return
+    if not in_operator:
+        record(item=18, outcome='the probe user is not in SQLAgentOperatorRole; nothing to remove')
+        return
+    errors = apply('item 18 drop member', [('msdb', MSDB_DROP_MEMBER)])
+    after = msdb_observe('item 18 observe after')
+    record(item=18, statement='ALTER ROLE SQLAgentOperatorRole DROP MEMBER (probe user only)', sql_errors=errors, still_in_operator_role=bool(after[1]),
+           outcome='removed' if not errors and not after[1] else 'refused or not effective')
+    if not errors:
+        verify('item 18 verify')
+
+
 def apply(label, steps):
     for db, sql in steps:
         rc, errors, _ = legacy_sql(label, db, sql)
@@ -237,7 +286,7 @@ def preflight(jar_sha256):
     rc, _, out = legacy_sql('preflight readback', 'master', READBACK, mode='ro')
     rows = numbers(out)
     record(step='preflight', readback=rows[-1] if rows else None)
-    if rc != 0 or not rows or rows[-1] != (0, 0, 0):
+    if rc != 0 or not rows or rows[-1] != CLEAN_READBACK:
         raise SystemExit('preflight: probe objects already exist or the readback failed; clean up by hand first, nothing was changed')
     invoke, status, _, out = ecs(f'test -e {PROBE_ENV} && echo ENV_LEFT; [ "$(sha256sum {W}/app.jar 2>/dev/null | cut -d" " -f1)" = "{jar_sha256}" ] && echo JAR_OK')
     record(step='preflight ecs', invoke=invoke, env_left='ENV_LEFT' in out, jar_ok='JAR_OK' in out)
@@ -259,8 +308,8 @@ def cleanup():
         rc, _, out = legacy_sql('readback', 'master', READBACK, mode='ro')
         rows = numbers(out)
         readback = rows[-1] if rc == 0 and rows else None
-        record(step='readback', logins_databases_masterusers=readback)
-        clean = clean and readback == (0, 0, 0)
+        record(step='readback', logins_databases_master_msdb_rdscore_users=readback)
+        clean = clean and readback == CLEAN_READBACK
     except BaseException as failure:  # noqa: BLE001
         record(step='readback', exception=type(failure).__name__)
         clean = False
@@ -284,7 +333,7 @@ def cleanup():
     return clean
 
 
-def main(target, jar_sha256):
+def main(target, jar_sha256, msdb_trial=False):
     if not re.fullmatch(r'[0-9a-f]{64}', jar_sha256):
         raise SystemExit('the second argument is the SHA-256 of app.jar (64 lowercase hex digits)')
     preflight(jar_sha256)
@@ -339,6 +388,8 @@ def main(target, jar_sha256):
                 raise Stop(f'item {number}: effective permission counts not restored')
             if fingerprint(f'item {number} fingerprint') != control_fingerprint:
                 raise Stop(f'item {number}: grants, role memberships or principals not restored')
+        if msdb_trial:
+            msdb_role_trial()
     except Stop as stop:
         record(stop=str(stop))
         stopped = True
@@ -355,6 +406,7 @@ def main(target, jar_sha256):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        raise SystemExit(__doc__.strip().splitlines()[-3])
-    main(sys.argv[1], sys.argv[2])
+    flags = sys.argv[3:]
+    if len(sys.argv) < 3 or flags not in ([], ['--msdb-role-trial']):
+        raise SystemExit(__doc__.strip().splitlines()[-2])
+    main(sys.argv[1], sys.argv[2], bool(flags))
