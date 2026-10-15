@@ -1,5 +1,5 @@
 # 只在测试类路径上的系统操作主体（测试与验收测试里用到的作业名），格式同 backend/architecture/system-actors.txt；生产 jar 不含本文件。
-# 名字以 test. 或 acceptance. 开头（SystemActorCatalogueTest，P2 复核 L-2）；标明「测试代理改名后删除」的三行是验收目录里的旧名，暂留。
+# 名字以 test. 或 acceptance. 开头（SystemActorCatalogueTest，P2 复核 L-2）。
 acceptance.timesheet-submission | dec82003-4b26-55d7-8282-3885350117d5 | acceptance | 验收测试 ApprovalAccountsIT 模拟工时单提交
 test.envelope | 8d7f0348-3096-5575-8de6-06263bcb2164 | test | 单元测试的事件信封（TestEnvelopes 等）
 test.job | c5139682-81fa-5ca1-a0e8-fb8bfadfdfe9 | test | 测试用作业（EventingTest）
@@ -15,6 +15,4 @@ test.scheduling.breaks | d0088145-6309-5e72-b859-387e808ac7e5 | test | Scheduled
 test.scheduling.works | 477b751d-f6be-5cff-81d3-bc40557c8440 | test | ScheduledJobMetricsTest 中成功的作业
 test.flaky-listener | 18d52d1e-0c79-5e77-a337-50297f12fbed | test | 审批测试中首投失败的监听器
 test.correlation.probe | c0c9a9ad-8b8b-5ddf-b804-f2f1dd408d7a | test | CorrelationIT 的探针监听器
-organization.workforce.sync | 1c6c2c03-091f-538e-9309-5e84455140e5 | test | 验收测试仍在用（AccountEntriesConcurrencyIT、SourceReference*IT），测试代理改名后删除（P2 复核 L-2）
-organization.workforce.test | 38c70be6-b4ca-59c8-aa2a-1d2e259cb60e | test | 验收测试仍在用（ReadOnlyAccountCheckIT、StalledExternalSourceIT），测试代理改名后删除（P2 复核 L-2）
-platform.integration.outbound | 4a338a57-629d-5989-99fd-b6104e7a5734 | test | 验收测试仍在用（SourceReferenceHttpSupport），测试代理改名后删除（P2 复核 L-2）
+acceptance.accounting-code-outbound | 7d82fa70-5dfd-525e-bc07-95d86dc2ad38 | acceptance | 验收测试 SourceReferenceHttpSupport 模拟核算系统出站适配器按法人取核算组织编码（生产尚无该出站作业）

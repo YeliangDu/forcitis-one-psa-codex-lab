@@ -36,8 +36,6 @@ class SystemActorCatalogueTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Path TESTS = Path.of("src/test/java");
     static final Path ASYNCAPI = Path.of("../docs/modernization/events/asyncapi.yaml");
-    /** Old names the acceptance tests still use; the test agent renames them there, then the line and this entry go (P2 recheck L-2). */
-    static final Set<String> ACCEPTANCE_NAMES_TO_RENAME = Set.of("organization.workforce.sync", "organization.workforce.test", "platform.integration.outbound");
     static final JavaClasses CLASSES = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages("com.forcitis.one");
     static final Pattern ENTERED = Pattern.compile("WorkContext\\.enter\\([^;{]*?\"([^\"]+)\"\\)", Pattern.DOTALL);
@@ -162,11 +160,10 @@ class SystemActorCatalogueTest {
                 problems.add(line.name() + " is not v5 of its name");
             }
             boolean testName = line.name().startsWith("test.") || line.name().startsWith("acceptance.");
-            if (!testName && !ACCEPTANCE_NAMES_TO_RENAME.contains(line.name())) {
+            if (!testName) {
                 problems.add(line.name() + " does not start with test. or acceptance.");
             }
         }
-        assertThat(names).containsAll(ACCEPTANCE_NAMES_TO_RENAME);
         assertThat(problems).isEmpty();
     }
 

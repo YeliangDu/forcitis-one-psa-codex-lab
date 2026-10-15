@@ -391,7 +391,7 @@ class StalledExternalSourceIT {
 
     /** A scheduled job runs inside a work context; the sync records its failure as an event, which needs one. */
     SyncResult runSync() {
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test")) {
+        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
             return sync.execute(SyncTrigger.MANUAL, false);
         }
     }

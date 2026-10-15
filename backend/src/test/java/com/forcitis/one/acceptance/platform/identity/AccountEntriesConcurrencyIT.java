@@ -106,7 +106,7 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
     }
 
     private UUID publishOrgSnapshotChanged(long employee) {
-        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.sync")) {
+        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
             return transactions.execute(status -> {
                 OrgSnapshotChanged event = new OrgSnapshotChanged(envelopes.wrap(new EventDraft("organization.workforce.OrgSnapshotChanged", 1, "OrgSnapshot",
                         UUID.randomUUID().toString(), 1, null, TODAY, new EventSource(SourceSystem.ONE, null), List.of())),
