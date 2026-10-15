@@ -81,7 +81,12 @@ function render() {
     gh.append(el("h2", {}, `${g.title}（${g.items.length} 条${blocking ? "，影响在途开发 " + blocking + " 条" : ""}）`));
     const b = el("button", {type: "button"}, "本组全部按推荐");
     b.addEventListener("click", () => {
-      g.items.forEach(i => { if (state[i.code]) delete state[i.code].choice; const r = document.querySelector(`input[name="o_${i.code}"][value="${recOf(i)}"]`); if (r) r.checked = true; });
+      g.items.forEach(i => {
+        const had = state[i.code] && state[i.code].choice != null;
+        if (state[i.code]) delete state[i.code].choice;
+        const r = document.querySelector(`input[name="o_${i.code}"][value="${recOf(i)}"]`); if (r) r.checked = true;
+        if (had) push(i.code);
+      });
       save(); progress();
     });
     gh.append(b); root.append(gh);
@@ -90,12 +95,47 @@ function render() {
   });
   $("#who").value = state._who || "";
   $("#when").value = state._when || new Date().toISOString().slice(0, 10);
-  $("#who").addEventListener("input", e => { state._who = e.target.value; save(); });
-  $("#when").addEventListener("input", e => { state._when = e.target.value; save(); });
+  $("#who").addEventListener("input", e => { state._who = e.target.value; save(); state._meta = {who: state._who, when: state._when}; push("_meta"); });
+  $("#when").addEventListener("input", e => { state._when = e.target.value; save(); state._meta = {who: state._who, when: state._when}; push("_meta"); });
   $("#onlyblock").addEventListener("change", e => document.querySelectorAll(".q").forEach(c => { c.hidden = e.target.checked && !c.dataset.block; }));
   progress();
 }
-function upd(key, patch) { state[key] = Object.assign({}, state[key], patch); save(); progress(); }
+// 在线版（claude.ai 页面）把每条决定写到页面数据库 decisions/<编号>，用语管家会话直接读取；离线打开时 db 为 null，只存本机。
+let db = null;
+const chains = {}, timers = {};
+function status(t) { const s = $("#sync"); if (s) s.textContent = t; }
+function push(code) {
+  if (!db) return;
+  clearTimeout(timers[code]);
+  timers[code] = setTimeout(() => {
+    const s = state[code] || {};
+    const i = ITEMS.find(x => x.code === code);
+    const body = code === "_meta" ? {who: s.who || "", when: s.when || "", at: new Date().toISOString()}
+      : {choice: s.choice == null ? null : s.choice, recommended: s.choice == null || s.choice === recOf(i), note: s.note || "", key: i.key, at: new Date().toISOString()};
+    status("保存中…");
+    chains[code] = (chains[code] || Promise.resolve()).then(() => db.doc((code === "_meta" ? "meta/form" : "decisions/" + code)).set(body))
+      .then(() => status("已自动保存，用语管家可直接读取"), e => status("保存失败（" + (e && e.code || "未知") + "），请稍后再改一次或用底部按钮导出"));
+  }, 600);
+}
+function upd(key, patch) { state[key] = Object.assign({}, state[key], patch); save(); progress(); push(key); }
+async function connect() {
+  if (!window.claude || !window.claude.use) return;
+  db = await window.claude.use("db");
+  if (!db) { status("本机保存（未连接云端）"); return; }
+  try {
+    const snap = await db.collection("decisions").limit(1000).get();
+    snap.docs.forEach(d => { const v = d.data(); if (v && ITEMS.some(i => i.code === d.id)) state[d.id] = {choice: v.choice == null ? undefined : v.choice, note: v.note || ""}; });
+    const meta = await db.doc("meta/form").get();
+    if (meta.exists) { const m = meta.data(); state._who = m.who || state._who; state._when = m.when || state._when; }
+    ITEMS.forEach(i => {
+      const r = document.querySelector(`input[name="o_${i.code}"][value="${choiceOf(i)}"]`); if (r) r.checked = true;
+      const t = document.querySelector(`#card_${i.code} textarea`); if (t) t.value = (state[i.code] && state[i.code].note) || "";
+    });
+    $("#who").value = state._who || ""; if (state._when) $("#when").value = state._when;
+    save(); progress();
+    status(snap.size ? `已从云端恢复 ${snap.size} 条，改动自动保存` : "改动自动保存，用语管家可直接读取");
+  } catch (e) { status("读取云端失败（" + (e && e.code || "未知") + "），改动仍会尝试保存"); }
+}
 function progress() {
   let n = 0, notes = 0;
   ITEMS.forEach(i => { const ch = choiceOf(i) !== recOf(i); n += ch; notes += !!(state[i.code] && (state[i.code].note || "").trim()); $("#card_" + i.code).classList.toggle("changed", ch); });
@@ -124,7 +164,7 @@ function asText(p) {
   L.push("", "（未列出的条目均按推荐）", "", "---- 以下为机读数据，请勿修改 ----", JSON.stringify(p));
   return L.join("\n");
 }
-$("#exp").addEventListener("click", () => {
+if ($("#exp")) $("#exp").addEventListener("click", () => {
   const p = payload();
   const a = el("a", {href: URL.createObjectURL(new Blob([asText(p)], {type: "text/plain;charset=utf-8"})), download: `用语决定_第三轮_${p.date}.txt`});
   document.body.append(a); a.click(); a.remove();
@@ -136,3 +176,4 @@ $("#copy").addEventListener("click", async () => {
   catch { const o = $("#out"); o.hidden = false; o.value = txt; o.focus(); o.select(); $("#msg").textContent = "浏览器不允许自动复制，已选中下方文字，请手动复制。"; }
 });
 render();
+connect();

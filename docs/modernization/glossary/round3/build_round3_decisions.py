@@ -4,7 +4,9 @@
 每条预选推荐项，可改选并写说明，每组可「本组全部按推荐」，进度存在本机浏览器，底部导出。
 校验（不通过则生成失败）：编号唯一；每条 2–4 个选项且恰好一个推荐；action 只取 approve / rename / merge / common_word / defer / keep / redefine（redefine 须带 definition）；
 并入目标 id 存在于正式词表、提议条目或本单；必填字段不空；组内「影响在途开发」的条目排在前面。
-用法：python3 docs/modernization/glossary/round3/build_round3_decisions.py"""
+在线版（--artifact <输出路径>）：同一份页面去掉文档外壳，供发布为 claude.ai 页面；页面声明 db 能力后每条决定自动存到
+页面数据库 decisions/<编号>，用语管家会话直接读取，不需要用户导出。
+用法：python3 docs/modernization/glossary/round3/build_round3_decisions.py [--artifact <输出路径>]"""
 import json, pathlib, re, sys
 import yaml
 
@@ -84,13 +86,19 @@ def validate(doc):
         sys.exit("用语决策单校验失败：\n" + "\n".join(errs))
 
 
-def page(doc):
+def page(doc, online=False):
     n = sum(len(g["items"]) for g in doc["groups"])
     blocking = sum(1 for g in doc["groups"] for i in g["items"] if i.get("blocking"))
     style = "".join((R0 / f).read_text(encoding="utf-8") for f in ("finance_confirm.css", "finance_decisions.css")) + (HERE / "round3.css").read_text(encoding="utf-8")
     js = (HERE / "round3.js").read_text(encoding="utf-8")
     data = json.dumps(dict(doc, judge=JUDGE), ensure_ascii=False).replace("</", "<\\/")
-    return f"""<!doctype html>
+    if online:
+        howto = """    <div><b>怎么用</b>：手机或电脑打开即可。每选一项、每写一句说明都会自动保存，用语管家会话直接读取，不需要导出；可以分几次填完，下次打开接着改。</div>
+    <div><b>填完以后</b>：在会话里说一声「填完了」即可。底部的「复制决定」留作备用。</div>"""
+    else:
+        howto = """    <div><b>怎么用</b>：用浏览器打开本文件即可，不需要登录，也不联网。改选和说明保存在这台电脑的这个浏览器里，可以分几次填完。</div>
+    <div><b>怎么交回</b>：点页面底部「导出决定」，把下载的文件交给用语管家会话 one-glossary；浏览器不让下载时，点「复制决定」粘贴发回。</div>"""
+    head = f"<title>用语决策单（第三轮）</title>\n<style>\n{style}\n</style>\n" if online else f"""<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -101,14 +109,16 @@ def page(doc):
 </style>
 </head>
 <body>
-<div class="wrap">
+"""
+    tail = "" if online else "</body>\n</html>\n"
+    export = "" if online else '\n  <button type="button" class="primary" id="exp">导出决定</button>'
+    return head + f"""<div class="wrap">
 <header>
   <p class="ver">{doc["version"]} · 第三轮用语确认（ADR-0018）：1a 第二波各模块的提议用语，加 R0 报表分析的待确认叫法与新增词条。</p>
   <h1>用语决策单（第三轮）</h1>
   <p class="lede">共 {n} 条，按模块分组；其中 {blocking} 条标「影响在途开发」，排在各组前面，请先定（{doc.get("blocking_note", "").rstrip("。")}）。每条已预选推荐项，同意就不用动；要改就点别的选项，并在说明里写理由。每组可点「本组全部按推荐」。错误码不在本单（归结构重构主线另行处理）。</p>
   <div class="howto">
-    <div><b>怎么用</b>：用浏览器打开本文件即可，不需要登录，也不联网。改选和说明保存在这台电脑的这个浏览器里，可以分几次填完。</div>
-    <div><b>怎么交回</b>：点页面底部「导出决定」，把下载的文件交给用语管家会话 one-glossary；浏览器不让下载时，点「复制决定」粘贴发回。</div>
+{howto}
   </div>
   <div class="meta">
     <label class="f" for="who">决定人<input id="who" type="text" placeholder="如：都业梁"></label>
@@ -120,8 +130,8 @@ def page(doc):
 </div>
 <div class="bar"><div class="in">
   <span class="prog" id="prog">已改选 0 条 / 共 {n} 条</span>
-  <button type="button" id="copy">复制决定</button>
-  <button type="button" class="primary" id="exp">导出决定</button>
+  <button type="button" id="copy">复制决定</button>{export}
+  <span id="sync" role="status"></span>
   <span id="msg" role="status"></span>
   <textarea id="out" hidden readonly aria-label="决定文本"></textarea>
 </div></div>
@@ -129,14 +139,16 @@ def page(doc):
 const DOC = {data};
 {js}
 </script>
-</body>
-</html>
-"""
+""" + tail
 
 
 if __name__ == "__main__":
     doc = json.loads(SRC.read_text(encoding="utf-8"))
     validate(doc)
     OUT.write_text(page(doc), encoding="utf-8")
+    if "--artifact" in sys.argv:
+        target = pathlib.Path(sys.argv[sys.argv.index("--artifact") + 1])
+        target.write_text(page(doc, online=True), encoding="utf-8")
+        print(f"在线版：{target}")
     print(f"{OUT.name}：{sum(len(g['items']) for g in doc['groups'])} 条，{len(doc['groups'])} 组；影响在途开发 "
           f"{sum(1 for g in doc['groups'] for i in g['items'] if i.get('blocking'))} 条")
