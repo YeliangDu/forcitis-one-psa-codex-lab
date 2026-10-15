@@ -27,10 +27,19 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
 )
 
+# inside READ_BY_BUILDS directories but read by no build: the one-glossary records
+NOT_READ_BY_BUILDS = (
+    "docs/modernization/glossary/issues/",
+    "docs/modernization/glossary/decision-sheets/",
+    "docs/modernization/glossary/GLOSSARY_CONTEXT.md",
+)
+
 # read only by steps of the gitleaks job that run unconditionally, or by scripts/precheck.sh; docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/phase1a/infra/runbooks/sql/",
     "docs/modernization/build_all.py",
+    # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py
+    "docs/modernization/sessions/",
     "docs/modernization/check_legacy_name.py",
 )
 
@@ -67,6 +76,8 @@ def any_legacy_it(paths):
 
 
 def is_relevant(path):
+    if path.startswith(NOT_READ_BY_BUILDS):
+        return False
     if path.startswith(READ_BY_BUILDS):
         return True
     if path.startswith("docs/"):
@@ -92,6 +103,8 @@ SEGMENTS = re.compile(r"""['"]docs['"]\s*,\s*['"]modernization['"]((?:\s*,\s*['"
 
 
 def is_covered(path):
+    if path.startswith(NOT_READ_BY_BUILDS) or (path + "/").startswith(NOT_READ_BY_BUILDS):
+        return False
     listed = READ_BY_BUILDS + READ_BY_ALWAYS_RUN_CHECKS
     return path.startswith(listed) or (path + "/").startswith(listed)
 
@@ -141,12 +154,19 @@ def self_test():
     unlisted = uncovered_mssql_inputs(root)
     assert not unlisted, "files the *MssqlIT tests import or read are not in LEGACY_IT_PATHS (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(unlisted)
     missing = uncovered_reads(root)
-    assert not missing, "builds read docs paths that READ_BY_BUILDS does not list (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(missing)
+    assert not missing, "builds read docs paths that READ_BY_BUILDS does not list or NOT_READ_BY_BUILDS excludes (fix the lists in scripts/ci/relevant_change.py):\n  " + "\n  ".join(missing)
     assert is_relevant("backend/pom.xml")
     assert is_relevant(".github/workflows/ci.yml")
     assert is_relevant("scripts/ci/relevant_change.py")
     assert is_relevant("docs/modernization/glossary/terms.yaml")
     assert is_relevant("docs/modernization/events/asyncapi.yaml")
+    assert not is_relevant("docs/modernization/glossary/issues/2026-10-15-120000-one-ops-x.md")
+    assert not is_relevant("docs/modernization/glossary/decision-sheets/2026-10-20.md")
+    assert not is_relevant("docs/modernization/glossary/GLOSSARY_CONTEXT.md")
+    assert is_covered("docs/modernization/glossary/terms.yaml")
+    assert not is_covered("docs/modernization/glossary/issues/x.md"), "a build reading NOT_READ_BY_BUILDS must fail the scan"
+    assert not is_covered("docs/modernization/glossary/issues")
+    assert is_covered("docs/modernization/sessions/one-ops.md")
     assert is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
     assert is_relevant("docs/modernization/status/blockers/080-1a-no-deploy-until-fix.md")
     assert not is_relevant("docs/modernization/adr/src/ADR-0001.md")
