@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestImages;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
@@ -18,9 +19,6 @@ import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.WecomGateway;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -97,26 +95,13 @@ class StalledExternalSourceIT {
     static final String TODO_READER_PASSWORD = "Cc3!" + UUID.randomUUID();
     static final String NAMES_READER_PASSWORD = "Dd4!" + UUID.randomUUID();
 
-    static final Path TEST_IMAGES = Path.of("architecture/test-images.txt");
-    static final String MSSQL_IMAGE_PREFIX = "mcr.microsoft.com/mssql/server";
-
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestImages.startingWith("postgres:"))
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
-    static final GenericContainer<?> MSSQL = new GenericContainer<>(mssqlImage())
+    static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
             .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
             .withStartupTimeout(Duration.ofMinutes(5))
             .waitingFor(Wait.forLogMessage(".*SQL Server is now ready for client connections.*", 1));
-
-    /** The one list of test images, shared with the CI pre-pull; a missing file or line fails the test, there is no fallback tag. */
-    static String mssqlImage() {
-        try {
-            return Files.readAllLines(TEST_IMAGES).stream().map(String::strip).filter(line -> line.startsWith(MSSQL_IMAGE_PREFIX)).findFirst()
-                    .orElseThrow(() -> new IllegalStateException(TEST_IMAGES + " has no line starting with " + MSSQL_IMAGE_PREFIX));
-        } catch (IOException e) {
-            throw new IllegalStateException("cannot read " + TEST_IMAGES.toAbsolutePath(), e);
-        }
-    }
 
     static {
         POSTGRES.start();
@@ -315,6 +300,72 @@ class StalledExternalSourceIT {
         assertThat(lockTimeouts.get("a8_reader")).as("SQL Server's default -1 waits for ever").isBetween(1, 3_000);
         assertThat(lockTimeouts.get("todo_reader")).isBetween(1, 3_000);
         assertThat(lockTimeouts.get("names_reader")).isGreaterThan(0);
+    }
+
+    /**
+     * Whatever ends the wait on our side (query timeout, socket timeout, an abandoned future), a statement still burning on the A8 server would keep
+     * one of its workers busy after the caller has moved on. The 2 s elapse before the @AfterEach KILL ends the sessions.
+     */
+    @Test
+    @DisplayName("D1-1 复审 H2：D1-1-R2 极慢 A8 视图在登录查人降级后服务器端也被取消")
+    void reviewH2_slowA8ViewIsCancelledOnTheServerAfterTheLoginLookupGivesUp() throws Exception {
+        Awaitility.await("no request of a8_reader is left over from an earlier case").atMost(Duration.ofSeconds(5)).pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> assertThat(requestsOf("a8_reader", false)).isZero());
+        replaceView("a8world", "forcitis_one.v_org_member", SLOW_MEMBER_VIEW);
+        viewsToRestore.add(new ViewRestore("a8world", "forcitis_one.v_org_member", MEMBER_VIEW));
+
+        Future<Outcome<Object>> inFlight = CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLoginName(LOGIN_NAME)));
+        Awaitility.await("the slow statement of a8_reader is visible in sys.dm_exec_requests while the lookup waits").atMost(Duration.ofSeconds(2))
+                .pollInterval(Duration.ofMillis(50)).untilAsserted(() -> assertThat(requestsOf("a8_reader", false)).isPositive());
+        Outcome<Object> lookup = inFlight.get(HARD_CAP_INTERACTIVE.toMillis() * 2, TimeUnit.MILLISECONDS);
+        assertThat(lookup.hung()).isFalse();
+        assertThat(lookup.elapsed()).isLessThanOrEqualTo(INTERACTIVE_BUDGET);
+        assertThat(lookup.failure()).isInstanceOf(ExternalSystemUnavailableException.class);
+
+        Awaitility.await("SQL Server has stopped the slow statement of a8_reader once the login lookup gave up")
+                .atMost(Duration.ofSeconds(2)).pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> assertThat(requestsOf("a8_reader", false)).as("requests of a8_reader still running in sys.dm_exec_requests").isZero());
+    }
+
+    /**
+     * The pool holds 2 connections. The third request starts once the first two are waiting on the lock, so it waits for a connection and then for
+     * the lock; the 3 s budget covers the whole call, not each wait.
+     */
+    @Test
+    @DisplayName("D1-1 复审 M1：D1-1-R3 并发卡住的合并待办都在预算内返回")
+    void reviewM1_concurrentStalledInboxRequestsAllAnswerWithinTheBudget() throws Exception {
+        blockers.add(Blocker.hold("legacyworld", "dbo.todo_rows"));
+        assertBlocked("legacyworld", "SELECT COUNT(*) FROM dbo.v_psa_one_legacy_todo");
+
+        List<Future<Outcome<Reply>>> requests = new ArrayList<>();
+        requests.add(CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, this::inbox)));
+        requests.add(CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, this::inbox)));
+        Awaitility.await("both pooled connections of todo_reader are waiting on the lock").atMost(Duration.ofMillis(2_500)).pollInterval(Duration.ofMillis(50))
+                .untilAsserted(() -> assertThat(requestsOf("todo_reader", true)).isEqualTo(2));
+        requests.add(CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, this::inbox)));
+
+        for (int i = 0; i < requests.size(); i++) {
+            Outcome<Reply> outcome = requests.get(i).get(HARD_CAP_INTERACTIVE.toMillis() * 2, TimeUnit.MILLISECONDS);
+            assertThat(outcome.hung()).as("request %d is still waiting after %s", i + 1, HARD_CAP_INTERACTIVE).isFalse();
+            assertThat(outcome.failure()).as("request %d", i + 1).isNull();
+            assertThat(outcome.elapsed()).as("request %d answers within one 3 s budget, pool wait included", i + 1).isLessThanOrEqualTo(INTERACTIVE_BUDGET);
+            assertThat(outcome.value().status()).isEqualTo(200);
+            assertThat(outcome.value().body()).as("request %d", i + 1).contains("\"legacyAvailable\":false");
+        }
+    }
+
+    Reply inbox() throws Exception {
+        var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_USER))).andReturn().getResponse();
+        return new Reply(response.getStatus(), response.getContentAsString());
+    }
+
+    static int requestsOf(String login, boolean blockedOnly) throws SQLException {
+        try (Connection c = admin("master"); Statement s = c.createStatement();
+                ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM sys.dm_exec_requests r JOIN sys.dm_exec_sessions e ON e.session_id = r.session_id "
+                        + "WHERE e.login_name = '" + login + "'" + (blockedOnly ? " AND r.blocking_session_id <> 0" : ""))) {
+            rs.next();
+            return rs.getInt(1);
+        }
     }
 
     /** A scheduled job runs inside a work context; the sync records its failure as an event, which needs one. */
