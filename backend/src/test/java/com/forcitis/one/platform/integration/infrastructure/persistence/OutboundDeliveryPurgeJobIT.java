@@ -85,4 +85,36 @@ class OutboundDeliveryPurgeJobIT {
         assertThat(exists(deadMiddle)).isTrue();
         assertThat(exists(pendingOld)).isTrue();
     }
+
+    private String note(String status, int daysAgo, String cardKey) {
+        String key = java.util.UUID.randomUUID().toString();
+        jdbc.sql("""
+                insert into platform_integration.outbound_deliveries (id, subject_kind, subject_id, purpose_kind, recipient_codes, title, target_url, status, kind, target_delivery_id, created_at, updated_at)
+                values (uuidv7(), 'APPROVAL_TASK', cast(:key as uuid), 'TASK_ASSIGNED', array['alice'], 'title', 'https://one.example.test/x', :status, 'HANDLED_NOTE',
+                        (select id from platform_integration.outbound_deliveries where subject_id = cast(:card as uuid) and kind = 'CARD'),
+                        now() - make_interval(days => :days), now() - make_interval(days => :days))
+                """).param("key", key).param("card", cardKey).param("status", status).param("days", daysAgo).update();
+        return key;
+    }
+
+    @Test
+    @DisplayName("K7 a card whose handled note has not expired stays, the job succeeds and removes the other expired rows; when the note expires both go")
+    void cardOutlivesItsUnexpiredNote() {
+        String card = delivery("SENT", 91);
+        String note = note("DEAD_LETTER", 100, card);
+        String other = delivery("SENT", 95);
+
+        job.purge();
+
+        assertThat(exists(card)).isTrue();
+        assertThat(exists(note)).isTrue();
+        assertThat(exists(other)).isFalse();
+
+        jdbc.sql("update platform_integration.outbound_deliveries set updated_at = now() - interval '400 days' where subject_id = cast(:key as uuid)")
+                .param("key", note).update();
+        job.purge();
+
+        assertThat(exists(card)).isFalse();
+        assertThat(exists(note)).isFalse();
+    }
 }
