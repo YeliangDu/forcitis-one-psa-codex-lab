@@ -104,6 +104,7 @@ REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integrati
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §4b 迁移之后：版本表只追加（B2-M5；每次发布迁移后再执行一遍，幂等）
 -- ---------------------------------------------------------------------------------------------------------------------
+-- 本节只在 Flyway 迁移成功之后执行：表要迁移后才存在，首次执行本文件（建库、角色、schema）时跳过本节。
 -- 版本表上的触发器已拒绝删除、清空和改写已关闭的行；运行角色再不持有 DELETE 与 TRUNCATE（只留 SELECT、INSERT、UPDATE，UPDATE 用来关闭开放版本）。
 -- 新增版本表（数据访问注册表中角色为 DIMENSION_VERSIONED 的表）时，在这里补一项；DataArchitectureTest 核对此清单与注册表一致。
 DO $$
@@ -112,9 +113,7 @@ BEGIN
     FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
                              'organization_workforce.legal_entity_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities'] LOOP
-        IF to_regclass(t) IS NOT NULL THEN
-            EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
-        END IF;
+        EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
     END LOOP;
 END $$;
 

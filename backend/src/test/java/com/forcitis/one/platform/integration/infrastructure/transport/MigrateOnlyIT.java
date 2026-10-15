@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -12,6 +13,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
@@ -44,6 +46,12 @@ class MigrateOnlyIT {
         return postgres.getJdbcUrl() + (postgres.getJdbcUrl().contains("?") ? "&" : "?") + "sslmode=require";
     }
 
+    private static long migrationFileCount() throws IOException {
+        try (Stream<Path> files = Files.walk(Path.of("src/main/resources/db/migration"))) {
+            return files.filter(f -> f.getFileName().toString().endsWith(".sql")).count();
+        }
+    }
+
     private long count(String sql) throws SQLException {
         try (Connection c = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
              ResultSet rs = c.createStatement().executeQuery(sql)) {
@@ -59,7 +67,7 @@ class MigrateOnlyIT {
 
         assertThat(outcome.exitCode()).as(outcome.output()).isZero();
         assertThat(outcome.output()).contains("MIGRATE-ONLY OK").doesNotContain("Tomcat").doesNotContain("Started ").doesNotContain("flowable");
-        assertThat(count("select count(*) from one_migration.flyway_schema_history where success")).isGreaterThan(30);
+        assertThat(count("select count(*) from one_migration.flyway_schema_history where success")).isEqualTo(migrationFileCount());
         assertThat(count("select count(*) from information_schema.tables where table_name like 'act\\_%'")).as("no process engine ran").isZero();
     }
 

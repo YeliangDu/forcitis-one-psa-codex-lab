@@ -1,0 +1,362 @@
+CREATE SCHEMA IF NOT EXISTS platform_identity;
+COMMENT ON SCHEMA platform_identity IS '身份与权限（权限流程与集成平台 BC · 身份）：登录、会话、角色、导航';
+
+CREATE TABLE platform_identity.user_accounts (
+    user_id            bigint      PRIMARY KEY,
+    status             text        NOT NULL DEFAULT 'ENABLED' CHECK (status IN ('ENABLED', 'DISABLED')),
+    last_login_at      timestamptz,
+    last_login_address text,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    updated_at         timestamptz NOT NULL DEFAULT now(),
+    version            bigint      NOT NULL DEFAULT 0,
+    event_count        bigint      NOT NULL DEFAULT 0
+);
+COMMENT ON TABLE platform_identity.user_accounts IS '用户账号：身份侧的启用开关与最近登录；员工姓名、部门、在职状态归组织人事模块（不在此冗余）。粒度：每个用户一行';
+COMMENT ON COLUMN platform_identity.user_accounts.user_id IS '用户 ID：与员工 ID（沿用组织源人员 ID，有符号 bigint）相同';
+COMMENT ON COLUMN platform_identity.user_accounts.status IS '账号状态：ENABLED / DISABLED；登录与每次解析会话时都与在职状态一起检查（RULE-326/338）';
+COMMENT ON COLUMN platform_identity.user_accounts.last_login_at IS '最近一次登录成功时间（RULE-330）';
+COMMENT ON COLUMN platform_identity.user_accounts.last_login_address IS '最近一次登录成功的客户端地址（RULE-330）';
+COMMENT ON COLUMN platform_identity.user_accounts.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.user_accounts.updated_at IS '更新时间';
+COMMENT ON COLUMN platform_identity.user_accounts.version IS '乐观锁版本';
+COMMENT ON COLUMN platform_identity.user_accounts.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
+
+CREATE TABLE platform_identity.roles (
+    role_id           bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code              text        NOT NULL,
+    name              text        NOT NULL,
+    kind              text        NOT NULL DEFAULT 'CUSTOM' CHECK (kind IN ('SYSTEM', 'CUSTOM')),
+    status            text        NOT NULL DEFAULT 'ENABLED' CHECK (status IN ('ENABLED', 'DISABLED')),
+    access_scope      text        NOT NULL DEFAULT 'SELF' CHECK (access_scope IN ('ALL', 'CUSTOM_ORG_UNITS', 'OWN_ORG_UNIT', 'OWN_ORG_UNIT_SUBTREE', 'SELF', 'SELF_AND_DIRECT_REPORTS')),
+    is_administrative boolean     NOT NULL DEFAULT false,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    updated_at        timestamptz NOT NULL DEFAULT now(),
+    version           bigint      NOT NULL DEFAULT 0,
+    event_count       bigint      NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX uq_roles_code ON platform_identity.roles (lower(code));
+CREATE UNIQUE INDEX uq_roles_name ON platform_identity.roles (lower(name));
+COMMENT ON TABLE platform_identity.roles IS '角色：编码与名称各自唯一；SYSTEM 角色冻结；新角色默认数据范围 SELF（RULE-345）。粒度：每个角色一行';
+COMMENT ON COLUMN platform_identity.roles.role_id IS '角色 ID';
+COMMENT ON COLUMN platform_identity.roles.code IS '角色编码；super_admin 为预留码，只能由迁移脚本建立（RULE-340/345）';
+COMMENT ON COLUMN platform_identity.roles.name IS '角色名称';
+COMMENT ON COLUMN platform_identity.roles.kind IS '角色类别：SYSTEM（冻结，不可改不可删）/ CUSTOM';
+COMMENT ON COLUMN platform_identity.roles.status IS '角色状态：只有 ENABLED 的角色计入权限与数据范围（RULE-343/349）';
+COMMENT ON COLUMN platform_identity.roles.access_scope IS '数据范围类型：新角色默认 SELF（最小权限，RULE-345）；1a 只存类型，范围明细随 1b 的 data_scope_grants';
+COMMENT ON COLUMN platform_identity.roles.is_administrative IS '是否管理员角色：外部签名票据不得让持有者进入（C1a-03）';
+COMMENT ON COLUMN platform_identity.roles.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.roles.updated_at IS '更新时间';
+COMMENT ON COLUMN platform_identity.roles.version IS '乐观锁版本';
+COMMENT ON COLUMN platform_identity.roles.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
+
+CREATE TABLE platform_identity.role_permissions (
+    role_id         bigint      NOT NULL REFERENCES platform_identity.roles (role_id) ON DELETE CASCADE,
+    permission_code text        NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (role_id, permission_code)
+);
+COMMENT ON TABLE platform_identity.role_permissions IS '角色—权限：权限码取自 Permission 目录；整组替换（RULE-346）。粒度：每个角色的每个权限码一行';
+COMMENT ON COLUMN platform_identity.role_permissions.role_id IS '角色 ID';
+COMMENT ON COLUMN platform_identity.role_permissions.permission_code IS '权限码：{子域}.{BC}:{资源}:{动作}';
+COMMENT ON COLUMN platform_identity.role_permissions.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.role_permissions.updated_at IS '更新时间';
+
+-- 账号仍持有的角色不得被删除：删角色时由外键拒绝，而不是悄悄把账号的授权带走。
+CREATE TABLE platform_identity.account_roles (
+    user_id    bigint      NOT NULL REFERENCES platform_identity.user_accounts (user_id) ON DELETE CASCADE,
+    role_id    bigint      NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, role_id),
+    CONSTRAINT fk_account_roles_role_id FOREIGN KEY (role_id) REFERENCES platform_identity.roles (role_id) ON DELETE RESTRICT
+);
+CREATE INDEX ix_account_roles_role ON platform_identity.account_roles (role_id);
+COMMENT ON TABLE platform_identity.account_roles IS '账号—角色：整组替换（RULE-346）；默认角色只在建档时显式授予一次（RULE-344）；离职时全部删除（ADR-0027）。粒度：每个账号的每个角色一行';
+COMMENT ON COLUMN platform_identity.account_roles.user_id IS '用户 ID';
+COMMENT ON COLUMN platform_identity.account_roles.role_id IS '角色 ID';
+COMMENT ON COLUMN platform_identity.account_roles.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.account_roles.updated_at IS '更新时间';
+
+CREATE TABLE platform_identity.navigation_items (
+    item_id         bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    parent_item_id  bigint      REFERENCES platform_identity.navigation_items (item_id),
+    name            text        NOT NULL,
+    route_path      text,
+    permission_code text,
+    sort_order      integer     NOT NULL DEFAULT 0,
+    is_enabled      boolean     NOT NULL DEFAULT true,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT ck_navigation_items_parent CHECK (parent_item_id IS NULL OR parent_item_id <> item_id)
+);
+COMMENT ON TABLE platform_identity.navigation_items IS '导航项：目录（无路由）与页面（有路由）；页面按所需权限码对持有者可见（RULE-348）。粒度：每个导航项一行';
+COMMENT ON COLUMN platform_identity.navigation_items.item_id IS '导航项 ID';
+COMMENT ON COLUMN platform_identity.navigation_items.parent_item_id IS '上级导航项 ID；顶层为空';
+COMMENT ON COLUMN platform_identity.navigation_items.name IS '显示名称';
+COMMENT ON COLUMN platform_identity.navigation_items.route_path IS '前端路由；目录为空';
+COMMENT ON COLUMN platform_identity.navigation_items.permission_code IS '可见所需权限码；为空表示所有已登录用户可见';
+COMMENT ON COLUMN platform_identity.navigation_items.sort_order IS '同级排序';
+COMMENT ON COLUMN platform_identity.navigation_items.is_enabled IS '是否启用';
+COMMENT ON COLUMN platform_identity.navigation_items.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.navigation_items.updated_at IS '更新时间';
+
+CREATE TABLE platform_identity.login_states (
+    state_hash   text        PRIMARY KEY,
+    entry        text        NOT NULL CHECK (entry IN ('WORKBENCH', 'MINI_PROGRAM', 'QR_CODE_LOGIN')),
+    expires_at   timestamptz NOT NULL,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz NOT NULL DEFAULT now(),
+    binding_hash text        NOT NULL
+);
+COMMENT ON TABLE platform_identity.login_states IS '企业微信 OAuth state：只存哈希；一次性，消费时原子删除（I-9）。粒度：每个尚未使用的 state 一行';
+COMMENT ON COLUMN platform_identity.login_states.state_hash IS 'state 的 SHA-256 十六进制';
+COMMENT ON COLUMN platform_identity.login_states.entry IS '签发时声明的企业微信登录入口';
+COMMENT ON COLUMN platform_identity.login_states.expires_at IS '过期时间（签发后 10 分钟）';
+COMMENT ON COLUMN platform_identity.login_states.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.login_states.updated_at IS '更新时间';
+COMMENT ON COLUMN platform_identity.login_states.binding_hash IS '发起 state 的浏览器所持绑定值的 SHA-256 十六进制；消费 state 时必须出示同一绑定值，攻击者带自己的 state 诱导他人登录时对不上';
+
+CREATE TABLE platform_identity.sso_ticket_uses (
+    ticket_source text        NOT NULL,
+    ticket_hash   text        NOT NULL,
+    expires_at    timestamptz NOT NULL,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (ticket_source, ticket_hash)
+);
+CREATE INDEX ix_sso_ticket_uses_expiry ON platform_identity.sso_ticket_uses (expires_at);
+COMMENT ON TABLE platform_identity.sso_ticket_uses IS '已使用的一次性凭证：主键即唯一约束，并发重放只有一次插入成功（I-9，RULE-320）。粒度：每个已使用的一次性凭证一行';
+COMMENT ON COLUMN platform_identity.sso_ticket_uses.ticket_source IS '凭证来源：SSO（门户票据），或签发方编码（签名票据的 nonce）';
+COMMENT ON COLUMN platform_identity.sso_ticket_uses.ticket_hash IS '票据或 nonce 的 SHA-256 十六进制，不存明文';
+COMMENT ON COLUMN platform_identity.sso_ticket_uses.expires_at IS '记录保留到该时间后清理（门户票据 7 天，签名票据略长于票据有效期）';
+COMMENT ON COLUMN platform_identity.sso_ticket_uses.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.sso_ticket_uses.updated_at IS '更新时间';
+
+CREATE TABLE platform_identity.ticket_issuers (
+    issuer_code        text        PRIMARY KEY,
+    key_id             text        NOT NULL UNIQUE,
+    key_reference      text        NOT NULL,
+    is_enabled         boolean     NOT NULL DEFAULT false,
+    allowed_role_codes text[]      NOT NULL DEFAULT '{}',
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    updated_at         timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT ck_ticket_issuers_no_administrator CHECK (NOT ('super_admin' = ANY (allowed_role_codes)))
+);
+COMMENT ON TABLE platform_identity.ticket_issuers IS '票据签发方：外部签名票据的每方一把密钥（kid 区分），默认关闭；签发方必须在 architecture/ticket-issuers-allowlist.txt 中（I-2）。粒度：每个签发方一行';
+COMMENT ON COLUMN platform_identity.ticket_issuers.issuer_code IS '签发方编码，如 km；老 PSA 后端永远不得出现（I-2）';
+COMMENT ON COLUMN platform_identity.ticket_issuers.key_id IS '密钥标识 kid，票据头部携带，一方一把';
+COMMENT ON COLUMN platform_identity.ticket_issuers.key_reference IS '密钥引用，如 env:NAME；密钥本身只在环境变量或 KMS，表中不存';
+COMMENT ON COLUMN platform_identity.ticket_issuers.is_enabled IS '是否开启：调用方完成对接前保持关闭';
+COMMENT ON COLUMN platform_identity.ticket_issuers.allowed_role_codes IS '允许进入的用户范围：持有其中任一启用角色；为空表示无人可进；不得含 super_admin';
+COMMENT ON COLUMN platform_identity.ticket_issuers.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.ticket_issuers.updated_at IS '更新时间';
+
+CREATE TABLE platform_identity.emergency_admins (
+    user_id               bigint      PRIMARY KEY REFERENCES platform_identity.user_accounts (user_id),
+    account_name            text        NOT NULL UNIQUE,
+    password_hash         text        NOT NULL,
+    totp_secret_encrypted text        NOT NULL,
+    last_totp_step        bigint      NOT NULL DEFAULT 0,
+    failed_attempts       integer     NOT NULL DEFAULT 0,
+    locked_until          timestamptz,
+    is_enabled            boolean     NOT NULL DEFAULT true,
+    created_at            timestamptz NOT NULL DEFAULT now(),
+    updated_at            timestamptz NOT NULL DEFAULT now(),
+    version               bigint      NOT NULL DEFAULT 0,
+    event_count           bigint      NOT NULL DEFAULT 0
+);
+COMMENT ON TABLE platform_identity.emergency_admins IS '应急管理员：独立凭据（Argon2id + TOTP），只能从内网登录，5 次失败锁 15 分钟（RULE-316/317）；user_id 是绑定的超级管理员持有人，每人至多一个，登记至少两个（ADR-0027 第 1 项）。粒度：每个绑定的超级管理员持有人一个应急账号一行';
+COMMENT ON COLUMN platform_identity.emergency_admins.user_id IS '用户 ID：对应的员工账号，会话与权限走该账号的角色';
+COMMENT ON COLUMN platform_identity.emergency_admins.account_name IS '应急账号名';
+COMMENT ON COLUMN platform_identity.emergency_admins.password_hash IS 'Argon2id 口令哈希';
+COMMENT ON COLUMN platform_identity.emergency_admins.totp_secret_encrypted IS 'TOTP 密钥（AES-GCM 加密后的 Base64）';
+COMMENT ON COLUMN platform_identity.emergency_admins.last_totp_step IS '最近一次接受的 TOTP 时间步，防止同一动态码重放';
+COMMENT ON COLUMN platform_identity.emergency_admins.failed_attempts IS '连续失败次数；成功后清零';
+COMMENT ON COLUMN platform_identity.emergency_admins.locked_until IS '锁定到该时间；为空表示未锁定';
+COMMENT ON COLUMN platform_identity.emergency_admins.is_enabled IS '是否启用';
+COMMENT ON COLUMN platform_identity.emergency_admins.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.emergency_admins.updated_at IS '更新时间';
+COMMENT ON COLUMN platform_identity.emergency_admins.version IS '乐观锁版本：启用状态与凭据的变更按它串行；失败计数、锁定、动态码步长是访问元数据，用条件原子更新，不动它';
+COMMENT ON COLUMN platform_identity.emergency_admins.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
+
+CREATE TABLE platform_identity.sessions (
+    primary_id            char(36)    NOT NULL,
+    session_id            char(36)    NOT NULL,
+    creation_time         bigint      NOT NULL,
+    last_access_time      bigint      NOT NULL,
+    max_inactive_interval integer     NOT NULL,
+    expiry_time           bigint      NOT NULL,
+    principal_name        varchar(100),
+    created_at            timestamptz NOT NULL DEFAULT now(),
+    updated_at            timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_sessions PRIMARY KEY (primary_id),
+    CONSTRAINT uq_sessions_session UNIQUE (session_id)
+);
+CREATE INDEX ix_sessions_expiry ON platform_identity.sessions (expiry_time);
+CREATE INDEX ix_sessions_principal ON platform_identity.sessions (principal_name);
+COMMENT ON TABLE platform_identity.sessions IS '会话：服务端会话（Spring Session JDBC，表结构由 Flyway 建立，initialize-schema=never）；列名由框架固定';
+COMMENT ON COLUMN platform_identity.sessions.primary_id IS '会话主键（内部）';
+COMMENT ON COLUMN platform_identity.sessions.session_id IS '会话 ID（Cookie 值，登录时更换）';
+COMMENT ON COLUMN platform_identity.sessions.creation_time IS '创建时间（毫秒）';
+COMMENT ON COLUMN platform_identity.sessions.last_access_time IS '最近访问时间（毫秒）';
+COMMENT ON COLUMN platform_identity.sessions.max_inactive_interval IS '空闲超时（秒）';
+COMMENT ON COLUMN platform_identity.sessions.expiry_time IS '过期时间（毫秒）';
+COMMENT ON COLUMN platform_identity.sessions.principal_name IS '主体名：用户 ID 的十进制字符串，用于吊销该用户全部会话';
+COMMENT ON COLUMN platform_identity.sessions.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.sessions.updated_at IS '更新时间';
+
+CREATE TABLE platform_identity.sessions_attributes (
+    session_primary_id char(36)     NOT NULL,
+    attribute_name     varchar(200) NOT NULL,
+    attribute_bytes    bytea        NOT NULL,
+    created_at         timestamptz  NOT NULL DEFAULT now(),
+    updated_at         timestamptz  NOT NULL DEFAULT now(),
+    CONSTRAINT pk_sessions_attributes PRIMARY KEY (session_primary_id, attribute_name),
+    CONSTRAINT fk_sessions_attributes_session FOREIGN KEY (session_primary_id) REFERENCES platform_identity.sessions (primary_id) ON DELETE CASCADE
+);
+COMMENT ON TABLE platform_identity.sessions_attributes IS '会话属性（序列化的安全上下文等）';
+COMMENT ON COLUMN platform_identity.sessions_attributes.session_primary_id IS '所属会话主键';
+COMMENT ON COLUMN platform_identity.sessions_attributes.attribute_name IS '属性名';
+COMMENT ON COLUMN platform_identity.sessions_attributes.attribute_bytes IS '属性值（序列化字节）';
+COMMENT ON COLUMN platform_identity.sessions_attributes.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.sessions_attributes.updated_at IS '更新时间';
+
+-- C-M7：浏览器标识。单点登录或外部票据登录的会话，只有认得这个浏览器时才免于「是否本人」确认。
+CREATE TABLE platform_identity.browser_identifiers (
+    browser_identifier_id uuid        NOT NULL,
+    user_id               bigint      NOT NULL,
+    identifier_hash       text        NOT NULL,
+    last_login_at         timestamptz NOT NULL,
+    retired_at            timestamptz,
+    created_at            timestamptz NOT NULL DEFAULT now(),
+    updated_at            timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_browser_identifiers PRIMARY KEY (browser_identifier_id),
+    CONSTRAINT fk_browser_identifiers_user_id FOREIGN KEY (user_id) REFERENCES platform_identity.user_accounts (user_id) ON DELETE CASCADE,
+    CONSTRAINT uk_browser_identifiers_identifier_hash_user_id UNIQUE (identifier_hash, user_id)
+);
+CREATE INDEX ix_browser_identifiers_user_id ON platform_identity.browser_identifiers (user_id);
+COMMENT ON TABLE platform_identity.browser_identifiers IS '浏览器标识：某个账号在某个浏览器上已确认过本人的凭据摘要；每次免确认登录换新值，旧值留作重放检测；粒度：每个账号的每个标识值一行';
+COMMENT ON COLUMN platform_identity.browser_identifiers.browser_identifier_id IS '浏览器标识 ID';
+COMMENT ON COLUMN platform_identity.browser_identifiers.user_id IS '用户 ID：标识所属账号';
+COMMENT ON COLUMN platform_identity.browser_identifiers.identifier_hash IS '标识摘要：浏览器所持随机值的 SHA-256，库内不存原值';
+COMMENT ON COLUMN platform_identity.browser_identifiers.last_login_at IS '最近登录时间：该标识最近一次被用于登录；超过保留天数视为过期';
+COMMENT ON COLUMN platform_identity.browser_identifiers.retired_at IS '换新时间：已被新值取代的时间；为空表示仍有效。已换新的旧值再次出现即为重放';
+COMMENT ON COLUMN platform_identity.browser_identifiers.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.browser_identifiers.updated_at IS '更新时间';
+
+-- 敏感权限的授予与含敏感权限的角色定义，须另一人确认后才生效（ADR-0026 第 6 项第 2 条，ADR-0027 第 3 项第 2 条；I-12）。
+CREATE TABLE platform_identity.authorization_requests (
+    request_id        uuid        NOT NULL,
+    request_kind      text        NOT NULL CHECK (request_kind IN ('REPLACE_ROLES', 'CREATE_ROLE', 'UPDATE_ROLE')),
+    requested_by      bigint      NOT NULL,
+    requested_at      timestamptz NOT NULL,
+    subject_user_id   bigint,
+    role_id           bigint,
+    role_codes        text[]      NOT NULL DEFAULT '{}',
+    new_role_code     text,
+    role_name         text,
+    is_enabled        boolean,
+    access_scope_kind text CHECK (access_scope_kind IN ('ALL', 'CUSTOM_ORG_UNITS', 'OWN_ORG_UNIT', 'OWN_ORG_UNIT_SUBTREE', 'SELF', 'SELF_AND_DIRECT_REPORTS')),
+    permission_codes  text[]      NOT NULL DEFAULT '{}',
+    request_status    text        NOT NULL CHECK (request_status IN ('PENDING', 'CONFIRMED', 'REJECTED')),
+    decided_by        bigint,
+    decided_at        timestamptz,
+    version           bigint      NOT NULL DEFAULT 0,
+    event_count       bigint      NOT NULL DEFAULT 0,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    updated_at        timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_authorization_requests PRIMARY KEY (request_id),
+    CONSTRAINT ck_authorization_requests_two_people CHECK (decided_by IS NULL OR (decided_by <> requested_by AND decided_by IS DISTINCT FROM subject_user_id) OR request_status = 'REJECTED')
+);
+COMMENT ON TABLE platform_identity.authorization_requests IS '授权申请：授予敏感权限、或把角色改成含敏感权限，先建申请，另一人确认后由监听器执行。粒度：每个申请一行';
+COMMENT ON COLUMN platform_identity.authorization_requests.request_id IS '申请 ID（UUIDv7）';
+COMMENT ON COLUMN platform_identity.authorization_requests.request_kind IS '申请类型：REPLACE_ROLES 替换账号的角色集合 / CREATE_ROLE 新建角色 / UPDATE_ROLE 修改角色定义';
+COMMENT ON COLUMN platform_identity.authorization_requests.requested_by IS '申请人用户 ID';
+COMMENT ON COLUMN platform_identity.authorization_requests.requested_at IS '申请时间';
+COMMENT ON COLUMN platform_identity.authorization_requests.subject_user_id IS '受益人用户 ID：REPLACE_ROLES 才有；受益人不能确认';
+COMMENT ON COLUMN platform_identity.authorization_requests.role_id IS '角色 ID：被修改的角色，UPDATE_ROLE 才有';
+COMMENT ON COLUMN platform_identity.authorization_requests.role_codes IS '申请后账号的完整角色编码集合：REPLACE_ROLES 才有';
+COMMENT ON COLUMN platform_identity.authorization_requests.new_role_code IS '新角色编码：CREATE_ROLE 才有';
+COMMENT ON COLUMN platform_identity.authorization_requests.role_name IS '角色名称：CREATE_ROLE、UPDATE_ROLE 才有';
+COMMENT ON COLUMN platform_identity.authorization_requests.is_enabled IS '角色是否启用：CREATE_ROLE、UPDATE_ROLE 才有';
+COMMENT ON COLUMN platform_identity.authorization_requests.access_scope_kind IS '角色数据范围类型；为空表示沿用';
+COMMENT ON COLUMN platform_identity.authorization_requests.permission_codes IS '角色的完整权限码集合：CREATE_ROLE、UPDATE_ROLE 才有';
+COMMENT ON COLUMN platform_identity.authorization_requests.request_status IS '申请状态：PENDING 待确认 / CONFIRMED 已确认并交监听器执行 / REJECTED 已拒绝';
+COMMENT ON COLUMN platform_identity.authorization_requests.decided_by IS '确认人或拒绝人用户 ID；确认人不是申请人，也不是受益人';
+COMMENT ON COLUMN platform_identity.authorization_requests.decided_at IS '确认或拒绝的时间';
+COMMENT ON COLUMN platform_identity.authorization_requests.version IS '乐观锁版本';
+COMMENT ON COLUMN platform_identity.authorization_requests.event_count IS '事件序号：该聚合已发出的事件数，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
+COMMENT ON COLUMN platform_identity.authorization_requests.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.authorization_requests.updated_at IS '更新时间';
+
+-- 系统角色：super_admin 为预留码（RULE-340/345），只能在此建立；employee 是新员工建档时显式授予一次的默认角色（RULE-344），仅含最小权限。
+INSERT INTO platform_identity.roles (code, name, kind, status, access_scope, is_administrative) VALUES
+    ('super_admin', '超级管理员', 'SYSTEM', 'ENABLED', 'ALL', true),
+    ('employee', '员工', 'SYSTEM', 'ENABLED', 'SELF', false);
+
+INSERT INTO platform_identity.role_permissions (role_id, permission_code)
+SELECT roles.role_id, grants.permission_code
+  FROM platform_identity.roles roles
+ CROSS JOIN (VALUES ('platform.approval:task:read'), ('platform.approval:task:approve')) AS grants (permission_code)
+ WHERE roles.code = 'employee';
+
+INSERT INTO platform_identity.navigation_items (name, route_path, permission_code, sort_order) VALUES
+    ('待办', '/inbox', 'platform.approval:task:read', 10);
+
+WITH directory AS (
+    INSERT INTO platform_identity.navigation_items (name, route_path, permission_code, sort_order)
+    VALUES ('系统管理', NULL, NULL, 90)
+    RETURNING item_id
+)
+INSERT INTO platform_identity.navigation_items (parent_item_id, name, route_path, permission_code, sort_order)
+SELECT directory.item_id, pages.name, pages.route_path, pages.permission_code, pages.sort_order
+  FROM directory
+ CROSS JOIN (VALUES
+     ('角色管理', '/admin/roles', 'platform.identity:role:read', 10),
+     ('编号规则', '/admin/numbering-rules', 'platform.numbering:numbering-rule:read', 20),
+     ('组织浏览', '/admin/org-units', 'organization.workforce:org-unit:read', 30),
+     ('同步记录', '/admin/sync-runs', 'organization.workforce:sync-run:read', 40)
+ ) AS pages (name, route_path, permission_code, sort_order);
+
+-- 流程管理员角色（D-1a-61）：持有人接收没人可派的审批任务、超时升级的任务，可改派任务、查看全部待办；人选由部署前指定（PREDEPLOY_CHECKLIST B-12）。
+INSERT INTO platform_identity.roles (code, name, kind, status, access_scope, is_administrative) VALUES
+    ('process_administrator', '流程管理员', 'SYSTEM', 'ENABLED', 'SELF', false);
+
+-- ADR-0027 第 2、3 项：三个系统业务角色；流程管理员（D-1a-61）已在上面种入。组织数据管理员与业务管理员的持有人在上线前由运维命令按账号授予，迁移不写入任何账号。
+INSERT INTO platform_identity.roles (code, name, kind, status, access_scope, is_administrative) VALUES
+    ('org_data_admin', '组织数据管理员', 'SYSTEM', 'ENABLED', 'ALL', false),
+    ('business_admin', '业务管理员', 'SYSTEM', 'ENABLED', 'SELF', false),
+    ('security_auditor', '安全审计员', 'SYSTEM', 'ENABLED', 'ALL', false);
+
+INSERT INTO platform_identity.role_permissions (role_id, permission_code)
+SELECT roles.role_id, grants.permission_code
+  FROM platform_identity.roles roles
+  JOIN (VALUES
+      ('org_data_admin', 'organization.workforce:org-unit:read'),
+      ('org_data_admin', 'organization.workforce:sync-run:read'),
+      ('org_data_admin', 'organization.workforce:sync-run:execute'),
+      ('org_data_admin', 'organization.workforce:legal-entity:update'),
+      ('org_data_admin', 'organization.attendance:work-calendar:read'),
+      ('org_data_admin', 'organization.attendance:work-calendar:update'),
+      ('org_data_admin', 'organization.attendance:locked-day:update'),
+      ('org_data_admin', 'platform.numbering:numbering-rule:read'),
+      ('org_data_admin', 'platform.numbering:numbering-rule:update'),
+      ('business_admin', 'platform.numbering:numbering-rule:read'),
+      ('business_admin', 'platform.numbering:numbering-rule:approve'),
+      ('security_auditor', 'platform.audit:audit-entry:read'),
+      ('security_auditor', 'platform.audit:audit-entry:export'),
+      ('employee', 'platform.audit:own-login-record:read')
+  ) AS grants (role_code, permission_code) ON grants.role_code = roles.code;
+
+-- ADR-0028：安全审计员在普通会话里也能放行管理员离职造成的同步暂停。
+INSERT INTO platform_identity.role_permissions (role_id, permission_code)
+SELECT role_id, 'organization.workforce:separation-hold:approve'
+  FROM platform_identity.roles
+ WHERE code = 'security_auditor';
+
+-- RULE-385：组织数据管理员可更正法人归属的历史记录；更正只增不改，本权限不在敏感权限之列。
+INSERT INTO platform_identity.role_permissions (role_id, permission_code)
+SELECT role_id, 'organization.workforce:legal-entity-attribution-correction:create'
+  FROM platform_identity.roles
+ WHERE code = 'org_data_admin';

@@ -79,3 +79,15 @@
 ## 回滚
 
 锁定前：删除合规保留策略和 bucket。锁定后：不能回滚，只能停止写入、收回写入方策略。
+
+
+## 执行记录（2026-10-15，one-ops；用户「需要我做的，都让ops 会话自己做」，one-coordinator 批准）
+
+| 项 | 结果 |
+|---|---|
+| bucket | `forcitis-one-archive`，oss-cn-hangzhou，归档存储，本地冗余，私有；阻止公共访问开启；SSE-OSS（AES256）；bucket 策略拒绝所有主体的非 HTTPS 访问 |
+| WORM | `InitiateBucketWorm` 2557 天（worm id 40BCDD0175F247879AFDDA7DFBF94E2B，2026-10-14T22:46:12Z），**未锁定**。用户「现在不锁，第一个写入方上线前再锁 (Recommended)」：任其 24 小时后自然失效；第一个归档写入方上线前重新 `InitiateBucketWorm` 2557 天并锁定，锁定前报 one-coordinator |
+| 写入方 | 自定义策略 `forcitis-one-archive-writer`（对象：`PutObject`、`AbortMultipartUpload`、`ListParts`；bucket：`ListObjects`、`GetBucketInfo`、`GetBucketWorm`、`GetBucketLocation`；均要求 HTTPS 且来源 VPC `vpc-bp1ovla4k0s9pl70fs5jl`；显式拒绝删除、改 ACL、改 bucket 配置与 WORM）挂在 ECS 实例角色 `forcitis-one-ecs-archive`（受信服务 `ecs.aliyuncs.com`），已绑定实例 i-bp122xlpar8w2uylmal2 |
+| 演练 | 云助手 t-hz070239sy27bi8，ECS 上以实例角色执行：内网 HTTPS 写入 `drill/20261015.txt` → 200；列出 `drill/` → 200；读取 → 403；删除 → 403；经公网地址写入 → 403 |
+| 发现 | ① 本 ECS 的元数据服务为加固模式，取实例角色凭据前须先取元数据令牌（应用所用 SDK 须支持）；② 1a 运行手册列的 `oss:GetObjectMetadata` 未授予（动作名待核对），应用若需要读对象元信息，按实际调用补授权。均已转 one-1a-next |
+| 演练对象 | `drill/20261015.txt` 被策略拒绝删除而保留；锁定前用高权限清掉或保留，届时报 one-coordinator |

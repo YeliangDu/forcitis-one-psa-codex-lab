@@ -30,11 +30,16 @@
 ## 后台任务与持久配置（SESSION_PLAYBOOK §2.1 第 9 条）
 | 位置 | 项 | 性质 | 负责 | 清理 |
 |---|---|---|---|---|
-| ECS i-bp122xlpar8w2uylmal2 | systemd 单元 one-ops-ghtest + /root/one-ops-ghtest.{sh,log} | 临时（GitHub 直拉测速，6 次） | one-ops | 出结果后删除，结果入记录 |
+| ECS i-bp122xlpar8w2uylmal2 | /root/one-ops-backup-20261015020632（nginx 切换前配置与续期配置备份） | 临时（回滚用） | one-ops | 首次 dev 部署验证通过后删除（已同意） |
+| ECS | /etc/forcitis-one/release-signers、release-source、github-release-token（空，OIDC 改造后删除）、one-release-token-check.{service,timer}（未启用，OIDC 改造后删除） | 长期 / 待撤 | one-ops | 随 OIDC 改造 PR |
+| ECS | /data/forcitis-one/import/c6/20261015/（C-6 导出，root 0700） | 临时 | one-ops | 1a 生产切换后 30 天 |
 | ECS | one-cert-check.timer、LoongCollector（ilogtaild / loongcollectord）、/etc/forcitis-one/ops-alert.env（群机器人 Webhook，root 0600）、/etc/forcitis-one/one.env、one-admin.pgpass、migrate/ | 长期 | one-ops | — |
 | 本机 Mac | 自托管 runner mac-one-1..4（~/actions-runners/one-N，LaunchAgent，用户 yeliang）与 mac-one-deploy（/opt/forcitis-one-runner，LaunchDaemon，用户 forcitis-deploy，pre-job hook） | 长期 | one-coordinator / one-ops | — |
 | 本机 Mac | ~/.modernize/psa/infra/role_holders.md（人名，0600）、~/.modernize/psa/finance/FINANCE_CONFIRM_v3.html（0600） | 长期私有 | one-coordinator | — |
 | 阿里云 | SLS Project forcitis-one-observability（30 天）、云监控 OS 指标、ECS 快照策略 forcitis-one-daily | 长期付费（约 40 元/月以内） | one-ops | — |
+| 阿里云 | OSS bucket forcitis-one-archive（杭州、归档、本地冗余、私有、SSE-OSS、仅 HTTPS；WORM 未锁，第一个写入方上线前重建并锁定）、RAM 策略 forcitis-one-archive-writer、RAM 角色 forcitis-one-ecs-archive（已绑定 ECS） | 长期 | one-ops | — |
+| GitHub（用户账号） | fine-grained 令牌 forcitis-one-release-dev-2026-10-15（FORCITIS 组织、仅 forcitis-one-psa、Actions / Contents / Deployments / Metadata 只读，到期 2027-01-13）——OIDC 方案的后备，未安装到任何位置；令牌值不经会话 | 后备 | 用户 | 首次 dev 部署经 OIDC 成功后由用户删除（one-coordinator 提醒） |
+| 阿里云 / GitHub | OIDC 提供商、RAM 角色 forcitis-one-deploy-dev、云助手固定命令、仓库 OIDC sub 定制（OIDC 改造 PR 合并前执行，逐条报 one-coordinator） | 长期（待建） | one-ops | — |
 | GitHub | environments release / dev / prod、签名私钥 secret（release）、v* 标签规则（仓库级，组织级待用户定）、immutable releases | 长期 | one-ops | — |
 | 阿里云（计划，PR #111 合并后由 one-ops 经用户确认建） | OIDC 身份提供商 github-actions；部署 RAM 角色与策略 forcitis-one-deploy-dev / -prod（只改写请求参数、只读结果参数，无 ECS 接口）；OOS 参数 forcitis-one-deploy-request-<env> 及 -bundle、-bundle-sha256、-statement、-statement-sig，结果参数 forcitis-one-deploy-result-<env>；拉取策略 forcitis-one-deploy-pull 挂在现有实例角色 forcitis-one-ecs-archive 上——该实例角色承载归档写入与部署请求拉取两份最小策略（不改名、不重绑）；GitHub 仓库 OIDC sub 定制；不建云助手命令 | 长期 | one-ops | 停用部署时删除；实例角色只解挂拉取策略 |
 | ECS i-bp122xlpar8w2uylmal2（计划，PR #111 合并后由 one-ops 装） | forcitis-one-release-pull.timer / .service（root，每分钟拉取 OOS 请求参数、单实例）；/var/lib/forcitis-one-release/{processed-requests,alerts-sent}（root 0600） | 长期（后台任务） | one-ops | 停用部署时 disable 并删除单元 |
@@ -58,7 +63,8 @@
 - 项目技能 one-fix-loop（交付前自查）：已提议，用户未表态。
 
 ## 待用户 / 财务 / 运维决定
-- 用户待办：RDS 控制台查日志备份频率（RPO；查不到则平台约定改为「主机故障不丢、误操作恢复精度取决于日志备份」）；ICP 备案主体核验；建企业微信「FORCITIS one 运维」群与机器人（A-5，Webhook 经 one-ops 安全窗口）；R-0 部署 runner 重建（sudo）；R-1..R-12；建归档 OSS bucket（国内、归档存储、本地冗余、WORM 2557 天，B-11）与法兰克福发布 bucket；向 A8 方提 v_org_member 加离职日期列。
+- （2026-10-15 用户「需要我做的，都让ops 会话自己做」：R-4 改 OIDC、R-13 免除、云助手命令与 B-13 由 one-ops 做；ICP 与备案用户「已经完成所有备案」。下列旧条目以此为准。）
+- 用户待办（旧）：RDS 控制台查日志备份频率（RPO；查不到则平台约定改为「主机故障不丢、误操作恢复精度取决于日志备份」）；ICP 备案主体核验；建企业微信「FORCITIS one 运维」群与机器人（A-5，Webhook 经 one-ops 安全窗口）；R-0 部署 runner 重建（sudo）；R-1..R-12；建归档 OSS bucket（国内、归档存储、本地冗余、WORM 2557 天，B-11）与法兰克福发布 bucket；向 A8 方提 v_org_member 加离职日期列。
 - 发布流水线 U-1 / U-2 / U-3 / U-5：首次 prod 部署前定（建议接受 U-1、U-2、U-3；U-5 届时再定）。
 - 生产前维护窗口（用户定时间）：RDS SQL Server rm-bp1690ep53t9778dp 开 SSL 并强制校验；RDS PG 证书重签（私钥曾进 one-ops 会话记录）。
 - 老系统安全风险登记（用户「老系统先不管」）：SQL Server 公网白名单 0.0.0.0/0、psa-nacos 8848 对公司出口免登录可读生产库高权限口令、48088 对公网——这台 SQL Server 也承载新系统读 A8 的只读账号，1a 上线前须再请用户评估。
@@ -79,7 +85,13 @@
 - 冒烟（只读，R-4 方案，约 5 分钟）：清单 102 处 / 31 文件 / 49 表与计划一致，抽查属实，未改文件；指出框架管理表（Spring Session、Modulith 事件登记、ShedLock usingDbTime）、种子迁移、Flowable 边界等须先决定的问题。输出存 `~/.modernize/psa/codex/R-4-plan-codex-smoke.md`。
 - 正式试点：R-4 实现（R-2 合并后），流程不变（测试代理先写验收、opus 复审、PR 注明 Codex 实现）；记录返工轮次与耗时，与 sonnet 卡对比。
 
+- 离职日期：A8 人员表无离职日期；「员工离职申请」表单 formmain_0348 有预计离职日期 field0031（员工编号 field0012 关联），1b 规则卡由 one-1a-next 登记——预计离职日期与观察到的离职时间两字段，未结束申请属敏感。
+- 首个 Release 0.1.0-rc.1：等 one-ops 的 OIDC 改造 PR 合并后由 one-coordinator 手动触发 release.yml（workflow_dispatch，version=0.1.0-rc.1，draft=false）。
+- 公安联网备案：用户「已经完成所有备案」；登录页只展示 ICP 号（F-15，W3）。
+
 ## 排定的后续
+- 规则文档瘦身（用户 2026-10-15「好，按这个计划做」）：前置——CODING_STANDARD（A–D）合并、原则核对 A / B 采纳；然后派 opus 出「规则 → 唯一位置」对照表与删除 / 归档清单，经用户确认后执行，加防重复检查。
+- 待用户决定项集中问：DDL 基线审计、原则核对 A / B、CODING_STANDARD 冲突清单。
 - 第三轮用语确认（复用 psa-terms-review）：1a 下一批交付后启动；合并 1a 全部提议术语（按业务 / 技术分组）、R0 的 TERMS_ROUND3_INPUT（A 组 19、新词约 45、NRPM 与「人工成本产出倍数」对齐）、前端用语（含同步 / 放行 / 被中止与 held_run 重叠、待办与 todo / inbox 重叠）、工时类别（项目 / 售前 / OH，OH 疑似方言）、legacy_system（老系统，方言为旧名称）、TS / JV 单据类型代码。ADR-0018：阶段结束时不得留有会计类提议术语。
 - 统一编排路线（1a 试点结束、brief 重新生成时一起审批）：Phase 1a–5、6a–6f（ADR-0021）、G1/G2（ADR-0022）、R0–R6（ADR-0023 / 0025）统一编号与依赖；6a 入口加「收付口径推送通道就绪」「过渡镜像就绪」；Phase 4、6a–6c、G1 合为业财一体阶段作为可选方案；客商主数据是否提前；6a–6f、G 与 R 阶段并入模板时补「流程梳理」入口条件。
 - 1b 前必须：区域应收负责人指派类型按规格建；代理审批授权模型评审（RULE-270）；ADR-0026 列出的新规则先在 RULE_REVIEWS 登记（法人限定、审批参与只读访问、授予时职责分离组合）；组织数据管理员是否列敏感复核；Phase 1b 流程梳理（新会话 one-1b-process-review）。
