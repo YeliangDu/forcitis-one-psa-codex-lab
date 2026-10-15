@@ -19,7 +19,7 @@ public final class ExternalReadRegister {
     public static final Path FILE = Path.of("architecture/external-read-registry.yaml");
 
     public static final List<String> FIELDS = List.of("database", "object", "column", "source", "category", "sensitivity", "purpose");
-    public static final Set<String> CATEGORIES = Set.of("组织", "身份", "待办");
+    public static final Set<String> CATEGORIES = Set.of("ORG_UNIT", "EMPLOYEE", "EXTERNAL_IDENTITY", "TODO");
     public static final Set<String> SENSITIVITIES = Set.of("PUBLIC", "INTERNAL", "SENSITIVE", "RESTRICTED");
     public static final String A8 = "a8_db";
     public static final String VIEW_SCHEMA = "forcitis_one";

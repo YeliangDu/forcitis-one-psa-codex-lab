@@ -82,10 +82,10 @@ class ExternalReadRegisterTest {
     @DisplayName("R-1b-0 读取列登记守护自检：缺字段、未知字段、非法用途（含 RECONCILIATION）、非法库与对象、敏感列登记为 INTERNAL、跨行的行都被报出")
     void injectedBadRowsAreFound() throws IOException {
         List<String> lines = new ArrayList<>(List.of("databases: [a8_db]", "columns:",
-                "  - { database: a8_db, object: dbo.ORG_UNIT, column: TYPE, source: dbo.ORG_UNIT.TYPE, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }",
-                "  - { database: a8_db, object: dbo.ORG_UNIT, column: CODE, source: dbo.ORG_UNIT.CODE, category: 组织, sensitivity: INTERNAL }",
-                "  - { database: a8_db, object: dbo.ORG_UNIT, column: NAME, source: dbo.ORG_UNIT.NAME, category: 组织, sensitivity: INTERNAL, purpose: RECONCILIATION }",
-                "  - { database: a8_db, object: dbo.ORG_MEMBER, column: EMAIL, source: dbo.ORG_MEMBER.EMAIL, category: 身份, sensitivity: INTERNAL, purpose: MIGRATION }",
+                "  - { database: a8_db, object: dbo.ORG_UNIT, column: TYPE, source: dbo.ORG_UNIT.TYPE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }",
+                "  - { database: a8_db, object: dbo.ORG_UNIT, column: CODE, source: dbo.ORG_UNIT.CODE, category: ORG_UNIT, sensitivity: INTERNAL }",
+                "  - { database: a8_db, object: dbo.ORG_UNIT, column: NAME, source: dbo.ORG_UNIT.NAME, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RECONCILIATION }",
+                "  - { database: a8_db, object: dbo.ORG_MEMBER, column: EMAIL, source: dbo.ORG_MEMBER.EMAIL, category: EMPLOYEE, sensitivity: INTERNAL, purpose: MIGRATION }",
                 "  - { database: other_db, object: ORG_UNIT, column: ID, source: ORG_UNIT.ID, category: 财务, sensitivity: SECRET, purpose: MIGRATION_TIE_OUT, note: x }"));
 
         List<Row> rows = ExternalReadRegister.rows(lines);
@@ -106,7 +106,7 @@ class ExternalReadRegisterTest {
                 .noneMatch(p -> p.contains("purpose"));
 
         List<String> split = List.of("columns:", "  - { database: a8_db, object: dbo.ORG_UNIT, column: TYPE,",
-                "      source: dbo.ORG_UNIT.TYPE, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }");
+                "      source: dbo.ORG_UNIT.TYPE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }");
         assertThatThrownBy(() -> ExternalReadRegister.rows(split)).hasMessageContaining("one flow mapping on one line");
     }
 

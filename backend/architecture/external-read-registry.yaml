@@ -19,52 +19,52 @@
 #   object       读取的对象：forcitis_one.v_* 视图或 dbo.<表或视图>
 #   column       对象上的列
 #   source       来源 dbo.<表>.<列>（「经」表示经哪一列关联）
-#   category     组织 | 身份 | 待办
+#   category     ORG_UNIT 组织单元 | EMPLOYEE 员工 | EXTERNAL_IDENTITY 外部身份 | TODO 待办
 #   sensitivity  PUBLIC | INTERNAL | SENSITIVE | RESTRICTED，与对应自有列的分级（data-classification.txt）一致
-#   purpose      RUNTIME_SYNC 运行时同步 | RUNTIME_TODO 运行时待办 | MIGRATION 迁入 | MIGRATION_TIE_OUT 迁入核对
+#   purpose      RUNTIME_SYNC 运行时同步 | RUNTIME_TODO 运行时待办 | MIGRATION 迁入 | MIGRATION_TIE_OUT 迁入核对（取值见词表 read_purpose）
 databases: [a8_db, ruoyi-vue-pro]
 columns:
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: ID, source: dbo.ORG_UNIT.ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: CODE, source: dbo.ORG_UNIT.CODE, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: NAME, source: dbo.ORG_UNIT.NAME, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: SORT_ID, source: dbo.ORG_UNIT.SORT_ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: PATH, source: dbo.ORG_UNIT.PATH, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: IS_DELETED, source: dbo.ORG_UNIT.IS_DELETED, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: IS_INTERNAL, source: dbo.ORG_UNIT.IS_INTERNAL, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: IS_ENABLE, source: dbo.ORG_UNIT.IS_ENABLE, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: CATEGORY, source: dbo.CTP_ENUM_ITEM.SHOWVALUE（经 dbo.ADDRESSBOOK.EXT_ATTR_33）, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_unit, column: DELIVERY_FLAG_ENUM_ID, source: dbo.ADDRESSBOOK.EXT_ATTR_32, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_relationship, column: SOURCE_MEMBER_ID, source: dbo.ORG_RELATIONSHIP.SOURCE_ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_relationship, column: ORG_UNIT_ID, source: dbo.ORG_RELATIONSHIP.OBJECTIVE0_ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_relationship, column: RELATIONSHIP_TYPE_ID, source: dbo.ORG_RELATIONSHIP.OBJECTIVE1_ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_relationship, column: MEMBER_IS_DELETED, source: dbo.ORG_MEMBER.IS_DELETED, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: ID, source: dbo.ORG_POST.ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: CODE, source: dbo.ORG_POST.CODE, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: NAME, source: dbo.ORG_POST.NAME, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: SORT_ID, source: dbo.ORG_POST.SORT_ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: STATUS, source: dbo.ORG_POST.STATUS, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: IS_DELETED, source: dbo.ORG_POST.IS_DELETED, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: ID, source: dbo.ORG_MEMBER.ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: NAME, source: dbo.ORG_MEMBER.NAME, category: 组织, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: CODE, source: dbo.ORG_MEMBER.CODE, category: 组织, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: ORG_UNIT_ID, source: dbo.ORG_MEMBER.ORG_DEPARTMENT_ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: ORG_UNIT_PATH, source: dbo.ORG_UNIT.PATH, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: POST_ID, source: dbo.ORG_MEMBER.ORG_POST_ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: SUPERVISOR_MEMBER_ID, source: dbo.ORG_MEMBER.EXT_ATTR_37, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: WE_COM_ID, source: dbo.ORG_MEMBER.we_com_id, category: 身份, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: IS_INTERNAL, source: dbo.ORG_MEMBER.IS_INTERNAL, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: LOGIN_NAME, source: dbo.ORG_PRINCIPAL.LOGIN_NAME, category: 身份, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: ENTERPRISE_EMAIL, source: dbo.formmain_0307.field0234, category: 身份, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: GENDER, source: dbo.formmain_0307.field0284, category: 组织, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: FEE_EARNER_ENUM_ID, source: dbo.formmain_0307.FIELD0244, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: dbo.ORG_UNIT, column: ID, source: dbo.ORG_UNIT.ID, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: dbo.ORG_UNIT, column: TYPE, source: dbo.ORG_UNIT.TYPE, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: assignee_user_id, source: dbo.bpm_task_ext.assignee_user_id, category: 待办, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
-  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: task_id, source: dbo.bpm_task_ext.task_id, category: 待办, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
-  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: process_instance_id, source: dbo.bpm_task_ext.process_instance_id, category: 待办, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
-  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: task_def_key, source: dbo.bpm_task_ext.task_def_key, category: 待办, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
-  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: task_name, source: dbo.bpm_task_ext.name, category: 待办, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
-  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: process_title, source: dbo.bpm_process_instance_ext.title, category: 待办, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
-  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: created_at, source: dbo.bpm_task_ext.create_time, category: 待办, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
-  - { database: ruoyi-vue-pro, object: dbo.v_one_legacy_org_short_name, column: id, source: dbo.system_dept.id, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: ruoyi-vue-pro, object: dbo.v_one_legacy_org_short_name, column: short_name, source: dbo.system_dept.short_name, category: 组织, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: ID, source: dbo.ORG_UNIT.ID, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: CODE, source: dbo.ORG_UNIT.CODE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: NAME, source: dbo.ORG_UNIT.NAME, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: SORT_ID, source: dbo.ORG_UNIT.SORT_ID, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: PATH, source: dbo.ORG_UNIT.PATH, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: IS_DELETED, source: dbo.ORG_UNIT.IS_DELETED, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: IS_INTERNAL, source: dbo.ORG_UNIT.IS_INTERNAL, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: IS_ENABLE, source: dbo.ORG_UNIT.IS_ENABLE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: CATEGORY, source: dbo.CTP_ENUM_ITEM.SHOWVALUE（经 dbo.ADDRESSBOOK.EXT_ATTR_33）, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_unit, column: DELIVERY_FLAG_ENUM_ID, source: dbo.ADDRESSBOOK.EXT_ATTR_32, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_relationship, column: SOURCE_MEMBER_ID, source: dbo.ORG_RELATIONSHIP.SOURCE_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_relationship, column: ORG_UNIT_ID, source: dbo.ORG_RELATIONSHIP.OBJECTIVE0_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_relationship, column: RELATIONSHIP_TYPE_ID, source: dbo.ORG_RELATIONSHIP.OBJECTIVE1_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_relationship, column: MEMBER_IS_DELETED, source: dbo.ORG_MEMBER.IS_DELETED, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: ID, source: dbo.ORG_POST.ID, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: CODE, source: dbo.ORG_POST.CODE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: NAME, source: dbo.ORG_POST.NAME, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: SORT_ID, source: dbo.ORG_POST.SORT_ID, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: STATUS, source: dbo.ORG_POST.STATUS, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: IS_DELETED, source: dbo.ORG_POST.IS_DELETED, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: ID, source: dbo.ORG_MEMBER.ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: NAME, source: dbo.ORG_MEMBER.NAME, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: CODE, source: dbo.ORG_MEMBER.CODE, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: ORG_UNIT_ID, source: dbo.ORG_MEMBER.ORG_DEPARTMENT_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: ORG_UNIT_PATH, source: dbo.ORG_UNIT.PATH, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: POST_ID, source: dbo.ORG_MEMBER.ORG_POST_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: SUPERVISOR_MEMBER_ID, source: dbo.ORG_MEMBER.EXT_ATTR_37, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: WE_COM_ID, source: dbo.ORG_MEMBER.we_com_id, category: EXTERNAL_IDENTITY, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: IS_INTERNAL, source: dbo.ORG_MEMBER.IS_INTERNAL, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: LOGIN_NAME, source: dbo.ORG_PRINCIPAL.LOGIN_NAME, category: EXTERNAL_IDENTITY, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: ENTERPRISE_EMAIL, source: dbo.formmain_0307.field0234, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: GENDER, source: dbo.formmain_0307.field0284, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: FEE_EARNER_ENUM_ID, source: dbo.formmain_0307.FIELD0244, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: dbo.ORG_UNIT, column: ID, source: dbo.ORG_UNIT.ID, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: dbo.ORG_UNIT, column: TYPE, source: dbo.ORG_UNIT.TYPE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: assignee_user_id, source: dbo.bpm_task_ext.assignee_user_id, category: TODO, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
+  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: task_id, source: dbo.bpm_task_ext.task_id, category: TODO, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
+  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: process_instance_id, source: dbo.bpm_task_ext.process_instance_id, category: TODO, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
+  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: task_def_key, source: dbo.bpm_task_ext.task_def_key, category: TODO, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
+  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: task_name, source: dbo.bpm_task_ext.name, category: TODO, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
+  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: process_title, source: dbo.bpm_process_instance_ext.title, category: TODO, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
+  - { database: ruoyi-vue-pro, object: dbo.v_psa_one_legacy_todo, column: created_at, source: dbo.bpm_task_ext.create_time, category: TODO, sensitivity: INTERNAL, purpose: RUNTIME_TODO }
+  - { database: ruoyi-vue-pro, object: dbo.v_one_legacy_org_short_name, column: id, source: dbo.system_dept.id, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: ruoyi-vue-pro, object: dbo.v_one_legacy_org_short_name, column: short_name, source: dbo.system_dept.short_name, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }

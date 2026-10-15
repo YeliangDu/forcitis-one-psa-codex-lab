@@ -251,7 +251,7 @@ class CredentialColumnGuardTest {
                 + " FROM dbo." + first.table() + "\"; String password; }"), denied)).isEmpty();
         assertThat(namedDeniedColumns(stringLiterals("class Probe { String key = \"forcitis.platform.integration.legacy.password\"; }"), denied))
                 .isEmpty();
-        assertThat(namedDeniedColumns("  - { name: " + plainColumn + ", source: " + first.table() + "." + first.column() + ", category: 身份 }", denied))
+        assertThat(namedDeniedColumns("  - { name: " + plainColumn + ", source: " + first.table() + "." + first.column() + ", category: EMPLOYEE }", denied))
                 .contains(first.key());
     }
 
