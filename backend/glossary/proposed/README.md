@@ -259,7 +259,11 @@ platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 
 platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服务于原编号、确认状态、单据类型代码的命名守护。
 
-无错误码以外的术语。
+| id | zh | en | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|
+| `qt` | 报价单据类型代码 | Qt | 报价（DocumentType.QUOTE）的单据类型代码 QT，1b 首个使用方 |  | 例 QT-FST-202610-0001 |
+| `ts` | 工时单据类型代码 | Ts | 工时（DocumentType.TIMESHEET）的单据类型代码 TS，沿用种子模板中的前缀字母，正式词表尚无对应词 |  | 例 TS-FST-202610-0001；模板待管理员确认 |
+| `jv` | 记账凭证单据类型代码 | Jv | 记账凭证（DocumentType.JOURNAL_VOUCHER）的单据类型代码 JV，沿用种子模板中的前缀字母，正式词表尚无对应词 |  | 例 JV-FST-202610-0001；模板待管理员确认 |
 
 另有错误码 4 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
 

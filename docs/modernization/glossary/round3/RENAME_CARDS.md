@@ -4,6 +4,9 @@
 
 | 编号 | 旧名 | 新名 | 在用位置 |
 |---|---|---|---|
+| R3-NU-06 | 工时单据类型代码 / Ts | 并入 document_type_code | DocumentTypeCodeTest 按 snake 读取 platform-numbering.yaml，条目暂留，测试改为读 document_type_code 取值后删除 |
+| R3-NU-17 | 报价单据类型代码 / Qt | 并入 document_type_code | DocumentTypeCodeTest 按 snake 读取 platform-numbering.yaml，条目暂留，测试改为读 document_type_code 取值后删除 |
+| R3-NU-18 | 记账凭证单据类型代码 / Jv | 并入 document_type_code | DocumentTypeCodeTest 按 snake 读取 platform-numbering.yaml，条目暂留，测试改为读 document_type_code 取值后删除 |
 | R3-AP-04 | 办理 / Act | 办理 / Handle（handle） | 代码仍用 Act（claude/one-1a-par-f1-acceptance） |
 | R3-AP-05 | 已分配 / Assigned | 任务已分配 / TaskAssigned（task_assigned） | 代码仍用 Assigned（claude/one-1a-next-3-r1b-p2） |
 | R3-AP-07 | 已完成 / Completed | 审批已完成 / ApprovalCompleted（approval_completed） | 代码仍用 Completed（main） |

@@ -56,6 +56,48 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: qt
+  zh: 报价单据类型代码
+  en: Qt
+  snake: qt
+  kind: value
+  bc: platform.numbering
+  definition: 报价（DocumentType.QUOTE）的单据类型代码 QT，1b 首个使用方
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 例 QT-FST-202610-0001
+- id: ts
+  zh: 工时单据类型代码
+  en: Ts
+  snake: ts
+  kind: value
+  bc: platform.numbering
+  definition: 工时（DocumentType.TIMESHEET）的单据类型代码 TS，沿用种子模板中的前缀字母，正式词表尚无对应词
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 例 TS-FST-202610-0001；模板待管理员确认
+- id: jv
+  zh: 记账凭证单据类型代码
+  en: Jv
+  snake: jv
+  kind: value
+  bc: platform.numbering
+  definition: 记账凭证（DocumentType.JOURNAL_VOUCHER）的单据类型代码 JV，沿用种子模板中的前缀字母，正式词表尚无对应词
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 例 JV-FST-202610-0001；模板待管理员确认
 common_words:
 - confirm
 - reconfigure
