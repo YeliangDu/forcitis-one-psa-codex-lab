@@ -705,6 +705,10 @@ print("acl: 写使用范围", _scoped, "条；尚无归类", len(_unscoped), "�
 
 # 用语登记规则（B1，intent 2026-10-15-171649、171959-one-coordinator）：bc 为 kernel 的领域词条转为 scope kernel，
 # 并入 glossary/term-fields.yaml 的补充字段，再连同 backend/glossary/proposed/*.yaml 逐条校验（glossary/term_rules.py，存量问题见 term-rules-baseline.json）
+# B1 决策页答复（glossary/decisions-b1-2026-10-15.json）：使用范围、同 bc 重名改名，规则在 glossary/b1/apply_b1.py
+sys.path.insert(0, "glossary/b1")
+import apply_b1
+print("b1: 写使用范围 %d 条、改名 %d 条" % apply_b1.apply(terms))
 sys.path.insert(0, "glossary")
 import term_rules
 _bcs = {b["id"]: b["kind"] for b in yaml.safe_load(open("glossary/bcs.yaml", encoding="utf-8"))["bcs"]}

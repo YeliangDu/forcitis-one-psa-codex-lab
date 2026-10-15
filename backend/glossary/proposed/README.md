@@ -14,11 +14,11 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
-| `org_source_sync` | 组织来源同步 | OrgSourceSync | 未定 · platform.integration | 集成层从组织来源系统拉取组织与人员数据、做缩水保护与差异比对、翻译成组织变更集并交组织人事应用的同步机制（含运行记录与运维放行） |  | 取代原 organization.workforce 内的同步运行（SyncRun）机制 |
-| `org_change_set` | 组织变更集 | OrgChangeSet | 未定 · organization.workforce | 集成层翻译成新系统用语后交给组织人事的一批组织单元、员工与任职变更；以同步运行 ID 作幂等键，整批在一个事务内应用 |  |  |
-| `apply_org_change_set` | 应用组织变更 | ApplyOrgChangeSet | 未定 · organization.workforce | 组织人事 api 中唯一的同步入口：应用一份组织变更集，管理员离职挂为待放行离职，其余变更照常生效；同一变更集重复调用返回上次结果 |  |  |
+| `org_source_sync` | 组织来源同步 | OrgSourceSync | ACL（过渡期） · platform.integration | 集成层从组织来源系统拉取组织与人员数据、做缩水保护与差异比对、翻译成组织变更集并交组织人事应用的同步机制（含运行记录与运维放行） |  | 取代原 organization.workforce 内的同步运行（SyncRun）机制 |
+| `org_change_set` | 组织变更集 | OrgChangeSet | 领域 · organization.workforce | 集成层翻译成新系统用语后交给组织人事的一批组织单元、员工与任职变更；以同步运行 ID 作幂等键，整批在一个事务内应用 |  |  |
+| `apply_org_change_set` | 应用组织变更 | ApplyOrgChangeSet | 领域 · organization.workforce | 组织人事 api 中唯一的同步入口：应用一份组织变更集，管理员离职挂为待放行离职，其余变更照常生效；同一变更集重复调用返回上次结果 |  |  |
 | `separation_hold` | 待放行离职 | SeparationHold | 领域 · organization.workforce | 会使可用超级管理员少于 2 名、或涉及超级管理员与安全审计员持有人的离职，被单独挂起等待另一名持有人放行的记录（ADR-0027 第 1 项第 7 条、ADR-0028） |  | 权限码 organization.workforce:separation-hold:approve 已用此词（ADR-0028 第 2 条） |
-| `federated_identity` | 联合身份 | FederatedIdentity | 未定 · platform.integration | 由外部身份提供方（企业微信、致远单点、签名票据签发方）认证、集成层校验并按外部身份对照映射到本系统用户的登录方式；本系统只据此决定能否登录并发会话 |  | 细节待「人员入职到账号开通」身份生命周期研究（ADR-0039 第 3 条） |
+| `federated_identity` | 联合身份 | FederatedIdentity | ACL（长期） · platform.integration | 由外部身份提供方（企业微信、致远单点、签名票据签发方）认证、集成层校验并按外部身份对照映射到本系统用户的登录方式；本系统只据此决定能否登录并发会话 |  | 细节待「人员入职到账号开通」身份生命周期研究（ADR-0039 第 3 条） |
 
 ## `contract-evolution.yaml`
 
@@ -191,8 +191,8 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
-| `employment_verdict` | 在职判定 | EmploymentVerdict | 未定 · organization.workforce | 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用） |  | R-1b P2-H2 |
-| `login_lookup` | 登录查人 | LoginLookup | 未定 · organization.workforce | 按外部登录标识（企业微信 userid 或外部登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除 |  | R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限 |
+| `employment_verdict` | 在职判定 | EmploymentVerdict | 领域 · organization.workforce | 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用） |  | R-1b P2-H2 |
+| `login_lookup` | 登录查人 | LoginLookup | ACL（过渡期） · organization.workforce | 按外部登录标识（企业微信 userid 或外部登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除 |  | R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限 |
 | `workforce__sync_diff` | 同步差异 | SyncDiff | ACL（过渡期） · platform.integration | 一次同步运行改动的对象与字段，以及发现的数据例外（供数据管理员处理） |  |  |
 | `workforce__shrink_guard` | 缩水保护 | ShrinkGuard | ACL（过渡期） · organization.workforce | A8 返回的有效部门数或在职人数降幅超过 20 % 时中止同步，等管理员人工放行 |  |  |
 | `workforce__held_run` | 被中止的同步 | HeldRun | ACL（过渡期） · organization.workforce | 被缩水保护中止、等待管理员放行的同步运行 |  |  |
@@ -219,7 +219,7 @@ platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登�
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
-| `signing_key_code` | 签名密钥编码 | SigningKeyCode | 未定 · platform.identity | 票据签发方签名密钥的编码（票据头部的 kid），一方一把；原列名 key_id 按 ADR-0033 影响面改为以 _code 结尾（R-1b P2） |  |  |
+| `signing_key_code` | 签名密钥编码 | SigningKeyCode | ACL（长期） · platform.identity | 票据签发方签名密钥的编码（票据头部的 kid），一方一把；原列名 key_id 按 ADR-0033 影响面改为以 _code 结尾（R-1b P2） |  |  |
 | `ticket` | 票据 | Ticket | ACL（长期） · platform.identity | 一次性登录凭据：致远 OA 票据，或外部系统的签名票据 |  |  |
 | `ticket_issuer` | 票据签发方 | TicketIssuer | ACL（长期） · platform.identity | 被允许签发签名票据的外部系统（KM、组织门户、YD 门户、BI），每方一把密钥，默认关闭 |  |  |
 | `sso` | 单点登录 | Sso | 领域 · platform.identity | 由致远 OA 发起的单点登录 |  |  |

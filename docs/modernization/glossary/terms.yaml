@@ -618,7 +618,7 @@ terms:
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
 - id: contract_gap_waived
-  zh: 缺口豁免
+  zh: 合同缺口已豁免
   en: ContractGapWaived
   snake: contract_gap_waived
   kind: event
@@ -627,10 +627,14 @@ terms:
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 缺口豁免
+    type: dialect
+    deprecated: true
+    source: B1 决策页 NM-02 改名；旧名是另一条词条的名字或泛称，不列入禁用
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
 - id: tm_cap
   zh: T&M 封顶
@@ -3831,12 +3835,12 @@ terms:
   status: approved
   scope: domain
 - id: contract_asset_impairment_risk_raised
-  zh: 减值预警
+  zh: 合同资产减值预警
   en: ContractAssetImpairmentRiskRaised
   snake: contract_asset_impairment_risk_raised
   kind: event
   bc: receivables.wip
-  definition: WIP/AR 侧的前置预警信号统称（区别于法定计提；两侧事件已拆分）
+  definition: 合同资产（WIP）一侧的减值前置预警信号，区别于法定计提
   standard_ref:
   - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
   - IFRS 9 Financial Instruments（expected credit losses）
@@ -3846,27 +3850,36 @@ terms:
   - name: WipImpairmentRiskRaised
     type: old-code
     deprecated: true
+  - name: 减值预警
+    type: dialect
+    deprecated: true
+    source: B1 决策页 NM-03 改名；旧名是另一条词条的名字或泛称，不列入禁用
   forbidden:
   - WipImpairmentRiskRaised
   status: approved
   change_ref: G-8
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
 - id: ar_impairment_risk_raised
-  zh: 减值预警
+  zh: 应收账款减值预警
   en: ArImpairmentRiskRaised
   snake: ar_impairment_risk_raised
   kind: event
   bc: receivables.wip
-  definition: WIP/AR 侧的前置预警信号统称（区别于法定计提；两侧事件已拆分）
+  definition: 应收账款一侧的减值前置预警信号，区别于法定计提
   standard_ref:
   - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
   - IFRS 9 Financial Instruments（expected credit losses）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 减值预警
+    type: dialect
+    deprecated: true
+    source: B1 决策页 NM-04 改名；旧名是另一条词条的名字或泛称，不列入禁用
   forbidden: []
   status: approved
   scope: domain
+  confirmed: 2026-10-15（用户，B1 用语登记规则决策页）
 - id: retention_money_release_due
   zh: 质量保证金到期返还
   en: RetentionMoneyReleaseDue
@@ -4058,7 +4071,7 @@ terms:
   status: approved
   scope: domain
 - id: accounting_period_closed
-  zh: 会计期间
+  zh: 会计期间已关闭
   en: AccountingPeriodClosed
   snake: accounting_period_closed
   kind: event
@@ -4068,11 +4081,16 @@ terms:
   - 会计基础工作规范（财政部）
   - ADR-0016 权责发生制业财一体主干
   confidence: high
-  aliases: []
+  aliases:
+  - name: 会计期间
+    type: dialect
+    deprecated: true
+    source: B1 决策页 NM-07 改名；旧名是另一条词条的名字或泛称，不列入禁用
   forbidden: []
   status: approved
   note: 实体 AccountingPeriod 移入 accounting.period（G-4、G-16）
   scope: domain
+  confirmed: 2026-10-15（用户，B1 用语登记规则决策页）
 - id: statutory_revenue_booked
   zh: 法定收入
   en: StatutoryRevenueBooked
@@ -6252,7 +6270,7 @@ terms:
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
   scope: domain
 - id: separated
-  zh: 离职
+  zh: 已离职
   en: Separated
   snake: separated
   kind: value
@@ -6261,11 +6279,15 @@ terms:
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 离职
+    type: dialect
+    deprecated: true
+    source: B1 决策页 NM-05 改名；旧名是另一条词条的名字或泛称，不列入禁用
   forbidden: []
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#separated）
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
 - id: fee_earner
   zh: 收费员工标识
@@ -9249,7 +9271,8 @@ terms:
   - 项目毛利润
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-contribution_margin，R3-RN-01）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: contribution_margin_ratio
   zh: 贡献毛利率
   en: ContributionMarginRatio
@@ -9269,7 +9292,8 @@ terms:
   - 毛利率
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-contribution_margin_ratio，R3-RN-02）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: net_service_revenue
   zh: 净服务收入
   en: NetServiceRevenue
@@ -9284,7 +9308,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-net_service_revenue，R3-RN-03）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: management_operating_profit
   zh: 经营利润
   en: ManagementOperatingProfit
@@ -9299,7 +9324,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-operating_profit，R3-RN-04）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: management_operating_profit_margin
   zh: 经营利润率
   en: ManagementOperatingProfitMargin
@@ -9314,7 +9340,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-operating_profit_margin，R3-RN-05）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: indirect_cost
   zh: 间接成本
   en: IndirectCost
@@ -9329,7 +9356,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-overhead，R3-RN-06）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: pass_through_cost
   zh: 转付成本
   en: PassThroughCost
@@ -9344,7 +9372,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-pass_through_cost，R3-RN-07）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: policy_parameter
   zh: 口径参数
   en: PolicyParameter
@@ -9359,7 +9388,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-policy_parameter，R3-RN-08）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: labor_cost_multiplier
   zh: 人工成本产出倍数
   en: LaborCostMultiplier
@@ -9399,7 +9429,8 @@ terms:
   - 产值产出比
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-labor_cost_multiplier，R3-RN-09）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: strategic_goal
   zh: 战略目标
   en: StrategicGoal
@@ -9414,7 +9445,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-strategic_goal，R3-RN-10）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: business_plan
   zh: 经营计划
   en: BusinessPlan
@@ -9429,7 +9461,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-business_plan，R3-RN-11）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: business_plan_baseline
   zh: 经营计划基线
   en: BusinessPlanBaseline
@@ -9444,7 +9477,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-plan_baseline，R3-RN-12）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: planning_period
   zh: 计划周期
   en: PlanningPeriod
@@ -9459,7 +9493,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-planning_period，R3-RN-13）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: business_review
   zh: 经营复盘
   en: BusinessReview
@@ -9474,7 +9509,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-management_review，R3-RN-15）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: action_item
   zh: 经营动作
   en: ActionItem
@@ -9489,7 +9525,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-action_item，R3-RN-16）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: target_variance
   zh: 目标偏差
   en: TargetVariance
@@ -9504,7 +9541,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-target_variance，R3-RN-17）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_baseline
   zh: 预算基线
   en: BudgetBaseline
@@ -9519,7 +9557,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_baseline，R3-RN-18）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_preparation
   zh: 预算编制
   en: BudgetPreparation
@@ -9534,7 +9573,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_preparation，R3-RN-19）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_breakdown
   zh: 预算分解
   en: BudgetBreakdown
@@ -9549,7 +9589,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_breakdown，R3-RN-20）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_unit
   zh: 预算主体
   en: BudgetUnit
@@ -9564,7 +9605,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_subject，R3-RN-21）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_reserved
   zh: 预算占用
   en: BudgetReserved
@@ -9579,7 +9621,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_reserved，R3-RN-22）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_released
   zh: 预算释放
   en: BudgetReleased
@@ -9594,7 +9637,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_released，R3-RN-23）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_consumed
   zh: 预算消耗
   en: BudgetConsumed
@@ -9609,7 +9653,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_consumed，R3-RN-24）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: available_budget
   zh: 可用额度
   en: AvailableBudget
@@ -9624,7 +9669,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-available_budget，R3-RN-25）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_adjusted
   zh: 预算调整
   en: BudgetAdjusted
@@ -9639,7 +9685,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_adjusted，R3-RN-26）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_overrun_approval
   zh: 超预算审批
   en: BudgetOverrunApproval
@@ -9654,7 +9701,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_overrun_approval，R3-RN-27）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_freeze
   zh: 预算冻结
   en: BudgetFreeze
@@ -9669,7 +9717,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_freeze，R3-RN-28）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_execution
   zh: 预算执行
   en: BudgetExecution
@@ -9684,7 +9733,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_execution，R3-RN-29）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_category
   zh: 预算科目
   en: BudgetCategory
@@ -9699,7 +9749,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_category，R3-RN-30）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: plan_target_value
   zh: 计划目标值
   en: PlanTargetValue
@@ -9722,7 +9773,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-plan_target_value，R3-RN-31）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: target_type
   zh: 目标类型
   en: TargetType
@@ -9737,7 +9789,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-target_type，R3-RN-32）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: target_attainment_rate
   zh: 目标达成率
   en: TargetAttainmentRate
@@ -9757,7 +9810,8 @@ terms:
   - 预实比
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-target_attainment_rate，R3-RN-33）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: elapsed_period_ratio
   zh: 时间进度
   en: ElapsedPeriodRatio
@@ -9772,7 +9826,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-elapsed_period_ratio，R3-RN-34）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: commitment_list
   zh: 承诺清单
   en: CommitmentList
@@ -9787,7 +9842,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-commitment_list，R3-RN-35）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: budget_consumption_rate
   zh: 预算消耗率
   en: BudgetConsumptionRate
@@ -9802,7 +9858,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_burn_rate，R3-RN-36）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: new_contract_value
   zh: 新签合同额
   en: NewContractValue
@@ -9817,7 +9874,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-new_contract_value，R3-RN-37）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: project_initiation_value
   zh: 项目立项金额
   en: ProjectInitiationValue
@@ -9832,7 +9890,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-project_initiation_value，R3-RN-38）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: settlement_method
   zh: 回款方式
   en: SettlementMethod
@@ -9847,7 +9906,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-settlement_method，R3-RN-39）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: commercial_acceptance_bill
   zh: 商业承兑汇票
   en: CommercialAcceptanceBill
@@ -9862,7 +9922,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-commercial_acceptance_bill，R3-RN-41）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: aged_receivable
   zh: 账龄超 N 天应收
   en: AgedReceivable
@@ -9882,7 +9943,8 @@ terms:
   - 超期应收
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-aged_receivable，R3-RN-42）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: days_sales_outstanding
   zh: 应收周转天数
   en: DaysSalesOutstanding
@@ -9897,7 +9959,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-days_sales_outstanding，R3-RN-43）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: billing_conversion_rate
   zh: 开票转化率
   en: BillingConversionRate
@@ -9912,7 +9975,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-billing_conversion_rate，R3-RN-44）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: collection_rate
   zh: 回款率
   en: CollectionRate
@@ -9927,7 +9991,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-collection_rate，R3-RN-45）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: overdue_billing_commitment
   zh: 承诺开票超期
   en: OverdueBillingCommitment
@@ -9942,7 +10007,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-overdue_billing_commitment，R3-RN-46）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: contract_asset_risk_tier
   zh: 合同资产风险分层
   en: ContractAssetRiskTier
@@ -9957,7 +10023,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-contract_asset_risk_tier，R3-RN-47）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: revenue_reduction
   zh: 收入冲减
   en: RevenueReduction
@@ -9972,7 +10039,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-revenue_reduction，R3-RN-48）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: allowance_for_bad_debts
   zh: 坏账准备
   en: AllowanceForBadDebts
@@ -10004,7 +10072,8 @@ terms:
   - 坏账
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-credit_loss_allowance，R3-RN-49）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: average_headcount
   zh: 平均在册人数
   en: AverageHeadcount
@@ -10019,7 +10088,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-average_headcount，R3-RN-50）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: attrition_rate
   zh: 离职率
   en: AttritionRate
@@ -10034,7 +10104,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-attrition_rate，R3-RN-51）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: org_unit_level
   zh: 组织单元层级
   en: OrgUnitLevel
@@ -10049,7 +10120,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-org_unit_level，R3-RN-52）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: customer_group
   zh: 客户集团
   en: CustomerGroup
@@ -10064,7 +10136,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-customer_group，R3-RN-53）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: customer_tier
   zh: 客户分级
   en: CustomerTier
@@ -10079,7 +10152,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-customer_tier，R3-RN-54）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: pipeline_value
   zh: 商机管道金额
   en: PipelineValue
@@ -10094,7 +10168,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-pipeline_value，R3-RN-55）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: win_rate
   zh: 赢单率
   en: WinRate
@@ -10109,7 +10184,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-win_rate，R3-RN-56）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: lead_conversion_rate
   zh: 线索转化率
   en: LeadConversionRate
@@ -10124,7 +10200,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-lead_conversion_rate，R3-RN-57）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: business_line
   zh: 业务线
   en: BusinessLine
@@ -10139,7 +10216,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-business_line，R3-RN-58）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: external_reference_dataset
   zh: 外部参考数据集
   en: ExternalReferenceDataset
@@ -10154,7 +10232,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-external_reference_dataset，R3-RN-59）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: expense_payment
   zh: 费用支付
   en: ExpensePayment
@@ -10169,7 +10248,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-expense_payment，R3-RN-60）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: ledger
   zh: 账簿
   en: Ledger
@@ -10184,7 +10264,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-ledger，R3-RN-61）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: kickoff_completion_rate
   zh: 启动会完成率
   en: KickoffCompletionRate
@@ -10199,7 +10280,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-kickoff_completion_rate，R3-RN-62）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: internal_review_coverage
   zh: 内部评审覆盖率
   en: InternalReviewCoverage
@@ -10214,7 +10296,8 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-internal_review_coverage，R3-RN-63）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
 - id: project_hours
   zh: 项目工时
   en: ProjectHours

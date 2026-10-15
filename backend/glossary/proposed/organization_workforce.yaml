@@ -7,6 +7,7 @@ terms:
   snake: employment_verdict
   kind: value
   bc: organization.workforce
+  scope: domain
   definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用）
   standard_ref:
   - ADR-0033 第 3 项第 7 条
@@ -21,6 +22,8 @@ terms:
   snake: login_lookup
   kind: value
   bc: organization.workforce
+  scope: acl
+  acl_class: 过渡期
   definition: 按外部登录标识（企业微信 userid 或外部登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除
   standard_ref:
   - ADR-0033 第 4 项
