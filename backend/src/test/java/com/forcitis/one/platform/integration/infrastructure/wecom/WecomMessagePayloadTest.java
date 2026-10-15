@@ -68,7 +68,7 @@ class WecomMessagePayloadTest {
     void taskIdIsSafeAndDeterministic() {
         String id = WecomMessagePayload.taskId(ID_42);
 
-        assertThat(id).matches("one-[0-9a-f-]{36}").isEqualTo(WecomMessagePayload.taskId(ID_42))
+        assertThat(id).matches("one-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").isEqualTo(WecomMessagePayload.taskId(ID_42))
                 .isNotEqualTo(WecomMessagePayload.taskId(ID_43));
     }
 

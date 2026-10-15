@@ -29,7 +29,7 @@ class SourceReferenceAllocationGuardTest {
     static final String ALLOCATE_OWN_ID = "com.forcitis.one.platform.integration.application.AllocateOwnId";
 
     static final ArchRule ONLY_SOURCE_REFERENCES_USES_ALLOCATE_OWN_ID = noClasses()
-            .that().haveNameNotMatching(".*\\.(SourceReferences|AllocateOwnId)(\\$.*)?")
+            .that().haveNameNotMatching("com\\.forcitis\\.one\\.platform\\.integration\\.application\\.(SourceReferences|AllocateOwnId)(\\$.*)?")
             .should().dependOnClassesThat().haveFullyQualifiedName(ALLOCATE_OWN_ID).allowEmptyShould(true)
             .because("AllocateOwnId is the writing half of SourceReferences.allocate and is used through it only, so the rule above cannot be walked around");
 

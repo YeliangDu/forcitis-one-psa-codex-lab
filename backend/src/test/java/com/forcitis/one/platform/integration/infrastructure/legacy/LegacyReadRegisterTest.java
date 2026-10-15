@@ -22,7 +22,7 @@ class LegacyReadRegisterTest {
     static final String TODO_VIEW = LegacyInboxProperties.DEFAULT_VIEW;
     static final String SHORT_NAME_VIEW = "dbo.v_one_legacy_org_short_name";
     static final Pattern STATEMENT = Pattern.compile("(?is)^\\s*SELECT\\s+(.+?)\\s+FROM\\s+(\\S+)(?:\\s+WHERE\\s+(.+?))?(?:\\s+ORDER\\s+BY\\s+(.+?))?\\s*$");
-    static final Pattern FILTER_COLUMN = Pattern.compile("(\\w+)\\s*=");
+    static final Pattern FILTER_COLUMN = Pattern.compile("(?i)(\\w+)\\s*(?:=|<>|!=|>=|<=|>|<|\\bIN\\b|\\bLIKE\\b|\\bIS\\b)");
 
     /** Registered columns per old-system object whose purpose is run-time, sorted. */
     static Map<String, TreeSet<String>> registered(List<Row> rows) {
@@ -87,6 +87,10 @@ class LegacyReadRegisterTest {
         assertThat(mismatches(rows, todo, "SELECT id FROM " + SHORT_NAME_VIEW)).hasSize(1);
         assertThat(mismatches(rows, todo, names, "SELECT secret_value FROM dbo.other_table")).hasSize(1);
         assertThat(mismatches(rows, todo.replace(":user", ":user AND status = 1"), names)).as("a second filter column nobody registered").hasSize(1);
+        for (String operator : List.of("> 1", "< 1", "IN (1)", "LIKE 'x'", "IS NULL", "<> 1")) {
+            assertThat(mismatches(rows, todo.replace(":user", ":user AND status " + operator), names)).as("a second filter column compared with " + operator).hasSize(1);
+        }
+        assertThat(mismatches(rows, todo.replace(":user", ":user AND status = 1 AND other_flag IS NULL"), names)).hasSize(1);
         assertThat(mismatches(rows, todo.replace("ORDER BY created_at DESC", "ORDER BY sort_key DESC"), names)).as("an ordering column nobody registered").hasSize(1);
         List<Row> extra = new ArrayList<>(rows);
         extra.add(new Row(0, Map.<String, Object>of("database", rows.stream().filter(r -> !r.database().equals(ExternalReadRegister.A8)).findFirst().orElseThrow().database(), "object", SHORT_NAME_VIEW, "column", "extra_column",
