@@ -18,30 +18,15 @@ SELECT u.name AS user_name, r.name AS role_name
   JOIN sys.database_principals u ON u.principal_id = m.member_principal_id
  WHERE u.name IN (N'$(INBOX_LOGIN)', N'$(NAMES_LOGIN)');
 
--- V3 合并待办账号：能 SELECT 的对象恰好 1 行 dbo.v_psa_one_legacy_todo；令牌表为 0
+-- V3 / V4「能 SELECT 的对象恰好 1 行」「令牌表为 0」已被 ADR-0037 取代：两个账号全库只读，形状以各账号真实登录执行
+-- read-all/readonly_check.sql 核对 (a)–(g)，与应用启动校验同一组查询。这里只留视图可读的行数核对。
+-- V3 合并待办视图可读
 EXECUTE AS USER = N'$(INBOX_LOGIN)';
-SELECT TABLE_SCHEMA, TABLE_NAME
-  FROM INFORMATION_SCHEMA.TABLES
- WHERE TABLE_SCHEMA NOT IN (N'sys', N'INFORMATION_SCHEMA')
-   AND HAS_PERMS_BY_NAME(QUOTENAME(TABLE_SCHEMA) + N'.' + QUOTENAME(TABLE_NAME), N'OBJECT', N'SELECT') = 1;
-SELECT HAS_PERMS_BY_NAME(N'dbo.system_oauth2_access_token', N'OBJECT', N'SELECT') AS access_token,
-       HAS_PERMS_BY_NAME(N'dbo.system_oauth2_refresh_token', N'OBJECT', N'SELECT') AS refresh_token;
--- 与应用启动校验同一查询：期望恰好 1 行
-SELECT DISTINCT table_schema, table_name FROM information_schema.table_privileges
- WHERE privilege_type = 'SELECT' AND lower(table_schema) NOT IN ('pg_catalog', 'information_schema', 'sys');
 SELECT COUNT(*) AS open_todos FROM dbo.v_psa_one_legacy_todo;
 REVERT;
 
--- V4 部门简称账号：能 SELECT 的对象恰好 1 行 dbo.v_one_legacy_org_short_name；令牌表为 0
+-- V4 部门简称视图可读
 EXECUTE AS USER = N'$(NAMES_LOGIN)';
-SELECT TABLE_SCHEMA, TABLE_NAME
-  FROM INFORMATION_SCHEMA.TABLES
- WHERE TABLE_SCHEMA NOT IN (N'sys', N'INFORMATION_SCHEMA')
-   AND HAS_PERMS_BY_NAME(QUOTENAME(TABLE_SCHEMA) + N'.' + QUOTENAME(TABLE_NAME), N'OBJECT', N'SELECT') = 1;
-SELECT HAS_PERMS_BY_NAME(N'dbo.system_oauth2_access_token', N'OBJECT', N'SELECT') AS access_token,
-       HAS_PERMS_BY_NAME(N'dbo.system_oauth2_refresh_token', N'OBJECT', N'SELECT') AS refresh_token;
-SELECT DISTINCT table_schema, table_name FROM information_schema.table_privileges
- WHERE privilege_type = 'SELECT' AND lower(table_schema) NOT IN ('pg_catalog', 'information_schema', 'sys');
 SELECT COUNT(*) AS departments FROM dbo.v_one_legacy_org_short_name;
 REVERT;
 

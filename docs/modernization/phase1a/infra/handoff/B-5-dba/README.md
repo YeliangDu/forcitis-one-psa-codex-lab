@@ -11,7 +11,7 @@
 
 ## 要做什么
 
-FORCITIS one 只通过专用视图读这两个库，**不写任何数据，不改任何表**。
+FORCITIS one 只读这两个库（ADR-0037：全库只读；运行时仍经下列专用视图读取，视图冻结），**不写任何数据，不改任何表**。
 
 | 库 | 新增对象 | 专用账号 | 应用侧变量（运维写入 one.env，DBA 只交口令） |
 |---|---|---|---|
@@ -41,7 +41,7 @@ FORCITIS one 只通过专用视图读这两个库，**不写任何数据，不�
 
 - 脚本：`read-all/a8_apply.sql`、`read-all/legacy_apply.sql`（各一个事务），回滚 `read-all/a8_rollback.sql`、`read-all/legacy_rollback.sql`；执行与验证 `tools/b5_read_all_run.py`。三个账号都不加入任何数据库角色。
 - 执行记录（云助手）：前后授权导出与变更 t-hz0702doo7c0xkw：a8_db 授权 16 行 → 26 行，老系统库 4 行 → 28 行，与清单逐项一致，角色成员 0 行不变。登录验证 t-hz0702dpgo0dukg：三个账号以 one.env 中现有口令真实登录（口令在新 ECS 上以临时公钥加密转交，本会话只经手密文），基表、元数据与原视图均可读（只出计数）；UPDATE、DELETE 被拒（229），CREATE TABLE 被拒（262），allowed=0。两台服务器临时目录已清理。
-- **与应用启动校验冲突**：下一节所述「每个只读连接能 SELECT 的对象恰好一个视图」（SECURITY_INVARIANTS I-1）与 `ReadOnlyGuard`、`seeyon-view-columns.yaml` 白名单仍按最小化授权写。改为全库只读后应用启动校验会拒绝；运行时读取方式与校验口径由 ADR-0037 定，首次部署前须由代码会话改校验。`legacy_*_deny.sql` 中「读基表、读令牌表、读另一视图」三类期望已不成立，以 `read-all/*_login_*.sql` 为准。
+- **与应用启动校验冲突**：下一节所述「每个只读连接能 SELECT 的对象恰好一个视图」（SECURITY_INVARIANTS I-1）与 `ReadOnlyGuard`、`seeyon-view-columns.yaml` 白名单仍按最小化授权写。改为全库只读后应用启动校验会拒绝；运行时读取方式与校验口径由 ADR-0037 定，首次部署前须由代码会话改校验（已由 ADR37-1 按 ADR-0037 第 4 项 (a)–(f) 重写，见下文「验收标准」）。`legacy_*_deny.sql` 中「读基表、读令牌表、读另一视图」三类期望已不成立，以 `read-all/*_login_*.sql` 为准。
 - 账号是否合并由 ADR-0037 定，应用配置暂不变。
 
 ## 2026-10-15 取证账号与服务器级权限（ADR-0037）
@@ -56,6 +56,8 @@ FORCITIS one 只通过专用视图读这两个库，**不写任何数据，不�
 
 ## 权限为什么这样给（最小化，2026-10-15 前）
 
+**本节已被 ADR-0037 取代**（只给视图 SELECT、A8 基表 DENY、老系统必须两个账号、列最小都不再成立），只有「不加入任何数据库角色」保留，现由应用校验 (c) 断言。现行形状见上一节与 `read-all/`。
+
 - **只给视图 SELECT**：A8 账号只对 `forcitis_one` schema 有 SELECT；老系统两个账号各只对一个视图有 SELECT。视图与基表同属 `dbo`，靠所有权链读取，账号对基表没有任何权限。A8 基表另加 DENY。
 - **不加入任何数据库角色**（`db_datareader` 等）：加入就等于读全库；而且应用检查授权时看不到经角色得到的权限。
 - **老系统必须是两个账号**：应用对每个连接启动时都检查「能 SELECT 的对象恰好只有这一个视图」（SECURITY_INVARIANTS I-1）。一个账号读两个视图，两边都会拒绝启动。
@@ -68,6 +70,8 @@ FORCITIS one 只通过专用视图读这两个库，**不写任何数据，不�
 - 老系统：先由运维清空 `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL`、关闭 `INTEGRATION_LEGACY_ENABLED` 与 `WORKFORCE_SHORT_NAME_ENABLED` 并重启，再执行 `legacy_90_rollback.sql`。合并待办此时只显示新系统待办。
 
 ## 验收标准
+
+**ADR-0037 后的验收**（取代下面 V1 中的白名单授权含义、V3.1–V3.3 与老系统「恰好 1 行」「令牌表全为 0」）：每个运行时账号与取证账号以真实登录执行 `read-all/readonly_check.sql`，(a)–(f) 全部等于上一节的平台基线；应用在 dev 启动时三条只读连接的校验通过（ADR-0037 第 4 项，无关闭开关），拒绝时日志按 (a)–(f) 报出违反项。视图冻结，A8 视图列仍与 `backend/architecture/seeyon-view-columns.yaml` 完全相等。以下为 2026-10-15 前的原验收，留作执行记录：
 
 - `a8_20_verify.sql`：V1 共 33 列且与白名单逐列一致；V2 0 行；V3.1 恰好 4 个视图；V3.2 全为 0；V3.3 不含应用 `ReadOnlyGuard.FORBIDDEN` 中任一项（实测为 `CONNECT` 与 SQL Server 默认授给 public 的 `VIEW ANY COLUMN ENCRYPTION KEY DEFINITION`、`VIEW ANY COLUMN MASTER KEY DEFINITION`；以该账号真实登录时另见 `SHOWPLAN`、`VIEW DATABASE STATE`、`ALTER ANY DATABASE EVENT SESSION`、`KILL DATABASE CONNECTION`，来自实例级授权，也不在禁止清单内）；V3.5 0 行。
 - `legacy_20_verify.sql`：V2 0 行；两个账号的「能 SELECT 的对象」各恰好 1 行，且是自己的视图；令牌表全为 0。
