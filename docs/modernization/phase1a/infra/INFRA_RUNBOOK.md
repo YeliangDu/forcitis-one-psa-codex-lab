@@ -69,7 +69,8 @@
 | E-14 | 出站网络 | 安全组出方向放行：RDS 5432（同 VPC）、`qyapi.weixin.qq.com:443`、致远 OA 验票地址、A8 SQL Server、老系统 SQL Server（经白名单）；其余出站按需收紧 | |
 | E-15 | 企业微信 | 在企业微信后台为新应用配置：可信域名 `one.forcitis.com`、扫码登录回调域、企业可信 IP 47.114.56.157；工作台**新增**「FORCITIS one」入口，**不替换**老 H5（切换手册 §3.11） | 登录冒烟 |
 | E-16 | 致远 | 由 A8 管理员登记新系统的验票回跳地址，**不替换**老 SSO | 登录冒烟 |
-| E-17 | 备份 | RDS 自动备份保留 ≥7 天；ECS 数据盘设快照策略；日志在 SLS 中保留 30 天 | |
+| E-17 | 备份 | RDS 自动备份保留 ≥7 天；ECS 数据盘设快照策略；日志在 SLS 中保留：nginx 与 ops 180 天（《网络安全法》第二十一条：网络日志留存不少于六个月），app 30 天 | |
+| E-18 | 数据库日志 | 慢语句阈值用实例级 `log_min_duration_statement` 1000 ms；实例级 `log_parameter_max_length = 0`，慢日志不带绑定参数值（库级无法设置；同实例 it_portal 同样不带，行为不变）；回退为改回 -1，不重启 | `DescribeParameters` 读回 |
 
 **时区（E-6 补充）。** 业务日一律按 `forcitis.kernel.business-zone`（Asia/Shanghai）截取；时刻一律以 UTC 存储和输出，不依赖机器的时区：
 - **JVM 必须以 UTC 运行**，systemd 的 `ExecStart` 带 `-Duser.timezone=UTC`。选「启动时校验」而不是只写进手册：应用启动时检查 JVM 默认时区，不是 UTC 就拒绝启动并说明如何修正（`kernel.UtcJvm`），因为手册步骤会被漏掉，而一个按本地时区跑起来的节点会让驱动、日志和 `java.util.Date` 悄悄与别的节点不一致。测试 JVM 同样带该参数。应用入口 `OneApplication.main` 先把默认时区设为 UTC（整合复审 INT-P1），所以这道校验在正常启动路径上总能通过，只拦其他方式建出的上下文。

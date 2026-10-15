@@ -3,6 +3,8 @@ package com.forcitis.one.organization.workforce.web;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.organization.workforce.application.GetSyncRun;
@@ -11,6 +13,7 @@ import com.forcitis.one.organization.workforce.application.ListSyncRuns;
 import com.forcitis.one.organization.workforce.application.ReleaseResult;
 import com.forcitis.one.organization.workforce.application.ReleaseSyncRun;
 import com.forcitis.one.organization.workforce.application.SyncRunView;
+import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
@@ -54,16 +57,16 @@ class SyncRunController {
 
     @GetMapping(path = "/{syncRunId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.SYNC_RUN_READ + "')")
-    SyncRunDetailResponse get(@PathVariable long syncRunId) {
-        return getSyncRun.execute(syncRunId).map(SyncRunDetailResponse::of).orElseThrow(() -> new DomainException(
+    SyncRunDetailResponse get(@PathVariable UUID syncRunId) {
+        return getSyncRun.execute(new SyncRunId(syncRunId)).map(SyncRunDetailResponse::of).orElseThrow(() -> new DomainException(
                 WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND, ErrorKind.NOT_FOUND, "no sync run " + syncRunId));
     }
 
     /** The actor is the authenticated session user, never a request field. */
     @PostMapping(path = "/{syncRunId}:release")
     @PreAuthorize("hasAnyAuthority('" + WorkforcePermissions.SYNC_RUN_EXECUTE + "', '" + WorkforcePermissions.SEPARATION_HOLD_APPROVE + "')")
-    ResponseEntity<ReleaseResponse> release(@PathVariable long syncRunId, @RequestBody ReleaseRequest request, Authentication caller) {
-        ReleaseResult result = releaseSyncRun.execute(syncRunId, Long.parseLong(caller.getName()), request.reason(),
+    ResponseEntity<ReleaseResponse> release(@PathVariable UUID syncRunId, @RequestBody ReleaseRequest request, Authentication caller) {
+        ReleaseResult result = releaseSyncRun.execute(new SyncRunId(syncRunId), new UserId(Long.parseLong(caller.getName())), request.reason(),
                 holds(caller, WorkforcePermissions.SYNC_RUN_EXECUTE), holds(caller, WorkforcePermissions.SEPARATION_HOLD_APPROVE));
         return switch (result) {
             case ReleaseResult.PartlyReleased partly -> ResponseEntity.ok(

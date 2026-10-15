@@ -1196,6 +1196,7 @@ components:
           description: 用户 ID，或作业 / 监听器名；不带姓名
         legalEntityId:
           type: string
+          format: uuid
           nullable: true
           description: 属于某个法人的聚合必填；只有平台级事件为空
         businessDate:
@@ -2345,6 +2346,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           roleId:
             type: string
+            format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
     RoleRevised:
@@ -2375,6 +2377,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           roleId:
             type: string
+            format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
     RoleEnabled:
@@ -2405,6 +2408,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           roleId:
             type: string
+            format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
     RoleDisabled:
@@ -2435,6 +2439,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           roleId:
             type: string
+            format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
     RoleDeleted:
@@ -2465,6 +2470,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           roleId:
             type: string
+            format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
     AccountEnabled:
@@ -2562,6 +2568,7 @@ components:
             type: array
             items:
               type: string
+              format: uuid
               x-type: RoleId
     AccountSeparated:
       name: AccountSeparated
@@ -2629,6 +2636,7 @@ components:
             type: array
             items:
               type: string
+              format: uuid
               x-type: RoleId
     EmergencyAdminRegistered:
       name: EmergencyAdminRegistered
@@ -3399,6 +3407,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           syncRunId:
             type: string
+            format: uuid
             x-type: SyncRunId
             description: 稳定 ID 的字符串形式
     SyncRunHeld:
@@ -3429,6 +3438,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           syncRunId:
             type: string
+            format: uuid
             x-type: SyncRunId
             description: 稳定 ID 的字符串形式
     SyncRunFailed:
@@ -3459,6 +3469,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           syncRunId:
             type: string
+            format: uuid
             x-type: SyncRunId
             description: 稳定 ID 的字符串形式
     SyncRunReleased:
@@ -3491,6 +3502,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           syncRunId:
             type: string
+            format: uuid
             x-type: SyncRunId
             description: 稳定 ID 的字符串形式
           reason:
@@ -3500,6 +3512,7 @@ components:
             description: 放行人填写的原因；由下一次成功同步自动放行时为空
           releasedByRunId:
             type: string
+            format: uuid
             x-type: SyncRunId
             description: 稳定 ID 的字符串形式
     SyncRunHoldReleased:
@@ -3532,6 +3545,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           syncRunId:
             type: string
+            format: uuid
             x-type: SyncRunId
             description: 稳定 ID 的字符串形式
           holdKind:
@@ -3621,6 +3635,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           legalEntityId:
             type: string
+            format: uuid
             x-type: LegalEntityId
             description: 稳定 ID 的字符串形式
           code:
@@ -3654,6 +3669,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           legalEntityId:
             type: string
+            format: uuid
             x-type: LegalEntityId
             description: 稳定 ID 的字符串形式
     LegalEntityActivated:
@@ -3684,6 +3700,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           legalEntityId:
             type: string
+            format: uuid
             x-type: LegalEntityId
             description: 稳定 ID 的字符串形式
     LegalEntityDeactivated:
@@ -3714,6 +3731,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           legalEntityId:
             type: string
+            format: uuid
             x-type: LegalEntityId
             description: 稳定 ID 的字符串形式
     LegalEntityCodeCorrected:
@@ -3746,6 +3764,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           legalEntityId:
             type: string
+            format: uuid
             x-type: LegalEntityId
             description: 稳定 ID 的字符串形式
           previousCode:
@@ -3817,6 +3836,7 @@ components:
             x-type: AttributionSubject
           legalEntityId:
             type: string
+            format: uuid
             x-type: LegalEntityId
           effectiveFrom:
             type: string
@@ -3854,6 +3874,7 @@ components:
             x-type: AttributionSubject
           legalEntityId:
             type: string
+            format: uuid
             x-type: LegalEntityId
           effectiveTo:
             type: string
@@ -3894,6 +3915,7 @@ components:
             x-type: AttributionSubject
           legalEntityId:
             type: string
+            format: uuid
             x-type: LegalEntityId
           periodFrom:
             type: string
@@ -3938,6 +3960,7 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           legalEntityId:
             type: string
+            format: uuid
             x-type: LegalEntityId
             description: 稳定 ID 的字符串形式
           accountingOrganizationNumber:

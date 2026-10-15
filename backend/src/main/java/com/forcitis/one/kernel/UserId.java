@@ -7,4 +7,9 @@ public record UserId(long value) {
             throw new IllegalArgumentException("UserId must not be 0");
         }
     }
+
+    @Override
+    public String toString() {
+        return Long.toString(value);
+    }
 }

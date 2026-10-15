@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -86,8 +87,8 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         jdbc.sql("delete from organization_workforce.legal_entity_attribution_corrections").update();
         jdbc.sql("alter table organization_workforce.legal_entity_attribution_corrections enable trigger user").update();
         com.forcitis.one.organization.workforce.application.VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
-        le1 = new LegalEntityId(createLegalEntity.execute("FST", "Synthetic one", null).legalEntityId());
-        le2 = new LegalEntityId(createLegalEntity.execute("FIT", "Synthetic two", null).legalEntityId());
+        le1 = createLegalEntity.execute("FST", "Synthetic one", null).legalEntityId();
+        le2 = createLegalEntity.execute("FIT", "Synthetic two", null).legalEntityId();
     }
 
     private void synced(Long parentOfUnit3) {
@@ -111,7 +112,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         var request = put(url).with(csrf()).with(MAINTAINER);
         mvc.perform((etag == null ? request.header("If-Match", "\"0\"") : request.header("If-Match", etag))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"legalEntityId\":" + legalEntity.value() + ",\"effectiveFrom\":\"" + from + "\"}")).andExpect(status().isOk());
+                .content("{\"legalEntityId\":\"" + legalEntity.value() + "\",\"effectiveFrom\":\"" + from + "\"}")).andExpect(status().isOk());
     }
 
     @Test
@@ -163,7 +164,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
 
         mvc.perform(put("/api/v1/organization/employee-legal-entities/2").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"legalEntityId\":" + le1.value() + ",\"effectiveFrom\":\"" + day.plusDays(1) + "\"}")).andExpect(status().isOk());
+                .content("{\"legalEntityId\":\"" + le1.value() + "\",\"effectiveFrom\":\"" + day.plusDays(1) + "\"}")).andExpect(status().isOk());
         assertThat(resolver.on(user(2), day)).isEqualTo(le2);
         assertThat(resolver.on(user(2), day.plusDays(1))).isEqualTo(le1);
         assertThat(events.stream(LegalEntityAttributed.class)).hasSize(3);
@@ -195,16 +196,16 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
                 .andExpect(jsonPath("$.periods[0].legalEntityId").value(String.valueOf(le1.value())))
                 .andExpect(jsonPath("$.periods[0].effectiveTo").doesNotExist());
         mvc.perform(put("/api/v1/organization/org-unit-legal-entities/1").with(csrf()).with(READER)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":2,\"effectiveFrom\":\"" + day.plusDays(1) + "\"}"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + le2.value() + "\",\"effectiveFrom\":\"" + day.plusDays(1) + "\"}"))
                 .andExpect(status().isForbidden());
         mvc.perform(put("/api/v1/organization/org-unit-legal-entities/404").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":1,\"effectiveFrom\":\"" + day + "\"}"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + le1.value() + "\",\"effectiveFrom\":\"" + day + "\"}"))
                 .andExpect(status().isNotFound());
         mvc.perform(put("/api/v1/organization/org-unit-legal-entities/2").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":404,\"effectiveFrom\":\"" + day + "\"}"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + TestIds.uuid(404) + "\",\"effectiveFrom\":\"" + day + "\"}"))
                 .andExpect(status().isUnprocessableContent());
         mvc.perform(put("/api/v1/organization/org-unit-legal-entities/1").header("If-Match", etagOf("/api/v1/organization/org-unit-legal-entities/1")).with(csrf()).with(MAINTAINER)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":2,\"effectiveFrom\":\"" + day.minusDays(5) + "\"}"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + le2.value() + "\",\"effectiveFrom\":\"" + day.minusDays(5) + "\"}"))
                 .andExpect(status().isUnprocessableContent());
         mvc.perform(post("/api/v1/organization/org-unit-legal-entities/1:end").header("If-Match", etagOf("/api/v1/organization/org-unit-legal-entities/1")).with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"effectiveTo\":\"" + day.plusDays(10) + "\"}"))
@@ -218,7 +219,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         synced(2L);
         LocalDate day = today();
         String url = "/api/v1/organization/org-unit-legal-entities/1";
-        String body = "{\"legalEntityId\":" + le1.value() + ",\"effectiveFrom\":\"" + day + "\"}";
+        String body = "{\"legalEntityId\":\"" + le1.value() + "\",\"effectiveFrom\":\"" + day + "\"}";
 
         mvc.perform(put(url).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isPreconditionRequired());
         mvc.perform(put(url).header("If-Match", "\"3\"").with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON).content(body))

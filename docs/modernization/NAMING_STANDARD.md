@@ -102,8 +102,8 @@
 
 | 类别词 | 含义 | 类型 |
 |---|---|---|
-| `_id` | 标识符 | `bigint`、`uuid`；`text` 只用于外部系统标识（如企业微信 userid） |
-| `_key` | 业务键、幂等键 | `text` |
+| `_id` | 标识符 | `bigint`、`uuid`；`text` 只用于外部系统标识（如企业微信 userid）。**随 ADR-0033 采纳生效**：一律 `uuid`；唯一例外 `platform_integration.source_references.source_id`（按来源实际类型，A8 为 `bigint`，可为负数）；外部系统的文本标识不用 `_id`，用 `_key`（如 `external_identities.external_subject_key`） |
+| `_key` | 业务键、幂等键；**随 ADR-0033 采纳生效**：另含外部系统的文本标识（如 `external_identities.external_subject_key`） | `text` |
 | `_code` / `_codes` | 代码 / 代码集合 | `text` / `text[]` |
 | `_name` | 名称 | `text` |
 | `_text`、`_description`、`_reason`、`_note`、`_title`、`_message` | 自由文本 | `text` |
@@ -121,7 +121,7 @@
 | `_order` | 排序 | `integer` |
 | `_hash` | 摘要 | `text` |
 | `_url` / `_path` | 地址 / 路径 | `text` |
-| `_by` | 操作人（审计） | `bigint` |
+| `_by` | 操作人（审计） | `bigint`。**随 ADR-0033 采纳生效**：`uuid`（用户账号的 `user_id`） |
 | `_value` | 数值（计数器、起始值） | `numeric` / `integer` / `bigint` |
 | `is_` / `has_`（前缀） | 指示 | `boolean` |
 

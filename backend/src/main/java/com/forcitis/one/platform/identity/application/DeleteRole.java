@@ -36,15 +36,15 @@ public class DeleteRole {
     }
 
     @Transactional
-    public AdminOutcome<Void> execute(long roleId, ExpectedVersion expected) {
-        Optional<Role> existing = roleId <= 0 ? Optional.empty() : roles.findById(new RoleId(roleId));
+    public AdminOutcome<Void> execute(RoleId roleId, ExpectedVersion expected) {
+        Optional<Role> existing = roles.findById(roleId);
         if (existing.isEmpty()) {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
         }
         expected.check(existing.get().version());
         var caller = currentUser.userId();
         if (existing.get().kind() != RoleKind.SYSTEM && accounts.findAssignedRoleCodes(caller).contains(existing.get().code())) {
-            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, "role:" + roleId,
+            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, "role:" + roleId.value(),
                     "nobody deletes a role they hold"));
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_OWN_ROLE_DEFINITION_FORBIDDEN);
         }

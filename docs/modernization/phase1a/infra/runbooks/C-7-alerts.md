@@ -86,13 +86,15 @@ systemctl start one-cert-check.service; journalctl -u one-cert-check.service -n 
 | 资源 | 设置 |
 |---|---|
 | SLS Project | `forcitis-one-observability`（cn-hangzhou；数据冗余为接口默认的同城冗余） |
-| Logstore | `app`（应用 JSON 日志 `/data/forcitis-one/logs/*.json`）、`nginx`（`/var/log/nginx/one.access.json` JSON 与 `one.error.log`）、`ops`（`/data/forcitis-one/logs/ops/*.json`，证书检查）；均保留 30 天、自动分裂；计费为按使用功能（本账号未开通按写入量计费模式，接口返回 `ServiceNotOpened`；one-coordinator 认可现状，不开） |
+| Logstore | `app`（应用 JSON 日志 `/data/forcitis-one/logs/*.json`）、`nginx`（`/var/log/nginx/one.access.json` JSON 与 `one.error.log`）、`ops`（`/data/forcitis-one/logs/ops/*.json`，证书检查）；自动分裂；保留期 `nginx`、`ops` 180 天（2026-10-15 由 30 天改，见下），`app` 30 天；计费为按使用功能（本账号未开通按写入量计费模式，接口返回 `ServiceNotOpened`；one-coordinator 认可现状，不开） |
 | 索引 | `app`、`ops`：全文加 `level`、`logger`、`message`、`correlationId`；`nginx`：全文 |
 | 指标库 | `metrics`（Prometheus，保留 30 天）：LoongCollector `service_prometheus` 每 15 秒抓 `127.0.0.1:8081/actuator/prometheus`（job `forcitis-one`）。未用 ARMS Prometheus 实例：管理端口只听回环，VPC 内托管采集器抓不到；本机写 ARMS 需 AccessKey，不建 |
 | 采集器 | ECS 安装 LoongCollector 3.3.10（阿里云杭州内网安装脚本，SHA256 652b42bc…f918），用户标识 `/etc/ilogtail/user_defined_id` = `forcitis-one-production`，账号文件 `/etc/ilogtail/users/<主账号 ID>`；机器组 `forcitis-one-production`（自定义标识）心跳正常 |
 | 采集配置 | `one-app`、`one-ops`、`one-nginx-access`、`one-nginx-error`、`one-metrics`，均应用到机器组 |
 | 验证 | 证书检查日志与 nginx 日志可在 SLS 查到；`app` 为空、指标抓不到目标（应用未部署，符合「未部署前不接业务数据」） |
 | 告警 | 未配：应用未部署，规则无数据可判。部署后按「规则定义」在 SLS 上配 PromQL 告警与 `ALERT*` 日志告警，通知走 SLS 行动策略中的同一群机器人 Webhook（届时再经安全输入窗口录入，不经聊天） |
+
+保留期变更（2026-10-15，用户决定经 one-coordinator 转达：「nginx 与运维日志保留改 180 天」，依据《网络安全法》第二十一条网络日志留存不少于六个月）：`UpdateLogStore` 只改 `nginx`、`ops` 的 `ttl` 30 → 180，分片与自动分裂不变，未开智能分层；`GetLogStore` 读回 nginx 180、ops 180、app 30。费用：本账号按使用功能计费，存储 0.0115 元/GB/天（压缩后日志加索引，2026-10 账单单价），按每天约 10 万请求估约 42 MB/天，稳态多存 150 天约 6.3 GB，月增约 2 元，按 10 倍流量约 22 元，仍在 C-7「月费超 300 元先停」之内。回退：`ttl` 改回 30（超出部分随即按新保留期删除，删前须确认不违反留存要求）。
 
 回退：删除 5 个采集配置与机器组（`DeleteLogtailPipelineConfig`、`DeleteMachineGroup`）→ ECS 上 `loongcollector.sh uninstall`（或 `/etc/init.d/loongcollectord stop` 后删 `/usr/local/ilogtail`），删 `/etc/ilogtail/user_defined_id` 与账号文件 → 删除 Project（数据随之删除，不再计费）。
 

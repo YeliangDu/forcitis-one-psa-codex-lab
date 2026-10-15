@@ -1,10 +1,11 @@
 package com.forcitis.one.organization.workforce.web;
 
 import com.forcitis.one.organization.workforce.application.LegalEntityView;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-record LegalEntityResponse(String legalEntityId, String code, String name, String status, @Nullable Long accountingOrganizationNumber) {
+record LegalEntityResponse(UUID legalEntityId, String code, String name, String status, @Nullable Long accountingOrganizationNumber) {
     static LegalEntityResponse of(LegalEntityView view) {
-        return new LegalEntityResponse(String.valueOf(view.legalEntityId()), view.code(), view.name(), view.status(), view.accountingOrganizationNumber());
+        return new LegalEntityResponse(view.legalEntityId().value(), view.code(), view.name(), view.status(), view.accountingOrganizationNumber());
     }
 }

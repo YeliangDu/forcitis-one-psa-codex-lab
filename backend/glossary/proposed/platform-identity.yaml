@@ -252,6 +252,48 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: external_identity
+  zh: 外部身份
+  en: ExternalIdentity
+  snake: external_identity
+  kind: entity
+  bc: platform.identity
+  definition: 用户账号在某个身份提供方（企业微信、致远登录）中的标识与该账号的绑定，带绑定区间；登录只经此绑定解析用户
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ADR-0033（提议）登记，待用语确认
+- id: provider_kind
+  zh: 身份提供方类别
+  en: ProviderKind
+  snake: provider_kind
+  kind: enum
+  bc: platform.identity
+  definition: 外部身份所属的身份提供方类别，如企业微信用户 ID、致远登录名
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ADR-0033（提议）登记，待用语确认
+- id: external_subject
+  zh: 外部主体标识
+  en: ExternalSubject
+  snake: external_subject
+  kind: value
+  bc: platform.identity
+  definition: 身份提供方给出的用户标识文本（企业微信 userid、致远登录名），只存于外部身份绑定
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ADR-0033（提议）登记，待用语确认
 common_words:
 - absent
 - absolute
@@ -359,3 +401,4 @@ common_words:
 - with
 - replaced
 - revised
+- reach

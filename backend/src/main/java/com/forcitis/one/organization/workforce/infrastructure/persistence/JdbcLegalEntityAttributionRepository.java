@@ -88,7 +88,7 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
     private List<AttributionPeriod> periods(AttributionSubject subject) {
         return jdbc.sql(EffectiveAttributionPeriods.select(subject.kind()))
                 .param("id", subject.subjectKey())
-                .query((rs, n) -> new AttributionPeriod(new LegalEntityId(rs.getLong("legal_entity_id")),
+                .query((rs, n) -> new AttributionPeriod(new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
                         rs.getDate("effective_from_date").toLocalDate(),
                         rs.getDate("effective_to_date") == null ? null : rs.getDate("effective_to_date").toLocalDate())).list();
     }

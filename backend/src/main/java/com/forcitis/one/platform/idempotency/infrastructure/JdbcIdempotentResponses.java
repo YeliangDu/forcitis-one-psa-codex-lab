@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.idempotency.infrastructure;
 
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.IdempotentResponses;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -20,8 +21,10 @@ class JdbcIdempotentResponses implements IdempotentResponses {
     private final JdbcClient jdbc;
     private final JsonMapper json;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    JdbcIdempotentResponses(JdbcClient jdbc, JsonMapper json, Clock clock) {
+    JdbcIdempotentResponses(JdbcClient jdbc, JsonMapper json, Clock clock, IdGenerator ids) {
+        this.ids = ids;
         this.clock = clock;
         this.jdbc = jdbc;
         this.json = json;
@@ -36,10 +39,10 @@ class JdbcIdempotentResponses implements IdempotentResponses {
                         """)
                 .param("user", userId).param("key", key).param("now", Timestamp.from(now)).param("staleBefore", Timestamp.from(now.minus(reclaimAfter))).update();
         return jdbc.sql("""
-                        insert into platform_idempotency.idempotent_responses (user_id, idempotency_key, request_hash, expires_at, created_at, updated_at)
-                        values (:user, :key, :hash, :expires, :now, :now) on conflict do nothing
+                        insert into platform_idempotency.idempotent_responses (idempotent_response_id, user_id, idempotency_key, request_hash, expires_at, created_at, updated_at)
+                        values (:id, :user, :key, :hash, :expires, :now, :now) on conflict do nothing
                         """)
-                .param("user", userId).param("key", key).param("hash", requestHash).param("expires", Timestamp.from(expiresAt))
+                .param("id", ids.next()).param("user", userId).param("key", key).param("hash", requestHash).param("expires", Timestamp.from(expiresAt))
                 .param("now", Timestamp.from(now)).update() == 1;
     }
 

@@ -2,6 +2,7 @@ package com.forcitis.one.organization.attendance.infrastructure.persistence;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
 import com.forcitis.one.organization.attendance.domain.CalendarDay;
@@ -14,6 +15,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -22,8 +24,10 @@ import org.springframework.stereotype.Repository;
 class JdbcWorkCalendarRepository implements WorkCalendarRepository {
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    JdbcWorkCalendarRepository(JdbcClient jdbc, Clock clock) {
+    JdbcWorkCalendarRepository(JdbcClient jdbc, Clock clock, IdGenerator ids) {
+        this.ids = ids;
         this.clock = clock;
         this.jdbc = jdbc;
     }
@@ -34,13 +38,16 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
                         select id, version, event_count from organization_attendance.work_calendar_years
                          where legal_entity_id is not distinct from :legalEntityId and year_number = :year
                         """)
-                .param("legalEntityId", key.legalEntityId() == null ? null : key.legalEntityId().value(), java.sql.Types.BIGINT)
+                .param("legalEntityId", key.legalEntityId() == null ? null : key.legalEntityId().value(), java.sql.Types.OTHER)
                 .param("year", key.calendarYear())
-                .query((rs, n) -> new long[] {rs.getLong("id"), rs.getLong("version"), rs.getLong("event_count")}).optional()
-                .map(row -> WorkCalendarYear.restore(row[0], key, days(row[0]), row[1], row[2]));
+                .query((rs, n) -> new Stored(rs.getObject("id", UUID.class), rs.getLong("version"), rs.getLong("event_count"))).optional()
+                .map(row -> WorkCalendarYear.restore(row.id(), key, days(row.id()), row.version(), row.eventCount()));
     }
 
-    private List<CalendarDay> days(long yearId) {
+    private record Stored(UUID id, long version, long eventCount) {
+    }
+
+    private List<CalendarDay> days(UUID yearId) {
         return jdbc.sql("select calendar_date, day_kind from organization_attendance.work_calendar_days where work_calendar_year_id = :id order by calendar_date")
                 .param("id", yearId)
                 .query((rs, n) -> new CalendarDay(rs.getDate("calendar_date").toLocalDate(), DayKind.valueOf(rs.getString("day_kind")))).list();
@@ -49,17 +56,18 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
     @Override
     public void save(WorkCalendarYear calendarYear) {
         WorkCalendarKey key = calendarYear.key();
-        long id;
+        UUID id;
         if (calendarYear.storedRow() == null) {
+            id = ids.next();
             try {
-                id = jdbc.sql("""
-                                insert into organization_attendance.work_calendar_years (legal_entity_id, year_number, version, event_count)
-                                values (:legalEntityId, :year, :version, :eventSequence) returning id
+                jdbc.sql("""
+                                insert into organization_attendance.work_calendar_years (id, legal_entity_id, year_number, version, event_count)
+                                values (:id, :legalEntityId, :year, :version, :eventSequence)
                                 """)
-                        .param("legalEntityId", key.legalEntityId() == null ? null : key.legalEntityId().value(), java.sql.Types.BIGINT)
+                        .param("id", id).param("legalEntityId", key.legalEntityId() == null ? null : key.legalEntityId().value(), java.sql.Types.OTHER)
                         .param("year", key.calendarYear()).param("version", calendarYear.versionAfterSave())
                         .param("eventSequence", calendarYear.eventSequenceAfterSave())
-                        .query(Long.class).single();
+                        .update();
             } catch (DuplicateKeyException saved) {
                 throw conflict(key);
             }
@@ -78,10 +86,10 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
         }
         for (CalendarDay day : calendarYear.days()) {
             jdbc.sql("""
-                            insert into organization_attendance.work_calendar_days (work_calendar_year_id, calendar_date, day_kind)
-                            values (:id, :date, :kind)
+                            insert into organization_attendance.work_calendar_days (id, work_calendar_year_id, calendar_date, day_kind)
+                            values (:dayId, :id, :date, :kind)
                             """)
-                    .param("id", id).param("date", Date.valueOf(day.calendarDate())).param("kind", day.dayKind().name()).update();
+                    .param("dayId", ids.next()).param("id", id).param("date", Date.valueOf(day.calendarDate())).param("kind", day.dayKind().name()).update();
         }
     }
 

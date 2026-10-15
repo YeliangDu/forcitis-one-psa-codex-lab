@@ -13,11 +13,7 @@ public class GetSyncRun {
         this.runs = runs;
     }
 
-    public Optional<SyncRunDetailView> execute(long syncRunId) {
-        if (syncRunId <= 0) {
-            return Optional.empty();
-        }
-        SyncRunId id = new SyncRunId(syncRunId);
+    public Optional<SyncRunDetailView> execute(SyncRunId id) {
         return runs.find(id).map(run -> new SyncRunDetailView(SyncRunView.of(run),
                 runs.findDiffs(id).stream().map(SyncDiffView::of).toList()));
     }

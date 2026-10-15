@@ -80,3 +80,6 @@ common_words:
 - property
 - singleton
 - web
+- formatter
+- module
+- query

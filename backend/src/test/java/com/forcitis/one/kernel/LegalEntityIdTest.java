@@ -3,14 +3,16 @@ package com.forcitis.one.kernel;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class LegalEntityIdTest {
 
     @Test
-    void mustBePositive() {
-        assertThatThrownBy(() -> new LegalEntityId(0)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new LegalEntityId(-5)).isInstanceOf(IllegalArgumentException.class);
-        assertThat(new LegalEntityId(1)).isEqualTo(new LegalEntityId(1));
+    void needsAValueThatIsNotTheNilUuid() {
+        assertThatThrownBy(() -> new LegalEntityId(null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new LegalEntityId(new UUID(0, 0))).isInstanceOf(IllegalArgumentException.class);
+        assertThat(new LegalEntityId(TestIds.uuid(1))).isEqualTo(new LegalEntityId(TestIds.uuid(1)));
     }
 }

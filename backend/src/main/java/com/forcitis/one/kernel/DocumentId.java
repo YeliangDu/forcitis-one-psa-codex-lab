@@ -11,4 +11,9 @@ public record DocumentId(String value) {
             throw new IllegalArgumentException("DocumentId must not be blank");
         }
     }
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 }

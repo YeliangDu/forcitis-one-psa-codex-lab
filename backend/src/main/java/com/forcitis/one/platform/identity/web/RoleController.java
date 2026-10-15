@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.application.AdminOutcome;
 import com.forcitis.one.platform.identity.application.ChangeAccountStatus;
 import com.forcitis.one.platform.identity.application.CreateRole;
@@ -20,6 +21,7 @@ import com.forcitis.one.platform.identity.application.SaveRoleCommand;
 import com.forcitis.one.platform.identity.application.UpdateRole;
 import java.net.URI;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -72,8 +74,8 @@ class RoleController {
 
     @GetMapping(path = "/roles/{roleId}")
     @PreAuthorize(READ)
-    ResponseEntity<RoleResponse> get(@PathVariable long roleId) {
-        RoleView role = getRole.execute(roleId)
+    ResponseEntity<RoleResponse> get(@PathVariable UUID roleId) {
+        RoleView role = getRole.execute(new RoleId(roleId))
                 .orElseThrow(() -> IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND.refusal("no role " + roleId));
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(role.version())).body(RoleResponse.of(role));
     }
@@ -82,7 +84,7 @@ class RoleController {
     @PreAuthorize(UPDATE)
     ResponseEntity<?> create(@RequestBody RoleRequest request) {
         return switch (createRole.execute(command(request))) {
-            case AdminOutcome.Done<RoleView> done -> ResponseEntity.created(URI.create("/api/v1/platform/roles/" + done.value().roleId()))
+            case AdminOutcome.Done<RoleView> done -> ResponseEntity.created(URI.create("/api/v1/platform/roles/" + done.value().roleId().value()))
                     .eTag(ExpectedVersion.etag(done.value().version())).body(RoleResponse.of(done.value()));
             case AdminOutcome.Refused<RoleView> refused -> throw refusal(refused.error());
             case AdminOutcome.Awaiting<RoleView> awaiting -> accepted(awaiting.requestId());
@@ -91,9 +93,9 @@ class RoleController {
 
     @PutMapping(path = "/roles/{roleId}")
     @PreAuthorize(UPDATE)
-    ResponseEntity<?> update(@PathVariable long roleId, @RequestBody RoleRequest request,
+    ResponseEntity<?> update(@PathVariable UUID roleId, @RequestBody RoleRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
-        return switch (updateRole.execute(roleId, ExpectedVersion.fromHeader(ifMatch), command(request))) {
+        return switch (updateRole.execute(new RoleId(roleId), ExpectedVersion.fromHeader(ifMatch), command(request))) {
             case AdminOutcome.Done<RoleView> done -> ResponseEntity.ok().eTag(ExpectedVersion.etag(done.value().version()))
                     .body(RoleResponse.of(done.value()));
             case AdminOutcome.Refused<RoleView> refused -> throw refusal(refused.error());
@@ -103,8 +105,8 @@ class RoleController {
 
     @DeleteMapping(path = "/roles/{roleId}")
     @PreAuthorize(UPDATE)
-    ResponseEntity<Void> delete(@PathVariable long roleId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
-        if (deleteRole.execute(roleId, ExpectedVersion.fromHeader(ifMatch)) instanceof AdminOutcome.Refused<Void> refused) {
+    ResponseEntity<Void> delete(@PathVariable UUID roleId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
+        if (deleteRole.execute(new RoleId(roleId), ExpectedVersion.fromHeader(ifMatch)) instanceof AdminOutcome.Refused<Void> refused) {
             throw refusal(refused.error());
         }
         return ResponseEntity.noContent().build();
@@ -115,7 +117,7 @@ class RoleController {
     ResponseEntity<?> replaceRoles(@PathVariable long userId, @RequestBody ReplaceRolesRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         Set<String> codes = request.roleCodes() == null ? Set.of() : request.roleCodes();
-        return switch (replaceAccountRoles.execute(userId, codes, ExpectedVersion.fromHeader(ifMatch))) {
+        return switch (replaceAccountRoles.execute(AccountPath.user(userId), codes, ExpectedVersion.fromHeader(ifMatch))) {
             case AdminOutcome.Done<Long> done -> ResponseEntity.noContent().eTag(ExpectedVersion.etag(done.value())).build();
             case AdminOutcome.Refused<Long> refused -> throw refusal(refused.error());
             case AdminOutcome.Awaiting<Long> awaiting -> accepted(awaiting.requestId());
@@ -125,21 +127,21 @@ class RoleController {
     @GetMapping(path = "/user-accounts/{userId}")
     @PreAuthorize(READ)
     ResponseEntity<UserAccountResponse> account(@PathVariable long userId) {
-        UserAccountView view = getUserAccount.execute(userId);
+        UserAccountView view = getUserAccount.execute(AccountPath.user(userId));
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(UserAccountResponse.of(view));
     }
 
     @PostMapping(path = "/user-accounts/{userId}:enable")
     @PreAuthorize(UPDATE)
     ResponseEntity<Void> enable(@PathVariable long userId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
-        long version = changeAccountStatus.execute(userId, true, ExpectedVersion.fromHeader(ifMatch));
+        long version = changeAccountStatus.execute(AccountPath.user(userId), true, ExpectedVersion.fromHeader(ifMatch));
         return ResponseEntity.noContent().eTag(ExpectedVersion.etag(version)).build();
     }
 
     @PostMapping(path = "/user-accounts/{userId}:disable")
     @PreAuthorize(UPDATE)
     ResponseEntity<Void> disable(@PathVariable long userId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
-        long version = changeAccountStatus.execute(userId, false, ExpectedVersion.fromHeader(ifMatch));
+        long version = changeAccountStatus.execute(AccountPath.user(userId), false, ExpectedVersion.fromHeader(ifMatch));
         return ResponseEntity.noContent().eTag(ExpectedVersion.etag(version)).build();
     }
 

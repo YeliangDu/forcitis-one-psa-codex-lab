@@ -16,10 +16,7 @@ public class GetRole {
     }
 
     @Transactional(readOnly = true)
-    public Optional<RoleView> execute(long roleId) {
-        if (roleId <= 0) {
-            return Optional.empty();
-        }
-        return roles.findById(new RoleId(roleId)).map(RoleView::of);
+    public Optional<RoleView> execute(RoleId roleId) {
+        return roles.findById(roleId).map(RoleView::of);
     }
 }
