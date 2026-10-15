@@ -44,9 +44,9 @@ class CountersignIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalInstanceId start(String key, Staff s, long... managers) {
-        return tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()),
+        return tx.execute(status -> approvals.start(startRequest(key, TestAccounts.employee(s.initiator()),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()), List.of(new ApprovalField(
-                        TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
+                        TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(m -> TestAccounts.employee(m).toString()).toList())))));
     }
 
     List<Task> openTasks(ApprovalInstanceId instance) {

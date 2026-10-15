@@ -1,17 +1,19 @@
 package com.forcitis.one.platform.eventing.infrastructure;
 
-import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.IdRecords;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
-import com.forcitis.one.kernel.IdRecords;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.integration.api.SourceObjectId;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -44,23 +46,25 @@ class ScalarIdModuleTest {
     @Test
     @DisplayName("G-C5 a typed id is written as the text of its value, in a payload, in a list and as a nested field")
     void idsAreWrittenAsText() throws Exception {
-        Payload payload = new Payload(TestAccounts.account(7), new EmployeeId(-8), List.of(new OrgUnitId(1), new OrgUnitId(2)),
+        Payload payload = new Payload(TestAccounts.account(7), TestAccounts.employee(8), List.of(TestOrgIds.orgUnit(1), TestOrgIds.orgUnit(2)),
                 new LegalEntityId(TestIds.uuid(5)), new ApprovalTaskId("task-9"), new Reason("because"));
 
         assertThat(JSON.readTree(JSON.writeValueAsString(payload))).isEqualTo(JSON.readTree("""
-                {"actor":"%s","employee":"-8","units":["1","2"],"legalEntityId":"%s","taskId":"task-9","reason":{"value":"because"}}
-                """.formatted(TestAccounts.account(7).value(), TestIds.uuid(5))));
+                {"actor":"%s","employee":"%s","units":["%s","%s"],"legalEntityId":"%s","taskId":"task-9","reason":{"value":"because"}}
+                """.formatted(TestAccounts.account(7).value(), TestAccounts.employee(8).value(), TestOrgIds.orgUnit(1).value(),
+                TestOrgIds.orgUnit(2).value(), TestIds.uuid(5))));
     }
 
     @Test
     @DisplayName("G-C5 what was written reads back to equal ids, and a long id is also read from a bare number")
     void idsReadBack() throws Exception {
-        Payload payload = new Payload(TestAccounts.account(7), new EmployeeId(-8), List.of(new OrgUnitId(1)), new LegalEntityId(TestIds.uuid(5)),
+        Payload payload = new Payload(TestAccounts.account(7), TestAccounts.employee(8), List.of(TestOrgIds.orgUnit(1)), new LegalEntityId(TestIds.uuid(5)),
                 new ApprovalTaskId("task-9"), new Reason("because"));
 
         assertThat(JSON.readValue(JSON.writeValueAsString(payload), Payload.class)).isEqualTo(payload);
-        assertThat(JSON.readValue("7", EmployeeId.class)).isEqualTo(new EmployeeId(7));
-        assertThat(JSON.readValue("\"7\"", EmployeeId.class)).isEqualTo(new EmployeeId(7));
+        assertThat(JSON.readValue("\"" + TestAccounts.employee(7).value() + "\"", EmployeeId.class)).isEqualTo(TestAccounts.employee(7));
+        assertThat(JSON.readValue("7", SourceObjectId.class)).isEqualTo(new SourceObjectId(7));
+        assertThat(JSON.readValue("\"7\"", SourceObjectId.class)).isEqualTo(new SourceObjectId(7));
     }
 
     @Test
@@ -87,6 +91,7 @@ class ScalarIdModuleTest {
         assertThatThrownBy(() -> JSON.readValue("{\"value\":7}", UserId.class)).isInstanceOf(JacksonException.class);
         assertThatThrownBy(() -> JSON.readValue("\"seven\"", UserId.class)).isInstanceOf(JacksonException.class);
         assertThatThrownBy(() -> JSON.readValue("\"0\"", UserId.class)).isInstanceOf(JacksonException.class);
+        assertThatThrownBy(() -> JSON.readValue("\"7\"", EmployeeId.class)).as("an employee id is no longer a number").isInstanceOf(JacksonException.class);
         assertThatThrownBy(() -> JSON.readValue("\"not-a-uuid\"", LegalEntityId.class)).isInstanceOf(JacksonException.class);
         assertThatThrownBy(() -> JSON.readValue("\"" + UUID.nameUUIDFromBytes(new byte[] {1}).toString().toUpperCase() + "\"", LegalEntityId.class))
                 .as("only the canonical lower-case spelling").isInstanceOf(JacksonException.class);

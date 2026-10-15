@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.domain;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,19 +37,20 @@ public record ProcessVariables(Map<String, List<String>> formFields, Map<String,
         return variable(name).stream().findFirst();
     }
 
-    /** Blank, non-numeric and zero values are ignored. */
+    /**
+     * Blank values are ignored; any other value that is not an employee id in its canonical UUID form refuses the assignment as a whole
+     * (ADR-0033 section 3 item 3): it is never skipped while the others go on.
+     */
     public static Set<EmployeeId> parseEmployees(List<String> values) {
         List<EmployeeId> found = new ArrayList<>();
         for (String raw : values) {
-            if (raw == null) {
+            if (raw == null || raw.isBlank()) {
                 continue;
             }
             try {
-                long id = Long.parseLong(raw.trim());
-                if (id != 0) {
-                    found.add(new EmployeeId(id));
-                }
-            } catch (NumberFormatException ignored) {
+                found.add(EmployeeId.parse(raw.trim()));
+            } catch (IllegalArgumentException notAnEmployeeId) {
+                throw ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID.refusal("a person is named by a value that is not an employee id");
             }
         }
         return new LinkedHashSet<>(found);

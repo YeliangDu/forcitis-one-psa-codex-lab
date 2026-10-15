@@ -1,0 +1,51 @@
+package com.forcitis.one.platform.integration.guard;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.forcitis.one.platform.integration.api.ExternalSource;
+import com.forcitis.one.platform.integration.api.SourceObjectKind;
+import com.forcitis.one.platform.integration.application.SourceReferences;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.lang.ArchRule;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Review P3B-L8: until P6 imports the old system's references, own ids are allocated on first sight for the organisation source only,
+ * and only its adapter does that; every other caller looks up and never allocates.
+ */
+class SourceReferenceAllocationGuardTest {
+
+    static final String ORG_SOURCE_ADAPTER = "com.forcitis.one.platform.integration.infrastructure.seeyon..";
+
+    static final ArchRule ONLY_THE_ORG_SOURCE_ADAPTER_ALLOCATES = noClasses().that().resideOutsideOfPackage(ORG_SOURCE_ADAPTER)
+            .should().callMethod(SourceReferences.class, "allocate", ExternalSource.class, SourceObjectKind.class, long.class)
+            .because("only the organisation source allocates own ids on first sight (ADR-0033 section 2); call SourceReferences.allocate from "
+                    + "platform.integration.infrastructure.seeyon, and look up with findOwnIds / findOwnId / findSourceId everywhere else");
+
+    @Test
+    @DisplayName("P3B-L8 SourceReferences.allocate is called by the organisation source adapter only")
+    void onlyTheOrgSourceAdapterAllocates() {
+        JavaClasses production = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages("com.forcitis.one");
+        ONLY_THE_ORG_SOURCE_ADAPTER_ALLOCATES.check(production);
+    }
+
+    static final class AllocatesElsewhere {
+        Object allocate(SourceReferences references) {
+            return references.allocate(ExternalSource.LEGACY_SYSTEM, SourceObjectKind.EMPLOYEE, 1);
+        }
+    }
+
+    @Test
+    @DisplayName("injected: an allocation outside the organisation source adapter is caught and the message says where it belongs")
+    void allocationElsewhereIsCaught() {
+        JavaClasses offender = new ClassFileImporter().importClasses(AllocatesElsewhere.class);
+
+        assertThatThrownBy(() -> ONLY_THE_ORG_SOURCE_ADAPTER_ALLOCATES.check(offender)).isInstanceOf(AssertionError.class)
+                .hasMessageContaining("AllocatesElsewhere").hasMessageContaining("platform.integration.infrastructure.seeyon");
+    }
+}

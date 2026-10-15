@@ -162,16 +162,19 @@ components:
             items:
               type: string
               x-type: EmployeeId
+              format: uuid
           separatedEmployees:
             type: array
             items:
               type: string
               x-type: EmployeeId
+              format: uuid
           changedOrgUnits:
             type: array
             items:
               type: string
               x-type: OrgUnitId
+              format: uuid
           effectiveFrom:
             type: string
             x-type: LocalDate
@@ -339,6 +342,7 @@ components:
           employeeId:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: organization.workforce.EmployeeRegistered
@@ -361,9 +365,18 @@ components:
       payload:
         type: object
         properties:
-          subject:
+          kind:
             type: string
-            x-type: AttributionSubject
+            enum:
+            - ORG_UNIT
+            - EMPLOYEE
+            x-type: AttributionKind
+            description: 归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工
+          subjectId:
+            type: string
+            format: uuid
+            x-type: AttributionSubjectId
+            description: 归属对象的自有 ID：部门 ID 或员工 ID（UUID，DA-5、RULING-P3B-D5）
           legalEntityId:
             type: string
             format: uuid
@@ -392,9 +405,18 @@ components:
       payload:
         type: object
         properties:
-          subject:
+          kind:
             type: string
-            x-type: AttributionSubject
+            enum:
+            - ORG_UNIT
+            - EMPLOYEE
+            x-type: AttributionKind
+            description: 归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工
+          subjectId:
+            type: string
+            format: uuid
+            x-type: AttributionSubjectId
+            description: 归属对象的自有 ID：部门 ID 或员工 ID（UUID，DA-5、RULING-P3B-D5）
           legalEntityId:
             type: string
             format: uuid
@@ -423,9 +445,18 @@ components:
       payload:
         type: object
         properties:
-          subject:
+          kind:
             type: string
-            x-type: AttributionSubject
+            enum:
+            - ORG_UNIT
+            - EMPLOYEE
+            x-type: AttributionKind
+            description: 归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工
+          subjectId:
+            type: string
+            format: uuid
+            x-type: AttributionSubjectId
+            description: 归属对象的自有 ID：部门 ID 或员工 ID（UUID，DA-5、RULING-P3B-D5）
           legalEntityId:
             type: string
             format: uuid

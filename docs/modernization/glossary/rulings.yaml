@@ -1,0 +1,46 @@
+# rulings.yaml — 用户在各轮决策页之外、对已登记词条所作的裁定（单一来源）：build_terms.py 在各轮写回之后按本文件逐条应用（apply_rulings.py）。
+# 每条必须写 source（用户答复或 intent 的出处）；操作：
+#   rename   改正式词条：id / zh / en / definition（可选），旧中文名作方言别名并列入禁用（纯中文），旧英文名作 old-code 别名；
+#   redefine 只改定义；
+#   promote  把一条提议转为正式词条：条目内容写在 entry 里（来自转正时的提议原文），提议文件里的同名条目须同批删除，重名即失败。
+rulings:
+  - op: rename
+    id: regional_head_approval
+    to_id: org_unit_head_approval
+    zh: 部门负责人审批
+    en: OrgUnitHeadApproval
+    definition: 工时审批中由部门负责人办理的节点，对应售前工时；审批人是售前对象归属部门在组织架构登记的部门负责人（D5-06）
+    source: 用户 2026-10-15 工时审批路径决策页 D5-06（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）；用户：节点与用语改称「部门负责人审批」
+  - op: redefine
+    id: regional_head
+    definition: 区域组织单元的负责人；区域是介于项目和公司之间的一层组织，与事业部同属组织单元的类型（F1-05、Q37a），将另作数据范围维度；不承担工时审批，售前工时的审批人是部门负责人（D5-06）
+    source: 用户 2026-10-15 D5-06 及其说明（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）
+  - op: rename
+    id: information_service_fee
+    to_id: intermediary_fee
+    zh: 居间费用
+    en: IntermediaryFee
+    definition: 居间协议约定的佣金支出；公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；应付登记须挂触发事实，不是转付成本，在贡献毛利中扣减、不在净收入中扣（FD-17、FD-41）
+    source: 用户 2026-10-15 财务口径决策页 F-06「就是居间费用的方言」（intent 2026-10-15-222618-one-rules-财务口径决策页-需向财务核实的事）
+  - op: promote
+    id: period_status__historical
+    confirmed: 2026-10-15（用户，财务口径决策页 FD-01）
+    entry:
+      id: period_status__historical
+      zh: 历史期间
+      en: Historical
+      snake: historical
+      kind: value
+      bc: accounting.period
+      scope: domain
+      definition: 期间状态的一个取值，终态：FORCITIS one 首个业务期间之前的 (期间, 法人)，永不接受业务过账，只接受迁入过账通道；不逐期关账、不发关账事件（ADR-0036 第 6 条）
+      standard_ref:
+      - ADR-0036 历史数据迁入
+      confidence: medium
+      aliases: []
+      forbidden: []
+    source: 用户 2026-10-15 财务口径决策页 FD-01 选定名称「历史期间」（intent 2026-10-15-221430-one-rules-财务口径决策页-FD-01-新系）；含义不变，沿用提议定义
+  - op: redefine
+    id: period_status
+    definition: OPEN / CLOSING / CLOSED / HISTORICAL（历史期间，见 period_status__historical）；重开政策待财务确认
+    source: 用户 2026-10-15 财务口径决策页 FD-01（历史期间）

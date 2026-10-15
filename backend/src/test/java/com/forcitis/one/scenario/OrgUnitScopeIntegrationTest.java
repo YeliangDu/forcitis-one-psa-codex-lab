@@ -1,13 +1,14 @@
 package com.forcitis.one.scenario;
 
-import com.forcitis.one.fixture.doubles.TestAccounts;
-import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.platform.identity.IdentityIntegrationTest;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlEmployee;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlOrgUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
@@ -26,22 +27,31 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
     void threeUnits() {
         jdbc.sql("""
                 insert into organization_workforce.org_units (id, name, parent_org_unit_id, status) values
-                    (10, 'Own department', null, 'ACTIVE'), (11, 'Below it', 10, 'ACTIVE'), (20, 'Another department', null, 'ACTIVE')
+                    (%1$s, 'Own department', null, 'ACTIVE'), (%2$s, 'Below it', %1$s, 'ACTIVE'), (%3$s, 'Another department', null, 'ACTIVE')
                 on conflict do nothing
-                """).update();
+                """.formatted(sqlOrgUnit(10), sqlOrgUnit(11), sqlOrgUnit(20))).update();
         jdbc.sql("""
                 insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values
-                    (901, 'E901', 'In own department', 'EMPLOYED'), (902, 'E902', 'In another department', 'EMPLOYED')
+                    (%s, 'E901', 'In own department', 'EMPLOYED'), (%s, 'E902', 'In another department', 'EMPLOYED')
                 on conflict do nothing
-                """).update();
-        jdbc.sql("insert into organization_workforce.assignments (employee_id, org_unit_id) values (901, 10), (902, 20) on conflict do nothing").update();
+                """.formatted(sqlEmployee(901), sqlEmployee(902))).update();
+        jdbc.sql("insert into organization_workforce.assignments (employee_id, org_unit_id) values (%s, %s), (%s, %s) on conflict do nothing"
+                .formatted(sqlEmployee(901), sqlOrgUnit(10), sqlEmployee(902), sqlOrgUnit(20))).update();
     }
 
     @AfterEach
     void removeTheUnits() {
-        jdbc.sql("delete from organization_workforce.assignments where employee_id in (901, 902)").update();
-        jdbc.sql("delete from organization_workforce.employees where id in (901, 902)").update();
-        jdbc.sql("delete from organization_workforce.org_units where id in (10, 11, 20)").update();
+        jdbc.sql("delete from organization_workforce.assignments where employee_id in (%s, %s)".formatted(sqlEmployee(901), sqlEmployee(902))).update();
+        jdbc.sql("delete from organization_workforce.employees where id in (%s, %s)".formatted(sqlEmployee(901), sqlEmployee(902))).update();
+        jdbc.sql("delete from organization_workforce.org_units where id in (%s, %s, %s)".formatted(sqlOrgUnit(10), sqlOrgUnit(11), sqlOrgUnit(20))).update();
+    }
+
+    private static String unit(long n) {
+        return TestOrgIds.orgUnit(n).value().toString();
+    }
+
+    private static String employee(long n) {
+        return TestAccounts.employee(n).value().toString();
     }
 
     private void customRole(String code, String scope) {
@@ -77,10 +87,10 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         String session = sessionWithRole(21, "scope-self");
 
         assertThat(listed(session)).isEmpty();
-        assertThat(read(session, "/10").getResponse().getStatus()).isEqualTo(404);
+        assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(404);
         assertThat(denials()).singleElement().satisfies(entry -> {
             assertThat(entry.actorId()).isEqualTo(TestAccounts.account(21));
-            assertThat(entry.subjectKey()).isEqualTo("org-unit:10");
+            assertThat(entry.subjectKey()).isEqualTo("org-unit:" + unit(10));
         });
     }
 
@@ -90,11 +100,11 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         customRole("scope-own", "OWN_ORG_UNIT");
         String session = sessionWithRole(22, "scope-own");
 
-        assertThat(listed(session)).containsExactly("10");
-        assertThat(read(session, "/10").getResponse().getStatus()).isEqualTo(200);
-        assertThat(read(session, "/11").getResponse().getStatus()).isEqualTo(404);
-        assertThat(read(session, "/20").getResponse().getStatus()).isEqualTo(404);
-        assertThat(denials()).extracting(AuditEntry::subjectKey).containsExactlyInAnyOrder("org-unit:11", "org-unit:20");
+        assertThat(listed(session)).containsExactly(unit(10));
+        assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(200);
+        assertThat(read(session, "/" + unit(11)).getResponse().getStatus()).isEqualTo(404);
+        assertThat(read(session, "/" + unit(20)).getResponse().getStatus()).isEqualTo(404);
+        assertThat(denials()).extracting(AuditEntry::subjectKey).containsExactlyInAnyOrder("org-unit:" + unit(11), "org-unit:" + unit(20));
     }
 
     @Test
@@ -103,10 +113,10 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         customRole("scope-subtree", "OWN_ORG_UNIT_SUBTREE");
         String session = sessionWithRole(23, "scope-subtree");
 
-        assertThat(listed(session)).containsExactly("10", "11");
-        assertThat(read(session, "/20").getResponse().getStatus()).isEqualTo(404);
-        assertThat(body(read(session, "/10")).path("orgUnitAndBelowIds").valueStream().map(id -> id.asString()).sorted().toList())
-                .containsExactly("10", "11");
+        assertThat(listed(session)).containsExactlyInAnyOrder(unit(10), unit(11));
+        assertThat(read(session, "/" + unit(20)).getResponse().getStatus()).isEqualTo(404);
+        assertThat(body(read(session, "/" + unit(10))).path("orgUnitAndBelowIds").valueStream().map(id -> id.asString()).sorted().toList())
+                .containsExactlyInAnyOrder(unit(10), unit(11));
     }
 
     @Test
@@ -114,14 +124,14 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
     void scopeFailureRefuses() throws Exception {
         customRole("scope-own-2", "OWN_ORG_UNIT");
         String session = sessionWithRole(24, "scope-own-2");
-        assertThat(listed(session)).containsExactly("10");
+        assertThat(listed(session)).containsExactly(unit(10));
 
-        when(orgDirectory.findEmployee(new EmployeeId(24))).thenThrow(new IllegalStateException("organisation unavailable"));
+        when(orgDirectory.findEmployee(TestAccounts.employee(24))).thenThrow(new IllegalStateException("organisation unavailable"));
 
         MvcResult list = read(session, "");
         assertThat(list.getResponse().getStatus()).isEqualTo(403);
         assertThat(body(list).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_ACCESS_SCOPE_UNAVAILABLE");
-        assertThat(read(session, "/10").getResponse().getStatus()).isEqualTo(403);
+        assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(403);
     }
 
     @Test
@@ -129,9 +139,9 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
     void unknownDepartmentSeesNothing() throws Exception {
         customRole("scope-own-3", "OWN_ORG_UNIT");
         String session = sessionWithRole(25, "scope-own-3");
-        assertThat(listed(session)).containsExactly("10");
+        assertThat(listed(session)).containsExactly(unit(10));
 
-        when(orgDirectory.findEmployee(new EmployeeId(25))).thenReturn(java.util.Optional.empty());
+        when(orgDirectory.findEmployee(TestAccounts.employee(25))).thenReturn(java.util.Optional.empty());
 
         assertThat(read(session, "").getResponse().getStatus()).isEqualTo(403);
     }
@@ -142,8 +152,8 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         createAccount(31, "org_data_admin");
         String session = loginWithWecom(31);
 
-        assertThat(listed(session)).containsExactly("10", "11", "20");
-        assertThat(read(session, "/20").getResponse().getStatus()).isEqualTo(200);
+        assertThat(listed(session)).containsExactlyInAnyOrder(unit(10), unit(11), unit(20));
+        assertThat(read(session, "/" + unit(20)).getResponse().getStatus()).isEqualTo(200);
         assertThat(denials()).isEmpty();
     }
 
@@ -159,18 +169,18 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         customRole("scope-own-4", "OWN_ORG_UNIT");
         String session = sessionWithRole(26, "scope-own-4");
 
-        assertThat(readAttribution(session, "/org-unit-legal-entities/10").getResponse().getStatus()).isEqualTo(200);
-        assertThat(readAttribution(session, "/employee-legal-entities/901").getResponse().getStatus()).isEqualTo(200);
-        MvcResult otherUnit = readAttribution(session, "/org-unit-legal-entities/20");
-        MvcResult otherEmployee = readAttribution(session, "/employee-legal-entities/902");
-        MvcResult missingUnit = readAttribution(session, "/org-unit-legal-entities/999");
+        assertThat(readAttribution(session, "/org-unit-legal-entities/" + unit(10)).getResponse().getStatus()).isEqualTo(200);
+        assertThat(readAttribution(session, "/employee-legal-entities/" + employee(901)).getResponse().getStatus()).isEqualTo(200);
+        MvcResult otherUnit = readAttribution(session, "/org-unit-legal-entities/" + unit(20));
+        MvcResult otherEmployee = readAttribution(session, "/employee-legal-entities/" + employee(902));
+        MvcResult missingUnit = readAttribution(session, "/org-unit-legal-entities/" + unit(999));
 
         assertThat(otherUnit.getResponse().getStatus()).isEqualTo(404);
         assertThat(otherEmployee.getResponse().getStatus()).isEqualTo(404);
         assertThat(body(otherUnit).path("errorCode").asString()).as("the same answer as for a unit that does not exist")
                 .isEqualTo(body(missingUnit).path("errorCode").asString());
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("organization.workforce.legal-entity-attribution.denied"))
-                .extracting(AuditEntry::subjectKey).containsExactlyInAnyOrder("org_unit:20", "employee:902");
+                .extracting(AuditEntry::subjectKey).containsExactlyInAnyOrder("org_unit:" + unit(20), "employee:" + employee(902));
     }
 
     @Test
@@ -181,9 +191,9 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         createAccount(32, "org_data_admin");
         String administrator = loginWithWecom(32);
 
-        assertThat(readAttribution(self, "/org-unit-legal-entities/10").getResponse().getStatus()).isEqualTo(404);
-        assertThat(readAttribution(self, "/employee-legal-entities/901").getResponse().getStatus()).isEqualTo(404);
-        assertThat(readAttribution(administrator, "/org-unit-legal-entities/20").getResponse().getStatus()).isEqualTo(200);
-        assertThat(readAttribution(administrator, "/employee-legal-entities/902").getResponse().getStatus()).isEqualTo(200);
+        assertThat(readAttribution(self, "/org-unit-legal-entities/" + unit(10)).getResponse().getStatus()).isEqualTo(404);
+        assertThat(readAttribution(self, "/employee-legal-entities/" + employee(901)).getResponse().getStatus()).isEqualTo(404);
+        assertThat(readAttribution(administrator, "/org-unit-legal-entities/" + unit(20)).getResponse().getStatus()).isEqualTo(200);
+        assertThat(readAttribution(administrator, "/employee-legal-entities/" + employee(902)).getResponse().getStatus()).isEqualTo(200);
     }
 }

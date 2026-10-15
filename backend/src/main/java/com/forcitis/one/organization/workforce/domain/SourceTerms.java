@@ -2,27 +2,28 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceGender;
-import com.forcitis.one.platform.integration.api.SourcePersonId;
-import com.forcitis.one.platform.integration.api.SourcePositionId;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.SourceRegionKind;
-import com.forcitis.one.platform.integration.api.SourceUnitId;
 
-/** The source speaks in its own ids and enums; the workforce model keeps its own. Absent stays absent. */
+/**
+ * The source's enums become the workforce model's own; the ids come already translated into own ids by platform.integration and only
+ * change type here (until split a hands over a change set). Absent stays absent.
+ */
 public final class SourceTerms {
     private SourceTerms() {
     }
 
-    public static OrgUnitId unit(SourceUnitId id) {
+    public static OrgUnitId unit(OwnObjectId id) {
         return id == null ? null : new OrgUnitId(id.value());
     }
 
-    public static EmployeeId person(SourcePersonId id) {
+    public static EmployeeId person(OwnObjectId id) {
         return id == null ? null : new EmployeeId(id.value());
     }
 
-    public static PositionId position(SourcePositionId id) {
+    public static PositionId position(OwnObjectId id) {
         return id == null ? null : new PositionId(id.value());
     }
 

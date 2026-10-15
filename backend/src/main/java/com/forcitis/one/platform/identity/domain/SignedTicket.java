@@ -20,6 +20,8 @@ public final class SignedTicket {
     private static final Pattern TOKEN = Pattern.compile("[A-Za-z0-9_.:-]{1,64}");
     private static final Pattern NONCE = Pattern.compile("[A-Za-z0-9_-]{16,64}");
     private static final Pattern NUMBER = Pattern.compile("-?\\d{1,18}");
+    /** The organisation source's person id: any signed 64-bit number, so up to 19 digits; whether it fits is decided where it is resolved. */
+    private static final Pattern SUBJECT = Pattern.compile("-?\\d{1,19}");
 
     private final String kid;
     private final String issuer;
@@ -56,7 +58,7 @@ public final class SignedTicket {
             byte[] signature = Base64.getUrlDecoder().decode(parts[1]);
             String[] fields = new String(payload, StandardCharsets.UTF_8).split("\\|", -1);
             if (fields.length != 6 || !TOKEN.matcher(fields[0]).matches() || !TOKEN.matcher(fields[1]).matches()
-                    || !NUMBER.matcher(fields[2]).matches() || !NONCE.matcher(fields[3]).matches()
+                    || !SUBJECT.matcher(fields[2]).matches() || !NONCE.matcher(fields[3]).matches()
                     || !NUMBER.matcher(fields[4]).matches() || !NUMBER.matcher(fields[5]).matches()) {
                 return Optional.empty();
             }
@@ -83,8 +85,8 @@ public final class SignedTicket {
         return issuer;
     }
 
-    public long subject() {
-        return Long.parseLong(subject);
+    public String subject() {
+        return subject;
     }
 
     public String nonce() {

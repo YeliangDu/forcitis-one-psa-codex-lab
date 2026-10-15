@@ -53,7 +53,7 @@ class ApprovalTaskStateMachineTest {
 
     static final UserId HOLDER = TestAccounts.account(20);
     static final UserId OTHER = TestAccounts.account(21);
-    static final EmployeeId INITIATOR = new EmployeeId(10);
+    static final EmployeeId INITIATOR = TestAccounts.employee(10);
     static final Instant DUE = Instant.parse("2026-10-19T15:59:00Z");
     static final Instant REMIND_AT = Instant.parse("2026-10-20T01:00:00Z");
     static final Instant ESCALATE_AT = Instant.parse("2026-10-21T01:00:00Z");

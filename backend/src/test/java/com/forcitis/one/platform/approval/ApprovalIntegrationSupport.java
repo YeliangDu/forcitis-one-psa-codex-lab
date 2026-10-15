@@ -29,7 +29,7 @@ import com.forcitis.one.platform.approval.events.TaskResulted;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
-import com.forcitis.one.platform.integration.api.ExternalConnections;
+import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
@@ -110,11 +110,11 @@ public abstract class ApprovalIntegrationSupport {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("forcitis.platform.approval.legacy.url", POSTGRES::getJdbcUrl);
-        registry.add("forcitis.platform.approval.legacy.username", () -> "legacy_ro");
-        registry.add("forcitis.platform.approval.legacy.password", () -> LEGACY_PASSWORD);
-        registry.add("forcitis.platform.approval.legacy.view-name", () -> "legacy_fixture.v_psa_one_legacy_todo");
-        registry.add("forcitis.platform.approval.legacy.detail-url-template",
+        registry.add("forcitis.platform.integration.legacy.inbox.url", POSTGRES::getJdbcUrl);
+        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> "legacy_ro");
+        registry.add("forcitis.platform.integration.legacy.inbox.password", () -> LEGACY_PASSWORD);
+        registry.add("forcitis.platform.integration.legacy.inbox.view-name", () -> "legacy_fixture.v_psa_one_legacy_todo");
+        registry.add("forcitis.platform.integration.legacy.inbox.detail-url-template",
                 () -> "https://legacy.example.test/bpm/detail?instance={processInstanceId}&task={taskId}");
     }
 
@@ -222,8 +222,8 @@ public abstract class ApprovalIntegrationSupport {
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager, TimesheetRoutingFlag... flags) {
         Set<String> flagNames = java.util.Arrays.stream(flags).map(TimesheetRoutingFlag::flagName).collect(java.util.stream.Collectors.toSet());
-        return tx.execute(status -> approvals.start(startRequest(businessKey, new EmployeeId(initiator), flagNames,
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+        return tx.execute(status -> approvals.start(startRequest(businessKey, TestAccounts.employee(initiator), flagNames,
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))))));
     }
 
     protected Task openTask(ApprovalInstanceId instance) {

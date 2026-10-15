@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.legal;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.tree;
@@ -127,7 +128,7 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
         mvc.perform(get(LEGAL_ENTITIES + "/" + one.toString().toUpperCase()).with(READER)).andExpect(status().isBadRequest());
         mvc.perform(get(LEGAL_ENTITIES + "/1-1-1-1-1").with(READER)).andExpect(status().isBadRequest());
         mvc.perform(get(LEGAL_ENTITIES + "/00000000-0000-0000-0000-000000000000").with(READER)).andExpect(status().isBadRequest());
-        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/2").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
+        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/" + TestOrgIds.orgUnit(2).value()).header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + one.toString().toUpperCase() + "\",\"effectiveFrom\":\"2026-10-01\"}"))
                 .andExpect(status().isBadRequest());
     }

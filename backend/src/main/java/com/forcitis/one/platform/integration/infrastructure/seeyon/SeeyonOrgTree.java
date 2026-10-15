@@ -1,9 +1,7 @@
 package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
-import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
-import com.forcitis.one.platform.integration.api.SourceUnitId;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -18,15 +16,15 @@ final class SeeyonOrgTree {
     private SeeyonOrgTree() {
     }
 
-    static List<SourceOrgUnit> resolve(List<OrgUnitRow> rows, String rootPath) {
+    static List<PlacedUnit> resolve(List<OrgUnitRow> rows, String rootPath) {
         checkTypes(rows, rootPath);
         List<OrgUnitRow> sorted = rows.stream()
                 .sorted(Comparator.comparingInt((OrgUnitRow u) -> u.path().length())
                         .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder())
-                        .thenComparingLong(u -> u.unitId().value()))
+                        .thenComparingLong(OrgUnitRow::unitId))
                 .toList();
         Map<String, OrgUnitRow> byPath = new LinkedHashMap<>();
-        Map<SourceUnitId, SourceUnitId> sharedWith = new HashMap<>();
+        Map<Long, Long> sharedWith = new HashMap<>();
         for (OrgUnitRow unit : sorted) {
             OrgUnitRow existing = byPath.get(unit.path());
             if (existing == null) {
@@ -38,11 +36,7 @@ final class SeeyonOrgTree {
                 byPath.put(unit.path(), unit);
             }
         }
-        return sorted.stream()
-                .map(unit -> new SourceOrgUnit(unit.unitId(), unit.code(), unit.name(), parentOf(unit, byPath, rootPath), unit.sortOrder(),
-                        unit.state(), unit.emptyFlags(), unit.regionKind(), unit.rawRegion(), unit.deliveryUnit(),
-                        sharedWith.get(unit.unitId())))
-                .toList();
+        return sorted.stream().map(unit -> new PlacedUnit(unit, parentOf(unit, byPath, rootPath), sharedWith.get(unit.unitId()))).toList();
     }
 
     /**
@@ -62,19 +56,17 @@ final class SeeyonOrgTree {
         }
     }
 
-    private static SourceUnitId parentOf(OrgUnitRow unit, Map<String, OrgUnitRow> byPath, String root) {
+    private static Long parentOf(OrgUnitRow unit, Map<String, OrgUnitRow> byPath, String root) {
         String path = unit.path();
-                if (!path.startsWith(root) || (path.length() - root.length()) % SeeyonViewSql.PATH_LEVEL_LENGTH != 0) {
-            throw new ExternalSourceBrokenException("org unit " + unit.unitId().value()
-                    + " is not below the sync root of the organisation tree");
+        if (!path.startsWith(root) || (path.length() - root.length()) % SeeyonViewSql.PATH_LEVEL_LENGTH != 0) {
+            throw new ExternalSourceBrokenException("org unit " + unit.unitId() + " is not below the sync root of the organisation tree");
         }
         if (path.equals(root)) {
             return null;
         }
         OrgUnitRow parent = byPath.get(path.substring(0, path.length() - SeeyonViewSql.PATH_LEVEL_LENGTH));
         if (parent == null) {
-            throw new ExternalSourceBrokenException("org unit " + unit.unitId().value()
-                    + " has no parent in the organisation tree; the whole read is rejected");
+            throw new ExternalSourceBrokenException("org unit " + unit.unitId() + " has no parent in the organisation tree; the whole read is rejected");
         }
         return parent.unitId();
     }

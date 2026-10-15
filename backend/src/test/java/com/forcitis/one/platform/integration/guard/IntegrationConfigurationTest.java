@@ -44,9 +44,12 @@ class IntegrationConfigurationTest {
         assertThat(p.getProperty(SEEYON + "views.enabled")).isEqualTo("${INTEGRATION_SEEYON_VIEWS_ENABLED:false}");
         assertThat(p.getProperty(LEGACY + "enabled")).isEqualTo("${INTEGRATION_LEGACY_ENABLED:false}");
         assertThat(p.stringPropertyNames()).as("the only keys of the two read-only connections")
-                .filteredOn(key -> key.startsWith(SEEYON + "views.") || key.startsWith(LEGACY))
+                .filteredOn(key -> key.startsWith(SEEYON + "views.") || (key.startsWith(LEGACY) && !key.startsWith(LEGACY + "inbox.")))
                 .containsExactlyInAnyOrder(SEEYON + "views.enabled", SEEYON + "views.jdbc-url", SEEYON + "views.username", SEEYON + "views.password",
                         LEGACY + "enabled", LEGACY + "jdbc-url", LEGACY + "username", LEGACY + "password", LEGACY + "view-name");
+        assertThat(p.stringPropertyNames()).as("the to-do connection ships its view only: url and secrets come from the environment, none means unavailable")
+                .filteredOn(key -> key.startsWith(LEGACY + "inbox."))
+                .containsExactly(LEGACY + "inbox.view-name");
     }
 
     @Test
