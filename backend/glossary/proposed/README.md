@@ -162,6 +162,7 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
 | `system_actor` | 系统操作主体 | SystemActor | 以 SYSTEM 身份发出事件的作业、监听器或运维入口；名字人为声明在 backend/architecture/system-actors.txt，事件信封 actorId 为该名字在固定命名空间下的 UUIDv5，同一名字恒定、不同于任何用户 ID，任何实例都可由目录反查名字（RULING-P2-C5） |  | RULING-P2-C5 已裁定：声明完整的静态目录，改名新增一行、旧行不删 |
+| `messaging_account` | 消息平台账号 | MessagingAccount | 员工在企业消息平台（现为企业微信）上的用户标识，作为外部主体的一种；kernel 端口 ExternalSubjectEmployees 只以中性文本接收它，平台取值只在集成层翻译（RULING-P3B-9） |  | one-glossary 2026-10-15 定名 withMessagingAccountId / withExternalLoginName；临时端口，C1 落地后按身份模型删除或改形 |
 
 另有技术词 38 个（`common_words`），不在表中。
 
