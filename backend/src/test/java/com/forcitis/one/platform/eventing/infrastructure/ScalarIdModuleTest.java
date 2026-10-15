@@ -50,9 +50,9 @@ class ScalarIdModuleTest {
                 new LegalEntityId(TestIds.uuid(5)), com.forcitis.one.TestApprovalIds.task("task-9"), new Reason("because"));
 
         assertThat(JSON.readTree(JSON.writeValueAsString(payload))).isEqualTo(JSON.readTree("""
-                {"actor":"%s","employee":"%s","units":["%s","%s"],"legalEntityId":"%s","taskId":"task-9","reason":{"value":"because"}}
+                {"actor":"%s","employee":"%s","units":["%s","%s"],"legalEntityId":"%s","taskId":"%s","reason":{"value":"because"}}
                 """.formatted(TestAccounts.account(7).value(), TestAccounts.employee(8).value(), TestOrgIds.orgUnit(1).value(),
-                TestOrgIds.orgUnit(2).value(), TestIds.uuid(5))));
+                TestOrgIds.orgUnit(2).value(), TestIds.uuid(5), com.forcitis.one.TestApprovalIds.uuid("task-9"))));
     }
 
     @Test

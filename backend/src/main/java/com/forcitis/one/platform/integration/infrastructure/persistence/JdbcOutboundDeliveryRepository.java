@@ -56,7 +56,7 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                 .param("subjectKind", unsaved.subject().kind().name())
                 .param("subjectId", unsaved.subject().id())
                 .param("purpose", unsaved.subject().purpose().name())
-                .param("trigger", unsaved.subject().triggerEventId().orElse(null), Types.OTHER)
+                .param("trigger", unsaved.subject().triggerEvent().orElse(null), Types.OTHER)
                 .param("recipients", codes(unsaved.recipients()))
                 .param("skipped", unsaved.skippedRecipients().isEmpty() ? null : codes(unsaved.skippedRecipients()), Types.ARRAY)
                 .param("title", unsaved.title())
@@ -66,7 +66,7 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                 .param("next", unsaved.nextAttemptAt() == null ? null : Timestamp.from(unsaved.nextAttemptAt()), Types.TIMESTAMP)
                 .param("reason", unsaved.lastError(), Types.VARCHAR)
                 .param("kind", unsaved.kind().name())
-                .param("target", unsaved.targetDeliveryId(), Types.OTHER)
+                .param("target", unsaved.target() == null ? null : unsaved.target().value(), Types.OTHER)
                 .param("correlation", unsaved.correlation(), Types.OTHER)
                 .param("now", Timestamp.from(now))
                 .update() > 0;
@@ -91,7 +91,7 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     private Optional<OutboundDelivery> cardOf(DeliverySubject subject, String lock) {
         return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries" + CARD_OF_SUBJECT + lock)
                 .param("kind", subject.kind().name()).param("subject", subject.id()).param("purpose", subject.purpose().name())
-                .param("trigger", subject.triggerEventId().orElse(null), Types.OTHER).query((rs, n) -> row(rs)).optional();
+                .param("trigger", subject.triggerEvent().orElse(null), Types.OTHER).query((rs, n) -> row(rs)).optional();
     }
 
     @Override

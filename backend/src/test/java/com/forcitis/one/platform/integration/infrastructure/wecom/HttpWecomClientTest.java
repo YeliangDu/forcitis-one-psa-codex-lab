@@ -270,7 +270,10 @@ class HttpWecomClientTest {
                 List.of(new WecomUserId("alice"), new WecomUserId("bob")), "title", "description", "https://one.example.test/tasks/42",
                 "SENT", 1, "rc-1", null, null, DeliveryKind.CARD, null, null, 0, 0);
 
-        client.replaceWithHandledNote(sent, OutboundDelivery.handledNoteFor(sent, "handled by Carol", java.util.UUID.randomUUID(), java.time.Instant.EPOCH));
+        OutboundDelivery note = OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(2)), SUBJECT, List.of(new WecomUserId("alice"), new WecomUserId("bob")),
+                "title", "handled by Carol", "https://one.example.test/tasks/42", "PENDING", 1, null, null, null, DeliveryKind.HANDLED_NOTE, TestIds.uuid(1), null, 0, 0);
+
+        client.replaceWithHandledNote(sent, note);
 
         StringValuePattern body = containing("\"response_code\":\"rc-1\"");
         wecom.verify(postRequestedFor(urlPathEqualTo(UPDATE_PATH)).withRequestBody(body)

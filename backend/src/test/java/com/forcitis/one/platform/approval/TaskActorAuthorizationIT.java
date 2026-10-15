@@ -272,9 +272,9 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("an unknown task is 404 for every operation, not 403 and not a server error")
     void unknownTaskIsNotFound() throws Exception {
-        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:claim").with(csrf()).with(currentEtag()).with(approver(newId())))
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + com.forcitis.one.TestIds.uuid(404) + ":claim").with(csrf()).with(currentEtag()).with(approver(newId())))
                 .andExpect(status().isNotFound());
-        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:decide").with(csrf()).with(currentEtag()).with(approver(newId()))
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + com.forcitis.one.TestIds.uuid(404) + ":decide").with(csrf()).with(currentEtag()).with(approver(newId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\"}")).andExpect(status().isNotFound());
     }
 
@@ -287,7 +287,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
             String body = "{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"assigneeId\":\"" + TestAccounts.employee(scene.otherCandidate()) + "\"}";
             var foreign = mvc.perform(post("/api/v1/platform/approval-tasks/" + scene.task().value() + action).with(csrf()).with(currentEtag())
                     .with(approver(scene.stranger())).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
-            var missing = mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task" + action).with(csrf()).with(currentEtag())
+            var missing = mvc.perform(post("/api/v1/platform/approval-tasks/" + com.forcitis.one.TestIds.uuid(404) + "" + action).with(csrf()).with(currentEtag())
                     .with(approver(scene.stranger())).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
             assertThat(foreign.getStatus()).as(action).isEqualTo(404).isEqualTo(missing.getStatus());
             assertThat(foreign.getContentType()).as(action).isEqualTo(missing.getContentType());

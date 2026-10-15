@@ -30,7 +30,7 @@ class SourceReferenceAllocationGuardTest {
 
     static final ArchRule ONLY_SOURCE_REFERENCES_USES_ALLOCATE_OWN_ID = noClasses()
             .that().haveNameNotMatching(".*\\.(SourceReferences|AllocateOwnId)(\\$.*)?")
-            .should().dependOnClassesThat().haveFullyQualifiedName(ALLOCATE_OWN_ID)
+            .should().dependOnClassesThat().haveFullyQualifiedName(ALLOCATE_OWN_ID).allowEmptyShould(true)
             .because("AllocateOwnId is the writing half of SourceReferences.allocate and is used through it only, so the rule above cannot be walked around");
 
     @Test

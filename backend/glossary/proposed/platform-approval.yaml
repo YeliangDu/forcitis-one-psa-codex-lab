@@ -180,6 +180,21 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_approval_form_field_unknown
+  zh: 表单字段未知
+  en: PlatformApprovalFormFieldUnknown
+  snake: platform_approval_form_field_unknown
+  kind: error_code
+  bc: platform.approval
+  scope: domain
+  definition: 发起时给出的表单字段名不是该流程任何节点读取的，发起失败并告警，不让节点因读不到审批人而被静默跳过（422）
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: R-1b P4 D5-06 / RULING-P4-D10 登记
 - id: error__platform_approval_transition_illegal
   zh: 状态转换不合法
   en: PlatformApprovalTransitionIllegal

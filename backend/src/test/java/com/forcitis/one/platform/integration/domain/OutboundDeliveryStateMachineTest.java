@@ -95,7 +95,7 @@ class OutboundDeliveryStateMachineTest {
         assertThat(note.status()).isEqualTo(PENDING);
         assertThat(note.kind()).isEqualTo(DeliveryKind.HANDLED_NOTE);
         assertThat(note.subject()).isEqualTo(SUBJECT);
-        assertThat(note.targetDeliveryId()).isEqualTo(TestIds.uuid(3));
+        assertThat(note.target()).isEqualTo(new OutboundDeliveryId(TestIds.uuid(3)));
         assertThat(note.description()).isEqualTo("handled by Dave");
     }
 }

@@ -11,18 +11,18 @@ import java.util.UUID;
  * object, the event that caused this card. One card is sent for one subject; the recipients are not part of it.
  */
 @ValueObject
-public record DeliverySubject(DeliverySubjectKind kind, UUID id, DeliveryPurpose purpose, Optional<UUID> triggerEventId) {
+public record DeliverySubject(DeliverySubjectKind kind, UUID id, DeliveryPurpose purpose, Optional<UUID> triggerEvent) {
 
     public DeliverySubject {
         Objects.requireNonNull(kind, "kind");
         id = Uuids.requireKey(id, "DeliverySubject id");
         Objects.requireNonNull(purpose, "purpose");
-        Objects.requireNonNull(triggerEventId, "triggerEventId");
-        triggerEventId.ifPresent(event -> Uuids.requireKey(event, "DeliverySubject trigger event id"));
+        Objects.requireNonNull(triggerEvent, "triggerEvent");
+        triggerEvent.ifPresent(event -> Uuids.requireKey(event, "DeliverySubject trigger event id"));
         if (purpose.subjectKind() != kind) {
             throw new IllegalArgumentException(purpose + " is about " + purpose.subjectKind() + ", not " + kind);
         }
-        if (purpose.perEvent() != triggerEventId.isPresent()) {
+        if (purpose.perEvent() != triggerEvent.isPresent()) {
             throw new IllegalArgumentException(purpose + (purpose.perEvent() ? " needs" : " takes no") + " trigger event id");
         }
     }
@@ -37,6 +37,6 @@ public record DeliverySubject(DeliverySubjectKind kind, UUID id, DeliveryPurpose
 
     @Override
     public String toString() {
-        return kind + ":" + id + ":" + purpose + triggerEventId.map(event -> ":" + event).orElse("");
+        return kind + ":" + id + ":" + purpose + triggerEvent.map(event -> ":" + event).orElse("");
     }
 }

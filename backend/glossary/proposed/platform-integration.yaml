@@ -394,6 +394,23 @@ terms:
   forbidden: []
   status: proposed
   note: one-glossary 术语门禁结论（one-coordinator 2026-10-15 转达）；只读核实命令定位行种类 overridden，by 写被哪条 DENY 覆盖（DATABASE_DENY / SCHEMA_DENY）
+- id: delivery_purpose
+  zh: 投递用途
+  en: DeliveryPurpose
+  snake: delivery_purpose
+  kind: state
+  bc: platform.integration
+  scope: acl
+  acl_class: "长期"
+  definition: 一张外发卡片为什么发：任务指派、任务转交、任务改派、任务超时、任务升级、审批完成；与对象类别、对象 ID（可再加触发事件 ID）一起决定一张卡
+  standard_ref:
+  - ADR-0033 第 7 项第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: R-1b P4 登记；取值 TASK_ASSIGNED / TASK_TRANSFERRED / TASK_REASSIGNED / TASK_OVERDUE / TASK_ESCALATED / APPROVAL_COMPLETED
+
 common_words:
 - background
 - call

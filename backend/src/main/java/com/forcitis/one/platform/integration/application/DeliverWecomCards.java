@@ -90,12 +90,12 @@ public class DeliverWecomCards {
     }
 
     private void replaceCard(OutboundDelivery delivery) {
-        OutboundDelivery card = deliveries.findById(delivery.targetDeliveryId()).orElse(null);
+        OutboundDelivery card = deliveries.findById(delivery.target().value()).orElse(null);
         if (card == null || card.responseCode() == null) {
             delivery.skip("the card to replace has no response code");
             transaction.executeWithoutResult(status -> {
                 if (deliveries.save(delivery)) {
-                    recordResultOn(delivery.targetDeliveryId(), "NOT_APPLIED: the card has no response code");
+                    recordResultOn(delivery.target().value(), "NOT_APPLIED: the card has no response code");
                 }
             });
             return;
@@ -104,7 +104,7 @@ public class DeliverWecomCards {
         delivery.markSent(null, clock.instant());
         transaction.executeWithoutResult(status -> {
             if (deliveries.save(delivery)) {
-                recordResultOn(delivery.targetDeliveryId(), "UPDATED");
+                recordResultOn(delivery.target().value(), "UPDATED");
             } else {
                 staleClaim(delivery);
             }
@@ -128,7 +128,7 @@ public class DeliverWecomCards {
         transaction.executeWithoutResult(status -> {
             if (deliveries.save(delivery)) {
                 if (delivery.kind() == DeliveryKind.HANDLED_NOTE) {
-                    recordResultOn(delivery.targetDeliveryId(), "FAILED: " + error);
+                    recordResultOn(delivery.target().value(), "FAILED: " + error);
                 }
             } else {
                 staleClaim(delivery);

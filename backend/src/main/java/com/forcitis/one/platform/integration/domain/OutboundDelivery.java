@@ -32,7 +32,7 @@ public final class OutboundDelivery extends AggregateRoot {
     private String handledNote;
     private String handledResult;
     private final DeliveryKind kind;
-    private final UUID targetDeliveryId;
+    private final OutboundDeliveryId target;
     private final UUID correlation;
     private DeliveryStatus status;
     private String responseCode;
@@ -43,7 +43,7 @@ public final class OutboundDelivery extends AggregateRoot {
     private OutboundDelivery(OutboundDeliveryId deliveryId, DeliverySubject subject, List<WecomUserId> recipients,
                              List<WecomUserId> skippedRecipients, String title, String description, String targetUrl,
                              DeliveryStatus status, int attemptCount, String responseCode, String handledNote, String handledResult, DeliveryKind kind,
-                             UUID targetDeliveryId, UUID correlationId, Instant nextAttemptAt, String lastError, long version, long eventSequence) {
+                             OutboundDeliveryId target, UUID correlationId, Instant nextAttemptAt, String lastError, long version, long eventSequence) {
         super(version, eventSequence);
         this.deliveryId = deliveryId;
         this.subject = Objects.requireNonNull(subject, "subject");
@@ -59,7 +59,7 @@ public final class OutboundDelivery extends AggregateRoot {
         this.handledNote = handledNote;
         this.handledResult = handledResult;
         this.kind = Objects.requireNonNull(kind, "kind");
-        this.targetDeliveryId = targetDeliveryId;
+        this.target = target;
         this.correlation = correlationId;
         this.nextAttemptAt = nextAttemptAt;
         this.lastError = lastError;
@@ -86,16 +86,16 @@ public final class OutboundDelivery extends AggregateRoot {
     /** The replacement of an already sent card by a note, queued as a delivery of its own. */
     public static OutboundDelivery handledNoteFor(OutboundDelivery sentCard, String note, UUID correlationId, Instant now) {
         return new OutboundDelivery(null, sentCard.subject, sentCard.recipients, List.of(), sentCard.title, note,
-                sentCard.targetUrl, DeliveryStatus.PENDING, 0, null, null, null, DeliveryKind.HANDLED_NOTE, sentCard.deliveryId.value(),
+                sentCard.targetUrl, DeliveryStatus.PENDING, 0, null, null, null, DeliveryKind.HANDLED_NOTE, sentCard.deliveryId,
                 correlationId, now, null, 0, 0);
     }
 
     public static OutboundDelivery restore(OutboundDeliveryId deliveryId, DeliverySubject subject, List<WecomUserId> recipients,
                                            String title, String description, String targetUrl, String status, int attemptCount,
                                            String responseCode, String handledNote, String handledResult,
-                                           DeliveryKind kind, UUID targetDeliveryId, UUID correlationId, long version, long eventSequence) {
+                                           DeliveryKind kind, UUID target, UUID correlationId, long version, long eventSequence) {
         return new OutboundDelivery(Objects.requireNonNull(deliveryId, "deliveryId"), subject, recipients, List.of(), title,
-                description, targetUrl, DeliveryStatus.valueOf(status), attemptCount, responseCode, handledNote, handledResult, kind, targetDeliveryId,
+                description, targetUrl, DeliveryStatus.valueOf(status), attemptCount, responseCode, handledNote, handledResult, kind, target == null ? null : new OutboundDeliveryId(target),
                 correlationId, null, null, version, eventSequence);
     }
 
@@ -166,8 +166,9 @@ public final class OutboundDelivery extends AggregateRoot {
         return kind;
     }
 
-    public UUID targetDeliveryId() {
-        return targetDeliveryId;
+    /** The card a HANDLED_NOTE replaces; null for a card. */
+    public OutboundDeliveryId target() {
+        return target;
     }
 
     public UUID correlation() {
