@@ -98,6 +98,20 @@ terms:
   forbidden: []
   status: proposed
   note: ADR-0033（提议）登记，待用语确认
+- id: evidence
+  zh: 取证
+  en: Evidence
+  snake: evidence
+  kind: value
+  bc: platform.integration
+  definition: 只读核对老系统与 A8 生产数据，用于复刻老行为、迁入对账与新旧等价核对；用专用取证账号，只出计数或聚合，或落 ECS 数据盘，每次登记一行
+  standard_ref:
+  - adr/ADR-0037.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ADR-0037 登记（数据库登录名 one_evidence_ro），待用语确认
 common_words:
 - background
 - call
