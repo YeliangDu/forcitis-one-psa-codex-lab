@@ -259,7 +259,7 @@ K-3a 列表分页公共契约新增的纯技术词（proposed，NAMING_STANDARD 
 
 无错误码以外的术语。
 
-另有技术词 5 个（`common_words`），不在表中。
+另有技术词 6 个（`common_words`），不在表中。
 
 ## organization.attendance（`organization_attendance.yaml`）
 
