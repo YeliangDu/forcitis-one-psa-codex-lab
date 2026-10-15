@@ -255,11 +255,11 @@
 
 **修订已有评审结论**：`RULE_REVIEWS.json` 条目的原字段 `verdict`、`at`、`title`、`note` 不改；决定变化时在该条目可选数组 `revisions` 末尾追加 `{verdict, at, note, quote, source}`：`at` 是带时区的完整时刻（如 `2026-10-15T09:30:00+02:00`，不得晚于当前时刻一天以上），`quote` 是用户原话，`source` 是至少一个 ADR 编号（`ADR-NNNN`，须有 `adr/src/ADR-NNNN.md`）或 intent 文件名（须在 `intent/` 中存在）。当前结论取最后一条修订，`rules/build_brief.py` 在 brief 中标注「已修订」（修订日期）与出处，「已评审」仍是原结论的日期。**已决定的条目只能追加 `revisions`，不得用插件评审面板或 `/code-modernization:modernize-review` 改写**（它们会丢掉 `revisions`、改动原字段）；这两者只用于尚未决定的规则。`rules/review_revisions.py` 校验：`at` 严格递增且不早于原 `at`、`verdict` 取值同原字段、`quote` 与 `source` 必填且 `source` 存在、JSON 无重复键；并把原字段、条目和已有修订与**比对基线**逐项比对，被改写或删除即失败。基线由调用方给出（`--base <ref>`）：CI 中 pull_request 用 `origin/$GITHUB_BASE_REF`，push 用 `github.event.before`（全零只跑自测）；未给出时取 `origin/main` 与 HEAD 的合并基点（`build_all.py --check` 即如此调用）。**缺基线时**：CI 中（`GITHUB_ACTIONS` 已设或显式 `--base`）取不到基线、git 不可用都算失败；本地只告警并仍做结构校验。每次运行打印实际比对的基线。
 
-**首次部署前的迁移基线**（用户 2026-10-14 对 1a 大修原因分析的五条建议答「采纳」）：「已应用」指已在任一环境（dev、生产）执行过；基线开放期内 dev 库可删库重建，在 dev 上执行过不算已应用（用户 2026-10-15，intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`）。在本系统首次生产部署之前，基线保持开放（用户 2026-10-15 对迁移基线写法答「开放期内直接改基线 (Recommended)」）：
+**首次部署前的迁移基线**（用户 2026-10-14 对 1a 大修原因分析的五条建议答「采纳」）：「已应用」指已在任一环境（dev、生产）执行过；基线开放期内 dev 库可删库重建，在 dev 上执行过不算已应用（用户 2026-10-15，intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`；ADR-0038（提议，部分取代 ADR-0033 迁移方案第 5 条））。在本系统首次生产部署之前，基线保持开放（用户 2026-10-15 对迁移基线写法答「开放期内直接改基线 (Recommended)」）：
   1. 先把已合入的迁移合并为每个 schema 一份基线迁移（纯合并，不改表结构），用两个空库分别执行合并前后的迁移，`pg_dump --schema-only` 对比 diff 为空，证据写进 PR，opus 复审确认。
   2. 开放期内，表结构改动直接改基线文件，不再追加迁移；每个这样的 PR 附「预期表结构 diff」——两个空库分别执行改动前后的基线，`pg_dump --schema-only` 的差异只能是 PR 声明的改动——由 opus 核对。
   3. `scripts/ci/migrations_immutable.py` 以仓库中的基线开放标记为准：标记存在时允许修改基线文件，标记不存在时任何已合入迁移的修改、改名、删除都失败；标记文件为 `backend/architecture/migration-baseline-open`。
-  4. 首次生产部署前删除该标记，此后恢复只追加；dev 部署不以删除标记为前置，`scripts/release/deploy_gate.py` 对 dev 只告警、对 prod 拦截，开放期内基线改动后 dev 库按 dev 库重建剧本重建（用户 2026-10-15，intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`）。删除标记的变更须单独成 PR，同一变更里夹带任何迁移文件的修改、改名、删除或新增，CI 失败。
+  4. 首次生产部署前删除该标记，此后恢复只追加；dev 部署不以删除标记为前置，`scripts/release/deploy_gate.py` 对 dev 只告警、对 prod 拦截，开放期内基线改动后 dev 库与服务器发布状态按 dev 库重建剧本重置（用户 2026-10-15，intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`；ADR-0038（提议，部分取代 ADR-0033 迁移方案第 5 条））。删除标记的变更须单独成 PR，同一变更里夹带任何迁移文件的修改、改名、删除或新增，CI 失败。
 
 ### 12.3 已过账事实只能冲销重做
 

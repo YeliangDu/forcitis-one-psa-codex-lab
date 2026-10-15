@@ -2,23 +2,27 @@
 """Refuses a deployment the repository says must not happen yet.
 
   deploy_gate.py <dev|prod> <version>                        run from the repository root on the main checkout
-  deploy_gate.py approval <version> <commit> <bundle sha256>  prod, after the signed statement verified: the approval names exactly this build
+  deploy_gate.py approval <version> <commit> <bundle sha256>  prod, after the signed statement verified: the approval names exactly this build,
+                                                             and that build's commit no longer carries the baseline-open marker
   deploy_gate.py --self-test
 
 - Any environment: a blocker entry under docs/modernization/status/blockers/ whose line carries the marker `blocks: deploy` stops the
   deployment. Blocker fragments are single lines (build_records.py), so the marker sits in the line instead of front matter. The
   coordinating session deletes the entry, or the marker, when the blocking work is merged.
-- prod: the migration baseline-open marker (backend/architecture/migration-baseline-open) stops the deployment; it is removed before the
+- prod: the migration baseline-open marker (backend/architecture/migration-baseline-open) stops the deployment, both on main and in the
+  commit the bundle was built from (a release tagged while the baseline was open stays undeployable to prod); it is removed before the
   first production deployment, in a pull request of its own (SESSION_PLAYBOOK §12.2 step 4).
-- dev: an open baseline is allowed and only warned about. While it is open the baseline files may change after a dev deployment, so the
-  dev database is rebuilt instead of migrated whenever they did (runbooks/dev-db-rebuild.md).
+- dev: an open baseline is allowed and only warned about. While it is open the baseline files may change after a dev deployment; when they
+  did, the dev database and the server's release state are reset first (DEV_DB_REBUILD), the installer refuses changed migrations otherwise.
 - prod: no pre-release version (-rc.N); every Phase 1a exit condition in section D of PREDEPLOY_CHECKLIST.md is done (verified on dev);
   C-9 (the production database) is done. "Done" means the status cell is exactly the done mark, nothing else. The version is listed in
   prod-approvals.txt as "<version> <commit> <bundle sha256> <YYYY-MM-DD> <approver>": on the GitHub Team plan a private repository has
   no required reviewers, so a reviewed approval line merged into main is the human approval, and it pins the exact build approved.
 """
+import io
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -27,6 +31,7 @@ CHECKLIST = "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md"
 PROD_APPROVALS = "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt"
 DEPLOY_MARKER = "`blocks: deploy`"
 BASELINE_MARKER = "backend/architecture/migration-baseline-open"
+DEV_DB_REBUILD = "docs/modernization/phase1a/infra/runbooks/dev-db-rebuild.md"
 DONE = "✅"
 EXPECTED_EXIT_CONDITIONS = 9
 PROD_PREREQUISITES = ("C-9",)
@@ -48,6 +53,14 @@ def deploy_blockers(root):
 def baseline_open(root):
     directory, name = os.path.split(os.path.join(root, BASELINE_MARKER))
     return os.path.isdir(directory) and any(entry.lower() == name.lower() for entry in os.listdir(directory))
+
+
+def baseline_open_at(root, commit):
+    directory, name = os.path.split(BASELINE_MARKER)
+    listing = subprocess.run(["git", "-C", root, "ls-tree", "--name-only", commit, f"{directory}/"], capture_output=True, text=True)
+    if listing.returncode != 0:
+        raise SystemExit(f"deploy_gate.py: cannot read {commit}; refusing to guess whether its baseline was open")
+    return any(os.path.basename(entry).lower() == name.lower() for entry in listing.stdout.splitlines())
 
 
 def table_rows(checklist_text, section_letter):
@@ -84,13 +97,16 @@ def approval_problems(root, version, commit, bundle_sha256):
         return [f"{version} is not approved for prod in {PROD_APPROVALS}"]
     if approved != (commit, bundle_sha256):
         return [f"{PROD_APPROVALS} approves {version} as commit {approved[0]} bundle {approved[1]}, not {commit} bundle {bundle_sha256}"]
+    if baseline_open_at(root, commit):
+        return [f"{version} was built from {commit}, which still carries {BASELINE_MARKER}; prod takes builds made after the baseline closed"]
     return []
 
 
-def warnings(root, environment):
+def dev_warnings(root, environment):
     if environment == "dev" and baseline_open(root):
         return [f"{BASELINE_MARKER} exists: the migration baseline is still open; if any baseline migration changed since the last dev "
-                "deployment, rebuild the dev database first (runbooks/dev-db-rebuild.md), Flyway validation fails otherwise"]
+                f"deployment, reset the dev database and the server's release state first ({DEV_DB_REBUILD}), "
+                "the installer refuses changed migrations otherwise"]
     return []
 
 
@@ -124,8 +140,24 @@ def self_test():
     with tempfile.TemporaryDirectory() as root:
         os.makedirs(os.path.join(root, BLOCKERS))
         os.makedirs(os.path.dirname(os.path.join(root, PROD_APPROVALS)))
+        def git(*args):
+            return subprocess.run(["git", "-C", root, "-c", "user.name=self-test", "-c", "user.email=self-test@invalid",
+                                   "-c", "commit.gpgsign=false", *args], check=True, capture_output=True, text=True).stdout.strip()
+
+        git("init", "-q")
+        marker = os.path.join(root, BASELINE_MARKER)
+        os.makedirs(os.path.dirname(marker))
+        with open(marker, "w", encoding="utf-8") as handle:
+            handle.write("open\n")
+        git("add", "-A")
+        git("commit", "-q", "-m", "open")
+        open_commit = git("rev-parse", "HEAD")
+        os.remove(marker)
+        git("commit", "-q", "-a", "-m", "closed")
+        closed_commit = git("rev-parse", "HEAD")
         with open(os.path.join(root, PROD_APPROVALS), "w", encoding="utf-8") as handle:
-            handle.write(f"# header\n0.1.0 {'c' * 40} {'d' * 64} 2026-10-14 平台负责人\n")
+            handle.write(f"# header\n0.1.0 {closed_commit} {'d' * 64} 2026-10-14 平台负责人\n"
+                         f"0.0.9 {open_commit} {'d' * 64} 2026-10-14 平台负责人\n")
 
         def checklist(statuses, c9=DONE):
             rows = "".join(f"| D-{i} | x | y | {s} |\n" for i, s in enumerate(statuses, 1))
@@ -140,24 +172,37 @@ def self_test():
 
         checklist([DONE] * 9)
         assert check(root, "dev", "0.1.0-rc.1") == [] and check(root, "prod", "0.1.0") == []
-        marker = os.path.join(root, BASELINE_MARKER)
-        os.makedirs(os.path.dirname(marker))
         with open(marker, "w", encoding="utf-8") as handle:
             handle.write("open\n")
         assert check(root, "dev", "0.1.0-rc.1") == [], "an open migration baseline does not stop dev"
-        assert any("baseline is still open" in w for w in warnings(root, "dev")), "an open migration baseline is warned about on dev"
+        assert any("baseline is still open" in w for w in dev_warnings(root, "dev")), "an open migration baseline is warned about on dev"
         assert any("baseline is still open" in p for p in check(root, "prod", "0.1.0")), "an open migration baseline stops prod"
-        assert warnings(root, "prod") == [], "prod reports the open baseline as a problem, not a warning"
+        assert dev_warnings(root, "prod") == [], "prod reports the open baseline as a problem, not a warning"
+        streams, os.environ["GITHUB_ACTIONS"] = (sys.stdout, sys.stderr), "true"
+        try:
+            sys.stdout, sys.stderr = io.StringIO(), (captured := io.StringIO())
+            assert main(["dev", "0.1.0-rc.1"], root) == 0, "dev with an open baseline deploys"
+        finally:
+            sys.stdout, sys.stderr = streams
+            del os.environ["GITHUB_ACTIONS"]
+        assert captured.getvalue().startswith("::warning::deploy_gate.py: "), "the warning is an Actions annotation"
         os.rename(marker, marker.replace("migration-baseline-open", "Migration-Baseline-Open"))
         assert check(root, "prod", "0.1.0"), "a marker differing only in case still stops prod"
-        assert warnings(root, "dev"), "a marker differing only in case is still warned about on dev"
+        assert dev_warnings(root, "dev"), "a marker differing only in case is still warned about on dev"
         os.remove(marker.replace("migration-baseline-open", "Migration-Baseline-Open"))
-        assert check(root, "prod", "0.1.0") == [] and warnings(root, "dev") == [], "removing the marker lifts the stop and the warning"
+        assert check(root, "prod", "0.1.0") == [] and dev_warnings(root, "dev") == [], "removing the marker lifts the stop and the warning"
         assert check(root, "prod", "0.1.0-rc.1"), "prod refuses pre-releases"
         assert any("not approved" in p for p in check(root, "prod", "0.2.0")), "prod needs an approval line"
-        assert approval_problems(root, "0.1.0", "c" * 40, "d" * 64) == []
+        assert approval_problems(root, "0.1.0", closed_commit, "d" * 64) == []
         assert approval_problems(root, "0.1.0", "e" * 40, "d" * 64), "the approval pins the commit"
-        assert approval_problems(root, "0.1.0", "c" * 40, "f" * 64), "the approval pins the bundle"
+        assert approval_problems(root, "0.1.0", closed_commit, "f" * 64), "the approval pins the bundle"
+        assert any("still carries" in p for p in approval_problems(root, "0.0.9", open_commit, "d" * 64)), \
+            "a build made while the baseline was open never reaches prod, approved or not"
+        try:
+            baseline_open_at(root, "e" * 40)
+            raise AssertionError("an unknown commit must fail, not pass")
+        except SystemExit:
+            pass
         checklist([DONE] * 8 + ["⬜"])
         assert check(root, "dev", "0.1.0") == [] and "D-9" in check(root, "prod", "0.1.0")[0]
         checklist([DONE] * 8 + [DONE + " 部分"])
@@ -179,12 +224,12 @@ def self_test():
     print("deploy_gate.py self-test passed")
 
 
-def main(argv):
+def main(argv, root="."):
     if argv == ["--self-test"]:
         self_test()
         return 0
     if len(argv) == 4 and argv[0] == "approval":
-        problems = approval_problems(".", *argv[1:])
+        problems = approval_problems(root, *argv[1:])
         for problem in problems:
             print(f"deploy_gate.py: {problem}", file=sys.stderr)
         if not problems:
@@ -193,10 +238,10 @@ def main(argv):
     if len(argv) != 2 or argv[0] not in ("dev", "prod"):
         print(__doc__, file=sys.stderr)
         return 2
-    for warning in warnings(".", argv[0]):
+    for warning in dev_warnings(root, argv[0]):
         print(f"::warning::deploy_gate.py: {warning}" if os.environ.get("GITHUB_ACTIONS") == "true" else f"deploy_gate.py: warning: {warning}",
               file=sys.stderr)
-    problems = check(".", argv[0], argv[1])
+    problems = check(root, argv[0], argv[1])
     for problem in problems:
         print(f"deploy_gate.py: {problem}", file=sys.stderr)
     if not problems:

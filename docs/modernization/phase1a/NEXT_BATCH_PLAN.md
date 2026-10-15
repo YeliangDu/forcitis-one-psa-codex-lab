@@ -58,7 +58,7 @@
   │   F-1 数据范围 ★  F-2 守护 ★  F-3 运行时配置 ★  F-4  F-5  F-6  F-10
   │   F-9、F-11、F-12 先写 ADR，W0 起即可并行；F-12 批准后再实现 ★
   │
-  W4 基线收口：首次生产部署前删除基线开放标记（第 8 节改；原为首次部署 dev 前）
+  W4 基线收口：首次生产部署前删除基线开放标记（第 8 节改，依据 ADR-0038（提议，部分取代 ADR-0033 迁移方案第 5 条）；原为首次部署 dev 前）
        ★ 标注的项、R-1..R-4 与安全类缺陷卡合并之后，才解除 090
 ```
 
@@ -213,7 +213,7 @@ ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先
 具体做法：
 1. R-3a 先做纯合并，证明表结构 diff 为空。
 2. 之后 R-1、R-2、R-4 以及 W2、W3 的表结构改动直接改基线文件。每个 PR 附「预期表结构 diff」，由 opus 核对。
-3. 首次部署 dev 前删除开放标记，恢复只追加。
+3. 首次部署 dev 前删除开放标记，恢复只追加（第 8 节改为首次生产部署前，依据 ADR-0038（提议，部分取代 ADR-0033 迁移方案第 5 条））。
 4. W0 的 `migrations_immutable.py` 放行逻辑与此一致。
 
 ## 5. 交给 one-coordinator 核对的点（不是用户决定，只需确认）
@@ -460,7 +460,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | 项 | 原安排 | 现安排 |
 |---|---|---|
 | 工程会话 | 部署前开发全在 one-1a-next-2 一条串行链上 | 加并行工程会话 one-1a-par，承担与 R-1b 在途子 PR 文件不相交的卡（下表）；one-1a-next-2（及其接任者）继续独占结构重构主线（R-1b P2→P3b→P4→P5，其后 R-6、R-2、R-5、R-4）与 #163（ADR37-1） |
-| W4 基线收口 | 首次部署 dev 前删除基线开放标记（C-3 第一步） | 改为**首次生产部署前**删除（PREDEPLOY_CHECKLIST C-15）；dev 期间基线保持开放，基线文件改动后 dev 库删库重建（one-ops 补 dev 库重建剧本 `runbooks/dev-db-rebuild.md`）。`deploy_gate.py` 对 prod 拦截、对 dev 放行并告警；SESSION_PLAYBOOK §12.2 第 4 条与「已应用」的定义随之修订 |
+| W4 基线收口 | 首次部署 dev 前删除基线开放标记（C-3 第一步） | 改为**首次生产部署前**删除（PREDEPLOY_CHECKLIST C-15；依据 ADR-0038（提议，部分取代 ADR-0033 迁移方案第 5 条））；dev 期间基线保持开放，基线文件改动后 dev 库与服务器发布状态一起重置（one-ops 补 dev 库重建剧本 `runbooks/dev-db-rebuild.md`，PREDEPLOY_CHECKLIST C-16）。`deploy_gate.py` 对 prod 拦截（main 与发布包所在提交都查）、对 dev 放行并告警；SESSION_PLAYBOOK §12.2 第 4 条与「已应用」的定义随之修订 |
 | F-1 数据范围（阻塞 090） | W3，前置 R-1..R-4 与 K-3 | 前置改为 **R-1b P5 合并 + K-3**；验收测试先由测试代理写（one-1a-par 卡 4），实现在 P5 合并后开，执行者届时由 one-coordinator 定 |
 | C-1 契约演进守护 | 「W4 删除基线开放标记之前」 | 改为首次生产部署前、C-15 之前 |
 
@@ -468,11 +468,11 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 
 | 卡 | 内容 | 前置 |
 |---|---|---|
-| PAR-1 部署守护解耦 | `deploy_gate.py` 基线开放标记只拦 prod，dev 告警；`--self-test`、RELEASE.md §3、PREDEPLOY_CHECKLIST C-15、C-3 剧本第 0 步、DEV_DEPLOY_REMAINING 0-3、SESSION_PLAYBOOK §12.2、本节；守护文件改动，opus 复审 | — |
+| PAR-1 部署守护解耦 | `deploy_gate.py` 基线开放标记只拦 prod（含发布包所在提交），dev 告警；`--self-test`、RELEASE.md §3、PREDEPLOY_CHECKLIST C-15 / C-16、C-3 剧本第 0 步、DEV_DEPLOY_REMAINING 0-3、SESSION_PLAYBOOK §12.2、CS-3.5、本节；守护文件改动，opus 复审。安装器 `remote_install.sh` 对「两版之间迁移文件被改」仍拒绝安装，dev 解耦在安装层靠重建剧本重置发布状态（one-ops 定改法） | ADR-0038 采纳后合并 |
 | PAR-2 ADR-0037 只读核实命令 | 对指定连接跑与启动校验同一套判定（`ReadOnlyBaseline`），逐项输出 (a)–(g) 标记与错误号，不输出数据或消息原文；进签名发布包；默认只读、不启动 Web、不跑迁移、不起调度；口令只从 ECS env 文件读；退出码区分通过 / 违规 / 判定不了；合并后通知 one-ops、one-coordinator 出 rc.2（C-14 前提） | #163 合并 |
 | PAR-3 FLW-1 | Flowable 引擎时间来源核实（第 3 节，首次部署前须有结论），opus 核实，结论写规则卡与 INFRA_RUNBOOK；需改动按缺陷卡手术式修 | — |
 | PAR-4 F-1 验收测试 | 测试代理（opus）按 ADR-0026「1a 交付范围」与 2.4 F-1 行先写验收测试 | — |
 | PAR-5 K-3 | 列表分页契约统一（游标、上限 200，A 2-H1 / 2-H2）与 DDL-11、G-X2；与 R-1b 在途文件冲突则排后 | 与 R-1b 在途文件不相交 |
 
-**已采纳 ADR 中的旧时点**：ADR-0033「迁移方案」第 5 条写「基线开放标记删除（首次部署 dev 前……）」，ADR 正文冻结（SESSION_PLAYBOOK §12.1）不改；以本节与 §12.2 为准，是否另需取代性 ADR 由 one-coordinator 定。该条「标记删除之前 R-1b 与 DA-3 / DA-10 结构性重构卡都须合并」的要求不变，随标记删除时点一起后移到生产前。
+**已采纳 ADR 中的旧时点**：ADR-0033「迁移方案」第 5 条写「基线开放标记删除（首次部署 dev 前……）」。时点变化是对已采纳 ADR 决定的变化，按 SESSION_PLAYBOOK §12.1 由 ADR-0038（提议，部分取代 ADR-0033 迁移方案第 5 条） 处理（one-coordinator 起草，用户批准后采纳）；ADR-0033 正文不改。本节的 W4 时点与 PAR-1 以 ADR-0038 采纳为前提，PAR-1 的 PR 排在其采纳之后合并。ADR-0033:239 / 247、ADR-0034:45 / 362「尚未部署任何环境」与 ADR-0035:37「dev 已部署、基线开放标记已删除的阶段」的前提随之变化，一并交 ADR-0038 评估。
 
