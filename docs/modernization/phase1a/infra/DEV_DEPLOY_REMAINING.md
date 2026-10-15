@@ -1,6 +1,6 @@
 # 首次 dev 部署前运维剩余事项（按依赖排序）
 
-维护：one-ops。更新：2026-10-15（第二轮：C-3、C-4、C-6 已执行项，并入 RELEASE.md R-0..R-12；发布通路改为 ECS 自取 GitHub Release，R-3 取消、R-13 新增）。依据：`PREDEPLOY_CHECKLIST.md`、`CROSSCHECK.md`、`DECISIONS_A.md`、各剧本，以及 2026-10-15 对阿里云的只读查询。本表只列**首次 dev 部署之前**还要做的事；生产前事项见清单「生产前」时点。
+维护：one-ops。更新：2026-10-15（第二轮：C-3、C-4、C-6 已执行项，并入 RELEASE.md R-0..R-12；发布通路改为 ECS 自取 GitHub Release，R-3 取消；同日按用户「需要我做的，都让ops 会话自己做」改为 GitHub OIDC、OOS 请求参数与 ECS 定时拉取，R-13 取消，R-4 / R-6 / R-11 改由运维执行）。依据：`PREDEPLOY_CHECKLIST.md`、`CROSSCHECK.md`、`DECISIONS_A.md`、各剧本，以及 2026-10-15 对阿里云的只读查询。本表只列**首次 dev 部署之前**还要做的事；生产前事项见清单「生产前」时点。
 
 「谁」：**ops** = one-ops（或 one-coordinator 派的运维子代理）；**用户** = 只能用户本人做或决定；**1a** = 1a 代码会话；**DBA** = 老系统 / A8 的数据库管理员（A-2 人选未定）。「花钱」：否 / 是（付费项编号见 C-7「落地方案」与本表）/ 按量（已开通服务的小额用量）。耗时是动手时间，不含等人。
 
@@ -47,16 +47,16 @@
 | R-1 | GitHub environments `release` / `dev` / `prod`，只允许 `main` | 用户（仓库设置） | 否 | 0.2 h | ✅ 2026-10-15；dev / prod 另加 `v*` 标签部署策略（用户「允许，首次部署前加上 (Recommended)」） |
 | R-2 | 仓库级 Actions variables：8 个构建期变量 | 用户 | 否 | 0.2 h | B-2、B-3 完成后填 |
 | R-3 | ~~发布用 OSS bucket~~ | — | — | — | **不再需要**：改为 ECS 自取 GitHub Release（用户「先测 GitHub 直拉，可行就用 (Recommended)」；ECS 夜间实测约 9 MB/s） |
-| R-4 | RAM：每环境部署子账号与 AccessKey，策略只许对该命令与该实例 `ecs:InvokeCommand`、`ecs:DescribeInvocationResults`、`ecs:DescribeInvocations`（RELEASE.md §8.2） | 用户（运维不建 RAM 用户 / AccessKey） | 否 | 0.3 h | 发布不需要实例 RAM 角色（1-12 已不需要；B-13 另定） |
-| R-5 | 各 environment 的 secrets（含 `RELEASE_SIGNING_KEY`） | 用户 | 否 | 0.2 h | R-4、R-12 |
-| R-6 | 各 environment 的 variables（`DEPLOY_TRIGGER=cloud-assistant`、`ECS_REGION`、`ECS_INSTANCE_ID`、`ECS_COMMAND_ID`） | 用户 | 否 | 0.1 h | R-7；不再有 `OSS_*`；企业微信校验文件名改在 ECS 的 `release-source`（R-7） |
-| R-7 | ECS：安装器、签名公钥、`release-source`（`ENVIRONMENT`、`GITHUB_REPOSITORY`、`WECOM_VERIFY_FILE`）、令牌文件与到期日、令牌到期检查定时器、云助手固定命令（无参数 `install-pending`） | ops | 否 | 1 h | R-12、R-13；E-3 / E-9 / E-10 部分已完成；ECS 上不再需要 aliyun CLI 与实例角色配置 |
+| R-4 | GitHub OIDC `sub` 定制（`repo`、`context`、`job_workflow_ref`）；阿里云 OIDC 身份提供商 `github-actions`；每环境一个部署 RAM 角色 `forcitis-one-deploy-<env>`（信任策略精确匹配 `iss`、`aud=sts.aliyuncs.com`、`sub`=该环境 main 上的 deploy.yml）与部署策略（五个请求参数只有 `oos:UpdateParameter`、结果参数只有 `oos:GetParameter`，没有任何 ECS 接口）；拉取策略 `forcitis-one-deploy-pull`（请求参数只读、结果参数只写）挂到现有实例角色 `forcitis-one-ecs-archive`（RELEASE.md R-4、§8.2） | ops（经用户确认；按 RELEASE.md R-4 的接口清单执行并回读） | 否 | 0.5 h | 不建 RAM 用户、不生成 AccessKey；不新建、不重绑实例角色：该实例角色承载归档写入与部署请求拉取两份最小策略 |
+| R-5 | 各 environment 的 secrets：dev / prod **不需要任何阿里云 secret**；只剩 `release` 的 `RELEASE_SIGNING_KEY` | — | 否 | — | ✅ 随 R-12 已就位；SSH 触发方式已删除 |
+| R-6 | 各 environment 的 variables：`ALIBABA_CLOUD_ROLE_ARN`、`ALIBABA_CLOUD_OIDC_PROVIDER_ARN`、`ECS_REGION`（不是机密）；dev 的 ECS 为 `i-bp122xlpar8w2uylmal2`，prod 的 ECS（待建）不进变量 | ops（`gh api` 写入并回读） | 否 | 0.1 h | R-4；`ECS_INSTANCE_ID`、`ECS_COMMAND_ID`、`DEPLOY_TRIGGER`、`DEPLOY_*`、`OSS_*` 不再使用，已建的删除 |
+| R-7 | ECS：安装器、签名公钥、`release-source`（`ENVIRONMENT`、`WECOM_VERIFY_FILE`）、拉取定时器与服务 `forcitis-one-release-pull.timer` / `.service`（root，每分钟，单实例）；预建五个 OOS 请求参数与结果参数 `forcitis-one-deploy-result-<env>`（占位初值 `{}`）；不建云助手命令；已装的旧令牌文件与令牌检查单元按 RELEASE.md R-7「卸载」删除 | ops | 否 | 1 h | R-4、R-12；E-3 / E-9 / E-10 部分已完成；ECS 上不需要 aliyun CLI 或 GitHub 令牌；ECS 出方向须能访问 `oos.cn-hangzhou.aliyuncs.com` |
 | R-8 | 标签规则 `v*` | 用户 | 否 | 0.1 h | ✅ 2026-10-15（只限更新与删除，见 RELEASE.md R-8） |
 | R-9 | 启用 immutable releases；确认 Actions 权限与托管 runner | 用户 | 否 | 0.1 h | ✅ 2026-10-15 |
 | R-10 | `one.env` 补 `SPRING_FLYWAY_ENABLED=false`；`/etc/forcitis-one/migrate/` 迁移凭据 | ops | 否 | — | ✅ 两项都已就位（one-ops-1a；迁移凭据由 C-3 写入）；首次 Flowable 安装项待首次部署 |
-| R-11 | 连通演练（不部署）：ECS 以令牌读部署记录、下载一个 Release 附件并记速度（白天补测）、云助手触发固定命令应以「没有待部署」失败 | ops | 否 | 0.5 h | R-4、R-7、R-13 |
+| R-11 | 连通演练（不部署，不需要令牌；RELEASE.md R-11 ①–⑧）：真实读写参数（请求设为 `invalid` 应被拒并告警一次）、4096 上限、告警限频、混搭被拒且不消耗防重放记录、已处理请求静默跳过、定时器单实例；OIDC 换凭据与合法请求只能在首次 dev 部署时验证（ship.sh 的「STS session …」与结果参数） | ops | 否 | 0.5 h | R-4、R-6、R-7 |
 | R-12 | 发布签名密钥：可信机器生成，私钥进 secret，公钥经 PR 写入 `allowed_signers` 并装到 ECS | 用户生成；ops 装 ECS 公钥 | 否 | 0.3 h | ✅ 2026-10-15；ECS 公钥随 R-7 安装 |
-| R-13 | **GitHub 只读令牌**（每环境一个，fine-grained：仅 `forcitis-one-psa`，Contents / Deployments / Actions / Metadata 只读，≤ 90 天）：用户在 github.com 生成，只经 one-ops 安全输入窗口交运维写入 ECS；到期前 14 天 P2、3 天 P1 告警后轮换（RELEASE.md R-13） | 用户生成；ops 写入 ECS 与装检查 | 否 | 0.3 h | 用户步骤；R-7 前 |
+| R-13 | ~~GitHub 只读令牌~~ | — | — | — | **不再需要**：ECS 不访问 GitHub API；安装内容写在只有该环境 deploy 作业（经 OIDC 证明身份）能写的 OOS 参数中，由 ECS 定时拉取（用户「需要我做的，都让ops 会话自己做」；one-coordinator 批准）；已装的令牌文件与检查随 R-7 卸载 |
 
 ## 第 4 层：部署当日与部署后（出口前）
 
