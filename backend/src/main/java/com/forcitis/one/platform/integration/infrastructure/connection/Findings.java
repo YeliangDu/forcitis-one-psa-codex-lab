@@ -20,7 +20,7 @@ final class Findings {
     final Set<String> undeterminable = new LinkedHashSet<>();
     final List<Finding> confirmedFindings = new ArrayList<>();
     final List<Finding> undeterminableFindings = new ArrayList<>();
-    final List<OverriddenGrant> overridden = new ArrayList<>();
+    final Set<OverriddenGrant> overridden = new LinkedHashSet<>();
 
     void violated(Reason reason, int count, String problem) {
         violated(reason, count, problem, List.of());

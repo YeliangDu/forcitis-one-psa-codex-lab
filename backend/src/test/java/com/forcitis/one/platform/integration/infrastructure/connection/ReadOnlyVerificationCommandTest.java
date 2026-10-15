@@ -119,13 +119,13 @@ class ReadOnlyVerificationCommandTest {
                 "  (f) violation reason=OTHER_DATABASE_REACHABLE database=\"other\\\"world\"",
                 "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"master\"",
                 "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"msdb\"",
-                "(g) VIOLATED reason=SECURABLE_GRANT_BEYOND_SELECT count=2",
+                "(g) VIOLATED reason=SECURABLE_GRANT_BEYOND_SELECT count=3",
                 "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"t\\n\\u2028\\u202E\\\\x\" objectId=42 "
                         + "permission=\"CONTROL\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE",
                 "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=SCHEMA schema=\"报表\" object=- objectId=5 permission=\"TAKE OWNERSHIP\" "
                         + "state=GRANT_WITH_GRANT_OPTION grantee=SELF granteeType=SQL_USER",
+                "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=TYPE schema=- object=- objectId=44 permission=\"REFERENCES\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE",
                 "  (g) overridden class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"p_x\" objectId=43 permission=\"EXECUTE\" state=GRANT grantee=SELF granteeType=SQL_USER by=DATABASE_DENY",
-                "  (g) overridden class=TYPE schema=- object=- objectId=44 permission=\"REFERENCES\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE by=DATABASE_DENY",
                 "RESULT VIOLATED");
     }
 

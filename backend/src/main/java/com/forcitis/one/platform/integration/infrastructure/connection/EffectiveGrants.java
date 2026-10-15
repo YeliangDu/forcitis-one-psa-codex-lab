@@ -19,6 +19,9 @@ import org.jspecify.annotations.Nullable;
  */
 final class EffectiveGrants {
 
+    /** The ruling names object-level and schema-level grants only; a grant on a type, a role or any other class stays a violation. */
+    static final Set<String> OVERRIDABLE_CLASSES = Set.of("OBJECT_OR_COLUMN", "SCHEMA");
+
     /** Where a violation or an overridden grant is; printed by the read-only verification command only, never in a refusal, an ALERT or a log. */
     sealed interface Locator permits DatabaseLocator, GrantLocator {
     }
@@ -61,7 +64,7 @@ final class EffectiveGrants {
             if (state.equals("D") || state.equals("G") && permission.equals("SELECT")) {
                 continue;
             }
-            if (state.equals("G") && DATABASE_DENIES.contains(permission)) {
+            if (state.equals("G") && OVERRIDABLE_CLASSES.contains(row.classDescription().trim()) && DATABASE_DENIES.contains(permission)) {
                 overridable.add(row);
             } else {
                 beyond.add(beyondTheBaseline(row));

@@ -117,6 +117,24 @@ class ReadOnlyBaselineLocatorTest {
     }
 
     @Test
+    @DisplayName("opus 安全复审 Medium-1（裁定原文「对象级 / schema 级」）：只有 OBJECT_OR_COLUMN 与 SCHEMA 的授权可被覆盖；"
+            + "class 4 DATABASE_PRINCIPAL 上的 GRANT ALTER（如 ALTER ON ROLE）与 TYPE 上的 GRANT REFERENCES 即使本账号有库级同名 DENY 仍违规")
+    void onlyObjectAndSchemaGrantsCanBeOverridden() {
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("DATABASE_PRINCIPAL", 7, "G", "ALTER", true, null, null, null, "public", "DATABASE_ROLE"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("TYPE", 8, "G", "REFERENCES", false, null, null, null, null, "SQL_USER"));
+
+        Verdict verdict = ReadOnlyBaseline.check(catalog);
+
+        assertThat(verdict.overridden()).isEmpty();
+        assertThat(unmet('g').findings()).singleElement().satisfies(finding -> {
+            assertThat(finding.reason()).isEqualTo(Reason.SECURABLE_GRANT_BEYOND_SELECT);
+            assertThat(finding.locators()).containsExactlyInAnyOrder(
+                    new GrantLocator("DATABASE_PRINCIPAL", null, null, 7, "ALTER", "G", false, "public", "DATABASE_ROLE"),
+                    new GrantLocator("TYPE", null, null, 8, "REFERENCES", "G", true, null, "SQL_USER"));
+        });
+    }
+
+    @Test
     @DisplayName("RULING-ADR37-10 收窄安全条件 1：schema 级 DENY 只覆盖同一 schema 中同名权限；所属 schema 不明的授权不被 schema 级 DENY 覆盖；授给 public 的 DENY 不算本账号的 DENY")
     void aSchemaDenyOverridesOnlyInItsOwnSchema() {
         catalog.databaseLevelPermissions.remove(new DatabaseLevelPermission("D", "EXECUTE"));
