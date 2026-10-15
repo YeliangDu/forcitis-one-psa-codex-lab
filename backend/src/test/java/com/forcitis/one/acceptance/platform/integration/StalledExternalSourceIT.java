@@ -18,6 +18,9 @@ import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.WecomGateway;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -36,6 +39,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -93,13 +97,26 @@ class StalledExternalSourceIT {
     static final String TODO_READER_PASSWORD = "Cc3!" + UUID.randomUUID();
     static final String NAMES_READER_PASSWORD = "Dd4!" + UUID.randomUUID();
 
+    static final Path TEST_IMAGES = Path.of("architecture/test-images.txt");
+    static final String MSSQL_IMAGE_PREFIX = "mcr.microsoft.com/mssql/server";
+
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
-    static final GenericContainer<?> MSSQL = new GenericContainer<>("mcr.microsoft.com/mssql/server:2022-latest")
+    static final GenericContainer<?> MSSQL = new GenericContainer<>(mssqlImage())
             .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
             .withStartupTimeout(Duration.ofMinutes(5))
             .waitingFor(Wait.forLogMessage(".*SQL Server is now ready for client connections.*", 1));
+
+    /** The one list of test images, shared with the CI pre-pull; a missing file or line fails the test, there is no fallback tag. */
+    static String mssqlImage() {
+        try {
+            return Files.readAllLines(TEST_IMAGES).stream().map(String::strip).filter(line -> line.startsWith(MSSQL_IMAGE_PREFIX)).findFirst()
+                    .orElseThrow(() -> new IllegalStateException(TEST_IMAGES + " has no line starting with " + MSSQL_IMAGE_PREFIX));
+        } catch (IOException e) {
+            throw new IllegalStateException("cannot read " + TEST_IMAGES.toAbsolutePath(), e);
+        }
+    }
 
     static {
         POSTGRES.start();
@@ -429,29 +446,21 @@ class StalledExternalSourceIT {
                     "CREATE LOGIN names_reader WITH PASSWORD = N'" + NAMES_READER_PASSWORD + "', CHECK_POLICY = OFF");
             createA8World();
             createLegacyWorld();
-        } catch (SQLException e) {
+        } catch (SQLException | ConditionTimeoutException e) {
             throw new IllegalStateException("cannot prepare the external databases; SQL Server log:\n" + MSSQL.getLogs(), e);
         }
     }
 
-    private static void waitForAdministratorLogin() throws SQLException {
-        long deadline = System.nanoTime() + Duration.ofSeconds(60).toNanos();
-        while (true) {
-            try {
-                admin("master").close();
-                return;
-            } catch (SQLException notYet) {
-                if (System.nanoTime() > deadline) {
-                    throw notYet;
-                }
-                try {
-                    Thread.sleep(1_000);
-                } catch (InterruptedException interrupted) {
-                    Thread.currentThread().interrupt();
-                    throw notYet;
-                }
-            }
-        }
+    /**
+     * SQL Server logs "ready for client connections" before the login subsystem accepts the administrator; 60 s bounds a container that never comes up.
+     * Polls in the calling thread: this runs inside the static initializer, and a poller thread calling admin() would wait for the class to finish initializing.
+     */
+    private static void waitForAdministratorLogin() {
+        Awaitility.await("SQL Server accepts the administrator login")
+                .atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(500)).pollInSameThread().ignoreExceptions().until(() -> {
+                    admin("master").close();
+                    return true;
+                });
     }
 
     private static void createA8World() throws SQLException {
