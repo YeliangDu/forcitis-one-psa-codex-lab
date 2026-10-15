@@ -67,7 +67,7 @@ class OperationsProfileSmokeTest {
         Finished finished = run("--operator=alice", "--witness=bob");
 
         assertThat(finished.exitCode()).isEqualTo(2);
-        assertThat(finished.webServerPort()).as("B1-R3 the web part listens on no port").isEqualTo(-1);
+        assertThat(finished.webServerPort()).as("B1-R3 the web part reports port -1; Tomcat still listens on an ephemeral port until OPS-PORT").isEqualTo(-1);
         assertThat(finished.anyJobBean()).isFalse();
         assertThat(finished.anyScheduledTask()).isFalse();
     }
