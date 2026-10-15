@@ -1,0 +1,82 @@
+# TOGAF 过渡架构（建设阶段）。ID = TA-<阶段>。每个阶段是一个可运行、可回滚的过渡架构（GUIDING_PRINCIPLES §2，brief §3）。
+# contexts 引用 ddd/contexts.yaml 的 BC ID；delivers 为本阶段新建或切换的 BC，其中 planned 的 BC 边界仍待按能力地图与价值流重审（README「规划项不是目标」）。
+# status：done / in-progress / not-started。入口与出口条件以 brief 为准，这里只引用，不复制。维护：one-architecture。
+transitions:
+- id: TA-1a
+  zh: 平台桥接（试点）
+  status: in-progress
+  after: []
+  delivers: [platform.identity, platform.approval, platform.integration, platform.audit, platform.numbering, platform.scheduling,
+             platform.idempotency, platform.eventing, platform.web, organization.workforce, organization.attendance, cost.timesheet, platform.migration]
+  note: cost.timesheet 在 1a 建审批样板（工时单提交与审批），全员切换在 TA-2；platform.migration（ADR-0036 迁入编排，模块名暂定）随各阶段切换使用，首个迁入在 1a（NEXT_BATCH_PLAN §7 P6）
+  conditions: MODERNIZATION_BRIEF.md §3「Phase 1a」；批次见 phase1a/NEXT_BATCH_PLAN.md §6–§8
+- id: TA-1b
+  zh: 报价
+  status: not-started
+  after: [TA-1a]
+  delivers: [presales.quoting]
+  conditions: MODERNIZATION_BRIEF.md §3「Phase 1b」
+- id: TA-2
+  zh: 交付与工时（同一阶段切换）
+  status: not-started
+  after: [TA-1b]
+  delivers: [delivery.execution, cost.timesheet]
+  note: 交付与工时行级强耦合，同阶段切换（brief 风险二）
+  conditions: MODERNIZATION_BRIEF.md §3「Phase 2」
+- id: TA-3
+  zh: 差旅报销
+  status: not-started
+  after: [TA-1a]
+  delivers: [expense.spend]
+  conditions: MODERNIZATION_BRIEF.md §3「Phase 3」
+- id: TA-6a
+  zh: 合同与收入（OA 迁入）
+  status: not-started
+  after: [TA-2]
+  delivers: [contract.baseline, contract.changeorder, contract.riskdelivery, receivables.wip, delivery.acceptance]
+  note: ADR-0021、ADR-0024：6a–6c 为 Phase 4 出口前置
+  conditions: OA_PROCESS_INVENTORY.md「6a」
+- id: TA-6b
+  zh: 开票与收款（OA 迁入）
+  status: not-started
+  after: [TA-6a]
+  delivers: [receivables.collection]
+  conditions: OA_PROCESS_INVENTORY.md「6b」
+- id: TA-6c
+  zh: 费用、付款与预提（OA 迁入）
+  status: not-started
+  after: [TA-3]
+  delivers: [expense.spend, payables.payment]
+  conditions: OA_PROCESS_INVENTORY.md「6c」
+- id: TA-4
+  zh: 成本、收入与核算
+  status: not-started
+  after: [TA-2, TA-3, TA-6a, TA-6b, TA-6c]
+  delivers: [cost.costing, operations.facts, operations.policy, accounting.period, accounting.ledger, accounting.reporting]
+  note: ADR-0022 G1 期间 accounting.cashbank / tax / fixedasset 只是 accounting.ledger 内的导入通道
+  conditions: MODERNIZATION_BRIEF.md §3「Phase 4」
+- id: TA-6d
+  zh: 分包与采购（OA 迁入）
+  status: not-started
+  after: [TA-4]
+  delivers: [procurement.subcontracting]
+  conditions: OA_PROCESS_INVENTORY.md「6d」
+- id: TA-6e
+  zh: 自建 HRM 与薪酬
+  status: not-started
+  after: [TA-4]
+  delivers: [organization.payroll, organization.incentive]
+  note: 与已建 organization.attendance 的边界待用户定（架构决策页 Q3）
+  conditions: OA_PROCESS_INVENTORY.md「6e」
+- id: TA-6f
+  zh: 客户经营与经营计划（视情况）
+  status: not-started
+  after: [TA-4]
+  delivers: [presales.customer, operations.planning, operations.budgeting]
+  conditions: OA_PROCESS_INVENTORY.md「6f」
+- id: TA-5
+  zh: 身份全面切换、BI 与老系统下线
+  status: not-started
+  after: [TA-4]
+  delivers: [reporting]
+  conditions: MODERNIZATION_BRIEF.md §3「Phase 5」
