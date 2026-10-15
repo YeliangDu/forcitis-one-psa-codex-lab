@@ -164,9 +164,13 @@ class ReadOnlyAccountCheckIT {
                     new Sql(a.connection().database, "GRANT CONTROL ON SCHEMA::" + a.connection().viewSchema + " TO " + q(a.login())))),
             new Violation("复审 H-1：服务器上针对登录的授权 GRANT IMPERSONATE ON LOGIN::sa（fn_my_permissions 不列）", "d", a -> List.of(
                     new Sql("master", "GRANT IMPERSONATE ON LOGIN::sa TO " + q(a.login())))),
-            new Violation("复审 H-1：public 角色在用户对象上的授权 GRANT UPDATE ON 可读底表 TO public", "g", a -> List.of(
-                    new Sql(a.connection().database, "GRANT UPDATE ON " + a.connection().baseTable + " TO public")), a -> List.of(
-                    new Sql(a.connection().database, "REVOKE UPDATE ON " + a.connection().baseTable + " FROM public"))),
+            // Was GRANT UPDATE: the login's own database-level DENY UPDATE covers that one now (one-coordinator 2026-10-15 C-14 定位裁定, see coveredPublicGrantsDoNotRefuseStartup).
+            new Violation("复审 H-1：public 角色在用户对象上的授权 GRANT CONTROL ON 可读底表 TO public（库级 DENY 清单不含 CONTROL）", "g", a -> List.of(
+                    new Sql(a.connection().database, "GRANT CONTROL ON " + a.connection().baseTable + " TO public")), a -> List.of(
+                    new Sql(a.connection().database, "REVOKE CONTROL ON " + a.connection().baseTable + " FROM public"))),
+            new Violation("C-14 定位裁定安全条件 2：public 角色在用户对象上的授权 GRANT TAKE OWNERSHIP ON 可读底表 TO public", "g", a -> List.of(
+                    new Sql(a.connection().database, "GRANT TAKE OWNERSHIP ON " + a.connection().baseTable + " TO public")), a -> List.of(
+                    new Sql(a.connection().database, "REVOKE TAKE OWNERSHIP ON " + a.connection().baseTable + " FROM public"))),
             new Violation("复审 H-2：在 msdb 有该登录自己的用户并且是 db_owner（不经 guest 进入）", "f", a -> List.of(
                     new Sql("msdb", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())),
                     new Sql("msdb", "ALTER ROLE db_owner ADD MEMBER " + q(a.login())))),
@@ -241,6 +245,78 @@ class ReadOnlyAccountCheckIT {
 
         assertThat(failure).as("%s on the %s connection: the application started anyway", violation, connection).isNotNull();
         assertThat(messages(failure)).as("the refusal names the unmet item, one of (%s)", violation.items()).containsPattern(violation.reported());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15 C-14 定位裁定，安全判定放宽）：public 的对象级 GRANT UPDATE 与 GRANT EXECUTE 被本账号库级同名 DENY 覆盖时不拒绝启动")
+    void coveredPublicGrantsDoNotRefuseStartup(ReadOnlyConnection connection) throws SQLException {
+        Account account = baselineAccount(connection);
+        String procedure = "dbo." + q("p_" + marker());
+        String database = connection.database;
+        Throwable failure;
+        try {
+            run(database, "GRANT UPDATE ON " + connection.baseTable + " TO public", "CREATE PROCEDURE " + procedure + " AS SELECT 1",
+                    "GRANT EXECUTE ON OBJECT::" + procedure + " TO public");
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run(database, "REVOKE UPDATE ON " + connection.baseTable + " FROM public", "DROP PROCEDURE IF EXISTS " + procedure);
+        }
+
+        assertThat(failure).as("grants the login's own database-level DENY of the same permission overrides; refused with:\n%s", messages(failure)).isNull();
+    }
+
+    @Test
+    @DisplayName("C-14 定位裁定（one-1a-next-3 条件）：启动校验拒绝 public 的 GRANT CONTROL 时只报项 (g)，拒绝原因与日志中不出现 schema 名与对象名（定位只由只读核实命令输出）")
+    void startupRefusalNamesNoSchemaOrObject(CapturedOutput output) throws SQLException {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        String mark = marker();
+        String table = q("s_" + mark) + "." + q("t_" + mark);
+        Throwable failure;
+        try {
+            run("a8world", "CREATE SCHEMA " + q("s_" + mark) + " AUTHORIZATION dbo", "CREATE TABLE " + table + " (id bigint)",
+                    "GRANT CONTROL ON OBJECT::" + table + " TO public");
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run("a8world", "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
+        }
+
+        assertThat(failure).as("public holds CONTROL on a table: the application started anyway").isNotNull();
+        assertThat(messages(failure)).as("the refusal names item (g)").containsPattern("[(（]g[)）]");
+        assertThat(messages(failure)).as("no schema or object name in the refusal").doesNotContain(mark);
+        assertThat(output.getAll()).as("no schema or object name in the log").doesNotContain(mark);
+    }
+
+    @Test
+    @DisplayName("C-14 定位裁定（one-1a-next-3 条件）：启动后 public 得到 GRANT CONTROL，组织同步前重检失败写 ALERT 报项 (g)，ALERT、日志与同步结果说明中不出现 schema 名与对象名")
+    void recheckAlertNamesNoSchemaOrObject(CapturedOutput output) throws SQLException {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        String mark = marker();
+        String table = q("s_" + mark) + "." + q("t_" + mark);
+        try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
+            run("a8world", "CREATE SCHEMA " + q("s_" + mark) + " AUTHORIZATION dbo", "CREATE TABLE " + table + " (id bigint)",
+                    "GRANT CONTROL ON OBJECT::" + table + " TO public");
+            SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
+
+            assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.FAILED);
+            assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (g)").containsPattern("ALERT[^\\n]*[(（]g[)）]");
+            assertThat(output.getAll()).as("no schema or object name in the ALERT or any log line").doesNotContain(mark);
+            assertThat(String.valueOf(result.note())).as("no schema or object name in the sync result").doesNotContain(mark);
+        } finally {
+            run("a8world", "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
+        }
+    }
+
+    static String marker() {
+        return "mk" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     }
 
     @ParameterizedTest(name = "{0}")

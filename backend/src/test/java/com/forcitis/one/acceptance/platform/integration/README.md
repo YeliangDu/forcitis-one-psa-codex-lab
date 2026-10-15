@@ -32,3 +32,4 @@
 - 每个用例另断言：命令没有打开任何监听套接字（`ListeningSocketProbe` 作为选择器提供者装入子进程，对照用例 `probeSeesAProcessThatListens` 证明它能发现监听），服务库（空 PostgreSQL）中没有表、没有新 schema（无 Flyway 历史表、无迁移）；输出不含口令、登录名、连接串。
 - 预期值以同一登录直连 SQL Server 取得（`connectionFailure`、`catalogRefusal`），不凭推测：库不存在 4060、目录视图被拒 229，SQLState 取驱动所报。
 - 新增反例：在 `DEVIATIONS` 加一行 `new Deviation(名称, 应标违规的项目字母, 账号 -> 要执行的 SQL)`；授权只加在本用例新建的登录上。新增「不得输出」的情形：构造一个带 `marker()` 的对象名，断言输出不含它。
+- 定位行（契约第 3a 节，one-coordinator 2026-10-15 C-14 定位裁定）：(f) 系统库名、(g) 授权的 schema、对象、权限、grantee 逐条一行；`run.locators()` 解析并检查每行紧跟所属项行，预期值用 `violation(...)`、`covered(...)` 构造。要授权给 public 的用例用 `isolatedAccount`（新建一个库），不波及其他用例。
