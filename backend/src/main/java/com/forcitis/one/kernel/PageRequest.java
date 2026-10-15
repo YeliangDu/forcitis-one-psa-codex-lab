@@ -8,14 +8,18 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * limit defaults to 50 and is at most 200 (ListLimits). The cursor is opaque to the caller, versioned, unsigned, and means one list only:
  * it only says where to go on, the data scope is enforced in the query, so a forged cursor reaches nothing a caller may not read.
  */
 public record PageRequest(int limit, @Nullable String cursorValue) {
+    private static final Logger LOG = LoggerFactory.getLogger(PageRequest.class);
     private static final String CURSOR_VERSION = "v1";
-    private static final int MAX_CURSOR_LENGTH = 512;
+    /** Room for the longest key of any list (128 characters, up to 3 bytes each) plus version and list name, as base64. */
+    private static final int MAX_CURSOR_LENGTH = 1024;
 
     public PageRequest {
         if (limit < 1 || limit > ListLimits.MAX_LIMIT) {
@@ -75,7 +79,14 @@ public record PageRequest(int limit, @Nullable String cursorValue) {
     }
 
     public static String encode(String list, String key) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString((CURSOR_VERSION + ":" + list + ":" + key).getBytes(StandardCharsets.UTF_8));
+        String cursor = Base64.getUrlEncoder().withoutPadding().encodeToString((CURSOR_VERSION + ":" + list + ":" + key).getBytes(StandardCharsets.UTF_8));
+        try {
+            decode(cursor, list);
+        } catch (InvalidCursorException unreadable) {
+            LOG.error("ALERT kernel the cursor of list {} cannot be issued: it would not read back ({})", list, unreadable.getMessage());
+            throw new IllegalStateException("a cursor of list " + list + " would not read back: " + unreadable.getMessage());
+        }
+        return cursor;
     }
 
     private static Optional<String> decode(@Nullable String cursor, String list) {

@@ -38,6 +38,30 @@ class ListPagingKernelTest {
     }
 
     @Test
+    @DisplayName("K-3a the longest key of any list (128 Chinese characters) is issued and read back")
+    void longestKeyRoundTrips() {
+        String key = "号".repeat(128);
+
+        assertThat(PageRequest.of(1, PageRequest.encode("legacy-number-prefix", key), "legacy-number-prefix").cursorValue()).isEqualTo(key);
+    }
+
+    @Test
+    @DisplayName("K-3a a key that would not read back (control character, empty) is not issued: it fails and raises an ALERT line")
+    void unreadableKeyIsNotIssued() {
+        Logger logger = (Logger) LoggerFactory.getLogger(PageRequest.class);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        logger.addAppender(logged);
+        try {
+            assertThatThrownBy(() -> PageRequest.encode("things", "ab\u0001cd")).isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> PageRequest.encode("things", "")).isInstanceOf(IllegalStateException.class);
+            assertThat(logged.list).hasSize(2).allSatisfy(event -> assertThat(event.getFormattedMessage()).startsWith("ALERT ").contains("things"));
+        } finally {
+            logger.detachAppender(logged);
+        }
+    }
+
+    @Test
     @DisplayName("K-3a no limit means 50, no cursor means the first page")
     void defaults() {
         PageRequest page = PageRequest.of(null, null, "things");
@@ -58,7 +82,7 @@ class ListPagingKernelTest {
     @DisplayName("K-3a a cursor without the version, with another version, another list, an empty key, a control character or padding is refused")
     void cursorsThatAreNotOursAreRefused() {
         String[] refused = {raw("things:key"), raw("v2:things:key"), raw("v1:other:key"), raw("v1:things:"), raw("v1:things"), raw("v1:things:ke\ny"),
-                raw("v1:things:key") + "=", "not base64!", raw("x".repeat(600))};
+                raw("v1:things:key") + "=", "not base64!", raw("v1:things:" + "x".repeat(1100))};
 
         for (String cursor : refused) {
             assertThatThrownBy(() -> PageRequest.of(1, cursor, "things")).as(cursor).isInstanceOf(InvalidCursorException.class);
