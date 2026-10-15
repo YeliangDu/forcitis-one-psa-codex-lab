@@ -27,6 +27,13 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
 )
 
+# inside READ_BY_BUILDS directories but read by no build: the one-glossary records
+NOT_READ_BY_BUILDS = (
+    "docs/modernization/glossary/issues/",
+    "docs/modernization/glossary/decision-sheets/",
+    "docs/modernization/glossary/GLOSSARY_CONTEXT.md",
+)
+
 # read only by steps of the gitleaks job that run unconditionally, or by scripts/precheck.sh; docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/phase1a/infra/runbooks/sql/",
@@ -67,6 +74,8 @@ def any_legacy_it(paths):
 
 
 def is_relevant(path):
+    if path.startswith(NOT_READ_BY_BUILDS):
+        return False
     if path.startswith(READ_BY_BUILDS):
         return True
     if path.startswith("docs/"):
@@ -147,6 +156,9 @@ def self_test():
     assert is_relevant("scripts/ci/relevant_change.py")
     assert is_relevant("docs/modernization/glossary/terms.yaml")
     assert is_relevant("docs/modernization/events/asyncapi.yaml")
+    assert not is_relevant("docs/modernization/glossary/issues/2026-10-15-120000-one-ops-x.md")
+    assert not is_relevant("docs/modernization/glossary/decision-sheets/2026-10-20.md")
+    assert not is_relevant("docs/modernization/glossary/GLOSSARY_CONTEXT.md")
     assert is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
     assert is_relevant("docs/modernization/status/blockers/080-1a-no-deploy-until-fix.md")
     assert not is_relevant("docs/modernization/adr/src/ADR-0001.md")

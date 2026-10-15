@@ -8,8 +8,9 @@
 - sessions/<会话名>.md：一个在用会话一份画像，标题「# <会话名>」，其后按 FIELDS 的顺序各一个二级标题，每节非空；
   会话名为 one-*、与文件名一致、全局唯一；「类型」为「长期」或「工作」；「当前状态」为一行。
 - sessions/_retired.md：已交接、一次性会话，每行「- <会话名>：<状态>」，只进汇总表、不写画像。
-- 钩子映射 scripts/hooks/session_context.map：每份画像必须有一行指向它；长期会话另须至少一份上下文文档；
-  映射中的路径必须存在，且出现在该会话画像的「上下文文档」一节。
+- 「上下文文档」一节中反引号括起的 .md 路径（仓库根相对）即清空或压缩后钩子注入的文档（scripts/hooks/session_context.py，
+  解析函数与钩子共用）：路径必须存在；长期会话须至少有一份本画像以外的上下文文档。
+- 独占与不碰靠调度派工、评审时人工核对，不做自动校验（SESSION_PLAYBOOK §2.1 第 16 条）。
 不合规时生成失败，不写产物。
 """
 import os, re, sys
@@ -17,7 +18,8 @@ import os, re, sys
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(BASE))
 SESSIONS = os.path.join(BASE, "sessions")
-MAP = os.path.join(ROOT, "scripts", "hooks", "session_context.map")
+sys.path.insert(0, os.path.join(ROOT, "scripts", "hooks"))
+from session_context import context_docs  # noqa: E402
 OUT = os.path.join(BASE, "SESSIONS.md")
 FIELDS = ["类型", "职责", "独占", "不碰", "输入", "输出", "触发与节奏", "自动化", "上下文文档", "交接条件", "权限边界", "当前状态"]
 KINDS = ("长期", "工作")
@@ -84,36 +86,19 @@ def parse_retired(text):
     return rows
 
 
-def parse_map(text):
-    entries = []
-    for number, line in enumerate(text.splitlines(), 1):
-        if not line.strip() or line.startswith("#"):
-            continue
-        parts = line.split("\t")
-        if len(parts) != 2 or not parts[0] or not parts[1]:
-            raise ProfileError(f"session_context.map:{number}：须为「会话名<TAB>仓库内路径」")
-        entries.append((parts[0], parts[1]))
-    return entries
-
-
-def check(profiles, retired, entries, exists):
+def check(profiles, retired, exists):
     names = [p["name"] for p in profiles] + [n for n, _ in retired]
     dup = sorted({n for n in names if names.count(n) > 1})
     if dup:
         raise ProfileError(f"会话名重复：{'、'.join(dup)}")
-    by_name = {p["name"]: p for p in profiles}
-    for prefix, path in entries:
-        if not exists(path):
-            raise ProfileError(f"session_context.map：{prefix} 的路径 {path} 不存在")
-        if prefix in by_name and path not in by_name[prefix]["上下文文档"]:
-            raise ProfileError(f"sessions/{prefix}.md：映射中的 {path} 须写进「上下文文档」一节")
     for p in profiles:
-        paths = [path for prefix, path in entries if prefix == p["name"]]
         own = f"docs/modernization/sessions/{p['name']}.md"
-        if own not in paths:
-            raise ProfileError(f"session_context.map：缺少「{p['name']}<TAB>{own}」（清空或压缩后注入画像）")
-        if p["类型"] == "长期" and not [x for x in paths if x != own]:
-            raise ProfileError(f"session_context.map：长期会话 {p['name']} 须另有一份上下文文档")
+        docs = context_docs(f"## 上下文文档\n{p['上下文文档']}\n")
+        for path in docs:
+            if not exists(path):
+                raise ProfileError(f"sessions/{p['name']}.md：上下文文档 {path} 不存在（写仓库根相对路径）")
+        if p["类型"] == "长期" and not [d for d in docs if d != own]:
+            raise ProfileError(f"sessions/{p['name']}.md：长期会话须在「上下文文档」列出至少一份本画像以外的文档")
 
 
 def summary(text):
@@ -121,7 +106,7 @@ def summary(text):
     return re.sub(r"^[-*]\s+", "", first.strip())
 
 
-def render(profiles, retired, entries):
+def render(profiles, retired):
     head = ("# 会话一览\n\n<!-- 由 docs/modernization/build_sessions.py 从 sessions/*.md 生成，不入仓，不要手改；"
             "改画像后运行 python3 docs/modernization/build_all.py。 -->\n\n"
             "画像规则见 SESSION_PLAYBOOK §2.1 第 16 条；画像全文在 `sessions/<会话名>.md`。\n\n"
@@ -129,7 +114,7 @@ def render(profiles, retired, entries):
     order = sorted(profiles, key=lambda p: (KINDS.index(p["类型"]), p["name"]))
     rows = []
     for p in order:
-        docs = "、".join(f"`{path.removeprefix('docs/modernization/')}`" for prefix, path in entries if prefix == p["name"])
+        docs = "、".join(f"`{path.removeprefix('docs/modernization/')}`" for path in context_docs(f"## 上下文文档\n{p['上下文文档']}\n")) or "—"
         rows.append(f"| {p['name']} | {p['类型']} | {one_line(summary(p['职责']), p['name'] + ' 职责首行')} | {docs} | {p['当前状态']} |\n")
     rows += [f"| {n} | 已结束 | — | — | {s} |\n" for n, s in retired]
     return head + "".join(rows)
@@ -142,9 +127,8 @@ def load():
             profiles.append(parse_profile(open(os.path.join(SESSIONS, f), encoding="utf-8").read(), f))
     retired_path = os.path.join(SESSIONS, "_retired.md")
     retired = parse_retired(open(retired_path, encoding="utf-8").read()) if os.path.exists(retired_path) else []
-    entries = parse_map(open(MAP, encoding="utf-8").read())
-    check(profiles, retired, entries, lambda p: os.path.isfile(os.path.join(ROOT, p)))
-    return profiles, retired, entries
+    check(profiles, retired, lambda p: os.path.isfile(os.path.join(ROOT, p)))
+    return profiles, retired
 
 
 def self_test():
@@ -170,18 +154,16 @@ def self_test():
     rejects("顺序不对", lambda: parse_profile(good.replace("## 独占", "## TMP").replace("## 不碰", "## 独占").replace("## TMP", "## 不碰"), "one-x.md"))
     own = "docs/modernization/sessions/one-x.md"
     yes = lambda path: True
-    p = dict(p, 上下文文档=own)
-    check([p], [("one-old-1", "已交接")], [("one-x", own)], yes)
-    rejects("重名", lambda: check([p], [("one-x", "已交接")], [("one-x", own)], yes))
-    rejects("缺画像映射", lambda: check([p], [], [], yes))
-    rejects("路径不存在", lambda: check([p], [], [("one-x", own)], lambda path: False))
+    p = dict(p, 上下文文档=f"`{own}`")
+    check([p], [("one-old-1", "已交接")], yes)
+    rejects("重名", lambda: check([p], [("one-x", "已交接")], yes))
+    rejects("上下文文档不存在", lambda: check([p], [], lambda path: False))
     long_lived = dict(p, 类型="长期")
-    rejects("长期会话缺上下文文档", lambda: check([long_lived], [], [("one-x", own)], yes))
-    rejects("映射文档未写进画像", lambda: check([dict(long_lived, 上下文文档="无")], [], [("one-x", own), ("one-x", "a.md")], yes))
+    rejects("长期会话缺上下文文档", lambda: check([long_lived], [], yes))
+    check([dict(long_lived, 上下文文档=f"- `docs/a.md`\n- `{own}`")], [], yes)
     rejects("退役行格式", lambda: parse_retired("- one-a 已交接\n"))
     if parse_retired("<!-- 注释 -->\n- psa-coordinator-1：已交接\n") != [("psa-coordinator-1", "已交接")]:
         failures.append("退役行解析不对")
-    rejects("映射缺制表符", lambda: parse_map("one-x docs/a.md\n"))
     if failures:
         sys.exit("自测失败：\n  " + "\n  ".join(failures))
     print("self-test: ok")
@@ -189,10 +171,10 @@ def self_test():
 
 def main():
     try:
-        profiles, retired, entries = load()
+        profiles, retired = load()
     except (ProfileError, StopIteration) as e:
         sys.exit(f"会话画像校验失败：{e}")
-    open(OUT, "w", encoding="utf-8").write(render(profiles, retired, entries))
+    open(OUT, "w", encoding="utf-8").write(render(profiles, retired))
     print(f"SESSIONS.md: {len(profiles)} 份画像，{len(retired)} 个已结束会话")
 
 

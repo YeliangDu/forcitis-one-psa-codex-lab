@@ -8,13 +8,7 @@
 - 他人转达的用户原话先核实；用户决定当场记 intent（`new_intent.py --session=one-coordinator`）。全程中文。
 
 ## 会话
-| 会话 | 在做 | 下一步 |
-|---|---|---|
-| one-1a-next-2（78%，交接中） | #163 ADR37-1 待 opus 复核；交接报告 claude/one-1a-next-2-handoff | 复核通过入队后交接给 one-1a-next-3（用户新开），由 -3 接 R-1b P2→P5 |
-| one-1a-par | 部署守护解耦 #175（等 #177 ADR-0038 合并后入队）；FLW-1 修复待复审；F-1 验收测试；只读核实命令（#163 后） | 之后 K-3；F-1 实现在 R-1b P5 后 |
-| one-ops（长期，不交接；已 /clear） | C-14 剧本 #171、dev 库重建 #174、OPS_CONTEXT #178 在队 | C-14 等 #163、只读命令、rc.2；上下文见 [OPS_CONTEXT](phase1a/infra/OPS_CONTEXT.md) |
-| one-glossary-gen | #159 已合并 | 待最终报告后归档 |
-| one-1a-next-1（已交接） | — | 待归档 |
+- 画像与当前状态见 `SESSIONS.md`（`build_all.py` 生成；画像 `sessions/<会话名>.md`，已结束的在 `sessions/_retired.md`）；实时情况看 `ListAgents`（SESSION_PLAYBOOK §2.1 第 16 条）。
 
 ## 开场核对
 - `gh pr list`、`ListAgents`、合并队列（`pgrep -f mq_run.sh`，须在仓库目录启动，gh 需仓库上下文）、`CronList`；`gh run list --workflow nightly-legacy-it.yml -L 1` 失败即开卡（#165 合并后生效）。
@@ -28,7 +22,7 @@
 ## 待用户
 - 财务口径决策单（46 题，~/.modernize/psa/finance/FINANCE_DECISIONS.html，#176）：用户全盘定；9 条事实问财务；A1、A10 待审计师书面意见。
 - 规则文档瘦身对照表；同轮问 CI 覆盖率门槛是否恢复。
-- 交接时请用户新开 one-1a-next-3。
+- 请用户新开 one-1a-next-3、one-glossary（画像已写，#186）。
 - 生产前：第二名超管 / 审计员 / 组织数据管理员 / DBA 人选（role_holders.md，不入仓；dev 流程管理员由用户兼任）；C-11 关单人模式；CODEOWNERS；R-13 后备令牌待首次 OIDC 部署后删除；归档 WORM 首个写入方前锁定；RDS 扩容 C-1。
 
 ## 部署阻塞
@@ -47,8 +41,7 @@
 - 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
-- 第三轮用语确认：由 one-glossary 承担（画像 `sessions/one-glossary.md`，待用户新开），调度只监督阈值（`glossary/ISSUES.md` 首段积压计数，SESSION_PLAYBOOK §5）；job_grade 定义缺陷随岗位体系重梳。
-- 会话画像：`sessions/<会话名>.md`，汇总 `SESSIONS.md`（`build_all.py` 生成）；按画像派工与巡检（SESSION_PLAYBOOK §2.1 第 16 条）。
+- 第三轮用语确认：由 one-glossary 承担（画像 `sessions/one-glossary.md`，待用户新开），调度只监督门槛（业务用语积压达到 100 条或距上次决策单超过 7 天，见 `glossary/ISSUES.md` 首段；错误码单列归 R-5，SESSION_PLAYBOOK §5）；job_grade 定义缺陷随岗位体系重梳。
 - Codex 试点：R-4（R-5 之后），记录返工轮次与耗时（SESSION_PLAYBOOK §5「Codex 派工」）。
 - 首次 dev 部署：dev 前阻塞清零后经用户批准（部署归用户决定）。
 - 统一编排路线、brief 修订与 1b 前置项：见 MODERNIZATION_BRIEF 与 phase1a/NEXT_BATCH_PLAN.md。

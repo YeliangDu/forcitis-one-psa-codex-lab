@@ -20,4 +20,4 @@ if __name__ == "__main__":
     if "session" not in opts or kind not in KINDS or any("\n" in a or "|" in a or not a.strip() for a in (term, where)):
         sys.exit(__doc__)
     create("glossary/issues", opts.get("date", datetime.date.today().isoformat()), opts["session"], short_name(term),
-           TEMPLATE.format(term.strip(), where.strip(), kind, opts["session"], "待处理", ""), builder="glossary/build_issues.py")
+           TEMPLATE.format(term.strip(), where.strip(), kind, opts["session"], "待处理"), builder="glossary/build_issues.py")

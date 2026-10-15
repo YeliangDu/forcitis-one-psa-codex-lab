@@ -15,3 +15,4 @@ docs/modernization/STATUS.md
 docs/modernization/SESSIONS.md
 docs/modernization/glossary/ISSUES.md
 __pycache__/
+.claude/session-name

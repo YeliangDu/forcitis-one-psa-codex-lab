@@ -42,7 +42,7 @@
 
 ## 上下文文档
 
-- `docs/modernization/sessions/one-1a-next-3.md`（本画像）；接手依据 `phase1a/HANDOFF_one-1a-next-2.md`。
+- 只有本画像（钩子总是注入画像本身）；接手依据见「输入」。
 
 ## 交接条件
 

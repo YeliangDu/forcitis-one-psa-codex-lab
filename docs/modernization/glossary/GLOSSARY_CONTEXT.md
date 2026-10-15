@@ -18,7 +18,8 @@
 | 正式术语（单一来源，生成） | `glossary/terms.yaml` ← `glossary/build_terms.py` + 决定记录 `glossary/decisions-*.json` |
 | 通用词与守护规则 | `backend/glossary/terms.yaml`（GlossaryTest G37–G39） |
 | 提议术语 | `backend/glossary/proposed/*.yaml`，清单 `proposed/README.md`（生成） |
-| 用语问题 | `glossary/issues/`（一条一个文件），清单与积压计数 `glossary/ISSUES.md`（生成，不入仓） |
+| 用语问题 | `glossary/issues/`（问题只增不改；处理写同名 `.resolution.md`，用 `resolve_term_issue.py`），清单与积压计数 `glossary/ISSUES.md`（生成，不入仓） |
+| 决策单记录 | `glossary/decision-sheets/<日期>.md`（每出一次一份，ISSUES.md 据此算距上次天数） |
 | 待确认表 | `glossary/TERM_CONFIRMATION.md`（A 组 19 项待定） |
 | 第三轮输入 | `r0/TERMS_ROUND3_INPUT.md`、`glossary/STANDARDS_AUDIT.md`、`glossary/oat/` |
 | 前两轮做法 | 确认页 `glossary/build_confirm_page.py`、答复 `glossary/export_decisions_round2.py` |
@@ -26,14 +27,14 @@
 
 ## 流程
 
-登记（各会话 `new_term_issue.py` / 提议术语）→ 去重归并（同义合并、同名改开）→ 预判（级别与依据）→ 决策单（满 100 条或每周）→ 用户答复 → 写回 `terms.yaml` 与提议状态、方言进 `forbidden` → GlossaryTest 拦截 → 问题片段状态改「已关闭」并写去向。
+登记（各会话 `new_term_issue.py` / 提议术语）→ 去重归并（同义合并、同名改开）→ 预判（级别与依据，写处理片段）→ 决策单（业务用语积压达到 100 条或距上次超过 7 天；记 `decision-sheets/`）→ 用户答复 → 写回（`decisions-*.json` 新一轮一份 + `build_terms.py` 该轮应用段 → `terms.yaml`；提议状态）→ 改名 PR 先合、`forbidden` 后合 → 代码标识由 G38 拦截，文档方言靠巡检 → 处理片段改「已关闭」并写去向。
 
 ## 现状
 
 | 项 | 值 |
 |---|---|
-| 积压 | 提议术语 390 条（含错误码 153），未关闭问题 0 条；以 `ISSUES.md` 首段为准 |
+| 积压 | 以 `glossary/ISSUES.md` 首段为准（门槛只算业务用语；错误码单列归 R-5，用户 2026-10-15） |
 | 已知重复 | 中文名重复 5 组（§5 起因）；同义错误码 4 组（R-5 卡） |
 | 在途 | 无（会话尚未开） |
 | 下一步 | 清理积压 → 第三轮决策单 → 报 one-coordinator 交用户 |
-| 定时 | 每周积压检查（开会话后设，登记 RESOURCES） |
+| 定时 | 每周积压检查（会话内定时任务，开会话后设，记在画像） |

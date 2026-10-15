@@ -22,7 +22,7 @@
 
 ## 输入
 
-- one-coordinator：派工与裁定（F-1 规格、K-3 拆分）。
+- one-coordinator：派工与裁定（F-1 规格、K-3 拆分）；派工依据 `phase1a/NEXT_BATCH_PLAN.md` 第 8 节。
 - one-1a-next-3：每张卡开工前确认独占构件；P5 合并信号（F-1 实现前置）。
 
 ## 输出
@@ -42,7 +42,7 @@
 
 ## 上下文文档
 
-- `docs/modernization/sessions/one-1a-par.md`（本画像）；派工依据 `phase1a/NEXT_BATCH_PLAN.md` 第 8 节。
+- 只有本画像（钩子总是注入画像本身）；派工依据见「输入」。
 
 ## 交接条件
 

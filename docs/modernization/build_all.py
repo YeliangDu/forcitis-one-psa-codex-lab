@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
-"""统一生成入口：依次生成 INTENT / SESSION_LOG / STATUS、会话一览 SESSIONS、用语问题清单 glossary/ISSUES、ADR 与 README、brief、
+"""统一生成入口：依次生成 INTENT / SESSION_LOG / STATUS、正式术语 glossary/terms.yaml、会话一览 SESSIONS、用语问题清单 glossary/ISSUES、ADR 与 README、brief、
 提议术语清单（backend/glossary/proposed/README.md）。
 
 用法：
   python3 docs/modernization/build_all.py          生成全部产物
   python3 docs/modernization/build_all.py --check  生成后要求 docs/modernization 与提议术语清单工作区无差异（CI 使用）：
-                                                   ADR、README、brief 与提议术语清单与已提交的产物不一致、或有未提交的新产物时失败；
+                                                   terms.yaml、ADR、README、brief 与提议术语清单与已提交的产物不一致、或有未提交的新产物时失败；
                                                    INTENT / SESSION_LOG / STATUS / SESSIONS / glossary/ISSUES 不入仓（.gitignore），只要求能生成、片段合规
                                                    （会话画像必备字段、会话名 one-* 且唯一；用语问题片段格式）；
                                                    另校验 RULE_REVIEWS.json 的原结论未被改写（与 origin/main 的合并基点比对；取不到时由 review_revisions.py
                                                    按环境处理：CI 失败，本地告警），
                                                    并运行提议术语清单、会话一览、用语问题清单生成器的自测
 """
-import os, subprocess, sys
+import importlib.util, os, subprocess, sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 GLOSSARY_INDEX = os.path.join("..", "..", "backend", "glossary", "proposed", "README.md")
 STEPS = ["build_records.py", "build_sessions.py", "glossary/build_issues.py", "adr/build_adrs.py", "rules/build_brief.py",
          "../../backend/glossary/build_proposed_index.py"]
 SELF_TESTED = ["build_sessions.py", "glossary/build_issues.py", STEPS[-1]]
+# 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；它依赖 PyYAML：CI 缺则失败，本地缺则告警跳过
+if importlib.util.find_spec("yaml"):
+    STEPS.insert(1, "glossary/build_terms.py")
+elif os.environ.get("CI"):
+    sys.exit("glossary/build_terms.py 需要 PyYAML，CI 的 python3 没有它，无法校验 terms.yaml 可复现")
+else:
+    print("警告：本机 python3 无 PyYAML，跳过 glossary/build_terms.py（terms.yaml 可复现校验交给 CI）", file=sys.stderr)
 
 for step in STEPS:
     r = subprocess.run([sys.executable, os.path.join(BASE, step)], cwd=BASE, capture_output=True, text=True)
