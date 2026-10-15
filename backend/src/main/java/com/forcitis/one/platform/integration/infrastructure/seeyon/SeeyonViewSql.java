@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Only the four whitelisted views are ever queried; business facts are not reachable through them. */
+/** The four frozen views (ADR-0037 item 6, Q1 (c)): each read here moves to the base tables when its adapter next changes. */
 final class SeeyonViewSql {
 
     static final String SCHEMA = "forcitis_one";
@@ -50,7 +50,7 @@ final class SeeyonViewSql {
     static final String COUNT_FEE_EARNER_MARKED = "SELECT COUNT(*) FROM " + SCHEMA + "." + ORG_MEMBER_VIEW
             + " WHERE FEE_EARNER_ENUM_ID = :enumId";
 
-    /** INFORMATION_SCHEMA is the only catalog read; it lists exactly the objects the read-only account can see. */
+    /** Only the view schema: the login may read the whole database (ADR-0037), the column whitelist applies to the views alone. */
     static final String VIEW_COLUMNS_IN_SCHEMA = "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
             + "WHERE TABLE_SCHEMA = :schema";
 
