@@ -80,10 +80,25 @@ class A8SourceFlagsIT {
     static final Set<String> RUNTIME_PURPOSES = Set.of(PURPOSE_RUNTIME_SYNC, PURPOSE_RUNTIME_TODO);
 
     static final Path VIEW_SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
-    static final long HEAD_TYPE = -1726439953579618944L;
-    static final long MANAGER_TYPE = -8187907605834545337L;
-    static final String DELIVERY_YES = "-2682590999914657055";
-    static final String FEE_EARNER_YES = "-3267712510147735998";
+    /** The two relationship-type ids are read from the DBA view script itself, so the fixture and the script cannot drift apart. */
+    static final long[] RELATIONSHIP_TYPES = relationshipTypesInViewScript();
+    static final long HEAD_TYPE = RELATIONSHIP_TYPES[0];
+    static final long MANAGER_TYPE = RELATIONSHIP_TYPES[1];
+    static final String DELIVERY_YES = "-26825909999140570";
+    static final String FEE_EARNER_YES = "-32676477351479120";
+
+    static long[] relationshipTypesInViewScript() {
+        try {
+            Matcher in = Pattern.compile("OBJECTIVE1_ID\\s+IN\\s*\\(\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*\\)").matcher(Files.readString(VIEW_SCRIPT));
+            if (!in.find()) {
+                throw new IllegalStateException("no relationship-type list in " + VIEW_SCRIPT);
+            }
+            return new long[] {Long.parseLong(in.group(1)), Long.parseLong(in.group(2))};
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     static final String ROOT_PATH = "00000001";
     static final String ROOT_PREFIX = ROOT_PATH + "%";
 

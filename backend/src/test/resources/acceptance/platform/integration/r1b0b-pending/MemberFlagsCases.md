@@ -1,11 +1,11 @@
 # R-1b-0b 待重写的验收用例（人员标志与两项不一致判定）
 
-按 RULING-R1B0-7 从 `A8SourceFlagsIT`（R-1b-0a）移出，不参与本卡。R-1b-0b 开卡后由测试代理按新形态重写：两项不一致判定记在集成层组织来源同步的同步差异里（不进 workforce `IssueKind`），主体键按 uuid（卡第 14 节）。原代码在提交 f42b561d（分支 r1b0-acceptance-2）的 `A8SourceFlagsIT.java`，可作参考。
+按 RULING-R1B0-7 从部门类型直读验收类（R-1b-0a，`*SourceFlagsIT`）移出，不参与本卡。R-1b-0b 开卡后由测试代理按新形态重写：两项不一致判定记在集成层组织来源同步的同步差异里（不进 workforce `IssueKind`），主体键按 uuid（卡第 14 节）。原代码在提交 f42b561d（分支 r1b0-acceptance-2）中该验收类的源文件，可作参考。
 
-## 共用夹具（原样可复用，仍在 `A8SourceFlagsIT`）
+## 共用夹具（原样可复用，仍在该验收类）
 
-- 真实 SQL Server（Testcontainers，`TestImages`），视图为 `docs/modernization/phase1a/SEEYON_VIEWS.sql` 的 schema、views 两段原文，基表 A8 形状：`dbo.ORG_MEMBER` 的 `STATE`、`IS_DELETED`、`IS_ENABLE` 为 smallint 可空，`ORG_PRINCIPAL.LOGIN_NAME` nvarchar(50)（one-ops 取证 2026-10-15）。
-- 只读登录按 `ReadOnlyBaselineFixture` 建并与 RDS 基线比对；应用用 `SpringApplicationBuilder` 真实启动，A8 连接指向夹具库。
+- 真实 SQL Server（Testcontainers，`TestImages`），视图为 `docs/modernization/phase1a/` 下 DBA 视图脚本的 schema、views 两段原文，基表为老系统形状：`dbo.ORG_MEMBER` 的 `STATE`、`IS_DELETED`、`IS_ENABLE` 为 smallint 可空，`ORG_PRINCIPAL.LOGIN_NAME` nvarchar(50)（one-ops 取证 2026-10-15）。
+- 只读登录按 `ReadOnlyBaselineFixture` 建并与 RDS 基线比对；应用用 `SpringApplicationBuilder` 真实启动，组织来源连接指向夹具库。
 - 人员（10 位 ID，名字 `Kestrel <标签>`，工号 `E-<标签>`，岗位 100；范围 = 内部且在根路径 00000001 下）：
 
 | 标签 | ID | 部门 | STATE / IS_DELETED / IS_ENABLE | 登录名 | 说明 |
@@ -32,7 +32,7 @@
 1. **四种生产组合与判定**（原第 1 条，RULING-R1B0-6）
    - Given 夹具含四种生产组合（用 SQL 核对 1|0|1|有、1|1|0|无、2|0|0|无、2|1|0|无）与 C1–C5。
    - When 读组织快照并同步。
-   - Then 范围内人员集合与登录名和改动前纯视图人员语句（`SeeyonViewSql.MEMBERS` @ d3a9f07f，测试内冻结）完全相同；每人在同步报告中恰好带有上表期望的判定，不多不少，且不出现第三种新类别。
+   - Then 范围内人员集合与登录名和改动前纯视图人员语句（测试内冻结的纯视图人员语句，来自提交 d3a9f07f）完全相同；每人在同步报告中恰好带有上表期望的判定，不多不少，且不出现第三种新类别。
    - 要点：判定改从集成层同步差异读取（0b 定接口），不再用 workforce `IssueKind`；不按来源枚举名断言。
 
 2. **人员标志非法整轮失败**（原第 2 条人员部分，C-3、RULING-R1B0-2）

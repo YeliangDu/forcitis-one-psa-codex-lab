@@ -24,17 +24,17 @@
 - 复审反例（名称以「复审 H-1」「复审 H-2」开头，引 PR #163 复审编号）：对象级 TAKE OWNERSHIP、schema 级 CONTROL、服务器上针对登录的 IMPERSONATE ON LOGIN::sa、`public` 在用户对象上的 UPDATE（H-1）；在 msdb 为该登录建用户并加入 db_owner、在 master 为该登录建用户（H-2）。按实现实际报出的标记收窄（RULING-ADR37-11）：TAKE OWNERSHIP、schema 级 CONTROL、`public` 的 UPDATE 断言 `(g)`；IMPERSONATE ON LOGIN::sa 断言 `(d)`；H-2 两例断言 `(f)`。「库级 DENY INSERT 被撤并 GRANT INSERT ON SCHEMA::dbo」实现同时报 `(b)` 与 `(g)`、「class 4 授权 IMPERSONATE ON USER」同时报 `(e)` 与 `(g)`，用例保留原有的 `(b)`、`(e)`，不放宽。
 - 删改测试覆盖（复审 L）：`postgresqlAddressIsRefusedThroughTheRealFactory` 把每条只读连接配成新系统自己的 PostgreSQL 地址与账号，经真实工厂启动，断言拒绝并带项目标记（取代已删的「应用自己的账号不能配成老系统账号」）。
 
-# 验收测试：A8 部门类型直读基表与读取列登记（R-1b-0a）
+# 验收测试：组织来源部门类型直读基表与读取列登记（R-1b-0a）
 
-`A8SourceFlagsIT` 按卡 R-1b-0 第 4、14 节（D-1a-01；ADR-0037 第 2 项第 4 条、第 3 项第 5 条、第 6 项第 1、3 条、第 8 项第 4 条；RULING-R1B0-7）验证：部门的 `TYPE` 从 `dbo.ORG_UNIT` 读出并校验（根以下出现 `Account`，或任一单元 `TYPE` 为 NULL / 非 Department、Account 即整轮 FAILED + ALERT）；启动时运行时用途的基表行做子集检查，经视图读取的路径仍做相等检查；迁入、对账用途的登记行不进启动检查；人员语句不变。
+部门类型直读验收类（`*SourceFlagsIT`）按卡 R-1b-0 第 4、14 节（D-1a-01；ADR-0037 第 2 项第 4 条、第 3 项第 5 条、第 6 项第 1、3 条、第 8 项第 4 条；RULING-R1B0-7）验证：部门的 `TYPE` 从 `dbo.ORG_UNIT` 读出并校验（根以下出现 `Account`，或任一单元 `TYPE` 为 NULL / 非 Department、Account 即整轮 FAILED + ALERT）；启动时运行时用途的基表行做子集检查，经视图读取的路径仍做相等检查；迁入、对账用途的登记行不进启动检查；人员语句不变。
 
-- 运行：`cd backend && ./mvnw -B verify -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=A8SourceFlagsIT`（failsafe，需要本机 Docker；PostgreSQL 经 `TestPostgres.container()`，SQL Server 镜像经 `TestImages`）。主库启动一次应用，启动校验用例各建一个库、各启动一次，约 1 分钟。
-- 夹具：A8 形状的基表加 DBA 视图脚本原文（`docs/modernization/phase1a/SEEYON_VIEWS.sql` 的 schema、views 两段），只读登录按 `ReadOnlyBaselineFixture` 建并与 RDS 基线比对。人员与三个人员标志列留在夹具里（本卡不读），供纯视图人员语句比对与 R-1b-0b 复用。列类型：人员标志 smallint 可空、`ORG_PRINCIPAL.LOGIN_NAME` nvarchar(50)（取证）；`ORG_UNIT.TYPE` nvarchar、部门标志与 `IS_INTERNAL` smallint 为假设，待取证核对。
+- 运行：`cd backend && ./mvnw -B verify -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test='*SourceFlagsIT'`（failsafe，需要本机 Docker；PostgreSQL 经 `TestPostgres.container()`，SQL Server 镜像经 `TestImages`）。主库启动一次应用，启动校验用例各建一个库、各启动一次，约 1 分钟。
+- 夹具：老系统形状的基表加 DBA 视图脚本原文（`docs/modernization/phase1a/` 下的视图脚本，取其 schema、views 两段；部门负责人与区域应收负责人的关系类型编号运行时从该脚本读出），只读登录按 `ReadOnlyBaselineFixture` 建并与 RDS 基线比对。人员与三个人员标志列留在夹具里（本卡不读），供纯视图人员语句比对与 R-1b-0b 复用。列类型：人员标志 smallint 可空、`ORG_PRINCIPAL.LOGIN_NAME` nvarchar(50)（取证）；`ORG_UNIT.TYPE` nvarchar、部门标志与 `IS_INTERNAL` smallint 为假设，待取证核对。
 - 黑盒：只用 `OrgSource`、`SyncOrgSnapshot`、`GetSyncRun`、`OrgDirectory`、日志与 SQL Server 计划缓存，不引用改动后才有的类型。等价性用例从计划缓存取适配器实际发出的部门与人员语句，与冻结在测试里的改动前纯视图语句做两个方向 `EXCEPT`。
 - 待术语确认的名字（读取列登记文件名 `external-read-registry.yaml`、用途取值 `RUNTIME_SYNC` / `RUNTIME_TODO`）集中在类顶部常量，确认后只改那里。
-- 移到 R-1b-0b 的用例（人员标志、两项不一致判定、单人查找、登录查人遇来源损坏）不在本类，逐条记在 `backend/src/test/resources/acceptance/platform/integration/r1b0b-pending/A8MemberFlagsCases.md`，0b 开卡后据此重写。
-- 新增用例：在 `corruptions()` 里加一行 `Corruption`，或照启动用例用 `createA8Database(库名, 变体 SQL...)` 建库后 `startAndClose`；修改基表的用例在 `finally` 中还原。
-- `ReadOnlyAccountCheckIT`、`StalledExternalSourceIT` 的 A8 夹具按 RULING-R1B0-1 把视图底表改为 `dbo.ORG_MEMBER`（带三个标志列）与 `dbo.ORG_UNIT`（带 `TYPE`），视图列与测试意图不变；R-1b-0a 合并后启动校验要求 `dbo.ORG_UNIT` 带 `TYPE`。
+- 移到 R-1b-0b 的用例（人员标志、两项不一致判定、单人查找、登录查人遇来源损坏）不在本类，逐条记在 `backend/src/test/resources/acceptance/platform/integration/r1b0b-pending/MemberFlagsCases.md`，0b 开卡后据此重写。
+- 新增用例：在 `corruptions()` 里加一行 `Corruption`，或照启动用例用 `create…Database(库名, 变体 SQL...)`（建库辅助方法，见验收类） 建库后 `startAndClose`；修改基表的用例在 `finally` 中还原。
+- `ReadOnlyAccountCheckIT`、`StalledExternalSourceIT` 的老系统夹具按 RULING-R1B0-1 把视图底表改为 `dbo.ORG_MEMBER`（带三个标志列）与 `dbo.ORG_UNIT`（带 `TYPE`），视图列与测试意图不变；R-1b-0a 合并后启动校验要求 `dbo.ORG_UNIT` 带 `TYPE`。
 
 # 验收测试：只读核实命令（PAR-2，ADR-0037 第 4 项、C-14）
 
