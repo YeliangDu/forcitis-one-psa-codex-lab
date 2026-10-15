@@ -5,6 +5,8 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.platform.integration.api.ExternalSource;
+import com.forcitis.one.platform.integration.api.MigrationBatchId;
 import com.forcitis.one.platform.numbering.api.LegacyNumberEntry;
 import com.forcitis.one.platform.numbering.domain.LegacyNumberRepository;
 import java.sql.ResultSet;
@@ -21,7 +23,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
 
     private static final RowMapper<LegacyNumberEntry> MAPPER = (rs, n) -> new LegacyNumberEntry(
             new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(rs.getObject("document_id", UUID.class).toString())),
-            rs.getString("legacy_number"), legalEntity(rs), rs.getString("import_batch"));
+            ExternalSource.valueOf(rs.getString("source_system")), rs.getString("legacy_number"), legalEntity(rs), new MigrationBatchId(rs.getObject("migration_batch_id", UUID.class)));
 
     private static Optional<LegalEntityId> legalEntity(ResultSet rs) throws SQLException {
         UUID value = rs.getObject("legal_entity_id", UUID.class);
@@ -30,32 +32,35 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
 
     private final JdbcClient jdbc;
     private final IdGenerator ids;
+    private final java.time.Clock clock;
 
-    JdbcLegacyNumberRepository(JdbcClient jdbc, IdGenerator ids) {
+    JdbcLegacyNumberRepository(JdbcClient jdbc, IdGenerator ids, java.time.Clock clock) {
         this.jdbc = jdbc;
         this.ids = ids;
+        this.clock = clock;
     }
 
     @Override
-    public List<LegacyNumberEntry> findByPrefix(DocumentType type, String prefix, String after, int limit) {
+    public List<LegacyNumberEntry> findByPrefix(ExternalSource sourceSystem, DocumentType type, String prefix, String after, int limit) {
         return jdbc.sql("""
-                        select document_type, legacy_number, document_id, legal_entity_id, import_batch
+                        select source_system, document_type, legacy_number, document_id, legal_entity_id, migration_batch_id
                           from platform_numbering.legacy_numbers
-                         where document_type = :type and starts_with(legacy_number, :prefix)
+                         where source_system = :system and document_type = :type and starts_with(legacy_number, :prefix)
                            and (cast(:after as text) is null or legacy_number > :after)
                          order by legacy_number limit :limit
                         """)
-                .param("type", type.name()).param("prefix", prefix).param("after", after, java.sql.Types.VARCHAR).param("limit", limit)
+                .param("system", sourceSystem.name()).param("type", type.name()).param("prefix", prefix).param("after", after, java.sql.Types.VARCHAR).param("limit", limit)
                 .query(MAPPER).list();
     }
 
     @Override
-    public Optional<LegacyNumberEntry> find(DocumentType type, String legacyNumber) {
+    public Optional<LegacyNumberEntry> find(ExternalSource sourceSystem, DocumentType type, String legacyNumber) {
         return jdbc.sql("""
-                        select document_type, legacy_number, document_id, legal_entity_id, import_batch
+                        select source_system, document_type, legacy_number, document_id, legal_entity_id, migration_batch_id
                           from platform_numbering.legacy_numbers
-                         where document_type = :type and legacy_number = :legacy
+                         where source_system = :system and document_type = :type and legacy_number = :legacy
                         """)
+                .param("system", sourceSystem.name())
                 .param("type", type.name())
                 .param("legacy", legacyNumber)
                 .query(MAPPER)
@@ -65,7 +70,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
     @Override
     public List<LegacyNumberEntry> findByDocument(DocumentReference document) {
         return jdbc.sql("""
-                        select document_type, legacy_number, document_id, legal_entity_id, import_batch
+                        select source_system, document_type, legacy_number, document_id, legal_entity_id, migration_batch_id
                           from platform_numbering.legacy_numbers
                          where document_type = :type and document_id = :document
                          order by legacy_number
@@ -80,16 +85,18 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
     public boolean insertIfAbsent(LegacyNumberEntry entry) {
         return jdbc.sql("""
                         insert into platform_numbering.legacy_numbers
-                               (id, document_type, legacy_number, document_id, legal_entity_id, import_batch)
-                        values (:id, :type, :legacy, :document, :le, :batch)
-                        on conflict (document_type, legacy_number) do nothing
+                               (id, source_system, document_type, legacy_number, document_id, legal_entity_id, migration_batch_id, created_at, updated_at)
+                        values (:id, :system, :type, :legacy, :document, :le, :batch, :now, :now)
+                        on conflict (source_system, document_type, legacy_number) do nothing
                         """)
                 .param("id", ids.next())
+                .param("system", entry.sourceSystem().name())
                 .param("type", entry.document().documentType().name())
                 .param("legacy", entry.legacyNumber())
                 .param("document", UUID.fromString(entry.document().documentId().value()))
                 .param("le", entry.legalEntity().map(LegalEntityId::value).orElse(null))
-                .param("batch", entry.importBatch())
+                .param("batch", entry.migrationBatchId().value())
+                .param("now", java.sql.Timestamp.from(clock.instant()))
                 .update() == 1;
     }
 }
