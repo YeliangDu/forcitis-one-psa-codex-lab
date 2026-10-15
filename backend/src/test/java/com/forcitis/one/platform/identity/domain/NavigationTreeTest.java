@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestIds;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -10,7 +11,7 @@ import org.junit.jupiter.api.Test;
 class NavigationTreeTest {
 
     static NavigationItem item(long id, Long parent, String name, String route, String permission, int order) {
-        return new NavigationItem(new NavigationItemId(id), parent == null ? null : new NavigationItemId(parent), name, route, permission, order);
+        return new NavigationItem(new NavigationItemId(TestIds.uuid(id)), parent == null ? null : new NavigationItemId(TestIds.uuid(parent)), name, route, permission, order);
     }
 
     static final List<NavigationItem> ITEMS = List.of(

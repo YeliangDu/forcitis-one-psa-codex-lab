@@ -15,6 +15,7 @@ import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.kernel.PageRequest;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Parameter;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,13 +55,13 @@ class LegacyNumberController {
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
     CursorPage<LegacyNumberResponse> list(@RequestParam DocumentType documentType,
             @Parameter(description = "Exactly one of legacyNumberPrefix and documentId is given") @RequestParam(required = false) String legacyNumberPrefix,
-            @Parameter(description = "Exactly one of legacyNumberPrefix and documentId is given") @RequestParam(required = false) Long documentId,
+            @Parameter(description = "Exactly one of legacyNumberPrefix and documentId is given") @RequestParam(required = false) UUID documentId,
             @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
         if ((legacyNumberPrefix == null) == (documentId == null)) {
             throw new InvalidRequestException("give exactly one of legacyNumberPrefix and documentId");
         }
         if (documentId != null) {
-            List<LegacyNumberResponse> all = findLegacyNumbers.find(new DocumentReference(documentType, new DocumentId(Long.toString(documentId))))
+            List<LegacyNumberResponse> all = findLegacyNumbers.find(new DocumentReference(documentType, new DocumentId(documentId.toString())))
                     .stream().map(LegacyNumberResponse::from).toList();
             return PageRequest.of(limit, cursor, "legacy-numbers").slice(all, LegacyNumberResponse::legacyNumber, "legacy-numbers");
         }

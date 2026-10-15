@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.infrastructure.persistence;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
@@ -33,6 +34,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -48,8 +50,10 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
 
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    JdbcApprovalRequestRepository(JdbcClient jdbc, Clock clock) {
+    JdbcApprovalRequestRepository(JdbcClient jdbc, Clock clock, IdGenerator ids) {
+        this.ids = ids;
         this.clock = clock;
         this.jdbc = jdbc;
     }
@@ -102,11 +106,11 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
         }
         if (request.startsRound()) {
             jdbc.sql("""
-                    INSERT INTO platform_approval.start_rounds (process_key, document_key, round_number, initiator_id, instance_id,
+                    INSERT INTO platform_approval.start_rounds (id, process_key, document_key, round_number, initiator_id, instance_id,
                            trigger_event_id)
-                    VALUES (:processKey, :id, :round, :initiator, :instance, :trigger)
+                    VALUES (:startRoundId, :processKey, :id, :round, :initiator, :instance, :trigger)
                     """)
-                    .param("processKey", request.processKey().name()).param("id", request.document().documentId().value())
+                    .param("startRoundId", ids.next()).param("processKey", request.processKey().name()).param("id", request.document().documentId().value())
                     .param("round", request.round()).param("initiator", request.initiator().value())
                     .param("instance", request.instanceId().value()).param("trigger", request.trigger().orElseThrow()).update();
         }
@@ -140,11 +144,11 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
     private void insert(ApprovalRequest request) {
         try {
             jdbc.sql("""
-                    INSERT INTO platform_approval.approval_requests (process_key, document_type, document_key, legal_entity_id, initiator_id,
+                    INSERT INTO platform_approval.approval_requests (id, process_key, document_type, document_key, legal_entity_id, initiator_id,
                            current_round, current_instance_id, status, result_reason, summary_text, event_count, version)
-                    VALUES (:processKey, :type, :id, :legalEntity, :initiator, :round, :instance, :status, :reason, :summary, :sequence, :next)
+                    VALUES (:requestId, :processKey, :type, :id, :legalEntity, :initiator, :round, :instance, :status, :reason, :summary, :sequence, :next)
                     """)
-                    .param("processKey", request.processKey().name()).param("type", request.document().documentType().name())
+                    .param("requestId", ids.next()).param("processKey", request.processKey().name()).param("type", request.document().documentType().name())
                     .param("id", request.document().documentId().value()).param("legalEntity", request.legalEntityId().value())
                     .param("initiator", request.initiator().value()).param("round", request.round())
                     .param("instance", request.instanceId().value()).param("status", request.status().name())
@@ -243,7 +247,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
     private static Row readRow(ResultSet rs) throws SQLException {
         String reason = rs.getString("result_reason");
         return new Row(ProcessKey.valueOf(rs.getString("process_key")), new DocumentReference(DocumentType.valueOf(rs.getString("document_type")),
-                new DocumentId(rs.getString("document_key"))), new LegalEntityId(rs.getLong("legal_entity_id")),
+                new DocumentId(rs.getString("document_key"))), new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
                 new UserId(rs.getLong("initiator_id")), rs.getInt("current_round"), new ApprovalInstanceId(rs.getString("current_instance_id")),
                 ApprovalStatus.valueOf(rs.getString("status")), reason == null ? null : new Reason(reason),
                 new ApprovalSummary(rs.getString("summary_text")), rs.getLong("version"), rs.getLong("event_count"));

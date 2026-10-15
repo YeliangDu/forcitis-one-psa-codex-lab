@@ -12,7 +12,7 @@ export const AdministratorModeResponseSchema = z.object({
 
 export const AttributeLegalEntityRequestSchema = z.object({
   effectiveFrom: z.string().optional(),
-  legalEntityId: z.number().int().optional(),
+  legalEntityId: z.string().optional(),
 });
 
 export const AuditEntryResponseSchema = z.object({
@@ -41,7 +41,7 @@ export const AuthorizationRequestViewSchema = z.object({
   requestedAt: z.string().optional(),
   requestedBy: z.number().int().optional(),
   roleCodes: z.array(z.string()).optional(),
-  roleId: z.number().int().optional(),
+  roleId: z.string().optional(),
   roleName: z.string().optional(),
   subjectUserId: z.number().int().optional(),
 });

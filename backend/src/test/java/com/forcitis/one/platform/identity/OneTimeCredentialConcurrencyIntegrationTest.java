@@ -71,8 +71,8 @@ class OneTimeCredentialConcurrencyIntegrationTest extends IdentityIntegrationTes
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         createAccount(1001, "employee");
         jdbc.sql("""
-                insert into platform_identity.ticket_issuers (issuer_code, key_id, key_reference, is_enabled, allowed_role_codes)
-                values ('km', 'km-key-1', 'env:FORCITIS_TICKET_KEY_KM', true, array['employee'])
+                insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, key_id, key_reference, is_enabled, allowed_role_codes)
+                values (uuidv7(), 'km', 'km-key-1', 'env:FORCITIS_TICKET_KEY_KM', true, array['employee'])
                 """).update();
         String ticket = SignedTicket.sign(KM_KEY.getBytes(StandardCharsets.UTF_8), "km-key-1", "km", 1001, "race-nonce-0123456789",
                 clock.instant().minusSeconds(1), clock.instant().plusSeconds(30));

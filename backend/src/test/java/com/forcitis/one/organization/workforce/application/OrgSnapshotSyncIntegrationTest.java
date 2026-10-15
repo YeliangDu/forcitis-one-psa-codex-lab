@@ -1,5 +1,8 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.TestIds;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.sourceUnit;
@@ -180,14 +183,27 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("a run that was killed mid-way is closed as failed by the next run, a recent one is left alone")
     void interruptedRunsAreClosed() {
-        jdbc.sql("insert into organization_workforce.sync_runs (trigger_kind, status, started_at) values ('SCHEDULED', 'RUNNING', now() - interval '1 hour')").update();
-        jdbc.sql("insert into organization_workforce.sync_runs (trigger_kind, status, started_at) values ('SCHEDULED', 'RUNNING', now() - interval '1 minute')").update();
+        UUID old = TestIds.uuid(1);
+        UUID recent = TestIds.uuid(2);
+        insertRunning(old, clock.instant().minus(java.time.Duration.ofHours(1)));
+        insertRunning(recent, clock.instant().minus(java.time.Duration.ofMinutes(1)));
         orgSource.snapshot = tree(person(1, 2, 100L, null));
 
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SyncResult result = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        assertThat(jdbc.sql("select status || ':' || coalesce(failure_reason, '') from organization_workforce.sync_runs order by id").query(String.class).list())
-                .containsExactly("FAILED:interrupted: the run never finished", "RUNNING:", "SUCCEEDED:");
+        assertThat(stateOf(old)).isEqualTo("FAILED:interrupted: the run never finished");
+        assertThat(stateOf(recent)).isEqualTo("RUNNING:");
+        assertThat(stateOf(result.syncRunId().value())).isEqualTo("SUCCEEDED:");
+    }
+
+    private void insertRunning(UUID id, java.time.Instant startedAt) {
+        jdbc.sql("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (:id, 'SCHEDULED', 'RUNNING', :startedAt)")
+                .param("id", id).param("startedAt", java.sql.Timestamp.from(startedAt)).update();
+    }
+
+    private String stateOf(UUID id) {
+        return jdbc.sql("select status || ':' || coalesce(failure_reason, '') from organization_workforce.sync_runs where id = :id")
+                .param("id", id).query(String.class).single();
     }
 
     @Test
@@ -255,7 +271,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        ReleaseResult released = release.execute(held.syncRunId().value(), 9001L, "source repaired by hand", true, false);
+        ReleaseResult released = release.execute(held.syncRunId(), new UserId(9001L), "source repaired by hand", true, false);
 
         assertThat(released).isInstanceOfSatisfying(ReleaseResult.Released.class, r -> assertThat(r.releasedRun().status()).isEqualTo("SUCCEEDED"));
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(3);
@@ -268,8 +284,8 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
-        assertThat(release.execute(held.syncRunId().value(), 9001L, "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotHeld.class);
-        assertThat(release.execute(424242L, 9001L, "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotFound.class);
+        assertThat(release.execute(held.syncRunId(), new UserId(9001L), "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotHeld.class);
+        assertThat(release.execute(new SyncRunId(TestIds.uuid(424242)), new UserId(9001L), "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotFound.class);
     }
 
     @Test

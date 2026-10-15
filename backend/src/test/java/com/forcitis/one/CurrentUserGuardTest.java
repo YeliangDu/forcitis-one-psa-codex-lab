@@ -21,7 +21,7 @@ class CurrentUserGuardTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Pattern ANSWERS = Pattern.compile("\\bimplements\\b[^{]*\\b(CurrentUser|EmployeeLegalEntities)\\b");
     static final Pattern ANONYMOUS = Pattern.compile("new\\s+CurrentUser\\s*\\(");
-    static final Pattern LITERAL_LEGAL_ENTITY = Pattern.compile("new\\s+LegalEntityId\\(\\s*[0-9][0-9_]*[lL]?\\s*\\)");
+    static final Pattern LITERAL_LEGAL_ENTITY = Pattern.compile("new\\s+LegalEntityId\\(\\s*(?:[0-9][0-9_]*[lL]?\\s*\\)|(?:new\\s+)?UUID\\b)");
     static final Pattern INITIALISED_LEGAL_ENTITY = Pattern.compile("\\bLegalEntityId\\s+\\w+\\s*=");
     static final Pattern DEFAULTED = Pattern.compile("\\.\\s*(orElse|orElseGet)\\s*\\(");
 
@@ -67,15 +67,15 @@ class CurrentUserGuardTest {
     @Test
     @DisplayName("injected: a literal, a constant, a default and an anonymous CurrentUser are caught; a lookup, a failure and an unrelated class are not")
     void madeUpAnswersAreCaught() {
-        String hardCoded = "class X implements CurrentUser { public LegalEntityId legalEntityId() { return new LegalEntityId(1L); } }";
+        String hardCoded = "class X implements CurrentUser { public LegalEntityId legalEntityId() { return new LegalEntityId(new UUID(0, 1)); } }";
         String constant = "class C implements CurrentUser { private static final LegalEntityId HOME = load(); public LegalEntityId legalEntityId() { return HOME; } }";
         String defaulted = "class D implements EmployeeLegalEntities { public LegalEntityId on(UserId u, LocalDate d) { return find(u, d).orElse(null); } }";
         String lazyDefault = "class L implements EmployeeLegalEntities { public LegalEntityId on(UserId u, LocalDate d) { return find(u, d).orElseGet(() -> root()); } }";
         String anonymous = "class A { CurrentUser who = new CurrentUser() { public LegalEntityId legalEntityId() { return null; } }; }";
         String resolved = "class Y implements CurrentUser { public LegalEntityId legalEntityId() { return directory.on(userId(), today); } }";
         String failing = "class F implements EmployeeLegalEntities { public LegalEntityId on(UserId u, LocalDate d) { return find(u, d).orElseThrow(); } }";
-        String unrelated = "class Z { LegalEntityId id = new LegalEntityId(1); Object o = x.orElse(1); }";
-        String commented = "class W implements CurrentUser { // new LegalEntityId(1) and .orElse(x)\n }";
+        String unrelated = "class Z { LegalEntityId id = new LegalEntityId(new UUID(0, 1)); Object o = x.orElse(1); }";
+        String commented = "class W implements CurrentUser { // new LegalEntityId(new UUID(0, 1)) and .orElse(x)\n }";
 
         assertThat(problems("X.java", hardCoded)).hasSize(1);
         assertThat(problems("C.java", constant)).hasSize(1);

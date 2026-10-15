@@ -23,7 +23,7 @@ class ForcedLogoutController {
     @PostMapping(path = "/user-accounts/{userId}:force-logout")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE + "')")
     ResponseEntity<Void> forceLogout(@PathVariable long userId, @RequestBody ForcedLogoutRequest request) {
-        forceUserLogout.execute(userId, request.reason());
+        forceUserLogout.execute(AccountPath.user(userId), request.reason());
         return ResponseEntity.noContent().build();
     }
 }
