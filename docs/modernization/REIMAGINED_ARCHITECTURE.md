@@ -181,18 +181,18 @@ flowchart LR
 
 ### 3.3 组织快照
 - **过渡态说明**（用户 2026-10-14：「主数据全部进新系统」「自建整个 hrm」）：1a 的 A8 组织快照是**过渡态**——员工与组织主数据最终归新系统（自建 HRM），届时 A8 不再是组织主数据源；1a 范围不变，快照模型与 `OrgDirectory` 契约按「来源可替换」设计（来源只在 workforce 的 infrastructure 中）。
-- **权责事实边界（GUIDING_PRINCIPLES §9a，用户 2026-10-14：「确保权责业务事实全部在新系统」）**：A8 在新系统中**只**作为组织主数据（部门、人员、岗位、汇报线、负责人）、身份（致远 SSO）的来源。合同、产值 / 收入确认、成本、费用、开票、回款、分包、付款等权责事实不得从 A8 读取或在 A8 存放。A8 只读视图只授权组织表列；workforce 的 A8 ACL 由 ArchUnit 规则限定只能被 `organization.workforce` 使用。老 fst 中其他 `a8_db` 跨库读取（如 `docs/ops/oa-*` 存储过程涉及的报价、产值、开票、奖金）不在新系统中以「直接读 A8」延续，在各自阶段改为新系统自有事实。
+- **权责事实边界（GUIDING_PRINCIPLES §9a，用户 2026-10-14：「确保权责业务事实全部在新系统」）**：A8 在新系统中作为组织主数据（部门、人员、岗位、汇报线、负责人）、身份（致远 SSO）的来源。合同、产值 / 收入确认、成本、费用、开票、回款、分包、付款等权责事实不得**作为输入**从 A8 读取，也不在 A8 存放；取证、迁入、对账与等价核对可读 A8 任意表（ADR-0037）。A8 读取只在 `platform.integration` 的适配器中，由 ArchUnit 守护（`ExternalConnectionIsolationTest`）。老 fst 中其他 `a8_db` 跨库读取（如 `docs/ops/oa-*` 存储过程涉及的报价、产值、开票、奖金）不在新系统中以「直接读 A8」延续，在各自阶段改为新系统自有事实。
 - **§9a 的机器守护**（architecture-critic §9a 专项核对，2026-10-14）：
-  - **视图列白名单入库**：`organization/workforce/seeyon-view-columns.yaml` 列出视图名、列名、来源表与列、分类（组织 / 身份），启动时校验 `INFORMATION_SCHEMA.COLUMNS` 与白名单**完全相等**（不只是「所需列存在」）。DBA 脚本只授予视图 SELECT，对 `a8_db` 基表显式 DENY；A8 账号无 INSERT / UPDATE / EXEC，并由集成测试断言写操作被拒绝。
-  - **1a 白名单范围**：`ORG_UNIT`、`ORG_RELATIONSHIP`（负责人、区域 AR 两种关系类型）、`ADDRESSBOOK` 扩展属性 32 / 33 与 `CTP_ENUM*` 显示值、`ORG_POST`、`ORG_MEMBER`、`ORG_PRINCIPAL.LOGIN_NAME`，以及 `formmain_0307` 的 3 列（企业邮箱、性别、收费员工标识）。生日（`EXT_ATTR_21`，敏感信息）、银行卡等不进 1a 视图。
+  - **视图列白名单入库**：`organization/workforce/seeyon-view-columns.yaml` 列出视图名、列名、来源表与列、分类（组织 / 身份），启动时校验 `INFORMATION_SCHEMA.COLUMNS` 与白名单**完全相等**（不只是「所需列存在」）。A8 账号按 ADR-0037 全库只读（库级 SELECT，库级 DENY 写、DDL、EXECUTE、REFERENCES），应用启动、每次同步前与至少每天按 ADR-0037 第 4 项 (a)–(f) 校验账号等于平台基线，不满足或无法判定即拒绝启动或停掉连接；集成测试断言写操作被拒绝。视图冻结，列白名单相等校验只对仍经视图读取的路径（ADR-0037 第 6 项）。
+  - **1a 白名单范围**（运行时经视图读取的范围，不再是授权边界，ADR-0037）：`ORG_UNIT`、`ORG_RELATIONSHIP`（负责人、区域 AR 两种关系类型）、`ADDRESSBOOK` 扩展属性 32 / 33 与 `CTP_ENUM*` 显示值、`ORG_POST`、`ORG_MEMBER`、`ORG_PRINCIPAL.LOGIN_NAME`，以及 `formmain_0307` 的 3 列（企业邮箱、性别、收费员工标识）。生日（`EXT_ATTR_21`，敏感信息）、银行卡等不进 1a 视图。
   - **收费员工标识**：A8 `FIELD0244` 在新系统中命名为 `employees.is_fee_earner`（不叫 `is_billable`），只是人事分类。可计费性由新系统判定，这个标识只是输入之一；以后凡是用到它的权责事实，都要把当时的值和同步批次号一并快照。
   - **单一路径**：批量同步与登录未命中时的单人查询共用同一视图、同一映射器，只是查询条件不同。
-  - **ArchUnit**：只有 `organization.workforce.infrastructure..` 能使用 A8 数据源；只有 `platform.identity.infrastructure..` 能使用致远验票客户端。
+  - **ArchUnit**：只有 `platform.integration.infrastructure.seeyon..` 能连接 A8，外部连接只经 `platform.integration` 的连接工厂建立（`ExternalConnectionIsolationTest`）；只有 `platform.identity.infrastructure..` 能使用致远验票客户端。
   - **源码扫描测试**：`src/main` 与 Flyway 中禁止出现 `formmain_`、`formson_`、`a8_db`、`LEXMIS`、`T_U8C_`（白名单视图名除外）。
   - **依赖与 DDL 禁令**：Maven Enforcer 禁止 `dynamic-datasource`；Flyway 禁止 `CREATE EXTENSION tds_fdw|postgres_fdw|dblink`、`CREATE SERVER`、`IMPORT FOREIGN SCHEMA`。
   - **schema 守护**：`organization_workforce` 不得有金额列；workforce 的 `api` 不暴露 `Money` / `AccountingPeriod`。
   - **跨阶段台账**：老系统对 A8 的全部读写登记在 `phase1a/A8_ACCESS_REGISTER.md`，每个阶段出口时更新状态。
-- 数据源：**A8 只读视图**（由 A8 管理员建立并维护；启动时校验列集合与白名单完全相等；关系类型 ID 等改为配置，RULE-356），不读老 `system_users` / `system_dept`。出口条件「与 A8 零差异」以 A8 为基准。
+- 数据源：**A8 只读视图**（视图冻结，ADR-0037 第 6 项；账号全库只读并按第 4 项校验；启动时校验列集合与白名单完全相等；关系类型 ID 等改为配置，RULE-356），不读老 `system_users` / `system_dept`。出口条件「与 A8 零差异」以 A8 为基准。
 - 每 **5 分钟**一次（ShedLock；每次约 1,300 人、367 个部门），全量拉取 → 计算差异 → 单事务写入，并记录 `sync_runs` / `sync_diffs`。源数据缩水超过 20 % 或本次会让超级管理员、安全审计员离职时中止并告警；暂停按类型记录（缩水保护、管理员离职），各类由有资格的人在页面分别放行，全部放行后才按最新源数据重跑（RULE-358/366，评审 #14，ADR-0028）。
 - A8 权威列按值同步，空值也写入（RULE-365）；单行缺部门或岗位时隔离该行并告警（RULE-365）；`we_com_id` 在建档时写入（RULE-362）；多名负责人时取 ID 最小者并告警（RULE-356）。
 - `short_name`：在新系统的维护页上线前，每天从老表只读刷新一次（评审 #20）。`company_code`：不迁移。
@@ -285,7 +285,7 @@ flowchart LR
 ### 3.6 合并待办
 - **新待办**：Flowable 任务，加上本人所在候选组的任务；会签节点每位审批人是自己的一项待办。
 - **老待办**：approval 的内部 ACL 通过只读账号查询**老库视图**（`bpm_task_ext` 中 result=1，关联 `ACT_RU_TASK` 与 `bpm_process_instance_ext` 标题），按 RULE-261 把行任务合并为（实例, 节点）一项。
-  - 视图由 DBA 建立，只授权所需的列，**不授权令牌表**；建视图作为一次老系统变更登记（评审 #11）。
+  - 视图由 DBA 建立（已冻结，ADR-0037 第 6 项）；账号按 ADR-0037 全库只读，令牌表可读但应用代码不引用、凭据值不进新系统（I-1）；建视图作为一次老系统变更登记（评审 #11）。
   - **不做缓存**：查询量约每天 540 次（180 天 97,591 次），直接查询即可。这样「待办数一致」的测试结果稳定（评审 #9）。
   - 点击老待办时，浏览器跳到老系统详情页。用户在老系统未登录时：H5 在企业微信内静默登录老系统；PC 端回到老系统登录页（1a 可接受，见 Q-1）。
 
