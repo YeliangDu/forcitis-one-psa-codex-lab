@@ -473,6 +473,12 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | PAR-3 FLW-1 | Flowable 引擎时间来源核实（第 3 节，首次部署前须有结论），opus 核实，结论写规则卡与 INFRA_RUNBOOK；需改动按缺陷卡手术式修 | — |
 | PAR-4 F-1 验收测试 | 测试代理（opus）按 ADR-0026「1a 交付范围」与 2.4 F-1 行先写验收测试 | — |
 
+**后续项**：
+
+| 卡 | 内容 | 前置 | 来源 |
+|---|---|---|---|
+| FLW-2 BPMN 不用引擎计时器与到期 | 守护：流程定义（`processes/**.bpmn20.xml`）不得含计时器事件与 `flowable:dueDate`，时限只由 `approval_tasks` 与定时作业判定（RULE-386）；执行者到时定，opus 复审 | R-1b P4 之后（P4 独占 `EngineWiring`） | FLW-1 复审 L-6；one-coordinator 2026-10-15 排卡 |
+
 **F-1 规格裁定**（one-coordinator 2026-10-15 裁定，验收测试据此写，分支 `claude/one-1a-par-f1-acceptance`，与实现同一 PR 合并）：
 - 自定义部门明细挂在角色版本上，归 `role:update`（已采纳 ADR-0034 第 5 项）；2.4 F-1 行「授予时选范围的权限沿用 `account-role:update`」写于 ADR-0034 采纳前，以 ADR 为准；contract D-1a-58 在 1a 范围内由 ADR-0034 解决。
 - 自定义部门逐部门选「含下级」或「仅本部门」，组织调整新增的下级部门对「含下级」自动纳入（用户 2026-10-15，经 one-coordinator）。
