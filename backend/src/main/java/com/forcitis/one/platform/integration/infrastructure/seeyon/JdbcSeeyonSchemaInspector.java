@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -17,13 +18,22 @@ final class JdbcSeeyonSchemaInspector implements SeeyonSchemaInspector {
 
     @Override
     public Map<String, Set<String>> viewColumns() {
+        return collect(jdbc.sql(SeeyonViewSql.VIEW_COLUMNS_IN_SCHEMA).param("schema", SeeyonViewSql.SCHEMA));
+    }
+
+    @Override
+    public Map<String, Set<String>> baseTableColumns() {
+        return collect(jdbc.sql(SeeyonViewSql.BASE_TABLE_COLUMNS_IN_SCHEMA).param("schema", SeeyonViewSql.BASE_SCHEMA)
+                .param("tables", List.copyOf(SeeyonViewSql.BASE_TABLE_COLUMNS.keySet())));
+    }
+
+    private static Map<String, Set<String>> collect(JdbcClient.StatementSpec catalog) {
         Map<String, Set<String>> columns = new TreeMap<>();
-        jdbc.sql(SeeyonViewSql.VIEW_COLUMNS_IN_SCHEMA).param("schema", SeeyonViewSql.SCHEMA)
-                .query((rs, n) -> {
-                    columns.computeIfAbsent(rs.getString("TABLE_NAME").toUpperCase(Locale.ROOT), k -> new TreeSet<>())
-                            .add(rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT));
-                    return null;
-                }).list();
+        catalog.query((rs, n) -> {
+            columns.computeIfAbsent(rs.getString("TABLE_NAME").toUpperCase(Locale.ROOT), k -> new TreeSet<>())
+                    .add(rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT));
+            return null;
+        }).list();
         return columns;
     }
 

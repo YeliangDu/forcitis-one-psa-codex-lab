@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.OneApplication;
 import com.forcitis.one.TestImages;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.application.RefreshShortNames;
@@ -67,7 +68,7 @@ class ReadOnlyAccountCheckIT {
     static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
     static final AtomicInteger LOGINS = new AtomicInteger();
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestImages.startingWith("postgres:"))
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
     static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
@@ -82,7 +83,7 @@ class ReadOnlyAccountCheckIT {
     }
 
     enum ReadOnlyConnection {
-        A8("a8world", "a8_ro", ReadOnlyBaselineFixture.VIEW_SCHEMA, "dbo.member_rows"),
+        A8("a8world", "a8_ro", ReadOnlyBaselineFixture.VIEW_SCHEMA, "dbo.ORG_MEMBER"),
         LEGACY_APPROVAL("legacyworld", "todo_ro", "dbo", "dbo.todo_rows"),
         LEGACY_NAMES("legacyworld", "names_ro", "dbo", "dbo.short_name_rows");
 
@@ -164,9 +165,13 @@ class ReadOnlyAccountCheckIT {
                     new Sql(a.connection().database, "GRANT CONTROL ON SCHEMA::" + a.connection().viewSchema + " TO " + q(a.login())))),
             new Violation("复审 H-1：服务器上针对登录的授权 GRANT IMPERSONATE ON LOGIN::sa（fn_my_permissions 不列）", "d", a -> List.of(
                     new Sql("master", "GRANT IMPERSONATE ON LOGIN::sa TO " + q(a.login())))),
-            new Violation("复审 H-1：public 角色在用户对象上的授权 GRANT UPDATE ON 可读底表 TO public", "g", a -> List.of(
-                    new Sql(a.connection().database, "GRANT UPDATE ON " + a.connection().baseTable + " TO public")), a -> List.of(
-                    new Sql(a.connection().database, "REVOKE UPDATE ON " + a.connection().baseTable + " FROM public"))),
+            // Was GRANT UPDATE: the login's own database-level DENY UPDATE overrides that one now (one-coordinator 2026-10-15 C-14 定位裁定, see overriddenPublicGrantsDoNotRefuseStartup).
+            new Violation("复审 H-1：public 角色在用户对象上的授权 GRANT CONTROL ON 可读底表 TO public（库级 DENY 清单不含 CONTROL）", "g", a -> List.of(
+                    new Sql(a.connection().database, "GRANT CONTROL ON " + a.connection().baseTable + " TO public")), a -> List.of(
+                    new Sql(a.connection().database, "REVOKE CONTROL ON " + a.connection().baseTable + " FROM public"))),
+            new Violation("C-14 定位裁定安全条件 2：public 角色在用户对象上的授权 GRANT TAKE OWNERSHIP ON 可读底表 TO public", "g", a -> List.of(
+                    new Sql(a.connection().database, "GRANT TAKE OWNERSHIP ON " + a.connection().baseTable + " TO public")), a -> List.of(
+                    new Sql(a.connection().database, "REVOKE TAKE OWNERSHIP ON " + a.connection().baseTable + " FROM public"))),
             new Violation("复审 H-2：在 msdb 有该登录自己的用户并且是 db_owner（不经 guest 进入）", "f", a -> List.of(
                     new Sql("msdb", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())),
                     new Sql("msdb", "ALTER ROLE db_owner ADD MEMBER " + q(a.login())))),
@@ -245,6 +250,78 @@ class ReadOnlyAccountCheckIT {
 
     @ParameterizedTest(name = "{0}")
     @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15 C-14 定位裁定，安全判定放宽）：public 的对象级 GRANT UPDATE 与 GRANT EXECUTE 被本账号库级同名 DENY 覆盖时不拒绝启动")
+    void overriddenPublicGrantsDoNotRefuseStartup(ReadOnlyConnection connection) throws SQLException {
+        Account account = baselineAccount(connection);
+        String procedure = "dbo." + q("p_" + marker());
+        String database = connection.database;
+        Throwable failure;
+        try {
+            run(database, "GRANT UPDATE ON " + connection.baseTable + " TO public", "CREATE PROCEDURE " + procedure + " AS SELECT 1",
+                    "GRANT EXECUTE ON OBJECT::" + procedure + " TO public");
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run(database, "REVOKE UPDATE ON " + connection.baseTable + " FROM public", "DROP PROCEDURE IF EXISTS " + procedure);
+        }
+
+        assertThat(failure).as("grants the login's own database-level DENY of the same permission overrides; refused with:\n%s", messages(failure)).isNull();
+    }
+
+    @Test
+    @DisplayName("C-14 定位裁定（one-1a-next-3 条件）：启动校验拒绝 public 的 GRANT CONTROL 时只报项 (g)，拒绝原因与日志中不出现 schema 名与对象名（定位只由只读核实命令输出）")
+    void startupRefusalNamesNoSchemaOrObject(CapturedOutput output) throws SQLException {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        String mark = marker();
+        String table = q("s_" + mark) + "." + q("t_" + mark);
+        Throwable failure;
+        try {
+            run("a8world", "CREATE SCHEMA " + q("s_" + mark) + " AUTHORIZATION dbo", "CREATE TABLE " + table + " (id bigint)",
+                    "GRANT CONTROL ON OBJECT::" + table + " TO public");
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run("a8world", "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
+        }
+
+        assertThat(failure).as("public holds CONTROL on a table: the application started anyway").isNotNull();
+        assertThat(messages(failure)).as("the refusal names item (g)").containsPattern("[(（]g[)）]");
+        assertThat(messages(failure)).as("no schema or object name in the refusal").doesNotContain(mark);
+        assertThat(output.getAll()).as("no schema or object name in the log").doesNotContain(mark);
+    }
+
+    @Test
+    @DisplayName("C-14 定位裁定（one-1a-next-3 条件）：启动后 public 得到 GRANT CONTROL，组织同步前重检失败写 ALERT 报项 (g)，ALERT、日志与同步结果说明中不出现 schema 名与对象名")
+    void recheckAlertNamesNoSchemaOrObject(CapturedOutput output) throws SQLException {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        String mark = marker();
+        String table = q("s_" + mark) + "." + q("t_" + mark);
+        try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
+            run("a8world", "CREATE SCHEMA " + q("s_" + mark) + " AUTHORIZATION dbo", "CREATE TABLE " + table + " (id bigint)",
+                    "GRANT CONTROL ON OBJECT::" + table + " TO public");
+            SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
+
+            assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.FAILED);
+            assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (g)").containsPattern("ALERT[^\\n]*[(（]g[)）]");
+            assertThat(output.getAll()).as("no schema or object name in the ALERT or any log line").doesNotContain(mark);
+            assertThat(String.valueOf(result.note())).as("no schema or object name in the sync result").doesNotContain(mark);
+        } finally {
+            run("a8world", "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
+        }
+    }
+
+    static String marker() {
+        return "mk" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
     @DisplayName("ADR37-1 复审 L（删改测试覆盖）：只读连接配成新系统自己的 PostgreSQL 地址与账号，经真实工厂拒绝启动，并按项报出不满足的一项")
     void postgresqlAddressIsRefusedThroughTheRealFactory(ReadOnlyConnection connection) {
         Account ownAccount = new Account(connection, POSTGRES.getUsername(), POSTGRES.getPassword());
@@ -270,16 +347,16 @@ class ReadOnlyAccountCheckIT {
             assertThat(a8.findStaffByLoginName(LOGIN_NAME)).as("the adapter reads before the grant changes").hasSize(1);
 
             grantWriteBehindTheDatabaseDeny(account);
-            long readsBefore = baseTableReads("a8world", "org_unit_rows", "relationship_rows", "post_rows", "member_rows");
+            long readsBefore = baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER");
             SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
 
             assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.FAILED);
             assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (b)").containsPattern("ALERT[^\\n]*[(（]b[)）]");
-            assertThat(baseTableReads("a8world", "org_unit_rows", "relationship_rows", "post_rows", "member_rows"))
+            assertThat(baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER"))
                     .as("nothing is read from A8 once the re-check has failed").isEqualTo(readsBefore);
             assertThatThrownBy(() -> a8.findStaffByLoginName(LOGIN_NAME)).as("the stopped adapter answers 'unavailable'")
                     .isInstanceOf(ExternalSystemUnavailableException.class);
-            assertThat(baseTableReads("a8world", "org_unit_rows", "relationship_rows", "post_rows", "member_rows")).isEqualTo(readsBefore);
+            assertThat(baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER")).isEqualTo(readsBefore);
         }
     }
 
@@ -468,22 +545,22 @@ class ReadOnlyAccountCheckIT {
 
     private static void createA8World() throws SQLException {
         run("a8world", "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
-                "CREATE TABLE dbo.org_unit_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), IS_DELETED bit, "
-                        + "IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32))",
+                "CREATE TABLE dbo.ORG_UNIT (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), IS_DELETED bit, "
+                        + "IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32), TYPE nvarchar(32) NULL)",
                 "CREATE TABLE dbo.relationship_rows (SOURCE_MEMBER_ID bigint, ORG_UNIT_ID bigint, RELATIONSHIP_TYPE_ID bigint, MEMBER_IS_DELETED bit)",
                 "CREATE TABLE dbo.post_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, STATUS int, IS_DELETED bit)",
-                "CREATE TABLE dbo.member_rows (ID bigint PRIMARY KEY, NAME nvarchar(64), CODE nvarchar(32), ORG_UNIT_ID bigint, ORG_UNIT_PATH nvarchar(200), "
+                "CREATE TABLE dbo.ORG_MEMBER (ID bigint PRIMARY KEY, NAME nvarchar(64), CODE nvarchar(32), ORG_UNIT_ID bigint, ORG_UNIT_PATH nvarchar(200), "
                         + "POST_ID bigint, SUPERVISOR_MEMBER_ID bigint, WE_COM_ID nvarchar(64), IS_INTERNAL bit, LOGIN_NAME nvarchar(64), "
-                        + "ENTERPRISE_EMAIL nvarchar(128), GENDER nvarchar(8), FEE_EARNER_ENUM_ID nvarchar(32))",
-                "INSERT dbo.org_unit_rows VALUES (1, 'C1', N'Root', 1, '00000001', 0, 1, 1, N'总部', NULL), (2, 'C2', N'Delivery', 2, '000000010001', 0, 1, 1, N'区域', '9001')",
+                        + "ENTERPRISE_EMAIL nvarchar(128), GENDER nvarchar(8), FEE_EARNER_ENUM_ID nvarchar(32), STATE smallint NULL, IS_DELETED smallint NULL, IS_ENABLE smallint NULL)",
+                "INSERT dbo.ORG_UNIT VALUES (1, 'C1', N'Root', 1, '00000001', 0, 1, 1, N'总部', NULL, N'Account'), (2, 'C2', N'Delivery', 2, '000000010001', 0, 1, 1, N'区域', '9001', N'Department')",
                 "INSERT dbo.post_rows VALUES (100, 'P100', N'Consultant', 1, 0, 0)",
-                "INSERT dbo.member_rows VALUES (8001, N'Head', 'E8001', 2, '000000010001', 100, NULL, 'wx-8001', 1, '" + LOGIN_NAME + "', 'head@example.test', N'女', '9002')",
+                "INSERT dbo.ORG_MEMBER VALUES (8001, N'Head', 'E8001', 2, '000000010001', 100, NULL, 'wx-8001', 1, '" + LOGIN_NAME + "', 'head@example.test', N'女', '9002', 1, 0, 1)",
                 "INSERT dbo.relationship_rows VALUES (8001, 2, " + HEAD_TYPE + ", 0), (8001, 2, " + MANAGER_TYPE + ", 0)",
-                "CREATE VIEW forcitis_one.v_org_unit AS SELECT ID, CODE, NAME, SORT_ID, PATH, IS_DELETED, IS_INTERNAL, IS_ENABLE, CATEGORY, DELIVERY_FLAG_ENUM_ID FROM dbo.org_unit_rows",
+                "CREATE VIEW forcitis_one.v_org_unit AS SELECT ID, CODE, NAME, SORT_ID, PATH, IS_DELETED, IS_INTERNAL, IS_ENABLE, CATEGORY, DELIVERY_FLAG_ENUM_ID FROM dbo.ORG_UNIT",
                 "CREATE VIEW forcitis_one.v_org_relationship AS SELECT SOURCE_MEMBER_ID, ORG_UNIT_ID, RELATIONSHIP_TYPE_ID, MEMBER_IS_DELETED FROM dbo.relationship_rows",
                 "CREATE VIEW forcitis_one.v_org_post AS SELECT ID, CODE, NAME, SORT_ID, STATUS, IS_DELETED FROM dbo.post_rows",
                 "CREATE VIEW forcitis_one.v_org_member AS SELECT ID, NAME, CODE, ORG_UNIT_ID, ORG_UNIT_PATH, POST_ID, SUPERVISOR_MEMBER_ID, WE_COM_ID, IS_INTERNAL, "
-                        + "LOGIN_NAME, ENTERPRISE_EMAIL, GENDER, FEE_EARNER_ENUM_ID FROM dbo.member_rows");
+                        + "LOGIN_NAME, ENTERPRISE_EMAIL, GENDER, FEE_EARNER_ENUM_ID FROM dbo.ORG_MEMBER");
     }
 
     private static void createLegacyWorld() throws SQLException {

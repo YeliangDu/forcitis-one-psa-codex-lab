@@ -377,6 +377,23 @@ terms:
   forbidden: []
   status: proposed
   note: PAR-2 验收测试登记，待用语确认
+- id: overridden_grant
+  zh: 被拒绝覆盖的授权
+  en: OverriddenGrant
+  snake: overridden_grant
+  kind: value_object
+  bc: platform.integration
+  scope: acl
+  acl_class: "过渡期"
+  definition: 已授予、但被同级或更高层级的 DENY 覆盖、实际不生效的权限；只读核实按有效权限判定时不算违规，只作提示。
+  standard_ref:
+  - adr/ADR-0037.md
+  - SQL Server 权限层级中 DENY 优先于 GRANT（Microsoft 文档 Permissions Hierarchy）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: one-glossary 术语门禁结论（one-coordinator 2026-10-15 转达）；只读核实命令定位行种类 overridden，by 写被哪条 DENY 覆盖（DATABASE_DENY / SCHEMA_DENY）
 common_words:
 - background
 - call

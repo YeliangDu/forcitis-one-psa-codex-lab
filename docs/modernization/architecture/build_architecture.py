@@ -13,13 +13,70 @@ import yaml
 HERE = os.path.dirname(os.path.abspath(__file__))
 GEN = os.path.join(HERE, "generated")
 MMDC = os.path.expanduser("~/.modernize/psa/tools/mermaid-cli/node_modules/.bin/mmdc")
-REL_LABEL = {"partnership": "合作", "customer-supplier": "客户-供应商", "conformist": "遵奉者", "anticorruption-layer": "防腐层",
-             "open-host-service": "开放主机", "published-language": "发布语言", "shared-kernel": "共享内核", "separate-ways": "各行其道"}
+REL_LABEL = {None: "依赖", "conformist": "遵奉者", "anticorruption-layer": "防腐层",
+             "open-host-service": "开放主机", "published-language": "发布语言", "shared-kernel": "共享内核"}
 
 
 def load(rel):
     with open(os.path.join(HERE, rel), encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+REL_STATUS = ("built", "planned")   # planned = 本阶段在建（ADR-0041 决定 4）；规划边不登记
+
+
+def relation_problems(rels, cids):
+    problems = []
+    for r in rels:
+        rid = r.get("id")
+        for end in ("upstream", "downstream"):
+            if r.get(end) not in cids:
+                problems.append(f"context-map.yaml {rid}: unknown {end} {r.get(end)}")
+        if r.get("type") not in REL_LABEL or ("type" in r and r["type"] is None):
+            problems.append(f"context-map.yaml {rid}: type must be one of {sorted(k for k in REL_LABEL if k)} or omitted, got {r.get('type')!r}")
+        if not str(r.get("via") or "").strip():
+            problems.append(f"context-map.yaml {rid}: via is required")
+        if r.get("status") not in REL_STATUS:
+            problems.append(f"context-map.yaml {rid}: status must be one of {REL_STATUS}, got {r.get('status')!r}")
+        if rid != f"{r.get('upstream')}>{r.get('downstream')}":
+            problems.append(f"context-map.yaml {rid}: id must be <upstream>><downstream>")
+    return problems
+
+
+def module_dependencies():
+    """backend/architecture/module-dependencies.txt as a set of (upstream, downstream) edges."""
+    edges = set()
+    with open(os.path.join(HERE, "..", "..", "..", "backend", "architecture", "module-dependencies.txt"), encoding="utf-8") as f:
+        for line in f:
+            line = line.split("#", 1)[0].strip()
+            if "->" not in line:
+                continue
+            down, ups = line.split("->", 1)
+            edges |= {(u.strip(), down.strip()) for u in ups.split(",") if u.strip()}
+    return edges
+
+
+def a1_problems(rels, deps):
+    """CI A1: the built edges in context-map.yaml equal the module dependency graph."""
+    built = {(r.get("upstream"), r.get("downstream")) for r in rels if r.get("status") == "built"}
+    return ([f"context-map.yaml: missing built edge {u}>{d} (in module-dependencies.txt)" for u, d in sorted(deps - built)]
+            + [f"context-map.yaml: built edge {u}>{d} not in module-dependencies.txt" for u, d in sorted(built - deps)])
+
+
+def self_test():
+    cids = {"a", "b"}
+    ok = {"id": "a>b", "upstream": "a", "downstream": "b", "via": "api：查询", "status": "built"}
+    assert relation_problems([ok], cids) == [], relation_problems([ok], cids)
+    assert relation_problems([{**ok, "type": "anticorruption-layer", "status": "planned"}], cids) == []
+    for bad in ({"type": "partnership"}, {"type": "customer-supplier"}, {"type": "separate-ways"}, {"type": ""}, {"type": None},
+                {"via": ""}, {"via": None}, {"status": "proposed"}, {"status": None}, {"id": "b>a"}, {"upstream": "x", "id": "x>b"}):
+        assert relation_problems([{**ok, **bad}], cids), f"should reject {bad}"
+    assert relation_problems([{k: v for k, v in ok.items() if k != "via"}], cids), "should reject missing via"
+    assert relation_problems([{k: v for k, v in ok.items() if k != "status"}], cids), "should reject missing status"
+    assert a1_problems([ok], {("a", "b")}) == []
+    assert a1_problems([], {("a", "b")}) and a1_problems([ok], set()), "A1 must catch both directions"
+    assert a1_problems([{**ok, "status": "planned"}], set()) == [], "planned edges are outside A1"
+    print("self-test: ok")
 
 
 def nid(x):
@@ -47,14 +104,8 @@ def model():
             problems.append(f"contexts.yaml {c['id']}: unknown subdomain {c['subdomain']}")
         if c["status"] not in ("built", "planned", "retired", "undecided"):
             problems.append(f"contexts.yaml {c['id']}: bad status {c['status']}")
-    for r in rels:
-        for end in ("upstream", "downstream"):
-            if r[end] not in cids:
-                problems.append(f"context-map.yaml {r['id']}: unknown {end} {r[end]}")
-        if r["type"] not in REL_LABEL:
-            problems.append(f"context-map.yaml {r['id']}: unknown type {r['type']}")
-        if r["id"] != f"{r['upstream']}>{r['downstream']}":
-            problems.append(f"context-map.yaml {r['id']}: id must be <upstream>><downstream>")
+    problems += relation_problems(rels, set(cids))
+    problems += a1_problems(rels, module_dependencies())
     tids = {t["id"] for t in tas}
     for t in tas:
         problems += [f"transitions.yaml {t['id']}: unknown BC {b}" for b in t["delivers"] if b not in cids]
@@ -104,7 +155,7 @@ def context_map(subs, ctx, rels):
         L.append("  end")
     for r in rels:
         if r["status"] == "built":
-            L.append(f'  {nid(r["upstream"])} -->|{REL_LABEL[r["type"]]}| {nid(r["downstream"])}')
+            L.append(f'  {nid(r["upstream"])} -->|{REL_LABEL[r.get("type")]}| {nid(r["downstream"])}')
     for cls in ("built", "planned"):
         ids = [nid(c["id"]) for c in ctx if c["status"] == cls and c["id"] != "kernel"]
         if ids:
@@ -353,4 +404,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    self_test() if "--self-test" in sys.argv[1:] else main()

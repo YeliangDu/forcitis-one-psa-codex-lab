@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -241,7 +242,10 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
         return name.replaceAll("[-_.]", "").toLowerCase(Locale.ROOT);
     }
 
-    /** Never the problem text: it names roles and databases. */
+    /**
+     * Never the problem text: it names roles and databases. Below an item line come its locator lines (READONLY_VERIFY_ACCEPTANCE.md section
+     * 3a), the only place a database, schema, object, permission or grantee name is printed.
+     */
     static void report(Verdict verdict, PrintStream out) {
         Map<Character, Unmet> byItem = verdict.unmet().stream().collect(Collectors.toMap(Unmet::item, Function.identity()));
         for (char item : ITEMS) {
@@ -250,6 +254,11 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
                 out.println("(" + item + ") PASSED");
             } else {
                 out.println("(" + item + ") " + (unmet.confirmed() ? "VIOLATED" : "UNDETERMINED") + details(unmet.findings()));
+                new TreeSet<>(unmet.findings().stream().flatMap(f -> f.locators().stream().map(l -> LocatorLines.violation(item, f.reason(), l))).toList())
+                        .forEach(out::println);
+            }
+            if (item == 'g') {
+                new TreeSet<>(verdict.overridden().stream().map(LocatorLines::overridden).toList()).forEach(out::println);
             }
         }
         out.println("RESULT " + (verdict.violated() ? "VIOLATED" : verdict.passed() ? "PASSED" : "UNDETERMINED"));
