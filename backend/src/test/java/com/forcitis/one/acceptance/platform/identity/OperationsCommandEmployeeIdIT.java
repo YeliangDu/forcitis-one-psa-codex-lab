@@ -28,8 +28,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * R-1b P3b, ADR-0033 guard 9 and section 3 item 6: the operations commands name the person by the employee id, which is a UUID in its
  * canonical form. Any other form (the old whole number, a negative number, upper case) is wrong usage, exit code 2, and writes nothing; an
- * employee that does not exist is refused and writes nothing; a valid id opens or reuses the account. RULING-P3B-D8 adds the read-only
- * command that lists the employee ids and user ids of the people an organisation login name or a WeCom user id belongs to.
+ * employee that does not exist is refused and writes nothing; a valid id opens or reuses the account. The read-only lookup by an external
+ * subject (RULING-P3B-D8) is a command of platform.integration and is tested there (ExternalSubjectLookupCommandIT, RULING-P3B-7).
  */
 @Testcontainers
 class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
@@ -38,13 +38,6 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
     @ServiceConnection
     static PostgreSQLContainer postgres = database();
 
-    /** Command and argument names of RULING-P3B-D8 (one-glossary 2026-10-15): the subject and the kind of its identity provider. */
-    static final String FIND_ACCOUNTS = "find-accounts-by-external-subject";
-    static final String EXTERNAL_SUBJECT = "external-subject";
-    static final String PROVIDER_KIND = "provider-kind";
-    /** Values of --provider-kind: this test's proposal until the provider_kind values are fixed (one-glossary). */
-    static final String ORG_SOURCE_LOGIN_NAME = "ORG_SOURCE_LOGIN_NAME";
-    static final String WECOM_USER_ID = "WECOM_USER_ID";
     static final int WRONG_USAGE = 2;
 
     @Autowired
@@ -72,10 +65,6 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         return new Outcome(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }
 
-    private Outcome find(String providerKind, String subject) {
-        return run("--operation=" + FIND_ACCOUNTS, "--" + PROVIDER_KIND + "=" + providerKind, "--" + EXTERNAL_SUBJECT + "=" + subject);
-    }
-
     private Outcome grant(String employeeId) {
         return run("--operation=grant-role", "--employee-id=" + employeeId, "--role-code=business_admin");
     }
@@ -92,15 +81,6 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
             }
         }
         return rows;
-    }
-
-    private void loginName(UUID employee, String loginName) throws SQLException {
-        try (Connection workforce = schemaConnection("organization_workforce");
-             PreparedStatement update = workforce.prepareStatement("update employees set login_name = ? where id = ?")) {
-            update.setString(1, loginName);
-            update.setObject(2, stored(employee));
-            update.executeUpdate();
-        }
     }
 
     @Test
@@ -147,45 +127,5 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
 
         assertThat(again.exit()).as(again.err()).isZero();
         assertThat(accountsOfEmployee(person)).containsExactlyElementsOf(accounts);
-    }
-
-    @Test
-    @DisplayName("R-1b P3b ADR-0033 第 3 项第 6 条 / RULING-P3B-D8：只读命令按组织源登录名返回匹配的员工 ID 与 user_id 列表（同名两人都列出），不写任何数据")
-    void theReadOnlyCommandListsEveryoneWithTheLoginName() throws Exception {
-        UUID first = newEmployeeId();
-        UUID second = newEmployeeId();
-        UUID other = newEmployeeId();
-        employee(first, unit, null);
-        employee(second, unit, null);
-        employee(other, unit, null);
-        String shared = "acceptance-login-" + serialOf(first);
-        loginName(first, shared);
-        loginName(second, shared);
-        loginName(other, "acceptance-login-" + serialOf(other));
-        UUID firstAccount = signIn(first).userId();
-        List<Integer> before = identityRows();
-
-        Outcome found = find(ORG_SOURCE_LOGIN_NAME, shared);
-
-        assertThat(found.exit()).as(found.err()).isZero();
-        assertThat(found.out()).contains(first.toString(), firstAccount.toString(), second.toString()).doesNotContain(other.toString());
-        assertThat(identityRows()).as("a read-only command writes nothing").isEqualTo(before);
-    }
-
-    @Test
-    @DisplayName("R-1b P3b ADR-0033 第 3 项第 6 条 / RULING-P3B-D8：只读命令按企业微信 userid 返回员工 ID 与 user_id；查无此人时不列出任何员工")
-    void theReadOnlyCommandFindsThePersonByWecomUserId() throws Exception {
-        UUID person = newEmployeeId();
-        UUID other = newEmployeeId();
-        employee(person, unit, null);
-        employee(other, unit, null);
-        UUID account = signIn(person).userId();
-
-        Outcome found = find(WECOM_USER_ID, wecomUserIdOf(person));
-        Outcome nobody = find(WECOM_USER_ID, "acceptance-nobody-" + serialOf(person));
-
-        assertThat(found.exit()).as(found.err()).isZero();
-        assertThat(found.out()).contains(person.toString(), account.toString()).doesNotContain(other.toString());
-        assertThat(nobody.out()).doesNotContain(person.toString()).doesNotContain(other.toString());
     }
 }
