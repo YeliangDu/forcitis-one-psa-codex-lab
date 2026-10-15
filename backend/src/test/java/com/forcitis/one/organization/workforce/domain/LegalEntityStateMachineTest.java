@@ -27,7 +27,7 @@ class LegalEntityStateMachineTest {
     static final LegalEntityId ID = new LegalEntityId(TestIds.uuid(4));
 
     static LegalEntity at(LegalEntityStatus status) {
-        return LegalEntity.restore(ID, new LegalEntityCode("FST"), "Synthetic", status.name(), null, 7, 7);
+        return LegalEntity.restore(ID, new LegalEntityCode("FST"), "Synthetic", status.name(), 7, 7);
     }
 
     @Test
@@ -137,19 +137,5 @@ class LegalEntityStateMachineTest {
         assertThat(events.get(2)).isInstanceOf(LegalEntityActivated.class);
         assertThat(entity.eventSequence()).isEqualTo(10);
         assertThat(entity.version()).isEqualTo(8);
-    }
-
-    @Test
-    @DisplayName("D-1a-28 the accounting organization number is assigned once per value: the same number records nothing, a new one announces LegalEntityAccountingNumberAssigned")
-    void accountingNumber() {
-        LegalEntity entity = at(ACTIVE);
-        entity.assignAccountingNumber(new com.forcitis.one.organization.workforce.api.AccountingOrganizationNumber(1021));
-        entity.assignAccountingNumber(new com.forcitis.one.organization.workforce.api.AccountingOrganizationNumber(1021));
-
-        List<DomainEvent> events = entity.drainEvents(TestEnvelopes.INSTANCE);
-
-        assertThat(events).singleElement().isInstanceOf(com.forcitis.one.organization.workforce.events.LegalEntityAccountingNumberAssigned.class);
-        assertThat(entity.accountingOrganizationNumber().value()).isEqualTo(1021);
-        assertThatThrownBy(() -> new com.forcitis.one.organization.workforce.api.AccountingOrganizationNumber(0)).isInstanceOf(IllegalArgumentException.class);
     }
 }

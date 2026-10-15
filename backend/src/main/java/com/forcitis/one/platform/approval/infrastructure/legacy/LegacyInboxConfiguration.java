@@ -1,7 +1,8 @@
 package com.forcitis.one.platform.approval.infrastructure.legacy;
 
 import com.forcitis.one.platform.approval.domain.LegacyInbox;
-import com.zaxxer.hikari.HikariDataSource;
+import com.forcitis.one.platform.integration.api.ExternalCallKind;
+import com.forcitis.one.platform.integration.api.ExternalConnections;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,17 +26,8 @@ class LegacyInboxConfiguration {
     @Bean(defaultCandidate = false)
     @Qualifier("legacy-approval")
     @ConditionalOnExpression("!'${forcitis.platform.approval.legacy.url:}'.isBlank()")
-    DataSource legacyApprovalDataSource(LegacyProperties properties) {
-        HikariDataSource source = new HikariDataSource();
-        source.setPoolName("legacy-approval");
-        source.setJdbcUrl(properties.url());
-        source.setUsername(properties.username());
-        source.setPassword(properties.password());
-        source.setReadOnly(true);
-        source.setMaximumPoolSize(2);
-        source.setConnectionTimeout(5_000);
-        source.setInitializationFailTimeout(-1);
-        return source;
+    DataSource legacyApprovalDataSource(LegacyProperties properties, ExternalConnections connections) {
+        return connections.open("legacy-approval", properties.url(), properties.username(), properties.password(), ExternalCallKind.INTERACTIVE);
     }
 
     @Bean

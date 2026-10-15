@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,19 +40,12 @@ class SeeyonViewsOnPostgresTest {
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18");
 
     static JdbcClient admin;
-    static ReadOnlyConnection connection;
     static SeeyonOrgSource source;
 
     @BeforeAll
     static void connect() {
         admin = JdbcClient.create(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
-        connection = ReadOnlyConnection.open("test-seeyon", postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        source = new SeeyonOrgSource(connection.jdbc(), MAPPING);
-    }
-
-    @AfterAll
-    static void close() {
-        connection.close();
+        source = new SeeyonOrgSource(admin, admin, MAPPING);
     }
 
     @BeforeEach
@@ -178,7 +170,7 @@ class SeeyonViewsOnPostgresTest {
         assertThat(relationships).filteredOn(r -> r.personId().value() == 804).singleElement()
                 .satisfies(r -> assertThat(r.personDeleted()).isTrue());
 
-        SeeyonOrgSource otherInstance = new SeeyonOrgSource(connection.jdbc(), new SeeyonMapping(1, 2, "x", "y", "00000001"));
+        SeeyonOrgSource otherInstance = new SeeyonOrgSource(admin, admin, new SeeyonMapping(1, 2, "x", "y", "00000001"));
         assertThat(otherInstance.readSnapshot().relationships()).isEmpty();
     }
 
@@ -246,7 +238,7 @@ class SeeyonViewsOnPostgresTest {
     }
 
     private static SeeyonSchemaInspector inspector(List<String> excessive) {
-        JdbcSeeyonSchemaInspector real = new JdbcSeeyonSchemaInspector(connection.jdbc());
+        JdbcSeeyonSchemaInspector real = new JdbcSeeyonSchemaInspector(admin);
         return new SeeyonSchemaInspector() {
             @Override
             public Map<String, Set<String>> viewColumns() {

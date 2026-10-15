@@ -63,7 +63,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     @BeforeEach
     void orgWithOneLegalEntity() {
         VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
-        legalEntity = createLegalEntity.execute("FST", "Synthetic one", null).legalEntityId();
+        legalEntity = createLegalEntity.execute("FST", "Synthetic one").legalEntityId();
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L), unit(4, null)), List.of(head(2, 1)), List.of(post(100)),
                 List.of(person(1, 2, 100L, null), person(2, 3, 100L, 1L), person(3, 4, 100L, null)));
         sync.execute(SyncTrigger.SCHEDULED, false);

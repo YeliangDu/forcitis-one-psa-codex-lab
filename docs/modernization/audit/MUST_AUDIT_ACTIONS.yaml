@@ -48,7 +48,6 @@ categories:
 - name: 法人
   actions:
   - organization.workforce.EmployeeRegistered
-  - organization.workforce.LegalEntityAccountingNumberAssigned
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -60,6 +59,13 @@ categories:
   - organization.workforce.legal-entity-attribution.correction-refused
   - organization.workforce.legal-entity-attribution.denied
   - organization.workforce.legal-entity-attribution.refused
+- name: 来源对照
+  actions:
+  - platform.integration.SourceReferenceConfirmed
+  - platform.integration.SourceReferenceRegistered
+  - platform.integration.SourceReferenceRegistrationRefused
+  - platform.integration.SourceReferenceRejected
+  - platform.integration.SourceReferenceSuperseded
 - name: 数据范围
   actions:
   - organization.workforce.org-unit.denied
