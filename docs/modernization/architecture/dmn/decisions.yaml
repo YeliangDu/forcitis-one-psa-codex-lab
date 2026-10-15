@@ -1,0 +1,156 @@
+# 决策点清单（DMN 1.6）。1a 不引入 DMN（AI_NATIVE_SPEC），现有判定都在代码里：status: in-code，target: dmn-planned 表示进入对应阶段时评估是否改为决策表（METHOD 接缝 3）。
+# 初稿：2026-10-15 由 sonnet 子代理抽取，范围为 15 处主要判定点。维护：one-architecture。
+meta:
+  generated: '2026-10-15'
+  basis: origin/main
+  note: 仓库没有 .dmn 文件（D-1a-100/122：1a 不用 DMN）。本表只登记现在写在代码里的路由 / 资格 / 计划判定点，status=in-code，target=dmn-planned 为意向标注，不代表已决定转 DMN；是否转、何时转由进入对应阶段时按能力地图重新推导。
+decisions:
+- id: DEC-01
+  zh: 候选审批人按规则类型取人
+  location: AssigneeResolver.collect（由 resolve 调用）
+  inputs: AssignmentRule 的四种取值（ROLE 角色 / DEPARTMENT_HEAD 部门负责人 / INITIATOR_SUPERVISOR 汇报层级 1~2 / FORM_FIELD_USERS 表单字段）、发起人、流程变量；组织目录与角色目录
+  outputs: 候选员工集合 + invalidInput 标志；只取在职者
+  rules: RULE-249, RULE-250, RULE-253, RULE-254, RULE-258, RULE-262
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/approval/domain/AssigneeResolver.java:89
+  test: backend/src/test/java/com/forcitis/one/platform/approval/domain/AssigneeResolverTest.java
+- id: DEC-02
+  zh: 自批回避与上收
+  location: AssigneeResolver.resolve
+  inputs: 候选集合、发起人、selfApprovalAllowed
+  outputs: 候选中去掉发起人；发起人是唯一候选则上收直属上级，Resolution 类型 ESCALATED_SELF_APPROVAL
+  rules: RULE-307
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/approval/domain/AssigneeResolver.java:49
+  test: backend/src/test/java/com/forcitis/one/platform/approval/domain/AssigneeResolverTest.java
+- id: DEC-03
+  zh: 无人可选时跳过 / 非法输入 / 兜底管理员
+  location: AssigneeResolver.resolve 与 fallback
+  inputs: 候选集合、skipWhenEmpty、输入是否有效、流程管理员集合
+  outputs: SKIPPED / INVALID_INPUT / ADMINISTRATOR_FALLBACK / UNRESOLVED（ResolutionKind）
+  rules: RULE-300, RULE-250, RULE-254
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/approval/domain/AssigneeResolver.java:71
+  test: backend/src/test/java/com/forcitis/one/platform/approval/domain/AssigneeResolverTest.java
+- id: DEC-04
+  zh: 汇报线不全时上推到部门负责人
+  location: AssigneeResolver.initiatorSupervisor
+  inputs: 发起人、层级 level、组织目录的直属上级与部门
+  outputs: n 级上级；线不全时上推到最近一个不在线上的在职部门负责人（escalated=true）
+  rules: RULE-250
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/approval/domain/AssigneeResolver.java:157
+  test: backend/src/test/java/com/forcitis/one/platform/approval/domain/AssigneeResolverTest.java
+- id: DEC-05
+  zh: 部门负责人就近上溯
+  location: AssigneeResolver.departmentHead / headFrom
+  inputs: 部门变量（缺省为发起人所在部门）、组织单元祖先链、负责人在职状态
+  outputs: 本部门或最近一个有在职负责人的启用祖先的负责人
+  rules: RULE-253, RULE-257
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/approval/domain/AssigneeResolver.java:139
+  test: backend/src/test/java/com/forcitis/one/platform/approval/domain/AssigneeResolverTest.java
+- id: DEC-06
+  zh: 节点是否运行（路由旗标）
+  location: BPMN 包容网关 reviewFork 的条件 ${vars:getOrDefault('routed_*', false)}；旗标由 Timesheet 提交时计算、NodePolicy.routingFlag 读入
+  inputs: 业务模块置的路由旗标 projectHours / preSalesHours / overheadHours（现代码只置 PROJECT_HOURS）
+  outputs: 每个审核节点运行或不运行
+  rules: RULE-300
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/resources/processes/cost_timesheet_approval.bpmn20.xml:18; backend/src/main/java/com/forcitis/one/cost/timesheet/domain/Timesheet.java:137
+  test: backend/src/test/java/com/forcitis/one/platform/approval/NodeRoutingIT.java
+- id: DEC-07
+  zh: 同一审批人同内容重复审批自动通过
+  location: TaskRegistrar（autoApproveRepeat 分支）+ NodePolicy.autoApproveRepeat
+  inputs: 节点策略 autoApproveRepeat、候选人是否只有一人、该人是否已在本节点对相同内容（ContentHash）通过
+  outputs: 任务自动完成（自动通过，passAutomatically）或正常登记待办
+  rules: RULE-302
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/approval/application/TaskRegistrar.java:41
+  test: backend/src/test/java/com/forcitis/one/platform/approval/RepeatApproverIT.java
+- id: DEC-08
+  zh: 撤回 / 撤销的截止点
+  location: Retraction + WithdrawCheck（NodePolicy.cutoff）
+  inputs: 发起人身份、实例状态、截止节点是否已有完成任务、原因
+  outputs: 可撤回 / 不可撤回及原因（WithdrawCheck），同时供界面显示与执行
+  rules: RULE-268, RULE-269, RULE-309
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/approval/api/WithdrawCheck.java:3
+  test: backend/src/test/java/com/forcitis/one/platform/approval/RetractionIT.java
+- id: DEC-09
+  zh: 审批时限计划（截止 / 催办 / 升级时刻）
+  location: DeadlinePlanner.plan
+  inputs: NodeDeadline（deadlineWorkdays、escalationWorkdays）、法人、工作日历、任务创建日
+  outputs: DeadlinePlan：截止 = 第 n 个工作日 23:59；催办 = 截止后下一工作日 09:00；升级 = 催办后第 m 个工作日 09:00
+  rules: RULE-383, RULE-382（D-1a-110..113）
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/approval/application/DeadlinePlanner.java:31
+  test: backend/src/test/java/com/forcitis/one/platform/approval/ApprovalDeadlineIT.java
+- id: DEC-10
+  zh: 谁可以操作任务
+  location: TaskActors.mayAct
+  inputs: 任务（受理人 / 候选人集合）、操作人
+  outputs: 认领后仅受理人可操作；认领前任一候选人可操作；陌生人与空操作人不可
+  rules: RULE-276, I-7
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/approval/domain/TaskActors.java:11
+  test: backend/src/test/java/com/forcitis/one/platform/approval/domain/TaskPolicyTest.java
+- id: DEC-11
+  zh: 数据范围：角色可见哪些组织单元与人员
+  location: AccessScopeCalculator.calculate / orgUnitReach
+  inputs: 角色范围类型 AccessScopeKind（含自定义组织单元）、人员的法人 / 组织单元 / 直属下属
+  outputs: AccessScope（无授权则 none，绝不退化为全部）与可触达的组织单元（本单元 / 含下级）
+  rules: RULE-349, RULE-350, RULE-351
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/identity/domain/AccessScopeCalculator.java:67
+  test: backend/src/test/java/com/forcitis/one/platform/identity/domain/AccessScopeTest.java
+- id: DEC-12
+  zh: 敏感授权须第二人确认；谁能授予
+  location: PrivilegeCeiling.mayRequest / mayGrant + SensitivePermissions
+  inputs: 操作人持有的权限、拟授予的权限码、是否管理角色
+  outputs: 直接授予 / 只能发起双人确认请求 / 拒绝（敏感权限与管理角色必须第二人确认）
+  rules: ADR-0026 §6, ADR-0027 §3（代码与测试中无 RULE 引用）
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/identity/application/PrivilegeCeiling.java:31
+- id: DEC-13
+  zh: 非生产环境只发给白名单收件人
+  location: RecipientPolicy.decide
+  inputs: 收件人企业微信 ID 列表、allowListOnly、白名单
+  outputs: Decision：allowed（发送）与 skipped（跳过，投递记 SKIPPED）
+  rules: RULE-375
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/platform/integration/domain/RecipientPolicy.java:15
+  test: backend/src/test/java/com/forcitis/one/platform/integration/domain/RecipientPolicyTest.java
+- id: DEC-14
+  zh: 组织同步缩水保护
+  location: ShrinkGuard.evaluate
+  inputs: 本次与上次的记录数（RunStats）、maxDropPercent（默认 20）
+  outputs: Verdict(held, reason)：incoming×100 < previous×80 则拦下本次同步（HELD）；首次不拦
+  rules: RULE-358, RULE-366
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/organization/workforce/domain/ShrinkGuard.java:11
+  test: backend/src/test/java/com/forcitis/one/organization/workforce/domain/ShrinkGuardRulesTest.java
+- id: DEC-15
+  zh: 某日员工 / 部门所属法人
+  location: LegalEntityResolution.resolve
+  inputs: 员工本人归属、部门归属链（当日的链）、日期
+  outputs: 员工自身归属优先；否则最近一级部门归属；查不到为空
+  rules: RULE-385
+  status: in-code
+  target: dmn-planned
+  evidence: backend/src/main/java/com/forcitis/one/organization/workforce/domain/LegalEntityResolution.java:16
+  test: backend/src/test/java/com/forcitis/one/organization/workforce/domain/LegalEntityAttributionTest.java
