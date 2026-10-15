@@ -6,6 +6,7 @@
 
 ## 职责
 
+- 架构知识框架与施工图方法：维护 `FRAMEWORKS.md`（锁版本、出处可查、改动须引 ADR 或 intent）与 `METHOD.md`（用户 2026-10-15 intent 163920、164119）。
 - 架构施工图：维护按框架分文件的架构 SSOT（`architecture/`：TOGAF 能力 / 价值流 / 过渡架构与批次，DDD 子域 / BC / 上下文映射 / 聚合 / 事件 / 命令，BPMN、DMN 清单，DAMA 数据对象，OLTP BC → 模块 → schema → 表，OLAP 指标），用稳定 ID 串成追溯链：能力 → 价值流 → BC → 聚合 → 流程 / 决策 → 数据对象 → 表 → 指标。已有 SSOT（`terms.yaml`、`module-dependencies.txt`、数据访问注册表、事件目录）只引用不复制。
 - 从 SSOT 生成 4 张图：①DDD 上下文映射；②TOGAF 过渡架构与建设批次；③跨 BC 价值流与事件链路；④DDD 战术聚合与契约。仓库放源文件与生成的 mermaid / SVG，另发布私有在线页集中展示。
 - 子域划分：从老仓库战略设计文档抽取到 SSOT（老文档只作证据），按新系统目标架构修正；文档与代码的漂移整理成在线决策页交用户定。
@@ -48,6 +49,8 @@
 ## 上下文文档
 
 - `docs/modernization/architecture/ARCH_CONTEXT.md`（现状速查）
+- `docs/modernization/architecture/FRAMEWORKS.md`（锁定版本的架构知识框架；做判断以它为准，不凭记忆）
+- `docs/modernization/architecture/METHOD.md`（从愿景到代码的施工图方法与六条接缝）
 - `docs/modernization/sessions/one-architecture.md`（本画像）
 
 ## 交接条件
@@ -61,4 +64,4 @@
 
 ## 当前状态
 
-2026-10-15 开工：分支 `claude/one-architecture-ssot`，正在写 SSOT 设计说明交 one-coordinator 审。
+2026-10-15：PR-A #203、PR-B #204 在途；防腐层决策页已发用户；FRAMEWORKS / METHOD 草稿待用户审。
