@@ -74,7 +74,9 @@ printf '%s' "$java_version" | grep -q '"25' || fail "Java 25 required, found: $j
 node_version="$(node --version)"
 case "$node_version" in v24.*) ;; *) fail "Node 24 required, found: $node_version" ;; esac
 pnpm_pinned="$(node -p "require('./frontend/package.json').packageManager.split('@')[1].split('+')[0]")"
-[ "$(pnpm --version)" = "$pnpm_pinned" ] || fail "pnpm $pnpm_pinned required, found: $(pnpm --version)"
+# corepack picks pnpm from the nearest package.json; only frontend/ names it, elsewhere a fresh corepack falls back to its own default
+pnpm_found="$(cd frontend && pnpm --version)" || fail "pnpm not runnable in frontend/ (corepack enabled?)"
+[ "$pnpm_found" = "$pnpm_pinned" ] || fail "pnpm $pnpm_pinned required, found: $pnpm_found"
 
 name="forcitis-one-${version}"
 staging="$(mktemp -d "${TMPDIR:-/tmp}/forcitis-one-release.XXXXXX")"
