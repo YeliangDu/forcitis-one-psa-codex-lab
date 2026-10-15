@@ -2,6 +2,7 @@ package com.forcitis.one.platform.approval.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
@@ -22,7 +23,7 @@ class TaskPolicyTest {
 
     static TaskView task(UserId assignee, Set<UserId> candidates) {
         return new TaskView(new ApprovalTaskId("t1"), new ApprovalInstanceId("i1"), ProcessKey.COST_TIMESHEET_APPROVAL,
-                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc-1")), new LegalEntityId(1), "approverReview",
+                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc-1")), new LegalEntityId(TestIds.uuid(1)), "approverReview",
                 "Approver review", new UserId(1), Optional.ofNullable(assignee), candidates, Instant.EPOCH, true, Optional.empty(), false,
                 new ContentHash("hash"));
     }

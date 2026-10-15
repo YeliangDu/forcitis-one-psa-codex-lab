@@ -96,7 +96,7 @@ class ApplicationIntegrationTest {
     /** HTTP header names are fixed by RFC 9110 and the Idempotency-Key convention; they are not JSON names. */
     static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key");
 
-    static final LegalEntityId LE1 = new LegalEntityId(1L);
+    static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
 
     static final String SUBMIT = "/api/v1/cost/timesheets/7:submit";
     static final String BODY = "{\"hours\":8,\"projectManagerId\":2002}";
@@ -194,9 +194,9 @@ class ApplicationIntegrationTest {
     void legalEntitiesExist() {
         jdbc.update("""
                 insert into organization_workforce.legal_entities (id, code, name, status)
-                values (1, 'FST', 'Synthetic legal entity one', 'ACTIVE'), (2, 'FIT', 'Synthetic legal entity two', 'ACTIVE')
+                values ('%s', 'FST', 'Synthetic legal entity one', 'ACTIVE'), ('%s', 'FIT', 'Synthetic legal entity two', 'ACTIVE')
                 on conflict (id) do nothing
-                """);
+                """.formatted(TestIds.uuid(1), TestIds.uuid(2)));
     }
 
     @BeforeEach
@@ -204,8 +204,8 @@ class ApplicationIntegrationTest {
         jdbc.update("""
                 update platform_numbering.numbering_rule_versions
                    set status = 'CONFIRMED', confirmed_by = 101, confirmed_at = now(),
-                       finance_confirmed_by = case when document_type = 'JOURNAL_VOUCHER' then 102 end,
-                       finance_confirmed_at = case when document_type = 'JOURNAL_VOUCHER' then now() end
+                       finance_confirmed_by = case when (select r.document_type from platform_numbering.numbering_rules r where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then 102 end,
+                       finance_confirmed_at = case when (select r.document_type from platform_numbering.numbering_rules r where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then now() end
                  where version_number = 1 and status = 'PENDING_CONFIRMATION'
                 """);
     }
@@ -216,7 +216,7 @@ class ApplicationIntegrationTest {
         // unified new format (ADR-0010 decision 5): {TYPE}-{LE}-{yyyyMM}-{seq:4}, reset monthly; {LE} is the legal entity code
         assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0001");
         assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0002");
-        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(2L), day)).isEqualTo("QT-FIT-202610-0001");
+        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(TestIds.uuid(2)), day)).isEqualTo("QT-FIT-202610-0001");
         assertThat(issue(DocumentType.QUOTE, LE1, LocalDate.of(2026, 11, 2))).isEqualTo("QT-FST-202611-0001");
         assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, day)).isEqualTo("JV-FST-202610-0001");
     }

@@ -2,9 +2,9 @@ CREATE SCHEMA IF NOT EXISTS cost_timesheet;
 COMMENT ON SCHEMA cost_timesheet IS '工时（成本 BC · 工时填报与审批结果）';
 
 CREATE TABLE cost_timesheet.timesheets (
-    id                   bigint        NOT NULL,
+    id                   uuid          NOT NULL,
     employee_id          bigint        NOT NULL,
-    legal_entity_id      bigint        NOT NULL,
+    legal_entity_id      uuid          NOT NULL,
     work_date            date          NOT NULL,
     submitted_hours      numeric(10,2) NOT NULL,
     project_manager_id   bigint        NOT NULL,
@@ -27,7 +27,7 @@ CREATE INDEX ix_timesheets_employee_id ON cost_timesheet.timesheets (employee_id
 CREATE INDEX ix_timesheets_org_unit_id ON cost_timesheet.timesheets (org_unit_id, work_date);
 CREATE INDEX ix_timesheets_status ON cost_timesheet.timesheets (status, updated_at) WHERE status IN ('SUBMITTED', 'RETURNED');
 COMMENT ON TABLE cost_timesheet.timesheets IS '工时单：聚合根；粒度：每张工时单一行；状态机在聚合内，审批结果经审批完成事件回写';
-COMMENT ON COLUMN cost_timesheet.timesheets.id IS '主键：工时单标识';
+COMMENT ON COLUMN cost_timesheet.timesheets.id IS '主键：工时单标识（UUIDv7）';
 COMMENT ON COLUMN cost_timesheet.timesheets.employee_id IS '员工（人员 ID）：填报人，只有填报人能提交、撤回、撤销';
 COMMENT ON COLUMN cost_timesheet.timesheets.legal_entity_id IS '法人主体（法人 ID）：由提交人所属法人传入，缺失即失败，不设默认';
 COMMENT ON COLUMN cost_timesheet.timesheets.work_date IS '工作日期：员工填写的、工时发生的那一天；创建时校验不得晚于今天，之后不再改写；事件的业务日期取它';
@@ -44,14 +44,17 @@ COMMENT ON COLUMN cost_timesheet.timesheets.org_unit_id IS '组织单元（组�
 COMMENT ON COLUMN cost_timesheet.timesheets.submitted_date IS '提交日：员工提交审批的业务日期（Asia/Shanghai）；重新提交时更新；与工作日期是两件事，空表示从未提交';
 
 CREATE TABLE cost_timesheet.consumed_events (
+    consumed_event_id uuid    NOT NULL,
     event_id      uuid        NOT NULL,
     consumer_name text        NOT NULL,
     consumed_at   timestamptz NOT NULL DEFAULT now(),
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_consumed_events PRIMARY KEY (event_id, consumer_name)
+    CONSTRAINT pk_consumed_events PRIMARY KEY (consumed_event_id),
+    CONSTRAINT uk_consumed_events_event_id_consumer_name UNIQUE (event_id, consumer_name)
 );
 COMMENT ON TABLE cost_timesheet.consumed_events IS '已处理的事件：幂等记录；粒度：每个消费方每个事件标识一行，只追加；消费方按事件标识去重，事件至少投递一次';
+COMMENT ON COLUMN cost_timesheet.consumed_events.consumed_event_id IS '已处理事件记录 ID（UUIDv7）';
 COMMENT ON COLUMN cost_timesheet.consumed_events.event_id IS '事件标识：事件信封的事件 ID，兼作幂等键';
 COMMENT ON COLUMN cost_timesheet.consumed_events.consumer_name IS '消费者名称：处理该事件的监听者，同一事件可被多个监听者各处理一次';
 COMMENT ON COLUMN cost_timesheet.consumed_events.consumed_at IS '处理时间';

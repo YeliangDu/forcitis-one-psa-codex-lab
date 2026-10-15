@@ -35,7 +35,7 @@ class CorrelationIdFilter extends OncePerRequestFilter {
             correlationId = Uuids.timeOrdered(clock);
         } else {
             try {
-                correlationId = UUID.fromString(supplied.trim());
+                correlationId = Uuids.parseCanonical(supplied.trim());
             } catch (IllegalArgumentException malformed) {
                 refuse(response);
                 return;

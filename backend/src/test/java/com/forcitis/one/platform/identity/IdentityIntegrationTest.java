@@ -221,7 +221,7 @@ public abstract class IdentityIntegrationTest {
         return "\"" + jdbc.sql("select version from platform_identity.user_accounts where user_id = :id").param("id", id).query(Long.class).optional().orElse(0L) + "\"";
     }
 
-    protected String roleVersion(long roleId) {
+    protected String roleVersion(java.util.UUID roleId) {
         return "\"" + jdbc.sql("select version from platform_identity.roles where role_id = :id").param("id", roleId).query(Long.class).single() + "\"";
     }
 

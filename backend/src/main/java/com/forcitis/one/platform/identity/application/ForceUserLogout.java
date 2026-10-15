@@ -45,29 +45,28 @@ public class ForceUserLogout {
     }
 
     @Transactional
-    public void execute(long targetUserId, String reason) {
+    public void execute(UserId target, String reason) {
         String cleaned = reason == null ? "" : reason.replaceAll("\\p{Cntrl}", " ").strip();
         if (cleaned.isEmpty() || cleaned.length() > MAX_REASON_LENGTH) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_FORCED_LOGOUT_REASON_REQUIRED, ErrorKind.UNPROCESSABLE,
                     "a reason of 1.." + MAX_REASON_LENGTH + " characters is required");
         }
         UserId actor = currentUser.userId();
-        if (targetUserId == actor.value()) {
+        if (target.equals(actor)) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_FORCED_LOGOUT_SELF_FORBIDDEN, ErrorKind.FORBIDDEN,
                     "an administrator cannot end their own sessions this way; log out instead");
         }
-        UserId target = new UserId(targetUserId);
-        if (targetUserId == 0 || accounts.find(target).isEmpty()) {
+        if (accounts.find(target).isEmpty()) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND, ErrorKind.NOT_FOUND, "no such account");
         }
         AccessProfile held = AccessProfile.of(accounts.findEnabledRoles(target));
         sessions.revokeAll(target);
         cache.evict(target);
-        audit.record(new AuditEntry("platform.identity.session.revoked", actor, null, "user-account:" + targetUserId,
+        audit.record(new AuditEntry("platform.identity.session.revoked", actor, null, "user-account:" + target.value(),
                 "forced logout: " + cleaned).withTrace(origin.address(), AuditOutcome.SUCCEEDED, null));
         if (held.isAdministrator() || held.roleCodes().contains(Role.SECURITY_AUDITOR)) {
             meters.counter("forcitis.platform.identity.administrator.logouts").increment();
-            log.error("ALERT platform.identity user {} ended the sessions of user {}, who holds {}: {}", actor.value(), targetUserId,
+            log.error("ALERT platform.identity user {} ended the sessions of user {}, who holds {}: {}", actor.value(), target.value(),
                     held.isAdministrator() ? Role.SUPER_ADMIN.value() : Role.SECURITY_AUDITOR.value(), cleaned);
         }
     }

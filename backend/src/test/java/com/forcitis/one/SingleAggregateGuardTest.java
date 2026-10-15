@@ -78,7 +78,7 @@ class SingleAggregateGuardTest {
 
     private static DomainEvent eventNaming(String... related) {
         EventEnvelope envelope = new TestEventEnvelopes().wrap(new EventDraft("cost.timesheet.TimesheetSubmitted", 1, "Timesheet", "7", 1,
-                new LegalEntityId(1), LocalDate.of(2026, 10, 14), new EventSource(SourceSystem.ONE, null),
+                new LegalEntityId(TestIds.uuid(1)), LocalDate.of(2026, 10, 14), new EventSource(SourceSystem.ONE, null),
                 Arrays.stream(related).map(type -> new AggregateReference(type, "x")).toList()));
         return () -> envelope;
     }

@@ -1,13 +1,18 @@
 package com.forcitis.one.platform.identity.api;
 
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.ValueObject;
+import java.util.UUID;
 
 @ValueObject
-public record RoleId(long value) {
+public record RoleId(UUID value) {
 
     public RoleId {
-        if (value <= 0) {
-            throw new IllegalArgumentException("RoleId must be positive");
-        }
+        value = Uuids.requireKey(value, "RoleId");
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
     }
 }

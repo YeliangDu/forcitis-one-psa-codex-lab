@@ -1,10 +1,16 @@
 package com.forcitis.one.kernel;
 
+import java.util.UUID;
+
 @ValueObject
-public record ProjectId(long value) {
+public record ProjectId(UUID value) {
+
     public ProjectId {
-        if (value <= 0) {
-            throw new IllegalArgumentException("ProjectId must be positive: " + value);
-        }
+        value = Uuids.requireKey(value, "ProjectId");
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
     }
 }
