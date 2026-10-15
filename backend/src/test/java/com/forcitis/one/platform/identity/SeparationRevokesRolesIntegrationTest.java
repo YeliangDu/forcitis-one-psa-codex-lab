@@ -127,11 +127,16 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("a person without an account is a quiet no-op: no account is opened, no role and no session to revoke (R-1b P2: there is no account id to name)")
-    void personWithoutAnAccount() {
+    @DisplayName("P2-H3 a person without an account is a quiet no-op: once the separation listener has handled the event, no account is opened, no role and no session is revoked (R-1b P2: there is no account id to name)")
+    void P2_H3_noAccountIsOpenedForASeparatedPersonWithout() {
         publish(List.of(), List.of(new EmployeeId(5555)));
 
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(domainEvents.of(com.forcitis.one.organization.workforce.events.OrgSnapshotChanged.class)).isNotEmpty());
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(jdbc.sql("""
+                select count(*) from (select listener_id, completion_date, serialized_event from platform_integration.event_publication
+                                      union all
+                                      select listener_id, completion_date, serialized_event from platform_integration.event_publication_archive) p
+                 where p.listener_id like '%HandleOrgSnapshotChange%' and p.completion_date is not null and p.serialized_event like '%5555%'
+                """).query(Long.class).single()).isEqualTo(1));
         assertThat(count("user_accounts")).isZero();
         assertThat(count("account_roles")).isZero();
         assertThat(recorded()).noneMatch(e -> e.action().equals("platform.identity.session.revoked"));
