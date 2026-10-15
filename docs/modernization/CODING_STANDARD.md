@@ -129,6 +129,7 @@
 | CS-3.10 | 列表查询只用索引覆盖的游标分页（`cursor` + `limit`，默认 50、上限 200），不内存分页、不全表扫描；排序键以 `id` 兜底（CS-2.21） | GUIDING_PRINCIPLES §7；NAMING_STANDARD §2.4a 第 2 条；NEXT_BATCH_PLAN K-3 | 复审（EXPLAIN 抽查） |
 | CS-3.11 | 建库脚本（C-3、C-9）与参考 DDL、迁移目录的 schema 清单一致 | `db_scripts_aligned.py` 说明 | 守护：`scripts/ci/db_scripts_aligned.py` |
 | CS-3.12 | 交易表上不跑分析；汇总、趋势走 `reporting` | SESSION_PLAYBOOK §14.1 D9；ADR-0025 | 复审 |
+| CS-3.13 | **按中文排序的 SQL 显式写 `COLLATE "zh-x-icu"`**：库的默认排序规则是内建 C.UTF-8（中文按码位排序，测试库与 dev 库一致，DDL-11），需要拼音顺序的 `ORDER BY` 自己带上；键集分页的排序键若带该 `COLLATE`，游标比较与索引也用同一个 | CROSS_CUTTING_DECISIONS XD-03；CROSS_CUTTING_MATRIX CC-I01、G-X2 | 复审（不做 SQL 守护，K-3a 裁定第 5 条） |
 
 ## 4. 前端（React + TypeScript；H5 为 Taro）
 
@@ -145,6 +146,7 @@
 | CS-4.9 | 不用 `console.log`，用共用 logger | `frontend/eslint.config.js` | 守护：ESLint |
 | CS-4.10 | 日期时间与业务日只经 `@forcitis/core` 的 `format-date-time`、`business-day`；金额格式化按 K-1 交付的共用函数（G-M6） | 现有写法；NEXT_BATCH_PLAN K-1 | 复审；G-M6 随 K-1 |
 | CS-4.11 | H5 与 PC 同一套规则 | NAMING_STANDARD §7 第 17 项 | 守护：ESLint（H5 已接 F14）；其余复审 |
+| CS-4.12 | **`localeCompare` 必带 `'zh'`，`Intl.DateTimeFormat` 必带 `timeZone`**：中文按拼音排序，界面时间不随浏览器的区域和时区变 | CROSS_CUTTING_MATRIX G-X2、CC-T02、CC-I01 | 守护：ESLint（`no-restricted-syntax`，`scripts/check-lint-config.mjs` 自测） |
 
 ## 5. 测试
 

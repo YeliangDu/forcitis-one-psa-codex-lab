@@ -54,6 +54,10 @@ const BASE_SYNTAX = [
   { selector: "AssignmentExpression > MemberExpression.left[property.name=/^(innerHTML|outerHTML)$/]", message: 'Render text, not HTML (SEC-008).' },
   // F12 explicit public surface
   { selector: 'ExportAllDeclaration', message: 'No `export *`: a module index lists its public surface explicitly.' },
+  // G-X2 Chinese text sorts by pinyin and every time on screen is Shanghai time, whatever the browser's locale and zone are
+  { selector: "CallExpression[callee.property.name='localeCompare']:not([arguments.1.value=/^zh/])", message: "localeCompare takes the locale 'zh' as its second argument (G-X2): a.localeCompare(b, 'zh')." },
+  { selector: "NewExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']:not(:has(Property[key.name='timeZone']))", message: "Intl.DateTimeFormat takes a timeZone option (G-X2): the business zone is 'Asia/Shanghai'." },
+  { selector: "CallExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']:not(:has(Property[key.name='timeZone']))", message: "Intl.DateTimeFormat takes a timeZone option (G-X2): the business zone is 'Asia/Shanghai'." },
 ];
 const STYLE_SYNTAX = [
   // F14 no inline styles, no hard-coded colours, no palette primitives
