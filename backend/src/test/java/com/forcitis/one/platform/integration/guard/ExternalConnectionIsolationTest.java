@@ -6,6 +6,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.tngtech.archunit.core.domain.JavaAnnotation;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -48,7 +49,7 @@ class ExternalConnectionIsolationTest {
     @DisplayName("D1-1-R1 onlyTheApprovedAdaptersObtainExternalConnections: only the Seeyon and old-system adapter packages of platform.integration (and the factory itself) use platform.integration.domain.ExternalConnections")
     void onlyTheApprovedAdaptersObtainExternalConnections() {
         noClasses().that().resideOutsideOfPackages(SEEYON, INTEGRATION_LEGACY, CONNECTION)
-                .should().dependOnClassesThat().haveFullyQualifiedName(ROOT + ".platform.integration.domain.ExternalConnections")
+                .should().dependOnClassesThat(equivalentTo(ExternalConnections.class))
                 .because("ADR-0037 item 2 and ADR-0039 item 1: external connections only in platform.integration; the shared api type must not widen the adapters")
                 .check(CLASSES);
     }
