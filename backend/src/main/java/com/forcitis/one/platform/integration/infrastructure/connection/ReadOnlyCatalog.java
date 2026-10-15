@@ -47,6 +47,9 @@ interface ReadOnlyCatalog {
     /** The rows of sys.database_permissions of the login's own user in the given system database, as for {@link #ownUserMemberships}. */
     List<OwnUserPermission> ownUserPermissions(String systemDatabase);
 
+    /** HAS_PERMS_BY_NAME('msdb', 'DATABASE', p) for each p of {@link MsdbPrivileges#EFFECTIVE}, asked as the login inside msdb; null where the server cannot tell. */
+    Map<String, Integer> msdbEffectivePermissions();
+
     /** The SQL Agent jobs the login owns, as msdb.dbo.sysjobs_view shows them to it. */
     long ownedAgentJobs();
 

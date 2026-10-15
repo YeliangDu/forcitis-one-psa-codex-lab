@@ -41,8 +41,14 @@ class FakeCatalog implements ReadOnlyCatalog {
     /** The login's own users by system database: none unless a test adds one (rdsOwnUsers() gives those RDS creates). */
     final Map<String, List<Membership>> ownUsers = new HashMap<>();
     final Map<String, List<OwnUserPermission>> ownUserPermissions = new HashMap<>();
+    /** HAS_PERMS_BY_NAME in msdb as the baseline login answers it: every privilege of the review H-1 false. */
+    final Map<String, Integer> msdbEffectivePermissions = new HashMap<>();
     long ownedAgentJobs;
     String currentDatabase = "legacyworld";
+
+    {
+        MsdbPrivileges.EFFECTIVE.forEach(p -> msdbEffectivePermissions.put(p, 0));
+    }
     volatile boolean unreachable;
     /** When set, every query throws it instead of answering. */
     volatile RuntimeException failure;
@@ -151,6 +157,11 @@ class FakeCatalog implements ReadOnlyCatalog {
     @Override
     public List<OwnUserPermission> ownUserPermissions(String systemDatabase) {
         return answer(() -> ownUserPermissions.getOrDefault(systemDatabase, List.of()));
+    }
+
+    @Override
+    public Map<String, Integer> msdbEffectivePermissions() {
+        return answer(() -> msdbEffectivePermissions);
     }
 
     @Override

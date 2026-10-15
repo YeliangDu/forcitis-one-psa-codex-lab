@@ -158,7 +158,10 @@ class SystemDatabaseUsersTest {
         FakeCatalog refused = new FakeCatalog() {
             @Override
             public List<OwnUserPermission> ownUserPermissions(String systemDatabase) {
-                throw new CannotGetJdbcConnectionException("rdscore", new SQLException("denied", "S0001", 229));
+                if (systemDatabase.equals("rdscore")) {
+                    throw new CannotGetJdbcConnectionException("rdscore", new SQLException("denied", "S0001", 229));
+                }
+                return super.ownUserPermissions(systemDatabase);
             }
         }.rdsOwnUsers();
 
@@ -166,6 +169,18 @@ class SystemDatabaseUsersTest {
 
         assertThat(f.confirmed()).isFalse();
         assertThat(f.findings()).extracting(Finding::reason).containsExactly(Reason.CATALOG_QUERY_FAILED);
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 复审 L-3：rdscore 本人用户有一个本登录叫不出名称的角色时违规（rdscore 不许有任何角色），定位 rdscore")
+    void anUnnamedRdscoreRoleIsAViolation() {
+        catalog.ownUsers.put("rdscore", List.of(new Membership(true, null)));
+
+        Unmet f = f();
+
+        assertThat(f.confirmed()).isTrue();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::locators)
+                .containsExactly(tuple(Reason.SYSTEM_DATABASE_OWN_USER, List.of(new DatabaseLocator("rdscore"))));
     }
 
     @Test

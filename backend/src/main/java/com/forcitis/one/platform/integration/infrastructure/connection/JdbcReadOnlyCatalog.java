@@ -55,6 +55,9 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
             + "JOIN %1$s.sys.database_principals u ON u.principal_id = p.grantee_principal_id WHERE u.sid = SUSER_SID()";
     /** Not msdb.dbo.sysjobs: only TargetServersRole may read it, so a member of the SQL Agent roles gets 229 (SQL Server 2022 container, 2026-10-15). */
     static final String OWNED_AGENT_JOBS = "SELECT COUNT(*) FROM msdb.dbo.sysjobs_view WHERE owner_sid = SUSER_SID()";
+    /** Through msdb's sp_executesql, so that HAS_PERMS_BY_NAME answers for the login's user in msdb, not in its own database. */
+    static final String MSDB_EFFECTIVE_PERMISSIONS = "EXEC msdb.sys.sp_executesql N'SELECT v.p, HAS_PERMS_BY_NAME(N''msdb'', N''DATABASE'', v.p) FROM (VALUES "
+            + MsdbPrivileges.EFFECTIVE.stream().map(p -> "(N''" + p + "'')").collect(Collectors.joining(", ")) + ") v (p)'";
     static final String CURRENT_DATABASE = "SELECT DB_NAME()";
 
     private final JdbcClient jdbc;
@@ -132,6 +135,13 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     public List<OwnUserPermission> ownUserPermissions(String systemDatabase) {
         return jdbc.sql(OWN_USER_PERMISSIONS.formatted(bracketed(systemDatabase)))
                 .query((rs, n) -> new OwnUserPermission(rs.getString(1), rs.getString(2), rs.getString(3))).list();
+    }
+
+    @Override
+    public Map<String, Integer> msdbEffectivePermissions() {
+        Map<String, Integer> effective = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        jdbc.sql(MSDB_EFFECTIVE_PERMISSIONS).query((rs, n) -> effective.put(rs.getString(1), (Integer) rs.getObject(2))).list();
+        return effective;
     }
 
     @Override

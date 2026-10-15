@@ -4,6 +4,7 @@ import com.forcitis.one.platform.integration.infrastructure.connection.Effective
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Reason;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.jspecify.annotations.Nullable;
@@ -12,8 +13,7 @@ import org.jspecify.annotations.Nullable;
  * The login's own users in the system databases under item (f) of {@link ReadOnlyBaseline}, as taken into the baseline (user 2026-10-15
  * 「纳入基线」, narrowed by one-coordinator, checked on RDS by one-ops): RDS gives every login a user in msdb, in a subset of the three SQL Agent
  * roles, and one in rdscore without a role and with CONNECT only. Any other own user, role or rdscore grant is a violation, and so is an Agent
- * job the login owns. The msdb user's direct grants are not judged: one-ops found 34 on the real logins (CONNECT, object-level SELECT, a DENY
- * and an EXECUTE), and what it inherits comes from the roles, which are bounded.
+ * job the login owns. What the msdb user holds, directly or through roles and public, is judged by {@link MsdbPrivileges}.
  */
 final class SystemDatabaseUsers {
 
@@ -44,6 +44,8 @@ final class SystemDatabaseUsers {
         }
     }
 
+    private enum Shape { ALLOWED, BEYOND, UNDETERMINED }
+
     private SystemDatabaseUsers() {
     }
 
@@ -52,8 +54,10 @@ final class SystemDatabaseUsers {
         for (ReachableDatabase database : systemDatabases) {
             found.ask(() -> catalog.ownUserMemberships(database.name())).filter(rows -> !rows.isEmpty()).ifPresent(rows -> {
                 listed(found, database.name(), rows);
-                if (!allowed(found, catalog, database, rows)) {
+                if (shape(found, catalog, database, rows) == Shape.BEYOND) {
                     beyond.add(database.name());
+                } else if (msdb(database)) {
+                    MsdbPrivileges.check(found, catalog);
                 }
             });
         }
@@ -76,26 +80,35 @@ final class SystemDatabaseUsers {
         }
     }
 
-    private static boolean allowed(Findings found, ReadOnlyCatalog catalog, ReachableDatabase database, List<Membership> rows) {
-        boolean msdb = database.id() == MSDB_ID && database.name().equals(MSDB);
+    private static boolean msdb(ReachableDatabase database) {
+        return database.id() == MSDB_ID && database.name().equals(MSDB);
+    }
+
+    private static Shape shape(Findings found, ReadOnlyCatalog catalog, ReachableDatabase database, List<Membership> rows) {
         boolean rdscore = database.id() > MSDB_ID && database.name().equals(ReadOnlyBaseline.RDS_DATABASE);
-        if (!msdb && !rdscore) {
-            return false;
+        if (!msdb(database) && !rdscore) {
+            return Shape.BEYOND;
         }
         List<Membership> roles = rows.stream().filter(Membership::inRole).toList();
         if (rdscore) {
-            return roles.isEmpty() && found.ask(() -> catalog.ownUserPermissions(database.name()))
-                    .map(permissions -> permissions.stream().allMatch(p -> RDS_DATABASE_PERMISSION.equals(
-                            p.classDescription().trim() + " " + p.state().trim() + " " + ReadOnlyBaseline.upper(p.permission()))))
-                    .orElse(true);
+            if (!roles.isEmpty()) {
+                return Shape.BEYOND;
+            }
+            Optional<List<OwnUserPermission>> permissions = found.ask(() -> catalog.ownUserPermissions(database.name()));
+            if (permissions.isEmpty()) {
+                return Shape.UNDETERMINED;
+            }
+            return permissions.get().stream().allMatch(p -> RDS_DATABASE_PERMISSION.equals(
+                    p.classDescription().trim() + " " + p.state().trim() + " " + ReadOnlyBaseline.upper(p.permission()))) ? Shape.ALLOWED : Shape.BEYOND;
         }
         if (roles.stream().anyMatch(row -> row.role() != null && !MSDB_AGENT_ROLES.contains(row.role()))) {
-            return false;
+            return Shape.BEYOND;
         }
         long unnamed = roles.stream().filter(row -> row.role() == null).count();
         if (unnamed > 0) {
             found.unknown(Reason.NO_ANSWER, (int) unnamed, "a role of the login's own user in " + database.name() + " cannot be named, cannot be determined");
+            return Shape.UNDETERMINED;
         }
-        return true;
+        return Shape.ALLOWED;
     }
 }
