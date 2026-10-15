@@ -392,13 +392,18 @@ check_server_files() {
   [ "${#missing[@]}" -eq 0 ] || fail "$ETC/one.env lacks keys this release expects (add them, empty if unused): ${missing[*]}"
   prometheus_exposed || fail "$ETC/one.env MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE lacks prometheus; the post-switch metrics check would fail"
   jobs_switch_set || fail "$ETC/one.env FORCITIS_JOBS_ENABLED must be true or false; the application has no default and would not start"
-  ! grep -qE '^SPRING_AUTOCONFIGURE_EXCLUDE=' "$ETC/one.env" \
-    || fail "$ETC/one.env sets SPRING_AUTOCONFIGURE_EXCLUDE; it replaces the application's own exclusions (INFRA_RUNBOOK §9)"
+  ! autoconfigure_overridden \
+    || fail "$ETC/one.env sets SPRING_AUTOCONFIGURE_EXCLUDE (or an indexed form) or SPRING_APPLICATION_JSON; either replaces the application's own exclusions (INFRA_RUNBOOK §9)"
 }
 
 # The health check after a switch reads /actuator/prometheus, so one.env must expose it
 prometheus_exposed() {
   env_value MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE | tr ',' '\n' | tr -d ' ' | grep -qx -e prometheus -e '\*'
+}
+
+# Relaxed binding maps SPRING_AUTOCONFIGURE_EXCLUDE, SPRING_AUTOCONFIGURE_EXCLUDE_0_ and SPRING_APPLICATION_JSON onto spring.autoconfigure.exclude
+autoconfigure_overridden() {
+  grep -qE '^(SPRING_AUTOCONFIGURE_EXCLUDE(_|=)|SPRING_APPLICATION_JSON=)' "$ETC/one.env"
 }
 
 jobs_switch_set() {

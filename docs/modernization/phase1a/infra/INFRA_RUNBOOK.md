@@ -177,7 +177,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 | `SEEYON_OA_BASE_URL`、`LEGACY_LOGIN_URL` | 致远验票地址；失败时回老系统登录 | 是 |
 | `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED` | 致远单点登录开关；配置文件中写死为 false，B-3 完成后在 one.env 设 true | 启用时 |
 | `APPROVAL_DEADLINE_ENABLED` | 审批时限提醒与升级作业开关（默认 true） | 否 |
-| `FORCITIS_JOBS_ENABLED` | 定时作业总开关，`true` 或 `false`，**没有默认值**（缺失或为空应用起不来，安装器拒绝安装）；所有实例中至少一个为 `true`（见 §9） | 是 |
+| `FORCITIS_JOBS_ENABLED` | 定时作业总开关，`true` 或 `false`，**没有默认值**（缺失或为空应用起不来，安装器拒绝安装）；值只写裸的小写 `true` / `false`（单引号括起也可），带双引号、尾随空格或大写的安装器都拒绝；所有实例中至少一个为 `true`（见 §9） | 是 |
 | `EVENT_PUBLICATION_JOBS_ENABLED` | 事件发布重投与清理作业开关（默认 true，见 §9） | 否 |
 | `FORCITIS_PLATFORM_INTEGRATION_WECOM_DELIVERY_DUPLICATE_TASK_ERROR_CODES` | 企业微信「task_id 已用过」错误码（B-9 核实后设置） | 启用时 |
 | `SERVER_ADDRESS`、`SERVER_PORT`、`MANAGEMENT_SERVER_ADDRESS`、`MANAGEMENT_SERVER_PORT`、`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | E-7 的监听地址与管理端点（代码未设默认） | 是 |
@@ -310,7 +310,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - **重投作业**（`platform.integration.event.republish`，ShedLock 互斥）：每 `republish-interval`（默认 1 分钟）重投超过 `minimum-age`（默认 1 分钟）仍未完成的发布，最多 `maximum-attempts`（默认 8）次。
 - **告警**：用尽次数仍未完成的发布数 → 指标 `forcitis.platform.integration.event.publications.exhausted` 与每分钟一条 `ALERT` 日志；未完成超过 10 分钟的发布数 → `forcitis.platform.integration.event.publications.stale`。两者对应方案中的 P2 告警（未完成事件发布 / 死信）。
 - **清理作业**（`platform.integration.event.cleanup`，每日 04:30）：删除归档中超过 30 天的行。
-- 定时作业总开关：环境变量 `FORCITIS_JOBS_ENABLED` **必须设置**（`true` 或 `false`），没有默认值，缺失时应用启动失败；多个实例同时设为 `true` 没有问题，ShedLock 保证每个作业同一时刻只在一个实例上运行。所有实例中**至少一个**必须为 `true`，否则全部定时作业停止（同步、重投、清理、核对都不跑，也没有告警提示）；模板 `one.env.template` 默认 `true`，安装器在值不是 `true` / `false` 时拒绝安装。one.env **不得设置** `SPRING_AUTOCONFIGURE_EXCLUDE`：它会整体替换应用自己在配置中排除的自动配置（例如 FLAKY-SESS 排除的 Spring Modulith `MomentsAutoConfiguration`），被排除项随之回来，安装器发现即拒绝安装。
+- 定时作业总开关：环境变量 `FORCITIS_JOBS_ENABLED` **必须设置**（`true` 或 `false`），没有默认值，缺失时应用启动失败；多个实例同时设为 `true` 没有问题，ShedLock 保证每个作业同一时刻只在一个实例上运行。所有实例中**至少一个**必须为 `true`，否则全部定时作业停止（同步、重投、清理、核对都不跑，也没有告警提示）；模板 `one.env.template` 默认 `true`，安装器在值不是 `true` / `false` 时拒绝安装。one.env **不得设置** `SPRING_AUTOCONFIGURE_EXCLUDE`（含 `SPRING_AUTOCONFIGURE_EXCLUDE_0_` 等带下标的写法）或 `SPRING_APPLICATION_JSON`：经宽松绑定，它们会整体替换应用自己在配置中排除的自动配置（#228 起排除 Spring Modulith `MomentsAutoConfiguration`），被排除项随之回来；安装器发现即拒绝安装。
 - 开关：环境变量 `EVENT_PUBLICATION_JOBS_ENABLED`（默认 true）；其余参数见 `config/platform_integration.properties` 的 `forcitis.platform.integration.event-publication.*`。
 - 人工处理用尽次数的发布：先看 `event_publication` 里该行的 `listener_id` 与应用日志中同一 `correlationId` 的错误，修复原因后把 `completion_attempts` 清零，重投作业会再次接手。
 
