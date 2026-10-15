@@ -39,10 +39,17 @@ LEGACY_IT_PATHS = (
     "backend/src/test/java/com/forcitis/one/platform/approval/infrastructure/legacy/",
     "backend/src/test/java/com/forcitis/one/acceptance/platform/integration/",
     "backend/src/test/java/com/forcitis/one/TestImages.java",
+    "backend/src/main/java/com/forcitis/one/kernel/WecomUserId.java",
+    "backend/src/main/java/com/forcitis/one/kernel/ExternalSourceBrokenException.java",
+    "backend/src/main/java/com/forcitis/one/kernel/ExternalSystemUnavailableException.java",
+    "backend/src/main/java/com/forcitis/one/platform/approval/domain/Legacy",
     "backend/architecture/test-images.txt",
     "backend/architecture/seeyon-view-columns.yaml",
     "backend/pom.xml",
     "docs/modernization/phase1a/SEEYON_VIEWS.sql",
+    "scripts/ci/legacy_it.sh",
+    ".github/workflows/nightly-legacy-it.yml",
+    ".github/workflows/ci.yml",
 )
 HANDOFF_SQL_DIR = "docs/modernization/phase1a/infra/handoff/B-5-dba/"
 NULL_SHA = "0" * 40
@@ -103,8 +110,34 @@ def uncovered_reads(root):
     return sorted({f"{file.relative_to(root)}: {path}" for file, path in referenced_docs_paths(root) if not is_covered(path)})
 
 
+SOURCE_ROOTS = ("backend/src/main/java", "backend/src/test/java")
+JAVA_IMPORT = re.compile(r"^import (?:static )?(com\.forcitis\.one\.[\w.]+);", re.M)
+RELATIVE_PATH = re.compile(r'Path\.of\("(\.\./[^"]+)"')
+
+
+def mssql_it_inputs(root):
+    for test in sorted(Path(root, "backend/src/test/java").rglob("*MssqlIT.java")):
+        text = test.read_text(encoding="utf-8")
+        yield test.relative_to(root).as_posix()
+        for match in JAVA_IMPORT.finditer(text):
+            cls = match.group(1).replace(".", "/")
+            for source_root in SOURCE_ROOTS:
+                if Path(root, f"{source_root}/{cls}.java").exists():
+                    yield f"{source_root}/{cls}.java"
+                    break
+        for match in RELATIVE_PATH.finditer(text):
+            yield os.path.normpath(os.path.join("backend", match.group(1)))
+
+
+def uncovered_mssql_inputs(root):
+    return sorted({path for path in mssql_it_inputs(root) if not is_legacy_it(path)})
+
+
 def self_test():
-    missing = uncovered_reads(Path(__file__).resolve().parents[2])
+    root = Path(__file__).resolve().parents[2]
+    unlisted = uncovered_mssql_inputs(root)
+    assert not unlisted, "files the *MssqlIT tests import or read are not in LEGACY_IT_PATHS (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(unlisted)
+    missing = uncovered_reads(root)
     assert not missing, "builds read docs paths that READ_BY_BUILDS does not list (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(missing)
     assert is_relevant("backend/pom.xml")
     assert is_relevant(".github/workflows/ci.yml")
@@ -140,7 +173,12 @@ def self_test():
     assert not is_legacy_it("backend/src/main/java/com/forcitis/one/organization/workforce/WorkforceService.java")
     assert not is_legacy_it("backend/src/test/java/com/forcitis/one/organization/workforce/WorkforceServiceTest.java")
     assert not is_legacy_it("frontend/package.json")
-    assert not is_legacy_it(".github/workflows/ci.yml")
+    assert is_legacy_it(".github/workflows/ci.yml")
+    assert is_legacy_it(".github/workflows/nightly-legacy-it.yml")
+    assert is_legacy_it("scripts/ci/legacy_it.sh")
+    assert not is_legacy_it(".github/workflows/deploy.yml")
+    assert is_legacy_it("backend/src/main/java/com/forcitis/one/kernel/WecomUserId.java")
+    assert not is_legacy_it("backend/src/main/java/com/forcitis/one/kernel/Money.java")
     assert any_legacy_it(["README.md", "backend/pom.xml", ""])
     assert not any_legacy_it(["README.md", "", "backend/src/main/java/com/forcitis/one/organization/workforce/WorkforceService.java"])
     assert not any_legacy_it([])

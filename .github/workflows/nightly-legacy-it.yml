@@ -1,10 +1,9 @@
 name: nightly-legacy-it
 
-# 每夜全量运行 Maven profile legacy-it（SQL Server 集成测试，ADR-0037 守护第 5 组）；PR 上按改动路径只跑 *MssqlIT，见 ci.yml 与 scripts/ci/relevant_change.py。
-# 定时任务只在默认分支上触发。cron 按 UTC：19:00 UTC = 次日 03:00 北京时间（UTC+8，无夏令时）。失败即作业失败，GitHub 按默认规则通知。
+# cron is UTC: 19:23 UTC = 03:23 Beijing time the next day (UTC+8, no daylight saving); the odd minute avoids the top-of-hour queue on GitHub's scheduler.
 on:
   schedule:
-    - cron: "0 19 * * *"
+    - cron: "23 19 * * *"
   workflow_dispatch:
 
 permissions:
@@ -21,8 +20,6 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: 0
       - name: toolchain is Java 25
         run: java -version 2>&1 | head -1 | grep -q '"25'
       - name: test images are present
@@ -34,6 +31,9 @@ jobs:
           done
       - name: surefire and failsafe under profile legacy-it
         run: scripts/ci/backend_verify.sh -Plegacy-it
+      - name: the SQL Server integration tests ran
+        shell: bash
+        run: compgen -G 'backend/target/failsafe-reports/TEST-*MssqlIT.xml'
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

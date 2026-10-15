@@ -45,14 +45,14 @@ jobs:
           else
             python3 scripts/ci/acceptance_guard.py "$base"
           fi
-      # legacy_it: the change touches what the SQL Server integration tests exercise (Maven profile legacy-it, ADR-0037); the full suite under that profile runs nightly (nightly-legacy-it.yml)
       - name: backend or frontend inputs changed?
         id: change
         env:
           BEFORE: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           python3 scripts/ci/relevant_change.py --self-test
-          python3 scripts/ci/relevant_change.py "${{ github.base_ref }}"
+          python3 scripts/ci/relevant_change.py "$BASE_REF"
       - name: toolchain is Java 25
         if: steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true'
         run: java -version 2>&1 | head -1 | grep -q '"25'
@@ -75,6 +75,7 @@ jobs:
         run: git diff --exit-code -- frontend/packages/api/openapi.json
       - name: SQL Server integration tests (profile legacy-it)
         if: steps.change.outputs.legacy_it == 'true'
+        timeout-minutes: 30
         run: scripts/ci/legacy_it.sh
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -97,7 +98,9 @@ jobs:
       - name: backend or frontend inputs changed?
         id: change
         working-directory: .
-        run: python3 scripts/ci/relevant_change.py "${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 scripts/ci/relevant_change.py "$BASE_REF"
       - name: toolchain is Node 24 and the pinned pnpm
         if: steps.change.outputs.relevant == 'true'
         run: |
@@ -148,7 +151,9 @@ jobs:
       # 发布与部署脚本读取 ci.yml、部署前清单、阻塞条目、prod-approvals.txt 与 runbooks/files；只改与它们无关的文档时跳过下面两步
       - name: release scripts or what they read changed?
         id: change
-        run: python3 scripts/ci/relevant_change.py "${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 scripts/ci/relevant_change.py "$BASE_REF"
       - name: shellcheck 0.11.0 (machine install, else verified download)
         if: github.event_name == 'push' || steps.change.outputs.relevant == 'true'
         run: |

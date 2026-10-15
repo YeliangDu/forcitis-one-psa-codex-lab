@@ -90,7 +90,7 @@
     </plugins>
   </build>
   <profiles>
-    <!-- organization.workforce: tests against a real SQL Server (Testcontainers), off by default. Run: ./mvnw -B verify -Plegacy-it (the *MssqlIT classes are *IT, so failsafe runs them once; surefire does not) -->
+    <!-- *MssqlIT tests (platform.integration) against a real SQL Server (Testcontainers), off by default. Run: ./mvnw -B verify -Plegacy-it; they end in IT, so only failsafe runs them, once -->
     <profile>
       <id>legacy-it</id>
       <dependencies>
