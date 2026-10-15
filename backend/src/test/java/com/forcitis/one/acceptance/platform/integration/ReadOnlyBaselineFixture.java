@@ -15,9 +15,10 @@ import java.util.TreeSet;
 /**
  * Read-only SQL Server logins whose effective permissions equal the RDS platform baseline (ADR-0037 item 4, B-5 README "有效权限平台基线").
  *
- * <p>The container is not RDS: there the platform grants every login the server permissions of the baseline and SQL Server 2016 knows no
- * finer ones. Here the same server permissions are granted and the finer ones SQL Server 2022 derives from them are denied, so the effective
- * permissions equal the RDS export exactly. rdscore is an empty database with guest enabled, as on RDS.
+ * <p>The container is not RDS: there the platform grants the server permissions of the baseline to the server role public, so each login's
+ * own sys.server_permissions holds only GRANT CONNECT SQL, and SQL Server 2016 knows no finer ones. Here the same server permissions are granted
+ * to public and the finer ones SQL Server 2022 derives from them are denied to public, so the effective permissions equal the RDS export
+ * exactly and no login holds a server permission of its own beyond CONNECT SQL. rdscore is an empty database with guest enabled, as on RDS.
  */
 final class ReadOnlyBaselineFixture {
 
@@ -33,7 +34,7 @@ final class ReadOnlyBaselineFixture {
     static final String DATABASE_DENIES = "INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, "
             + "CREATE FUNCTION, CREATE SCHEMA";
 
-    /** What the RDS platform grants every login; RDS refuses server-level GRANT and DENY, so the account owner cannot change it. */
+    /** What the RDS platform grants the server role public; RDS refuses server-level GRANT and DENY, so the account owner cannot change it. */
     static final String PLATFORM_SERVER_GRANTS = "ALTER ANY CONNECTION, ALTER ANY EVENT SESSION, ALTER ANY LINKED SERVER, ALTER ANY LOGIN, "
             + "ALTER SERVER STATE, ALTER TRACE, VIEW SERVER STATE";
 
@@ -52,8 +53,10 @@ final class ReadOnlyBaselineFixture {
     private ReadOnlyBaselineFixture() {
     }
 
-    static void createRdsCore(Administrator sa) throws SQLException {
-        sa.run("master", "CREATE DATABASE rdscore");
+    /** Once per container, before any login: affects every login but sa, which sysadmin puts above both the grants and the denies. */
+    static void createRdsPlatform(Administrator sa) throws SQLException {
+        sa.run("master", "GRANT " + PLATFORM_SERVER_GRANTS + " TO public", "DENY " + SQL_SERVER_2022_ONLY + " TO public",
+                "CREATE DATABASE rdscore");
         sa.run("rdscore", "GRANT CONNECT TO guest");
     }
 
@@ -77,9 +80,7 @@ final class ReadOnlyBaselineFixture {
 
     private static String createServerLogin(Administrator sa, String login, String password) throws SQLException {
         String user = q(login);
-        sa.run("master", "CREATE LOGIN " + user + " WITH PASSWORD = N'" + password + "', CHECK_POLICY = OFF",
-                "GRANT " + PLATFORM_SERVER_GRANTS + " TO " + user,
-                "DENY " + SQL_SERVER_2022_ONLY + " TO " + user);
+        sa.run("master", "CREATE LOGIN " + user + " WITH PASSWORD = N'" + password + "', CHECK_POLICY = OFF");
         return user;
     }
 
@@ -91,6 +92,9 @@ final class ReadOnlyBaselineFixture {
         try (Connection c = DriverManager.getConnection(jdbcUrl + ";loginTimeout=30", login, password); Statement s = c.createStatement()) {
             assertThat(strings(s, "SELECT permission_name FROM fn_my_permissions(NULL, 'SERVER')")).as("server, %s", login)
                     .containsExactlyInAnyOrderElementsOf(SERVER_BASELINE);
+            assertThat(strings(s, "SELECT CONCAT(class, ' ', permission_name, ' ', state_desc) FROM sys.server_permissions "
+                    + "WHERE grantee_principal_id = SUSER_ID()")).as("the login's own server permissions, %s (RDS: one row each)", login)
+                    .containsExactly("100 CONNECT SQL GRANT");
             assertThat(strings(s, "SELECT permission_name FROM fn_my_permissions(NULL, 'DATABASE')")).as("database, %s", login)
                     .containsExactlyInAnyOrderElementsOf(DATABASE_BASELINE);
             assertThat(strings(s, "SELECT name FROM sys.user_token WHERE principal_id <> USER_ID()")).as("roles").containsExactly("public");

@@ -494,7 +494,7 @@ class StalledExternalSourceIT {
         try {
             waitForAdministratorLogin();
             run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld");
-            ReadOnlyBaselineFixture.createRdsCore(StalledExternalSourceIT::run);
+            ReadOnlyBaselineFixture.createRdsPlatform(StalledExternalSourceIT::run);
             createA8World();
             createLegacyWorld();
             createReadOnlyLogins();

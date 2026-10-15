@@ -158,19 +158,19 @@ class ReadOnlyAccountCheckIT {
                     new Sql("master", "DENY VIEW SERVER STATE TO " + q(a.login())))),
             new Violation("校验查询失败：sys.database_permissions 被拒绝读取", "be", a -> List.of(
                     new Sql(a.connection().database, "DENY SELECT ON sys.database_permissions TO " + q(a.login())))),
-            new Violation("复审 H-1：对象级 GRANT TAKE OWNERSHIP ON OBJECT::可读底表（ALTER AUTHORIZATION 后成为所有者）", "beg", a -> List.of(
+            new Violation("复审 H-1：对象级 GRANT TAKE OWNERSHIP ON OBJECT::可读底表（ALTER AUTHORIZATION 后成为所有者）", "g", a -> List.of(
                     new Sql(a.connection().database, "GRANT TAKE OWNERSHIP ON OBJECT::" + a.connection().baseTable + " TO " + q(a.login())))),
-            new Violation("复审 H-1：schema 级 GRANT CONTROL ON SCHEMA::所读视图的 schema", "beg", a -> List.of(
+            new Violation("复审 H-1：schema 级 GRANT CONTROL ON SCHEMA::所读视图的 schema", "g", a -> List.of(
                     new Sql(a.connection().database, "GRANT CONTROL ON SCHEMA::" + a.connection().viewSchema + " TO " + q(a.login())))),
-            new Violation("复审 H-1：服务器上针对登录的授权 GRANT IMPERSONATE ON LOGIN::sa（fn_my_permissions 不列）", "bdeg", a -> List.of(
+            new Violation("复审 H-1：服务器上针对登录的授权 GRANT IMPERSONATE ON LOGIN::sa（fn_my_permissions 不列）", "d", a -> List.of(
                     new Sql("master", "GRANT IMPERSONATE ON LOGIN::sa TO " + q(a.login())))),
-            new Violation("复审 H-1：public 角色在用户对象上的授权 GRANT UPDATE ON 可读底表 TO public", "beg", a -> List.of(
+            new Violation("复审 H-1：public 角色在用户对象上的授权 GRANT UPDATE ON 可读底表 TO public", "g", a -> List.of(
                     new Sql(a.connection().database, "GRANT UPDATE ON " + a.connection().baseTable + " TO public")), a -> List.of(
                     new Sql(a.connection().database, "REVOKE UPDATE ON " + a.connection().baseTable + " FROM public"))),
-            new Violation("复审 H-2：在 msdb 有该登录自己的用户并且是 db_owner（不经 guest 进入）", "fg", a -> List.of(
+            new Violation("复审 H-2：在 msdb 有该登录自己的用户并且是 db_owner（不经 guest 进入）", "f", a -> List.of(
                     new Sql("msdb", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())),
                     new Sql("msdb", "ALTER ROLE db_owner ADD MEMBER " + q(a.login())))),
-            new Violation("复审 H-2：在 master 有该登录自己的用户（无角色；系统库只能经 guest 进入）", "fg", a -> List.of(
+            new Violation("复审 H-2：在 master 有该登录自己的用户（无角色；系统库只能经 guest 进入）", "f", a -> List.of(
                     new Sql("master", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))));
 
     static Stream<Arguments> everyViolationOnEveryConnection() {
@@ -219,7 +219,7 @@ class ReadOnlyAccountCheckIT {
 
     @ParameterizedTest(name = "{0}：{1}")
     @MethodSource("everyViolationOnEveryConnection")
-    @DisplayName("ADR37-1 反例：账号偏离基线时拒绝启动，并按项报出 (a)–(f) 中不满足的一项")
+    @DisplayName("ADR37-1 反例：账号偏离基线时拒绝启动，并按项报出 (a)–(g) 中不满足的一项")
     void deviationRefusesStartup(ReadOnlyConnection connection, Violation violation) throws SQLException {
         Account account = baselineAccount(connection);
         assertMatchesTheRdsBaseline(account);
@@ -449,7 +449,7 @@ class ReadOnlyAccountCheckIT {
         try {
             waitForAdministratorLogin();
             run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld", "CREATE DATABASE otherworld");
-            ReadOnlyBaselineFixture.createRdsCore(ReadOnlyAccountCheckIT::run);
+            ReadOnlyBaselineFixture.createRdsPlatform(ReadOnlyAccountCheckIT::run);
             createA8World();
             createLegacyWorld();
         } catch (SQLException | ConditionTimeoutException e) {
