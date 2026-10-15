@@ -73,14 +73,19 @@ class JdbcLegacyInbox implements LegacyInbox {
             return LegacyTodos.unavailable();
         }
         try {
-            List<LegacyTodoRow> rows = jdbc.sql("SELECT task_id, process_instance_id, task_def_key, task_name, process_title, created_at FROM "
-                            + viewName + " WHERE assignee_user_id = :user ORDER BY created_at DESC")
+            List<LegacyTodoRow> rows = jdbc.sql(todoSql(viewName))
                     .param("user", legacyPerson.getAsLong()).query((rs, n) -> read(rs)).list();
             return new LegacyTodos(true, InboxMerger.mergeRowTasks(rows).stream().map(LegacyTodoRow::todo).toList());
         } catch (DataAccessException e) {
             log.error("Legacy to-do view {} could not be read ({}); the merged inbox shows new tasks only", viewName, ExternalFailure.of(e));
             return LegacyTodos.unavailable();
         }
+    }
+
+    /** The code side of the register check (LegacyReadRegisterTest): the columns of this text equal the registered ones. */
+    static String todoSql(String viewName) {
+        return "SELECT task_id, process_instance_id, task_def_key, task_name, process_title, created_at FROM "
+                + viewName + " WHERE assignee_user_id = :user ORDER BY created_at DESC";
     }
 
     private LegacyTodoRow read(ResultSet rs) throws SQLException {

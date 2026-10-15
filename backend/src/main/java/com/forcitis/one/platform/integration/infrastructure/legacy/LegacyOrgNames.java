@@ -36,13 +36,18 @@ final class LegacyOrgNames implements OrgShortNames {
         this.references = references;
     }
 
+    /** The code side of the register check (LegacyReadRegisterTest): the columns of this text equal the registered ones. */
+    static String shortNameSql(String viewName) {
+        return "SELECT id, short_name FROM " + viewName;
+    }
+
     /** Only the short-name refresh reads here, so the login is checked again before each refresh (ADR-0037 item 4.4). */
     @Override
     public Map<OwnObjectId, String> readShortNames() {
         recheckBeforeRead.run();
         Map<Long, String> read = new LinkedHashMap<>();
         try {
-            jdbc.sql("SELECT id, short_name FROM " + viewName).query((rs, n) -> {
+            jdbc.sql(shortNameSql(viewName)).query((rs, n) -> {
                 long id = rs.getLong("id");
                 String shortName = rs.getString("short_name");
                 if (id != 0) {
@@ -63,7 +68,7 @@ final class LegacyOrgNames implements OrgShortNames {
         });
         int unmapped = read.size() - names.size();
         if (unmapped > 0) {
-            LOG.error("ALERT platform.integration {} of {} old-system departments have no LEGACY_SYSTEM ORG_UNIT source reference: their short names "
+            LOG.error("ALERT platform.integration {} of {} old-system departments have no LEGACY_SYSTEM organisation unit source reference: their short names "
                     + "are unavailable and left as they are", unmapped, read.size());
         }
         return names;
