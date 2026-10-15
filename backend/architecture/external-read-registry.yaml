@@ -16,7 +16,7 @@
 #
 # 字段（每行一个流式映射，不跨行）：
 #   database     databases 列出的库之一
-#   object       读取的对象：forcitis_one.v_* 视图或 dbo.<表或视图>
+#   object       读取的对象：forcitis_one.v_* 视图（只属于 a8_db）或 dbo.<表或视图>
 #   column       对象上的列
 #   source       来源 dbo.<表>.<列>（「经」表示经哪一列关联）
 #   category     ORG_UNIT 组织单元 | POSITION 岗位 | EMPLOYEE 员工 | ASSIGNMENT 任职 | EXTERNAL_IDENTITY 外部身份 | TODO 待办

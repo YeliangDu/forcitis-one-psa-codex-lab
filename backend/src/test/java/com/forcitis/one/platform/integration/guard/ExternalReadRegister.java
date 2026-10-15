@@ -122,7 +122,7 @@ public final class ExternalReadRegister {
         return rows;
     }
 
-    /** Problems of one row: missing or unknown fields, illegal values, a sensitive-looking column below SENSITIVE. */
+    /** Problems of one row: missing or unknown fields, illegal values, a view outside a8_db, a sensitive-looking column below SENSITIVE. */
     public static List<String> problems(Row row, Set<String> databases) {
         List<String> problems = new ArrayList<>();
         String at = FILE + ":" + row.line() + " ";
@@ -145,6 +145,9 @@ public final class ExternalReadRegister {
         }
         if (!row.object().matches("(" + VIEW_SCHEMA + "\\.v_\\w+|" + BASE_SCHEMA + "\\.\\w+)")) {
             problems.add(at + "object " + row.object() + " is neither " + VIEW_SCHEMA + ".v_* nor " + BASE_SCHEMA + ".<name>");
+        }
+        if (row.object().startsWith(VIEW_SCHEMA + ".") && !row.database().equals(A8)) {
+            problems.add(at + "object " + row.object() + " is a view of " + A8 + ", not of " + row.database());
         }
         if (!row.column().matches("\\w+")) {
             problems.add(at + "column " + row.column() + " is not a plain column name");

@@ -111,6 +111,21 @@ class ExternalReadRegisterTest {
     }
 
     @Test
+    @DisplayName("R-1b-0 外部读取登记守护自检：forcitis_one.v_* 视图只属于 a8_db，登在老系统库下被报出")
+    void viewsBelongToA8Only() throws IOException {
+        Set<String> databases = ExternalReadRegister.databases();
+        String other = databases.stream().filter(d -> !d.equals(ExternalReadRegister.A8)).findFirst().orElseThrow();
+        Map<String, Object> view = Map.of("database", ExternalReadRegister.A8, "object", "forcitis_one.v_org_unit", "column", "ID",
+                "source", "dbo.ORG_UNIT.ID", "category", "ORG_UNIT", "sensitivity", "INTERNAL", "purpose", "RUNTIME_SYNC");
+        Map<String, Object> misplaced = new LinkedHashMap<>(view);
+        misplaced.put("database", other);
+
+        assertThat(ExternalReadRegister.problems(new Row(1, view), databases)).isEmpty();
+        assertThat(ExternalReadRegister.problems(new Row(2, misplaced), databases)).singleElement().asString()
+                .contains(":2 object forcitis_one.v_org_unit is a view of a8_db, not of " + other);
+    }
+
+    @Test
     @DisplayName("R-1b-0 代码常量与登记中 a8_db 运行时用途的行逐列相等：视图列（含顺序）等于 VIEW_COLUMNS，基表列等于 BASE_TABLE_COLUMNS")
     void runtimeRowsEqualTheCodeConstants() throws IOException {
         assertThat(constantMismatches(ExternalReadRegister.rows(), SeeyonViewSql.VIEW_COLUMNS, SeeyonViewSql.BASE_TABLE_COLUMNS)).isEmpty();
