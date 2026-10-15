@@ -14,9 +14,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * The employee of an account and the account of an employee. The account of test employee n is the UUID 01900000-0000-7000-8000-n (n in
  * the last group, decimal, zero-padded), so SQL in a test can name the account; employees listed as without an account have none.
  * <p>
- * R-1b P3b (RULING-P3B-1): test employee n is {@link #employee(long)}, a UUID of its own (01900000-0000-7000-b000-n) once EmployeeId wraps
- * a UUID, and the number before. Any other employee id gets an account id derived from it that never equals it, so a comparison on the
- * wrong side finds nobody equal; a number that does not fit (a negative source id, say) gets a name-based UUID.
+ * R-1b P3b (RULING-P3B-1): test employee n is {@link #employee(long)}, a UUID of its own (01900000-0000-7000-b000-n). Any other employee
+ * id gets an account id derived from it that never equals it, so a comparison on the wrong side finds nobody equal; a number that does
+ * not fit (a negative source id, say) gets a name-based UUID.
  */
 public final class TestAccounts implements AccountEmployees {
 
@@ -26,7 +26,6 @@ public final class TestAccounts implements AccountEmployees {
     private static final long MAX_READABLE = 999_999_999_999L;
     private static final long HIGH_MASK = 0x0F0F_0000_0000_0000L;
     private static final long LOW_MASK = 0x00F0_0000_0000_0F0FL;
-    private static final Class<?> EMPLOYEE_VALUE = EmployeeId.class.getRecordComponents()[0].getType();
     private static final Map<UserId, EmployeeId> OTHERS = new ConcurrentHashMap<>();
 
     private final Set<EmployeeId> withoutAccount;
@@ -43,15 +42,12 @@ public final class TestAccounts implements AccountEmployees {
         return new TestAccounts(Set.of(withoutAccount));
     }
 
-    /** Test employee n, in whichever form EmployeeId has: the number, or a UUID made from it. */
+    /** Test employee n as a UUID made from it. */
     public static EmployeeId employee(long n) {
-        if (EMPLOYEE_VALUE != UUID.class) {
-            return employeeId(n);
-        }
         if (n <= 0 || n > MAX_READABLE) {
-            return employeeId(UUID.nameUUIDFromBytes(("test-employee:" + n).getBytes(StandardCharsets.UTF_8)));
+            return new EmployeeId(UUID.nameUUIDFromBytes(("test-employee:" + n).getBytes(StandardCharsets.UTF_8)));
         }
-        return employeeId(UUID.fromString(EMPLOYEE + digits(n)));
+        return new EmployeeId(UUID.fromString(EMPLOYEE + digits(n)));
     }
 
     /** The account id the double gives test employee n. */
@@ -66,11 +62,7 @@ public final class TestAccounts implements AccountEmployees {
 
     /** The account id the double gives an employee: that of test employee n, or one derived from the employee's UUID that never equals it. */
     public static UserId account(EmployeeId employee) {
-        Object value = employee.value();
-        if (value instanceof Long number) {
-            return account(number.longValue());
-        }
-        UUID id = (UUID) value;
+        UUID id = employee.value();
         String text = id.toString();
         if (text.startsWith(EMPLOYEE)) {
             return account(Long.parseLong(text.substring(EMPLOYEE.length())));
@@ -95,14 +87,6 @@ public final class TestAccounts implements AccountEmployees {
             throw new IllegalArgumentException("a test employee number is 1 to 12 digits: " + n);
         }
         return String.format("%012d", n);
-    }
-
-    private static EmployeeId employeeId(Object value) {
-        try {
-            return EmployeeId.class.getDeclaredConstructor(EMPLOYEE_VALUE).newInstance(value);
-        } catch (ReflectiveOperationException unexpected) {
-            throw new IllegalStateException("EmployeeId cannot be built from " + value, unexpected);
-        }
     }
 
     @Override
