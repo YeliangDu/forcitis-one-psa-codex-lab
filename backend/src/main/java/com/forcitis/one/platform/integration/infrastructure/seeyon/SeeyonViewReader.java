@@ -55,7 +55,7 @@ final class SeeyonViewReader {
         boolean delivery = deliveryEnum != null && deliveryEnum.equals(mapping.deliveryUnitYesEnumId());
         return Optional.of(new OrgUnitRow(new SourceUnitId(id), text(rs, "CODE"), name, path, intOrNull(rs, "SORT_ID"),
                 disabled ? SourceRecordState.DISABLED : SourceRecordState.ACTIVE, unmaintained, region,
-                region == null ? rawCategory : null, delivery));
+                region == null ? rawCategory : null, delivery, rs.getString("TYPE")));
     }
 
     Optional<SourceRelationship> relationship(ResultSet rs) throws SQLException {
