@@ -17,6 +17,7 @@
 | 部署角色 / 策略 | acs:ram::1980847222980247:role/forcitis-one-deploy-dev；forcitis-one-deploy-dev | ✅ | R-4 |
 | 拉取策略 | forcitis-one-deploy-pull（挂 forcitis-one-ecs-archive） | ✅ | R-4 |
 | OOS 参数 | forcitis-one-deploy-request-dev（+ -bundle / -bundle-sha256 / -statement / -statement-sig）、forcitis-one-deploy-result-dev | ✅ | R-7 |
+| 时间同步检查 | one-time-sync-check.timer（每 5 分钟，100 ms → P2、1 s → P1） | ✅ 运行 | INFRA_RUNBOOK §8 |
 | ECS 拉取 | /usr/local/sbin/forcitis-one-release、forcitis-one-release-pull.timer | ✅ 运行 | R-7 |
 | Release | v0.1.0-rc.1（b0827667，run 38697278764，已验签，deploy/ 与 ECS 一致） | ✅ | #151 |
 | GitHub | sub 定制（不可变）；environments 只允许 main；dev 变量 3 个；仓库级构建变量 8 个（SSO 门户与 PROD_* 待替换） | ✅ | R-1、R-4、R-6、§6 |
@@ -38,7 +39,6 @@
 - 首次 dev 部署通过后：删 /root/one-ops-backup-20261015020632；白天测 GitHub 直拉速度
 - 构建变量待替换：SSO 门户地址（B-3 回传后）、PROD_*（生产前确认）
 - 拉取单元沙箱收紧：首次 dev 部署跑通后、下次改安装器或单元时（RELEASE §10，#157）
-- NTP 偏差检查单元（INFRA_RUNBOOK §8「节点时间同步」，阈值 100 ms / 1 s）：安装前报计划待批
 - pg_stat_statements：Phase 2 前请示
 
 ## 坑
