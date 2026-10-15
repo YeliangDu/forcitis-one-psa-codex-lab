@@ -88,6 +88,14 @@ details.basis ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
 .confirm{display:grid;gap:8px;background:var(--soft);border-radius:8px;padding:10px 12px}
 .confirm p{margin:0;font-size:13px}
 .saved{font-size:12px;color:var(--muted)}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:2;background:var(--bg);display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding-block:8px;-webkit-overflow-scrolling:touch}
+.tab{flex:0 0 auto;display:grid;gap:0;text-align:left;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:5px 10px;max-width:220px}
+.tab small{font-size:11.5px;color:var(--muted)}
+.tab.ok small{color:var(--pick)}
+.tab.stale small{color:var(--changed)}
+.tab[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.flash{background:var(--pick-soft);color:var(--pick);border:1px solid var(--pick);border-radius:8px;padding:8px 12px;font-size:13.5px}
+.flash.all{font-weight:500}
 @media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}aside{position:static}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -108,10 +116,6 @@ details.basis ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
     <div class="conn" id="conn">正在连接存储…</div>
     <div class="saved" id="subAll"></div>
   </div>
-  <div>
-    <label class="lab" for="grp">分组</label>
-    <select id="grp"></select>
-  </div>
   <div id="side"></div>
 </aside>
 <main id="main"></main>
@@ -125,7 +129,7 @@ const ANSWERS = "answers", SUBMITS = "answers-submit";
 const ITEMS = DATA.items, GROUPS = DATA.groups;
 const decisions = new Map();   // key -> {choice: 选项序号或 "defer", note, by, at}
 const submits = new Map();     // 组 id -> 提交记录
-let db = null, myId = null, cur = (GROUPS[0] || {}).id;
+let db = null, myId = null, cur = (GROUPS[0] || {}).id, flash = "", navigated = false;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const recOf = it => it.opts.findIndex(o => o.rec);
@@ -166,13 +170,18 @@ function render(){
   const list = ITEMS.filter(i => i.grp === g.id);
   const at = GROUPS.indexOf(g), next = GROUPS[at + 1];
   const info = at === 0 ? (DATA.info || []).map(b => `<details class="info"><summary>${esc(b.title)}</summary>${b.lines ? `<ul>${b.lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}${b.table ? tableHTML(b.table) : ""}${b.after ? `<ul>${b.after.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}</details>`).join("") : "";
-  $("#main").innerHTML = `${info}<section><div class="ghead"><h2>${esc(g.title)}<span>${list.length} 题</span></h2><p>${esc(g.desc)}</p></div></section>
+  const okN = GROUPS.filter(x => isDone(x.id)).length;
+  const tabs = `<nav class="tabs" aria-label="分组">${GROUPS.map((x, n) => { const st = tabState(x.id);
+    return `<button type="button" class="tab ${st[0]}" data-tab="${esc(x.id)}" aria-current="${x.id === g.id}"><span>${n + 1}. ${esc(x.title)}</span><small>${st[1]}</small></button>`; }).join("")}</nav>`;
+  const fl = okN === GROUPS.length ? `<div class="flash all" role="status">全部完成：${GROUPS.length} 组都已提交。改了哪一题，回到那一组重新提交即可。</div>`
+    : flash ? `<div class="flash" role="status">${esc(flash)}</div>` : "";
+  $("#main").innerHTML = `${tabs}${fl}${info}<section><div class="ghead"><h2>${esc(g.title)}<span>${list.length} 题</span></h2><p>${esc(g.desc)}</p></div></section>
     <div class="list">${list.map(qHTML).join("")}</div>
     <div class="foot" data-g="${esc(g.id)}">
-      <button type="button" class="btn solid" data-submit="1">提交本组</button>
+      <button type="button" class="btn solid" data-submit="1">提交本组（第 ${at + 1} 组 / 共 ${GROUPS.length} 组）</button>
       <div class="confirm" hidden><p></p><div class="row"><button type="button" class="btn solid" data-yes="1">确认提交</button><button type="button" class="chip" data-no="1">再看看</button></div></div>
       <p class="saved" id="st-g">${esc(stateText(g.id))}</p>
-      ${next ? `<button type="button" class="btn" data-next="${esc(next.id)}">下一组：${esc(next.title)}</button>` : ""}
+      ${next ? `<button type="button" class="btn" data-tab="${esc(next.id)}">下一组：${esc(next.title)}</button>` : ""}
     </div>`;
   stats();
 }
@@ -194,6 +203,11 @@ function summary(gid){
 }
 function lastChange(gid){ let m = ""; for (const i of ITEMS) if (i.grp === gid){ const d = decisions.get(i.key); if (d && d.at > m) m = d.at; } return m; }
 function stateText(gid){ const s = submits.get(gid); return !s ? "本组未提交：选择先存为草稿，提交并确认后才算数" : lastChange(gid) > s.at ? "本组提交后又改过，请重新提交" : `本组已提交（${new Date(s.at).toLocaleString()}）`; }
+function isDone(gid){ return submits.has(gid) && lastChange(gid) <= submits.get(gid).at; }
+function tabState(gid){ return !submits.has(gid) ? ["", "未提交"] : isDone(gid) ? ["ok", "已提交 ✓"] : ["stale", "改过，待重新提交"]; }
+function refreshTabs(){
+  document.querySelectorAll(".tab").forEach(b => { const st = tabState(b.dataset.tab); b.className = "tab " + st[0]; b.querySelector("small").textContent = st[1]; });
+}
 function stats(){
   let r = 0, c = 0, d = 0;
   for (const it of ITEMS){ const k = kind(it, pick(it)); if (k === "rec") r++; else if (k === "changed") c++; else d++; }
@@ -202,9 +216,8 @@ function stats(){
   $("#bar").innerHTML = `<i style="width:${pct(r)};background:var(--pick)"></i><i style="width:${pct(c)};background:var(--changed)"></i><i style="width:${pct(d)};background:var(--defer)"></i>`;
   const done = GROUPS.filter(g => submits.has(g.id) && lastChange(g.id) <= submits.get(g.id).at).length;
   $("#subAll").textContent = `已提交 ${done} / ${GROUPS.length} 组`;
+  refreshTabs();
   const el = document.getElementById("st-g"); if (el) el.textContent = stateText(cur);
-  const sel = $("#grp");
-  [...sel.options].forEach(o => { const g = GROUPS.find(x => x.id === o.value); const ok = submits.has(g.id) && lastChange(g.id) <= submits.get(g.id).at; o.textContent = (ok ? "✓ " : "") + g.title + `（${ITEMS.filter(i => i.grp === g.id).length}）`; });
 }
 
 async function store(key, body){
@@ -219,8 +232,8 @@ function setChoice(it, choice, note){
 
 document.addEventListener("click", e => {
   const t = e.target;
-  const nx = t.closest("[data-next]");
-  if (nx){ cur = nx.dataset.next; $("#grp").value = cur; render(); window.scrollTo(0, 0); return; }
+  const nx = t.closest("[data-tab]");
+  if (nx){ cur = nx.dataset.tab; flash = ""; navigated = true; render(); window.scrollTo(0, 0); return; }
   const q = t.closest(".q"), it = q && ITEMS.find(i => i.key === q.dataset.key);
   if (it){
     const o = t.closest("[data-opt]");
@@ -242,7 +255,14 @@ document.addEventListener("click", e => {
       picks[it.key] = {no: it.no, choice: p.choice, label: p.choice === "defer" ? "暂不定" : it.opts[p.choice].label, recommended: p.choice === recOf(it), defaulted: p.defaulted, note: p.note};
     }
     const body = {at: new Date().toISOString(), by: myId, summary: summary(gid), picks};
-    db.collection(SUBMITS).doc(gid).set(body).then(() => { submits.set(gid, body); stats(); })
+    db.collection(SUBMITS).doc(gid).set(body).then(() => {
+      submits.set(gid, body);
+      const at = GROUPS.findIndex(x => x.id === gid);
+      const nx = [...GROUPS.slice(at + 1), ...GROUPS.slice(0, at)].find(x => !isDone(x.id));
+      const title = GROUPS[at].title;
+      if (nx){ cur = nx.id; flash = `「${title}」已提交，进入下一组「${nx.title}」。`; } else flash = "";
+      render(); window.scrollTo(0, 0);
+    })
       .catch(err => { el.textContent = "提交失败：" + (err && err.message || "请稍后再试"); });
   }
 });
@@ -258,16 +278,20 @@ document.addEventListener("input", e => {
   }, 700));
 });
 
-GROUPS.forEach(g => { const o = document.createElement("option"); o.value = g.id; o.textContent = g.title; $("#grp").append(o); });
-$("#grp").addEventListener("change", e => { cur = e.target.value; render(); });
 $("#side").innerHTML = (DATA.side || []).map(b => `<details class="info"><summary>${esc(b.title)}</summary><ul>${b.lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul></details>`).join("");
 render();
 (async () => {
   try { const u = await window.claude?.use?.("user"); myId = u ? await u.id() : null; } catch(e){}
   try { db = await window.claude?.use?.("db"); } catch(e){ db = null; }
   if (!db){ $("#conn").textContent = "存储不可用：请登录 claude.ai 后打开本页，选择才会保存"; $("#conn").classList.add("off"); return; }
-  $("#conn").textContent = "已连接，选择自动保存为草稿";
-  db.collection(SUBMITS).get().then(snap => { for (const d of snap.docs) if (GROUPS.some(g => g.id === d.id)) submits.set(d.id, d.data()); stats(); }).catch(() => {});
+  $("#conn").textContent = "已连接。选择自动存为草稿，每组点「提交本组」才算数";
+  db.collection(SUBMITS).get().then(snap => {
+    for (const d of snap.docs) if (GROUPS.some(g => g.id === d.id)) submits.set(d.id, d.data());
+    // 打开时停在第一个未提交的组，已提交的组不再挡在前面
+    const first = GROUPS.find(x => !isDone(x.id));
+    if (!navigated && first) cur = first.id;
+    render();
+  }).catch(() => {});
   let queued = false;
   db.collection(ANSWERS).onSnapshot(snap => {
     let changed = false;
