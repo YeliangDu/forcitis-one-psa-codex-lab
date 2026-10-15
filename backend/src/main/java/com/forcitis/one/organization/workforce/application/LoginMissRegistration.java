@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.domain.Assignment;
@@ -19,9 +20,10 @@ import org.springframework.stereotype.Component;
 
 /** Doubtful or out-of-scope people answer "unknown": login fails closed and the next sync decides. */
 @Component
+@SystemActorName("organization.workforce.login-registration")
 class LoginMissRegistration {
     private static final Logger LOG = LoggerFactory.getLogger(LoginMissRegistration.class);
-    private static final String ACTOR = "organization.workforce.login-registration";
+    private static final String ACTOR = LoginMissRegistration.class.getAnnotation(SystemActorName.class).value();
 
     private final OrgSnapshotRepository snapshots;
     private final OrgSnapshotQueries lookups;

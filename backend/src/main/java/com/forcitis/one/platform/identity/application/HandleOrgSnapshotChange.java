@@ -33,7 +33,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class HandleOrgSnapshotChange {
 
-    private static final String ACTOR = "platform.identity.separation";
+    private static final String ACTOR = HandleOrgSnapshotChange.class.getAnnotation(SystemActorName.class).value();
     private static final int MAX_ATTEMPTS = 3;
 
     private final OrgDirectory directory;

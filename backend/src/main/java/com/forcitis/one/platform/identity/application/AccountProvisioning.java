@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
@@ -23,9 +24,10 @@ import org.springframework.stereotype.Component;
 
 /** The default role is granted only when the account is opened, so an administrator's later removal is not overridden. */
 @Component
+@SystemActorName("platform.identity.account-provisioning")
 class AccountProvisioning {
 
-    private static final String ACTOR = "platform.identity.account-provisioning";
+    private static final String ACTOR = AccountProvisioning.class.getAnnotation(SystemActorName.class).value();
 
     private final AccountRepository accounts;
     private final RoleRepository roles;

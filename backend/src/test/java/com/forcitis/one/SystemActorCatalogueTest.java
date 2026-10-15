@@ -40,6 +40,7 @@ class SystemActorCatalogueTest {
             .importPackages("com.forcitis.one");
     static final Pattern ENTERED = Pattern.compile("WorkContext\\.enter\\([^;{]*?\"([^\"]+)\"\\)", Pattern.DOTALL);
     static final Pattern ACTOR_CONSTANT = Pattern.compile("static final String ACTOR = \"([^\"]+)\"");
+    static final Pattern ANY_ACTOR_CONSTANT = Pattern.compile("static final String ACTOR = ([^;]+);");
     static final Pattern LOCK_NAME = Pattern.compile("@SchedulerLock\\(name = \"([^\"]+)\"");
     static final Pattern ACTOR_ANNOTATION = Pattern.compile("@SystemActorName\\(\"([^\"]+)\"\\)");
     static final Pattern ID_OF = Pattern.compile("SystemActors\\.idOf\\(\"([^\"]+)\"\\)");
@@ -129,8 +130,29 @@ class SystemActorCatalogueTest {
     @DisplayName("RULING-P2-C5 every name written into WorkContext.enter, directly or through an ACTOR constant, is declared")
     void namesEnteredInCodeAreDeclared() throws IOException {
         List<String> missing = new ArrayList<>();
-        assertThat(namesWritten(MAIN, List.of(ENTERED, ACTOR_CONSTANT), declaredNames(), missing)).isGreaterThan(3);
+        assertThat(namesWritten(MAIN, List.of(ENTERED, ACTOR_CONSTANT, ACTOR_ANNOTATION), declaredNames(), missing)).isGreaterThan(3);
         assertThat(missing).isEmpty();
+    }
+
+    @Test
+    @DisplayName("P2 second recheck L-4 an ACTOR constant is read from the class's own @SystemActorName, so the start-up check covers it")
+    void actorConstantsComeFromTheAnnotation() throws IOException {
+        List<String> literal = new ArrayList<>();
+        int seen = 0;
+        try (Stream<Path> files = Files.walk(MAIN)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
+                String type = file.getFileName().toString().replace(".java", "");
+                Matcher matcher = ANY_ACTOR_CONSTANT.matcher(Files.readString(file));
+                while (matcher.find()) {
+                    seen++;
+                    if (!matcher.group(1).equals(type + ".class.getAnnotation(SystemActorName.class).value()")) {
+                        literal.add(type + ": ACTOR = " + matcher.group(1));
+                    }
+                }
+            }
+        }
+        assertThat(seen).isGreaterThanOrEqualTo(3);
+        assertThat(literal).isEmpty();
     }
 
     @Test
