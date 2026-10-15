@@ -29,6 +29,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
+import com.forcitis.one.kernel.InvalidRequestException;
 
 /**
  * The caller is always the session user, no request carries an identity (G33); there is no start endpoint (I-5). Acting on a task
@@ -130,9 +132,9 @@ class ApprovalTaskController {
         return OptionalLong.of(ExpectedVersion.fromHeader(ifMatch).value());
     }
 
-    private static EmployeeId assignee(java.util.UUID assigneeId) {
+    private static EmployeeId assignee(UUID assigneeId) {
         if (assigneeId == null) {
-            throw new com.forcitis.one.kernel.InvalidRequestException("assigneeId is required");
+            throw new InvalidRequestException("assigneeId is required");
         }
         return new EmployeeId(assigneeId);
     }

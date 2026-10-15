@@ -35,6 +35,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -59,6 +60,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.platform.integration.api.TicketSubjects;
+import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
+import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
+import com.forcitis.one.platform.identity.domain.PasswordHasher;
+import com.forcitis.one.platform.identity.domain.TotpSecretVault;
+import com.forcitis.one.platform.identity.domain.Totp;
+import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
 
 /** WeCom, the portal ticket check, the organisation directory and the audit trail belong to other modules and are doubles. */
 @SpringBootTest(properties = {
@@ -154,7 +162,7 @@ public abstract class IdentityIntegrationTest {
     protected SsoTicketVerifier ssoVerifier;
 
     @MockitoBean
-    protected com.forcitis.one.platform.integration.api.TicketSubjects ticketSubjects;
+    protected TicketSubjects ticketSubjects;
 
 
     @Autowired
@@ -189,8 +197,8 @@ public abstract class IdentityIntegrationTest {
         domainEvents.clear();
         accessCache.evictAll();
         Mockito.reset(ssoVerifier);
-        when(orgDirectory.employmentOf(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(com.forcitis.one.organization.workforce.api.EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        when(orgDirectory.employmentOf(ArgumentMatchers.any()))
+                .thenReturn(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
         jdbc.sql("delete from platform_identity.sessions").update();
         jdbc.sql("delete from platform_identity.login_states").update();
         jdbc.sql("delete from platform_identity.sso_ticket_uses").update();
@@ -210,7 +218,7 @@ public abstract class IdentityIntegrationTest {
         when(orgDirectory.findEmployee(profile.employeeId())).thenReturn(Optional.of(profile));
         when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUser(profile.wecomUserId()))).thenReturn(Optional.of(profile));
         when(orgDirectory.employmentOf(profile.employeeId())).thenReturn(status == EmploymentStatus.EMPLOYED
-                ? com.forcitis.one.organization.workforce.api.EmploymentVerdict.EMPLOYED : com.forcitis.one.organization.workforce.api.EmploymentVerdict.SEPARATED);
+                ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.SEPARATED);
         when(orgDirectory.findOrgUnit(TestOrgIds.orgUnit(10))).thenReturn(Optional.of(new OrgUnitProfile(TestOrgIds.orgUnit(10), "Delivery", null, true)));
         return profile;
     }
@@ -235,17 +243,17 @@ public abstract class IdentityIntegrationTest {
 
     /** The organisation source's person n is test employee n: what the confirmed (ORG_SOURCE, EMPLOYEE) reference of platform.integration answers. */
     protected void organisationSourceKnows(long person) {
-        org.mockito.Mockito.when(ticketSubjects.employeeOf(String.valueOf(person))).thenReturn(java.util.Optional.of(TestAccounts.employee(person)));
+        when(ticketSubjects.employeeOf(String.valueOf(person))).thenReturn(Optional.of(TestAccounts.employee(person)));
     }
 
     /** The account of employee id, whether the test opened it or a login did. */
-    protected java.util.UUID accountOf(long id) {
-        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", TestAccounts.employee(id).value()).query(java.util.UUID.class).single();
+    protected UUID accountOf(long id) {
+        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", TestAccounts.employee(id).value()).query(UUID.class).single();
     }
 
     /** The account of employee id, or the id the test double would give it when it has none (a path to nobody). */
-    protected java.util.UUID accountOrNone(long id) {
-        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", TestAccounts.employee(id).value()).query(java.util.UUID.class)
+    protected UUID accountOrNone(long id) {
+        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", TestAccounts.employee(id).value()).query(UUID.class)
                 .optional().orElse(TestAccounts.account(id).value());
     }
 
@@ -253,7 +261,7 @@ public abstract class IdentityIntegrationTest {
         return "\"" + jdbc.sql("select version from platform_identity.user_accounts where employee_id = :id").param("id", TestAccounts.employee(id).value()).query(Long.class).optional().orElse(0L) + "\"";
     }
 
-    protected String roleVersion(java.util.UUID roleId) {
+    protected String roleVersion(UUID roleId) {
         return "\"" + jdbc.sql("select version from platform_identity.roles where role_id = :id").param("id", roleId).query(Long.class).single() + "\"";
     }
 
@@ -339,24 +347,24 @@ public abstract class IdentityIntegrationTest {
     }
 
     @Autowired
-    protected com.forcitis.one.platform.identity.domain.EmergencyAdminRepository emergencyAdmins;
+    protected EmergencyAdminRepository emergencyAdmins;
 
     @Autowired
-    protected com.forcitis.one.platform.identity.domain.PasswordHasher hasher;
+    protected PasswordHasher hasher;
 
     @Autowired
-    protected com.forcitis.one.platform.identity.domain.TotpSecretVault vault;
+    protected TotpSecretVault vault;
 
     /** A session started by the emergency login of a new emergency account bound to super_admin holder userId. */
     protected String emergencySession(long userId) throws Exception {
         createAccount(userId, "super_admin");
-        byte[] secret = com.forcitis.one.platform.identity.domain.Totp.newSecret();
+        byte[] secret = Totp.newSecret();
         String password = "Aa1!" + UUID.randomUUID();
-        emergencyAdmins.insertIfAbsent(com.forcitis.one.platform.identity.domain.EmergencyAdmin.register(new com.forcitis.one.kernel.UserId(accountOf(userId)), "breakglass-" + userId,
+        emergencyAdmins.insertIfAbsent(EmergencyAdmin.register(new UserId(accountOf(userId)), "breakglass-" + userId,
                 hasher.hash(password), vault.seal(secret)));
         MvcResult login = mvc.perform(post("/api/v1/platform/sessions:emergency-login").with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(
                 "{\"loginName\":\"breakglass-" + userId + "\",\"password\":\"" + password + "\",\"totpCode\":\""
-                        + com.forcitis.one.platform.identity.domain.Totp.code(secret, com.forcitis.one.platform.identity.domain.Totp.stepAt(clock.instant())) + "\"}")).andReturn();
+                        + Totp.code(secret, Totp.stepAt(clock.instant())) + "\"}")).andReturn();
         if (login.getResponse().getStatus() != 200) {
             throw new AssertionError("emergency login failed: " + login.getResponse().getContentAsString());
         }
