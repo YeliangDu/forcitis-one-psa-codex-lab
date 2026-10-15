@@ -33,16 +33,16 @@ public class QueueWecomCard {
     @Transactional(propagation = Propagation.MANDATORY)
     public void execute(WecomCard card) {
         UUID correlationId = WorkContext.correlationId().orElseGet(() -> Uuids.timeOrdered(clock));
-        OutboundDelivery delivery = OutboundDelivery.queue(card.deduplicationKey(), card.wecomUserIds(), policy, card.title(),
+        OutboundDelivery delivery = OutboundDelivery.queue(card.subject(), card.wecomUserIds(), policy, card.title(),
                 card.description(), card.targetUrl(), correlationId, clock.instant());
         if (delivery.status() == DeliveryStatus.FAILED) {
-            log.warn("WeCom card {} has no recipient with a WeCom user id: not sent, recorded as failed", card.deduplicationKey());
+            log.warn("WeCom card {} has no recipient with a WeCom user id: not sent, recorded as failed", card.subject());
         } else if (!delivery.skippedRecipients().isEmpty()) {
-            log.info("WeCom card {}: {} recipient(s) are not on the allow list and are skipped", card.deduplicationKey(),
+            log.info("WeCom card {}: {} recipient(s) are not on the allow list and are skipped", card.subject(),
                     delivery.skippedRecipients().size());
         }
         if (!deliveries.insert(delivery, clock.instant())) {
-            log.info("WeCom card {} was already queued: ignored", card.deduplicationKey());
+            log.info("WeCom card {} was already queued: ignored", card.subject());
         }
     }
 }

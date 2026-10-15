@@ -3,6 +3,7 @@ package com.forcitis.one.platform.integration.domain;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.DeliverySubject;
 import com.forcitis.one.platform.integration.api.IntegrationError;
 import java.time.Instant;
 import java.util.List;
@@ -11,17 +12,16 @@ import java.util.UUID;
 
 /**
  * One message to the outside. It is queued PENDING (or already SKIPPED / FAILED when nobody may receive it) and leaves PENDING
- * once: sent, skipped, or dead after the last retry; a retry keeps it PENDING. A HANDLED_NOTE delivery replaces the card of targetKey.
+ * once: sent, skipped, or dead after the last retry; a retry keeps it PENDING. A HANDLED_NOTE delivery replaces the card whose delivery id is targetDeliveryId.
  * The claim number (attemptCount) guards a claimed delivery: the repository applies a change only to the claim it was made for.
  */
 public final class OutboundDelivery extends AggregateRoot {
     public static final StateMachine<DeliveryStatus> MACHINE = StateMachine.of(DeliveryStatus.class)
             .allow(DeliveryStatus.PENDING, DeliveryStatus.SENT, DeliveryStatus.SKIPPED, DeliveryStatus.DEAD_LETTER, DeliveryStatus.PENDING)
             .build();
-    private static final String HANDLED_SUFFIX = "#handled";
 
     private final OutboundDeliveryId deliveryId;
-    private final String deduplicationKey;
+    private final DeliverySubject subject;
     private final List<WecomUserId> recipients;
     private final List<WecomUserId> skippedRecipients;
     private final String title;
@@ -32,7 +32,7 @@ public final class OutboundDelivery extends AggregateRoot {
     private String handledNote;
     private String handledResult;
     private final DeliveryKind kind;
-    private final String targetKey;
+    private final UUID targetDeliveryId;
     private final UUID correlation;
     private DeliveryStatus status;
     private String responseCode;
@@ -40,13 +40,13 @@ public final class OutboundDelivery extends AggregateRoot {
     private Instant sentAt;
     private String lastError;
 
-    private OutboundDelivery(OutboundDeliveryId deliveryId, String deduplicationKey, List<WecomUserId> recipients,
+    private OutboundDelivery(OutboundDeliveryId deliveryId, DeliverySubject subject, List<WecomUserId> recipients,
                              List<WecomUserId> skippedRecipients, String title, String description, String targetUrl,
                              DeliveryStatus status, int attemptCount, String responseCode, String handledNote, String handledResult, DeliveryKind kind,
-                             String targetKey, UUID correlationId, Instant nextAttemptAt, String lastError, long version, long eventSequence) {
+                             UUID targetDeliveryId, UUID correlationId, Instant nextAttemptAt, String lastError, long version, long eventSequence) {
         super(version, eventSequence);
         this.deliveryId = deliveryId;
-        this.deduplicationKey = Objects.requireNonNull(deduplicationKey, "deduplicationKey");
+        this.subject = Objects.requireNonNull(subject, "subject");
         this.recipients = List.copyOf(recipients);
         this.skippedRecipients = List.copyOf(skippedRecipients);
         this.title = title;
@@ -59,43 +59,43 @@ public final class OutboundDelivery extends AggregateRoot {
         this.handledNote = handledNote;
         this.handledResult = handledResult;
         this.kind = Objects.requireNonNull(kind, "kind");
-        this.targetKey = targetKey;
+        this.targetDeliveryId = targetDeliveryId;
         this.correlation = correlationId;
         this.nextAttemptAt = nextAttemptAt;
         this.lastError = lastError;
     }
 
     /** What the recipient policy lets through decides whether the card is sent at all. */
-    public static OutboundDelivery queue(String deduplicationKey, List<WecomUserId> asked, RecipientPolicy policy, String title,
+    public static OutboundDelivery queue(DeliverySubject subject, List<WecomUserId> asked, RecipientPolicy policy, String title,
                                          String description, String targetUrl, UUID correlationId, Instant now) {
         if (asked.isEmpty()) {
-            return new OutboundDelivery(null, deduplicationKey, List.of(), List.of(), title, description, targetUrl,
+            return new OutboundDelivery(null, subject, List.of(), List.of(), title, description, targetUrl,
                     DeliveryStatus.FAILED, 0, null, null, null, DeliveryKind.CARD, null, correlationId, null,
                     "no recipient with a WeCom user id", 0, 0);
         }
         RecipientPolicy.Decision decision = policy.decide(asked);
         if (decision.allowed().isEmpty()) {
-            return new OutboundDelivery(null, deduplicationKey, List.of(), decision.skipped(), title, description, targetUrl,
+            return new OutboundDelivery(null, subject, List.of(), decision.skipped(), title, description, targetUrl,
                     DeliveryStatus.SKIPPED, 0, null, null, null, DeliveryKind.CARD, null, correlationId, null,
                     "no recipient on the allow list", 0, 0);
         }
-        return new OutboundDelivery(null, deduplicationKey, decision.allowed(), decision.skipped(), title, description, targetUrl,
+        return new OutboundDelivery(null, subject, decision.allowed(), decision.skipped(), title, description, targetUrl,
                 DeliveryStatus.PENDING, 0, null, null, null, DeliveryKind.CARD, null, correlationId, now, null, 0, 0);
     }
 
     /** The replacement of an already sent card by a note, queued as a delivery of its own. */
     public static OutboundDelivery handledNoteFor(OutboundDelivery sentCard, String note, UUID correlationId, Instant now) {
-        return new OutboundDelivery(null, sentCard.deduplicationKey + HANDLED_SUFFIX, sentCard.recipients, List.of(), sentCard.title, note,
-                sentCard.targetUrl, DeliveryStatus.PENDING, 0, null, null, null, DeliveryKind.HANDLED_NOTE, sentCard.deduplicationKey,
+        return new OutboundDelivery(null, sentCard.subject, sentCard.recipients, List.of(), sentCard.title, note,
+                sentCard.targetUrl, DeliveryStatus.PENDING, 0, null, null, null, DeliveryKind.HANDLED_NOTE, sentCard.deliveryId.value(),
                 correlationId, now, null, 0, 0);
     }
 
-    public static OutboundDelivery restore(OutboundDeliveryId deliveryId, String deduplicationKey, List<WecomUserId> recipients,
+    public static OutboundDelivery restore(OutboundDeliveryId deliveryId, DeliverySubject subject, List<WecomUserId> recipients,
                                            String title, String description, String targetUrl, String status, int attemptCount,
                                            String responseCode, String handledNote, String handledResult,
-                                           DeliveryKind kind, String targetKey, UUID correlationId, long version, long eventSequence) {
-        return new OutboundDelivery(Objects.requireNonNull(deliveryId, "deliveryId"), deduplicationKey, recipients, List.of(), title,
-                description, targetUrl, DeliveryStatus.valueOf(status), attemptCount, responseCode, handledNote, handledResult, kind, targetKey,
+                                           DeliveryKind kind, UUID targetDeliveryId, UUID correlationId, long version, long eventSequence) {
+        return new OutboundDelivery(Objects.requireNonNull(deliveryId, "deliveryId"), subject, recipients, List.of(), title,
+                description, targetUrl, DeliveryStatus.valueOf(status), attemptCount, responseCode, handledNote, handledResult, kind, targetDeliveryId,
                 correlationId, null, null, version, eventSequence);
     }
 
@@ -103,8 +103,8 @@ public final class OutboundDelivery extends AggregateRoot {
         return deliveryId;
     }
 
-    public String deduplicationKey() {
-        return deduplicationKey;
+    public DeliverySubject subject() {
+        return subject;
     }
 
     public List<WecomUserId> recipients() {
@@ -166,8 +166,8 @@ public final class OutboundDelivery extends AggregateRoot {
         return kind;
     }
 
-    public String targetKey() {
-        return targetKey;
+    public UUID targetDeliveryId() {
+        return targetDeliveryId;
     }
 
     public UUID correlation() {
