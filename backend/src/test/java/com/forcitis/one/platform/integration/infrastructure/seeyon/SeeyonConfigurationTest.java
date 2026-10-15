@@ -5,14 +5,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.ExternalConnections;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 class SeeyonConfigurationTest {
 
-    private final ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(SeeyonConfiguration.class);
+    private final ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(SeeyonConfiguration.class)
+            .withBean(ExternalConnections.class, () -> (poolName, url, user, password, kind) -> new DriverManagerDataSource(url, user, password));
 
     private static final String PREFIX = "forcitis.platform.integration.seeyon.views.";
     private static final String[] VIEWS_ON = {
@@ -32,7 +35,7 @@ class SeeyonConfigurationTest {
         runner.run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context.getBean(OrgSource.class)).isInstanceOf(DisabledOrgSource.class);
-            assertThat(context).doesNotHaveBean(ReadOnlyConnection.class);
+            assertThat(context).doesNotHaveBean(SeeyonConnections.class);
             assertThat(context.getBean(OrgSource.class).findStaffByWecomUserId(new WecomUserId("wx-1"))).isEmpty();
             assertThat(context.getBean(OrgSource.class).findStaffByLoginName("someone")).isEmpty();
             assertThatThrownBy(() -> context.getBean(OrgSource.class).readSnapshot()).isInstanceOf(ExternalSystemUnavailableException.class);
@@ -40,12 +43,12 @@ class SeeyonConfigurationTest {
     }
 
     @Test
-    @DisplayName("views.enabled binds forcitis.platform.integration.seeyon.views.* with @ConfigurationProperties (ids are configuration) and wires the qualified read-only connection")
+    @DisplayName("views.enabled binds forcitis.platform.integration.seeyon.views.* with @ConfigurationProperties (ids are configuration) and wires the two connections of the call kinds")
     void viewsEnabled() {
         runner.withPropertyValues(VIEWS_ON).withPropertyValues(PREFIX + "validate-on-startup=false").run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context.getBean(OrgSource.class)).isInstanceOf(SeeyonOrgSource.class);
-            assertThat(context.getBeansOfType(ReadOnlyConnection.class)).containsOnlyKeys("seeyonConnection");
+            assertThat(context.getBeansOfType(SeeyonConnections.class)).containsOnlyKeys("seeyonConnections");
             SeeyonProperties.Views views = context.getBean(SeeyonProperties.class).views();
             assertThat(views.headRelationshipTypeId()).isEqualTo(-1726439953579618944L);
             assertThat(views.regionalReceivablesManagerRelationshipTypeId()).isEqualTo(-8187907605834545337L);

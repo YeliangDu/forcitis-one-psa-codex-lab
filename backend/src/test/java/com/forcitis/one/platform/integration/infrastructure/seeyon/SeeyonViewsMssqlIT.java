@@ -23,11 +23,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mssqlserver.MSSQLServerContainer;
@@ -43,7 +43,7 @@ class SeeyonViewsMssqlIT {
     static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "-2682590999914657055", "-3267712510147735998", "00000001");
 
     static String readerPassword = "Aa1!" + UUID.randomUUID();
-    static ReadOnlyConnection reader;
+    static JdbcClient reader;
 
     static String url(String database) {
         return "jdbc:sqlserver://" + mssql.getHost() + ":" + mssql.getMappedPort(1433) + ";databaseName=" + database
@@ -68,14 +68,7 @@ class SeeyonViewsMssqlIT {
         createBaseTables();
         seedBase();
         applyDbaScript();
-        reader = ReadOnlyConnection.open("it-seeyon", url("seeyontest"), "forcitis_reader", readerPassword);
-    }
-
-    @AfterAll
-    static void close() {
-        if (reader != null) {
-            reader.close();
-        }
+        reader = JdbcClient.create(new DriverManagerDataSource(url("seeyontest"), "forcitis_reader", readerPassword));
     }
 
     private static void createBaseTables() throws SQLException {
@@ -142,17 +135,17 @@ class SeeyonViewsMssqlIT {
     @Test
     @DisplayName("§9a the views carry exactly the whitelisted columns, and the start-up check passes against the real catalog")
     void startupCheckPassesAgainstSqlServer() {
-        SeeyonStartupCheck check = new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader.jdbc()), MAPPING);
+        SeeyonStartupCheck check = new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader), MAPPING);
 
         assertThat(check.problems()).isEmpty();
-        assertThat(new JdbcSeeyonSchemaInspector(reader.jdbc()).viewColumns()).containsOnlyKeys("V_ORG_UNIT", "V_ORG_RELATIONSHIP", "V_ORG_POST", "V_ORG_MEMBER");
-        assertThat(new JdbcSeeyonSchemaInspector(reader.jdbc()).excessivePermissions()).isEmpty();
+        assertThat(new JdbcSeeyonSchemaInspector(reader).viewColumns()).containsOnlyKeys("V_ORG_UNIT", "V_ORG_RELATIONSHIP", "V_ORG_POST", "V_ORG_MEMBER");
+        assertThat(new JdbcSeeyonSchemaInspector(reader).excessivePermissions()).isEmpty();
     }
 
     @Test
     @DisplayName("§9a the views are read through the ownership chain and map to the domain with the shared mapper")
     void viewsAreReadAndMapped() {
-        SourceOrgSnapshot snapshot = new SeeyonOrgSource(reader.jdbc(), MAPPING).readSnapshot();
+        SourceOrgSnapshot snapshot = new SeeyonOrgSource(reader, reader, MAPPING).readSnapshot();
 
         assertThat(snapshot.units()).extracting(u -> u.unitId().value()).containsExactlyInAnyOrder(1L, 2L, 3L);
         assertThat(snapshot.units().stream().filter(u -> u.unitId().value() == 3).findFirst().orElseThrow().state()).isEqualTo(SourceRecordState.DISABLED);
@@ -178,7 +171,7 @@ class SeeyonViewsMssqlIT {
     @Test
     @DisplayName("§9a single-person lookup over the real view returns the same person as the bulk read")
     void singleLookup() {
-        SeeyonOrgSource source = new SeeyonOrgSource(reader.jdbc(), MAPPING);
+        SeeyonOrgSource source = new SeeyonOrgSource(reader, reader, MAPPING);
 
         assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-8002")))
                 .containsExactly(source.readSnapshot().staff().stream().filter(m -> m.personId().value() == 8002).findFirst().orElseThrow());
@@ -188,7 +181,7 @@ class SeeyonViewsMssqlIT {
     @Test
     @DisplayName("§9a ReadOnly: the account cannot read a single base table - including the birthday column and a money table")
     void baseTablesAreDenied() {
-        JdbcClient jdbc = reader.jdbc();
+        JdbcClient jdbc = reader;
 
         for (String table : List.of("dbo.ORG_MEMBER", "dbo.ORG_UNIT", "dbo.formmain_0307", "dbo.contract_values", "dbo.ORG_PRINCIPAL")) {
             assertThatThrownBy(() -> jdbc.sql("SELECT * FROM " + table).query().listOfRows()).as(table).hasMessageContaining("permission was denied");
@@ -200,7 +193,7 @@ class SeeyonViewsMssqlIT {
     @Test
     @DisplayName("§9a ReadOnly: every write, execute and DDL attempt is refused - on base tables and on the views")
     void writesAreDenied() {
-        JdbcClient jdbc = reader.jdbc();
+        JdbcClient jdbc = reader;
         List<String> attempts = List.of(
                 "INSERT dbo.ORG_MEMBER (ID, NAME, CODE) VALUES (9999, 'x', 'x')",
                 "UPDATE dbo.ORG_MEMBER SET NAME = 'x'",
@@ -226,12 +219,12 @@ class SeeyonViewsMssqlIT {
     void extraColumnIsRefused() throws SQLException {
         run("seeyontest", "ALTER VIEW forcitis_one.v_org_post AS SELECT P.ID, P.CODE, P.NAME, P.SORT_ID, P.STATUS, P.IS_DELETED, CAST(NULL AS date) AS BIRTHDAY FROM dbo.ORG_POST P");
         try {
-            assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader.jdbc()), MAPPING).problems())
+            assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader), MAPPING).problems())
                     .anyMatch(p -> p.contains("V_ORG_POST") && p.contains("outside the whitelist") && p.contains("BIRTHDAY"));
         } finally {
             run("seeyontest", "ALTER VIEW forcitis_one.v_org_post AS SELECT P.ID, P.CODE, P.NAME, P.SORT_ID, P.STATUS, P.IS_DELETED FROM dbo.ORG_POST P");
         }
-        assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader.jdbc()), MAPPING).problems()).isEmpty();
+        assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader), MAPPING).problems()).isEmpty();
     }
 
     @Test
@@ -239,7 +232,7 @@ class SeeyonViewsMssqlIT {
     void wrongIdsAreRefused() {
         SeeyonMapping wrong = new SeeyonMapping(1, 2, "nope", "nope", "00000001");
 
-        assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader.jdbc()), wrong).problems()).hasSize(4);
+        assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader), wrong).problems()).hasSize(4);
     }
 
     @Test
@@ -248,10 +241,9 @@ class SeeyonViewsMssqlIT {
         String password = "Aa1!" + UUID.randomUUID();
         run("master", "CREATE LOGIN greedy WITH PASSWORD = N'" + password + "', CHECK_POLICY = OFF");
         run("seeyontest", "CREATE USER greedy FOR LOGIN greedy", "ALTER ROLE db_datareader ADD MEMBER greedy", "GRANT INSERT ON SCHEMA::dbo TO greedy");
-        try (ReadOnlyConnection greedy = ReadOnlyConnection.open("it-greedy", url("seeyontest"), "greedy", password)) {
-            assertThat(ReadOnlyGuard.excessiveDatabasePermissions(greedy.jdbc())).contains("SELECT");
-            assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(greedy.jdbc()), MAPPING).problems())
-                    .anyMatch(p -> p.contains("must not have"));
-        }
+        JdbcClient greedy = JdbcClient.create(new DriverManagerDataSource(url("seeyontest"), "greedy", password));
+        assertThat(ReadOnlyGuard.excessiveDatabasePermissions(greedy)).contains("SELECT");
+        assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(greedy), MAPPING).problems())
+                .anyMatch(p -> p.contains("must not have"));
     }
 }

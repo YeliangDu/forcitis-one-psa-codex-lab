@@ -99,7 +99,11 @@ terms:
   status: proposed
   note: ADR-0033（提议）登记，待用语确认
 common_words:
+- background
+- call
+- connection
 - external
+- interactive
 - listener
 - publication
 - resubmission
