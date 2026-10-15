@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -33,6 +34,8 @@ public final class TestPostgres {
     /** {@link #MIGRATED} plus classpath:db/testdata, for contexts that set spring.flyway.locations to both. */
     public static final String MIGRATED_TESTDATA = "migrated_testdata";
 
+    private static final int MAX_IDENTIFIER = 63;
+
     private static final Map<String, String> TEMPLATES = new HashMap<>();
     private static final Set<String> HANDED_OUT = new HashSet<>();
 
@@ -55,13 +58,26 @@ public final class TestPostgres {
      * isolated without each starting a container and migrating.
      */
     public static synchronized TestDatabase database(Class<?> testClass, String purpose) {
-        String name = purpose + "_" + String.format("%08x", testClass.getName().hashCode());
+        String name = databaseName(purpose, testClass);
         if (!HANDED_OUT.add(name)) {
             throw new IllegalStateException(testClass.getName() + " already has its " + purpose + " database " + name);
         }
         String template = TEMPLATES.computeIfAbsent(purpose, TestPostgres::migratedTemplate);
         execute("CREATE DATABASE " + name + " TEMPLATE " + template);
         return new TestDatabase(urlOf(name), shared().getUsername(), shared().getPassword());
+    }
+
+    /** The class name made a valid unquoted identifier, cut to fit PostgreSQL's 63 bytes; a hash of the exact name keeps names that sanitise alike (case, `.` and `_`) apart. */
+    static String databaseName(String purpose, Class<?> testClass) {
+        return databaseName(purpose, testClass.getName());
+    }
+
+    static String databaseName(String purpose, String className) {
+        String full = purpose + "_" + className;
+        String hash = String.format("%08x", full.hashCode());
+        String readable = full.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "_");
+        int room = MAX_IDENTIFIER - hash.length() - 1;
+        return (readable.length() > room ? readable.substring(0, room) : readable) + "_" + hash;
     }
 
     private static String migratedTemplate(String purpose) {
@@ -73,6 +89,7 @@ public final class TestPostgres {
             default -> throw new IllegalArgumentException("no template for purpose " + purpose);
         }
         String template = "template_" + purpose;
+        execute("DROP DATABASE IF EXISTS " + template + " WITH (FORCE)");
         execute("CREATE DATABASE " + template);
         try (Connection connection = connect(template)) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("init-schemas.sql"));
