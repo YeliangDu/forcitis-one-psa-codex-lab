@@ -267,8 +267,11 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 | `workforce__relationship` | 关系 | Relationship | A8 中人员与组织单元之间的关系（部门负责人、区域应收负责人），类型 ID 为配置项 |  |  |
 | `workforce__headquarters` | 总部 | Headquarters | 组织单元的总部 / 区域类别中的「总部」 |  |  |
 | `workforce__revoked` | 已撤销 | Revoked | A8 不再返回的组织单元；与「停用」是两个不同状态（RULE-355） |  |  |
+| `separation_request` | 离职申请 | SeparationRequest | 员工在 A8 发起的离职申请流程（表单）；只有正常结束且同意的申请才是预计离职日期的来源 |  |  |
+| `expected_separation_date` | 预计离职日期 | ExpectedSeparationDate | 正常结束且同意的离职申请上的预计离职日期（业务日期，可能改期，已过而员工仍在职时为已过期），不是实际离职日 | 「离职日期」已禁用；「separation_date」已禁用 | 单说离职日期有歧义，须写明预计离职日期或离职观察时间 |
+| `separation_observed_at` | 离职观察时间 | SeparationObservedAt | 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日 | 「离职日期」已禁用；「separation_date」已禁用 | 单说离职日期有歧义，须写明预计离职日期或离职观察时间 |
 
-另有错误码 10 个（kind 为 `error_code`）、技术词 87 个（`common_words`），不在表中。
+另有错误码 10 个（kind 为 `error_code`）、技术词 84 个（`common_words`），不在表中。
 
 ## platform.approval（`platform-approval.yaml`）
 
