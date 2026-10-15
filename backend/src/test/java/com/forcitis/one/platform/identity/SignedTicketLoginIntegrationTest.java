@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +28,8 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         createAccount(1001, "employee");
         insertIssuer("km", "km-key-1", "env:FORCITIS_TICKET_KEY_KM", true, "employee");
+        organisationSourceKnows(1001);
+        organisationSourceKnows(1002);
     }
 
     private void insertIssuer(String code, String kid, String keyReference, boolean enabled, String... roles) {
@@ -174,12 +177,12 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("RULE-326/327 a ticket does not get past a disabled account or a separated employee")
     void sameGate() throws Exception {
-        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = 1001").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = " + TestOrgIds.sqlEmployee(1001)).update();
         MvcResult disabled = redeem(ticket(1001));
         assertThat(disabled.getResponse().getStatus()).isEqualTo(403);
         assertThat(errorCode(disabled)).isEqualTo("PLATFORM_IDENTITY_ACCOUNT_DISABLED");
 
-        jdbc.sql("update platform_identity.user_accounts set status = 'ENABLED' where employee_id = 1001").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'ENABLED' where employee_id = " + TestOrgIds.sqlEmployee(1001)).update();
         knownEmployee(1001, EmploymentStatus.SEPARATED);
         MvcResult separated = redeem(ticket(1001));
         assertThat(separated.getResponse().getStatus()).isEqualTo(403);
@@ -190,6 +193,23 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("RULE-318 there is no passwordless login: a person who is not an employee cannot be named in a ticket")
     void unknownSubject() throws Exception {
         assertThat(redeem(ticket(424242)).getResponse().getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    @DisplayName("ADR-0033 the subject is the organisation source's person id: an employee without that source reference cannot be named, and the refusal is audited")
+    void subjectWithoutSourceReference() throws Exception {
+        knownEmployee(1003, EmploymentStatus.EMPLOYED);
+        createAccount(1003, "employee");
+
+        MvcResult result = redeem(ticket(1003));
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(401);
+        assertThat(errorCode(result)).isEqualTo("PLATFORM_IDENTITY_TICKET_INVALID");
+        assertThat(cookie(result, "SESSION")).isNull();
+        assertThat(recordedIndependently()).anySatisfy(entry -> {
+            assertThat(entry.action()).isEqualTo("platform.identity.login.failed");
+            assertThat(entry.detail()).contains("subject has no organisation source reference");
+        });
     }
 
     @Test

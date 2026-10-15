@@ -8,6 +8,7 @@ import com.forcitis.one.platform.identity.application.PurgeExpiredSessions;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.time.Duration;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,9 +38,9 @@ class SessionPurgeClockIT extends AccountsAcceptanceSupport {
     }
 
     private SignedIn freshLogin() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long person = newEmployeeId();
+        UUID person = newEmployeeId();
         employee(person, unit, null);
         SignedIn signedIn = signIn(person);
         assertThat(statusOf(signedIn)).as("the session works right after login").isEqualTo(200);

@@ -54,21 +54,21 @@ class OrgReconciliationTest {
         StaffEmployee leaver = Fixtures.staff(synced, 4);
         StaffEmployee stillEmployed = new StaffEmployee(leaver.employee().withEmploymentStatus(EmploymentStatus.EMPLOYED), leaver.assignment());
         List<OrgUnit> units = synced.orgUnits().stream()
-                .map(u -> u.orgUnitId().value() == 3 ? new OrgUnit(u.orgUnitId(), u.code(), u.name(), Fixtures.unitId(1),
+                .map(u -> u.orgUnitId().equals(Fixtures.unitId(3)) ? new OrgUnit(u.orgUnitId(), u.code(), u.name(), Fixtures.unitId(1),
                         u.sortOrder(), u.status(), u.headEmployeeId(), u.regionalReceivablesManagerId(), u.regionCategory(),
                         u.deliveryUnit(), u.shortName()) : u).toList();
         List<StaffEmployee> staff = synced.staff().stream()
-                .filter(s -> s.employeeId().value() != 3)
-                .map(s -> s.employeeId().value() == 2 ? drifted : s.employeeId().value() == 4 ? stillEmployed : s).toList();
+                .filter(s -> !s.employeeId().equals(Fixtures.user(3)))
+                .map(s -> s.employeeId().equals(Fixtures.user(2)) ? drifted : s.employeeId().equals(Fixtures.user(4)) ? stillEmployed : s).toList();
         OrgSnapshot stored = new OrgSnapshot(units, synced.positions(), staff);
 
         OrgReconciliationReport report = OrgReconciliation.compare(sourceSnapshot(), stored);
 
         assertThat(report.isZeroDifference()).isFalse();
-        assertThat(report.reportingLineMismatches()).containsExactly("employee:2");
-        assertThat(report.parentMismatches()).containsExactly("org-unit:3");
-        assertThat(report.missingInSnapshot()).containsExactly("employee:3");
-        assertThat(report.unexpectedInSnapshot()).singleElement().asString().startsWith("employee:4");
+        assertThat(report.reportingLineMismatches()).containsExactly("employee:" + Fixtures.user(2).value());
+        assertThat(report.parentMismatches()).containsExactly("org-unit:" + Fixtures.unitId(3).value());
+        assertThat(report.missingInSnapshot()).containsExactly("employee:" + Fixtures.user(3).value());
+        assertThat(report.unexpectedInSnapshot()).singleElement().asString().startsWith("employee:" + Fixtures.user(4).value());
         assertThat(report.sourceEmployedCount()).isEqualTo(3);
         assertThat(report.snapshotEmployedCount()).isEqualTo(3);
     }

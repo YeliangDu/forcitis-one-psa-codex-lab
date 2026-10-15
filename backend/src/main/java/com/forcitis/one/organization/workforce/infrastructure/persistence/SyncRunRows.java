@@ -65,7 +65,7 @@ final class SyncRunRows {
         Array array = rs.getArray("held_separation_employee_ids");
         List<EmployeeId> people = new ArrayList<>();
         if (array != null) {
-            for (Long id : (Long[]) array.getArray()) {
+            for (UUID id : (UUID[]) array.getArray()) {
                 people.add(new EmployeeId(id));
             }
         }

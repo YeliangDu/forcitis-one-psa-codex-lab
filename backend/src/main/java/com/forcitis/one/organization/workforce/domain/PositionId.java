@@ -1,17 +1,18 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.ValueObject;
+import java.util.UUID;
 
 @ValueObject
-public record PositionId(long value) {
+public record PositionId(UUID value) {
+
     public PositionId {
-        if (value == 0) {
-            throw new IllegalArgumentException("PositionId must not be 0");
-        }
+        value = Uuids.requireKey(value, "PositionId");
     }
 
     @Override
     public String toString() {
-        return Long.toString(value);
+        return value.toString();
     }
 }

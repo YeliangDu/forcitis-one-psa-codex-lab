@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 /**
  * The legal entity of a unit is read only by someone who may see the unit, and that of an employee by someone who may see the unit
@@ -37,7 +38,7 @@ public class GetLegalEntityAttribution {
     }
 
     @Transactional(readOnly = true)
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, OrgUnitAccess.Visible visible, UserId actor) {
+    public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId, OrgUnitAccess.Visible visible, UserId actor) {
         var subject = subjects.require(kind, subjectId);
         Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(snapshot.findAllOrgUnits(), visible);
         boolean permitted = switch (kind) {

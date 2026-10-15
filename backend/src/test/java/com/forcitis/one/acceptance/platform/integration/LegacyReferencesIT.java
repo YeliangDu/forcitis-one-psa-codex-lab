@@ -1,0 +1,124 @@
+package com.forcitis.one.acceptance.platform.integration;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+
+import com.forcitis.one.organization.workforce.application.RefreshShortNames;
+import com.jayway.jsonpath.JsonPath;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * R-1b P3b, ADR-0033 section 2 items 6 and 9, ADR-0039 item 5.2, NEXT_BATCH_PLAN C8 (card section 3.2 items 5 to 7): the old system names
+ * people and departments by its own ids; they are translated through the (LEGACY_SYSTEM, EMPLOYEE / ORG_UNIT) source references in
+ * platform.integration. Until P6 imports those references none exist, so the old to-dos and the short names are "unavailable": the merged
+ * inbox says so and alerts instead of showing 0 old items, and a short name without a reference is neither written nor cleared, with an
+ * alert. With a reference the old item and the short name come through. The old system's rows here carry the very number the employee
+ * or department had before P3b, so a reader that still takes the own id as the old system's id is caught.
+ */
+@Testcontainers
+class LegacyReferencesIT extends OrgSourceWorldSupport {
+
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer postgres = database();
+
+    static final String INBOX = "/api/v1/platform/approval-tasks";
+    static final String EMPLOYEE = "EMPLOYEE";
+    static final String ORG_UNIT = "ORG_UNIT";
+
+    @Autowired
+    RefreshShortNames refreshShortNames;
+
+    private String inboxOf(SignedIn signedIn) throws Exception {
+        MockHttpServletResponse inbox = mvc.perform(get(INBOX).with(session(signedIn))).andReturn().getResponse();
+        assertThat(inbox.getStatus()).as(inbox.getContentAsString()).isEqualTo(200);
+        return inbox.getContentAsString();
+    }
+
+    private String shortNameOf(UUID unit) throws Exception {
+        try (Connection workforce = schemaConnection("organization_workforce");
+             PreparedStatement select = workforce.prepareStatement("select short_name from org_units where id::text = ?")) {
+            select.setString(1, text(unit));
+            try (ResultSet rs = select.executeQuery()) {
+                assertThat(rs.next()).as("unit %s is in the snapshot", unit).isTrue();
+                return rs.getString(1);
+            }
+        }
+    }
+
+    private void shortName(UUID unit, String shortName) throws Exception {
+        try (Connection workforce = schemaConnection("organization_workforce");
+             PreparedStatement update = workforce.prepareStatement("update org_units set short_name = ? where id::text = ?")) {
+            update.setString(1, shortName);
+            update.setString(2, text(unit));
+            update.executeUpdate();
+        }
+    }
+
+    @Test
+    @DisplayName("R-1b P3b ADR-0033 第 2 项第 9 条 / C8：当前员工没有老系统对照时，合并待办的老系统来源为「不可用」并告警，不按 0 条处理")
+    void withoutALegacyReferenceTheOldToDosAreUnavailable() throws Exception {
+        UUID unit = newOrgUnitId();
+        orgUnit(unit, null, null);
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+        SignedIn signedIn = signIn(person);
+        legacyTodo(serialOf(person), "T-unmapped");
+        int mark = logMark();
+
+        String inbox = inboxOf(signedIn);
+
+        assertThat((Boolean) JsonPath.read(inbox, "$.legacyAvailable")).as("the old to-dos of a person without reference: %s", inbox).isFalse();
+        assertThat(inbox).doesNotContain("T-unmapped");
+        assertThat(alertsSince(mark)).as("alerts for the missing legacy reference").isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("R-1b P3b ADR-0033 第 2 项第 9 条（对照）：有 (LEGACY_SYSTEM, EMPLOYEE) 对照时按对照取老系统人员 ID 读老待办，合并待办含该条")
+    void withALegacyReferenceTheOldToDosComeThrough() throws Exception {
+        long legacyPerson = 5_002;
+        UUID person = adoptId(allocate(LEGACY_SYSTEM, EMPLOYEE, legacyPerson));
+        UUID unit = newOrgUnitId();
+        orgUnit(unit, null, null);
+        employee(person, unit, null);
+        SignedIn signedIn = signIn(person);
+        legacyTodo(legacyPerson, "T-mapped");
+
+        String inbox = inboxOf(signedIn);
+
+        assertThat((Boolean) JsonPath.read(inbox, "$.legacyAvailable")).as(inbox).isTrue();
+        assertThat((Integer) JsonPath.read(inbox, "$.legacyCount")).isEqualTo(1);
+        assertThat(inbox).contains("T-mapped");
+    }
+
+    @Test
+    @DisplayName("R-1b P3b ADR-0033 第 2 项第 6 条 / C8：没有老系统对照的部门简称不写入、不清除现值，并告警；有对照的部门照常取得简称")
+    void aShortNameWithoutReferenceIsNeitherWrittenNorCleared() throws Exception {
+        long legacyUnit = 6_001;
+        UUID mapped = adoptId(allocate(LEGACY_SYSTEM, ORG_UNIT, legacyUnit));
+        orgUnit(mapped, null, null);
+        UUID unmapped = newOrgUnitId();
+        orgUnit(unmapped, null, null);
+        shortName(unmapped, "Old short name");
+        legacyShortName(legacyUnit, "New short name");
+        legacyShortName(serialOf(unmapped), null);
+        int mark = logMark();
+
+        refreshShortNames.execute();
+
+        assertThat(shortNameOf(mapped)).as("the department with a legacy reference").isEqualTo("New short name");
+        assertThat(shortNameOf(unmapped)).as("the department without a legacy reference keeps its short name").isEqualTo("Old short name");
+        assertThat(alertsSince(mark)).as("alerts for the short name without a legacy reference").isNotEmpty();
+    }
+}

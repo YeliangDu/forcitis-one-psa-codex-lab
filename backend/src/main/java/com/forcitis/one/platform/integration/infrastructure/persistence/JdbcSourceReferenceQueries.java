@@ -9,7 +9,11 @@ import com.forcitis.one.platform.integration.domain.SourceReference;
 import com.forcitis.one.platform.integration.domain.SourceReferenceId;
 import com.forcitis.one.platform.integration.domain.SourceReferenceQueries;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -18,6 +22,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcSourceReferenceQueries implements SourceReferenceQueries {
+
+    /** Bind parameters per statement, well below the 65535 PostgreSQL takes. */
+    static final int BATCH = 1000;
 
     private final JdbcClient jdbc;
 
@@ -37,6 +44,27 @@ class JdbcSourceReferenceQueries implements SourceReferenceQueries {
                         """)
                 .param("system", system.name()).param("kind", kind.name()).param("sourceId", sourceId.value())
                 .query(UUID.class).optional().map(OwnObjectId::new);
+    }
+
+    @Override
+    public Map<SourceObjectId, OwnObjectId> findOwnIds(ExternalSource system, SourceObjectKind kind, Collection<SourceObjectId> sourceIds) {
+        if (kind.hasPeriod()) {
+            throw new IllegalArgumentException(kind + " references carry a period: find the source id on a day instead");
+        }
+        List<Long> all = sourceIds.stream().map(SourceObjectId::value).distinct().toList();
+        Map<SourceObjectId, OwnObjectId> found = new HashMap<>();
+        for (int from = 0; from < all.size(); from += BATCH) {
+            List<Long> chunk = new ArrayList<>(all.subList(from, Math.min(all.size(), from + BATCH)));
+            jdbc.sql("""
+                            select source_id, own_id from platform_integration.source_references
+                             where source_system = :system and source_object_kind = :kind and source_id in (:sourceIds)
+                               and confirmation_status = 'CONFIRMED' and effective_from_date is null
+                            """)
+                    .param("system", system.name()).param("kind", kind.name()).param("sourceIds", chunk)
+                    .query((rs, n) -> Map.entry(new SourceObjectId(rs.getLong("source_id")), new OwnObjectId(rs.getObject("own_id", UUID.class))))
+                    .list().forEach(row -> found.put(row.getKey(), row.getValue()));
+        }
+        return found;
     }
 
     @Override

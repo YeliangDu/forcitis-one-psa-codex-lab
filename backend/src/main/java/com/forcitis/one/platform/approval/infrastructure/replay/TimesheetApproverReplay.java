@@ -36,7 +36,7 @@ final class TimesheetApproverReplay {
         for (ReplayExport.InstanceRecord instance : export.instances()) {
             ProcessVariables variables = new ProcessVariables(LegacyVocabulary.fields(instance.formFields()),
                     LegacyVocabulary.fields(instance.variables()));
-            EmployeeId initiator = new EmployeeId(instance.initiatorId());
+            EmployeeId initiator = ExportedIds.employee(instance.initiatorId());
             Set<String> flags = new HashSet<>();
             instance.legacyHourTypes().forEach(type -> flags.add(LegacyVocabulary.flag(type)));
             Map<String, ReplayExport.NodeRecord> exported = new LinkedHashMap<>();

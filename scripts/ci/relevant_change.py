@@ -51,6 +51,7 @@ LEGACY_IT_PATHS = (
     "backend/src/test/java/com/forcitis/one/platform/approval/infrastructure/legacy/",
     "backend/src/test/java/com/forcitis/one/acceptance/platform/integration/",
     "backend/src/test/java/com/forcitis/one/TestImages.java",
+    "backend/src/test/java/com/forcitis/one/fixture/doubles/TestOrgIds.java",
     "backend/src/test/java/com/forcitis/one/TestMssql.java",
     "backend/src/main/java/com/forcitis/one/kernel/WecomUserId.java",
     "backend/src/main/java/com/forcitis/one/kernel/ExternalSourceBrokenException.java",

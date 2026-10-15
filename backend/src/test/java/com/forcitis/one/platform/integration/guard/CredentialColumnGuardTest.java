@@ -149,7 +149,7 @@ class CredentialColumnGuardTest {
                 + "a new use needs its own ADR. Remove the column from the statement").isEmpty();
     }
 
-    /** Every source of platform.integration, and of any package that opens an external connection (the old to-do adapter of approval). */
+    /** Every source of platform.integration, and of any other package that opens an external connection. */
     static List<Path> integrationLayer() throws IOException {
         List<Path> java = files(MAIN_JAVA, ".java");
         Set<Path> adapterPackages = new TreeSet<>();
@@ -177,7 +177,7 @@ class CredentialColumnGuardTest {
     void integrationSqlNamesItsColumns() throws IOException {
         List<Path> layer = integrationLayer();
         assertThat(layer).as("the integration layer includes the adapters of both external databases")
-                .anyMatch(p -> p.toString().contains("seeyon")).anyMatch(p -> p.toString().contains("approval"));
+                .anyMatch(p -> p.toString().contains("seeyon")).anyMatch(p -> p.endsWith("JdbcLegacyInbox.java"));
         List<String> violations = new ArrayList<>();
         for (Path file : layer) {
             starSelections(stringLiterals(Files.readString(file))).forEach(star -> violations.add(file + " selects " + star));

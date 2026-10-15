@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -43,9 +44,9 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     private final OrgHistory history;
     private final BusinessZone zone;
 
-    JdbcOrgSnapshotRepository(JdbcClient jdbc, BusinessZone zone) {
+    JdbcOrgSnapshotRepository(JdbcClient jdbc, BusinessZone zone, IdGenerator ids) {
         this.jdbc = jdbc;
-        this.history = new OrgHistory(jdbc);
+        this.history = new OrgHistory(jdbc, ids);
         this.zone = zone;
     }
 
@@ -58,7 +59,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     public OrgSnapshot loadAll() {
         List<OrgUnit> units = jdbc.sql(OrgSnapshotRows.SELECT_ORG_UNITS).query((rs, n) -> OrgSnapshotRows.orgUnit(rs)).list();
         List<Position> positions = jdbc.sql("select id, code, name, sort_order, status from organization_workforce.positions")
-                .query((rs, n) -> new Position(new PositionId(rs.getLong("id")), rs.getString("code"), rs.getString("name"),
+                .query((rs, n) -> new Position(new PositionId(rs.getObject("id", UUID.class)), rs.getString("code"), rs.getString("name"),
                         OrgSnapshotRows.integer(rs, "sort_order"), PositionStatus.valueOf(rs.getString("status")))).list();
         List<StaffEmployee> staff = jdbc.sql(OrgSnapshotRows.SELECT_STAFF).query((rs, n) -> OrgSnapshotRows.staff(rs)).list();
         return new OrgSnapshot(units, positions, staff);
@@ -83,7 +84,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
         }
         history.recordOrgUnits(changes.orgUnits(), snapshotDate);
         // The unique WeCom key covers employed people only; clearing the batch first makes the write order irrelevant.
-        List<Long> staffIds = changes.staff().stream().map(s -> s.employeeId().value()).toList();
+        List<UUID> staffIds = changes.staff().stream().map(s -> s.employeeId().value()).toList();
         if (!staffIds.isEmpty()) {
             jdbc.sql("update organization_workforce.employees set wecom_user_id = null where id in (:ids) and wecom_user_id is not null")
                     .param("ids", staffIds).update();
@@ -171,13 +172,13 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
 
     @Override
     public Set<OrgUnitId> findOrgUnitIds() {
-        return jdbc.sql("select id from organization_workforce.org_units").query(Long.class).list().stream()
+        return jdbc.sql("select id from organization_workforce.org_units").query(UUID.class).list().stream()
                 .map(OrgUnitId::new).collect(Collectors.toSet());
     }
 
     @Override
     public Set<PositionId> findPositionIds() {
-        return jdbc.sql("select id from organization_workforce.positions").query(Long.class).list().stream()
+        return jdbc.sql("select id from organization_workforce.positions").query(UUID.class).list().stream()
                 .map(PositionId::new).collect(Collectors.toSet());
     }
 

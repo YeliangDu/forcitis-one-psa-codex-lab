@@ -44,8 +44,8 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
     DecideTasks decideTasks;
 
     ApprovalInstanceId startWithManagers(String key, long initiator, long... managers) {
-        return tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
+        return tx.execute(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(m -> TestAccounts.employee(m).toString()).toList())))));
     }
 
     static String dedupKey(ApprovalTaskId task) {

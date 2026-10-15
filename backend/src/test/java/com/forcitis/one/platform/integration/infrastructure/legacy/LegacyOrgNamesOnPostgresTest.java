@@ -3,15 +3,22 @@ package com.forcitis.one.platform.integration.infrastructure.legacy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
-import com.forcitis.one.platform.integration.api.SourceUnitId;
+import com.forcitis.one.platform.integration.api.ExternalSource;
+import com.forcitis.one.platform.integration.api.SourceObjectKind;
+import com.forcitis.one.platform.integration.application.InMemorySourceReferences;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.junit.jupiter.Container;
@@ -50,18 +57,45 @@ class LegacyOrgNamesOnPostgresTest {
         admin.sql("drop role if exists " + READER).update();
     }
 
-    @Test
-    @DisplayName("the short names are read with one statement over the two columns of the dedicated view")
-    void shortNamesAreRead() {
-        var names = new LegacyOrgNames(admin, VIEW, NO_RECHECK).readShortNames();
+    static InMemorySourceReferences referencesOf(long... legacyIds) {
+        InMemorySourceReferences references = new InMemorySourceReferences();
+        for (long id : legacyIds) {
+            references.confirm(ExternalSource.LEGACY_SYSTEM, SourceObjectKind.ORG_UNIT, id, TestOrgIds.orgUnit(id).value());
+        }
+        return references;
+    }
 
-        assertThat(names).containsEntry(new SourceUnitId(1), "HQ").containsEntry(new SourceUnitId(2), null).containsEntry(new SourceUnitId(3), null);
+    @Test
+    @DisplayName("the short names are read with one statement over the two columns of the dedicated view, under the own ids of the departments")
+    void shortNamesAreRead() {
+        var names = new LegacyOrgNames(admin, VIEW, NO_RECHECK, referencesOf(1, 2, 3)).readShortNames();
+
+        assertThat(names).containsEntry(TestOrgIds.ownOrgUnit(1), "HQ").containsEntry(TestOrgIds.ownOrgUnit(2), null).containsEntry(TestOrgIds.ownOrgUnit(3), null);
+    }
+
+    @Test
+    @DisplayName("ADR-0033 a department without a LEGACY_SYSTEM ORG_UNIT reference is left out with an ALERT; nothing is allocated")
+    void departmentWithoutReferenceIsLeftOut() {
+        InMemorySourceReferences references = referencesOf(1);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        Logger logger = (Logger) LoggerFactory.getLogger(LegacyOrgNames.class);
+        logger.addAppender(logged);
+        try {
+            var names = new LegacyOrgNames(admin, VIEW, NO_RECHECK, references).readShortNames();
+
+            assertThat(names).containsOnlyKeys(TestOrgIds.ownOrgUnit(1)).containsEntry(TestOrgIds.ownOrgUnit(1), "HQ");
+            assertThat(references.allocations()).isEmpty();
+            assertThat(logged.list).singleElement().satisfies(e -> assertThat(e.getFormattedMessage()).startsWith("ALERT ").contains("2 of 3"));
+        } finally {
+            logger.detachAppender(logged);
+        }
     }
 
     @Test
     @DisplayName("an unreachable view is an unavailable source, naming the failure type, error number and SQLState only (ADR-0037 item 3.5)")
     void unreadableView() {
-        assertThatThrownBy(() -> new LegacyOrgNames(admin, "legacy_stand_in.no_such_view", NO_RECHECK).readShortNames())
+        assertThatThrownBy(() -> new LegacyOrgNames(admin, "legacy_stand_in.no_such_view", NO_RECHECK, referencesOf()).readShortNames())
                 .isInstanceOf(ExternalSystemUnavailableException.class).hasMessageStartingWith("old system short names cannot be read").hasNoCause();
     }
 
@@ -73,7 +107,7 @@ class LegacyOrgNamesOnPostgresTest {
 
         assertThatThrownBy(() -> new LegacyOrgNames(reader, VIEW, () -> {
             throw new ExternalSystemUnavailableException("the external connection integration-legacy is stopped: (b)");
-        }).readShortNames()).isInstanceOf(ExternalSystemUnavailableException.class).hasMessageContaining("(b)");
+        }, referencesOf(1, 2, 3)).readShortNames()).isInstanceOf(ExternalSystemUnavailableException.class).hasMessageContaining("(b)");
     }
 
     private JdbcClient readerClient() {

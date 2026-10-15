@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import java.util.List;
@@ -26,7 +27,7 @@ public class RegisterEmployeeOnLogin {
     public Optional<StaffEmployee> execute(WecomUserId wecomUserId) {
         List<SourcePerson> found;
         try {
-            found = source.findStaffByWecomUser(wecomUserId);
+            found = source.findStaffByLogin(new StaffLookup.ByWecomUser(wecomUserId));
         } catch (ExternalSystemUnavailableException unavailable) {
             LOG.warn("organization.workforce login-miss lookup skipped, source not available: {}", unavailable.getMessage());
             return Optional.empty();
