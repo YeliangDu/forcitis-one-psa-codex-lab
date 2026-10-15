@@ -10,10 +10,9 @@ CREATE TABLE organization_attendance.work_calendar_years (
     updated_at      timestamptz NOT NULL DEFAULT now(),
     event_count     bigint      NOT NULL DEFAULT 0,
     CONSTRAINT pk_work_calendar_years PRIMARY KEY (id),
+    CONSTRAINT uk_work_calendar_years_legal_entity_id_year_number UNIQUE NULLS NOT DISTINCT (legal_entity_id, year_number),
     CONSTRAINT ck_work_calendar_years_year_range CHECK (year_number BETWEEN 2000 AND 2100)
 );
-CREATE UNIQUE INDEX uk_work_calendar_years_legal_entity_id_year_number
-    ON organization_attendance.work_calendar_years (COALESCE(legal_entity_id, '00000000-0000-0000-0000-000000000000'::uuid), year_number);
 COMMENT ON TABLE organization_attendance.work_calendar_years IS '工作日历年度：某个日历的一个已维护年份；没有这一行的年份视为未维护，依赖它的计算会失败；粒度：每个日历的每个年份一行';
 COMMENT ON COLUMN organization_attendance.work_calendar_years.id IS '工作日历年度 ID（UUIDv7）';
 COMMENT ON COLUMN organization_attendance.work_calendar_years.legal_entity_id IS '法人主体 ID；为空表示默认日历';

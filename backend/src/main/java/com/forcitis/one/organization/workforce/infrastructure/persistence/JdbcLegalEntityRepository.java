@@ -29,7 +29,7 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     JdbcLegalEntityRepository(JdbcClient jdbc, Clock clock, BusinessZone zone, IdGenerator ids) {
         this.ids = ids;
         this.jdbc = jdbc;
-        this.history = new LegalEntityHistory(jdbc);
+        this.history = new LegalEntityHistory(jdbc, ids);
         this.clock = clock;
         this.zone = zone;
     }

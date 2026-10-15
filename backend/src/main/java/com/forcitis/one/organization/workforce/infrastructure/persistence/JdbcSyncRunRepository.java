@@ -123,13 +123,14 @@ class JdbcSyncRunRepository implements SyncRunRepository {
 
     @Override
     public void saveDiffs(SyncRunId syncRunId, List<SyncDiff> diffs) {
+        int number = 0;
         for (SyncDiff d : diffs) {
             jdbc.sql("""
-                    insert into organization_workforce.sync_diffs (id, sync_run_id, entity_kind, subject_key, change_kind,
+                    insert into organization_workforce.sync_diffs (id, sync_run_id, diff_number, entity_kind, subject_key, change_kind,
                            changed_field_codes, issue_kind, detail)
-                    values (:id, :run, :entity, :subject, :change, :fields, :issue, :detail)
+                    values (:id, :run, :number, :entity, :subject, :change, :fields, :issue, :detail)
                     """)
-                    .param("id", ids.next()).param("run", syncRunId.value()).param("entity", d.entityKind().name()).param("subject", d.subjectKey())
+                    .param("id", ids.next()).param("run", syncRunId.value()).param("number", ++number).param("entity", d.entityKind().name()).param("subject", d.subjectKey())
                     .param("change", d.changeKind().name())
                     .param("fields", d.changedFields().isEmpty() ? null : d.changedFields().toArray(String[]::new), java.sql.Types.ARRAY)
                     .param("issue", d.issueKind() == null ? null : d.issueKind().name())

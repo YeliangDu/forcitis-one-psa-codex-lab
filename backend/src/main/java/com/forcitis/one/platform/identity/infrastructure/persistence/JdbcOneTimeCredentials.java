@@ -38,11 +38,11 @@ class JdbcOneTimeCredentials implements OneTimeCredentials {
     @Override
     public boolean markTicketUsed(String ticketSource, String ticketHash, Instant retainUntil) {
         return jdbc.sql("""
-                        insert into platform_identity.sso_ticket_uses (ticket_source, ticket_hash, expires_at)
-                        values (:source, :hash, :retain)
+                        insert into platform_identity.sso_ticket_uses (sso_ticket_use_id, ticket_source, ticket_hash, expires_at)
+                        values (:id, :source, :hash, :retain)
                         on conflict do nothing
                         """)
-                .param("source", ticketSource).param("hash", ticketHash).param("retain", utc(retainUntil)).update() == 1;
+                .param("id", ids.next()).param("source", ticketSource).param("hash", ticketHash).param("retain", utc(retainUntil)).update() == 1;
     }
 
     @Override

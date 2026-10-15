@@ -17,6 +17,7 @@ import java.time.Period;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
@@ -63,6 +64,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     private final BusinessZone zone;
     private final Policy policy;
     private final Counter probeFailures;
+    private final Counter reconciliationFailures;
     private final JsonMapper json = JsonMapper.builder().build();
 
     AuditArchiveJob(JdbcClient jdbc, ArchiveVault vault, Clock clock, IdGenerator ids, BusinessZone zone, Policy policy, MeterRegistry meters) {
@@ -75,6 +77,8 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         vault.requireTotalKeepPeriod("audit archive", policy.onlinePeriod());
         this.probeFailures = Counter.builder("forcitis.platform.audit.archive.probe.failures")
                 .description("Failed write probes of the audit archive target").register(meters);
+        this.reconciliationFailures = Counter.builder("forcitis.platform.audit.archive.reconciliation.failures")
+                .description("Runs where the entries up to the archived position differ in number from the archived batches").register(meters);
     }
 
     @Override
@@ -102,6 +106,26 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     void run() {
         int archived = archiveOlderThan(Instant.from(clock.instant().atZone(zone.zone()).minus(policy.onlinePeriod())));
         LOG.info("platform.audit archived {} audit entries", archived);
+        reconcile();
+    }
+
+    /**
+     * Archiving goes by id order and remembers the last id; an entry that gets an id below it later (another instance, a clock step) would
+     * never be archived. Every entry up to the archived position must be in a batch, and none is deleted online, so the counts must match.
+     */
+    void reconcile() {
+        Optional<UUID> last = jdbc.sql("select last_entry_id from platform_audit.audit_archive_batches order by last_entry_id desc limit 1")
+                .query(UUID.class).optional();
+        if (last.isEmpty()) {
+            return;
+        }
+        long archived = jdbc.sql("select coalesce(sum(entry_count), 0) from platform_audit.audit_archive_batches").query(Long.class).single();
+        long upToTheLast = jdbc.sql("select count(*) from platform_audit.audit_entries where id <= :last").param("last", last.get()).query(Long.class).single();
+        if (archived != upToTheLast) {
+            reconciliationFailures.increment();
+            LOG.error("ALERT platform.audit the audit trail up to entry {} has {} entries, the archived batches hold {}: entries are missing from the archive",
+                    last.get(), upToTheLast, archived);
+        }
     }
 
     int archiveOlderThan(Instant cutoff) {

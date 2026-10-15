@@ -4,12 +4,12 @@ import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.domain.ConsumedEvents;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Optional;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.modulith.events.ApplicationModuleListener;
@@ -73,7 +73,7 @@ class ApplyApprovalResult {
 
     private Optional<Timesheet> timesheetOf(ApprovalCompleted event) {
         try {
-            return timesheets.findForUpdate(new TimesheetId(UUID.fromString(event.document().documentId().value())));
+            return timesheets.findForUpdate(new TimesheetId(Uuids.parseCanonical(event.document().documentId().value())));
         } catch (IllegalArgumentException notOurs) {
             return Optional.empty();
         }

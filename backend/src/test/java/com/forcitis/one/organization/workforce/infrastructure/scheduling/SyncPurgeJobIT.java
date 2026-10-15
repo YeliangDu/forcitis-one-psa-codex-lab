@@ -58,7 +58,7 @@ class SyncPurgeJobIT {
     }
 
     private void diff(UUID runId) {
-        jdbc.sql("insert into organization_workforce.sync_diffs (id, sync_run_id, entity_kind, subject_key, change_kind) values (uuidv7(), :run, 'EMPLOYEE', '1', 'CREATED')")
+        jdbc.sql("insert into organization_workforce.sync_diffs (id, sync_run_id, diff_number, entity_kind, subject_key, change_kind) values (uuidv7(), :run, 1, 'EMPLOYEE', '1', 'CREATED')")
                 .param("run", runId).update();
     }
 

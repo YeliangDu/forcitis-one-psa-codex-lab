@@ -44,14 +44,17 @@ COMMENT ON COLUMN cost_timesheet.timesheets.org_unit_id IS '组织单元（组�
 COMMENT ON COLUMN cost_timesheet.timesheets.submitted_date IS '提交日：员工提交审批的业务日期（Asia/Shanghai）；重新提交时更新；与工作日期是两件事，空表示从未提交';
 
 CREATE TABLE cost_timesheet.consumed_events (
+    consumed_event_id uuid    NOT NULL,
     event_id      uuid        NOT NULL,
     consumer_name text        NOT NULL,
     consumed_at   timestamptz NOT NULL DEFAULT now(),
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_consumed_events PRIMARY KEY (event_id, consumer_name)
+    CONSTRAINT pk_consumed_events PRIMARY KEY (consumed_event_id),
+    CONSTRAINT uk_consumed_events_event_id_consumer_name UNIQUE (event_id, consumer_name)
 );
 COMMENT ON TABLE cost_timesheet.consumed_events IS '已处理的事件：幂等记录；粒度：每个消费方每个事件标识一行，只追加；消费方按事件标识去重，事件至少投递一次';
+COMMENT ON COLUMN cost_timesheet.consumed_events.consumed_event_id IS '已处理事件记录 ID（UUIDv7）';
 COMMENT ON COLUMN cost_timesheet.consumed_events.event_id IS '事件标识：事件信封的事件 ID，兼作幂等键';
 COMMENT ON COLUMN cost_timesheet.consumed_events.consumer_name IS '消费者名称：处理该事件的监听者，同一事件可被多个监听者各处理一次';
 COMMENT ON COLUMN cost_timesheet.consumed_events.consumed_at IS '处理时间';

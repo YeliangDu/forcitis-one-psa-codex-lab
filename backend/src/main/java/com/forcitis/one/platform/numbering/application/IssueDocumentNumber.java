@@ -14,7 +14,6 @@ import com.forcitis.one.platform.numbering.domain.TemplateVersion;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDate;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -46,7 +45,7 @@ class IssueDocumentNumber implements DocumentNumbers {
         LegalEntityCode legalEntityCode = legalEntities.lockActiveCode(legalEntity)
                 .orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE, ErrorKind.UNPROCESSABLE,
                         "Legal entity " + legalEntity.value() + " does not exist or is deactivated"));
-        UUID counterScope = template.pattern().usesLegalEntityCode() ? legalEntity.value() : NumberingRuleRepository.GLOBAL_COUNTER_SCOPE;
+        LegalEntityId counterScope = template.pattern().usesLegalEntityCode() ? legalEntity : null;
         String periodKey = template.pattern().resetPolicy().periodKey(businessDate);
         long sequence = rules.reserveNext(type, counterScope, periodKey, template.startValue());
         return new DocumentNumber(template.pattern().render(type.code().orElse(null), template.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, sequence));

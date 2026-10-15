@@ -183,14 +183,27 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("a run that was killed mid-way is closed as failed by the next run, a recent one is left alone")
     void interruptedRunsAreClosed() {
-        jdbc.sql("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (uuidv7(), 'SCHEDULED', 'RUNNING', now() - interval '1 hour')").update();
-        jdbc.sql("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (uuidv7(), 'SCHEDULED', 'RUNNING', now() - interval '1 minute')").update();
+        UUID old = TestIds.uuid(1);
+        UUID recent = TestIds.uuid(2);
+        insertRunning(old, clock.instant().minus(java.time.Duration.ofHours(1)));
+        insertRunning(recent, clock.instant().minus(java.time.Duration.ofMinutes(1)));
         orgSource.snapshot = tree(person(1, 2, 100L, null));
 
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SyncResult result = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        assertThat(jdbc.sql("select status || ':' || coalesce(failure_reason, '') from organization_workforce.sync_runs order by id").query(String.class).list())
-                .containsExactly("FAILED:interrupted: the run never finished", "RUNNING:", "SUCCEEDED:");
+        assertThat(stateOf(old)).isEqualTo("FAILED:interrupted: the run never finished");
+        assertThat(stateOf(recent)).isEqualTo("RUNNING:");
+        assertThat(stateOf(result.syncRunId().value())).isEqualTo("SUCCEEDED:");
+    }
+
+    private void insertRunning(UUID id, java.time.Instant startedAt) {
+        jdbc.sql("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (:id, 'SCHEDULED', 'RUNNING', :startedAt)")
+                .param("id", id).param("startedAt", java.sql.Timestamp.from(startedAt)).update();
+    }
+
+    private String stateOf(UUID id) {
+        return jdbc.sql("select status || ':' || coalesce(failure_reason, '') from organization_workforce.sync_runs where id = :id")
+                .param("id", id).query(String.class).single();
     }
 
     @Test

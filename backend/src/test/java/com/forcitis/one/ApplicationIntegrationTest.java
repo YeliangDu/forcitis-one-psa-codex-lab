@@ -204,8 +204,8 @@ class ApplicationIntegrationTest {
         jdbc.update("""
                 update platform_numbering.numbering_rule_versions
                    set status = 'CONFIRMED', confirmed_by = 101, confirmed_at = now(),
-                       finance_confirmed_by = case when document_type = 'JOURNAL_VOUCHER' then 102 end,
-                       finance_confirmed_at = case when document_type = 'JOURNAL_VOUCHER' then now() end
+                       finance_confirmed_by = case when (select r.document_type from platform_numbering.numbering_rules r where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then 102 end,
+                       finance_confirmed_at = case when (select r.document_type from platform_numbering.numbering_rules r where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then now() end
                  where version_number = 1 and status = 'PENDING_CONFIRMATION'
                 """);
     }

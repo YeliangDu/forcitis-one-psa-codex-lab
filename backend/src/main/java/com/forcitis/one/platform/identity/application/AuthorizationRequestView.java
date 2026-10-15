@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-public record AuthorizationRequestView(String requestId, String kind, long requestedBy, Instant requestedAt, @Nullable Long subjectUserId,
+public record AuthorizationRequestView(UUID requestId, String kind, long requestedBy, Instant requestedAt, @Nullable Long subjectUserId,
                                        @Nullable UUID roleId, List<String> roleCodes, @Nullable String roleName, List<String> permissionCodes) {
 
     public AuthorizationRequestView {
@@ -15,7 +15,7 @@ public record AuthorizationRequestView(String requestId, String kind, long reque
     }
 
     static AuthorizationRequestView of(AuthorizationRequest request) {
-        return new AuthorizationRequestView(request.requestId().value().toString(), request.kind().name(), request.requestedBy().value(),
+        return new AuthorizationRequestView(request.requestId().value(), request.kind().name(), request.requestedBy().value(),
                 request.requestedAt(), request.subjectUser() == null ? null : request.subjectUser().value(),
                 request.roleId() == null ? null : request.roleId().value(), request.roleCodes().stream().sorted().toList(),
                 request.roleDraft() == null ? null : request.roleDraft().name(),

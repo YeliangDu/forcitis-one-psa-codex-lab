@@ -4,11 +4,8 @@ import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.LegalEntityId;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 public interface NumberingRuleRepository {
-    UUID GLOBAL_COUNTER_SCOPE = new UUID(0, 0);
-
     Optional<NumberingRule> findActive(DocumentType type);
 
     List<NumberingRule> findAllActive();
@@ -23,6 +20,6 @@ public interface NumberingRuleRepository {
     void save(NumberingRule rule);
 
     /** Atomically reserves the next value of the counter (row lock until the surrounding transaction ends).
-     *  counterScope is the legal entity id, or GLOBAL_COUNTER_SCOPE when the template has no {LE}. */
-    long reserveNext(DocumentType type, UUID counterScope, String periodKey, long startValue);
+     *  legalEntity is null when the template has no {LE}: that counter is global. */
+    long reserveNext(DocumentType type, LegalEntityId legalEntity, String periodKey, long startValue);
 }

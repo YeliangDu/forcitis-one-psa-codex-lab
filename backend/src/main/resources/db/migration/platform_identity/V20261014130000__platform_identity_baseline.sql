@@ -121,15 +121,18 @@ COMMENT ON COLUMN platform_identity.login_states.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_identity.login_states.binding_hash IS '发起 state 的浏览器所持绑定值的 SHA-256 十六进制；消费 state 时必须出示同一绑定值，攻击者带自己的 state 诱导他人登录时对不上';
 
 CREATE TABLE platform_identity.sso_ticket_uses (
+    sso_ticket_use_id uuid    NOT NULL,
     ticket_source text        NOT NULL,
     ticket_hash   text        NOT NULL,
     expires_at    timestamptz NOT NULL,
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (ticket_source, ticket_hash)
+    CONSTRAINT pk_sso_ticket_uses PRIMARY KEY (sso_ticket_use_id),
+    CONSTRAINT uk_sso_ticket_uses_ticket_source_ticket_hash UNIQUE (ticket_source, ticket_hash)
 );
 CREATE INDEX ix_sso_ticket_uses_expiry ON platform_identity.sso_ticket_uses (expires_at);
-COMMENT ON TABLE platform_identity.sso_ticket_uses IS '已使用的一次性凭证：主键即唯一约束，并发重放只有一次插入成功（I-9，RULE-320）。粒度：每个已使用的一次性凭证一行';
+COMMENT ON TABLE platform_identity.sso_ticket_uses IS '已使用的一次性凭证：（凭证来源，摘要）的唯一约束保证并发重放只有一次插入成功（I-9，RULE-320）。粒度：每个已使用的一次性凭证一行';
+COMMENT ON COLUMN platform_identity.sso_ticket_uses.sso_ticket_use_id IS '已使用凭证 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.sso_ticket_uses.ticket_source IS '凭证来源：SSO（门户票据），或签发方编码（签名票据的 nonce）';
 COMMENT ON COLUMN platform_identity.sso_ticket_uses.ticket_hash IS '票据或 nonce 的 SHA-256 十六进制，不存明文';
 COMMENT ON COLUMN platform_identity.sso_ticket_uses.expires_at IS '记录保留到该时间后清理（门户票据 7 天，签名票据略长于票据有效期）';

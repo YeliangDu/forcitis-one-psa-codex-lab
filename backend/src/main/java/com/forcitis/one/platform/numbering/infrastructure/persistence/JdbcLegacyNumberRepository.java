@@ -68,7 +68,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
                         select document_type, legacy_number, document_id, legal_entity_id, import_batch
                           from platform_numbering.legacy_numbers
                          where document_type = :type and document_id = :document
-                         order by id
+                         order by legacy_number
                         """)
                 .param("type", document.documentType().name())
                 .param("document", UUID.fromString(document.documentId().value()))

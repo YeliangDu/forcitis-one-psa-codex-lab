@@ -179,6 +179,43 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @DisplayName("H-2 sync records page by start time and id, so runs that started at the same moment are neither skipped nor repeated; differences keep the order they were found in")
+    void syncRunsPageByStartTimeAndId() throws Exception {
+        jdbc.sql("truncate table organization_workforce.sync_diffs, organization_workforce.sync_runs cascade").update();
+        java.time.Instant moment = java.time.Instant.parse("2026-10-14T01:00:00Z");
+        run(TestIds.uuid(10), moment);
+        run(TestIds.uuid(11), moment);
+        run(TestIds.uuid(12), moment.plusSeconds(3600));
+        run(TestIds.uuid(9), moment.minusSeconds(3600));
+        for (int number = 1; number <= 3; number++) {
+            jdbc.sql("insert into organization_workforce.sync_diffs (id, sync_run_id, diff_number, entity_kind, subject_key, change_kind)"
+                    + " values (:id, :run, :number, 'EMPLOYEE', :subject, 'CREATED')")
+                    .param("id", TestIds.uuid(100 - number)).param("run", TestIds.uuid(12)).param("number", number).param("subject", "employee:" + (4 - number)).update();
+        }
+
+        java.util.List<String> seen = new java.util.ArrayList<>();
+        String cursor = null;
+        do {
+            var request = get(SYNC_RUNS).param("limit", "2").with(READ_RUNS);
+            if (cursor != null) {
+                request = request.param("cursor", cursor);
+            }
+            String body = mvc.perform(request).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            com.jayway.jsonpath.JsonPath.<java.util.List<String>>read(body, "$.items[*].syncRunId").forEach(seen::add);
+            cursor = com.jayway.jsonpath.JsonPath.read(body, "$.nextCursor");
+        } while (cursor != null);
+
+        assertThat(seen).containsExactly(TestIds.uuid(12).toString(), TestIds.uuid(11).toString(), TestIds.uuid(10).toString(), TestIds.uuid(9).toString());
+        mvc.perform(get(SYNC_RUNS + "/" + TestIds.uuid(12)).with(READ_RUNS))
+                .andExpect(jsonPath("$.diffs[*].subjectKey").value(org.hamcrest.Matchers.contains("employee:3", "employee:2", "employee:1")));
+    }
+
+    private void run(java.util.UUID id, java.time.Instant startedAt) {
+        jdbc.sql("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (:id, 'SCHEDULED', 'SUCCEEDED', :startedAt)")
+                .param("id", id).param("startedAt", java.sql.Timestamp.from(startedAt)).update();
+    }
+
+    @Test
     @DisplayName("RULE-358 releasing a held run needs the execute permission, a CSRF token and a HELD run; the actor is the session user")
     void releaseHeldRun() throws Exception {
         List<SourcePerson> ten = new ArrayList<>();

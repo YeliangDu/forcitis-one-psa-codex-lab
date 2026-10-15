@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -15,6 +16,7 @@ import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.identity.events.RoleCreated;
 import jakarta.servlet.http.Cookie;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -84,6 +86,32 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(result).path("enabled").asBoolean()).isTrue();
         assertThat(jdbc.sql("select access_scope from platform_identity.roles where code = 'analyst'").query(String.class).single()).isEqualTo("SELF");
         assertThat(recordedEvents.stream(RoleCreated.class)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("a role id in a response body is the canonical UUID of the role: created, read, listed and updated")
+    void roleIdsAreCanonicalUuids() throws Exception {
+        MvcResult created = createRole("analyst", "Analyst", "\"platform.approval:task:read\"", null);
+        UUID analyst = roleId("analyst");
+        String canonical = analyst.toString();
+
+        assertThat(created.getResponse().getStatus()).isEqualTo(201);
+        assertThat(body(created).path("roleId").asString()).isEqualTo(canonical);
+        assertThat(created.getResponse().getHeader("Location")).isEqualTo(ROLES + "/" + canonical);
+
+        MvcResult read = mvc.perform(get(ROLES + "/" + canonical).with(reader)).andReturn();
+        assertThat(read.getResponse().getStatus()).isEqualTo(200);
+        assertThat(body(read).path("roleId").asString()).isEqualTo(canonical);
+
+        MvcResult listed = mvc.perform(get(ROLES).with(reader)).andReturn();
+        List<String> listedIds = new ArrayList<>();
+        body(listed).path("items").forEach(item -> listedIds.add(item.path("roleId").asString()));
+        assertThat(listedIds).contains(canonical).allSatisfy(id -> assertThat(Uuids.parseCanonical(id).version()).isEqualTo(7));
+
+        MvcResult updated = mvc.perform(put(ROLES + "/" + canonical).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Senior analyst\",\"enabled\":true,\"permissionCodes\":[]}")).andReturn();
+        assertThat(updated.getResponse().getStatus()).isEqualTo(200);
+        assertThat(body(updated).path("roleId").asString()).isEqualTo(canonical);
     }
 
     @Test

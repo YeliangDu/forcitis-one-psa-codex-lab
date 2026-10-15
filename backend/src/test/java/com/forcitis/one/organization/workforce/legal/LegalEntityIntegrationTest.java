@@ -118,6 +118,20 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @DisplayName("L-1 an id is read in its one canonical form: upper case, short forms and the nil UUID are refused with 400, in the path and in the body")
+    void idsAreReadCanonically() throws Exception {
+        UUID one = create("FST", "One");
+
+        mvc.perform(get(LEGAL_ENTITIES + "/" + one).with(READER)).andExpect(status().isOk());
+        mvc.perform(get(LEGAL_ENTITIES + "/" + one.toString().toUpperCase()).with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(get(LEGAL_ENTITIES + "/1-1-1-1-1").with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(get(LEGAL_ENTITIES + "/00000000-0000-0000-0000-000000000000").with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/2").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + one.toString().toUpperCase() + "\",\"effectiveFrom\":\"2026-10-01\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("the database itself refuses a code that is not 2 to 10 upper-case letters")
     void databaseChecksTheCodeFormat() {
         assertThatThrownBy(() -> jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (uuidv7(), 'fst', 'x', 'ACTIVE')").update())

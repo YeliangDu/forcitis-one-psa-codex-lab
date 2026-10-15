@@ -58,6 +58,9 @@ class AuditArchiveJobIT {
     @Autowired
     JdbcClient jdbc;
 
+    @Autowired
+    io.micrometer.core.instrument.MeterRegistry meters;
+
     @BeforeEach
     void empty() {
         vault.reset();
@@ -122,6 +125,24 @@ class AuditArchiveJobIT {
         job.run();
 
         assertThat(vault.lines()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("L-2 an old entry that appears below the archived position is never archived; the reconciliation counts it and raises the alarm")
+    void aMissedEntryIsReported() {
+        entry("old.one", "1200 days");
+        entry("old.two", "1150 days");
+        double before = meters.counter("forcitis.platform.audit.archive.reconciliation.failures").count();
+
+        job.run();
+        assertThat(meters.counter("forcitis.platform.audit.archive.reconciliation.failures").count()).as("every entry up to the position is in a batch").isEqualTo(before);
+
+        jdbc.sql("insert into platform_audit.audit_entries (id, action, subject_key, created_at) values (:id, 'old.late', 'x:1', now() - interval '1300 days')")
+                .param("id", new UUID(0x0000_0000_0000_7000L, 0x8000_0000_0000_0001L)).update();
+        job.run();
+
+        assertThat(vault.lines()).as("the late entry is not in the archive").hasSize(2);
+        assertThat(meters.counter("forcitis.platform.audit.archive.reconciliation.failures").count()).isEqualTo(before + 1);
     }
 
     @Test

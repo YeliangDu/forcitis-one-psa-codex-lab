@@ -3,6 +3,7 @@ package com.forcitis.one.platform.numbering.infrastructure.persistence;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.numbering.api.NumberingError;
@@ -32,8 +33,10 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    JdbcNumberingRuleRepository(JdbcClient jdbc, Clock clock) {
+    JdbcNumberingRuleRepository(JdbcClient jdbc, Clock clock, IdGenerator ids) {
+        this.ids = ids;
         this.clock = clock;
         this.jdbc = jdbc;
     }
@@ -66,7 +69,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                         select version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, confirmed_by, confirmed_at,
                                finance_confirmed_by, finance_confirmed_at
                           from platform_numbering.numbering_rule_versions
-                         where document_type = :type
+                         where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = :type)
                          order by version_number
                         """)
                 .param("type", type)
@@ -130,11 +133,12 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     private void insert(DocumentType type, TemplateVersion saved) {
         jdbc.sql("""
-                        insert into platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value,
-                                                                                effective_from_date, author_id, authored_at, status)
-                        values (:type, :number, :template, :reset, :start, :effectiveFrom, :author, :authoredAt, :status)
+                        insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text,
+                                                                                reset_policy, start_value, effective_from_date, author_id, authored_at, status)
+                        select :id, numbering_rule_id, :number, :template, :reset, :start, :effectiveFrom, :author, :authoredAt, :status
+                          from platform_numbering.numbering_rules where document_type = :type
                         """)
-                .param("type", type.name()).param("number", saved.number()).param("template", saved.pattern().value())
+                .param("id", ids.next()).param("type", type.name()).param("number", saved.number()).param("template", saved.pattern().value())
                 .param("reset", saved.pattern().resetPolicy().name()).param("start", saved.startValue()).param("effectiveFrom", saved.effectiveFrom())
                 .param("author", saved.author() == null ? null : saved.author().value(), Types.BIGINT)
                 .param("authoredAt", OffsetDateTime.ofInstant(saved.authoredAt(), ZoneOffset.UTC)).param("status", saved.status().name()).update();
@@ -146,7 +150,8 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                         update platform_numbering.numbering_rule_versions
                            set status = :status, confirmed_by = :confirmedBy, confirmed_at = :confirmedAt,
                                finance_confirmed_by = :financeBy, finance_confirmed_at = :financeAt, updated_at = :updatedAt
-                         where document_type = :type and version_number = :number and status = :before
+                         where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = :type)
+                           and version_number = :number and status = :before
                         """)
                 .param("status", changed.status().name()).param("confirmedBy", changed.confirmedBy() == null ? null : changed.confirmedBy().value(), Types.BIGINT)
                 .param("confirmedAt", changed.confirmedAt() == null ? null : OffsetDateTime.ofInstant(changed.confirmedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
@@ -165,16 +170,17 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     }
 
     @Override
-    public long reserveNext(DocumentType type, UUID counterScope, String periodKey, long startValue) {
+    public long reserveNext(DocumentType type, LegalEntityId legalEntity, String periodKey, long startValue) {
         return jdbc.sql("""
-                        insert into platform_numbering.numbering_counters (document_type, legal_entity_id, period_key, last_value)
-                        values (:type, :le, :period, :start)
+                        insert into platform_numbering.numbering_counters (numbering_counter_id, document_type, legal_entity_id, period_key, last_value)
+                        values (:id, :type, :le, :period, :start)
                         on conflict (document_type, legal_entity_id, period_key) do update
                            set last_value = platform_numbering.numbering_counters.last_value + 1, updated_at = :updatedAt
                         returning last_value
                         """)
+                .param("id", ids.next())
                 .param("type", type.name())
-                .param("le", counterScope)
+                .param("le", legalEntity == null ? null : legalEntity.value(), Types.OTHER)
                 .param("period", periodKey)
                 .param("start", startValue)
                 .param("updatedAt", Timestamp.from(clock.instant()))

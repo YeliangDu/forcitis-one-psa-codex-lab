@@ -14,7 +14,8 @@ CREATE TABLE platform_numbering.numbering_rules (
     version             bigint      NOT NULL DEFAULT 0,
     confirmation_status text        DEFAULT 'PENDING_CONFIRMATION' CHECK (confirmation_status IN ('PENDING_CONFIRMATION', 'CONFIRMED')),
     event_count         bigint      NOT NULL DEFAULT 0,
-    CONSTRAINT uk_numbering_rules_document_type UNIQUE (document_type)
+    CONSTRAINT uk_numbering_rules_document_type UNIQUE (document_type),
+    CONSTRAINT ck_numbering_rules_document_type CHECK (document_type IN ('QUOTE', 'TIMESHEET', 'JOURNAL_VOUCHER'))
 );
 COMMENT ON TABLE platform_numbering.numbering_rules IS '编号规则：每种单据一条，是版本的聚合根；模板内容在 numbering_rule_versions，由组织数据管理员维护、业务管理员确认（凭证号另需财务确认）。粒度：每种单据一行';
 COMMENT ON COLUMN platform_numbering.numbering_rules.numbering_rule_id IS '编号规则 ID（UUIDv7）';
@@ -30,17 +31,20 @@ COMMENT ON COLUMN platform_numbering.numbering_rules.confirmation_status IS '确
 COMMENT ON COLUMN platform_numbering.numbering_rules.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 
 CREATE TABLE platform_numbering.numbering_counters (
-    document_type   text        NOT NULL,
-    legal_entity_id uuid        NOT NULL,
-    period_key      text        NOT NULL,
-    last_value      bigint      NOT NULL,
-    created_at      timestamptz NOT NULL DEFAULT now(),
-    updated_at      timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (document_type, legal_entity_id, period_key)
+    numbering_counter_id uuid        NOT NULL,
+    document_type        text        NOT NULL,
+    legal_entity_id      uuid,
+    period_key           text        NOT NULL,
+    last_value           bigint      NOT NULL,
+    created_at           timestamptz NOT NULL DEFAULT now(),
+    updated_at           timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_numbering_counters PRIMARY KEY (numbering_counter_id),
+    CONSTRAINT uk_numbering_counters_document_type_legal_entity_id_period_key UNIQUE NULLS NOT DISTINCT (document_type, legal_entity_id, period_key)
 );
 COMMENT ON TABLE platform_numbering.numbering_counters IS '编号计数器：按单据类型 × 法人 × 周期计数，与业务写入同事务递增（不跳号）。粒度：每个单据类型、法人、周期一行';
+COMMENT ON COLUMN platform_numbering.numbering_counters.numbering_counter_id IS '编号计数器 ID（UUIDv7）';
 COMMENT ON COLUMN platform_numbering.numbering_counters.document_type IS '单据类型';
-COMMENT ON COLUMN platform_numbering.numbering_counters.legal_entity_id IS '法人主体 ID';
+COMMENT ON COLUMN platform_numbering.numbering_counters.legal_entity_id IS '法人主体 ID；模板不含法人代码时按全局计数，此列为空';
 COMMENT ON COLUMN platform_numbering.numbering_counters.period_key IS '周期键：- / 2026 / 202610 / 20261014';
 COMMENT ON COLUMN platform_numbering.numbering_counters.last_value IS '已发出的最大流水号';
 COMMENT ON COLUMN platform_numbering.numbering_counters.created_at IS '创建时间';
@@ -70,7 +74,8 @@ COMMENT ON COLUMN platform_numbering.legacy_numbers.updated_at IS '更新时间'
 
 -- ADR-0027 第 2 项第 4 条：编号模板按版本保存、不可变；作者不得确认自己的版本；未确认的规则不发号。
 CREATE TABLE platform_numbering.numbering_rule_versions (
-    document_type        text        NOT NULL CHECK (document_type IN ('QUOTE', 'TIMESHEET', 'JOURNAL_VOUCHER')),
+    numbering_rule_version_id uuid   NOT NULL,
+    numbering_rule_id    uuid        NOT NULL,
     version_number       integer     NOT NULL CHECK (version_number >= 1),
     template_text        text        NOT NULL,
     reset_policy         text        NOT NULL CHECK (reset_policy IN ('NEVER', 'YEARLY', 'MONTHLY', 'DAILY')),
@@ -85,8 +90,9 @@ CREATE TABLE platform_numbering.numbering_rule_versions (
     finance_confirmed_at timestamptz,
     created_at           timestamptz NOT NULL DEFAULT now(),
     updated_at           timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_numbering_rule_versions PRIMARY KEY (document_type, version_number),
-    CONSTRAINT fk_numbering_rule_versions_document_type FOREIGN KEY (document_type) REFERENCES platform_numbering.numbering_rules (document_type),
+    CONSTRAINT pk_numbering_rule_versions PRIMARY KEY (numbering_rule_version_id),
+    CONSTRAINT uk_numbering_rule_versions_numbering_rule_id_version_number UNIQUE (numbering_rule_id, version_number),
+    CONSTRAINT fk_numbering_rule_versions_numbering_rule_id FOREIGN KEY (numbering_rule_id) REFERENCES platform_numbering.numbering_rules (numbering_rule_id),
     CONSTRAINT ck_numbering_rule_versions_confirmer_is_not_author
         CHECK (author_id IS NULL OR ((confirmed_by IS NULL OR confirmed_by <> author_id) AND (finance_confirmed_by IS NULL OR finance_confirmed_by <> author_id))),
     CONSTRAINT ck_numbering_rule_versions_two_different_confirmers
@@ -94,10 +100,11 @@ CREATE TABLE platform_numbering.numbering_rule_versions (
     CONSTRAINT ck_numbering_rule_versions_confirmation_time
         CHECK ((confirmed_by IS NULL) = (confirmed_at IS NULL) AND (finance_confirmed_by IS NULL) = (finance_confirmed_at IS NULL))
 );
-CREATE UNIQUE INDEX uk_numbering_rule_versions_document_type ON platform_numbering.numbering_rule_versions (document_type)
+CREATE UNIQUE INDEX uk_numbering_rule_versions_numbering_rule_id ON platform_numbering.numbering_rule_versions (numbering_rule_id)
     WHERE status = 'PENDING_CONFIRMATION';
-COMMENT ON TABLE platform_numbering.numbering_rule_versions IS '编号规则版本：模板按版本保存，保存后内容不可变（触发器拒绝修改内容与删除），只补确认；每种单据至多一个待确认版本，已确认的最高版本发号。粒度：每种单据的每个模板版本一行';
-COMMENT ON COLUMN platform_numbering.numbering_rule_versions.document_type IS '单据类型（DocumentType 枚举名）';
+COMMENT ON TABLE platform_numbering.numbering_rule_versions IS '编号规则版本：模板按版本保存，保存后内容不可变（触发器拒绝修改内容与删除），只补确认；每条规则至多一个待确认版本，已确认的最高版本发号。粒度：每种单据的每个模板版本一行';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.numbering_rule_version_id IS '编号规则版本 ID（UUIDv7）';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.numbering_rule_id IS '编号规则 ID：所属规则，规则的单据类型见 numbering_rules';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.version_number IS '版本号：每种单据从 1 递增，每保存一次新模板加 1';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.template_text IS '编号模板，占位符 {TYPE} {LE} {yyyy} {yy} {MM} {dd} {yyyyMM} {yyyyMMdd} {yyMMdd} {seq:N}（N 为 1 至 12），如 {TYPE}-{LE}-{yyyyMM}-{seq:4}';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.reset_policy IS '流水号重置周期：NEVER / YEARLY / MONTHLY / DAILY';
@@ -119,7 +126,7 @@ BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_numbering.numbering_rule_versions is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
     END IF;
-    IF NEW.document_type IS DISTINCT FROM OLD.document_type OR NEW.version_number IS DISTINCT FROM OLD.version_number
+    IF NEW.numbering_rule_id IS DISTINCT FROM OLD.numbering_rule_id OR NEW.version_number IS DISTINCT FROM OLD.version_number
        OR NEW.template_text IS DISTINCT FROM OLD.template_text OR NEW.reset_policy IS DISTINCT FROM OLD.reset_policy
        OR NEW.start_value IS DISTINCT FROM OLD.start_value OR NEW.effective_from_date IS DISTINCT FROM OLD.effective_from_date
        OR NEW.author_id IS DISTINCT FROM OLD.author_id OR NEW.authored_at IS DISTINCT FROM OLD.authored_at THEN
@@ -150,6 +157,8 @@ INSERT INTO platform_numbering.numbering_rules (numbering_rule_id, document_type
     ('019a0000-0000-7000-8000-000000000303', 'JOURNAL_VOUCHER', '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, 'PENDING_CONFIRMATION', 1, 1);
 
 -- 种子规则的模板成为版本 1，一律待确认：由业务管理员按四眼确认（凭证号模板另由财务确认）。
-INSERT INTO platform_numbering.numbering_rule_versions (document_type, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status)
-SELECT document_type, 1, pattern, reset_policy, start_value, DATE '2000-01-01', now(), 'PENDING_CONFIRMATION'
-  FROM platform_numbering.numbering_rules;
+INSERT INTO platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status)
+SELECT seeds.version_id, rules.numbering_rule_id, 1, rules.pattern, rules.reset_policy, rules.start_value, DATE '2000-01-01', now(), 'PENDING_CONFIRMATION'
+  FROM platform_numbering.numbering_rules rules
+  JOIN (VALUES ('QUOTE', '019a0000-0000-7000-8000-000000000501'::uuid), ('TIMESHEET', '019a0000-0000-7000-8000-000000000502'::uuid), ('JOURNAL_VOUCHER', '019a0000-0000-7000-8000-000000000503'::uuid)) AS seeds (document_type, version_id)
+    ON seeds.document_type = rules.document_type;
