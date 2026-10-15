@@ -5,6 +5,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.platform.identity.application.PurgeExpiredSessions;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,20 @@ class SessionPurgeClockIT extends AccountsAcceptanceSupport {
         return signedIn;
     }
 
+    /** Session times are the framework's own (system clock, epoch millis): the row is aged on that basis, last access 11 h ago, expiry 1 h ago. */
+    private void makeIdlePastTheTimeout(SignedIn signedIn) throws Exception {
+        long now = System.currentTimeMillis();
+        try (Connection identity = schemaConnection("platform_identity");
+             PreparedStatement age = identity.prepareStatement(
+                     "update sessions set creation_time = ?, last_access_time = ?, expiry_time = ? where principal_name = ?")) {
+            age.setLong(1, now - Duration.ofHours(11).toMillis());
+            age.setLong(2, now - Duration.ofHours(11).toMillis());
+            age.setLong(3, now - Duration.ofHours(1).toMillis());
+            age.setString(4, signedIn.userId().toString());
+            assertThat(age.executeUpdate()).as("session rows aged").isEqualTo(1);
+        }
+    }
+
     @Test
     @DisplayName("FLAKY-SESS 刚登录、未过期的会话，清理作业执行一次后仍有效（200），不被误删")
     void aFreshSessionSurvivesAPurge() throws Exception {
@@ -56,10 +72,10 @@ class SessionPurgeClockIT extends AccountsAcceptanceSupport {
     }
 
     @Test
-    @DisplayName("FLAKY-SESS（对照）固定时钟推进到超过空闲期（10 小时）后，清理删除该会话，带会话请求得 401")
+    @DisplayName("FLAKY-SESS（对照）会话的最后访问时间早于空闲期（10 小时）之前，清理删除该会话，带会话请求得 401")
     void anIdleSessionIsStillPurged() throws Exception {
         SignedIn signedIn = freshLogin();
-        clock.set(NOW.plus(Duration.ofHours(11)));
+        makeIdlePastTheTimeout(signedIn);
 
         int removed = purgeExpiredSessions.execute();
 
