@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionStart(compact) hook: after auto-compaction, re-inject the long-lived session's context document
+# SessionStart(compact|clear) hook: after compaction or /clear, re-inject the long-lived session's context document
 # and its latest pre-compact snapshot, so key state survives beyond the compaction summary (SESSION_PLAYBOOK §2.1).
 set -u
 input=$(cat)
@@ -21,7 +21,7 @@ done < "$map"
 snapshot=$(ls -t "$HOME/.modernize/psa/handoff/"*"-${session_id}.md" 2>/dev/null | head -1)
 
 if [ -n "$doc" ] && [ -f "$root/$doc" ]; then
-  echo "【压缩后恢复上下文】本会话的长期上下文文档 $doc 全文如下，以它为准接续工作；完成点后继续更新它。"
+  echo "【压缩或清空后恢复上下文】本会话的长期上下文文档 $doc 全文如下，以它为准接续工作；完成点后继续更新它。"
   echo
   cat "$root/$doc"
 fi
