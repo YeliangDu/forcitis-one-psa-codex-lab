@@ -8,7 +8,8 @@ import glob, json, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 card, base = sys.argv[1], sys.argv[2]
 coll = "gate-" + re.sub(r"[^A-Za-z0-9-]", "-", card)
-src = next(p for p in (os.path.join(d, f"{card}.json") for d in (HERE, os.path.join(HERE, "..", "acl"), os.path.join(HERE, "..", "round3", "sheets"))) if os.path.exists(p))
+src = next(p for p in (os.path.join(d, f"{card}.json") for d in (HERE, os.path.join(HERE, "..", "acl"), os.path.join(HERE, "..", "round3", "sheets"), os.path.join(HERE, "..", "homonym"))) if os.path.exists(p))
+target = "decisions-gate" if os.path.dirname(src) == HERE else "answers"
 codes = {i["code"] for i in json.load(open(src, encoding="utf-8"))["items"]}
 submitted = {}   # 答复文档 id -> 所在组的提交时刻（页面按组提交，提交记录里列出本组条目）
 for f in glob.glob(os.path.join(base, "answers-submit", "*.json")):
