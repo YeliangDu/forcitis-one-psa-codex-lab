@@ -473,6 +473,29 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | PAR-3 FLW-1 | Flowable 引擎时间来源核实（第 3 节，首次部署前须有结论），opus 核实，结论写规则卡与 INFRA_RUNBOOK；需改动按缺陷卡手术式修 | — |
 | PAR-4 F-1 验收测试 | 测试代理（opus）按 ADR-0026「1a 交付范围」与 2.4 F-1 行先写验收测试 | — |
 
+**K-3 拆分与裁定**（one-coordinator 2026-10-15 裁定；现状梳理：15 个列表接口中 6 个 SQL 键集、6 个全取后内存切页、2 个裸数组无上限、收件箱合并后内存分页；无未知参数 400、排序白名单、`:count`、OpenAPI `maximum`）：
+
+| 卡 | 内容 | 前置 / 时点 |
+|---|---|---|
+| K-3a 公共契约与守护 | kernel 常量（`limit` 默认 50 / 上限 200、批量 100、导出 10,000、导入 5,000、不分页小表 1,000）；游标编解码；`sort` 白名单解析；小表上限断言（超出失败并 ALERT）；`PageRequest.slice` 标弃用；platform.web 未知参数 400 拦截器（排除 springdoc、actuator、非 `/api`）与 OpenAPI `limit` 的 `minimum: 1` / `maximum: 200`；新增守护类 G-A2（按响应形状判 `{items, nextCursor}`）、G-P1（kernel 外无上限常量、OpenAPI 声明 200），现存缺口登记于 `backend/architecture/list-paging-gaps.txt`（每行：路径、负责卡、期限）；DDL-11 测试容器 initdb 排序统一为 C.UTF-8（与 dev 库一致，one-ops C-3；与 S-1 G-S4 协调）；G-X2 前端 `localeCompare` 带 `'zh'` 守护与后端约定；工作日历年份列表试点 | 现在；测试代理先写验收；新增守护类开工前征得 one-1a-next-3 同意，PR 单列守护文件改动，opus 复审 |
+| K-3b-1 identity、numbering、integration 接入 | 授权申请、编号规则、老编号 `documentId` 分支改 SQL 键集或登记小表 | R-1b P2 之后 |
+| K-3b-2 workforce 接入 | 部门列表、`HELD` 同步列表套小表上限；`status` 具名枚举与白名单；法人列表键集 | R-1b P3b 之后、F-1 实现之前 |
+| K-3b-3 approval 接入 | 上限 100→200、三个列表响应统一、收件箱计数改 `:count`、删 `PLATFORM_APPROVAL_PAGE_INVALID` | R-1b P4 之后 |
+| K-3b-4 audit 接入 | 本人登录记录分页；导出与列表同一组过滤参数（A-4）；导出上限 50,000→10,000、去掉导出前 `count(*)`（dev 前，运行正确性）；删 `AuditQuery.MAX_LIMIT` 与 `QUERY_INVALID` | R-1b P5 之后 |
+| K-3c 其余共用件 | 事件消费幂等、共用导出控制、日期边界测试夹具（另卡）；共用脱敏并入 DA-13（A-11 掩码） | 另排；F-1 只依赖分页约定 |
+
+裁定要点：
+1. 游标**不签名**：游标只决定从哪里接着取，数据范围在 SQL 中强制，伪造游标拿不到范围外数据；签名要引入密钥管理，进程内生成的密钥每次重启都会让游标失效，收益不抵成本（CS-1.8）。游标保持不透明、带格式版本，严格校验结构与类型，不合格 400。
+2. `:count` 返回 `{count}`，到 10,000 时 `{count, capped: true}`；按需提供，不每个列表都开。
+3. 未知参数 400 复用 `PLATFORM_WEB_REQUEST_INVALID`，detail 带参数名。
+4. 收件箱新旧待办合并登记为例外，上限 200，P6 后再议。
+5. DDL-11 测试库用 C.UTF-8（生产若不同再报）；G-X2 先只做前端加后端约定，不做 SQL `COLLATE` 守护。
+6. 审计导出上限与去 `count(*)` 归 K-3b-4（dev 前）。
+7. 拆出 K-3c（见上表）。
+8. 缺口登记文件为 `backend/architecture/list-paging-gaps.txt`；新增守护类不改现有守护文件，视为与 P5 不冲突。
+
+顺序：K-3a → K-3b 各块跟随 R-1b 子 PR → P5 后 F-1 实现与 K-3b-4 可并行（文件不相交）→ P-1（G-P2 / G-P3）→ DDL-07+24。
+
 **后续项**：
 
 | 卡 | 内容 | 前置 | 来源 |
