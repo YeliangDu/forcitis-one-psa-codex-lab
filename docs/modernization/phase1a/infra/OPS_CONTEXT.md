@@ -42,6 +42,7 @@
 - 首次 dev 部署通过后：删 /root/one-ops-backup-20261015020632；白天测 GitHub 直拉速度
 - 构建变量待替换：SSO 门户地址（B-3 回传后）、PROD_*（生产前确认）
 - 拉取单元沙箱收紧：首次 dev 部署跑通后、下次改安装器或单元时（RELEASE §10，#157）
+- #228 合并后复核：迁移进程（migrate 模式参数未覆盖 FORCITIS_JOBS_ENABLED，沿用 one.env 的 true）不挂定时作业——migrate 模式在建上下文前退出，预期不挂；只有无 migrate 模式的旧包走整应用启动（#227 复审第 5 条）
 - pg_stat_statements：Phase 2 前请示
 
 ## 坑
