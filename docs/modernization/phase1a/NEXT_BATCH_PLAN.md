@@ -600,4 +600,4 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 
 | 项 | 内容 | 验收条件 | 现状 |
 |---|---|---|---|
-| ARCH-D5 工时审批路线旗标映射 | 工时行类型、混合行到审批旗标（`projectHours` / `preSalesHours` / `overheadHours`）的映射，以及区域负责人的来源，交用户逐条决定（D-1a-127，`process/1a/TIMESHEET审批.md`:194）；老行为（老系统按工时行类型 0/1/2）先生产取证，按 ADR-0037 登记 `LEGACY_READ_REGISTER.md` | 映射卡实现时一并加「提交时一个旗标都没置即失败并告警」（现在不加：旗标写死 `PROJECT_HOURS`，检查必然通过，CS-1.8；one-coordinator 2026-10-15） | 1a 只有项目经理一路（D-1a-107 已关闭提交入口） |
+| ARCH-D5 工时审批路线旗标映射 | 工时行类型、混合行到审批旗标（`projectHours` / `preSalesHours` / `overheadHours`）的映射，以及区域负责人的来源，交用户逐条决定（D-1a-127，`process/1a/TIMESHEET审批.md`:194）；先对照 AEC 行业项目制专业服务公司的通行做法定审批路线，老系统按行类型 0/1/2 的行为与生产数据只作参考与核对（取证已登记 `LEGACY_READ_REGISTER.md`），交 one-rules / 用户定——方案页 https://claude.ai/artifact/GGz4AuMS63ooyL85itojya（`rules/decide/sheets/D5.json`） | 映射卡实现时一并加「提交时一个旗标都没置即失败并告警」（现在不加：旗标写死 `PROJECT_HOURS`，检查必然通过，CS-1.8；one-coordinator 2026-10-15） | 1a 只有项目经理一路（D-1a-107 已关闭提交入口） |

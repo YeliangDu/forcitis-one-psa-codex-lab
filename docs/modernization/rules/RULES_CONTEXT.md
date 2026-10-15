@@ -9,6 +9,7 @@
 | 项 | 状态 | 出处 |
 |---|---|---|
 | 财务口径决策单 46 题 + 9 条问财务的事实 | 在线页已交用户待提交（46 题全部待定，FD-02/03/08 已按推荐由 XD-08/09 先行实施）；A1、A10 待审计师书面意见 | [在线页](https://claude.ai/artifact/UfWUw5PuwVe6HzC5QRn8nB)，`rules/decide/README.md`，数据源 `r0/FINANCE_DECISIONS.md`，#176 |
-| ARCH-D5 工时行类型 → 审批旗标映射、区域负责人来源 | Phase 2 前置项：先对照 AEC 行业做法出方案，老系统行类型 0/1/2 与生产汇总只作核对（取证中） | NEXT_BATCH_PLAN「Phase 2 前置项」，D-1a-127 |
+| ARCH-D5 工时行类型 → 审批旗标映射、区域负责人来源 | Phase 2 前置项：方案页 6 题已交用户待提交（推荐：项目行归项目经理、售前归售前对象归属部门负责人、间接归直属上级、不保留混合、不加整单确认、负责人取组织架构）；用户定后写规则卡并请 one-glossary 改「区域负责人」 | [方案页](https://claude.ai/artifact/GGz4AuMS63ooyL85itojya)，`rules/decide/sheets/D5.json`，NEXT_BATCH_PLAN「Phase 2 前置项」，D-1a-127 |
 | 规则卡补「类别」 | ADR-0040 第 2 步之后 | ADR-0040 |
 | 规则文档瘦身对照表 | 待用户 | COORDINATOR_LEDGER「待用户」 |
+| F-1 数据范围待用户定的几项（含下级自动扩大、维持授权、拿不准 5 条）与「部门撤销或合并」规则卡 | 排在 ARCH-D5 之后，P5 合并前定；行业调研中 | one-coordinator 2026-10-15 派工，`phase1a/cards/F-1-aec-check.md`（one-1a-par，f1e17c4d） |
