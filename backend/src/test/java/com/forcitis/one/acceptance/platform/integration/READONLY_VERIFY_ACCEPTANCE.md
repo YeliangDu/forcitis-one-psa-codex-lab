@@ -63,29 +63,30 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   (f) violation reason=SYSTEM_DATABASE_OWN_USER database="master"
   (f) violation reason=SYSTEM_DATABASE_OWN_USER database="msdb"
 (g) VIOLATED reason=SECURABLE_GRANT_BEYOND_SELECT count=1
-  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=OBJECT_OR_COLUMN schema="dbo" object="t_x" permission="CONTROL" state=GRANT grantee="public" granteeType=DATABASE_ROLE
-  (g) overridden class=OBJECT_OR_COLUMN schema="dbo" object="p_x" permission="EXECUTE" state=GRANT grantee="public" granteeType=DATABASE_ROLE by=DATABASE_DENY
+  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=OBJECT_OR_COLUMN schema="dbo" object="t_x" objectId=901578250 permission="CONTROL" state=GRANT grantee="public" granteeType=DATABASE_ROLE
+  (g) overridden class=OBJECT_OR_COLUMN schema=- object=- objectId=1093578934 permission="EXECUTE" state=GRANT grantee="public" granteeType=DATABASE_ROLE by=DATABASE_DENY
 ```
 
-- 正则：`^  \(([fg])\) (violation|overridden)((?: [a-zA-Z]+=VALUE)+)$`，`VALUE` 为 `"(?:[^"\\\p{Cntrl}  ]|\\["\\nrt]|\\u[0-9A-F]{4})*"` 或 `[A-Z0-9_-]+`。以两个空格加 `(` 开头而不合此式的行算格式错误。
+- 正则：`^  \(([fg])\) (violation|overridden)((?: [a-zA-Z]+=VALUE)+)$`，`VALUE` 为 `"(?:[^"\\\p{Cntrl}\u2028\u2029]|\\["\\nrt]|\\u[0-9A-F]{4})*"` 或 `[A-Z0-9_-]+`。以两个空格加 `(` 开头而不合此式的行算格式错误。
 - 种类：`violation` 违规定位（计入该项计数）；`overridden` 被拒绝覆盖的授权（OverriddenGrant，提议术语由实现 PR 登记；DENY overrides GRANT；信息行，不计数，不使该项违规；项为 `PASSED` 时也输出）。
 - 字段顺序固定（便于 `grep 'permission="EXECUTE" state=GRANT'`）：
   - (f) `violation`：`reason database`。原因 `SYSTEM_DATABASE_OWN_USER`：每个有本登录自己用户的系统库（master、tempdb、model、msdb 与 rdscore）一行；原因 `OTHER_DATABASE_REACHABLE`：每个能进的基线外用户库一行（one-coordinator 2026-10-15 裁定，`reason` 取该原因码；由实现的单元测试覆盖，本验收不断言）。
-  - (g) `violation`：`reason class schema object permission state grantee granteeType`。
-  - (g) `overridden`：`class schema object permission state grantee granteeType by`。
+  - (g) `violation`：`reason class schema object objectId permission state grantee granteeType`。
+  - (g) `overridden`：`class schema object objectId permission state grantee granteeType by`。
 - 值：
   - 带双引号：数据库目录中的名字（`database`、`schema`、`object`、`grantee`）与权限名 `permission`（含空格，如 `"TAKE OWNERSHIP"`），原样输出，只做最小转义：`\` → `\\`，`"` → `\"`，换行 → `\n`，回车 → `\r`，制表 → `\t`，其余 ISO 控制字符与 Unicode 行分隔符、段分隔符、格式字符（Zl、Zp、Cf，如 U+2028、U+202E）→ `\uXXXX`（四位大写十六进制）；其他字符（含中文）原样。
-  - 不带引号：固定词表或占位。`class` 为 `sys.database_permissions.class_desc`（`OBJECT_OR_COLUMN`、`SCHEMA` 等）；`state` 为 `GRANT` 或 `GRANT_WITH_GRANT_OPTION`；`granteeType` 为 `sys.database_principals.type_desc`（public 为 `DATABASE_ROLE`）；`by` 为覆盖该授权的那条 DENY（被哪条 DENY 覆盖）：`DATABASE_DENY` 本账号库级同名 DENY，`SCHEMA_DENY` 本账号在该安全对象所属 schema 上的同名 DENY。
-  - 占位（字段缺失或不得输出时出占位，不省略字段）：`-` 无此值或取不到（schema 级授权的 `object`；无所属 schema 的安全对象的 `schema`）；`SELF` 授权对象为本账号自己的数据库用户——用户名在夹具与 RDS 上就是登录名，第 5 节禁止输出，所以一律写 `SELF`，`granteeType` 照常（`SQL_USER`）。
-- `schema` 为安全对象所属 schema（schema 级授权即该 schema 本身）；`object` 为安全对象名（列级授权记在所在表上）。`grantee` 只输出主体名与类型，不展开角色成员。
-- 每条授权一行：同一 `(class, schema, object, permission, state, grantee)` 只一行；该项行中 `SECURABLE_GRANT_BEYOND_SELECT` 的 `count` 等于 `(g) violation` 行数，(f) 各原因的 `count` 等于该原因的 `(f) violation` 行数。排序：先 `violation` 后 `overridden`，各按字段值字典序（测试不断言顺序）。
+  - 不带引号：固定词表或占位。`class` 为 `sys.database_permissions.class_desc`（`OBJECT_OR_COLUMN`、`SCHEMA` 等）；`objectId` 为该行的 `major_id`（十进制数字，只是编号、非凭据；对象为 object_id，schema 级授权为 schema_id），始终输出，取不到写 `-`；`state` 为 `GRANT` 或 `GRANT_WITH_GRANT_OPTION`；`granteeType` 为 `sys.database_principals.type_desc`（public 为 `DATABASE_ROLE`）；`by` 为覆盖该授权的那条 DENY（被哪条 DENY 覆盖）：`DATABASE_DENY` 本账号库级同名 DENY，`SCHEMA_DENY` 本账号在该安全对象所属 schema 上的同名 DENY。
+  - 占位（字段缺失或不得输出时出占位，不省略字段）：`-` 无此值或取不到（schema 级授权的 `object`；无所属 schema 的安全对象的 `schema`；账号看不见的安全对象的 `schema` 与 `object`，见下条）；`SELF` 授权对象为本账号自己的数据库用户——用户名在夹具与 RDS 上就是登录名，第 5 节禁止输出，所以一律写 `SELF`，`granteeType` 照常（`SQL_USER`）。
+- `schema` 为安全对象所属 schema（schema 级授权即该 schema 本身）；`object` 为安全对象名（列级授权记在所在表上）。
+- 元数据可见性（one-1a-par 裁定：元数据可见性，方向 A）：名称以被核实账号自己的身份读取，取决于它的元数据可见性——SQL Server 只让账号看见它持有未被拒绝的某项权限的安全对象。被本账号 DENY 覆盖的 public GRANT EXECUTE（过程）正是看不见的情形：权限行在 `sys.database_permissions` 中，但 `sys.objects`、`sys.schemas`、`OBJECT_NAME`、`INFORMATION_SCHEMA`、`HAS_PERMS_BY_NAME` 都取不到名称与所属 schema。看不见的对象写 `schema=-`、`object=-`，用 `objectId` 定位（运维以取证账号反查名称）；看得见的照常输出名称。测试以账号身份先查 `sys.objects` / `sys.schemas` 确认每个期望的可见性前提。`grantee` 只输出主体名与类型，不展开角色成员。
+- 每条授权一行：同一 `(class, objectId, permission, state, grantee)` 只一行；该项行中 `SECURABLE_GRANT_BEYOND_SELECT` 的 `count` 等于 `(g) violation` 行数，(f) 各原因的 `count` 等于该原因的 `(f) violation` 行数。排序：先 `violation` 后 `overridden`，各按字段值字典序（测试不断言顺序）。
 - 其他项、其他原因不出定位行。
 
 ### (g) 的被拒绝覆盖判定（RULING-ADR37-10 的收窄解释，安全判定放宽）
 
 RULING-ADR37-10 定「库内 class≠0 的授权只允许 DENY 或 SELECT 的 GRANT，public 也算」。依 ADR-0037 第 4 项 (b)「库级 DENY 覆盖 schema 级、对象级与经自定义角色得到的 GRANT」，one-coordinator 2026-10-15 补充、one-1a-next-3 加安全条件，收窄为按有效权限判定。影响只读核实命令、启动校验与运行期重检（同一套 `ReadOnlyBaseline`）：
 
-1. 一条授给 public 或本账号的 class≠0 的 `GRANT`（state `G`）是「被拒绝覆盖的授权」（overridden），当且仅当：其权限名在库级 DENY 清单（ADR-0037 第 4 项 (b) 的 11 项：INSERT、UPDATE、DELETE、ALTER、EXECUTE、REFERENCES、CREATE TABLE、CREATE VIEW、CREATE PROCEDURE、CREATE FUNCTION、CREATE SCHEMA）内，且本账号自己有同名的 `DENY`——库级（class 0，`by=DATABASE_DENY`）或该安全对象所属 schema 上（class SCHEMA，`by=SCHEMA_DENY`）；两者都有时写 `DATABASE_DENY`。按权限名精确匹配，不按「有库级 DENY 即全覆盖」；授给 public 的 DENY 不算本账号的 DENY。
+1. 一条授给 public 或本账号的 class≠0 的 `GRANT`（state `G`）是「被拒绝覆盖的授权」（overridden），当且仅当：其权限名在库级 DENY 清单（ADR-0037 第 4 项 (b) 的 11 项：INSERT、UPDATE、DELETE、ALTER、EXECUTE、REFERENCES、CREATE TABLE、CREATE VIEW、CREATE PROCEDURE、CREATE FUNCTION、CREATE SCHEMA）内，且本账号自己有同名的 `DENY`——库级（class 0，`by=DATABASE_DENY`）或该安全对象所属 schema 上（class SCHEMA，`by=SCHEMA_DENY`）；两者都有时写 `DATABASE_DENY`。`SCHEMA_DENY` 要求知道安全对象所属 schema：账号看不见该对象（所属 schema 取不到）时无法确认 schema 级 DENY 是否同一 schema，按保守口径判违规（`violation`，`schema=-`、`object=-`），不得按「看不见即被覆盖」处理（看不见源于 DENY，但也可能是授给 public 的 DENY，而授给 public 的 DENY 不算本账号的 DENY）；`DATABASE_DENY` 不需要所属 schema，看不见的对象照常可判被拒绝覆盖。按权限名精确匹配，不按「有库级 DENY 即全覆盖」；授给 public 的 DENY 不算本账号的 DENY。
 2. 不在清单内的权限一律仍是违规，即使本账号另有同名 DENY：尤其 CONTROL、TAKE OWNERSHIP、IMPERSONATE、VIEW DEFINITION；CONTROL 隐含的权限不因其中某一项被 DENY 而视为整体覆盖。`GRANT_WITH_GRANT_OPTION` 一律违规。
 3. 判定不了 DENY 是否存在时，可被覆盖的授权按判定不了（`UNDETERMINED`），不按被拒绝覆盖：DENY 查询失败；或本账号的 DENY 行（class 0 与 SCHEMA）一行都没有（真实账号总有 11 条库级 DENY）。这类授权不出定位行。黑盒覆盖了「一行都没有」；「只有 DENY 查询失败而授权查询成功」黑盒构造不出（两者读同一目录视图），**留给实现的单元测试（待补）**。
 4. 被拒绝覆盖的授权在启动校验与运行期重检中不拒绝、不告警；在只读核实命令中出 `overridden` 信息行。
