@@ -13,7 +13,7 @@
   commit the bundle was built from (a release tagged while the baseline was open stays undeployable to prod); it is removed before the
   first production deployment, in a pull request of its own (SESSION_PLAYBOOK §12.2 step 4).
 - dev: an open baseline is allowed and only warned about. While it is open the baseline files may change after a dev deployment; when they
-  did, the dev database and the server's release state are reset first (DEV_DB_REBUILD), the installer refuses changed migrations otherwise.
+  did, the dev database and the server's release state are reset first (C-16 of PREDEPLOY_CHECKLIST.md), the installer refuses changed migrations otherwise.
 - prod: no pre-release version (-rc.N); every Phase 1a exit condition in section D of PREDEPLOY_CHECKLIST.md is done (verified on dev);
   C-9 (the production database) is done. "Done" means the status cell is exactly the done mark, nothing else. The version is listed in
   prod-approvals.txt as "<version> <commit> <bundle sha256> <YYYY-MM-DD> <approver>": on the GitHub Team plan a private repository has
@@ -31,7 +31,6 @@ CHECKLIST = "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md"
 PROD_APPROVALS = "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt"
 DEPLOY_MARKER = "`blocks: deploy`"
 BASELINE_MARKER = "backend/architecture/migration-baseline-open"
-DEV_DB_REBUILD = "docs/modernization/phase1a/infra/runbooks/dev-db-rebuild.md"
 DONE = "✅"
 EXPECTED_EXIT_CONDITIONS = 9
 PROD_PREREQUISITES = ("C-9",)
@@ -105,7 +104,7 @@ def approval_problems(root, version, commit, bundle_sha256):
 def dev_warnings(root, environment):
     if environment == "dev" and baseline_open(root):
         return [f"{BASELINE_MARKER} exists: the migration baseline is still open; if any baseline migration changed since the last dev "
-                f"deployment, reset the dev database and the server's release state first ({DEV_DB_REBUILD}), "
+                f"deployment, reset the dev database and the server's release state first (dev database rebuild runbook, {CHECKLIST} C-16), "
                 "the installer refuses changed migrations otherwise"]
     return []
 
