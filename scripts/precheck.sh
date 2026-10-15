@@ -85,7 +85,13 @@ echo
 touches() { grep -Eq "$1" "$work/changed"; }
 
 builds_relevant=false
-if py scripts/ci/relevant_change.py --paths-from "$work/changed" | grep -qx 'relevant=true'; then
+relevant_output=$(py scripts/ci/relevant_change.py --paths-from "$work/changed" 2>&1)
+relevant_status=$?
+if [ "$relevant_status" -ne 0 ]; then
+  report FAIL "relevant_change.py" "exit $relevant_status — treated as relevant, not as no change:"
+  printf '%s\n' "$relevant_output" | sed 's/^/      | /' | tail -n 20
+  builds_relevant=true
+elif printf '%s\n' "$relevant_output" | grep -qx 'relevant=true'; then
   builds_relevant=true
 fi
 
@@ -157,7 +163,7 @@ if [ -s "$work/shell.present" ]; then
   run_step "shell syntax (bash -n)" syntax_all
 fi
 
-if touches '^scripts/release/'; then
+if [ "$builds_relevant" = true ]; then
   release_self_tests() {
     py scripts/release/ci_passed.py --self-test && py scripts/release/manifest.py --self-test && py scripts/release/deploy_gate.py --self-test
   }
@@ -167,8 +173,8 @@ if touches '^scripts/release/'; then
   else
     report SKIP "shellcheck scripts/release" "shellcheck not installed (CI uses 0.11.0)"
   fi
-elif [ -s "$work/shell.present" ]; then
-  report SKIP "shellcheck" "CI runs shellcheck on scripts/release only; other scripts: bash -n above"
+else
+  report SKIP "release scripts self-test, shellcheck" "relevant_change.py: nothing the release scripts or the builds read changed"
 fi
 
 if ! command -v gitleaks >/dev/null; then

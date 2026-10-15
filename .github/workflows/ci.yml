@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 # Self-hosted runners (docs/modernization/CI_RUNNERS.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
-# A pull request that only changes documentation still runs every job and ends green: the required checks must always report.
+# Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs every step (release approval depends on it); assertion drift runs on pull requests only.
 jobs:
   backend:
     name: backend verify (Modulith + ArchUnit guardrails + integration tests)
@@ -139,8 +139,12 @@ jobs:
       # 文档不得用「PSA」指代系统（用户 2026-10-14）；例外规则见脚本说明
       - name: no legacy system name in docs
         run: python3 docs/modernization/check_legacy_name.py
-      # 发布与部署脚本读取 ci.yml、部署前清单、阻塞条目与 runbooks/files（RELEASE.md）
+      # 发布与部署脚本读取 ci.yml、部署前清单、阻塞条目、prod-approvals.txt 与 runbooks/files；只改与它们无关的文档时跳过下面两步
+      - name: release scripts or what they read changed?
+        id: change
+        run: python3 scripts/ci/relevant_change.py "${{ github.base_ref }}"
       - name: shellcheck 0.11.0 (machine install, else verified download)
+        if: github.event_name == 'push' || steps.change.outputs.relevant == 'true'
         run: |
           if [ "$(shellcheck --version 2>/dev/null | awk '/^version:/ { print $2 }')" != "0.11.0" ]; then
             mkdir -p "$RUNNER_TEMP/shellcheck" && cd "$RUNNER_TEMP/shellcheck"
@@ -150,6 +154,7 @@ jobs:
             echo "$PWD/shellcheck-v0.11.0" >> "$GITHUB_PATH"
           fi
       - name: release and deploy scripts self-test
+        if: github.event_name == 'push' || steps.change.outputs.relevant == 'true'
         run: |
           for script in scripts/release/*.sh; do bash -n "$script"; done
           shellcheck -x scripts/release/*.sh
