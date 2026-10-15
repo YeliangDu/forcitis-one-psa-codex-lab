@@ -1,3 +1,0 @@
-# 长期会话的上下文文档：worktree 目录名前缀 <TAB> 仓库内路径（压缩后由 postcompact_context.sh 注入）
-one-ops	docs/modernization/phase1a/infra/OPS_CONTEXT.md
-one-coordinator	docs/modernization/COORDINATOR_LEDGER.md

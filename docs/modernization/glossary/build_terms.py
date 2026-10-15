@@ -4,8 +4,11 @@
 Inputs : glossary/source_terms.json (parsed 03-通用语言.md, 385 terms)
          + the 38 core terms of GLOSSARY.md §2 (CORE below, legacy names copied from build_glossary.py)
          + the standards audit in this file (AUDIT / NEW) — see STANDARDS_AUDIT.md for the G-8.. proposals.
-Output : glossary/terms.yaml
-Run    : cd analysis/psa && python3 glossary/build_terms.py
+         + 用户确认记录 glossary/decisions-*.json（按文件名排序全部读入并合并；各轮键前缀不同：第一轮 A- / B- / C-，第二轮 R2-，
+           新一轮用新前缀并在下方加该轮的应用段），glossary/oa_aliases.json、r0_report_aliases.json、round2-proposals.yaml、round2-source/*.yaml
+Output : glossary/terms.yaml（不手改；build_all.py --check 重新生成并要求与已提交的一致）
+Run    : cd docs/modernization && python3 glossary/build_terms.py   （或 python3 docs/modernization/build_all.py）
+缺任何输入文件、或两份确认记录出现同一键时失败，不静默跳过。依赖 PyYAML。
 """
 import json, re, collections, yaml, glob, os
 
@@ -570,8 +573,16 @@ def _split(n): return [x.strip() for x in re.split(r"\s*/\s*", n) if x.strip()]
 # 用户已逐项裁定为方言的叫法（含这些词的别名一律为方言）
 DECIDED_DIALECT = ["产值"]  # 2026-10-14：「产值确认单就是收入确认单……现在的叫法可以归为方言」
 # 用户在「用语确认」页上的逐项确认（2026-10-14，197 项，见 glossary/decisions-2026-10-14.json）
-import os
-DEC = json.load(open("glossary/decisions-2026-10-14.json", encoding="utf-8")) if os.path.exists("glossary/decisions-2026-10-14.json") else {}
+DECISIONS = {}
+for _f in sorted(glob.glob("glossary/decisions-*.json")):
+    for _k, _v in json.load(open(_f, encoding="utf-8")).items():
+        if _k in DECISIONS:
+            raise SystemExit(f"{_f}: 确认记录键 {_k} 与前面的文件重复")
+        DECISIONS[_k] = _v
+for _need in ("A-", "R2-"):
+    if not any(k.startswith(_need) for k in DECISIONS):
+        raise SystemExit(f"缺少键前缀为 {_need} 的确认记录（glossary/decisions-*.json）")
+DEC = DECISIONS
 for t in terms:
     for k, al in enumerate(t.get("aliases") or []):
         dk = DEC.get(f"A-{t['id']}-{k}")
@@ -586,18 +597,15 @@ for t in terms:
     if DEC.get(f"B-{t['id']}") or DEC.get(f"C-{t['id']}") or any(k.startswith(f"A-{t['id']}-") for k in DEC):
         t["confirmed"] = "2026-10-14（业务 Admin，用语确认页）"
 # OA 流程盘点（2026-10-14，放在已有确认之后，不受已确认改名的连带）：A8 表单与流程中的叫法登记为待确认别名，不定为正式用语（ADR-0018）
-import os as _os
 # R0 在用报表盘点（2026-10-14）：管理报表叫法同样只登记为待确认别名（glossary/r0_report_aliases.json）
 _byid = {t["id"]: t for t in terms}
 for _src in ("glossary/oa_aliases.json", "glossary/r0_report_aliases.json"):
-    if not _os.path.exists(_src):
-        continue
     for _a in json.load(open(_src, encoding="utf-8"))["aliases"]:
         _t = _byid[_a["term"]]
         if all(al["name"] != _a["name"] for al in _t.get("aliases") or []):
             _t.setdefault("aliases", []).append({"name": _a["name"], "type": "zh-internal", "deprecated": False, "source": _a["source"]})
 # 用语确认第二轮（2026-10-14，用语确认页，见 glossary/decisions-round2-2026-10-14.json）：A 组 = OA 盘点登记的 A8 叫法
-DEC2 = json.load(open("glossary/decisions-round2-2026-10-14.json", encoding="utf-8")) if os.path.exists("glossary/decisions-round2-2026-10-14.json") else {}
+DEC2 = DECISIONS
 for t in terms:
     for k, al in enumerate(t.get("aliases") or []):
         dk = DEC2.get(f"R2-A-{t['id']}-{k}")
@@ -632,7 +640,10 @@ PROP2 = yaml.safe_load(open("glossary/round2-proposals.yaml", encoding="utf-8"))
 CODE_RENAMED = set(PROP2.get("code_renamed") or [])   # 1a 改名完成后在 round2-proposals.yaml 中登记 id
 _byid = {t["id"]: t for t in terms}
 _cjk = lambda s: re.fullmatch(r"[一-鿿（）]+", s) is not None   # 只把纯中文叫法列入禁用：含字母的（H5、区域 AR）拆词后会误伤 ar、h 等
-for _f in sorted(glob.glob("glossary/round2-source/*.yaml"), reverse=True):
+_round2_sources = sorted(glob.glob("glossary/round2-source/*.yaml"), reverse=True)
+if not _round2_sources:
+    raise SystemExit("缺少 glossary/round2-source/*.yaml")
+for _f in _round2_sources:
     for _t in yaml.safe_load(open(_f, encoding="utf-8"))["terms"]:
         _p, _d = PROP2["P"].get(_t["id"]), DEC2.get(f"R2-P-{_t['id']}")
         if not _p or not _d:

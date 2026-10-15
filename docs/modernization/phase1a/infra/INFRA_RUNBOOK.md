@@ -54,7 +54,7 @@
 | # | 项 | 做法 | 验证 |
 |---|---|---|---|
 | E-1 | 数据盘 | 200G ESSD 格式化为 xfs，挂载到 `/data`，fstab 用 UUID 并加 `nofail` | `df -h /data`；重启后仍在 |
-| E-2 | 系统更新与时区 | `dnf update`；时区 Asia/Shanghai；启用 chronyd | `timedatectl` |
+| E-2 | 系统更新与时区 | `dnf update`；时区 Asia/Shanghai；启用 chronyd（时间源与告警见 §8「节点时间同步」） | `timedatectl` |
 | E-3 | 运行用户 | `useradd --system --home /data/forcitis-one --shell /sbin/nologin forcitis` | `id forcitis` |
 | E-4 | Java 运行时 | Eclipse Temurin 25 JRE（RPM 包，固定小版本），或 Alibaba Dragonwell 25；要与 CI 的 Java 25 一致 | `java -version` |
 | E-5 | 目录 | `/data/forcitis-one/{releases,current→releases/<ver>,logs,tmp}`，属主 forcitis，权限 750；`/etc/forcitis-one/` 属主 root:forcitis，权限 750 | |
@@ -256,10 +256,12 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
   - 排查一次操作：拿到响应头 `X-Correlation-Id`，在 SLS 里按 `correlationId` 检索，请求、事件处理、出站投递、发往企业微信的请求用的是同一个值。
 - **关联号**：请求头 `X-Correlation-Id`（必须是 UUID，不是则 400）；没有就生成，并写进响应头。发给企业微信的请求带同一个头（对方忽略也无妨）。
 - **业务时区**：`forcitis.kernel.business-zone`，默认 `Asia/Shanghai`；业务日、工作日历、`businessDate` 都按它截日，时刻一律以 UTC 存储（数据库只允许 `timestamptz`）。
+- **审批时刻只有一个时间来源**（FLW-1，RULE-386）：审批任务的创建、领取、完成、截止、提醒、升级、改派与流程归档截止日都取应用注入的时钟（UTC）；流程引擎在构建时接上同一个时钟（`FlowableEngineClock`），不读数据库的 `now()`，其时钟不可被改写或重置。时限不靠引擎计时器：截止、提醒、升级记在 `platform_approval.approval_tasks`，由定时作业判定（ShedLock 保证单节点执行）。因此 JVM 时区须为 UTC（应用启动时校验），各节点系统时间须经 NTP 同步（同步方式与偏差阈值由 one-ops 核定）；数据库时间偏差不影响审批业务时刻。行级 `created_at` / `updated_at` 列目前仍取数据库默认时间，由 R-4 去掉。不得用改机器时间的方式演练「时间穿越」，只在测试中替换时钟。
 - **指标命名**：`forcitis.<子域>.<bc>.…`，例如 `forcitis.platform.integration.deliveries.dead.letters`；看板和告警规则用新名字。
 - **新增 schema**：`organization_attendance`（工作日历），已写入 `one_db_roles_schemas.sql`；上线前需在每个环境执行该脚本中对应的建 schema 与授权语句，再启动应用。
 - **工作日历要先维护**：依赖工作日历的计算（审批时限等）在所属年份没有维护时失败（提交本身已成功，失败的是审批发起，单据保持已提交，补录日历后重投）并记 `ALERT` 日志与指标 `forcitis.organization.attendance.calendar.unmaintained`；管理员用 `PUT /api/v1/organization/work-calendars/{年}` 维护（权限 `organization.attendance:work-calendar:update`），每年底前维护下一年。
 - **今天之前的日期不可修改**（T2）：已维护过的年份里，改动早于今天的日期会得到 422 `ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED`；一个年份的首次维护不受此限。例外是独立用例 `MaintainLockedWorkCalendarDays`，要求权限 `organization.attendance:locked-day:update`（只授给组织数据管理员），并发出 `WorkCalendarLockedDaysChanged`：载荷与审计条目的说明里列出每个被改日期及其改前改后的类别。已算出的审批截止时刻不重算。
+- **节点时间同步**（one-ops 核定，2026-10-15）：chronyd（E-2），时间源为阿里云内网 NTP（`ntp.cloud.aliyuncs.com` 等 14 个，实际选中 100.100.x.x），`makestep 10 3`（只在启动后前 3 次更新内对超过 10 秒的偏差跳变，之后只平滑校正，时钟不倒退）、`rtcsync`。2026-10-15 只读核对：已同步，Stratum 3，偏差 0.4 ms，RMS 0.15 ms。告警阈值：偏差绝对值 > 100 ms，或未同步（`Leap status` 不是 Normal、参考时间早于 2 小时）→ P2；偏差绝对值 > 1 s → P1。正常偏差在 1 ms 以内，100 ms 已偏离两个数量级，仍远小于审批时刻的分钟级粒度；到 1 s 会影响多节点间审批事件的先后与令牌有效期校验。告警方式沿用证书检查（C-7）：`runbooks/scripts/one_time_sync_check.sh` → `/usr/local/sbin/`，`runbooks/files/one-time-sync-check.service` / `.timer` → `/etc/systemd/system/`，每 5 分钟读一次 `chronyc -n tracking`，结果写 `/data/forcitis-one/logs/ops/time-sync.json`；超阈值的行以 `ALERT P1` / `ALERT P2` 开头，由 SLS 兜底规则捕获，同时经 `one_alert_send` 推送到群机器人；读不到 chronyc 输出按 P1、退出码 2。阈值可用 `ONE_TIME_WARN_MS` / `ONE_TIME_CRIT_MS` / `ONE_TIME_MAX_REF_AGE_S` 调。云监控没有时间偏差指标，不接。已安装（2026-10-15，用户批准，one-coordinator 转达；云助手 t-hz07045fzz8xtkw，回读 t-hz07045h6e7d91c：三个文件 SHA256 与仓库一致，定时器已启用，首次运行 `Result=success`）。安装前在 ECS 临时目录用假 chronyc 验证（t-hz07045eix6kpvk）：正常 → 0；250 ms → P2；2 s → P1；未同步且 3 小时未更新 → P2；chronyc 失败 → P1、退出 2。演练：`ONE_TIME_SYNC_DRILL=1 ONE_TIME_WARN_MS=0.0001 /usr/local/sbin/one_time_sync_check.sh`（消息带「[演练]」，向群里发一条 P2；阈值只在本次调用中生效，不改常驻配置）；2026-10-15 已演练一次，送达无失败。回滚：`systemctl disable --now one-time-sync-check.timer`，删除两个单元文件与脚本。
 
 ## 9. 事件发布登记表的运维（ADR-0025 评审 C-4、C-8）
 
