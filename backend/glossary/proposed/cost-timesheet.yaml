@@ -6,6 +6,7 @@ terms:
   snake: cost_timesheet_not_found
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 找不到该工时单（404）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -20,6 +21,7 @@ terms:
   snake: cost_timesheet_not_owner
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 只有填报人能查看、提交、撤回、撤销该工时单（403）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -34,6 +36,7 @@ terms:
   snake: cost_timesheet_transition_illegal
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 工时单在当前状态下不能做这个操作（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -48,6 +51,7 @@ terms:
   snake: cost_timesheet_concurrent_change
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 工时单在读取后被别人改过（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -62,6 +66,7 @@ terms:
   snake: cost_timesheet_reason_required
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 撤回、撤销必须填写原因（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -76,6 +81,7 @@ terms:
   snake: cost_timesheet_cutoff_passed
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 审批的截止节点已有办结任务，不能再撤回或撤销（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -90,6 +96,7 @@ terms:
   snake: cost_timesheet_work_date_required
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 提交时没有填写工作日期（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -104,6 +111,7 @@ terms:
   snake: cost_timesheet_work_date_in_future
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 工作日期不得晚于今天（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -118,6 +126,7 @@ terms:
   snake: cost_timesheet_work_date_fixed
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 工时单创建时填写的工作日期，重新提交时不能改写（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -132,6 +141,7 @@ terms:
   snake: cost_timesheet_result_pending
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 上一轮审批已结束但结果还没回写到工时单，暂不能再次提交（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -146,6 +156,7 @@ terms:
   snake: cost_timesheet_employee_unknown
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 找不到填报人的组织信息（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -160,6 +171,7 @@ terms:
   snake: cost_timesheet_project_manager_unknown
   kind: error_code
   bc: cost.timesheet
+  scope: domain
   definition: 提交工时单时指定的项目经理不是在职员工，审批没有人可以处理（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md

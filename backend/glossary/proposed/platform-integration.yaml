@@ -6,6 +6,7 @@ terms:
   snake: platform_integration_delivery_transition_illegal
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 投递只能从待发送离开一次（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -196,6 +197,7 @@ terms:
   snake: platform_integration_source_reference_not_found
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 没有这条来源对照，或出站时按自有 ID 查不到当日生效的已确认对照（404）；出站查不到时投递挂起并告警
   standard_ref:
   - adr/ADR-0033.md
@@ -210,6 +212,7 @@ terms:
   snake: platform_integration_source_reference_invalid
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 核算组织编码必须是正整数、必须给出生效日、所指法人必须存在（422）
   standard_ref:
   - adr/ADR-0033.md
@@ -224,6 +227,7 @@ terms:
   snake: platform_integration_source_reference_conflict
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 确认会使同一来源标识或同一自有对象的已确认对照在同一时点重叠，或后继的生效日不晚于生效中对照的生效日（409）
   standard_ref:
   - adr/ADR-0033.md
@@ -238,6 +242,7 @@ terms:
   snake: platform_integration_source_reference_already_decided
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 该来源对照已被确认或拒绝，不能再次决定（409）
   standard_ref:
   - adr/ADR-0033.md
@@ -252,6 +257,7 @@ terms:
   snake: platform_integration_source_object_kind_not_allowed
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 人工登记只接受（核算系统，法人主体）；组织源、老系统与其他类别只由同步或导入写入（422，拒绝的尝试写审计）
   standard_ref:
   - adr/ADR-0033.md
@@ -266,6 +272,7 @@ terms:
   snake: platform_integration_confirmer_is_author
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 登记来源对照的人不能确认或拒绝它，同一人持有两个权限也不行（403，四眼）
   standard_ref:
   - adr/ADR-0033.md

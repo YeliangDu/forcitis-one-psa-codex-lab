@@ -127,6 +127,9 @@ terms:
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
+  homonyms:
+  - contract_riskdelivery__responsible_party
+  - contract_changeorder__responsible_party
 - id: business_period
   zh: 经营期间
   en: BusinessPeriod
@@ -359,6 +362,8 @@ terms:
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
+  homonyms:
+  - accounting_ledger__basis_difference_list
 - id: attribution_rule_version
   zh: 归属规则版本
   en: AttributionRuleVersion
@@ -1599,6 +1604,9 @@ terms:
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
+  homonyms:
+  - operations_facts__responsible_party
+  - contract_changeorder__responsible_party
 - id: uncontracted_exposure
   zh: 无合同风险敞口
   en: UncontractedExposure
@@ -1724,6 +1732,9 @@ terms:
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
+  homonyms:
+  - operations_facts__responsible_party
+  - contract_riskdelivery__responsible_party
 - id: reason_category
   zh: 原因分类
   en: ReasonCategory
@@ -4136,6 +4147,8 @@ terms:
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
+  homonyms:
+  - operations_policy__basis_difference_list
 - id: functional_currency
   zh: 记账本位币
   en: FunctionalCurrency
@@ -5570,7 +5583,9 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#hours）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
-  scope: domain
+  scope: kernel
+  used_by:
+  - cost.timesheet
 - id: submitted_hours
   zh: 填报工时
   en: SubmittedHours
@@ -5935,7 +5950,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#money）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
-  scope: domain
+  scope: kernel
 - id: amount
   zh: 数额
   en: Amount
@@ -5951,7 +5966,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#amount）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
-  scope: domain
+  scope: kernel
 - id: currency
   zh: 币种
   en: Currency
@@ -5967,7 +5982,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#currency）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
-  scope: domain
+  scope: kernel
 - id: business_date
   zh: 业务日期
   en: BusinessDate
@@ -5982,7 +5997,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#business-date）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
-  scope: domain
+  scope: kernel
 - id: cost
   zh: 成本
   en: Cost
@@ -6015,7 +6030,17 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#error-code）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
-  scope: domain
+  scope: kernel
+  used_by:
+  - cost.timesheet
+  - organization.attendance
+  - organization.workforce
+  - platform.approval
+  - platform.audit
+  - platform.identity
+  - platform.integration
+  - platform.numbering
+  - platform.web
 - id: numbering_capacity
   zh: 编号容量
   en: NumberingCapacity
@@ -8651,7 +8676,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#migration，R3-KN-02）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: effective_from_date
   zh: 生效日
   en: EffectiveFromDate
@@ -8667,7 +8692,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 fix-b2b-events.yaml#effective_from_date，R3-KN-03）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: correlation_id
   zh: 关联号
   en: CorrelationId
@@ -8683,7 +8708,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#correlation_id，R3-KN-05）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: rounding_residual
   zh: 舍入差
   en: RoundingResidual
@@ -8703,7 +8728,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#rounding_residual，R3-KN-06）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: prorate
   zh: 按权重拆分
   en: Prorate
@@ -8719,7 +8744,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#prorate，R3-KN-07）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: reversal_document
   zh: 冲销单
   en: ReversalDocument
@@ -8737,7 +8762,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#reversal_document，R3-KN-08）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: correction_document
   zh: 修正单
   en: CorrectionDocument
@@ -8758,7 +8783,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#correction_document，R3-KN-09）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: document_nature
   zh: 单据性质
   en: DocumentNature
@@ -8774,7 +8799,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#document_nature，R3-KN-10）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: reversal_kind
   zh: 冲销类别
   en: ReversalKind
@@ -8794,7 +8819,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#reversal_category，R3-KN-11）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: reversible_balance
   zh: 可冲销余额
   en: ReversibleBalance
@@ -8810,7 +8835,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#reversible_balance，R3-KN-12）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: derived_reversal
   zh: 派生冲销
   en: DerivedReversal
@@ -8826,7 +8851,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#derived_reversal，R3-KN-13）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: original_period
   zh: 原期间
   en: OriginalPeriod
@@ -8843,7 +8868,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#original_period，R3-KN-14）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: reverse
   zh: 冲销动作
   en: Reverse
@@ -8864,7 +8889,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#reverse_action，R3-KN-15）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: correct
   zh: 修正动作
   en: Correct
@@ -8883,7 +8908,7 @@ terms:
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#correct_action，R3-KN-16）
   confirmed: 2026-10-15（用户，用语确认第三轮）
-  scope: domain
+  scope: kernel
 - id: confirmer
   zh: 确认人
   en: Confirmer

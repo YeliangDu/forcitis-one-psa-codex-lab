@@ -6,6 +6,7 @@ terms:
   snake: organization_workforce_employee_legal_entity_unresolved
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "该日期没有适用于该员工的法人归属（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -20,6 +21,7 @@ terms:
   snake: organization_workforce_attribution_date_invalid
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "新的法人归属须晚于最近一段归属的生效日，结束日须晚于生效日（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -34,6 +36,7 @@ terms:
   snake: organization_workforce_attribution_not_open
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "对象没有仍在生效的法人归属，无法结束（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -48,6 +51,7 @@ terms:
   snake: organization_workforce_attribution_not_found
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "对象没有任何法人归属（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -62,6 +66,7 @@ terms:
   snake: organization_workforce_attribution_subject_not_found
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "部门或员工不存在（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -76,6 +81,7 @@ terms:
   snake: platform_identity_default_role_missing
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "配置的默认角色不存在，无法开立账号（503）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -90,6 +96,7 @@ terms:
   snake: platform_identity_not_signed_in
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "请求没有已登录的用户（401）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -104,6 +111,7 @@ terms:
   snake: organization_workforce_org_unit_not_found
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "按 ID 找不到组织单元（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -118,6 +126,7 @@ terms:
   snake: organization_workforce_sync_run_apply_failed
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "放行时重新同步未成功，保持扣留状态（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -132,6 +141,7 @@ terms:
   snake: platform_identity_account_disabled
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "账号被管理员停用（403）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -146,6 +156,7 @@ terms:
   snake: platform_identity_account_not_found
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "按用户 ID 找不到账号（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -160,6 +171,7 @@ terms:
   snake: platform_identity_credentials_invalid
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "登录凭据不对；对外不区分原因（401）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -174,6 +186,7 @@ terms:
   snake: platform_identity_employee_separated
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "离职员工不能登录（403）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -188,6 +201,7 @@ terms:
   snake: platform_identity_login_name_unknown
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "致远票据中的登录名找不到员工（401）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -202,6 +216,7 @@ terms:
   snake: platform_identity_login_rate_limited
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "同一客户端地址的登录请求超过每分钟限额（429）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -216,6 +231,7 @@ terms:
   snake: platform_identity_network_denied
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "应急登录只允许来自内网（403）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -230,6 +246,7 @@ terms:
   snake: platform_identity_permission_unknown
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "角色中含有不存在的权限码（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -244,6 +261,7 @@ terms:
   snake: platform_identity_role_blank_name
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "角色名称为空或过长（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -258,6 +276,7 @@ terms:
   snake: platform_identity_role_duplicate_code
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "角色编码已存在（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -272,6 +291,7 @@ terms:
   snake: platform_identity_role_duplicate_name
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "角色名称已存在（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -286,6 +306,7 @@ terms:
   snake: platform_identity_role_invalid_code
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "角色编码格式不对（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -300,6 +321,7 @@ terms:
   snake: platform_identity_role_not_allowed
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "授予的权限超出操作人自己的权限（403）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -314,6 +336,7 @@ terms:
   snake: platform_identity_role_not_found
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "按 ID 或编码找不到角色（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -328,6 +351,7 @@ terms:
   snake: platform_identity_role_reserved_code
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "super_admin 只能由迁移建立（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -342,6 +366,7 @@ terms:
   snake: platform_identity_role_system_frozen
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "系统角色不能修改、停用或删除（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -356,6 +381,7 @@ terms:
   snake: platform_identity_role_in_use
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "角色仍被账号持有，不能删除（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -370,6 +396,7 @@ terms:
   snake: platform_identity_sso_unavailable
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "致远验票不可用或单点登录未开启（503）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -384,6 +411,7 @@ terms:
   snake: platform_identity_state_invalid
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "state 未知、已用、已过期、属于另一入口或不是本浏览器发起的（401）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -398,6 +426,7 @@ terms:
   snake: platform_identity_ticket_invalid
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "票据签名、有效期或来源不对（401）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -412,6 +441,7 @@ terms:
   snake: platform_identity_ticket_replayed
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "一次性票据被重放（401）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -426,6 +456,7 @@ terms:
   snake: platform_identity_wecom_code_invalid
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "企业微信不接受该授权码（401）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -440,6 +471,7 @@ terms:
   snake: platform_identity_wecom_not_bound
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: "该企业微信账号没有对应的员工（401）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -454,6 +486,7 @@ terms:
   snake: platform_integration_concurrent_update
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: "外发投递在标记已处理时被他人改动（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -468,6 +501,7 @@ terms:
   snake: platform_numbering_legacy_number_not_found
   kind: error_code
   bc: platform.numbering
+  scope: domain
   definition: "没有单据登记过这个原编号（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -482,6 +516,7 @@ terms:
   snake: platform_numbering_legal_entity_unavailable
   kind: error_code
   bc: platform.numbering
+  scope: domain
   definition: "法人不存在或已停用，不能发号（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -496,6 +531,7 @@ terms:
   snake: platform_web_access_denied
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: "已登录但没有所需权限，或缺少 CSRF 令牌（403）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -510,6 +546,7 @@ terms:
   snake: platform_web_cursor_invalid
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: "游标不是本服务签发的，或属于另一个列表，或 limit 超出范围（400）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -524,6 +561,7 @@ terms:
   snake: platform_web_idempotency_in_progress
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: "同一幂等键的第一次请求仍在处理（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -538,6 +576,7 @@ terms:
   snake: platform_web_idempotency_key_reused
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: "同一幂等键带了不同的请求（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -552,6 +591,7 @@ terms:
   snake: platform_web_unauthenticated
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: "请求没有有效会话（401）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -566,6 +606,7 @@ terms:
   snake: platform_numbering_legacy_number_taken
   kind: error_code
   bc: platform.numbering
+  scope: domain
   definition: "同一单据类型的原编号已登记给另一张单据（409）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -580,6 +621,7 @@ terms:
   snake: platform_numbering_legacy_prefix_invalid
   kind: error_code
   bc: platform.numbering
+  scope: domain
   definition: "按前缀检索原编号时前缀少于 2 个字符（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -594,6 +636,7 @@ terms:
   snake: organization_workforce_attribution_period_not_found
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "没有从该日起的归属期间（404）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -608,6 +651,7 @@ terms:
   snake: organization_workforce_attribution_period_not_closed
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "未关闭的期间不能更正，应结束它（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -622,6 +666,7 @@ terms:
   snake: organization_workforce_attribution_correction_overlap
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "更正后的结束日会使期间与同一对象的其他期间重叠（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -636,6 +681,7 @@ terms:
   snake: organization_workforce_attribution_correction_reason_required
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "更正归属期间必须填写原因（422）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -650,6 +696,7 @@ terms:
   snake: organization_workforce_attribution_correction_forbidden
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: "更正已关闭的归属期间需要单独的权限，拒绝时记入审计（403）"
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md

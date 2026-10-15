@@ -5,6 +5,7 @@ terms:
   snake: platform_web_request_invalid
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: 请求的格式或参数不符合接口约定（400）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -19,6 +20,7 @@ terms:
   snake: platform_web_correlation_invalid
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: X-Correlation-Id 请求头不是 UUID（400）；不静默替换
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -33,6 +35,7 @@ terms:
   snake: platform_web_source_unavailable
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: 依赖的外部系统暂时不可用（503），稍后重试
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -47,6 +50,7 @@ terms:
   snake: platform_web_source_broken
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: 外部系统返回的数据整体不可用（502），例如组织树断裂
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -61,6 +65,7 @@ terms:
   snake: platform_web_unexpected
   kind: error_code
   bc: platform.web
+  scope: domain
   definition: 未预期的错误（500），响应只带关联号，细节在日志中
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md

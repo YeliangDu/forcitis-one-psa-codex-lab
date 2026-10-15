@@ -20,6 +20,7 @@ terms:
   snake: platform_identity_role_transition_illegal
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: 角色已经处于目标状态（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -34,6 +35,7 @@ terms:
   snake: platform_identity_account_transition_illegal
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: 账号已经处于目标状态（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -48,6 +50,7 @@ terms:
   snake: platform_identity_concurrent_update
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: 角色或账号已被他人修改（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md

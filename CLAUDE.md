@@ -9,7 +9,7 @@
 最硬的规则（细则与其余规则见上面三份规范：SESSION_PLAYBOOK、CODING_STANDARD、NAMING_STANDARD）：
 0. 会话语言：始终用中文与用户对话、写报告与跨会话消息；派子代理时要求其用中文回复；新开会话继承此要求（用户 2026-10-15：「始终保持中文会话，新开会话继承这个要求」）。代码、标识符、命令保持原样。
 1. 老代码只作证据，不得照搬：新代码从规格、规则卡、ADR、`docs/modernization/glossary/terms.yaml` 写起；领域模块不出现外部或老系统名称。
-2. 用语以 `terms.yaml` 为准，方言禁用：新标识符、界面文字、表列名先查词表，查不到当场登记提议术语，中英文名都查重；文档里的方言、同名异义等非代码用语问题用 `docs/modernization/glossary/new_term_issue.py` 登记给 one-glossary，不自行裁定；命名遵守 `NAMING_STANDARD.md`，守护测试不通过不得合并。
+2. 用语以 `terms.yaml` 为准，方言禁用：新标识符、界面文字、表列名先查词表，查不到当场登记提议术语，登记时写明使用范围（领域 / 共享内核 / ACL）和 bc，同一 bc 内中英文名都查重；文档里的方言、同名异义等非代码用语问题用 `docs/modernization/glossary/new_term_issue.py` 登记给 one-glossary，不自行裁定；命名遵守 `NAMING_STANDARD.md`，守护测试不通过不得合并。
 3. 数据设计以 SESSION_PLAYBOOK §14、§14.1 全部条目为准：老系统与外部系统的表结构、主键、编码、状态值只作参考，自有表主键 UUIDv7。
 4. 复刻老行为以生产数据为证据，不凭推测；生产取证不逐次请示，明细与个人信息不进会话与仓库，每次取证登记一行（ADR-0037）。
 5. 不为通过测试放宽或删除断言；改断言 / 删测试须写理由并在报告与 PR 中单列。

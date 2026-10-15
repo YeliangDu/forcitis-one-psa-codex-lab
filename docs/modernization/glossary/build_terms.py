@@ -703,6 +703,26 @@ print("round3: 新增正式词条", apply_round3.apply(terms))
 _scoped, _unscoped = apply_acl.apply(terms, apply_round3.plan()["id_map"])
 print("acl: 写使用范围", _scoped, "条；尚无归类", len(_unscoped), "条（B1 补齐后必填）")
 
+# 用语登记规则（B1，intent 2026-10-15-171649、171959-one-coordinator）：bc 为 kernel 的领域词条转为 scope kernel，
+# 并入 glossary/term-fields.yaml 的补充字段，再连同 backend/glossary/proposed/*.yaml 逐条校验（glossary/term_rules.py，存量问题见 term-rules-baseline.json）
+sys.path.insert(0, "glossary")
+import term_rules
+_bcs = {b["id"] for b in yaml.safe_load(open("glossary/bcs.yaml", encoding="utf-8"))["bcs"]}
+_extra = yaml.safe_load(open("glossary/term-fields.yaml", encoding="utf-8"))["terms"] or {}
+_ids = {t["id"] for t in terms}
+if set(_extra) - _ids:
+    raise SystemExit("glossary/term-fields.yaml 有不存在的词条 id：" + "、".join(sorted(set(_extra) - _ids)))
+for t in terms:
+    if t["bc"] == "kernel" and t.get("scope") in (None, "domain"):
+        t["scope"] = "kernel"
+    t.update(_extra.get(t["id"]) or {})
+_entries = [("terms.yaml", t) for t in terms]
+for _f in sorted(glob.glob("../../backend/glossary/proposed/*.yaml")):
+    for _e in (yaml.safe_load(open(_f, encoding="utf-8")) or {}).get("terms") or []:
+        _entries.append((f"proposed/{os.path.basename(_f)}", _e))
+_left, _by_rule = term_rules.enforce(_entries, _bcs)
+print("term_rules: 存量问题", _left, "条（只减不增）", dict(sorted(_by_rule.items())))
+
 out = collections.OrderedDict(meta=meta, terms=[dict(t) for t in terms], common_words=COMMON)
 
 class D(yaml.SafeDumper): pass

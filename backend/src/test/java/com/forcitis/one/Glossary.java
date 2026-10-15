@@ -20,7 +20,7 @@ final class Glossary {
     static final Path OFFICIAL = Path.of("../docs/modernization/glossary/terms.yaml");
     /** One file per module so parallel work never edits the same file. */
     static final Path PROPOSED_DIR = Path.of("glossary/proposed");
-    static final Set<String> STATUSES = Set.of("approved", "proposed");
+    static final Set<String> STATUSES = Set.of("approved", "proposed", "deprecated");
     static final List<String> FIELDS = List.of("id", "zh", "en", "snake", "kind", "bc", "definition", "standard_ref",
             "confidence", "aliases", "forbidden", "status");
 
@@ -131,7 +131,7 @@ final class Glossary {
             String snake = String.valueOf(raw.get("snake"));
             String status = String.valueOf(raw.get("status"));
             if (!STATUSES.contains(status)) {
-                PROBLEMS.add(id + ": status must be approved or proposed, was " + status);
+                PROBLEMS.add(id + ": status must be approved, proposed or deprecated, was " + status);
             }
             if (!String.join("_", split(en)).equals(snake)) {
                 PROBLEMS.add(id + ": snake '" + snake + "' must be the snake_case of en '" + en + "'");
