@@ -56,7 +56,7 @@
   - 代码：#250（0a）→ P3b（next-4，H1 已修，合并时 one.env 老待办键改名同一 rc）→ P4（含 regionalHead 改名）→ P5 → F-1（one-1a-par，P5 后）。
   - 待用户批：ADR-0043（分级两维度）、0044（0032 修订，Q1 撤并来源）、0045（FD-27 关账不重开）合一页（one-architecture 先发我过目）；C-6 回放差异页 https://claude.ai/artifact/Y7ogz8AWPmZdeuE4HCEGqL 未提交。
   - 财务事实待外部：F-01..F-04、F-08 财务 / 税务复核，F-05 待财务（FINANCE_DECISIONS，#249）。
-  - 在途小项：C-6 DEFECT a/b 取证（one-ops，c6_defect_probe.py 先合并再用）；one-quality 小 PR 待 #243、#246 合并后开；C1 全量铺开排 P3b 后；ARCH-D5 写回在 #249。
+  - 在途小项：C-6 DEFECT 不再取证（#254 暂停，按「回放方法限制、未坐实」记入 C-6 报告，D-3 出口评审由用户看）；one-quality 小 PR 待 #243、#246 合并后开；C1 全量铺开排 P3b 后；ARCH-D5 写回在 #249。
 - 22:10 现状：常驻会话新增 one-rules、one-quality；one-1a-next-3 已交接给 one-1a-next-4。
 - dev 首次部署只剩：101（C-14：rc.3 → 正式账号核实 → (f)/(g) 定处理 → #242 → 探针）、C-19 可见范围与白名单（用户本人操作 / 告知 userid）、one.env 已改三键；090 改为白名单外开放前与生产前（intent 214650，#241）；人选 dev 全由用户兼任（215052）；B-3 dev 暂缓。
 - 代码：先保 dev（214511）——0a → P3b → P4 → P5 → F-1（P5 后，one-1a-par）；拆分 a/b、R-1b-0b、DA-3 生产前。P3b 合并时 one.env 老待办键改名同一 rc（ops）。
