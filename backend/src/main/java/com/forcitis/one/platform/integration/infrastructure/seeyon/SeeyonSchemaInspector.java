@@ -7,7 +7,6 @@ interface SeeyonSchemaInspector {
 
     Map<String, Set<String>> viewColumns();
 
-    /** Upper-case table name to its upper-case columns, for the tables of SeeyonViewSql.BASE_TABLE_COLUMNS in dbo only. */
     Map<String, Set<String>> baseTableColumns();
 
     int countUnitsAtPath(String path);

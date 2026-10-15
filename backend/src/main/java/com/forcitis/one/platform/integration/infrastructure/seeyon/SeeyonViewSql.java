@@ -24,7 +24,6 @@ final class SeeyonViewSql {
     /** The startup check requires the database to match it exactly. */
     static final Map<String, List<String>> VIEW_COLUMNS = columns();
 
-    /** The startup check requires each table to have at least these columns. */
     static final Map<String, List<String>> BASE_TABLE_COLUMNS = Map.of(ORG_UNIT_TABLE, List.of("ID", "TYPE"));
 
     static final int PATH_LEVEL_LENGTH = 4;

@@ -46,7 +46,7 @@ class SeeyonOrgTreeTest {
     @Test
     @DisplayName("R-1b-0 C-3 TYPE NULL, another value, or the right word in another case or with spaces rejects the whole read, root or not")
     void illegalTypeIsRejected() {
-        for (String type : java.util.Arrays.asList(null, "Group", "department", "ACCOUNT", "Department ", "")) {
+        for (String type : Arrays.asList(null, "Group", "department", "ACCOUNT", "Department ", "")) {
             assertThatThrownBy(() -> resolve(List.of(typed(2, "00000001", "Account"), typed(3, "000000010001", type))))
                     .as("below the root: %s", type).isInstanceOf(ExternalSourceBrokenException.class)
                     .hasMessageContaining("TYPE").hasMessageContaining("1 unit(s) hold NULL or a value other than Department or Account");

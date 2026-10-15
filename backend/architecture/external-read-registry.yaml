@@ -4,13 +4,8 @@
 # 合同、产值 / 收入确认、成本、费用、开票、回款、分包、付款等权责事实不在这里；生日（ORG_MEMBER.EXT_ATTR_21）、银行卡等不登记；
 # 凭据列不得登记（CredentialColumnGuardTest 逐行检查）。
 #
-# 守护：
-#   - ExternalReadRegisterTest：每行字段齐全、取值合法、名字像敏感信息的列须 SENSITIVE / RESTRICTED；a8_db 运行时用途的行与代码常量
-#     SeeyonViewSql.VIEW_COLUMNS（视图，逐列相等）、SeeyonViewSql.BASE_TABLE_COLUMNS（基表，逐列相等）一致；DBA 视图脚本建的正是这些视图；
-#   - SeeyonSourceScanTest：集成层以外不出现登记的 dbo 对象，集成层 SQL 引用的 dbo 对象与 forcitis_one 视图都在这里；
-#   - QualifiedBaseTableGuardTest：集成层读 A8 基表一律写 dbo. / [dbo]. 限定名；
-#   - 启动时：经视图读取的路径，视图列与登记相等（多一列、少一列、多一个对象都拒绝启动）；运行时用途的基表行做子集检查（基表多出的列不报）；
-#     迁入（MIGRATION）、迁入核对（MIGRATION_TIE_OUT）用途的行不进启动检查。本文件不进运行时 classpath。
+# 守护见 platform/integration/guard 与 ExternalReadRegisterTest。启动时只查 a8_db 运行时用途的行：视图列与登记相等，基表行做子集检查；
+# 本文件不进运行时 classpath，启动检查读的是与之逐列相等的代码常量 SeeyonViewSql。
 # 老系统两个视图的列与代码常量的一致性检查放 P3b（P3b 移适配器并改写 SQL，C-5）。
 # 变更本文件需 CODEOWNERS 评审（与 module-dependencies.txt 同等对待）。
 #
