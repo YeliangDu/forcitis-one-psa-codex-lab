@@ -482,7 +482,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 **F-1 规格裁定**（one-coordinator 2026-10-15 裁定，验收测试据此写，分支 `claude/one-1a-par-f1-acceptance`，与实现同一 PR 合并）：
 - 自定义部门明细挂在角色版本上，归 `role:update`（已采纳 ADR-0034 第 5 项）；2.4 F-1 行「授予时选范围的权限沿用 `account-role:update`」写于 ADR-0034 采纳前，以 ADR 为准；contract D-1a-58 在 1a 范围内由 ADR-0034 解决。
 - 自定义部门逐部门选「含下级」或「仅本部门」，组织调整新增的下级部门对「含下级」自动纳入（用户 2026-10-15，经 one-coordinator）。
-- 待调整权限的「保留」不复用已有术语 keep（数据保留期限），另登记不冲突的提议术语，进第三轮用语确认。
+- 待调整权限的「保留」不复用已有术语 keep（数据保留期限），改用提议术语「维持授权」uphold（动作 `:uphold`、状态 `UPHELD`），进第三轮用语确认；ADR-0032 影响面的审计动作 `permission-adjustment.kept` 在实现中为 `upheld`，**F-1 实现 PR 须按 `adr/src/_readme_deviations.md` 登记这条用语偏差**（已采纳 ADR 正文不改）。
 - 本人不能处理关于本人的待调整权限条目，接口层拒绝（职责分离，与 ADR-0032 收件人排除本人一致）。
 - 人员详情用新权限码 `organization.workforce:employee:read`，按敏感权限分级登记。
 - 验收未覆盖、实现卡必做并补测试：祖先部门导航（RULE-353）、超期 5 个工作日升级与无收件人告警、HELD 期间不生成、按时刻还原授权历史、注册表与 ArchUnit 守护。
