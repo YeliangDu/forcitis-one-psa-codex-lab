@@ -1,75 +1,5 @@
 # Phase 1a 修复批 B1（身份与授权）新增术语（proposed，待业务评审，ADR-0018）。ADR-0027 的八项与运维命令用到的词；每个新错误码一条 error__ 条目。
 terms:
-- id: witness
-  zh: 见证人
-  en: Witness
-  snake: witness
-  kind: role
-  bc: platform.identity
-  definition: 运维命令执行时在场的另一个人，与操作人一起记入审计（双人在场）
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: separation
-  zh: 离职
-  en: Separation
-  snake: separation
-  kind: concept
-  bc: platform.identity
-  definition: 员工从在职变为离职这件事；离职时删除全部角色授予、停用应急账号、吊销会话（ADR-0027 第 1 项）。事件、字段与方法里的 separated 是同一概念的过去分词（已离职），登记为技术词，不另立术语
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: finance
-  zh: 财务
-  en: Finance
-  snake: finance
-  kind: concept
-  bc: platform.numbering
-  definition: 凭证号模板在业务确认之外另需的财务确认所属的职能（D-1a-157）
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: confirmer
-  zh: 确认人
-  en: Confirmer
-  snake: confirmer
-  kind: role
-  bc: platform.numbering
-  definition: 确认某个编号模板版本的人：业务确认人持有 numbering-rule:approve，财务确认人持有凭证号模板的确认权限
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: author
-  zh: 作者
-  en: Author
-  snake: author
-  kind: role
-  bc: platform.numbering
-  definition: 保存某个编号模板版本的人；作者不能确认自己保存的版本（四眼）
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_identity_emergency_admin_transition_illegal
   zh: 应急账号状态转换非法
   en: PlatformIdentityEmergencyAdminTransitionIllegal
@@ -364,20 +294,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: authorization_request
-  zh: 授权申请
-  en: AuthorizationRequest
-  snake: authorization_request
-  kind: concept
-  bc: platform.identity
-  definition: 授予敏感权限、或把角色改成含敏感权限时先建的申请，另一人确认后才生效
-  standard_ref:
-  - adr/src/ADR-0028.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_numbering_version_mismatch
   zh: 模板版本已变
   en: PlatformNumberingVersionMismatch
@@ -401,20 +317,6 @@ terms:
   definition: 作者填写的生效日早于确认当天；不改写作者的日期，由作者改日期重新提交（422，用户决定）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: retained
-  zh: 留任
-  en: Retained
-  snake: retained
-  kind: concept
-  bc: organization.workforce
-  definition: 放行同步暂停的人必须仍是启用账号、持有 super_admin 或安全审计员、在组织快照中明确在职且不在离职名单上（ADR-0028）
-  standard_ref:
-  - adr/src/ADR-0028.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -462,90 +364,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: administrator_mode
-  zh: 管理模式
-  en: AdministratorMode
-  snake: administrator_mode
-  kind: concept
-  bc: platform.identity
-  definition: super_admin 持有人经再次验证后在同一会话进入的模式，最长 1 小时、不延长；只有五项平台权限（ADR-0027 第 2 项、ADR-0028），不含业务、敏感读与审计查看
-  standard_ref:
-  - adr/src/ADR-0026.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: forced_logout
-  zh: 强制下线
-  en: ForcedLogout
-  snake: forced_logout
-  kind: concept
-  bc: platform.identity
-  definition: 管理员结束某个人的全部会话：一次一人、须写理由、不能对自己，结束超级管理员或安全审计员的会话会告警（ADR-0027 第 3 项）
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: org_data_admin
-  zh: 组织数据管理员
-  en: OrgDataAdmin
-  snake: org_data_admin
-  kind: role
-  bc: platform.identity
-  definition: 系统角色 org_data_admin：维护组织与法人归属、工作日历、编号模板、同步运行；无敏感权限、不能确认模板（ADR-0027 第 2 项）
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: business_admin
-  zh: 业务管理员
-  en: BusinessAdmin
-  snake: business_admin
-  kind: role
-  bc: platform.identity
-  definition: 系统角色 business_admin：确认各单据编号模板（凭证号模板的财务确认不在 1a 内设角色）（ADR-0027 第 2 项）
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: security_auditor
-  zh: 安全审计员
-  en: SecurityAuditor
-  snake: security_auditor
-  kind: role
-  bc: platform.identity
-  definition: 系统角色 security_auditor：查看与导出审计记录，并在普通会话里放行管理员离职造成的同步暂停（ADR-0027 第 3 项、ADR-0028）
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: voucher_numbering_rule
-  zh: 凭证号规则
-  en: VoucherNumberingRule
-  snake: voucher_numbering_rule
-  kind: concept
-  bc: platform.numbering
-  definition: 凭证号模板的编号规则；其确认权限 voucher-numbering-rule:approve 是敏感权限，1a 不设持有角色，待首个过账阶段再定（用户决定）
-  standard_ref:
-  - adr/src/ADR-0027.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_identity_access_scope_unavailable
   zh: 数据范围无法确定
   en: PlatformIdentityAccessScopeUnavailable
@@ -570,20 +388,6 @@ terms:
   standard_ref:
   - adr/src/ADR-0027.md
   confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: install
-  zh: 安装
-  en: Install
-  snake: install
-  kind: concept
-  bc: kernel
-  definition: 把 JVM 默认时区设为 UTC 的动作（UtcJvm.installAsDefault）；整合分支的方法名用到了它，此处补登记
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: low
   aliases: []
   forbidden: []
   status: proposed

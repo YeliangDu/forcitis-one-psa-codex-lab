@@ -62,7 +62,7 @@
 ## 6. 待决
 
 **交用户（架构决策页，推荐预选）**
-1. **Q1 能力与价值流的来源**：本机 `forcitis-architecture` 仓库已有经批准的 TOGAF 产物（S01 能力推导、价值流），但它的 GOV-0006 规定文件只留在本地、不提交、不推送。可选：只引用其编号（推荐）、摘录进本仓库，或本仓库另起。
+1. **Q1 能力与价值流的来源**（2026-10-15 用户：forcitis-architecture「是我学习的副产物，不是信源」，intent 163920；改为在本仓库按 FRAMEWORKS / METHOD 第 1 步推导，本条不再上决策页）：本机 `forcitis-architecture` 仓库已有经批准的 TOGAF 产物（S01 能力推导、价值流），但它的 GOV-0006 规定文件只留在本地、不提交、不推送。可选：只引用其编号（推荐）、摘录进本仓库，或本仓库另起。
 2. **Q2 平台**：算一个 BC 还是多个（ADR-0003 现为一个子域多个技术模块）。
 3. **Q3 考勤与工资**：`organization.attendance` 与规划中的 `organization.payroll` 的边界。
 4. **Q4 kernel 的去向**：6 个跨模块端口（SeparationReview、KnownLegalEntities、AccountEmployees、OrgUnitAccess、CallerPermissions、IdempotentResponses）、DocumentType、WecomUserId、ProjectId / WbsNodeId / ProjectCoordinate。
