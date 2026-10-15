@@ -4,7 +4,6 @@ import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ExternalSubjectEmployees;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.kernel.WecomUserId;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Locale;
@@ -53,8 +52,8 @@ public class IntegrationOperationsCommands {
             return 2;
         }
         List<EmployeeId> found = switch (provider) {
-            case SEEYON_LOGIN_NAME -> employees.withLoginName(subject);
-            case WECOM_USER_ID -> employees.withWecomUserId(new WecomUserId(subject));
+            case SEEYON_LOGIN_NAME -> employees.withExternalLoginName(subject);
+            case WECOM_USER_ID -> employees.withMessagingAccountId(subject);
         };
         if (found.isEmpty()) {
             err.println("nobody found for " + provider.name().toLowerCase(Locale.ROOT) + " " + subject);
