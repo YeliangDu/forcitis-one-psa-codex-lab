@@ -36,7 +36,7 @@ final class LocatorLines {
 
     private static String grant(GrantLocator grant) {
         return " class=" + bare(grant.classDescription()) + " schema=" + quoted(grant.schema()) + " object=" + quoted(grant.object())
-                + " permission=" + quoted(grant.permission()) + " state=" + state(grant.state())
+                + " objectId=" + grant.objectId() + " permission=" + quoted(grant.permission()) + " state=" + state(grant.state())
                 + " grantee=" + (grant.self() ? SELF : quoted(grant.grantee())) + " granteeType=" + bare(grant.granteeType());
     }
 
