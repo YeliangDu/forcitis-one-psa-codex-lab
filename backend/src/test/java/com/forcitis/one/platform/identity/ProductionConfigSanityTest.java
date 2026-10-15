@@ -131,6 +131,22 @@ class ProductionConfigSanityTest {
         assertThat(problems).as("PostgreSQL error detail (the conflicting value) must not travel in exception messages").isEmpty();
     }
 
+    @Test
+    @DisplayName("D1-3b 生产管理端口绑定回环地址并使用独立端口")
+    void productionManagementServerListensOnLoopbackOnly() throws IOException {
+        assertThat(effectiveProductionValue("management.server.address")).isEqualTo("127.0.0.1");
+        String port = effectiveProductionValue("management.server.port");
+        assertThat(port).as("management.server.port effective in the prod profile").isNotNull();
+        assertThat(port).isEqualTo(envTemplateValue("MANAGEMENT_SERVER_PORT"));
+        assertThat(envTemplateValue("MANAGEMENT_SERVER_ADDRESS")).isEqualTo("127.0.0.1");
+    }
+
+    @Test
+    @DisplayName("D1-3 共用配置默认关闭数据库驱动的服务端错误详情，不依赖连接串")
+    void sharedConfigurationSwitchesOffServerErrorDetail() throws IOException {
+        assertThat(effectiveProductionValue("spring.datasource.hikari.data-source-properties.logServerErrorDetail")).isEqualTo("false");
+    }
+
     private static List<String> exposed(String value) {
         return value == null ? List.of() : Stream.of(value.split(",")).map(String::strip).toList();
     }

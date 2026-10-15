@@ -12,11 +12,15 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WorkContext;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.time.Clock;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -52,6 +56,12 @@ class ErrorChainTest {
         @GetMapping("/stub/crash")
         String crash() {
             throw new IllegalStateException("secret internals");
+        }
+
+        @GetMapping("/stub/crash-with-causes")
+        String crashWithCauses() {
+            throw new IllegalStateException("outer secret", new java.sql.SQLException("Key (email)=(leak@example.org) already exists", "23505",
+                    new RuntimeException("inner secret")));
         }
 
         @GetMapping("/stub/denied")
@@ -112,6 +122,23 @@ class ErrorChainTest {
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_UNEXPECTED"))
                 .andReturn().getResponse().getContentAsString();
         assertThat(body).doesNotContain("secret internals");
+    }
+
+    @Test
+    @DisplayName("an unexpected failure logs the class and SQLState of every cause and none of their messages")
+    void unexpectedFailureLogsCauseChainWithoutMessages() throws Exception {
+        Logger handlerLog = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        ListAppender<ILoggingEvent> captured = new ListAppender<>();
+        captured.start();
+        handlerLog.addAppender(captured);
+        try {
+            mvc.perform(get("/stub/crash-with-causes")).andExpect(status().isInternalServerError());
+        } finally {
+            handlerLog.detachAppender(captured);
+        }
+        String written = String.join("\n", captured.list.stream().map(ILoggingEvent::getFormattedMessage).toList());
+        assertThat(written).contains("java.sql.SQLException[sqlState=23505]").contains("java.lang.RuntimeException");
+        assertThat(written).doesNotContain("secret").doesNotContain("leak@example.org");
     }
 
     @Test
