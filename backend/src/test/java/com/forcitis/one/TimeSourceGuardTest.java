@@ -1,5 +1,6 @@
 package com.forcitis.one;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,7 +52,7 @@ class TimeSourceGuardTest {
     }
 
     @Test
-    @DisplayName("no class in domain, application, infrastructure, web or anywhere else asks the machine for the time, except the one that builds the Clock")
+    @DisplayName("no class in domain, application, infrastructure, web or anywhere else asks the machine for the time, except the one that builds the Clock and the session store clock")
     void productionCodeNeverAsksTheMachine() {
         noAmbientTime().check(ArchitectureRulesTest.CLASSES);
     }
@@ -72,11 +73,46 @@ class TimeSourceGuardTest {
     }
 
     @Test
-    @DisplayName("the registered exceptions are the class that builds the Clock and the session store clock")
-    void theClockBuilderIsExempt() {
-        JavaClasses kernel = new ClassFileImporter().importPackages("com.forcitis.one.kernel");
+    @DisplayName("the registered exceptions are the class that builds the Clock and the session store clock: both are clean under the rule")
+    void theExemptClassesAreClean() {
+        JavaClasses exempt = new ClassFileImporter().importPackages("com.forcitis.one.kernel", SESSION_STORE_CLOCK.substring(0, SESSION_STORE_CLOCK.lastIndexOf('.')));
 
-        assertThat(noAmbientTime().evaluate(kernel).hasViolation()).isFalse();
+        assertThat(noAmbientTime().evaluate(exempt).hasViolation()).isFalse();
+    }
+
+    @Test
+    @DisplayName("injection: a class that merely carries the name SessionStoreClock in another package is still caught")
+    void aNamesakeIsNotExempt() {
+        JavaClasses namesake = new ClassFileImporter().importPackages("com.forcitis.one.fixture.infrastructure.stray");
+
+        List<String> details = noAmbientTime().evaluate(namesake).getFailureReport().getDetails();
+
+        assertThat(details).anyMatch(d -> d.contains("stray.SessionStoreClock") && d.contains("currentTimeMillis"));
+    }
+
+    static final String SESSION_STORE_USER = "com.forcitis.one.platform.identity.infrastructure.persistence.JdbcExpiredSessions";
+
+    static ArchRule onlyTheExpiredSessionsUseTheStoreClock(String clock, String user) {
+        return classes().that().haveFullyQualifiedName(clock)
+                .should().onlyHaveDependentClassesThat().haveFullyQualifiedName(user)
+                .because("the session store clock is the framework's clock; business instants come from the injected Clock");
+    }
+
+    @Test
+    @DisplayName("only JdbcExpiredSessions depends on SessionStoreClock")
+    void onlyTheExpiredSessionsUseTheStoreClock() {
+        onlyTheExpiredSessionsUseTheStoreClock(SESSION_STORE_CLOCK, SESSION_STORE_USER).check(ArchitectureRulesTest.CLASSES);
+    }
+
+    @Test
+    @DisplayName("injection: any other dependent of a session store clock is caught")
+    void aStrayUserIsCaught() {
+        JavaClasses stray = new ClassFileImporter().importPackages("com.forcitis.one.fixture.infrastructure.stray");
+
+        List<String> details = onlyTheExpiredSessionsUseTheStoreClock("com.forcitis.one.fixture.infrastructure.stray.SessionStoreClock", SESSION_STORE_USER)
+                .evaluate(stray).getFailureReport().getDetails();
+
+        assertThat(details).anyMatch(d -> d.contains("StrayClockUser"));
     }
 
     static final Pattern STRING_LITERAL = Pattern.compile("\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);
