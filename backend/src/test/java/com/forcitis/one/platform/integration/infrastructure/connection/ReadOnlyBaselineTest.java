@@ -49,7 +49,8 @@ class ReadOnlyBaselineTest {
             new Counterexample("an owned role", c -> c.ownership = new Ownership(false, 0, 0, 1, 0), 'e', Reason.OWNS_ROLE),
             new Counterexample("a grant on a database principal", c -> c.ownership = new Ownership(false, 0, 0, 0, 1), 'e', Reason.DATABASE_PRINCIPAL_GRANT),
             new Counterexample("another user database", c -> c.reachableDatabases.add("otherworld"), 'f', Reason.OTHER_DATABASE_REACHABLE),
-            new Counterexample("an own user in msdb", c -> c.ownUsers.put("msdb", 1L), 'f', Reason.SYSTEM_DATABASE_OWN_USER),
+            new Counterexample("an own user in master", c -> c.ownUser("master"), 'f', Reason.SYSTEM_DATABASE_OWN_USER),
+            new Counterexample("an owned Agent job", c -> c.ownedAgentJobs = 1, 'f', Reason.OWNS_AGENT_JOB),
             new Counterexample("a grant below the database", c -> c.securablePermissionRows.add(FakeCatalog.row("SCHEMA", 5, "G", "CONTROL", false)),
                     'g', Reason.SECURABLE_GRANT_BEYOND_SELECT),
             new Counterexample("a failing catalog", c -> c.unreachable = true, 'a', Reason.CATALOG_QUERY_FAILED),
@@ -275,9 +276,9 @@ class ReadOnlyBaselineTest {
     @Test
     @DisplayName("ADR37-1 复审 H-2 (f) a user of the login's own in a system database (only guest is allowed there) is named under (f)")
     void systemDatabasesOnlyThroughGuest() {
-        catalog.ownUsers.put("msdb", 1L);
+        catalog.ownUser("master");
 
-        assertThat(ReadOnlyBaseline.violations(catalog)).singleElement().asString().startsWith("(f)").contains("[msdb]").contains("guest");
+        assertThat(ReadOnlyBaseline.violations(catalog)).singleElement().asString().startsWith("(f)").contains("[master]").contains("guest");
         assertThat(reasons('f')).containsExactly(Reason.SYSTEM_DATABASE_OWN_USER);
     }
 

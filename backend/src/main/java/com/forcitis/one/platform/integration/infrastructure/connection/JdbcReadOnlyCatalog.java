@@ -5,6 +5,8 @@ import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyB
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.Membership;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserPermission;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,7 +44,17 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
                    (SELECT COUNT(*) FROM sys.database_permissions WHERE class = 4 AND grantee_principal_id = DATABASE_PRINCIPAL_ID())
             """;
     static final String REACHABLE_DATABASES = "SELECT database_id, name FROM sys.databases WHERE HAS_DBACCESS(name) = 1";
-    static final String OWN_USERS = "SELECT COUNT(*) FROM %s.sys.database_principals WHERE sid = SUSER_SID()";
+    static final String OWN_USER_MEMBERSHIPS = """
+            SELECT CASE WHEN m.role_principal_id IS NULL THEN 0 ELSE 1 END, r.name
+            FROM %1$s.sys.database_principals u
+            LEFT JOIN %1$s.sys.database_role_members m ON m.member_principal_id = u.principal_id
+            LEFT JOIN %1$s.sys.database_principals r ON r.principal_id = m.role_principal_id
+            WHERE u.sid = SUSER_SID()
+            """;
+    static final String OWN_USER_PERMISSIONS = "SELECT p.class_desc, p.state, p.permission_name FROM %1$s.sys.database_permissions p "
+            + "JOIN %1$s.sys.database_principals u ON u.principal_id = p.grantee_principal_id WHERE u.sid = SUSER_SID()";
+    /** Not msdb.dbo.sysjobs: only TargetServersRole may read it, so a member of the SQL Agent roles gets 229 (SQL Server 2022 container, 2026-10-15). */
+    static final String OWNED_AGENT_JOBS = "SELECT COUNT(*) FROM msdb.dbo.sysjobs_view WHERE owner_sid = SUSER_SID()";
     static final String CURRENT_DATABASE = "SELECT DB_NAME()";
 
     private final JdbcClient jdbc;
@@ -111,8 +123,20 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     }
 
     @Override
-    public long ownUsers(String systemDatabase) {
-        return jdbc.sql(OWN_USERS.formatted(bracketed(systemDatabase))).query(Long.class).single();
+    public List<Membership> ownUserMemberships(String systemDatabase) {
+        return jdbc.sql(OWN_USER_MEMBERSHIPS.formatted(bracketed(systemDatabase)))
+                .query((rs, n) -> new Membership(rs.getInt(1) == 1, rs.getString(2))).list();
+    }
+
+    @Override
+    public List<OwnUserPermission> ownUserPermissions(String systemDatabase) {
+        return jdbc.sql(OWN_USER_PERMISSIONS.formatted(bracketed(systemDatabase)))
+                .query((rs, n) -> new OwnUserPermission(rs.getString(1), rs.getString(2), rs.getString(3))).list();
+    }
+
+    @Override
+    public long ownedAgentJobs() {
+        return jdbc.sql(OWNED_AGENT_JOBS).query(Long.class).single();
     }
 
     @Override

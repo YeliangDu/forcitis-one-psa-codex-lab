@@ -5,6 +5,8 @@ import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyB
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.Membership;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserPermission;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +38,10 @@ class FakeCatalog implements ReadOnlyCatalog {
     List<String> reachableDatabases = new ArrayList<>(List.of("legacyworld", "master", "msdb", "rdscore", "tempdb"));
     /** When set, answers reachableDatabases() instead of the names above. */
     List<ReachableDatabase> reachableDatabaseRows;
-    final Map<String, Long> ownUsers = new HashMap<>();
+    /** The login's own users by system database: none unless a test adds one (rdsOwnUsers() gives those RDS creates). */
+    final Map<String, List<Membership>> ownUsers = new HashMap<>();
+    final Map<String, List<OwnUserPermission>> ownUserPermissions = new HashMap<>();
+    long ownedAgentJobs;
     String currentDatabase = "legacyworld";
     volatile boolean unreachable;
     /** When set, every query throws it instead of answering. */
@@ -60,6 +65,25 @@ class FakeCatalog implements ReadOnlyCatalog {
         Map<String, Integer> memberships = new TreeMap<>();
         ReadOnlyBaseline.FIXED_SERVER_ROLES.forEach(r -> memberships.put(r, 0));
         return memberships;
+    }
+
+    /** An own user in the given database, in the given roles (none: one row without a role), with CONNECT only. */
+    FakeCatalog ownUser(String database, String... roles) {
+        List<Membership> rows = new ArrayList<>();
+        for (String role : roles) {
+            rows.add(new Membership(true, role));
+        }
+        if (rows.isEmpty()) {
+            rows.add(new Membership(false, null));
+        }
+        ownUsers.put(database, rows);
+        ownUserPermissions.put(database, new ArrayList<>(List.of(new OwnUserPermission("DATABASE", "G", "CONNECT"))));
+        return this;
+    }
+
+    /** What RDS gives every login (one-ops, C-14 rc.3): msdb in the three SQL Agent roles, rdscore without a role. */
+    FakeCatalog rdsOwnUsers() {
+        return ownUser("msdb", "SQLAgentOperatorRole", "SQLAgentReaderRole", "SQLAgentUserRole").ownUser("rdscore");
     }
 
     private <T> T answer(Supplier<T> value) {
@@ -120,8 +144,18 @@ class FakeCatalog implements ReadOnlyCatalog {
     }
 
     @Override
-    public long ownUsers(String systemDatabase) {
-        return answer(() -> ownUsers.getOrDefault(systemDatabase, 0L));
+    public List<Membership> ownUserMemberships(String systemDatabase) {
+        return answer(() -> ownUsers.getOrDefault(systemDatabase, List.of()));
+    }
+
+    @Override
+    public List<OwnUserPermission> ownUserPermissions(String systemDatabase) {
+        return answer(() -> ownUserPermissions.getOrDefault(systemDatabase, List.of()));
+    }
+
+    @Override
+    public long ownedAgentJobs() {
+        return answer(() -> ownedAgentJobs);
     }
 
     @Override

@@ -5,6 +5,8 @@ import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyB
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.Membership;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserPermission;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,8 +38,17 @@ interface ReadOnlyCatalog {
 
     List<ReachableDatabase> reachableDatabases();
 
-    /** Users of the given system database whose SID is the login's; the database must be one {@link #reachableDatabases()} named. */
-    long ownUsers(String systemDatabase);
+    /**
+     * The role memberships of the login's own user (SID the login's) in the given system database, empty when it has none there; the database
+     * must be one {@link #reachableDatabases()} named.
+     */
+    List<Membership> ownUserMemberships(String systemDatabase);
+
+    /** The rows of sys.database_permissions of the login's own user in the given system database, as for {@link #ownUserMemberships}. */
+    List<OwnUserPermission> ownUserPermissions(String systemDatabase);
+
+    /** The SQL Agent jobs the login owns, as msdb.dbo.sysjobs_view shows them to it. */
+    long ownedAgentJobs();
 
     String currentDatabase();
 }
