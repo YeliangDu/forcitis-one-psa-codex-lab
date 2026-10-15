@@ -40,6 +40,8 @@ class SystemActorCatalogueTest {
             .importPackages("com.forcitis.one");
     static final Pattern ENTERED = Pattern.compile("WorkContext\\.enter\\([^;{]*?\"([^\"]+)\"\\)", Pattern.DOTALL);
     static final Pattern ACTOR_CONSTANT = Pattern.compile("static final String ACTOR = \"([^\"]+)\"");
+    /** Undeclared on purpose: tests that a name not in the catalogue is refused use these prefixes, and only tests may. */
+    static final List<String> COUNTEREXAMPLE_PREFIXES = List.of("test.no-such-", "no.such.");
     static final Pattern ANY_ACTOR_CONSTANT = Pattern.compile("static final String ACTOR = ([^;]+);");
     static final Pattern LOCK_NAME = Pattern.compile("@SchedulerLock\\(name = \"([^\"]+)\"");
     static final Pattern ACTOR_ANNOTATION = Pattern.compile("@SystemActorName\\(\"([^\"]+)\"\\)");
@@ -300,14 +302,14 @@ class SystemActorCatalogueTest {
     private static int namesWritten(Path root, List<Pattern> patterns, Set<String> declared, List<String> missing) throws IOException {
         int seen = 0;
         try (Stream<Path> files = Files.walk(root)) {
-            for (Path file : files.filter(f -> f.toString().endsWith(".java") && !f.endsWith("SystemActorCatalogueTest.java")
-                    && !f.endsWith("SystemActorsTest.java") && !f.endsWith("SystemActorCheckTest.java")).toList()) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
                 String source = Files.readString(file);
                 for (Pattern pattern : patterns) {
                     Matcher matcher = pattern.matcher(source);
                     while (matcher.find()) {
                         seen++;
-                        if (!declared.contains(matcher.group(1))) {
+                        boolean counterexample = root.equals(TESTS) && COUNTEREXAMPLE_PREFIXES.stream().anyMatch(matcher.group(1)::startsWith);
+                        if (!declared.contains(matcher.group(1)) && !counterexample) {
                             missing.add(matcher.group(1) + " in " + file.getFileName());
                         }
                     }
