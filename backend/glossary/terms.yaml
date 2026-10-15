@@ -108,6 +108,16 @@ common_words:
   - cron
   - name
   - until
+  # 用语确认第三轮归为通用词（2026-10-15，R3）
+  - opinion
+  - unfilled
+  - maintain
+  - changed
+  - dates
+  - descendant
+  - install
+  - calculation
+  - finance
 
 # 权限码与 HTTP 动作的标准动作集（G43：{subdomain}.{bc}:{resource}:{action} 的 action 只能取自这里）
 standard_actions:

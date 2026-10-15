@@ -48,6 +48,7 @@ terms:
   snake: separation_hold
   kind: entity
   bc: organization.workforce
+  scope: domain
   definition: 会使可用超级管理员少于 2 名、或涉及超级管理员与安全审计员持有人的离职，被单独挂起等待另一名持有人放行的记录（ADR-0027 第 1 项第 7 条、ADR-0028）
   standard_ref:
   - ADR-0028
