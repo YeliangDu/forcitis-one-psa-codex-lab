@@ -1,0 +1,93 @@
+package com.forcitis.one.acceptance.platform.numbering;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+
+import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
+import com.forcitis.one.platform.identity.api.Permission;
+import com.jayway.jsonpath.JsonPath;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * R-1b P2 (ADR-0033 section 3 item 3 「本人」判定清单: 编号模板四眼; ADR-0027 section 2 item 4): the confirmer of a numbering template
+ * version is not its author. Both are accounts, recorded and compared as user ids (UUIDs), never as employee ids.
+ */
+@Testcontainers
+class NumberingRuleConfirmerIT extends AccountsAcceptanceSupport {
+
+    static final String QUOTE_RULE = "/api/v1/platform/numbering-rules/QUOTE";
+
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer postgres = database();
+
+    private static RequestPostProcessor author(UUID userId) {
+        return as(userId, Permission.Codes.PLATFORM_NUMBERING_RULE_READ, Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE,
+                Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE);
+    }
+
+    private static RequestPostProcessor approver(UUID userId) {
+        return as(userId, Permission.Codes.PLATFORM_NUMBERING_RULE_READ, Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE);
+    }
+
+    private MockHttpServletResponse confirm(RequestPostProcessor who, int templateVersion) throws Exception {
+        return mvc.perform(post(QUOTE_RULE + ":confirm").with(csrf()).with(who).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"templateVersion\":" + templateVersion + "}")).andReturn().getResponse();
+    }
+
+    @Test
+    @DisplayName("R-1b P2 ADR-0033 第 3 项第 3 条 / ADR-0027 第 2 项第 4 条：编号模板四眼——作者不能确认自己保存的版本（403 PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR），作者与确认人按用户 ID 记录与比较；另一人可以确认")
+    void theAuthorOfAVersionCannotConfirmIt() throws Exception {
+        long unit = newOrgUnitId();
+        orgUnit(unit, null, null);
+        long authorEmployee = newEmployeeId();
+        long approverEmployee = newEmployeeId();
+        employee(authorEmployee, unit, null);
+        employee(approverEmployee, unit, null);
+        UUID authorAccount = signIn(authorEmployee).userId();
+        UUID approverAccount = signIn(approverEmployee).userId();
+        MockHttpServletResponse rule = mvc.perform(get(QUOTE_RULE).with(author(authorAccount))).andReturn().getResponse();
+        assertThat(rule.getStatus()).as(rule.getContentAsString()).isEqualTo(200);
+
+        MockHttpServletResponse saved = mvc.perform(put(QUOTE_RULE).header("If-Match", rule.getHeader("ETag")).with(csrf()).with(author(authorAccount))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,"
+                        + "\"effectiveFrom\":\"" + TODAY.plusDays(1) + "\"}")).andReturn().getResponse();
+        assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(200);
+        int pending = JsonPath.read(saved.getContentAsString(), "$.pending.templateVersion");
+        assertThat((String) JsonPath.read(saved.getContentAsString(), "$.pending.authorId")).isEqualTo(authorAccount.toString());
+
+        MockHttpServletResponse byTheAuthor = confirm(author(authorAccount), pending);
+
+        assertThat(byTheAuthor.getStatus()).as(byTheAuthor.getContentAsString()).isEqualTo(403);
+        assertThat((String) JsonPath.read(byTheAuthor.getContentAsString(), "$.errorCode")).isEqualTo("PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR");
+
+        MockHttpServletResponse byAnother = confirm(approver(approverAccount), pending);
+
+        assertThat(byAnother.getStatus()).as(byAnother.getContentAsString()).isEqualTo(200);
+        try (Connection numbering = schemaConnection("platform_numbering"); PreparedStatement select = numbering.prepareStatement("""
+                select v.author_id, v.confirmed_by from numbering_rule_versions v join numbering_rules r on r.numbering_rule_id = v.numbering_rule_id
+                 where r.document_type = 'QUOTE' and v.version_number = ?""")) {
+            select.setInt(1, pending);
+            try (ResultSet rs = select.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getObject(1, UUID.class)).as("author_id").isEqualTo(authorAccount);
+                assertThat(rs.getObject(2, UUID.class)).as("confirmed_by").isEqualTo(approverAccount);
+            }
+        }
+    }
+}
