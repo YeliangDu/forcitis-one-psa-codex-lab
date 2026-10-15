@@ -12,7 +12,7 @@ from pathlib import Path
 from alibabacloud_ecs20140526 import models as em
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'runbooks' / 'scripts'))
-from ops_credentials import ecs_client, require_committed  # noqa: E402
+from ops_credentials import MIN_SECONDS, ecs_client, require_committed  # noqa: E402
 
 REGION = 'cn-hangzhou'
 LEGACY_SERVER = 'i-bp1b34hcl0g1cnkdtrb9'
@@ -29,7 +29,7 @@ require_committed(__file__, sys.argv[0])
 
 
 def run(instance, script, timeout=600):
-    ecs = ecs_client(REGION, timeout + 120)
+    ecs = ecs_client(REGION, max(MIN_SECONDS, timeout + 120))
     invoke = ecs.run_command(em.RunCommandRequest(region_id=REGION, instance_id=[instance], type='RunShellScript',
                                                   command_content=script, timeout=timeout, keep_command=False,
                                                   name='one-ops-b5')).body.invoke_id

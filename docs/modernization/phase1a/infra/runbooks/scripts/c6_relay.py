@@ -13,7 +13,7 @@ from pathlib import Path
 from alibabacloud_ecs20140526 import models as em
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ops_credentials import ecs_client, require_committed  # noqa: E402
+from ops_credentials import MIN_SECONDS, ecs_client, require_committed  # noqa: E402
 
 REGION = 'cn-hangzhou'
 LEGACY_SERVER = 'i-bp1b34hcl0g1cnkdtrb9'
@@ -21,11 +21,11 @@ ONE_SERVER = 'i-bp122xlpar8w2uylmal2'
 SCRIPTS = Path(__file__).resolve().parent
 CHUNK = 24000
 
-require_committed(__file__)
-ecs = ecs_client(REGION)
+require_committed(__file__, sys.argv[0])
 
 
 def run(instance, script, timeout=300):
+    ecs = ecs_client(REGION, max(MIN_SECONDS, timeout + 120))
     invoke = ecs.run_command(em.RunCommandRequest(region_id=REGION, instance_id=[instance], type='RunShellScript',
                                                   command_content=script, timeout=timeout, keep_command=False,
                                                   name='one-ops-c6')).body.invoke_id
@@ -104,7 +104,7 @@ def deliver(date, name, data: bytes):
     encoded = base64.b64encode(gzip.compress(data, 9)).decode()
     chunks = [encoded[i:i + CHUNK] for i in range(0, len(encoded), CHUNK)]
     for index, chunk in enumerate(chunks):
-        invoke = ecs.send_file(em.SendFileRequest(region_id=REGION, instance_id=[ONE_SERVER], name=f'{index:05d}',
+        invoke = ecs_client(REGION).send_file(em.SendFileRequest(region_id=REGION, instance_id=[ONE_SERVER], name=f'{index:05d}',
                                                   target_dir=parts_dir, content=chunk, content_type='PlainText',
                                                   file_owner='root', file_group='root', file_mode='0600', overwrite=True,
                                                   description='one-ops c6 part')).body.invoke_id
@@ -118,6 +118,7 @@ def deliver(date, name, data: bytes):
 
 
 def _wait_send(invoke):
+    ecs = ecs_client(REGION)
     for _ in range(60):
         time.sleep(1)
         inv = ecs.describe_send_file_results(em.DescribeSendFileResultsRequest(region_id=REGION, invoke_id=invoke)).body.invocations.invocation[0]

@@ -36,14 +36,24 @@ def credentials(min_seconds=MIN_SECONDS):
     return profile
 
 
+BASELINE = 'origin/main'
+
+
 def require_committed(*files):
-    """Refuses to run unless every file is tracked in a git checkout and identical to the checked-out commit."""
-    for file in files:
+    """Refuses to run unless this module and every given file are byte-identical to their blobs on origin/main.
+
+    Compares content hashes, not git status: assume-unchanged or skip-worktree flags hide a change from git diff, and a lowered
+    threshold committed on a branch would pass a comparison with the local HEAD."""
+    for file in (__file__, *files):
         path = Path(file).resolve()
-        check = subprocess.run(['git', '-C', str(path.parent), 'ls-files', '--error-unmatch', path.name], capture_output=True)
-        changed = subprocess.run(['git', '-C', str(path.parent), 'diff', '--quiet', 'HEAD', '--', path.name], capture_output=True)
-        if check.returncode != 0 or changed.returncode != 0:
-            raise SystemExit(f'{path} is not the committed file of a repository checkout; run the tools from the repository, unmodified')
+        git = ['git', '-C', str(path.parent)]
+        top = subprocess.run([*git, 'rev-parse', '--show-toplevel'], capture_output=True, text=True)
+        local = subprocess.run([*git, 'hash-object', str(path)], capture_output=True, text=True)
+        relative = path.relative_to(Path(top.stdout.strip()).resolve()).as_posix() if top.returncode == 0 else ''
+        expected = subprocess.run([*git, 'rev-parse', f'{BASELINE}:{relative}'], capture_output=True, text=True) if relative else None
+        if not expected or expected.returncode != 0 or local.returncode != 0 or local.stdout.strip() != expected.stdout.strip():
+            raise SystemExit(f'{path} differs from {BASELINE} (or is outside a repository checkout); run the tools unmodified from a checkout, '
+                             f'after `git fetch origin` if {BASELINE} is stale')
 
 
 def ecs_client(region, min_seconds=MIN_SECONDS):
