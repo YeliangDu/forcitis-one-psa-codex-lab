@@ -239,3 +239,4 @@
 - Low：L1 改用类引用；L2 发起人流程变量解析移进 try；L3 票据 subject 规范形校验；L4 同级次序变化 PR 单列（不改）；L5 回放表单值 "0" 映射为空白；L6 删死代码；L7 完整类名改 import；L8 `SourceReferences.allocate` 限定组织来源；L9 `LegacyInboxProperties` 重写 toString 遮蔽口令；L10 INFRA_RUNBOOK 写明首次全量同步较慢；L11 核对术语与事件目录；L12 不改（生成器局限）。
 - L8 落法偏离（one-coordinator 同意）：未在 `SourceReferences.allocate` 运行时限定组织来源，改为 ArchUnit 守护 `SourceReferenceAllocationGuardTest`（主代码只许组织来源适配器调用，带负向样例），因 `LegacyReferencesIT`、`StalledExternalSourceIT`、`ReadOnlyAccountCheckIT` 经同一方法分配 LEGACY_SYSTEM 对照。后续：测试代理把这些验收改走测试专用种子路径后，再评估是否加运行时限定（不急）。
 - rebase 适配：#228 新增的 `SessionPurgeClockIT` 两个局部变量随 ID 改 UUID（机械改动，沿用 RULING-P3B-2）。
+- RULING-P3B-18（rebase 到含 R-1b-0a #250 的 main 后的验收适配，机械改动，断言含义不变）：`A8SourceFlagsIT.unitName` 原直查 `platform_integration.source_references` 取自有 ID，P3b 后被 `TestIsolationGuardTest` 拦，改经 `SourceReferences.findOwnId`（同样只取已确认对照）；其老待办关闭开关从退役旧键改为 `forcitis.platform.integration.legacy.inbox.url`（RULING-P3B-10 / 16）。
