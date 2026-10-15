@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/organization/org-units")
@@ -37,7 +38,7 @@ class OrgUnitController {
 
     @GetMapping(path = "/{orgUnitId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_UNIT_READ + "')")
-    OrgUnitDetailResponse get(@PathVariable long orgUnitId, UserId caller) {
+    OrgUnitDetailResponse get(@PathVariable UUID orgUnitId, UserId caller) {
         return getOrgUnit.execute(orgUnitId, access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ), caller)
                 .map(OrgUnitDetailResponse::of).orElseThrow(() -> new DomainException(
                         WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND, ErrorKind.NOT_FOUND, "no org unit " + orgUnitId));

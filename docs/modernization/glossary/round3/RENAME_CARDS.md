@@ -25,7 +25,7 @@
 | R3-AP-60 | 已出结果 / Resulted | 任务已办理 / TaskHandled（task_handled） | 代码仍用 Resulted（main） |
 | R3-AP-65 | 已跳过 / Skipped | 通知已跳过 / NotificationSkipped（notification_skipped） | 代码仍用 Skipped（main） |
 | R3-AP-68 | 项目经理审批 / ProjectManagerReview | 项目经理审批 / ProjectManagerApproval（project_manager_approval） | 代码仍用 ProjectManagerReview（main） |
-| R3-AP-69 | 区域负责人审批 / RegionalHeadReview | 区域负责人审批 / RegionalHeadApproval（regional_head_approval） | 代码仍用 RegionalHeadReview（main） |
+| R3-AP-69 | 区域负责人审批 / RegionalHeadReview | 部门负责人审批 / OrgUnitHeadApproval（org_unit_head_approval；D5-06 取代原定的 RegionalHeadApproval，随 R-1b P4） | 代码仍用 RegionalHeadReview（main） |
 | R3-AP-70 | 一级汇报人审批 / SupervisorReview | 直属上级审批 / SupervisorApproval（supervisor_approval） | 代码仍用 SupervisorReview（main） |
 | R3-AP-74 | 撤回截止点 / Cutoff | 撤回截止点 / WithdrawalCutoff（withdrawal_cutoff） | 代码仍用 Cutoff（main） |
 | R3-ID-04 | 管理模式 / AdministratorMode | 管理员模式 / AdministratorMode（administrator_mode） | 界面文字仍用「管理模式」 |

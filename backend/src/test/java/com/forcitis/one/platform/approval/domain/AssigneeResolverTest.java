@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
-import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.FakeOrganisation;
 import com.forcitis.one.platform.identity.api.RoleCode;
@@ -35,11 +37,24 @@ class AssigneeResolverTest {
     }
 
     Resolution resolve(AssignmentRule rule, long initiator, ProcessVariables variables) {
-        return resolver.resolve(rule, false, new EmployeeId(initiator), variables);
+        return resolver.resolve(rule, false, TestAccounts.employee(initiator), variables);
     }
 
     static Set<UserId> ids(long... values) {
-        return java.util.Arrays.stream(values).mapToObj(TestAccounts::account).collect(java.util.stream.Collectors.toSet());
+        return java.util.Arrays.stream(values).mapToObj(v -> TestAccounts.account(TestAccounts.employee(v))).collect(java.util.stream.Collectors.toSet());
+    }
+
+    static String person(long n) {
+        return TestAccounts.employee(n).toString();
+    }
+
+    static String unit(long n) {
+        return TestOrgIds.orgUnit(n).toString();
+    }
+
+    static void refused(Runnable resolution) {
+        assertThatThrownBy(resolution::run).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
     }
 
     static ProcessVariables fields(String name, String... values) {
@@ -66,18 +81,30 @@ class AssigneeResolverTest {
         // initiator 1 sits in unit 11, which has no head: the head of unit 10 takes it
         assertThat(resolve(new AssignmentRule.DepartmentHead(""), 1, ProcessVariables.empty()).candidates()).isEqualTo(ids(110));
         // the unit comes from a process variable; unit 12's only head is separated -> unit 10's head
-        assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", "12")).candidates())
+        assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", unit(12))).candidates())
                 .isEqualTo(ids(110));
-        assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", "13")).candidates())
+        assertThat(resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", unit(13))).candidates())
                 .isEqualTo(ids(110));
     }
 
     @Test
-    @DisplayName("RULE-253 an unparsable or missing unit never fails with a null: the administrator takes it and the kind says so")
-    void unparsableUnitGoesToAdministrator() {
-        Resolution r = resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", "not-a-number"));
+    @DisplayName("RULE-253 a blank unit never fails with a null: the administrator takes it and the kind says so")
+    void blankUnitGoesToAdministrator() {
+        Resolution r = resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", " "));
         assertThat(r.candidates()).isEqualTo(ids(ADMIN));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
+        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), false, true, TestAccounts.employee(1),
+                variable("deliveryUnitId", " ")).kind()).as("a blank unit is no unit, not the initiator's own").isEqualTo(ResolutionKind.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("ADR-0033 a unit variable that is not an org unit id refuses the assignment: never skipped, never the initiator's unit")
+    void unitThatIsNoOrgUnitIdIsRefused() {
+        for (String value : List.of("not-a-number", "12", "-12", "0", unit(12).toUpperCase(java.util.Locale.ROOT))) {
+            refused(() -> resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), 1, variable("deliveryUnitId", value)));
+            refused(() -> resolver.resolve(new AssignmentRule.DepartmentHead("deliveryUnitId"), false, true, TestAccounts.employee(1),
+                    variable("deliveryUnitId", value)));
+        }
     }
 
     @Test
@@ -103,12 +130,12 @@ class AssigneeResolverTest {
     void nothingFoundGoesToAdministrator() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
         Resolution r = new AssigneeResolver(lonely, lonely, java.util.Set.of(TestAccounts.account(ADMIN)), TestAccounts.everyoneHasOne())
-                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new EmployeeId(5), ProcessVariables.empty());
+                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, TestAccounts.employee(5), ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(ADMIN));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
 
         Resolution none = new AssigneeResolver(lonely, lonely, java.util.Set.of(), TestAccounts.everyoneHasOne())
-                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new EmployeeId(5), ProcessVariables.empty());
+                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, TestAccounts.employee(5), ProcessVariables.empty());
         assertThat(none.candidates()).isEmpty();
         assertThat(none.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
     }
@@ -117,19 +144,19 @@ class AssigneeResolverTest {
     @DisplayName("RULE-300 a node that may be skipped is skipped only when its input is complete and valid and nobody is left; a node that may not be skipped goes to the administrator; a node that may not be skipped goes to the administrator")
     void skipOnlyWhenEmptyAndAllowed() {
         AssignmentRule.FormFieldUsers rule = new AssignmentRule.FormFieldUsers("projectManagerId");
-        Resolution skipped = resolver.resolve(rule, false, true, new EmployeeId(1), fields("projectManagerId", "120"));
+        Resolution skipped = resolver.resolve(rule, false, true, TestAccounts.employee(1), fields("projectManagerId", person(120)));
         assertThat(skipped.kind()).isEqualTo(ResolutionKind.SKIPPED);
         assertThat(skipped.namedApproverInvalid()).as("the document names an approver who cannot act: remembered, so that an approval whose every node was skipped like this goes back to the initiator").isTrue();
         assertThat(skipped.candidates()).isEmpty();
         Resolution nobody = resolver.resolve(new AssignmentRule.Role(new com.forcitis.one.platform.identity.api.RoleCode("nobody-holds-this")), false, true,
-                new EmployeeId(1), ProcessVariables.empty());
+                TestAccounts.employee(1), ProcessVariables.empty());
         assertThat(nobody.kind()).isEqualTo(ResolutionKind.SKIPPED);
         assertThat(nobody.namedApproverInvalid()).as("a rule that finds nobody by itself is a set-up matter").isFalse();
-        assertThat(resolver.resolve(rule, false, false, new EmployeeId(1), fields("projectManagerId", "120")).kind())
+        assertThat(resolver.resolve(rule, false, false, TestAccounts.employee(1), fields("projectManagerId", person(120))).kind())
                 .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
-        assertThat(resolver.resolve(rule, false, false, new EmployeeId(1), ProcessVariables.empty()).kind())
+        assertThat(resolver.resolve(rule, false, false, TestAccounts.employee(1), ProcessVariables.empty()).kind())
                 .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
-        assertThat(resolver.resolve(rule, false, true, new EmployeeId(1), fields("projectManagerId", "2")).kind())
+        assertThat(resolver.resolve(rule, false, true, TestAccounts.employee(1), fields("projectManagerId", person(2))).kind())
                 .isEqualTo(ResolutionKind.RESOLVED);
     }
 
@@ -138,15 +165,18 @@ class AssigneeResolverTest {
     void invalidInputIsNeverSkipped() {
         AssignmentRule.FormFieldUsers rule = new AssignmentRule.FormFieldUsers("projectManagerId");
         for (ProcessVariables input : List.of(ProcessVariables.empty(), fields("projectManagerId"), fields("projectManagerId", " "),
-                fields("projectManagerId", "x"), fields("projectManagerId", "0"), fields("projectManagerId", "424242"))) {
-            assertThat(resolver.resolve(rule, false, true, new EmployeeId(1), input).kind()).as(input.toString())
+                fields("projectManagerId", person(424242)))) {
+            assertThat(resolver.resolve(rule, false, true, TestAccounts.employee(1), input).kind()).as(input.toString())
                     .isEqualTo(ResolutionKind.INVALID_INPUT);
         }
-        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, new EmployeeId(1),
-                variable("unitVar", "424242")).kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
-        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, new EmployeeId(1), ProcessVariables.empty())
+        for (String notAnEmployeeId : List.of("x", "0", "424242")) {
+            refused(() -> resolver.resolve(rule, false, true, TestAccounts.employee(1), fields("projectManagerId", notAnEmployeeId)));
+        }
+        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, TestAccounts.employee(1),
+                variable("unitVar", unit(424242))).kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
+        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, TestAccounts.employee(1), ProcessVariables.empty())
                 .kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
-        assertThat(resolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new EmployeeId(424242),
+        assertThat(resolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, TestAccounts.employee(424242),
                 ProcessVariables.empty()).kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
     }
 
@@ -156,22 +186,42 @@ class AssigneeResolverTest {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
         AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, java.util.Set.of(TestAccounts.account(ADMIN)), TestAccounts.everyoneHasOne());
 
-        assertThat(lonelyResolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new EmployeeId(5), ProcessVariables.empty())
+        assertThat(lonelyResolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, TestAccounts.employee(5), ProcessVariables.empty())
                 .kind()).isEqualTo(ResolutionKind.SKIPPED);
-        assertThat(lonelyResolver.resolve(new AssignmentRule.Role(new RoleCode("nobody-holds-this")), false, true, new EmployeeId(5),
+        assertThat(lonelyResolver.resolve(new AssignmentRule.Role(new RoleCode("nobody-holds-this")), false, true, TestAccounts.employee(5),
                 ProcessVariables.empty()).kind()).isEqualTo(ResolutionKind.SKIPPED);
-        assertThat(lonelyResolver.resolve(new AssignmentRule.DepartmentHead(null), false, true, new EmployeeId(5), ProcessVariables.empty())
+        assertThat(lonelyResolver.resolve(new AssignmentRule.DepartmentHead(null), false, true, TestAccounts.employee(5), ProcessVariables.empty())
                 .kind()).isEqualTo(ResolutionKind.SKIPPED);
     }
 
     @Test
-    @DisplayName("RULE-258/260 form field users: every distinct value is a candidate; blanks and garbage are ignored")
+    @DisplayName("RULE-258/260 form field users: every distinct value is a candidate; blanks are ignored")
     void formFieldUsers() {
         long negativeBigId = Long.MIN_VALUE / 2;
         org.person(negativeBigId, 10, null);
         Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1,
-                fields("projectManagerId", "2", "3", "2", " ", "x", String.valueOf(negativeBigId)));
+                fields("projectManagerId", person(2), person(3), person(2), " ", person(negativeBigId)));
         assertThat(r.candidates()).isEqualTo(ids(2, 3, negativeBigId));
+    }
+
+    @Test
+    @DisplayName("ADR-0033 one value that is not an employee id among valid ones refuses the whole field, it is not skipped")
+    void garbageAmongPeopleIsRefused() {
+        for (String garbage : List.of("x", "3", "-3", person(3).toUpperCase(java.util.Locale.ROOT))) {
+            refused(() -> resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1, fields("projectManagerId", person(2), " ", garbage)));
+        }
+    }
+
+    @Test
+    @DisplayName("ADR-0033 parseEmployees: blanks are ignored, a value that is not an employee id refuses the list as a whole")
+    void parseEmployeesRefusesTheWholeList() {
+        assertThat(ProcessVariables.parseEmployees(java.util.Arrays.asList(person(2), " ", null, person(2), person(3))))
+                .containsExactly(TestAccounts.employee(2), TestAccounts.employee(3));
+        for (String garbage : List.of("x", "3", "0", "-3", person(3).toUpperCase(java.util.Locale.ROOT))) {
+            assertThatThrownBy(() -> ProcessVariables.parseEmployees(List.of(person(2), garbage))).as(garbage)
+                    .isInstanceOfSatisfying(DomainException.class,
+                            e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
+        }
     }
 
     @Test
@@ -185,7 +235,7 @@ class AssigneeResolverTest {
     @Test
     @DisplayName("RULE-307 the initiator is removed when somebody else qualifies (the leader is NOT added)")
     void selfApprovalRemovedWhenOthersExist() {
-        Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1, fields("projectManagerId", "1", "3"));
+        Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1, fields("projectManagerId", person(1), person(3)));
         assertThat(r.candidates()).isEqualTo(ids(3));
         assertThat(r.kind()).isEqualTo(ResolutionKind.RESOLVED);
     }
@@ -193,18 +243,18 @@ class AssigneeResolverTest {
     @Test
     @DisplayName("RULE-307 only when the initiator is the sole candidate does the task escalate to the direct leader")
     void selfApprovalEscalatesToSupervisorOnlyWhenAlone() {
-        Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1, fields("projectManagerId", "1"));
+        Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1, fields("projectManagerId", person(1)));
         assertThat(r.candidates()).isEqualTo(ids(2));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ESCALATED_SELF_APPROVAL);
         // no leader either -> administrator, never the initiator
-        Resolution noSupervisor = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 3, fields("projectManagerId", "3"));
+        Resolution noSupervisor = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 3, fields("projectManagerId", person(3)));
         assertThat(noSupervisor.candidates()).isEqualTo(ids(ADMIN));
     }
 
     @Test
     @DisplayName("RULE-307 an employee-activity node may be approved by its initiator")
     void selfApprovalAllowedOnEmployeeActivities() {
-        Resolution r = resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), true, new EmployeeId(1), fields("projectManagerId", "1"));
+        Resolution r = resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), true, TestAccounts.employee(1), fields("projectManagerId", person(1)));
         assertThat(r.candidates()).isEqualTo(ids(1));
     }
 
@@ -243,7 +293,7 @@ class AssigneeResolverTest {
         assertThat(AssignmentRuleCodec.parse("DEPARTMENT_HEAD", n -> null)).isEqualTo(new AssignmentRule.DepartmentHead(null));
         assertThat(AssignmentRuleCodec.parse("DEPARTMENT_HEAD", n -> n.equals("department") ? "deliveryUnitId" : null))
                 .isEqualTo(new AssignmentRule.DepartmentHead("deliveryUnitId"));
-        assertThat(resolve(new AssignmentRule.DepartmentHead(null), 1, variable("deliveryUnitId", "12")).candidates()).isEqualTo(ids(110));
+        assertThat(resolve(new AssignmentRule.DepartmentHead(null), 1, variable("deliveryUnitId", unit(12))).candidates()).isEqualTo(ids(110));
     }
 
     @Test

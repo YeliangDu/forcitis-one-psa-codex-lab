@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -39,7 +40,7 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
 
     private boolean holds(long user, String roleCode) {
         return jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :u) and r.code = :c")
-                .param("u", user).param("c", roleCode).query(Long.class).single() == 1;
+                .param("u", TestAccounts.employee(user).value()).param("c", roleCode).query(Long.class).single() == 1;
     }
 
     @Test

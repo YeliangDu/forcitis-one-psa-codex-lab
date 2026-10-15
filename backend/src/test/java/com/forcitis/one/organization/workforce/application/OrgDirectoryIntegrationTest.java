@@ -1,7 +1,11 @@
 package com.forcitis.one.organization.workforce.application;
 
+import java.util.UUID;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlOrgUnit;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlEmployee;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.sourceUnit;
 
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
@@ -94,8 +98,8 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         }
         pool.shutdown();
 
-        assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = 3001").query(Long.class).single()).isEqualTo(1);
-        assertThat(jdbc.sql("select event_count from organization_workforce.employees where id = 3001").query(Long.class).single())
+        assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = " + sqlEmployee(3001)).query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("select event_count from organization_workforce.employees where id = " + sqlEmployee(3001)).query(Long.class).single())
                 .as("the employee announced EmployeeRegistered once").isEqualTo(1);
     }
 
@@ -111,9 +115,9 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(found.get().employeeId()).isEqualTo(user(3001));
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(count("employees")).isEqualTo(4);
-        assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3001").query(Long.class).single()).isEqualTo(1L);
+        assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = " + sqlEmployee(3001)).query(UUID.class).single()).isEqualTo(TestAccounts.employee(1).value());
         assertThat(events.stream(EmployeeRegistered.class).filter(e -> e.envelope().aggregateType().equals("Employee")
-                && e.envelope().aggregateId().equals("3001") && e.envelope().aggregateVersion() == 1)).hasSize(1);
+                && e.envelope().aggregateId().equals(TestAccounts.employee(3001).value().toString()) && e.envelope().aggregateVersion() == 1)).hasSize(1);
 
         assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-new-hire")))).isPresent();
         assertThat(orgSource.singleLookups.get()).as("the second login is answered by the snapshot").isEqualTo(1);
@@ -171,7 +175,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(count("employees")).isEqualTo(4);
         assertThat(events.stream(EmployeeRegistered.class).filter(e -> e.envelope().aggregateType().equals("Employee")
-                && e.envelope().aggregateId().equals("3101") && e.envelope().aggregateVersion() == 1)).hasSize(1);
+                && e.envelope().aggregateId().equals(TestAccounts.employee(3101).value().toString()) && e.envelope().aggregateVersion() == 1)).hasSize(1);
         assertThat(directory.findEmployeeByLogin(new LoginLookup.ByLoginName("13900003101"))).isPresent();
         assertThat(orgSource.singleLookups.get()).as("the second lookup is answered by the snapshot").isEqualTo(1);
     }
@@ -220,7 +224,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
 
         assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-bad-leader")))).isPresent();
 
-        assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3008").query(Long.class).optional()).isEmpty();
+        assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = " + sqlEmployee(3008)).query(UUID.class).optional()).isEmpty();
         assertThat(directory.findSupervisor(user(3008))).isEmpty();
     }
 
@@ -233,7 +237,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(directory.findSupervisor(user(2))).contains(user(1));
         assertThat(directory.findSupervisor(user(1))).isEmpty();
 
-        jdbc.sql("update organization_workforce.employees set employment_status = 'SEPARATED' where id = 2").update();
+        jdbc.sql("update organization_workforce.employees set employment_status = 'SEPARATED' where id = " + sqlEmployee(2)).update();
         assertThat(directory.findSupervisor(user(3))).as("leader separated since the last sync").isEmpty();
         assertThat(directory.findSupervisor(user(2))).as("the person themselves is not employed").isEmpty();
     }
@@ -266,7 +270,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
                 List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
                 List.of(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 2L)));
         sync.execute(SyncTrigger.SCHEDULED, false);
-        assertThat(jdbc.sql("select status from organization_workforce.org_units where id = 4").query(String.class).single()).isEqualTo("REVOKED");
+        assertThat(jdbc.sql("select status from organization_workforce.org_units where id = " + sqlOrgUnit(4)).query(String.class).single()).isEqualTo("REVOKED");
         assertThat(directory.findOrgUnit(unitId(4))).get().satisfies(u -> assertThat(u.active()).isFalse());
         assertThat(directory.findOrgUnit(unitId(404))).isEmpty();
     }

@@ -115,8 +115,8 @@ class ReadOnlyVerificationCommandIT {
     enum ReadOnlyConnection {
         A8("integration-seeyon-background", A8_WORLD, "A8_DB_URL", "A8_DB_USERNAME", "A8_DB_PASSWORD"),
         LEGACY_NAMES("integration-legacy", LEGACY_WORLD, "LEGACY_DB_RO_URL", "LEGACY_DB_RO_USERNAME", "LEGACY_DB_RO_PASSWORD"),
-        LEGACY_APPROVAL("legacy-approval", LEGACY_WORLD, "FORCITIS_PLATFORM_APPROVAL_LEGACY_URL", "FORCITIS_PLATFORM_APPROVAL_LEGACY_USERNAME",
-                "FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD");
+        INTEGRATION_LEGACY_INBOX("integration-legacy-inbox", LEGACY_WORLD, "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL", "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_USERNAME",
+                "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD");
 
         final String connectionName;
         final String database;
@@ -577,14 +577,14 @@ class ReadOnlyVerificationCommandIT {
     @Test
     @DisplayName("ADR-0037 第 4 项第 2 条、C-14：目标库不存在（不可达）时七项都判定不了，只输出驱动报的错误号与 SQLState，不输出含库名的消息原文")
     void missingDatabaseIsUndeterminedWithoutTheMessage() throws Exception {
-        Account baseline = baselineAccount(ReadOnlyConnection.LEGACY_APPROVAL);
+        Account baseline = baselineAccount(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX);
         String marker = marker();
         Account account = new Account(baseline.connection(), baseline.login(), baseline.password(), url("nodb_" + marker));
         SQLException refused = connectionFailure(account);
         assertThat(refused.getErrorCode()).as("SQL Server: cannot open the database requested by the login").isEqualTo(4060);
         assertThat(refused.getMessage()).as("the driver's message names the database, so printing it would leak the marker").contains(marker);
 
-        CommandRun run = verify(ReadOnlyConnection.LEGACY_APPROVAL, account);
+        CommandRun run = verify(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX, account);
 
         assertUndeterminedOnEveryItem(run, refused);
         assertThat(run.output()).as("no database message text").doesNotContain(marker);
@@ -638,6 +638,23 @@ class ReadOnlyVerificationCommandIT {
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_USAGE);
         assertThat(run.items()).as(run.output()).isEmpty();
+        assertStayedOffTheNetworkAndTheApplicationDatabase(run);
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("RULING-P3B-17：老待办连接已改名，--connection=legacy-approval 退出用法错误码、不做核实（无项行、无 RESULT 行），提示新名 integration-legacy-inbox")
+    void retiredConnectionNameIsWrongUsageAndNamesTheNewOne() throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        Map<String, String> environment = environment(Map.of(ReadOnlyConnection.A8, account));
+        List<String> arguments = List.of("--spring.profiles.active=" + PROFILE, CONNECTION_OPTION + "legacy-approval");
+
+        CommandRun run = launch(command(arguments), environment);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_USAGE);
+        assertThat(run.items()).as(run.output()).isEmpty();
+        assertThat(run.results()).as(run.output()).isEmpty();
+        assertThat(run.output()).as("the message names the new connection").contains(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX.connectionName);
         assertStayedOffTheNetworkAndTheApplicationDatabase(run);
         assertTellsNothingSecret(run, account);
     }
@@ -833,7 +850,7 @@ class ReadOnlyVerificationCommandIT {
         env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_FEE_EARNER_YES_ENUM_ID", "9002");
         env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_ROOT_PATH", "00000001");
         env.put("INTEGRATION_LEGACY_ENABLED", "true");
-        env.put("FORCITIS_PLATFORM_APPROVAL_LEGACY_DETAIL_URL_TEMPLATE", "https://legacy.example.test/todo/{processInstanceId}/{taskId}");
+        env.put("FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_DETAIL_URL_TEMPLATE", "https://legacy.example.test/todo/{processInstanceId}/{taskId}");
         accounts.forEach((connection, account) -> {
             env.put(connection.urlVariable, account.url());
             env.put(connection.usernameVariable, account.login());
@@ -952,7 +969,7 @@ class ReadOnlyVerificationCommandIT {
                 case A8 -> ReadOnlyBaselineFixture.createViewSchemaReader(ReadOnlyVerificationCommandIT::run, connection.database, login, password);
                 case LEGACY_NAMES -> ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyVerificationCommandIT::run, connection.database,
                         "dbo.v_one_legacy_org_short_name", login, password);
-                case LEGACY_APPROVAL -> ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyVerificationCommandIT::run, connection.database,
+                case INTEGRATION_LEGACY_INBOX -> ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyVerificationCommandIT::run, connection.database,
                         "dbo.v_psa_one_legacy_todo", login, password);
             }
         } catch (SQLException e) {

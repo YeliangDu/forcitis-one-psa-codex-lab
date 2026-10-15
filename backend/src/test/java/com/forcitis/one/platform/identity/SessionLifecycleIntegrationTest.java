@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -18,6 +19,7 @@ import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +51,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
     void idleTimeoutIsTenHours() throws Exception {
         loginWithWecom(1001);
 
-        assertThat(jdbc.sql("select max_inactive_interval from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = 1001)")
+        assertThat(jdbc.sql("select max_inactive_interval from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")")
                 .query(Integer.class).single()).isEqualTo(Duration.ofHours(10).toSeconds());
     }
 
@@ -59,7 +61,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String session = loginWithWecom(1001);
         assertThat(currentStatus(session)).isEqualTo(200);
 
-        jdbc.sql("update platform_identity.sessions set last_access_time = 1, expiry_time = 1 where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = 1001)").update();
+        jdbc.sql("update platform_identity.sessions set last_access_time = 1, expiry_time = 1 where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
 
         assertThat(currentStatus(session)).isEqualTo(401);
     }
@@ -137,7 +139,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(204);
         assertThat(currentStatus(victim)).isEqualTo(401);
         assertThat(currentStatus(other)).isEqualTo(200);
-        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = 1001)").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Long.class).single()).isZero();
         assertThat(recordedEvents.stream(com.forcitis.one.platform.identity.events.AccountDisabled.class)).singleElement()
                 .satisfies(e -> assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9).value().toString()));
         assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.revoked")).singleElement()
@@ -196,10 +198,10 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String victim = loginWithWecom(1001);
         String other = loginWithWecom(1002);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(new EmployeeId(1001)), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(TestAccounts.employee(1001)), List.of(), LocalDate.of(2026, 10, 14)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
-                jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = 1001)").query(Long.class).single()).isZero());
+                jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Long.class).single()).isZero());
         assertThat(currentStatus(victim)).isEqualTo(401);
         assertThat(currentStatus(other)).isEqualTo(200);
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.session.revoked");
@@ -211,17 +213,17 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(2001, EmploymentStatus.EMPLOYED);
         knownEmployee(2002, EmploymentStatus.SEPARATED);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new EmployeeId(2001), new EmployeeId(2002)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(TestAccounts.employee(2001), TestAccounts.employee(2002)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(count("user_accounts")).isEqualTo(1));
-        assertThat(jdbc.sql("select employee_id from platform_identity.user_accounts").query(Long.class).single()).isEqualTo(2001);
+        assertThat(jdbc.sql("select employee_id from platform_identity.user_accounts").query(UUID.class).single()).isEqualTo(TestAccounts.employee(2001).value());
         assertThat(jdbc.sql("""
                 select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 2001)
-                """).query(String.class).list()).containsExactly("employee");
+                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee)
+                """).param("employee", TestAccounts.employee(2001).value()).query(String.class).list()).containsExactly("employee");
 
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 2001)").update();
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new EmployeeId(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(2001) + ")").update();
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(TestAccounts.employee(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
         Thread.sleep(1000);
         assertThat(count("account_roles")).isZero();
     }

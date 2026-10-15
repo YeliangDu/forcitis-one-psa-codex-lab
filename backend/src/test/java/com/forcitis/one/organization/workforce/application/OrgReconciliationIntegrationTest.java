@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlOrgUnit;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.tree;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
@@ -9,6 +10,8 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.organization.workforce.domain.OrgReconciliationReport;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import org.junit.jupiter.api.DisplayName;
@@ -47,16 +50,16 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 3, 101L, 3L), person(3, 3, 101L, 1L), person(4, 2, 100L, null));
         OrgReconciliationReport beforeNextSync = reconcile.execute();
         assertThat(beforeNextSync.isZeroDifference()).isFalse();
-        assertThat(beforeNextSync.missingInSnapshot()).containsExactly("employee:4");
-        assertThat(beforeNextSync.reportingLineMismatches()).containsExactly("employee:2");
+        assertThat(beforeNextSync.missingInSnapshot()).containsExactly("employee:" + TestAccounts.employee(4).value());
+        assertThat(beforeNextSync.reportingLineMismatches()).containsExactly("employee:" + TestAccounts.employee(2).value());
         assertThat(beforeNextSync.sourceEmployedCount()).isEqualTo(4);
         assertThat(beforeNextSync.snapshotEmployedCount()).isEqualTo(3);
 
         sync.execute(SyncTrigger.SCHEDULED, false);
         assertThat(reconcile.execute().isZeroDifference()).isTrue();
 
-        jdbc.sql("update organization_workforce.org_units set parent_org_unit_id = 1 where id = 3").update();
-        assertThat(reconcile.execute().parentMismatches()).containsExactly("org-unit:3");
+        jdbc.sql("update organization_workforce.org_units set parent_org_unit_id = " + sqlOrgUnit(1) + " where id = " + sqlOrgUnit(3)).update();
+        assertThat(reconcile.execute().parentMismatches()).containsExactly("org-unit:" + TestOrgIds.orgUnit(3).value());
     }
 
     @Test
@@ -71,8 +74,8 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
                 java.util.List.of(post(100)), java.util.List.of(person(1, 2, 100L, null, "13900000001", "wx-1-new"), person(2, 2, 100L, null, "13900000002", "wx-2")));
         OrgReconciliationReport drift = reconcile.execute();
 
-        assertThat(drift.responsibilityMismatches()).containsExactly("org-unit:2");
-        assertThat(drift.wecomUserIdMismatches()).containsExactly("employee:1");
+        assertThat(drift.responsibilityMismatches()).containsExactly("org-unit:" + TestOrgIds.orgUnit(2).value());
+        assertThat(drift.wecomUserIdMismatches()).containsExactly("employee:" + TestAccounts.employee(1).value());
         assertThat(drift.differenceCount()).isEqualTo(2);
         assertThat(drift.isZeroDifference()).isFalse();
     }

@@ -13,6 +13,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionRepo
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 @Service
 public class EndLegalEntityAttribution {
@@ -30,7 +31,7 @@ public class EndLegalEntityAttribution {
     }
 
     @Transactional
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LocalDate effectiveTo, ExpectedVersion expected, UserId actor) {
+    public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId, LocalDate effectiveTo, ExpectedVersion expected, UserId actor) {
         AttributionSubject subject = subjects.require(kind, subjectId);
         ownAttribution.requireNotOwn(subject, actor);
         LegalEntityAttribution attribution = attributions.find(subject).orElseThrow(() -> new DomainException(

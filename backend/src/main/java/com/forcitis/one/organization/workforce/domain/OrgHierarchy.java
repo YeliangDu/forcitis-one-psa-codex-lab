@@ -23,7 +23,7 @@ public final class OrgHierarchy {
         return units.stream()
                 .sorted(Comparator.comparingInt((OrgUnit u) -> ancestors(byId, u.orgUnitId()).size())
                         .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder())
-                        .thenComparingLong(u -> u.orgUnitId().value()))
+                        .thenComparing(OrgUnit::name).thenComparing(u -> u.orgUnitId().value()))
                 .toList();
     }
 

@@ -12,7 +12,7 @@ record SyncRunResponse(UUID syncRunId, String trigger, String status, Instant st
                        @Nullable Integer orgUnitChangeCount, @Nullable Integer employeeChangeCount, @Nullable Integer positionChangeCount,
                        @Nullable Integer isolatedRowCount, @Nullable Integer issueCount, @Nullable Integer employedWithoutWecomCount,
                        @Nullable String heldReason, @Nullable String failureReason, @Nullable UUID releasedBy, @Nullable Instant releasedAt,
-                       @Nullable UUID releasedByRunId, List<String> holdKinds, List<String> releasedKinds, List<String> heldSeparations) {
+                       @Nullable UUID releasedByRunId, List<String> holdKinds, List<String> releasedKinds, List<UUID> heldSeparations) {
     static SyncRunResponse of(SyncRunView view) {
         return new SyncRunResponse(view.syncRunId().value(), view.trigger(), view.status(), view.startedAt(),
                 view.finishedAt(), view.sourceOrgUnitCount(), view.sourceEmployeeCount(), view.incomingActiveOrgUnitCount(),
@@ -20,6 +20,6 @@ record SyncRunResponse(UUID syncRunId, String trigger, String status, Instant st
                 view.orgUnitChangeCount(), view.employeeChangeCount(), view.positionChangeCount(), view.isolatedRowCount(),
                 view.issueCount(), view.employedWithoutWecomCount(), view.heldReason(), view.failureReason(),
                 view.releasedBy(), view.releasedAt(), view.releasedByRunId() == null ? null : view.releasedByRunId().value(),
-                view.holdKinds(), view.releasedKinds(), view.heldSeparations().stream().map(String::valueOf).toList());
+                view.holdKinds(), view.releasedKinds(), view.heldSeparations());
     }
 }

@@ -37,7 +37,7 @@ import org.springframework.security.access.AccessDeniedException;
  * somebody else, and must not pass for the initiator.
  */
 class RetractionInitiatorGateTest {
-    static final EmployeeId INITIATOR = new EmployeeId(1001);
+    static final EmployeeId INITIATOR = TestAccounts.employee(1001);
     static final UserId INITIATORS_ACCOUNT = TestAccounts.account(1001);
     static final UserId ACCOUNT_NUMBERED_LIKE_THE_INITIATOR = TestAccounts.unknownAccount(1001);
     static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));

@@ -54,7 +54,7 @@ class OwnAttributionGuard {
 
     private DomainException refused(AttributionSubject subject, UserId actor, String detail, String message) {
         audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.refused", actor, null,
-                "legal-entity-attribution:" + subject.kind().name().toLowerCase(Locale.ROOT) + ":" + subject.subjectKey(), detail));
+                "legal-entity-attribution:" + subject.kind().name().toLowerCase(Locale.ROOT) + ":" + subject.subjectId(), detail));
         return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN, ErrorKind.FORBIDDEN, message);
     }
 

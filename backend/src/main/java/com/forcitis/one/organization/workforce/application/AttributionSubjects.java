@@ -9,6 +9,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import org.springframework.stereotype.Component;
+import java.util.UUID;
 
 @Component
 class AttributionSubjects {
@@ -18,8 +19,8 @@ class AttributionSubjects {
         this.snapshot = snapshot;
     }
 
-    AttributionSubject require(AttributionKind kind, long subjectId) {
-        boolean known = subjectId > 0 && switch (kind) {
+    AttributionSubject require(AttributionKind kind, UUID subjectId) {
+        boolean known = switch (kind) {
             case ORG_UNIT -> snapshot.findOrgUnit(new OrgUnitId(subjectId)).isPresent();
             case EMPLOYEE -> snapshot.findStaff(new EmployeeId(subjectId)).isPresent();
         };

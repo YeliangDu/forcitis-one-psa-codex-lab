@@ -39,8 +39,8 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
 
     DocumentSubmittedForApproval request(String key, long initiator, long manager, int round, String flag) {
         EventEnvelope envelope = envelope("platform.approval.DocumentSubmittedForApproval", "Timesheet", key, round);
-        return new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL, document(key), new EmployeeId(initiator), new RoundNumber(round),
-                List.of(new RoutingFlag(flag)), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))),
+        return new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.employee(initiator), new RoundNumber(round),
+                List.of(new RoutingFlag(flag)), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))),
                 new ContentHash("hash"), new ApprovalSummary("summary of " + key));
     }
 
@@ -59,7 +59,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
                     assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
                     assertThat(e.returnSource()).isEqualTo(com.forcitis.one.platform.approval.api.ReturnSource.SYSTEM);
                     assertThat(e.round()).isEqualTo(new RoundNumber(1));
-                    assertThat(e.initiator()).isEqualTo(new EmployeeId(initiator));
+                    assertThat(e.initiator()).isEqualTo(TestAccounts.employee(initiator));
                     assertThat(e.reason().value()).contains("PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID");
                 });
 

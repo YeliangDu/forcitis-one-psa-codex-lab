@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
-import com.forcitis.one.platform.integration.api.ExternalConnections;
+import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
+import com.forcitis.one.platform.integration.application.InMemorySourceReferences;
+import com.forcitis.one.platform.integration.application.SourceReferences;
 import com.forcitis.one.platform.integration.domain.ReadOnlyConnectionCheck;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +22,8 @@ class LegacyConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(LegacyConfiguration.class)
             .withBean(ExternalConnections.class, () -> (poolName, url, user, password, kind) -> new DriverManagerDataSource(url, user, password))
-            .withBean(ReadOnlyConnectionCheck.class, () -> rechecked::add);
+            .withBean(ReadOnlyConnectionCheck.class, () -> rechecked::add)
+            .withBean(SourceReferences.class, InMemorySourceReferences::new);
 
     private static final String PREFIX = "forcitis.platform.integration.legacy.";
 
@@ -60,6 +63,7 @@ class LegacyConfigurationTest {
                     throw new IllegalStateException("The external connection " + poolName + " is refused: (c) db_datareader");
                 })
                 .withBean(ReadOnlyConnectionCheck.class, () -> name -> { })
+                .withBean(SourceReferences.class, InMemorySourceReferences::new)
                 .withPropertyValues(PREFIX + "enabled=true", PREFIX + "jdbc-url=jdbc:sqlserver://127.0.0.1:1;loginTimeout=1")
                 .run(context -> {
                     assertThat(context).hasFailed();

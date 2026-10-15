@@ -718,4 +718,87 @@ class DataArchitectureTest {
                 .forEach(c -> problems.add("archive-columns.txt names " + c + ", which audit_entries does not have"));
         assertThat(problems).isEmpty();
     }
+
+    // ---------- R-1b P3b, ADR-0033 guard 7: the employee code is an attribute, never a key ----------
+
+    static final String EMPLOYEE_CODE = "employee_code";
+    static final Pattern BY_EMPLOYEE_CODE = Pattern.compile("\\b\\w*(?:By|For|With)EmployeeCode\\w*\\s*\\(");
+
+    /** Primary keys, unique constraints, foreign keys, exclusion constraints and unique indexes of the schemas that name the column. */
+    static List<String> keysOver(Connection c, String column) throws SQLException {
+        List<String> keys = new ArrayList<>();
+        try (var select = c.prepareStatement("""
+                select n.nspname || '.' || t.relname || ' ' || x.conname || ' (' || x.contype::text || ')'
+                  from pg_constraint x
+                  join pg_class t on t.oid = x.conrelid
+                  join pg_namespace n on n.oid = t.relnamespace
+                  join pg_attribute a on a.attrelid = t.oid and a.attnum = any (x.conkey)
+                 where x.contype in ('p', 'u', 'f', 'x') and a.attname = ? and n.nspname not like 'pg\\_%' and n.nspname <> 'information_schema'
+                union
+                select n.nspname || '.' || t.relname || ' ' || i.relname || ' (unique index)'
+                  from pg_index x
+                  join pg_class i on i.oid = x.indexrelid
+                  join pg_class t on t.oid = x.indrelid
+                  join pg_namespace n on n.oid = t.relnamespace
+                  join pg_attribute a on a.attrelid = t.oid and a.attnum = any (x.indkey)
+                 where x.indisunique and a.attname = ? and n.nspname not like 'pg\\_%' and n.nspname <> 'information_schema'
+                """)) {
+            select.setString(1, column);
+            select.setString(2, column);
+            try (ResultSet rs = select.executeQuery()) {
+                while (rs.next()) {
+                    keys.add(rs.getString(1));
+                }
+            }
+        }
+        return keys;
+    }
+
+    static List<String> lookupsByEmployeeCode(Map<String, String> sources) {
+        List<String> found = new ArrayList<>();
+        sources.forEach((file, text) -> {
+            Matcher method = BY_EMPLOYEE_CODE.matcher(JavaCode.withoutComments(text));
+            while (method.find()) {
+                found.add(file + ": " + method.group());
+            }
+        });
+        return found;
+    }
+
+    @Test
+    @DisplayName("R-1b P3b ADR-0033 守护 7 EmployeeCodeNotKeyTest：employee_code 不在任何主键、唯一约束、唯一索引、外键、排他约束中，主代码没有按员工编号取单个对象的方法")
+    void theEmployeeCodeIsNoKey() throws Exception {
+        try (Connection c = connect()) {
+            assertThat(keysOver(c, EMPLOYEE_CODE)).as("keys over employee_code").isEmpty();
+        }
+        Map<String, String> sources = new TreeMap<>();
+        for (Path file : javaFiles()) {
+            sources.put(MAIN.relativize(file).toString(), Files.readString(file));
+        }
+        assertThat(lookupsByEmployeeCode(sources)).as("methods that fetch an object by the employee code").isEmpty();
+    }
+
+    @Test
+    @DisplayName("R-1b P3b ADR-0033 守护 7（CS-5.9 注入）：员工编号上的唯一索引与 findByEmployeeCode 被拦下；普通索引与读属性 employeeCode() 不算")
+    void injectedEmployeeCodeKeysAreCaught() throws Exception {
+        try (Connection c = connect(); var statement = c.createStatement()) {
+            statement.execute("create schema guard_sample");
+            try {
+                statement.execute("create table guard_sample.people (id uuid primary key, employee_code text not null)");
+                statement.execute("create index ix_people_employee_code on guard_sample.people (employee_code)");
+                assertThat(keysOver(c, EMPLOYEE_CODE)).as("a plain index is no key").isEmpty();
+                statement.execute("create unique index uk_people_employee_code on guard_sample.people (employee_code)");
+                assertThat(keysOver(c, EMPLOYEE_CODE)).containsExactly("guard_sample.people uk_people_employee_code (unique index)");
+            } finally {
+                statement.execute("drop schema guard_sample cascade");
+            }
+        }
+        assertThat(lookupsByEmployeeCode(Map.of("Sample.java", """
+                interface Sample {
+                    Optional<Employee> findByEmployeeCode(String code);
+                    default String code(Employee employee) { return employee.employeeCode(); }
+                    // employeeForEmployeeCode(String code) in a comment is no method
+                }
+                """))).containsExactly("Sample.java: findByEmployeeCode(");
+    }
 }

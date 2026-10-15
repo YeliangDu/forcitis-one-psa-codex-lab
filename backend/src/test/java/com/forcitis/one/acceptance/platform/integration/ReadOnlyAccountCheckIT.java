@@ -16,6 +16,7 @@ import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Connection;
@@ -340,7 +341,7 @@ class ReadOnlyAccountCheckIT {
         Account account = baselineAccount(ReadOnlyConnection.A8);
         try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
             OrgSource a8 = context.getBean(OrgSource.class);
-            assertThat(a8.findStaffByLoginName(LOGIN_NAME)).as("the adapter reads before the grant changes").hasSize(1);
+            assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).as("the adapter reads before the grant changes").hasSize(1);
 
             grantWriteBehindTheDatabaseDeny(account);
             long readsBefore = baseTableReads(A8_WORLD, "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER");
@@ -350,7 +351,7 @@ class ReadOnlyAccountCheckIT {
             assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (b)").containsPattern("ALERT[^\\n]*[(（]b[)）]");
             assertThat(baseTableReads(A8_WORLD, "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER"))
                     .as("nothing is read from A8 once the re-check has failed").isEqualTo(readsBefore);
-            assertThatThrownBy(() -> a8.findStaffByLoginName(LOGIN_NAME)).as("the stopped adapter answers 'unavailable'")
+            assertThatThrownBy(() -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).as("the stopped adapter answers 'unavailable'")
                     .isInstanceOf(ExternalSystemUnavailableException.class);
             assertThat(baseTableReads(A8_WORLD, "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER")).isEqualTo(readsBefore);
         }
@@ -362,6 +363,7 @@ class ReadOnlyAccountCheckIT {
         Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
         try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.LEGACY_NAMES, account))) {
             OrgShortNames names = context.getBean(OrgShortNames.class);
+            legacyReferenceOfTheShortNameUnit(context);
             assertThat(names.readShortNames()).as("the adapter reads before the grant changes").hasSize(1);
 
             grantWriteBehindTheDatabaseDeny(account);
@@ -390,6 +392,19 @@ class ReadOnlyAccountCheckIT {
         });
 
         assertThat(failure).as("the legacy inbox check could not reach its database: it must refuse, not log and carry on").isNotNull();
+    }
+
+    /**
+     * R-1b P3b (C8, RULING-P3B-3): once the short names are handed out by own id, the old-system department 2 of the fixture needs its
+     * (LEGACY_SYSTEM, ORG_UNIT) reference to be handed out at all; before P3b (EmployeeId still a number) nothing is added.
+     */
+    static void legacyReferenceOfTheShortNameUnit(ConfigurableApplicationContext context) {
+        if (com.forcitis.one.kernel.EmployeeId.class.getRecordComponents()[0].getType() != UUID.class) {
+            return;
+        }
+        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
+            SourceReferencesProbe.of(context).allocate("LEGACY_SYSTEM", "ORG_UNIT", 2);
+        }
     }
 
     static double shortNameRefreshFailures(ConfigurableApplicationContext context) {
@@ -440,7 +455,7 @@ class ReadOnlyAccountCheckIT {
             args.addAll(List.of(legacy + "jdbc-url=" + urlOf.apply(ReadOnlyConnection.LEGACY_NAMES), legacy + "username=" + names.login(), legacy + "password=" + names.password()));
         }
         Account approval = enabled.get(ReadOnlyConnection.LEGACY_APPROVAL);
-        String inbox = "--forcitis.platform.approval.legacy.";
+        String inbox = "--forcitis.platform.integration.legacy.inbox.";
         if (approval != null) {
             args.addAll(List.of(inbox + "url=" + urlOf.apply(ReadOnlyConnection.LEGACY_APPROVAL), inbox + "username=" + approval.login(), inbox + "password=" + approval.password(),
                     inbox + "view-name=dbo.v_psa_one_legacy_todo"));

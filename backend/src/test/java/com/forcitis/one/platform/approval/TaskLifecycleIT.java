@@ -73,9 +73,9 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         long second = newId();
         organisation.person(second, 1, null);
         String key = newKey("lifecycle");
-        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()),
+        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, TestAccounts.employee(s.initiator()),
                 java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()), List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
-                        List.of(String.valueOf(s.manager()), String.valueOf(second)))))));
+                        List.of(TestAccounts.employee(s.manager()).toString(), TestAccounts.employee(second).toString()))))));
         Task task = openTask(instance);
         assertThat(task.getTaskDefinitionKey()).isEqualTo("projectManagerReview");
         assertThat(task.getAssignee()).isNull();

@@ -15,7 +15,7 @@ public record SyncRunView(SyncRunId syncRunId, String trigger, String status, In
                           Integer positionChangeCount, Integer isolatedRowCount, Integer issueCount,
                           Integer employedWithoutWecomCount, String heldReason, String failureReason, UUID releasedBy,
                           Instant releasedAt, SyncRunId releasedByRunId, List<String> holdKinds, List<String> releasedKinds,
-                          List<Long> heldSeparations) {
+                          List<UUID> heldSeparations) {
     static SyncRunView of(SyncRunRecord run) {
         RunStats s = run.stats();
         return new SyncRunView(run.syncRunId(), run.trigger().name(), run.status().name(), run.startedAt(),

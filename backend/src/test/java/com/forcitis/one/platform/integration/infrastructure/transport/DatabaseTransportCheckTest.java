@@ -11,6 +11,9 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
 
 class DatabaseTransportCheckTest {
     @TempDir
@@ -62,7 +65,7 @@ class DatabaseTransportCheckTest {
         Map<String, String> properties = configuration("jdbc:postgresql://db/one?sslmode=verify-full&sslrootcert=" + ca);
         properties.put("forcitis.platform.integration.seeyon.views.jdbc-url", "jdbc:sqlserver://a8:1433;databaseName=a8;encrypt=true;trustServerCertificate=true");
         properties.put("forcitis.platform.integration.legacy.jdbc-url", "jdbc:sqlserver://old:1433;databaseName=old");
-        properties.put("forcitis.platform.approval.legacy.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=false;trustStore=" + ca);
+        properties.put("forcitis.platform.integration.legacy.inbox.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=false;trustStore=" + ca);
 
         assertThat(DatabaseTransportCheck.problems(DatabaseTransportRequirement.VERIFIED_SERVER, properties::get)).as("views and legacy switched off").isEmpty();
 
@@ -73,6 +76,51 @@ class DatabaseTransportCheckTest {
                 .anyMatch(p -> p.contains("legacy short names") && p.contains("encrypt=false"));
         assertThat(DatabaseTransportCheck.problems(DatabaseTransportRequirement.ENCRYPTED, properties::get)).hasSize(1)
                 .anyMatch(p -> p.contains("legacy short names"));
+    }
+
+    @Test
+    @DisplayName("N-3 the legacy inbox connection is checked under its integration key")
+    void legacyInboxIsCheckedUnderItsIntegrationKey() throws IOException {
+        String ca = caFile().toString();
+        Map<String, String> properties = configuration("jdbc:postgresql://db/one?sslmode=verify-full&sslrootcert=" + ca);
+        properties.put("forcitis.platform.integration.legacy.inbox.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=true");
+
+        assertThat(DatabaseTransportCheck.problems(DatabaseTransportRequirement.VERIFIED_SERVER, properties::get)).singleElement().asString()
+                .contains("legacy inbox").contains("forcitis.platform.integration.legacy.inbox.url").contains("trustServerCertificate=true");
+    }
+
+    @Test
+    @DisplayName("RULING-P3B-16 a former approval key of the legacy inbox refuses the start in every profile and names the integration key that replaces it")
+    void formerApprovalKeyRefusesTheStart() {
+        var runner = new ApplicationContextRunner()
+                .withUserConfiguration(DatabaseTransportConfiguration.class)
+                .withPropertyValues("spring.datasource.url=jdbc:postgresql://db/one?sslmode=require",
+                        "forcitis.platform.approval.legacy.url=jdbc:sqlserver://old:1433;databaseName=old");
+
+        runner.run(context -> assertThat(context).hasFailed().getFailure().hasMessageContaining("refusing to start")
+                .hasMessageContaining("forcitis.platform.approval.legacy.url is no longer read")
+                .hasMessageContaining("forcitis.platform.integration.legacy.inbox.url")
+                .hasMessageContaining("FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL"));
+        runner.withInitializer(context -> context.getEnvironment().setActiveProfiles("dev"))
+                .run(context -> assertThat(context).hasFailed().getFailure().hasMessageContaining("forcitis.platform.integration.legacy.inbox.url"));
+        new ApplicationContextRunner()
+                .withUserConfiguration(DatabaseTransportConfiguration.class)
+                .withPropertyValues("spring.datasource.url=jdbc:postgresql://db/one?sslmode=require",
+                        "forcitis.platform.integration.legacy.inbox.url=jdbc:sqlserver://old:1433;databaseName=old;encrypt=true")
+                .run(context -> assertThat(context).hasNotFailed());
+    }
+
+    @Test
+    @DisplayName("RULING-P3B-16 a former approval variable in the process environment refuses the start too, with the variable that replaces it")
+    void formerApprovalVariableRefusesTheStart() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(DatabaseTransportConfiguration.class)
+                .withInitializer(context -> context.getEnvironment().getPropertySources().addFirst(new SystemEnvironmentPropertySource(
+                        "test-" + StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                        Map.of("FORCITIS_PLATFORM_APPROVAL_LEGACY_DETAIL_URL_TEMPLATE", "https://old.example.test/{taskId}"))))
+                .run(context -> assertThat(context).hasFailed().getFailure()
+                        .hasMessageContaining("forcitis.platform.integration.legacy.inbox.detail-url-template")
+                        .hasMessageContaining("FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_DETAIL_URL_TEMPLATE"));
     }
 
     @Test
@@ -95,7 +143,7 @@ class DatabaseTransportCheckTest {
     @Test
     @DisplayName("N-3 the application context refuses to start in production with sslmode=require, and starts in dev with it")
     void contextRefusesToStart() {
-        var runner = new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+        var runner = new ApplicationContextRunner()
                 .withUserConfiguration(DatabaseTransportConfiguration.class)
                 .withPropertyValues("spring.datasource.url=jdbc:postgresql://db/one?sslmode=require");
 
