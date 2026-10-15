@@ -16,7 +16,43 @@ import org.junit.jupiter.api.Test;
 class SeeyonOrgTreeTest {
 
     static OrgUnitRow row(long id, String path, SourceRecordState state, Integer sortOrder) {
-        return new OrgUnitRow(new SourceUnitId(id), "C" + id, "Unit " + id, path, sortOrder, state, List.of(), null, null, false);
+        return typed(id, path, state, sortOrder, "Department");
+    }
+
+    static OrgUnitRow typed(long id, String path, SourceRecordState state, Integer sortOrder, String type) {
+        return new OrgUnitRow(new SourceUnitId(id), "C" + id, "Unit " + id, path, sortOrder, state, List.of(), null, null, false, type);
+    }
+
+    static OrgUnitRow typed(long id, String path, String type) {
+        return typed(id, path, SourceRecordState.ACTIVE, (int) id, type);
+    }
+
+    @Test
+    @DisplayName("R-1b-0 C-4 the root unit may be Account or Department; every unit below it is Department")
+    void rootTypeIsFreeBelowIsDepartment() {
+        assertThat(resolve(List.of(typed(2, "00000001", "Account"), typed(3, "000000010001", "Department")))).hasSize(2);
+        assertThat(resolve(List.of(typed(2, "00000001", "Department"), typed(3, "000000010001", "Department")))).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("R-1b-0 RULING-R1B0-2 an Account below the root rejects the whole read; the message names TYPE and a count, no unit")
+    void accountBelowTheRootIsRejected() {
+        assertThatThrownBy(() -> resolve(List.of(typed(2, "00000001", "Account"), typed(3, "000000010001", "Account"),
+                typed(4, "000000010002", "Account"))))
+                .isInstanceOf(ExternalSourceBrokenException.class).hasMessageContaining("TYPE").hasMessageContaining("2 unit(s) below the sync root are Account")
+                .hasMessageNotContaining("Unit 3");
+    }
+
+    @Test
+    @DisplayName("R-1b-0 C-3 TYPE NULL, another value, or the right word in another case or with spaces rejects the whole read, root or not")
+    void illegalTypeIsRejected() {
+        for (String type : java.util.Arrays.asList(null, "Group", "department", "ACCOUNT", "Department ", "")) {
+            assertThatThrownBy(() -> resolve(List.of(typed(2, "00000001", "Account"), typed(3, "000000010001", type))))
+                    .as("below the root: %s", type).isInstanceOf(ExternalSourceBrokenException.class)
+                    .hasMessageContaining("TYPE").hasMessageContaining("1 unit(s) hold NULL or a value other than Department or Account");
+            assertThatThrownBy(() -> resolve(List.of(typed(2, "00000001", type), typed(3, "000000010001", "Department"))))
+                    .as("the root: %s", type).isInstanceOf(ExternalSourceBrokenException.class).hasMessageContaining("TYPE");
+        }
     }
 
     static List<SourceOrgUnit> resolve(List<OrgUnitRow> rows) {

@@ -12,10 +12,14 @@ import java.util.Map;
 
 final class SeeyonOrgTree {
 
+    static final String DEPARTMENT = "Department";
+    static final String ACCOUNT = "Account";
+
     private SeeyonOrgTree() {
     }
 
     static List<SourceOrgUnit> resolve(List<OrgUnitRow> rows, String rootPath) {
+        checkTypes(rows, rootPath);
         List<OrgUnitRow> sorted = rows.stream()
                 .sorted(Comparator.comparingInt((OrgUnitRow u) -> u.path().length())
                         .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder())
@@ -39,6 +43,23 @@ final class SeeyonOrgTree {
                         unit.state(), unit.emptyFlags(), unit.regionKind(), unit.rawRegion(), unit.deliveryUnit(),
                         sharedWith.get(unit.unitId())))
                 .toList();
+    }
+
+    /**
+     * C-3, C-4, RULING-R1B0-2: exact, case-sensitive match in Java (the column's collation ignores case); the root may be either value, every
+     * other unit must be a Department. The message carries the column and counts only.
+     */
+    private static void checkTypes(List<OrgUnitRow> rows, String rootPath) {
+        long illegal = rows.stream().filter(u -> !DEPARTMENT.equals(u.type()) && !ACCOUNT.equals(u.type())).count();
+        if (illegal > 0) {
+            throw new ExternalSourceBrokenException("org unit TYPE: " + illegal
+                    + " unit(s) hold NULL or a value other than Department or Account; the whole read is rejected");
+        }
+        long accountsBelowRoot = rows.stream().filter(u -> ACCOUNT.equals(u.type()) && !u.path().equals(rootPath)).count();
+        if (accountsBelowRoot > 0) {
+            throw new ExternalSourceBrokenException("org unit TYPE: " + accountsBelowRoot
+                    + " unit(s) below the sync root are Account; the whole read is rejected");
+        }
     }
 
     private static SourceUnitId parentOf(OrgUnitRow unit, Map<String, OrgUnitRow> byPath, String root) {
