@@ -2,6 +2,7 @@ package com.forcitis.one.platform.scheduling.infrastructure.scheduling;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestPostgres;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,7 @@ class JobsDisabledInTestContextsIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18").withInitScript("init-schemas.sql")
+    static PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
     @Autowired
