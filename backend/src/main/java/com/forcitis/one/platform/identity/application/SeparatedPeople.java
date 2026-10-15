@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
@@ -13,9 +13,9 @@ final class SeparatedPeople {
     private SeparatedPeople() {
     }
 
-    static List<UserId> in(OrgSnapshotChanged event, OrgDirectory directory) {
-        List<UserId> separated = new ArrayList<>(event.separatedEmployees());
-        for (UserId changed : event.changedEmployees()) {
+    static List<EmployeeId> in(OrgSnapshotChanged event, OrgDirectory directory) {
+        List<EmployeeId> separated = new ArrayList<>(event.separatedEmployees());
+        for (EmployeeId changed : event.changedEmployees()) {
             directory.findEmployee(changed).filter(employee -> employee.employmentStatus() != EmploymentStatus.EMPLOYED)
                     .ifPresent(employee -> separated.add(changed));
         }

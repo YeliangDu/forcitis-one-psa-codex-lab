@@ -1,12 +1,12 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.List;
 
 /** Already-separated or already-revoked rows are never repeated in the event lists. */
 public record Reconciliation(List<Position> positions, List<OrgUnit> orgUnits, List<StaffEmployee> staff,
-                             List<SyncDiff> diffs, List<UserId> changedEmployees, List<UserId> separatedEmployees,
+                             List<SyncDiff> diffs, List<EmployeeId> changedEmployees, List<EmployeeId> separatedEmployees,
                              List<OrgUnitId> changedOrgUnits, RunStats stats) {
     public Reconciliation {
         positions = List.copyOf(positions);

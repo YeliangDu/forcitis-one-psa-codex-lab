@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
@@ -22,8 +22,8 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
     }
 
     @Override
-    public Optional<StaffEmployee> findStaff(UserId userId) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + " where e.id = :id").param("id", userId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
+    public Optional<StaffEmployee> findStaff(EmployeeId employeeId) {
+        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + " where e.id = :id").param("id", employeeId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
     }
 
     @Override

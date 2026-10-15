@@ -1,7 +1,9 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
@@ -17,11 +19,13 @@ import org.springframework.stereotype.Component;
 @Component
 class SessionCurrentUser implements CurrentUser {
     private final EmployeeLegalEntities employeeLegalEntities;
+    private final AccountEmployees accountEmployees;
     private final BusinessZone zone;
     private final Clock clock;
 
-    SessionCurrentUser(EmployeeLegalEntities employeeLegalEntities, BusinessZone zone, Clock clock) {
+    SessionCurrentUser(EmployeeLegalEntities employeeLegalEntities, AccountEmployees accountEmployees, BusinessZone zone, Clock clock) {
         this.employeeLegalEntities = employeeLegalEntities;
+        this.accountEmployees = accountEmployees;
         this.zone = zone;
         this.clock = clock;
     }
@@ -36,7 +40,12 @@ class SessionCurrentUser implements CurrentUser {
     }
 
     @Override
+    public EmployeeId employeeId() {
+        return accountEmployees.employeeOf(userId());
+    }
+
+    @Override
     public LegalEntityId legalEntityId() {
-        return employeeLegalEntities.on(userId(), zone.today(clock));
+        return employeeLegalEntities.on(employeeId(), zone.today(clock));
     }
 }

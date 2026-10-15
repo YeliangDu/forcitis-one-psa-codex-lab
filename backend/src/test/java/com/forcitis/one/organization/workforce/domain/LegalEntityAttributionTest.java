@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
@@ -98,18 +99,18 @@ class LegalEntityAttributionTest {
     }
 
     static final class Sources implements LegalEntityResolutionSources {
-        final Map<UserId, LegalEntityId> employees = new HashMap<>();
+        final Map<EmployeeId, LegalEntityId> employees = new HashMap<>();
         final Map<OrgUnitId, LegalEntityId> units = new HashMap<>();
         final Map<OrgUnitId, OrgUnitId> parents = new HashMap<>();
-        final Map<UserId, OrgUnitId> assigned = new HashMap<>();
+        final Map<EmployeeId, OrgUnitId> assigned = new HashMap<>();
 
         @Override
-        public Optional<LegalEntityId> employeeAttribution(UserId employee, LocalDate date) {
+        public Optional<LegalEntityId> employeeAttribution(EmployeeId employee, LocalDate date) {
             return Optional.ofNullable(employees.get(employee));
         }
 
         @Override
-        public Optional<OrgUnitId> assignedUnit(UserId employee, LocalDate date) {
+        public Optional<OrgUnitId> assignedUnit(EmployeeId employee, LocalDate date) {
             return Optional.ofNullable(assigned.get(employee));
         }
 
@@ -128,7 +129,7 @@ class LegalEntityAttributionTest {
     @DisplayName("ADR-0026 resolution: the employee's own attribution wins; else the nearest department up the chain; a cycle or nothing resolves to empty")
     void resolution() {
         Sources sources = new Sources();
-        UserId employee = new UserId(7);
+        EmployeeId employee = new EmployeeId(7);
         OrgUnitId leaf = new OrgUnitId(3);
         OrgUnitId middle = new OrgUnitId(2);
         OrgUnitId root = new OrgUnitId(1);
@@ -153,7 +154,7 @@ class LegalEntityAttributionTest {
         cyclic.parents.put(middle, leaf);
         assertThat(LegalEntityResolution.resolve(cyclic, employee, JAN)).as("a broken tree does not loop").isEmpty();
 
-        assertThat(LegalEntityResolution.resolve(new Sources(), new UserId(8), JAN)).as("an unknown employee").isEmpty();
+        assertThat(LegalEntityResolution.resolve(new Sources(), new EmployeeId(8), JAN)).as("an unknown employee").isEmpty();
     }
 
     @Test

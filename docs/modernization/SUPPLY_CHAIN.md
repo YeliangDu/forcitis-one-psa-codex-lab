@@ -32,6 +32,11 @@
 | 禁止 | GPL、AGPL、SSPL、BUSL、带 Commons Clause 的许可证、未购买的商业许可 | 不得引入 |
 
 - 许可证检查与 S3 同一工具、同一作业。
+- **构建期工具的 GPL 例外**：GPL-2.0 加 Classpath Exception、只在编译期使用、不进发布包和 SBOM 的工具可以用；进运行时的仍禁止。出处：用户 2026-10-15 选「接受并补条款（推荐）」（intent `2026-10-15-112158-one-coordinator-接受-Error-Prone-传.md`，经 one-coordinator 转达）。
+- **已核登记的构建期工具**（经注解处理器路径运行，不进发布包与 SBOM）：
+  - Error Prone 2.50.0（`error_prone_core`），Apache-2.0；2026-06 发布，满 7 天；R-1b P1 引入（ADR-0033 守护 14）。只开 `CollectionIncompatibleType`、`EqualsIncompatibleType` 两条检查；`backend/.mvn/jvm.config` 为 Maven 的 JVM 开放 javac 内部包，这是 JDK 17 以后 Error Prone 的运行条件。
+  - 传递依赖 `io.github.eisop:dataflow-errorprone`：GPL-2.0 加 Classpath Exception（与 OpenJDK 同一许可证），仅编译期使用，产物不含它。**已接受**（依据上条）。
+  - 其余传递依赖：Guava、auto-common、jspecify、jsr305、javax.inject、caffeine 的 pom 声明 Apache-2.0，pcollections 为 MIT；java-diff-utils、google-java-format、auto-value 自己的 pom 不写许可证，但各自的父 pom（`java-diff-utils-parent` 4.12、`google-java-format-parent` 1.35.0、`auto-value-parent` 1.9）声明 Apache-2.0。核实依据是 2026-10-15 对本机 Maven 仓库中这些 pom 的逐个检查。
 - 商业组件（如 AG Grid）在 1b 前随表格选型决定，未购买许可前不得进入主干。
 
 ## S5 SBOM

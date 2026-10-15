@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.WorkContext;
@@ -26,9 +27,11 @@ class AccountProvisioning {
     private final RoleRepository roles;
     private final DomainEvents events;
     private final String defaultRole;
+    private final AccountEmployees accountEmployees;
 
     AccountProvisioning(AccountRepository accounts, RoleRepository roles, DomainEvents events,
-            @Value("${forcitis.platform.identity.default-role}") String defaultRole) {
+            AccountEmployees accountEmployees, @Value("${forcitis.platform.identity.default-role}") String defaultRole) {
+        this.accountEmployees = accountEmployees;
         this.accounts = accounts;
         this.roles = roles;
         this.events = events;
@@ -42,7 +45,7 @@ class AccountProvisioning {
         RoleId initial = roles.findByCode(new RoleCode(defaultRole)).orElseThrow(() -> new DomainException(
                 IdentityError.PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING, ErrorKind.UNAVAILABLE, "the default role " + defaultRole + " does not exist"))
                 .roleId();
-        UserAccount opened = UserAccount.open(employee.userId(), Set.of(initial));
+        UserAccount opened = UserAccount.open(accountEmployees.accountOf(employee.employeeId()), Set.of(initial));
         if (!accounts.insertIfAbsent(opened)) {
             return false;
         }

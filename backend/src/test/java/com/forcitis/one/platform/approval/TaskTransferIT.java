@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
@@ -58,7 +59,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, null).person(initiator, unit, null).person(handler, unit, null).person(colleague, unit, null)
                 .person(other, unit, null);
         String key = newKey("transfer");
-        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator),
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(handler)))))));
         return new Scene(key, instance, openTaskId(instance), initiator, handler, colleague, other);
@@ -71,7 +72,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         actAs(s.handler());
         claimTask.execute(s.task(), new UserId(s.handler()), java.util.OptionalLong.empty());
 
-        transferTask.execute(s.task(), new UserId(s.handler()), new UserId(s.colleague()), "on leave", java.util.OptionalLong.empty());
+        transferTask.execute(s.task(), new UserId(s.handler()), new EmployeeId(s.colleague()), "on leave", java.util.OptionalLong.empty());
 
         assertThat(openTask(s.instance()).getAssignee()).isEqualTo(String.valueOf(s.colleague()));
         assertThat(jdbc.queryForObject("select assignee_id from platform_approval.approval_tasks where task_id = ?", Long.class, s.task().value()))
@@ -96,12 +97,12 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
     void onlyTheHolderMayTransfer() {
         Scene s = scene();
 
-        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new UserId(s.colleague()), "r", java.util.OptionalLong.empty()))
+        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new EmployeeId(s.colleague()), "r", java.util.OptionalLong.empty()))
                 .as("a candidate that has not claimed it").isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
         claimTask.execute(s.task(), new UserId(s.handler()), java.util.OptionalLong.empty());
-        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.other()), new UserId(s.colleague()), "r", java.util.OptionalLong.empty()))
+        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.other()), new EmployeeId(s.colleague()), "r", java.util.OptionalLong.empty()))
                 .as("a stranger").isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
-        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.initiator()), new UserId(s.colleague()), "r", java.util.OptionalLong.empty()))
+        assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.initiator()), new EmployeeId(s.colleague()), "r", java.util.OptionalLong.empty()))
                 .as("the initiator").isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
 
         assertThat(openTask(s.instance()).getAssignee()).isEqualTo(String.valueOf(s.handler()));
@@ -118,7 +119,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         claimTask.execute(s.task(), new UserId(s.handler()), java.util.OptionalLong.empty());
 
         for (long invalid : new long[] {424242L, separated, s.handler(), s.initiator()}) {
-            assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new UserId(invalid), "r", java.util.OptionalLong.empty()))
+            assertThatThrownBy(() -> transferTask.execute(s.task(), new UserId(s.handler()), new EmployeeId(invalid), "r", java.util.OptionalLong.empty()))
                     .as("target %s", invalid).isInstanceOfSatisfying(DomainException.class,
                             e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID));
         }
@@ -133,14 +134,14 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         long first = newId();
         long second = newId();
         organisation.unit(unit, null, null).person(initiator, unit, null).person(first, unit, null).person(second, unit, null);
-        ApprovalInstanceId instance = tx.execute(st -> approvals.start(startRequest(newKey("transfer-twin"), new UserId(initiator),
+        ApprovalInstanceId instance = tx.execute(st -> approvals.start(startRequest(newKey("transfer-twin"), new EmployeeId(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()), List.of(new ApprovalField(
                         TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(first), String.valueOf(second)))))));
         ApprovalTaskId firstTask = new ApprovalTaskId(taskService.createTaskQuery().processInstanceId(instance.value()).taskCandidateUser(String.valueOf(first))
                 .singleResult().getId());
         claimTask.execute(firstTask, new UserId(first), java.util.OptionalLong.empty());
 
-        assertThatThrownBy(() -> transferTask.execute(firstTask, new UserId(first), new UserId(second), "r", java.util.OptionalLong.empty())).isInstanceOfSatisfying(
+        assertThatThrownBy(() -> transferTask.execute(firstTask, new UserId(first), new EmployeeId(second), "r", java.util.OptionalLong.empty())).isInstanceOfSatisfying(
                 DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID));
     }
 

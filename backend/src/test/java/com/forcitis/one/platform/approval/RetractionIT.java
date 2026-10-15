@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
@@ -53,7 +54,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalInstanceId startFor(String key, Staff s) {
-        return tx.execute(status -> approvals.start(startRequest(key, new UserId(s.initiator()),
+        return tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(s.manager())))))));
     }

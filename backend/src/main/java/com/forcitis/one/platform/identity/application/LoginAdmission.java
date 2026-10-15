@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
@@ -32,9 +33,11 @@ class LoginAdmission {
     private final Clock clock;
     private final MeterRegistry meters;
     private final BrowserIdentity browserIdentity;
+    private final AccountEmployees accountEmployees;
 
     LoginAdmission(AccountProvisioning provisioning, AccountRepository accounts, AuditLog audit, SessionRegistry sessions,
-            ClientOrigin origin, Clock clock, MeterRegistry meters, BrowserIdentity browserIdentity) {
+            ClientOrigin origin, Clock clock, MeterRegistry meters, BrowserIdentity browserIdentity, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.browserIdentity = browserIdentity;
         this.provisioning = provisioning;
         this.accounts = accounts;
@@ -45,12 +48,16 @@ class LoginAdmission {
         this.meters = meters;
     }
 
+    UserId accountOf(EmployeeProfile employee) {
+        return accountEmployees.accountOf(employee.employeeId());
+    }
+
     Optional<IdentityError> check(EmployeeProfile employee) {
         if (employee.employmentStatus() != EmploymentStatus.EMPLOYED) {
             return Optional.of(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED);
         }
         provisioning.ensureAccount(employee);
-        UserAccount account = accounts.find(employee.userId())
+        UserAccount account = accounts.find(accountOf(employee))
                 .orElseThrow(() -> new IllegalStateException("account vanished right after creation"));
         return account.isEnabled() ? Optional.empty() : Optional.of(IdentityError.PLATFORM_IDENTITY_ACCOUNT_DISABLED);
     }

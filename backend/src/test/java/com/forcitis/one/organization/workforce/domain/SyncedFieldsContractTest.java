@@ -112,7 +112,7 @@ class SyncedFieldsContractTest {
                 assertThat(d.subjectKey()).isEqualTo("employee:2001");
                 assertThat(d.changedFields()).contains(field);
             });
-            List<com.forcitis.one.kernel.UserId> announced = new ArrayList<>(result.changedEmployees());
+            List<com.forcitis.one.kernel.EmployeeId> announced = new ArrayList<>(result.changedEmployees());
             announced.addAll(result.separatedEmployees());
             assertThat(announced).as(field).containsExactly(user(2001));
         });

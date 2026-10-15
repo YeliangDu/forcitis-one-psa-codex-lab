@@ -160,12 +160,12 @@ components:
             type: array
             items:
               type: string
-              x-type: UserId
+              x-type: EmployeeId
           separatedEmployees:
             type: array
             items:
               type: string
-              x-type: UserId
+              x-type: EmployeeId
           changedOrgUnits:
             type: array
             items:
@@ -335,9 +335,9 @@ components:
       payload:
         type: object
         properties:
-          userId:
+          employeeId:
             type: string
-            x-type: UserId
+            x-type: EmployeeId
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: organization.workforce.EmployeeRegistered

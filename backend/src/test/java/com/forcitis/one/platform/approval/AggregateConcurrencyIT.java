@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalError;
@@ -49,7 +50,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
 
         assertThatThrownBy(() -> tx.executeWithoutResult(s -> {
             ApprovalRequest staleCopy = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY,
-                    new UserId(initiator), 1, new ApprovalInstanceId("irrelevant"), ApprovalStatus.RUNNING, null,
+                    new EmployeeId(initiator), 1, new ApprovalInstanceId("irrelevant"), ApprovalStatus.RUNNING, null,
                     new ApprovalSummary("stale"), List.of(), 1, 0);
             staleCopy.approve(NOW);
             requests.save(staleCopy);
@@ -91,7 +92,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
                 "select current_instance_id from platform_approval.approval_requests where document_key = ?", String.class, key));
         jdbc.update("update platform_approval.approval_requests set status = 'CANCELLED' where document_key = ?", key);
 
-        ApprovalRequest copy = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, new UserId(initiator), 1,
+        ApprovalRequest copy = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, new EmployeeId(initiator), 1,
                 instance, ApprovalStatus.RUNNING, null, new ApprovalSummary("copy"), List.of(), version, 0);
         copy.approve(NOW);
 

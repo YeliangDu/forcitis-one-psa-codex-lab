@@ -196,7 +196,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         confirmedIdentifier(1001, null);
         confirmedIdentifier(1002, null);
         assertThat(storedIdentifiers(1001)).isPositive();
-        com.forcitis.one.kernel.UserId separated = new com.forcitis.one.kernel.UserId(1001);
+        com.forcitis.one.kernel.EmployeeId separated = new com.forcitis.one.kernel.EmployeeId(1001);
         var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
                 com.forcitis.one.kernel.event.TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(separated),
                 List.of(), java.time.LocalDate.of(2026, 10, 15));
@@ -216,7 +216,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         assertThat(storedIdentifiers(1001)).isPositive();
         var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
                 com.forcitis.one.kernel.event.TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "2"), List.of(),
-                List.of(new com.forcitis.one.kernel.UserId(1001)), List.of(), java.time.LocalDate.of(2026, 10, 15));
+                List.of(new com.forcitis.one.kernel.EmployeeId(1001)), List.of(), java.time.LocalDate.of(2026, 10, 15));
 
         tx.executeWithoutResult(status -> events.publishEvent(snapshot));
 

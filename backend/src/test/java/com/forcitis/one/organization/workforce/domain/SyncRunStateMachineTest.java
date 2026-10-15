@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.HoldKind;
 import com.forcitis.one.kernel.event.DomainEvent;
@@ -71,13 +72,13 @@ class SyncRunStateMachineTest {
         assertThat(quiet.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(SyncRunSucceeded.class);
 
         SyncRun busy = at(RUNNING);
-        busy.succeed(NOW, STATS, new SnapshotChange(List.of(new UserId(1)), List.of(new UserId(2)), List.of(new OrgUnitId(3))), SNAPSHOT_DAY);
+        busy.succeed(NOW, STATS, new SnapshotChange(List.of(new EmployeeId(1)), List.of(new EmployeeId(2)), List.of(new OrgUnitId(3))), SNAPSHOT_DAY);
         List<DomainEvent> events = busy.drainEvents(TestEnvelopes.INSTANCE);
 
         assertThat(events).hasSize(2);
         assertThat(events.get(0)).isInstanceOf(SyncRunSucceeded.class);
         assertThat(events.get(1)).isInstanceOfSatisfying(OrgSnapshotChanged.class, e -> {
-            assertThat(e.separatedEmployees()).containsExactly(new UserId(2));
+            assertThat(e.separatedEmployees()).containsExactly(new EmployeeId(2));
             assertThat(e.envelope().aggregateType()).isEqualTo("SyncRun");
             assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(5).toString());
         });
@@ -91,7 +92,7 @@ class SyncRunStateMachineTest {
     @DisplayName("OrgSnapshotChanged takes its businessDate and effectiveFrom from the snapshot day it is given, not from the clock")
     void snapshotChangedIsDatedBySnapshotDay() {
         SyncRun run = at(RUNNING);
-        run.succeed(NOW, STATS, new SnapshotChange(List.of(new UserId(1)), List.of(), List.of()), SNAPSHOT_DAY);
+        run.succeed(NOW, STATS, new SnapshotChange(List.of(new EmployeeId(1)), List.of(), List.of()), SNAPSHOT_DAY);
 
         assertThat(run.drainEvents(TestEnvelopes.INSTANCE)).last().isInstanceOfSatisfying(OrgSnapshotChanged.class, e -> {
             assertThat(e.envelope().businessDate()).isEqualTo(SNAPSHOT_DAY).isNotEqualTo(LocalDate.of(2026, 10, 14));
@@ -146,7 +147,7 @@ class SyncRunStateMachineTest {
     @DisplayName("ADR-0028 each kind of hold is lifted once and separately; the run is fully lifted only when every kind is")
     void kindsAreLiftedOneByOne() {
         SyncRun run = at(RUNNING);
-        run.hold(NOW, STATS, "both", Set.of(HoldKind.SHRINK_GUARD, HoldKind.ADMINISTRATOR_SEPARATION), List.of(new UserId(1)));
+        run.hold(NOW, STATS, "both", Set.of(HoldKind.SHRINK_GUARD, HoldKind.ADMINISTRATOR_SEPARATION), List.of(new EmployeeId(1)));
         run.drainEvents(TestEnvelopes.INSTANCE);
 
         run.releaseKind(HoldKind.SHRINK_GUARD, new UserId(9));
@@ -165,13 +166,13 @@ class SyncRunStateMachineTest {
     @DisplayName("ADR-0028 a refreshed hold keeps what was lifted only while the kinds and the leavers are exactly the same")
     void aChangedHoldWithdrawsTheLifts() {
         SyncRun run = at(RUNNING);
-        run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new UserId(1)));
+        run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new EmployeeId(1)));
         run.releaseKind(HoldKind.ADMINISTRATOR_SEPARATION, new UserId(9));
 
-        run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new UserId(1)));
+        run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new EmployeeId(1)));
         assertThat(run.releasedKinds()).containsExactly(HoldKind.ADMINISTRATOR_SEPARATION);
 
-        run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new UserId(1), new UserId(2)));
+        run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new EmployeeId(1), new EmployeeId(2)));
         assertThat(run.releasedKinds()).isEmpty();
     }
 }

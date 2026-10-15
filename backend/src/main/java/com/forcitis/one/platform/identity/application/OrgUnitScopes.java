@@ -43,7 +43,7 @@ class OrgUnitScopes implements OrgUnitAccess {
                     .filter(role -> role.permissionCodes().contains(permissionCode))
                     .map(role -> new AccessScopeCalculator.RoleScope(role.accessScope(), true, Set.of()))
                     .toList();
-            var home = directory.findEmployee(userId).map(employee -> employee.orgUnitId());
+            var home = directory.findEmployee(currentUser.employeeId()).map(employee -> employee.orgUnitId());
             AccessScopeCalculator.OrgUnitReach reach = AccessScopeCalculator.orgUnitReach(home.orElse(null), roles);
             if (reach.unrestricted()) {
                 return Visible.all();

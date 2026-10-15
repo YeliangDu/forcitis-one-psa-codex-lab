@@ -14,6 +14,9 @@
 | one-ops（长期，不交接） | rc.1 已发布并验签（v0.1.0-rc.1，b0827667）；R-11 演练进行中（用户已知会运维群，intent #152；④ 实为 retrying，RELEASE.md 预期随执行记录更正） | R-11 ⑩ 回读后报调度 → 转告用户在运维群收尾；precheck.sh:235 pnpm 目录小项；上下文见 [OPS_CONTEXT](phase1a/infra/OPS_CONTEXT.md) |
 | one-1a-next-1（已交接） | — | 待归档 |
 
+## 开场核对
+- `gh pr list`、`ListAgents`、合并队列（`pgrep -f mq_run.sh`，须在仓库目录启动，gh 需仓库上下文）、`CronList`；`gh run list --workflow nightly-legacy-it.yml -L 1` 失败即开卡（#165 合并后生效）。
+
 ## 合并
 - strict 串行队列：scratchpad 的 `mq_run.sh` 读 `merge.queue`，`merge_pr.sh` 同步 main → 等 CI → 合并；`CONFLICT<n>` 若是非生成文件退回作者，生成产物取一边后跑 `build_all.py`。
 - 在队（scratchpad/merge.queue，runner mq_run.sh 后台运行；/clear 后用 `pgrep -f mq_run.sh` 核对，不在就重启）：#152 #129 #139 #154 #148。#145（ADR-0036 已采纳）在 #129 合并后改基分支为 main 再入队。暂缓：#96（ADR-0029）。

@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -76,29 +76,29 @@ public final class SnapshotReconciler {
         return changed;
     }
 
-    private record Staff(List<StaffEmployee> changed, List<UserId> changedEmployees, List<UserId> separatedEmployees,
-                         Set<UserId> isolated, Map<UserId, EmploymentStatus> statusAfter, int incomingEmployed,
+    private record Staff(List<StaffEmployee> changed, List<EmployeeId> changedEmployees, List<EmployeeId> separatedEmployees,
+                         Set<EmployeeId> isolated, Map<EmployeeId, EmploymentStatus> statusAfter, int incomingEmployed,
                          int employedWithoutWecom) {
     }
 
     private static Staff reconcileStaff(OrgSnapshot current, SourceOrgSnapshot source, List<SyncDiff> diffs) {
-        Map<UserId, StaffEmployee> currentStaff = current.staffById();
+        Map<EmployeeId, StaffEmployee> currentStaff = current.staffById();
         Set<OrgUnitId> knownUnits = source.units().stream().map(u -> SourceTerms.unit(u.unitId())).collect(Collectors.toSet());
         Set<PositionId> knownPositions = source.positions().stream().map(p -> SourceTerms.position(p.positionId())).collect(Collectors.toSet());
 
-        Set<UserId> seen = new HashSet<>();
-        Set<UserId> isolated = new LinkedHashSet<>();
-        Map<UserId, SourcePerson> valid = new LinkedHashMap<>();
+        Set<EmployeeId> seen = new HashSet<>();
+        Set<EmployeeId> isolated = new LinkedHashSet<>();
+        Map<EmployeeId, SourcePerson> valid = new LinkedHashMap<>();
         int incomingEmployed = 0;
         for (SourcePerson person : source.staff()) {
-            UserId userId = SourceTerms.person(person.personId());
-            if (!seen.add(userId)) {
-                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + userId.value(), IssueKind.DUPLICATE_EMPLOYEE,
+            EmployeeId employeeId = SourceTerms.person(person.personId());
+            if (!seen.add(employeeId)) {
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + employeeId.value(), IssueKind.DUPLICATE_EMPLOYEE,
                         "the source returned this person more than once; the first row is used"));
                 continue;
             }
             if (person.internalFlagMissing()) {
-                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + userId.value(), IssueKind.NULL_FLAG,
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + employeeId.value(), IssueKind.NULL_FLAG,
                         "the internal flag is NULL in the source; the person is treated as internal"));
             }
             if (EmployeeChecks.employmentOf(person) == EmploymentStatus.EMPLOYED) {
@@ -106,42 +106,42 @@ public final class SnapshotReconciler {
             }
             Optional<SyncDiff> isolation = EmployeeChecks.isolation(person, knownUnits::contains, knownPositions::contains);
             if (isolation.isPresent()) {
-                isolated.add(userId);
+                isolated.add(employeeId);
                 diffs.add(isolation.get());
             } else {
-                valid.put(userId, person);
+                valid.put(employeeId, person);
             }
         }
 
-        Set<UserId> keepWecom = wecomUserIdsToKeep(valid, isolated, currentStaff, diffs);
+        Set<EmployeeId> keepWecom = wecomUserIdsToKeep(valid, isolated, currentStaff, diffs);
 
-        Map<UserId, EmploymentStatus> statusAfter = new HashMap<>();
+        Map<EmployeeId, EmploymentStatus> statusAfter = new HashMap<>();
         currentStaff.forEach((id, s) -> statusAfter.put(id, s.employee().employmentStatus()));
         currentStaff.keySet().stream().filter(id -> !seen.contains(id)).forEach(id -> statusAfter.put(id, EmploymentStatus.SEPARATED));
         valid.forEach((id, m) -> statusAfter.put(id, EmployeeChecks.employmentOf(m)));
 
-        Map<UserId, UserId> claimed = new LinkedHashMap<>();
+        Map<EmployeeId, EmployeeId> claimed = new LinkedHashMap<>();
         valid.forEach((id, m) -> {
             if (EmployeeChecks.employmentOf(m) == EmploymentStatus.EMPLOYED && m.supervisorId() != null) {
                 claimed.put(id, SourceTerms.person(m.supervisorId()));
             }
         });
-        Function<UserId, UserId> storedSupervisor = id -> {
+        Function<EmployeeId, EmployeeId> storedSupervisor = id -> {
             StaffEmployee s = currentStaff.get(id);
             return s == null ? null : s.assignment().reportsToEmployeeId();
         };
-        Map<UserId, UserId> acceptedSupervisors = ReportingLines.accept(claimed, statusAfter, storedSupervisor, diffs);
+        Map<EmployeeId, EmployeeId> acceptedSupervisors = ReportingLines.accept(claimed, statusAfter, storedSupervisor, diffs);
 
         List<StaffEmployee> changed = new ArrayList<>();
-        List<UserId> changedEmployees = new ArrayList<>();
-        List<UserId> separatedEmployees = new ArrayList<>();
-        Map<UserId, StaffEmployee> after = new LinkedHashMap<>(currentStaff);
+        List<EmployeeId> changedEmployees = new ArrayList<>();
+        List<EmployeeId> separatedEmployees = new ArrayList<>();
+        Map<EmployeeId, StaffEmployee> after = new LinkedHashMap<>(currentStaff);
 
         valid.forEach((id, m) -> {
             Employee employee = EmployeeChecks.toEmployee(m, keepWecom.contains(id));
             boolean employed = employee.employmentStatus() == EmploymentStatus.EMPLOYED;
-            UserId supervisor = SourceTerms.person(m.supervisorId());
-            UserId leader = employed ? acceptedSupervisors.get(id) : (id.equals(supervisor) ? null : supervisor);
+            EmployeeId supervisor = SourceTerms.person(m.supervisorId());
+            EmployeeId leader = employed ? acceptedSupervisors.get(id) : (id.equals(supervisor) ? null : supervisor);
             StaffEmployee desired = new StaffEmployee(employee, new Assignment(id, SourceTerms.unit(m.unitId()),
                     SourceTerms.position(m.positionId()), leader));
             StaffEmployee before = currentStaff.get(id);
@@ -191,20 +191,20 @@ public final class SnapshotReconciler {
     }
 
     /** A WeCom user id is the login key: when several employed rows share it, none keeps it (login fails closed). */
-    private static Set<UserId> wecomUserIdsToKeep(Map<UserId, SourcePerson> valid, Set<UserId> isolated,
-                                                  Map<UserId, StaffEmployee> currentStaff, List<SyncDiff> diffs) {
+    private static Set<EmployeeId> wecomUserIdsToKeep(Map<EmployeeId, SourcePerson> valid, Set<EmployeeId> isolated,
+                                                  Map<EmployeeId, StaffEmployee> currentStaff, List<SyncDiff> diffs) {
         Map<WecomUserId, Integer> employedHolders = new HashMap<>();
         valid.values().stream()
                 .filter(m -> m.wecomUserId() != null && EmployeeChecks.employmentOf(m) == EmploymentStatus.EMPLOYED)
                 .forEach(m -> employedHolders.merge(m.wecomUserId(), 1, Integer::sum));
-        for (UserId id : isolated) {
+        for (EmployeeId id : isolated) {
             StaffEmployee retained = currentStaff.get(id);
             if (retained != null && retained.employee().employmentStatus() == EmploymentStatus.EMPLOYED
                     && retained.employee().wecomUserId() != null) {
                 employedHolders.merge(retained.employee().wecomUserId(), 1, Integer::sum);
             }
         }
-        Set<UserId> keep = new HashSet<>();
+        Set<EmployeeId> keep = new HashSet<>();
         valid.forEach((id, m) -> {
             boolean unique = m.wecomUserId() == null || EmployeeChecks.employmentOf(m) != EmploymentStatus.EMPLOYED
                     || employedHolders.get(m.wecomUserId()) <= 1;
@@ -222,7 +222,7 @@ public final class SnapshotReconciler {
     }
 
     private static Units reconcileOrgUnits(OrgSnapshot current, SourceOrgSnapshot source,
-                                           Map<UserId, EmploymentStatus> statusAfter, List<SyncDiff> diffs) {
+                                           Map<EmployeeId, EmploymentStatus> statusAfter, List<SyncDiff> diffs) {
         List<SourceOrgUnit> sorted = parentsFirst(source.units());
         for (SourceOrgUnit unit : sorted) {
             if (unit.duplicateOfUnitId() != null) {
@@ -231,8 +231,8 @@ public final class SnapshotReconciler {
                                 + "; the active one is the parent candidate"));
             }
         }
-        Map<OrgUnitId, UserId> heads = pickSmallest(source, SourceRelationshipKind.UNIT_HEAD, IssueKind.MULTIPLE_HEADS, diffs);
-        Map<OrgUnitId, UserId> managers = pickSmallest(source, SourceRelationshipKind.REGIONAL_RECEIVABLES_MANAGER,
+        Map<OrgUnitId, EmployeeId> heads = pickSmallest(source, SourceRelationshipKind.UNIT_HEAD, IssueKind.MULTIPLE_HEADS, diffs);
+        Map<OrgUnitId, EmployeeId> managers = pickSmallest(source, SourceRelationshipKind.REGIONAL_RECEIVABLES_MANAGER,
                 IssueKind.MULTIPLE_REGIONAL_MANAGERS, diffs);
 
         Map<OrgUnitId, OrgUnit> before = current.orgUnitsById();
@@ -259,8 +259,8 @@ public final class SnapshotReconciler {
                 diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, subject, IssueKind.UNKNOWN_CATEGORY,
                         "unrecognised category value '" + unit.rawRegion() + "'; stored empty"));
             }
-            UserId head = known(heads.get(unitId), statusAfter, subject, IssueKind.HEAD_NOT_FOUND, "head", diffs);
-            UserId manager = known(managers.get(unitId), statusAfter, subject,
+            EmployeeId head = known(heads.get(unitId), statusAfter, subject, IssueKind.HEAD_NOT_FOUND, "head", diffs);
+            EmployeeId manager = known(managers.get(unitId), statusAfter, subject,
                     IssueKind.REGIONAL_MANAGER_NOT_FOUND, "regional receivables manager", diffs);
             OrgUnit old = before.get(unitId);
             OrgUnit desired = new OrgUnit(unitId, unit.code(), unit.name(), parent, unit.sortOrder(),
@@ -311,7 +311,7 @@ public final class SnapshotReconciler {
         return depth;
     }
 
-    private static UserId known(UserId person, Map<UserId, EmploymentStatus> statusAfter, String subject,
+    private static EmployeeId known(EmployeeId person, Map<EmployeeId, EmploymentStatus> statusAfter, String subject,
                                 IssueKind issue, String role, List<SyncDiff> diffs) {
         if (person != null && !statusAfter.containsKey(person)) {
             diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, subject, issue, role + " " + person.value() + " is not in the snapshot; stored empty"));
@@ -321,17 +321,17 @@ public final class SnapshotReconciler {
     }
 
     /** Several people for one unit: the smallest id wins, deterministically. */
-    private static Map<OrgUnitId, UserId> pickSmallest(SourceOrgSnapshot source, SourceRelationshipKind kind, IssueKind multiple,
+    private static Map<OrgUnitId, EmployeeId> pickSmallest(SourceOrgSnapshot source, SourceRelationshipKind kind, IssueKind multiple,
                                                        List<SyncDiff> diffs) {
-        Map<OrgUnitId, List<UserId>> byUnit = new LinkedHashMap<>();
+        Map<OrgUnitId, List<EmployeeId>> byUnit = new LinkedHashMap<>();
         for (SourceRelationship r : source.relationships()) {
             if (r.kind() == kind && !r.personDeleted()) {
                 byUnit.computeIfAbsent(SourceTerms.unit(r.unitId()), k -> new ArrayList<>()).add(SourceTerms.person(r.personId()));
             }
         }
-        Map<OrgUnitId, UserId> picked = new LinkedHashMap<>();
+        Map<OrgUnitId, EmployeeId> picked = new LinkedHashMap<>();
         byUnit.forEach((unit, members) -> {
-            List<UserId> ordered = members.stream().distinct().sorted(Comparator.comparingLong(UserId::value)).toList();
+            List<EmployeeId> ordered = members.stream().distinct().sorted(Comparator.comparingLong(EmployeeId::value)).toList();
             picked.put(unit, ordered.getFirst());
             if (ordered.size() > 1) {
                 diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, "org-unit:" + unit.value(), multiple,

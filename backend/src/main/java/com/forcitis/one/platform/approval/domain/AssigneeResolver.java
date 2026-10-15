@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -12,6 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Pure function: no clock, no randomness, no side effects; the same code decides live candidates and replays old sequences. */
 public final class AssigneeResolver {
@@ -19,22 +22,24 @@ public final class AssigneeResolver {
     private final OrgDirectory org;
     private final RoleDirectory roles;
     private final Set<UserId> administrators;
+    private final AccountEmployees accountEmployees;
 
     /** administrators may be empty: then an empty candidate set is UNRESOLVED instead of routed. */
-    public AssigneeResolver(OrgDirectory org, RoleDirectory roles, Set<UserId> administrators) {
+    public AssigneeResolver(OrgDirectory org, RoleDirectory roles, Set<UserId> administrators, AccountEmployees accountEmployees) {
         this.org = org;
         this.roles = roles;
+        this.accountEmployees = accountEmployees;
         this.administrators = Set.copyOf(administrators);
     }
 
-    public Resolution resolve(AssignmentRule rule, boolean selfApprovalAllowed, UserId initiator, ProcessVariables variables) {
+    public Resolution resolve(AssignmentRule rule, boolean selfApprovalAllowed, EmployeeId initiator, ProcessVariables variables) {
         return resolve(rule, selfApprovalAllowed, false, initiator, variables);
     }
 
-    public Resolution resolve(AssignmentRule rule, boolean selfApprovalAllowed, boolean skipWhenEmpty, UserId initiator,
+    public Resolution resolve(AssignmentRule rule, boolean selfApprovalAllowed, boolean skipWhenEmpty, EmployeeId initiator,
             ProcessVariables variables) {
         Collected collected = collect(rule, initiator, variables);
-        Set<UserId> candidates = employed(collected.users());
+        Set<EmployeeId> candidates = employed(collected.users());
         if (skipWhenEmpty && candidates.isEmpty()) {
             boolean namedButInvalid = rule instanceof AssignmentRule.FormFieldUsers && !collected.users().isEmpty();
             return new Resolution(Set.of(), collected.invalidInput() ? ResolutionKind.INVALID_INPUT : ResolutionKind.SKIPPED,
@@ -42,12 +47,12 @@ public final class AssigneeResolver {
         }
         ResolutionKind kind = collected.escalated() ? ResolutionKind.ESCALATED_REPORTING_LINE : ResolutionKind.RESOLVED;
         if (!selfApprovalAllowed && candidates.contains(initiator)) {
-            Set<UserId> others = new LinkedHashSet<>(candidates);
+            Set<EmployeeId> others = new LinkedHashSet<>(candidates);
             others.remove(initiator);
             if (!others.isEmpty()) {
                 candidates = others;
             } else {
-                Set<UserId> leader = org.findSupervisor(initiator).filter(l -> !l.equals(initiator))
+                Set<EmployeeId> leader = org.findSupervisor(initiator).filter(l -> !l.equals(initiator))
                         .map(l -> employed(Set.of(l))).orElse(Set.of());
                 candidates = leader;
                 kind = ResolutionKind.ESCALATED_SELF_APPROVAL;
@@ -56,7 +61,11 @@ public final class AssigneeResolver {
         if (candidates.isEmpty()) {
             return fallback();
         }
-        return new Resolution(candidates, kind);
+        return new Resolution(accountsOf(candidates), kind);
+    }
+
+    private Set<UserId> accountsOf(Set<EmployeeId> employees) {
+        return employees.stream().map(accountEmployees::accountOf).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private Resolution fallback() {
@@ -67,8 +76,8 @@ public final class AssigneeResolver {
     }
 
     /** invalidInput: what the rule reads is missing or points at nobody who exists, so "no candidates" would not mean "nobody is responsible". */
-    private record Collected(Set<UserId> users, boolean escalated, boolean invalidInput) {
-        static Collected of(Set<UserId> users) {
+    private record Collected(Set<EmployeeId> users, boolean escalated, boolean invalidInput) {
+        static Collected of(Set<EmployeeId> users) {
             return new Collected(users, false, false);
         }
 
@@ -77,9 +86,10 @@ public final class AssigneeResolver {
         }
     }
 
-    private Collected collect(AssignmentRule rule, UserId initiator, ProcessVariables variables) {
+    private Collected collect(AssignmentRule rule, EmployeeId initiator, ProcessVariables variables) {
         return switch (rule) {
-            case AssignmentRule.Role role -> Collected.of(roles.findRoleHolders(role.role()));
+            case AssignmentRule.Role role -> Collected.of(roles.findRoleHolders(role.role()).stream().map(accountEmployees::employeeOf)
+                    .collect(Collectors.toCollection(LinkedHashSet::new)));
             case AssignmentRule.DepartmentHead head -> departmentHead(head, initiator, variables);
             case AssignmentRule.InitiatorSupervisor supervisor -> org.findEmployee(initiator).isEmpty() ? Collected.invalid()
                     : initiatorSupervisor(initiator, supervisor.level());
@@ -87,7 +97,7 @@ public final class AssigneeResolver {
         };
     }
 
-    private Collected departmentHead(AssignmentRule.DepartmentHead head, UserId initiator, ProcessVariables variables) {
+    private Collected departmentHead(AssignmentRule.DepartmentHead head, EmployeeId initiator, ProcessVariables variables) {
         Optional<OrgUnitId> unit = departmentOf(head.departmentVariable(), initiator, variables);
         if (unit.isEmpty() || org.findOrgUnit(unit.get()).isEmpty()) {
             return Collected.invalid();
@@ -98,14 +108,14 @@ public final class AssigneeResolver {
     private Collected formFieldUsers(String field, ProcessVariables variables) {
         List<String> raw = variables.formField(field);
         boolean valid = !raw.isEmpty() && raw.stream().allMatch(this::isExistingPerson);
-        return new Collected(ProcessVariables.parseUsers(raw), false, !valid);
+        return new Collected(ProcessVariables.parseEmployees(raw), false, !valid);
     }
 
     private boolean isExistingPerson(String raw) {
-        return raw != null && ProcessVariables.parseUsers(List.of(raw)).stream().anyMatch(id -> org.findEmployee(id).isPresent());
+        return raw != null && ProcessVariables.parseEmployees(List.of(raw)).stream().anyMatch(id -> org.findEmployee(id).isPresent());
     }
 
-    private Optional<OrgUnitId> departmentOf(String variable, UserId initiator, ProcessVariables variables) {
+    private Optional<OrgUnitId> departmentOf(String variable, EmployeeId initiator, ProcessVariables variables) {
         if (variable == null || variable.isBlank()) {
             return org.findEmployee(initiator).map(EmployeeProfile::orgUnitId);
         }
@@ -122,11 +132,11 @@ public final class AssigneeResolver {
     }
 
     /** Head of the unit, else of the nearest ancestor that has an employed head. */
-    private Optional<UserId> nearestHead(OrgUnitId unit) {
+    private Optional<EmployeeId> nearestHead(OrgUnitId unit) {
         return headFrom(unit, Set.of());
     }
 
-    private Optional<UserId> headFrom(OrgUnitId unit, Set<UserId> excluded) {
+    private Optional<EmployeeId> headFrom(OrgUnitId unit, Set<EmployeeId> excluded) {
         List<OrgUnitId> chain = new ArrayList<>();
         chain.add(unit);
         chain.addAll(org.findAncestors(unit));
@@ -135,7 +145,7 @@ public final class AssigneeResolver {
             if (!active) {
                 continue;
             }
-            Optional<UserId> head = org.findOrgUnitHead(candidate).filter(h -> !excluded.contains(h)).filter(this::isEmployed);
+            Optional<EmployeeId> head = org.findOrgUnitHead(candidate).filter(h -> !excluded.contains(h)).filter(this::isEmployed);
             if (head.isPresent()) {
                 return head;
             }
@@ -144,14 +154,14 @@ public final class AssigneeResolver {
     }
 
     /** Level n supervisor; an incomplete line pushes up to the nearest department head not already on the line. */
-    private Collected initiatorSupervisor(UserId initiator, int level) {
-        Set<UserId> line = new LinkedHashSet<>();
+    private Collected initiatorSupervisor(EmployeeId initiator, int level) {
+        Set<EmployeeId> line = new LinkedHashSet<>();
         line.add(initiator);
-        UserId current = initiator;
+        EmployeeId current = initiator;
         for (int i = 0; i < level; i++) {
-            Optional<UserId> next = org.findSupervisor(current).filter(l -> !line.contains(l)).filter(this::isEmployed);
+            Optional<EmployeeId> next = org.findSupervisor(current).filter(l -> !line.contains(l)).filter(this::isEmployed);
             if (next.isEmpty()) {
-                Optional<UserId> pushed = org.findEmployee(current).map(EmployeeProfile::orgUnitId)
+                Optional<EmployeeId> pushed = org.findEmployee(current).map(EmployeeProfile::orgUnitId)
                         .flatMap(unit -> headFrom(unit, line));
                 return new Collected(pushed.map(Set::of).orElse(Set.of()), true, false);
             }
@@ -161,9 +171,9 @@ public final class AssigneeResolver {
         return Collected.of(Set.of(current));
     }
 
-    private Set<UserId> employed(Set<UserId> users) {
-        Set<UserId> kept = new LinkedHashSet<>();
-        for (UserId user : users) {
+    private Set<EmployeeId> employed(Set<EmployeeId> users) {
+        Set<EmployeeId> kept = new LinkedHashSet<>();
+        for (EmployeeId user : users) {
             if (user != null && isEmployed(user)) {
                 kept.add(user);
             }
@@ -171,7 +181,7 @@ public final class AssigneeResolver {
         return kept;
     }
 
-    private boolean isEmployed(UserId user) {
+    private boolean isEmployed(EmployeeId user) {
         return org.findEmployee(user).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
     }
 }

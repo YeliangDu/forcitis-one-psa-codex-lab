@@ -8,7 +8,7 @@ import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import java.sql.ResultSet;
@@ -101,10 +101,10 @@ class JdbcTimesheetRepository implements TimesheetRepository {
 
     private static Timesheet read(ResultSet rs) throws SQLException {
         return Timesheet.restore(new TimesheetId(rs.getObject("id", UUID.class)), new DocumentNumber(rs.getString("timesheet_number")),
-                new UserId(rs.getLong("employee_id")), new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
+                new EmployeeId(rs.getLong("employee_id")), new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
                 new OrgUnitId(rs.getLong("org_unit_id")),
                 rs.getObject("work_date", LocalDate.class), new Hours(rs.getBigDecimal("submitted_hours")),
-                new UserId(rs.getLong("project_manager_id")), TimesheetStatus.valueOf(rs.getString("status")), rs.getInt("round_number"),
+                new EmployeeId(rs.getLong("project_manager_id")), TimesheetStatus.valueOf(rs.getString("status")), rs.getInt("round_number"),
                 rs.getObject("submitted_date", LocalDate.class), rs.getLong("version"), rs.getLong("event_count"));
     }
 }
