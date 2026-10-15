@@ -6,6 +6,7 @@
 |---|---|---|
 | FD 财务口径决策单（46 题 + 9 条问财务的事实） | `r0/FINANCE_DECISIONS.md`（离线版 `r0/FINANCE_DECISIONS.html` 由 `r0/build_finance_decisions.py` 生成） | https://claude.ai/artifact/UfWUw5PuwVe6HzC5QRn8nB（2026-10-15 起） |
 | D5 工时审批路径（ARCH-D5，6 题） | `sheets/D5.json`（行业做法为主，老系统生产汇总只作核对，取证 `phase1a/infra/handoff/B-5-dba/evidence/arch_d5_timesheet_routing.sql`） | https://claude.ai/artifact/GGz4AuMS63ooyL85itojya（2026-10-15 起） |
+| F1 数据访问范围（F-1 待定 7 题） | `sheets/F1.json`（F-1 行业对照 `phase1a/cards/F-1-aec-check.md`；标准与产品依据 one-rules 调研） | https://claude.ai/artifact/4NMzvH2vxpJUYfckwrfcSJ（2026-10-15 起） |
 
 | 步骤 | 做法 |
 |---|---|

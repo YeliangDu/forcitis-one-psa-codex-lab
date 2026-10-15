@@ -12,4 +12,4 @@
 | ARCH-D5 工时行类型 → 审批旗标映射、区域负责人来源 | Phase 2 前置项：方案页 6 题已交用户待提交（推荐：项目行归项目经理、售前归售前对象归属部门负责人、间接归直属上级、不保留混合、不加整单确认、负责人取组织架构）；用户定后写规则卡并请 one-glossary 改「区域负责人」 | [方案页](https://claude.ai/artifact/GGz4AuMS63ooyL85itojya)，`rules/decide/sheets/D5.json`，NEXT_BATCH_PLAN「Phase 2 前置项」，D-1a-127 |
 | 规则卡补「类别」 | ADR-0040 第 2 步之后 | ADR-0040 |
 | 规则文档瘦身对照表 | 待用户 | COORDINATOR_LEDGER「待用户」 |
-| F-1 数据范围待用户定的几项（含下级自动扩大、维持授权、拿不准 5 条）与「部门撤销或合并」规则卡 | 排在 ARCH-D5 之后，P5 合并前定；行业调研中 | one-coordinator 2026-10-15 派工，`phase1a/cards/F-1-aec-check.md`（one-1a-par，f1e17c4d） |
+| F-1 数据范围待定 7 题；「部门撤销或合并」规则卡 RULE-387 | 决策页已交用户待提交（F1-01、F1-02 须在 P5 合并前定）；规则卡已写，测试随 F-1 由测试代理写 | [决策页](https://claude.ai/artifact/4NMzvH2vxpJUYfckwrfcSJ)，`rules/decide/sheets/F1.json`，`rules/DATA_SCOPE_RULES.md`，`phase1a/cards/F-1-aec-check.md` |

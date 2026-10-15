@@ -1,0 +1,244 @@
+{
+ "sheet": "F1",
+ "title": "数据访问范围",
+ "lede": "F-1 数据范围开工前要定的 7 题：前 2 题影响 F-1 验收，须在 P5 合并前定；后 5 题定方向、按阶段排期。行业做法与标准为主。每题已预选推荐项，同意就不用动；每组底部「提交本组」，确认后才算数。",
+ "groups": [
+  {
+   "id": "f1-now",
+   "title": "P5 合并前要定",
+   "desc": "影响 F-1 验收测试与 ADR-0032。"
+  },
+  {
+   "id": "f1-later",
+   "title": "方向与排期",
+   "desc": "定方向，不改 1a 实现，按阶段登记。"
+  }
+ ],
+ "items": [
+  {
+   "no": "F1-01",
+   "grp": "f1-now",
+   "title": "双人逐人级角色能不能用「含下级」",
+   "src": "F-1 行业对照第 3 项；ADR-0032 0032-Q1；F1_ACCEPTANCE 第 1a 条",
+   "ctx": "自定义部门可逐部门选「含下级」，组织同步新增的下级部门自动纳入、不改角色（用户已定）。用在超级管理员、安全审计员、业务管理员这类须第二人确认的敏感角色上时，组织一调整，敏感数据的可见范围就自动扩大，没有经过第二人。0032-Q1 选 (a) 的理由是「范围不随任职变化、校验是静态的」。",
+   "now": "F-1 在 P5 合并后开工，本题须在 P5 合并前定；影响 F-1 验收测试。",
+   "check": "",
+   "basis": [
+    "ISO/IEC 27002:2022 5.18（第三方转述）：访问权由资产所有者授权，岗位或职责变化须更新权限：https://isms.online/iso-27002/control-5-18-access-rights"
+   ],
+   "practice": [
+    "Workday 基于组织的安全组可选「仅本组织」「含全部下级」或「下探 N 层」，选含下级时新下级自动覆盖（课程手册）：https://doc.workday.com/workday-education/en-us/course-manuals/security-for-administrators/role-based-security.html",
+    "NIST SP 800-53 AC-2：按组织定义频率复核账号，转岗或需知变化时通知账号管理员；AC-2(2) 临时与应急账号自动移除或禁用：https://csf.tools/reference/nist-sp-800-53/r5/ac/ac-2/",
+    "NIST SP 800-53 AC-6(7)：按频率复核权限，必要时重分配或移除：https://csf.tools/reference/nist-sp-800-53/r5/ac/ac-6/ac-6-7/"
+   ],
+   "opts": [
+    {
+     "label": "这类角色的自定义部门只许「仅本部门」；要覆盖新部门就改角色（改角色本身要第二人确认）",
+     "effect": "与 0032-Q1 的理由一致，范围扩大一律经第二人；敏感角色很少，组织调整后多改几次角色的工作量小；普通角色的「含下级」不受影响",
+     "rec": true
+    },
+    {
+     "label": "照常自动纳入，同时生成「范围待复核」条目并通知",
+     "effect": "不用改角色；但复核之前敏感数据已经可见，属事后控制",
+     "rec": false
+    },
+    {
+     "label": "新增下级先不纳入，复核通过后才纳入",
+     "effect": "事前控制且不用改角色；但多一个运行期「待生效」状态，与 0032-Q1 不设运行期暂停状态的取向相反",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "F1-02",
+   "grp": "f1-now",
+   "title": "「维持授权」由谁办，要不要到期日",
+   "src": "F-1 行业对照第 6、7 项；ADR-0032 0032-Q2；ADR-0026 D-13",
+   "ctx": "现行：待调整权限条目送组织数据管理员与安全审计员，两者都能点「维持授权」（写操作，填原因）。行业惯例是业务负责人证明需要、管理员执行、审计员只读事后复核。季度授权复核由内控 / 财务负责（D-13）。",
+   "now": "改动会修订用户已确认的 0032-Q2，按变更治理须新 ADR 或 ADR 修订；影响 F-1 验收第 12、13 条。",
+   "check": "",
+   "basis": [
+    "ISO/IEC 27002:2022 5.3（第三方转述）：冲突职责应分离，做不到则加补偿控制：https://advisera.com/iso27001/control-5-3-segregation-of-duties/",
+    "ISO/IEC 27002:2022 8.34（第三方转述）：审计测试使用的访问限于只读：https://isms.online/iso-27002/control-8-34-protection-of-information-systems-during-audit-testing",
+    "ISO/IEC 27002:2022 5.18（第三方转述）：访问权由资产所有者授权，岗位或职责变化须更新权限：https://isms.online/iso-27002/control-5-18-access-rights"
+   ],
+   "practice": [
+    "SailPoint 访问认证：复核人批准或撤销、系统执行撤销、禁止自我证明；逾期未决项默认保留访问：https://documentation.sailpoint.com/saas/help/certs/completing_campaigns.html",
+    "SailPoint 限时例外：到期自动取消：https://documentation.sailpoint.com/identityiq/help/systemconfig/compmanlifecycle.html"
+   ],
+   "opts": [
+    {
+     "label": "只由组织数据管理员办理，原因里写明确认需要的业务负责人；安全审计员只读；维持有效到下一次季度复核（D-13），到期重新生成条目",
+     "effect": "审计员不做写操作，独立性完整；到期日对齐已有的季度复核，不另建复核周期；不新增业务负责人在系统内的审批步骤",
+     "rec": true
+    },
+    {
+     "label": "同上，另在系统里加一步「业务负责人确认」再由组织数据管理员办理",
+     "effect": "证明链最完整；多一个审批节点和待办，1a 范围扩大",
+     "rec": false
+    },
+    {
+     "label": "维持现状：组织数据管理员与安全审计员都可维持授权，不设到期日",
+     "effect": "不改 ADR 与验收；审计员既办理又复核，独立性弱，维持后再无复查节点",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "F1-03",
+   "grp": "f1-later",
+   "title": "「本人及直接下属」只含直接下属够不够",
+   "src": "F-1 行业对照「拿不准」第 1 条",
+   "ctx": "范围类型「本人及直接下属」只含一层下属。分院院长等常需要看整条汇报链。",
+   "now": "",
+   "check": "",
+   "basis": [
+    "最小权限：默认最窄，放宽须显式授予（ISO/IEC 27002 5.15、5.18）。"
+   ],
+   "practice": [
+    "Oracle HCM 人员安全配置的经理类型（全部 / 线经理 / 指定），Oracle 建议非必要不选「全部」：https://docs.oracle.com/en/cloud/saas/human-resources/faqcs/manager-type-in-person-security-profiles.html"
+   ],
+   "opts": [
+    {
+     "label": "维持只含直接下属；需要整条链的人用「本部门含下级」或自定义部门显式授予",
+     "effect": "不新增范围类型；整条汇报链与部门树在本公司大体重合，用部门范围表达更稳定",
+     "rec": true
+    },
+    {
+     "label": "新增范围类型「本人及全部下属」（整条汇报链）",
+     "effect": "贴合按汇报线管理的场景；汇报线随 A8 同步变化，范围也随之变化，且要做逐层展开",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "F1-04",
+   "grp": "f1-later",
+   "title": "待调整权限超过 5 个工作日：只升级，还是最终自动收回",
+   "src": "F-1 行业对照「拿不准」第 2 条；ADR-0032 0032-Q2、Q3",
+   "ctx": "现行：超过 5 个工作日未处理升级给 account-role:update 持有人，不自动收回（用户已确认，理由是 A8 的一次误改会直接撤掉审计员等关键角色）。",
+   "now": "",
+   "check": "",
+   "basis": [
+    "NIST SP 800-53 AC-2：按组织定义频率复核账号，转岗或需知变化时通知账号管理员；AC-2(2) 临时与应急账号自动移除或禁用：https://csf.tools/reference/nist-sp-800-53/r5/ac/ac-2/"
+   ],
+   "practice": [
+    "SailPoint 访问认证：复核人批准或撤销、系统执行撤销、禁止自我证明；逾期未决项默认保留访问：https://documentation.sailpoint.com/saas/help/certs/completing_campaigns.html",
+    "Microsoft Entra 访问复核：复核人未响应时可选不变、移除等，默认不变；官方提醒「移除」加自动应用可能撤光访问：https://learn.microsoft.com/entra/id-governance/create-access-review"
+   ],
+   "opts": [
+    {
+     "label": "维持只升级、不自动收回",
+     "effect": "与 SailPoint、Entra 默认一致（逾期默认保留）；不会因组织数据误改撤掉关键角色",
+     "rec": true
+    },
+    {
+     "label": "升级后再过 N 个工作日仍未处理，自动收回该敏感角色并通知",
+     "effect": "强制闭环；A8 误改或无人处理时会撤掉关键角色，须另设恢复通道",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "F1-05",
+   "grp": "f1-later",
+   "title": "要不要「区域」作为数据范围维度",
+   "src": "F-1 行业对照「拿不准」第 3 条",
+   "ctx": "现有范围维度：部门（1a）、法人、项目角色（按阶段排期）。区域在组织架构里是否是一级部门、经营分析是否按区域出数，尚未定。",
+   "now": "工时审批路径决策单 D5-06 推荐「区域负责人」取组织架构登记的部门负责人。",
+   "check": "",
+   "basis": [],
+   "practice": [
+    "Deltek Vantagepoint 组织层级 1 至 5 层、层名自定（区域不是内置维度）：https://help.deltek.com/Product/Vantagepoint/4.0/Settings_General_Org_LMA_Changing_Levels.html"
+   ],
+   "opts": [
+    {
+     "label": "现在不加；区域若是组织树上的一级，用「本部门含下级」表达；等经营分析出现独立的区域口径时再登记维度",
+     "effect": "不新增维度和展开逻辑；Deltek 也把区域当作自定义组织层级，而不是单独维度",
+     "rec": true
+    },
+    {
+     "label": "现在就登记「区域」为后续范围维度并排期",
+     "effect": "提前占位；口径未定时容易与部门维度重叠",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "F1-06",
+   "grp": "f1-later",
+   "title": "长期休假、外派期间是否暂停访问",
+   "src": "F-1 行业对照「拿不准」第 4 条、建议第 8 项",
+   "ctx": "现行只有离职关闭全部授予。标准没有直接条款，机构做法从两周到 30 天不等。",
+   "now": "依赖考勤休假数据接入，属后续阶段。",
+   "check": "",
+   "basis": [],
+   "practice": [
+    "Bravura 休假示例：休假起日禁用、返岗日启用，不删账号不撤组：https://docs.bravurasecurity.com/bravura-security-fabric/en/238024-leave-of-absence.html"
+   ],
+   "opts": [
+    {
+     "label": "不作通用规则；只对双人逐人级角色，连续休假或外派超过 30 天时暂停这些角色、返岗恢复，不删授予；随考勤休假数据接入的阶段实现",
+     "effect": "只控制风险最高的部分，不影响普通员工；暂停与恢复留痕",
+     "rec": true
+    },
+    {
+     "label": "不暂停",
+     "effect": "最简单；敏感角色在长期离岗期间仍可被冒用",
+     "rec": false
+    },
+    {
+     "label": "所有人连续休假超过 30 天都暂停账号",
+     "effect": "最严；休假期间需要查工资条、报销的人也进不来",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "F1-07",
+   "grp": "f1-later",
+   "title": "1b 报价要不要「客户 × 负责人」范围",
+   "src": "F-1 行业对照「拿不准」第 5 条、建议第 2 项",
+   "ctx": "1b 报价目前只设想按部门范围看。行业 CRM 常见「默认私有，所有者与客户团队可见」。",
+   "now": "1b 开工前定；与 F-1 建议第 2 项「项目角色访问（项目线与职能线取并集）」同类。",
+   "check": "",
+   "basis": [],
+   "practice": [
+    "Salesforce 客户默认私有，所有者及上级角色可见，可加客户团队成员：https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_accountteammember.htm",
+    "Deltek Vantagepoint 角色记录访问可限定可见的客户公司与项目：https://help.deltek.com/Product/Vantagepoint/7.2/cfsec_info_center_tab_of_role_security.html"
+   ],
+   "opts": [
+    {
+     "label": "1b 报价按「部门范围 ∪ 本人是负责人或团队成员的报价」",
+     "effect": "跨部门协作报价的人能看到自己参与的单子，不必扩大部门范围；与项目角色访问取并集的思路一致",
+     "rec": true
+    },
+    {
+     "label": "只按部门范围",
+     "effect": "规则最简单；跨部门参与报价的人要单独加部门范围，看到的比需要的多",
+     "rec": false
+    }
+   ]
+  }
+ ],
+ "side": [
+  {
+   "title": "已定（供核对）",
+   "lines": [
+    "自定义部门逐部门选「含下级」或「仅本部门」；选含下级的，组织调整新增的下级自动纳入（用户 2026-10-15）。",
+    "0032-Q1 (a)：双人逐人级角色只许 ALL / CUSTOM_ORG_UNITS / SELF。",
+    "0032-Q2：待调整权限送组织数据管理员与安全审计员，不自动收回；Q3：超过 5 个工作日升级。",
+    "D-13：季度「人员 × 角色 × 范围」复核由内控 / 财务负责，不自动收回。",
+    "离职即关闭全部授予，逐条审计。",
+    "部门被撤销或合并：告警并生成「范围待复核」，保留原引用、不自动替换（规则卡，不需用户定）。"
+   ]
+  },
+  {
+   "title": "来源说明",
+   "lines": [
+    "F-1 行业对照报告：phase1a/cards/F-1-aec-check.md（one-1a-par）。",
+    "标准与产品依据：one-rules 2026-10-15 调研（sonnet），ISO 付费原文未取得的已标「第三方转述」。"
+   ]
+  }
+ ]
+}
