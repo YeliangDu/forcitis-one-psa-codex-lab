@@ -15,7 +15,7 @@ public interface ExpiredSessions {
     record Expired(String primaryKey, String principalName, Cause cause) {
     }
 
-    List<Expired> find(long nowMillis, long absoluteTimeoutMillis, int limit);
+    List<Expired> find(long absoluteTimeoutMillis, int limit);
 
     int deleteSessions(List<String> primaryKeys);
 }
