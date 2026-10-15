@@ -214,7 +214,7 @@
 | RULING-P3B-D2 | 老待办 `LegacyTodo` 与行任务合并 `InboxMerger.mergeRowTasks` 一起移入集成层，沿用现名（中性化按 ADR-0039 第 5.2 条排在生产后） |
 | RULING-P3B-D3 | 关系指向本次结果集外的对象时照样分配自有 ID，保持现行「引用不存在 → 同步问题」判定，不改同步语义 |
 | RULING-P3B-D4 | 登录查人遇到未见过的人员按首次见到分配自有 ID（与同步同一分配路径、同一来源对照） |
-| RULING-P3B-D5 | 法人归属接口保留 `subjectKind` + `subjectId`（`subjectId` 改 uuid 字符串）；事件 `subject` 扁平为这两个字段；库表按 DA-5 分列 |
+| RULING-P3B-D5 | 法人归属接口沿用现有字段名 `kind`，id 字段为 `subjectId`（uuid 字符串）；事件 `subject` 扁平为 `kind` + `subjectId`；库表按 DA-5 分列（RULING-P3B-5 更正：不改名为 subjectKind） |
 | RULING-P3B-D6 | 回放工具中的老数字 ID 在内存中映射为 UUID，不经来源对照、不写库 |
 | RULING-P3B-D7 | 路径参数按 `openapi.json` 实际 7 个模板、9 个操作全改（计划「6 条」为计数笔误） |
 | RULING-P3B-D8 | 纳入本卡：ADR-0033 第 3 项第 6 条要求的只读运维命令（按 A8 登录名或企业微信 userid 返回匹配的员工 ID 与 `user_id` **列表**，不按员工编号查）；理由：P3b 后员工 ID 为 uuid，无此命令 C-5 剧本无法执行（CS-1.9）。命令名随技术标识交 one-glossary |
@@ -222,3 +222,9 @@
 | RULING-P3B-D10 | 数据访问注册表血缘只在注释写「经来源对照」，不新增取值 |
 | RULING-P3B-D11 | 执行用 opus（体量大），计划 7.2 P3b 行的「sonnet」以本卡为准，随 P3b PR 同步改 |
 | RULING-P3B-D12 | `LegacyShapeTest` 新规则「领域与 api / events 不得引用 `Source*` 类型」按 CS-2.29 限定为 `platform.integration.api.Source*` 与 workforce 的 `SourceTerms`，不含 kernel 的 `SourceSystem`（事件来源，P5 随信封 `source` 删除，ADR-0039 第 5.1 条） |
+
+## 14. 验收阶段补充裁定（2026-10-15）
+- 卡第 4 节第 3 条中「编号为空也正常建档」子用例删去：RULE-361 取数范围排除空编号、`employees.employee_code` NOT NULL，以规则卡为准。
+- RULING-P3B-4：`OwnRolesIT` 以员工 uuid 作账号路径改断言为 404、不授出任何角色、不写授予审计（强度不降）。
+- RULING-P3B-6：签名票据 subject 接受完整 64 位有符号范围（A8 人员 ID 可为负、可达 19 位），补验收。
+- 老待办配置键搬迁时按 G46 改集成层前缀，键名由实现定后再出裁定改测试。
