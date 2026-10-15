@@ -77,7 +77,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "forcitis.platform.integration.seeyon.views.fee-earner-yes-enum-id=9002",
         "forcitis.platform.integration.seeyon.views.root-path=00000001",
         "forcitis.platform.integration.legacy.enabled=true",
-        "forcitis.platform.approval.legacy.view-name=dbo.v_psa_one_legacy_todo"})
+        "forcitis.platform.integration.legacy.inbox.view-name=dbo.v_psa_one_legacy_todo"})
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class StalledExternalSourceIT {
@@ -128,9 +128,9 @@ class StalledExternalSourceIT {
         registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> url("a8world"));
         registry.add("forcitis.platform.integration.seeyon.views.username", () -> "a8_reader");
         registry.add("forcitis.platform.integration.seeyon.views.password", () -> A8_READER_PASSWORD);
-        registry.add("forcitis.platform.approval.legacy.url", () -> url("legacyworld"));
-        registry.add("forcitis.platform.approval.legacy.username", () -> "todo_reader");
-        registry.add("forcitis.platform.approval.legacy.password", () -> TODO_READER_PASSWORD);
+        registry.add("forcitis.platform.integration.legacy.inbox.url", () -> url("legacyworld"));
+        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> "todo_reader");
+        registry.add("forcitis.platform.integration.legacy.inbox.password", () -> TODO_READER_PASSWORD);
         registry.add("forcitis.platform.integration.legacy.jdbc-url", () -> url("legacyworld"));
         registry.add("forcitis.platform.integration.legacy.username", () -> "names_reader");
         registry.add("forcitis.platform.integration.legacy.password", () -> NAMES_READER_PASSWORD);

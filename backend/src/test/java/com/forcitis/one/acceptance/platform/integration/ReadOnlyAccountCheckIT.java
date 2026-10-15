@@ -458,7 +458,7 @@ class ReadOnlyAccountCheckIT {
             args.addAll(List.of(legacy + "jdbc-url=" + urlOf.apply(ReadOnlyConnection.LEGACY_NAMES), legacy + "username=" + names.login(), legacy + "password=" + names.password()));
         }
         Account approval = enabled.get(ReadOnlyConnection.LEGACY_APPROVAL);
-        String inbox = "--forcitis.platform.approval.legacy.";
+        String inbox = "--forcitis.platform.integration.legacy.inbox.";
         if (approval != null) {
             args.addAll(List.of(inbox + "url=" + urlOf.apply(ReadOnlyConnection.LEGACY_APPROVAL), inbox + "username=" + approval.login(), inbox + "password=" + approval.password(),
                     inbox + "view-name=dbo.v_psa_one_legacy_todo"));

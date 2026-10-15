@@ -46,7 +46,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
         "forcitis.platform.integration.seeyon.views.fee-earner-yes-enum-id=" + OrgSourceWorldSupport.FEE_EARNER_YES,
         "forcitis.platform.integration.seeyon.views.root-path=" + OrgSourceWorldSupport.ROOT_PATH,
         "forcitis.platform.integration.legacy.enabled=true",
-        "forcitis.platform.approval.legacy.view-name=" + OrgSourceWorldSupport.TODO_VIEW})
+        "forcitis.platform.integration.legacy.inbox.view-name=" + OrgSourceWorldSupport.TODO_VIEW})
 abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
 
     static final long HEAD_TYPE = 7001;
@@ -69,9 +69,9 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
         registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> World.url("a8world"));
         registry.add("forcitis.platform.integration.seeyon.views.username", () -> "a8_reader");
         registry.add("forcitis.platform.integration.seeyon.views.password", () -> World.A8_READER_PASSWORD);
-        registry.add("forcitis.platform.approval.legacy.url", () -> World.url("legacyworld"));
-        registry.add("forcitis.platform.approval.legacy.username", () -> "todo_reader");
-        registry.add("forcitis.platform.approval.legacy.password", () -> World.TODO_READER_PASSWORD);
+        registry.add("forcitis.platform.integration.legacy.inbox.url", () -> World.url("legacyworld"));
+        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> "todo_reader");
+        registry.add("forcitis.platform.integration.legacy.inbox.password", () -> World.TODO_READER_PASSWORD);
         registry.add("forcitis.platform.integration.legacy.jdbc-url", () -> World.url("legacyworld"));
         registry.add("forcitis.platform.integration.legacy.username", () -> "names_reader");
         registry.add("forcitis.platform.integration.legacy.password", () -> World.NAMES_READER_PASSWORD);
