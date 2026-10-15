@@ -46,8 +46,8 @@ class EmployeeIdContractTest {
 
     static final int OWN_ID_OPERATIONS = 9;
 
-    /** The id names that OpenApiExportTest still lets through as "other" after P3b: the approval ids of P4. */
-    static final Set<String> OTHER_ID_NAMES_AFTER_P3B = Set.of("taskId", "instanceId", "documentId");
+    /** RULING-P4-D6: the only id OpenApiExportTest still lets through as "other", by full name; it goes with ADR-0039 item 6. */
+    static final Set<String> OTHER_ID_NAMES_AFTER_P4 = Set.of("InboxItemResponse.taskId");
 
     static final Set<String> OWN_ID_TYPES = Set.of("EmployeeId", "OrgUnitId", "PositionId");
 
@@ -136,13 +136,13 @@ class EmployeeIdContractTest {
     }
 
     @Test
-    @DisplayName("R-1b P3b 卡第 3.2 节第 12 条：OpenApiExportTest.OTHER_ID_NAMES 删去 9 个员工、部门 ID 名字，只剩 P4 的 taskId、instanceId、documentId")
+    @DisplayName("RULING-P4-6 / RULING-P4-D6：OpenApiExportTest.OTHER_ID_NAMES 只按全名放行 InboxItemResponse.taskId")
     @SuppressWarnings("unchecked")
-    void otherIdNamesKeepOnlyTheApprovalIds() throws ReflectiveOperationException {
+    void otherIdNamesKeepOnlyInboxItemTaskId() throws ReflectiveOperationException {
         Field field = Class.forName("com.forcitis.one.OpenApiExportTest").getDeclaredField("OTHER_ID_NAMES");
         field.setAccessible(true);
 
-        assertThat((Set<String>) field.get(null)).containsExactlyInAnyOrderElementsOf(OTHER_ID_NAMES_AFTER_P3B);
+        assertThat((Set<String>) field.get(null)).containsExactlyInAnyOrderElementsOf(OTHER_ID_NAMES_AFTER_P4);
     }
 
     @Test
