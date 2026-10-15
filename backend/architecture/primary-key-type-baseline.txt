@@ -3,8 +3,6 @@
 # 用户 2026-10-15 决定「自有 UUIDv7 + A8 ID 对照列」「主键统一」，并答「也加，自有表零例外」。下列表按去向分三组。
 # 去向 R-1b：以 A8 ID 为键、或键里含 A8 ID / 引用 A8 人员、部门、岗位，或与 Flowable 相关；R-1b 改为自有 UUIDv7 并把 A8 ID 存为来源 ID 列。
 organization_workforce.sync_run_held_separations  # key holds the employee id taken from the organisation source; R-1b
-platform_approval.approval_tasks  # key is the Flowable task id; R-1b gives it its own uuid (DA-6)
-platform_approval.process_archive_skips  # key is the Flowable process instance id; made with this rule, so INT-M9 asks R-1b to give it its own uuid
 # 去向 ADR-0034：账号与角色的关联表，键里含 A8 用户 ID，随 ADR-0034 处理。
 platform_identity.account_roles  # key is (user id, role id); the user id is the employee id taken from the organisation source; ADR-0034
 platform_identity.role_permissions  # key is (role id, permission code); ADR-0034 decides how role grants are kept

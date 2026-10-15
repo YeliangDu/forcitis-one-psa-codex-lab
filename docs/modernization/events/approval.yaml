@@ -23,6 +23,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           processKey:
             type: string
             enum:
@@ -30,6 +31,7 @@ components:
           instanceId:
             type: string
             x-type: ApprovalInstanceId
+            format: uuid
             description: 流程实例 ID
           round:
             type: object
@@ -107,6 +109,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           initiator:
             type: string
             x-type: EmployeeId
@@ -180,11 +183,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           processKey:
             type: string
           processName:
@@ -209,6 +214,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -271,11 +277,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -291,6 +299,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           claimedBy:
             type: string
             x-type: UserId
@@ -321,11 +330,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           processKey:
             type: string
           document:
@@ -343,6 +354,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -400,11 +412,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -420,6 +434,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -470,11 +485,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -490,6 +507,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -532,11 +550,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -552,6 +572,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -596,11 +617,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -616,6 +639,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -653,11 +677,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -673,6 +699,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -723,11 +750,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -743,6 +772,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -786,6 +816,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           processKey:
             type: string
             enum:
@@ -793,6 +824,7 @@ components:
           instanceId:
             type: string
             x-type: ApprovalInstanceId
+            format: uuid
             description: 本轮流程实例 ID
           round:
             type: object
