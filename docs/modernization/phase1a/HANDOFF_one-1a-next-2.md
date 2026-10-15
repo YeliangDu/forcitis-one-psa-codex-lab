@@ -29,7 +29,7 @@
 
 ## 3. 在途
 
-- **#163（ADR37-1）**——交接前由 one-1a-next-2 收尾：安全复审第一轮的 H-1..H-3、M-1、M-2 与 Low 已修（`bc5548bb`，验收 68/68，全量 0 失败）；**RULING-ADR37-11** 正在执行：测试代理把 `ReadOnlyBaselineFixture` 改为把平台服务器级权限授给服务器角色 public（贴近 RDS），收窄各反例的标记；随后实现把 (d) 收紧为「本登录 `sys.server_permissions` 恰好 `{class 100, CONNECT SQL, GRANT}`」，再由 opus 复核 H-1..H-3 后交 one-coordinator 入队。**若交接时仍未完成，one-1a-next-3 接着做**：分支 `claude/one-1a-next-2-adr37-1`，复审全文 `adr37-1-review.md`，裁定见第 5 节。
+- **#163（ADR37-1）**——交接前由 one-1a-next-2 收尾：安全复审第一轮的 H-1..H-3、M-1、M-2 与 Low 已修（`bc5548bb`）；RULING-ADR37-11 已完成——夹具改为平台权限授给服务器角色 public（`6df27ff4`，`Acceptance-Ruling`），(d) 收紧为本登录 `sys.server_permissions` 恰好 `{100, CONNECT SQL, GRANT}`（`17d55880`）；`ReadOnlyAccountCheckIT` 68/68、`StalledExternalSourceIT` 9/9、全量 0 失败。**opus 安全复核 H-1..H-3 进行中**；通过后交 one-coordinator 入队。若交接时复核未完成或结论为需修改，由 one-1a-next-3 接着做：分支 `claude/one-1a-next-2-adr37-1`，复审全文 `adr37-1-review.md`，裁定见第 5 节；PR 需单列的断言改动：`ReadOnlyBaselineTest`（6→7 项、a–g；「基线内 GRANT / DENY 照常通过」改为两例拒绝）及第一轮实现时列出的 7 处删改旧测试（见 PR 正文）。
 - **R-1b-0（A8 视图标志列）**：WIP 提交 `f1a67d33`（分支 `claude/one-1a-next-2-a8-view-flags`，未推送）作废——按 ADR-0037 Q1 (c)，标志列改为直接读基表（`dbo.` 限定名），随读取列登记合并与 `SeeyonSourceScanTest` 调整一起做；STATE 取值证据见 `r1b0-a8-flags-evidence.md`（STATE 1 在职 / 2 离职，IS_DELETED / IS_ENABLE 为 0/1，ORG_UNIT.TYPE 为 Department / Account，其余取值失败并告警）。RULE-363 修订（STATE 替代「登录名为空即离职」）随 DA-3。
 - **C-14 真实账号核实**：用户已批准计划（intent `2026-10-15-120940`，`runbooks/C-14-readonly-probe.md`，one-ops 维护，#171 已按 (a)–(g) 与新反例 12–17 更新）；前提是 #163 合并、只读核实命令合并并发出 rc.2。第 16、17 项（msdb / master 系统库）超出原批准范围，one-coordinator 已报用户。
 
