@@ -87,9 +87,12 @@ final class ReadOnlyBaseline {
     record DatabaseLocator(String database) implements Locator {
     }
 
-    /** state G or W; self for a grant to the login's own user, whose name is then not kept. */
-    record GrantLocator(String classDescription, @Nullable String schema, @Nullable String object, String permission, String state, boolean self,
-            @Nullable String grantee, @Nullable String granteeType) implements Locator {
+    /**
+     * state G or W; self for a grant to the login's own user, whose name is then not kept. objectId is the row's major_id: a securable the
+     * login has no effective permission on is hidden from its catalog views, so its names are null, and the number is what C-14 looks it up by.
+     */
+    record GrantLocator(String classDescription, @Nullable String schema, @Nullable String object, long objectId, String permission, String state,
+            boolean self, @Nullable String grantee, @Nullable String granteeType) implements Locator {
     }
 
     enum OverridingDeny {
@@ -496,8 +499,8 @@ final class ReadOnlyBaseline {
     }
 
     private static GrantLocator located(SecurablePermissionRow row) {
-        return new GrantLocator(row.classDescription().trim(), row.schema(), row.object(), upper(row.permission()), row.state().trim(), !row.toPublic(),
-                row.toPublic() ? row.grantee() : null, row.granteeType());
+        return new GrantLocator(row.classDescription().trim(), row.schema(), row.object(), row.majorId(), upper(row.permission()), row.state().trim(),
+                !row.toPublic(), row.toPublic() ? row.grantee() : null, row.granteeType());
     }
 
     private static int count(long value) {

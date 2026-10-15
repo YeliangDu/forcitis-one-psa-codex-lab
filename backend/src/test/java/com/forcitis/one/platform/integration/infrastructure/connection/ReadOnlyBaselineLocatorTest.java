@@ -36,8 +36,8 @@ class ReadOnlyBaselineLocatorTest {
         return new SecurablePermissionRow("SCHEMA", schemaId, "D", permission, false, schemaId, "s" + schemaId, null, null, "SQL_USER");
     }
 
-    static GrantLocator publicGrant(String permission, String state, String schema, String object) {
-        return new GrantLocator("OBJECT_OR_COLUMN", schema, object, permission, state, false, "public", "DATABASE_ROLE");
+    static GrantLocator publicGrant(String permission, String state, long objectId, String schema, String object) {
+        return new GrantLocator("OBJECT_OR_COLUMN", schema, object, objectId, permission, state, false, "public", "DATABASE_ROLE");
     }
 
     private Unmet unmet(char item) {
@@ -91,7 +91,7 @@ class ReadOnlyBaselineLocatorTest {
         Verdict verdict = ReadOnlyBaseline.check(catalog);
 
         assertThat(verdict.passed()).as(verdict.described().toString()).isTrue();
-        assertThat(verdict.overridden()).containsExactly(new OverriddenGrant(publicGrant("EXECUTE", "G", "dbo", "p_x"), OverridingDeny.DATABASE_DENY));
+        assertThat(verdict.overridden()).containsExactly(new OverriddenGrant(publicGrant("EXECUTE", "G", 900 + DBO, "dbo", "p_x"), OverridingDeny.DATABASE_DENY));
     }
 
     @Test
@@ -110,8 +110,8 @@ class ReadOnlyBaselineLocatorTest {
         assertThat(g.findings()).singleElement().satisfies(finding -> {
             assertThat(finding.reason()).isEqualTo(Reason.SECURABLE_GRANT_BEYOND_SELECT);
             assertThat(finding.count()).isEqualTo(5);
-            assertThat(finding.locators()).containsExactlyInAnyOrder(publicGrant("CONTROL", "G", "dbo", "t_x"), publicGrant("TAKE OWNERSHIP", "G", "dbo", "t_x"),
-                    publicGrant("IMPERSONATE", "G", "dbo", "t_x"), publicGrant("VIEW DEFINITION", "G", "dbo", "t_x"), publicGrant("EXECUTE", "W", "dbo", "p_x"));
+            assertThat(finding.locators()).containsExactlyInAnyOrder(publicGrant("CONTROL", "G", 900 + DBO, "dbo", "t_x"), publicGrant("TAKE OWNERSHIP", "G", 900 + DBO, "dbo", "t_x"),
+                    publicGrant("IMPERSONATE", "G", 900 + DBO, "dbo", "t_x"), publicGrant("VIEW DEFINITION", "G", 900 + DBO, "dbo", "t_x"), publicGrant("EXECUTE", "W", 900 + DBO, "dbo", "p_x"));
         });
         assertThat(ReadOnlyBaseline.check(catalog).overridden()).isEmpty();
     }
@@ -129,9 +129,9 @@ class ReadOnlyBaselineLocatorTest {
         Verdict verdict = ReadOnlyBaseline.check(catalog);
         Unmet g = unmet('g');
 
-        assertThat(verdict.overridden()).containsExactly(new OverriddenGrant(publicGrant("EXECUTE", "G", "dbo", "p_in_dbo"), OverridingDeny.SCHEMA_DENY));
+        assertThat(verdict.overridden()).containsExactly(new OverriddenGrant(publicGrant("EXECUTE", "G", 900 + DBO, "dbo", "p_in_dbo"), OverridingDeny.SCHEMA_DENY));
         assertThat(g.findings()).singleElement().satisfies(finding -> assertThat(finding.locators()).containsExactlyInAnyOrder(
-                publicGrant("EXECUTE", "G", "s5", "p_elsewhere"), publicGrant("EXECUTE", "G", null, null)));
+                publicGrant("EXECUTE", "G", 900 + OTHER_SCHEMA, "s5", "p_elsewhere"), publicGrant("EXECUTE", "G", 77, null, null)));
     }
 
     @Test
@@ -141,7 +141,7 @@ class ReadOnlyBaselineLocatorTest {
         catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 901, "G", "UPDATE", false, DBO, "dbo", "t_x", null, "SQL_USER"));
 
         assertThat(ReadOnlyBaseline.check(catalog).overridden()).containsExactly(new OverriddenGrant(
-                new GrantLocator("OBJECT_OR_COLUMN", "dbo", "t_x", "UPDATE", "G", true, null, "SQL_USER"), OverridingDeny.DATABASE_DENY));
+                new GrantLocator("OBJECT_OR_COLUMN", "dbo", "t_x", 901, "UPDATE", "G", true, null, "SQL_USER"), OverridingDeny.DATABASE_DENY));
     }
 
     @Test
@@ -186,7 +186,7 @@ class ReadOnlyBaselineLocatorTest {
         Unmet both = ReadOnlyBaseline.check(failingDenies).unmet().stream().filter(u -> u.item() == 'g').findFirst().orElseThrow();
         assertThat(both.confirmed()).isTrue();
         assertThat(both.findings()).extracting(Finding::reason).containsExactly(Reason.SECURABLE_GRANT_BEYOND_SELECT, Reason.CATALOG_QUERY_FAILED);
-        assertThat(both.findings().getFirst().locators()).containsExactly(publicGrant("CONTROL", "G", "dbo", "t_x"));
+        assertThat(both.findings().getFirst().locators()).containsExactly(publicGrant("CONTROL", "G", 900 + DBO, "dbo", "t_x"));
     }
 
     @Test
