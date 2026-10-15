@@ -20,10 +20,12 @@ import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.RoundNumber;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,21 +51,24 @@ class RetractionInitiatorAccountsIT extends AccountsAcceptanceSupport {
     ApprovalProcesses approvals;
 
     @Test
-    @DisplayName("P2-M2 C4 撤回时发起人的比较（真实账号）：A 发起的审批 B 撤回与撤销都被拒（403），各写一条 platform.approval.request.denied、操作人为 B 的 uuid；A 本人撤回成功")
+    @DisplayName("P2-M2 C4 撤回时发起人的比较（真实账号）：A 发起的审批 B 撤回与撤销都被拒（抛 AccessDeniedException，审批仍在进行），各写一条 platform.approval.request.denied、操作人为 B 的 uuid；A 本人撤回成功")
     void onlyTheInitiatorRetracts() throws Exception {
-        maintainWorkCalendar();
         long unit = newOrgUnitId();
         orgUnit(unit, null, null);
+        long maintainer = newEmployeeId();
         long initiator = newEmployeeId();
         long stranger = newEmployeeId();
         long projectManager = newEmployeeId();
-        for (long person : new long[] {initiator, stranger, projectManager}) {
+        for (long person : new long[] {maintainer, initiator, stranger, projectManager}) {
             employee(person, unit, null);
         }
+        grantByOperations(maintainer, "org_data_admin");
+        SignedIn maintainerSession = signIn(maintainer);
         SignedIn initiatorAccount = signIn(initiator);
         SignedIn strangerAccount = signIn(stranger);
         signIn(projectManager);
-        LegalEntityId legalEntity = new LegalEntityId(createLegalEntity(newLegalEntityCode("RI"), "Synthetic retraction"));
+        maintainWorkCalendar(maintainerSession);
+        LegalEntityId legalEntity = new LegalEntityId(createLegalEntity(maintainerSession, newLegalEntityCode("RI"), "Synthetic retraction"));
         DocumentReference document = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("acceptance-" + UUID.randomUUID()));
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "acceptance.timesheet-submission")) {
             approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, new EmployeeId(initiator), new RoundNumber(1),
@@ -71,18 +76,19 @@ class RetractionInitiatorAccountsIT extends AccountsAcceptanceSupport {
                     new ContentHash("synthetic-content"), new ApprovalSummary("Synthetic timesheet " + document.documentId().value())));
         }
 
-        actAs(strangerAccount.userId());
+        actInSession(strangerAccount);
         assertThatThrownBy(() -> approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document, new UserId(strangerAccount.userId()), "synthetic: not mine"))
                 .isInstanceOf(AccessDeniedException.class);
         assertThatThrownBy(() -> approvals.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, document, new UserId(strangerAccount.userId()), "synthetic: not mine"))
                 .isInstanceOf(AccessDeniedException.class);
 
-        List<Map<String, Object>> denied = auditEntriesBy(strangerAccount.userId(), "platform.approval.request.denied");
-        assertThat(denied).hasSizeGreaterThanOrEqualTo(2).allSatisfy(entry -> assertThat(entry.get("actorId")).isEqualTo(strangerAccount.userId().toString()));
+        List<Map<String, Object>> denied = Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100))
+                .until(() -> auditQuery("actorId", strangerAccount.userId().toString(), "platform.approval.request.denied"), found -> found.size() >= 2);
+        assertThat(denied).hasSize(2).allSatisfy(entry -> assertThat(entry.get("actorId")).isEqualTo(strangerAccount.userId().toString()));
         assertThat(approvals.progress(ProcessKey.COST_TIMESHEET_APPROVAL, document).orElseThrow().status()).as("the approval still runs")
                 .isEqualTo(ApprovalStatus.RUNNING);
 
-        actAs(initiatorAccount.userId());
+        actInSession(initiatorAccount);
         assertThat(approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document, new UserId(initiatorAccount.userId()), "synthetic: wrong hours"))
                 .isEqualTo(RetractionResult.DONE);
     }

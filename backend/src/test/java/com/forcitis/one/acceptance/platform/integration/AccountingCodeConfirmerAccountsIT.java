@@ -5,7 +5,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
-import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,7 +16,6 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -25,7 +23,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * R-1b P2 review P2-M2 (ADR-0033 section 3 item 3 「本人」判定清单: 核算组织编码四眼; section 5 item 4): the person who registered an
  * accounting organization code cannot confirm it. Recorder and confirmer are real accounts (WeCom login, UUIDs that equal no employee
- * id), recorded and compared as user ids.
+ * id) holding the seeded roles granted with the operations command, acting in their own sessions (RULING-P2-8); recorded and compared
+ * as user ids.
  */
 @Testcontainers
 class AccountingCodeConfirmerAccountsIT extends AccountsAcceptanceSupport {
@@ -36,12 +35,8 @@ class AccountingCodeConfirmerAccountsIT extends AccountsAcceptanceSupport {
     @ServiceConnection
     static PostgreSQLContainer postgres = database();
 
-    private static RequestPostProcessor recorderAndApprover(UUID userId) {
-        return as(userId, Permission.Codes.PLATFORM_INTEGRATION_SOURCE_REFERENCE_UPDATE, Permission.Codes.PLATFORM_INTEGRATION_SOURCE_REFERENCE_APPROVE);
-    }
-
-    private MockHttpServletResponse confirm(UUID who, String sourceReferenceId, String etag) throws Exception {
-        MockHttpServletRequestBuilder request = post(SOURCE_REFERENCES + "/" + sourceReferenceId + ":confirm").with(csrf()).with(recorderAndApprover(who));
+    private MockHttpServletResponse confirm(SignedIn who, String sourceReferenceId, String etag) throws Exception {
+        MockHttpServletRequestBuilder request = post(SOURCE_REFERENCES + "/" + sourceReferenceId + ":confirm").with(csrf()).with(session(who));
         if (etag != null) {
             request.header("If-Match", etag);
         }
@@ -49,7 +44,7 @@ class AccountingCodeConfirmerAccountsIT extends AccountsAcceptanceSupport {
     }
 
     @Test
-    @DisplayName("P2-M2 核算组织编码四眼（真实账号，按用户 ID 比较）：登记人不能确认自己登记的编码（403 PLATFORM_INTEGRATION_CONFIRMER_IS_AUTHOR），另一人可以；登记人与确认人记为两人的 uuid")
+    @DisplayName("P2-M2 核算组织编码四眼（真实账号、生产会话，按用户 ID 比较）：登记人不能确认自己登记的编码（403 PLATFORM_INTEGRATION_CONFIRMER_IS_AUTHOR），另一人可以；登记人与确认人记为两人的 uuid")
     void theRecorderCannotConfirmTheirOwnAccountingCode() throws Exception {
         long unit = newOrgUnitId();
         orgUnit(unit, null, null);
@@ -57,11 +52,14 @@ class AccountingCodeConfirmerAccountsIT extends AccountsAcceptanceSupport {
         long approverEmployee = newEmployeeId();
         employee(recorderEmployee, unit, null);
         employee(approverEmployee, unit, null);
-        UUID recorder = signIn(recorderEmployee).userId();
-        UUID approver = signIn(approverEmployee).userId();
-        UUID legalEntity = createLegalEntity(newLegalEntityCode("AC"), "Synthetic accounting code");
+        grantByOperations(recorderEmployee, "org_data_admin");
+        grantByOperations(recorderEmployee, "business_admin");
+        grantByOperations(approverEmployee, "business_admin");
+        SignedIn recorder = signIn(recorderEmployee);
+        SignedIn approver = signIn(approverEmployee);
+        UUID legalEntity = createLegalEntity(recorder, newLegalEntityCode("AC"), "Synthetic accounting code");
 
-        MockHttpServletResponse registered = mvc.perform(post(SOURCE_REFERENCES).with(csrf()).with(recorderAndApprover(recorder))
+        MockHttpServletResponse registered = mvc.perform(post(SOURCE_REFERENCES).with(csrf()).with(session(recorder))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"sourceSystem\":\"ACCOUNTING_SYSTEM\",\"sourceObjectKind\":\"LEGAL_ENTITY\",\"sourceId\":\"1021\","
                         + "\"ownId\":\"" + legalEntity + "\",\"effectiveFrom\":\"" + TODAY + "\"}")).andReturn().getResponse();
         assertThat(registered.getStatus()).as(registered.getContentAsString()).isEqualTo(201);
@@ -81,8 +79,8 @@ class AccountingCodeConfirmerAccountsIT extends AccountsAcceptanceSupport {
             try (ResultSet rs = select.executeQuery()) {
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(1)).isEqualTo("CONFIRMED");
-                assertThat(rs.getObject(2, UUID.class)).as("created_by").isEqualTo(recorder);
-                assertThat(rs.getObject(3, UUID.class)).as("decided_by").isEqualTo(approver);
+                assertThat(rs.getObject(2, UUID.class)).as("created_by").isEqualTo(recorder.userId());
+                assertThat(rs.getObject(3, UUID.class)).as("decided_by").isEqualTo(approver.userId());
             }
         }
     }

@@ -36,8 +36,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * R-1b P2 review P2-M2 (NEXT_BATCH_PLAN 7.2 C4, ADR-0033 section 3 item 3 「本人」判定清单补入): a timesheet belongs to an employee, the
  * caller is an account. Submitting, reading, cancelling and withdrawing compare the timesheet's employee with the employee behind the
  * signed-in account; the legal entity of the current user is that employee's own attribution. Two people sign in through WeCom, so their
- * account ids are UUIDs that equal neither employee id. The timesheet module has no HTTP entry yet: its use cases are called with the
- * account in the security context, as a controller would.
+ * account ids are UUIDs that equal neither employee id. The timesheet module has no HTTP entry yet: its use cases run with the security
+ * context that the login stored in the person's session, read back from the Spring Session repository (RULING-P2-8), as a controller
+ * behind the session filter would; everything else is done over HTTP in the sessions of the people.
  */
 @Testcontainers
 class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
@@ -69,7 +70,6 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
 
     @BeforeEach
     void twoPeopleWithAccountsAndLegalEntities() throws Exception {
-        maintainWorkCalendar();
         long unit = newOrgUnitId();
         orgUnit(unit, null, null);
         long maintainer = newEmployeeId();
@@ -79,15 +79,18 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
         for (long person : new long[] {maintainer, ownerEmployee, otherEmployee, projectManager}) {
             employee(person, unit, null);
         }
-        UUID maintainerAccount = signIn(maintainer).userId();
+        grantByOperations(maintainer, "org_data_admin");
+        grantByOperations(maintainer, "business_admin");
+        SignedIn maintainerSession = signIn(maintainer);
         owner = signIn(ownerEmployee);
         other = signIn(otherEmployee);
         signIn(projectManager);
-        ownerLegalEntity = createLegalEntity(newLegalEntityCode("TO"), "Synthetic owner entity");
-        otherLegalEntity = createLegalEntity(newLegalEntityCode("TX"), "Synthetic other entity");
-        attributeEmployee(maintainerAccount, ownerEmployee, ownerLegalEntity);
-        attributeEmployee(maintainerAccount, otherEmployee, otherLegalEntity);
-        confirmSeededNumberingRule("TIMESHEET", maintainerAccount);
+        maintainWorkCalendar(maintainerSession);
+        ownerLegalEntity = createLegalEntity(maintainerSession, newLegalEntityCode("TO"), "Synthetic owner entity");
+        otherLegalEntity = createLegalEntity(maintainerSession, newLegalEntityCode("TX"), "Synthetic other entity");
+        attributeEmployee(maintainerSession, ownerEmployee, ownerLegalEntity);
+        attributeEmployee(maintainerSession, otherEmployee, otherLegalEntity);
+        confirmSeededNumberingRule("TIMESHEET", maintainerSession);
     }
 
     private static LocalDate workDay() {
@@ -95,14 +98,14 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
     }
 
     private TimesheetView submit(SignedIn as, TimesheetId timesheet) {
-        actAs(as.userId());
+        actInSession(as);
         return submitTimesheet.execute(new SubmitTimesheetCommand(timesheet, workDay(), Hours.of("8"), new EmployeeId(projectManager)));
     }
 
     /** The approval starts from the submitted event, after the commit: waits until withdrawing is offered to the owner. */
     private void awaitApprovalOf(SignedIn as, TimesheetId timesheet) {
         Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).until(() -> {
-            actAs(as.userId());
+            actInSession(as);
             return getTimesheet.execute(timesheet).canWithdraw();
         });
     }
@@ -123,45 +126,45 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
         awaitApprovalOf(other, withdrawn);
         awaitApprovalOf(other, cancelled);
 
-        actAs(owner.userId());
+        actInSession(owner);
         refusedAsNotFound(() -> submitTimesheet.execute(new SubmitTimesheetCommand(withdrawn, workDay(), Hours.of("4"), new EmployeeId(projectManager))));
         refusedAsNotFound(() -> getTimesheet.execute(withdrawn));
         refusedAsNotFound(() -> cancelTimesheet.execute(cancelled, "synthetic: not mine", OptionalLong.empty()));
         refusedAsNotFound(() -> withdrawTimesheet.execute(withdrawn, "synthetic: not mine", OptionalLong.empty()));
 
-        actAs(other.userId());
+        actInSession(other);
         TimesheetView untouched = getTimesheet.execute(withdrawn);
         assertThat(untouched.status()).isEqualTo(TimesheetStatus.SUBMITTED);
         assertThat(untouched.version()).isEqualTo(submitted.version());
         assertThat(submit(other, withdrawn).status()).as("submitting again one's own timesheet in approval answers it as it is").isEqualTo(TimesheetStatus.SUBMITTED);
-        actAs(other.userId());
+        actInSession(other);
         withdrawTimesheet.execute(withdrawn, "synthetic: wrong hours", OptionalLong.empty());
         cancelTimesheet.execute(cancelled, "synthetic: not needed", OptionalLong.empty());
     }
 
     @Test
-    @DisplayName("P2-M2 C4 工时单本人检查（真实账号）：A 提交的新工时单记在 A 的员工名下与 A 的法人下，A 自己能读到")
+    @DisplayName("P2-M2 C4 工时单本人检查（真实账号）：A 提交的新工时单记在 A 名下：A 自己能读到，B 读答「没有该工时单」")
     void aNewTimesheetIsFiledUnderTheSignedInEmployee() {
         TimesheetId own = new TimesheetId(UUID.randomUUID());
 
         TimesheetView submitted = submit(owner, own);
 
         assertThat(submitted.status()).isEqualTo(TimesheetStatus.SUBMITTED);
-        actAs(owner.userId());
+        actInSession(owner);
         assertThat(getTimesheet.execute(own).timesheetId()).isEqualTo(own);
-        actAs(other.userId());
+        actInSession(other);
         refusedAsNotFound(() -> getTimesheet.execute(own));
     }
 
     @Test
-    @DisplayName("P2-M2 C4 SessionCurrentUser 查法人（真实账号）：当前用户的员工 ID 是账号背后的员工，法人取自本人员工归属，而不是拿账号 uuid 去查")
+    @DisplayName("P2-M2 C4 SessionCurrentUser 查法人（真实账号、登录所得的生产会话）：当前用户的员工 ID 是账号背后的员工，法人取自本人员工归属，而不是拿账号 uuid 去查")
     void theCurrentUsersLegalEntityIsTheirEmployeesAttribution() {
-        actAs(owner.userId());
+        actInSession(owner);
         assertThat(currentUser.userId().value()).isEqualTo(owner.userId());
         assertThat(currentUser.employeeId()).isEqualTo(new EmployeeId(owner.employeeId()));
         assertThat(currentUser.legalEntityId()).isEqualTo(new LegalEntityId(ownerLegalEntity));
 
-        actAs(other.userId());
+        actInSession(other);
         assertThat(currentUser.employeeId()).isEqualTo(new EmployeeId(other.employeeId()));
         assertThat(currentUser.legalEntityId()).isEqualTo(new LegalEntityId(otherLegalEntity));
     }
