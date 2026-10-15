@@ -80,3 +80,16 @@
 ## 7. ArchiMate（只作建模语言参照）
 
 ArchiMate 4（C260，2026-04-27）已取代 3.2，元素大幅精简；Capability、Value Stream 在 4 中的定义**未核实**。本项目不以 ArchiMate 作硬依据；需要时以 3.2 的 Strategy 层（Capability、Value Stream、Resource、Course of Action）为参照，并在本文件登记。
+
+## 8. 补充框架（用户 2026-10-15「补充理论框架全部采纳」，intent `2026-10-15-182238`）
+
+核实：2026-10-15，sonnet 子代理只查一手来源；ISO 页面返回 403 的内容来自官方页面摘要（标「间接」）。
+
+| 框架 | 锁定出处 | 本项目怎么用（补强 METHOD 哪一步） | 未核实 |
+|---|---|---|---|
+| **ISO/IEC/IEEE 42010:2022** Architecture description（第 2 版，ISO/IEC JTC 1/SC 7 与 IEEE） | https://standards.ieee.org/standard/42010-2022.html | 架构描述（AD）、架构描述框架（ADF）、视点（viewpoint）、模型类型（model kind）：4 张图与各 SSOT 是同一架构的不同视图，接缝规则就是视图间的对应规则（第 7 步治理、六条接缝的一致性校验） | 对应国标；stakeholder、concern、view、correspondence 的条款原文 |
+| **Wardley Maps**（Simon Wardley） | https://learnwardleymapping.com/book/ （该页写 CC BY-SA 4.0） | 价值链与演化（从新生到商品化）给能力定位，作为核心 / 支撑 / 通用分类的依据；分类仍由用户定（第 2 步） | 版次年份、本人页面的许可、演化阶段的官方名称 |
+| **REA 会计本体**（McCarthy 1982，*The Accounting Review* 57(3)；ISO/IEC 15944-4:2015） | https://webstore.iec.ch/publication/22042 | 经济资源、经济事件、经济主体与对偶：业务事件即会计事实，连接领域事件、`operations.facts` 过账与总账（ADR-0016；第 3、4、5 步） | 论文页码；15944-4:2015 是否仍有效；commitment 的标准表述 |
+| **C4 model**（Simon Brown，CC BY 4.0） | https://c4model.com/ | 系统上下文、容器、组件、代码四层图：图④与代码视图的画法约定（第 7 步） | 无版本号 |
+| **Team Topologies**（Skelton & Pais，第 2 版 2025，IT Revolution） | https://teamtopologies.com/book ；概念 https://teamtopologies.com/key-concepts | 流对齐 / 赋能 / 复杂子系统 / 平台四类团队、三种交互模式、团队认知负荷：会话分工与 BC 对齐（会话画像的独占与不碰） | 康威定律的表述 |
+| **商业模式画布**（Osterwalder & Pigneur，*Business Model Generation*，Wiley 2010） | https://www.strategyzer.com/library/the-business-model-canvas | 九个构造块作为愿景、目标与 KPI 的来源（第 0 步） | 许可（CC BY-SA）与九块官方英文名只有二手来源 |
