@@ -2,7 +2,7 @@ package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
-import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.integration.api.ArchiveVault;
 import com.forcitis.one.platform.integration.api.ArchivedObject;
 import io.micrometer.core.instrument.Counter;
@@ -128,24 +128,39 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
         Timestamp cutoff = Timestamp.from(cutoffDay.atStartOfDay(zone.zone()).toInstant());
         List<String> previous = List.of();
         int total = 0;
+        List<String> unreadable = new ArrayList<>();
         while (true) {
             List<Finished> batch = jdbc.sql("""
                             select p.id_, p.business_key_, p.start_user_id_, p.delete_reason_, p.start_time_, p.end_time_, d.key_, d.version_, d.deployment_id_
                               from platform_approval.act_hi_procinst p
                               left join platform_approval.act_re_procdef d on d.id_ = p.proc_def_id_
                              where p.end_time_ is not null and p.end_time_ < :cutoff
-                               and not exists (select 1 from platform_approval.process_archive_skips k where k.process_instance_id = cast(p.id_ as uuid))
+                               and not exists (select 1 from platform_approval.process_archive_skips k where k.process_instance_id::text = p.id_)
+                               and p.id_ <> all (cast(:unreadable as text[]))
                              order by p.end_time_, p.id_ limit :batch
                             """)
-                    .param("cutoff", cutoff).param("batch", BATCH).query((rs, n) -> new Finished(rs.getString("id_"),
+                    .param("cutoff", cutoff).param("unreadable", unreadable.toArray(new String[0])).param("batch", BATCH).query((rs, n) -> new Finished(rs.getString("id_"),
                             new ArchivedProcess(rs.getString("id_"), rs.getString("key_"), (Integer) rs.getObject("version_"), rs.getString("deployment_id_"),
                                     rs.getString("business_key_"), text(rs.getTimestamp("start_time_")), text(rs.getTimestamp("end_time_")),
                                     rs.getString("start_user_id_"), rs.getString("delete_reason_"), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                                     new ArrayList<>()))).list();
-            List<String> ids = batch.stream().map(Finished::instanceId).toList();
             if (batch.isEmpty()) {
                 return total;
             }
+            List<Finished> readable = new ArrayList<>();
+            for (Finished finished : batch) {
+                try {
+                    EngineIds.instance(finished.instanceId());
+                    readable.add(finished);
+                } catch (IllegalStateException notOurs) {
+                    unreadable.add(finished.instanceId());
+                }
+            }
+            batch = readable;
+            if (batch.isEmpty()) {
+                continue;
+            }
+            List<String> ids = batch.stream().map(Finished::instanceId).toList();
             if (ids.equals(previous)) {
                 LOG.error("ALERT platform.approval the same {} finished instances came back after the engine deleted them: archiving stops", ids.size());
                 return total;
@@ -159,25 +174,25 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
                     engineHistory.deleteHistoricProcessInstance(id);
                     total++;
                 } catch (RuntimeException failure) {
-                    insertSkipped(id, stored.key(), String.valueOf(failure.getMessage()));
-                    skipped.increment();
                     LOG.error("ALERT platform.approval process instance {} is archived but the engine cannot delete it: {}", id, failure.getMessage());
+                    skipped.increment();
+                    insertSkipped(EngineIds.instance(id), stored.key(), String.valueOf(failure.getMessage()));
                 }
             }
         }
     }
 
-    private void insertSkipped(String instanceId, String objectKey, String failure) {
+    private void insertSkipped(ApprovalInstanceId instanceId, String objectKey, String failure) {
         jdbc.sql("""
                 insert into platform_approval.process_archive_skips (process_archive_skip_id, process_instance_id, object_key, failure_message, skipped_at)
                 values (:skipId, :id, :key, :failure, :now) on conflict (process_instance_id) do nothing
-                """).param("skipId", ids.next()).param("id", Uuids.parseCanonical(instanceId)).param("key", objectKey).param("failure", failure).param("now", Timestamp.from(clock.instant())).update();
+                """).param("skipId", ids.next()).param("id", instanceId.value()).param("key", objectKey).param("failure", failure).param("now", Timestamp.from(clock.instant())).update();
     }
 
     private void remindAboutSkipped() {
         long outstanding = jdbc.sql("""
                 select count(*) from platform_approval.process_archive_skips k
-                  join platform_approval.act_hi_procinst p on p.id_ = cast(k.process_instance_id as text)
+                  join platform_approval.act_hi_procinst p on p.id_ = k.process_instance_id::text
                 """).query(Long.class).single();
         if (outstanding > 0) {
             LOG.error("ALERT platform.approval {} archived process instance(s) are still in the engine because it could not delete them (process_archive_skips)", outstanding);
