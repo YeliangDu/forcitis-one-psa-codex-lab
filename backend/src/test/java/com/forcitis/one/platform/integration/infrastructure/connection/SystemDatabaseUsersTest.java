@@ -13,6 +13,9 @@ import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyB
 import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.Membership;
 import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserRole;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.List;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,6 +35,12 @@ class SystemDatabaseUsersTest {
         return verdict.unmet().getFirst();
     }
 
+    private String report() {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ReadOnlyVerificationCommand.report(ReadOnlyBaseline.check(catalog), new PrintStream(out, true, StandardCharsets.UTF_8));
+        return out.toString(StandardCharsets.UTF_8);
+    }
+
     @Test
     @DisplayName("C-14 (f) 纳入基线：RDS 给每个登录的 msdb（三个 SQLAgent 角色）与 rdscore（无角色、只有 CONNECT）本人用户通过，角色信息行逐个列出")
     void theOwnUsersRdsCreatesPass() {
@@ -40,6 +49,12 @@ class SystemDatabaseUsersTest {
         assertThat(verdict.passed()).as(verdict.described().toString()).isTrue();
         assertThat(verdict.ownUsers()).containsExactlyInAnyOrder(new OwnUserRole("msdb", "SQLAgentOperatorRole"), new OwnUserRole("msdb", "SQLAgentReaderRole"),
                 new OwnUserRole("msdb", "SQLAgentUserRole"), new OwnUserRole("rdscore", null));
+        assertThat(report().lines()).containsExactly("(a) PASSED", "(b) PASSED", "(c) PASSED", "(d) PASSED", "(e) PASSED", "(f) PASSED",
+                "  (f) ownUser database=\"msdb\" role=\"SQLAgentOperatorRole\"",
+                "  (f) ownUser database=\"msdb\" role=\"SQLAgentReaderRole\"",
+                "  (f) ownUser database=\"msdb\" role=\"SQLAgentUserRole\"",
+                "  (f) ownUser database=\"rdscore\" role=-",
+                "(g) PASSED", "RESULT PASSED");
     }
 
     @Test
@@ -63,6 +78,7 @@ class SystemDatabaseUsersTest {
         assertThat(f.confirmed()).isTrue();
         assertThat(f.findings()).extracting(Finding::reason, Finding::count, Finding::locators)
                 .containsExactly(tuple(Reason.SYSTEM_DATABASE_OWN_USER, 1, List.of(new DatabaseLocator("msdb"))));
+        assertThat(report()).contains("  (f) ownUser database=\"msdb\" role=\"" + extra + "\"");
     }
 
     @Test
@@ -116,6 +132,7 @@ class SystemDatabaseUsersTest {
         assertThat(f.confirmed()).isTrue();
         assertThat(f.findings()).extracting(Finding::reason, Finding::count, Finding::locators).containsExactly(tuple(Reason.OWNS_AGENT_JOB, 3, List.of()));
         assertThat(f.problem()).isEqualTo("the login owns 3 SQL Agent job(s)");
+        assertThat(report().lines()).contains("(f) VIOLATED reason=OWNS_AGENT_JOB count=3").noneMatch(line -> line.startsWith("  (f) violation"));
     }
 
     @Test

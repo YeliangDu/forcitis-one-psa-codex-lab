@@ -5,6 +5,7 @@ import com.forcitis.one.platform.integration.infrastructure.connection.Effective
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.Locator;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.OverriddenGrant;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Reason;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserRole;
 import java.util.Locale;
 import org.jspecify.annotations.Nullable;
 
@@ -32,6 +33,10 @@ final class LocatorLines {
 
     static String overridden(OverriddenGrant overridden) {
         return "  (g) overridden" + grant(overridden.grant()) + " by=" + overridden.by().name();
+    }
+
+    static String ownUser(OwnUserRole ownUser) {
+        return "  (f) ownUser database=" + quoted(ownUser.database()) + " role=" + quoted(ownUser.role());
     }
 
     private static String grant(GrantLocator grant) {

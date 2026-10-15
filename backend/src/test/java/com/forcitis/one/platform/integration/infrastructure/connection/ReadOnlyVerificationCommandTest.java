@@ -123,6 +123,8 @@ class ReadOnlyVerificationCommandTest {
                 "  (f) violation reason=OTHER_DATABASE_REACHABLE database=\"other\\\"world\"",
                 "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"master\"",
                 "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"tempdb\"",
+                "  (f) ownUser database=\"master\" role=-",
+                "  (f) ownUser database=\"tempdb\" role=-",
                 "(g) VIOLATED reason=SECURABLE_GRANT_BEYOND_SELECT count=3",
                 "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"t\\n\\u2028\\u202E\\\\x\" objectId=42 "
                         + "permission=\"CONTROL\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE",
