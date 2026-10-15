@@ -2,23 +2,18 @@ package com.forcitis.one.platform.integration.infrastructure.persistence;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.IntegrationError;
 import com.forcitis.one.platform.integration.api.OwnObjectId;
-import com.forcitis.one.platform.integration.api.SourceObjectId;
 import com.forcitis.one.platform.integration.api.SourceObjectKind;
 import com.forcitis.one.platform.integration.domain.SourceReference;
 import com.forcitis.one.platform.integration.domain.SourceReferenceId;
 import com.forcitis.one.platform.integration.domain.SourceReferenceRepository;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Clock;
-import java.time.LocalDate;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -28,9 +23,6 @@ class JdbcSourceReferenceRepository implements SourceReferenceRepository {
 
     private static final String EXCLUSION_VIOLATION = "23P01";
     private static final String UNIQUE_VIOLATION = "23505";
-
-    private static final String COLUMNS = "source_reference_id, source_system, source_object_kind, source_id, own_id, confirmation_status, "
-            + "effective_from_date, effective_to_date, created_by, decided_by, decided_at, version, event_count";
 
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -75,19 +67,19 @@ class JdbcSourceReferenceRepository implements SourceReferenceRepository {
 
     @Override
     public Optional<SourceReference> findForUpdate(SourceReferenceId id) {
-        return jdbc.sql("select " + COLUMNS + " from platform_integration.source_references where source_reference_id = :id for update")
-                .param("id", id.value()).query((rs, n) -> row(rs)).optional();
+        return jdbc.sql("select " + SourceReferenceRows.COLUMNS + " from platform_integration.source_references where source_reference_id = :id for update")
+                .param("id", id.value()).query((rs, n) -> SourceReferenceRows.map(rs)).optional();
     }
 
     @Override
     public Optional<SourceReference> findOpenConfirmedForUpdate(ExternalSource system, SourceObjectKind kind, OwnObjectId ownId) {
-        return jdbc.sql("select " + COLUMNS + """
+        return jdbc.sql("select " + SourceReferenceRows.COLUMNS + """
                          from platform_integration.source_references
                         where source_system = :system and source_object_kind = :kind and own_id = :ownId
                           and confirmation_status = 'CONFIRMED' and effective_to_date is null
                           for update
                         """)
-                .param("system", system.name()).param("kind", kind.name()).param("ownId", ownId.value()).query((rs, n) -> row(rs)).optional();
+                .param("system", system.name()).param("kind", kind.name()).param("ownId", ownId.value()).query((rs, n) -> SourceReferenceRows.map(rs)).optional();
     }
 
     @Override
@@ -131,19 +123,5 @@ class JdbcSourceReferenceRepository implements SourceReferenceRepository {
             }
         }
         return false;
-    }
-
-    private static SourceReference row(ResultSet rs) throws SQLException {
-        long registeredBy = rs.getLong("created_by");
-        boolean hasRegistrant = !rs.wasNull();
-        long decidedBy = rs.getLong("decided_by");
-        boolean hasDecider = !rs.wasNull();
-        Timestamp decidedAt = rs.getTimestamp("decided_at");
-        return SourceReference.restore(new SourceReferenceId(rs.getObject("source_reference_id", UUID.class)),
-                ExternalSource.valueOf(rs.getString("source_system")), SourceObjectKind.valueOf(rs.getString("source_object_kind")),
-                new SourceObjectId(rs.getLong("source_id")), new OwnObjectId(rs.getObject("own_id", UUID.class)), rs.getObject("effective_from_date", LocalDate.class),
-                rs.getObject("effective_to_date", LocalDate.class), hasRegistrant ? new UserId(registeredBy) : null,
-                rs.getString("confirmation_status"), hasDecider ? new UserId(decidedBy) : null, decidedAt == null ? null : decidedAt.toInstant(),
-                rs.getLong("version"), rs.getLong("event_count"));
     }
 }

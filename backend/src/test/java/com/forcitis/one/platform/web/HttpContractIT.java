@@ -88,6 +88,23 @@ class HttpContractIT {
         assertThat(schemas.path("CursorPageRoleResponse").path("required").toString()).isEqualTo("[\"items\"]");
     }
 
+    @Test
+    @DisplayName("the confirmation status of a source reference is its own component with its own values, not the one of the numbering rules")
+    void sourceReferenceConfirmationStatusListsItsOwnValues() throws Exception {
+        tools.jackson.databind.JsonNode schemas = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .path("components").path("schemas");
+
+        assertThat(schemas.path("SourceReferenceResponse").path("properties").path("confirmationStatus").path("$ref").asString())
+                .isEqualTo("#/components/schemas/SourceReferenceConfirmationStatus");
+        java.util.List<String> values = new java.util.ArrayList<>();
+        schemas.path("SourceReferenceConfirmationStatus").path("enum").forEach(value -> values.add(value.asString()));
+        assertThat(values).containsExactlyInAnyOrder("PENDING", "CONFIRMED", "REJECTED");
+        java.util.List<String> numbering = new java.util.ArrayList<>();
+        schemas.path("ConfirmationStatus").path("enum").forEach(value -> numbering.add(value.asString()));
+        assertThat(numbering).containsExactlyInAnyOrder("PENDING_CONFIRMATION", "CONFIRMED");
+    }
+
     /** A list that answers a bare array instead of a cursor page, with the reason: the whole tree is needed to draw the hierarchy. */
     private static final java.util.Map<String, String> UNPAGED_LISTS = java.util.Map.of(
             "/api/v1/organization/org-units", "the organisation tree is drawn and scoped as a whole and is bounded by the size of the firm",

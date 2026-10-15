@@ -75,8 +75,12 @@ public final class SourceReference extends AggregateRoot {
     }
 
     /** Only the accounting organization code of a legal entity may be written by a person (ADR-0033 section 5 item 4). */
+    public static boolean isRegistrationAllowed(ExternalSource system, SourceObjectKind kind) {
+        return system == ExternalSource.ACCOUNTING_SYSTEM && kind == SourceObjectKind.LEGAL_ENTITY;
+    }
+
     public static void requireRegistrationAllowed(ExternalSource system, SourceObjectKind kind) {
-        if (system != ExternalSource.ACCOUNTING_SYSTEM || kind != SourceObjectKind.LEGAL_ENTITY) {
+        if (!isRegistrationAllowed(system, kind)) {
             throw new DomainException(IntegrationError.PLATFORM_INTEGRATION_SOURCE_OBJECT_KIND_NOT_ALLOWED, ErrorKind.UNPROCESSABLE,
                     kind + " references of " + system + " are written by the sync or the import, not by hand");
         }

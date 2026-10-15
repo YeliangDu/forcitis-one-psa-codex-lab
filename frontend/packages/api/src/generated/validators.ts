@@ -120,6 +120,11 @@ export const CursorPageRoleResponseSchema = z.object({
   nextCursor: z.string().nullable().optional(),
 });
 
+export const CursorPageSourceReferenceResponseSchema = z.object({
+  get items() { return z.array(SourceReferenceResponseSchema); },
+  nextCursor: z.string().nullable().optional(),
+});
+
 export const CursorPageSyncRunResponseSchema = z.object({
   get items() { return z.array(SyncRunResponseSchema); },
   nextCursor: z.string().nullable().optional(),
@@ -424,8 +429,10 @@ export const RoleResponseSchema = z.object({
 
 export const SourceObjectKindSchema = lenientEnum("SourceObjectKind", ["EMPLOYEE", "ORG_UNIT", "POSITION", "LEGAL_ENTITY"]);
 
+export const SourceReferenceConfirmationStatusSchema = lenientEnum("SourceReferenceConfirmationStatus", ["PENDING", "CONFIRMED", "REJECTED"]);
+
 export const SourceReferenceResponseSchema = z.object({
-  get confirmationStatus() { return ConfirmationStatusSchema; },
+  get confirmationStatus() { return SourceReferenceConfirmationStatusSchema; },
   effectiveFrom: z.string().nullable().optional(),
   effectiveTo: z.string().nullable().optional(),
   ownId: z.string(),
@@ -610,6 +617,7 @@ export const responseSchemas = {
   postPlatformSessionsSsoLogin: LoginResponseSchema,
   postPlatformSessionsTicketLogin: LoginResponseSchema,
   postPlatformSessionsWecomLogin: LoginResponseSchema,
+  getPlatformSourceReferences: CursorPageSourceReferenceResponseSchema,
   postPlatformSourceReferences: SourceReferenceResponseSchema,
   postPlatformSourceReferencesBySourceReferenceIdConfirm: SourceReferenceResponseSchema,
   postPlatformSourceReferencesBySourceReferenceIdReject: SourceReferenceResponseSchema,

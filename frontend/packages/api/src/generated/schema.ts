@@ -55,7 +55,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         post: operations["create_1"];
         delete?: never;
@@ -135,7 +135,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -167,7 +167,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -263,7 +263,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -279,7 +279,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -295,7 +295,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -423,7 +423,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -503,7 +503,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -551,7 +551,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -615,7 +615,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -631,7 +631,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         post: operations["create"];
         delete?: never;
@@ -807,7 +807,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["list"];
         put?: never;
         post: operations["register"];
         delete?: never;
@@ -1046,6 +1046,10 @@ export interface components {
         };
         CursorPageRoleResponse: {
             items: components["schemas"]["RoleResponse"][];
+            nextCursor?: string;
+        };
+        CursorPageSourceReferenceResponse: {
+            items: components["schemas"]["SourceReferenceResponse"][];
             nextCursor?: string;
         };
         CursorPageSyncRunResponse: {
@@ -1362,8 +1366,10 @@ export interface components {
         };
         /** @enum {string} */
         SourceObjectKind: "EMPLOYEE" | "ORG_UNIT" | "POSITION" | "LEGAL_ENTITY";
+        /** @enum {string} */
+        SourceReferenceConfirmationStatus: "PENDING" | "CONFIRMED" | "REJECTED";
         SourceReferenceResponse: {
-            confirmationStatus: components["schemas"]["ConfirmationStatus"] | (string & {});
+            confirmationStatus: components["schemas"]["SourceReferenceConfirmationStatus"] | (string & {});
             /** Format: date */
             effectiveFrom?: string;
             /** Format: date */
@@ -1669,7 +1675,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: {
                 limit?: number;
@@ -1951,7 +1957,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: {
                 includeRevoked?: boolean;
@@ -2013,7 +2019,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: {
                 limit?: number;
@@ -2247,7 +2253,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: {
                 overdueOnly?: boolean;
@@ -2352,7 +2358,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: {
                 cursor?: string;
@@ -2456,7 +2462,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: {
                 cursor?: string;
@@ -3313,7 +3319,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 actorId?: number;
@@ -3485,7 +3491,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query: {
                 documentType: components["schemas"]["DocumentType"];
@@ -3590,7 +3596,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: {
                 limit?: number;
@@ -3766,7 +3772,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: {
                 limit?: number;
@@ -3797,7 +3803,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    list_1: {
         parameters: {
             query?: {
                 limit?: number;
@@ -4230,6 +4236,44 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query: {
+                sourceSystem: components["schemas"]["ExternalSource"];
+                sourceObjectKind: components["schemas"]["SourceObjectKind"];
+                /** @description PENDING is the approver's to-do list */
+                confirmationStatus?: components["schemas"]["SourceReferenceConfirmationStatus"];
+                /** @description Every row of one own object, confirmed, pending and rejected, closed periods included */
+                ownId?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CursorPageSourceReferenceResponse"];
                 };
             };
             /** @description The request was refused */

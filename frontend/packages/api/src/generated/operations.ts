@@ -180,6 +180,9 @@ export const postPlatformSessionsTicketLogin = (...[args, options]: Call<paths['
 export const postPlatformSessionsWecomLogin = (...[args, options]: Call<paths['/api/v1/platform/sessions:wecom-login']['post']>) =>
   request<Result<paths['/api/v1/platform/sessions:wecom-login']['post']>>('post', '/api/v1/platform/sessions:wecom-login', args, options, responseSchemas.postPlatformSessionsWecomLogin);
 
+export const getPlatformSourceReferences = (...[args, options]: Call<paths['/api/v1/platform/source-references']['get']>) =>
+  request<Result<paths['/api/v1/platform/source-references']['get']>>('get', '/api/v1/platform/source-references', args, options, responseSchemas.getPlatformSourceReferences);
+
 export const postPlatformSourceReferences = (...[args, options]: Call<paths['/api/v1/platform/source-references']['post']>) =>
   request<Result<paths['/api/v1/platform/source-references']['post']>>('post', '/api/v1/platform/source-references', args, options, responseSchemas.postPlatformSourceReferences, { idempotent: true });
 

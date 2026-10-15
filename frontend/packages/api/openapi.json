@@ -336,6 +336,21 @@
         "required" : [ "items" ],
         "type" : "object"
       },
+      "CursorPageSourceReferenceResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SourceReferenceResponse"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
       "CursorPageSyncRunResponse" : {
         "properties" : {
           "items" : {
@@ -1208,10 +1223,14 @@
         "enum" : [ "EMPLOYEE", "ORG_UNIT", "POSITION", "LEGAL_ENTITY" ],
         "type" : "string"
       },
+      "SourceReferenceConfirmationStatus" : {
+        "enum" : [ "PENDING", "CONFIRMED", "REJECTED" ],
+        "type" : "string"
+      },
       "SourceReferenceResponse" : {
         "properties" : {
           "confirmationStatus" : {
-            "$ref" : "#/components/schemas/ConfirmationStatus"
+            "$ref" : "#/components/schemas/SourceReferenceConfirmationStatus"
           },
           "effectiveFrom" : {
             "format" : "date",
@@ -1854,7 +1873,7 @@
     },
     "/api/v1/organization/legal-entities" : {
       "get" : {
-        "operationId" : "list_1",
+        "operationId" : "list_2",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -2245,7 +2264,7 @@
     },
     "/api/v1/organization/org-units" : {
       "get" : {
-        "operationId" : "list_10",
+        "operationId" : "list_11",
         "parameters" : [ {
           "in" : "query",
           "name" : "includeRevoked",
@@ -2322,7 +2341,7 @@
     },
     "/api/v1/organization/sync-runs" : {
       "get" : {
-        "operationId" : "list_9",
+        "operationId" : "list_10",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -2635,7 +2654,7 @@
     },
     "/api/v1/platform/approval-task-overviews" : {
       "get" : {
-        "operationId" : "list_8",
+        "operationId" : "list_9",
         "parameters" : [ {
           "in" : "query",
           "name" : "overdueOnly",
@@ -2767,7 +2786,7 @@
     },
     "/api/v1/platform/approval-task-records" : {
       "get" : {
-        "operationId" : "list_7",
+        "operationId" : "list_8",
         "parameters" : [ {
           "in" : "query",
           "name" : "cursor",
@@ -2891,7 +2910,7 @@
     },
     "/api/v1/platform/approval-tasks" : {
       "get" : {
-        "operationId" : "list_6",
+        "operationId" : "list_7",
         "parameters" : [ {
           "in" : "query",
           "name" : "cursor",
@@ -3929,7 +3948,7 @@
     },
     "/api/v1/platform/audit-entries" : {
       "get" : {
-        "operationId" : "list_5",
+        "operationId" : "list_6",
         "parameters" : [ {
           "in" : "query",
           "name" : "actorId",
@@ -4228,7 +4247,7 @@
     },
     "/api/v1/platform/legacy-numbers" : {
       "get" : {
-        "operationId" : "list_4",
+        "operationId" : "list_5",
         "parameters" : [ {
           "in" : "query",
           "name" : "documentType",
@@ -4392,7 +4411,7 @@
     },
     "/api/v1/platform/numbering-rules" : {
       "get" : {
-        "operationId" : "list_3",
+        "operationId" : "list_4",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -4631,7 +4650,7 @@
     },
     "/api/v1/platform/own-login-records" : {
       "get" : {
-        "operationId" : "list_2",
+        "operationId" : "list_3",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -4672,7 +4691,7 @@
     },
     "/api/v1/platform/roles" : {
       "get" : {
-        "operationId" : "list",
+        "operationId" : "list_1",
         "parameters" : [ {
           "in" : "query",
           "name" : "limit",
@@ -5181,6 +5200,79 @@
       }
     },
     "/api/v1/platform/source-references" : {
+      "get" : {
+        "operationId" : "list",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "sourceSystem",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/ExternalSource"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sourceObjectKind",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/SourceObjectKind"
+          }
+        }, {
+          "description" : "PENDING is the approver's to-do list",
+          "in" : "query",
+          "name" : "confirmationStatus",
+          "required" : false,
+          "schema" : {
+            "$ref" : "#/components/schemas/SourceReferenceConfirmationStatus"
+          }
+        }, {
+          "description" : "Every row of one own object, confirmed, pending and rejected, closed periods included",
+          "in" : "query",
+          "name" : "ownId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CursorPageSourceReferenceResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "source-reference-controller" ]
+      },
       "post" : {
         "operationId" : "register",
         "parameters" : [ {

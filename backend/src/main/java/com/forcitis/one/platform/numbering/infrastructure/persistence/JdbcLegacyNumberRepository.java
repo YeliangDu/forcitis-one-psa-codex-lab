@@ -11,6 +11,9 @@ import com.forcitis.one.platform.numbering.api.LegacyNumberEntry;
 import com.forcitis.one.platform.numbering.domain.LegacyNumberRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,9 +35,9 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
 
     private final JdbcClient jdbc;
     private final IdGenerator ids;
-    private final java.time.Clock clock;
+    private final Clock clock;
 
-    JdbcLegacyNumberRepository(JdbcClient jdbc, IdGenerator ids, java.time.Clock clock) {
+    JdbcLegacyNumberRepository(JdbcClient jdbc, IdGenerator ids, Clock clock) {
         this.jdbc = jdbc;
         this.ids = ids;
         this.clock = clock;
@@ -49,7 +52,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
                            and (cast(:after as text) is null or legacy_number > :after)
                          order by legacy_number limit :limit
                         """)
-                .param("system", sourceSystem.name()).param("type", type.name()).param("prefix", prefix).param("after", after, java.sql.Types.VARCHAR).param("limit", limit)
+                .param("system", sourceSystem.name()).param("type", type.name()).param("prefix", prefix).param("after", after, Types.VARCHAR).param("limit", limit)
                 .query(MAPPER).list();
     }
 
@@ -96,7 +99,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
                 .param("document", UUID.fromString(entry.document().documentId().value()))
                 .param("le", entry.legalEntity().map(LegalEntityId::value).orElse(null))
                 .param("batch", entry.migrationBatchId().value())
-                .param("now", java.sql.Timestamp.from(clock.instant()))
+                .param("now", Timestamp.from(clock.instant()))
                 .update() == 1;
     }
 }
