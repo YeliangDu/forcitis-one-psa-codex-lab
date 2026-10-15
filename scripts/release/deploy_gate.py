@@ -8,8 +8,10 @@
 - Any environment: a blocker entry under docs/modernization/status/blockers/ whose line carries the marker `blocks: deploy` stops the
   deployment. Blocker fragments are single lines (build_records.py), so the marker sits in the line instead of front matter. The
   coordinating session deletes the entry, or the marker, when the blocking work is merged.
-- Any environment: the migration baseline-open marker (backend/architecture/migration-baseline-open) stops the deployment; it is removed
-  as the first step of C-3 (SESSION_PLAYBOOK §12.2 step 4), in a pull request of its own.
+- prod: the migration baseline-open marker (backend/architecture/migration-baseline-open) stops the deployment; it is removed before the
+  first production deployment, in a pull request of its own (SESSION_PLAYBOOK §12.2 step 4).
+- dev: an open baseline is allowed and only warned about. While it is open the baseline files may change after a dev deployment, so the
+  dev database is rebuilt instead of migrated whenever they did (runbooks/dev-db-rebuild.md).
 - prod: no pre-release version (-rc.N); every Phase 1a exit condition in section D of PREDEPLOY_CHECKLIST.md is done (verified on dev);
   C-9 (the production database) is done. "Done" means the status cell is exactly the done mark, nothing else. The version is listed in
   prod-approvals.txt as "<version> <commit> <bundle sha256> <YYYY-MM-DD> <approver>": on the GitHub Team plan a private repository has
@@ -85,11 +87,19 @@ def approval_problems(root, version, commit, bundle_sha256):
     return []
 
 
+def warnings(root, environment):
+    if environment == "dev" and baseline_open(root):
+        return [f"{BASELINE_MARKER} exists: the migration baseline is still open; if any baseline migration changed since the last dev "
+                "deployment, rebuild the dev database first (runbooks/dev-db-rebuild.md), Flyway validation fails otherwise"]
+    return []
+
+
 def check(root, environment, version):
     problems = [f"deployment blocked by {BLOCKERS}/{name}" for name in deploy_blockers(root)]
-    if baseline_open(root):
-        problems.append(f"{BASELINE_MARKER} exists: the migration baseline is still open; remove the marker first (SESSION_PLAYBOOK §12.2 step 4, C-3)")
     if environment == "prod":
+        if baseline_open(root):
+            problems.append(f"{BASELINE_MARKER} exists: the migration baseline is still open; prod needs it closed, remove the marker first "
+                            "(SESSION_PLAYBOOK §12.2 step 4)")
         if "-" in version:
             problems.append(f"prod takes released versions only, not the pre-release {version}")
         with open(os.path.join(root, CHECKLIST), encoding="utf-8") as handle:
@@ -134,12 +144,15 @@ def self_test():
         os.makedirs(os.path.dirname(marker))
         with open(marker, "w", encoding="utf-8") as handle:
             handle.write("open\n")
-        assert any("baseline is still open" in p for p in check(root, "dev", "0.1.0")), "an open migration baseline stops dev"
+        assert check(root, "dev", "0.1.0-rc.1") == [], "an open migration baseline does not stop dev"
+        assert any("baseline is still open" in w for w in warnings(root, "dev")), "an open migration baseline is warned about on dev"
         assert any("baseline is still open" in p for p in check(root, "prod", "0.1.0")), "an open migration baseline stops prod"
+        assert warnings(root, "prod") == [], "prod reports the open baseline as a problem, not a warning"
         os.rename(marker, marker.replace("migration-baseline-open", "Migration-Baseline-Open"))
-        assert check(root, "dev", "0.1.0"), "a marker differing only in case still stops the deployment"
+        assert check(root, "prod", "0.1.0"), "a marker differing only in case still stops prod"
+        assert warnings(root, "dev"), "a marker differing only in case is still warned about on dev"
         os.remove(marker.replace("migration-baseline-open", "Migration-Baseline-Open"))
-        assert check(root, "dev", "0.1.0") == [], "removing the marker lifts the stop"
+        assert check(root, "prod", "0.1.0") == [] and warnings(root, "dev") == [], "removing the marker lifts the stop and the warning"
         assert check(root, "prod", "0.1.0-rc.1"), "prod refuses pre-releases"
         assert any("not approved" in p for p in check(root, "prod", "0.2.0")), "prod needs an approval line"
         assert approval_problems(root, "0.1.0", "c" * 40, "d" * 64) == []
@@ -180,6 +193,9 @@ def main(argv):
     if len(argv) != 2 or argv[0] not in ("dev", "prod"):
         print(__doc__, file=sys.stderr)
         return 2
+    for warning in warnings(".", argv[0]):
+        print(f"::warning::deploy_gate.py: {warning}" if os.environ.get("GITHUB_ACTIONS") == "true" else f"deploy_gate.py: warning: {warning}",
+              file=sys.stderr)
     problems = check(".", argv[0], argv[1])
     for problem in problems:
         print(f"deploy_gate.py: {problem}", file=sys.stderr)
