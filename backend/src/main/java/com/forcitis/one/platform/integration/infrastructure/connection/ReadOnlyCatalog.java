@@ -3,7 +3,7 @@ package com.forcitis.one.platform.integration.infrastructure.connection;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Ownership;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
 import java.util.List;
 import java.util.Map;
