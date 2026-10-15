@@ -44,6 +44,16 @@ FORCITIS one 只通过专用视图读这两个库，**不写任何数据，不�
 - **与应用启动校验冲突**：下一节所述「每个只读连接能 SELECT 的对象恰好一个视图」（SECURITY_INVARIANTS I-1）与 `ReadOnlyGuard`、`seeyon-view-columns.yaml` 白名单仍按最小化授权写。改为全库只读后应用启动校验会拒绝；运行时读取方式与校验口径由 ADR-0037 定，首次部署前须由代码会话改校验。`legacy_*_deny.sql` 中「读基表、读令牌表、读另一视图」三类期望已不成立，以 `read-all/*_login_*.sql` 为准。
 - 账号是否合并由 ADR-0037 定，应用配置暂不变。
 
+## 2026-10-15 取证账号与服务器级权限（ADR-0037）
+
+- **取证账号 `one_evidence_ro`**（ADR-0037 第 5 项第 4 条）：一个登录（`evidence/evidence_login.sql`，在 master 上下文执行，口令在服务器端生成、只经新 ECS 临时公钥加密的密文），a8_db 与老系统库各一个用户（`evidence/evidence_user_*.sql`），授权形状与运行时账号相同：库级 SELECT、库级 DENY 写 / DDL / EXECUTE / REFERENCES、不入角色。口令在新 ECS `/etc/forcitis-one/evidence.env`（root 0600），C-8 轮换表一行。执行与验证 `tools/b5_evidence_run.py`（云助手 t-hz07037ww67qsjk 变更，t-hz07037y4vsbfnk 登录验证）：服务器级授权只多出本登录的 CONNECT SQL，两库只多出本用户的 13 行授权；两库基表与元数据可读，UPDATE、DELETE 被拒（229），CREATE TABLE 被拒（262），allowed=0。回滚 `evidence/evidence_rollback.sql`。
+- **凭据列拒绝清单**：`evidence/credential_columns.csv`（`tools/b5_evidence_scan.py` 以取证账号扫 `INFORMATION_SCHEMA.COLUMNS`，按 ADR-0037 第 3 项第 4 条的词筛出后人工复核）：credential 92 列（A8 75、老系统 17），review 25 列（A8 的 AppKey、`KEY_VALUE` 等，可能是标识而非凭据，实现 PR 逐列定）。工作流引擎的流程定义键、业务键、内容哈希、幂等键、`secret_level` 等已剔除。
+- **风险登记（用户「接受并登记风险，加校验与轮换 (Recommended)」）**：RDS SQL Server 平台给所有登录（服务器角色 public 等）授予服务器级 ALTER ANY LOGIN、ALTER ANY LINKED SERVER、ALTER ANY CONNECTION、ALTER ANY EVENT SESSION、ALTER SERVER STATE、ALTER TRACE（及 VIEW SERVER STATE、VIEW ANY DATABASE），用户与高权限账号都不能 GRANT / DENY 服务器级权限（库级 DENY 报 4631，master 上 DENY 报 4613）。新系统只读口令泄露时，持有人可能借 ALTER ANY LOGIN 改其他非 sysadmin 登录的口令。缓解：口令只放新 ECS、按 C-8 90 天轮换；应用启动校验服务器级有效权限等于下列平台基线，逐项写死、多出即拒绝。实例白名单不动（用户「老系统先不管」）。不在生产上验证改口令。
+- **有效权限平台基线**（四个账号真实登录 `fn_my_permissions` 导出，完全相同）：
+  - 服务器级：ALTER ANY CONNECTION、ALTER ANY EVENT SESSION、ALTER ANY LINKED SERVER、ALTER ANY LOGIN、ALTER SERVER STATE、ALTER TRACE、CONNECT SQL、VIEW ANY DATABASE、VIEW SERVER STATE。
+  - 库级：CONNECT、KILL DATABASE CONNECTION、SELECT、SHOWPLAN、VIEW ANY COLUMN ENCRYPTION KEY DEFINITION、VIEW ANY COLUMN MASTER KEY DEFINITION、VIEW DATABASE STATE（A8 账号在 a8_db 同样没有单列的 VIEW DEFINITION）。
+  - 角色只有 public；`HAS_DBACCESS` 为真的库：自己的库加 master、msdb、rdscore、tempdb（guest），取证账号为两库加这四个。
+
 ## 权限为什么这样给（最小化，2026-10-15 前）
 
 - **只给视图 SELECT**：A8 账号只对 `forcitis_one` schema 有 SELECT；老系统两个账号各只对一个视图有 SELECT。视图与基表同属 `dbo`，靠所有权链读取，账号对基表没有任何权限。A8 基表另加 DENY。
