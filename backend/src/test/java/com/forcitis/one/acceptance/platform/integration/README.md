@@ -45,3 +45,5 @@
 - 预期值以同一登录直连 SQL Server 取得（`connectionFailure`、`catalogRefusal`），不凭推测：库不存在 4060、目录视图被拒 229，SQLState 取驱动所报。
 - 新增反例：在 `DEVIATIONS` 加一行 `new Deviation(名称, 应标违规的项目字母, 账号 -> 要执行的 SQL)`；授权只加在本用例新建的登录上。新增「不得输出」的情形：构造一个带 `marker()` 的对象名，断言输出不含它。
 - 定位行（契约第 3a 节，one-coordinator 2026-10-15 C-14 定位裁定）：(f) 系统库名、(g) 授权的 schema、对象、权限、grantee 逐条一行；`run.locators()` 解析并检查每行紧跟所属项行，预期值用 `violation(...)`、`overridden(...)` 构造。(f) 的本人用户角色信息行（`ownUser`）由 `run.ownUsers()` 取、预期值用 `ownUser(库, 角色或 null)` 与 `RDS_OWN_USERS` 构造；`run.findings()` 只含 `violation` 与 `overridden`。要授权给 public 的用例用 `isolatedAccount`（新建一个库），不波及其他用例。
+
+- 复审 H-1（msdb 本人用户的权限，契约第 3a 节「(f) msdb 本人用户的权限」）：反例清单在 `ReadOnlyBaselineFixture.MSDB_COUNTEREXAMPLES`，两个 IT 共用；加一个新反例只加清单一项（apply、undo、预期的有效权限与越线的直接授权），夹具核对、启动校验与核实命令三处自动覆盖。(5) 角色嵌套、(6) 授给 SQLAgentUserRole、(7) 授给 msdb 的 public 是全局性的（msdb 内所有登录受影响），只在 finally 撤销、只能在同一容器里顺序执行；加这类反例前先想清楚别的类是否同时用 msdb（同 fork 的类顺序执行，不同 fork 各有容器）。

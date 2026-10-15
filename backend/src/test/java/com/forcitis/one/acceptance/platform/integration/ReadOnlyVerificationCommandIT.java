@@ -33,6 +33,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -238,6 +239,12 @@ class ReadOnlyVerificationCommandIT {
 
     static Stream<Arguments> deviations() {
         return DEVIATIONS.stream().map(Arguments::of);
+    }
+
+    /** Initializes this class before any @EnumSource touches ReadOnlyConnection: the enum reads this class's statics, whose initializer needs the enum constants (a cycle that fails with "constants is null" when the enum comes first). */
+    @BeforeAll
+    static void classIsInitializedBeforeTheEnum() {
+        assertThat(VIOLATING).hasSize(ReadOnlyConnection.values().length);
     }
 
     @Test
@@ -458,6 +465,67 @@ class ReadOnlyVerificationCommandIT {
             assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
         }
         assertThat(run.results()).as(run.output()).containsExactly("UNDETERMINED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("msdbCounterexamples")
+    @DisplayName("C-14 (f) 复审 H-1（one-coordinator 2026-10-15）：msdb 本人用户直接授权越线，或经角色嵌套、角色与 public 的授权使 CONTROL、ALTER、ALTER ANY ROLE、ALTER ANY USER、ALTER ANY SCHEMA、CREATE PROCEDURE 任一有效权限为真时 (f) 违规、原因 SYSTEM_DATABASE_OWN_USER_PRIVILEGE 计数 1、定位行只写库名 msdb，角色信息行不变，其他项通过，退出违规码")
+    void msdbOwnUserPrivilegeBeyondTheBaselineIsAViolation(ReadOnlyBaselineFixture.MsdbCounterexample counterexample) throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        assertMatchesTheRdsBaseline(account);
+        String user = q(account.login());
+        try {
+            for (String statement : counterexample.apply().apply(user)) {
+                run("msdb", statement);
+            }
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                    .as("the fixture: %s really gives the own msdb user what it should", counterexample).containsExactlyInAnyOrderElementsOf(counterexample.expected());
+
+            CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+            assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+            assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER_PRIVILEGE count=1");
+            assertThat(run.item('f').tokens()).as("the roles of the own user are those of RDS\n%s", run.output()).doesNotContain(" reason=SYSTEM_DATABASE_OWN_USER count");
+            assertThat(run.findings()).as("one locator line, the database only\n%s", run.output()).containsExactly(systemDatabaseOwnUserPrivilege("msdb"));
+            assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
+            assertThat(run.output()).as("no object name behind the privilege").doesNotContain(ReadOnlyBaselineFixture.MSDB_PROCEDURE.substring(4));
+            assertLocatorFieldsInContractOrder(run);
+            for (char item : "abcdeg".toCharArray()) {
+                assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+            }
+            assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+            assertTellsNothingSecret(run, account);
+        } finally {
+            for (String statement : counterexample.undo().apply(user)) {
+                run("msdb", statement);
+            }
+        }
+    }
+
+    static Stream<Arguments> msdbCounterexamples() {
+        return ReadOnlyBaselineFixture.MSDB_COUNTEREXAMPLES.stream().map(Arguments::of);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1 不误判（one-ops 样本形状）：msdb 本人用户除 CONNECT 与三个 SQLAgent 角色外，直接有对象级 GRANT SELECT、GRANT EXECUTE 与 DENY SELECT 时七项都通过、定位行为空、角色信息行同 RDS、结果通过、退出 0")
+    void oneOpsShapedMsdbGrantsStillPass(ReadOnlyConnection connection) throws Exception {
+        Account account = baselineAccount(connection);
+        run("msdb", ReadOnlyBaselineFixture.oneOpsSampleMsdbGrants(q(account.login())).toArray(String[]::new));
+        assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                .as("the fixture: the sample shape is inside the allowed shape").isEmpty();
+
+        CommandRun run = verify(connection, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
+        for (char item : ITEMS) {
+            assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+        }
+        assertThat(run.findings()).as(run.output()).isEmpty();
+        assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
+        assertThat(run.results()).as(run.output()).containsExactly("PASSED");
         assertTellsNothingSecret(run, account);
     }
 
@@ -863,6 +931,10 @@ class ReadOnlyVerificationCommandIT {
 
     static Locator systemDatabaseOwnUser(String database) {
         return new Locator('f', "violation", fields("reason", "SYSTEM_DATABASE_OWN_USER", "database", quoted(database)));
+    }
+
+    static Locator systemDatabaseOwnUserPrivilege(String database) {
+        return new Locator('f', "violation", fields("reason", "SYSTEM_DATABASE_OWN_USER_PRIVILEGE", "database", quoted(database)));
     }
 
     /** A name as printed: in double quotes; only names without a character to escape are passed here. */

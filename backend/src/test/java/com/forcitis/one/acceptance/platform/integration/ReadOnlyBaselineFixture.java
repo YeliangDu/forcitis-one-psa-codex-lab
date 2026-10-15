@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 /**
  * Read-only SQL Server logins whose effective permissions equal the RDS platform baseline (ADR-0037 item 4, B-5 README "有效权限平台基线").
@@ -68,6 +69,9 @@ final class ReadOnlyBaselineFixture {
         sa.run("master", "GRANT " + PLATFORM_SERVER_GRANTS + " TO public", "DENY " + SQL_SERVER_2022_ONLY + " TO public",
                 "IF DB_ID(N'rdscore') IS NULL CREATE DATABASE rdscore");
         sa.run("rdscore", "GRANT CONNECT TO guest");
+        // the global counterexamples of MSDB_COUNTEREXAMPLES undo themselves; a container left dirty by a killed JVM is made clean here
+        sa.run("msdb", "IF IS_ROLEMEMBER('db_owner', 'SQLAgentUserRole') = 1 ALTER ROLE db_owner DROP MEMBER SQLAgentUserRole",
+                "REVOKE CONTROL ON DATABASE::msdb FROM SQLAgentUserRole", "REVOKE ALTER ANY SCHEMA FROM public");
     }
 
     /** The organisation views account: reads the whole view schema, default schema is the view schema, which must already exist. */
@@ -144,6 +148,100 @@ final class ReadOnlyBaselineFixture {
         }
         assertThat(strings(s, "SELECT COUNT(*) FROM msdb.dbo.sysjobs_view WHERE owner_sid = SUSER_SID()")).as("Agent jobs owned, %s", login)
                 .containsExactly("0");
+        assertThat(ownMsdbPrivileges(s)).as("C-14 (f) H-1: privileges of the own msdb user beyond the baseline, %s", login).isEmpty();
+    }
+
+    /** The database-level permissions of the msdb review H-1 (one-coordinator 2026-10-15): any one of them effective for the own msdb user is a violation. */
+    static final List<String> MSDB_PRIVILEGES = List.of("CONTROL", "ALTER", "ALTER ANY ROLE", "ALTER ANY USER", "ALTER ANY SCHEMA", "CREATE PROCEDURE");
+
+    /**
+     * What the login's own msdb user holds beyond the baseline, asked as the login itself inside msdb: "EFFECTIVE p" for each of {@link #MSDB_PRIVILEGES}
+     * that HAS_PERMS_BY_NAME('msdb', 'DATABASE', p) finds true (roles, nesting and public included), and "DIRECT class state permission" for each permission
+     * granted to the user itself outside the allowed shape (database: GRANT CONNECT; object: GRANT SELECT, GRANT EXECUTE, any DENY; never WITH GRANT OPTION).
+     */
+    static List<String> ownMsdbPrivileges(Statement s) throws SQLException {
+        Connection c = s.getConnection();
+        String home = c.getCatalog();
+        c.setCatalog("msdb");
+        try {
+            List<String> found = new ArrayList<>();
+            for (String privilege : MSDB_PRIVILEGES) {
+                if (strings(s, "SELECT HAS_PERMS_BY_NAME('msdb', 'DATABASE', '" + privilege + "')").contains("1")) {
+                    found.add("EFFECTIVE " + privilege);
+                }
+            }
+            found.addAll(strings(s, "SELECT CONCAT('DIRECT ', p.class_desc, ' ', p.state, ' ', p.permission_name) FROM sys.database_permissions p "
+                    + "JOIN sys.database_principals u ON u.principal_id = p.grantee_principal_id WHERE u.sid = SUSER_SID() AND NOT ("
+                    + "(p.class = 0 AND p.state = 'G' AND p.permission_name = 'CONNECT') OR "
+                    + "(p.class = 1 AND ((p.state = 'G' AND p.permission_name IN ('SELECT', 'EXECUTE')) OR p.state = 'D')))"));
+            return found;
+        } finally {
+            c.setCatalog(home);
+        }
+    }
+
+    static List<String> ownMsdbPrivileges(String jdbcUrl, String login, String password) throws SQLException {
+        try (Connection c = DriverManager.getConnection(jdbcUrl + ";loginTimeout=30", login, password); Statement s = c.createStatement()) {
+            return ownMsdbPrivileges(s);
+        }
+    }
+
+    /**
+     * A way for the own msdb user to hold more than the baseline (review H-1). apply and undo take the quoted login name and run in msdb as sa; undo must
+     * leave msdb as it was. effective and direct are what {@link #ownMsdbPrivileges} must report while it holds, so a counterexample that does not really
+     * give the privilege fails the fixture check instead of passing for nothing. global: changes msdb for every login in it (a SQL Agent role or public),
+     * so it must not run while another test of the same container uses msdb; classes of one fork run one after the other.
+     */
+    record MsdbCounterexample(String name, boolean global, Function<String, List<String>> apply, Function<String, List<String>> undo, Set<String> effective,
+            Set<String> direct) {
+
+        List<String> expected() {
+            List<String> all = new ArrayList<>();
+            effective.forEach(p -> all.add("EFFECTIVE " + p));
+            direct.forEach(d -> all.add("DIRECT " + d));
+            return all;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    /** An msdb object the SQL Agent roles do not grant: used where a counterexample or the one-ops sample needs a direct object-level grant. */
+    static final String MSDB_PROCEDURE = "dbo.sp_help_category";
+
+    static final List<MsdbCounterexample> MSDB_COUNTEREXAMPLES = List.of(
+            new MsdbCounterexample("(1) GRANT CONTROL ON DATABASE::msdb", false, u -> List.of("GRANT CONTROL ON DATABASE::msdb TO " + u),
+                    u -> List.of("REVOKE CONTROL ON DATABASE::msdb FROM " + u), Set.copyOf(MSDB_PRIVILEGES), Set.of("DATABASE G CONTROL")),
+            new MsdbCounterexample("(2) GRANT ALTER ANY ROLE", false, u -> List.of("GRANT ALTER ANY ROLE TO " + u), u -> List.of("REVOKE ALTER ANY ROLE FROM " + u),
+                    Set.of("ALTER ANY ROLE"), Set.of("DATABASE G ALTER ANY ROLE")),
+            new MsdbCounterexample("(3) GRANT IMPERSONATE ON USER::dbo", false, u -> List.of("GRANT IMPERSONATE ON USER::dbo TO " + u),
+                    u -> List.of("REVOKE IMPERSONATE ON USER::dbo FROM " + u), Set.of(), Set.of("DATABASE_PRINCIPAL G IMPERSONATE")),
+            new MsdbCounterexample("(4) GRANT ALTER ON SCHEMA::dbo and CREATE PROCEDURE", false,
+                    u -> List.of("GRANT ALTER ON SCHEMA::dbo TO " + u, "GRANT CREATE PROCEDURE TO " + u),
+                    u -> List.of("REVOKE ALTER ON SCHEMA::dbo FROM " + u, "REVOKE CREATE PROCEDURE FROM " + u), Set.of("CREATE PROCEDURE"),
+                    Set.of("SCHEMA G ALTER", "DATABASE G CREATE PROCEDURE")),
+            new MsdbCounterexample("(5) role nesting: db_owner gets SQLAgentUserRole as a member", true,
+                    u -> List.of("ALTER ROLE db_owner ADD MEMBER SQLAgentUserRole"), u -> List.of("ALTER ROLE db_owner DROP MEMBER SQLAgentUserRole"),
+                    Set.copyOf(MSDB_PRIVILEGES), Set.of()),
+            new MsdbCounterexample("(6) GRANT CONTROL ON DATABASE::msdb TO SQLAgentUserRole", true,
+                    u -> List.of("GRANT CONTROL ON DATABASE::msdb TO SQLAgentUserRole"), u -> List.of("REVOKE CONTROL ON DATABASE::msdb FROM SQLAgentUserRole"),
+                    Set.copyOf(MSDB_PRIVILEGES), Set.of()),
+            new MsdbCounterexample("(7) GRANT ALTER ANY SCHEMA TO public in msdb", true, u -> List.of("GRANT ALTER ANY SCHEMA TO public"),
+                    u -> List.of("REVOKE ALTER ANY SCHEMA FROM public"), Set.of("ALTER ANY SCHEMA"), Set.of()),
+            new MsdbCounterexample("(8) GRANT EXECUTE ON " + MSDB_PROCEDURE + " WITH GRANT OPTION", false,
+                    u -> List.of("GRANT EXECUTE ON " + MSDB_PROCEDURE + " TO " + u + " WITH GRANT OPTION"),
+                    u -> List.of("REVOKE EXECUTE ON " + MSDB_PROCEDURE + " FROM " + u + " CASCADE"), Set.of(), Set.of("OBJECT_OR_COLUMN W EXECUTE")));
+
+    /**
+     * What one-ops read off the real accounts on RDS (34 platform defaults): beside CONNECT, object-level GRANT SELECT several times, GRANT EXECUTE and one
+     * DENY SELECT directly on the own msdb user. The baseline plus this must stay inside the allowed shape; msdb objects chosen here, not RDS's.
+     */
+    static List<String> oneOpsSampleMsdbGrants(String quotedUser) {
+        return List.of("GRANT SELECT ON OBJECT::dbo.backupset TO " + quotedUser, "GRANT SELECT ON OBJECT::dbo.backupfile TO " + quotedUser,
+                "GRANT SELECT ON OBJECT::dbo.backupmediaset TO " + quotedUser, "GRANT EXECUTE ON OBJECT::" + MSDB_PROCEDURE + " TO " + quotedUser,
+                "DENY SELECT ON OBJECT::dbo.restorehistory TO " + quotedUser);
     }
 
     /** Role names of the login's own user in a system database, read through three-part names from the login's own database. */

@@ -182,8 +182,16 @@ class ReadOnlyAccountCheckIT {
                     new Sql("msdb", addJob(a.login() + "_job", a.login()))), a -> List.of(
                     new Sql("msdb", deleteJob(a.login() + "_job")))));
 
+    /** C-14 (f) review H-1: what the own msdb user may hold beyond the baseline; the three global ones change msdb for all logins and undo it in finally. */
+    static final List<Violation> MSDB_VIOLATIONS = ReadOnlyBaselineFixture.MSDB_COUNTEREXAMPLES.stream().map(x -> new Violation(
+            "复审 H-1：msdb 本人用户 " + x.name(), "f", a -> msdb(x.apply().apply(q(a.login()))), a -> msdb(x.undo().apply(q(a.login()))))).toList();
+
+    static List<Sql> msdb(List<String> statements) {
+        return statements.stream().map(statement -> new Sql("msdb", statement)).toList();
+    }
+
     static Stream<Arguments> everyViolationOnEveryConnection() {
-        return VIOLATIONS.stream().flatMap(v -> Stream.of(ReadOnlyConnection.values()).map(c -> Arguments.of(c, v)));
+        return Stream.concat(VIOLATIONS.stream(), MSDB_VIOLATIONS.stream()).flatMap(v -> Stream.of(ReadOnlyConnection.values()).map(c -> Arguments.of(c, v)));
     }
 
     @Test
@@ -207,6 +215,52 @@ class ReadOnlyAccountCheckIT {
         });
 
         assertThat(failure).as("an account shaped exactly like the RDS export must pass the check; refused with:\n%s", messages(failure)).isNull();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("msdbCounterexamples")
+    @DisplayName("C-14 (f) 复审 H-1 夹具：每个 msdb 反例确实让本人用户在 msdb 内的有效权限为真（或直接授权越线），撤销后回到基线（基线账号所有新检查为假）")
+    void msdbCounterexampleReallyHoldsItsPrivilegeAndUndoRestoresTheBaseline(ReadOnlyBaselineFixture.MsdbCounterexample counterexample) throws SQLException {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        assertMatchesTheRdsBaseline(account);
+        String user = q(account.login());
+        List<String> held;
+        try {
+            for (Sql sql : msdb(counterexample.apply().apply(user))) {
+                run(sql.database(), sql.statement());
+            }
+            held = ReadOnlyBaselineFixture.ownMsdbPrivileges(url(A8_WORLD), account.login(), account.password());
+        } finally {
+            for (Sql sql : msdb(counterexample.undo().apply(user))) {
+                run(sql.database(), sql.statement());
+            }
+        }
+
+        assertThat(held).as("%s: what the login holds in msdb while the counterexample stands", counterexample)
+                .containsExactlyInAnyOrderElementsOf(counterexample.expected());
+        assertMatchesTheRdsBaseline(account);
+    }
+
+    static Stream<Arguments> msdbCounterexamples() {
+        return ReadOnlyBaselineFixture.MSDB_COUNTEREXAMPLES.stream().map(Arguments::of);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1 不误判（one-ops 样本形状）：msdb 本人用户除 CONNECT 与三个 SQLAgent 角色外，直接有对象级 GRANT SELECT、GRANT EXECUTE 与 DENY SELECT 时应用仍正常启动，且夹具核对这些授权都在允许形状内")
+    void oneOpsShapedMsdbGrantsDoNotRefuseStartup(ReadOnlyConnection connection) throws SQLException {
+        Account account = baselineAccount(connection);
+        run("msdb", ReadOnlyBaselineFixture.oneOpsSampleMsdbGrants(q(account.login())).toArray(String[]::new));
+        assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(url(connection.database), account.login(), account.password()))
+                .as("the sample shape is inside the allowed shape").isEmpty();
+
+        Throwable failure = catchThrowable(() -> {
+            try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                assertThat(context.isActive()).isTrue();
+            }
+        });
+
+        assertThat(failure).as("an account with the one-ops direct msdb grants must pass; refused with:\n%s", messages(failure)).isNull();
     }
 
     @Test
