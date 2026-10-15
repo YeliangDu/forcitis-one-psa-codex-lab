@@ -11,6 +11,8 @@
 | 3 | 专业服务行业通行写法 | Timesheet、Utilization |
 | 4 | 其余为方言（禁入代码、界面、接口文档、列注释）；判定不了为待定 | 产值 = 收入确认单 |
 
+推荐依据以准则、国标与 AEC 项目制专业服务行业通行做法为主；老系统叫法与生产数据只作证据，至多作别名，「老系统这么叫」不是保留理由（intent 2026-10-15-202634，CLAUDE.md 第 4 条）。
+
 ## 在哪里
 
 | 什么 | 路径 |
@@ -36,7 +38,7 @@
 |---|---|
 | 积压 | 以 `glossary/ISSUES.md` 首段为准（门槛只算业务用语；错误码单列归 R-5，用户 2026-10-15） |
 | 已知重复 | 中文名重复 5 组（§5 起因）；同义错误码 4 组（R-5 卡） |
-| 在途 | A 写回 PR（分支 claude/one-glossary-writeback-a）：正式词条 348→580，改名卡 `glossary/round3/RENAME_CARDS.md` 42 张（改名 39：main 在用 25、仅在途分支在用 14；QT、TS、JV 3 张待编号模块改 DocumentTypeCodeTest 后删提议；后端随 R-2a 由 one-1a-next-3 改，界面由 one-1a-par 改），ACL 归类结果在 `acl/acl-classification.json`；ACL-TRANSITION G58、G59（门禁 R-1b-0 G06、G07）暂缓待 one-coordinator；C「项目」样例在做；B1 从 A 分支切、B2 随后（方案 one-coordinator 已认可，kind 映射规则见其答复） |
-| 下一步 | /clear 后先读本文件与 sessions/one-glossary.md，`gh pr view 206` 核对已合并再开分支；**开工前把方案（字段、守护、拆分）报 one-coordinator**。三个 PR（A、B 可并行）：**A 写回**——答复 `glossary/answers/2026-10-15-acl-round3.json`（同意 394、保持原样 16）；组织同步 7 条（被中止、放行、同步、同步差异、登录名、关系、离职观察时间）按「以 ADR-0039 为准」归集成层，「待放行离职」留 workforce（intent 2026-10-15-171549-one-coordinator）；其余 9 条「保持原样」作领域用语；可参考已关闭 #196 的 round3/apply_round3.py（分支 claude/one-glossary-round3-writeback）。**B 登记规则与守护**（intent 2026-10-15-171649-one-coordinator：「新用语登记要登记在哪个系统使用是acl还是新系统领域，是领域的要按照bc汇集，同一用语在不同bc含义不同，比如项目。」）——terms.yaml 与 proposed 每条必填「使用范围」（ACL / 新系统领域；ACL 再标四类）与 bc，生成器与 GlossaryTest 校验、缺即失败；查重改为同 bc 内、跨 bc 同名显式互列（`<bc>__` 前缀）；new_term_issue.py 与提议模板加两栏；CLAUDE.md 第 2 条改为「同一 bc 内查重；登记时写明使用范围和 bc」（PR 里单列）；守护改动单列并派 opus 复审；并入 DDD 统一语言 8 条（intent 2026-10-15-171959-one-coordinator「落点」栏，PR #200）：使用范围三值（领域 bc / 共享内核 kernel 列使用 bc / ACL）、发布语言用上游 bc 用语、kind 定为 DDD 战术分类并补齐代码 15 个聚合与事件词条、定义写含义边界与近义区别（指标写口径）、事件过去式命令祈使禁技术泛词、同 bc 一概念一中一英、每 bc 业务确认人（未定前用户兼任）、状态提议/正式/弃用且代码可反查词条 id；方案先报 one-coordinator，第 3、8 条守护派 opus 复审。**C「项目」同名异义样例**——盘点销售、交付、财务等 bc 里的含义，做成在线页（固定链接 QPwiXzEFWCTqSGVCQRdK6J）交用户。另：代码搬迁与 ADR 冲突交 one-architecture；R-1b-0 门禁按 ACL 结论重出 |
+| 在途 | 已合：#212（第三轮与 ACL 写回，正式 580 条；改名卡 42 张已派：后端随 R-2a 由 one-1a-next-3、界面由 one-1a-par，QT/TS/JV 3 张随 R-2a）、#214（「项目」样例卡、R-1b-0 撤 G06/G07）。合并队列：#234（B1：scope/bc 必填、同 bc 查重，存量基线 107 条）。本 PR：R-1b-0 G01–G03 写回（G03 同 migration_tie_out 不另立）。「项目」22 条答复齐（PJ-02、PJ-19 在 B1 会话答，确认页提交未落库）待写回 |
+| 下一步 | /clear 后先读本文件与 sessions/one-glossary.md，核对 #234 与本 PR 已合并（`gh pr list --author @me`）。① 「项目」卡写回（答复在 B1 共享笔记 answers-C-PROJECT-R-1b-0-2026-10-15.json；按 B1 规则带 scope、同名互列；沿用已有词条的不另立）② provider_kind / external_subject / external_identity 迁 platform.integration、scope acl 过渡期，provider_kind 取值 WECOM_USER_ID、SEEYON_LOGIN_NAME（RULING-P3B-7、P3B-9）③ B2：kind 定 DDD 战术分类、聚合与事件反查词条（材料 b1-kind-judgement.json；opus 复审）④ 交来的后续：platform_identity_login_name_unknown 定义含外部名；G39 不分 bc 会误报（开卡）⑤ 发确认页后先请用户刷新，收到提交即核对是否落库 |
 | 用语规范 | evidence 只用于「证据」义（fact_evidence 等）；判定结果用 verdict（在职判定 EmploymentVerdict） |
 | 定时 | 每周积压检查（会话内定时任务，开会话后设，记在画像） |

@@ -538,6 +538,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 |---|---|---|---|
 | FLW-2 BPMN 不用引擎计时器与到期 | 守护：流程定义（`processes/**.bpmn20.xml`）不得含计时器事件与 `flowable:dueDate`，时限只由 `approval_tasks` 与定时作业判定（RULE-386）；执行者到时定，opus 复审 | R-1b P4 之后（P4 独占 `EngineWiring`） | FLW-1 复审 L-6；one-coordinator 2026-10-15 排卡 |
 | OPS-PORT 运维命令档案不起 Web（结构性） | `identity-operations` 档案真正不起 Web：单独装配不依赖 Web 应用类型的 JDBC 会话仓库，控制器、安全链与 `CallerUserIdResolver` 等 Web 配置不进该档案上下文；`OperationsProfileSmokeTest` B1-R3 改为断言没有 WebServer（更严，PR 单列）；回归测试 `OperationsProfileListensOnNoPortTest`（分支 `claude/one-1a-par-ops-port`，先红已提交）。起因：one.env 的 `SERVER_PORT` / `MANAGEMENT_SERVER_PORT` 环境变量优先于档案文件；保留 servlet 设 `port=-1` 时 Tomcat 仍开随机端口（B1-R3 断言名不副实，已先改说明）。dev 前兜底：C-5 运行写法加 `UnsetEnvironment` 两端口变量（one-ops），`SERVER_ADDRESS=127.0.0.1` 使随机端口只绑回环；开工前向 one-1a-next-3 确认独占构件、按术语门禁列新词 | R-1b P2 合并后 | one-1a-par 发现；one-coordinator 2026-10-15 裁定方向 A、标结构性 |
+| 数据范围后续维度与能力（F-1 规则对照登记） | 利润中心作为数据范围维度（ADR 登记，与法人同构，随首个带利润中心列的财务事实）；项目角色访问（项目线与职能线取并集，至迟与首个项目事实同期）；带到期日的临时授权；外部顾问 / 分包人员只许项目范围且有到期日；长期休假暂停访问（依赖人事状态）；定期复核上线前，生产前每月出授权历史报表 | 各自阶段，交 one-rules 起草、用户排期 | `phase1a/cards/F-1-aec-check.md`；one-coordinator 2026-10-15 |
 
 **F-1 规格裁定**（one-coordinator 2026-10-15 裁定，验收测试据此写，分支 `claude/one-1a-par-f1-acceptance`，与实现同一 PR 合并）：
 - 自定义部门明细挂在角色版本上，归 `role:update`（已采纳 ADR-0034 第 5 项）；2.4 F-1 行「授予时选范围的权限沿用 `account-role:update`」写于 ADR-0034 采纳前，以 ADR 为准；contract D-1a-58 在 1a 范围内由 ADR-0034 解决。
@@ -601,4 +602,10 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 
 | 项 | 内容 | 验收条件 | 现状 |
 |---|---|---|---|
-| ARCH-D5 工时审批路线旗标映射 | 工时行类型、混合行到审批旗标（`projectHours` / `preSalesHours` / `overheadHours`）的映射，以及区域负责人的来源，交用户逐条决定（D-1a-127，`process/1a/TIMESHEET审批.md`:194）；老行为（老系统按工时行类型 0/1/2）先生产取证，按 ADR-0037 登记 `LEGACY_READ_REGISTER.md` | 映射卡实现时一并加「提交时一个旗标都没置即失败并告警」（现在不加：旗标写死 `PROJECT_HOURS`，检查必然通过，CS-1.8；one-coordinator 2026-10-15） | 1a 只有项目经理一路（D-1a-107 已关闭提交入口） |
+| ARCH-D5 工时审批路线旗标映射 | 工时行类型、混合行到审批旗标（`projectHours` / `preSalesHours` / `overheadHours`）的映射，以及区域负责人的来源，交用户逐条决定（D-1a-127，`process/1a/TIMESHEET审批.md`:194）；先对照 AEC 行业项目制专业服务公司的通行做法定审批路线，老系统按行类型 0/1/2 的行为与生产数据只作参考与核对（取证已登记 `LEGACY_READ_REGISTER.md`），交 one-rules / 用户定——方案页 https://claude.ai/artifact/GGz4AuMS63ooyL85itojya（`rules/decide/sheets/D5.json`）；用户 2026-10-15 六题全部选定，见 RULE-388～392（`rules/TIMESHEET_ROUTING_RULES.md`）；「区域负责人」节点与用语改为部门负责人，经 one-glossary 与改名卡 | 映射卡实现时一并加「提交时一个旗标都没置即失败并告警」（现在不加：旗标写死 `PROJECT_HOURS`，检查必然通过，CS-1.8；one-coordinator 2026-10-15） | 1a 只有项目经理一路（D-1a-107 已关闭提交入口） |
+
+### 数据范围后续维度（one-rules 登记，2026-10-15）
+
+| 项 | 内容 | 依据 | 排期 |
+|---|---|---|---|
+| 区域范围维度 | 「区域」登记为后续数据范围维度：区域是介于项目和公司之间的一层组织，变动频率较高，现有区域与事业部两种（用户说明）。须定：区域取自组织树的哪一层或单独维护、区域与事业部是否同一维度、组织调整后范围怎么复核（参照 RULE-387）、与部门、法人、项目角色维度的关系 | 用户 F1-05「现在就登记「区域」为后续范围维度并排期」（intent 2026-10-15，one-rules）；`rules/decide/answers/F1.json` | 待 one-architecture 排期 |

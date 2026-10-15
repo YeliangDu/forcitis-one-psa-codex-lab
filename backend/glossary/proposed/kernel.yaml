@@ -6,6 +6,7 @@ terms:
   snake: system_actor
   kind: role
   bc: kernel
+  scope: kernel
   definition: 以 SYSTEM 身份发出事件的作业、监听器或运维入口；名字人为声明在 backend/architecture/system-actors.txt，事件信封 actorId 为该名字在固定命名空间下的 UUIDv5，同一名字恒定、不同于任何用户 ID，任何实例都可由目录反查名字（RULING-P2-C5）
   standard_ref:
   - ADR-0033 第 7 项第 1 条

@@ -20,14 +20,12 @@
 
 | 项 | 值 |
 |---|---|
-| 分支 | `claude/one-architecture-ssot`（基于 main 173987b4） |
-| 在途 | #203（入队）→ #204 → #208 / #210（ADR-0040，已采纳）；#207（ADR-0039，已采纳）；第 0、1 步草稿由 sonnet 起草中 |
-| 排定（one-coordinator） | ①#207 合并后：身份生命周期研究 + C1 设计（取证交 sonnet，ADR-0037 登记，结论在线页）②ADR-0040 补齐顺序：第 0+1 步（愿景/目标/KPI + 能力/价值流）一页确认页 → 第 2 步按能力重推规划 BC（决策页 Q6 与余项随后一起发）→ 指标挂 KPI → 事件风暴与规则卡补「类别」（只补类别，sonnet 批量、我抽查）→ CI 追溯校验（守护单列，opus 复审）③ADR-0039 代码子 PR 由 one-coordinator 并入 P3b / P5；ARCH-D1..D7 交 one-1a-next-3 |
-| 用户已定 | ADR-0039（intent 164527）；ADR-0040 方法与知识框架（intent 173149）；补充框架勾选页 https://claude.ai/artifact/GtFkMvqxnWe6wZc1euM9Ec 待选（选完记 intent 再写进 FRAMEWORKS） |
-| 接着做 | PR-C：草稿在 scratchpad/pr-c（aggregates 15、processes 7、decisions 15、data-objects 30），核对后入 `ddd/aggregates.yaml`、`bpmn/`、`dmn/`、`dama/`，出图③④ |
-| 之后 | PR-C 聚合 / 流程 / 数据 / 指标与图③④；PR-D CI 守护与 §14 条款 |
-| 待用户 | 架构决策页 Q1–Q7（DESIGN §6）＋ ACL 冲突项；等 one-coordinator 通知再发（用语确认单先出） |
-| 用户确认 | 新建私有页手机能打开（「可以看到」，2026-10-15），决策页另建新页 |
-| 已定 | Q1 改为本仓库推导（intent 163920）；mermaid-cli 用户批准本机安装（锁版本，装在 `~/.modernize/psa/tools/mermaid-cli`，登记 SUPPLY_CHAIN 与 RESOURCES；SVG 入库，在线页只嵌静态 SVG） |
-| 协同 | 决策页链接方式问 one-glossary（不覆盖 R-1b-0 门禁页）；Q7 术语 bc 改动由 one-glossary 执行 |
-| 后续项 | A1 只做边集合相等；「已声明但不再使用的边」登记后续 |
+| 在途 PR | #258 ADR-0043/0044/0045（已采纳，排队；ADR-0044 须在 one-rules #249 之后合并）；#222 ADR-0041（排队）→ #224 ADR-0042；#226 intent。排队分支不得再推 |
+| 等用户 | 全企业业务对象确认页 https://claude.ai/artifact/Nmexu1PxCx5bqbbZiAbSLA（一级 19 / 次级 61 / 非对象 21，39 题；答复读 db `answers`、`answers-submit`） |
+| 答复后 | 回溯统一售前段口径（PRESALES_*，冲突 C-38）→ METHOD 第 4–5 步（不变量 → 聚合 → BC），全部段做到聚合和 BC（用户定） |
+| #258 合并后 | 通知 one-1a-par 收紧 F-1 验收（Q1 c、Q3 a、Q4 b 员工 ID、Q5 d）；起草 ADR-0046 期间模型含第 13 期（opus 一次 + 评审一轮，Phase 2 accounting.period 骨架 PR 前定稿；建议见 `proposals/FD46_RECOMMENDATION.md`） |
+| 方法第 4 稿 | 依 intent 221201（按对象命名的能力图、法律事实例外、全部段到 BC、子域 = 命名空间）、222319 / 222350（BIZBOK 五项 + G178/G190/G211，冲突以 BIZBOK 为准）；草案 `METHOD_V3_DRAFT.md`、`FRAMEWORKS_V3_ADDITIONS_DRAFT.md` 与 opus 评审意见；随最终一次性 ADR 落地（intent 211634） |
+| 其他待办 | #222 合并后 C1 卡补到期端口 ExternalSubjectEmployees 与 SSOT `expiring_ports`；「区域」数据范围维度随信息图组织单元类型题定后排期；身份生命周期 C1 确认页未出 |
+| 新规矩 | 选型先做适配研究；交用户前按性质对抗检查；子代理 haiku 取数、sonnet 调研起草复核做页、opus 只做 ADR 起草与首轮评审、安全判定、结构设计；行业通行做法为主、生产数据只作参考；取证子代理只用 one_evidence_ro 与既有通道 |
+| 已定（早前） | ADR-0039、ADR-0040（被 #222 ADR-0041 取代）；mermaid-cli 本机锁版本安装；A1 只做边集合相等 |
+| 交接记录 | `proposals/HANDOFF_2026-10-15.md`（随 #258 入库） |

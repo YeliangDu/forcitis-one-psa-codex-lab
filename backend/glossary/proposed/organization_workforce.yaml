@@ -7,6 +7,7 @@ terms:
   snake: employment_verdict
   kind: value
   bc: organization.workforce
+  scope: domain
   definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用）
   standard_ref:
   - ADR-0033 第 3 项第 7 条
@@ -21,6 +22,8 @@ terms:
   snake: login_lookup
   kind: value
   bc: organization.workforce
+  scope: acl
+  acl_class: 过渡期
   definition: 按外部登录标识（企业微信 userid 或外部登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除
   standard_ref:
   - ADR-0033 第 4 项
@@ -35,6 +38,7 @@ terms:
   snake: organization_workforce_sync_run_transition_illegal
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 同步记录不能从当前状态进入目标状态（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -49,6 +53,7 @@ terms:
   snake: organization_workforce_sync_run_not_found
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 没有这条同步记录（404）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -63,6 +68,7 @@ terms:
   snake: organization_workforce_legal_entity_transition_illegal
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 法人不能从当前状态进入目标状态（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -77,6 +83,7 @@ terms:
   snake: organization_workforce_legal_entity_not_found
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 没有这个法人（404）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -91,6 +98,7 @@ terms:
   snake: organization_workforce_legal_entity_code_taken
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 法人代码全表唯一（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -105,6 +113,7 @@ terms:
   snake: organization_workforce_legal_entity_code_locked
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 该法人已经发过单据编号，代码不能再更正（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -119,6 +128,7 @@ terms:
   snake: organization_workforce_legal_entity_code_invalid
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 法人代码是 2 至 10 位大写字母（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -133,6 +143,7 @@ terms:
   snake: organization_workforce_legal_entity_name_invalid
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 法人名称为 1 至 100 个字符（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -147,6 +158,7 @@ terms:
   snake: organization_workforce_legal_entity_status_unknown
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 法人状态只能是启用或停用（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -161,6 +173,7 @@ terms:
   snake: organization_workforce_concurrent_update
   kind: error_code
   bc: organization.workforce
+  scope: domain
   definition: 数据已被他人修改（409），重新加载后再试
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md

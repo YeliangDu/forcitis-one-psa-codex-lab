@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -51,6 +52,8 @@ class GlossaryTest {
     static Map<String, String> commentFiles = new LinkedHashMap<>();
     static Map<String, List<Occurrence>> unregistered = new TreeMap<>();
     static Map<String, List<String>> proposedOnly = new TreeMap<>();
+    static Map<String, List<String>> deprecatedOnly = new TreeMap<>();
+    static Set<String> deprecatedIds = new HashSet<>();
 
     @BeforeAll
     static void scan() throws IOException {
@@ -65,6 +68,9 @@ class GlossaryTest {
                 if (t.status().equals("approved")) {
                     approved.add(singular(w));
                 } else {
+                    if (t.status().equals("deprecated")) {
+                        deprecatedIds.add(t.id());
+                    }
                     proposed.putIfAbsent(singular(w), t.id());
                 }
             }
@@ -76,7 +82,9 @@ class GlossaryTest {
                     continue;
                 }
                 if (proposed.containsKey(key)) {
-                    proposedOnly.computeIfAbsent(word + " (term " + proposed.get(key) + ")", k -> new ArrayList<>()).add(o.where());
+                    String id = proposed.get(key);
+                    (deprecatedIds.contains(id) ? deprecatedOnly : proposedOnly)
+                            .computeIfAbsent(word + " (term " + id + ")", k -> new ArrayList<>()).add(o.where());
                 } else {
                     unregistered.computeIfAbsent(key, k -> new ArrayList<>()).add(o);
                 }
@@ -90,6 +98,11 @@ class GlossaryTest {
         if (!proposedOnly.isEmpty()) {
             StringBuilder warn = new StringBuilder("GLOSSARY WARNING: words backed only by status: proposed terms (approve them in glossary/terms.yaml):");
             proposedOnly.forEach((w, where) -> warn.append("\n  ").append(w).append(" -> ").append(String.join(", ", new LinkedHashSet<>(where))));
+            System.out.println(warn);
+        }
+        if (!deprecatedOnly.isEmpty()) {
+            StringBuilder warn = new StringBuilder("GLOSSARY WARNING: old names still in code, backed only by status: deprecated terms (rename them to replaced_by before until; owner in the term):");
+            deprecatedOnly.forEach((w, where) -> warn.append("\n  ").append(w).append(" -> ").append(String.join(", ", new LinkedHashSet<>(where))));
             System.out.println(warn);
         }
         if (unregistered.isEmpty()) {

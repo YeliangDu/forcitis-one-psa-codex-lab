@@ -3,7 +3,7 @@ package com.forcitis.one.acceptance.platform.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
-import com.forcitis.one.TestImages;
+import com.forcitis.one.TestMssql;
 import com.forcitis.one.TestPostgres;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -33,8 +33,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import org.awaitility.Awaitility;
-import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,7 +41,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -83,15 +80,16 @@ class ReadOnlyVerificationCommandIT {
 
     static final Duration COMMAND_TIME_LIMIT = Duration.ofSeconds(120);
 
-    static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
+    static final String SA_PASSWORD = TestMssql.SA_PASSWORD;
     static final AtomicInteger LOGINS = new AtomicInteger();
 
     static final PostgreSQLContainer APPLICATION_DATABASE = TestPostgres.container();
 
-    static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
-            .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
-            .withStartupTimeout(Duration.ofMinutes(5))
-            .waitingFor(Wait.forLogMessage(".*SQL Server is now ready for client connections.*", 1));
+    static final GenericContainer<?> MSSQL = TestMssql.shared();
+
+    static final String A8_WORLD = TestMssql.database(ReadOnlyVerificationCommandIT.class, "a8world").name();
+    static final String LEGACY_WORLD = TestMssql.database(ReadOnlyVerificationCommandIT.class, "legacyworld").name();
+    static final String OTHER_WORLD = TestMssql.database(ReadOnlyVerificationCommandIT.class, "otherworld").name();
 
     static final Path RELEASE_JAR;
     static final Path PROBE_CLASSES;
@@ -99,7 +97,6 @@ class ReadOnlyVerificationCommandIT {
 
     static {
         APPLICATION_DATABASE.start();
-        MSSQL.start();
         createExternalWorld();
         RELEASE_JAR = releaseJar();
         PROBE_CLASSES = probeClasses();
@@ -116,9 +113,9 @@ class ReadOnlyVerificationCommandIT {
 
     /** The connection names of the running service (the pool and metric tag names) and the environment variables of each, as in one.env. */
     enum ReadOnlyConnection {
-        A8("integration-seeyon-background", "a8world", "A8_DB_URL", "A8_DB_USERNAME", "A8_DB_PASSWORD"),
-        LEGACY_NAMES("integration-legacy", "legacyworld", "LEGACY_DB_RO_URL", "LEGACY_DB_RO_USERNAME", "LEGACY_DB_RO_PASSWORD"),
-        INTEGRATION_LEGACY_INBOX("integration-legacy-inbox", "legacyworld", "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL", "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_USERNAME",
+        A8("integration-seeyon-background", A8_WORLD, "A8_DB_URL", "A8_DB_USERNAME", "A8_DB_PASSWORD"),
+        LEGACY_NAMES("integration-legacy", LEGACY_WORLD, "LEGACY_DB_RO_URL", "LEGACY_DB_RO_USERNAME", "LEGACY_DB_RO_PASSWORD"),
+        INTEGRATION_LEGACY_INBOX("integration-legacy-inbox", LEGACY_WORLD, "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL", "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_USERNAME",
                 "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD");
 
         final String connectionName;
@@ -227,7 +224,7 @@ class ReadOnlyVerificationCommandIT {
             new Deviation("账号拥有一个 schema", 'e', a -> List.of(
                     new Sql(a.connection().database, "CREATE SCHEMA " + q(a.login() + "_owned") + " AUTHORIZATION " + q(a.login())))),
             new Deviation("能访问基线外的另一个用户库", 'f', a -> List.of(
-                    new Sql("otherworld", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))));
+                    new Sql(OTHER_WORLD, "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))));
 
     static Stream<Arguments> deviations() {
         return DEVIATIONS.stream().map(Arguments::of);
@@ -786,10 +783,9 @@ class ReadOnlyVerificationCommandIT {
      * The database name is not part of any assertion on names.
      */
     static Account isolatedAccount(ReadOnlyConnection connection) throws SQLException {
-        String database = "isolated_" + ISOLATED_DATABASES.incrementAndGet();
-        run("master", "CREATE DATABASE " + database);
+        String database = TestMssql.database(ReadOnlyVerificationCommandIT.class, "isolated_" + ISOLATED_DATABASES.incrementAndGet()).name();
         run(database, "CREATE TABLE dbo.base_rows (id bigint)", "CREATE VIEW dbo.v_rows AS SELECT id FROM dbo.base_rows");
-        String login = connection.name().toLowerCase(Locale.ROOT) + "_ro_" + LOGINS.incrementAndGet();
+        String login = TestMssql.login(ReadOnlyVerificationCommandIT.class, connection.name().toLowerCase(Locale.ROOT) + "_ro_" + LOGINS.incrementAndGet());
         String password = "Ro1!" + UUID.randomUUID();
         ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyVerificationCommandIT::run, database, "dbo.v_rows", login, password);
         Account account = new Account(connection, login, password, url(database));
@@ -966,7 +962,7 @@ class ReadOnlyVerificationCommandIT {
     }
 
     static Account baselineAccount(ReadOnlyConnection connection) {
-        String login = connection.name().toLowerCase(Locale.ROOT) + "_ro_" + LOGINS.incrementAndGet();
+        String login = TestMssql.login(ReadOnlyVerificationCommandIT.class, connection.name().toLowerCase(Locale.ROOT) + "_ro_" + LOGINS.incrementAndGet());
         String password = "Ro1!" + UUID.randomUUID();
         try {
             switch (connection) {
@@ -1001,12 +997,11 @@ class ReadOnlyVerificationCommandIT {
     }
 
     static String url(String database) {
-        return "jdbc:sqlserver://" + MSSQL.getHost() + ":" + MSSQL.getMappedPort(1433) + ";databaseName=" + database
-                + ";encrypt=true;trustServerCertificate=true";
+        return TestMssql.url(MSSQL, database);
     }
 
     static Connection admin(String database) throws SQLException {
-        return DriverManager.getConnection(url(database) + ";loginTimeout=30", "sa", SA_PASSWORD);
+        return TestMssql.adminConnection(MSSQL, database);
     }
 
     static void run(String database, String... statements) throws SQLException {
@@ -1019,22 +1014,16 @@ class ReadOnlyVerificationCommandIT {
 
     private static void createExternalWorld() {
         try {
-            Awaitility.await("SQL Server accepts the administrator login")
-                    .atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(500)).pollInSameThread().ignoreExceptions().until(() -> {
-                        admin("master").close();
-                        return true;
-                    });
-            run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld", "CREATE DATABASE otherworld");
             ReadOnlyBaselineFixture.createRdsPlatform(ReadOnlyVerificationCommandIT::run);
-            run("a8world", "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
+            run(A8_WORLD, "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
                     "CREATE TABLE dbo.member_rows (ID bigint PRIMARY KEY, NAME nvarchar(64), LOGIN_NAME nvarchar(64))",
                     "CREATE VIEW " + ReadOnlyBaselineFixture.VIEW_SCHEMA + ".v_org_member AS SELECT ID, NAME, LOGIN_NAME FROM dbo.member_rows");
-            run("legacyworld",
+            run(LEGACY_WORLD,
                     "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64))",
                     "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
                     "CREATE VIEW dbo.v_psa_one_legacy_todo AS SELECT assignee_user_id, task_id FROM dbo.todo_rows",
                     "CREATE VIEW dbo.v_one_legacy_org_short_name AS SELECT id, short_name FROM dbo.short_name_rows");
-        } catch (SQLException | ConditionTimeoutException e) {
+        } catch (SQLException e) {
             throw new IllegalStateException("cannot prepare the external databases; SQL Server log:\n" + MSSQL.getLogs(), e);
         }
     }

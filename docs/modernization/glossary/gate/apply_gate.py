@@ -1,7 +1,8 @@
 """开工前术语门禁的写回：glossary/build_terms.py 调用 apply(terms)。
 对每张已答复的卡（gate/<卡号>.json 加 glossary/decisions-gate-<卡号>.json），按用户选择登记正式词条：
 没选的条目算未定、跳过；approve / rename 登记为正式词条（values 中的取值各登记一条 <父 id>__<取值>）；merge 把本卡写法挂为目标词条的别名；
-common_word 只打印提示，由 one-glossary 补进 backend/glossary/terms.yaml 的 common_words。没有答复的卡跳过。"""
+common_word 只打印提示，由 one-glossary 补进 backend/glossary/terms.yaml 的 common_words。没有答复的卡跳过。
+条目的 scope / acl_class（使用范围，B1 必填）写进登记的词条及其取值；same_as 指向同一 bc 内已登记的同一概念时不另立词条（同一 bc 一个概念一个名字）。"""
 import glob, json, os, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -42,6 +43,9 @@ def apply(terms):
                     if name not in (t["zh"], t["en"]) and all(a["name"] != name for a in t.setdefault("aliases", [])):
                         t["aliases"].append({"name": name, "type": kind, "deprecated": kind == "old-code"})
                 continue
+            if i.get("same_as"):
+                print(f"gate {doc['card']} {i['code']}：与 {i['same_as']} 是同一概念，不另立词条")
+                continue
             given = i.get("id") or ""
             prefix = given.rsplit("__", 1)[0] + "__" if "__" in given else ""
             parent = given if given and o.get("recommended") else prefix + snake(o["en"])
@@ -54,6 +58,7 @@ def apply(terms):
                 e = dict(id=term_id, zh=zh, en=en, snake=snake(en), kind=kind, bc=i["bc"], definition=definition,
                          standard_ref=[i["refs"]], confidence="medium", aliases=[], forbidden=[], status="approved",
                          note=f"开工前术语门禁 {doc['card']}（GATE-{doc['card']}-{i['code']}）", confirmed=confirmed)
+                e.update({k: i[k] for k in ("scope", "acl_class") if i.get(k)})
                 if (zh, en) != (i["zh"], i["en"]) and term_id == parent:
                     e["aliases"].append({"name": i["en"], "type": "old-code", "deprecated": True})
                 terms.append(e)

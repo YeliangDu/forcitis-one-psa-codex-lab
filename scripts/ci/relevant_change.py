@@ -52,6 +52,7 @@ LEGACY_IT_PATHS = (
     "backend/src/test/java/com/forcitis/one/acceptance/platform/integration/",
     "backend/src/test/java/com/forcitis/one/TestImages.java",
     "backend/src/test/java/com/forcitis/one/fixture/doubles/TestOrgIds.java",
+    "backend/src/test/java/com/forcitis/one/TestMssql.java",
     "backend/src/main/java/com/forcitis/one/kernel/WecomUserId.java",
     "backend/src/main/java/com/forcitis/one/kernel/ExternalSourceBrokenException.java",
     "backend/src/main/java/com/forcitis/one/kernel/ExternalSystemUnavailableException.java",
@@ -194,6 +195,7 @@ def self_test():
     assert is_legacy_it("backend/src/test/java/com/forcitis/one/platform/approval/infrastructure/legacy/LegacyInboxAccessIT.java")
     assert is_legacy_it("backend/src/test/java/com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java")
     assert is_legacy_it("backend/architecture/test-images.txt")
+    assert is_legacy_it("backend/src/test/java/com/forcitis/one/TestMssql.java")
     assert is_legacy_it("backend/architecture/external-read-registry.yaml")
     assert is_legacy_it("backend/pom.xml")
     assert is_legacy_it("docs/modernization/phase1a/SEEYON_VIEWS.sql")
