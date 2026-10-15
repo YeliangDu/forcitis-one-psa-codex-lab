@@ -198,8 +198,8 @@ class NumberingRulesIT {
         assertThat(second).isEqualTo("TS-20270506-0002");
         assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_counters where document_type = 'TIMESHEET' and legal_entity_id is null")
                 .query(Long.class).single()).as("the shared counter is the one row without a legal entity, not a made-up id").isEqualTo(1L);
-        assertThatThrownBy(() -> jdbc.sql("insert into platform_numbering.numbering_counters (numbering_counter_id, document_type, legal_entity_id, period_key, last_value)"
-                + " values (uuidv7(), 'TIMESHEET', null, '20270506', 1)").update())
+        assertThatThrownBy(() -> jdbc.sql("insert into platform_numbering.numbering_counters (numbering_counter_id, document_type, counter_scope_kind, legal_entity_id, period_key, last_value)"
+                + " values (uuidv7(), 'TIMESHEET', 'GLOBAL', null, '20270506', 1)").update())
                 .as("a second row for the shared counter is refused although its legal entity is null").hasMessageContaining("uk_numbering_counters_document_type_legal_entity_id_period_key");
     }
 
