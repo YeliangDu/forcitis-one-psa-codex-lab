@@ -9,6 +9,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.forcitis.one.platform.integration.infrastructure.connection.ExternalConnectionProperties.Limits;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -88,9 +89,58 @@ class ReadOnlyVerificationCommandTest {
                 "(d) PASSED",
                 "(e) PASSED",
                 "(f) VIOLATED reason=OTHER_DATABASE_REACHABLE count=1",
+                "  (f) violation reason=OTHER_DATABASE_REACHABLE database=\"otherworld\"",
                 "(g) PASSED",
                 "RESULT VIOLATED");
-        assertThat(output()).doesNotContain(FakeCatalog.LEAKED).doesNotContain("otherworld").doesNotContain("db_datareader");
+        assertThat(output()).doesNotContain(FakeCatalog.LEAKED).doesNotContain("db_datareader");
+    }
+
+    @Test
+    @DisplayName("C-14 定位裁定（READONLY_VERIFY_ACCEPTANCE.md 第 3a 节）：定位行紧跟项行，字段顺序固定，名称加引号并最小转义，缺失写 -，本账号写 SELF，"
+            + "先 violation 后 overridden 各按字典序，count 等于 violation 行数；项通过时也出 overridden 行")
+    void locatorLines() {
+        FakeCatalog catalog = new FakeCatalog();
+        catalog.ownUsers.put("msdb", 1L);
+        catalog.ownUsers.put("master", 1L);
+        catalog.reachableDatabases.add("other\"world");
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 42, "G", "CONTROL", true, 1L, "dbo", "t\n\u2028\u202E\\x",
+                "public", "DATABASE_ROLE"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 42, "G", "CONTROL", true, 1L, "dbo", "t\n\u2028\u202E\\x",
+                "public", "DATABASE_ROLE"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("SCHEMA", 5, "W", "TAKE OWNERSHIP", false, 5L, "报表", null, null, "SQL_USER"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 43, "G", "EXECUTE", false, 1L, "dbo", "p_x", null, "SQL_USER"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("TYPE", 44, "G", "REFERENCES", true, null, null, null, "public", "DATABASE_ROLE"));
+
+        ReadOnlyVerificationCommand.report(ReadOnlyBaseline.check(catalog), new PrintStream(out, true, StandardCharsets.UTF_8));
+
+        assertThat(out.toString(StandardCharsets.UTF_8).lines()).containsExactly(
+                "(a) PASSED", "(b) PASSED", "(c) PASSED", "(d) PASSED", "(e) PASSED",
+                "(f) VIOLATED reason=OTHER_DATABASE_REACHABLE count=1 reason=SYSTEM_DATABASE_OWN_USER count=2",
+                "  (f) violation reason=OTHER_DATABASE_REACHABLE database=\"other\\\"world\"",
+                "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"master\"",
+                "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"msdb\"",
+                "(g) VIOLATED reason=SECURABLE_GRANT_BEYOND_SELECT count=3",
+                "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"t\\n\\u2028\\u202E\\\\x\" objectId=42 "
+                        + "permission=\"CONTROL\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE",
+                "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=SCHEMA schema=\"报表\" object=- objectId=5 permission=\"TAKE OWNERSHIP\" "
+                        + "state=GRANT_WITH_GRANT_OPTION grantee=SELF granteeType=SQL_USER",
+                "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=TYPE schema=- object=- objectId=44 permission=\"REFERENCES\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE",
+                "  (g) overridden class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"p_x\" objectId=43 permission=\"EXECUTE\" state=GRANT grantee=SELF granteeType=SQL_USER by=DATABASE_DENY",
+                "RESULT VIOLATED");
+    }
+
+    @Test
+    @DisplayName("C-14 定位裁定：(g) 通过而有被拒绝覆盖的授权时，项行 PASSED 之后出 overridden 信息行，结果通过")
+    void overriddenLinesUnderAPass() {
+        FakeCatalog catalog = new FakeCatalog();
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 43, "G", "EXECUTE", true, 1L, "dbo", "p_x", "public", "DATABASE_ROLE"));
+
+        ReadOnlyVerificationCommand.report(ReadOnlyBaseline.check(catalog), new PrintStream(out, true, StandardCharsets.UTF_8));
+
+        assertThat(out.toString(StandardCharsets.UTF_8).lines()).containsExactly("(a) PASSED", "(b) PASSED", "(c) PASSED", "(d) PASSED", "(e) PASSED",
+                "(f) PASSED", "(g) PASSED",
+                "  (g) overridden class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"p_x\" objectId=43 permission=\"EXECUTE\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE by=DATABASE_DENY",
+                "RESULT PASSED");
     }
 
     @Test

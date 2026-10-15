@@ -252,6 +252,7 @@ platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 | `read_only_verification_result__passed` | 核实通过 | Passed | 只读核实结果的取值：该项（或全部各项）与 RDS 平台基线一致 |  | 不写「通过」：已是审批结论 approve 的中文名 |
 | `read_only_verification_result__violated` | 确认违规 | Violated | 只读核实结果的取值：数据库目录确实显示该项超出或缺少基线（与「判定不了」相对） |  | PAR-2 验收测试登记，待用语确认 |
 | `read_only_verification_result__undetermined` | 判定不了 | Undetermined | 只读核实结果的取值：查询出错、超时、连不上或返回为空，该项无法判定；启动时同样拒绝启动（ADR-0037 第 4 项第 2 条） |  | PAR-2 验收测试登记，待用语确认 |
+| `overridden_grant` | 被拒绝覆盖的授权 | OverriddenGrant | 已授予、但被同级或更高层级的 DENY 覆盖、实际不生效的权限；只读核实按有效权限判定时不算违规，只作提示。 |  | one-glossary 术语门禁结论（one-coordinator 2026-10-15 转达）；只读核实命令定位行种类 overridden，by 写被哪条 DENY 覆盖（DATABASE_DENY / SCHEMA_DENY） |
 
 另有错误码 7 个（kind 为 `error_code`）、技术词 25 个（`common_words`），不在表中。
 
