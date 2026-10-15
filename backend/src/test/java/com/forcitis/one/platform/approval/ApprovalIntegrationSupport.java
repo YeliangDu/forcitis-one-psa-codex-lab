@@ -25,6 +25,8 @@ import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskResulted;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.platform.integration.api.ExternalCallKind;
+import com.forcitis.one.platform.integration.api.ExternalConnections;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
@@ -35,6 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.sql.DataSource;
 import org.awaitility.Awaitility;
 import org.flowable.engine.RuntimeService;
 import org.flowable.task.api.Task;
@@ -47,6 +50,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -386,7 +390,30 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     @TestConfiguration
+    /** Hands out a plain stand-in connection and remembers what approval asked for. */
+    public static class RecordingExternalConnections implements ExternalConnections {
+
+        public final List<String> opened = new CopyOnWriteArrayList<>();
+
+        @Override
+        public DataSource open(String poolName, String jdbcUrl, String username, String password, ExternalCallKind kind) {
+            opened.add(poolName + " " + kind);
+            return new DriverManagerDataSource(jdbcUrl, username, password);
+        }
+    }
+
     public static class Doubles {
+
+        /**
+         * The integration connection factory checks every external login against the SQL Server read-only baseline (ADR-0037 item 4) and refuses
+         * anything else; the old to-do stand-in is PostgreSQL, so approval's tests open it through this double of the integration port. The check
+         * itself is pinned by acceptance.platform.integration.ReadOnlyAccountCheckIT.
+         */
+        @Bean
+        @Primary
+        RecordingExternalConnections recordingExternalConnections() {
+            return new RecordingExternalConnections();
+        }
 
         @Bean
         @Primary

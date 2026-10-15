@@ -364,7 +364,7 @@ platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 | `supersede` | 取代 | Supersede | 已确认的后继对照从生效日起取代生效中的对照：旧对照在后继的生效日结束，两行的来源标识与自有 ID 都不改写 |  |  |
 | `evidence` | 取证 | Evidence | 只读核对老系统与 A8 生产数据，用于复刻老行为、迁入对账与新旧等价核对；用专用取证账号，只出计数或聚合，或落 ECS 数据盘，每次登记一行 |  | ADR-0037 登记（数据库登录名 one_evidence_ro），待用语确认 |
 
-另有错误码 7 个（kind 为 `error_code`）、技术词 24 个（`common_words`），不在表中。
+另有错误码 7 个（kind 为 `error_code`）、技术词 25 个（`common_words`），不在表中。
 
 ## platform.numbering（`platform-numbering.yaml`）
 

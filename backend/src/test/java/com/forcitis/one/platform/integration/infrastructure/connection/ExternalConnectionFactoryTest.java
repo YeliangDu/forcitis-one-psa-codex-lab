@@ -5,7 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
 import com.zaxxer.hikari.HikariDataSource;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,7 +20,8 @@ class ExternalConnectionFactoryTest {
     static final String SQL_SERVER = "jdbc:sqlserver://127.0.0.1:1;databaseName=none";
     static final String POSTGRES = "jdbc:postgresql://127.0.0.1:1/none";
 
-    final ExternalConnectionFactory factory = new ExternalConnectionFactory(new ExternalConnectionProperties(null, null));
+    final ExternalConnectionFactory factory = new ExternalConnectionFactory(new ExternalConnectionProperties(null, null),
+            new ReadOnlyAccounts(Clock.fixed(Instant.parse("2026-10-15T00:00:00Z"), ZoneOffset.UTC), source -> new FakeCatalog()));
 
     private HikariDataSource open(String url, ExternalCallKind kind) {
         return (HikariDataSource) factory.open("test-pool", url, "reader", "not-a-secret", kind);

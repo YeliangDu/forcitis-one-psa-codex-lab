@@ -7,7 +7,10 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 
-/** The visible columns must EQUAL the whitelist, not merely contain it, so an extra column or view refuses start-up. */
+/**
+ * The visible columns of the frozen views must EQUAL the whitelist, and the configured ids must exist (RULE-356, M7). The login itself is
+ * checked by the connection factory before any of this runs (ADR-0037 item 4).
+ */
 final class SeeyonStartupCheck implements SmartInitializingSingleton {
 
     private final SeeyonSchemaInspector inspector;
@@ -52,12 +55,8 @@ final class SeeyonStartupCheck implements SmartInitializingSingleton {
                     && inspector.countFeeEarnersMarked(mapping.feeEarnerYesEnumId()) == 0) {
                 problems.add("no person carries the configured fee-earner 'yes' enum id: every fee earner marker would silently become false");
             }
-            List<String> excessive = inspector.excessivePermissions();
-            if (!excessive.isEmpty()) {
-                problems.add("the Seeyon account holds database-level permissions a read-only view account must not have: " + excessive);
-            }
         } catch (RuntimeException unreachable) {
-            problems.add("Seeyon cannot be checked (" + unreachable.getClass().getSimpleName() + ")");
+            problems.add("Seeyon cannot be checked (" + SeeyonOrgSource.sqlFailure(unreachable) + ")");
         }
         return problems;
     }

@@ -40,7 +40,7 @@ class JdbcLegacyInbox implements LegacyInbox {
                     .param("user", user.value()).query((rs, n) -> read(rs)).list();
             return new LegacyTodos(true, todos);
         } catch (DataAccessException e) {
-            log.error("Legacy to-do view {} could not be read; the merged inbox shows new tasks only", viewName, e);
+            log.error("Legacy to-do view {} could not be read ({}); the merged inbox shows new tasks only", viewName, sqlFailure(e));
             return LegacyTodos.unavailable();
         }
     }
@@ -59,5 +59,15 @@ class JdbcLegacyInbox implements LegacyInbox {
         }
         return detailUrlTemplate.replace("{processInstanceId}", URLEncoder.encode(instanceId, StandardCharsets.UTF_8))
                 .replace("{taskId}", URLEncoder.encode(taskId, StandardCharsets.UTF_8));
+    }
+
+    /** ADR-0037 item 3.5: SQL Server messages can carry column values, so only the type, the error number and the SQLState are told. */
+    static String sqlFailure(Throwable failure) {
+        for (Throwable t = failure; t != null; t = t.getCause()) {
+            if (t instanceof SQLException sql) {
+                return failure.getClass().getSimpleName() + ", error " + sql.getErrorCode() + ", SQLState " + sql.getSQLState();
+            }
+        }
+        return failure.getClass().getSimpleName() + ", no SQL error";
     }
 }

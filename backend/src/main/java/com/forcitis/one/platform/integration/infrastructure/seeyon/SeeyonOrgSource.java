@@ -7,6 +7,7 @@ import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourcePerson;
 import com.forcitis.one.platform.integration.api.SourcePosition;
 import com.forcitis.one.platform.integration.api.SourceRelationship;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataAccessException;
@@ -18,16 +19,20 @@ final class SeeyonOrgSource implements OrgSource {
     private final JdbcClient background;
     private final SeeyonMapping mapping;
     private final SeeyonViewReader mapper;
+    private final Runnable recheckBeforeSnapshot;
 
-    SeeyonOrgSource(JdbcClient interactive, JdbcClient background, SeeyonMapping mapping) {
+    SeeyonOrgSource(JdbcClient interactive, JdbcClient background, SeeyonMapping mapping, Runnable recheckBeforeSnapshot) {
         this.interactive = interactive;
         this.background = background;
         this.mapping = mapping;
         this.mapper = new SeeyonViewReader(mapping);
+        this.recheckBeforeSnapshot = recheckBeforeSnapshot;
     }
 
+    /** Every sync and reconciliation starts here, so the login is checked again first (ADR-0037 item 4.4). */
     @Override
     public SourceOrgSnapshot readSnapshot() {
+        recheckBeforeSnapshot.run();
         try {
             List<OrgUnitRow> rows = present(background.sql(SeeyonViewSql.ORG_UNITS).param("rootPathPrefix", mapping.rootPathPrefix()).query((rs, n) -> mapper.orgUnit(rs)).list());
             List<SourceRelationship> relationships = present(background.sql(SeeyonViewSql.RELATIONSHIPS)
@@ -66,12 +71,22 @@ final class SeeyonOrgSource implements OrgSource {
         }
     }
 
-    /** The message is stored in the sync run, so it names the failure class only, never connection details. */
+    /** The message is stored in the sync run and the cause is dropped: SQL Server messages can carry column values (ADR-0037 item 3.5). */
     private static ExternalSystemUnavailableException unavailable(DataAccessException cause) {
-        return new ExternalSystemUnavailableException("Seeyon views cannot be read (" + cause.getClass().getSimpleName() + ")", cause);
+        return new ExternalSystemUnavailableException("Seeyon views cannot be read (" + sqlFailure(cause) + ")");
     }
 
     private static <T> List<T> present(List<Optional<T>> rows) {
         return rows.stream().flatMap(Optional::stream).toList();
+    }
+
+    /** ADR-0037 item 3.5: SQL Server messages can carry column values, so only the type, the error number and the SQLState are told. */
+    static String sqlFailure(Throwable failure) {
+        for (Throwable t = failure; t != null; t = t.getCause()) {
+            if (t instanceof SQLException sql) {
+                return failure.getClass().getSimpleName() + ", error " + sql.getErrorCode() + ", SQLState " + sql.getSQLState();
+            }
+        }
+        return failure.getClass().getSimpleName() + ", no SQL error";
     }
 }
