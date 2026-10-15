@@ -5,11 +5,15 @@ import com.forcitis.one.platform.integration.api.ExternalConnections;
 import com.forcitis.one.platform.integration.infrastructure.connection.ExternalConnectionProperties.Limits;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 import javax.sql.DataSource;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
 /**
  * The one place that builds pools to external databases. SQL Server waits for ever for a lock and its driver has no query or read limit
@@ -41,7 +45,34 @@ final class ExternalConnectionFactory implements ExternalConnections, AutoClosea
     }
 
     HikariDataSource build(String poolName, String jdbcUrl, String username, String password, ExternalCallKind kind) {
-        Limits limits = properties.limitsOf(kind);
+        HikariDataSource pool = pool(properties.limitsOf(kind), poolName, jdbcUrl, username, password);
+        pools.add(pool);
+        return pool;
+    }
+
+    /**
+     * For the read-only verification command, which no check guards: opens one connection with the given limits and hands it to use as a
+     * DataSource that never closes it, so a login that cannot connect fails once, not after a pool wait per query; that failure goes to
+     * unconnectable instead. The pool is closed afterwards.
+     */
+    static <T> T onOneConnection(Limits limits, String poolName, String jdbcUrl, String username, String password, Function<DataSource, T> use,
+            Function<SQLException, T> unconnectable) {
+        try (HikariDataSource pool = pool(limits, poolName, jdbcUrl, username, password)) {
+            Connection connection;
+            try {
+                connection = pool.getConnection();
+            } catch (SQLException failure) {
+                return unconnectable.apply(failure);
+            }
+            try (connection) {
+                return use.apply(new SingleConnectionDataSource(connection, true));
+            } catch (SQLException closing) {
+                throw new IllegalStateException("cannot close the connection of " + poolName, closing);
+            }
+        }
+    }
+
+    private static HikariDataSource pool(Limits limits, String poolName, String jdbcUrl, String username, String password) {
         HikariConfig config = new HikariConfig();
         config.setPoolName(poolName);
         config.setJdbcUrl(jdbcUrl);
@@ -54,9 +85,7 @@ final class ExternalConnectionFactory implements ExternalConnections, AutoClosea
         config.setValidationTimeout(limits.acquireTimeout().toMillis());
         config.setInitializationFailTimeout(-1);
         limitStatementsAndWaits(config, jdbcUrl, limits);
-        HikariDataSource pool = new HikariDataSource(config);
-        pools.add(pool);
-        return pool;
+        return new HikariDataSource(config);
     }
 
     private static void limitStatementsAndWaits(HikariConfig config, String jdbcUrl, Limits limits) {

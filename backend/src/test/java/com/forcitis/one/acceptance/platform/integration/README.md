@@ -23,3 +23,12 @@
 - 新增反例：在 `VIOLATIONS` 里加一行 `new Violation(名称, 应报出的项目字母, 账号 -> 要执行的 SQL)`，自动在三条连接上各跑一次；授权只加在本用例新建的登录上，不必回滚。授权落到本登录以外（如授给 `public`）时用四参数形式再给一个 `undo`，用例结束（含失败）即撤销，免得同库后续用例被连累。
 - 复审反例（名称以「复审 H-1」「复审 H-2」开头，引 PR #163 复审编号）：对象级 TAKE OWNERSHIP、schema 级 CONTROL、服务器上针对登录的 IMPERSONATE ON LOGIN::sa、`public` 在用户对象上的 UPDATE（H-1）；在 msdb 为该登录建用户并加入 db_owner、在 master 为该登录建用户（H-2）。按实现实际报出的标记收窄（RULING-ADR37-11）：TAKE OWNERSHIP、schema 级 CONTROL、`public` 的 UPDATE 断言 `(g)`；IMPERSONATE ON LOGIN::sa 断言 `(d)`；H-2 两例断言 `(f)`。「库级 DENY INSERT 被撤并 GRANT INSERT ON SCHEMA::dbo」实现同时报 `(b)` 与 `(g)`、「class 4 授权 IMPERSONATE ON USER」同时报 `(e)` 与 `(g)`，用例保留原有的 `(b)`、`(e)`，不放宽。
 - 删改测试覆盖（复审 L）：`postgresqlAddressIsRefusedThroughTheRealFactory` 把每条只读连接配成新系统自己的 PostgreSQL 地址与账号，经真实工厂启动，断言拒绝并带项目标记（取代已删的「应用自己的账号不能配成老系统账号」）。
+
+# 验收测试：只读核实命令（PAR-2，ADR-0037 第 4 项、C-14）
+
+`ReadOnlyVerificationCommandIT` 以打包好的应用（`java -jar target/forcitis-one-*.jar`，与 ECS 一样）运行只读核实命令，每个用例一个独立 JVM，对真实 SQL Server 容器（登录由 `ReadOnlyBaselineFixture` 建）核实一条只读连接，断言逐项标记 (a)–(g)、结果行与退出码。测试假定的契约（档案名、参数、输出行格式、退出码、环境变量）见同目录 `READONLY_VERIFY_ACCEPTANCE.md`；测试不引用生产类。
+
+- 运行：`cd backend && ./mvnw -B verify -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=ReadOnlyVerificationCommandIT`（failsafe 在 package 之后运行，需要本机 Docker；镜像经 `TestImages`）。`target/` 中没有发布包、或发布包比 `target/classes` 旧时，类初始化即失败，不跳过。
+- 每个用例另断言：命令没有打开任何监听套接字（`ListeningSocketProbe` 作为选择器提供者装入子进程，对照用例 `probeSeesAProcessThatListens` 证明它能发现监听），服务库（空 PostgreSQL）中没有表、没有新 schema（无 Flyway 历史表、无迁移）；输出不含口令、登录名、连接串。
+- 预期值以同一登录直连 SQL Server 取得（`connectionFailure`、`catalogRefusal`），不凭推测：库不存在 4060、目录视图被拒 229，SQLState 取驱动所报。
+- 新增反例：在 `DEVIATIONS` 加一行 `new Deviation(名称, 应标违规的项目字母, 账号 -> 要执行的 SQL)`；授权只加在本用例新建的登录上。新增「不得输出」的情形：构造一个带 `marker()` 的对象名，断言输出不含它。

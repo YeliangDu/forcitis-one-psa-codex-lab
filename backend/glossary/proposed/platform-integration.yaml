@@ -266,6 +266,77 @@ terms:
   forbidden: []
   status: proposed
   note: ADR-0037 登记（数据库登录名 one_evidence_ro），待用语确认
+- id: read_only_verification
+  zh: 只读核实
+  en: ReadOnlyVerification
+  snake: read_only_verification
+  kind: command
+  bc: platform.integration
+  definition: 运维命令：对一条只读外部连接的登录跑与启动校验同一套判定，逐项（ADR-0037 第 4 项 (a)–(g)）输出核实通过、确认违规或判定不了，判定不了时只带 SQL 错误号与 SQLState，按结果给退出码；不输出数据、消息原文与凭据，不监听端口、不迁移、不起作业，口令只从环境读
+  standard_ref:
+  - adr/ADR-0037.md
+  - phase1a/infra/PREDEPLOY_CHECKLIST.md C-14
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: PAR-2 验收测试登记（档案名 read-only-verification），待用语确认
+- id: read_only_verification_result
+  zh: 只读核实结果
+  en: ReadOnlyVerificationResult
+  snake: read_only_verification_result
+  kind: enum
+  bc: platform.integration
+  definition: 只读核实对每一项与对整条连接给出的结论，取核实通过、确认违规、判定不了之一；整条连接有任一项确认违规即为确认违规，否则有判定不了即为判定不了
+  standard_ref:
+  - adr/ADR-0037.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: PAR-2 验收测试登记，待用语确认
+- id: read_only_verification_result__passed
+  zh: 核实通过
+  en: Passed
+  snake: passed
+  kind: value
+  bc: platform.integration
+  definition: 只读核实结果的取值：该项（或全部各项）与 RDS 平台基线一致
+  standard_ref:
+  - adr/ADR-0037.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 不写「通过」：已是审批结论 approve 的中文名
+- id: read_only_verification_result__violated
+  zh: 确认违规
+  en: Violated
+  snake: violated
+  kind: value
+  bc: platform.integration
+  definition: 只读核实结果的取值：数据库目录确实显示该项超出或缺少基线（与「判定不了」相对）
+  standard_ref:
+  - adr/ADR-0037.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: PAR-2 验收测试登记，待用语确认
+- id: read_only_verification_result__undetermined
+  zh: 判定不了
+  en: Undetermined
+  snake: undetermined
+  kind: value
+  bc: platform.integration
+  definition: 只读核实结果的取值：查询出错、超时、连不上或返回为空，该项无法判定；启动时同样拒绝启动（ADR-0037 第 4 项第 2 条）
+  standard_ref:
+  - adr/ADR-0037.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: PAR-2 验收测试登记，待用语确认
 common_words:
 - background
 - call

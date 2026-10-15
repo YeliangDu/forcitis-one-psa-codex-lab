@@ -1,1 +1,2 @@
-org.springframework.context.ApplicationListener=com.forcitis.one.platform.integration.infrastructure.transport.MigrateOnlyListener
+org.springframework.context.ApplicationListener=com.forcitis.one.platform.integration.infrastructure.transport.MigrateOnlyListener,\
+  com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyVerificationCommand

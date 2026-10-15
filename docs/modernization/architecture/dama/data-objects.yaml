@@ -1,0 +1,325 @@
+# 数据对象（DAMA-DMBOK2R）。ID = DO-<模块>-<对象>；tables 只引用数据访问注册表键作分组（全部 50 个键各归一处），负责 BC 由 schema 推导、不另存（ADR-0040 接缝 4）；category 取 SESSION_PLAYBOOK §14.1 D17 细则第 1 条七类之一。
+# 初稿：2026-10-15 由 sonnet 子代理归并；category 为推断（注册表尚无此字段），拿不准的见各条 category_basis。维护：one-architecture。
+meta:
+  generated: '2026-10-15'
+  basis: origin/main
+  category_definition: SESSION_PLAYBOOK.md §14.1 D17 细则第 1 条：交易、事实、审计、技术、主数据（被单据、事实或授权按 ID 引用的业务实体及其关系）、参考数据（受控代码表）、配置（参数、模板、决策表、日历、费率）；拿不准按更严的一类
+  refs: 'tables→backend/architecture/data-access-registry.yaml 键；sensitive_columns→backend/architecture/data-classification.txt（schema.table.column: 级别）'
+  note: 本草稿的 category 是依据细则的推断，不是注册表里已登记的值；注册表尚无 category 字段。当前 reference 类 0 条，fact 类 0 条（1a 尚无事实表）
+data_objects:
+- id: DO-cost.timesheet-Timesheet
+  zh: 工时单
+  category: transaction
+  system_of_record: 新系统
+  lineage_source: NEW
+  migrated_from:
+  - old timesheet rows
+  tables:
+  - cost_timesheet.timesheets
+  sensitive_columns: []
+  category_basis: 业务单据（BUSINESS_DOCUMENT）：员工填报、走审批、有状态与单据编号；D17 细则 1 交易类
+- id: DO-cost.timesheet-ConsumedEvent
+  zh: 已消费事件登记
+  category: technical
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - cost_timesheet.consumed_events
+  sensitive_columns: []
+  category_basis: 幂等去重登记（IDEMPOTENCY，90 天清理），无业务含义
+- id: DO-organization.attendance-WorkCalendar
+  zh: 工作日历
+  category: config
+  system_of_record: 新系统
+  lineage_source: NEW
+  migrated_from:
+  - old work calendar 2016-2026
+  tables:
+  - organization_attendance.work_calendar_years
+  - organization_attendance.work_calendar_days
+  sensitive_columns: []
+  category_basis: 日历属配置类（D17 细则 1「配置：参数、模板、决策表、日历、费率」；细则 8 已定「工作日历按配置型版本化」）；当前实现为每年整体替换
+- id: DO-organization.workforce-Employee
+  zh: 员工
+  category: master
+  system_of_record: 外部来源：致远 A8 组织数据（经 platform.integration 的视图适配器同步，新系统只读副本）
+  lineage_source: ORG_SOURCE
+  tables:
+  - organization_workforce.employees
+  sensitive_columns:
+  - 'organization_workforce.employees.display_name: SENSITIVE'
+  - 'organization_workforce.employees.email: SENSITIVE'
+  - 'organization_workforce.employees.employee_code: SENSITIVE'
+  - 'organization_workforce.employees.gender: SENSITIVE'
+  - 'organization_workforce.employees.login_name: SENSITIVE'
+  - 'organization_workforce.employees.wecom_user_id: SENSITIVE'
+  category_basis: 被单据、授权按 ID 引用的业务实体（D17 细则 1 主数据）；外部同步快照
+- id: DO-organization.workforce-OrgUnit
+  zh: 组织单元
+  category: master
+  system_of_record: 外部来源：致远 A8 组织数据（经 platform.integration 的视图适配器同步，新系统只读副本）
+  lineage_source: ORG_SOURCE
+  tables:
+  - organization_workforce.org_units
+  - organization_workforce.org_unit_versions
+  sensitive_columns: []
+  category_basis: D17 细则 1 主数据；当前投影（SNAPSHOT）+ 版本表（DIMENSION_VERSIONED）归为同一对象
+- id: DO-organization.workforce-Position
+  zh: 岗位
+  category: master
+  system_of_record: 外部来源：致远 A8 组织数据（经 platform.integration 的视图适配器同步，新系统只读副本）
+  lineage_source: ORG_SOURCE
+  tables:
+  - organization_workforce.positions
+  sensitive_columns: []
+  category_basis: 来自 A8 的岗位；术语表把 position 标为 value，也可能是受控代码表（reference），按 D17「拿不准按更严的一类」归 master
+- id: DO-organization.workforce-Assignment
+  zh: 任职关系
+  category: master
+  system_of_record: 外部来源：致远 A8 组织数据（经 platform.integration 的视图适配器同步，新系统只读副本）
+  lineage_source: ORG_SOURCE
+  tables:
+  - organization_workforce.assignments
+  - organization_workforce.assignment_versions
+  sensitive_columns: []
+  category_basis: 员工—组织单元—岗位的关系，D17 细则 1 主数据含「关系」；SNAPSHOT + DIMENSION_VERSIONED
+- id: DO-organization.workforce-LegalEntity
+  zh: 法人主体
+  category: master
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - organization_workforce.legal_entities
+  - organization_workforce.legal_entity_versions
+  sensitive_columns: []
+  category_basis: D17 细则 1 明列法人为主数据；新系统自有，根表 + 版本表（注册表中 legal_entity_versions 未写 aggregate 字段）
+- id: DO-organization.workforce-LegalEntityAttribution
+  zh: 法人归属
+  category: master
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - organization_workforce.legal_entity_attributions
+  - organization_workforce.org_unit_legal_entities
+  - organization_workforce.employee_legal_entities
+  - organization_workforce.legal_entity_attribution_corrections
+  sensitive_columns: []
+  category_basis: 「部门 → 法人、员工 → 法人」是 D6 点名的版本化主数据关系；corrections 是只追加更正日志，随归属对象归并（单独看可归 audit）
+- id: DO-organization.workforce-SyncRun
+  zh: 组织同步记录
+  category: technical
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - organization_workforce.sync_runs
+  - organization_workforce.sync_diffs
+  - organization_workforce.sync_run_held_separations
+  sensitive_columns: []
+  category_basis: 同步作业的运行台账、差异与被拦下的离职；运维性质，不是被业务引用的实体；也可能被视为 audit（只追加的 diffs），拿不准
+- id: DO-platform.approval-ApprovalRequest
+  zh: 审批请求
+  category: transaction
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_approval.approval_requests
+  - platform_approval.approval_task_records
+  - platform_approval.start_rounds
+  - platform_approval.approval_tasks
+  sensitive_columns: []
+  category_basis: 一次审批的过程记录（请求、轮次、任务、办理记录）：有状态、随业务单据产生的交易类过程数据；task_records 只追加，也可视为 fact
+- id: DO-platform.approval-ProcessArchiveSkip
+  zh: 流程归档跳过记录
+  category: technical
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_approval.process_archive_skips
+  sensitive_columns: []
+  category_basis: 归档作业跳过项的只追加日志，运维用
+- id: DO-platform.approval-ProcessEngineTables
+  zh: 流程引擎框架表
+  category: technical
+  system_of_record: 框架（Flowable / Spring Session / Spring Modulith / ShedLock），非业务数据
+  lineage_source: FRAMEWORK
+  tables:
+  - platform_approval.act_*
+  sensitive_columns: []
+  category_basis: Flowable 自带表（FRAMEWORK），一个键代表全部 act_* 表
+- id: DO-platform.audit-AuditEntry
+  zh: 审计条目
+  category: audit
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_audit.audit_entries
+  - platform_audit.audit_archive_batches
+  sensitive_columns:
+  - 'platform_audit.audit_entries.source_address: SENSITIVE'
+  category_basis: 只追加的审计记录与其归档批次（D8、D17 细则 1 审计类）
+- id: DO-platform.idempotency-IdempotentResponse
+  zh: 幂等响应
+  category: technical
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_idempotency.idempotent_responses
+  sensitive_columns: []
+  category_basis: 接口幂等缓存（IDEMPOTENCY），插入 / 删除，无业务含义
+- id: DO-platform.identity-UserAccount
+  zh: 用户账号
+  category: master
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_identity.user_accounts
+  - platform_identity.account_roles
+  sensitive_columns:
+  - 'platform_identity.user_accounts.last_login_address: SENSITIVE'
+  category_basis: 被授权与会话按 ID 引用的账号及其角色绑定（D17 细则 1「授权关系」）；根表 + 子表
+- id: DO-platform.identity-Role
+  zh: 角色
+  category: master
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_identity.roles
+  - platform_identity.role_permissions
+  sensitive_columns: []
+  category_basis: 角色及其权限集合，是授权关系的一部分（主数据）；也可能被视为配置，按「更严的一类」归 master
+- id: DO-platform.identity-EmergencyAdmin
+  zh: 应急管理员
+  category: master
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_identity.emergency_admins
+  sensitive_columns:
+  - 'platform_identity.emergency_admins.account_name: SENSITIVE'
+  - 'platform_identity.emergency_admins.last_totp_step: SENSITIVE'
+  - 'platform_identity.emergency_admins.password_hash: RESTRICTED'
+  - 'platform_identity.emergency_admins.totp_secret_encrypted: RESTRICTED'
+  category_basis: 应急账号与其安全凭据；身份绑定类实体，凭据不得留历史（D17 细则 2 豁免理由之一）；拿不准是 master 还是 config
+- id: DO-platform.identity-AuthorizationRequest
+  zh: 授权请求
+  category: transaction
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_identity.authorization_requests
+  sensitive_columns: []
+  category_basis: 双人确认的授权申请单：发起、确认、拒绝，有状态，交易类过程数据
+- id: DO-platform.identity-NavigationItem
+  zh: 导航项
+  category: config
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_identity.navigation_items
+  sensitive_columns: []
+  category_basis: 菜单配置，只由迁移维护（MIGRATION_ONLY，git 即版本）
+- id: DO-platform.identity-TicketIssuer
+  zh: 票据签发方
+  category: config
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_identity.ticket_issuers
+  sensitive_columns:
+  - 'platform_identity.ticket_issuers.key_reference: SENSITIVE'
+  category_basis: 外部调用方签发方配置（含密钥引用），只由迁移维护
+- id: DO-platform.identity-OneTimeCredential
+  zh: 一次性登录凭证
+  category: technical
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_identity.login_states
+  - platform_identity.sso_ticket_uses
+  - platform_identity.browser_identifiers
+  sensitive_columns:
+  - 'platform_identity.browser_identifiers.identifier_hash: SENSITIVE'
+  - 'platform_identity.login_states.state_hash: SENSITIVE'
+  - 'platform_identity.sso_ticket_uses.ticket_hash: SENSITIVE'
+  category_basis: 一次性 state / 票据使用 / 浏览器标识摘要（ONE_TIME，插入 / 删除）
+- id: DO-platform.identity-Session
+  zh: 会话
+  category: technical
+  system_of_record: 框架（Flowable / Spring Session / Spring Modulith / ShedLock），非业务数据
+  lineage_source: FRAMEWORK
+  tables:
+  - platform_identity.sessions
+  - platform_identity.sessions_attributes
+  sensitive_columns:
+  - 'platform_identity.sessions.principal_name: SENSITIVE'
+  - 'platform_identity.sessions_attributes.attribute_bytes: RESTRICTED'
+  category_basis: Spring Session 框架表（FRAMEWORK），会话内容为 RESTRICTED
+- id: DO-platform.integration-EventPublication
+  zh: 事件发布登记
+  category: technical
+  system_of_record: 框架（Flowable / Spring Session / Spring Modulith / ShedLock），非业务数据
+  lineage_source: FRAMEWORK
+  tables:
+  - platform_integration.event_publication
+  - platform_integration.event_publication_archive
+  sensitive_columns: []
+  category_basis: Spring Modulith 事件发布登记表与归档（FRAMEWORK）
+- id: DO-platform.integration-OutboundDelivery
+  zh: 出站投递
+  category: technical
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_integration.outbound_deliveries
+  sensitive_columns:
+  - 'platform_integration.outbound_deliveries.recipient_codes: SENSITIVE'
+  - 'platform_integration.outbound_deliveries.skipped_recipient_codes: SENSITIVE'
+  category_basis: 企业微信消息的投递队列（QUEUE）：重试、死信，运维性质
+- id: DO-platform.integration-SourceReference
+  zh: 来源对照
+  category: master
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_integration.source_references
+  sensitive_columns: []
+  category_basis: 外部系统对象 ID 与新系统自有 ID 的对照（D16），被同步与迁入按 ID 引用，有确认状态与生效区间；术语表无对应词条；拿不准归 master 还是 reference
+- id: DO-platform.numbering-NumberingRule
+  zh: 编号规则
+  category: config
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_numbering.numbering_rules
+  - platform_numbering.numbering_rule_versions
+  sensitive_columns: []
+  category_basis: D15 配置版本化（CONFIG_VERSIONED），版本只追加、需确认
+- id: DO-platform.numbering-NumberingCounter
+  zh: 编号计数器
+  category: technical
+  system_of_record: 新系统
+  lineage_source: NEW
+  tables:
+  - platform_numbering.numbering_counters
+  sensitive_columns: []
+  category_basis: 取号计数（COUNTER，条件更新），无独立业务含义
+- id: DO-platform.numbering-LegacyNumber
+  zh: 原编号对照
+  category: technical
+  system_of_record: 老系统迁入（只追加的对照台账，新系统是对照的记录系统）
+  lineage_source: MIGRATION
+  migrated_from:
+  - old document numbers
+  tables:
+  - platform_numbering.legacy_numbers
+  sensitive_columns: []
+  category_basis: 迁入单据原编号的只追加血缘台账（LINEAGE）；也可被视为 reference，拿不准
+- id: DO-platform.scheduling-SchedulerLock
+  zh: 调度锁
+  category: technical
+  system_of_record: 框架（Flowable / Spring Session / Spring Modulith / ShedLock），非业务数据
+  lineage_source: FRAMEWORK
+  tables:
+  - platform_scheduling.scheduler_locks
+  sensitive_columns: []
+  category_basis: ShedLock 表（FRAMEWORK）
