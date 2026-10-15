@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.InvalidRequestException;
 import com.forcitis.one.kernel.VersionMalformedException;
 import com.forcitis.one.kernel.VersionMismatchException;
 import com.forcitis.one.kernel.VersionRequiredException;
+import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import org.slf4j.Logger;
@@ -92,7 +93,8 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> unexpected(Exception failure) {
-        LOG.error("unexpected failure", failure);
+        LOG.error("unexpected failure {} correlationId={}", failure.getClass().getName(),
+                WorkContext.correlationId().map(Object::toString).orElse("none"));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ProblemDetails.of(HttpStatus.INTERNAL_SERVER_ERROR,
                 WebError.PLATFORM_WEB_UNEXPECTED, "Unexpected error. Quote the correlation id when reporting it."));
     }
