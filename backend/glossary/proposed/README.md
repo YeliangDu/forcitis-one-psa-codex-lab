@@ -208,9 +208,11 @@
 
 | id | zh | en | 定义 | 是否疑似方言 |
 |---|---|---|---|---|
-| `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；迁入行以 `migration_batch_id` 指向它 | 「导入批次」`import_batch` 为同义的另一种写法，R-1b 归并 |
+| `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；批次挂在来源对照与原编号对照上，业务表不带批次列 | 「导入批次」`import_batch` 为另一种写法，R-1b 归并后列入禁用写法 |
 | `migration_reject` | 迁入拒收 | MigrationReject | 迁入时被拒绝的一条来源行，带原因代码，须逐条处置 |  |
-| `migration_reconciliation` | 迁入对账 | MigrationReconciliation | 按期间 × 法人 × 对象类型比对迁入前后的行数、金额与来源 ID 摘要 |  |
-| `period_status__migrating` | 迁入中 | Migrating | 期间状态取值：历史期间只接受迁入过账，对账通过后关账 |  |
+| `migration_tie_out` | 迁入核对 | MigrationTieOut | 按期间 × 法人 × 对象类型比对来源快照与目标的行数、金额、来源 ID 摘要 | 不用 Reconciliation（已批准为「经营勾稽」） |
+| `period_status__historical` | 历史期间 | Historical | 期间状态取值，终态：只接受迁入过账通道，不逐期关账 | 会计类用语，待财务确认 |
 
-前端界面用语（`frontend-ui.yaml`）另增：`correlation_id` 关联号 / CorrelationId——一次请求及其引发的事件与投递共用的追踪编号；出错时界面显示可复制的关联号（NAMING_STANDARD §4a U5）。
+通用词另增 `batch`、`count`（批量命令后缀与计数端点，NAMING_STANDARD §2.6 A-3、A-6）。
+
+前端界面用语（`frontend-ui.yaml`）另增：`correlation_id` 关联号 / CorrelationId（归属 `kernel`）——一次请求及其引发的事件与投递共用的追踪编号；出错时界面显示可复制的关联号（NAMING_STANDARD §4a U5）。

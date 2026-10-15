@@ -5,7 +5,7 @@ terms:
   en: CorrelationId
   snake: correlation_id
   kind: value
-  bc: platform.web
+  bc: kernel
   definition: 一次请求及其引发的事件与投递共用的追踪编号（X-Correlation-Id）；出错时界面显示可复制的关联号，便于对日志（NAMING_STANDARD §4a U5、GUIDING_PRINCIPLES §11 O-1）
   standard_ref:
   - GUIDING_PRINCIPLES §11 O-1
