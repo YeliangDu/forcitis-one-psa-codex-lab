@@ -366,6 +366,7 @@ class ReadOnlyAccountCheckIT {
         Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
         try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.LEGACY_NAMES, account))) {
             OrgShortNames names = context.getBean(OrgShortNames.class);
+            legacyReferenceOfTheShortNameUnit(context);
             assertThat(names.readShortNames()).as("the adapter reads before the grant changes").hasSize(1);
 
             grantWriteBehindTheDatabaseDeny(account);
@@ -394,6 +395,19 @@ class ReadOnlyAccountCheckIT {
         });
 
         assertThat(failure).as("the legacy inbox check could not reach its database: it must refuse, not log and carry on").isNotNull();
+    }
+
+    /**
+     * R-1b P3b (C8, RULING-P3B-3): once the short names are handed out by own id, the old-system department 2 of the fixture needs its
+     * (LEGACY_SYSTEM, ORG_UNIT) reference to be handed out at all; before P3b (EmployeeId still a number) nothing is added.
+     */
+    static void legacyReferenceOfTheShortNameUnit(ConfigurableApplicationContext context) {
+        if (com.forcitis.one.kernel.EmployeeId.class.getRecordComponents()[0].getType() != UUID.class) {
+            return;
+        }
+        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
+            SourceReferencesProbe.of(context).allocate("LEGACY_SYSTEM", "ORG_UNIT", 2);
+        }
     }
 
     static double shortNameRefreshFailures(ConfigurableApplicationContext context) {
