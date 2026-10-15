@@ -85,13 +85,17 @@ def is_relevant(path):
     return not ("/" not in path and path.endswith(".md"))
 
 
+# without core.quotepath=off git quotes non-ASCII paths ("docs/...\350..."), which then look relevant
+GIT = ("git", "-c", "core.quotepath=off")
+
+
 def changed_files(base):
-    out = subprocess.run(["git", "diff", "--name-only", f"origin/{base}...HEAD"], capture_output=True, text=True, check=True)
+    out = subprocess.run([*GIT, "diff", "--name-only", f"origin/{base}...HEAD"], capture_output=True, text=True, encoding="utf-8", check=True)
     return out.stdout.splitlines()
 
 
 def files_since(before):
-    out = subprocess.run(["git", "diff", "--name-only", before, "HEAD"], capture_output=True, text=True)
+    out = subprocess.run([*GIT, "diff", "--name-only", before, "HEAD"], capture_output=True, text=True, encoding="utf-8")
     return out.stdout.splitlines() if out.returncode == 0 else None
 
 
@@ -172,6 +176,8 @@ def self_test():
     assert not is_relevant("docs/modernization/adr/src/ADR-0001.md")
     assert not is_relevant("docs/modernization/phase1a/INTERFACES.md")
     assert not is_relevant("README.md")
+    assert not is_relevant("docs/modernization/intent/2026-10-15-120000-one-ops-中文.md")
+    assert is_relevant('"docs/q\\"x.md"'), "a path git still quotes must count as relevant"
     assert not is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql")
     assert is_relevant("notes.txt")
     assert not is_relevant("docs/modernization/build_all.py")
