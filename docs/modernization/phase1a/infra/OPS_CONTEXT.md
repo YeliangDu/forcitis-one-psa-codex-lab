@@ -1,4 +1,4 @@
-# one-ops 速查（2026-10-15 15:00）
+# one-ops 速查（2026-10-15 15:20）
 
 规矩：持久资源先报再做、回读再报 one-coordinator；不部署（门禁 090 / 100）；不打印密钥；取证登记 [LEGACY_READ_REGISTER](LEGACY_READ_REGISTER.md)。
 
@@ -18,13 +18,14 @@
 | 拉取策略 | forcitis-one-deploy-pull（挂 forcitis-one-ecs-archive） | ✅ | R-4 |
 | OOS 参数 | forcitis-one-deploy-request-dev（+ -bundle / -bundle-sha256 / -statement / -statement-sig）、forcitis-one-deploy-result-dev | ✅ | R-7 |
 | ECS 拉取 | /usr/local/sbin/forcitis-one-release、forcitis-one-release-pull.timer | ✅ 运行 | R-7 |
+| Release | v0.1.0-rc.1（b0827667，run 38697278764，已验签，deploy/ 与 ECS 一致） | ✅ | #151 |
 | GitHub | sub 定制（不可变）；environments 只允许 main；dev 变量 3 个；仓库级构建变量 8 个（SSO 门户与 PROD_* 待替换） | ✅ | R-1、R-4、R-6、§6 |
 
 ## 在途
 
 | 步骤 | 下一步 | 卡在 |
 |---|---|---|
-| Release 0.1.0-rc.1 | #151（build.sh pnpm 检查）合并 → main push CI 绿 → 重新触发 → R-11 演练（先报） | #151 在合并队列；部署受门禁 090 / 100 |
+| R-11 连通演练 | 待批（计划已报）→ 首次 dev 部署 | 部署受门禁 090 / 100 |
 | 审计分区维护角色 | 写角色、授权、建库脚本 | DDL-24 卡与 PR |
 | 迁入 ID 对照 | 抽取 | ADR-0037 实现 |
 
