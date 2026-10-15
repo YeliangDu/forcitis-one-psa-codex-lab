@@ -136,7 +136,7 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     }
 
     private static UserId userId(ResultSet rs, String column) throws SQLException {
-        long value = rs.getLong(column);
-        return rs.wasNull() ? null : new UserId(value);
+        java.util.UUID value = rs.getObject(column, java.util.UUID.class);
+        return value == null ? null : new UserId(value);
     }
 }
