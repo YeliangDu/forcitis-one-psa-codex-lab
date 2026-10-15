@@ -114,6 +114,10 @@ User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 �
 **Category:** Policy
 **Priority:** P0
 **Source:** FLW-1 (one-coordinator 2026-10-15)
-**Plain English:** Every moment of an approval (task creation, deadline, reminder, escalation, reassignment, the archive cut-off date) comes from the single injected Clock (UTC) and is cut into workdays in the business zone. The process engine is wired to that same Clock when it is built; it never reads the machine or the database clock. Deadlines are recorded on `approval_tasks` and judged by the scheduled job, not by engine timers or engine task due dates. The F-14 reassignment on a leaver and the ADR-0032 escalation of a pending task after 5 workdays obey the same rule.
+**Plain English:** Every business moment of an approval (task creation, assignment, claim, completion, deadline, reminder, escalation, reassignment, the decision time on a task record, the archive cut-off date and the moment the scheduled job judges) comes from the single injected Clock (UTC) and is cut into workdays in the business zone. The process engine is wired to that same Clock when it is built; it never reads the machine or the database clock, and its clock cannot be set or reset. Deadlines are recorded on `approval_tasks` and judged by the scheduled job, not by engine timers or engine task due dates. The F-14 reassignment on a leaver and the ADR-0032 escalation of a pending to-do after 5 workdays obey the same rule. Row-level technical columns (`created_at` / `updated_at` defaulting to the database clock) and the engine's technical lock and logging times are outside this rule; R-4 removes those defaults.
+**Specification:**
+- Given the injected Clock fixed at X, When an approval starts, Then the engine's current time, the task's creation time and the history start time are X, and a task due of one hour from start is X+1h.
+- Given the Clock then moved to X+30m, When the task is completed, Then the history end time is X+30m.
+- When anything tries to set or reset the engine's clock, Then it fails.
 **Tests:** `EngineClockIT`.
 **Confidence:** High.
