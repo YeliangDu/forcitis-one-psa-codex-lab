@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.legal;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.tree;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,8 +44,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     static final String LEGAL_ENTITIES = "/api/v1/organization/legal-entities";
     static final UUID UNKNOWN = TestIds.uuid(404);
-    static final RequestPostProcessor MAINTAINER = user("9001").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
-    static final RequestPostProcessor READER = user("9002").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
+    static final RequestPostProcessor MAINTAINER = user(TestAccounts.account(9001).value().toString()).authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
+    static final RequestPostProcessor READER = user(TestAccounts.account(9002).value().toString()).authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
 
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     com.forcitis.one.organization.workforce.api.LegalEntityNumberUsage numberUsage;
@@ -93,7 +94,7 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(LegalEntityRegistered.class)).singleElement().satisfies(e -> {
             assertThat(e.code()).isEqualTo(new LegalEntityCode("FST"));
             assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
-            assertThat(e.envelope().actorId()).isEqualTo("9001");
+            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
             assertThat(e.envelope().aggregateId()).isEqualTo(e.legalEntityId().value().toString());
             assertThat(e.envelope().legalEntityId()).isEqualTo(e.legalEntityId());
         });

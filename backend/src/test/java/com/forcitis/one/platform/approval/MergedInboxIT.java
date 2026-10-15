@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,7 +43,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     ClaimTask claimTask;
 
     static RequestPostProcessor reader(long id) {
-        return user(String.valueOf(id)).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
+        return user(TestAccounts.account(id).value().toString()).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
     }
 
     void legacyRow(long user, String task, String instance, String node, String when, int result) {
@@ -73,7 +74,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         legacyRow(me, "done", "P3-" + me, "N1", "2026-10-03T01:00:00Z", 2);
         legacyRow(colleague, "c1", "P9-" + colleague, "N1", "2026-10-03T01:00:00Z", 1);
 
-        MergedInbox inbox = listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first());
+        MergedInbox inbox = listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(inbox.newCount()).isEqualTo(2);
         assertThat(inbox.legacyCount()).isEqualTo(3);
         assertThat(inbox.totalCount()).isEqualTo(5);
@@ -85,7 +86,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(me))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.newCount").value(2)).andExpect(jsonPath("$.legacyCount").value(3))
                 .andExpect(jsonPath("$.totalCount").value(5)).andExpect(jsonPath("$.legacyAvailable").value(true));
-        MergedInbox colleagueInbox = listInbox.execute(new UserId(colleague), com.forcitis.one.platform.approval.application.ListPage.first());
+        MergedInbox colleagueInbox = listInbox.execute(TestAccounts.account(colleague), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(colleagueInbox.newCount()).isEqualTo(1);
         assertThat(colleagueInbox.legacyCount()).isEqualTo(1);
         assertThat(colleagueInbox.totalCount()).isEqualTo(2);
@@ -97,7 +98,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         long me = newId();
         organisation.person(me, 1, null);
         legacyRow(me, "t-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
-        MergedInbox inbox = listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first());
+        MergedInbox inbox = listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(inbox.items()).singleElement().satisfies(item -> {
             assertThat(item.source().name()).isEqualTo("LEGACY");
             assertThat(item.detailUrl()).contains("https://legacy.example.test/bpm/detail?instance=P-" + me + "&task=t-1");
@@ -112,13 +113,13 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     void theOldViewIsReadLiveEveryTime() {
         long me = newId();
         organisation.person(me, 1, null);
-        assertThat(listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isZero();
+        assertThat(listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isZero();
         legacyRow(me, "live-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
-        assertThat(listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
+        assertThat(listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
         legacyRow(me, "live-2", "Q-" + me, "N1", "2026-10-02T01:00:00Z", 1);
-        assertThat(listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(2);
+        assertThat(listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(2);
         jdbc.update("update legacy_fixture.todo_rows set result = 2 where task_id = 'live-1'");
-        assertThat(listInbox.execute(new UserId(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
+        assertThat(listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
     }
 
     @Test
@@ -130,16 +131,16 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         organisation.person(first, 1, null).person(second, 1, null).person(initiator, 1, null);
         ApprovalInstanceId instance = newTaskFor(initiator, newKey("inbox"), first, second);
 
-        assertThat(listInbox.execute(new UserId(first), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
-        assertThat(listInbox.execute(new UserId(second), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
-        assertThat(listInbox.execute(new UserId(first), com.forcitis.one.platform.approval.application.ListPage.first()).items().getFirst().claimed()).isFalse();
+        assertThat(listInbox.execute(TestAccounts.account(first), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
+        assertThat(listInbox.execute(TestAccounts.account(second), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
+        assertThat(listInbox.execute(TestAccounts.account(first), com.forcitis.one.platform.approval.application.ListPage.first()).items().getFirst().claimed()).isFalse();
 
-        claimTask.execute(openTaskId(instance), new UserId(first), java.util.OptionalLong.empty());
+        claimTask.execute(openTaskId(instance), TestAccounts.account(first), java.util.OptionalLong.empty());
 
-        assertThat(listInbox.execute(new UserId(first), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
-        assertThat(listInbox.execute(new UserId(first), com.forcitis.one.platform.approval.application.ListPage.first()).items().getFirst().claimed()).isTrue();
-        assertThat(listInbox.execute(new UserId(second), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isZero();
-        assertThat(listInbox.execute(new UserId(initiator), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isZero();
+        assertThat(listInbox.execute(TestAccounts.account(first), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
+        assertThat(listInbox.execute(TestAccounts.account(first), com.forcitis.one.platform.approval.application.ListPage.first()).items().getFirst().claimed()).isTrue();
+        assertThat(listInbox.execute(TestAccounts.account(second), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isZero();
+        assertThat(listInbox.execute(TestAccounts.account(initiator), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isZero();
     }
 
     @Test

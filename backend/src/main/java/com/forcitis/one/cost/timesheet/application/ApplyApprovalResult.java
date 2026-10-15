@@ -1,5 +1,6 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.domain.ConsumedEvents;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
  * The approval owns the process, the timesheet owns its status, and this is the only place they meet. Delivery is at least once: an
  * event id is handled once, and a result for a round the timesheet is not waiting for (already applied, or superseded) changes nothing.
  */
+@SystemActorName("cost.timesheet.approval-result")
 @Component
 class ApplyApprovalResult {
 

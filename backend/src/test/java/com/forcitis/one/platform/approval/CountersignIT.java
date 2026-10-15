@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.EmployeeId;
@@ -58,7 +59,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
     }
 
     DecisionResult decide(long actor, Task task, DecisionOutcome outcome, String reason) {
-        return decideTasks.execute(new UserId(actor), List.of(new TaskDecision(new ApprovalTaskId(task.getId()), outcome, reason)), java.util.OptionalLong.empty());
+        return decideTasks.execute(TestAccounts.account(actor), List.of(new TaskDecision(new ApprovalTaskId(task.getId()), outcome, reason)), java.util.OptionalLong.empty());
     }
 
     @Test
@@ -70,8 +71,8 @@ class CountersignIT extends ApprovalIntegrationSupport {
         List<Task> tasks = openTasks(instance);
         assertThat(tasks).hasSize(3);
         assertThat(tasks).extracting(Task::getTaskDefinitionKey).containsOnly("projectManagerReview");
-        assertThat(tasks.stream().map(this::candidateOf).toList()).containsExactlyInAnyOrder(String.valueOf(s.first()),
-                String.valueOf(s.second()), String.valueOf(s.third()));
+        assertThat(tasks.stream().map(this::candidateOf).toList()).containsExactlyInAnyOrder(TestAccounts.account(s.first()).value().toString(),
+                TestAccounts.account(s.second()).value().toString(), TestAccounts.account(s.third()).value().toString());
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_tasks where instance_id = ? and status = 'PENDING'",
                 Integer.class, instance.value())).isEqualTo(3);
     }
@@ -83,14 +84,14 @@ class CountersignIT extends ApprovalIntegrationSupport {
         String key = newKey("countersign-all");
         ApprovalInstanceId instance = start(key, s, s.first(), s.second());
 
-        Task firstTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(String.valueOf(s.first()))).findFirst().orElseThrow();
+        Task firstTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(TestAccounts.account(s.first()).value().toString())).findFirst().orElseThrow();
         assertThat(decide(s.first(), firstTask, DecisionOutcome.APPROVE, null).status()).isEqualTo(ApprovalStatus.RUNNING);
         assertThat(openTasks(instance)).hasSize(1);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
         assertThat(approvals.isFinished(instance)).isFalse();
 
         Task secondTask = openTasks(instance).getFirst();
-        assertThat(candidateOf(secondTask)).isEqualTo(String.valueOf(s.second()));
+        assertThat(candidateOf(secondTask)).isEqualTo(TestAccounts.account(s.second()).value().toString());
         assertThat(decide(s.second(), secondTask, DecisionOutcome.APPROVE, "ok").status()).isEqualTo(ApprovalStatus.APPROVED);
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
@@ -104,7 +105,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
     void anApproverCannotActOnAnothersTask() {
         Staff s = staff();
         ApprovalInstanceId instance = start(newKey("countersign-own"), s, s.first(), s.second());
-        Task secondsTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(String.valueOf(s.second()))).findFirst().orElseThrow();
+        Task secondsTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(TestAccounts.account(s.second()).value().toString())).findFirst().orElseThrow();
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> decide(s.first(), secondsTask, DecisionOutcome.APPROVE, null))
                 .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
@@ -117,8 +118,8 @@ class CountersignIT extends ApprovalIntegrationSupport {
         Staff s = staff();
         String key = newKey("countersign-reject");
         ApprovalInstanceId instance = start(key, s, s.first(), s.second(), s.third());
-        Task firstTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(String.valueOf(s.first()))).findFirst().orElseThrow();
-        Task secondTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(String.valueOf(s.second()))).findFirst().orElseThrow();
+        Task firstTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(TestAccounts.account(s.first()).value().toString())).findFirst().orElseThrow();
+        Task secondTask = openTasks(instance).stream().filter(t -> candidateOf(t).equals(TestAccounts.account(s.second()).value().toString())).findFirst().orElseThrow();
         decide(s.first(), firstTask, DecisionOutcome.APPROVE, null);
 
         DecisionResult result = decide(s.second(), secondTask, DecisionOutcome.REJECT, "price too high");
@@ -141,9 +142,9 @@ class CountersignIT extends ApprovalIntegrationSupport {
         Staff s = staff();
         String key = newKey("countersign-advisory");
         ApprovalInstanceId instance = start(key, s, s.first(), s.second());
-        Task advisory = openTasks(instance).stream().filter(t -> candidateOf(t).equals(String.valueOf(s.second()))).findFirst().orElseThrow();
+        Task advisory = openTasks(instance).stream().filter(t -> candidateOf(t).equals(TestAccounts.account(s.second()).value().toString())).findFirst().orElseThrow();
         taskService.setVariableLocal(advisory.getId(), "advisory", true);
-        Task regular = openTasks(instance).stream().filter(t -> candidateOf(t).equals(String.valueOf(s.first()))).findFirst().orElseThrow();
+        Task regular = openTasks(instance).stream().filter(t -> candidateOf(t).equals(TestAccounts.account(s.first()).value().toString())).findFirst().orElseThrow();
 
         DecisionResult afterAdvice = decide(s.second(), advisory, DecisionOutcome.REJECT, "I would not");
 

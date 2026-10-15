@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -52,7 +53,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(7, EmploymentStatus.EMPLOYED);
         createAccount(7, "super_admin");
         secret = Totp.newSecret();
-        admins.insertIfAbsent(EmergencyAdmin.register(new UserId(7), "breakglass", hasher.hash(PASSWORD), vault.seal(secret)));
+        admins.insertIfAbsent(EmergencyAdmin.register(new com.forcitis.one.kernel.UserId(accountOf(7)), "breakglass", hasher.hash(PASSWORD), vault.seal(secret)));
     }
 
     private String code() {
@@ -144,7 +145,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         try {
             var attempts = new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
             for (int i = 0; i < 20; i++) {
-                attempts.add(pool.submit(() -> admins.reserveAttempt(new UserId(7), clock.instant(), 5, Duration.ofMinutes(15))));
+                attempts.add(pool.submit(() -> admins.reserveAttempt(TestAccounts.account(7), clock.instant(), 5, Duration.ofMinutes(15))));
             }
             int allowed = 0;
             for (var attempt : attempts) {
@@ -204,9 +205,10 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("ADR-0027 1.3 a missing snapshot does not stop the login: the organisation source may be down")
-    void missingSnapshotIsAllowed() throws Exception {
+    @DisplayName("ADR-0027 1.3 / ADR-0033 3.7 a snapshot that is missing or stale does not stop the login: the organisation source may be down")
+    void unavailableSnapshotIsAllowed() throws Exception {
         when(orgDirectory.findEmployee(new EmployeeId(7))).thenReturn(Optional.empty());
+        when(orgDirectory.employmentOf(new EmployeeId(7))).thenReturn(com.forcitis.one.organization.workforce.api.EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
 
         MvcResult result = login("breakglass", PASSWORD, code());
 
@@ -215,9 +217,22 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
+    @DisplayName("ADR-0033 3.7 (U-4) a current snapshot that does not list the bound employee refuses the login")
+    void currentSnapshotWithoutTheBoundEmployeeIsRefused() throws Exception {
+        when(orgDirectory.findEmployee(new EmployeeId(7))).thenReturn(Optional.empty());
+        when(orgDirectory.employmentOf(new EmployeeId(7))).thenReturn(com.forcitis.one.organization.workforce.api.EmploymentVerdict.NOT_LISTED);
+
+        MvcResult result = login("breakglass", PASSWORD, code());
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(403);
+        assertThat(result.getResponse().getContentAsString()).contains("PLATFORM_IDENTITY_EMPLOYEE_SEPARATED");
+        assertThat(cookie(result, "SESSION")).isNull();
+    }
+
+    @Test
     @DisplayName("ADR-0027 1.2 the bound person must hold super_admin right now")
     void boundPersonMustHoldSuperAdmin() throws Exception {
-        jdbc.sql("delete from platform_identity.account_roles where user_id = 7").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 7)").update();
 
         MvcResult result = login("breakglass", PASSWORD, code());
 
@@ -230,7 +245,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0027 1.2 a disabled bound account is refused")
     void boundAccountMustBeEnabled() throws Exception {
-        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where user_id = 7").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = 7").update();
 
         MvcResult result = login("breakglass", PASSWORD, code());
 
@@ -282,7 +297,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         String session = cookie(login("breakglass", PASSWORD, code()), "SESSION");
         assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse()
                 .getStatus()).isEqualTo(200);
-        jdbc.sql("delete from platform_identity.account_roles where user_id = 7").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 7)").update();
 
         clock.advance(Duration.ofSeconds(61));
 
@@ -296,7 +311,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         String session = cookie(login("breakglass", PASSWORD, code()), "SESSION");
         assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse()
                 .getStatus()).isEqualTo(200);
-        jdbc.sql("update platform_identity.emergency_admins set is_enabled = false where user_id = 7").update();
+        jdbc.sql("update platform_identity.emergency_admins set is_enabled = false where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 7)").update();
 
         clock.advance(Duration.ofSeconds(61));
 

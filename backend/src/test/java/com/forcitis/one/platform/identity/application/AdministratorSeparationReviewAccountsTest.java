@@ -30,15 +30,15 @@ class AdministratorSeparationReviewAccountsTest {
     final AccountRepository accounts = mock(AccountRepository.class);
     final OrgDirectory directory = mock(OrgDirectory.class);
     final SessionContext session = mock(SessionContext.class);
-    final AdministratorSeparationReview review = new AdministratorSeparationReview(accounts, directory, session, TestAccounts.apart(5000));
+    final AdministratorSeparationReview review = new AdministratorSeparationReview(accounts, directory, session, TestAccounts.everyoneHasOne());
 
     AdministratorSeparationReviewAccountsTest() {
         for (long employee : new long[] {1001, 1002, 1003}) {
             when(directory.findEmployee(new EmployeeId(employee))).thenReturn(Optional.of(new EmployeeProfile(new EmployeeId(employee), "p" + employee,
                     new OrgUnitId(5), null, EmploymentStatus.EMPLOYED, false)));
         }
-        when(accounts.findEnabledHolders(Role.SUPER_ADMIN)).thenReturn(Set.of(new UserId(6001), new UserId(6002)));
-        when(accounts.findEnabledHolders(Role.SECURITY_AUDITOR)).thenReturn(Set.of(new UserId(6003)));
+        when(accounts.findEnabledHolders(Role.SUPER_ADMIN)).thenReturn(Set.of(TestAccounts.account(1001), TestAccounts.account(1002)));
+        when(accounts.findEnabledHolders(Role.SECURITY_AUDITOR)).thenReturn(Set.of(TestAccounts.account(1003)));
         when(session.modeIfSignedIn()).thenReturn(Optional.empty());
     }
 
@@ -60,10 +60,10 @@ class AdministratorSeparationReviewAccountsTest {
     void releaserIsSetAgainstTheLeavingListAsAnEmployee() {
         List<EmployeeId> leaving = List.of(new EmployeeId(1001));
 
-        assertThat(reviewing(leaving, new UserId(6002)).actorRetained()).as("remaining super_admin").isTrue();
-        assertThat(reviewing(leaving, new UserId(6003)).actorRetained()).as("security auditor").isTrue();
-        assertThat(reviewing(leaving, new UserId(6001)).actorRetained()).as("the account of the employee who is leaving").isFalse();
-        assertThat(reviewing(leaving, new UserId(1001)).actorRetained()).as("an account that only has the leaving employee's number").isFalse();
+        assertThat(reviewing(leaving, TestAccounts.account(1002)).actorRetained()).as("remaining super_admin").isTrue();
+        assertThat(reviewing(leaving, TestAccounts.account(1003)).actorRetained()).as("security auditor").isTrue();
+        assertThat(reviewing(leaving, TestAccounts.account(1001)).actorRetained()).as("the account of the employee who is leaving").isFalse();
+        assertThat(reviewing(leaving, TestAccounts.unknownAccount(1001)).actorRetained()).as("an account that only has the leaving employee's number").isFalse();
         assertThat(reviewing(leaving, null).actorRetained()).as("a scheduled run has no releaser").isFalse();
     }
 

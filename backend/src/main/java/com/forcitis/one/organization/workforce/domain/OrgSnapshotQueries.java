@@ -11,7 +11,7 @@ public interface OrgSnapshotQueries {
     Optional<StaffEmployee> findStaff(EmployeeId employeeId);
 
     /** Prefers the employed person. */
-    Optional<StaffEmployee> findStaffByWecomUserId(WecomUserId wecomUserId);
+    Optional<StaffEmployee> findStaffByWecomUser(WecomUserId wecomUserId);
 
     /** Only employed people carry a login name. */
     Optional<StaffEmployee> findStaffByLoginName(String loginName);

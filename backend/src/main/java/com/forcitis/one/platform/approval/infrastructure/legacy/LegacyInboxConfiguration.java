@@ -36,7 +36,7 @@ class LegacyInboxConfiguration {
         DataSource dataSource = source.getIfAvailable();
         if (dataSource == null) {
             log.warn("forcitis.platform.approval.legacy.url is not set: the merged inbox shows new tasks only");
-            return user -> LegacyInbox.LegacyTodos.unavailable();
+            return person -> LegacyInbox.LegacyTodos.unavailable();
         }
         return new JdbcLegacyInbox(JdbcClient.create(dataSource), properties.viewName(), properties.detailUrlTemplate());
     }

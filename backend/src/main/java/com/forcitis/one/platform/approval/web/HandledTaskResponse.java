@@ -11,13 +11,13 @@ import org.springframework.lang.Nullable;
 
 /** reason is absent when the person gave none: the screen words that, the data does not pretend (RULE-280). */
 record HandledTaskResponse(UUID recordId, String taskId, String instanceId, ProcessKey processKey, DocumentType documentType, String documentId,
-                           String nodeKey, String nodeName, TaskRecordAction action, String actorId, String actorName,
+                           String nodeKey, String nodeName, TaskRecordAction action, UUID actorId, String actorName,
                            @Nullable String onBehalfOfName, @Nullable String reason, Instant decidedAt, int round) {
 
     static HandledTaskResponse of(HandledTask task) {
         return new HandledTaskResponse(task.recordId().value(), task.taskId().value(), task.instanceId().value(), task.processKey(),
                 task.document().documentType(), task.document().documentId().value(), task.nodeKey().value(), task.nodeName().value(),
-                task.action(), String.valueOf(task.actor().value()), task.actorName(), task.onBehalfOfName().orElse(null),
+                task.action(), task.actor().value(), task.actorName(), task.onBehalfOfName().orElse(null),
                 task.reason().map(Reason::value).orElse(null), task.decidedAt(), task.round());
     }
 }

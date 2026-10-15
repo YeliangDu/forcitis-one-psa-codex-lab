@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,7 +19,7 @@ import org.junit.jupiter.api.Test;
 class ProcessAdministratorCheckTest {
 
     static final ProcessAdministrator NOBODY = Set::of;
-    static final ProcessAdministrator SOMEBODY = () -> Set.of(new UserId(1));
+    static final ProcessAdministrator SOMEBODY = () -> Set.of(TestAccounts.account(1));
 
     @Test
     @DisplayName("G-1 D-1a-61 the main configuration switches the check on, and a test configuration is the only place that switches it off")

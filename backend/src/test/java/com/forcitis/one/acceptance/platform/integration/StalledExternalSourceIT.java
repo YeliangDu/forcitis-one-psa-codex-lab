@@ -6,7 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.TestImages;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.application.RegisterEmployeeOnLoginName;
 import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
@@ -21,6 +21,7 @@ import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeoutException;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -88,7 +90,10 @@ class StalledExternalSourceIT {
 
     static final String INBOX = "/api/v1/platform/approval-tasks";
     static final String LOGIN_NAME = "13900008001";
-    static final long INBOX_USER = 1001;
+    /** The person as the old system names them (assignee_user_id), which is the employee id until R-1b P3b. */
+    static final long INBOX_EMPLOYEE = 1001;
+    /** The account of that employee: since R-1b P2 an id of its own (RULING-P2-6). */
+    static final UUID INBOX_ACCOUNT = UUID.randomUUID();
     static final long HEAD_TYPE = 7001;
     static final long MANAGER_TYPE = 7002;
 
@@ -161,6 +166,20 @@ class StalledExternalSourceIT {
 
     final List<ViewRestore> viewsToRestore = new ArrayList<>();
 
+    /** The session principal is the account; identity maps it to the employee whose old-system todos are read. */
+    @BeforeEach
+    void inboxPersonHasAnAccount() throws SQLException {
+        try (Connection c = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+                Statement path = c.createStatement()) {
+            path.execute("set search_path to platform_identity");
+            try (PreparedStatement insert = c.prepareStatement("insert into user_accounts (user_id, employee_id) values (?, ?) on conflict do nothing")) {
+                insert.setObject(1, INBOX_ACCOUNT);
+                insert.setLong(2, INBOX_EMPLOYEE);
+                insert.executeUpdate();
+            }
+        }
+    }
+
     @AfterEach
     void releaseEverything() throws SQLException {
         blockers.forEach(Blocker::release);
@@ -191,7 +210,7 @@ class StalledExternalSourceIT {
     @Test
     @DisplayName("D1-1 对照：外部库不卡时合并待办含老待办、A8 登录名查得到人、同步成功")
     void controlWithoutAnyStall() throws Exception {
-        String inbox = mvc.perform(get(INBOX).with(ordinarySession(INBOX_USER))).andReturn().getResponse().getContentAsString();
+        String inbox = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse().getContentAsString();
         assertThat(inbox).contains("\"legacyAvailable\":true").contains("\"legacyCount\":1");
         assertThat(a8.findStaffByLoginName(LOGIN_NAME)).hasSize(1);
         assertThat(names.readShortNames()).hasSize(1);
@@ -206,7 +225,7 @@ class StalledExternalSourceIT {
         assertBlocked("legacyworld", "SELECT COUNT(*) FROM dbo.v_psa_one_legacy_todo");
 
         Outcome<Reply> outcome = timed(HARD_CAP_INTERACTIVE, () -> {
-            var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_USER))).andReturn().getResponse();
+            var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse();
             return new Reply(response.getStatus(), response.getContentAsString());
         });
 
@@ -224,7 +243,7 @@ class StalledExternalSourceIT {
         viewsToRestore.add(new ViewRestore("legacyworld", "dbo.v_psa_one_legacy_todo", TODO_VIEW));
 
         Outcome<Reply> outcome = timed(HARD_CAP_INTERACTIVE, () -> {
-            var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_USER))).andReturn().getResponse();
+            var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse();
             return new Reply(response.getStatus(), response.getContentAsString());
         });
 
@@ -287,7 +306,7 @@ class StalledExternalSourceIT {
     void everyExternalSessionCarriesALockTimeout() throws Exception {
         a8.findStaffByLoginName(LOGIN_NAME);
         names.readShortNames();
-        legacyInbox.readTodos(new UserId(INBOX_USER));
+        legacyInbox.readTodos(new EmployeeId(INBOX_EMPLOYEE));
 
         Map<String, Integer> lockTimeouts = new java.util.TreeMap<>();
         try (Connection c = admin("master"); Statement s = c.createStatement();
@@ -357,7 +376,7 @@ class StalledExternalSourceIT {
     }
 
     Reply inbox() throws Exception {
-        var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_USER))).andReturn().getResponse();
+        var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse();
         return new Reply(response.getStatus(), response.getContentAsString());
     }
 
@@ -372,13 +391,13 @@ class StalledExternalSourceIT {
 
     /** A scheduled job runs inside a work context; the sync records its failure as an event, which needs one. */
     SyncResult runSync() {
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test")) {
+        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
             return sync.execute(SyncTrigger.MANUAL, false);
         }
     }
 
-    static org.springframework.test.web.servlet.request.RequestPostProcessor ordinarySession(long userId) {
-        return user(String.valueOf(userId)).authorities(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
+    static org.springframework.test.web.servlet.request.RequestPostProcessor ordinarySession(UUID userId) {
+        return user(userId.toString()).authorities(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
     }
 
     record Reply(int status, String body) {
@@ -540,7 +559,7 @@ class StalledExternalSourceIT {
                 "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64), process_instance_id nvarchar(64), task_def_key nvarchar(64), "
                         + "task_name nvarchar(128), process_title nvarchar(256), created_at datetime2)",
                 "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
-                "INSERT dbo.todo_rows VALUES (" + INBOX_USER + ", 'T-1', 'I-1', 'approve', N'Approve', N'Legacy item', '2026-10-01T08:00:00')",
+                "INSERT dbo.todo_rows VALUES (" + INBOX_EMPLOYEE + ", 'T-1', 'I-1', 'approve', N'Approve', N'Legacy item', '2026-10-01T08:00:00')",
                 "INSERT dbo.short_name_rows VALUES (2, N'Delivery')",
                 "CREATE VIEW dbo.v_psa_one_legacy_todo AS " + TODO_VIEW,
                 "CREATE VIEW dbo.v_one_legacy_org_short_name AS SELECT id, short_name FROM dbo.short_name_rows");

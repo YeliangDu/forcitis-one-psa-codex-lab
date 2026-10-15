@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.organization.workforce.api.LoginLookup;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -34,7 +36,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
     void people() {
         for (long id : new long[] {1001, 1002}) {
             EmployeeProfile employee = knownEmployee(id, EmploymentStatus.EMPLOYED);
-            when(orgDirectory.findEmployeeByLoginName("login" + id)).thenReturn(Optional.of(employee));
+            when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName("login" + id))).thenReturn(Optional.of(employee));
         }
     }
 
@@ -62,7 +64,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
     }
 
     private long storedIdentifiers(long id) {
-        return jdbc.sql("select count(*) from platform_identity.browser_identifiers where user_id = :id").param("id", id).query(Long.class).single();
+        return jdbc.sql("select count(*) from platform_identity.browser_identifiers where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :id)").param("id", id).query(Long.class).single();
     }
 
     @Test
@@ -140,13 +142,13 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("C-M7 disabling the account invalidates its identifiers together with its sessions, so after enabling the person is asked again")
     void disablingInvalidates() throws Exception {
         String issued = confirmedIdentifier(1001, null);
-        var manager = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE);
+        var manager = user(TestAccounts.account(9).value().toString()).authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE);
         createAccount(9, "super_admin");
 
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").header("If-Match", accountVersion(1001)).with(xsrf()).with(manager)).andReturn().getResponse().getStatus())
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":disable").header("If-Match", accountVersion(1001)).with(xsrf()).with(manager)).andReturn().getResponse().getStatus())
                 .isEqualTo(204);
         assertThat(storedIdentifiers(1001)).isZero();
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:enable").header("If-Match", accountVersion(1001)).with(xsrf()).with(manager)).andReturn().getResponse().getStatus())
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":enable").header("If-Match", accountVersion(1001)).with(xsrf()).with(manager)).andReturn().getResponse().getStatus())
                 .isEqualTo(204);
 
         MvcResult result = login(1001, issued);
@@ -178,8 +180,8 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         confirmedIdentifier(1001, null);
         assertThat(storedIdentifiers(1001)).isPositive();
 
-        revoke.execute(new com.forcitis.one.kernel.UserId(1001));
-        revoke.execute(new com.forcitis.one.kernel.UserId(1001));
+        revoke.execute(new com.forcitis.one.kernel.UserId(accountOf(1001)));
+        revoke.execute(new com.forcitis.one.kernel.UserId(accountOf(1001)));
 
         assertThat(storedIdentifiers(1001)).isZero();
     }
@@ -212,7 +214,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("B3-R1 a separated person whose account holds no role loses the browser identifiers too")
     void separationWithoutRolesInvalidates() throws Exception {
         confirmedIdentifier(1001, null);
-        jdbc.sql("delete from platform_identity.account_roles where user_id = 1001").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 1001)").update();
         assertThat(storedIdentifiers(1001)).isPositive();
         var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
                 com.forcitis.one.kernel.event.TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "2"), List.of(),

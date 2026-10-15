@@ -22,8 +22,11 @@ class SessionCurrentUser implements CurrentUser {
     private final AccountEmployees accountEmployees;
     private final BusinessZone zone;
     private final Clock clock;
+    private final CachedSessionPrincipals principals;
 
-    SessionCurrentUser(EmployeeLegalEntities employeeLegalEntities, AccountEmployees accountEmployees, BusinessZone zone, Clock clock) {
+    SessionCurrentUser(EmployeeLegalEntities employeeLegalEntities, AccountEmployees accountEmployees, BusinessZone zone, Clock clock,
+            CachedSessionPrincipals principals) {
+        this.principals = principals;
         this.employeeLegalEntities = employeeLegalEntities;
         this.accountEmployees = accountEmployees;
         this.zone = zone;
@@ -36,12 +39,29 @@ class SessionCurrentUser implements CurrentUser {
         if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_NOT_SIGNED_IN, ErrorKind.UNAUTHENTICATED, "no signed-in user");
         }
-        return new UserId(Long.parseLong(authentication.getName()));
+        try {
+            return UserId.parse(authentication.getName());
+        } catch (IllegalArgumentException broken) {
+            throw new DomainException(IdentityError.PLATFORM_IDENTITY_NOT_SIGNED_IN, ErrorKind.UNAUTHENTICATED,
+                    "the session principal is not an account id");
+        }
     }
 
+    /** In a session the employee was resolved with the session principal; a caller authenticated otherwise is looked up through identity. */
     @Override
     public EmployeeId employeeId() {
-        return accountEmployees.employeeOf(userId());
+        UserId account = userId();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof IdentityAuthentication identity) {
+            EmployeeId employee = principals.get(account, identity.kindAt(clock.instant())).employeeId();
+            if (employee == null) {
+                throw new DomainException(IdentityError.PLATFORM_IDENTITY_NOT_SIGNED_IN, ErrorKind.UNAUTHENTICATED,
+                        "the session names account " + account.value() + ", which does not exist");
+            }
+            return employee;
+        }
+        return accountEmployees.employeeOf(account).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_NOT_SIGNED_IN,
+                ErrorKind.UNAUTHENTICATED, "the session names account " + account.value() + ", which does not exist"));
     }
 
     @Override

@@ -25,7 +25,7 @@ final class TimesheetApproverReplay {
 
     static ReplayReport replay(ReplayExport export) {
         ExportedSnapshot snapshot = new ExportedSnapshot(export.snapshot());
-        java.util.Set<UserId> administrator = export.processAdministratorUserId() == null ? java.util.Set.of() : java.util.Set.of(new UserId(export.processAdministratorUserId()));
+        java.util.Set<UserId> administrator = export.processAdministratorUserId() == null ? java.util.Set.of() : java.util.Set.of(ExportedAccounts.account(export.processAdministratorUserId()));
         AssigneeResolver resolver = new AssigneeResolver(snapshot, snapshot, administrator, new ExportedAccounts());
         Set<Long> hardCoded = new HashSet<>(export.legacyFallbackUserIds());
 
@@ -69,7 +69,7 @@ final class TimesheetApproverReplay {
                 }
                 Resolution resolution = resolver.resolve(rule, false, true, initiator, variables);
                 Set<Long> candidates = new HashSet<>();
-                resolution.candidates().forEach(c -> candidates.add(c.value()));
+                resolution.candidates().forEach(c -> candidates.add(ExportedAccounts.person(c)));
                 ReplayVerdict verdict;
                 if (!note.isEmpty()) {
                     verdict = ReplayVerdict.DEFECT;

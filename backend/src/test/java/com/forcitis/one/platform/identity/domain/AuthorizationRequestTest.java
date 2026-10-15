@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.domain;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.DomainException;
@@ -20,9 +21,9 @@ import org.junit.jupiter.api.Test;
 class AuthorizationRequestTest {
 
     static final Instant AT = Instant.parse("2026-10-15T08:00:00Z");
-    static final UserId REQUESTER = new UserId(1);
-    static final UserId RECIPIENT = new UserId(2);
-    static final UserId OTHER = new UserId(3);
+    static final UserId REQUESTER = TestAccounts.account(1);
+    static final UserId RECIPIENT = TestAccounts.account(2);
+    static final UserId OTHER = TestAccounts.account(3);
 
     static AuthorizationRequest request() {
         return AuthorizationRequest.replaceRoles(new AuthorizationRequestId(UUID.randomUUID()), REQUESTER, AT, RECIPIENT, Set.of("security_auditor"));

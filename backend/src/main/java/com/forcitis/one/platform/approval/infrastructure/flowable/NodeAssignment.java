@@ -55,7 +55,7 @@ class NodeAssignment {
             resolution = new AssigneeResolver(org, roles, administrator.holders(), accountEmployees)
                     .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
         } catch (RuntimeException failed) {
-            log.error("Resolving the assignees of node {} (instance {}) failed: {}", node.getId(), instanceId, failed.toString());
+            log.error("ALERT platform.approval resolving the assignees of node {} (instance {}) failed: {}", node.getId(), instanceId, failed.toString());
             meters.counter("forcitis.platform.approval.assignee.resolution.failed").increment();
             throw failed;
         }

@@ -13,6 +13,8 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 
 class QueryParameterContractTest {
+    private static final UnknownQueryParameters NO_RESOLVERS = new UnknownQueryParameters(java.util.List::of);
+
     @SuppressWarnings("unused")
     static class Handlers {
         void fine(Integer limit) {
@@ -42,15 +44,15 @@ class QueryParameterContractTest {
     @Test
     @DisplayName("K-3a a mapping without path patterns stops the start: the /api GET handlers could not be found, so nothing may be assumed")
     void mappingWithoutPathPatternsFails() {
-        assertThatThrownBy(() -> QueryParameterContract.check(Map.of(withoutPathPatterns(), handler("fine"))))
+        assertThatThrownBy(() -> QueryParameterContract.check(Map.of(withoutPathPatterns(), handler("fine")), NO_RESOLVERS))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("path patterns").hasMessageContaining("fine");
     }
 
     @Test
     @DisplayName("K-3a /api GET handlers are checked, others are not")
     void onlyApiGetHandlersAreChecked() {
-        assertThatCode(() -> QueryParameterContract.check(Map.of(info("/api/v1/x"), handler("fine")))).doesNotThrowAnyException();
-        assertThatThrownBy(() -> QueryParameterContract.check(Map.of(info("/api/v1/x"), handler("bad")))).hasMessageContaining("bad");
-        assertThatCode(() -> QueryParameterContract.check(Map.of(info("/other/x"), handler("bad")))).doesNotThrowAnyException();
+        assertThatCode(() -> QueryParameterContract.check(Map.of(info("/api/v1/x"), handler("fine")), NO_RESOLVERS)).doesNotThrowAnyException();
+        assertThatThrownBy(() -> QueryParameterContract.check(Map.of(info("/api/v1/x"), handler("bad")), NO_RESOLVERS)).hasMessageContaining("bad");
+        assertThatCode(() -> QueryParameterContract.check(Map.of(info("/other/x"), handler("bad")), NO_RESOLVERS)).doesNotThrowAnyException();
     }
 }

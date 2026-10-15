@@ -119,7 +119,7 @@ flowchart TD
     subgraph TS["cost.timesheet（Phase 2 才有完整工时单）"]
         T2["SubmitTimesheet: 剩余工时校验 + 取当前用户为发起人 + 算路由旗标 + 填审批字段"]
         T3["发布 TimesheetSubmitted"]
-        T9["监听 ApprovalCompleted: 更新工时单状态 发 TimesheetApproved（1a 未实现）"]
+        T9["监听 ApprovalCompleted: 更新工时单状态 发 TimesheetApproved（已实现）"]
     end
     subgraph AP["platform.approval（Flowable cost_timesheet_approval）"]
         A1["StartApproval: 锁 approval_requests 行 幂等 开新一轮 round+1"]
@@ -138,7 +138,7 @@ flowchart TD
         N2["TaskClaimed 其他卡片置已处理"]
         N3["合并待办 = 新任务 + 老待办视图"]
     end
-    subgraph TL["审批时限（用户已定 intent 116-118，1a 代码未实现）"]
+    subgraph TL["审批时限（用户已定 intent 116-118，1a 代码已实现，见 T11）"]
         L1["T=提交审批当天 截止 T+1 工作日 23:59"]
         L2["超时后次日早上提醒审批人 卡片 + 待办标红"]
         L3["再过1个工作日升级给直属上级 取不到给流程管理员并告警"]
@@ -176,9 +176,9 @@ flowchart TD
 | T6 | 会签（每个不同审批人一个任务、全部通过才过）推迟 1b，1a 为「候选人中任一人办理」 | `DOC/phase1a/TIMESHEET_REPLAY.md:165, 190, 208`（G-2）；RULE-248/273 | 按文档推迟：`BET/platform/approval/PendingApprovalRulesTest.java:12-18`（`@Disabled`） |
 | T7 | 结果以类型化事件通知业务模块（至少一次，经 Modulith 事件发布登记表），消费方必须幂等；不再有 MQ / 按表名拼 SQL 回写 | RULE-295/303/304/308 评审；`DOC/REIMAGINED_ARCHITECTURE.md:129` | 审批侧已实现：`BE/platform/approval/events/ApprovalCompleted.java:7-9`；`ApprovalLifecycle.java:76-80`；业务侧消费未实现（见 T9） |
 | T8 | 合并待办 = 新任务 + 老库视图的老待办（行任务按 RULE-261 合并），不缓存 | `DOC/REIMAGINED_ARCHITECTURE.md:3.6 节`；RULE-261 | 已实现：`BE/platform/approval/application/ListInbox.java:28-44`；`domain/InboxMerger.java` |
-| T9 | 工时单状态归各业务 BC；`cost.timesheet` 应监听 `ApprovalCompleted` 改工时单状态并发 `TimesheetApproved` | `DOC/AI_NATIVE_SPEC.md:29`（C1a-12「类型化结果事件」）；ArchUnit 事件命名例 `BET/ArchitectureRulesTest.java:55`；「1a 不接入业务单据」`DOC/REIMAGINED_ARCHITECTURE.md:136` | **未实现**：`TimesheetApproved` 只有定义（`BE/cost/timesheet/events/TimesheetApproved.java:6`）、无发布方；全仓无 `ApprovalCompleted` 的业务侧监听；`Timesheet` / `TimesheetStatus` 只是类型（`domain/Timesheet.java:8`、`TimesheetStatus.java:3`），无表、无仓储 |
+| T9 | 工时单状态归各业务 BC；`cost.timesheet` 应监听 `ApprovalCompleted` 改工时单状态并发 `TimesheetApproved` | `DOC/AI_NATIVE_SPEC.md:29`（C1a-12「类型化结果事件」）；ArchUnit 事件命名例 `BET/ArchitectureRulesTest.java:55`；「1a 不接入业务单据」`DOC/REIMAGINED_ARCHITECTURE.md:136` | 已实现：`cost.timesheet` 经 `@ApplicationModuleListener` 监听 `ApprovalCompleted`（`BE/cost/timesheet/application/ApplyApprovalResult.java:41`），按结果调用 `approve` / `reject` / `returnForRevision` / `cancelSubmission` 并发布 `TimesheetApproved` 等事件（`domain/Timesheet.java:149-176`）；已消费事件按 eventId 去重（`ConsumedEvents`），非本轮结果忽略（`isAwaitingResultOfRound`）；工时单有表 `cost_timesheet.timesheets` 与仓储（`BE/cost/timesheet/domain/TimesheetRepository.java`，`BER/db/migration/cost_timesheet/V20261014140000__cost_timesheet_baseline.sql:4`）。`TimesheetStatus` 为 DRAFT、SUBMITTED、RETURNED、APPROVED、REJECTED（`api/TimesheetStatus.java:4-9`）；撤销回到 DRAFT，不记驳回（RULE-279）；`Timesheet` 为 1a 骨架，只有总工时、无工时行 |
 | T10 | 回放工具（C1a-13）：老审批人 ∈ 新候选集，节点集合须相等，三路不比较顺序；差异分类 `MATCH` / `REVIEWED_*`（按类别由用户接受）/ `DEFECT`（逐条修，命令行状态码 1） | 用户 Q-4「四项都同意 (Recommended)」；`DOC/phase1a/TIMESHEET_REPLAY.md:5-47` | 工具与合成夹具已实现：`BE/platform/approval/infrastructure/replay/TimesheetApproverReplay.java`、`TimesheetBranches.java:11-14`；`BET/.../TimesheetApproverReplayIT.java`、`BET/resources/replay/synthetic-timesheet-export.json`；真实导出尚未做（`TIMESHEET_REPLAY.md:195-201` 执行步骤） |
-| T11 | 审批时限 T+1（见下 (d)） | 用户决定 `DOC/intent/2026-10-14-116…119`；`DOC/INTENT.md:152-155` | **未实现**：1a 代码无日历、无定时器、无提醒 / 升级、无统计；全仓 `calendar|deadline|escalat|reminder|dueDate` 在 `BE/` 零命中（`flowable.async-executor-activate` 注释写了「timers/reminders」`BER/application.properties:7-8`，但没有任何 BPMN 定时器或作业） |
+| T11 | 审批时限 T+1（见下 (d)） | 用户决定 `DOC/intent/2026-10-14-116…119`；`DOC/INTENT.md:152-155` | 已实现（提醒、升级、逾期标红；审批时效统计未核实）：`BE/platform/approval/application/DeadlinePlanner.java:31`（按工作日历算截止 / 提醒 / 升级时刻）、`TaskRegistrar.java:46`（任务创建时计划）、`TaskDeadline.java:57-96`（到点提醒、升级）、`infrastructure/scheduling/ApprovalDeadlineJob.java:20-21`（定时作业）、`InboxItem.java:12`（`dueAt` / `overdue` 待办标红）、`events/ApprovalTaskOverdue.java`、`events/ApprovalTaskEscalated.java`；日历取自 `organization.attendance` 的 `WorkCalendar` |
 
 ### 2.3 (a)–(d)
 
@@ -191,22 +191,22 @@ flowchart TD
 - 1a：**不是**。路由由「业务模块算旗标 + BPMN 条件读旗标 + 每节点一条 `forcitis:assignmentRule` + Java `AssigneeResolver`」表达（`DOC/REIMAGINED_ARCHITECTURE.md:127, 213`；评审 #9、#15 记「删除 4 张表与 DMN（已采纳）」「1a 不用 DMN」`:273, 279`）；代码无任何 `.dmn` 资源。
 - 规格并存相反表述：`DOC/AI_NATIVE_SPEC.md:29` C1a-12 写「Flowable 8 BPMN + 指派 DMN」；`DOC/GUIDING_PRINCIPLES.md:84-86` 把「工时行由谁审批（项目行 → PM；OH 行 → 直属上级；售前 → 部门负责人）」列为 DMN 示例（输入：行类型；输出：审批人角色）；`DOC/MODERNIZATION_BRIEF.md:60` 写「BPMN + DMN」。
 - 若按 `GUIDING_PRINCIPLES.md:84-86` 的示例形态：输入 = 工时行类型（0 / 1 / 2 与「混合」）；输出 = 审批人角色或指派规则。1a 现行等价物：输入 = `cost.timesheet` 的路由旗标，输出 = BPMN 节点键加规则类型（`BE/cost/timesheet/api/TimesheetRoutingFlag.java`、`TimesheetApprovalField.java`）。
-- 1a 的旗标计算在 `SubmitTimesheet` 中只硬编码 `projectHours`（`BE/cost/timesheet/application/SubmitTimesheet.java:45-46`），行类型到旗标的转换（含「混合」）尚未实现。
+- 1a 的旗标计算在 `Timesheet.submit` 中只硬编码 `projectHours`（`BE/cost/timesheet/domain/Timesheet.java:137`），行类型到旗标的转换（含「混合」）尚未实现。1a 只有项目经理一路（另两路旗标随 Phase 2 流程梳理定，见 ARCH-D5）。
 
 **(c) 审批与工时单的状态归属与协作事件**
-- 归属：审批请求状态归 `platform.approval`（`approval_requests.status` ∈ RUNNING / RETURNED / APPROVED / REJECTED / CANCELLED，`V20261014132000…sql:12`）；工时单状态归 `cost.timesheet`（`TimesheetStatus` DRAFT / IN_APPROVAL / REJECTED / APPROVED / CANCELLED，仅枚举）。老系统反过来：状态在 fst 头表 `approve_status`，bpm 通过 MQ 通知 fst 回写，且 bpm 也有自己的实例结果。
-- 协作事件（新）：`cost.timesheet` → approval：同步调用 `ApprovalProcesses.start`（同一事务）；approval → 业务：`ApprovalCompleted(instanceId, processKey, businessKey, round, outcome, reason)`、`TaskResulted`；approval → 通知：`TaskAssigned`、`TaskClaimed`；`cost.timesheet` 自发：`TimesheetSubmitted`、`TimesheetApproved`（未发布）。
+- 归属：审批请求状态归 `platform.approval`（`approval_requests.status` ∈ RUNNING / RETURNED / APPROVED / REJECTED / CANCELLED，`V20261014132000…sql:12`）；工时单状态归 `cost.timesheet`（`TimesheetStatus` DRAFT / SUBMITTED / RETURNED / APPROVED / REJECTED，撤销回到 DRAFT，RULE-279）。老系统反过来：状态在 fst 头表 `approve_status`，bpm 通过 MQ 通知 fst 回写，且 bpm 也有自己的实例结果。
+- 协作事件（新）：`cost.timesheet` → approval：`Timesheet` 提交时记录 `DocumentSubmittedForApproval`，`platform.approval` 订阅后发起一轮审批（`StartApprovalOnSubmission.java:54`）；approval → 业务：`ApprovalCompleted(instanceId, processKey, businessKey, round, outcome, reason)`、`TaskResulted`；approval → 通知：`TaskAssigned`、`TaskClaimed`；`cost.timesheet` 自发：`TimesheetSubmitted`、`TimesheetApproved`、`TimesheetRejected`、`TimesheetReturned`、`TimesheetCancelled`；approval → 业务：`ApprovalCompleted` 由 `ApplyApprovalResult` 消费。
 - 业务键：`"timesheet:" + timesheetId`（`SubmitTimesheet.java:46`）；幂等键 `(processKey, businessKey)` 与 `(processKey, businessKey, round)`（`V20261014132000…sql:17, 43`）。
-- 1a 缺口：见 T9；`RETURNED` 对应工时单什么状态、`TimesheetSubmitted` 谁消费：规格未写。
+- 映射：`RETURNED` → 工时单 RETURNED（可修改后重提），`CANCELLED` → DRAFT，`REJECTED` → REJECTED；`TimesheetSubmitted` 暂无消费方（分析层将订阅，见 `events/timesheet.yaml`）。
 
 **(d) 审批时限（按用户已定口径）**
-- 计时起点：T = **提交审批当天**（`DOC/intent/2026-10-14-116`，`DOC/INTENT.md:152`）。1a 中与之最近的时间戳是任务创建时刻 `assignedAtMillis`，存为 Flowable 任务本地变量（`BE/platform/approval/infrastructure/flowable/TaskAssignmentListener.java:88`；`FlowableApprovalEngine.java:40, 164-166`），也是合并待办的 `createdAt`；没有「提交日」字段，`approval_requests` 表的 `created_at` 是该单据首轮创建、不是每轮提交（`V20261014132000…sql:14`），`start_rounds.created_at` 才是每轮（`…sql:41`）。
+- 计时起点：T = **提交审批当天**（`DOC/intent/2026-10-14-116`，`DOC/INTENT.md:152`）。1a 实现取任务创建当天为 T（创建日非工作日则取下一工作日，`DeadlinePlanner.java:31-36`）；任务创建时刻 `assignedAtMillis`，存为 Flowable 任务本地变量（`BE/platform/approval/infrastructure/flowable/TaskAssignmentListener.java:88`；`FlowableApprovalEngine.java:40, 164-166`），也是合并待办的 `createdAt`；没有「提交日」字段，`approval_requests` 表的 `created_at` 是该单据首轮创建、不是每轮提交（`V20261014132000…sql:14`），`start_rounds.created_at` 才是每轮（`…sql:41`）。
 - 截止：T + 1 个**工作日**的 23:59（`DOC/intent/2026-10-14-116`）。时区在原话中未写；老代码时间闸用 `Asia/Shanghai`（`ManHourServiceImpl.java:119`）。
-- 工作日历依赖：+1 与「再过 1 个工作日」、耗时按工作日小时计，都要工作日历。已定：2016–2026 共 4,018 天迁入新默认日历（只取工作日、法定假日、调休）；组织数据管理员每年 12 月 1 日前在页面录入下一年，11 月系统提醒；缺年份报错告警；2027 年须在 1a 上线前录入（`DOC/intent/2026-10-14-117`，`DOC/INTENT.md:153`）。1a 代码无日历模块、无录入页、无「组织数据管理员」角色种子（`BER/db/migration/platform_identity/V20261014130300__platform_identity_seed_roles_and_navigation.sql:2-4` 只有 `super_admin`、`employee`）。
-- 提醒触发点：超过截止后**次日早上**，向审批人发企业微信卡片，并在合并待办中标红（`DOC/intent/2026-10-14-116, 118`）。落点候选：`TaskAssigned` 对应的 `TaskNotifier` 之外新增的触发；`InboxItem` 目前无逾期字段（`BE/platform/approval/application/InboxItem.java:6-9`）。
-- 升级触发点：提醒之后**再过 1 个工作日**，升级给直属上级；取不到给流程管理员并告警（同上）。`AssigneeResolver` 的 `INITIATOR_SUPERVISOR` 取的是**发起人**的上级（`:122-137`），升级需要的「审批人的直属上级」只有 `OrgDirectory.findSupervisor` 可用（`:48`、`:127`），没有升级用例。
+- 工作日历依赖：+1 与「再过 1 个工作日」、耗时按工作日小时计，都要工作日历。已定：2016–2026 共 4,018 天迁入新默认日历（只取工作日、法定假日、调休）；组织数据管理员每年 12 月 1 日前在页面录入下一年，11 月系统提醒；缺年份报错告警；2027 年须在 1a 上线前录入（`DOC/intent/2026-10-14-117`，`DOC/INTENT.md:153`）。1a 代码已有工作日历模块与维护接口（`organization.attendance`：`WorkCalendarController.java:42-57`，权限 `work-calendar:read` / `update`），角色种子含「组织数据管理员」`org_data_admin` 并授予日历权限（`BER/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:322-340`）。
+- 提醒触发点：超过截止后**次日早上**，向审批人发企业微信卡片，并在合并待办中标红（`DOC/intent/2026-10-14-116, 118`）。1a 已实现：定时作业 `ApprovalDeadlineJob.java:20-21` 调 `EnforceDeadlines`，`TaskDeadline.java:57-80` 标记逾期并提醒，合并待办带 `dueAt` / `overdue`（`InboxItem.java:12`）。
+- 升级触发点：提醒之后**再过 1 个工作日**，升级给直属上级；取不到给流程管理员并告警（同上）。`AssigneeResolver` 的 `INITIATOR_SUPERVISOR` 取的是**发起人**的上级（`:122-137`），升级需要的「审批人的直属上级」只有 `OrgDirectory.findSupervisor` 可用（`:48`、`:127`），升级用例为 `TaskDeadline.escalate`（`TaskDeadline.java:85-106`），取不到人转流程管理员并告警。
 - 不自动通过（`DOC/intent/2026-10-14-116`）：1a 代码没有任何超时自动完成路径，一致。
-- 统计触发点：计入审批时效统计；耗时按工作日小时计（非工作日不计）；按审批人、部门、月份统计当期办结率与超时件数（`DOC/intent/2026-10-14-118`）。1a 无统计载体；任务的创建 / 完成时间只在 Flowable 历史与 `TaskResulted` 事件（无时间戳字段，`TaskResulted.java:10-12`）。
+- 统计触发点：计入审批时效统计；耗时按工作日小时计（非工作日不计）；按审批人、部门、月份统计当期办结率与超时件数（`DOC/intent/2026-10-14-118`）。逾期与升级有事件 `ApprovalTaskOverdue`、`ApprovalTaskEscalated`；按审批人、部门、月份的统计载体未核实。
 - 范围外：填报截止（COST-R02）留到 Phase 2（`DOC/intent/2026-10-14-119`）。
 
 ---
@@ -217,9 +217,9 @@ flowchart TD
 
 | 聚合 / 实体 | 老系统 | 新系统（1a） |
 |---|---|---|
-| 工时单 | 头 `psa_time_sheet`（`approve_status` 0–4、`status` 0–2、`company_code`、`origin_id`）；行 `psa_time_sheet_works`（行 `approve_status`、`approval`、9 个费率字段、金额、意见）；`psa_time_sheet_works_end`；`psa_time_sheet_approve_status_revision`（头状态留痕）；修订快照；出箱 `psa_process_to_be_sent`（`FST/dal/dataobject/manhour/ManHourItemDO.java` 等） | `Timesheet` 记录 + `TimesheetStatus` 枚举，无表（`BE/cost/timesheet/domain/`）；Phase 2 迁入 |
+| 工时单 | 头 `psa_time_sheet`（`approve_status` 0–4、`status` 0–2、`company_code`、`origin_id`）；行 `psa_time_sheet_works`（行 `approve_status`、`approval`、9 个费率字段、金额、意见）；`psa_time_sheet_works_end`；`psa_time_sheet_approve_status_revision`（头状态留痕）；修订快照；出箱 `psa_process_to_be_sent`（`FST/dal/dataobject/manhour/ManHourItemDO.java` 等） | `Timesheet` 聚合 + `TimesheetStatus` 枚举，表 `cost_timesheet.timesheets`（`BE/cost/timesheet/domain/`）；老数据 Phase 2 迁入 |
 | 审批请求 / 任务 | Flowable `ACT_*` + `bpm_process_instance_ext` + `bpm_task_ext`（`result` 1 处理中 / 2 通过 / 3 不通过 / 4 已取消 / 5 退回 / 6 知会）+ 单据绑定 `paramsId`；`bpm_task_assign_rule` | `platform_approval.approval_requests`（每单据一行）+ `start_rounds`（每轮一行）+ Flowable 实例 / 任务（`ACT_*` 在同 schema，生产 `flowable.database-schema-update=false`） |
-| 时限计时 | 无 | 无（已定口径，未建模） |
+| 时限计时 | 无 | 已实现：任务的截止 / 提醒 / 升级时刻（`DeadlinePlan`，随任务存储） |
 
 ### 3.2 现状状态机（老系统）
 
@@ -288,14 +288,16 @@ stateDiagram-v2
         已认领 --> 本轮撤销 : decide REJECT 或 return
         候选组待认领 --> 自动完成 : 取不到人且 skipWhenEmpty
     }
-    state "工时单 TimesheetStatus（仅枚举，未实现）" as S {
+    state "工时单 TimesheetStatus" as S {
         [*] --> DRAFT
-        DRAFT --> IN_APPROVAL : 提交
-        IN_APPROVAL --> APPROVED : ApprovalCompleted APPROVED
-        IN_APPROVAL --> REJECTED : 映射未定义
-        IN_APPROVAL --> CANCELLED : 映射未定义
+        DRAFT --> SUBMITTED : 提交
+        RETURNED --> SUBMITTED : 修改后重提
+        SUBMITTED --> APPROVED : ApprovalCompleted APPROVED
+        SUBMITTED --> REJECTED : ApprovalCompleted REJECTED
+        SUBMITTED --> RETURNED : ApprovalCompleted RETURNED
+        SUBMITTED --> DRAFT : ApprovalCompleted CANCELLED（RULE-279）
     }
-    state "时限计时（已定口径，未实现）" as D {
+    state "时限计时（已实现）" as D {
         [*] --> 计时中 : T=提交当天
         计时中 --> 已超时 : 过 T+1 工作日 23:59
         已超时 --> 已提醒 : 次日早上 卡片+待办标红
@@ -315,9 +317,9 @@ stateDiagram-v2
 | `TaskOutcome` / `ApprovalOutcome` | APPROVED / REJECTED / RETURNED；APPROVED / REJECTED / RETURNED / CANCELLED | `BE/platform/approval/api/TaskOutcome.java:4-8`、`ApprovalOutcome.java:3-7` |
 | 子流程内驳回的归宿 | `insideSubProcess` → `returned()`；顶层才 `reject()`；TIMESHEET 流程无顶层用户任务 | `DecideTasks.java:124-126`；`FlowableApprovalEngine.java:161`（`node.getSubProcess() != null`） |
 | 轮次 | `current_round`、`start_rounds(round_number)`，重提 +1，只有该单上一轮发起人能开新一轮 | `StartApproval.java:36-60`；`V20261014132000…sql:10, 38` |
-| `TimesheetStatus` | DRAFT、IN_APPROVAL、REJECTED、APPROVED、CANCELLED | `BE/cost/timesheet/domain/TimesheetStatus.java:3` |
+| `TimesheetStatus` | DRAFT、SUBMITTED、RETURNED、APPROVED、REJECTED；撤销回到 DRAFT（RULE-279） | `BE/cost/timesheet/api/TimesheetStatus.java:4-9` |
 | 任务时间 | `assignedAtMillis`（任务本地变量） | `TaskAssignmentListener.java:88`；`FlowableApprovalEngine.java:40` |
-| 时限计时 | 无字段、无枚举、无表 | — |
+| 时限计时 | 任务的 `DeadlinePlan`（截止、提醒、升级时刻）、逾期与升级标记 | `BE/platform/approval/domain/DeadlinePlan.java`；`TaskDeadline.java:57-96` |
 
 ---
 
@@ -327,13 +329,13 @@ stateDiagram-v2
 
 | 事件 | 触发转换 | 负载要点 | 消费方及反应 | 1a 状态 |
 |---|---|---|---|---|
-| `TimesheetSubmitted` | `SubmitTimesheet.execute` 成功发起审批后 | `timesheetId`、`employee`、`approvalInstanceId`；无工时行、无法人、无提交日 | 无消费方（全仓无监听） | 发布已实现 `BE/cost/timesheet/application/SubmitTimesheet.java:47`；定义 `events/TimesheetSubmitted.java:7` |
+| `TimesheetSubmitted` | `Timesheet.submit` | `document`、`number`、`employee`、`projectManager`、`submittedHours`、`submittedOn`、`round`（`events/TimesheetSubmitted.java:16`） | 无消费方（分析层将订阅） | 发布已实现 `BE/cost/timesheet/domain/Timesheet.java:140` |
 | `TaskAssigned` | Flowable 任务创建且取到候选人（跳过的节点不发） | `taskId`、`instanceId`、`processKey`、`businessKey`、`nodeKey`、`nodeName`、`initiator`、`candidates`（排序） | `TaskNotifier.onTaskAssigned`：给每位候选人一张企业微信卡片（无按钮，去重键 `approval-task:{taskId}`）；候选人无企业微信 ID 则告警跳过 | 已实现 `BE/platform/approval/infrastructure/flowable/TaskAssignmentListener.java:94-96`；`infrastructure/notification/TaskNotifier.java:39-58`；`events/TaskAssigned.java:10-11` |
 | `TaskClaimed` | 候选人认领 / 办理时自动认领 | `taskId`、`claimedBy` | `TaskNotifier.onTaskClaimed`：其他卡片置「已由 X 处理」 | 已实现 `ApprovalLifecycle.java:44`；`TaskNotifier.java:60-64` |
 | `TaskResulted` | 通过 / 驳回 / 退回办理（自动完成不发；`advisory` 恒 false） | `taskId`、`instanceId`、`processKey`、`businessKey`、`nodeKey`、`assignee`、`outcome`、`advisory`、`reason` | 无业务方消费（工时行级回写在 Phase 2） | 发布已实现 `ApprovalLifecycle.java:47-50`；`events/TaskResulted.java:10-12` |
-| `ApprovalCompleted` | 全部节点完成（APPROVED）；退回（RETURNED）；顶层驳回（REJECTED）；撤销（CANCELLED，未入口） | `instanceId`、`processKey`、`businessKey`、`round`、`outcome`、`reason`；至少一次，消费方按 `(processKey, businessKey, round)` 幂等 | 工时单（应更新状态，未实现） | 发布已实现 `ApprovalLifecycle.java:76-80`；`events/ApprovalCompleted.java:7-9` |
-| `TimesheetApproved` | 应在工时单 IN_APPROVAL → APPROVED | `timesheetId`、`employee` | 应由 Phase 2 的成本归集 / 过账管道消费 | 只有定义 `BE/cost/timesheet/events/TimesheetApproved.java:6`，无发布方 |
-| 审批超时 / 提醒 / 升级事件 | 已定口径（见 2.3 (d)） | 规格未命名事件、未列负载 | 企业微信卡片、合并待办标红、时效统计 | 无 |
+| `ApprovalCompleted` | 全部节点完成（APPROVED）；退回（RETURNED）；顶层驳回（REJECTED）；撤销（CANCELLED） | `instanceId`、`processKey`、`businessKey`、`round`、`outcome`、`reason`；至少一次，消费方按 `(processKey, businessKey, round)` 幂等 | 工时单：`ApplyApprovalResult` 更新状态 | 发布已实现 `ApprovalLifecycle.java:76-80`；`events/ApprovalCompleted.java:7-9` |
+| `TimesheetApproved` | 工时单 SUBMITTED → APPROVED | `document`、`employee`、`submittedHours`、`round` | 应由 Phase 2 的成本归集 / 过账管道消费 | 已实现 `BE/cost/timesheet/domain/Timesheet.java:149-153` |
+| `ApprovalTaskOverdue` / `ApprovalTaskEscalated` | 任务到点逾期 / 升级（见 2.3 (d)） | 见 `events/approval.yaml` | 企业微信卡片、合并待办标红 | 已实现 `BE/platform/approval/events/ApprovalTaskOverdue.java`、`ApprovalTaskEscalated.java` |
 
 ### 4.2 老系统（对照）
 
@@ -373,7 +375,7 @@ stateDiagram-v2
 | 提交权限的授予 | 种子中**没有任何角色**拥有 `cost.timesheet:timesheet:submit` | `V20261014130300__platform_identity_seed_roles_and_navigation.sql:6-10` |
 | 审批期间临时访问 | 仅任务详情层面；对照老的「功能权限或流程参与人」旁路，工时单读取接口与旁路尚不存在 | `GetTaskDetail.java:34-36` |
 | 管理员动作 | 转交 / 加签 / 撤回 / 撤销推迟 1b；管理员代办须显式「代理」并审计两个 ID（RULE-270 评审），测试骨架 `@Disabled` | `BET/platform/approval/PendingApprovalRulesTest.java:30-62` |
-| 时限相关 | 谁能看审批时效统计、日历录入权限（组织数据管理员，用户已定）：权限码与角色均未建 | `DOC/intent/2026-10-14-104, 117` |
+| 时限相关 | 日历录入权限（组织数据管理员）已建：角色 `org_data_admin` 与 `work-calendar:read` / `update`（`V20261014130000__platform_identity_baseline.sql:335-340`）；谁能看审批时效统计：未核实 | `DOC/intent/2026-10-14-104, 117` |
 
 ## 差异清单
 
@@ -389,7 +391,7 @@ stateDiagram-v2
 | D-1a-107 | 老入口从登录人取 personId，重提校验本人 | 1a 不对外暴露工时提交；TIMESHEET 只用于离线回放；入口、归属校验、结果处理、提交权限随 Phase 2 交付 | 不会出现未校验归属的提交 | 关闭入口 | 已决定：「1a 关闭提交入口 (Recommended)」（intent/2026-10-14-141）；需改代码（关闭 `TimesheetController` 提交） |
 | D-1a-108 | 离职者名下待办一直挂着（任务可达 ≥ 10 天：28 个，近 180 天） | 按规则重新取人，取不到转流程管理员并告警 | 见 D-1a-18 | 按已定 | 已决定：「按规则重新取人 (Recommended)」（intent/2026-10-14-107）；需改代码（同 D-1a-18） |
 | D-1a-109 | 每个任务一个受理人一条通知 | 候选组全员各一张卡，认领后其余卡片置已处理 | 通知人数 = 候选人数 | 按已定 | 已决定：Q-3「通知发候选组全员 (Recommended)」 |
-| D-1a-110 | 老系统无审批时限、提醒、升级、统计；`ACT_RU_TIMER_JOB` = 0；近 180 天任务 4.7% 超过 24 小时、115 个未完成（生产只读，2026-10-14） | 截止为 T+1 工作日 23:59；不自动通过；提醒、升级、统计见下列各条 | 审批及时性可管理 | 按已定 | 已决定：「T+1 工作日 23:59 (Recommended)」（intent/2026-10-14-116）；需改代码（未实现） |
+| D-1a-110 | 老系统无审批时限、提醒、升级、统计；`ACT_RU_TIMER_JOB` = 0；近 180 天任务 4.7% 超过 24 小时、115 个未完成（生产只读，2026-10-14） | 截止为 T+1 工作日 23:59；不自动通过；提醒、升级、统计见下列各条 | 审批及时性可管理 | 按已定 | 已决定：「T+1 工作日 23:59 (Recommended)」（intent/2026-10-14-116）；已实现（见 T11） |
 | D-1a-111 | — | 每个任务从创建时起算，重提新一轮重新计时；T = 创建所在工作日，非工作日创建顺延到下一工作日；截止 = T 之后第 1 个工作日 23:59；并行分支各任务各自计时；转流程管理员的任务同样计时 | 每个任务截止日确定 | 计时起点 | 已决定：「计时起点」（intent/2026-10-14-144） |
 | D-1a-112 | — | 截止后下一个工作日 09:00 提醒（候选组发全体候选人）；截止后第 2 个工作日 09:00 仍未办理则升级 | 周五超时则周一提醒、周二升级 | 提醒与升级时点 | 已决定：「提醒与升级时点」（intent/2026-10-14-144）；「加入上级、原人保留 (Recommended)」（intent/2026-10-14-133） |
 | D-1a-113 | — | 已认领：升级给认领人的直属上级（加入候选、原审批人保留，原卡片改为「已超时，已升级给某人」）；未认领的候选组：升级给流程管理员；取不到上级转流程管理员并告警；只升一次 | 升级对象明确 | 办理人的上级 | 已决定：「办理人的上级，只升一次 (Recommended)」（intent/2026-10-14-142）；intent/2026-10-14-133 |

@@ -2,6 +2,7 @@ package com.forcitis.one.fixture.typedid;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -93,13 +94,13 @@ public final class CrossTypeIdComparisons {
         return others.stream().anyMatch(users::contains);
     }
 
-    public boolean boundaryLongLocals(UserId user, EmployeeId employee) {
+    public boolean boundaryLongLocals(OrgUnitId user, EmployeeId employee) {
         long first = user.value();
         long second = employee.value();
         return first == second;
     }
 
-    public boolean boundaryLongCompare(UserId user, EmployeeId employee) {
+    public boolean boundaryLongCompare(OrgUnitId user, EmployeeId employee) {
         return Long.compare(user.value(), employee.value()) == 0;
     }
 
@@ -111,8 +112,8 @@ public final class CrossTypeIdComparisons {
         return user.equals(employee);
     }
 
-    public List<UserId> boundaryBuiltThroughReferences(List<EmployeeId> employees) {
-        return employees.stream().map(EmployeeId::value).map(UserId::new).toList();
+    public List<OrgUnitId> boundaryBuiltThroughReferences(List<EmployeeId> employees) {
+        return employees.stream().map(EmployeeId::value).map(OrgUnitId::new).toList();
     }
 
     public boolean boundaryAfterAnOptional(Optional<EmployeeId> found, Set<UserId> users) {
@@ -128,16 +129,16 @@ public final class CrossTypeIdComparisons {
         return byName.get("x").contains(employee);
     }
 
-    public UserId wrongBuiltFromAnotherId(EmployeeId employee) {
-        return new UserId(employee.value());
+    public OrgUnitId wrongBuiltFromAnotherId(EmployeeId employee) {
+        return new OrgUnitId(employee.value());
     }
 
-    public EmployeeId wrongBuiltFromAnotherIdInAnExpression(UserId user) {
-        return Optional.of(user).map(account -> new EmployeeId(account.value())).orElseThrow();
+    public EmployeeId wrongBuiltFromAnotherIdInAnExpression(OrgUnitId user) {
+        return Optional.of(user).map(unit -> new EmployeeId(unit.value())).orElseThrow();
     }
 
-    public UserId rightBuiltFromAnythingElse(long number, UserId user) {
-        return new UserId(number > 0 ? number : user.value());
+    public OrgUnitId rightBuiltFromAnythingElse(long number, OrgUnitId user) {
+        return new OrgUnitId(number > 0 ? number : user.value());
     }
 
     public boolean rightSameKindRebuilt(UserId user) {

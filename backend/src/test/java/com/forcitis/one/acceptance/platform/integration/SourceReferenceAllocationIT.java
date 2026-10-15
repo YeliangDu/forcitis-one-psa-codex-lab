@@ -68,7 +68,7 @@ class SourceReferenceAllocationIT extends AcceptanceSupport {
     }
 
     private static <T> T asSyncJob(Supplier<T> work) {
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.sync")) {
+        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
             return work.get();
         }
     }

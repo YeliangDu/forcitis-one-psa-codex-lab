@@ -29,7 +29,7 @@ public class FakeOrgSource implements OrgSource {
     }
 
     @Override
-    public List<SourcePerson> findStaffByWecomUserId(WecomUserId wecomUserId) {
+    public List<SourcePerson> findStaffByWecomUser(WecomUserId wecomUserId) {
         singleLookups.incrementAndGet();
         if (unavailable) {
             throw new ExternalSystemUnavailableException("source is down (test)");
