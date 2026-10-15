@@ -33,7 +33,7 @@ PROD_APPROVALS = "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt"
 DEPLOY_MARKER = "`blocks: deploy`"
 BASELINE_MARKER = "backend/architecture/migration-baseline-open"
 DONE = "✅"
-EXPECTED_EXIT_CONDITIONS = 9
+EXPECTED_EXIT_CONDITIONS = 10
 PROD_PREREQUISITES = ("C-9", "C-15")
 
 
@@ -170,7 +170,7 @@ def self_test():
             with open(os.path.join(root, BLOCKERS, name), "w", encoding="utf-8") as handle:
                 handle.write(text)
 
-        checklist([DONE] * 9)
+        checklist([DONE] * EXPECTED_EXIT_CONDITIONS)
         assert check(root, "dev", "0.1.0-rc.1") == [] and check(root, "prod", "0.1.0") == []
         with open(marker, "w", encoding="utf-8") as handle:
             handle.write("open\n")
@@ -203,18 +203,18 @@ def self_test():
             raise AssertionError("an unknown commit must fail, not pass")
         except SystemExit:
             pass
-        checklist([DONE] * 8 + ["⬜"])
-        assert check(root, "dev", "0.1.0") == [] and "D-9" in check(root, "prod", "0.1.0")[0]
-        checklist([DONE] * 8 + [DONE + " 部分"])
+        checklist([DONE] * (EXPECTED_EXIT_CONDITIONS - 1) + ["⬜"])
+        assert check(root, "dev", "0.1.0") == [] and f"D-{EXPECTED_EXIT_CONDITIONS}" in check(root, "prod", "0.1.0")[0]
+        checklist([DONE] * (EXPECTED_EXIT_CONDITIONS - 1) + [DONE + " 部分"])
         assert check(root, "prod", "0.1.0"), "a done mark with extra text is not done"
-        checklist([DONE] * 9, c9="\U0001f7e8")
+        checklist([DONE] * EXPECTED_EXIT_CONDITIONS, c9="\U0001f7e8")
         assert any("C-9" in p for p in check(root, "prod", "0.1.0"))
-        checklist([DONE] * 9, c15="⬜")
+        checklist([DONE] * EXPECTED_EXIT_CONDITIONS, c15="⬜")
         assert any("C-15" in p for p in check(root, "prod", "0.1.0")), "prod waits for the baseline to be closed and rehearsed (C-15)"
         assert check(root, "dev", "0.1.0-rc.1") == [], "C-15 does not hold back dev"
         checklist([DONE] * 3)
         assert any("expected at least" in p for p in check(root, "prod", "0.1.0"))
-        checklist([DONE] * 9)
+        checklist([DONE] * EXPECTED_EXIT_CONDITIONS)
         blocker("070-other.md", "- unrelated work\n")
         assert check(root, "dev", "0.1.0") == [], "a blocker without the marker does not stop deployment"
         blocker("080-fix.md", f"- no deployment until the fix batch is merged ({DEPLOY_MARKER})\n")

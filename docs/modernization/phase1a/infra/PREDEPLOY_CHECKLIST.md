@@ -60,6 +60,7 @@
 | C-15 | 删除迁移基线开放标记 `backend/architecture/migration-baseline-open`（单独 PR，不夹带迁移改动），此后迁移只追加；dev 期间保持开放，基线改动后 dev 库与服务器发布状态一起重置（见 C-16）。`deploy_gate.py` 对 prod 拦截、对 dev 只告警 | 生产前 | SESSION_PLAYBOOK §12.2 第 4 条；用户 2026-10-15（ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等）；intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`） | — | ⬜ |
 | C-16 | dev 库重建剧本 `runbooks/dev-db-rebuild.md`（one-ops）：基线开放期内基线迁移文件改过后，删库重建 dev 库并重置服务器发布状态（安装器比对两版 `migrations.txt`，迁移文件内容变了即拒绝安装，只删库不够；重置后不得回退到重置前的版本）；含 Flowable 首次安装项与首次部署前检查 | 基线改动后的第二次 dev 部署前 | ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等）；PAR-1 复审 H-1 | — | ⬜ |
 | C-17 | ECS `/etc/forcitis-one/one.env` 补 `FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_ROOT_PATH=00000001`（同步根单位的层级路径；没有默认值，启用视图读取而缺此项应用启动失败，INFRA_RUNBOOK §5）。2026-10-15 只读核对（t-hz0704aw6gtu0ao）该键缺失 | dev 首次部署前 | 值出处：规则卡 `rules/IDENTITY_ORG_RULES.md` 的 `A8_DEPT_ROOT_PATH = "00000001"`；R-1b-0 取证（PR #193）按此口径得到范围内 1254 人 | — | ⬜ |
+| C-19 | dev 企业微信收件人白名单（A-8）只含用户本人与已定管理员；阻塞项 090（ADR-0026 1a 数据范围机制）完成并在 dev 验证之前**不得加入其他人**，每次加人前先核对 090 已删除。理由：090 不再拦 dev 首次部署（intent 2026-10-15-214650），数据范围未完成时，任何能登录的人都可能看到范围外的数据 | dev 首次部署前，及每次改白名单前 | `status/blockers/090-*`；A-8 | — | ⬜ |
 
 ## D. 部署后验证（Phase 1a 出口条件）
 
@@ -74,6 +75,7 @@
 | D-7 | 回滚演练：撤销 nginx 路由后老系统登录与审批不受影响 | D-1 | ⬜ |
 | D-8 | 首次 `/design-sync` 完成 | B-1 | ⬜ |
 | D-9 | 在职但无企业微信 ID 的清单为 0 | B-6 | ⬜ |
+| D-10 | 阻塞项 090（ADR-0026 1a 数据范围机制）完成，并在 dev 验证：范围外的组织与人员读不到，`DataAccessRegistryTest` 等守护通过；随后删除 `status/blockers/090-*` | 090 | ⬜ |
 
 ## 不阻塞 1a，但在途
 
