@@ -9,7 +9,7 @@
 | `togaf/` | `transitions.yaml` 过渡架构（阶段 → BC）；能力（只引 forcitis-architecture 编号）、价值流 | 过渡架构已登记（PR-B）；能力与价值流待 Q1 |
 | `bpmn/processes.yaml`、`dmn/decisions.yaml` | 流程清单（1 个可执行、6 个仅文档）、决策点清单（15 处，均在代码中，规划转 DMN） | 初稿（PR-C） |
 | `dama/data-objects.yaml` | 数据对象与类别（30 个，覆盖注册表 50 张表；类别为推断） | 初稿（PR-C） |
-| `olap/` | 指标（沿用 M-xx） | 待 METHOD 第 0、5 步（指标挂 KPI） |
+| （OLAP） | 不另建文件：指标口径以 OAT 与 METRIC_BASELINE 为准，KPI → M-xx 只在 `togaf/vision.yaml` 登记（ADR-0040 决定 4） | — |
 | `generated/` | ①a 上下文全景、①b 已建上下文映射、② 过渡架构、③ 跨 BC 事件链路、④ 战术聚合与契约；mermaid 源、SVG、`index.html`（生成，勿手改）。`build_architecture.py --svg` 本机渲染（mermaid-cli，SUPPLY_CHAIN S1），`--check` 校验 | PR-B |
 
 规则：新 BC、聚合、事件、命令、流程、决策先在这里登记再写代码；老仓库与老代码只作 `evidence`；结构性选择交用户定（架构决策页）。

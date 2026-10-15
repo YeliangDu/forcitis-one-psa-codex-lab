@@ -24,7 +24,7 @@
 | DMN | `dmn/decisions.yaml` | `DEC-xx` | 输入、输出、所属 BC、规则卡、执行方式 | 1a 不引入 DMN（AI_NATIVE_SPEC），先登记现有的「BPMN 扩展属性 + AssigneeResolver」决策点，标「规划转 DMN」 |
 | DAMA | `dama/data-objects.yaml` | `DO-<模块>-<对象>` | 数据类别（交易 / 事实 / 审计 / 技术 / 主数据 / 参考 / 配置，§14.1 D17）、记录系统、负责 BC、表、敏感分级 | 数据访问注册表（表）、`data-classification.txt`（列）、`DATA_OBJECTS.md` 作证据 |
 | OLTP | 不新建文件 | — | BC → 模块 → schema → 表由生成器从 `contexts.yaml`、迁移目录与注册表推导 | 迁移目录、数据访问注册表 |
-| OLAP | `olap/metrics.yaml` | `M-xx`（沿用草稿编号） | 名称、事实 BC、数据对象、口径状态（草稿 / 已确认） | `r0/METRIC_BASELINE_DRAFT.md`；确认前只登记 ID 与事实 BC |
+| OLAP | 不另建文件 | `M-xx` | 口径以 OAT 与 `r0/METRIC_BASELINE_DRAFT.md`（确认后的正式版）为准；KPI → M-xx 只在 `togaf/vision.yaml` 登记（ADR-0040 决定 4） | OAT、METRIC_BASELINE |
 
 **追溯链**：能力 → 价值流阶段 → BC → 聚合 → 流程 / 决策 → 数据对象 → 表 → 指标。生成器输出一张追溯表，即阶段出口要求的「能力 → BC → 模块」表。
 
