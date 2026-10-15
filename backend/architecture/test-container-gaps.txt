@@ -1,0 +1,8 @@
+# Test sources that still construct a PostgreSQL container themselves instead of TestPostgres.container() (TestContainerGuardTest, DDL-11).
+# One test source file per line: path | owner | deadline. A new file with `new PostgreSQLContainer(` fails the guard; so does a listed file that no longer has one: delete the line when you fix the file.
+# New acceptance tests use TestPostgres.container(); a file that cannot yet is added here with its owner.
+src/test/java/com/forcitis/one/acceptance/AcceptanceSupport.java | 测试代理 | R-1b P2 的验收测试之前
+src/test/java/com/forcitis/one/acceptance/platform/web/ErrorLogDetailIT.java | 测试代理 | R-1b P2 的验收测试之前
+src/test/java/com/forcitis/one/acceptance/platform/web/ManagementEndpointIT.java | 测试代理 | R-1b P2 的验收测试之前
+src/test/java/com/forcitis/one/acceptance/platform/integration/EventPayloadScalarIdsIT.java | 测试代理 | R-1b P2 的验收测试之前
+src/test/java/com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java | 测试代理 | R-1b P2 的验收测试之前
