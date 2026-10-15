@@ -77,6 +77,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 
 1. `gate` 作业（`forcitis-one` runner，不进 environment，失败不必等审批）：版本格式；prod 的确认；`deploy_gate.py`：
    - `docs/modernization/status/blockers/` 中任一条目含 `` `blocks: deploy` `` 标记 → 失败。阻塞片段是单行（`build_records.py` 的格式），标记写在行内而非 front-matter。修复批合并后由调度会话删除该条目或标记。
+   - 迁移基线开放标记 `backend/architecture/migration-baseline-open`：prod 存在即失败；dev 放行，但在部署输出中告警（Actions 中为 `::warning::`）——开放期内基线文件可能在上次 dev 部署后改过，改过就先按 dev 库重建剧本（[`runbooks/dev-db-rebuild.md`](dev-db-rebuild.md)，one-ops）把 dev 库与服务器上的发布状态一起重置再部署：安装器比对两版的 `migrations.txt`，迁移文件内容变了即拒绝安装（「a migration file changed between releases」），只删库不够；prod 另由 `deploy_gate.py approval` 核对发布包所在提交里也没有该标记（用户 2026-10-15，intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`）。
    - prod：不接受预发布版本；`PREDEPLOY_CHECKLIST.md` D 节（Phase 1a 出口条件，**在 dev 上验收**）每一行状态格恰为 ✅（多一个字也不算），且行数不少于 9；C-9（生产库）为 ✅。表格改了形状时失败而不是放行。
    - prod：版本已列在 `runbooks/prod-approvals.txt`（批准行经 PR 合入 main）。Team 计划的私有仓库没有 environment 的 required reviewers（§11），由这一行代替人工批准。
 2. `deploy` 作业（`environment: dev / prod`，两者的部署分支策略只允许 main；OIDC 令牌的 `sub` 含该 environment，阿里云角色的信任策略据此只认这一环境）跑在**专用部署 runner**（标签 `forcitis-one-deploy`，macOS 用户 `forcitis-deploy`，只接这一个作业，见 `CI_RUNNERS.md`）；第一步把 `HOME` 与 git 全局配置换成本作业 `$RUNNER_TEMP` 下的新目录；所有 `python3` 都以 `-I` 运行；权限 `contents: read`、`actions: read`、`id-token: write`（不再有 `deployments: write`），checkout 不保存凭据：
@@ -127,6 +128,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 - 回滚：运维经云助手执行 `forcitis-one-release rollback`（回到 `previous`）或 `forcitis-one-release rollback <已安装的版本>`，**`--Timeout` 至少 300 秒**（健康检查最长 180 秒；被中断的 rollback 不会被自动撤销，见 §3 半切换状态）；旧版本的文件仍在 `releases/` 中，已在首次安装时校验过；回滚不跑迁移（旧版本不认识的新迁移被 Flyway 默认的 `*:future` 忽略）。修复问题后发更高的版本号再部署。
 - `forcitis-one-release status` 查看当前、上一版本、历史与最近的安装请求处理结果；回滚只用本机已装的版本，不访问网络，GitHub 不可用时照样可做。
 - 回滚只换应用，不回滚数据库（§4）。
+- **跨基线变化不回滚**（ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等） 第 2 项第 4 条）：基线开放期内 dev 按 dev 库重建剧本（PREDEPLOY_CHECKLIST C-16）重置后，重置前的版本一律不能 `rollback`（剧本已移除其版本目录）；要退回旧代码，在 main 上回退提交后发新版本，再按需重建。同一基线之内的回滚照旧。§4「只扩不缩」的前提在开放期内不成立，由这一条覆盖。
 
 ## 4. 数据库迁移
 
