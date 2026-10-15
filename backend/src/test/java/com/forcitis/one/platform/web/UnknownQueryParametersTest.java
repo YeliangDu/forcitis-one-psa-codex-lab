@@ -4,10 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -16,18 +19,23 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.support.GenericWebApplicationContext;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.method.annotation.RequestParamMethodArgumentResolver;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 class UnknownQueryParametersTest {
     private static final UnknownQueryParameters NO_RESOLVERS = new UnknownQueryParameters(List::of);
@@ -62,6 +70,9 @@ class UnknownQueryParametersTest {
         }
 
         void fromTheSession(@RequestParam("q") String search, Filter caller) {
+        }
+
+        void withLocale(@RequestParam(required = false) Integer limit, Locale locale) {
         }
     }
 
@@ -168,4 +179,39 @@ class UnknownQueryParametersTest {
                 .containsExactly("q");
         assertThat(resolvedBy(new FromTheSession(), new RequestParamMethodArgumentResolver(false)).declaredNames(handler("fromTheSession"))).isEmpty();
     }
+
+    /** The resolvers of a plain Spring MVC adapter, in the order it asks them. */
+    private static UnknownQueryParameters springMvc() {
+        GenericWebApplicationContext context = new GenericWebApplicationContext(new MockServletContext());
+        context.refresh();
+        RequestMappingHandlerAdapter adapter = new RequestMappingHandlerAdapter();
+        adapter.setApplicationContext(context);
+        adapter.afterPropertiesSet();
+        return new UnknownQueryParameters(adapter::getArgumentResolvers);
+    }
+
+    @Test
+    @DisplayName("P2 recheck L-7 (K-3a, one-1a-par) a Locale parameter comes from the request, not the query: ?locale=x is refused as unknown (400 PLATFORM_WEB_REQUEST_INVALID)")
+    void aLocaleParameterIsNotAQueryParameter() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/x");
+        request.setParameter("locale", "x");
+        assertThatThrownBy(() -> springMvc().preHandle(request, new MockHttpServletResponse(), handler("withLocale")))
+                .isInstanceOfSatisfying(DomainException.class, refused -> {
+                    assertThat(refused.errorCode()).isEqualTo(WebError.PLATFORM_WEB_REQUEST_INVALID);
+                    assertThat(refused.kind()).isEqualTo(ErrorKind.INVALID);
+                    assertThat(refused.extensions()).containsEntry(UnknownQueryParameters.INVALID_PARAMETERS, "locale");
+                });
+        assertThat(springMvc().declaredNames(handler("withLocale"))).containsExactly("limit");
+    }
+
+    @Test
+    @DisplayName("P2 recheck L-7 (K-3a, one-1a-par) with Spring's own resolvers, what reads the query is still registered or still stops the start")
+    void springResolversThatReadTheQueryAreStillChecked() {
+        assertThat(springMvc().declaredNames(handler("declared"))).containsExactlyInAnyOrder("limit", "q");
+        assertThat(springMvc().declaredNames(handler("plainSimple"))).containsExactly("status");
+        for (String name : new String[] {"modelAttribute", "recordWithoutAnnotation", "mapOfAll", "multiValueMapOfAll", "rawRequest", "dateWithoutRequestParam"}) {
+            assertThatThrownBy(() -> springMvc().declaredNames(handler(name))).as(name).isInstanceOf(IllegalStateException.class).hasMessageContaining(name);
+        }
+    }
 }
+

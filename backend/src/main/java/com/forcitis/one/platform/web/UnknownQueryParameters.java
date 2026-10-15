@@ -37,6 +37,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.method.annotation.ModelAttributeMethodProcessor;
+import org.springframework.web.method.annotation.RequestParamMapMethodArgumentResolver;
+import org.springframework.web.method.annotation.RequestParamMethodArgumentResolver;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -121,6 +124,9 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
                     throw unsupported(method, parameter, "resolved by " + resolverType.getSimpleName()
                             + ", which may read the query: mark it @NotFromQuery if it does not");
                 }
+                if (!readsTheQuery(first.get(), parameter)) {
+                    continue;
+                }
             }
             Class<?> type = parameter.getParameterType();
             RequestParam annotation = parameter.getParameterAnnotation(RequestParam.class);
@@ -145,6 +151,14 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
             }
         }
         return names;
+    }
+
+    /** Spring's resolvers that may read the query; any other of Spring's resolvers fills the parameter from elsewhere (a Locale, the principal). */
+    private static boolean readsTheQuery(HandlerMethodArgumentResolver resolver, MethodParameter parameter) {
+        Class<?> type = parameter.getParameterType();
+        return resolver instanceof RequestParamMethodArgumentResolver || resolver instanceof RequestParamMapMethodArgumentResolver
+                || resolver instanceof ModelAttributeMethodProcessor
+                || ServletRequest.class.isAssignableFrom(type) || WebRequest.class.isAssignableFrom(type);
     }
 
     private static boolean hasBindingAnnotation(MethodParameter parameter) {
