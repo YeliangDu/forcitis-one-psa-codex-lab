@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 import org.springframework.dao.DataAccessResourceFailureException;
 
 /** A catalog that answers exactly what the RDS baseline login sees; each test bends one answer. */
-final class FakeCatalog implements ReadOnlyCatalog {
+class FakeCatalog implements ReadOnlyCatalog {
 
     static final String LEAKED = "10.0.0.1 marker-value-7731";
 
