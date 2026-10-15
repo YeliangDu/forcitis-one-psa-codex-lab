@@ -32,6 +32,7 @@ public final class OutboundDelivery extends AggregateRoot {
     private String handledNote;
     private String handledResult;
     private final DeliveryKind kind;
+    // 被本投递替换的投递
     private final OutboundDeliveryId target;
     private final UUID correlation;
     private DeliveryStatus status;

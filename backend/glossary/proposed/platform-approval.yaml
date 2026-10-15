@@ -181,7 +181,7 @@ terms:
   status: proposed
   note: ''
 - id: error__platform_approval_form_field_unknown
-  zh: 表单字段未知
+  zh: 审批表单字段未登记
   en: PlatformApprovalFormFieldUnknown
   snake: platform_approval_form_field_unknown
   kind: error_code
