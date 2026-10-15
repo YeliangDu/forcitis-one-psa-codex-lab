@@ -6533,6 +6533,96 @@ terms:
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#subject）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
   scope: domain
+- id: external_read_register
+  zh: 外部读取登记
+  en: ExternalReadRegister
+  snake: external_read_register
+  kind: document
+  bc: platform.integration
+  definition: 新系统读取 A8 与老系统的表与列的唯一登记，逐列写来源库、读取对象、列、分类、敏感级别、用途（backend/architecture/external-read-registry.yaml，ADR-0037 第 6 项第 1 条）；与自有表的数据访问注册表不是一回事
+  standard_ref:
+  - DAMA-DMBOK 元数据管理（数据清单 / 数据血缘登记）；已批准词条 deprecation_register（弃用登记 / DeprecationRegister）的命名惯例
+  confidence: medium
+  aliases:
+  - name: ExternalReadRegistry
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 开工前术语门禁 R-1b-0（GATE-R-1b-0-G01）
+  confirmed: 2026-10-15（用户，开工前术语门禁 R-1b-0）
+  scope: acl
+  acl_class: 过渡期
+- id: read_purpose
+  zh: 读取用途
+  en: ReadPurpose
+  snake: read_purpose
+  kind: enum
+  bc: platform.integration
+  definition: 外部读取登记中每一列的用途
+  standard_ref:
+  - DAMA-DMBOK 数据用途登记（purpose of use）；ISO/IEC 27701 用途限定
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 开工前术语门禁 R-1b-0（GATE-R-1b-0-G02）
+  confirmed: 2026-10-15（用户，开工前术语门禁 R-1b-0）
+  scope: acl
+  acl_class: 过渡期
+- id: read_purpose__runtime_sync
+  zh: 运行时同步
+  en: RuntimeSync
+  snake: runtime_sync
+  kind: value
+  bc: platform.integration
+  definition: 读取用途的取值
+  standard_ref:
+  - DAMA-DMBOK 数据用途登记（purpose of use）；ISO/IEC 27701 用途限定
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 开工前术语门禁 R-1b-0（GATE-R-1b-0-G02）
+  confirmed: 2026-10-15（用户，开工前术语门禁 R-1b-0）
+  scope: acl
+  acl_class: 过渡期
+- id: read_purpose__runtime_todo
+  zh: 运行时待办
+  en: RuntimeTodo
+  snake: runtime_todo
+  kind: value
+  bc: platform.integration
+  definition: 读取用途的取值
+  standard_ref:
+  - DAMA-DMBOK 数据用途登记（purpose of use）；ISO/IEC 27701 用途限定
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 开工前术语门禁 R-1b-0（GATE-R-1b-0-G02）
+  confirmed: 2026-10-15（用户，开工前术语门禁 R-1b-0）
+  scope: acl
+  acl_class: 过渡期
+- id: read_purpose__migration
+  zh: 迁入
+  en: Migration
+  snake: migration
+  kind: value
+  bc: platform.integration
+  definition: 读取用途的取值
+  standard_ref:
+  - DAMA-DMBOK 数据用途登记（purpose of use）；ISO/IEC 27701 用途限定
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 开工前术语门禁 R-1b-0（GATE-R-1b-0-G02）
+  confirmed: 2026-10-15（用户，开工前术语门禁 R-1b-0）
+  scope: acl
+  acl_class: 过渡期
+  homonyms:
+  - migration
 - id: approve
   zh: 通过
   en: Approve
@@ -8699,6 +8789,8 @@ terms:
   note: 用语确认第三轮转正式（原提议 kernel.yaml#migration，R3-KN-02）
   confirmed: 2026-10-15（用户，用语确认第三轮）
   scope: kernel
+  homonyms:
+  - read_purpose__migration
 - id: effective_from_date
   zh: 生效日
   en: EffectiveFromDate
