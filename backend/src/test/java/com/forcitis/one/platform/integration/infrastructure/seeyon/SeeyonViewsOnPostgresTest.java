@@ -3,6 +3,7 @@ package com.forcitis.one.platform.integration.infrastructure.seeyon;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.SourceGender;
@@ -37,7 +38,7 @@ class SeeyonViewsOnPostgresTest {
     static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "YES-DELIVERY", "YES-FEE", "00000001");
 
     @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18");
+    static PostgreSQLContainer postgres = TestPostgres.container();
 
     static JdbcClient admin;
     static SeeyonOrgSource source;

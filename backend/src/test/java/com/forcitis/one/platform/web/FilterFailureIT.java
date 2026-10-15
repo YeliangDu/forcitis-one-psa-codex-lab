@@ -3,6 +3,7 @@ package com.forcitis.one.platform.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -66,7 +67,7 @@ class FilterFailureIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 

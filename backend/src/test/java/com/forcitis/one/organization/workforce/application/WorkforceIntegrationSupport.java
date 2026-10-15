@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.List;
@@ -26,7 +27,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @RecordApplicationEvents
 public abstract class WorkforceIntegrationSupport {
     @ServiceConnection
-    static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static final PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
