@@ -216,7 +216,7 @@ class ReadOnlyVerificationCommandTest {
             processEnvironment.put("A8_DB_URL", url);
 
             assertThat(run("--connection=integration-seeyon-background")).as(url).isEqualTo(ReadOnlyVerificationCommand.EXIT_USAGE);
-            assertThat(output()).contains("A8_DB_URL").doesNotContain(password).doesNotContain("host/db").doesNotContain("RESULT");
+            assertThat(output()).contains("A8_DB_URL").doesNotContain(password).doesNotContain("host/db").doesNotContain("mysql").doesNotContain("postgresql").doesNotContain("RESULT");
         }
     }
 
