@@ -4,6 +4,7 @@ import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyB
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Ownership;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.MsdbPrivileges.TokenPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.Membership;
 import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserPermission;
@@ -57,7 +58,12 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     static final String OWNED_AGENT_JOBS = "SELECT COUNT(*) FROM msdb.dbo.sysjobs_view WHERE owner_sid = SUSER_SID()";
     /** Through msdb's sp_executesql, so that HAS_PERMS_BY_NAME answers for the login's user in msdb, not in its own database. */
     static final String MSDB_EFFECTIVE_PERMISSIONS = "EXEC msdb.sys.sp_executesql N'SELECT v.p, HAS_PERMS_BY_NAME(N''msdb'', N''DATABASE'', v.p) FROM (VALUES "
-            + MsdbPrivileges.EFFECTIVE.stream().map(p -> "(N''" + p + "'')").collect(Collectors.joining(", ")) + ") v (p)'";
+            + MsdbPrivileges.EFFECTIVE.stream().map(p -> "(N''" + p + "'')").collect(Collectors.joining(", ")) + ") v (p) UNION ALL SELECT N''"
+            + MsdbPrivileges.IMPERSONATE + "'', HAS_PERMS_BY_NAME(N''dbo'', N''USER'', N''IMPERSONATE'')'";
+    /** Through msdb's sp_executesql, so that sys.user_token is the login's token in msdb: its own user or guest, their roles and public. */
+    static final String MSDB_TOKEN_PERMISSIONS = "EXEC msdb.sys.sp_executesql N'SELECT CASE WHEN p.grantee_principal_id = 0 THEN 1 ELSE 0 END, "
+            + "p.class_desc COLLATE DATABASE_DEFAULT, p.state COLLATE DATABASE_DEFAULT, p.permission_name COLLATE DATABASE_DEFAULT "
+            + "FROM sys.database_permissions p WHERE p.grantee_principal_id IN (SELECT principal_id FROM sys.user_token)'";
     static final String CURRENT_DATABASE = "SELECT DB_NAME()";
 
     private final JdbcClient jdbc;
@@ -142,6 +148,12 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
         Map<String, Integer> effective = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         jdbc.sql(MSDB_EFFECTIVE_PERMISSIONS).query((rs, n) -> effective.put(rs.getString(1), (Integer) rs.getObject(2))).list();
         return effective;
+    }
+
+    @Override
+    public List<TokenPermission> msdbTokenPermissions() {
+        return jdbc.sql(MSDB_TOKEN_PERMISSIONS)
+                .query((rs, n) -> new TokenPermission(rs.getInt(1) == 1, rs.getString(2), rs.getString(3), rs.getString(4))).list();
     }
 
     @Override

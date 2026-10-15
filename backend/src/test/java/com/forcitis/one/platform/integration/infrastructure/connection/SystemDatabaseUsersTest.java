@@ -207,4 +207,27 @@ class SystemDatabaseUsersTest {
         assertThat(new Membership(true, "role_secret_marker").toString()).doesNotContain("secret_marker");
         assertThat(new OwnUserRole("msdb", "role_secret_marker").toString()).doesNotContain("secret_marker").doesNotContain("msdb");
     }
+
+    @Test
+    @DisplayName("C-14 (f) 复审 H-1′ 空列表口径：rdscore 本人用户的授权为空列表时判定不了（EMPTY_ANSWER），与 msdb 一致，不按通过")
+    void anEmptyRdscoreGrantListIsUndetermined() {
+        catalog.ownUserPermissions.get("rdscore").clear();
+
+        Unmet f = f();
+
+        assertThat(f.confirmed()).isFalse();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::count).containsExactly(tuple(Reason.EMPTY_ANSWER, 1));
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 复审 H-1′（one-1a-par 决定）：msdb 可进而没有本人用户的登录不可能拥有 Agent 作业，不读作业数；msdb 不可进时照读")
+    void agentJobsAreNotAskedOfALoginWithoutItsOwnMsdbUser() {
+        FakeCatalog guestOnly = new FakeCatalog().ownUser("rdscore");
+        guestOnly.ownedAgentJobs = 3;
+        assertThat(ReadOnlyBaseline.check(guestOnly).passed()).isTrue();
+
+        guestOnly.reachableDatabases.remove("msdb");
+        assertThat(ReadOnlyBaseline.check(guestOnly).unmet()).singleElement()
+                .satisfies(f -> assertThat(f.findings()).extracting(Finding::reason).containsExactly(Reason.OWNS_AGENT_JOB));
+    }
 }

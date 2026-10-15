@@ -4,6 +4,7 @@ import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyB
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Ownership;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.MsdbPrivileges.TokenPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.Membership;
 import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserPermission;
@@ -47,8 +48,14 @@ interface ReadOnlyCatalog {
     /** The rows of sys.database_permissions of the login's own user in the given system database, as for {@link #ownUserMemberships}. */
     List<OwnUserPermission> ownUserPermissions(String systemDatabase);
 
-    /** HAS_PERMS_BY_NAME('msdb', 'DATABASE', p) for each p of {@link MsdbPrivileges#EFFECTIVE}, asked as the login inside msdb; null where the server cannot tell. */
+    /**
+     * HAS_PERMS_BY_NAME('msdb', 'DATABASE', p) for each p of {@link MsdbPrivileges#EFFECTIVE}, and under {@link MsdbPrivileges#IMPERSONATE} that of
+     * IMPERSONATE on the user dbo, asked as the login inside msdb; null where the server cannot tell.
+     */
     Map<String, Integer> msdbEffectivePermissions();
+
+    /** The rows of sys.database_permissions in msdb of every principal of sys.user_token there, asked as the login inside msdb. */
+    List<TokenPermission> msdbTokenPermissions();
 
     /** The SQL Agent jobs the login owns, as msdb.dbo.sysjobs_view shows them to it. */
     long ownedAgentJobs();

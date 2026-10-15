@@ -13,7 +13,9 @@ import org.jspecify.annotations.Nullable;
  * The login's own users in the system databases under item (f) of {@link ReadOnlyBaseline}, as taken into the baseline (user 2026-10-15
  * 「纳入基线」, narrowed by one-coordinator, checked on RDS by one-ops): RDS gives every login a user in msdb, in a subset of the three SQL Agent
  * roles, and one in rdscore without a role and with CONNECT only. Any other own user, role or rdscore grant is a violation, and so is an Agent
- * job the login owns. What the msdb user holds, directly or through roles and public, is judged by {@link MsdbPrivileges}.
+ * job the login owns. What the login holds in msdb, through its own user, roles, public or guest, is judged by {@link MsdbPrivileges} whenever msdb
+ * is reachable. A login known to have no user of its own in msdb is taken to own no Agent job and, through guest, may not read sysjobs_view (229), so
+ * its jobs are not asked (one-1a-par).
  */
 final class SystemDatabaseUsers {
 
@@ -51,20 +53,29 @@ final class SystemDatabaseUsers {
 
     static void check(Findings found, ReadOnlyCatalog catalog, List<ReachableDatabase> systemDatabases) {
         Set<String> beyond = new TreeSet<>();
+        boolean agentJobsPossible = true;
         for (ReachableDatabase database : systemDatabases) {
-            found.ask(() -> catalog.ownUserMemberships(database.name())).filter(rows -> !rows.isEmpty()).ifPresent(rows -> {
-                listed(found, database.name(), rows);
-                if (shape(found, catalog, database, rows) == Shape.BEYOND) {
+            Optional<List<Membership>> rows = found.ask(() -> catalog.ownUserMemberships(database.name()));
+            boolean ownUser = rows.isPresent() && !rows.get().isEmpty();
+            if (ownUser) {
+                listed(found, database.name(), rows.get());
+                if (shape(found, catalog, database, rows.get()) == Shape.BEYOND) {
                     beyond.add(database.name());
-                } else if (msdb(database)) {
-                    MsdbPrivileges.check(found, catalog);
+                    continue;
                 }
-            });
+            }
+            if (msdb(database)) {
+                agentJobsPossible = ownUser || rows.isEmpty();
+                MsdbPrivileges.check(found, catalog, ownUser);
+            }
         }
         if (!beyond.isEmpty()) {
             found.violated(Reason.SYSTEM_DATABASE_OWN_USER, beyond.size(), "the login has a user of its own in the system databases " + beyond
                     + " beyond the msdb and rdscore users the platform gives every login, only guest is allowed there otherwise",
                     beyond.stream().map(DatabaseLocator::new).toList());
+        }
+        if (!agentJobsPossible) {
+            return;
         }
         found.ask(catalog::ownedAgentJobs).filter(jobs -> jobs > 0).ifPresent(jobs -> found.violated(Reason.OWNS_AGENT_JOB,
                 (int) Math.min(Integer.MAX_VALUE, jobs), "the login owns " + jobs + " SQL Agent job(s)"));
@@ -96,6 +107,10 @@ final class SystemDatabaseUsers {
             }
             Optional<List<OwnUserPermission>> permissions = found.ask(() -> catalog.ownUserPermissions(database.name()));
             if (permissions.isEmpty()) {
+                return Shape.UNDETERMINED;
+            }
+            if (permissions.get().isEmpty()) {
+                found.unknown(Reason.EMPTY_ANSWER, 1, "the permissions of the login's own user in " + database.name() + " came back empty, cannot be determined");
                 return Shape.UNDETERMINED;
             }
             return permissions.get().stream().allMatch(p -> RDS_DATABASE_PERMISSION.equals(

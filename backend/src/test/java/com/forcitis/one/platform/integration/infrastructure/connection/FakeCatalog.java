@@ -4,6 +4,7 @@ import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyB
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Ownership;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.MsdbPrivileges.TokenPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.Membership;
 import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserPermission;
@@ -41,13 +42,18 @@ class FakeCatalog implements ReadOnlyCatalog {
     /** The login's own users by system database: none unless a test adds one (rdsOwnUsers() gives those RDS creates). */
     final Map<String, List<Membership>> ownUsers = new HashMap<>();
     final Map<String, List<OwnUserPermission>> ownUserPermissions = new HashMap<>();
-    /** HAS_PERMS_BY_NAME in msdb as the baseline login answers it: every privilege of the review H-1 false. */
+    /** HAS_PERMS_BY_NAME in msdb as the baseline login answers it: every privilege of the review H-1 and IMPERSONATE on dbo false. */
     final Map<String, Integer> msdbEffectivePermissions = new HashMap<>();
+    /** The token's rows in msdb as SQL Server gives them (review H-1′): CONNECT, public's two defaults and object-level grants of public and the roles. */
+    List<TokenPermission> msdbTokenPermissions = new ArrayList<>(List.of(new TokenPermission(false, "DATABASE", "G", "CONNECT"),
+            new TokenPermission(true, "DATABASE", "G", "VIEW ANY COLUMN MASTER KEY DEFINITION"),
+            new TokenPermission(true, "DATABASE", "G", "VIEW ANY COLUMN ENCRYPTION KEY DEFINITION"), new TokenPermission(true, "OBJECT_OR_COLUMN", "G", "SELECT"),
+            new TokenPermission(true, "OBJECT_OR_COLUMN", "G", "EXECUTE"), new TokenPermission(false, "OBJECT_OR_COLUMN", "G", "EXECUTE")));
     long ownedAgentJobs;
     String currentDatabase = "legacyworld";
 
     {
-        MsdbPrivileges.EFFECTIVE.forEach(p -> msdbEffectivePermissions.put(p, 0));
+        MsdbPrivileges.ASKED.forEach(p -> msdbEffectivePermissions.put(p, 0));
     }
     volatile boolean unreachable;
     /** When set, every query throws it instead of answering. */
@@ -162,6 +168,11 @@ class FakeCatalog implements ReadOnlyCatalog {
     @Override
     public Map<String, Integer> msdbEffectivePermissions() {
         return answer(() -> msdbEffectivePermissions);
+    }
+
+    @Override
+    public List<TokenPermission> msdbTokenPermissions() {
+        return answer(() -> msdbTokenPermissions);
     }
 
     @Override

@@ -64,6 +64,8 @@ class ReadOnlyBaselineLocatorTest {
             Map.entry("an owned Agent job", "[(f) the login owns 1 SQL Agent job(s)] [f:true:[OWNS_AGENT_JOB/1/null]]"),
             Map.entry("an msdb privilege of the own user", "[(f) the login's own user in msdb holds permissions beyond those the platform gives every login] "
                     + "[f:true:[SYSTEM_DATABASE_OWN_USER_PRIVILEGE/1/null]]"),
+            Map.entry("an msdb grant of the token beyond the allow-list", "[(f) the login's own user in msdb holds permissions beyond those the platform gives every "
+                    + "login] [f:true:[SYSTEM_DATABASE_OWN_USER_PRIVILEGE/1/null]]"),
             Map.entry("a row the rule cannot read", "[(b) cannot be determined (NullPointerException, no SQL error, innermost NullPointerException)] [b:false:[CHECK_FAILED/1/null]]"),
             Map.entry("no answer", "[(c) cannot be determined (no answer)] [c:false:[NO_ANSWER/1/null]]"),
             Map.entry("an empty answer", "[(d) server-level effective permissions came back empty, cannot be determined] [d:false:[EMPTY_ANSWER/1/null]]"),

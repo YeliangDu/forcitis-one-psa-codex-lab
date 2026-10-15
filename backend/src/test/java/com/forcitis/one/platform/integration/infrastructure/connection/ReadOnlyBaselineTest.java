@@ -2,6 +2,7 @@ package com.forcitis.one.platform.integration.infrastructure.connection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.platform.integration.infrastructure.connection.MsdbPrivileges.TokenPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Finding;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Ownership;
@@ -52,7 +53,9 @@ class ReadOnlyBaselineTest {
             new Counterexample("an own user in master", c -> c.ownUser("master"), 'f', Reason.SYSTEM_DATABASE_OWN_USER),
             new Counterexample("an msdb privilege of the own user", c -> c.rdsOwnUsers().msdbEffectivePermissions.put("CONTROL", 1), 'f',
                     Reason.SYSTEM_DATABASE_OWN_USER_PRIVILEGE),
-            new Counterexample("an owned Agent job", c -> c.ownedAgentJobs = 1, 'f', Reason.OWNS_AGENT_JOB),
+            new Counterexample("an msdb grant of the token beyond the allow-list", c -> c.msdbTokenPermissions.add(new TokenPermission(false, "SCHEMA", "G", "ALTER")),
+                    'f', Reason.SYSTEM_DATABASE_OWN_USER_PRIVILEGE),
+            new Counterexample("an owned Agent job", c -> c.rdsOwnUsers().ownedAgentJobs = 1, 'f', Reason.OWNS_AGENT_JOB),
             new Counterexample("a grant below the database", c -> c.securablePermissionRows.add(FakeCatalog.row("SCHEMA", 5, "G", "CONTROL", false)),
                     'g', Reason.SECURABLE_GRANT_BEYOND_SELECT),
             new Counterexample("a failing catalog", c -> c.unreachable = true, 'a', Reason.CATALOG_QUERY_FAILED),
