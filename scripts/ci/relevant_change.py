@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Decide whether a pull request touches anything the backend or frontend builds read. Writes relevant=true|false to
 $GITHUB_OUTPUT. Everything is relevant except documentation: docs/ outside the paths the tests read, and root *.md.
-Usage: relevant_change.py <base-ref>  |  relevant_change.py --self-test"""
+--paths-from reads one path per line from a file instead of diffing (scripts/precheck.sh uses it so both gates agree).
+Usage: relevant_change.py <base-ref>  |  relevant_change.py --paths-from <file>  |  relevant_change.py --self-test"""
 import os
 import re
 import subprocess
@@ -21,10 +22,12 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
 )
 
-# read only by scripts in the gitleaks job, which runs on every change; registered so the scan below passes without
-# making such docs changes rebuild the backend and frontend
+# read only by scripts in the gitleaks job, which runs on every change, or by scripts/precheck.sh, which runs that job's checks
+# itself; registered so the scan below passes without making such docs changes rebuild the backend and frontend
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/phase1a/infra/runbooks/sql/",
+    "docs/modernization/build_all.py",
+    "docs/modernization/check_legacy_name.py",
 )
 
 
@@ -85,11 +88,26 @@ def self_test():
     assert not is_relevant("README.md")
     assert not is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql")
     assert is_relevant("notes.txt")
+    assert not is_relevant("docs/modernization/build_all.py")
+    assert not is_relevant("docs/modernization/check_legacy_name.py")
+    assert is_relevant("docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml")
+    assert is_relevant("docs/modernization/phase1a/infra/one_db_roles_schemas.sql")
+    assert any_relevant(["docs/modernization/CODING_STANDARD.md", "docs/modernization/glossary/terms.yaml"])
+    assert not any_relevant(["docs/modernization/CODING_STANDARD.md", "CLAUDE.md", ""])
+    assert not any_relevant([])
+
+
+def any_relevant(paths):
+    return any(is_relevant(path) for path in paths if path)
 
 
 def main():
     if sys.argv[1:] == ["--self-test"]:
         self_test()
+        return
+    if len(sys.argv) == 3 and sys.argv[1] == "--paths-from":
+        paths = Path(sys.argv[2]).read_text(encoding="utf-8").splitlines()
+        print(f"relevant={'true' if any_relevant(paths) else 'false'}")
         return
     base = sys.argv[1] if len(sys.argv) > 1 else ""
     if os.environ.get("GITHUB_EVENT_NAME") != "pull_request" or not base:
