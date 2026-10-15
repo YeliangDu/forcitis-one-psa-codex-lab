@@ -12,8 +12,6 @@
 
 契约演进与部署排空用语（proposed，ADR-0035，待用语确认，ADR-0018）。
 
-契约演进用语（`contract-evolution.yaml`，ADR-0035）：`maintenance_mode` 维护模式、`event_quarantine` 隔离登记、`deprecation_register` 弃用登记。
-
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
 | `maintenance_mode` | 维护模式 | MaintenanceMode | 部署或回滚期间的系统状态：停写请求与业务类定时作业，事件投递与重投照常，用于排空事件发布；状态存于库内标记，由 one-ops 部署剧本开关（ADR-0035 第 6 条） |  |  |
@@ -170,8 +168,6 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 
 前端界面用语中尚不在正式词表里的业务术语（proposed，待第三轮用语确认，ADR-0018）。
 
-前端界面用语（`frontend-ui.yaml`）另增：`correlation_id` 关联号 / CorrelationId（归属 `kernel`）——一次请求及其引发的事件与投递共用的追踪编号；出错时界面显示可复制的关联号（NAMING_STANDARD §4a U5）。
-
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
 | `correlation_id` | 关联号 | CorrelationId | 一次请求及其引发的事件与投递共用的追踪编号（X-Correlation-Id）；出错时界面显示可复制的关联号，便于对日志（NAMING_STANDARD §4a U5、GUIDING_PRINCIPLES §11 O-1） |  | 界面不另称「错误编号」，与 platform-web 错误响应同一用语 |
@@ -206,7 +202,7 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 
 涉及模块：`contract.changeorder`、`kernel`、`organization.attendance`、`presales.quoting`。
 
-前三条（尾调、舍入差、按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。冲销单至冲销动作、修正动作十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。另有 `migration`、`work_calendar`、`workday` 等提议术语，以及若干技术词在 `common_words`。
+`tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。`reversal_document`、`correction_document`、`document_nature`、`reversal_category`、`reversible_balance`、`derived_reversal`、`original_period`、`change_order_document`、`reverse_action`、`correct_action` 十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。
 
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|

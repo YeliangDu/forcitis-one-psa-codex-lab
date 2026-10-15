@@ -1,5 +1,4 @@
 # 前端界面用语中尚不在正式词表里的业务术语（proposed，待第三轮用语确认，ADR-0018）。
-# 前端界面用语（`frontend-ui.yaml`）另增：`correlation_id` 关联号 / CorrelationId（归属 `kernel`）——一次请求及其引发的事件与投递共用的追踪编号；出错时界面显示可复制的关联号（NAMING_STANDARD §4a U5）。
 terms:
 - id: correlation_id
   zh: 关联号
