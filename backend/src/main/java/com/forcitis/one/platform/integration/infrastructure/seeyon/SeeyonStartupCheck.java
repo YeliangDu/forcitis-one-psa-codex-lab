@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
+import com.forcitis.one.platform.integration.api.ExternalFailure;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +57,7 @@ final class SeeyonStartupCheck implements SmartInitializingSingleton {
                 problems.add("no person carries the configured fee-earner 'yes' enum id: every fee earner marker would silently become false");
             }
         } catch (RuntimeException unreachable) {
-            problems.add("Seeyon cannot be checked (" + SeeyonOrgSource.sqlFailure(unreachable) + ")");
+            problems.add("Seeyon cannot be checked (" + ExternalFailure.of(unreachable) + ")");
         }
         return problems;
     }

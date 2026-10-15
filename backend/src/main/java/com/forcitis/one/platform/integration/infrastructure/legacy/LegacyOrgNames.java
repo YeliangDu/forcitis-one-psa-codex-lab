@@ -1,9 +1,9 @@
 package com.forcitis.one.platform.integration.infrastructure.legacy;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
+import com.forcitis.one.platform.integration.api.ExternalFailure;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import com.forcitis.one.platform.integration.api.SourceUnitId;
-import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.dao.DataAccessException;
@@ -38,17 +38,7 @@ final class LegacyOrgNames implements OrgShortNames {
             }).list();
             return names;
         } catch (DataAccessException unreachable) {
-            throw new ExternalSystemUnavailableException("old system short names cannot be read (" + sqlFailure(unreachable) + ")");
+            throw new ExternalSystemUnavailableException("old system short names cannot be read (" + ExternalFailure.of(unreachable) + ")");
         }
-    }
-
-    /** ADR-0037 item 3.5: SQL Server messages can carry column values, so only the type, the error number and the SQLState are told. */
-    static String sqlFailure(Throwable failure) {
-        for (Throwable t = failure; t != null; t = t.getCause()) {
-            if (t instanceof SQLException sql) {
-                return failure.getClass().getSimpleName() + ", error " + sql.getErrorCode() + ", SQLState " + sql.getSQLState();
-            }
-        }
-        return failure.getClass().getSimpleName() + ", no SQL error";
     }
 }

@@ -2,6 +2,9 @@ package com.forcitis.one.platform.integration.infrastructure.connection;
 
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Ownership;
+import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
+import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,7 +16,15 @@ interface ReadOnlyCatalog {
 
     List<String> serverPermissions();
 
+    List<ServerPermissionRow> serverPermissionRows();
+
     List<DatabaseLevelPermission> databaseLevelPermissions();
+
+    /**
+     * The login's own rows and those of public on user securables (major_id above 0). A login sees public's rows because it is a member of
+     * public (SQL Server 2022 container, PR #163 review H-1); whether SQL Server 2016 on RDS shows them too is part of the real-login check C-14.
+     */
+    List<SecurablePermissionRow> securablePermissionRows();
 
     /** The principals of sys.user_token other than the user itself. */
     List<String> roles();
@@ -23,7 +34,10 @@ interface ReadOnlyCatalog {
 
     Ownership ownership();
 
-    List<String> reachableDatabases();
+    List<ReachableDatabase> reachableDatabases();
+
+    /** Users of the given system database whose SID is the login's; the database must be one {@link #reachableDatabases()} named. */
+    long ownUsers(String systemDatabase);
 
     String currentDatabase();
 }

@@ -5,8 +5,9 @@ package com.forcitis.one.platform.integration.domain;
 public interface ReadOnlyConnectionCheck {
 
     /**
-     * Checks the login behind the named external connection again; a failure stops every connection of that login for good (until the next
-     * start) and throws {@link com.forcitis.one.kernel.ExternalSystemUnavailableException} naming the unmet items (a)–(f).
+     * Checks the login behind the named external connection again and throws {@link com.forcitis.one.kernel.ExternalSystemUnavailableException}
+     * naming the unmet items (a)–(g) unless it passes. A violation stops every connection of that login for good (until the next start); a
+     * check that cannot be determined fails only this read, until three in a row stop the login as well (intent 2026-10-15-120940).
      */
     void recheck(String connectionName);
 }

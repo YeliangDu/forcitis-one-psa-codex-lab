@@ -389,7 +389,6 @@ public abstract class ApprovalIntegrationSupport {
         }
     }
 
-    @TestConfiguration
     /** Hands out a plain stand-in connection and remembers what approval asked for. */
     public static class RecordingExternalConnections implements ExternalConnections {
 
@@ -402,6 +401,7 @@ public abstract class ApprovalIntegrationSupport {
         }
     }
 
+    @TestConfiguration
     public static class Doubles {
 
         /**

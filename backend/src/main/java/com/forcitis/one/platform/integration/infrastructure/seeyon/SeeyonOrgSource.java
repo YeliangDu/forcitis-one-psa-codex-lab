@@ -2,12 +2,12 @@ package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.ExternalFailure;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourcePerson;
 import com.forcitis.one.platform.integration.api.SourcePosition;
 import com.forcitis.one.platform.integration.api.SourceRelationship;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataAccessException;
@@ -73,20 +73,10 @@ final class SeeyonOrgSource implements OrgSource {
 
     /** The message is stored in the sync run and the cause is dropped: SQL Server messages can carry column values (ADR-0037 item 3.5). */
     private static ExternalSystemUnavailableException unavailable(DataAccessException cause) {
-        return new ExternalSystemUnavailableException("Seeyon views cannot be read (" + sqlFailure(cause) + ")");
+        return new ExternalSystemUnavailableException("Seeyon views cannot be read (" + ExternalFailure.of(cause) + ")");
     }
 
     private static <T> List<T> present(List<Optional<T>> rows) {
         return rows.stream().flatMap(Optional::stream).toList();
-    }
-
-    /** ADR-0037 item 3.5: SQL Server messages can carry column values, so only the type, the error number and the SQLState are told. */
-    static String sqlFailure(Throwable failure) {
-        for (Throwable t = failure; t != null; t = t.getCause()) {
-            if (t instanceof SQLException sql) {
-                return failure.getClass().getSimpleName() + ", error " + sql.getErrorCode() + ", SQLState " + sql.getSQLState();
-            }
-        }
-        return failure.getClass().getSimpleName() + ", no SQL error";
     }
 }

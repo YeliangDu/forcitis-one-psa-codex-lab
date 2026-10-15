@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
 import com.zaxxer.hikari.HikariDataSource;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -21,7 +22,7 @@ class ExternalConnectionFactoryTest {
     static final String POSTGRES = "jdbc:postgresql://127.0.0.1:1/none";
 
     final ExternalConnectionFactory factory = new ExternalConnectionFactory(new ExternalConnectionProperties(null, null),
-            new ReadOnlyAccounts(Clock.fixed(Instant.parse("2026-10-15T00:00:00Z"), ZoneOffset.UTC), source -> new FakeCatalog()));
+            new ReadOnlyAccounts(Clock.fixed(Instant.parse("2026-10-15T00:00:00Z"), ZoneOffset.UTC), source -> new FakeCatalog(), new SimpleMeterRegistry()));
 
     private HikariDataSource open(String url, ExternalCallKind kind) {
         return (HikariDataSource) factory.open("test-pool", url, "reader", "not-a-secret", kind);

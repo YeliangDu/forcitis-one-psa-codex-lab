@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
  * one-ops scan of both databases (PR #143); rows classified "credential" are denied, and so is every "review" row until the implementation
  * PR records it below as not a credential, with its reason. Table and column are both required in the same SQL text (same file for Java and
  * resources, same line for a registry) because many deny-listed column names (PASSWORD, TOKEN, KEY_VALUE) are common words on their own.
+ * That pairing cannot see a column read through a star, so the SQL text of the integration layer names its columns (PR #163 review M-2).
  */
 class CredentialColumnGuardTest {
 
@@ -30,6 +31,15 @@ class CredentialColumnGuardTest {
     static final Path MAIN_JAVA = Path.of("src/main/java");
     static final Path MAIN_RESOURCES = Path.of("src/main/resources");
     static final Path REGISTRIES = Path.of("architecture");
+    static final Path INTEGRATION_MODULE = MAIN_JAVA.resolve("com/forcitis/one/platform/integration");
+    static final String EXTERNAL_CONNECTION_PORT = "ExternalConnections";
+
+    private static final Pattern SELECT_STAR = Pattern.compile(
+            "\\bSELECT\\s+(?:(?:DISTINCT|ALL)\\s+|TOP\\s*\\(?\\s*\\d+\\s*\\)?\\s+(?:PERCENT\\s+)?(?:WITH\\s+TIES\\s+)?)*\\*",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern QUALIFIED_STAR = Pattern.compile("(?:[A-Za-z_][A-Za-z0-9_]*|\\[[^\\]]+\\])\\s*\\.\\s*\\*(?=\\s*(?:,|FROM\\b))",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern LISTED_STAR = Pattern.compile(",\\s*\\*\\s*(?:,|FROM\\b)", Pattern.CASE_INSENSITIVE);
 
     /**
      * "review" rows of the deny list that the implementation PR (ADR37-1) has judged not to be credentials, from the table and column names alone
@@ -137,6 +147,63 @@ class CredentialColumnGuardTest {
 
         assertThat(violations).as("credential columns may be read by the account but never by the application (ADR-0037 item 3.4); "
                 + "a new use needs its own ADR. Remove the column from the statement").isEmpty();
+    }
+
+    /** Every source of platform.integration, and of any package that opens an external connection (the old to-do adapter of approval). */
+    static List<Path> integrationLayer() throws IOException {
+        List<Path> java = files(MAIN_JAVA, ".java");
+        Set<Path> adapterPackages = new TreeSet<>();
+        for (Path file : java) {
+            if (identifier(EXTERNAL_CONNECTION_PORT).matcher(JavaCode.withoutComments(Files.readString(file))).find()) {
+                adapterPackages.add(file.getParent());
+            }
+        }
+        return java.stream().filter(file -> file.startsWith(INTEGRATION_MODULE) || adapterPackages.contains(file.getParent())).toList();
+    }
+
+    static List<String> starSelections(String sqlText) {
+        List<String> found = new ArrayList<>();
+        for (Pattern star : List.of(SELECT_STAR, QUALIFIED_STAR, LISTED_STAR)) {
+            Matcher m = star.matcher(sqlText);
+            while (m.find()) {
+                found.add(m.group().replaceAll("\\s+", " "));
+            }
+        }
+        return found;
+    }
+
+    @Test
+    @DisplayName("ADR37-1 复审 M-2 凭据列守护：集成层的 SQL 文本不用 SELECT * 或 别名.*，列一一写出，凭据列才看得见")
+    void integrationSqlNamesItsColumns() throws IOException {
+        List<Path> layer = integrationLayer();
+        assertThat(layer).as("the integration layer includes the adapters of both external databases")
+                .anyMatch(p -> p.toString().contains("seeyon")).anyMatch(p -> p.toString().contains("approval"));
+        List<String> violations = new ArrayList<>();
+        for (Path file : layer) {
+            starSelections(stringLiterals(Files.readString(file))).forEach(star -> violations.add(file + " selects " + star));
+        }
+
+        assertThat(violations).as("a star reads every column, credential columns included, without naming them (ADR-0037 item 3.4)").isEmpty();
+    }
+
+    @Test
+    @DisplayName("ADR37-1 复审 M-2 凭据列守护自检：SELECT *、TOP 加 *、别名.*、[schema].[表].* 与列表中的 * 被识别，COUNT(*) 与配置键通配不被误报")
+    void starDetectorFindsInjectedStars() {
+        String java = "class Probe {\n"
+                + "    static final String A = \"SELECT * FROM dbo.SOME_TABLE\";\n"
+                + "    static final String B = \"select top (5) * from dbo.SOME_TABLE\";\n"
+                + "    static final String C = \"SELECT p.* FROM dbo.SOME_TABLE p\";\n"
+                + "    static final String D = \"\"\"\n            SELECT [dbo].[SOME_TABLE] . *\n            FROM dbo.SOME_TABLE\n            \"\"\";\n"
+                + "    static final String E = \"SELECT ID, * FROM dbo.SOME_TABLE\";\n"
+                + "}\n";
+        assertThat(starSelections(stringLiterals(java))).hasSize(5);
+
+        String clean = "class Probe {\n"
+                + "    // SELECT * FROM dbo.SOME_TABLE only in a comment\n"
+                + "    static final String COUNT = \"SELECT COUNT(*) FROM dbo.SOME_TABLE WHERE A = 2 * B\";\n"
+                + "    static final String KEYS = \"no property of forcitis.platform.integration.* is a secret\";\n"
+                + "}\n";
+        assertThat(starSelections(stringLiterals(clean))).as("COUNT(*), arithmetic, a wildcard key and comments are no star selection").isEmpty();
     }
 
     @Test

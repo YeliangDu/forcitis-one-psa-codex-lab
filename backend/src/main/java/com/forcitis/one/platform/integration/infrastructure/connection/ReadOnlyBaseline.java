@@ -1,20 +1,24 @@
 package com.forcitis.one.platform.integration.infrastructure.connection;
 
-import java.sql.SQLException;
+import com.forcitis.one.platform.integration.api.ExternalFailure;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * ADR-0037 item 4 as amended by the implementation card (one-coordinator and one-ops, 2026-10-15): a read-only external login passes only when
- * each of the items (a)–(f) holds; anything more, anything less, or anything the catalog will not tell refuses. The baselines are what
- * fn_my_permissions returned for the four real logins on the RDS instance (SQL Server 2016), identical for all four (one-ops, PR #143,
- * B-5 README "有效权限平台基线").
+ * ADR-0037 item 4 as amended by the implementation card (one-coordinator and one-ops, 2026-10-15) and the review of PR #163 (RULING-ADR37-10):
+ * a read-only external login passes only when each of the items (a)–(g) holds. Anything more refuses as a violation; anything the catalog
+ * will not tell (a failed or timed-out query, an empty answer where a real login always has rows) is undeterminable, which also refuses the
+ * start-up but is told apart at a re-check (ADR-0037 item 4.4 as interpreted by the user, intent 2026-10-15-120940). The baselines are what
+ * the four real logins on the RDS instance (SQL Server 2016) returned, identical for all four (one-ops, PR #143, B-5 README
+ * "有效权限平台基线"; H-1 export B-5-dba/evidence/h1_m3_permissions.sql).
  */
 final class ReadOnlyBaseline {
 
@@ -33,18 +37,23 @@ final class ReadOnlyBaseline {
     static final Set<String> DATABASE_PERMISSIONS = Set.of("CONNECT", "KILL DATABASE CONNECTION", "SELECT", "SHOWPLAN",
             "VIEW ANY COLUMN ENCRYPTION KEY DEFINITION", "VIEW ANY COLUMN MASTER KEY DEFINITION", "VIEW DATABASE STATE");
 
-    /** A database-level DENY overrides every schema, object and role GRANT below it, so its presence covers what (a) cannot see. */
+    /** These eleven only; CONTROL, TAKE OWNERSHIP and IMPERSONATE on a schema or an object are not among them, which is why (g) exists. */
     static final Set<String> DATABASE_DENIES = Set.of("INSERT", "UPDATE", "DELETE", "ALTER", "EXECUTE", "REFERENCES", "CREATE TABLE",
             "CREATE VIEW", "CREATE PROCEDURE", "CREATE FUNCTION", "CREATE SCHEMA");
 
     static final Set<String> DATABASE_GRANTS = Set.of("CONNECT", "SELECT");
 
-    /** RDS opens these to every login through guest; the implementation card allows them besides the login's own database. */
-    static final Set<String> SYSTEM_DATABASES = Set.of("master", "msdb", "rdscore", "tempdb");
+    /** RDS's own database, open to every login through guest like the system databases; matched exactly, a case-insensitive name is not enough. */
+    static final String RDS_DATABASE = "rdscore";
+
+    /** master, tempdb, model and msdb. */
+    static final int LAST_SYSTEM_DATABASE_ID = 4;
 
     /** Asked by name as well, in case the server lists fewer fixed roles than it has. */
     static final Set<String> FIXED_SERVER_ROLES = Set.of("sysadmin", "serveradmin", "securityadmin", "processadmin", "setupadmin", "bulkadmin",
             "diskadmin", "dbcreator");
+
+    static final int SERVER_CLASS = 100;
 
     /** state as in sys.database_permissions: D deny, G grant, W grant with grant option. */
     record DatabaseLevelPermission(String state, String permission) {
@@ -53,79 +62,188 @@ final class ReadOnlyBaseline {
     record Ownership(boolean databaseOwner, long schemas, long objects, long roles, long principalGrants) {
     }
 
-    private ReadOnlyBaseline() {
+    /** A row of sys.server_permissions granted to or denied the login itself. */
+    record ServerPermissionRow(int securableClass, String classDescription, String state, String permission) {
     }
 
-    /** Each entry starts with the item it breaks, "(a)" to "(f)". */
-    static List<String> violations(ReadOnlyCatalog catalog) {
-        List<String> violations = new ArrayList<>();
-        item(violations, 'a', () -> sameAs("database-level effective permissions", catalog.databasePermissions(), DATABASE_PERMISSIONS));
-        item(violations, 'b', () -> databaseLevel(catalog.databaseLevelPermissions()));
-        item(violations, 'c', () -> onlyPublic(catalog.roles()));
-        item(violations, 'd', () -> server(catalog.serverPermissions(), catalog.fixedServerRoleMemberships(FIXED_SERVER_ROLES)));
-        item(violations, 'e', () -> ownsNothing(catalog.ownership()));
-        item(violations, 'f', () -> reachable(catalog.reachableDatabases(), catalog.currentDatabase()));
-        return violations;
+    /** A row of sys.database_permissions below the database level (class other than 0), of the login itself or of public on a user securable. */
+    record SecurablePermissionRow(String classDescription, long majorId, String state, String permission, boolean toPublic) {
     }
 
-    private static void item(List<String> violations, char item, Supplier<Optional<String>> rule) {
-        try {
-            rule.get().ifPresent(problem -> violations.add("(" + item + ") " + problem));
-        } catch (RuntimeException undeterminable) {
-            violations.add("(" + item + ") cannot be determined (" + sqlFailure(undeterminable) + ")");
+    record ReachableDatabase(int id, String name) {
+
+        boolean system() {
+            return id <= LAST_SYSTEM_DATABASE_ID || name.equals(RDS_DATABASE);
         }
     }
 
-    private static Optional<String> sameAs(String what, List<String> actual, Set<String> baseline) {
+    /** One unmet item; confirmed when the catalog showed a violation, not only an answer it would not give. */
+    record Unmet(char item, String problem, boolean confirmed) {
+
+        String described() {
+            return "(" + item + ") " + problem;
+        }
+    }
+
+    record Verdict(List<Unmet> unmet) {
+
+        boolean passed() {
+            return unmet.isEmpty();
+        }
+
+        boolean violated() {
+            return unmet.stream().anyMatch(Unmet::confirmed);
+        }
+
+        List<String> described() {
+            return unmet.stream().map(Unmet::described).toList();
+        }
+    }
+
+    private ReadOnlyBaseline() {
+    }
+
+    static Verdict check(ReadOnlyCatalog catalog) {
+        List<Unmet> unmet = new ArrayList<>();
+        item(unmet, 'a', found -> found.ask(catalog::databasePermissions)
+                .ifPresent(permissions -> sameAs(found, "database-level effective permissions", permissions, DATABASE_PERMISSIONS)));
+        item(unmet, 'b', found -> found.ask(catalog::databaseLevelPermissions).ifPresent(rows -> databaseLevel(found, rows)));
+        item(unmet, 'c', found -> found.ask(catalog::roles).ifPresent(roles -> onlyPublic(found, roles)));
+        item(unmet, 'd', found -> server(found, catalog));
+        item(unmet, 'e', found -> found.ask(catalog::ownership).ifPresent(ownership -> ownsNothing(found, ownership)));
+        item(unmet, 'f', found -> reachable(found, catalog));
+        item(unmet, 'g', found -> found.ask(catalog::securablePermissionRows).ifPresent(rows -> belowTheDatabase(found, rows)));
+        return new Verdict(List.copyOf(unmet));
+    }
+
+    /** Each entry starts with the item it breaks, "(a)" to "(g)". */
+    static List<String> violations(ReadOnlyCatalog catalog) {
+        return check(catalog).described();
+    }
+
+    private static final class Findings {
+
+        final Set<String> confirmed = new LinkedHashSet<>();
+        final Set<String> undeterminable = new LinkedHashSet<>();
+
+        void violated(String problem) {
+            confirmed.add(problem);
+        }
+
+        void unknown(String problem) {
+            undeterminable.add(problem);
+        }
+
+        <T> Optional<T> ask(Supplier<T> query) {
+            try {
+                T answer = query.get();
+                if (answer == null) {
+                    unknown("cannot be determined (no answer)");
+                }
+                return Optional.ofNullable(answer);
+            } catch (RuntimeException failure) {
+                unknown("cannot be determined (" + ExternalFailure.of(failure) + ")");
+                return Optional.empty();
+            }
+        }
+    }
+
+    private static void item(List<Unmet> unmet, char item, Consumer<Findings> rule) {
+        Findings found = new Findings();
+        try {
+            rule.accept(found);
+        } catch (RuntimeException failure) {
+            found.unknown("cannot be determined (" + ExternalFailure.of(failure) + ")");
+        }
+        List<String> problems = new ArrayList<>(found.confirmed);
+        problems.addAll(found.undeterminable);
+        if (!problems.isEmpty()) {
+            unmet.add(new Unmet(item, String.join(", ", problems), !found.confirmed.isEmpty()));
+        }
+    }
+
+    private static void sameAs(Findings found, String what, List<String> actual, Set<String> baseline) {
         Set<String> have = normalised(actual);
         if (have.isEmpty()) {
-            return Optional.of(what + " came back empty");
+            found.unknown(what + " came back empty, cannot be determined");
+            return;
         }
         Set<String> more = new TreeSet<>(have);
         more.removeAll(baseline);
         Set<String> fewer = new TreeSet<>(baseline);
         fewer.removeAll(have);
-        if (more.isEmpty() && fewer.isEmpty()) {
-            return Optional.empty();
+        if (!more.isEmpty() || !fewer.isEmpty()) {
+            found.violated(what + " differ from the platform baseline: more " + more + ", fewer " + fewer);
         }
-        return Optional.of(what + " differ from the platform baseline: more " + more + ", fewer " + fewer);
     }
 
-    private static Optional<String> databaseLevel(List<DatabaseLevelPermission> rows) {
+    private static void databaseLevel(Findings found, List<DatabaseLevelPermission> rows) {
+        if (rows.isEmpty()) {
+            found.unknown("database-level permissions came back empty, cannot be determined");
+            return;
+        }
         Set<String> denies = new TreeSet<>();
         Set<String> grants = new TreeSet<>();
         Set<String> grantable = new TreeSet<>();
         for (DatabaseLevelPermission row : rows) {
-            String permission = row.permission().trim().toUpperCase(Locale.ROOT);
+            String permission = upper(row.permission());
             switch (row.state().trim()) {
                 case "D" -> denies.add(permission);
                 case "G" -> grants.add(permission);
                 default -> grantable.add(permission);
             }
         }
-        List<String> problems = new ArrayList<>();
         Set<String> missingDenies = new TreeSet<>(DATABASE_DENIES);
         missingDenies.removeAll(denies);
         if (!missingDenies.isEmpty()) {
-            problems.add("database-level DENY lacks " + missingDenies);
+            found.violated("database-level DENY lacks " + missingDenies);
         }
         if (!grants.equals(DATABASE_GRANTS)) {
-            problems.add("database-level GRANT is " + grants + ", must be exactly " + new TreeSet<>(DATABASE_GRANTS));
+            found.violated("database-level GRANT is " + grants + ", must be exactly " + new TreeSet<>(DATABASE_GRANTS));
         }
         if (!grantable.isEmpty()) {
-            problems.add("database-level GRANT WITH GRANT OPTION " + grantable);
+            found.violated("database-level GRANT WITH GRANT OPTION " + grantable);
         }
-        return problems.isEmpty() ? Optional.empty() : Optional.of(String.join(", ", problems));
     }
 
-    private static Optional<String> onlyPublic(List<String> roles) {
+    private static void onlyPublic(Findings found, List<String> roles) {
         Set<String> have = new TreeSet<>(roles.stream().map(String::trim).toList());
-        return have.equals(Set.of("public")) ? Optional.empty() : Optional.of("the login is in the database roles " + have + ", only public is allowed");
+        if (have.isEmpty()) {
+            found.unknown("sys.user_token came back without public, cannot be determined");
+        } else if (!have.equals(Set.of("public"))) {
+            found.violated("the login is in the database roles " + have + ", only public is allowed");
+        }
     }
 
-    private static Optional<String> server(List<String> permissions, Map<String, Integer> memberships) {
-        List<String> problems = new ArrayList<>();
-        sameAs("server-level effective permissions", permissions, SERVER_PERMISSIONS).ifPresent(problems::add);
+    /**
+     * fn_my_permissions(NULL, 'SERVER') does not list permissions on a login, an endpoint or an availability group (IMPERSONATE ON
+     * LOGIN::sa), so the login's own rows are read as well. The real logins hold one row, GRANT CONNECT SQL; a direct server-level GRANT
+     * within the baseline or a DENY adds nothing the effective permissions would not show.
+     */
+    private static void server(Findings found, ReadOnlyCatalog catalog) {
+        found.ask(catalog::serverPermissions).ifPresent(permissions -> sameAs(found, "server-level effective permissions", permissions, SERVER_PERMISSIONS));
+        found.ask(() -> catalog.fixedServerRoleMemberships(FIXED_SERVER_ROLES)).ifPresent(memberships -> fixedServerRoles(found, memberships));
+        found.ask(catalog::serverPermissionRows).ifPresent(rows -> {
+            if (rows.isEmpty()) {
+                found.unknown("sys.server_permissions came back without the login's CONNECT SQL, cannot be determined");
+                return;
+            }
+            Set<String> beyond = new TreeSet<>();
+            for (ServerPermissionRow row : rows) {
+                String state = row.state().trim();
+                boolean allowed = row.securableClass() == SERVER_CLASS
+                        && (state.equals("D") || state.equals("G") && SERVER_PERMISSIONS.contains(upper(row.permission())));
+                if (!allowed) {
+                    beyond.add(row.classDescription().trim() + " " + state + " " + upper(row.permission()));
+                }
+            }
+            if (!beyond.isEmpty()) {
+                found.violated("server permissions held by the login beyond GRANT CONNECT SQL " + beyond);
+            }
+        });
+    }
+
+    private static void fixedServerRoles(Findings found, Map<String, Integer> memberships) {
         Set<String> member = new TreeSet<>();
         Set<String> unknown = new TreeSet<>();
         memberships.forEach((role, answer) -> {
@@ -136,63 +254,82 @@ final class ReadOnlyBaseline {
             }
         });
         if (!member.isEmpty()) {
-            problems.add("the login is a member of the fixed server roles " + member);
+            found.violated("the login is a member of the fixed server roles " + member);
         }
         if (!unknown.isEmpty()) {
-            problems.add("membership of the fixed server roles " + unknown + " cannot be determined");
+            found.unknown("membership of the fixed server roles " + unknown + " cannot be determined");
         }
-        return problems.isEmpty() ? Optional.empty() : Optional.of(String.join(", ", problems));
     }
 
-    private static Optional<String> ownsNothing(Ownership ownership) {
-        List<String> problems = new ArrayList<>();
+    private static void ownsNothing(Findings found, Ownership ownership) {
         if (ownership.databaseOwner()) {
-            problems.add("the login is dbo");
+            found.violated("the login is dbo");
         }
         if (ownership.schemas() > 0) {
-            problems.add("owns " + ownership.schemas() + " schema(s)");
+            found.violated("owns " + ownership.schemas() + " schema(s)");
         }
         if (ownership.objects() > 0) {
-            problems.add("owns " + ownership.objects() + " object(s)");
+            found.violated("owns " + ownership.objects() + " object(s)");
         }
         if (ownership.roles() > 0) {
-            problems.add("owns " + ownership.roles() + " role(s)");
+            found.violated("owns " + ownership.roles() + " role(s)");
         }
         if (ownership.principalGrants() > 0) {
-            problems.add("holds " + ownership.principalGrants() + " grant(s) on database principals such as IMPERSONATE");
+            found.violated("holds " + ownership.principalGrants() + " grant(s) on database principals such as IMPERSONATE");
         }
-        return problems.isEmpty() ? Optional.empty() : Optional.of(String.join(", ", problems));
     }
 
-    private static Optional<String> reachable(List<String> databases, String own) {
+    /** RDS opens the system databases to every login through guest; one where the login has a user of its own is entered with that user's rights. */
+    private static void reachable(Findings found, ReadOnlyCatalog catalog) {
+        Optional<String> own = found.ask(catalog::currentDatabase);
+        Optional<List<ReachableDatabase>> reachable = found.ask(catalog::reachableDatabases);
+        if (own.isEmpty() || reachable.isEmpty()) {
+            return;
+        }
         Set<String> beyond = new TreeSet<>();
+        Set<String> withOwnUser = new TreeSet<>();
         boolean ownReachable = false;
-        for (String database : databases) {
-            if (database.equals(own)) {
+        for (ReachableDatabase database : reachable.get()) {
+            if (database.name().equals(own.get())) {
                 ownReachable = true;
-            } else if (SYSTEM_DATABASES.stream().noneMatch(database::equalsIgnoreCase)) {
-                beyond.add(database);
+            } else if (!database.system()) {
+                beyond.add(database.name());
+            } else {
+                found.ask(() -> catalog.ownUsers(database.name())).filter(users -> users > 0).ifPresent(users -> withOwnUser.add(database.name()));
             }
         }
         if (!ownReachable) {
-            return Optional.of("HAS_DBACCESS does not list the login's own database");
+            found.unknown("HAS_DBACCESS does not list the login's own database, cannot be determined");
         }
-        return beyond.isEmpty() ? Optional.empty() : Optional.of("the login can also enter the databases " + beyond);
+        if (!beyond.isEmpty()) {
+            found.violated("the login can also enter the databases " + beyond);
+        }
+        if (!withOwnUser.isEmpty()) {
+            found.violated("the login has a user of its own in the system databases " + withOwnUser + ", only guest is allowed there");
+        }
+    }
+
+    private static void belowTheDatabase(Findings found, List<SecurablePermissionRow> rows) {
+        Set<String> beyond = new TreeSet<>();
+        for (SecurablePermissionRow row : rows) {
+            String state = row.state().trim();
+            String permission = upper(row.permission());
+            if (!(state.equals("D") || state.equals("G") && permission.equals("SELECT"))) {
+                beyond.add(row.classDescription().trim() + " " + row.majorId() + " " + state + " " + permission + (row.toPublic() ? " to public" : ""));
+            }
+        }
+        if (!beyond.isEmpty()) {
+            found.violated("schema, object and other grants below the database level may only be DENY or GRANT SELECT, found " + beyond);
+        }
+    }
+
+    private static String upper(String value) {
+        return value.trim().toUpperCase(Locale.ROOT);
     }
 
     private static Set<String> normalised(List<String> values) {
         Set<String> set = new TreeSet<>();
-        values.forEach(v -> set.add(v.trim().toUpperCase(Locale.ROOT)));
+        values.forEach(v -> set.add(upper(v)));
         return set;
-    }
-
-    /** ADR-0037 item 3.5: SQL Server messages can carry column values, so only the type, the error number and the SQLState are told. */
-    static String sqlFailure(Throwable failure) {
-        for (Throwable t = failure; t != null; t = t.getCause()) {
-            if (t instanceof SQLException sql) {
-                return failure.getClass().getSimpleName() + ", error " + sql.getErrorCode() + ", SQLState " + sql.getSQLState();
-            }
-        }
-        return failure.getClass().getSimpleName() + ", no SQL error";
     }
 }

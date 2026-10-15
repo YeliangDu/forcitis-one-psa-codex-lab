@@ -2,6 +2,9 @@ package com.forcitis.one.platform.integration.infrastructure.connection;
 
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Ownership;
+import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
+import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,8 +17,15 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
 
     static final String DATABASE_PERMISSIONS = "SELECT permission_name FROM fn_my_permissions(NULL, 'DATABASE')";
     static final String SERVER_PERMISSIONS = "SELECT permission_name FROM fn_my_permissions(NULL, 'SERVER')";
+    static final String SERVER_PERMISSION_ROWS = "SELECT class, class_desc, state, permission_name FROM sys.server_permissions "
+            + "WHERE grantee_principal_id = (SELECT principal_id FROM sys.server_principals WHERE sid = SUSER_SID())";
     static final String DATABASE_LEVEL_PERMISSIONS = "SELECT state, permission_name FROM sys.database_permissions "
             + "WHERE class = 0 AND grantee_principal_id = DATABASE_PRINCIPAL_ID()";
+    static final String SECURABLE_PERMISSION_ROWS = """
+            SELECT class_desc, major_id, state, permission_name, CASE WHEN grantee_principal_id = 0 THEN 1 ELSE 0 END
+            FROM sys.database_permissions
+            WHERE class <> 0 AND (grantee_principal_id = DATABASE_PRINCIPAL_ID() OR (grantee_principal_id = 0 AND major_id > 0))
+            """;
     static final String ROLES = "SELECT name FROM sys.user_token WHERE principal_id <> DATABASE_PRINCIPAL_ID()";
     static final String LISTED_FIXED_SERVER_ROLES = "SELECT name, IS_SRVROLEMEMBER(name) FROM sys.server_principals "
             + "WHERE type = 'R' AND is_fixed_role = 1";
@@ -26,7 +36,8 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
                    (SELECT COUNT(*) FROM sys.database_principals WHERE owning_principal_id = DATABASE_PRINCIPAL_ID()),
                    (SELECT COUNT(*) FROM sys.database_permissions WHERE class = 4 AND grantee_principal_id = DATABASE_PRINCIPAL_ID())
             """;
-    static final String REACHABLE_DATABASES = "SELECT name FROM sys.databases WHERE HAS_DBACCESS(name) = 1";
+    static final String REACHABLE_DATABASES = "SELECT database_id, name FROM sys.databases WHERE HAS_DBACCESS(name) = 1";
+    static final String OWN_USERS = "SELECT COUNT(*) FROM %s.sys.database_principals WHERE sid = SUSER_SID()";
     static final String CURRENT_DATABASE = "SELECT DB_NAME()";
 
     private final JdbcClient jdbc;
@@ -46,8 +57,20 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     }
 
     @Override
+    public List<ServerPermissionRow> serverPermissionRows() {
+        return jdbc.sql(SERVER_PERMISSION_ROWS)
+                .query((rs, n) -> new ServerPermissionRow(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4))).list();
+    }
+
+    @Override
     public List<DatabaseLevelPermission> databaseLevelPermissions() {
         return jdbc.sql(DATABASE_LEVEL_PERMISSIONS).query((rs, n) -> new DatabaseLevelPermission(rs.getString(1), rs.getString(2))).list();
+    }
+
+    @Override
+    public List<SecurablePermissionRow> securablePermissionRows() {
+        return jdbc.sql(SECURABLE_PERMISSION_ROWS).query((rs, n) -> new SecurablePermissionRow(rs.getString(1), rs.getLong(2), rs.getString(3),
+                rs.getString(4), rs.getInt(5) == 1)).list();
     }
 
     @Override
@@ -77,12 +100,21 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     }
 
     @Override
-    public List<String> reachableDatabases() {
-        return jdbc.sql(REACHABLE_DATABASES).query(String.class).list();
+    public List<ReachableDatabase> reachableDatabases() {
+        return jdbc.sql(REACHABLE_DATABASES).query((rs, n) -> new ReachableDatabase(rs.getInt(1), rs.getString(2))).list();
+    }
+
+    @Override
+    public long ownUsers(String systemDatabase) {
+        return jdbc.sql(OWN_USERS.formatted(bracketed(systemDatabase))).query(Long.class).single();
     }
 
     @Override
     public String currentDatabase() {
         return jdbc.sql(CURRENT_DATABASE).query(String.class).single();
+    }
+
+    private static String bracketed(String database) {
+        return "[" + database.replace("]", "]]") + "]";
     }
 }
