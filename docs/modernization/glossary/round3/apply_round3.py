@@ -17,6 +17,9 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 DECISIONS = os.path.join(HERE, "..", "decisions-round3-2026-10-15.json")
 CONFIRMED = "2026-10-15（用户，用语确认第三轮）"
 CJK = re.compile(r"[一-鿿（）]+")
+# 测试按条目读取的提议（DocumentTypeCodeTest 要求每个单据类型代码在 platform-numbering.yaml 有同名 snake）：
+# 用户已定并入 document_type_code，但条目留在原文件，直到负责会话改测试后删除（改名卡）
+TEST_PINNED = {f"platform-numbering.yaml#{c}": "DocumentTypeCodeTest 按 snake 读取 platform-numbering.yaml" for c in ("qt", "ts", "jv")}
 FRONTEND_ROOTS = ("frontend/apps", "frontend/packages")
 SKIP_DIRS = {"node_modules", "dist", "generated"}
 
@@ -118,7 +121,11 @@ def plan():
             out["new"].append(entry)
             continue
         src = inventory[i["key"]]
-        out["removed"].append(i["key"])
+        if i["key"] in TEST_PINNED:
+            out["cards"].append({"code": i["code"], "old": f"{src['zh']} / {src['en']}", "to": f"并入 {o['into']}",
+                                 "why": TEST_PINNED[i["key"]] + "，条目暂留，测试改为读 document_type_code 取值后删除"})
+        else:
+            out["removed"].append(i["key"])
         if o["action"] == "merge":
             later.append((i, o, src))
             continue
@@ -200,7 +207,7 @@ def plan():
         if x.get("keep_zh"):
             x["why"] = [w for w in x["why"] if not w.startswith("界面文字")]
             x["ui_keeps_zh"] = True
-    out["cards"] = [{"code": p["code"], "old": f"{p['src']['zh']} / {p['src']['en']}", "to": p["to"], "why": "；".join(p["why"])}
+    out["cards"] += [{"code": p["code"], "old": f"{p['src']['zh']} / {p['src']['en']}", "to": p["to"], "why": "；".join(p["why"])}
                     for p in out["pending"] if p["why"]]
     return out
 
