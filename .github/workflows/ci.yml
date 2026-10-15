@@ -121,7 +121,7 @@ jobs:
             echo "$PWD" >> "$GITHUB_PATH"
           fi
       - run: gitleaks git --redact --no-banner --exit-code 1 .
-      # 记录与 ADR 由片段生成：ADR、brief 与已提交产物不一致即失败；INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成
+      # 记录与 ADR 由片段生成：ADR、brief、提议术语清单（backend/glossary/proposed/README.md）与已提交产物不一致即失败；INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成
       - name: generated docs match fragments
         run: python3 docs/modernization/build_all.py --check
       # 规则评审的原结论不得改写，改决定只能追加 revisions（SESSION_PLAYBOOK §12.2）；基线由本步骤显式给出
