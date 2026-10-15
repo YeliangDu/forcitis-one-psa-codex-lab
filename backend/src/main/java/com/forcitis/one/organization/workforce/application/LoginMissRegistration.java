@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.EmployeeChecks;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 class LoginMissRegistration {
     private static final Logger LOG = LoggerFactory.getLogger(LoginMissRegistration.class);
+    private static final String ACTOR = "organization.workforce.login-registration";
 
     private final OrgSnapshotRepository snapshots;
     private final OrgSnapshotQueries lookups;
@@ -48,7 +50,10 @@ class LoginMissRegistration {
         EmployeeId employeeId = SourceTerms.person(person.personId());
         StaffEmployee staff = new StaffEmployee(EmployeeChecks.toEmployee(person, true),
                 new Assignment(employeeId, SourceTerms.unit(person.unitId()), SourceTerms.position(person.positionId()), validSupervisor(person)));
-        persist.execute(staff);
+        // The login request has no signed-in user yet, so the registration acts as SYSTEM (P2-F1).
+        try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null), ACTOR)) {
+            persist.execute(staff);
+        }
         return Optional.of(staff);
     }
 
