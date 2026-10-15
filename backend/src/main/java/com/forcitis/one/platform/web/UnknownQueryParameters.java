@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.web;
 
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import jakarta.servlet.ServletRequest;
@@ -16,6 +15,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
@@ -27,14 +27,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 /** A GET under /api that carries a query parameter its handler does not declare is refused by name, so a misspelt filter never reads as "no filter" (NAMING_STANDARD A-4). */
 @Configuration
@@ -47,6 +49,11 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
             RequestBody.class, RequestAttribute.class, SessionAttribute.class, RequestPart.class, MatrixVariable.class);
 
     private final Map<HandlerMethod, Set<String>> declared = new ConcurrentHashMap<>();
+    private final ObjectProvider<RequestMappingHandlerAdapter> adapter;
+
+    UnknownQueryParameters(ObjectProvider<RequestMappingHandlerAdapter> adapter) {
+        this.adapter = adapter;
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -58,7 +65,7 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
         if (!"GET".equals(request.getMethod()) || !(handler instanceof HandlerMethod method)) {
             return true;
         }
-        Set<String> known = declared.computeIfAbsent(method, UnknownQueryParameters::declaredNames);
+        Set<String> known = declared.computeIfAbsent(method, m -> declaredNames(m, customResolvers(adapter.getObject())));
         Set<String> unknown = new TreeSet<>(request.getParameterMap().keySet());
         unknown.removeAll(known);
         if (!unknown.isEmpty()) {
@@ -84,9 +91,17 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
 
     /** The query parameter names a GET handler reads; a parameter whose names cannot be known fails the start of the application, naming the method. */
     static Set<String> declaredNames(HandlerMethod method) {
+        return declaredNames(method, List.of());
+    }
+
+    /** A parameter that a resolver registered by the application supports is filled from somewhere else than the query, such as the session. */
+    static Set<String> declaredNames(HandlerMethod method, List<HandlerMethodArgumentResolver> customResolvers) {
         Set<String> names = new TreeSet<>();
         for (MethodParameter parameter : method.getMethodParameters()) {
             parameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
+            if (customResolvers.stream().anyMatch(resolver -> resolver.supportsParameter(parameter))) {
+                continue;
+            }
             Class<?> type = parameter.getParameterType();
             RequestParam annotation = parameter.getParameterAnnotation(RequestParam.class);
             if (annotation != null) {
@@ -95,9 +110,6 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
                     throw unsupported(method, parameter, "@RequestParam of a Map reads every parameter");
                 }
                 names.add(!name.isEmpty() ? name : parameter.getParameterName());
-            } else if (type == UserId.class && parameter.getParameterAnnotations().length == 0) {
-                // the signed-in caller, resolved from the session by identity (P2-M1), never from the query
-                continue;
             } else if (parameter.hasParameterAnnotation(ModelAttribute.class)) {
                 throw unsupported(method, parameter, "@ModelAttribute binds an object from the query");
             } else if (hasBindingAnnotation(parameter)) {
@@ -113,6 +125,11 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
             }
         }
         return names;
+    }
+
+    static List<HandlerMethodArgumentResolver> customResolvers(RequestMappingHandlerAdapter adapter) {
+        List<HandlerMethodArgumentResolver> resolvers = adapter.getCustomArgumentResolvers();
+        return resolvers == null ? List.of() : List.copyOf(resolvers);
     }
 
     private static boolean hasBindingAnnotation(MethodParameter parameter) {
