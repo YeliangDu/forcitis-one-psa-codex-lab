@@ -74,6 +74,16 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         return newId(ORG_UNITS);
     }
 
+    /** An employee or org unit id made elsewhere (an own id the source references allocated), registered so the helpers can store it. */
+    protected static UUID adoptId(UUID id) {
+        NUMBERS.computeIfAbsent(id, adopted -> {
+            long number = EMPLOYEES.incrementAndGet();
+            BY_NUMBER.put(number, adopted);
+            return number;
+        });
+        return id;
+    }
+
     private static UUID newId(AtomicLong numbers) {
         UUID id = Uuids.timeOrdered(NOW);
         long number = numbers.incrementAndGet();
