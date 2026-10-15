@@ -34,7 +34,8 @@ bundle="$work/$name"
 python3 -I "$repo/scripts/release/manifest.py" verify "$bundle"
 release_check_jar_runnable "$bundle/forcitis-one.jar" "$work/jar-check" || fail "jar is not runnable"
 for required in forcitis-one.jar manifest.json SHA256SUMS migrations.txt deploy/remote_install.sh deploy/forcitis-one.service \
-                deploy/nginx-one.conf deploy/forcitis-one.logrotate deploy/one.env.template; do
+                deploy/nginx-one.conf deploy/forcitis-one.logrotate deploy/one.env.template \
+                deploy/forcitis-one-release-pull.service deploy/forcitis-one-release-pull.timer; do
   [ -s "$bundle/$required" ] || fail "$required missing or empty"
 done
 envs="$(python3 -I -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["environments"]))' "$bundle/manifest.json")"
