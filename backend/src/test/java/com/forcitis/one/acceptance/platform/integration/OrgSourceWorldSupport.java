@@ -1,23 +1,19 @@
 package com.forcitis.one.acceptance.platform.integration;
 
-import com.forcitis.one.TestImages;
+import com.forcitis.one.TestMssql;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
 import com.forcitis.one.organization.workforce.application.SyncResult;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.awaitility.Awaitility;
-import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -25,7 +21,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 
 /**
  * The organisation source (A8 views) and the old system (to-do and short-name views) as real SQL Server databases behind the real
@@ -66,23 +61,23 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
 
     @DynamicPropertySource
     static void externalWorld(DynamicPropertyRegistry registry) {
-        registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> World.url("a8world"));
-        registry.add("forcitis.platform.integration.seeyon.views.username", () -> "a8_reader");
+        registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> World.url(World.A8_WORLD));
+        registry.add("forcitis.platform.integration.seeyon.views.username", () -> World.A8_READER);
         registry.add("forcitis.platform.integration.seeyon.views.password", () -> World.A8_READER_PASSWORD);
-        registry.add("forcitis.platform.integration.legacy.inbox.url", () -> World.url("legacyworld"));
-        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> "todo_reader");
+        registry.add("forcitis.platform.integration.legacy.inbox.url", () -> World.url(World.LEGACY_WORLD));
+        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> World.TODO_READER);
         registry.add("forcitis.platform.integration.legacy.inbox.password", () -> World.TODO_READER_PASSWORD);
-        registry.add("forcitis.platform.integration.legacy.jdbc-url", () -> World.url("legacyworld"));
-        registry.add("forcitis.platform.integration.legacy.username", () -> "names_reader");
+        registry.add("forcitis.platform.integration.legacy.jdbc-url", () -> World.url(World.LEGACY_WORLD));
+        registry.add("forcitis.platform.integration.legacy.username", () -> World.NAMES_READER);
         registry.add("forcitis.platform.integration.legacy.password", () -> World.NAMES_READER_PASSWORD);
     }
 
     @BeforeAll
     static void onlyTheBaseRows() throws SQLException {
-        World.run("a8world", "DELETE dbo.org_unit_rows WHERE ID <> " + BASE_UNIT, "DELETE dbo.post_rows WHERE ID <> " + BASE_POST,
+        World.run(World.A8_WORLD, "DELETE dbo.ORG_UNIT WHERE ID <> " + BASE_UNIT, "DELETE dbo.post_rows WHERE ID <> " + BASE_POST,
                 "DELETE dbo.member_rows WHERE ID <> " + BASE_PERSON,
                 "DELETE dbo.relationship_rows WHERE NOT (SOURCE_MEMBER_ID = " + BASE_PERSON + " AND ORG_UNIT_ID = " + BASE_UNIT + ")");
-        World.run("legacyworld", "DELETE dbo.todo_rows", "DELETE dbo.short_name_rows");
+        World.run(World.LEGACY_WORLD, "DELETE dbo.todo_rows", "DELETE dbo.short_name_rows");
     }
 
     @Autowired
@@ -106,17 +101,17 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
     // ---- the organisation source ----
 
     static void unit(long id, String code, String name, String path) throws SQLException {
-        World.run("a8world", "INSERT dbo.org_unit_rows VALUES (" + id + ", '" + code + "', N'" + name + "', 1, '" + path + "', 0, 1, 1, NULL, NULL)");
+        World.run(World.A8_WORLD, "INSERT dbo.ORG_UNIT VALUES (" + id + ", '" + code + "', N'" + name + "', 1, '" + path + "', 0, 1, 1, NULL, NULL, N'Department')");
     }
 
     static void post(long id, String code, String name) throws SQLException {
-        World.run("a8world", "INSERT dbo.post_rows VALUES (" + id + ", '" + code + "', N'" + name + "', 1, 0, 0)");
+        World.run(World.A8_WORLD, "INSERT dbo.post_rows VALUES (" + id + ", '" + code + "', N'" + name + "', 1, 0, 0)");
     }
 
     /** A person in the subtree of the root, with the fee-earner marker. */
     static void member(long id, String name, String code, long unitId, String unitPath, Long postId, Long supervisorId, String wecomUserId,
             String loginName) throws SQLException {
-        try (Connection c = World.admin("a8world"); PreparedStatement insert = c.prepareStatement(
+        try (Connection c = World.admin(World.A8_WORLD); PreparedStatement insert = c.prepareStatement(
                 "INSERT dbo.member_rows VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, N'女', ?)")) {
             insert.setLong(1, id);
             insert.setString(2, name);
@@ -134,7 +129,7 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
     }
 
     static void renameMember(long id, String name, String code, String loginName) throws SQLException {
-        try (Connection c = World.admin("a8world"); PreparedStatement update = c.prepareStatement(
+        try (Connection c = World.admin(World.A8_WORLD); PreparedStatement update = c.prepareStatement(
                 "UPDATE dbo.member_rows SET NAME = ?, CODE = ?, LOGIN_NAME = ? WHERE ID = ?")) {
             update.setString(1, name);
             update.setString(2, code);
@@ -145,18 +140,18 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
     }
 
     static void relationship(long person, long unit, long type) throws SQLException {
-        World.run("a8world", "INSERT dbo.relationship_rows VALUES (" + person + ", " + unit + ", " + type + ", 0)");
+        World.run(World.A8_WORLD, "INSERT dbo.relationship_rows VALUES (" + person + ", " + unit + ", " + type + ", 0)");
     }
 
     // ---- the old system ----
 
     static void legacyTodo(long legacyPerson, String taskId) throws SQLException {
-        World.run("legacyworld", "INSERT dbo.todo_rows VALUES (" + legacyPerson + ", '" + taskId + "', 'I-" + taskId + "', 'approve', N'Approve', N'Legacy item', "
+        World.run(World.LEGACY_WORLD, "INSERT dbo.todo_rows VALUES (" + legacyPerson + ", '" + taskId + "', 'I-" + taskId + "', 'approve', N'Approve', N'Legacy item', "
                 + "'2026-10-01T08:00:00')");
     }
 
     static void legacyShortName(long legacyUnit, String shortName) throws SQLException {
-        try (Connection c = World.admin("legacyworld"); PreparedStatement insert = c.prepareStatement("INSERT dbo.short_name_rows VALUES (?, ?)")) {
+        try (Connection c = World.admin(World.LEGACY_WORLD); PreparedStatement insert = c.prepareStatement("INSERT dbo.short_name_rows VALUES (?, ?)")) {
             insert.setLong(1, legacyUnit);
             insert.setString(2, shortName);
             insert.executeUpdate();
@@ -262,35 +257,30 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
 
     /** The SQL Server of the external systems, started once per JVM. */
     static final class World {
-        static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
+        static final String SA_PASSWORD = TestMssql.SA_PASSWORD;
         static final String A8_READER_PASSWORD = "Bb2!" + UUID.randomUUID();
         static final String TODO_READER_PASSWORD = "Cc3!" + UUID.randomUUID();
         static final String NAMES_READER_PASSWORD = "Dd4!" + UUID.randomUUID();
 
-        static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
-                .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
-                .withStartupTimeout(Duration.ofMinutes(5))
-                .waitingFor(Wait.forLogMessage(".*SQL Server is now ready for client connections.*", 1));
+        static final GenericContainer<?> MSSQL = TestMssql.shared();
+        static final String A8_WORLD = TestMssql.database(OrgSourceWorldSupport.class, "a8world").name();
+        static final String LEGACY_WORLD = TestMssql.database(OrgSourceWorldSupport.class, "legacyworld").name();
+        static final String A8_READER = TestMssql.login(OrgSourceWorldSupport.class, "a8_reader");
+        static final String TODO_READER = TestMssql.login(OrgSourceWorldSupport.class, "todo_reader");
+        static final String NAMES_READER = TestMssql.login(OrgSourceWorldSupport.class, "names_reader");
 
         static {
-            MSSQL.start();
             try {
-                Awaitility.await("SQL Server accepts the administrator login").atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(500))
-                        .pollInSameThread().ignoreExceptions().until(() -> {
-                            admin("master").close();
-                            return true;
-                        });
-                run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld");
                 ReadOnlyBaselineFixture.createRdsPlatform(World::run);
                 createA8World();
                 createLegacyWorld();
-                ReadOnlyBaselineFixture.createViewSchemaReader(World::run, "a8world", "a8_reader", A8_READER_PASSWORD);
-                ReadOnlyBaselineFixture.createSingleViewReader(World::run, "legacyworld", TODO_VIEW, "todo_reader", TODO_READER_PASSWORD);
-                ReadOnlyBaselineFixture.createSingleViewReader(World::run, "legacyworld", SHORT_NAME_VIEW, "names_reader", NAMES_READER_PASSWORD);
-                ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url("a8world"), "a8world", "a8_reader", A8_READER_PASSWORD);
-                ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url("legacyworld"), "legacyworld", "todo_reader", TODO_READER_PASSWORD);
-                ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url("legacyworld"), "legacyworld", "names_reader", NAMES_READER_PASSWORD);
-            } catch (SQLException | ConditionTimeoutException e) {
+                ReadOnlyBaselineFixture.createViewSchemaReader(World::run, World.A8_WORLD, World.A8_READER, A8_READER_PASSWORD);
+                ReadOnlyBaselineFixture.createSingleViewReader(World::run, World.LEGACY_WORLD, TODO_VIEW, World.TODO_READER, TODO_READER_PASSWORD);
+                ReadOnlyBaselineFixture.createSingleViewReader(World::run, World.LEGACY_WORLD, SHORT_NAME_VIEW, World.NAMES_READER, NAMES_READER_PASSWORD);
+                ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(World.A8_WORLD), World.A8_WORLD, World.A8_READER, A8_READER_PASSWORD);
+                ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(World.LEGACY_WORLD), World.LEGACY_WORLD, World.TODO_READER, TODO_READER_PASSWORD);
+                ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(World.LEGACY_WORLD), World.LEGACY_WORLD, World.NAMES_READER, NAMES_READER_PASSWORD);
+            } catch (SQLException e) {
                 throw new IllegalStateException("cannot prepare the external databases; SQL Server log:\n" + MSSQL.getLogs(), e);
             }
         }
@@ -299,12 +289,11 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
         }
 
         static String url(String database) {
-            return "jdbc:sqlserver://" + MSSQL.getHost() + ":" + MSSQL.getMappedPort(1433) + ";databaseName=" + database
-                    + ";encrypt=true;trustServerCertificate=true";
+            return TestMssql.url(MSSQL, database);
         }
 
         static Connection admin(String database) throws SQLException {
-            return DriverManager.getConnection(url(database) + ";loginTimeout=30", "sa", SA_PASSWORD);
+            return TestMssql.adminConnection(MSSQL, database);
         }
 
         static void run(String database, String... statements) throws SQLException {
@@ -316,22 +305,22 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
         }
 
         private static void createA8World() throws SQLException {
-            run("a8world", "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
-                    "CREATE TABLE dbo.org_unit_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), "
-                            + "IS_DELETED bit, IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32))",
+            run(World.A8_WORLD, "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
+                    "CREATE TABLE dbo.ORG_UNIT (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), "
+                            + "IS_DELETED bit, IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32), TYPE nvarchar(32) NULL)",
                     "CREATE TABLE dbo.relationship_rows (SOURCE_MEMBER_ID bigint, ORG_UNIT_ID bigint, RELATIONSHIP_TYPE_ID bigint, MEMBER_IS_DELETED bit)",
                     "CREATE TABLE dbo.post_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, STATUS int, IS_DELETED bit)",
                     "CREATE TABLE dbo.member_rows (ID bigint PRIMARY KEY, NAME nvarchar(64), CODE nvarchar(32), ORG_UNIT_ID bigint, ORG_UNIT_PATH nvarchar(200), "
                             + "POST_ID bigint, SUPERVISOR_MEMBER_ID bigint, WE_COM_ID nvarchar(64), IS_INTERNAL bit, LOGIN_NAME nvarchar(64), "
                             + "ENTERPRISE_EMAIL nvarchar(128), GENDER nvarchar(8), FEE_EARNER_ENUM_ID nvarchar(32))",
-                    "INSERT dbo.org_unit_rows VALUES (" + BASE_UNIT + ", 'C1', N'Root', 1, '" + ROOT_PATH + "', 0, 1, 1, N'总部', '" + DELIVERY_YES + "')",
+                    "INSERT dbo.ORG_UNIT VALUES (" + BASE_UNIT + ", 'C1', N'Root', 1, '" + ROOT_PATH + "', 0, 1, 1, N'总部', '" + DELIVERY_YES + "', N'Account')",
                     "INSERT dbo.post_rows VALUES (" + BASE_POST + ", 'P100', N'Consultant', 1, 0, 0)",
                     "INSERT dbo.member_rows VALUES (" + BASE_PERSON + ", N'Base person', 'E8001', " + BASE_UNIT + ", '" + ROOT_PATH + "', " + BASE_POST
                             + ", NULL, 'wx-world-8001', 1, 'world-8001', 'base@example.test', N'女', '" + FEE_EARNER_YES + "')",
                     "INSERT dbo.relationship_rows VALUES (" + BASE_PERSON + ", " + BASE_UNIT + ", " + HEAD_TYPE + ", 0), (" + BASE_PERSON + ", " + BASE_UNIT
                             + ", " + MANAGER_TYPE + ", 0)",
                     "CREATE VIEW forcitis_one.v_org_unit AS SELECT ID, CODE, NAME, SORT_ID, PATH, IS_DELETED, IS_INTERNAL, IS_ENABLE, CATEGORY, "
-                            + "DELIVERY_FLAG_ENUM_ID FROM dbo.org_unit_rows",
+                            + "DELIVERY_FLAG_ENUM_ID FROM dbo.ORG_UNIT",
                     "CREATE VIEW forcitis_one.v_org_relationship AS SELECT SOURCE_MEMBER_ID, ORG_UNIT_ID, RELATIONSHIP_TYPE_ID, MEMBER_IS_DELETED FROM dbo.relationship_rows",
                     "CREATE VIEW forcitis_one.v_org_post AS SELECT ID, CODE, NAME, SORT_ID, STATUS, IS_DELETED FROM dbo.post_rows",
                     "CREATE VIEW forcitis_one.v_org_member AS SELECT ID, NAME, CODE, ORG_UNIT_ID, ORG_UNIT_PATH, POST_ID, SUPERVISOR_MEMBER_ID, WE_COM_ID, "
@@ -339,7 +328,7 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
         }
 
         private static void createLegacyWorld() throws SQLException {
-            run("legacyworld",
+            run(World.LEGACY_WORLD,
                     "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64), process_instance_id nvarchar(64), task_def_key nvarchar(64), "
                             + "task_name nvarchar(128), process_title nvarchar(256), created_at datetime2)",
                     "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
