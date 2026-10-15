@@ -20,6 +20,7 @@ import org.springframework.boot.context.properties.source.MapConfigurationProper
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 
 class SeeyonConfigurationTest {
 
@@ -49,8 +50,8 @@ class SeeyonConfigurationTest {
             assertThat(context).hasNotFailed();
             assertThat(context.getBean(OrgSource.class)).isInstanceOf(DisabledOrgSource.class);
             assertThat(context).doesNotHaveBean(SeeyonConnections.class);
-            assertThat(context.getBean(OrgSource.class).findStaffByWecomUser(new WecomUserId("wx-1"))).isEmpty();
-            assertThat(context.getBean(OrgSource.class).findStaffByLoginName("someone")).isEmpty();
+            assertThat(context.getBean(OrgSource.class).findStaffByLogin(new StaffLookup.ByWecomUser(new WecomUserId("wx-1")))).isEmpty();
+            assertThat(context.getBean(OrgSource.class).findStaffByLogin(new StaffLookup.ByLoginName("someone"))).isEmpty();
             assertThatThrownBy(() -> context.getBean(OrgSource.class).readSnapshot()).isInstanceOf(ExternalSystemUnavailableException.class);
         });
     }

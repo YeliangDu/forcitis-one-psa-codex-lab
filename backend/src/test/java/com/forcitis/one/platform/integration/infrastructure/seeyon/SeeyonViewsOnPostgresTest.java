@@ -31,6 +31,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 
 /** Stand-in tables on PostgreSQL; SQL Server specifics are covered by SeeyonViewsMssqlIT. */
 @Testcontainers
@@ -264,20 +265,20 @@ class SeeyonViewsOnPostgresTest {
         member(12, 1L, "00000001", "E12", 0, "13900000012", "wx-12");
 
         SourceOrgSnapshot all = source.readSnapshot();
-        List<SourcePerson> byWecom = source.findStaffByWecomUser(new WecomUserId("wx-10"));
-        List<SourcePerson> byLogin = source.findStaffByLoginName("13900000010");
+        List<SourcePerson> byWecom = source.findStaffByLogin(new StaffLookup.ByWecomUser(new WecomUserId("wx-10")));
+        List<SourcePerson> byLogin = source.findStaffByLogin(new StaffLookup.ByLoginName("13900000010"));
 
         SourcePerson expected = all.staff().stream().filter(m -> m.personId().equals(ownEmployee(10))).findFirst().orElseThrow();
         assertThat(byWecom).singleElement().isEqualTo(expected);
         assertThat(byLogin).singleElement().isEqualTo(expected);
         assertThat(byWecom.getFirst().gender()).isEqualTo(SourceGender.MALE);
         assertThat(byWecom.getFirst().unitId()).isEqualTo(ownOrgUnit(1));
-        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-11"))).singleElement()
+        assertThat(source.findStaffByLogin(new StaffLookup.ByWecomUser(new WecomUserId("wx-11")))).singleElement()
                 .satisfies(m -> assertThat(m.loginName()).isNull());
-        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-12"))).as("out of scope: not internal").isEmpty();
-        assertThat(source.findStaffByLoginName("13900000012")).as("out of scope: not internal").isEmpty();
-        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-none"))).isEmpty();
-        assertThat(source.findStaffByLoginName("nobody")).isEmpty();
+        assertThat(source.findStaffByLogin(new StaffLookup.ByWecomUser(new WecomUserId("wx-12")))).as("out of scope: not internal").isEmpty();
+        assertThat(source.findStaffByLogin(new StaffLookup.ByLoginName("13900000012"))).as("out of scope: not internal").isEmpty();
+        assertThat(source.findStaffByLogin(new StaffLookup.ByWecomUser(new WecomUserId("wx-none")))).isEmpty();
+        assertThat(source.findStaffByLogin(new StaffLookup.ByLoginName("nobody"))).isEmpty();
     }
 
     private static SeeyonSchemaInspector inspector() {

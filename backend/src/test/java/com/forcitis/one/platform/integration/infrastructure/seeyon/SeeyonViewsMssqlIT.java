@@ -34,6 +34,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mssqlserver.MSSQLServerContainer;
 import org.testcontainers.utility.DockerImageName;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 
 /** Real SQL Server (Testcontainers), only under Maven profile legacy-it. */
 @Testcontainers
@@ -184,9 +185,9 @@ class SeeyonViewsMssqlIT {
     void singleLookup() {
         SeeyonOrgSource source = new SeeyonOrgSource(reader, reader, MAPPING, () -> { }, new SourceIdTranslation(new InMemorySourceReferences()));
 
-        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-8002")))
+        assertThat(source.findStaffByLogin(new StaffLookup.ByWecomUser(new WecomUserId("wx-8002"))))
                 .containsExactly(source.readSnapshot().staff().stream().filter(m -> m.personId().equals(TestOrgIds.ownEmployee(8002))).findFirst().orElseThrow());
-        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-8004"))).as("outside the root path").isEmpty();
+        assertThat(source.findStaffByLogin(new StaffLookup.ByWecomUser(new WecomUserId("wx-8004")))).as("outside the root path").isEmpty();
     }
 
     @Test

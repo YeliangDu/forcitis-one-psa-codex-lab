@@ -1,11 +1,11 @@
 package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
-import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.ExternalFailure;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataAccessException;
@@ -54,27 +54,15 @@ final class SeeyonOrgSource implements OrgSource {
     }
 
     @Override
-    public List<SourcePerson> findStaffByWecomUser(WecomUserId wecomUserId) {
+    public List<SourcePerson> findStaffByLogin(StaffLookup lookup) {
+        JdbcClient.StatementSpec query = switch (lookup) {
+            case StaffLookup.ByWecomUser byWecom -> interactive.sql(SeeyonViewSql.MEMBERS_BY_WECOM_USER_ID)
+                    .param("wecomUserId", byWecom.wecomUserId().value());
+            case StaffLookup.ByLoginName byLogin -> interactive.sql(SeeyonViewSql.MEMBERS_BY_LOGIN_NAME).param("loginName", byLogin.loginName());
+        };
         List<MemberRow> found;
         try {
-            found = present(interactive.sql(SeeyonViewSql.MEMBERS_BY_WECOM_USER_ID)
-                    .param("rootPathPrefix", mapping.rootPathPrefix())
-                    .param("wecomUserId", wecomUserId.value())
-                    .query((rs, n) -> mapper.person(rs)).list());
-        } catch (DataAccessException unreachable) {
-            throw unavailable(unreachable);
-        }
-        return translation.people(found);
-    }
-
-    @Override
-    public List<SourcePerson> findStaffByLoginName(String loginName) {
-        List<MemberRow> found;
-        try {
-            found = present(interactive.sql(SeeyonViewSql.MEMBERS_BY_LOGIN_NAME)
-                    .param("rootPathPrefix", mapping.rootPathPrefix())
-                    .param("loginName", loginName)
-                    .query((rs, n) -> mapper.person(rs)).list());
+            found = present(query.param("rootPathPrefix", mapping.rootPathPrefix()).query((rs, n) -> mapper.person(rs)).list());
         } catch (DataAccessException unreachable) {
             throw unavailable(unreachable);
         }
