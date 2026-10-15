@@ -19,8 +19,8 @@ SELECT permission_name FROM fn_my_permissions(NULL, 'SERVER') ORDER BY permissio
 GO
 SELECT name, IS_SRVROLEMEMBER(name) AS member FROM sys.server_principals WHERE type = 'R' AND is_fixed_role = 1 ORDER BY name;
 GO
---     本登录在 sys.server_permissions 的行：RDS 上期望恰好一行 100 SERVER G CONNECT SQL；其他类（如 101 SERVER_PRINCIPAL
---     的 IMPERSONATE ON LOGIN::sa，fn_my_permissions 不列）、W、基线外的 GRANT 都不符
+--     本登录在 sys.server_permissions 的行：期望恰好一行 100 SERVER G CONNECT SQL（RULING-ADR37-11）；多出任何一行（含 DENY、
+--     基线内的重复 GRANT、101 SERVER_PRINCIPAL 的 IMPERSONATE ON LOGIN::sa 等 fn_my_permissions 不列的授权）或缺少这一行都不符
 SELECT class, class_desc, state, permission_name FROM sys.server_permissions
  WHERE grantee_principal_id = (SELECT principal_id FROM sys.server_principals WHERE sid = SUSER_SID()) ORDER BY class, permission_name;
 GO

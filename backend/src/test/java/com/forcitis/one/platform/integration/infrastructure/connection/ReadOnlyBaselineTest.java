@@ -123,12 +123,33 @@ class ReadOnlyBaselineTest {
     }
 
     @Test
-    @DisplayName("ADR37-1 复审 H-1 (d) a server-level DENY or a direct GRANT within the platform baseline adds nothing and passes")
-    void serverRowsWithinTheBaselinePass() {
-        catalog.serverPermissionRows.add(new ServerPermissionRow(100, "SERVER", "G", "VIEW SERVER STATE"));
+    @DisplayName("ADR37-1 RULING-ADR37-11 (d) one more server-level DENY row is refused: the rows must be exactly GRANT CONNECT SQL")
+    void oneMoreServerDenyIsRefused() {
         catalog.serverPermissionRows.add(new ServerPermissionRow(100, "SERVER", "D", "CREATE LOGIN"));
 
-        assertThat(ReadOnlyBaseline.violations(catalog)).isEmpty();
+        assertThat(ReadOnlyBaseline.violations(catalog)).singleElement().asString().startsWith("(d)").contains("more [100 SERVER D CREATE LOGIN]");
+        assertThat(ReadOnlyBaseline.check(catalog).violated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("ADR37-1 RULING-ADR37-11 (d) one more direct GRANT within the platform baseline is refused as well")
+    void oneMoreServerGrantWithinTheBaselineIsRefused() {
+        catalog.serverPermissionRows.add(new ServerPermissionRow(100, "SERVER", "G", "VIEW SERVER STATE"));
+
+        assertThat(ReadOnlyBaseline.violations(catalog)).singleElement().asString().startsWith("(d)").contains("more [100 SERVER G VIEW SERVER STATE]");
+    }
+
+    @Test
+    @DisplayName("ADR37-1 RULING-ADR37-11 (d) rows without GRANT CONNECT SQL are refused; no row at all cannot be determined")
+    void missingConnectSqlRow() {
+        catalog.serverPermissionRows.clear();
+        catalog.serverPermissionRows.add(new ServerPermissionRow(100, "SERVER", "W", "CONNECT SQL"));
+        assertThat(ReadOnlyBaseline.violations(catalog)).singleElement().asString().startsWith("(d)").contains("lacks 100 SERVER G CONNECT SQL");
+        assertThat(ReadOnlyBaseline.check(catalog).violated()).isTrue();
+
+        catalog.serverPermissionRows.clear();
+        assertThat(ReadOnlyBaseline.violations(catalog)).singleElement().asString().startsWith("(d)").contains("cannot be determined");
+        assertThat(ReadOnlyBaseline.check(catalog).violated()).isFalse();
     }
 
     @Test

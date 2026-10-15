@@ -53,7 +53,8 @@ final class ReadOnlyBaseline {
     static final Set<String> FIXED_SERVER_ROLES = Set.of("sysadmin", "serveradmin", "securityadmin", "processadmin", "setupadmin", "bulkadmin",
             "diskadmin", "dbcreator");
 
-    static final int SERVER_CLASS = 100;
+    /** class, class_desc, state and permission of the only row the real logins hold in sys.server_permissions (H-1 export). */
+    static final String LOGIN_SERVER_ROW = "100 SERVER G CONNECT SQL";
 
     /** state as in sys.database_permissions: D deny, G grant, W grant with grant option. */
     record DatabaseLevelPermission(String state, String permission) {
@@ -217,28 +218,24 @@ final class ReadOnlyBaseline {
 
     /**
      * fn_my_permissions(NULL, 'SERVER') does not list permissions on a login, an endpoint or an availability group (IMPERSONATE ON
-     * LOGIN::sa), so the login's own rows are read as well. The real logins hold one row, GRANT CONNECT SQL; a direct server-level GRANT
-     * within the baseline or a DENY adds nothing the effective permissions would not show.
+     * LOGIN::sa), so the login's own rows are read as well and must be exactly the one row the real logins hold (RULING-ADR37-11).
      */
     private static void server(Findings found, ReadOnlyCatalog catalog) {
         found.ask(catalog::serverPermissions).ifPresent(permissions -> sameAs(found, "server-level effective permissions", permissions, SERVER_PERMISSIONS));
         found.ask(() -> catalog.fixedServerRoleMemberships(FIXED_SERVER_ROLES)).ifPresent(memberships -> fixedServerRoles(found, memberships));
         found.ask(catalog::serverPermissionRows).ifPresent(rows -> {
             if (rows.isEmpty()) {
-                found.unknown("sys.server_permissions came back without the login's CONNECT SQL, cannot be determined");
+                found.unknown("sys.server_permissions came back empty, cannot be determined");
                 return;
             }
-            Set<String> beyond = new TreeSet<>();
-            for (ServerPermissionRow row : rows) {
-                String state = row.state().trim();
-                boolean allowed = row.securableClass() == SERVER_CLASS
-                        && (state.equals("D") || state.equals("G") && SERVER_PERMISSIONS.contains(upper(row.permission())));
-                if (!allowed) {
-                    beyond.add(row.classDescription().trim() + " " + state + " " + upper(row.permission()));
-                }
-            }
-            if (!beyond.isEmpty()) {
-                found.violated("server permissions held by the login beyond GRANT CONNECT SQL " + beyond);
+            Set<String> have = new TreeSet<>();
+            rows.forEach(row -> have.add(row.securableClass() + " " + row.classDescription().trim() + " " + row.state().trim() + " "
+                    + upper(row.permission())));
+            Set<String> more = new TreeSet<>(have);
+            more.remove(LOGIN_SERVER_ROW);
+            if (!more.isEmpty() || !have.contains(LOGIN_SERVER_ROW)) {
+                found.violated("the login's rows in sys.server_permissions must be exactly [" + LOGIN_SERVER_ROW + "]: more " + more
+                        + (have.contains(LOGIN_SERVER_ROW) ? "" : ", lacks " + LOGIN_SERVER_ROW));
             }
         });
     }

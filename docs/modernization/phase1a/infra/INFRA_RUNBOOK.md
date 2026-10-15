@@ -104,7 +104,7 @@ Prometheus 里的名字是 Micrometer 名字把点换成下划线、计数器加
 | 老系统（ruoyi-vue-pro） | 全库只读；合并待办经老待办视图 `dbo.v_psa_one_legacy_todo` 读取 | 只读，专用（`psa_one_legacy_ro`） | 同上；凭据列可读但应用代码不引用（ADR-0037 第 3 项，凭据列拒绝清单守护） | `handoff/B-5-dba/read-all/legacy_apply.sql`（视图：`phase1a/LEGACY_INBOX_VIEW.sql`） |
 | 老系统 | 全库只读；部门简称经视图 `dbo.v_one_legacy_org_short_name` 读取 | 只读，专用（`one_legacy_names_ro`）；与待办账号合并按 ADR-0037 第 5 项另行执行 | 同上 | 同上（视图：`phase1a/LEGACY_ORG_NAMES_VIEW.sql`） |
 
-应用对三条只读连接做同一项校验（ADR-0037 第 4 项，`platform.integration` 连接工厂）：服务器级与库级有效权限**等于**写死的 RDS 平台基线，库级 DENY 11 项存在且库级 GRANT 恰好 CONNECT、SELECT，只在 public 角色，不在任何固定服务器角色，不是 dbo、不拥有任何 schema / 对象 / 角色、无主体类授权，`sys.server_permissions` 中本登录只有 CONNECT SQL（无针对登录等的授权），`HAS_DBACCESS` 只有本库与系统库（master、tempdb、model、msdb 及 rdscore），系统库只经 guest 进入（没有本登录自己的用户），库级以下的授权（本登录的，及 public 在用户对象上的）只有 DENY 或 GRANT SELECT。任一不满足或无法判定即拒绝启动，日志按 (a)–(g) 报出违反项；每次同步前与至少每天重检一次：确认违规即停掉该连接（写 ALERT，重启前不再读取）；暂时判定不了（查询失败、超时、为空）只让本次读取不可用并写 ALERT，连续 3 次判定不了才停掉，一次判定通过即清零（用户 2026-10-15，intent 2026-10-15-120940）。**没有关闭开关**；账号授权变更后先用真实登录核对基线再重启应用。
+应用对三条只读连接做同一项校验（ADR-0037 第 4 项，`platform.integration` 连接工厂）：服务器级与库级有效权限**等于**写死的 RDS 平台基线，库级 DENY 11 项存在且库级 GRANT 恰好 CONNECT、SELECT，只在 public 角色，不在任何固定服务器角色，不是 dbo、不拥有任何 schema / 对象 / 角色、无主体类授权，`sys.server_permissions` 中本登录的行恰好一行 GRANT CONNECT SQL（无针对登录等的授权，也无其他 GRANT 或 DENY），`HAS_DBACCESS` 只有本库与系统库（master、tempdb、model、msdb 及 rdscore），系统库只经 guest 进入（没有本登录自己的用户），库级以下的授权（本登录的，及 public 在用户对象上的）只有 DENY 或 GRANT SELECT。任一不满足或无法判定即拒绝启动，日志按 (a)–(g) 报出违反项；每次同步前与至少每天重检一次：确认违规即停掉该连接（写 ALERT，重启前不再读取）；暂时判定不了（查询失败、超时、为空）只让本次读取不可用并写 ALERT，连续 3 次判定不了才停掉，一次判定通过即清零（用户 2026-10-15，intent 2026-10-15-120940）。**没有关闭开关**；账号授权变更后先用真实登录核对基线再重启应用。
 
 DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`handoff/B-5-dba/`。
 
