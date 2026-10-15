@@ -3,6 +3,7 @@ package com.forcitis.one.platform.audit.infrastructure.archive;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.RecordingArchiveVault;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -47,7 +48,7 @@ class AuditArchiveJobIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18");
+    static PostgreSQLContainer postgres = TestPostgres.container();
 
     @Autowired
     AuditArchiveJob job;

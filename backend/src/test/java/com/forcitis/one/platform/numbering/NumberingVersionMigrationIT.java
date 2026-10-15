@@ -2,6 +2,7 @@ package com.forcitis.one.platform.numbering;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestPostgres;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class NumberingVersionMigrationIT {
 
     @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18").withInitScript("init-schemas.sql");
+    static PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-schemas.sql");
 
     @Test
     void seededRulesWaitForConfirmationWithTheirTemplateAsVersionOne() {

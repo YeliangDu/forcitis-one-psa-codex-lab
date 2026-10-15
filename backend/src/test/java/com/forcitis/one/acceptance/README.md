@@ -20,3 +20,9 @@ cd backend
 - 时间取固定时钟 `AcceptanceSupport.NOW` / `TODAY`，要换日期用 `setToday`；等待异步结果用 Awaitility 带上限，不用 `Thread.sleep`。
 - 不写密钥、口令、令牌字面量；测试数据用合成值。
 - 尚未实现的接口不能让本目录编译失败：没有 HTTP 入口的服务按约定的名字在运行时查找（见 `platform/integration/SourceReferencesProbe`），找不到即失败，不跳过。
+
+## K-3a 列表分页契约
+
+- `platform/web/ListPagingContractIT`：limit 范围、未登记参数、游标合法性、OpenAPI 的 `limit` 声明，用法人、审计、来源引用、工作日历四个列表代表所有列表；新增列表接入时在 `lists()` 里加一个 `Endpoint`。
+- `organization/attendance/WorkCalendarYearsPagingIT`：工作日历年份列表的键集分页试点；「由数据库切页」通过测试容器的 `log_statement=all` 日志判断，用前后两条标记语句圈出本次请求的语句。
+- 名称带「特征测试」的用例在 K-3a 实现前已是绿的，必须保持绿。

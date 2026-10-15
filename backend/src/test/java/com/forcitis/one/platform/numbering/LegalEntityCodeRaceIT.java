@@ -2,6 +2,7 @@ package com.forcitis.one.platform.numbering;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -48,7 +49,7 @@ class LegalEntityCodeRaceIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
