@@ -1,0 +1,158 @@
+<title>施工图方法确认</title>
+<style>
+/* Layout: one phone-width column; the method as a numbered chain (the order is real), seams as expandable rows, then two decisions and a note. */
+:root{
+  --bg:#f2f4f7; --card:#ffffff; --ink:#152033; --muted:#5a6678; --line:#d9dfe7;
+  --pick:#1f5fbf; --pick-soft:#e6eefb; --rec:#1d7a4e; --rec-soft:#e3f3ea; --warn:#a24a1d; --chain:#8a5a12;
+  --f:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141c; --card:#18202b; --ink:#e7ecf2; --muted:#9aa6b6; --line:#2a3544;
+  --pick:#8db4f2; --pick-soft:#1e2c42; --rec:#7fd0a6; --rec-soft:#18322a; --warn:#f0a07a; --chain:#e2b56a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141c; --card:#18202b; --ink:#e7ecf2; --muted:#9aa6b6; --line:#2a3544;
+  --pick:#8db4f2; --pick-soft:#1e2c42; --rec:#7fd0a6; --rec-soft:#18322a; --warn:#f0a07a; --chain:#e2b56a; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f)}
+main{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:16px 40px;display:grid;gap:14px}
+h1{font-size:20px;margin:0;text-wrap:balance}
+h2{font-size:16px;margin:0}
+p{margin:0}
+.lede,.small{color:var(--muted);font-size:13.5px}
+.status{font-size:12.5px;color:var(--muted)} .status.off{color:var(--warn)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;min-width:0}
+.chain{font-size:13px;color:var(--chain);line-height:1.8;word-break:break-word}
+ol.steps{margin:0;padding-left:1.4em;display:grid;gap:6px}
+ol.steps li{padding-left:2px}
+ol.steps b{font-weight:600}
+details{border-top:1px solid var(--line);padding-top:8px}
+details:first-of-type{border-top:0;padding-top:0}
+summary{cursor:pointer;font-weight:600;list-style-position:outside}
+details p{margin-top:6px;font-size:14px}
+table{border-collapse:collapse;font-size:13px;width:100%}
+td{border-top:1px solid var(--line);padding:6px 4px;vertical-align:top}
+td:first-child{white-space:nowrap;color:var(--muted)}
+.opts{display:grid;gap:8px}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt input{margin-top:4px;accent-color:var(--pick)}
+.opt b{font-weight:600}
+.opt .cost{grid-column:2;font-size:13px;color:var(--muted)}
+.opt.rec b::after{content:"推荐";margin-left:8px;font-size:11.5px;font-weight:600;color:var(--rec);background:var(--rec-soft);border-radius:999px;padding:1px 8px;vertical-align:1px}
+.opt:has(input:checked){border-color:var(--pick);background:var(--pick-soft)}
+.opt:has(input:focus-visible){outline:2px solid var(--pick);outline-offset:2px}
+textarea{font:inherit;width:100%;box-sizing:border-box;min-height:84px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);color:var(--ink)}
+textarea:focus-visible,summary:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+.done{font-size:13px;color:var(--rec)}
+</style>
+
+<main>
+  <h1>施工图方法与知识框架：2 项确认</h1>
+  <p class="lede">依据你的两句话：「需要有一个稳定的知识框架，不能漂移」「能不能彻底打通所有架构设计的核心理论，找到从愿景到代码的施工图的设计方法」。全文在仓库 architecture/METHOD.md、FRAMEWORKS.md。</p>
+  <div class="status" id="status" aria-live="polite">正在连接…</div>
+
+  <section class="card">
+    <h2>方法一句话</h2>
+    <p>TOGAF 管走的顺序，DDD 管切的边界，事件风暴、BPMN、DMN 管动的方式，DAMA、OLTP、OLAP 管数据与度量。接缝消不掉，但每条接缝定一条衔接规则、一个能校验的交接物，串成闭环：</p>
+    <p class="chain">目标 → 能力 → 价值流阶段 → 子域 / BC → 聚合 · 命令 · 事件 → 流程 / 决策 → 数据对象 → 表 → 事实 → 指标 → KPI → 回到目标</p>
+  </section>
+
+  <section class="card">
+    <h2>八步（从愿景到代码）</h2>
+    <ol class="steps" start="0">
+      <li><b>愿景与原则</b>：目标、可度量的 KPI。你定。</li>
+      <li><b>能力与价值流</b>：企业「做什么」；价值流的阶段由哪些能力支撑。你确认。</li>
+      <li><b>战略设计</b>：按战略差异化分核心、支撑、通用子域，划 BC 与上下文关系。你定。</li>
+      <li><b>行为建模</b>：每个价值流阶段做事件风暴，得出命令、事件、聚合；规则分类落位。我提议、评审把关。</li>
+      <li><b>数据设计</b>：由聚合导出数据对象、类别、负责 BC；一个 BC 一个 schema。评审把关。</li>
+      <li><b>分析设计</b>：事实取领域事件，维度取主数据，指标挂回 KPI。你定口径。</li>
+      <li><b>迁移规划</b>：差距分析，排过渡架构（阶段）。你批准。</li>
+      <li><b>实施与治理</b>：先登记再写代码，CI 校验代码与施工图一致，结构变化写 ADR。</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>六条接缝（点开看规则）</h2>
+    <details><summary>1 能力 ↔ 子域 / BC</summary><p>子域分类看能力的战略差异化，不看老系统模块；每个叶子能力只归一个 BC。</p></details>
+    <details><summary>2 价值流 ↔ 事件风暴 ↔ BPMN</summary><p>价值流阶段的边界就是关键事件；只有人工步骤（任务、超时、退回）画成 BPMN，自动反应写成事件策略。</p></details>
+    <details><summary>3 业务规则 ↔ DMN ↔ 聚合</summary><p>规则分四类：不变式放聚合，判定（路由、资格、级别）放 DMN，流转放 BPMN，计算放值对象或领域服务。</p></details>
+    <details><summary>4 聚合 ↔ 数据对象 ↔ 表</summary><p>数据对象 = 聚合的状态 + 它发出的事件；主数据由拥有聚合的 BC 负责，跨 BC 只按 ID 引用。</p></details>
+    <details><summary>5 交易库 ↔ 分析库</summary><p>事实来自领域事件或过账明细，不在交易表上算分析；一致维度就是各 BC 的主数据；指标挂回 KPI 与目标。</p></details>
+    <details><summary>6 架构 ↔ 代码</summary><p>BC = 模块 = schema；上下文映射 = 模块依赖图；结构变化先改施工图再改代码，CI 校验。</p></details>
+  </section>
+
+  <section class="card">
+    <h2>知识框架锁定的版本</h2>
+    <table>
+      <tr><td>TOGAF</td><td>第 10 版（C220，含 2025 勘误）；能力 G211、价值流 G178</td></tr>
+      <tr><td>DDD</td><td>Evans 2003 原著 + DDD Reference 2015；「支撑子域」出自 Vernon 2013</td></tr>
+      <tr><td>BPMN</td><td>2.0.2（OMG）</td></tr>
+      <tr><td>DMN</td><td>1.6（OMG）</td></tr>
+      <tr><td>DAMA</td><td>DMBOK 第 2 版修订版（2024）；国标 GB/T 36073-2025</td></tr>
+      <tr><td>分析</td><td>Kimball 第 3 版（2013）</td></tr>
+    </table>
+    <p class="small">防漂移：两份文件压缩或清空后自动注入本会话；改动必须引用 ADR 或你的原话记录。查不到一手出处的条目标「未核实」，不作硬依据。</p>
+  </section>
+
+  <section class="card" data-q="M-METHOD">
+    <h2>1 施工图方法（八步与六条接缝）</h2>
+    <div class="opts">
+      <label class="opt rec"><input type="radio" name="M-METHOD" value="adopt" id="m1a"><b>认可，写成 ADR 并按它补齐</b><span class="cost">下一步先补愿景目标、能力地图、价值流，交你确认。</span></label>
+      <label class="opt"><input type="radio" name="M-METHOD" value="amend" id="m1b"><b>大体认可，有修改</b><span class="cost">修改写在备注里，我改后再给你看。</span></label>
+      <label class="opt"><input type="radio" name="M-METHOD" value="discuss" id="m1c"><b>先不定，再讨论</b><span class="cost">维持现状，已有的图与清单照常维护。</span></label>
+    </div>
+  </section>
+
+  <section class="card" data-q="M-FRAMEWORKS">
+    <h2>2 知识框架锁定上面这些版本</h2>
+    <div class="opts">
+      <label class="opt rec"><input type="radio" name="M-FRAMEWORKS" value="adopt" id="m2a"><b>认可</b><span class="cost">以后换版本须经你同意并留记录。</span></label>
+      <label class="opt"><input type="radio" name="M-FRAMEWORKS" value="amend" id="m2b"><b>要调整</b><span class="cost">写在备注里，例如增删某个框架。</span></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>备注</h2>
+    <label for="note" class="small">有修改或疑问写在这里（自动保存）。</label>
+    <textarea id="note" placeholder="例如：第 3 步我想……"></textarea>
+    <div class="done" id="done"></div>
+  </section>
+</main>
+
+<script>
+const QS = ["M-METHOD", "M-FRAMEWORKS"];
+const REC = {"M-METHOD": "adopt", "M-FRAMEWORKS": "adopt"};
+const $ = s => document.querySelector(s);
+let db = null, me = null, noteTimer = null, saved = {};
+for (const q of QS) { const r = document.querySelector(`input[name="${q}"][value="${REC[q]}"]`); if (r) r.checked = true; }
+function setStatus(t, off) { const s = $("#status"); s.textContent = t; s.classList.toggle("off", !!off); }
+function progress() {
+  const n = QS.filter(q => saved[q]).length;
+  $("#done").textContent = n === QS.length ? "2 项都已保存，我会直接读取。" : `已保存 ${n} / 2 项（推荐项预选不算保存，请点一下确认）。`;
+}
+async function save(id, body) {
+  saved[id] = true; progress();
+  if (!db) { setStatus("存储不可用：本次选择没有保存，请在 claude.ai 登录后打开", true); return; }
+  try { await db.collection("decisions").doc(id).set({...body, by: me, at: new Date().toISOString()}); setStatus("已保存"); }
+  catch (e) { setStatus("保存失败：" + (e && e.message || "请稍后再试"), true); }
+}
+document.addEventListener("change", e => {
+  const t = e.target; if (t.type !== "radio") return;
+  save(t.name, {choice: t.value, recommended: t.value === REC[t.name]});
+});
+$("#note").addEventListener("input", e => { clearTimeout(noteTimer); noteTimer = setTimeout(() => save("note", {text: e.target.value}), 700); });
+progress();
+(async () => {
+  try { const u = await window.claude?.use?.("user"); me = u ? await u.id() : null; } catch (e) {}
+  try { db = await window.claude?.use?.("db"); } catch (e) { db = null; }
+  if (!db) { setStatus("存储不可用：请在 claude.ai 登录后打开，选择才会保存", true); return; }
+  setStatus("已连接，点选即保存");
+  try {   // 只读一次、不订阅（gate/README 在线页性能约束）
+    const snap = await db.collection("decisions").get();
+    for (const doc of snap.docs) {
+      const d = doc.data(); if (!d) continue; saved[doc.id] = true;
+      if (doc.id === "note") { if (document.activeElement !== $("#note")) $("#note").value = d.text || ""; continue; }
+      const r = document.querySelector(`input[name="${doc.id}"][value="${d.choice}"]`); if (r) r.checked = true;
+    }
+    progress();
+  } catch (e) { setStatus("读取已保存的选择失败；点选仍会保存", true); }
+})();
+</script>
