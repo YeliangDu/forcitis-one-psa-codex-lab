@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity.domain;
 
 import com.forcitis.one.kernel.AggregateRoot;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
@@ -26,15 +27,18 @@ public final class UserAccount extends AggregateRoot {
             .build();
 
     private final UserId userId;
+    private final EmployeeId employeeId;
     private final AccountStatus loadedStatus;
     private final Set<RoleId> loadedRoles;
     private final boolean stored;
     private AccountStatus status;
     private Set<RoleId> roles;
 
-    private UserAccount(UserId userId, AccountStatus status, Set<RoleId> roles, boolean stored, long version, long eventSequence) {
+    private UserAccount(UserId userId, EmployeeId employeeId, AccountStatus status, Set<RoleId> roles, boolean stored, long version,
+            long eventSequence) {
         super(version, eventSequence);
         this.userId = Objects.requireNonNull(userId, "userId");
+        this.employeeId = Objects.requireNonNull(employeeId, "employeeId");
         this.status = Objects.requireNonNull(status, "status");
         this.loadedStatus = status;
         this.roles = Set.copyOf(roles);
@@ -42,19 +46,23 @@ public final class UserAccount extends AggregateRoot {
         this.stored = stored;
     }
 
-    public static UserAccount open(UserId userId, Set<RoleId> initialRoles) {
-        UserAccount account = new UserAccount(userId, AccountStatus.ENABLED, initialRoles, false, 0, 0);
+    public static UserAccount open(UserId userId, EmployeeId employeeId, Set<RoleId> initialRoles) {
+        UserAccount account = new UserAccount(userId, employeeId, AccountStatus.ENABLED, initialRoles, false, 0, 0);
         account.record((envelopes, version) -> new AccountOpened(envelopes.wrap(account.draft("AccountOpened", version)), userId,
                 account.orderedRoles()));
         return account;
     }
 
-    public static UserAccount restore(UserId userId, String status, Set<RoleId> roles, long version, long eventSequence) {
-        return new UserAccount(userId, AccountStatus.valueOf(status), roles, true, version, eventSequence);
+    public static UserAccount restore(UserId userId, EmployeeId employeeId, String status, Set<RoleId> roles, long version, long eventSequence) {
+        return new UserAccount(userId, employeeId, AccountStatus.valueOf(status), roles, true, version, eventSequence);
     }
 
     public UserId userId() {
         return userId;
+    }
+
+    public EmployeeId employeeId() {
+        return employeeId;
     }
 
     public AccountStatus status() {

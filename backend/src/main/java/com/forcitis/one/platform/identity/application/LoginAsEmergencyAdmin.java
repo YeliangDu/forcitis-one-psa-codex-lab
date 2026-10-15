@@ -1,10 +1,11 @@
 package com.forcitis.one.platform.identity.application;
 
-import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.kernel.OrgSnapshotStatus;
 import com.forcitis.one.platform.identity.domain.AccessProfile;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
@@ -18,17 +19,21 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.OptionalLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Unknown login name, wrong password, wrong code, locked and disabled all look the same and cost about the same time. After the
- * credentials the bound account must be enabled and hold super_admin now; the organisation snapshot is not required (it may be
- * missing or stale while the source is down) but a person it clearly lists as separated is refused (ADR-0027 section 1).
+ * credentials the bound account must be enabled and hold super_admin now. A current organisation snapshot must list the bound
+ * employee as employed; a snapshot that is missing or stale while the source is down lets the login through with an alert, but a person
+ * it lists as separated is still refused (ADR-0027 section 1; ADR-0033 section 3 item 7).
  */
 @Service
 public class LoginAsEmergencyAdmin {
 
+    private static final Logger log = LoggerFactory.getLogger(LoginAsEmergencyAdmin.class);
     private static final int TOTP_WINDOW_STEPS = 1;
 
     private final EmergencyAdminRepository admins;
@@ -40,12 +45,12 @@ public class LoginAsEmergencyAdmin {
     private final NetworkAllowList internalNetworks;
     private final EmergencySettings settings;
     private final LoginAdmission admission;
-    private final AccountEmployees accountEmployees;
+    private final OrgSnapshotStatus snapshot;
     private final Clock clock;
 
     LoginAsEmergencyAdmin(EmergencyAdminRepository admins, AccountRepository accounts, PasswordHasher hasher, TotpSecretVault vault,
-            OrgDirectory directory, ClientOrigin origin, EmergencySettings settings, LoginAdmission admission, AccountEmployees accountEmployees, Clock clock) {
-        this.accountEmployees = accountEmployees;
+            OrgDirectory directory, ClientOrigin origin, EmergencySettings settings, LoginAdmission admission, OrgSnapshotStatus snapshot, Clock clock) {
+        this.snapshot = snapshot;
         this.admins = admins;
         this.accounts = accounts;
         this.hasher = hasher;
@@ -94,10 +99,22 @@ public class LoginAsEmergencyAdmin {
         if (!AccessProfile.of(accounts.findEnabledRoles(admin.userId())).isAdministrator()) {
             return rejectCredentials(admin, "the bound person no longer holds super_admin");
         }
-        Optional<EmployeeProfile> employee = directory.findEmployee(accountEmployees.employeeOf(admin.userId()));
+        EmployeeId bound = account.get().employeeId();
+        Optional<EmployeeProfile> employee = directory.findEmployee(bound);
         if (employee.isPresent() && employee.get().employmentStatus() != EmploymentStatus.EMPLOYED) {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
                     "the organisation snapshot lists the bound person as separated");
+        }
+        boolean snapshotCurrent = snapshot.isCurrent();
+        if (employee.isEmpty() && snapshotCurrent) {
+            log.error("ALERT platform.identity emergency login of user {} refused: the organisation snapshot is current and does not list employee {}",
+                    admin.userId().value(), bound.value());
+            return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
+                    "the organisation snapshot is current and does not list the bound person");
+        }
+        if (!snapshotCurrent) {
+            log.error("ALERT platform.identity emergency login of user {} without a current organisation snapshot: employment of employee {} not checked",
+                    admin.userId().value(), bound.value());
         }
         return admission.complete(admin.userId(), method);
     }

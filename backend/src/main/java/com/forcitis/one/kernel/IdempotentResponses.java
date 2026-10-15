@@ -18,13 +18,13 @@ public interface IdempotentResponses {
      * True for the request that claimed the key; false when the key was taken. An expired answer, and a claim whose request never
      * finished within reclaimAfter (the node died), count as not taken.
      */
-    boolean claim(long userId, String key, String requestHash, Instant now, Instant expiresAt, Duration reclaimAfter);
+    boolean claim(UserId userId, String key, String requestHash, Instant now, Instant expiresAt, Duration reclaimAfter);
 
-    Optional<Stored> find(long userId, String key);
+    Optional<Stored> find(UserId userId, String key);
 
-    void finish(long userId, String key, int responseNumber, String responseName, String responseText, Map<String, String> responseHeaders);
+    void finish(UserId userId, String key, int responseNumber, String responseName, String responseText, Map<String, String> responseHeaders);
 
-    void release(long userId, String key);
+    void release(UserId userId, String key);
 
     int purgeExpired(Instant now);
 }

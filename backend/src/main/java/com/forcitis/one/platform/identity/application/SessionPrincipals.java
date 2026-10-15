@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.identity.application;
 
-import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -28,11 +27,8 @@ public class SessionPrincipals {
     private final AccountRepository accounts;
     private final OrgDirectory directory;
     private final EmergencyAdminRepository emergencyAdmins;
-    private final AccountEmployees accountEmployees;
 
-    SessionPrincipals(AccountRepository accounts, OrgDirectory directory, EmergencyAdminRepository emergencyAdmins,
-            AccountEmployees accountEmployees) {
-        this.accountEmployees = accountEmployees;
+    SessionPrincipals(AccountRepository accounts, OrgDirectory directory, EmergencyAdminRepository emergencyAdmins) {
         this.accounts = accounts;
         this.directory = directory;
         this.emergencyAdmins = emergencyAdmins;
@@ -51,7 +47,7 @@ public class SessionPrincipals {
         if (kind.mode() == SessionMode.ADMINISTRATOR) {
             return administrator(userId, kind, profile);
         }
-        Optional<EmployeeProfile> employee = directory.findEmployee(accountEmployees.employeeOf(userId));
+        Optional<EmployeeProfile> employee = directory.findEmployee(account.get().employeeId());
         if (employee.isEmpty()) {
             return refused(Eligibility.EMPLOYEE_UNKNOWN);
         }

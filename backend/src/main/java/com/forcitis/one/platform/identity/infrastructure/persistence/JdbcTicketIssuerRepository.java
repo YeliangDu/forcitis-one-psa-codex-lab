@@ -21,12 +21,12 @@ class JdbcTicketIssuerRepository implements TicketIssuerRepository {
     @Override
     public Optional<TicketIssuer> findByKid(String kid) {
         return jdbc.sql("""
-                        select issuer_code, key_id, key_reference, is_enabled, allowed_role_codes
+                        select issuer_code, signing_key_code, key_reference, is_enabled, allowed_role_codes
                           from platform_identity.ticket_issuers
-                         where key_id = :kid
+                         where signing_key_code = :kid
                         """)
                 .param("kid", kid)
-                .query((rs, n) -> new TicketIssuer(rs.getString("issuer_code"), rs.getString("key_id"), rs.getString("key_reference"),
+                .query((rs, n) -> new TicketIssuer(rs.getString("issuer_code"), rs.getString("signing_key_code"), rs.getString("key_reference"),
                         rs.getBoolean("is_enabled"),
                         Arrays.stream((String[]) rs.getArray("allowed_role_codes").getArray()).map(RoleCode::new)
                                 .collect(Collectors.toSet())))

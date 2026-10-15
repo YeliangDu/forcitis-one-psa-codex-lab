@@ -63,7 +63,7 @@ public class HandleOrgSnapshotChange {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                 ACTOR)) {
             for (EmployeeId separated : event.separatedEmployees()) {
-                separate(accountEmployees.accountOf(separated), "separated in the organisation snapshot");
+                accountEmployees.accountOf(separated).ifPresent(account -> separate(account, "separated in the organisation snapshot"));
             }
             for (EmployeeId changed : event.changedEmployees()) {
                 Optional<EmployeeProfile> employee = directory.findEmployee(changed);
@@ -71,10 +71,9 @@ public class HandleOrgSnapshotChange {
                     continue;
                 }
                 if (employee.get().employmentStatus() == EmploymentStatus.EMPLOYED) {
-                    provisioning.ensureAccount(employee.get());
-                    cache.evict(accountEmployees.accountOf(changed));
+                    provisioning.ensureAccount(employee.get()).ifPresent(cache::evict);
                 } else {
-                    separate(accountEmployees.accountOf(changed), "no longer employed");
+                    accountEmployees.accountOf(changed).ifPresent(account -> separate(account, "no longer employed"));
                 }
             }
         }

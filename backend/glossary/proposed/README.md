@@ -248,6 +248,7 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
+| `system_actor` | 系统操作主体 | SystemActor | 以 SYSTEM 身份发出事件的作业或监听器；事件信封 actorId 为按作业名在固定命名空间生成的 UUID（version 5），同一作业恒定、不同于任何用户 ID，作业名可由该 UUID 反查（NEXT_BATCH_PLAN 7.2 C5，R-1b P2） |  | 待 opus 复审裁定 C5 |
 | `migration` | 历史迁入 | Migration | 事件或数据来自老系统 / A8 的一次性迁入（与新系统原生相对） |  |  |
 | `work_calendar` | 工作日历 | WorkCalendar | 按年维护的节假日与调休上班日；默认日历适用全部法人，预留法人专属日历（用户 2026-10-14） |  |  |
 | `workday` | 工作日 | Workday | 工作日历中需要上班的日期：周一至周五且非节假日，或调休上班日 |  |  |
@@ -366,6 +367,7 @@ platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登�
 
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
+| `signing_key_code` | 签名密钥编码 | SigningKeyCode | 票据签发方签名密钥的编码（票据头部的 kid），一方一把；原列名 key_id 按 ADR-0033 影响面改为以 _code 结尾（R-1b P2） |  |  |
 | `login` | 登录 | Login | 用户以某种凭证建立会话的动作；所有入口过同一道「启用且在职」检查 |  |  |
 | `logout` | 登出 | Logout | 用户主动结束会话；会话在服务端删除 |  |  |
 | `session` | 会话 | Session | 服务端会话（Spring Session JDBC）：空闲 10 小时、绝对上限 24 小时，均可配置 |  |  |

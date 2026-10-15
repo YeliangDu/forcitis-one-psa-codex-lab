@@ -220,10 +220,11 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
   > **待改（F-12）**：`--spring.profiles.active=identity-operations` 会顶掉环境档案（dev / prod），跳过 `VERIFIED_SERVER` 等环境校验。one-1a-next 在 F-12 改为追加档案（include）写法，届时本节与 C-5 的命令形式同步修改；在此之前不在生产使用。
 
   ```
-  java -jar forcitis-one.jar --spring.profiles.active=identity-operations --operation=<命令> --user-id=<人员 ID> \
+  java -jar forcitis-one.jar --spring.profiles.active=identity-operations --operation=<命令> --employee-id=<员工 ID> \
        [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人> --witness=<见证人>
   ```
 
+  - 人员以 `--employee-id`（员工 ID，R-1b P2 期间为整数，P3b 起为 uuid 文本）指定：命令按员工取得其账号，员工在职而尚无账号时当场开通（ADR-0033 第 3 项第 6 条）；格式不对或员工不存在时退出码非 0，不写任何数据。原 `--user-id` 已删除。
   - 命令：`register-emergency-admin`（需 `--login-name`）、`reset-emergency-admin-credentials`、`disable-emergency-admin`、`enable-emergency-admin`、`grant-role`（需 `--role-code`，用于首批超级管理员、业务管理员、组织数据管理员）。
   - **双人在场**：`--operator` 与 `--witness` 必填且必须是两个不同的人（比较前去掉首尾空白、折叠空格、不分大小写、全角按半角），两人都记入审计；缺一或相同则命令拒绝，什么也不做。
   - 口令与 TOTP 密钥由命令**生成**，只在这一次输出里显示（口令、base32 密钥、认证器链接），库里只存口令的 Argon2id 哈希与加密后的密钥；不要把输出复制进文件或聊天。口令强度与密钥长度由代码保证，不经命令行参数传入。

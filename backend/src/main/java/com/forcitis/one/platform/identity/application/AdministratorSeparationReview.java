@@ -48,7 +48,7 @@ class AdministratorSeparationReview implements SeparationReview {
         separatedAdministrators.retainAll(everyone);
         Set<EmployeeId> remaining = new HashSet<>(superAdministrators);
         remaining.removeAll(separating);
-        EmployeeId releasingEmployee = releaser == null ? null : accountEmployees.employeeOf(releaser);
+        EmployeeId releasingEmployee = releaser == null ? null : accountEmployees.employeeOf(releaser).orElse(null);
         boolean retained = releasingEmployee != null && !separating.contains(releasingEmployee) && everyone.contains(releasingEmployee);
         String shortage = remaining.size() < MINIMUM_SUPER_ADMINISTRATORS
                 ? "; only " + remaining.size() + " usable super_admin holder(s) would remain, at least " + MINIMUM_SUPER_ADMINISTRATORS + " are needed"
@@ -61,10 +61,9 @@ class AdministratorSeparationReview implements SeparationReview {
     private Set<EmployeeId> usableHolders(RoleCode role) {
         Set<EmployeeId> usable = new HashSet<>();
         for (UserId holder : accounts.findEnabledHolders(role)) {
-            EmployeeId employee = accountEmployees.employeeOf(holder);
-            if (directory.findEmployee(employee).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false)) {
-                usable.add(employee);
-            }
+            accountEmployees.employeeOf(holder)
+                    .filter(employee -> directory.findEmployee(employee).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false))
+                    .ifPresent(usable::add);
         }
         return usable;
     }

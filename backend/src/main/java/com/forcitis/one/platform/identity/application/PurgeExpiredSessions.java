@@ -33,12 +33,24 @@ public class PurgeExpiredSessions {
         do {
             batch = sessions.find(clock.millis(), settings.absoluteTimeout().toMillis(), BATCH);
             for (ExpiredSessions.Expired expired : batch) {
-                UserId user = expired.principalName() == null ? null : new UserId(Long.parseLong(expired.principalName()));
+                UserId user = accountOf(expired.principalName());
                 audit.record(new AuditEntry("platform.identity.session.expired", user, null,
                         user == null ? "session:unknown" : "user-account:" + user.value(), "cause=" + expired.cause()));
             }
             removed += sessions.deleteSessions(batch.stream().map(ExpiredSessions.Expired::primaryKey).toList());
         } while (batch.size() == BATCH);
         return removed;
+    }
+
+    /** A session that names no account, or names it in another form, is still removed; its expiry is audited without an actor. */
+    private static UserId accountOf(String principalName) {
+        if (principalName == null) {
+            return null;
+        }
+        try {
+            return UserId.parse(principalName);
+        } catch (IllegalArgumentException broken) {
+            return null;
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
 import java.io.PrintStream;
 import java.net.URLEncoder;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Component;
 public class OperationsCommands {
 
     static final String OPERATION = "operation";
-    static final String USER_ID = "user-id";
+    static final String EMPLOYEE_ID = "employee-id";
     static final String LOGIN_NAME = "login-name";
     static final String ROLE_CODE = "role-code";
     static final String OPERATOR = "operator";
@@ -44,18 +45,18 @@ public class OperationsCommands {
         String operation = single(arguments, OPERATION);
         if (operation == null) {
             err.println("usage: --operation=<register-emergency-admin|reset-emergency-admin-credentials|disable-emergency-admin|"
-                    + "enable-emergency-admin|grant-role> --user-id=<id> [--login-name=<name>] [--role-code=<code>] --operator=<name> --witness=<name>");
+                    + "enable-emergency-admin|grant-role> --employee-id=<id> [--login-name=<name>] [--role-code=<code>] --operator=<name> --witness=<name>");
             return 2;
         }
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
             OperationAttestation attestation = new OperationAttestation(single(arguments, OPERATOR), single(arguments, WITNESS));
-            long personId = personId(arguments);
+            EmployeeId employeeId = employeeId(arguments);
             return switch (operation) {
-                case "register-emergency-admin" -> registerAdmin(attestation, personId, single(arguments, LOGIN_NAME), out);
-                case "reset-emergency-admin-credentials" -> show(reset.execute(attestation, personId), out, "credentials reset");
-                case "disable-emergency-admin" -> done(disable.execute(attestation, personId), out, "disabled", "already disabled, nothing changed");
-                case "enable-emergency-admin" -> done(enable.execute(attestation, personId), out, "enabled", "already enabled, nothing changed");
-                case "grant-role" -> done(grant.execute(attestation, personId, single(arguments, ROLE_CODE)), out, "role granted",
+                case "register-emergency-admin" -> registerAdmin(attestation, employeeId, single(arguments, LOGIN_NAME), out);
+                case "reset-emergency-admin-credentials" -> show(reset.execute(attestation, employeeId), out, "credentials reset");
+                case "disable-emergency-admin" -> done(disable.execute(attestation, employeeId), out, "disabled", "already disabled, nothing changed");
+                case "enable-emergency-admin" -> done(enable.execute(attestation, employeeId), out, "enabled", "already enabled, nothing changed");
+                case "grant-role" -> done(grant.execute(attestation, employeeId, single(arguments, ROLE_CODE)), out, "role granted",
                         "the role is already held, nothing changed");
                 default -> {
                     err.println("unknown operation " + operation);
@@ -71,8 +72,8 @@ public class OperationsCommands {
         }
     }
 
-    private int registerAdmin(OperationAttestation attestation, long personId, String loginName, PrintStream out) {
-        switch (register.execute(attestation, personId, loginName)) {
+    private int registerAdmin(OperationAttestation attestation, EmployeeId employeeId, String loginName, PrintStream out) {
+        switch (register.execute(attestation, employeeId, loginName)) {
             case RegisterEmergencyAdmin.Outcome.Registered registered -> {
                 show(registered.credentials(), out, "emergency account registered");
                 warnIfTooFew(registered.usableAfter(), out);
@@ -106,12 +107,12 @@ public class OperationsCommands {
         return 0;
     }
 
-    private static long personId(ApplicationArguments arguments) {
-        String value = single(arguments, USER_ID);
+    private static EmployeeId employeeId(ApplicationArguments arguments) {
+        String value = single(arguments, EMPLOYEE_ID);
         if (value == null || !value.matches("-?[0-9]{1,18}") || Long.parseLong(value) == 0) {
-            throw new IllegalArgumentException("--user-id must be the person's id");
+            throw new IllegalArgumentException("--employee-id must be the employee's id");
         }
-        return Long.parseLong(value);
+        return new EmployeeId(Long.parseLong(value));
     }
 
     private static String single(ApplicationArguments arguments, String name) {

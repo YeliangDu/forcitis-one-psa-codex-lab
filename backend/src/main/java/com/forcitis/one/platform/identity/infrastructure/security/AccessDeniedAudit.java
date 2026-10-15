@@ -53,8 +53,8 @@ class AccessDeniedAudit implements AuthorizationEventPublisher {
         }
         UserId actor;
         try {
-            actor = new UserId(Long.parseLong(authentication.getName()));
-        } catch (NumberFormatException notAPerson) {
+            actor = UserId.parse(authentication.getName());
+        } catch (IllegalArgumentException notAPerson) {
             return;
         }
         String resource = resourceOf(object);

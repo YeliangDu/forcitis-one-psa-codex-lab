@@ -67,7 +67,7 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
                         """)
                 .param("id", opened.requestId().value()).param("kind", opened.kind().name()).param("by", opened.requestedBy().value())
                 .param("at", OffsetDateTime.ofInstant(opened.requestedAt(), ZoneOffset.UTC))
-                .param("subject", opened.subjectUser() == null ? null : opened.subjectUser().value(), Types.BIGINT)
+                .param("subject", opened.subjectUser() == null ? null : opened.subjectUser().value(), Types.OTHER)
                 .param("role", opened.roleId() == null ? null : opened.roleId().value(), Types.OTHER)
                 .param("roleCodes", opened.roleCodes().toArray(String[]::new))
                 .param("newCode", draft == null ? null : draft.code(), Types.VARCHAR)
@@ -86,7 +86,7 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
                            set request_status = :status, decided_by = :by, decided_at = :at, updated_at = :updatedAt, version = :next, event_count = :eventSequence
                          where request_id = :id and version = :version and request_status = :loaded
                         """)
-                .param("status", request.status().name()).param("by", request.decidedBy() == null ? null : request.decidedBy().value(), Types.BIGINT)
+                .param("status", request.status().name()).param("by", request.decidedBy() == null ? null : request.decidedBy().value(), Types.OTHER)
                 .param("at", request.decidedAt() == null ? null : OffsetDateTime.ofInstant(request.decidedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("next", request.versionAfterSave()).param("eventSequence", request.eventSequenceAfterSave())
                 .param("id", request.requestId().value()).param("version", request.version()).param("loaded", request.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
@@ -101,16 +101,14 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
         RoleDraft draft = newCode == null && rs.getString("role_name") == null ? null
                 : new RoleDraft(newCode, rs.getString("role_name"), rs.getBoolean("is_enabled"),
                         rs.getString("access_scope_kind") == null ? null : AccessScopeKind.valueOf(rs.getString("access_scope_kind")), strings(rs, "permission_codes"));
-        long subject = rs.getLong("subject_user_id");
-        boolean noSubject = rs.wasNull();
+        UUID subject = rs.getObject("subject_user_id", UUID.class);
         UUID role = rs.getObject("role_id", UUID.class);
-        long decided = rs.getLong("decided_by");
-        boolean notDecided = rs.wasNull();
+        UUID decided = rs.getObject("decided_by", UUID.class);
         OffsetDateTime decidedAt = rs.getObject("decided_at", OffsetDateTime.class);
         return AuthorizationRequest.restore(new AuthorizationRequestId(rs.getObject("request_id", UUID.class)),
-                AuthorizationRequestKind.valueOf(rs.getString("request_kind")), new UserId(rs.getLong("requested_by")),
-                rs.getObject("requested_at", OffsetDateTime.class).toInstant(), noSubject ? null : new UserId(subject), role == null ? null : new RoleId(role),
-                strings(rs, "role_codes"), draft, rs.getString("request_status"), notDecided ? null : new UserId(decided),
+                AuthorizationRequestKind.valueOf(rs.getString("request_kind")), new UserId(rs.getObject("requested_by", UUID.class)),
+                rs.getObject("requested_at", OffsetDateTime.class).toInstant(), subject == null ? null : new UserId(subject), role == null ? null : new RoleId(role),
+                strings(rs, "role_codes"), draft, rs.getString("request_status"), decided == null ? null : new UserId(decided),
                 decidedAt == null ? null : decidedAt.toInstant(), rs.getLong("version"), rs.getLong("event_count"));
     }
 

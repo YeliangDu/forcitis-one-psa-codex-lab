@@ -2,17 +2,20 @@ CREATE SCHEMA IF NOT EXISTS platform_identity;
 COMMENT ON SCHEMA platform_identity IS '身份与权限（权限流程与集成平台 BC · 身份）：登录、会话、角色、导航';
 
 CREATE TABLE platform_identity.user_accounts (
-    user_id            bigint      PRIMARY KEY,
+    user_id            uuid        PRIMARY KEY,
+    employee_id        bigint      NOT NULL,
     status             text        NOT NULL DEFAULT 'ENABLED' CHECK (status IN ('ENABLED', 'DISABLED')),
     last_login_at      timestamptz,
     last_login_address text,
     created_at         timestamptz NOT NULL DEFAULT now(),
     updated_at         timestamptz NOT NULL DEFAULT now(),
     version            bigint      NOT NULL DEFAULT 0,
-    event_count        bigint      NOT NULL DEFAULT 0
+    event_count        bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT uk_user_accounts_employee_id UNIQUE (employee_id)
 );
 COMMENT ON TABLE platform_identity.user_accounts IS '用户账号：身份侧的启用开关与最近登录；员工姓名、部门、在职状态归组织人事模块（不在此冗余）。粒度：每个用户一行';
-COMMENT ON COLUMN platform_identity.user_accounts.user_id IS '用户 ID：与员工 ID（沿用组织源人员 ID，有符号 bigint）相同';
+COMMENT ON COLUMN platform_identity.user_accounts.user_id IS '用户 ID（UUIDv7）：由身份模块分配，不等于员工 ID（ADR-0033 第 3 项第 1 条）';
+COMMENT ON COLUMN platform_identity.user_accounts.employee_id IS '员工 ID：账号所属的员工，每个员工至多一个账号；跨 schema 引用组织人事的员工，不建外键；R-1b P3b 随员工 ID 改为 uuid';
 COMMENT ON COLUMN platform_identity.user_accounts.status IS '账号状态：ENABLED / DISABLED；登录与每次解析会话时都与在职状态一起检查（RULE-326/338）';
 COMMENT ON COLUMN platform_identity.user_accounts.last_login_at IS '最近一次登录成功时间（RULE-330）';
 COMMENT ON COLUMN platform_identity.user_accounts.last_login_address IS '最近一次登录成功的客户端地址（RULE-330）';
@@ -64,7 +67,7 @@ COMMENT ON COLUMN platform_identity.role_permissions.updated_at IS '更新时间
 
 -- 账号仍持有的角色不得被删除：删角色时由外键拒绝，而不是悄悄把账号的授权带走。
 CREATE TABLE platform_identity.account_roles (
-    user_id    bigint      NOT NULL REFERENCES platform_identity.user_accounts (user_id) ON DELETE CASCADE,
+    user_id    uuid        NOT NULL REFERENCES platform_identity.user_accounts (user_id) ON DELETE CASCADE,
     role_id    uuid        NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
@@ -142,7 +145,7 @@ COMMENT ON COLUMN platform_identity.sso_ticket_uses.updated_at IS '更新时间'
 CREATE TABLE platform_identity.ticket_issuers (
     ticket_issuer_id   uuid        PRIMARY KEY,
     issuer_code        text        NOT NULL,
-    key_id             text        NOT NULL UNIQUE,
+    signing_key_code   text        NOT NULL UNIQUE,
     key_reference      text        NOT NULL,
     is_enabled         boolean     NOT NULL DEFAULT false,
     allowed_role_codes text[]      NOT NULL DEFAULT '{}',
@@ -154,7 +157,7 @@ CREATE TABLE platform_identity.ticket_issuers (
 COMMENT ON TABLE platform_identity.ticket_issuers IS '票据签发方：外部签名票据的每方一把密钥（kid 区分），默认关闭；签发方必须在 architecture/ticket-issuers-allowlist.txt 中（I-2）。粒度：每个签发方一行';
 COMMENT ON COLUMN platform_identity.ticket_issuers.ticket_issuer_id IS '票据签发方 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.ticket_issuers.issuer_code IS '签发方编码，如 km；老 PSA 后端永远不得出现（I-2）';
-COMMENT ON COLUMN platform_identity.ticket_issuers.key_id IS '密钥标识 kid，票据头部携带，一方一把';
+COMMENT ON COLUMN platform_identity.ticket_issuers.signing_key_code IS '签名密钥编码（票据头部的 kid），一方一把';
 COMMENT ON COLUMN platform_identity.ticket_issuers.key_reference IS '密钥引用，如 env:NAME；密钥本身只在环境变量或 KMS，表中不存';
 COMMENT ON COLUMN platform_identity.ticket_issuers.is_enabled IS '是否开启：调用方完成对接前保持关闭';
 COMMENT ON COLUMN platform_identity.ticket_issuers.allowed_role_codes IS '允许进入的用户范围：持有其中任一启用角色；为空表示无人可进；不得含 super_admin';
@@ -162,7 +165,7 @@ COMMENT ON COLUMN platform_identity.ticket_issuers.created_at IS '创建时间';
 COMMENT ON COLUMN platform_identity.ticket_issuers.updated_at IS '更新时间';
 
 CREATE TABLE platform_identity.emergency_admins (
-    user_id               bigint      PRIMARY KEY REFERENCES platform_identity.user_accounts (user_id),
+    user_id               uuid        PRIMARY KEY REFERENCES platform_identity.user_accounts (user_id),
     account_name            text        NOT NULL UNIQUE,
     password_hash         text        NOT NULL,
     totp_secret_encrypted text        NOT NULL,
@@ -234,7 +237,7 @@ COMMENT ON COLUMN platform_identity.sessions_attributes.updated_at IS '更新时
 -- C-M7：浏览器标识。单点登录或外部票据登录的会话，只有认得这个浏览器时才免于「是否本人」确认。
 CREATE TABLE platform_identity.browser_identifiers (
     browser_identifier_id uuid        NOT NULL,
-    user_id               bigint      NOT NULL,
+    user_id               uuid        NOT NULL,
     identifier_hash       text        NOT NULL,
     last_login_at         timestamptz NOT NULL,
     retired_at            timestamptz,
@@ -258,9 +261,9 @@ COMMENT ON COLUMN platform_identity.browser_identifiers.updated_at IS '更新时
 CREATE TABLE platform_identity.authorization_requests (
     request_id        uuid        NOT NULL,
     request_kind      text        NOT NULL CHECK (request_kind IN ('REPLACE_ROLES', 'CREATE_ROLE', 'UPDATE_ROLE')),
-    requested_by      bigint      NOT NULL,
+    requested_by      uuid        NOT NULL,
     requested_at      timestamptz NOT NULL,
-    subject_user_id   bigint,
+    subject_user_id   uuid,
     role_id           uuid,
     role_codes        text[]      NOT NULL DEFAULT '{}',
     new_role_code     text,
@@ -269,7 +272,7 @@ CREATE TABLE platform_identity.authorization_requests (
     access_scope_kind text CHECK (access_scope_kind IN ('ALL', 'CUSTOM_ORG_UNITS', 'OWN_ORG_UNIT', 'OWN_ORG_UNIT_SUBTREE', 'SELF', 'SELF_AND_DIRECT_REPORTS')),
     permission_codes  text[]      NOT NULL DEFAULT '{}',
     request_status    text        NOT NULL CHECK (request_status IN ('PENDING', 'CONFIRMED', 'REJECTED')),
-    decided_by        bigint,
+    decided_by        uuid,
     decided_at        timestamptz,
     version           bigint      NOT NULL DEFAULT 0,
     event_count       bigint      NOT NULL DEFAULT 0,

@@ -36,12 +36,19 @@ class SessionCurrentUser implements CurrentUser {
         if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_NOT_SIGNED_IN, ErrorKind.UNAUTHENTICATED, "no signed-in user");
         }
-        return new UserId(Long.parseLong(authentication.getName()));
+        try {
+            return UserId.parse(authentication.getName());
+        } catch (IllegalArgumentException broken) {
+            throw new DomainException(IdentityError.PLATFORM_IDENTITY_NOT_SIGNED_IN, ErrorKind.UNAUTHENTICATED,
+                    "the session principal is not an account id");
+        }
     }
 
     @Override
     public EmployeeId employeeId() {
-        return accountEmployees.employeeOf(userId());
+        UserId account = userId();
+        return accountEmployees.employeeOf(account).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_NOT_SIGNED_IN,
+                ErrorKind.UNAUTHENTICATED, "the session names account " + account.value() + ", which does not exist"));
     }
 
     @Override

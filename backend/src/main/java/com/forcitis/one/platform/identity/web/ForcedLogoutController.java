@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.web;
 
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.application.ForceUserLogout;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,7 +23,7 @@ class ForcedLogoutController {
 
     @PostMapping(path = "/user-accounts/{userId}:force-logout")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE + "')")
-    ResponseEntity<Void> forceLogout(@PathVariable long userId, @RequestBody ForcedLogoutRequest request) {
+    ResponseEntity<Void> forceLogout(@PathVariable UUID userId, @RequestBody ForcedLogoutRequest request) {
         forceUserLogout.execute(AccountPath.user(userId), request.reason());
         return ResponseEntity.noContent().build();
     }

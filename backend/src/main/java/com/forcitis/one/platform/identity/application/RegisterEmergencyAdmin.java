@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -31,14 +32,16 @@ public class RegisterEmergencyAdmin {
         }
     }
 
+    private final AccountProvisioning provisioning;
     private final EmergencyAdminRepository admins;
     private final EmergencyBinding binding;
     private final EmergencyCredentialsFactory credentials;
     private final DomainEvents events;
     private final AuditLog audit;
 
-    RegisterEmergencyAdmin(EmergencyAdminRepository admins, EmergencyBinding binding, EmergencyCredentialsFactory credentials, DomainEvents events,
+    RegisterEmergencyAdmin(AccountProvisioning provisioning, EmergencyAdminRepository admins, EmergencyBinding binding, EmergencyCredentialsFactory credentials, DomainEvents events,
             AuditLog audit) {
+        this.provisioning = provisioning;
         this.admins = admins;
         this.binding = binding;
         this.credentials = credentials;
@@ -47,12 +50,14 @@ public class RegisterEmergencyAdmin {
     }
 
     @Transactional
-    public Outcome execute(OperationAttestation attestation, long personId, String loginName) {
+    public Outcome execute(OperationAttestation attestation, EmployeeId employeeId, String loginName) {
         if (loginName == null || !LOGIN_NAME.matcher(loginName).matches()) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID, ErrorKind.UNPROCESSABLE,
                     "the login name is 3 to 32 characters: a lower-case letter, then lower-case letters, digits, dot, dash or underscore");
         }
-        UserId person = new UserId(personId);
+        UserId person = provisioning.existingOrOpened(employeeId).orElseThrow(() -> new DomainException(
+                IdentityError.PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID, ErrorKind.UNPROCESSABLE,
+                "employee " + employeeId.value() + " has no account and is not an employed person who could get one"));
         binding.requireValid(person);
         Optional<EmergencyAdmin> existing = admins.findByUserId(person);
         if (existing.isPresent()) {
@@ -60,7 +65,7 @@ public class RegisterEmergencyAdmin {
                 return new Outcome.AlreadyRegistered(binding.usableCount());
             }
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_EMERGENCY_ADMIN_DUPLICATE, ErrorKind.CONFLICT,
-                    "user " + personId + " already has an emergency account under another login name");
+                    "user " + person.value() + " already has an emergency account under another login name");
         }
         EmergencyCredentialsFactory.Generated generated = credentials.generate(loginName);
         EmergencyAdmin admin = EmergencyAdmin.register(person, loginName, generated.passwordHash(), generated.sealedTotpSecret());
@@ -69,7 +74,7 @@ public class RegisterEmergencyAdmin {
                     "the login name " + loginName + " is taken");
         }
         events.publish(admin);
-        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.registered", null, null, "emergency-admin:" + personId,
+        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.registered", null, null, "emergency-admin:" + person.value(),
                 attestation.describe() + " loginName=" + loginName));
         return new Outcome.Registered(generated.shown(), binding.usableCount());
     }

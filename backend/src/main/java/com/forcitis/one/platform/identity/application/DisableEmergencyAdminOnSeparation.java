@@ -42,7 +42,7 @@ class DisableEmergencyAdminOnSeparation {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                 "platform.identity.separation")) {
             for (EmployeeId separated : SeparatedPeople.in(event, directory)) {
-                disable(accountEmployees.accountOf(separated));
+                accountEmployees.accountOf(separated).ifPresent(this::disable);
             }
         }
     }

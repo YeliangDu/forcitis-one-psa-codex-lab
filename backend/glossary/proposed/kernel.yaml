@@ -1,5 +1,20 @@
 # `tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。`reversal_document`、`correction_document`、`document_nature`、`reversal_category`、`reversible_balance`、`derived_reversal`、`original_period`、`change_order_document`、`reverse_action`、`correct_action` 十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。
 terms:
+- id: system_actor
+  zh: 系统操作主体
+  en: SystemActor
+  snake: system_actor
+  kind: role
+  bc: kernel
+  definition: 以 SYSTEM 身份发出事件的作业或监听器；事件信封 actorId 为按作业名在固定命名空间生成的 UUID（version 5），同一作业恒定、不同于任何用户 ID，作业名可由该 UUID 反查（NEXT_BATCH_PLAN 7.2 C5，R-1b P2）
+  standard_ref:
+  - ADR-0033 第 7 项第 1 条
+  - phase1a/NEXT_BATCH_PLAN.md 7.2 C5
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 待 opus 复审裁定 C5
 - id: migration
   zh: 历史迁入
   en: Migration
