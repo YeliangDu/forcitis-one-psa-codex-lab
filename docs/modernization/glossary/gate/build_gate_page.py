@@ -13,9 +13,9 @@ VERDICTS = {"正式", "方言", "待定"}
 
 
 def load(card):
-    path = next((d / f"{card}.json" for d in (HERE, HERE.parent / "acl", HERE.parent / "round3" / "sheets") if (d / f"{card}.json").exists()), None)
+    path = next((d / f"{card}.json" for d in (HERE, HERE.parent / "acl", HERE.parent / "round3" / "sheets", HERE.parent / "homonym") if (d / f"{card}.json").exists()), None)
     if path is None:
-        sys.exit(f"找不到 {card}.json（gate/、acl/ 或 round3/sheets/）")
+        sys.exit(f"找不到 {card}.json（gate/、acl/、round3/sheets/ 或 homonym/）")
     doc = json.loads(path.read_text(encoding="utf-8"))
     errs = []
     for k in ("card", "session", "date", "lede", "items"):
