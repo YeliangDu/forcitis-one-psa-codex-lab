@@ -19,7 +19,6 @@ public interface NumberingRuleRepository {
     /** Applies only to the version the rule was loaded with and to versions still in the status they were loaded in; otherwise a DomainException (CONFLICT). */
     void save(NumberingRule rule);
 
-    /** Atomically reserves the next value of the counter (row lock until the surrounding transaction ends).
-     *  legalEntity is null when the template has no {LE}: that counter is global. */
-    long reserveNext(DocumentType type, LegalEntityId legalEntity, String periodKey, long startValue);
+    /** Atomically reserves the next value of the counter (row lock until the surrounding transaction ends). */
+    long reserveNext(DocumentType type, CounterScope scope, String periodKey, long startValue);
 }
