@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
@@ -17,8 +18,10 @@ public class ListHandledTasks {
 
     private final ApprovalTaskQueries tasks;
     private final OrgDirectory org;
+    private final AccountEmployees accountEmployees;
 
-    ListHandledTasks(ApprovalTaskQueries tasks, OrgDirectory org) {
+    ListHandledTasks(ApprovalTaskQueries tasks, OrgDirectory org, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.tasks = tasks;
         this.org = org;
     }
@@ -38,6 +41,6 @@ public class ListHandledTasks {
     }
 
     private String nameOf(UserId user) {
-        return org.findEmployee(user).map(EmployeeProfile::name).orElse(String.valueOf(user.value()));
+        return org.findEmployee(accountEmployees.employeeOf(user)).map(EmployeeProfile::name).orElse(String.valueOf(user.value()));
     }
 }

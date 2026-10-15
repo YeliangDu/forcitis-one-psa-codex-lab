@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
@@ -31,11 +32,13 @@ public class LoginWithSignedTicket {
     private final OneTimeCredentials credentials;
     private final OrgDirectory directory;
     private final AccountRepository accounts;
+    private final AccountEmployees accountEmployees;
     private final LoginAdmission admission;
     private final Clock clock;
 
     LoginWithSignedTicket(TicketIssuerRepository issuers, IssuerKeys keys, OneTimeCredentials credentials, OrgDirectory directory,
-            AccountRepository accounts, LoginAdmission admission, Clock clock) {
+            AccountRepository accounts, LoginAdmission admission, AccountEmployees accountEmployees, Clock clock) {
+        this.accountEmployees = accountEmployees;
         this.issuers = issuers;
         this.keys = keys;
         this.credentials = credentials;
@@ -84,7 +87,7 @@ public class LoginWithSignedTicket {
         } catch (IllegalArgumentException zeroId) {
             return invalid(method, "bad subject");
         }
-        Optional<EmployeeProfile> employee = directory.findEmployee(userId);
+        Optional<EmployeeProfile> employee = directory.findEmployee(accountEmployees.employeeOf(userId));
         if (employee.isEmpty()) {
             return invalid(method, "subject is not an employee");
         }

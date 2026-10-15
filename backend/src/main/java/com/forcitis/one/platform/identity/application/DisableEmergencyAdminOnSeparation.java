@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
@@ -26,8 +28,10 @@ class DisableEmergencyAdminOnSeparation {
     private final OrgDirectory directory;
     private final EmergencyAdminRepository emergencyAdmins;
     private final DomainEvents events;
+    private final AccountEmployees accountEmployees;
 
-    DisableEmergencyAdminOnSeparation(OrgDirectory directory, EmergencyAdminRepository emergencyAdmins, DomainEvents events) {
+    DisableEmergencyAdminOnSeparation(OrgDirectory directory, EmergencyAdminRepository emergencyAdmins, DomainEvents events, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.directory = directory;
         this.emergencyAdmins = emergencyAdmins;
         this.events = events;
@@ -37,8 +41,8 @@ class DisableEmergencyAdminOnSeparation {
     void on(OrgSnapshotChanged event) {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                 "platform.identity.separation")) {
-            for (UserId separated : SeparatedPeople.in(event, directory)) {
-                disable(separated);
+            for (EmployeeId separated : SeparatedPeople.in(event, directory)) {
+                disable(accountEmployees.accountOf(separated));
             }
         }
     }

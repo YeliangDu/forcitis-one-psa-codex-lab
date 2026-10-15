@@ -12,7 +12,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.TransitionTable;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -36,8 +36,8 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 class ApprovalRequestStateMachineTest {
 
-    static final UserId INITIATOR = new UserId(10);
-    static final UserId STRANGER = new UserId(11);
+    static final EmployeeId INITIATOR = new EmployeeId(10);
+    static final EmployeeId STRANGER = new EmployeeId(11);
     static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
     static final Moment NOW = new Moment(Instant.parse("2026-10-14T02:00:00Z"), TODAY);
     static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));
@@ -183,7 +183,7 @@ class ApprovalRequestStateMachineTest {
     @DisplayName("RULE-268/269/309 withdraw and cancel are refused for a stranger, when nothing runs and past a cut-off, exactly as the shown check says")
     void withdrawAndCancelFollowTheCheck(WithdrawCheck refused) {
         ApprovalStatus status = refused == WithdrawCheck.NOT_RUNNING ? ApprovalStatus.APPROVED : ApprovalStatus.RUNNING;
-        UserId actor = refused == WithdrawCheck.NOT_INITIATOR ? STRANGER : INITIATOR;
+        EmployeeId actor = refused == WithdrawCheck.NOT_INITIATOR ? STRANGER : INITIATOR;
         boolean cutoff = refused == WithdrawCheck.CUTOFF_PASSED;
         assertThat(in(status).checkWithdraw(actor, cutoff)).isEqualTo(refused);
         assertThatThrownBy(() -> in(status).withdraw(actor, cutoff, new Reason("reason"), NOW)).isInstanceOf(DomainException.class);
@@ -194,7 +194,7 @@ class ApprovalRequestStateMachineTest {
     @DisplayName("RULE-268/269 only with a reason; the displayed check and the executed action agree for every status, actor and cut-off")
     void displayAndExecutionShareTheCheck() {
         for (ApprovalStatus status : ApprovalStatus.values()) {
-            for (UserId actor : List.of(INITIATOR, STRANGER)) {
+            for (EmployeeId actor : List.of(INITIATOR, STRANGER)) {
                 for (boolean cutoff : new boolean[] {false, true}) {
                     WithdrawCheck shown = in(status).checkWithdraw(actor, cutoff);
                     boolean executed;

@@ -13,9 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.PublicEndpoint;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -181,8 +181,8 @@ class ApplicationIntegrationTest {
 
     @BeforeEach
     void projectManagerExists() {
-        org.mockito.Mockito.when(orgDirectory.findEmployee(new UserId(2002))).thenReturn(java.util.Optional.of(new EmployeeProfile(
-                new UserId(2002), "person-2002", new OrgUnitId(1), null, EmploymentStatus.EMPLOYED, false)));
+        org.mockito.Mockito.when(orgDirectory.findEmployee(new EmployeeId(2002))).thenReturn(java.util.Optional.of(new EmployeeProfile(
+                new EmployeeId(2002), "person-2002", new OrgUnitId(1), null, EmploymentStatus.EMPLOYED, false)));
     }
 
     @BeforeEach

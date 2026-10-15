@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.replay;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.domain.AssigneeResolver;
 import com.forcitis.one.platform.approval.domain.AssignmentRule;
@@ -25,7 +26,7 @@ final class TimesheetApproverReplay {
     static ReplayReport replay(ReplayExport export) {
         ExportedSnapshot snapshot = new ExportedSnapshot(export.snapshot());
         java.util.Set<UserId> administrator = export.processAdministratorUserId() == null ? java.util.Set.of() : java.util.Set.of(new UserId(export.processAdministratorUserId()));
-        AssigneeResolver resolver = new AssigneeResolver(snapshot, snapshot, administrator);
+        AssigneeResolver resolver = new AssigneeResolver(snapshot, snapshot, administrator, new ExportedAccounts());
         Set<Long> hardCoded = new HashSet<>(export.legacyFallbackUserIds());
 
         Map<ReplayVerdict, Integer> verdicts = new EnumMap<>(ReplayVerdict.class);
@@ -35,7 +36,7 @@ final class TimesheetApproverReplay {
         for (ReplayExport.InstanceRecord instance : export.instances()) {
             ProcessVariables variables = new ProcessVariables(LegacyVocabulary.fields(instance.formFields()),
                     LegacyVocabulary.fields(instance.variables()));
-            UserId initiator = new UserId(instance.initiatorId());
+            EmployeeId initiator = new EmployeeId(instance.initiatorId());
             Set<String> flags = new HashSet<>();
             instance.legacyHourTypes().forEach(type -> flags.add(LegacyVocabulary.flag(type)));
             Map<String, ReplayExport.NodeRecord> exported = new LinkedHashMap<>();

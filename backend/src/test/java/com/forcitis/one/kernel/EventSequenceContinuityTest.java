@@ -161,7 +161,7 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("RegisteredEmployee: its one event is numbered after the stored sequence")
     void registeredEmployee() {
-        UserId id = new UserId(42);
+        com.forcitis.one.kernel.EmployeeId id = new com.forcitis.one.kernel.EmployeeId(42);
         var staff = new com.forcitis.one.organization.workforce.domain.StaffEmployee(
                 new com.forcitis.one.organization.workforce.domain.Employee(id, "E42", "Synthetic", "synthetic", null, null, null,
                         com.forcitis.one.organization.workforce.api.EmploymentStatus.EMPLOYED, false),

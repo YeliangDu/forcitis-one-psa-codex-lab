@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.kernel.event.DomainEvent;
@@ -191,12 +192,12 @@ public abstract class IdentityIntegrationTest {
     }
 
     protected static EmployeeProfile profile(long id, EmploymentStatus status) {
-        return new EmployeeProfile(new UserId(id), "Employee " + id, new OrgUnitId(10), new WecomUserId("wx" + id), status, false);
+        return new EmployeeProfile(new EmployeeId(id), "Employee " + id, new OrgUnitId(10), new WecomUserId("wx" + id), status, false);
     }
 
     protected EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
         EmployeeProfile profile = profile(id, status);
-        when(orgDirectory.findEmployee(profile.userId())).thenReturn(Optional.of(profile));
+        when(orgDirectory.findEmployee(profile.employeeId())).thenReturn(Optional.of(profile));
         when(orgDirectory.findEmployeeByWecomUserId(profile.wecomUserId())).thenReturn(Optional.of(profile));
         when(orgDirectory.findOrgUnit(new OrgUnitId(10))).thenReturn(Optional.of(new OrgUnitProfile(new OrgUnitId(10), "Delivery", null, true)));
         return profile;

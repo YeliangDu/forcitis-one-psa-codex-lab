@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.domain;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,7 +52,7 @@ class ApprovalTaskStateMachineTest {
 
     static final UserId HOLDER = new UserId(20);
     static final UserId OTHER = new UserId(21);
-    static final UserId INITIATOR = new UserId(10);
+    static final EmployeeId INITIATOR = new EmployeeId(10);
     static final Instant DUE = Instant.parse("2026-10-19T15:59:00Z");
     static final Instant REMIND_AT = Instant.parse("2026-10-20T01:00:00Z");
     static final Instant ESCALATE_AT = Instant.parse("2026-10-21T01:00:00Z");

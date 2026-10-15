@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -51,7 +52,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalInstanceId newTaskFor(long initiator, String key, long... managers) {
-        return tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+        return tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
     }
 

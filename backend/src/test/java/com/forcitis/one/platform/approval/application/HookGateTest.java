@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import java.util.Optional;
@@ -53,7 +54,7 @@ class HookGateTest {
 
     static TaskView task(String hookKey) {
         return new TaskView(new ApprovalTaskId("t"), new ApprovalInstanceId("i"), ProcessKey.COST_TIMESHEET_APPROVAL,
-                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc")), new LegalEntityId(TestIds.uuid(1)), "node", "Node", new UserId(1),
+                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc")), new LegalEntityId(TestIds.uuid(1)), "node", "Node", new EmployeeId(1),
                 Optional.empty(), Set.of(new UserId(2)), Instant.EPOCH, false, Optional.ofNullable(hookKey), false, new ContentHash("hash"));
     }
 

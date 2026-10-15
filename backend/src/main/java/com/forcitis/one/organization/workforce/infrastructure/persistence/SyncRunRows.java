@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.RunStats;
@@ -60,12 +61,12 @@ final class SyncRunRows {
         return kinds;
     }
 
-    private static List<UserId> separations(ResultSet rs) throws SQLException {
+    private static List<EmployeeId> separations(ResultSet rs) throws SQLException {
         Array array = rs.getArray("held_separation_employee_ids");
-        List<UserId> people = new ArrayList<>();
+        List<EmployeeId> people = new ArrayList<>();
         if (array != null) {
             for (Long id : (Long[]) array.getArray()) {
-                people.add(new UserId(id));
+                people.add(new EmployeeId(id));
             }
         }
         return people;

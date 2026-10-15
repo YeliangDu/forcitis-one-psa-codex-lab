@@ -6,6 +6,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
@@ -219,7 +220,7 @@ public abstract class ApprovalIntegrationSupport {
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager, TimesheetRoutingFlag... flags) {
         Set<String> flagNames = java.util.Arrays.stream(flags).map(TimesheetRoutingFlag::flagName).collect(java.util.stream.Collectors.toSet());
-        return tx.execute(status -> approvals.start(startRequest(businessKey, new UserId(initiator), flagNames,
+        return tx.execute(status -> approvals.start(startRequest(businessKey, new EmployeeId(initiator), flagNames,
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
     }
 
@@ -240,11 +241,11 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     /** The round a person starting the document again would get: the running one while it runs, the next one after it ended. */
-    protected ApprovalStartRequest startRequest(String key, UserId initiator, Set<String> flags, List<ApprovalField> fields) {
+    protected ApprovalStartRequest startRequest(String key, EmployeeId initiator, Set<String> flags, List<ApprovalField> fields) {
         return startRequest(key, initiator, flags, fields, nextRoundOf(key));
     }
 
-    protected static ApprovalStartRequest startRequest(String key, UserId initiator, Set<String> flags, List<ApprovalField> fields, int round) {
+    protected static ApprovalStartRequest startRequest(String key, EmployeeId initiator, Set<String> flags, List<ApprovalField> fields, int round) {
         return new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, initiator, new RoundNumber(round),
                 UUID.randomUUID(), flags, fields, new ContentHash("hash"), new ApprovalSummary("summary of " + key));
     }
@@ -430,6 +431,11 @@ public abstract class ApprovalIntegrationSupport {
                     var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
                     return authentication != null && authentication.isAuthenticated() ? new UserId(Long.parseLong(authentication.getName()))
                             : new UserId(ADMINISTRATOR);
+                }
+
+                @Override
+                public EmployeeId employeeId() {
+                    return new EmployeeId(userId().value());
                 }
 
                 @Override

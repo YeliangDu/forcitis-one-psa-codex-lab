@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DocumentReference;
@@ -70,7 +71,7 @@ public final class ApprovalRequest extends AggregateRoot {
     private final ProcessKey processKey;
     private final DocumentReference document;
     private final LegalEntityId legalEntityId;
-    private final UserId initiator;
+    private final EmployeeId initiator;
     private final ApprovalStatus loadedStatus;
     private final int loadedRound;
     private final boolean isNew;
@@ -83,7 +84,7 @@ public final class ApprovalRequest extends AggregateRoot {
     private ApprovalSummary summary;
     private UUID trigger;
 
-    private ApprovalRequest(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator, int round,
+    private ApprovalRequest(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, EmployeeId initiator, int round,
             ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason, ApprovalSummary summary, List<ApprovalTask> tasks,
             UUID trigger, long version, long eventSequence, boolean isNew) {
         super(version, eventSequence);
@@ -103,7 +104,7 @@ public final class ApprovalRequest extends AggregateRoot {
         this.isNew = isNew;
     }
 
-    public static ApprovalRequest begin(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator,
+    public static ApprovalRequest begin(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, EmployeeId initiator,
             ApprovalInstanceId instanceId, ApprovalSummary summary, UUID trigger, Moment now) {
         ApprovalRequest request = new ApprovalRequest(processKey, document, legalEntityId, initiator, 1, instanceId, ApprovalStatus.RUNNING,
                 null, summary, List.of(), Objects.requireNonNull(trigger, "trigger"), 0, 0, true);
@@ -111,14 +112,14 @@ public final class ApprovalRequest extends AggregateRoot {
         return request;
     }
 
-    public static ApprovalRequest restore(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator,
+    public static ApprovalRequest restore(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, EmployeeId initiator,
             int round, ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason, ApprovalSummary summary,
             List<ApprovalTask> tasks, long version, long eventSequence) {
         return new ApprovalRequest(processKey, document, legalEntityId, initiator, round, instanceId, status, resultReason, summary, tasks,
                 null, version, eventSequence, false);
     }
 
-    public void restart(UserId by, ApprovalInstanceId newInstance, ApprovalSummary newSummary, UUID newTrigger, Moment now) {
+    public void restart(EmployeeId by, ApprovalInstanceId newInstance, ApprovalSummary newSummary, UUID newTrigger, Moment now) {
         if (!initiator.equals(by)) {
             throw ApprovalError.PLATFORM_APPROVAL_NOT_INITIATOR.refusal("Only the initiator of the previous round may start the next one");
         }
@@ -247,7 +248,7 @@ public final class ApprovalRequest extends AggregateRoot {
         end(ApprovalStatus.RETURNED, ApprovalOutcome.RETURNED, reason, ReturnSource.SYSTEM, now);
     }
 
-    public WithdrawCheck checkWithdraw(UserId actor, boolean cutoffPassed) {
+    public WithdrawCheck checkWithdraw(EmployeeId actor, boolean cutoffPassed) {
         if (status != ApprovalStatus.RUNNING) {
             return WithdrawCheck.NOT_RUNNING;
         }
@@ -257,17 +258,17 @@ public final class ApprovalRequest extends AggregateRoot {
         return cutoffPassed ? WithdrawCheck.CUTOFF_PASSED : WithdrawCheck.ALLOWED;
     }
 
-    public void withdraw(UserId actor, boolean cutoffPassed, Reason reason, Moment now) {
+    public void withdraw(EmployeeId actor, boolean cutoffPassed, Reason reason, Moment now) {
         requireWithdrawable(actor, cutoffPassed, reason);
         end(ApprovalStatus.RETURNED, ApprovalOutcome.RETURNED, reason, ReturnSource.INITIATOR, now);
     }
 
-    public void cancel(UserId actor, boolean cutoffPassed, Reason reason, Moment now) {
+    public void cancel(EmployeeId actor, boolean cutoffPassed, Reason reason, Moment now) {
         requireWithdrawable(actor, cutoffPassed, reason);
         end(ApprovalStatus.CANCELLED, ApprovalOutcome.CANCELLED, reason, null, now);
     }
 
-    private void requireWithdrawable(UserId actor, boolean cutoffPassed, Reason reason) {
+    private void requireWithdrawable(EmployeeId actor, boolean cutoffPassed, Reason reason) {
         switch (checkWithdraw(actor, cutoffPassed)) {
             case NOT_INITIATOR -> throw ApprovalError.PLATFORM_APPROVAL_NOT_INITIATOR.refusal("Only the initiator may withdraw or cancel");
             case CUTOFF_PASSED -> throw ApprovalError.PLATFORM_APPROVAL_CUTOFF_PASSED.refusal("A cut-off node has already finished a task");
@@ -372,7 +373,7 @@ public final class ApprovalRequest extends AggregateRoot {
         return legalEntityId;
     }
 
-    public UserId initiator() {
+    public EmployeeId initiator() {
         return initiator;
     }
 

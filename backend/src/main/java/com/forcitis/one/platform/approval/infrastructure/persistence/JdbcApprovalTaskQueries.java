@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.infrastructure.persistence;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -148,7 +149,7 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
         String reason = rs.getString("result_reason");
         return new TaskRecord(new ApprovalTaskId(rs.getString("task_id")), new ApprovalInstanceId(rs.getString("instance_id")),
                 ProcessKey.valueOf(rs.getString("process_key")), new DocumentReference(DocumentType.valueOf(rs.getString("document_type")),
-                new DocumentId(rs.getString("document_key"))), new NodeKey(rs.getString("node_key")), new UserId(rs.getLong("initiator_id")),
+                new DocumentId(rs.getString("document_key"))), new NodeKey(rs.getString("node_key")), new EmployeeId(rs.getLong("initiator_id")),
                 ApprovalTaskStatus.valueOf(rs.getString("status")), assigneeId, JdbcApprovalRequestRepository.instant(rs, "created_at"),
                 Optional.ofNullable(JdbcApprovalRequestRepository.instant(rs, "due_at")),
                 Optional.ofNullable(JdbcApprovalRequestRepository.instant(rs, "completed_at")),

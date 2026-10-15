@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.Optional;
 
 /** Reading side of the org snapshot: lookups and browsing, nothing is loaded for a change. */
 public interface OrgSnapshotQueries {
-    Optional<StaffEmployee> findStaff(UserId userId);
+    Optional<StaffEmployee> findStaff(EmployeeId employeeId);
 
     /** Prefers the employed person. */
     Optional<StaffEmployee> findStaffByWecomUserId(WecomUserId wecomUserId);

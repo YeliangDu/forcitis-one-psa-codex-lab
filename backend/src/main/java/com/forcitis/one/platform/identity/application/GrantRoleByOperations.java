@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
@@ -35,10 +36,12 @@ public class GrantRoleByOperations {
     private final SessionRegistry sessions;
     private final AccessCache cache;
     private final DomainEvents events;
+    private final AccountEmployees accountEmployees;
     private final AuditLog audit;
 
     GrantRoleByOperations(AccountRepository accounts, RoleRepository roles, OrgDirectory directory, AccountProvisioning provisioning,
-            SessionRegistry sessions, AccessCache cache, DomainEvents events, AuditLog audit) {
+            SessionRegistry sessions, AccessCache cache, DomainEvents events, AuditLog audit, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.accounts = accounts;
         this.roles = roles;
         this.directory = directory;
@@ -57,7 +60,7 @@ public class GrantRoleByOperations {
                 IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND, ErrorKind.NOT_FOUND, "no role " + roleCode));
         Optional<UserAccount> found = accounts.find(person);
         if (found.isEmpty()) {
-            directory.findEmployee(person).ifPresent(provisioning::ensureAccount);
+            directory.findEmployee(accountEmployees.employeeOf(person)).ifPresent(provisioning::ensureAccount);
             found = accounts.find(person);
         }
         UserAccount account = found.orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND, ErrorKind.NOT_FOUND,
