@@ -1,16 +1,6 @@
--- B-5 · 写入与越权读取：每一批都应被拒绝（事务内、零行语句，结束回滚）
--- Q1 读基表
-SELECT TOP 1 id FROM dbo.bpm_task_ext;
-GO
--- Q2 读人员表
-SELECT TOP 1 id FROM dbo.system_users;
-GO
--- Q3 读令牌表
-SELECT TOP 1 id FROM dbo.system_oauth2_access_token;
-GO
--- Q4 读另一个账号的视图
-SELECT TOP 1 1 FROM dbo.v_one_legacy_org_short_name;
-GO
+-- B-5 · 写入与越权：每一批都应被拒绝（事务内、零行语句，结束回滚）
+-- Q1–Q4（读基表、人员表、令牌表、另一视图）已被 ADR-0037 取代：账号全库只读，读取以 read-all/legacy_login_read.sql 为准，
+-- 账号形状以 read-all/readonly_check.sql 核对 (a)–(f)
 -- Q5 写基表
 UPDATE dbo.system_dept SET name = name WHERE 1 = 0;
 GO

@@ -13,7 +13,7 @@
 | # | 事项 | 建议 | 时点 | 依据 | 决定单 | 状态 |
 |---|---|---|---|---|---|---|
 | A-1 | `one.forcitis.com` 的 DNS 解析与证书由谁办理、用哪种证书 | 阿里云 SSL 证书服务（与现有证书统一管理）；DNS 指向新 ECS 公网地址 | dev 前 | INFRA_RUNBOOK D-3、E-9 | [A-1](DECISIONS_A.md#a-1-oneforcitiscom-的-dns-与证书谁办哪种证书) | ✅ 改选 B：Let's Encrypt + 自动续期（用户 2026-10-15「同意」） |
-| A-2 | A8 库与老系统库的只读视图、只读账号由谁建（对方 DBA 是谁） | 指定一名 DBA，按 `handoff/B-5-dba/` 执行；同一人负责 6a 前的 `mirror_*` 只写账号 | dev 前 | D-4、ADR-0025 第 5 条 | [A-2](DECISIONS_A.md#a-2-只读视图与账号由谁建dba) | 🟨 选项已定，人选待定 |
+| A-2 | A8 库与老系统库的只读账号（ADR-0037 全库只读）与视图由谁建（对方 DBA 是谁） | 指定一名 DBA，按 `handoff/B-5-dba/` 执行；同一人负责 6a 前的 `mirror_*` 只写账号 | dev 前 | D-4、ADR-0025 第 5 条 | [A-2](DECISIONS_A.md#a-2-只读视图与账号由谁建dba) | 🟨 选项已定，人选待定 |
 | A-3 | 超级管理员人选（至少 2 名）与应急账号持有人（至少 2 个） | 平台负责人 + 一名运维；应急账号绑定超管持有人 | dev 前 | ADR-0026 / 0027、intent 156 | [A-3](DECISIONS_A.md#a-3-超级管理员持有人-2-名与应急账号持有人2-个账号) | 🟨 选项已定，人选待定 |
 | A-4 | 组织数据管理员、安全审计员、流程管理员的人选 | 组织数据管理员 1–2 名（HR 或行政）；安全审计员由内控 / 财务；流程管理员 1 名 | dev 前 | ADR-0026 D-11、ADR-0027、D-1a-61 | [A-4](DECISIONS_A.md#a-4-组织数据管理员安全审计员流程管理员人选) | 🟨 选项已定，人选待定 |
 | A-5 | 告警接收：P1 企业微信群与短信接收人、P2 群、值班安排 | 新建「FORCITIS one 运维」群；P1 短信给值班人与平台负责人 | dev 前 | 平台约定方案 §4（告警通道）、E-13 | [A-5](DECISIONS_A.md#a-5-告警接收) | 🟨 选项已定，人选待定 |
@@ -31,7 +31,7 @@
 | B-2 | 在企业微信后台新开自建应用（卡片按钮回调、扫码登录回调、可信域名） | dev 前 | SECURITY_INVARIANTS I-8（SEC-119）、D-1a-138、E-15 | [B-2](handoff/B-2-wecom-app.md) | 🟨 应用已建，可信域名已验证（2026-10-15 外部核验 `WW_verify_*.txt` 返回 200）；凭据已写入 ECS `/etc/forcitis-one/one.env`（0640 root:forcitis），ECS 上 `gettoken` 与 `agent/get` errcode=0（session-log one-1a-infra-b2）；待：其他出口发消息被拒（可信 IP）、登录冒烟与可见范围（dev 部署后）、本机凭据副本清理与 KMS |
 | B-3 | 由 A8 管理员登记新系统的致远验票回跳地址（不替换老 SSO） | dev 前 | E-16、D-1a-40 | [B-3](handoff/B-3-a8-sso-return.md) | 🟨 |
 | B-4 | DNS 解析 `one.forcitis.com`，证书申请 | dev 前 | A-1 | [B-4](handoff/B-4-dns-tls.md) | ✅ 解析与证书（2026-10-15 外部核验：A 记录 47.114.56.157，Let's Encrypt 至 2027-01-12，HTTP 301 到 HTTPS）；自动续期 `certbot-renew.timer` 每日两次、deploy hook 先 `nginx -t` 再 reload，`renew --dry-run --run-deploy-hooks` 通过（session-log one-1a-infra-b4）；待：ICP 备案主体核验、证书到期告警（C-7）；ICP 与公安联网备案：用户「已经完成所有备案」（2026-10-15）✅ |
-| B-5 | 对方 DBA 建 A8 与老系统只读视图和账号（按 `SEEYON_VIEWS.sql`、`LEGACY_INBOX_VIEW.sql`、`LEGACY_ORG_NAMES_VIEW.sql`） | dev 前 | A-2、INFRA_RUNBOOK §4 | [B-5](handoff/B-5-dba/README.md) | 🟨 A8 部分完成（2026-10-15 one-ops-1a）：`a8_db` 的 `forcitis_one` schema 与 4 个视图、登录 `one_a8_views_ro`；`a8_20_verify` 全部符合，真实登录可读视图、10 项写入与越权读取全部被拒；口令只在 ECS `one.env`（`A8_DB_*`）；RDS 白名单组 `forcitis_one` 放行 172.16.89.86。老系统部分 STEP 1 排序规则冲突失败、未建任何对象，视图已修正待复核后重跑。待决：SQL Server 未开 SSL，`encrypt=true` 下应用证书校验会失败 |
+| B-5 | 对方 DBA 建 A8 与老系统只读账号（ADR-0037：库级 SELECT、库级 DENY 写 / DDL / EXECUTE / REFERENCES，`read-all/*_apply.sql`）与视图（按 `SEEYON_VIEWS.sql`、`LEGACY_INBOX_VIEW.sql`、`LEGACY_ORG_NAMES_VIEW.sql`，视图冻结） | dev 前 | A-2、INFRA_RUNBOOK §4 | [B-5](handoff/B-5-dba/README.md) | 🟨 A8 部分完成（2026-10-15 one-ops-1a）：`a8_db` 的 `forcitis_one` schema 与 4 个视图、登录 `one_a8_views_ro`；`a8_20_verify` 全部符合，真实登录可读视图、10 项写入与越权读取全部被拒；口令只在 ECS `one.env`（`A8_DB_*`）；RDS 白名单组 `forcitis_one` 放行 172.16.89.86。老系统部分 STEP 1 排序规则冲突失败、未建任何对象，视图已修正待复核后重跑。待决：SQL Server 未开 SSL，`encrypt=true` 下应用证书校验会失败 |
 | B-6 | 组织数据管理员在 A8 补齐「在职但无企业微信 ID」清单至 0（确无者逐个登记） | 出口前 | D-1a-35（出口条件） | [B-6](handoff/B-6-wecom-id-coverage.md) | 🟨 上线前预估（2026-10-15T01:33:35+08:00，经 B-5 视图、`SeeyonViewSql` 同一范围）：范围内 1,254 人、在职 304 人、在职无企业微信 ID **0**、在职共用企业微信 ID 0；以 dev 同步后的问题清单为准 |
 | B-7 | 组织数据管理员录入 2027 年工作日历（节假日与调休） | 出口前（且每年 12 月 1 日前录入下一年） | D-1a-110..117 | [B-7](handoff/B-7-work-calendar-2027.md) | 🟨 |
 | B-8 | 业务管理员（用户）确认各单据编号模板；凭证号模板另需财务确认 | 出口前 | ADR-0027、出口条件「编号规则经管理员确认」 | [B-8](handoff/B-8-numbering-templates.md)（四眼确认待 ADR-0027 下一批实现） | 🟨 |
@@ -56,6 +56,7 @@
 | C-9 | 生产库 `forcitis_one_prod` 与 `one_prod_*` 角色 | 生产前 | ADR-0025 第 2 条 | [C-9](runbooks/C-9-prod-db.md) · `runbooks/sql/c9_prod_db*.sql` | 🟨 |
 | C-13 | 生产主机上身份运维命令（`identity-operations`）的「见证人」`--witness` 只是自报文本：有服务器 shell 权限的人即可一人填两个名字执行。生产前定方案（例如见证人须在命令执行时以其本人凭据确认，或改为两人分持的审批步骤），与 C-11（关闭单人模式，ADR-0030）同批落实 | 生产前 | ADR-0027 双人在场；ADR-0030；INFRA_RUNBOOK §6 | — | ⬜ |
 | C-10 | 每个环境的 one.env 设置 `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED`（`true` 或 `false`）；没有默认值，缺失则应用启动失败（交叉检查 7） | dev 前 | INFRA_RUNBOOK §5 | — | ⬜ |
+| C-14 | ADR-0037 第 4 项只读账号校验（ADR37-1）：dev 依次配置三条只读连接，启动校验通过；人为撤销一项库级 DENY 后，下一次同步前的重检停掉该连接并写 ALERT；随后恢复授权并重启。实现合入时部署阻塞项 100 关闭 | dev 前 | ADR-0037 迁移方案第 4、5 步 | INFRA_RUNBOOK §4 | 🟨 校验随 ADR37-1 PR 交付，dev 验证待做 |
 
 ## D. 部署后验证（Phase 1a 出口条件）
 

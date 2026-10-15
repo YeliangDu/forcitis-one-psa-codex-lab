@@ -18,18 +18,9 @@ SELECT r.name AS role_name
  WHERE u.name = N'$(READER_LOGIN)';
 
 -- V3 以该账号身份核对
+-- V3.1–V3.3（恰好 4 个视图、基表不可读、库级只有 CONNECT）已被 ADR-0037 取代：账号全库只读，形状以该账号真实登录执行
+-- read-all/readonly_check.sql 核对 (a)–(f)，与应用启动校验同一组查询。
 EXECUTE AS USER = N'$(READER_LOGIN)';
--- V3.1 能 SELECT 的用户对象恰好是 4 个视图
-SELECT TABLE_SCHEMA, TABLE_NAME
-  FROM INFORMATION_SCHEMA.TABLES
- WHERE TABLE_SCHEMA NOT IN (N'sys', N'INFORMATION_SCHEMA')
-   AND HAS_PERMS_BY_NAME(QUOTENAME(TABLE_SCHEMA) + N'.' + QUOTENAME(TABLE_NAME), N'OBJECT', N'SELECT') = 1;
--- V3.2 基表不可读：期望全部为 0
-SELECT HAS_PERMS_BY_NAME(N'dbo.ORG_MEMBER', N'OBJECT', N'SELECT')    AS org_member,
-       HAS_PERMS_BY_NAME(N'dbo.ORG_UNIT', N'OBJECT', N'SELECT')      AS org_unit,
-       HAS_PERMS_BY_NAME(N'dbo.formmain_0307', N'OBJECT', N'SELECT') AS hr_form;
--- V3.3 库级权限：只应有 CONNECT（应用启动校验拒绝 SELECT / INSERT / UPDATE / DELETE / EXECUTE / ALTER / CONTROL 等）
-SELECT permission_name FROM fn_my_permissions(NULL, N'DATABASE');
 -- V3.4 视图可读、行数合理（人员、部门数与 A8 界面大致一致）
 SELECT (SELECT COUNT(*) FROM forcitis_one.v_org_unit)         AS org_units,
        (SELECT COUNT(*) FROM forcitis_one.v_org_member)       AS members,

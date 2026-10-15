@@ -100,9 +100,11 @@ Prometheus 里的名字是 Micrometer 名字把点换成下划线、计数器加
 
 | 库 | 对象 | 账号 | 授权 | 脚本 |
 |---|---|---|---|---|
-| A8（a8_db） | 组织视图（只含白名单列） | 只读，专用 | 只授予视图 SELECT，基表 DENY，无 EXEC | `phase1a/SEEYON_VIEWS.sql` |
-| 老系统（ruoyi-vue-pro） | 老待办视图 `dbo.v_psa_one_legacy_todo` | 只读，专用（`psa_one_legacy_ro`） | 只授予视图 SELECT，**令牌表不授权**（I-1）；应用启动时校验能 SELECT 的对象恰好只有这一个 | `phase1a/LEGACY_INBOX_VIEW.sql` |
-| 老系统 | 部门简称视图 `dbo.v_one_legacy_org_short_name` | 只读，专用（`one_legacy_names_ro`）；**必须另设**，不能与待办共用账号——两个模块各自校验「恰好只能读一个对象」 | 同上 | `phase1a/LEGACY_ORG_NAMES_VIEW.sql` |
+| A8（a8_db） | 全库只读；运行时经组织视图读取（视图冻结，ADR-0037 第 6 项） | 只读，专用（`one_a8_views_ro`） | 库级 GRANT SELECT；库级 DENY INSERT、UPDATE、DELETE、ALTER、EXECUTE、REFERENCES、CREATE TABLE / VIEW / PROCEDURE / FUNCTION / SCHEMA；不入任何数据库角色 | `handoff/B-5-dba/read-all/a8_apply.sql`（视图：`phase1a/SEEYON_VIEWS.sql`） |
+| 老系统（ruoyi-vue-pro） | 全库只读；合并待办经老待办视图 `dbo.v_psa_one_legacy_todo` 读取 | 只读，专用（`psa_one_legacy_ro`） | 同上；凭据列可读但应用代码不引用（ADR-0037 第 3 项，凭据列拒绝清单守护） | `handoff/B-5-dba/read-all/legacy_apply.sql`（视图：`phase1a/LEGACY_INBOX_VIEW.sql`） |
+| 老系统 | 全库只读；部门简称经视图 `dbo.v_one_legacy_org_short_name` 读取 | 只读，专用（`one_legacy_names_ro`）；与待办账号合并按 ADR-0037 第 5 项另行执行 | 同上 | 同上（视图：`phase1a/LEGACY_ORG_NAMES_VIEW.sql`） |
+
+应用对三条只读连接做同一项校验（ADR-0037 第 4 项，`platform.integration` 连接工厂）：服务器级与库级有效权限**等于**写死的 RDS 平台基线，库级 DENY 11 项存在且库级 GRANT 恰好 CONNECT、SELECT，只在 public 角色，不在任何固定服务器角色，不是 dbo、不拥有任何 schema / 对象 / 角色、无主体类授权，`HAS_DBACCESS` 只有本库与 master、msdb、rdscore、tempdb。任一不满足或无法判定即拒绝启动，日志按 (a)–(f) 报出违反项；每次同步前与至少每天重检一次，失败即停掉该连接（写 ALERT，重启前不再读取）。**没有关闭开关**；账号授权变更后先用真实登录核对基线再重启应用。
 
 DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`handoff/B-5-dba/`。
 
@@ -147,14 +149,12 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 | `WECOM_RESTRICT_RECIPIENTS` | 是否只向白名单收件人发送（默认 true）；**生产必须为 false** | 是 |
 | `WECOM_RECIPIENT_ALLOWLIST` | 收件人白名单（`WECOM_RESTRICT_RECIPIENTS=true` 时生效，dev 联调用） | 否 |
 | `INTEGRATION_SEEYON_VIEWS_ENABLED` | 致远 A8 组织视图读取开关（默认 false） | 否 |
-| `A8_DB_URL` / `A8_DB_USERNAME` / `A8_DB_PASSWORD` | A8 视图只读连接（第 4 节的专用账号） | 启用时 |
-| `INTEGRATION_SEEYON_VALIDATE_ON_STARTUP` | 启动时校验 A8 账号只能读视图（默认 true） | 否 |
+| `A8_DB_URL` / `A8_DB_USERNAME` / `A8_DB_PASSWORD` | A8 只读连接（第 4 节的专用账号；启用即做第 4 节的校验，无开关） | 启用时 |
 | `FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_HEAD_RELATIONSHIP_TYPE_ID`、`..._REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID`、`..._DELIVERY_UNIT_YES_ENUM_ID`、`..._FEE_EARNER_YES_ENUM_ID`、`..._ROOT_PATH` | A8 中关系类型、枚举的编号与同步根单位的层级路径（Spring 宽松绑定，对应 `forcitis.platform.integration.seeyon.views.*`）；**没有默认值**：启用视图读取而缺任何一项，应用启动失败，值由 A8 管理员提供 | 启用时 |
-| `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL` / `_USERNAME` / `_PASSWORD` | 合并待办读老待办视图的只读连接（`psa_one_legacy_ro`）；URL 为空则只显示新待办 | 启用时 |
+| `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL` / `_USERNAME` / `_PASSWORD` | 合并待办读老待办的只读连接（`psa_one_legacy_ro`；配置即做第 4 节的校验，无开关）；URL 为空则只显示新待办 | 启用时 |
 | `FORCITIS_PLATFORM_APPROVAL_LEGACY_DETAIL_URL_TEMPLATE` | 老待办详情页地址，含 `{processInstanceId}`、`{taskId}` | 启用时 |
 | `INTEGRATION_LEGACY_ENABLED` | 老系统**部门简称**视图读取开关（默认 false） | 否 |
-| `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 部门简称视图的只读连接（`one_legacy_names_ro`） | 启用时 |
-| `INTEGRATION_LEGACY_VALIDATE_ON_STARTUP` | 启动时校验该账号只能读部门简称视图（默认 true） | 否 |
+| `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 部门简称的只读连接（`one_legacy_names_ro`；启用即做第 4 节的校验，无开关） | 启用时 |
 | `WORKFORCE_SYNC_ENABLED` | 从 A8 视图同步组织与人员的定时任务开关（默认 false） | 否 |
 | `WORKFORCE_SHORT_NAME_ENABLED` | 从老库同步组织短名的定时任务开关（默认 false） | 否 |
 | `SPRING_PROFILES_ACTIVE` | `dev` 或 `prod`；决定数据库连接的 TLS 要求（§5.1） | 是 |
