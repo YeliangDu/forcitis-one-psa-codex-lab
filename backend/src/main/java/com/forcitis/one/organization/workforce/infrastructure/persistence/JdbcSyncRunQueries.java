@@ -30,9 +30,13 @@ class JdbcSyncRunQueries implements SyncRunQueries {
     }
 
     @Override
-    public List<SyncRunRecord> findBefore(Long beforeId, int limit) {
-        return jdbc.sql(SyncRunRows.SELECT + " where (cast(:before as bigint) is null or id < :before) order by id desc limit :limit")
-                .param("before", beforeId, java.sql.Types.BIGINT).param("limit", limit)
+    public List<SyncRunRecord> findBefore(Position before, int limit) {
+        if (before == null) {
+            return jdbc.sql(SyncRunRows.SELECT + " order by started_at desc, id desc limit :limit").param("limit", limit)
+                    .query((rs, n) -> SyncRunRows.record(rs)).list();
+        }
+        return jdbc.sql(SyncRunRows.SELECT + " where (started_at, id) < (:startedAt, :id) order by started_at desc, id desc limit :limit")
+                .param("startedAt", Timestamp.from(before.startedAt())).param("id", before.syncRunId().value()).param("limit", limit)
                 .query((rs, n) -> SyncRunRows.record(rs)).list();
     }
 
@@ -40,7 +44,7 @@ class JdbcSyncRunQueries implements SyncRunQueries {
     public List<SyncDiff> findDiffs(SyncRunId syncRunId) {
         return jdbc.sql("""
                 select entity_kind, subject_key, change_kind, changed_field_codes, issue_kind, detail
-                  from organization_workforce.sync_diffs where sync_run_id = :id order by id
+                  from organization_workforce.sync_diffs where sync_run_id = :id order by diff_number
                 """).param("id", syncRunId.value()).query((rs, n) -> {
             java.sql.Array fields = rs.getArray("changed_field_codes");
             String issue = rs.getString("issue_kind");
@@ -60,7 +64,7 @@ class JdbcSyncRunQueries implements SyncRunQueries {
 
     @Override
     public List<SyncRunRecord> findHeld() {
-        return jdbc.sql(SyncRunRows.SELECT + " where status = 'HELD' order by id").query((rs, n) -> SyncRunRows.record(rs)).list();
+        return jdbc.sql(SyncRunRows.SELECT + " where status = 'HELD' order by started_at, id").query((rs, n) -> SyncRunRows.record(rs)).list();
     }
 
     @Override
@@ -72,7 +76,7 @@ class JdbcSyncRunQueries implements SyncRunQueries {
     public Optional<Integer> findLatestEmployedWithoutWecomCount() {
         return jdbc.sql("""
                 select employed_without_wecom_count from organization_workforce.sync_runs
-                 where status = 'SUCCEEDED' order by id desc limit 1
+                 where status = 'SUCCEEDED' order by started_at desc, id desc limit 1
                 """).query(Integer.class).optional();
     }
 }

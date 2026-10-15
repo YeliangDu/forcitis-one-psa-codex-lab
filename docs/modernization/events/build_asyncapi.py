@@ -44,7 +44,7 @@ ENVELOPE = {
         'causationId': {'type': 'string', 'format': 'uuid', 'nullable': True, 'description': '直接上游事件的 eventId，根事件为空'},
         'actorType': {'type': 'string', 'enum': ['USER', 'SYSTEM']},
         'actorId': {'type': 'string', 'description': '用户 ID，或作业 / 监听器名；不带姓名'},
-        'legalEntityId': {'type': 'string', 'nullable': True, 'description': '属于某个法人的聚合必填；只有平台级事件为空'},
+        'legalEntityId': {'type': 'string', 'format': 'uuid', 'nullable': True, 'description': '属于某个法人的聚合必填；只有平台级事件为空'},
         'businessDate': {'type': 'string', 'format': 'date', 'nullable': True, 'description': '按 Asia/Shanghai 截日；取哪个日期见各事件的 x-event.businessDate'},
         'source': {'type': 'object', 'properties': {'system': {'type': 'string', 'enum': ['ONE', 'MIGRATION']},
                                                     'documentRef': {'type': 'string', 'nullable': True}}},

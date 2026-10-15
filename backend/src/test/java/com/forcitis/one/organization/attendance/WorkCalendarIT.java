@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.attendance.api.WorkCalendar;
 import com.forcitis.one.organization.attendance.application.DayEntry;
@@ -126,7 +127,7 @@ class WorkCalendarIT {
                 .andExpect(jsonPath("$.calendarYear").value(2026))
                 .andExpect(jsonPath("$.days.length()").value(2));
 
-        LegalEntityId fst = new LegalEntityId(1);
+        LegalEntityId fst = new LegalEntityId(TestIds.uuid(1));
         assertThat(workCalendar.isWorkday(LocalDate.parse("2026-10-10"), fst)).isTrue();
         assertThat(workCalendar.isWorkday(LocalDate.parse("2026-10-12"), fst)).isFalse();
         assertThat(workCalendar.endOfWorkdayAfter(LocalDate.parse("2026-10-09"), 2, fst)).isEqualTo(Instant.parse("2026-10-13T16:00:00Z"));
@@ -158,7 +159,7 @@ class WorkCalendarIT {
     void unmaintained() throws Exception {
         mvc.perform(get(CALENDARS + "/2031").with(READ)).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND"));
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> workCalendar.isWorkday(LocalDate.parse("2031-01-02"), new LegalEntityId(1)))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> workCalendar.isWorkday(LocalDate.parse("2031-01-02"), new LegalEntityId(TestIds.uuid(1))))
                 .hasMessageContaining("2031");
     }
 
@@ -214,7 +215,7 @@ class WorkCalendarIT {
                     com.forcitis.one.kernel.ExpectedVersion.of(1)));
         }
 
-        assertThat(workCalendar.isWorkday(LocalDate.parse("2026-10-12"), new LegalEntityId(1))).isTrue();
+        assertThat(workCalendar.isWorkday(LocalDate.parse("2026-10-12"), new LegalEntityId(TestIds.uuid(1)))).isTrue();
         assertThat(events.stream(WorkCalendarLockedDaysChanged.class)).singleElement().satisfies(e ->
                 assertThat(e.changes()).containsExactly(new LockedDayChange(LocalDate.parse("2026-10-12"), DayException.HOLIDAY, DayException.NONE)));
         org.springframework.security.core.context.SecurityContextHolder.clearContext();

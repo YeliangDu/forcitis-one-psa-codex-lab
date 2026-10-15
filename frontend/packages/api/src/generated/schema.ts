@@ -893,8 +893,8 @@ export interface components {
         AttributeLegalEntityRequest: {
             /** Format: date */
             effectiveFrom?: string;
-            /** Format: int64 */
-            legalEntityId?: number;
+            /** Format: uuid */
+            legalEntityId?: string;
         };
         AuditEntryResponse: {
             action: string;
@@ -905,6 +905,7 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             detail?: string;
+            /** Format: uuid */
             entryId: string;
             loginMethod?: string;
             onBehalfOfId?: string;
@@ -919,14 +920,15 @@ export interface components {
         AuthorizationRequestView: {
             kind?: string;
             permissionCodes?: string[];
+            /** Format: uuid */
             requestId?: string;
             /** Format: date-time */
             requestedAt?: string;
             /** Format: int64 */
             requestedBy?: number;
             roleCodes?: string[];
-            /** Format: int64 */
-            roleId?: number;
+            /** Format: uuid */
+            roleId?: string;
             roleName?: string;
             /** Format: int64 */
             subjectUserId?: number;
@@ -1050,6 +1052,7 @@ export interface components {
             onBehalfOfName?: string;
             processKey: components["schemas"]["ProcessKey"] | (string & {});
             reason?: string;
+            /** Format: uuid */
             recordId: string;
             /** Format: int32 */
             round: number;
@@ -1066,6 +1069,7 @@ export interface components {
             nodeName: string;
             onBehalfOfName?: string;
             reason?: string;
+            /** Format: uuid */
             recordId: string;
             /** Format: int32 */
             round: number;
@@ -1101,10 +1105,12 @@ export interface components {
             totalCount: number;
         };
         LegacyNumberResponse: {
+            /** Format: uuid */
             documentId: string;
             documentType: components["schemas"]["DocumentType"] | (string & {});
             importBatch: string;
             legacyNumber: string;
+            /** Format: uuid */
             legalEntityId?: string;
         };
         LegalEntityAttributionResponse: {
@@ -1116,6 +1122,7 @@ export interface components {
             /** Format: int64 */
             accountingOrganizationNumber?: number;
             code: string;
+            /** Format: uuid */
             legalEntityId: string;
             name: string;
             status: string;
@@ -1240,6 +1247,7 @@ export interface components {
             effectiveFrom: string;
             /** Format: date */
             effectiveTo?: string;
+            /** Format: uuid */
             legalEntityId: string;
         };
         ProblemDetail: {
@@ -1292,6 +1300,7 @@ export interface components {
             kind: string;
             name: string;
             permissionCodes: string[];
+            /** Format: uuid */
             roleId: string;
         };
         SyncDiffResponse: {
@@ -1336,6 +1345,7 @@ export interface components {
             /** Format: date-time */
             releasedAt?: string;
             releasedBy?: string;
+            /** Format: uuid */
             releasedByRunId?: string;
             releasedKinds: string[];
             /** Format: int32 */
@@ -1345,6 +1355,7 @@ export interface components {
             /** Format: date-time */
             startedAt: string;
             status: string;
+            /** Format: uuid */
             syncRunId: string;
             trigger: string;
         };
@@ -1660,7 +1671,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                legalEntityId: number;
+                legalEntityId: string;
             };
             cookie?: never;
         };
@@ -1693,7 +1704,7 @@ export interface operations {
                 "If-Match": string;
             };
             path: {
-                legalEntityId: number;
+                legalEntityId: string;
             };
             cookie?: never;
         };
@@ -1969,7 +1980,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                syncRunId: number;
+                syncRunId: string;
             };
             cookie?: never;
         };
@@ -2003,7 +2014,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                syncRunId: number;
+                syncRunId: string;
             };
             cookie?: never;
         };
@@ -3410,7 +3421,7 @@ export interface operations {
                 /** @description Exactly one of legacyNumberPrefix and documentId is given */
                 legacyNumberPrefix?: string;
                 /** @description Exactly one of legacyNumberPrefix and documentId is given */
-                documentId?: number;
+                documentId?: string;
                 limit?: number;
                 cursor?: string;
             };
@@ -3785,7 +3796,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                roleId: number;
+                roleId: string;
             };
             cookie?: never;
         };
@@ -3818,7 +3829,7 @@ export interface operations {
                 "If-Match": string;
             };
             path: {
-                roleId: number;
+                roleId: string;
             };
             cookie?: never;
         };
@@ -3855,7 +3866,7 @@ export interface operations {
                 "If-Match": string;
             };
             path: {
-                roleId: number;
+                roleId: string;
             };
             cookie?: never;
         };

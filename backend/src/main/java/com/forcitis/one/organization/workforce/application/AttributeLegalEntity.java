@@ -36,13 +36,12 @@ public class AttributeLegalEntity {
     }
 
     @Transactional
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, long legalEntityId, LocalDate effectiveFrom, ExpectedVersion expected, UserId actor) {
+    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LegalEntityId target, LocalDate effectiveFrom, ExpectedVersion expected, UserId actor) {
         AttributionSubject subject = subjects.require(kind, subjectId);
         ownAttribution.requireNotOwn(subject, actor);
-        LegalEntityId target = legalEntityId > 0 ? new LegalEntityId(legalEntityId) : null;
         if (target == null || legalEntities.find(target).filter(e -> e.status() == LegalEntityStatus.ACTIVE).isEmpty()) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND, ErrorKind.UNPROCESSABLE,
-                    "legal entity " + legalEntityId + " does not exist or is not active");
+                    "legal entity " + (target == null ? null : target.value()) + " does not exist or is not active");
         }
         LegalEntityAttribution stored = attributions.find(subject).orElse(null);
         expected.check(stored == null ? null : stored.version());

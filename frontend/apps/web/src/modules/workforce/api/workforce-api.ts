@@ -9,9 +9,9 @@ export async function fetchSyncRunPage(cursor: string | undefined) {
 }
 
 export function fetchSyncRun(syncRunId: string) {
-  return operations.getOrganizationSyncRunsBySyncRunId({ path: { syncRunId: Number(syncRunId) } });
+  return operations.getOrganizationSyncRunsBySyncRunId({ path: { syncRunId } });
 }
 
 export function releaseSyncRun(syncRunId: string, reason: string, idempotencyKey: string) {
-  return operations.postOrganizationSyncRunsBySyncRunIdRelease({ path: { syncRunId: Number(syncRunId) }, body: { reason } }, { idempotencyKey });
+  return operations.postOrganizationSyncRunsBySyncRunIdRelease({ path: { syncRunId }, body: { reason } }, { idempotencyKey });
 }

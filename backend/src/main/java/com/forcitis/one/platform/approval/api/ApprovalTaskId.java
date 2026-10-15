@@ -12,4 +12,9 @@ public record ApprovalTaskId(String value) {
             throw new IllegalArgumentException("ApprovalTaskId must not be blank");
         }
     }
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 }

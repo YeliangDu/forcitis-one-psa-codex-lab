@@ -2,6 +2,7 @@ package com.forcitis.one.kernel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.attendance.domain.CalendarDay;
@@ -82,14 +83,14 @@ class EventSequenceContinuityTest {
     void userAccount() {
         checkMany(() -> UserAccount.restore(new UserId(1), "ENABLED", Set.of(), 0, 0), List.of(
                 UserAccount::enable, UserAccount::disable, a -> a.declareEnabled(true), a -> a.declareEnabled(false),
-                a -> a.replaceRoles(Set.of(new RoleId(2), new RoleId(3)))));
-        checkMany(() -> UserAccount.open(new UserId(2), Set.of(new RoleId(1))), List.of(UserAccount::disable, UserAccount::enable));
+                a -> a.replaceRoles(Set.of(new RoleId(TestIds.uuid(2)), new RoleId(TestIds.uuid(3))))));
+        checkMany(() -> UserAccount.open(new UserId(2), Set.of(new RoleId(TestIds.uuid(1)))), List.of(UserAccount::disable, UserAccount::enable));
     }
 
     @Test
     @DisplayName("Role: events are numbered 1..n")
     void role() {
-        checkMany(() -> Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(7)), List.of(
+        checkMany(() -> Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(TestIds.uuid(7))), List.of(
                 Role::enable, Role::disable, r -> r.declareEnabled(true), r -> r.revise("Renamed", AccessScopeKind.SELF, Set.of())));
     }
 
@@ -112,7 +113,7 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("LegalEntity: events are numbered 1..n")
     void legalEntity() {
-        checkMany(() -> LegalEntity.register(new LegalEntityCode("FST"), "Synthetic").withId(new LegalEntityId(1)), List.of(
+        checkMany(() -> LegalEntity.register(new LegalEntityCode("FST"), "Synthetic").withId(new LegalEntityId(TestIds.uuid(1))), List.of(
                 LegalEntity::activate, LegalEntity::deactivate, e -> e.rename("Other"), e -> e.rename("Synthetic"),
                 e -> e.correctCode(new LegalEntityCode("FIT"), false), e -> e.declareStatus("ACTIVE")));
     }
@@ -121,9 +122,9 @@ class EventSequenceContinuityTest {
     @DisplayName("SyncRun: events are numbered 1..n")
     void syncRun() {
         RunStats stats = new RunStats(1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0);
-        checkMany(() -> SyncRun.restore(new SyncRunId(1), SyncTrigger.SCHEDULED, "RUNNING", NOW, null, null, null, null, null, null, null, 0, 0),
+        checkMany(() -> SyncRun.restore(new SyncRunId(TestIds.uuid(1)), SyncTrigger.SCHEDULED, "RUNNING", NOW, null, null, null, null, null, null, null, 0, 0),
                 List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of()), LocalDate.of(2026, 10, 13)), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
-                        r -> r.release(null, new SyncRunId(2), NOW, null)));
+                        r -> r.release(null, new SyncRunId(TestIds.uuid(2)), NOW, null)));
     }
 
     @Test
@@ -151,7 +152,7 @@ class EventSequenceContinuityTest {
     void legalEntityAttribution() {
         Random dates = new Random(7);
         checkMany(() -> LegalEntityAttribution.empty(new AttributionSubject(AttributionKind.ORG_UNIT, 3)), List.of(
-                a -> a.attribute(new LegalEntityId(1 + dates.nextInt(2)), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400))),
+                a -> a.attribute(new LegalEntityId(TestIds.uuid(1 + dates.nextInt(2))), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400))),
                 a -> a.end(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800))),
                 a -> a.correct(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400)), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800)),
                         new Reason("typo"), new UserId(1))));
@@ -176,7 +177,7 @@ class EventSequenceContinuityTest {
     @DisplayName("OutboundDelivery: it announces no event, so its sequence stays where it was while the lock version moves")
     void outboundDelivery() {
         checkMany(() -> com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(
-                        new com.forcitis.one.platform.integration.domain.OutboundDeliveryId(1), "approval-task:42",
+                        new com.forcitis.one.platform.integration.domain.OutboundDeliveryId(TestIds.uuid(1)), "approval-task:42",
                         List.of(new WecomUserId("alice")), "title", "description", null, "PENDING", 0, null, null, null,
                         com.forcitis.one.platform.integration.domain.DeliveryKind.CARD, null, java.util.UUID.randomUUID(), 0, 0),
                 List.of(d -> d.markSent("0", NOW), d -> d.scheduleRetry(NOW, "later"), d -> d.deadLetter("gave up"), d -> d.skip("not allowed")));

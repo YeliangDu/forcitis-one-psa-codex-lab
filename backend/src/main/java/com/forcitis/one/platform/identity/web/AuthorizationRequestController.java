@@ -38,7 +38,7 @@ class AuthorizationRequestController {
     @GetMapping
     @PreAuthorize(AUTHORITY)
     CursorPage<AuthorizationRequestView> pending(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
-        return PageRequest.of(limit, cursor, "authorization-requests").slice(list.execute(), AuthorizationRequestView::requestId, "authorization-requests");
+        return PageRequest.of(limit, cursor, "authorization-requests").slice(list.execute(), view -> view.requestId().toString(), "authorization-requests");
     }
 
     @PostMapping("/{requestId}:confirm")

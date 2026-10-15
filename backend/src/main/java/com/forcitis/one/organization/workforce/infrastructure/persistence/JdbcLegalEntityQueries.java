@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -40,7 +41,7 @@ class JdbcLegalEntityQueries implements LegalEntityQueries {
     }
 
     private static LegalEntityRecord row(ResultSet rs) throws SQLException {
-        return new LegalEntityRecord(new LegalEntityId(rs.getLong("id")), new LegalEntityCode(rs.getString("code")), rs.getString("name"),
+        return new LegalEntityRecord(new LegalEntityId(rs.getObject("id", UUID.class)), new LegalEntityCode(rs.getString("code")), rs.getString("name"),
                 LegalEntityStatus.valueOf(rs.getString("status")),
                 rs.getObject("accounting_organization_number", Long.class), rs.getLong("version"));
     }

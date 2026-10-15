@@ -3,6 +3,7 @@ COMMENT ON SCHEMA platform_idempotency IS '幂等键模块：同一写请求重�
 
 -- Idempotency-Key：同一用户、同一键、同一请求在 24 小时内得到第一次的应答；同一键换了请求体是 422。
 CREATE TABLE platform_idempotency.idempotent_responses (
+    idempotent_response_id uuid NOT NULL,
     user_id         bigint      NOT NULL,
     idempotency_key text        NOT NULL,
     request_hash    text        NOT NULL,
@@ -13,10 +14,12 @@ CREATE TABLE platform_idempotency.idempotent_responses (
     expires_at      timestamptz NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_idempotent_responses PRIMARY KEY (user_id, idempotency_key)
+    CONSTRAINT pk_idempotent_responses PRIMARY KEY (idempotent_response_id),
+    CONSTRAINT uk_idempotent_responses_user_id_idempotency_key UNIQUE (user_id, idempotency_key)
 );
 CREATE INDEX ix_idempotent_responses_expires_at ON platform_idempotency.idempotent_responses (expires_at);
 COMMENT ON TABLE platform_idempotency.idempotent_responses IS '幂等应答：粒度：每个用户的每个幂等键一行，到期（24 小时）后清除';
+COMMENT ON COLUMN platform_idempotency.idempotent_responses.idempotent_response_id IS '幂等应答 ID（UUIDv7）';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.user_id IS '用户 ID：发出请求的已登录用户';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.idempotency_key IS '幂等键：请求头 Idempotency-Key 的值（至多 128 个可见字符）';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.request_hash IS '请求哈希：方法、路径、查询和请求体的 SHA-256 十六进制；同键不同哈希是误用';

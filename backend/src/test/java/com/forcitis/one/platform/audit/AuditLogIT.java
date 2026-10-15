@@ -80,8 +80,8 @@ class AuditLogIT {
 
     private void insertAt(String createdAt, String action, Long actor, String subjectKey) {
         jdbc.sql("""
-                insert into platform_audit.audit_entries (created_at, updated_at, action, actor_id, subject_key, detail)
-                values (cast(:at as timestamptz), cast(:at as timestamptz), :action, :actor, :subject, 'synthetic')
+                insert into platform_audit.audit_entries (id, created_at, updated_at, action, actor_id, subject_key, detail)
+                values (uuidv7(), cast(:at as timestamptz), cast(:at as timestamptz), :action, :actor, :subject, 'synthetic')
                 """).param("at", createdAt).param("action", action).param("actor", actor, java.sql.Types.BIGINT).param("subject", subjectKey).update();
     }
 

@@ -8,6 +8,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSourc
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -33,7 +34,7 @@ class JdbcLegalEntityResolutionSources implements LegalEntityResolutionSources {
         return jdbc.sql("select legal_entity_id from (" + EffectiveAttributionPeriods.select(kind) + ") effective"
                         + " where effective_from_date <= :date and (effective_to_date is null or :date < effective_to_date)")
                 .param("id", subjectId).param("date", Date.valueOf(date))
-                .query(Long.class).optional().map(LegalEntityId::new);
+                .query(UUID.class).optional().map(LegalEntityId::new);
     }
 
     @Override
