@@ -1,4 +1,4 @@
-# 草稿，待用户在确认页（https://claude.ai/artifact/MyMngoyiqfTyYAkVw3Lesp）确认（ADR-0040 第 0、1 步）；sonnet 子代理 2026-10-15 起草，one-architecture 核对。确认后去掉本行。
+# 参考草稿（ADR-0041）：价值流只用于本阶段事件链的端到端验证（METHOD 第 4 步），不驱动 BC 推导；第 0、1 步确认页已作废。
 # 架构施工图方法第 1 步：端到端价值流（草稿，待用户确认）
 # 价值流 = 为某个干系人产出价值的端到端阶段序列，每个阶段由能力支撑（TOGAF Value Streams，G178）。
 # 阶段的 entry / exit 写成可识别的业务事件（过去式），exit 即第 2 步事件风暴的关键事件候选（METHOD 接缝 2）。

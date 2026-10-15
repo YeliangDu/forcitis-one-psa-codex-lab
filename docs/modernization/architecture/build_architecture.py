@@ -13,8 +13,8 @@ import yaml
 HERE = os.path.dirname(os.path.abspath(__file__))
 GEN = os.path.join(HERE, "generated")
 MMDC = os.path.expanduser("~/.modernize/psa/tools/mermaid-cli/node_modules/.bin/mmdc")
-REL_LABEL = {"partnership": "合作", "customer-supplier": "客户-供应商", "conformist": "遵奉者", "anticorruption-layer": "防腐层",
-             "open-host-service": "开放主机", "published-language": "发布语言", "shared-kernel": "共享内核", "separate-ways": "各行其道"}
+REL_LABEL = {None: "依赖", "conformist": "遵奉者", "anticorruption-layer": "防腐层",
+             "open-host-service": "开放主机", "published-language": "发布语言", "shared-kernel": "共享内核"}
 
 
 def load(rel):
@@ -51,8 +51,8 @@ def model():
         for end in ("upstream", "downstream"):
             if r[end] not in cids:
                 problems.append(f"context-map.yaml {r['id']}: unknown {end} {r[end]}")
-        if r["type"] not in REL_LABEL:
-            problems.append(f"context-map.yaml {r['id']}: unknown type {r['type']}")
+        if r.get("type") not in REL_LABEL:
+            problems.append(f"context-map.yaml {r['id']}: unknown type {r.get('type')}")
         if r["id"] != f"{r['upstream']}>{r['downstream']}":
             problems.append(f"context-map.yaml {r['id']}: id must be <upstream>><downstream>")
     tids = {t["id"] for t in tas}
@@ -104,7 +104,7 @@ def context_map(subs, ctx, rels):
         L.append("  end")
     for r in rels:
         if r["status"] == "built":
-            L.append(f'  {nid(r["upstream"])} -->|{REL_LABEL[r["type"]]}| {nid(r["downstream"])}')
+            L.append(f'  {nid(r["upstream"])} -->|{REL_LABEL[r.get("type")]}| {nid(r["downstream"])}')
     for cls in ("built", "planned"):
         ids = [nid(c["id"]) for c in ctx if c["status"] == cls and c["id"] != "kernel"]
         if ids:

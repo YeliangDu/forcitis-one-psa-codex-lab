@@ -1,4 +1,4 @@
-# 草稿，待用户在确认页（https://claude.ai/artifact/MyMngoyiqfTyYAkVw3Lesp）确认（ADR-0040 第 0、1 步）；sonnet 子代理 2026-10-15 起草，one-architecture 核对。确认后去掉本行。
+# 草稿（ADR-0041）：目标汇编保留供讨论；KPI 是阶段出口度量，不驱动 BC 推导；业务目标与目标值待用户给出。第 0、1 步确认页已作废。
 # 架构施工图方法第 0 步：愿景、驱动力、目标与 KPI（草稿，待用户确认）
 # 路径约定：docs/modernization/ 下的相对路径；INTENT = docs/modernization/INTENT.md（生成文件，按日期与原话引用）
 # 规则：每条都有出处；用户没说过、文档里也没有的目标不写进 goals，写进 open_questions。

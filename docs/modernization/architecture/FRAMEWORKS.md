@@ -1,117 +1,106 @@
 # 架构知识框架（锁定版本）
 
-依据：用户 2026-10-15「你需要有一个稳定的知识框架，不能漂移」（intent `2026-10-15-163920`）。本文件是 one-architecture 做架构判断时唯一的理论参照：每个框架锁定一个权威版本，概念用官方英文名加中文，释义用我们自己的话写，出处可查。`forcitis-architecture` 目录不是信源（同一 intent）。
+依据：用户 2026-10-15「你需要有一个稳定的知识框架，不能漂移」（intent `2026-10-15-163920`）；按适配评审收窄（ADR-0041，intent `2026-10-15-195827`）。本文件是 one-architecture 做架构判断时唯一的理论参照：只收经过适配评审、对本系统确有用处的框架与概念，每项锁定权威版本，写明本项目怎么用；概念用官方英文名加中文，释义用我们自己的话写，出处可查。`forcitis-architecture` 目录不是信源（intent `2026-10-15-163920`）。
 
 **防漂移规则**
-1. 改动本文件（换版本、增删概念、改释义）须引 ADR 或 intent，提交带 `Architecture-Ref:`。
-2. 本文件与 `METHOD.md` 列入 one-architecture 画像的「上下文文档」，压缩或清空后自动注入；做判断前以本文件为准，不凭记忆。
-3. 标「未核实」的条目不作硬依据，用到时先核实并更新本文件。
-4. 核实记录：2026-10-15，sonnet 子代理只查一手来源（标准组织、作者、出版社页面）；Open Group 正文需登录，TOGAF 与 ArchiMate 部分来自官方页面摘要。
+1. 改动本文件（换版本、增删框架或概念、改释义）须引 ADR 或 intent，提交带 `Architecture-Ref:`。
+2. 增加框架、标准或选型前，先做对照本系统的适配评审：它要求什么、我们照做的代价、实际收益、把握程度；决策页写明代价，不预选推荐项（ADR-0041 决定 6，intent `2026-10-15-193135`）。
+3. 本文件与 `METHOD.md` 列入 one-architecture 画像的「上下文文档」，压缩或清空后自动注入；做判断前以本文件为准，不凭记忆。
+4. 标「未核实」的条目不作硬依据，用到时先核实并更新本文件。
+5. 核实记录：2026-10-15，sonnet 子代理查一手来源（版本与出处）；同日 opus 对抗式适配评审与联网核实，见 `proposals/FIT_REVIEW_FRAMEWORKS.md`、`FIT_REVIEW_ENGINEERING.md`、`FIT_REVIEW_VERIFY.md`。
 
-## 1. TOGAF Standard, 10th Edition（The Open Group，C220，已含 Technical Corrigendum 1，2025）
+## 1. Domain-Driven Design（主干）
 
-出处：https://publications.opengroup.org/standards/togaf/specifications/c220 。能力与价值流不在基础内容里，在业务架构系列指南：Business Capabilities v2（G211，2022）、Value Streams（G178，2022）。
-
-| 概念 | 中文 | 本项目怎么用 |
-|---|---|---|
-| ADM：Preliminary、A Architecture Vision、B Business、C Information Systems（数据 + 应用）、D Technology、E Opportunities and Solutions、F Migration Planning、G Implementation Governance、H Architecture Change Management；贯穿的 Requirements Management | 架构开发方法 | 施工图方法的骨架（METHOD 第 0–7 步） |
-| Business Capability | 业务能力 | 企业「能做什么」，不含怎么做、谁做、在哪做；按「名词 + 动词」命名（G211）；稳定，是连接战略与边界的锚 |
-| Value Stream / Value Stage | 价值流 / 价值流阶段 | 为某个干系人产出价值的端到端阶段序列；每个阶段由若干能力支撑（G178） |
-| Architecture Building Block (ABB) / Solution Building Block (SBB) | 架构构件 / 解决方案构件 | ABB = 与实现无关的能力单元（本项目即 BC）；SBB = 具体实现（Flowable、PostgreSQL 等），可替换 |
-| Baseline / Target / Transition Architecture | 基线 / 目标 / 过渡架构 | 老系统现状 / 目标架构 / 每个阶段结束时可运行、可回滚的中间状态（`togaf/transitions.yaml`） |
-| Architecture Roadmap | 架构路线图 | 过渡架构的排序与依赖（图②） |
-| Architecture Repository / Landscape | 架构库 / 架构全景 | 本目录 `architecture/` 即架构库；图①a 即全景 |
-
-## 2. Domain-Driven Design
-
-出处：Eric Evans，*Domain-Driven Design*（Addison-Wesley，2003）；**DDD Reference（Evans，2015，CC BY 4.0，以它的模式名为准）** https://www.domainlanguage.com/ddd/reference/ ；Vaughn Vernon，*Implementing Domain-Driven Design*（2013）。事件风暴：Alberto Brandolini，*Introducing EventStorming*（Leanpub，未完稿）https://www.eventstorming.com/ 。
+出处：Eric Evans，*Domain-Driven Design*（Addison-Wesley，2003）；**DDD Reference（Evans，2015，CC BY 4.0，以它的模式名为准）** https://www.domainlanguage.com/ddd/reference/ ；Vaughn Vernon，*Implementing Domain-Driven Design*（2013）。
 
 | 概念 | 中文 | 本项目怎么用 |
 |---|---|---|
 | Ubiquitous Language | 统一语言 | `glossary/terms.yaml`（ADR-0018） |
-| Bounded Context | 限界上下文 | 一个 BC = 一个模块 = 一个 schema（ADR-0003） |
-| Core Domain / Generic Subdomain（Evans）；Supporting Subdomain（Vernon，Reference 中没有） | 核心域 / 通用子域 / 支撑子域 | 子域分类（决策页 Q6）；引用「支撑」须注明出自 Vernon |
-| Context Map；关系：Partnership、Shared Kernel、Customer/Supplier Development、Conformist、Anticorruption Layer、Open-host Service、Published Language、Separate Ways、Big Ball of Mud | 上下文映射与九种关系 | `ddd/context-map.yaml` 的 `type`；防腐层 = `platform.integration`（ADR-0039） |
-| Aggregate、Entity、Value Object、Domain Event、Service、Repository、Factory、Module | 聚合、实体、值对象、领域事件、领域服务、仓储、工厂、模块 | `ddd/aggregates.yaml`；一个事务只改一个聚合（§14 第 1 项） |
-| Domain Vision Statement、Highlighted Core | 领域愿景声明、突出核心 | 核心子域的一页说明（METHOD 第 2 步） |
-| Event Storming：Big Picture → Process Level → Design Level | 事件风暴三个层级 | 价值流阶段 → 关键事件 → 命令、策略、读模型、聚合（METHOD 第 3 步）。便签颜色与元素清单的官方定义**未核实** |
+| Bounded Context | 限界上下文 | 一个 BC = 一个模块 = 一个 schema（ADR-0003）。边界由统一语言的一致范围、不变量与事务一致性决定，不由能力或老系统模块决定。技术模块（`platform.web`、`idempotency`、`eventing`、`scheduling` 等）在 `ddd/contexts.yaml` 标 `kind: technical`，不称 BC |
+| Aggregate、Entity、Value Object、Domain Event、Service、Repository | 聚合、实体、值对象、领域事件、领域服务、仓储 | 一个事务只改一个聚合（SESSION_PLAYBOOK §14 第 1 项）；聚合与表的对应以数据访问注册表 `aggregate` 字段为准 |
+| Context Map：只用有代码后果的四种关系——Anticorruption Layer、Open-host Service + Published Language、Shared Kernel、Conformist | 上下文映射 | `ddd/context-map.yaml` 只登记已建或本阶段在建的边，记方向、经由（`api` 或 `events` 契约）与上述关系；防腐层 = `platform.integration`（ADR-0039）。Partnership、Customer/Supplier、Separate Ways 是团队间关系，单团队单体中不用 |
+| 深建模 / 薄 CRUD | — | 取代核心 / 支撑 / 通用三分类：规则密集或触账的 BC 深建模（聚合、不变量、事件），其余薄 CRUD。标记由用户定 |
+| 事件清单推导 | — | 取代事件风暴工作坊：以规则卡与生产取证为输入推导领域事件、命令与聚合，用户裁定（METHOD 第 2 步） |
 
-## 3. BPMN 2.0.2（OMG，formal/2013-12-09）
+复审问题（来自 REA 会计本体，McCarthy 1982，不作框架采用）：每个经济事件的对偶事件在哪里；合同承诺如何成为事实。用于 ADR-0016 相关阶段的过账设计复审。
 
-出处：https://www.omg.org/spec/BPMN/2.0.2/ 。ISO/IEC 19510:2013 对应 2.0.1；未找到对应国标。
+## 2. BPMN 2.0.2（OMG，formal/2013-12-09）
 
-| 概念 | 本项目怎么用 |
-|---|---|
-| Flow Objects（Event、Activity、Gateway）、Data、Connecting Objects（Sequence / Message Flow）、Swimlanes（Pool、Lane）、Artifacts | 流程只编排人工步骤、超时与退回，不做业务计算（GUIDING_PRINCIPLES §4） |
-| 三类图：Process、Collaboration、Choreography | 本项目只用可执行的 Process（Flowable，ADR-0007） |
-
-## 4. DMN 1.6（OMG，formal/25-12-02；OMG 页面与 PDF 的日期不一致，不写年份）
-
-出处：https://www.omg.org/spec/DMN/1.6/ 。
+出处：https://www.omg.org/spec/BPMN/2.0.2/ 。
 
 | 概念 | 本项目怎么用 |
 |---|---|
-| Decision Requirements Graph / Diagram；Decision、Business Knowledge Model、Input Data、Knowledge Source（元素名未逐字核对） | 决策点清单 `dmn/decisions.yaml` |
-| Decision Table；命中策略：Unique（默认）、Any、Priority、First；Output order、Rule order、Collect（可带 + < > #） | 路由、资格、级别类规则；决策与流程、代码分离 |
-| FEEL | 决策表表达式语言 |
+| Process（Flow Objects：Event、Activity、Gateway；Sequence Flow；Lane） | 只用可执行的 Process（Flowable，ADR-0007），只编排人工步骤、超时与退回，不做业务计算（GUIDING_PRINCIPLES §4）；流程登记由 `.bpmn20.xml` 生成（加所属阶段字段），不手写 |
 
-## 5. DAMA-DMBOK 第 2 版修订版（DMBOK2R，2024）
+## 3. 维度建模与 OLTP / OLAP
 
-出处：https://dama.org/dama-dmbok-revision/ 。DMBOK 3.0 在编，目标 2027。
-
-| 概念 | 本项目怎么用 |
-|---|---|
-| 知识领域（以数据治理为中心）：Data Governance、Data Architecture、Data Modeling and Design、Data Storage and Operations、Data Security、Data Integration and Interoperability、Document and Content Management、Reference and Master Data、Data Warehousing and Business Intelligence、Metadata Management、Data Quality Management | 11 项按通行结构整理，**须对照车轮图原图核实**；本项目落点见 SESSION_PLAYBOOK §14.1 D1–D19 |
-| Reference and Master Data；System of Record | 主数据由拥有该聚合的 BC 负责（D11、D17） |
-| Data Owner（2024 修订：业务侧负责人） | 每个数据对象登记负责 BC 与业务负责人 |
-| 中国对应：GB/T 36073-2025《数据管理能力成熟度评估模型》（2026-07-01 实施，代替 2018 版） | 2025 版的能力域**未核实** |
-
-## 6. 维度建模与 OLTP / OLAP
-
-出处：Kimball & Ross，*The Data Warehouse Toolkit*，3rd Ed.（Wiley，2013）；技术目录 https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/ ；Inmon 等，*DW 2.0*（2008）。OLTP / OLAP 的一手定义**未核实**，本项目以 GUIDING_PRINCIPLES §7、§8 的表述为准。
+出处：Kimball & Ross，*The Data Warehouse Toolkit*，3rd Ed.（Wiley，2013）；技术目录 https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/ 。OLTP / OLAP 的表述以 GUIDING_PRINCIPLES §7、§8 为准。
 
 | 概念 | 中文 | 本项目怎么用 |
 |---|---|---|
-| 四步设计：选业务过程 → 声明粒度 → 定维度 → 定事实 | 维度建模四步 | METHOD 第 5 步 |
-| Grain；Fact table（Transaction、Periodic snapshot、Accumulating snapshot、Factless） | 粒度；事实表四类 | 粒度取一条领域事件或过账明细（ADR-0025） |
-| Conformed dimension；Enterprise Data Warehouse Bus Matrix | 一致性维度；总线矩阵 | 一致性维度 = BC 负责的主数据；总线矩阵 = 价值流阶段 × 主数据 |
-| Slowly Changing Dimension Type 0–7 | 缓慢变化维 | 主数据版本化（D6、D17）对应 Type 2 |
+| Grain | 粒度 | 取一条领域事件或过账明细（ADR-0025） |
+| Fact table：Transaction、Periodic snapshot、Accumulating snapshot | 事实表类型 | 期间快照对应 Periodic snapshot（ADR-0023） |
+| Conformed dimension | 一致性维度 | 各 BC 负责的主数据 |
+| Enterprise Data Warehouse Bus Matrix | 总线矩阵 | 行 = 业务过程（度量事件：过账、开票、工时等过账事实类型或领域事件类型），列 = 一致性维度；由 SSOT 生成 |
+| Slowly Changing Dimension Type 2 | 缓慢变化维第 2 类 | 主数据版本化（D6、D17） |
 
-## 7. ArchiMate（只作建模语言参照）
+## 4. TOGAF Standard, 10th Edition（只用迁移规划部分）
 
-ArchiMate 4（C260，2026-04-27）已取代 3.2，元素大幅精简；Capability、Value Stream 在 4 中的定义**未核实**。本项目不以 ArchiMate 作硬依据；需要时以 3.2 的 Strategy 层（Capability、Value Stream、Resource、Course of Action）为参照，并在本文件登记。
+出处：The Open Group，C220（含 Technical Corrigendum 1，2025）https://publications.opengroup.org/standards/togaf/specifications/c220 ；Business Capabilities v2（G211，2022）。
 
-## 8. 补充框架（用户 2026-10-15「补充理论框架全部采纳」，intent `2026-10-15-182238`）
+| 概念 | 中文 | 本项目怎么用 |
+|---|---|---|
+| Baseline / Target / Transition Architecture | 基线 / 目标 / 过渡架构 | 老系统现状 / 目标架构 / 每个阶段结束时可运行、可回滚的中间状态（`togaf/transitions.yaml`） |
+| Architecture Roadmap | 架构路线图 | 过渡架构的排序与依赖（图②） |
+| Business Capability（G211，只用一级） | 业务能力 | `togaf/capabilities.yaml` 一级 12 项，只作范围漏项核对，不驱动 BC 推导；二级保留为参考 |
 
-核实：2026-10-15，sonnet 子代理只查一手来源；ISO 页面返回 403 的内容来自官方页面摘要（标「间接」）。
+不用：ADM 全套阶段与治理机制（Architecture Board、Contract、Enterprise Continuum 等）；ABB / SBB 与 BC 不作对应。
 
-| 框架 | 锁定出处 | 本项目怎么用（补强 METHOD 哪一步） | 未核实 |
-|---|---|---|---|
-| **ISO/IEC/IEEE 42010:2022** Architecture description（第 2 版，ISO/IEC JTC 1/SC 7 与 IEEE） | https://standards.ieee.org/standard/42010-2022.html | 架构描述（AD）、架构描述框架（ADF）、视点（viewpoint）、模型类型（model kind）：4 张图与各 SSOT 是同一架构的不同视图，接缝规则就是视图间的对应规则（第 7 步治理、六条接缝的一致性校验） | 对应国标；stakeholder、concern、view、correspondence 的条款原文 |
-| **Wardley Maps**（Simon Wardley） | https://learnwardleymapping.com/book/ （该页写 CC BY-SA 4.0） | 价值链与演化（从新生到商品化）给能力定位，作为核心 / 支撑 / 通用分类的依据；分类仍由用户定（第 2 步） | 版次年份、本人页面的许可、演化阶段的官方名称 |
-| **REA 会计本体**（McCarthy 1982，*The Accounting Review* 57(3)；ISO/IEC 15944-4:2015） | https://webstore.iec.ch/publication/22042 | 经济资源、经济事件、经济主体与对偶：业务事件即会计事实，连接领域事件、`operations.facts` 过账与总账（ADR-0016；第 3、4、5 步） | 论文页码；15944-4:2015 是否仍有效；commitment 的标准表述 |
-| **C4 model**（Simon Brown，CC BY 4.0） | https://c4model.com/ | 系统上下文、容器、组件、代码四层图：图④与代码视图的画法约定（第 7 步） | 无版本号 |
-| **Team Topologies**（Skelton & Pais，第 2 版 2025，IT Revolution） | https://teamtopologies.com/book ；概念 https://teamtopologies.com/key-concepts | 流对齐 / 赋能 / 复杂子系统 / 平台四类团队、三种交互模式、团队认知负荷：会话分工与 BC 对齐（会话画像的独占与不碰） | 康威定律的表述 |
-| **商业模式画布**（Osterwalder & Pigneur，*Business Model Generation*，Wiley 2010） | https://www.strategyzer.com/library/the-business-model-canvas | 九个构造块作为愿景、目标与 KPI 的来源（第 0 步） | 许可（CC BY-SA）与九块官方英文名只有二手来源 |
+## 5. 数据管理（以本仓库规则为准）
 
-## 9. 工程层标准（用户 2026-10-15 勾选页保存，intent `2026-10-15-192555`）
+DAMA-DMBOK 第 2 版修订版（2024，https://dama.org/dama-dmbok-revision/ ）只作概念参照：System of Record（记录系统）、Reference and Master Data（主数据）、敏感分级、保留期、血缘、数据质量规则落为约束。本项目的规则与登记以 SESSION_PLAYBOOK §14.1 D1–D19、`backend/architecture/data-access-registry.yaml`（DataArchitectureTest 双向校验）、`backend/architecture/data-classification.txt` 为准；不另建 `dama/data-objects.yaml`。
 
-核实：2026-10-15，sonnet 子代理只查一手来源，盘点见 `proposals/ENGINEERING_STANDARDS.md`。等保级别上生产前再定；Twelve-Factor、SemVer、Conventional Commits 不纳入。
+## 6. C4 model（只用 L1、L2）
 
-| 标准 | 锁定版本 | 用途 | 落点（补写经 one-coordinator 派工） |
-|---|---|---|---|
-| OpenAPI | 3.1.x（代码输出 3.1.0；不随 3.2 升级，生成工具支持后另定） | 接口契约 | CODING_STANDARD |
-| AsyncAPI | 3.0.0（3.1.0 另定升级） | 事件契约 | `events/asyncapi.yaml` 规则 |
-| RFC 9457 | — | 错误响应结构 | CODING_STANDARD |
-| RFC 9562 | UUID 第 7 版 | 自有表主键 | NAMING_STANDARD、SESSION_PLAYBOOK §14 |
-| CycloneDX | 1.7（ECMA-424） | 物料清单（SBOM） | SUPPLY_CHAIN S5；CI 补生成步骤 |
-| OpenTelemetry | 规范与语义约定分别锁版本（引入时取当时稳定版写入） | 日志、调用链、指标 | STACK_DECISION |
-| OWASP ASVS | 5.0.0 | 安全需求与验收逐条核对；目标级别另定 | 安全复审清单 |
-| OWASP Top 10 | 2025 | 安全复审快速清单 | 安全复审清单 |
-| ISO/IEC 25010 | 2023（第 2 版） | 非功能需求与质量属性口径 | 阶段出口评审 |
-| GB/T 22239 | 2019（等保 2.0），级别上生产前定 | 部署与安全控制基线 | 部署方案 |
-| 个人信息保护法 + GB/T 35273 | 2021 + 2020 | 个人信息处理、敏感信息、最小化 | SESSION_PLAYBOOK §14.1 |
-| SLSA | v1.2（Build Track + Source Track），目标级别另定 | 构建与发布链路可信 | SUPPLY_CHAIN |
-| DORA 指标 | 5 项（含部署返工率） | 交付效能度量 | 度量方案 |
+出处：Simon Brown，https://c4model.com/ （CC BY 4.0，无版本号）。只用 System Context（系统上下文）与 Container（容器）两层，画系统边界与外部系统（MODERNIZATION_BRIEF §2、REIMAGINED_ARCHITECTURE §1 已有）；组件层不用，聚合图不按 C4 画。
 
-未核实（沿用盘点）：ASVS 级别与条目数、Top 10:2025 发布日、25010 九个特性名称、个人信息保护法条款细节、SLSA Build 各级定义。
+## 7. 推迟
+
+| 框架 | 何时再议 | 已知事实 |
+|---|---|---|
+| DMN | 出现第一张真实决策表时（如 ADR-0016 决定 3 的科目映射），在 DMN 与 D15 版本化配置表 + 表驱动测试之间选，另开 ADR | Flowable 8.0.0（2026-02-27）DMN 解析器只支持 DMN 1.1、1.2、1.3，版本上限 1.3（FIT_REVIEW_VERIFY 5.1） |
+
+## 8. 不采用（ADR-0041）
+
+ArchiMate、ISO/IEC/IEEE 42010、Wardley 地图、Team Topologies、商业模式画布：在架构 SSOT 中没有使用，或与已有规则重复，评审理由见 `proposals/FIT_REVIEW_FRAMEWORKS.md`。REA 只保留 §1 末尾的两个复审问题。若将来系统扩展为多系统、或重新讨论外购总账，再按防漂移规则 2 评审。
+
+## 9. 工程层标准（ADR-0041 决定 5）
+
+### 9.1 合规义务（法律、行政法规、部门规范）
+
+| 项 | 本系统相关要点 | 落点 / 负责 |
+|---|---|---|
+| 网络安全法（2025 年修正，主席令第六十一号，2026-01-01 施行）第二十三条；GB/T 22239-2019 等保 2.0；GB/T 22240-2020 定级指南 | 实行等级保护；日志留存不少于六个月。**级别上生产前再定**（用户「保持现在」）。已知：公网安〔2020〕1960 号要求新建网络在规划设计阶段定级；定三级则每年测评、测评通过才能投入运行、同步密评；按 GB/T 22240-2020 初判第二级有依据 | 部署方案；用户组织定级评审与备案 |
+| 个人信息保护法（2021）+ GB/T 35273-2020 | 与法律同等采纳（用户「保持现在」）。法定要点：金融账户属敏感个人信息（第二十八条）；处理敏感个人信息前须做个人信息保护影响评估，记录至少保存三年（第五十五、五十六条）；定期合规审计（第五十四条，网信办令第 18 号）。另：GB/T 35273 正在修订（2026-06-17 征求意见稿）；敏感个人信息国标 GB/T 45574-2025 | SESSION_PLAYBOOK §14.1；`data-classification.txt` |
+| 数据安全法（2021）第二十七条 + 网络数据安全管理条例（国务院令第 790 号，2025-01-01 施行） | 在等保基础上履行数据安全保护义务 | 与等保同一份部署与安全方案 |
+| 财会〔2024〕11 号《会计信息化工作规范》、12 号《会计软件基本功能和服务规范》（2025-01-01 施行） | 11 号第四十条按等保落实保护要求；12 号规定会计软件基本功能（不可逆记账、结账检查、操作日志、防重复入账等），第三十七条用到密码技术时遵守密码主管部门规定 | `GL_COMPLIANCE_CHECKLIST.md`；`accounting` |
+| 会计档案管理办法（财政部、国家档案局令第 79 号） | 凭证、账簿保存 30 年；只存电子件须满足第八条五项条件，外部电子凭证见第九条 | GL 清单 §4；过账审计 30 年（D-1a-173） |
+| GB/T 24589.1-2024 会计核算软件数据接口 第 1 部分：企业（推荐性，2025-07-01 实施） | 审计与监管取数 | 法定账切换（G2）前 |
+
+阶段相关、届时再落：财会〔2020〕6 号与 DA/T 94-2022（电子凭证入账归档，Phase 3）；发票管理办法（国务院令第 764 号修订）与数电票（国家税务总局公告 2024 年第 11 号，Phase 3、4）；个人所得税扣缴（HRM 立项时）；企业内部控制基本规范（财会〔2008〕7 号，非上市企业为参照）。
+
+### 9.2 工程实践
+
+| 项 | 怎么用 | 落点 / 负责 |
+|---|---|---|
+| OpenAPI | 以 springdoc 实际输出版本（现为 3.1.0）为准，升级随生成工具走 ADR；最新发布为 3.2.1 | CODING_STANDARD CS-4.2、CS-1.10 |
+| AsyncAPI 3.0.0 | 只作事件目录的文件格式，不追新版、不引工具链，不声称完全符合规范；守护以 EventCatalogueTest 为准 | `events/asyncapi.yaml` |
+| RFC 9457 | 错误响应结构 | CODING_STANDARD |
+| RFC 9562（UUID 第 7 版） | 自有表主键；排序用业务时间列，不用 ID | NAMING_STANDARD、§14.1 D16 |
+| CycloneDX | 物料清单，不锁版本（取生成插件默认输出），只在发布流程生成；现行 1.7 即 ECMA-424 第 2 版 | SUPPLY_CHAIN S5；one-ops |
+| OWASP ASVS 5.0.0 | L2，只取适用章节，一次性对照写进安全不变量，阶段出口抽查新增攻击面；OWASP Top 10:2025 并入此对照，不单列 | `phase1a/SECURITY_INVARIANTS.md` |
+| ISO/IEC 25010:2023 | 只作写非功能需求的用语参照，术语先过 `terms.yaml` | — |
+| SLSA v1.2 | 不追级别；SUPPLY_CHAIN 写一段现有发布链对照（仓库脚本生成的签名声明只到 Build L1，L2 要求构建平台生成出处证明） | SUPPLY_CHAIN；one-ops |
+| DORA | 推迟到上生产后，只取变更失败率、失败部署恢复时间，从部署运行记录取数 | — |
+
+不采用：OpenTelemetry（与 GUIDING_PRINCIPLES §11 O-1 冲突，ADR-0002 与 STACK_DECISION 另开 ADR 修订）；Twelve-Factor、SemVer、Conventional Commits（用户 2026-10-15 未选）。
