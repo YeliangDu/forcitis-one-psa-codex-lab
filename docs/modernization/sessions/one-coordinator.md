@@ -40,7 +40,7 @@
 
 ## 自动化
 
-- 钩子：压缩前快照（`precompact_snapshot.sh`）；压缩或清空后注入台账与本画像（`postcompact_context.sh`）。
+- 钩子：压缩前快照（`precompact_snapshot.sh`）；新开、清空或压缩后注入台账与本画像（`postcompact_context.sh`）。
 - 会话内定时任务：上下文巡检（`CronList` 核对，不在就重设，最长 7 天）。
 - 后台脚本：合并队列 `mq_run.sh`（`pgrep -f mq_run.sh` 核对）。
 - 守护与脚本：`build_all.py --check`（含画像校验）、`check_legacy_name.py`、`new_intent.py`。
