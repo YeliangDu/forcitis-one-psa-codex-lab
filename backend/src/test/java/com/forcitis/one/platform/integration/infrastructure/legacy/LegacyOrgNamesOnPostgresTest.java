@@ -3,6 +3,7 @@ package com.forcitis.one.platform.integration.infrastructure.legacy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.platform.integration.api.SourceUnitId;
 import java.util.UUID;
@@ -25,7 +26,7 @@ class LegacyOrgNamesOnPostgresTest {
     static final Runnable NO_RECHECK = () -> { };
 
     @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18");
+    static PostgreSQLContainer postgres = TestPostgres.container();
 
     static JdbcClient admin;
 

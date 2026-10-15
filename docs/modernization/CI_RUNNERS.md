@@ -10,7 +10,7 @@ CI（`.github/workflows/ci.yml`、`generated-docs.yml`）全部跑在本机自�
 | 标签 | `self-hosted`、`macOS`、`ARM64`、`forcitis-one` |
 | 位置 | `~/actions-runners/one-N`（N = 1..4），下载包在 `~/actions-runners/_dl` |
 | 常驻方式 | launchd（`~/Library/LaunchAgents/actions.runner.FORCITIS-forcitis-one-psa.mac-one-N.plist`） |
-| 机器 | 16 核 / 64GB，Docker Desktop；工具链来自机器本身（Java 25、Node 24、pnpm 12.4.2、gitleaks 8.30.1、python3），PATH 记录在各 runner 的 `.path` |
+| 机器 | 16 核 / 64GB，Docker Desktop；工具链来自机器本身（Java 25、Node 24、pnpm 12.4.2、gitleaks 8.30.1、python3 为 pyenv 3.12.13 并带 PyYAML 6.0.3（`build_all.py --check` 生成 terms.yaml 用，SUPPLY_CHAIN S1；gitleaks 作业核验版本）），PATH 记录在各 runner 的 `.path` |
 | 工作目录 | `~/actions-runners/one-N/_work`，`actions/checkout` 每次清理上次产物 |
 
 作业只检查工具版本，不安装：版本不符时作业失败并指出哪一项（gitleaks 例外：版本不符时下载 8.30.1 darwin_arm64 包并校验 SHA256，装到 `$RUNNER_TEMP`，不用 sudo）。

@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.infrastructure.operations;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.OneApplication;
+import com.forcitis.one.TestPostgres;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -19,7 +20,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @DisplayName("OperationsProfile: the identity-operations profile starts a context, runs one command and ends without jobs (B1-M12)")
 class OperationsProfileSmokeTest {
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
     static {

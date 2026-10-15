@@ -51,7 +51,8 @@ class OpenApiProblems {
                     .addProperty("instance", new StringSchema())
                     .addProperty("errorCode", new Schema<String>().$ref("#/components/schemas/ErrorCode"))
                     .addProperty("correlationId", new StringSchema().format("uuid"))
-                    .addProperty("legacyLoginUrl", new StringSchema());
+                    .addProperty("legacyLoginUrl", new StringSchema())
+                    .addProperty("invalidParameters", new StringSchema());
             problem.setRequired(List.of("status", "errorCode"));
             openApi.getComponents().addSchemas("ProblemDetail", problem);
             if (openApi.getPaths() == null) {

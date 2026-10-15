@@ -1,19 +1,31 @@
 #!/usr/bin/env python3
-"""统一生成入口：依次生成 INTENT / SESSION_LOG / STATUS、ADR 与 README、brief、提议术语清单（backend/glossary/proposed/README.md）。
+"""统一生成入口：依次生成 INTENT / SESSION_LOG / STATUS、正式术语 glossary/terms.yaml、会话一览 SESSIONS、用语问题清单 glossary/ISSUES、ADR 与 README、brief、
+提议术语清单（backend/glossary/proposed/README.md）。
 
 用法：
   python3 docs/modernization/build_all.py          生成全部产物
   python3 docs/modernization/build_all.py --check  生成后要求 docs/modernization 与提议术语清单工作区无差异（CI 使用）：
-                                                   ADR、README、brief 与提议术语清单与已提交的产物不一致、或有未提交的新产物时失败；
-                                                   INTENT / SESSION_LOG / STATUS 不入仓（.gitignore），只要求能生成、片段合规；
-                                                   另校验 RULE_REVIEWS.json 的原结论未被改写（与 HEAD 及 origin/main 合并基点比对，git 不可用时只告警），
-                                                   并运行提议术语清单生成器的自测
+                                                   terms.yaml、ADR、README、brief 与提议术语清单与已提交的产物不一致、或有未提交的新产物时失败；
+                                                   INTENT / SESSION_LOG / STATUS / SESSIONS / glossary/ISSUES 不入仓（.gitignore），只要求能生成、片段合规
+                                                   （会话画像必备字段、会话名 one-* 且唯一；用语问题片段格式）；
+                                                   另校验 RULE_REVIEWS.json 的原结论未被改写（与 origin/main 的合并基点比对；取不到时由 review_revisions.py
+                                                   按环境处理：CI 失败，本地告警），
+                                                   并运行提议术语清单、会话一览（含钩子 session_context.py）、用语问题清单生成器的自测
 """
-import os, subprocess, sys
+import importlib.util, os, subprocess, sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 GLOSSARY_INDEX = os.path.join("..", "..", "backend", "glossary", "proposed", "README.md")
-STEPS = ["build_records.py", "adr/build_adrs.py", "rules/build_brief.py", "../../backend/glossary/build_proposed_index.py"]
+STEPS = ["build_records.py", "build_sessions.py", "glossary/build_issues.py", "adr/build_adrs.py", "rules/build_brief.py",
+         "../../backend/glossary/build_proposed_index.py"]
+SELF_TESTED = ["build_sessions.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", STEPS[-1]]
+# 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；PyYAML 依赖登记于 SUPPLY_CHAIN.md S1
+if importlib.util.find_spec("yaml"):
+    STEPS.insert(1, "glossary/build_terms.py")
+elif "--check" in sys.argv:
+    sys.exit(f"失败：{sys.executable} 缺少 PyYAML，无法运行 glossary/build_terms.py 校验 terms.yaml 可复现（依赖见 SUPPLY_CHAIN.md S1）")
+else:
+    print(f"警告：{sys.executable} 缺少 PyYAML，本次未重新生成 glossary/terms.yaml；--check 会因此失败（依赖见 SUPPLY_CHAIN.md S1）", file=sys.stderr)
 
 for step in STEPS:
     r = subprocess.run([sys.executable, os.path.join(BASE, step)], cwd=BASE, capture_output=True, text=True)
@@ -24,14 +36,20 @@ for step in STEPS:
         print(r.stderr.strip(), file=sys.stderr)
 
 if "--check" in sys.argv:
-    r = subprocess.run([sys.executable, os.path.join(BASE, STEPS[-1]), "--self-test"], cwd=BASE, capture_output=True, text=True)
-    if r.returncode:
-        sys.exit(f"提议术语清单生成器自测失败：\n{r.stdout}{r.stderr}")
-    print(f"build_proposed_index.py --self-test: {r.stdout.strip()}")
+    for step in SELF_TESTED:
+        r = subprocess.run([sys.executable, os.path.join(BASE, step), "--self-test"], cwd=BASE, capture_output=True, text=True)
+        if r.returncode:
+            sys.exit(f"{step} 自测失败：\n{r.stdout}{r.stderr}")
+        print(f"{os.path.basename(step)} --self-test: {r.stdout.strip()}")
     merge_base = subprocess.run(["git", "merge-base", "HEAD", "origin/main"], cwd=BASE, capture_output=True, text=True)
     base_args = ["--base", merge_base.stdout.strip()] if merge_base.returncode == 0 and merge_base.stdout.strip() else []
     if not base_args:
-        print("警告：取不到 origin/main 的合并基点，原结论比对交给 review_revisions.py 按环境处理（CI 失败，本地告警）", file=sys.stderr)
+        print("警告：取不到 origin/main 的合并基点（无 origin/main、或浅克隆无共同祖先），原结论比对交给 review_revisions.py："
+              "有 origin/main 时回退为它本身作基线（可能误报），否则 CI 失败、本地告警", file=sys.stderr)
+    else:
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=BASE, capture_output=True, text=True).stdout.strip()
+        if base_args[1] == head:
+            print("说明：合并基点即 HEAD（在 main 上运行），本步原结论比对不会发现改写；push 的比对由 CI 的专门步骤以 github.event.before 为基线完成")
     r = subprocess.run([sys.executable, "-B", os.path.join(BASE, "rules", "review_revisions.py"), *base_args], cwd=BASE, capture_output=True, text=True)
     if r.stderr.strip():
         print(r.stderr.strip(), file=sys.stderr)

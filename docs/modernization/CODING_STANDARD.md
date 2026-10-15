@@ -121,7 +121,7 @@
 | CS-3.2 | DDL 设计十条：业务唯一约束、外键与查询路径索引、空值与默认值（只许技术默认值）、删除语义、代码格式与文本长度、`text + CHECK` 枚举、`jsonb` 边界、大表分区规划、上线后迁移安全、高频更新行 | NAMING_STANDARD §2.4a；SESSION_PLAYBOOK §14.1 D18 | 守护：`DdlNamingTest` / `DataArchitectureTest`（按各条）；其余复审 |
 | CS-3.3 | **数据设计以 SESSION_PLAYBOOK §14.1 全部条目为准** | [SESSION_PLAYBOOK §14.1](SESSION_PLAYBOOK.md#141-数据架构检查清单用户-2026-10-14问这些表符合olapoltpdama的核心思想吗这么检查对吗后选做并把能自动化的变成守护-recommended) 全部条目 | 守护：`DataArchitectureTest`、`DdlNamingTest`、`PrimaryKeyTypeGuardTest`；其余复审 |
 | CS-3.4 | **自有表主键 UUIDv7**，由 `kernel.IdGenerator` 生成；外部 ID 只作来源对照列；外部代码在防腐层映射为自有枚举 | SESSION_PLAYBOOK §14.1 D16 | 守护：`PrimaryKeyTypeGuardTest` |
-| CS-3.5 | **迁移只追加**；首次部署前基线开放期内直接改基线，每个改表 PR 附「预期表结构 diff」（两个空库 `pg_dump --schema-only` 对比），opus 核对；删除开放标记单独成 PR | SESSION_PLAYBOOK §12.2「首次部署前的迁移基线」 | 守护：`scripts/ci/migrations_immutable.py`；复审（diff） |
+| CS-3.5 | **迁移只追加**；首次生产部署前基线开放期内直接改基线，每个改表 PR 附「预期表结构 diff」（两个空库 `pg_dump --schema-only` 对比），opus 核对；删除开放标记单独成 PR | SESSION_PLAYBOOK §12.2「首次部署前的迁移基线」 | 守护：`scripts/ci/migrations_immutable.py`；复审（diff） |
 | CS-3.6 | SQL 只在 `infrastructure.persistence` 的 `Jdbc*Repository` 中，用 `JdbcClient` 与类型化手写映射，不用反射 ORM；只访问本模块 schema；持久化类与访问的表登记在 `architecture/data-access-registry.yaml` | NAMING_STANDARD G10、§3；GUIDING_PRINCIPLES §10；SECURITY_INVARIANTS I-10 | 守护：G10、`DataArchitectureTest`（注册表与 SQL 对照）、`WorkforceSchemaGuardTest` |
 | CS-3.7 | **参数一律绑定**（`:name` 参数），不把值拼进 SQL 文本；动态排序列、动态表名只能取自代码内的白名单枚举（新增） | 新增（SEC 类缺陷的预防） | 守护（待实现：G-C6） |
 | CS-3.8 | SQL 不读数据库时钟；DDL 不写时钟默认值 | R-4；NAMING_STANDARD §2.4a 第 3 条 | 守护：`TimeSourceGuardTest`（SQL 字符串；迁移扫描随 R-4） |
@@ -129,6 +129,7 @@
 | CS-3.10 | 列表查询只用索引覆盖的游标分页（`cursor` + `limit`，默认 50、上限 200），不内存分页、不全表扫描；排序键以 `id` 兜底（CS-2.21） | GUIDING_PRINCIPLES §7；NAMING_STANDARD §2.4a 第 2 条；NEXT_BATCH_PLAN K-3 | 复审（EXPLAIN 抽查） |
 | CS-3.11 | 建库脚本（C-3、C-9）与参考 DDL、迁移目录的 schema 清单一致 | `db_scripts_aligned.py` 说明 | 守护：`scripts/ci/db_scripts_aligned.py` |
 | CS-3.12 | 交易表上不跑分析；汇总、趋势走 `reporting` | SESSION_PLAYBOOK §14.1 D9；ADR-0025 | 复审 |
+| CS-3.13 | **按中文排序的 SQL 显式写 `COLLATE "zh-x-icu"`**：库的默认排序规则是内建 C.UTF-8（中文按码位排序，测试库与 dev 库一致，DDL-11），需要拼音顺序的 `ORDER BY` 自己带上；键集分页的排序键若带该 `COLLATE`，游标比较与索引也用同一个 | CROSS_CUTTING_DECISIONS XD-03；CROSS_CUTTING_MATRIX CC-I01、G-X2 | 复审（不做 SQL 守护，K-3a 裁定第 5 条） |
 
 ## 4. 前端（React + TypeScript；H5 为 Taro）
 
@@ -145,6 +146,7 @@
 | CS-4.9 | 不用 `console.log`，用共用 logger | `frontend/eslint.config.js` | 守护：ESLint |
 | CS-4.10 | 日期时间与业务日只经 `@forcitis/core` 的 `format-date-time`、`business-day`；金额格式化按 K-1 交付的共用函数（G-M6） | 现有写法；NEXT_BATCH_PLAN K-1 | 复审；G-M6 随 K-1 |
 | CS-4.11 | H5 与 PC 同一套规则 | NAMING_STANDARD §7 第 17 项 | 守护：ESLint（H5 已接 F14）；其余复审 |
+| CS-4.12 | **`localeCompare` 必带 `'zh'`，`Intl.DateTimeFormat` 必带 `timeZone`**：中文按拼音排序，界面时间不随浏览器的区域和时区变 | CROSS_CUTTING_MATRIX G-X2、CC-T02、CC-I01 | 守护：ESLint（`no-restricted-syntax`，`scripts/check-lint-config.mjs` 自测） |
 
 ## 5. 测试
 

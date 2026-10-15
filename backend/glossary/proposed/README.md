@@ -268,6 +268,14 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 
 另有技术词 38 个（`common_words`），不在表中。
 
+## `list-paging.yaml`
+
+K-3a 列表分页公共契约新增的纯技术词（proposed，NAMING_STANDARD A-3、A-4）。
+
+无错误码以外的术语。
+
+另有技术词 6 个（`common_words`），不在表中。
+
 ## organization.attendance（`organization_attendance.yaml`）
 
 organization.attendance 提议术语（proposed，待业务评审，ADR-0018）。

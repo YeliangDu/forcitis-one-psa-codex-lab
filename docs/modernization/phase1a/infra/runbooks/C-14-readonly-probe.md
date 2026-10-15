@@ -2,6 +2,8 @@
 
 依据：ADR-0037 第 4 项第 7 条；PREDEPLOY_CHECKLIST C-14；校验实现 #163（`ReadOnlyBaseline`、`JdbcReadOnlyCatalog`）；阻塞项 101（安全复审 H-1、H-2）。标记为 (a)–(g)：(g) 库内 class<>0 的授权只允许 DENY 或 SELECT 的 GRANT（public 主体也算）；服务器上针对登录的授权并入 (d)；系统库只能经 guest 进入并入 (f)。dev 首次部署前完成。**用户批准前不建登录、不建库、不改授权。**
 
+执行方式：在 ECS 上从 rc.2 签名发布包解出 jar，直接跑只读命令；不需要先部署 dev（阻塞项 101 的删除条件②据此成立）。
+
 ## 范围
 
 - 不动四个正式登录（one_a8_views_ro、psa_one_legacy_ro、one_legacy_names_ro、one_evidence_ro），不碰 a8_db、ruoyi-vue-pro。
@@ -18,6 +20,7 @@
 ## 口令与记录
 
 - 探针口令在 SQL Server 上生成（`CRYPT_GEN_RANDOM`，同 `evidence_login.sql`），只以新 ECS 临时公钥加密的密文经手，存 ECS `/etc/forcitis-one/readonly-probe.env`（root 0600），不经会话；结束时删除。
+- `readonly-probe.env` 只有三个变量，只读核实命令以 `--connection=probe` 读取：`READONLY_PROBE_DB_URL`（与 one.env 的 `LEGACY_DB_RO_URL` 同形，`databaseName=one_readonly_probe_db`，TLS 参数与 one.env 中 SQL Server 的 URL 相同：`encrypt=true;trustServerCertificate=false;trustStore=/etc/forcitis-one/sqlserver-ca.p12;trustStorePassword=…`）、`READONLY_PROBE_DB_USERNAME`（`one_readonly_probe`）、`READONLY_PROBE_DB_PASSWORD`。第 9 项连的仍是 `one_readonly_probe_db`（核实的是能否进入基线外的库），不改 URL。
 - 记录只写：每项的拒绝标记（(a)–(g) 与「通过」）、错误号；不记消息原文与任何值。
 - 每项前后各取一次探针的有效权限计数（库级、服务器级 `fn_my_permissions` 的行数），回退后须回到对照值。
 - RESOURCES.md 登记临时登录与两个探针库（建与删各一行）；LEGACY_READ_REGISTER 不涉及（不读老系统与 A8 数据）。
@@ -43,6 +46,12 @@ GRANT CONNECT, SELECT ON DATABASE::[one_readonly_probe_db] TO [one_readonly_prob
 DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, CREATE FUNCTION, CREATE SCHEMA
   ON DATABASE::[one_readonly_probe_db] TO [one_readonly_probe];
 ```
+
+## 正式运行时账号核实（逐项之前）
+
+- 用只读命令对 one_a8_views_ro、psa_one_legacy_ro、one_legacy_names_ro 各跑一次，连接参数与口令取自 `/etc/forcitis-one/one.env`；不改任何授权，不在探针库里做。
+- 预期三个都「通过」；记录只写每个账号的标记与错误号。
+- 任一账号出现 (g)（例如老库把 EXECUTE 授给了 public）或其他拒绝标记：停下报 one-coordinator，不临场调整授权，也不继续做逐项。
 
 ## 逐项（偏离 → 预期标记 → 回退）
 

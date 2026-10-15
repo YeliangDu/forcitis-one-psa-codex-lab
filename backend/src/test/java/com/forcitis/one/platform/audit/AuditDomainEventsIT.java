@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.event.ActorType;
@@ -52,7 +53,7 @@ class AuditDomainEventsIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 

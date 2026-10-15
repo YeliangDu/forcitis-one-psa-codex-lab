@@ -1068,6 +1068,9 @@
           "instance" : {
             "type" : "string"
           },
+          "invalidParameters" : {
+            "type" : "string"
+          },
           "legacyLoginUrl" : {
             "type" : "string"
           },
@@ -1893,7 +1896,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -2361,7 +2367,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -2541,7 +2550,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -2689,7 +2701,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         } ],
@@ -2813,7 +2828,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         } ],
@@ -2937,7 +2955,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         } ],
@@ -4035,7 +4056,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -4147,7 +4171,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -4299,7 +4326,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -4431,7 +4461,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -4672,6 +4705,8 @@
           "schema" : {
             "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         } ],
@@ -4711,7 +4746,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -5252,7 +5290,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
