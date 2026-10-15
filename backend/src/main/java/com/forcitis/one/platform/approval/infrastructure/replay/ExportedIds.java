@@ -32,15 +32,18 @@ final class ExportedIds {
         return number(orgUnit.value(), UNIT, "org unit");
     }
 
-    /** A form field value as the replay's process reads it: a number of the export becomes the UUID of that person or department. */
+    /**
+     * A form field value as the replay's process reads it: a number of the export becomes the UUID of that person or department, and 0,
+     * the export's "nobody", becomes blank.
+     */
     static String employeeText(String raw) {
         Long number = numberOrNull(raw);
-        return number == null ? raw : employee(number).toString();
+        return number == null ? raw : number == 0 ? "" : employee(number).toString();
     }
 
     static String orgUnitText(String raw) {
         Long number = numberOrNull(raw);
-        return number == null ? raw : orgUnit(number).toString();
+        return number == null ? raw : number == 0 ? "" : orgUnit(number).toString();
     }
 
     private static Long numberOrNull(String raw) {
