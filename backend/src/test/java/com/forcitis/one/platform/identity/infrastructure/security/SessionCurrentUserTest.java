@@ -66,7 +66,7 @@ class SessionCurrentUserTest {
     }
 
     @Test
-    @DisplayName("R-1b P1 the signed-in person is the employee behind the account: the two ids are told apart, not read from one number")
+    @DisplayName("the signed-in person is the employee behind the account: the two ids are told apart, not read from one number")
     void employeeIsNotTheAccountNumber() {
         signIn("6001");
 

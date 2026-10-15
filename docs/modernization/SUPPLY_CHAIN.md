@@ -36,7 +36,7 @@
 - **已核登记的构建期工具**（经注解处理器路径运行，不进发布包与 SBOM）：
   - Error Prone 2.50.0（`error_prone_core`），Apache-2.0；2026-06 发布，满 7 天；R-1b P1 引入（ADR-0033 守护 14）。只开 `CollectionIncompatibleType`、`EqualsIncompatibleType` 两条检查；`backend/.mvn/jvm.config` 为 Maven 的 JVM 开放 javac 内部包，这是 JDK 17 以后 Error Prone 的运行条件。
   - 传递依赖 `io.github.eisop:dataflow-errorprone`：GPL-2.0 加 Classpath Exception（与 OpenJDK 同一许可证），仅编译期使用，产物不含它。**已接受**（依据上条）。
-  - 其余传递依赖中，pom 已声明 Apache-2.0 的有 Guava、auto-common、jspecify、jsr305、javax.inject、caffeine，pcollections 为 MIT。java-diff-utils、google-java-format、auto-value 的 pom 未声明许可证（上游均为 Apache-2.0）：**后续项**，待许可证检查工具（S4）上线后复核。
+  - 其余传递依赖：Guava、auto-common、jspecify、jsr305、javax.inject、caffeine 的 pom 声明 Apache-2.0，pcollections 为 MIT；java-diff-utils、google-java-format、auto-value 自己的 pom 不写许可证，但各自的父 pom（`java-diff-utils-parent` 4.12、`google-java-format-parent` 1.35.0、`auto-value-parent` 1.9）声明 Apache-2.0。核实依据是 2026-10-15 对本机 Maven 仓库中这些 pom 的逐个检查。
 - 商业组件（如 AG Grid）在 1b 前随表格选型决定，未购买许可前不得进入主干。
 
 ## S5 SBOM

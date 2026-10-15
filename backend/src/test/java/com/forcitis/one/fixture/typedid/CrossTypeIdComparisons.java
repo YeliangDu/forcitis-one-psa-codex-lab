@@ -73,6 +73,48 @@ public final class CrossTypeIdComparisons {
         return users.contains(employee);
     }
 
+    public Optional<Boolean> wrongReferenceEquals(Optional<UserId> found, EmployeeId employee) {
+        return found.map(employee::equals);
+    }
+
+    public boolean wrongReferenceContains(Set<UserId> users, List<EmployeeId> employees) {
+        return employees.stream().anyMatch(users::contains);
+    }
+
+    public boolean wrongReferenceContainsKey(Map<UserId, String> names, List<EmployeeId> employees) {
+        return employees.stream().anyMatch(names::containsKey);
+    }
+
+    public Optional<Boolean> rightReferenceEquals(Optional<UserId> found, UserId user) {
+        return found.map(user::equals);
+    }
+
+    public boolean rightReferenceContains(Set<UserId> users, List<UserId> others) {
+        return others.stream().anyMatch(users::contains);
+    }
+
+    public boolean boundaryLongLocals(UserId user, EmployeeId employee) {
+        long first = user.value();
+        long second = employee.value();
+        return first == second;
+    }
+
+    public boolean boundaryLongCompare(UserId user, EmployeeId employee) {
+        return Long.compare(user.value(), employee.value()) == 0;
+    }
+
+    public boolean boundaryValueAsText(UserId user, EmployeeId employee) {
+        return String.valueOf(user.value()).equals(String.valueOf(employee.value()));
+    }
+
+    public boolean boundaryOuterContainers(Optional<UserId> user, Optional<EmployeeId> employee) {
+        return user.equals(employee);
+    }
+
+    public List<UserId> boundaryBuiltThroughReferences(List<EmployeeId> employees) {
+        return employees.stream().map(EmployeeId::value).map(UserId::new).toList();
+    }
+
     public boolean boundaryAfterAnOptional(Optional<EmployeeId> found, Set<UserId> users) {
         return users.contains(found.orElseThrow());
     }
@@ -84,6 +126,22 @@ public final class CrossTypeIdComparisons {
 
     public boolean boundaryValueOfAMap(Map<String, Set<UserId>> byName, EmployeeId employee) {
         return byName.get("x").contains(employee);
+    }
+
+    public UserId wrongBuiltFromAnotherId(EmployeeId employee) {
+        return new UserId(employee.value());
+    }
+
+    public EmployeeId wrongBuiltFromAnotherIdInAnExpression(UserId user) {
+        return Optional.of(user).map(account -> new EmployeeId(account.value())).orElseThrow();
+    }
+
+    public UserId rightBuiltFromAnythingElse(long number, UserId user) {
+        return new UserId(number > 0 ? number : user.value());
+    }
+
+    public boolean rightSameKindRebuilt(UserId user) {
+        return new UserId(user.value()).equals(user);
     }
 
     public boolean rightSameKindEquals(UserId first, UserId second) {

@@ -44,7 +44,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * R-1b P1 (card item C4): "whose timesheet is it" is answered on the employee side. The caller's account and employee carry different
+ * "whose timesheet is it" is answered on the employee side. The caller's account and employee carry different
  * numbers here, and the foreign timesheet belongs to the employee whose number is the caller's account number: a check that set the
  * timesheet's employee against the account would let that one through.
  */

@@ -46,6 +46,16 @@ import org.springframework.asm.Type;
  * Map&lt;K, Set&lt;V&gt;&gt;, an id held in a variable typed Object, raw collections, containsAll / removeAll / retainAll with another
  * collection, and code behind a switch or a local variable slot whose type cannot be told. Those pass; the reverse tests of the
  * "own person" gates cover them.
+ *
+ * <p>Method references are read too: viewer::equals and ids::contains are set against the type that the functional interface hands
+ * them (the instantiated method type of the LambdaMetafactory call). A new id built from the raw value of another kind of id
+ * (new UserId(employee.value())) is reported wherever it is, except in the classes that convert for a living (see the guard test).
+ *
+ * <p>Equality that is not seen, by design of a scan that follows the operands only up to the comparison: the two raw values first
+ * stored in long variables, Long.compare(a.value(), b.value()) == 0, String.valueOf(a.value()).equals(…), equality of containers
+ * that hold ids (Optional&lt;UserId&gt;.equals(Optional&lt;EmployeeId&gt;), List.equals), an id built from another through method
+ * references (map(EmployeeId::value).map(UserId::new)), and ordering or arithmetic on raw values (ADR-0033 says "compare or compute",
+ * this guard stops at equality). Each has a boundary… sample in the injected fixtures that pins it.
  */
 final class TypedIdComparisons {
 
@@ -401,6 +411,11 @@ final class TypedIdComparisons {
             }
             Operand receiver = opcode == Opcodes.INVOKESTATIC ? null : pop();
             Operand result = Operand.OTHER;
+            if (name.equals("<init>") && isId(owner) && arguments.length == 1 && taken[0].kind() == Kind.ID_VALUE
+                    && !Type.getObjectType(owner).getClassName().equals(taken[0].idType())) {
+                found.add(new Violation(where, line, "builds a " + Type.getObjectType(owner).getClassName() + " from the raw value of a "
+                        + taken[0].idType() + "; convert through AccountEmployees"));
+            }
             if (name.equals("value") && arguments.length == 0 && receiver != null && typedId.test(owner)) {
                 result = Operand.idValue(Type.getObjectType(owner).getClassName());
             } else if (opcode == Opcodes.INVOKESTATIC && BOXES.contains(owner) && name.equals("valueOf") && arguments.length == 1
@@ -430,9 +445,39 @@ final class TypedIdComparisons {
 
         @Override
         public void visitInvokeDynamicInsn(String name, String descriptor, org.springframework.asm.Handle bootstrap, Object... arguments) {
-            pop(Type.getArgumentTypes(descriptor).length);
+            Type[] captured = Type.getArgumentTypes(descriptor);
+            Operand[] taken = new Operand[captured.length];
+            for (int i = captured.length - 1; i >= 0; i--) {
+                taken[i] = pop();
+            }
+            if (bootstrap.getOwner().equals("java/lang/invoke/LambdaMetafactory") && arguments.length >= 3
+                    && arguments[1] instanceof org.springframework.asm.Handle implementation && arguments[2] instanceof Type instantiated) {
+                checkReference(implementation, instantiated, captured, taken);
+            }
             if (Type.getReturnType(descriptor).getSort() != Type.VOID) {
                 push(Operand.OTHER);
+            }
+        }
+
+        /**
+         * A method reference such as viewer::equals or ids::contains: the captured receiver (or the first parameter of an unbound
+         * reference) is set against the type the functional interface hands it, which the instantiated method type names.
+         */
+        private void checkReference(org.springframework.asm.Handle implementation, Type instantiated, Type[] captured, Operand[] taken) {
+            boolean virtual = implementation.getTag() == Opcodes.H_INVOKEVIRTUAL || implementation.getTag() == Opcodes.H_INVOKEINTERFACE;
+            boolean bound = captured.length > 0;
+            Type[] parameters = instantiated.getArgumentTypes();
+            int argument = bound ? 0 : 1;
+            if (!virtual || parameters.length <= argument) {
+                return;
+            }
+            String receiverType = bound ? internalNameOf(captured[0].getDescriptor()) : internalNameOf(parameters[0].getDescriptor());
+            String argumentType = internalNameOf(parameters[argument].getDescriptor());
+            if (implementation.getName().equals("equals") && implementation.getDesc().equals("(Ljava/lang/Object;)Z")) {
+                checkTwoKinds(isId(implementation.getOwner()) ? implementation.getOwner() : receiverType, argumentType);
+            } else if (bound && implementation.getOwner().startsWith("java/util/") && LOOKUPS.contains(implementation.getName())
+                    && implementation.getDesc().startsWith("(Ljava/lang/Object;")) {
+                checkLookup(taken[0], Operand.typed(argumentType, null));
             }
         }
 

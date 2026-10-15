@@ -42,15 +42,14 @@ public class TransferTask {
         ApprovalRequest request = approvals.lock(first.instanceId());
         approvals.requireVersion(request, expectedVersion);
         TaskView task = guard.requireHandler(taskId, actor, "transfer");
-        requireValidTarget(task, actor, to);
         UserId assignee = accountEmployees.accountOf(to);
+        requireValidTarget(task, actor, to, assignee);
         engine.reassignTask(taskId, assignee);
         request.transferTask(taskId, actor, assignee, Reason.ofNullable(reason), time.moment());
         approvals.save(request);
     }
 
-    private void requireValidTarget(TaskView task, UserId actor, EmployeeId to) {
-        UserId assignee = accountEmployees.accountOf(to);
+    private void requireValidTarget(TaskView task, UserId actor, EmployeeId to, UserId assignee) {
         boolean employed = org.findEmployee(to).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
         if (!employed) {
             throw refused("Transfer target " + to.value() + " is not an employed person");

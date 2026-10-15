@@ -22,7 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * R-1b P1 (ADR-0033 section 3, approval rule "initiator versus candidate"): the initiator is an employee, role holders are accounts,
+ * ADR-0033 section 3, the approval rule "initiator versus candidate": the initiator is an employee, role holders are accounts,
  * and the candidates of a task are accounts. The employees are 1001 (initiator), 1002 and 1003 (the initiator's supervisor); their
  * accounts are 6001, 6002 and 6003. An initiator that is left out by comparing the account number with the employee number would
  * stay a candidate of their own request.

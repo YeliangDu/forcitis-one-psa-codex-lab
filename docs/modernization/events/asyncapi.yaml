@@ -1452,7 +1452,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
-            description: 提交单据的用户，由所有者记录，不取自客户端
+            description: 提交单据的员工，由所有者记录，不取自客户端
           round:
             type: object
             x-type: RoundNumber

@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 
 /**
- * R-1b P1 (card item C4): who may withdraw or cancel an approval is decided by setting the initiator, an employee, against the
+ * who may withdraw or cancel an approval is decided by setting the initiator, an employee, against the
  * employee behind the acting account. The initiator is employee 1001 whose account is 6001; the account numbered 1001 belongs to
  * somebody else, and must not pass for the initiator.
  */

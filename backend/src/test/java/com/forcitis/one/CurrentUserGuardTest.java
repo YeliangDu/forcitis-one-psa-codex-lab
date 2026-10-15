@@ -2,7 +2,6 @@ package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.forcitis.one.kernel.UserId;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,11 +69,11 @@ class CurrentUserGuardTest {
     void madeUpAnswersAreCaught() {
         String hardCoded = "class X implements CurrentUser { public LegalEntityId legalEntityId() { return new LegalEntityId(new UUID(0, 1)); } }";
         String constant = "class C implements CurrentUser { private static final LegalEntityId HOME = load(); public LegalEntityId legalEntityId() { return HOME; } }";
-        String defaulted = "class D implements EmployeeLegalEntities { public LegalEntityId on(UserId u, LocalDate d) { return find(u, d).orElse(null); } }";
-        String lazyDefault = "class L implements EmployeeLegalEntities { public LegalEntityId on(UserId u, LocalDate d) { return find(u, d).orElseGet(() -> root()); } }";
+        String defaulted = "class D implements EmployeeLegalEntities { public LegalEntityId on(EmployeeId e, LocalDate d) { return find(e, d).orElse(null); } }";
+        String lazyDefault = "class L implements EmployeeLegalEntities { public LegalEntityId on(EmployeeId e, LocalDate d) { return find(e, d).orElseGet(() -> root()); } }";
         String anonymous = "class A { CurrentUser who = new CurrentUser() { public LegalEntityId legalEntityId() { return null; } }; }";
-        String resolved = "class Y implements CurrentUser { public LegalEntityId legalEntityId() { return directory.on(userId(), today); } }";
-        String failing = "class F implements EmployeeLegalEntities { public LegalEntityId on(UserId u, LocalDate d) { return find(u, d).orElseThrow(); } }";
+        String resolved = "class Y implements CurrentUser { public LegalEntityId legalEntityId() { return directory.on(employeeId(), today); } }";
+        String failing = "class F implements EmployeeLegalEntities { public LegalEntityId on(EmployeeId e, LocalDate d) { return find(e, d).orElseThrow(); } }";
         String unrelated = "class Z { LegalEntityId id = new LegalEntityId(new UUID(0, 1)); Object o = x.orElse(1); }";
         String commented = "class W implements CurrentUser { // new LegalEntityId(new UUID(0, 1)) and .orElse(x)\n }";
 

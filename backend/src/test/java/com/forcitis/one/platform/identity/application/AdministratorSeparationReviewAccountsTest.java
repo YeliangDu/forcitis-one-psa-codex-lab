@@ -22,7 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * R-1b P1 (ADR-0033 section 3, "released by someone who is staying" gate): the people about to leave are employees, role holders and
+ * ADR-0033 section 3, the "released by someone who is staying" gate: the people about to leave are employees, role holders and
  * the releaser are accounts. Employees 1001 and 1002 are the super_admin holders with accounts 6001 and 6002; employee 1003 (account
  * 6003) is the security auditor. The account numbered 1001 is nobody's administrator account.
  */

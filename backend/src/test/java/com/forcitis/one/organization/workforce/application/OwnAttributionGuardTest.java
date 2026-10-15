@@ -28,7 +28,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * R-1b P1 (ADR-0033 section 3, "own person" gate for the legal entity of an employee or a department): the actor is an account, the
+ * ADR-0033 section 3, the gate for the legal entity of an employee or a department: the actor is an account, the
  * subject an employee or a department, so the account is turned into its employee first. The actor is employee 1001 with account 6001;
  * the employee numbered like the account (6001) is somebody else and may be changed.
  */

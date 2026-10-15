@@ -188,6 +188,7 @@
 | CS-7.6 | **并行子代理同一基线出发** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 9 条](SESSION_PLAYBOOK.md#5-上下文管理) | 复审 |
 | CS-7.7 | **合并**：main 受分支保护，所有改动经 PR，CI 三项通过且本批 opus 复审结论到达后，由调度会话 one-coordinator 合并；工作会话结束前向 one-coordinator 报告 | CLAUDE.md；SESSION_PLAYBOOK §6、§11 | CI；调度核对 |
 | CS-7.8 | 提交说明中文，格式 `type(scope): 摘要`，scope 用子域 slug；验收测试 trailer 见 CS-5.3 | NAMING_STANDARD §7 第 21 项 | 复审 |
+| CS-7.9 | **IntelliJ 构建**：构建进程不读 `backend/.mvn/jvm.config`，Error Prone 会因 `IllegalAccessError` 加载失败；在 Settings → Build, Execution, Deployment → Compiler → Shared build process VM options 里加入与该文件相同的 `--add-exports` / `--add-opens` 参数，或改用 Maven 构建 | ADR-0033 守护 14；`backend/.mvn/jvm.config` | 复审 |
 
 ## 8. 待实现守护设计（G-C 系列）
 

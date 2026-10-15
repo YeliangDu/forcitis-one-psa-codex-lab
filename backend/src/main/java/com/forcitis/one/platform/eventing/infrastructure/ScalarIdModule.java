@@ -24,7 +24,8 @@ import tools.jackson.databind.ser.std.StdSerializer;
 /**
  * A typed id (a one-component record whose name ends in Id) is written as the text of its value, never as {"value": …}: payloads
  * of events and outbound messages carry ids as plain strings whatever the type behind them is (G-C5). Reading accepts the text,
- * and a bare number for ids made of a long.
+ * and a bare number for ids made of a long. The module is a bean of the shared mapper, so it holds for HTTP requests and responses
+ * as well; openApiHasNoValueWrapper keeps the interface contract free of the wrapper.
  */
 @Component
 class ScalarIdModule extends SimpleModule {
