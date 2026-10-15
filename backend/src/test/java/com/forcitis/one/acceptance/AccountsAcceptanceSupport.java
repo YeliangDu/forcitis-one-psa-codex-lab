@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.jayway.jsonpath.JsonPath;
@@ -71,12 +70,10 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         return "wx-acceptance-" + employeeId;
     }
 
-    /** A caller whose session principal is the account id; the permissions are given directly. */
-    protected static RequestPostProcessor as(UUID userId, String... permissions) {
-        return principal(userId.toString(), permissions);
-    }
-
-    /** A caller with any session principal name, also one that is not an account id. */
+    /**
+     * A caller with any session principal name, also one that is not an account id, and permissions given directly: only for
+     * SessionPrincipalIT, which sends broken principals on purpose. Everyone else acts in the session of a login (RULING-P2-11).
+     */
     protected static RequestPostProcessor principal(String name, String... permissions) {
         List<GrantedAuthority> authorities = new ArrayList<>();
         authorities.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
@@ -193,21 +190,6 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         Method resolve = Arrays.stream(WecomGateway.class.getMethods()).filter(m -> m.getName().equals("resolveWecomUserId")).findFirst().orElseThrow();
         Class<?> type = (Class<?>) ((ParameterizedType) resolve.getGenericReturnType()).getActualTypeArguments()[0];
         return type.getDeclaredConstructor(String.class).newInstance(value);
-    }
-
-    /** Approval deadlines are counted in workdays: the year of the fixed clock gets a plain Monday-to-Friday calendar if it has none. */
-    protected void maintainWorkCalendar() throws Exception {
-        String year = "/api/v1/organization/work-calendars/" + TODAY.getYear();
-        RequestPostProcessor maintainer = principal(AcceptanceSupport.principalName(3), Permission.Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ,
-                Permission.Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE, Permission.Codes.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE);
-        if (mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(year).with(maintainer)).andReturn().getResponse().getStatus() == 200) {
-            return;
-        }
-        MockHttpServletResponse maintained = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(year).header("If-Match", "\"0\"")
-                .with(csrf()).with(maintainer).contentType(MediaType.APPLICATION_JSON).content("{\"days\":[],\"lockedDaysConfirmed\":true}")).andReturn().getResponse();
-        if (maintained.getStatus() != 200) {
-            throw new AssertionError("maintaining the work calendar answered " + maintained.getStatus() + ": " + maintained.getContentAsString());
-        }
     }
 
     /** The employee id the account row of identity names; fails while the account table has no employee column. */
