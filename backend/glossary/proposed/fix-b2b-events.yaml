@@ -1,82 +1,14 @@
 # Phase 1a 修复批 B2b（事件业务日期、指标）新增术语（proposed，待业务评审，ADR-0018）。
 terms:
-- id: rule_version
-  zh: 规则版本
-  en: RuleVersion
-  snake: rule_version
-  kind: value
-  bc: platform.numbering
-  definition: 编号模板的版本号值对象（RuleVersion），从 1 起，每保存一个新模板加 1；版本表的 version_number 列、接口字段 templateVersion 和事件负载 ruleVersion 是同一个东西；与乐观锁 version、事件序号 event_count 无关
-  standard_ref:
-  - proposals/EVENT_ANALYTICS_FIELDS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: effective_from_date
-  zh: 生效日
-  en: EffectiveFromDate
-  snake: effective_from_date
-  kind: value
-  bc: kernel
-  definition: 某个事实、版本或模板从哪一天起生效（含当天）的日期；事件负载与代码里叫 effectiveFrom，列名带类别词 _date。OrgSnapshotChanged 的 effectiveFrom 语义相同：变化从哪一天起生效，因此与其他地方统一叫 effectiveFrom，不再另设 effectiveDate
-  standard_ref:
-  - proposals/EVENT_ANALYTICS_FIELDS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: snapshot_date
   zh: 快照日
   en: SnapshotDate
   snake: snapshot_date
   kind: value
   bc: organization.workforce
+  scope: acl
+  acl_class: "过渡期"
   definition: 读取组织源快照的那个业务日，即同步运行开始当天（Asia/Shanghai）。它是 OrgSnapshotChanged 信封的 businessDate，也是同一次同步写入的版本行的生效日
-  standard_ref:
-  - proposals/EVENT_ANALYTICS_FIELDS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: changed_dates
-  zh: 被修改的日期
-  en: ChangedDates
-  snake: changed_dates
-  kind: value
-  bc: organization.attendance
-  definition: 一次工作日历保存新增、删除或改变类型的日期，按日期升序，放在 WorkCalendarYearMaintained 的负载里；原样重存时为空
-  standard_ref:
-  - proposals/EVENT_ANALYTICS_FIELDS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: dead_letter_job
-  zh: 死信作业
-  en: DeadLetterJob
-  snake: dead_letter_job
-  kind: entity
-  bc: platform.approval
-  definition: 流程引擎用尽重试后移入死信表的作业，需要运维处理；数量由指标 dead.letter.jobs 导出
-  standard_ref:
-  - proposals/EVENT_ANALYTICS_FIELDS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: job_failure
-  zh: 作业失败
-  en: JobFailure
-  snake: job_failure
-  kind: concept
-  bc: platform.scheduling
-  definition: 带 SchedulerLock 的定时作业抛出异常的一次运行；按作业名（锁名）计数，指标 job.failures。作业自己捕获并记录的失败不在其中，由所属模块的指标覆盖
   standard_ref:
   - proposals/EVENT_ANALYTICS_FIELDS.md
   confidence: medium

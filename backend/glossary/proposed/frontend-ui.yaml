@@ -1,90 +1,13 @@
 # 前端界面用语中尚不在正式词表里的业务术语（proposed，待第三轮用语确认，ADR-0018）。
 terms:
-- id: correlation_id
-  zh: 关联号
-  en: CorrelationId
-  snake: correlation_id
-  kind: value
-  bc: kernel
-  definition: 一次请求及其引发的事件与投递共用的追踪编号（X-Correlation-Id）；出错时界面显示可复制的关联号，便于对日志（NAMING_STANDARD §4a U5、GUIDING_PRINCIPLES §11 O-1）
-  standard_ref:
-  - GUIDING_PRINCIPLES §11 O-1
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 界面不另称「错误编号」，与 platform-web 错误响应同一用语
-- id: pending_task
-  zh: 待办
-  en: PendingTask
-  snake: pending_task
-  kind: entity
-  bc: platform.approval
-  definition: 当前用户待处理的审批任务，新系统任务与老系统待办合并后在待办页展示
-  standard_ref: []
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 界面页面标题与导航用语；与 platform-approval.yaml 的 todo（待办事项）、inbox（待办收件箱）指同一事物，第三轮用语确认时合并
-- id: candidate_approver
-  zh: 候选审批人
-  en: CandidateApprover
-  snake: candidate_approver
-  kind: role
-  bc: platform.approval
-  definition: 任务尚未认领时，有资格认领并办理该任务的审批人
-  standard_ref: []
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 任务详情页字段名；正式词表只有「审批人」
-- id: task_claim
-  zh: 认领
-  en: TaskClaim
-  snake: task_claim
-  kind: command
-  bc: platform.approval
-  definition: 候选审批人把任务认到自己名下，认领后只有他可以办理
-  standard_ref: []
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 界面按钮与状态用语（待认领、已认领）
-- id: approve
-  zh: 通过
-  en: Approve
-  snake: approve
-  kind: command
-  bc: platform.approval
-  definition: 审批人对任务给出同意的结论
-  standard_ref: []
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 界面按钮与结果用语
-- id: reject
-  zh: 驳回
-  en: Reject
-  snake: reject
-  kind: command
-  bc: platform.approval
-  definition: 审批人对任务给出不同意的结论，是否终止流程取决于所在节点
-  standard_ref: []
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 界面按钮与结果用语
 - id: legacy_system
   zh: 老系统
   en: LegacySystem
   snake: legacy_system
   kind: system
   bc: platform.approval
+  scope: acl
+  acl_class: "过渡期"
   definition: 被本系统替代的原项目管理系统（待办合并期间只读接入）
   standard_ref: []
   confidence: low
@@ -98,6 +21,8 @@ terms:
   snake: new_system
   kind: system
   bc: platform.approval
+  scope: acl
+  acl_class: "过渡期"
   definition: FORCITIS one 本身；待办合并期间与老系统并存，界面用来标出待办的来源
   standard_ref: []
   confidence: low
@@ -105,38 +30,14 @@ terms:
   forbidden: []
   status: proposed
   note: 用户 2026-10-14 指定提议；界面标签、筛选项、提示用语
-- id: org_browse
-  zh: 组织浏览
-  en: OrgBrowse
-  snake: org_browse
-  kind: entity
-  bc: organization.workforce
-  definition: 只读浏览组织单元树的页面
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 用户 2026-10-14 指定提议；页面标题与导航用语
-- id: current_node
-  zh: 当前节点
-  en: CurrentNode
-  snake: current_node
-  kind: entity
-  bc: platform.approval
-  definition: 审批任务当前所在的流程节点
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 用户 2026-10-14 指定提议；任务详情字段名
 - id: trigger_mode
   zh: 触发方式
   en: TriggerMode
   snake: trigger_mode
   kind: value
   bc: organization.workforce
+  scope: acl
+  acl_class: "过渡期"
   definition: 一次同步是定时触发还是手动触发
   standard_ref: []
   confidence: low
@@ -149,7 +50,9 @@ terms:
   en: Held
   snake: held
   kind: value
-  bc: organization.workforce
+  bc: platform.integration
+  scope: acl
+  acl_class: "过渡期"
   definition: 同步记录的状态：被缩水保护中止，等待管理员放行；与「被中止的同步」指同一状态
   standard_ref: []
   confidence: low
@@ -162,7 +65,9 @@ terms:
   en: Release
   snake: release
   kind: command
-  bc: organization.workforce
+  bc: platform.integration
+  scope: acl
+  acl_class: "过渡期"
   definition: 管理员核对同步差异后，让被中止的同步生效的动作
   standard_ref: []
   confidence: low
@@ -175,7 +80,9 @@ terms:
   en: OrgSync
   snake: org_sync
   kind: entity
-  bc: organization.workforce
+  bc: platform.integration
+  scope: acl
+  acl_class: "过渡期"
   definition: 把组织来源的组织单元与员工变化应用到本系统的一次运行
   standard_ref: []
   confidence: low
@@ -183,77 +90,13 @@ terms:
   forbidden: []
   status: proposed
   note: 扫描前端界面文案发现；与「同步记录」「同步差异」配合使用
-- id: delivery_unit
-  zh: 交付单元
-  en: DeliveryUnit
-  snake: delivery_unit
-  kind: entity
-  bc: organization.workforce
-  definition: 承担项目交付的组织单元
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；组织浏览页列名
-- id: serial_number
-  zh: 流水号
-  en: SerialNumber
-  snake: serial_number
-  kind: value
-  bc: platform.numbering
-  definition: 编号中随单据递增的序号部分
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；编号规则页用语
-- id: start_serial_number
-  zh: 起始流水号
-  en: StartSerialNumber
-  snake: start_serial_number
-  kind: value
-  bc: platform.numbering
-  definition: 编号规则中流水号的起始值
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；编号规则页字段名
-- id: issue_number
-  zh: 发号
-  en: IssueNumber
-  snake: issue_number
-  kind: command
-  bc: platform.numbering
-  definition: 按编号规则为一张单据分配编号
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；编号规则确认提示用语
-- id: user_account
-  zh: 用户账号
-  en: UserAccount
-  snake: user_account
-  kind: entity
-  bc: platform.identity
-  definition: 一名员工在本系统的登录主体，可启用或停用
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；登录失败提示用语
 - id: portal
   zh: 门户
   en: Portal
   snake: portal
   kind: system
   bc: platform.identity
+  scope: domain
   definition: 公司门户，致远单点登录的入口
   standard_ref: []
   confidence: low
@@ -261,94 +104,3 @@ terms:
   forbidden: []
   status: proposed
   note: 扫描前端界面文案发现；登录页与错误提示用语
-- id: totp_code
-  zh: 动态口令
-  en: TotpCode
-  snake: totp_code
-  kind: value
-  bc: platform.identity
-  definition: 应急管理员登录时的一次性动态口令（TOTP）
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；应急登录页字段名
-- id: authorization
-  zh: 授权
-  en: Authorization
-  snake: authorization
-  kind: command
-  bc: platform.identity
-  definition: 向用户授予权限，或企业微信确认用户身份的授权
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；权限不足页与登录失败提示用语
-- id: reason
-  zh: 理由
-  en: Reason
-  snake: reason
-  kind: value
-  bc: platform.approval
-  definition: 审批人办理任务时填写的说明；驳回和退回必填
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；办理弹层字段名
-- id: business_check
-  zh: 业务校验
-  en: BusinessCheck
-  snake: business_check
-  kind: rule
-  bc: platform.approval
-  definition: 办理审批前由业务模块执行的校验，不通过则不能办理
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；办理失败提示用语
-- id: task_participant
-  zh: 参与人
-  en: TaskParticipant
-  snake: task_participant
-  kind: role
-  bc: platform.approval
-  definition: 审批任务的候选审批人或处理人
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；任务不存在提示用语
-- id: account_disabled
-  zh: 停用
-  en: AccountDisabled
-  snake: account_disabled
-  kind: state
-  bc: platform.identity
-  definition: 账号被管理员停用，停用后不能登录，已有会话随即失效
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；登录失败提示用语；与「已撤销」（组织单元）是两个不同状态
-- id: opinion
-  zh: 意见
-  en: Opinion
-  snake: opinion
-  kind: value
-  bc: platform.approval
-  definition: 办理人随办理结果留下的文字说明；通过时可以留空，留空如实保存为空，界面显示为「（未填写意见）」（RULE-280）
-  standard_ref: []
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 界面文案；输入框沿用「理由」，与 platform-approval 的 reason 指同一内容，第三轮用语确认时合并
