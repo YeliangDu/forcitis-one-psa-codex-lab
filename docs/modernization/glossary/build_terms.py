@@ -4,7 +4,7 @@
 Inputs : glossary/source_terms.json (parsed 03-通用语言.md, 385 terms)
          + the 38 core terms of GLOSSARY.md §2 (CORE below, legacy names copied from build_glossary.py)
          + the standards audit in this file (AUDIT / NEW) — see STANDARDS_AUDIT.md for the G-8.. proposals.
-         + 用户确认记录 glossary/decisions-*.json（按文件名排序全部读入并合并；各轮键前缀不同：第一轮 A- / B- / C-，第二轮 R2-，
+         + 用户确认记录 glossary/decisions-*.json（按文件名排序全部读入并合并；各轮键前缀不同：第一轮 A- / B- / C-，第二轮 R2-，第三轮 R3- 与 ACL 归类 ACL-，
            新一轮用新前缀并在下方加该轮的应用段），glossary/oa_aliases.json、r0_report_aliases.json、round2-proposals.yaml、round2-source/*.yaml
 Output : glossary/terms.yaml（不手改；build_all.py --check 重新生成并要求与已提交的一致）
 Run    : cd docs/modernization && python3 glossary/build_terms.py   （或 python3 docs/modernization/build_all.py）
@@ -579,7 +579,7 @@ for _f in sorted(glob.glob("glossary/decisions-*.json")):
         if _k in DECISIONS:
             raise SystemExit(f"{_f}: 确认记录键 {_k} 与前面的文件重复")
         DECISIONS[_k] = _v
-for _need in ("A-", "R2-"):
+for _need in ("A-", "R2-", "R3-", "ACL-"):
     if not any(k.startswith(_need) for k in DECISIONS):
         raise SystemExit(f"缺少键前缀为 {_need} 的确认记录（glossary/decisions-*.json）")
 DEC = DECISIONS
@@ -694,6 +694,14 @@ for _f in _round2_sources:
 sys.path.insert(0, "glossary/gate")
 import apply_gate
 print("gate: 新增正式词条", apply_gate.apply(terms))
+
+# 用语确认第三轮（重做，2026-10-15，固定确认页逐组提交，glossary/decisions-round3-2026-10-15.json）：R3- 换算规则在 glossary/round3/apply_round3.py，
+# ACL- 归类（使用范围 scope / acl_class、组织同步归集成层、定义去外部名）在 glossary/round3/apply_acl.py
+sys.path.insert(0, "glossary/round3")
+import apply_round3, apply_acl
+print("round3: 新增正式词条", apply_round3.apply(terms))
+_scoped, _unscoped = apply_acl.apply(terms, apply_round3.plan()["id_map"])
+print("acl: 写使用范围", _scoped, "条；尚无归类", len(_unscoped), "条（B1 补齐后必填）")
 
 out = collections.OrderedDict(meta=meta, terms=[dict(t) for t in terms], common_words=COMMON)
 
