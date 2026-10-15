@@ -1,0 +1,12 @@
+# /etc/systemd/system/forcitis-one-release-pull.timer（RELEASE.md R-7）
+[Unit]
+Description=FORCITIS one release pull, one minute after the previous run ended
+
+[Timer]
+OnBootSec=2min
+# Counted from the end of the previous run, so runs never overlap
+OnUnitInactiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
