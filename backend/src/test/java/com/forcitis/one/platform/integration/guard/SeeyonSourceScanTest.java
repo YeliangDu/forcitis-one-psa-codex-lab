@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -42,8 +43,13 @@ class SeeyonSourceScanTest {
     static final Pattern BARE_VIEW_LITERAL = Pattern.compile("^v_\\w+$");
 
     static List<String> registeredNames() throws IOException {
+        return registeredNames(ExternalReadRegister.rows());
+    }
+
+    /** Only the registered forcitis_one views are exempt: registering a dbo object never lets its forbidden name into src/main. */
+    static List<String> registeredNames(List<Row> rows) {
         List<String> names = new ArrayList<>(ENVIRONMENT_VARIABLES);
-        for (String object : ExternalReadRegister.objects(ExternalReadRegister.rows())) {
+        for (String object : ExternalReadRegister.objects(rows.stream().filter(Row::isView).toList())) {
             names.add(object);
             names.add(object.substring(object.indexOf('.') + 1));
         }
@@ -159,6 +165,18 @@ class SeeyonSourceScanTest {
         assertThat(hits).hasSize(4).allMatch(h -> h.contains("Bad.java"));
         assertThat(hits.stream().map(h -> h.toLowerCase(Locale.ROOT)).toList())
                 .anyMatch(h -> h.contains("a8_db")).anyMatch(h -> h.contains("lexmis")).anyMatch(h -> h.contains("t_u8c_")).anyMatch(h -> h.contains("formson_"));
+    }
+
+    @Test
+    @DisplayName("R-1b-0 禁用词豁免只限登记的 forcitis_one 视图：登记了含禁用词的 dbo 对象，其名字仍被报出")
+    void onlyRegisteredViewsAreExempt(@TempDir Path dir) throws IOException {
+        List<Row> rows = new ArrayList<>(ExternalReadRegister.rows());
+        rows.add(new Row(0, Map.<String, Object>of("database", ExternalReadRegister.A8, "object", "dbo.formmain_0051", "column", "ID",
+                "source", "dbo.formmain_0051.ID", "category", "TODO", "sensitivity", "INTERNAL", "purpose", "MIGRATION")));
+        Files.writeString(dir.resolve("Probe.java"), "String sql = \"SELECT ID FROM dbo.formmain_0051\";\nString v = \"SELECT ID FROM forcitis_one.v_org_unit\";\n");
+
+        assertThat(registeredNames(rows)).contains("forcitis_one.v_org_unit", "v_org_unit").doesNotContain("dbo.formmain_0051", "formmain_0051");
+        assertThat(violations(dir, registeredNames(rows))).singleElement().asString().contains("dbo.formmain_0051");
     }
 
     @Test
