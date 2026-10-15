@@ -15,7 +15,7 @@
 
 ## 合并
 - strict 串行队列：scratchpad 的 `mq_run2.sh`（常驻，队空等待，固定在仓库目录启动）读 `merge.queue`，`merge_pr.sh` 每个队首先取消其余在队 PR 的 CI → 同步 main（gh 无 workflow 权限时改本地合并经 ssh 推送）→ 等 CI（首次失败自动重跑一次）→ 合并；`CONFLICT<n>` 非生成文件退回作者，生成产物取一边后跑 `build_all.py`，推送前跑 precheck。
-- 核对：`pgrep -f mq_run2.sh`，不在就在仓库目录 `nohup <scratchpad>/mq_run2.sh >> mq.log &` 重启。
+- 核对：`pgrep -f mq_run2.sh`，不在就在仓库目录 `nohup /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/mq_run2.sh >> /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/mq.log 2>&1 &` 重启；队列文件 `/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/merge.queue`（/clear 后 scratchpad 路径可能变，仍用这个绝对路径）。会话内定时巡检（CronList）/clear 后须重设。
 - 暂缓：#96（ADR-0029）。队列外待重做：#196、#199（第三轮写回作废，见待用户）、#203（one-architecture PR-A，补「规划项来自老切法」标注后入队）。
 - 关键路径：#197 只读核实命令合并 → 通知 one-ops 出 rc.2 → C-14（用户已批准）→ 删 101；F-1 实现在 R-1b P5 后。
 - 每开一个 PR 立即关 Auto-fix（用户「不允许自动打开自动修复」）。
