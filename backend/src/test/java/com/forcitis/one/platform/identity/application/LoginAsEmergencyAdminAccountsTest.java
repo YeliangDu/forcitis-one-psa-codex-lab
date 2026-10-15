@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
  * looked the account number up as an employee would read that other person and let a separated administrator in.
  */
 class LoginAsEmergencyAdminAccountsTest {
-    static final UserId ACCOUNT = new UserId(6001);
+    static final UserId ACCOUNT = TestAccounts.account(1001);
     static final EmployeeId BOUND_EMPLOYEE = new EmployeeId(1001);
     static final EmployeeId EMPLOYEE_NUMBERED_LIKE_THE_ACCOUNT = new EmployeeId(6001);
     static final Instant NOW = Instant.parse("2026-10-14T02:00:00Z");
@@ -53,7 +53,7 @@ class LoginAsEmergencyAdminAccountsTest {
     final ClientOrigin origin = mock(ClientOrigin.class);
     final LoginAdmission admission = mock(LoginAdmission.class);
     final LoginAsEmergencyAdmin login = new LoginAsEmergencyAdmin(admins, accounts, hasher, vault, directory, origin,
-            new EmergencySettings(List.of("127.0.0.1/32"), 5, Duration.ofMinutes(15), ""), admission, TestAccounts.apart(5000),
+            new EmergencySettings(List.of("127.0.0.1/32"), 5, Duration.ofMinutes(15), ""), admission, () -> true,
             Clock.fixed(NOW, ZoneOffset.UTC));
 
     LoginAsEmergencyAdminAccountsTest() {
@@ -66,6 +66,7 @@ class LoginAsEmergencyAdminAccountsTest {
         when(vault.open("sealed")).thenReturn(SECRET);
         UserAccount account = mock(UserAccount.class);
         when(account.isEnabled()).thenReturn(true);
+        when(account.employeeId()).thenReturn(BOUND_EMPLOYEE);
         when(accounts.find(ACCOUNT)).thenReturn(Optional.of(account));
         Role superAdmin = mock(Role.class);
         when(superAdmin.isEnabled()).thenReturn(true);

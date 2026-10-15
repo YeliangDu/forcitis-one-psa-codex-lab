@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestIds;
@@ -105,16 +106,16 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
         String key = newKey("sequence");
         ApprovalTaskId task = openTaskId(start(key, initiator, manager));
         Random random = new Random(7);
-        UserId holder = new UserId(manager);
+        UserId holder = TestAccounts.account(manager);
         for (int step = 0; step < 30; step++) {
             try {
                 switch (random.nextInt(3)) {
                     case 0 -> claimTask.execute(task, holder, OptionalLong.empty());
                     case 1 -> releaseTask.execute(task, holder, OptionalLong.empty());
                     default -> {
-                        EmployeeId other = holder.value() == manager ? new EmployeeId(colleague) : new EmployeeId(manager);
+                        EmployeeId other = holder.equals(TestAccounts.account(manager)) ? new EmployeeId(colleague) : new EmployeeId(manager);
                         transferTask.execute(task, holder, other, "swap", OptionalLong.empty());
-                        holder = new UserId(other.value());
+                        holder = TestAccounts.account(other.value());
                     }
                 }
             } catch (RuntimeException illegal) {

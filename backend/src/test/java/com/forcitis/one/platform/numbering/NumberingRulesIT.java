@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -77,9 +78,9 @@ class NumberingRulesIT {
     static final String LEGACY = "/api/v1/platform/legacy-numbers";
     static final MigrationBatchId BATCH = new MigrationBatchId(TestIds.uuid(9001));
     static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
-    static final RequestPostProcessor READER = user("7").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ);
-    static final RequestPostProcessor LEGACY_READER = user("6").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ);
-    static final RequestPostProcessor UPDATER = user("9").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
+    static final RequestPostProcessor READER = user(TestAccounts.account(7).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ);
+    static final RequestPostProcessor LEGACY_READER = user(TestAccounts.account(6).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ);
+    static final RequestPostProcessor UPDATER = user(TestAccounts.account(9).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
 
     @Autowired
     MockMvc mvc;
@@ -150,7 +151,7 @@ class NumberingRulesIT {
         for (String path : new String[] {RULES, RULES + "/QUOTE"}) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized());
             mvc.perform(get(path).with(UPDATER)).andExpect(status().isForbidden());
-            mvc.perform(get(path).with(user("8").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))).andExpect(status().isForbidden());
+            mvc.perform(get(path).with(user(TestAccounts.account(8).value().toString()).authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))).andExpect(status().isForbidden());
         }
     }
 
@@ -256,7 +257,7 @@ class NumberingRulesIT {
                 .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"))
                 .andExpect(jsonPath("$.pending.templateVersion").value(2))
                 .andExpect(jsonPath("$.pending.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"))
-                .andExpect(jsonPath("$.pending.authorId").value("9"));
+                .andExpect(jsonPath("$.pending.authorId").value(TestAccounts.account(9).value().toString()));
         assertThatThrownBy(() -> issue(DocumentType.QUOTE, LE1, LocalDate.of(2027, 7, 1)))
                 .isInstanceOf(com.forcitis.one.kernel.DomainException.class).hasMessageContaining("no confirmed template");
     }

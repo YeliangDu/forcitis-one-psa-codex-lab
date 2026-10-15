@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -53,11 +54,11 @@ class AuditExportAndOwnRecordsIT {
 
     static final String OWN = "/api/v1/platform/own-login-records";
     static final String EXPORT = "/api/v1/platform/audit-entries:export";
-    static final RequestPostProcessor EMPLOYEE = user("1001").authorities(() -> Permission.Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ);
-    static final RequestPostProcessor ADMINISTRATOR = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE,
+    static final RequestPostProcessor EMPLOYEE = user(TestAccounts.account(1001).value().toString()).authorities(() -> Permission.Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ);
+    static final RequestPostProcessor ADMINISTRATOR = user(TestAccounts.account(9).value().toString()).authorities(() -> Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE,
             () -> Permission.Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ);
-    static final RequestPostProcessor AUDITOR_READING = user("7").authorities(() -> Permission.Codes.PLATFORM_AUDIT_ENTRY_READ);
-    static final RequestPostProcessor AUDITOR = user("8").authorities(() -> Permission.Codes.PLATFORM_AUDIT_ENTRY_EXPORT);
+    static final RequestPostProcessor AUDITOR_READING = user(TestAccounts.account(7).value().toString()).authorities(() -> Permission.Codes.PLATFORM_AUDIT_ENTRY_READ);
+    static final RequestPostProcessor AUDITOR = user(TestAccounts.account(8).value().toString()).authorities(() -> Permission.Codes.PLATFORM_AUDIT_ENTRY_EXPORT);
 
     @Autowired
     AuditLog audit;
@@ -82,19 +83,19 @@ class AuditExportAndOwnRecordsIT {
         jdbc.sql("delete from platform_audit.audit_entries").update();
         jdbc.sql("alter table platform_audit.audit_entries enable trigger audit_entries_reject_update_delete").update();
         jdbc.sql("alter table platform_audit.audit_entries enable trigger audit_entries_reject_truncate").update();
-        UserId employee = new UserId(1001);
-        UserId administrator = new UserId(9);
-        record(new AuditEntry("platform.identity.login.succeeded", employee, null, "user-account:1001", "method=WECOM_WORKBENCH address=10.0.0.5 agent=x")
+        UserId employee = TestAccounts.account(1001);
+        UserId administrator = TestAccounts.account(9);
+        record(new AuditEntry("platform.identity.login.succeeded", employee, null, "user-account:" + TestAccounts.account(1001).value(), "method=WECOM_WORKBENCH address=10.0.0.5 agent=x")
                 .withTrace("10.0.0.5", AuditOutcome.SUCCEEDED, "WECOM_WORKBENCH"));
-        record(new AuditEntry("platform.identity.login.failed", employee, null, "user-account:1001", "reason=secret-reason")
+        record(new AuditEntry("platform.identity.login.failed", employee, null, "user-account:" + TestAccounts.account(1001).value(), "reason=secret-reason")
                 .withTrace("10.0.0.6", AuditOutcome.FAILED, "WECOM_WORKBENCH"));
-        record(new AuditEntry("platform.identity.logout", employee, null, "user-account:1001", "logout by the user")
+        record(new AuditEntry("platform.identity.logout", employee, null, "user-account:" + TestAccounts.account(1001).value(), "logout by the user")
                 .withTrace("10.0.0.5", AuditOutcome.SUCCEEDED, "WECOM_WORKBENCH"));
-        record(new AuditEntry("platform.identity.session.revoked", administrator, null, "user-account:1001", "forced logout: lost phone")
+        record(new AuditEntry("platform.identity.session.revoked", administrator, null, "user-account:" + TestAccounts.account(1001).value(), "forced logout: lost phone")
                 .withTrace(null, AuditOutcome.SUCCEEDED, null));
-        record(new AuditEntry("platform.identity.session.revoked", administrator, null, "user-account:1002", "forced logout: other person")
+        record(new AuditEntry("platform.identity.session.revoked", administrator, null, "user-account:" + TestAccounts.account(1002).value(), "forced logout: other person")
                 .withTrace(null, AuditOutcome.SUCCEEDED, null));
-        record(new AuditEntry("platform.identity.account.roles.replaced", administrator, null, "user-account:1001", "roles changed"));
+        record(new AuditEntry("platform.identity.account.roles.replaced", administrator, null, "user-account:" + TestAccounts.account(1001).value(), "roles changed"));
         record(new AuditEntry("platform.identity.login.failed", null, null, "login:WECOM_WORKBENCH", "unknown person")
                 .withTrace("10.0.0.7", AuditOutcome.FAILED, "WECOM_WORKBENCH"));
     }
@@ -155,13 +156,13 @@ class AuditExportAndOwnRecordsIT {
         assertThat(lines[0]).startsWith("entryId,createdAt,action,actorId");
         assertThat(lines).hasSize(3);
         assertThat(jdbc.sql("select actor_id || '|' || detail from platform_audit.audit_entries where action = 'platform.audit.audit-entry.exported'")
-                .query(String.class).single()).startsWith("8|rows=2 filter=action=platform.identity.login.failed");
+                .query(String.class).single()).startsWith(TestAccounts.account(8).value() + "|rows=2 filter=action=platform.identity.login.failed");
     }
 
     @Test
     @DisplayName("a cell that a spreadsheet would run as a formula is neutralised")
     void csvInjectionIsNeutralised() throws Exception {
-        record(new AuditEntry("platform.test.formula", new UserId(8), null, "test:1", "=HYPERLINK(\"http://x\")"));
+        record(new AuditEntry("platform.test.formula", TestAccounts.account(8), null, "test:1", "=HYPERLINK(\"http://x\")"));
 
         String csv = mvc.perform(get(EXPORT).param("action", "platform.test.formula").with(AUDITOR)).andReturn().getResponse().getContentAsString();
 
@@ -171,10 +172,10 @@ class AuditExportAndOwnRecordsIT {
     @Test
     @DisplayName("B1-M9 a formula that starts with spaces or with a full-width trigger character is neutralised as well")
     void spacedAndFullWidthFormulasAreNeutralisedToo() throws Exception {
-        record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:1", " =cmd"));
-        record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:2", "\u3000+1"));
-        record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:3", "\uFF1Dcmd"));
-        record(new AuditEntry("platform.test.formula-wide", new UserId(8), null, "test:4", "plain text"));
+        record(new AuditEntry("platform.test.formula-wide", TestAccounts.account(8), null, "test:1", " =cmd"));
+        record(new AuditEntry("platform.test.formula-wide", TestAccounts.account(8), null, "test:2", "\u3000+1"));
+        record(new AuditEntry("platform.test.formula-wide", TestAccounts.account(8), null, "test:3", "\uFF1Dcmd"));
+        record(new AuditEntry("platform.test.formula-wide", TestAccounts.account(8), null, "test:4", "plain text"));
 
         String csv = mvc.perform(get(EXPORT).param("action", "platform.test.formula-wide").with(AUDITOR)).andReturn().getResponse().getContentAsString();
 

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.EmployeeId;
@@ -95,7 +96,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
         String key = newKey("older");
         start(key, initiator, manager);
-        tx.executeWithoutResult(s -> approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), new UserId(initiator), "again"));
+        tx.executeWithoutResult(s -> approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.account(initiator), "again"));
         start(key, initiator, manager);
         double before = meters.counter("forcitis.platform.approval.start.ignored").count();
 

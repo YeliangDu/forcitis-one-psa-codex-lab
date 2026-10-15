@@ -33,7 +33,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class SessionCurrentUserTest {
     static final Clock CLOCK = Clock.fixed(Instant.parse("2026-12-31T16:30:00Z"), ZoneOffset.UTC);
     final EmployeeLegalEntities employeeLegalEntities = mock(EmployeeLegalEntities.class);
-    final SessionCurrentUser currentUser = new SessionCurrentUser(employeeLegalEntities, TestAccounts.apart(5000),
+    final SessionCurrentUser currentUser = new SessionCurrentUser(employeeLegalEntities, TestAccounts.everyoneHasOne(),
             new BusinessZone(ZoneId.of("Asia/Shanghai")), CLOCK);
 
     @AfterEach
@@ -48,7 +48,7 @@ class SessionCurrentUserTest {
     @Test
     @DisplayName("B-1 the legal entity is the signed-in employee's on today's business day, cut in the business zone")
     void resolvedFromTheOrganisationOnTheBusinessDay() {
-        signIn("6001");
+        signIn(TestAccounts.account(1001).value().toString());
         when(employeeLegalEntities.on(new EmployeeId(1001), LocalDate.of(2027, 1, 1))).thenReturn(new LegalEntityId(TestIds.uuid(7)));
 
         assertThat(currentUser.legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(7)));
@@ -57,7 +57,7 @@ class SessionCurrentUserTest {
     @Test
     @DisplayName("B-1 when no legal entity can be resolved the failure reaches the caller; nothing is defaulted")
     void unresolvedFails() {
-        signIn("6001");
+        signIn(TestAccounts.account(1001).value().toString());
         DomainException unresolved = new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED,
                 ErrorKind.UNPROCESSABLE, "none");
         when(employeeLegalEntities.on(new EmployeeId(1001), LocalDate.of(2027, 1, 1))).thenThrow(unresolved);
@@ -68,9 +68,9 @@ class SessionCurrentUserTest {
     @Test
     @DisplayName("the signed-in person is the employee behind the account: the two ids are told apart, not read from one number")
     void employeeIsNotTheAccountNumber() {
-        signIn("6001");
+        signIn(TestAccounts.account(1001).value().toString());
 
-        assertThat(currentUser.userId()).isEqualTo(new UserId(6001));
+        assertThat(currentUser.userId()).isEqualTo(TestAccounts.account(1001));
         assertThat(currentUser.employeeId()).isEqualTo(new EmployeeId(1001));
     }
 

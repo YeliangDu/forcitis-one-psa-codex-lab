@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.attendance;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -108,7 +109,7 @@ class WorkCalendarIT {
     }
 
     static RequestPostProcessor caller(String... authorities) {
-        return user("9001").authorities(java.util.Arrays.stream(authorities).<GrantedAuthority>map(a -> () -> a).toList());
+        return user(TestAccounts.account(9001).value().toString()).authorities(java.util.Arrays.stream(authorities).<GrantedAuthority>map(a -> () -> a).toList());
     }
 
     static final RequestPostProcessor UPDATE = caller("organization.attendance:work-calendar:update", "organization.attendance:locked-day:update");
@@ -133,7 +134,7 @@ class WorkCalendarIT {
         assertThat(workCalendar.endOfWorkdayAfter(LocalDate.parse("2026-10-09"), 2, fst)).isEqualTo(Instant.parse("2026-10-13T16:00:00Z"));
         assertThat(events.stream(WorkCalendarYearMaintained.class)).singleElement().satisfies(e -> {
             assertThat(e.envelope().aggregateId()).isEqualTo("default:2026");
-            assertThat(e.envelope().actorId()).isEqualTo("9001");
+            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
             assertThat(e.envelope().correlationId()).isNotNull();
         });
     }
@@ -209,7 +210,7 @@ class WorkCalendarIT {
         clock.set(java.time.Instant.parse("2026-10-14T00:00:00Z"));
 
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
-                new org.springframework.security.authentication.TestingAuthenticationToken("9001", null, "organization.attendance:locked-day:update"));
+                new org.springframework.security.authentication.TestingAuthenticationToken(TestAccounts.account(9001).value().toString(), null, "organization.attendance:locked-day:update"));
         try (var acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "organization.attendance.test")) {
             maintainLocked.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of(new DayEntry(LocalDate.parse("2026-10-10"), "MAKE_UP_WORKDAY")),
                     com.forcitis.one.kernel.ExpectedVersion.of(1)));
@@ -227,7 +228,7 @@ class WorkCalendarIT {
         mvc.perform(put(CALENDARS + "/2026").header("If-Match", "\"0\"").with(UPDATE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(BODY_2026)).andExpect(status().isOk());
         clock.set(java.time.Instant.parse("2026-10-14T00:00:00Z"));
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
-                new org.springframework.security.authentication.TestingAuthenticationToken("9001", null, "organization.attendance:work-calendar:update"));
+                new org.springframework.security.authentication.TestingAuthenticationToken(TestAccounts.account(9001).value().toString(), null, "organization.attendance:work-calendar:update"));
         try {
             org.assertj.core.api.Assertions.assertThatThrownBy(() -> maintainLocked.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of(), com.forcitis.one.kernel.ExpectedVersion.of(1))))
                     .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);

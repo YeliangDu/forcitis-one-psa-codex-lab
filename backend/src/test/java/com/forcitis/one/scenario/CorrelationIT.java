@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
@@ -120,7 +121,7 @@ class CorrelationIT {
 
         void happen() {
             record((envelopes, version) -> new Thing(envelopes.wrap(new EventDraft("platform.eventing.Thing", 1, "Thing", "1", version, null, null,
-                    new EventSource(SourceSystem.ONE, null), List.of())), new UserId(1)));
+                    new EventSource(SourceSystem.ONE, null), List.of())), TestAccounts.account(1)));
         }
     }
 
@@ -183,14 +184,14 @@ class CorrelationIT {
         wecom.stubFor(post(urlPathEqualTo("/cgi-bin/message/send")).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\",\"response_code\":\"rc\"}")));
         UUID correlation = UUID.randomUUID();
 
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/probe/things").with(csrf()).with(user("9001")).header(WorkContext.HEADER, correlation.toString()))
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/probe/things").with(csrf()).with(user(TestAccounts.account(9001).value().toString())).header(WorkContext.HEADER, correlation.toString()))
                 .andExpect(status().isOk()).andExpect(header().string(WorkContext.HEADER, correlation.toString()));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(seen.events).hasSize(1));
         Thing thing = seen.events.getFirst();
         assertThat(thing.envelope().correlationId()).isEqualTo(correlation);
         assertThat(thing.envelope().actorType()).isEqualTo(ActorType.USER);
-        assertThat(thing.envelope().actorId()).isEqualTo("9001");
+        assertThat(thing.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
         assertThat(thing.envelope().causationId()).as("the request is the root").isNull();
         assertThat(thing.envelope().eventId().version()).isEqualTo(7);
 
@@ -216,7 +217,7 @@ class CorrelationIT {
     void generatedCorrelationId() throws Exception {
         int before = seen.events.size();
 
-        String generated = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/probe/things").with(csrf()).with(user("9001"))).andExpect(status().isOk())
+        String generated = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/probe/things").with(csrf()).with(user(TestAccounts.account(9001).value().toString()))).andExpect(status().isOk())
                 .andReturn().getResponse().getHeader(WorkContext.HEADER);
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(seen.events).hasSizeGreaterThan(before));

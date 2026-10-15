@@ -31,14 +31,14 @@ import org.junit.jupiter.api.Test;
  */
 class TransferTaskAccountsTest {
     static final EmployeeId INITIATOR = new EmployeeId(1001);
-    static final UserId HANDLER = new UserId(6002);
+    static final UserId HANDLER = TestAccounts.account(1002);
 
     final TaskGuard guard = mock(TaskGuard.class);
     final ApprovalEngine engine = mock(ApprovalEngine.class);
     final Approvals approvals = mock(Approvals.class);
     final ApprovalRequest request = mock(ApprovalRequest.class);
     final BusinessTime time = mock(BusinessTime.class);
-    final TransferTask transfer = new TransferTask(guard, engine, approvals, OpenTasks.employed(1001, 1002, 1003, 6001), time, TestAccounts.apart(5000));
+    final TransferTask transfer = new TransferTask(guard, engine, approvals, OpenTasks.employed(1001, 1002, 1003, 6001), time, TestAccounts.everyoneHasOne());
 
     TransferTaskAccountsTest() {
         TaskView task = OpenTasks.claimedBy(INITIATOR, HANDLER);
@@ -73,7 +73,7 @@ class TransferTaskAccountsTest {
     @DisplayName("the employee numbered like the initiator's account is another person and may take the task")
     void employeeNumberedLikeTheInitiatorsAccountMayTakeIt() {
         assertThatCode(() -> transferTo(6001)).doesNotThrowAnyException();
-        verify(engine).reassignTask(OpenTasks.TASK, new UserId(11001));
+        verify(engine).reassignTask(OpenTasks.TASK, TestAccounts.account(6001));
     }
 
     @Test
@@ -81,7 +81,7 @@ class TransferTaskAccountsTest {
     void targetGetsTheTaskAsItsAccount() {
         transferTo(1003);
 
-        verify(engine).reassignTask(OpenTasks.TASK, new UserId(6003));
-        verify(request).transferTask(eq(OpenTasks.TASK), eq(HANDLER), eq(new UserId(6003)), any(), any());
+        verify(engine).reassignTask(OpenTasks.TASK, TestAccounts.account(1003));
+        verify(request).transferTask(eq(OpenTasks.TASK), eq(HANDLER), eq(TestAccounts.account(1003)), any(), any());
     }
 }

@@ -33,14 +33,14 @@ import org.junit.jupiter.api.Test;
  * the employee numbered like the account (6001) is somebody else and may be changed.
  */
 class OwnAttributionGuardTest {
-    static final UserId ACTOR = new UserId(6001);
+    static final UserId ACTOR = TestAccounts.account(1001);
     static final EmployeeId ACTING_EMPLOYEE = new EmployeeId(1001);
     static final OrgUnitId OWN_UNIT = new OrgUnitId(5);
     static final OrgUnitId UNIT_ABOVE = new OrgUnitId(2);
 
     final OrgSnapshotQueries snapshot = mock(OrgSnapshotQueries.class);
     final AuditLog audit = mock(AuditLog.class);
-    final OwnAttributionGuard guard = new OwnAttributionGuard(snapshot, audit, TestAccounts.apart(5000));
+    final OwnAttributionGuard guard = new OwnAttributionGuard(snapshot, audit, TestAccounts.everyoneHasOne());
 
     OwnAttributionGuardTest() {
         Employee employee = new Employee(ACTING_EMPLOYEE, "E1001", "Actor", "actor", null, null, null, EmploymentStatus.EMPLOYED, false);

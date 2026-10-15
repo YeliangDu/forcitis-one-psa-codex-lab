@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
@@ -135,7 +136,7 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
         for (Long holder : roles.getOrDefault(roleCode.value(), Set.of())) {
             Person person = people.get(holder);
             if (person != null && person.employed()) {
-                holders.add(new UserId(holder));
+                holders.add(TestAccounts.account(holder));
             }
         }
         return holders;

@@ -1,5 +1,6 @@
 package com.forcitis.one;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -49,7 +50,7 @@ import org.springframework.asm.Type;
  *
  * <p>Method references are read too: viewer::equals and ids::contains are set against the type that the functional interface hands
  * them (the instantiated method type of the LambdaMetafactory call). A new id built from the raw value of another kind of id
- * (new UserId(employee.value())) is reported wherever it is, except in the classes that convert for a living (see the guard test).
+ * (TestAccounts.account(employee.value())) is reported wherever it is, except in the classes that convert for a living (see the guard test).
  *
  * <p>Equality that is not seen, by design of a scan that follows the operands only up to the comparison: the two raw values first
  * stored in long variables, Long.compare(a.value(), b.value()) == 0, String.valueOf(a.value()).equals(…), equality of containers

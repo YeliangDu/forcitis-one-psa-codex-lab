@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.eventing.infrastructure;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -7,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
@@ -54,7 +56,7 @@ class EventingTest {
 
     static CurrentUser signedIn(long id) {
         CurrentUser user = mock(CurrentUser.class);
-        when(user.userId()).thenReturn(new UserId(id));
+        when(user.userId()).thenReturn(TestAccounts.account(id));
         return user;
     }
 
@@ -80,18 +82,19 @@ class EventingTest {
     }
 
     @Test
-    @DisplayName("with a signed-in user the actor is USER and his id; inside a job or a handled event it is SYSTEM and the job or handler name")
+    @DisplayName("with a signed-in user the actor is USER and his id; inside a job or a handled event it is SYSTEM and the fixed UUID of the job or handler, which names it again (C5)")
     void actorIsTheUserOrTheJob() {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, null)) {
             EventEnvelope byUser = envelopes(signedIn(9001)).wrap(draft());
             assertThat(byUser.actorType()).isEqualTo(ActorType.USER);
-            assertThat(byUser.actorId()).isEqualTo("9001");
+            assertThat(byUser.actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
         }
         UUID cause = UUID.randomUUID();
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), cause, "organization.workforce.snapshot.sync")) {
             EventEnvelope byJob = envelopes(signedIn(9001)).wrap(draft());
             assertThat(byJob.actorType()).isEqualTo(ActorType.SYSTEM);
-            assertThat(byJob.actorId()).isEqualTo("organization.workforce.snapshot.sync");
+            assertThat(byJob.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.snapshot.sync").toString());
+            assertThat(SystemActors.nameOf(UUID.fromString(byJob.actorId()))).contains("organization.workforce.snapshot.sync");
             assertThat(byJob.causationId()).as("the handled event is the cause").isEqualTo(cause);
         }
     }

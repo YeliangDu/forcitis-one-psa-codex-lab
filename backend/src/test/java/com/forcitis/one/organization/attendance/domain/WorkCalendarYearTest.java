@@ -30,7 +30,7 @@ class WorkCalendarYearTest {
         EventDraft draft = CatalogueBusinessDates.check(unchecked);
         return new EventEnvelope(UUID.randomUUID(), draft.eventType(), draft.schemaVersion(),
                 Instant.EPOCH, draft.aggregateType(), draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null,
-                ActorType.SYSTEM, "test", draft.legalEntityId(), draft.businessDate(), draft.source(), null, draft.relatedAggregates());
+                ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test").toString(), draft.legalEntityId(), draft.businessDate(), draft.source(), null, draft.relatedAggregates());
     };
 
     static final LocalDate TODAY = LocalDate.parse("2026-01-01");

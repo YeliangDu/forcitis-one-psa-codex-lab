@@ -1,5 +1,6 @@
 package com.forcitis.one;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -154,7 +155,7 @@ class ApplicationIntegrationTest {
     @Test
     void writesWithoutACsrfTokenAreForbidden() throws Exception {
         mvc.perform(post(SUBMIT).contentType(MediaType.APPLICATION_JSON).content(BODY)).andExpect(status().isForbidden());
-        mvc.perform(post(SUBMIT).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
+        mvc.perform(post(SUBMIT).with(user(TestAccounts.account(1001).value().toString()).authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isForbidden());
     }
@@ -167,14 +168,14 @@ class ApplicationIntegrationTest {
 
     @Test
     void unsupportedApiVersionIsNotARoute() throws Exception {
-        mvc.perform(post("/api/v2/cost/timesheets/7:submit").with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
+        mvc.perform(post("/api/v2/cost/timesheets/7:submit").with(csrf()).with(user(TestAccounts.account(1001).value().toString()).authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void bareNumericVersionSegmentIsNotARoute() throws Exception {
-        mvc.perform(post("/api/1/cost/timesheets/7:submit").with(csrf()).with(user("1001").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
+        mvc.perform(post("/api/1/cost/timesheets/7:submit").with(csrf()).with(user(TestAccounts.account(1001).value().toString()).authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isNotFound());
     }
@@ -203,8 +204,8 @@ class ApplicationIntegrationTest {
     void seededNumberingRulesAreConfirmed() {
         jdbc.update("""
                 update platform_numbering.numbering_rule_versions
-                   set status = 'CONFIRMED', confirmed_by = 101, confirmed_at = now(),
-                       finance_confirmed_by = case when (select r.document_type from platform_numbering.numbering_rules r where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then 102 end,
+                   set status = 'CONFIRMED', confirmed_by = '01900000-0000-7000-8000-000000000101', confirmed_at = now(),
+                       finance_confirmed_by = case when (select r.document_type from platform_numbering.numbering_rules r where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then '01900000-0000-7000-8000-000000000102'::uuid end,
                        finance_confirmed_at = case when (select r.document_type from platform_numbering.numbering_rules r where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then now() end
                  where version_number = 1 and status = 'PENDING_CONFIRMATION'
                 """);
@@ -260,7 +261,7 @@ class ApplicationIntegrationTest {
 
     @Test
     void adminCanRedefineRulesButInvalidPatternsAreRejected() throws Exception {
-        var admin = user("9").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
+        var admin = user(TestAccounts.account(9).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin).header("If-Match", ruleVersion("JOURNAL_VOUCHER"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"JV-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isUnprocessableContent());
@@ -268,20 +269,20 @@ class ApplicationIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isOk()).andExpect(header().exists("ETag"));
         mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":2}")
-                        .with(user("10").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE)))
+                        .with(user(TestAccounts.account(10).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE)))
                 .andExpect(status().isOk());
         mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm-finance").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":2}")
-                        .with(user("11").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE)))
+                        .with(user(TestAccounts.account(11).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE)))
                 .andExpect(status().isOk());
         assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZFST-202611-00500");
-        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(user("8").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
+        mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(user(TestAccounts.account(8).value().toString()).authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void openApiSchemaNamesArePascalCaseAndJsonPropertiesAndParametersCamelCaseGlossaryWords() throws Exception {
-        String body = mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk())
+        String body = mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode doc = json.readTree(body);
         JsonNode schemas = doc.path("components").path("schemas");

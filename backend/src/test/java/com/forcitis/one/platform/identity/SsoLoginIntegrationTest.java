@@ -47,7 +47,7 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
         MvcResult result = redeem("T1");
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
-        assertThat(body(result).path("userId").asString()).isEqualTo("1001");
+        assertThat(body(result).path("userId").asString()).isEqualTo(accountOf(1001).toString());
         assertThat(cookie(result, "SESSION")).isNotBlank();
         verify(ssoVerifier).verify("T1");
         verify(orgDirectory).findEmployeeByLoginName("13800000000");

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
@@ -300,7 +301,7 @@ public abstract class ApprovalIntegrationSupport {
 
     protected void actAs(long user) {
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
-                org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(String.valueOf(user), "n/a", List.of()));
+                org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(TestAccounts.account(user).value().toString(), "n/a", List.of()));
     }
 
     @org.junit.jupiter.api.AfterEach
@@ -424,18 +425,24 @@ public abstract class ApprovalIntegrationSupport {
 
         @Bean
         @Primary
+        com.forcitis.one.kernel.AccountEmployees testAccounts() {
+            return TestAccounts.everyoneHasOne();
+        }
+
+        @Bean
+        @Primary
         CurrentUser administratorUnlessSignedIn() {
             return new CurrentUser() {
                 @Override
                 public UserId userId() {
                     var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-                    return authentication != null && authentication.isAuthenticated() ? new UserId(Long.parseLong(authentication.getName()))
-                            : new UserId(ADMINISTRATOR);
+                    return authentication != null && authentication.isAuthenticated() ? UserId.parse(authentication.getName())
+                            : TestAccounts.account(ADMINISTRATOR);
                 }
 
                 @Override
                 public EmployeeId employeeId() {
-                    return new EmployeeId(userId().value());
+                    return TestAccounts.everyoneHasOne().employeeOf(userId()).orElseThrow();
                 }
 
                 @Override

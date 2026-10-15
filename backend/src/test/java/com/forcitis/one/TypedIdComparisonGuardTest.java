@@ -34,8 +34,6 @@ class TypedIdComparisonGuardTest {
 
     /** Classes that may build one kind of id from the raw value of another; an entry that no longer builds anything fails, so it is removed. */
     private static final Map<String, String> MAY_BUILD_FROM_ANOTHER_ID = Map.of(
-            "com.forcitis.one.platform.identity.application.AccountEmployeeMapping", "AccountEmployees: the one conversion of account and employee",
-            "com.forcitis.one.platform.approval.infrastructure.replay.ExportedAccounts", "AccountEmployees of the offline replay",
             "com.forcitis.one.organization.workforce.domain.SourceTerms", "source ids to own ids; replaced by the source reference lookup in P3b",
             "com.forcitis.one.organization.workforce.infrastructure.external.ShortNameAdapter", "same, until P3b");
 

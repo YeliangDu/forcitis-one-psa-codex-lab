@@ -1,10 +1,12 @@
 package com.forcitis.one.platform.audit;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
@@ -77,7 +79,7 @@ class AuditDomainEventsIT {
     @DisplayName("a published domain event is audited with its type, subject, user and correlation id; a redelivery writes nothing twice")
     void auditsAnEventOnceByItsEventId() {
         UUID correlation = UUID.randomUUID();
-        LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "501", ActorType.USER, "9001", correlation),
+        LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "501", ActorType.USER, TestAccounts.account(9001).value().toString(), correlation),
                 new LegalEntityId(TestIds.uuid(501)), new LegalEntityCode("AUD"));
 
         tx.executeWithoutResult(status -> publisher.publishEvent(event));
@@ -87,16 +89,16 @@ class AuditDomainEventsIT {
 
         Map<String, Object> entry = entriesOf("LegalEntity:501").getFirst();
         assertThat(entry.get("action")).isEqualTo("organization.workforce.LegalEntityRegistered");
-        assertThat(entry.get("actor_id")).isEqualTo(9001L);
+        assertThat(entry.get("actor_id")).isEqualTo(TestAccounts.account(9001).value());
         assertThat(entry.get("event_id")).isEqualTo(event.envelope().eventId());
         assertThat(entry.get("correlation_id")).isEqualTo(correlation);
     }
 
     @Test
-    @DisplayName("a system actor is recorded in the detail, not as a user")
+    @DisplayName("a system actor is recorded in the detail by its job name (looked up from its fixed UUID, C5), not as a user")
     void systemActorsAreNamedInTheDetail() {
         LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "502", ActorType.SYSTEM,
-                "organization.workforce.snapshot.sync", UUID.randomUUID()), new LegalEntityId(TestIds.uuid(502)), new LegalEntityCode("SYS"));
+                SystemActors.idOf("organization.workforce.snapshot.sync").toString(), UUID.randomUUID()), new LegalEntityId(TestIds.uuid(502)), new LegalEntityCode("SYS"));
 
         tx.executeWithoutResult(status -> publisher.publishEvent(event));
 
@@ -109,9 +111,9 @@ class AuditDomainEventsIT {
     @Test
     @DisplayName("an event whose record says @NotAudited writes no entry, and its neighbour in the same minute still does")
     void notAuditedEventsAreSkipped() {
-        SyncRunSucceeded skipped = new SyncRunSucceeded(envelope("organization.workforce.SyncRunSucceeded", "601", ActorType.SYSTEM, "job", UUID.randomUUID()),
+        SyncRunSucceeded skipped = new SyncRunSucceeded(envelope("organization.workforce.SyncRunSucceeded", "601", ActorType.SYSTEM, SystemActors.idOf("job").toString(), UUID.randomUUID()),
                 new SyncRunId(TestIds.uuid(601)));
-        LegalEntityRegistered audited = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "603", ActorType.SYSTEM, "job", UUID.randomUUID()),
+        LegalEntityRegistered audited = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "603", ActorType.SYSTEM, SystemActors.idOf("job").toString(), UUID.randomUUID()),
                 new LegalEntityId(TestIds.uuid(603)), new LegalEntityCode("NEI"));
 
         tx.executeWithoutResult(status -> {
@@ -127,9 +129,9 @@ class AuditDomainEventsIT {
     @DisplayName("one handling leaves one audit entry per event it raised, all with its correlation id, however often the registry redelivers them")
     void oneHandlingLeavesOneEntryPerEvent() {
         UUID correlation = UUID.randomUUID();
-        LegalEntityRegistered first = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "701", ActorType.USER, "9001", correlation),
+        LegalEntityRegistered first = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "701", ActorType.USER, TestAccounts.account(9001).value().toString(), correlation),
                 new LegalEntityId(TestIds.uuid(701)), new LegalEntityCode("ONE"));
-        LegalEntityRegistered second = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "702", ActorType.USER, "9001", correlation),
+        LegalEntityRegistered second = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "702", ActorType.USER, TestAccounts.account(9001).value().toString(), correlation),
                 new LegalEntityId(TestIds.uuid(702)), new LegalEntityCode("TWO"));
 
         tx.executeWithoutResult(status -> {

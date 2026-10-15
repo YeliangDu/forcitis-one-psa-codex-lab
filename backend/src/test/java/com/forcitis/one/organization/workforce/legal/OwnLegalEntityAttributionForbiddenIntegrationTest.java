@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.legal;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
@@ -40,8 +41,20 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     static final String ORG_UNITS = "/api/v1/organization/org-unit-legal-entities/";
     static final String EMPLOYEES = "/api/v1/organization/employee-legal-entities/";
 
+    /** The signed-in maintainer is the account of the employee (R-1b P2): accounts and employees are told apart by the test double. */
     static RequestPostProcessor maintainer(String employeeId) {
-        return user(employeeId).authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
+        return user(TestAccounts.account(Long.parseLong(employeeId)).value().toString())
+                .authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
+    }
+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    com.forcitis.one.kernel.AccountEmployees accountEmployees;
+
+    @BeforeEach
+    void accountsOfTheTestDouble() {
+        TestAccounts accounts = TestAccounts.everyoneHasOne();
+        org.mockito.Mockito.when(accountEmployees.employeeOf(org.mockito.ArgumentMatchers.any())).thenAnswer(call -> accounts.employeeOf(call.getArgument(0)));
+        org.mockito.Mockito.when(accountEmployees.accountOf(org.mockito.ArgumentMatchers.any())).thenAnswer(call -> accounts.accountOf(call.getArgument(0)));
     }
 
     @Autowired
@@ -96,7 +109,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
 
         assertThat(count("legal_entity_attributions")).isZero();
         verify(audit).recordIndependently(argThat((AuditEntry entry) -> entry.action().equals("organization.workforce.legal-entity-attribution.refused")
-                && entry.actorId().value() == 1 && entry.subjectKey().equals("legal-entity-attribution:employee:1")));
+                && entry.actorId().equals(TestAccounts.account(1)) && entry.subjectKey().equals("legal-entity-attribution:employee:1")));
     }
 
     @Test
@@ -134,7 +147,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     private int correct(String url, String etag, String actor) throws Exception {
         String body = "{\"periodFrom\":\"" + zone.today(clock) + "\",\"effectiveTo\":\"" + zone.today(clock).plusDays(5) + "\",\"reason\":\"typed the wrong end day\"}";
         return mvc.perform(post(url + ":correct").header("If-Match", etag).with(csrf())
-                .with(user(actor).authorities(() -> "organization.workforce:legal-entity-attribution-correction:create"))
+                .with(user(TestAccounts.account(Long.parseLong(actor)).value().toString()).authorities(() -> "organization.workforce:legal-entity-attribution-correction:create"))
                 .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getStatus();
     }
 
@@ -152,6 +165,6 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
 
         assertThat(count("legal_entity_attribution_corrections")).isZero();
         verify(audit, atLeastOnce()).recordIndependently(argThat((AuditEntry entry) -> entry.action().equals("organization.workforce.legal-entity-attribution.refused")
-                && entry.actorId().value() == 1));
+                && entry.actorId().equals(TestAccounts.account(1))));
     }
 }

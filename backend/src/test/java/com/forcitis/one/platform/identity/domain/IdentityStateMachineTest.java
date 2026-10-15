@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.domain;
 
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.forcitis.one.platform.identity.domain.AccountStatus.DISABLED;
 import static com.forcitis.one.platform.identity.domain.AccountStatus.ENABLED;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,7 +32,7 @@ import org.junit.jupiter.api.Test;
 class IdentityStateMachineTest {
 
     static UserAccount account(AccountStatus status) {
-        return UserAccount.restore(new UserId(1001), status.name(), Set.of(), 5, 5);
+        return UserAccount.restore(TestAccounts.account(1001), new EmployeeId(1001), status.name(), Set.of(), 5, 5);
     }
 
     static Role role(RoleStatus status) {
@@ -97,7 +99,7 @@ class IdentityStateMachineTest {
                 e -> assertThat(e.roleIds()).containsExactly(new RoleId(TestIds.uuid(3)), new RoleId(TestIds.uuid(9))));
         assertThat(accountEvents).extracting(e -> e.envelope().aggregateVersion()).containsExactly(6L, 7L);
         assertThat(accountEvents.get(0).envelope().aggregateType()).isEqualTo("UserAccount");
-        assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo("1001");
+        assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo(TestAccounts.account(1001).value().toString());
         assertThat(accountEvents.get(0).envelope().legalEntityId()).isNull();
 
         UserAccount again = account(DISABLED);
@@ -121,7 +123,7 @@ class IdentityStateMachineTest {
     @Test
     @DisplayName("opening an account is enabled from the start, holds the given roles and announces AccountOpened")
     void opening() {
-        UserAccount opened = UserAccount.open(new UserId(2002), Set.of(new RoleId(TestIds.uuid(4)), new RoleId(TestIds.uuid(2))));
+        UserAccount opened = UserAccount.open(TestAccounts.account(2002), new EmployeeId(2002), Set.of(new RoleId(TestIds.uuid(4)), new RoleId(TestIds.uuid(2))));
 
         assertThat(opened.status()).isEqualTo(ENABLED);
         assertThat(opened.isStored()).isFalse();
@@ -134,7 +136,7 @@ class IdentityStateMachineTest {
     @Test
     @DisplayName("B1-M3 separating an account takes every role away and records the fact; an account without roles records nothing")
     void separationRecordsTheFact() {
-        UserAccount withRoles = UserAccount.restore(new UserId(1001), ENABLED.name(), Set.of(new RoleId(TestIds.uuid(3))), 5, 5);
+        UserAccount withRoles = UserAccount.restore(TestAccounts.account(1001), new EmployeeId(1001), ENABLED.name(), Set.of(new RoleId(TestIds.uuid(3))), 5, 5);
         withRoles.recordSeparation();
         assertThat(withRoles.roles()).isEmpty();
         assertThat(withRoles.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.getClass().getSimpleName())

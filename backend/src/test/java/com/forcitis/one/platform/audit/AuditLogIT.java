@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -52,7 +53,7 @@ class AuditLogIT {
             .withUrlParam("currentSchema", "platform_approval");
 
     static final String ENTRIES = "/api/v1/platform/audit-entries";
-    static final RequestPostProcessor READER = user("7").authorities(() -> Permission.Codes.PLATFORM_AUDIT_ENTRY_READ);
+    static final RequestPostProcessor READER = user(TestAccounts.account(7).value().toString()).authorities(() -> Permission.Codes.PLATFORM_AUDIT_ENTRY_READ);
 
     @Autowired
     tools.jackson.databind.json.JsonMapper json;
@@ -82,7 +83,7 @@ class AuditLogIT {
         jdbc.sql("""
                 insert into platform_audit.audit_entries (id, created_at, updated_at, action, actor_id, subject_key, detail)
                 values (uuidv7(), cast(:at as timestamptz), cast(:at as timestamptz), :action, :actor, :subject, 'synthetic')
-                """).param("at", createdAt).param("action", action).param("actor", actor, java.sql.Types.BIGINT).param("subject", subjectKey).update();
+                """).param("at", createdAt).param("action", action).param("actor", actor == null ? null : TestAccounts.account(actor).value(), java.sql.Types.OTHER).param("subject", subjectKey).update();
     }
 
     @Test
@@ -91,9 +92,9 @@ class AuditLogIT {
         String committed = unique("subject");
         String rolledBack = unique("subject");
 
-        tx.executeWithoutResult(s -> audit.record(new AuditEntry("platform.audit.test.recorded", new UserId(5), null, committed, "kept")));
+        tx.executeWithoutResult(s -> audit.record(new AuditEntry("platform.audit.test.recorded", TestAccounts.account(5), null, committed, "kept")));
         tx.executeWithoutResult(s -> {
-            audit.record(new AuditEntry("platform.audit.test.recorded", new UserId(5), null, rolledBack, "gone"));
+            audit.record(new AuditEntry("platform.audit.test.recorded", TestAccounts.account(5), null, rolledBack, "gone"));
             s.setRollbackOnly();
         });
 
@@ -128,7 +129,7 @@ class AuditLogIT {
     @DisplayName("G34 the table is append-only: UPDATE, DELETE and TRUNCATE are refused by the database")
     void tableRefusesChanges() {
         String subject = unique("subject");
-        tx.executeWithoutResult(s -> audit.record(new AuditEntry("platform.audit.test.recorded", new UserId(5), null, subject, "original")));
+        tx.executeWithoutResult(s -> audit.record(new AuditEntry("platform.audit.test.recorded", TestAccounts.account(5), null, subject, "original")));
 
         assertThatThrownBy(() -> jdbc.sql("update platform_audit.audit_entries set detail = 'changed' where subject_key = :s").param("s", subject).update())
                 .isInstanceOf(DataAccessException.class).hasMessageContaining("append-only");
@@ -158,11 +159,11 @@ class AuditLogIT {
                 .andExpect(jsonPath("$.items.length()").value(4))
                 .andExpect(jsonPath("$.items[0].createdAt").value("2026-01-04T08:00:00Z"))
                 .andExpect(jsonPath("$.items[0].actorId").doesNotExist())
-                .andExpect(jsonPath("$.items[3].actorId").value("41"))
+                .andExpect(jsonPath("$.items[3].actorId").value(TestAccounts.account(41).value().toString()))
                 .andExpect(jsonPath("$.items[3].subjectKey").value(subject));
-        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("actorId", "41").with(READER))
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("actorId", TestAccounts.account(41).value().toString()).with(READER))
                 .andExpect(jsonPath("$.items.length()").value(3));
-        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("actorId", "42").with(READER))
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("action", action).param("actorId", TestAccounts.account(42).value().toString()).with(READER))
                 .andExpect(jsonPath("$.items.length()").value(1));
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("from", "2026-01-02T00:00:00Z").param("to", "2026-01-04T00:00:00Z").with(READER))
                 .andExpect(jsonPath("$.items.length()").value(2))
@@ -185,12 +186,12 @@ class AuditLogIT {
     @DisplayName("a recorded entry is found by its subject key with the actor and the proxied person")
     void recordedEntryIsSearchable() throws Exception {
         String subject = unique("subject");
-        tx.executeWithoutResult(s -> audit.record(new AuditEntry("platform.audit.test.recorded", new UserId(51), new UserId(52), subject, "by proxy")));
+        tx.executeWithoutResult(s -> audit.record(new AuditEntry("platform.audit.test.recorded", TestAccounts.account(51), TestAccounts.account(52), subject, "by proxy")));
 
         mvc.perform(get(ENTRIES).param("subjectKey", subject).with(READER))
                 .andExpect(jsonPath("$.items[0].action").value("platform.audit.test.recorded"))
-                .andExpect(jsonPath("$.items[0].actorId").value("51"))
-                .andExpect(jsonPath("$.items[0].onBehalfOfId").value("52"))
+                .andExpect(jsonPath("$.items[0].actorId").value(TestAccounts.account(51).value().toString()))
+                .andExpect(jsonPath("$.items[0].onBehalfOfId").value(TestAccounts.account(52).value().toString()))
                 .andExpect(jsonPath("$.items[0].detail").value("by proxy"));
     }
 
@@ -198,7 +199,7 @@ class AuditLogIT {
     @DisplayName("searching needs audit-entry:read; anonymous callers get 401 and other permissions 403")
     void searchNeedsThePermission() throws Exception {
         mvc.perform(get(ENTRIES)).andExpect(status().isUnauthorized());
-        mvc.perform(get(ENTRIES).with(user("8").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ))).andExpect(status().isForbidden());
+        mvc.perform(get(ENTRIES).with(user(TestAccounts.account(8).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ))).andExpect(status().isForbidden());
         mvc.perform(get(ENTRIES).with(READER)).andExpect(status().isOk());
     }
 
@@ -219,15 +220,15 @@ class AuditLogIT {
         String subject = unique("subject");
         String prefix = unique("platform.audit.trace");
         tx.executeWithoutResult(s -> {
-            audit.record(new AuditEntry(prefix + ".changed", new UserId(61), new UserId(62), subject, "d")
+            audit.record(new AuditEntry(prefix + ".changed", TestAccounts.account(61), TestAccounts.account(62), subject, "d")
                     .withTrace("10.1.2.3", com.forcitis.one.platform.audit.api.AuditOutcome.SUCCEEDED, "SSO").withChange("quarterly review", "ACTIVE", "INACTIVE"));
-            audit.record(new AuditEntry(prefix + ".refused", new UserId(61), null, subject, "d")
+            audit.record(new AuditEntry(prefix + ".refused", TestAccounts.account(61), null, subject, "d")
                     .withTrace("10.9.9.9", com.forcitis.one.platform.audit.api.AuditOutcome.FAILED, null));
         });
 
         mvc.perform(get(ENTRIES).param("subjectKey", subject).param("actionPrefix", prefix).with(READER))
                 .andExpect(jsonPath("$.items.length()").value(2));
-        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("onBehalfOfId", "62").with(READER))
+        mvc.perform(get(ENTRIES).param("subjectKey", subject).param("onBehalfOfId", TestAccounts.account(62).value().toString()).with(READER))
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].sourceAddress").value("10.1.2.3"))
                 .andExpect(jsonPath("$.items[0].outcome").value("SUCCEEDED"))
@@ -250,7 +251,7 @@ class AuditLogIT {
         mvc.perform(get(ENTRIES).param("subjectKey", subject).with(READER)).andExpect(status().isOk());
 
         assertThat(jdbc.sql("select actor_id || '|' || detail from platform_audit.audit_entries where action = 'platform.audit.audit-entry.searched' and detail like :d")
-                .param("d", "%subjectKey=" + subject + "%").query(String.class).single()).startsWith("7|returned=0 filter=subjectKey=" + subject);
+                .param("d", "%subjectKey=" + subject + "%").query(String.class).single()).startsWith(TestAccounts.account(7).value() + "|returned=0 filter=subjectKey=" + subject);
     }
 
     @Test

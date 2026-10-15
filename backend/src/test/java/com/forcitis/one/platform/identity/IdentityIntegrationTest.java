@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -149,6 +150,10 @@ public abstract class IdentityIntegrationTest {
     @MockitoBean
     protected SsoTicketVerifier ssoVerifier;
 
+    /** Not current unless a test says so: the employment check of the emergency login then lets the login through (ADR-0027 1.3). */
+    @MockitoBean
+    protected com.forcitis.one.kernel.OrgSnapshotStatus orgSnapshot;
+
     @Autowired
     protected MockMvc mvc;
 
@@ -208,19 +213,32 @@ public abstract class IdentityIntegrationTest {
     }
 
     protected void createAccount(long id, String... roleCodes) {
-        jdbc.sql("insert into platform_identity.user_accounts (user_id) values (:id) on conflict do nothing").param("id", id).update();
+        jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (:user, :employee) on conflict do nothing")
+                .param("user", TestAccounts.account(id).value()).param("employee", id).update();
         for (String code : roleCodes) {
             jdbc.sql("""
                             insert into platform_identity.account_roles (user_id, role_id)
-                            select :id, role_id from platform_identity.roles where lower(code) = lower(:code)
+                            select a.user_id, r.role_id from platform_identity.user_accounts a, platform_identity.roles r
+                             where a.employee_id = :employee and lower(r.code) = lower(:code)
                             on conflict do nothing
                             """)
-                    .param("id", id).param("code", code).update();
+                    .param("employee", id).param("code", code).update();
         }
     }
 
+    /** The account of employee id, whether the test opened it or a login did. */
+    protected java.util.UUID accountOf(long id) {
+        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", id).query(java.util.UUID.class).single();
+    }
+
+    /** The account of employee id, or the id the test double would give it when it has none (a path to nobody). */
+    protected java.util.UUID accountOrNone(long id) {
+        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", id).query(java.util.UUID.class)
+                .optional().orElse(TestAccounts.account(id).value());
+    }
+
     protected String accountVersion(long id) {
-        return "\"" + jdbc.sql("select version from platform_identity.user_accounts where user_id = :id").param("id", id).query(Long.class).optional().orElse(0L) + "\"";
+        return "\"" + jdbc.sql("select version from platform_identity.user_accounts where employee_id = :id").param("id", id).query(Long.class).optional().orElse(0L) + "\"";
     }
 
     protected String roleVersion(java.util.UUID roleId) {
@@ -322,7 +340,7 @@ public abstract class IdentityIntegrationTest {
         createAccount(userId, "super_admin");
         byte[] secret = com.forcitis.one.platform.identity.domain.Totp.newSecret();
         String password = "Aa1!" + UUID.randomUUID();
-        emergencyAdmins.insertIfAbsent(com.forcitis.one.platform.identity.domain.EmergencyAdmin.register(new UserId(userId), "breakglass-" + userId,
+        emergencyAdmins.insertIfAbsent(com.forcitis.one.platform.identity.domain.EmergencyAdmin.register(new com.forcitis.one.kernel.UserId(accountOf(userId)), "breakglass-" + userId,
                 hasher.hash(password), vault.seal(secret)));
         MvcResult login = mvc.perform(post("/api/v1/platform/sessions:emergency-login").with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(
                 "{\"loginName\":\"breakglass-" + userId + "\",\"password\":\"" + password + "\",\"totpCode\":\""

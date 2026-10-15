@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -60,7 +61,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     }
 
     void approve(long actor, ApprovalInstanceId instance, String node) {
-        decideTasks.execute(new UserId(actor), List.of(new TaskDecision(openTaskId(instance, node), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(actor), List.of(new TaskDecision(openTaskId(instance, node), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
     }
 
     @Test
@@ -114,7 +115,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = start(key, s, List.of(String.valueOf(s.regionalHead())), TimesheetRoutingFlag.PROJECT_HOURS,
                 TimesheetRoutingFlag.OVERHEAD_HOURS);
 
-        decideTasks.execute(new UserId(s.supervisor()),
+        decideTasks.execute(TestAccounts.account(s.supervisor()),
                 List.of(new TaskDecision(openTaskId(instance, "supervisorReview"), DecisionOutcome.REJECT, "wrong hours")), java.util.OptionalLong.empty());
 
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
