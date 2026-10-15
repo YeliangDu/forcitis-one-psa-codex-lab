@@ -70,7 +70,7 @@ public abstract class WorkforceIntegrationSupport {
 
     @BeforeEach
     protected void actAsTheTestJob() {
-        acting = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test");
+        acting = WorkContext.enter(UUID.randomUUID(), null, "test.organization.workforce");
     }
 
     @AfterEach

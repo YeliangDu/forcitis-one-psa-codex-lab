@@ -212,7 +212,7 @@ class WorkCalendarIT {
 
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
                 new org.springframework.security.authentication.TestingAuthenticationToken(TestAccounts.account(9001).value().toString(), null, "organization.attendance:locked-day:update"));
-        try (var acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "organization.attendance.test")) {
+        try (var acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "test.organization.attendance")) {
             maintainLocked.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of(new DayEntry(LocalDate.parse("2026-10-10"), "MAKE_UP_WORKDAY")),
                     com.forcitis.one.kernel.ExpectedVersion.of(1)));
         }

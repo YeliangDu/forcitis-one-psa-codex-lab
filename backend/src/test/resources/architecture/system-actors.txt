@@ -1,14 +1,20 @@
 # 只在测试类路径上的系统操作主体（测试与验收测试里用到的作业名），格式同 backend/architecture/system-actors.txt；生产 jar 不含本文件。
+# 名字以 test. 或 acceptance. 开头（SystemActorCatalogueTest，P2 复核 L-2）；标明「测试代理改名后删除」的三行是验收目录里的旧名，暂留。
 acceptance.timesheet-submission | dec82003-4b26-55d7-8282-3885350117d5 | acceptance | 验收测试 ApprovalAccountsIT 模拟工时单提交
-job | f49f0a6f-5f77-555e-bca5-453bb978476d | test | 测试用作业
-test | a5663648-f345-57b2-a98e-c53a1b5ab734 | test | 测试用信封
-login.race.test | d2b255e2-db86-5648-b674-c07b4c23bf41 | test | 登录并发测试
-numbering.race.test | d99fa459-6046-5713-91ed-2b8ce4eba716 | test | 编号并发测试
-organization.attendance.test | 63e54b0c-16ba-53b3-a397-6a24d9f25281 | test | 考勤测试
-organization.workforce.smoke | a33010ab-01b7-5d69-8d39-b75bf8551eba | test | 组织人事冒烟测试
-organization.workforce.sync | 1c6c2c03-091f-538e-9309-5e84455140e5 | test | 组织同步测试
-organization.workforce.test | 38c70be6-b4ca-59c8-aa2a-1d2e259cb60e | test | 组织人事测试
-platform.integration.outbound | 4a338a57-629d-5989-99fd-b6104e7a5734 | test | 外发投递测试
-platform.eventing.probe.job | 9539a37d-8386-5f0b-96e7-836d2c5b749c | test | 事件单元的作业探针（EventingTest）
+test.envelope | 8d7f0348-3096-5575-8de6-06263bcb2164 | test | 单元测试的事件信封（TestEnvelopes 等）
+test.job | c5139682-81fa-5ca1-a0e8-fb8bfadfdfe9 | test | 测试用作业（EventingTest）
+test.inner | 203f0bf6-5271-5c30-91c4-562f96d24435 | test | EventingTest 嵌套作用域的内层
+test.outer | 1d30a97f-7e3d-52b5-80d6-66c2cef004a4 | test | EventingTest 嵌套作用域的外层
+test.login.race | d406b1bd-f340-5f8f-89b7-4f6304310a0f | test | 登录并发测试
+test.numbering.race | 8887849e-63ac-5a02-bf22-36c06601cfd5 | test | 编号并发测试
+test.organization.attendance | 522b9961-8d7b-5605-b245-11fac73c1a4b | test | 考勤测试
+test.organization.workforce | 8977f64d-bb4e-5345-ac4d-800bfdda7972 | test | 组织人事测试
+test.organization.workforce.smoke | be2e39cf-6b4a-56e6-8f3c-2a75e2f49346 | test | 组织人事冒烟测试
+test.eventing.probe.job | 4842b910-85f0-5ddd-b000-e1c3466e7d63 | test | 事件单元的作业探针（EventingTest）
+test.scheduling.breaks | d0088145-6309-5e72-b859-387e808ac7e5 | test | ScheduledJobMetricsTest 中失败的作业
+test.scheduling.works | 477b751d-f6be-5cff-81d3-bc40557c8440 | test | ScheduledJobMetricsTest 中成功的作业
 test.flaky-listener | 18d52d1e-0c79-5e77-a337-50297f12fbed | test | 审批测试中首投失败的监听器
 test.correlation.probe | c0c9a9ad-8b8b-5ddf-b804-f2f1dd408d7a | test | CorrelationIT 的探针监听器
+organization.workforce.sync | 1c6c2c03-091f-538e-9309-5e84455140e5 | test | 验收测试仍在用（AccountEntriesConcurrencyIT、SourceReference*IT），测试代理改名后删除（P2 复核 L-2）
+organization.workforce.test | 38c70be6-b4ca-59c8-aa2a-1d2e259cb60e | test | 验收测试仍在用（ReadOnlyAccountCheckIT、StalledExternalSourceIT），测试代理改名后删除（P2 复核 L-2）
+platform.integration.outbound | 4a338a57-629d-5989-99fd-b6104e7a5734 | test | 验收测试仍在用（SourceReferenceHttpSupport），测试代理改名后删除（P2 复核 L-2）

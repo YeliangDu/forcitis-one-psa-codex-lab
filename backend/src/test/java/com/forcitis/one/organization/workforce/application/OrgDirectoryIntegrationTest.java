@@ -82,7 +82,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         List<java.util.concurrent.Future<Optional<?>>> results = new java.util.ArrayList<>();
         for (int i = 0; i < callers; i++) {
             results.add(pool.submit(() -> {
-                try (com.forcitis.one.kernel.WorkContext.Scope acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "login.race.test")) {
+                try (com.forcitis.one.kernel.WorkContext.Scope acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "test.login.race")) {
                     start.await();
                     return registerOnLogin.execute(new WecomUserId("wx-new-hire"));
                 }

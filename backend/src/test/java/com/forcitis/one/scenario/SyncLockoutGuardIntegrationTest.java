@@ -109,7 +109,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
 
     private SyncResult syncWith(List<SourcePerson> people) {
         when(orgSource.readSnapshot()).thenReturn(source(List.of(unit(1, null), unit(2, 1L)), List.of(head(2, 1)), List.of(post(100)), people));
-        try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test")) {
+        try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "test.organization.workforce")) {
             return sync.execute(SyncTrigger.SCHEDULED, false);
         }
     }

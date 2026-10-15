@@ -340,7 +340,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             Callable<SyncResult> run = () -> {
-                try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test")) {
+                try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "test.organization.workforce")) {
                     return sync.execute(SyncTrigger.SCHEDULED, false);
                 }
             };

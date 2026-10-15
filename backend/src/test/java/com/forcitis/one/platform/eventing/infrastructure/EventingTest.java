@@ -112,11 +112,11 @@ class EventingTest {
     @DisplayName("outside any request or job a correlation id is generated for the event, and nothing leaks into the thread afterwards")
     void correlationIdIsGeneratedWhenThereIsNone() {
         EventEnvelope envelope;
-        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "test")) {
+        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "test.envelope")) {
             WorkContext.correlationId();
         }
         assertThat(WorkContext.correlationId()).isEmpty();
-        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "job")) {
+        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "test.job")) {
             envelope = envelopes(null).wrap(draft());
         }
         assertThat(envelope.correlationId()).isNotNull();
@@ -130,13 +130,13 @@ class EventingTest {
     void scopesNest() {
         UUID outer = UUID.randomUUID();
         UUID inner = UUID.randomUUID();
-        try (WorkContext.Scope a = WorkContext.enter(outer, null, "outer")) {
-            try (WorkContext.Scope b = WorkContext.enter(inner, UUID.randomUUID(), "inner")) {
+        try (WorkContext.Scope a = WorkContext.enter(outer, null, "test.outer")) {
+            try (WorkContext.Scope b = WorkContext.enter(inner, UUID.randomUUID(), "test.inner")) {
                 assertThat(WorkContext.correlationId()).contains(inner);
-                assertThat(WorkContext.systemActor()).contains("inner");
+                assertThat(WorkContext.systemActor()).contains("test.inner");
             }
             assertThat(WorkContext.correlationId()).contains(outer);
-            assertThat(WorkContext.systemActor()).contains("outer");
+            assertThat(WorkContext.systemActor()).contains("test.outer");
             assertThat(WorkContext.causationId()).isEmpty();
         }
     }
@@ -146,7 +146,7 @@ class EventingTest {
         public UUID seenCorrelation;
 
         @Scheduled(fixedDelay = 1000)
-        @SchedulerLock(name = "platform.eventing.probe.job")
+        @SchedulerLock(name = "test.eventing.probe.job")
         public void run() {
             seenActor = WorkContext.systemActor().orElse(null);
             seenCorrelation = WorkContext.correlationId().orElse(null);
@@ -163,7 +163,7 @@ class EventingTest {
 
         proxy.run();
 
-        assertThat(target.seenActor).isEqualTo("platform.eventing.probe.job");
+        assertThat(target.seenActor).isEqualTo("test.eventing.probe.job");
         assertThat(target.seenCorrelation).isNotNull();
         assertThat(WorkContext.correlationId()).isEmpty();
     }

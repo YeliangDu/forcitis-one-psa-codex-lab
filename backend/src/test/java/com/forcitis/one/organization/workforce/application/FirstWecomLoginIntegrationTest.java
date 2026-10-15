@@ -10,8 +10,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
+import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -34,6 +38,9 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
 
     @Autowired
     JsonMapper json;
+
+    @Autowired
+    ApplicationEvents events;
 
     private static MockHttpServletRequestBuilder withXsrf(MockHttpServletRequestBuilder request) {
         return request.cookie(new Cookie("XSRF-TOKEN", "test-xsrf-token")).header("X-XSRF-TOKEN", "test-xsrf-token");
@@ -60,5 +67,9 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(login.getResponse().getStatus()).as(login.getResponse().getContentAsString()).isEqualTo(200);
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = 3001").query(Integer.class).single()).isEqualTo(1);
         assertThat(jdbc.sql("select count(*) from platform_identity.user_accounts where employee_id = 3001").query(Integer.class).single()).isEqualTo(1);
+        assertThat(events.stream(EmployeeRegistered.class).map(EmployeeRegistered::envelope)).singleElement().satisfies(envelope -> {
+            assertThat(envelope.actorType()).isEqualTo(ActorType.SYSTEM);
+            assertThat(envelope.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.login-registration").toString());
+        });
     }
 }
