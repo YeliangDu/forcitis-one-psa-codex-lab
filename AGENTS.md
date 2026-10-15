@@ -9,3 +9,4 @@ Codex 在本仓库只接受 one-coordinator 或负责会话派出的工作卡（
 - 用语以 `docs/modernization/glossary/terms.yaml` 为准；新词先登记提议术语。
 - 交付前运行 `scripts/precheck.sh`，把输出附在结果里。
 - 结果里分开写「已验证」与「未运行」。
+- 结果与报告用中文书写（用户要求，见 CLAUDE.md 第 0 条）。
