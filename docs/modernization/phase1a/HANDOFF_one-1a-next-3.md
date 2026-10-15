@@ -22,11 +22,11 @@
 
 ## 3. 在途（分支均在 origin，均未开 PR）
 
-### 3.1 R-1b P3b 员工、部门、岗位改 UUID — `claude/one-1a-next-3-r1b-p3b` @2d4e68b0（基于 main a789646f，已强推 rebase 结果）
+### 3.1 R-1b P3b 员工、部门、岗位改 UUID — `claude/one-1a-next-3-r1b-p3b` @453feb26（基于 main a789646f，已强推 rebase 结果）
 
 - **实现与验收已完成**：验收（测试代理 opus，RULING-P3B-1..12）与实现（opus，按模块分提交）均在分支上；rebase 后全量 `backend_verify.sh` surefire 1121 / 0 失败、failsafe 574 / 0 失败，`legacy_it.sh` 7/7，`pnpm verify` 9/9，precheck 14 PASS / 0 FAIL / 3 SKIP（assertion drift 一条警告 = `TaskPolicyTest` 删除，已在集成层 `InboxMergerTest` 重建）。表结构 diff 只含卡第 7 节声明项（`p3b-schema-diff.txt`）。rebase 后首次全量 `TimesheetOwnerAccountsIT` 偶发一次会话 401（重跑通过），疑与 #228 同源（Moments 使测试上下文定时作业全开）。
 - **裁定要点**（卡第 13、14 节）：P3B-8 OrgSource 两个登录查人方法合并为 `findStaffByLogin(StaffLookup)`，集成层 api 守在 12；**P3B-9 已改判**——原裁定「不新增 kernel 端口、经 A8 来源查」被推翻（命令要快照里已同步的员工，来源语义错、dev 恒为无人、验收必红、集成层依赖 workforce 会成环；one-architecture 提的方案 3 因 api 上限、取值两套、验收改写、C1 返工不采用），新裁定保留 kernel 端口 `ExternalSubjectEmployees`（`withExternalLoginName(String)` / `withMessagingAccountId(String)`，入参中性，`module-dependencies.txt` 登记，**到期：C1 落地后按身份模型删除或改形，DA-3 时复核**，one-coordinator 同意、告 one-architecture 与用户）；P3B-10 老待办配置键改 `forcitis.platform.integration.legacy.inbox.*`，旧键兼容已删，INFRA_RUNBOOK 与 one.env.template 已改（卡外文档已转 one-ops，排 C-14 后）；只读命令 `find-accounts-by-external-subject`（集成层，`--provider-kind=SEEYON_LOGIN_NAME|WECOM_USER_ID --external-subject=…`，退出码 0 / 1 / 2，只读）已写入 INFRA_RUNBOOK §6 与 C-5 剧本，请 one-ops 核对。
-- **在途**：opus 复审已派（结论待回，可能交接后才到——下一会话以 `SendMessage` 无法续接该子代理，请据 PR 状态重派或读其结果）；提议术语 `messaging_account` 已问 one-glossary（中文名与其定的「即时通讯账号标识」是否一致）。
+- **在途**：opus 复审已派（结论待回，可能交接后才到——下一会话以 `SendMessage` 无法续接该子代理，请据 PR 状态重派或读其结果）；提议术语已按 one-glossary 核定（`messaging_account` 即时通讯账号、新增配对 `external_login_name` 外部登录名，均 value_object、scope kernel，@453feb26）。
 - **之后**：Blocker / High 修复与 opus 复核 → **等 R-1b-0a 合并后 rebase**（解冲突由 P3b 负责，验收断言不得因解冲突改动）、补 R-1b-0 C-5「老系统两视图读取列登记与 SQL 常量一致」检查、重跑全量 + legacy-it → 开 PR → 关 Auto-fix → 报 one-coordinator（合并顺序 0a 先、P3b 后）。
 - **PR 正文须单列**：实现代理最终回执列的守护与端口改动、例外清单（新建 `source-type-exceptions.txt` 9 行只减不增、`primary-key-type-baseline.txt` 删 5–12 行）、改动的断言 / 测试（`TaskPolicyTest` 删除与重建、`AssigneeResolverTest` 三处、`OrgUnitSyncRulesTest.smallestHeadIdWins`、`OrgUnitScopeIntegrationTest`、`SeeyonViews*` 收紧、`LegacyInboxAccessIT`、`DatabaseTransportCheckTest`、`SignedTicketTest`、`IdentityIntegrationTest` 替身、`ScalarIdModuleTest` 下限恢复）、C8、只读命令、kernel 端口与 `OrgUnitAccess.Visible` / `AttributionSubjectId` / `StaffLookup`、`relevant_change.py` 一行、RULE-356 靠适配器升序。
 - 卡外记录：`legal_entity_attribution_corrections_reject_truncate` 触发器命名 → R-2a；`LegacyShapeTest.APPROVED_AREAS` 两条过期路径 → P5。
