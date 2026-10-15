@@ -209,7 +209,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 | `INTEGRATION_SEEYON_VIEWS_ENABLED` | 致远 A8 组织视图读取开关（默认 false） | 否 |
 | `A8_DB_URL` / `A8_DB_USERNAME` / `A8_DB_PASSWORD` | A8 只读连接（第 4 节的专用账号；启用即做第 4 节的校验，无开关） | 启用时 |
 | `FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_HEAD_RELATIONSHIP_TYPE_ID`、`..._REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID`、`..._DELIVERY_UNIT_YES_ENUM_ID`、`..._FEE_EARNER_YES_ENUM_ID`、`..._ROOT_PATH` | A8 中关系类型、枚举的编号与同步根单位的层级路径（Spring 宽松绑定，对应 `forcitis.platform.integration.seeyon.views.*`）；**没有默认值**：启用视图读取而缺任何一项，应用启动失败，值由 A8 管理员提供 | 启用时 |
-| `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL` / `_USERNAME` / `_PASSWORD` | 合并待办读老待办的只读连接（`psa_one_legacy_ro`，由 platform.integration 读取；配置即做第 4 节的校验，无开关）；URL 为空则只显示新待办；员工须有 (LEGACY_SYSTEM, EMPLOYEE) 来源对照才读得到，P6 导入前老待办恒为「不可用」（C8）。R-1b P3b 起取代 `FORCITIS_PLATFORM_APPROVAL_LEGACY_*` | 启用时 |
+| `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL` / `_USERNAME` / `_PASSWORD` | 合并待办读老待办的只读连接（`psa_one_legacy_ro`，由 platform.integration 读取；配置即做第 4 节的校验，无开关）；URL 为空则只显示新待办；员工须有 (LEGACY_SYSTEM, EMPLOYEE) 来源对照才读得到，P6 导入前老待办恒为「不可用」（C8）。R-1b P3b 起取代 `FORCITIS_PLATFORM_APPROVAL_LEGACY_*`：旧变量（或任何 `forcitis.platform.approval.legacy.*` 键）仍在则**启动失败**，日志给出对应的新变量名，部署前须在 one.env 中改名 | 启用时 |
 | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_DETAIL_URL_TEMPLATE` | 老待办详情页地址，含 `{processInstanceId}`、`{taskId}` | 启用时 |
 | `INTEGRATION_LEGACY_ENABLED` | 老系统**部门简称**视图读取开关（默认 false） | 否 |
 | `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 部门简称的只读连接（`one_legacy_names_ro`；启用即做第 4 节的校验，无开关） | 启用时 |
