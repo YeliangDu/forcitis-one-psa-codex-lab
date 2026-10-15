@@ -7,6 +7,7 @@ import static com.forcitis.one.platform.integration.domain.DeliveryStatus.SENT;
 import static com.forcitis.one.platform.integration.domain.DeliveryStatus.SKIPPED;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.WecomUserId;
 import java.time.Instant;
@@ -22,7 +23,7 @@ class OutboundDeliveryStateMachineTest {
     static final WecomUserId BOB = new WecomUserId("bob");
 
     static OutboundDelivery at(DeliveryStatus status) {
-        return OutboundDelivery.restore(new OutboundDeliveryId(3), "approval-task:1", List.of(ALICE), "t", "d", "https://one.example.test/x",
+        return OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(3)), "approval-task:1", List.of(ALICE), "t", "d", "https://one.example.test/x",
                 status.name(), 2, null, null, null, DeliveryKind.CARD, null, UUID.randomUUID(), 5, 5);
     }
 

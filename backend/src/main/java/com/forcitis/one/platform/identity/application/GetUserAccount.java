@@ -19,12 +19,12 @@ public class GetUserAccount {
     }
 
     @Transactional(readOnly = true)
-    public UserAccountView execute(long userId) {
-        UserAccount account = userId <= 0 ? null : accounts.find(new UserId(userId)).orElse(null);
+    public UserAccountView execute(UserId userId) {
+        UserAccount account = accounts.find(userId).orElse(null);
         if (account == null) {
-            throw IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account " + userId);
+            throw IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account " + userId.value());
         }
-        return new UserAccountView(userId, account.status().name(),
+        return new UserAccountView(userId.value(), account.status().name(),
                 accounts.findAssignedRoleCodes(account.userId()).stream().map(RoleCode::value).sorted().toList(), account.version());
     }
 }

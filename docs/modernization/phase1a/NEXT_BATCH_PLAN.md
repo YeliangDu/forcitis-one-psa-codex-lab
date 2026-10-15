@@ -28,6 +28,8 @@
 
 ## 1. 总体顺序与关键路径
 
+> 2026-10-15 起的最新执行顺序与追加卡见第 6 节；本节与第 6 节不一致处以第 6 节为准。
+
 首次部署任何环境之前，以下各项必须完成：
 - 阻塞 080：#72 合并；
 - 阻塞 090：F-1；
@@ -225,3 +227,46 @@ ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先
    - 本会话权限模式为 bypass，与派工要求一致。
    - 推理强度从会话内无法自查，也无法自行修改；由 one-coordinator 请用户在应用中确认设为 high。
 7. **NEXT_BATCH_DRAFT 的更正（第 0 节）**：#72 合并后由本会话开小 PR 更正，不改 #72 分支（one-coordinator 选 b）。
+
+## 6. 2026-10-15 追加：最新执行顺序与卡
+
+依据：用户 2026-10-15 的决定（经 one-coordinator 转达并在其会话记录中核实；intent 见 #98、#101、#106、#107、#113、#120 与本会话片段）、数据设计审计、主数据版本化盘点、DDL 基线审计、原则核对 A / B（报告在 `~/.modernize/psa/audit/`，未入仓）。
+
+### 6.1 已完成与已决定
+
+- 已合并：W0（#97）、R-3a 纯合并基线（#103）、ADR-0030 / 0031 / 0032（#93 / #95 / #94）。
+- 已批准、待合并：ADR-0034 授权历史可还原（#118）、ADR-0033 自有标识与来源对照（#119，含规则评审修订记录 `revisions`）。
+- ADR-0029（#96）暂缓：用户「公司要重新梳理岗位体系」，以岗位体系重梳完成为批准前置。
+- 主键：用户「改为自有 UUIDv7 + A8 ID 对照列」「主键统一」「也加，自有表零例外」——所有自有表 UUIDv7 主键；豁免只剩框架自建表；唯一例外 `audit_entries`（用户「接受，登记为唯一例外」：按 `created_at` 月分区，主键 `(id, created_at)`，id 仍全局唯一，所有引用只用 id；新增分区表须另行用户批准）。
+
+### 6.2 W1（冻结窗口，串行）
+
+| 卡 | 内容 | 前置 | 执行 / 复审 |
+|---|---|---|---|
+| R-1a | 不涉及 A8 ID 的自有表 UUIDv7（17 张 + 6 张复合主键表）；`TimeOrderedIds`（实例状态、单进程单调）；ID 输出与规范 UUID 解析守护；OpenAPI 自有 ID = string/uuid | R-3a | sonnet / opus（复核中） |
+| R-1b | A8 快照、版本、归属表与全部引用列改自有 UUIDv7；`platform_integration.source_references`（状态 PENDING / CONFIRMED / REJECTED，排他约束只约束已确认行）；`user_accounts.user_id` 自有 + `employee_id`；聚合 ID 在构造时生成；「本人」判定按 ADR-0033 逐条 + 反向集成测试；Flowable idGenerator 接 UUIDv7；审批子表引用 `approval_request_id`、办理记录序号；DA-1/2/4/5/6/9/11、DA-17 哨兵；B-7.1 `legacy_numbers` 多来源与 `migration_batch_id`（用户「迁入批次」）；A8 来源 ID 可为负数；DDL-01/02/03/04/06/08；`OTHER_ID_NAMES` 清空；`ticket_issuers.key_id` 改名；框架管理表清单；G-C5 事件 yaml 一半 | R-1a、ADR-0033 | sonnet / opus；可拆子 PR |
+| R-6 | 删除 `numbering_rules` 旧列 | R-1b | sonnet / opus |
+| R-2a | 79 处命名改名 + DDL-09/10/12/13/14；枚举 CHECK 一律命名（用户已采纳，NAMING §2.4 修订） | R-1b | sonnet / opus |
+| R-2b | DDL-15/16/18/19/20（库内长度 CHECK）/21/23/29 | R-2a | sonnet / opus |
+| R-5 | 用语改名：4 组同义错误码并入 kernel 通用；删 `PlatformWebUnauthenticated`；离职事件改名；中文名唯一守护；OpenAPI 与前端文案同步 | R-2b | sonnet / opus |
+| R-4 | 去数据库时钟默认值（Codex 试点；种子固定时刻；「例外清单为空」为验收；ShedLock 理由一行注释） | R-5 | Codex / opus |
+| DDL-07+24 | 审计表按月分区（见 6.1）、ShedLock 提前 3 个月建分区、按分区成批归档记 sha256 与 ETag / CRC、`platform_audit.drop_archived_audit_partition` SECURITY DEFINER 函数（校验批次已校验、条目数相等、id 覆盖），完成写审计 `platform.audit.partition.dropped`（detail 含分区名、批次 ID、sha256、条目数、校验结果、执行人 `session_user`），函数固定 search_path，登记为只追加守护的例外并写理由（db_scripts_aligned 由 one-ops 核对只有维护角色有 EXECUTE）；审计列表索引；维护角色 `one_<env>_audit_maint` 与授权由 one-ops 在建库脚本写（用户「专用维护角色」） | R-4 | sonnet / opus；**C-3 前必须** |
+| DDL-26 / DDL-28 | `migration_safety.py`；`btree_gist` 由建库脚本预建、迁移只检查存在 | R-4 | sonnet / opus；**C-3 前必须** |
+| DA-3 → DA-10、DA-8、DA-13 | 外部身份绑定 `external_identities` 与收件人解析移入集成层；部门简称归属；敏感分级登记与守护 | R-1b | 首次部署前 |
+
+### 6.3 与 W1 并行的首次部署前缺陷批 D1（手术式，小 PR）
+
+| 卡 | 内容 | 时点 |
+|---|---|---|
+| D1-1（A 3-H1） | A8 / 老系统视图连接只经工厂，强制查询、套接字、锁等待三种超时；WAITFOR 视图集成测试验证登录与待办首页降级 | R-1b 之后（同改集成层） |
+| D1-2（A 4-H2） | 未知异常只记类名 + correlationId；集成测试断言邮箱不落盘；连接串 `logServerErrorDetail=false`（ECS `one.env` 由 one-ops 改） | R-1a 合并后即开 |
+| D1-3（A 4-H1） | `ProductionConfigSanityTest` 断言模板含 prometheus 与 `logServerErrorDetail` | 同上 |
+| D1-4（B H-5.3 / M-5.6） | `http.server.requests` 直方图；Hikari 显式配置 | 同上 |
+| D1-5 | `SeparationRevokesRolesIntegrationTest.java:58` 口令字面量改运行时生成 | 同上 |
+
+### 6.4 W2 与 W3 的追加
+
+- **W2（与 K-2 时态基座同期，一次改到位）**：ADR-0034 实现（权限三表、复职重授 F-13 建在其上、DDL-17 角色退役不物理删除，**首次部署前必须**）；主数据版本化 25 张表（§14.1 D17 与守护 G-D11，先以「登记缺口、带负责人」进 CI）；DA-7 `employee_versions`、离职两字段；DA-17 日历版本化（用户「版本化」，新版本由业务管理员四眼确认，dev 走 ADR-0030 单人路径）；法人代码「未发过号前可更正，发号后禁改」（RULE_REVIEWS 先追加修订再改测试）。
+- **K-3**：列表分页契约统一游标、上限 200（A 2-H1 / 2-H2）；测试库排序规则（DDL-11）与拼音排序 G-X2。
+- **W3**：F-15 登录页 ICP 备案号随 F-3 同代理；F-4 转交界面依赖 R-1b（不走 int64）；F-8 掩码按「费率档位来源待定」写（job_grade 用语缺陷，见 one-coordinator 台账）。
+- **用户第 2 批决定（平台约定，随对应卡实现）**：kernel `Reason` 上限 500；同一对象至多一个待确认授权申请；工时单同员工同工作日唯一；迁入单据不发新号；时刻一律 UTC `Z`；不提供 PATCH；范围外单资源 404；用户路径外部调用 3 s / 冷却 60 s；IP 不进应用日志（ALERT 行改引审计条目 ID）；只用 correlationId；SLO 300 / 500 ms 超标 P3。规则条文（NAMING §2.6、GUIDING §7a / §11、PLAYBOOK §14.2 / §14.3、SUPPLY_CHAIN.md、ADR-0035 契约演进、ADR-0036 历史数据迁入）由 one-coordinator 另派起草，出来后核对再排守护。

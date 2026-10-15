@@ -1,27 +1,20 @@
-# B3-M8：单列主键必须是 uuid（由 IdGenerator 生成）。下列表在规则生效前已存在，主键仍是 bigint 或其他类型（PrimaryKeyTypeGuardTest）。
-# 格式：<schema.table>  # 说明。只减不增：新表一律用 uuid；改成 uuid 后删掉对应行，测试会拒绝已修好却没删的行。UUIDv7 本身排入下一批。
-cost_timesheet.timesheets  # existing table
-organization_attendance.work_calendar_days  # existing table
-organization_attendance.work_calendar_years  # existing table
-organization_workforce.assignments  # existing table
-organization_workforce.employees  # existing table
-organization_workforce.legal_entities  # existing table
-organization_workforce.org_units  # existing table
-organization_workforce.positions  # existing table
-organization_workforce.sync_diffs  # existing table
-organization_workforce.sync_runs  # existing table
-platform_approval.approval_requests  # existing table
-platform_approval.approval_tasks  # existing table
-platform_approval.start_rounds  # existing table
-platform_audit.audit_entries  # existing table
-platform_identity.emergency_admins  # existing table
-platform_identity.login_states  # existing table
-platform_identity.navigation_items  # existing table
-platform_identity.roles  # existing table
-platform_identity.ticket_issuers  # existing table
-platform_identity.user_accounts  # existing table
-platform_integration.outbound_deliveries  # existing table
-platform_numbering.legacy_numbers  # existing table
-platform_numbering.numbering_rules  # existing table
-platform_approval.process_archive_skips  # created by the data architecture batch in parallel with this rule; the key becomes a uuid with UUIDv7
-platform_audit.audit_archive_batches  # created by the data architecture batch in parallel with this rule; the key becomes a uuid with UUIDv7
+# B3-M8：每张表的主键是单列 uuid（由 IdGenerator 生成的 UUIDv7），自然键或组合键写成命名的唯一约束（PrimaryKeyTypeGuardTest）。框架拥有主键的表不在此列（DdlNamingTest.FRAMEWORK_TABLES）。
+# 格式：<schema.table>  # 去向与理由。只减不增：新表一律用 uuid；改好后删掉对应行，测试会拒绝已修好却没删的行。
+# 用户 2026-10-15 决定「自有 UUIDv7 + A8 ID 对照列」「主键统一」，并答「也加，自有表零例外」。下列表按去向分三组。
+# 去向 R-1b：以 A8 ID 为键、或键里含 A8 ID / 引用 A8 人员、部门、岗位，或与 Flowable 相关；R-1b 改为自有 UUIDv7 并把 A8 ID 存为来源 ID 列。
+organization_workforce.assignments  # key is the employee id taken from the organisation source; R-1b
+organization_workforce.employees  # key is the person id taken from the organisation source; R-1b
+organization_workforce.org_units  # key is the unit id taken from the organisation source; R-1b
+organization_workforce.positions  # key is the position id taken from the organisation source; R-1b
+organization_workforce.org_unit_legal_entities  # key holds the org unit id taken from the organisation source; R-1b
+organization_workforce.employee_legal_entities  # key holds the employee id taken from the organisation source; R-1b
+organization_workforce.org_unit_versions  # key holds the org unit id taken from the organisation source; R-1b
+organization_workforce.assignment_versions  # key holds the employee id taken from the organisation source; R-1b
+organization_workforce.sync_run_held_separations  # key holds the employee id taken from the organisation source; R-1b
+platform_identity.emergency_admins  # key is the user id, which is the employee id taken from the organisation source; R-1b
+platform_identity.user_accounts  # key is the user id, which is the employee id taken from the organisation source; R-1b
+platform_approval.approval_tasks  # key is the Flowable task id; R-1b gives it its own uuid (DA-6)
+platform_approval.process_archive_skips  # key is the Flowable process instance id; made with this rule, so INT-M9 asks R-1b to give it its own uuid
+# 去向 ADR-0034：账号与角色的关联表，键里含 A8 用户 ID，随 ADR-0034 处理。
+platform_identity.account_roles  # key is (user id, role id); the user id is the employee id taken from the organisation source; ADR-0034
+platform_identity.role_permissions  # key is (role id, permission code); ADR-0034 decides how role grants are kept

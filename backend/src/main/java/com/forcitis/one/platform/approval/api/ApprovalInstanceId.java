@@ -12,4 +12,9 @@ public record ApprovalInstanceId(String value) {
             throw new IllegalArgumentException("ApprovalInstanceId must not be blank");
         }
     }
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 }

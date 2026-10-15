@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 final class RoleRows {
@@ -20,21 +21,21 @@ final class RoleRows {
 
     /** from: everything after "select ... from", starting with the roles table aliased r. */
     static List<Role> select(JdbcClient jdbc, String from, Map<String, Object> params) {
-        record Row(long roleId, String code, String name, String kind, String status, String accessScope, boolean administrative, long version, long eventSequence) {
+        record Row(UUID roleId, String code, String name, String kind, String status, String accessScope, boolean administrative, long version, long eventSequence) {
         }
         List<Row> rows = jdbc.sql("select " + COLUMNS + " " + from).params(params)
-                .query((rs, n) -> new Row(rs.getLong("role_id"), rs.getString("code"), rs.getString("name"), rs.getString("kind"),
+                .query((rs, n) -> new Row(rs.getObject("role_id", UUID.class), rs.getString("code"), rs.getString("name"), rs.getString("kind"),
                         rs.getString("status"), rs.getString("access_scope"), rs.getBoolean("is_administrative"),
                         rs.getLong("version"), rs.getLong("event_count")))
                 .list();
         if (rows.isEmpty()) {
             return List.of();
         }
-        Map<Long, Set<String>> permissions = new HashMap<>();
+        Map<UUID, Set<String>> permissions = new HashMap<>();
         jdbc.sql("select role_id, permission_code from platform_identity.role_permissions where role_id in (:ids)")
                 .param("ids", rows.stream().map(Row::roleId).toList())
                 .query((rs, n) -> {
-                    permissions.computeIfAbsent(rs.getLong("role_id"), id -> new HashSet<>()).add(rs.getString("permission_code"));
+                    permissions.computeIfAbsent(rs.getObject("role_id", UUID.class), id -> new HashSet<>()).add(rs.getString("permission_code"));
                     return null;
                 }).list();
         return rows.stream().map(row -> Role.restore(new RoleId(row.roleId()), new RoleCode(row.code()), row.name(), row.kind(),

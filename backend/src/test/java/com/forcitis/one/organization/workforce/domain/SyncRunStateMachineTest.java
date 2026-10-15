@@ -8,6 +8,7 @@ import static com.forcitis.one.organization.workforce.domain.SyncRunStatus.SUCCE
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.UserId;
@@ -36,7 +37,7 @@ class SyncRunStateMachineTest {
     static final SnapshotChange NO_CHANGE = new SnapshotChange(List.of(), List.of(), List.of());
 
     static SyncRun at(SyncRunStatus status) {
-        return SyncRun.restore(new SyncRunId(5), SyncTrigger.SCHEDULED, status.name(), NOW, null, null, null, null, null, null, null, 3, 3);
+        return SyncRun.restore(new SyncRunId(TestIds.uuid(5)), SyncTrigger.SCHEDULED, status.name(), NOW, null, null, null, null, null, null, null, 3, 3);
     }
 
     @Test
@@ -46,7 +47,7 @@ class SyncRunStateMachineTest {
                 .operation("succeed", run -> run.succeed(NOW, STATS, NO_CHANGE, SNAPSHOT_DAY), RUNNING, SUCCEEDED)
                 .operation("hold", run -> run.hold(NOW, STATS, "shrunk"), RUNNING, HELD, HELD, HELD)
                 .operation("fail", run -> run.fail(NOW, "down"), RUNNING, FAILED)
-                .operation("release", run -> run.release(new UserId(9), new SyncRunId(6), NOW, new com.forcitis.one.kernel.Reason("synthetic")), HELD, RELEASED)
+                .operation("release", run -> run.release(new UserId(9), new SyncRunId(TestIds.uuid(6)), NOW, new com.forcitis.one.kernel.Reason("synthetic")), HELD, RELEASED)
                 .verify();
     }
 
@@ -78,7 +79,7 @@ class SyncRunStateMachineTest {
         assertThat(events.get(1)).isInstanceOfSatisfying(OrgSnapshotChanged.class, e -> {
             assertThat(e.separatedEmployees()).containsExactly(new UserId(2));
             assertThat(e.envelope().aggregateType()).isEqualTo("SyncRun");
-            assertThat(e.envelope().aggregateId()).isEqualTo("5");
+            assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(5).toString());
         });
         assertThat(events.get(0).envelope().businessDate()).as("a sync run is not a dated milestone").isNull();
         assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(4L, 5L);
@@ -120,10 +121,10 @@ class SyncRunStateMachineTest {
         assertThat(failed.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(SyncRunFailed.class);
 
         SyncRun released = at(HELD);
-        released.release(new UserId(9), new SyncRunId(6), NOW, new com.forcitis.one.kernel.Reason("checked with the source"));
+        released.release(new UserId(9), new SyncRunId(TestIds.uuid(6)), NOW, new com.forcitis.one.kernel.Reason("checked with the source"));
         assertThat(released.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(SyncRunReleased.class,
                 e -> {
-                    assertThat(e.releasedByRunId()).isEqualTo(new SyncRunId(6));
+                    assertThat(e.releasedByRunId()).isEqualTo(new SyncRunId(TestIds.uuid(6)));
                     assertThat(e.reason()).isEqualTo(new com.forcitis.one.kernel.Reason("checked with the source"));
                 });
         assertThat(released.releasedBy()).isEqualTo(new UserId(9));

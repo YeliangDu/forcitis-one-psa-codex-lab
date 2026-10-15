@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.legal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.application.CreateLegalEntity;
 import com.forcitis.one.organization.workforce.application.UpdateLegalEntity;
 import com.forcitis.one.organization.workforce.application.WorkforceIntegrationSupport;
@@ -24,21 +25,21 @@ class LegalEntityHistoryIntegrationTest extends WorkforceIntegrationSupport {
         com.forcitis.one.organization.workforce.application.VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
     }
 
-    private com.forcitis.one.kernel.ExpectedVersion at(long id) {
-        return com.forcitis.one.kernel.ExpectedVersion.of(jdbc.sql("select version from organization_workforce.legal_entities where id = :id").param("id", id).query(Long.class).single());
+    private com.forcitis.one.kernel.ExpectedVersion at(LegalEntityId id) {
+        return com.forcitis.one.kernel.ExpectedVersion.of(jdbc.sql("select version from organization_workforce.legal_entities where id = :id").param("id", id.value()).query(Long.class).single());
     }
 
-    private List<String> versions(long id) {
+    private List<String> versions(LegalEntityId id) {
         return jdbc.sql("""
                 select revision_number || ':' || name || ':' || status || ':' || (effective_to_date is not null)
                   from organization_workforce.legal_entity_versions where legal_entity_id = :id order by effective_from_date, revision_number
-                """).param("id", id).query(String.class).list();
+                """).param("id", id.value()).query(String.class).list();
     }
 
     @Test
     @DisplayName("K4 a legal entity starts with one open version; a rename or a status change closes it and appends the next, a no-op adds nothing")
     void everyChangeIsAVersion() {
-        long id = create.execute("FST", "First", null).legalEntityId();
+        LegalEntityId id = create.execute("FST", "First", null).legalEntityId();
         assertThat(versions(id)).containsExactly("0:First:ACTIVE:false");
 
         update.execute(id, at(id), null, "First", "ACTIVE", null);
@@ -53,12 +54,12 @@ class LegalEntityHistoryIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("K4 the history cannot be rewritten: no delete, no change of a closed version")
     void historyIsAppendOnly() {
-        long id = create.execute("FIT", "Second", null).legalEntityId();
+        LegalEntityId id = create.execute("FIT", "Second", null).legalEntityId();
         update.execute(id, at(id), null, "Second renamed", "ACTIVE", null);
 
-        assertThatThrownBy(() -> jdbc.sql("delete from organization_workforce.legal_entity_versions where legal_entity_id = :id").param("id", id).update())
+        assertThatThrownBy(() -> jdbc.sql("delete from organization_workforce.legal_entity_versions where legal_entity_id = :id").param("id", id.value()).update())
                 .hasMessageContaining("append-only");
         assertThatThrownBy(() -> jdbc.sql("update organization_workforce.legal_entity_versions set name = 'x' where legal_entity_id = :id and revision_number = 0")
-                .param("id", id).update()).hasMessageContaining("closed version row cannot change");
+                .param("id", id.value()).update()).hasMessageContaining("closed version row cannot change");
     }
 }

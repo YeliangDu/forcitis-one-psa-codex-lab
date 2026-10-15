@@ -12,4 +12,9 @@ public record LegacyInstanceId(String value) {
             throw new IllegalArgumentException("LegacyInstanceId must not be blank");
         }
     }
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 }

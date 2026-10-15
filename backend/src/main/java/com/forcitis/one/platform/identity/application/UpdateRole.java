@@ -50,18 +50,15 @@ public class UpdateRole {
     }
 
     @Transactional
-    public AdminOutcome<RoleView> execute(long roleId, ExpectedVersion expected, SaveRoleCommand command) {
-        if (roleId <= 0) {
-            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
-        }
-        Optional<Role> existing = roles.findById(new RoleId(roleId));
+    public AdminOutcome<RoleView> execute(RoleId roleId, ExpectedVersion expected, SaveRoleCommand command) {
+        Optional<Role> existing = roles.findById(roleId);
         if (existing.isEmpty()) {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
         }
         expected.check(existing.get().version());
         var caller = currentUser.userId();
         if (existing.get().kind() != RoleKind.SYSTEM && accounts.findAssignedRoleCodes(caller).contains(existing.get().code())) {
-            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, "role:" + roleId,
+            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, "role:" + roleId.value(),
                     "nobody changes the definition of a role they hold"));
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_OWN_ROLE_DEFINITION_FORBIDDEN);
         }
@@ -90,8 +87,8 @@ public class UpdateRole {
     }
 
     @Transactional
-    AdminOutcome<RoleView> applyConfirmed(long roleId, SaveRoleCommand command) {
-        Optional<Role> existing = roles.findById(new RoleId(roleId));
+    AdminOutcome<RoleView> applyConfirmed(RoleId roleId, SaveRoleCommand command) {
+        Optional<Role> existing = roles.findById(roleId);
         if (existing.isEmpty()) {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
         }

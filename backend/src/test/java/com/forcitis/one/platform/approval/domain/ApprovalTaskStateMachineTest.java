@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -75,7 +76,7 @@ class ApprovalTaskStateMachineTest {
     }
 
     static ApprovalRequest requestWith(ApprovalTask task) {
-        return ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(1), INITIATOR, 1, INSTANCE,
+        return ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1, INSTANCE,
                 ApprovalStatus.RUNNING, null, new ApprovalSummary("summary"), List.of(task), 0, 0);
     }
 
@@ -194,7 +195,7 @@ class ApprovalTaskStateMachineTest {
         assertThat(advisory.task(TASK).approvedHash()).isEmpty();
         assertThat(((TaskResulted) advisory.drainEvents(ENVELOPES).getFirst()).effect()).isEqualTo(TaskEffect.ADVISORY);
 
-        ApprovalRequest request = ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(1), INITIATOR, INSTANCE,
+        ApprovalRequest request = ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
                 new ApprovalSummary("summary"), UUID.randomUUID(), NOW);
         request.drainEvents(ENVELOPES);
         TaskAssignment assignment = new TaskAssignment(new ApprovalTaskId("t-3"), INSTANCE, NODE, new NodeName("Review"),
@@ -213,7 +214,7 @@ class ApprovalTaskStateMachineTest {
     @Test
     @DisplayName("RULE-295 M-4 every task event carries the request's running event number; opening a round and closing a task are events too")
     void eventsCarryTheRequestsSequence() {
-        ApprovalRequest request = ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(1), INITIATOR, INSTANCE,
+        ApprovalRequest request = ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
                 new ApprovalSummary("summary"), UUID.randomUUID(), NOW);
         TaskAssignment first = new TaskAssignment(TASK, INSTANCE, NODE, new NodeName("项目经理审批"), new ProcessName("工时审批"),
                 List.of(HOLDER, OTHER), Optional.of(PLAN));

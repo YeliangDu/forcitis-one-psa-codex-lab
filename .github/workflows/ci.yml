@@ -122,6 +122,18 @@ jobs:
       # 记录与 ADR 由片段生成：ADR、brief 与已提交产物不一致即失败；INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成
       - name: generated docs match fragments
         run: python3 docs/modernization/build_all.py --check
+      # 规则评审的原结论不得改写，改决定只能追加 revisions（SESSION_PLAYBOOK §12.2）；基线由本步骤显式给出
+      - name: rule review revisions are append-only
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          python3 docs/modernization/rules/review_revisions.py --self-test
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "no earlier commit to compare against (new branch); self-test only"
+          else
+            python3 docs/modernization/rules/review_revisions.py --base "$base"
+          fi
       # 文档不得用「PSA」指代系统（用户 2026-10-14）；例外规则见脚本说明
       - name: no legacy system name in docs
         run: python3 docs/modernization/check_legacy_name.py
