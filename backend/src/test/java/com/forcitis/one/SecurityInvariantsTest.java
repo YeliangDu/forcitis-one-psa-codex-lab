@@ -20,11 +20,11 @@ class SecurityInvariantsTest {
     static final Path MAIN = Path.of("src/main");
     static final Path ISSUER_ALLOWLIST = Path.of("architecture/ticket-issuers-allowlist.txt");
 
-    /** I-1: the new system never reads, writes or validates legacy tokens (system_oauth2_*). */
+    /** I-1 (ADR-0037 item 3): application code never names the legacy token tables (system_oauth2_*); token values never enter the new system, which never writes or validates them. */
     @Test
     void legacyTokenTablesAreNeverTouched() {
         assertThat(matches(MAIN, Pattern.compile("system_oauth2", Pattern.CASE_INSENSITIVE)))
-                .as("I-1 (Q-1, ADR-0009 §6 revised): no code, SQL or config may reference legacy token tables system_oauth2_*")
+                .as("I-1 (Q-1, ADR-0009 §6, ADR-0037 item 3): no code, SQL or config may reference legacy token tables system_oauth2_*")
                 .isEmpty();
     }
 
