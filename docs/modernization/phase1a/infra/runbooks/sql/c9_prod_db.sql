@@ -11,6 +11,8 @@ SELECT datname FROM pg_database WHERE datname = 'forcitis_one_prod';
 SHOW max_connections;
 SELECT rolname, rolconnlimit FROM pg_roles WHERE rolconnlimit <> -1 ORDER BY rolname;
 
+-- 慢语句日志不带绑定参数值靠实例级 log_parameter_max_length = 0（2026-10-15 已设）；RDS 不允许高权限账号对库或角色设此参数，本脚本不设
+
 -- ===== STEP 1 建库（连 forcitis_one 执行）=====
 -- 实例操作系统没有 libc 的 C.UTF-8（2026-10-15 查 pg_collation 只有内置的 ucs_basic、pg_c_utf8、pg_unicode_fast），用 PG 内置 provider 的 C.UTF-8：码点排序、Unicode 字符分类，不随操作系统 glibc 升级变化
 CREATE DATABASE forcitis_one_prod ENCODING 'UTF8' LOCALE_PROVIDER builtin BUILTIN_LOCALE 'C.UTF-8' LC_COLLATE 'C' LC_CTYPE 'C' TEMPLATE template0;

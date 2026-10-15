@@ -70,6 +70,7 @@
 | E-15 | 企业微信 | 在企业微信后台为新应用配置：可信域名 `one.forcitis.com`、扫码登录回调域、企业可信 IP 47.114.56.157；工作台**新增**「FORCITIS one」入口，**不替换**老 H5（切换手册 §3.11） | 登录冒烟 |
 | E-16 | 致远 | 由 A8 管理员登记新系统的验票回跳地址，**不替换**老 SSO | 登录冒烟 |
 | E-17 | 备份 | RDS 自动备份保留 ≥7 天；ECS 数据盘设快照策略；日志在 SLS 中保留：nginx 与 ops 180 天（《网络安全法》第二十一条：网络日志留存不少于六个月），app 30 天 | |
+| E-18 | 数据库日志 | 慢语句阈值用实例级 `log_min_duration_statement` 1000 ms；实例级 `log_parameter_max_length = 0`，慢日志不带绑定参数值（库级无法设置；同实例 it_portal 同样不带，行为不变）；回退为改回 -1，不重启 | `DescribeParameters` 读回 |
 
 **时区（E-6 补充）。** 业务日一律按 `forcitis.kernel.business-zone`（Asia/Shanghai）截取；时刻一律以 UTC 存储和输出，不依赖机器的时区：
 - **JVM 必须以 UTC 运行**，systemd 的 `ExecStart` 带 `-Duser.timezone=UTC`。选「启动时校验」而不是只写进手册：应用启动时检查 JVM 默认时区，不是 UTC 就拒绝启动并说明如何修正（`kernel.UtcJvm`），因为手册步骤会被漏掉，而一个按本地时区跑起来的节点会让驱动、日志和 `java.util.Date` 悄悄与别的节点不一致。测试 JVM 同样带该参数。应用入口 `OneApplication.main` 先把默认时区设为 UTC（整合复审 INT-P1），所以这道校验在正常启动路径上总能通过，只拦其他方式建出的上下文。
@@ -111,7 +112,7 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 
 - **唯一来源**：服务器上的 `/etc/forcitis-one/one.env`，权限 `0640 root:forcitis`，由 systemd 的 `EnvironmentFile` 加载。仓库、镜像、聊天、工单中都不出现这些值。
 - **后续计划**：迁到阿里云 KMS 凭据管家，启动时拉取，one.env 只保留 KMS 引用。上线前完成。
-- **PG 连接**：`SPRING_DATASOURCE_URL=jdbc:postgresql://<RDS 内网地址>:5432/forcitis_one_dev?sslmode=verify-full&sslrootcert=/etc/forcitis-one/rds-ca.pem`，`SPRING_DATASOURCE_USERNAME=one_dev_app`，口令单独一行。迁移连接用 `SPRING_FLYWAY_USER` / `SPRING_FLYWAY_PASSWORD`（one_dev_migrator），只在部署步骤注入，常驻进程不持有迁移凭据。
+- **PG 连接**：`SPRING_DATASOURCE_URL=jdbc:postgresql://<RDS 内网地址>:5432/forcitis_one_dev?sslmode=verify-full&sslrootcert=/etc/forcitis-one/rds-ca.pem&logServerErrorDetail=false`，`SPRING_DATASOURCE_USERNAME=one_dev_app`，口令单独一行。迁移连接用 `SPRING_FLYWAY_USER` / `SPRING_FLYWAY_PASSWORD`（one_dev_migrator），只在部署步骤注入，常驻进程不持有迁移凭据。
 - **应用变量清单**（以代码为准，重构后键名改为按角色命名）：
 
 | 变量 | 用途 | 必需 |
