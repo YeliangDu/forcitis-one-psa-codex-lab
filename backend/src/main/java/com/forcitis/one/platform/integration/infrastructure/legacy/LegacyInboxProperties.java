@@ -20,4 +20,10 @@ record LegacyInboxProperties(String url, String username, String password, Strin
     boolean isConfigured() {
         return url != null && !url.isBlank();
     }
+
+    @Override
+    public String toString() {
+        return "LegacyInboxProperties[url=" + url + ", username=" + username + ", password=" + (password == null || password.isBlank() ? "none" : "***")
+                + ", viewName=" + viewName + ", detailUrlTemplate=" + detailUrlTemplate + "]";
+    }
 }
