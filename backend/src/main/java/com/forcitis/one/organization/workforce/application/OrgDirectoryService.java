@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -28,8 +28,8 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployee(UserId userId) {
-        return snapshots.findStaff(userId).map(OrgDirectoryService::profile);
+    public Optional<EmployeeProfile> findEmployee(EmployeeId employeeId) {
+        return snapshots.findStaff(employeeId).map(OrgDirectoryService::profile);
     }
 
     @Override
@@ -51,22 +51,22 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     @Override
-    public Optional<UserId> findSupervisor(UserId userId) {
-        return snapshots.findStaff(userId)
+    public Optional<EmployeeId> findSupervisor(EmployeeId employeeId) {
+        return snapshots.findStaff(employeeId)
                 .filter(s -> s.employee().employmentStatus() == EmploymentStatus.EMPLOYED)
                 .map(s -> s.assignment().reportsToEmployeeId())
                 .flatMap(snapshots::findStaff)
                 .filter(leader -> leader.employee().employmentStatus() == EmploymentStatus.EMPLOYED)
-                .map(StaffEmployee::userId);
+                .map(StaffEmployee::employeeId);
     }
 
     @Override
-    public Optional<UserId> findOrgUnitHead(OrgUnitId orgUnitId) {
+    public Optional<EmployeeId> findOrgUnitHead(OrgUnitId orgUnitId) {
         return snapshots.findOrgUnit(orgUnitId).map(unit -> unit.headEmployeeId());
     }
 
     @Override
-    public Optional<UserId> findRegionalReceivablesManager(OrgUnitId orgUnitId) {
+    public Optional<EmployeeId> findRegionalReceivablesManager(OrgUnitId orgUnitId) {
         return snapshots.findOrgUnit(orgUnitId).map(unit -> unit.regionalReceivablesManagerId());
     }
 
@@ -82,7 +82,7 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     private static EmployeeProfile profile(StaffEmployee staff) {
-        return new EmployeeProfile(staff.userId(), staff.employee().displayName(), staff.assignment().orgUnitId(),
+        return new EmployeeProfile(staff.employeeId(), staff.employee().displayName(), staff.assignment().orgUnitId(),
                 staff.employee().wecomUserId(), staff.employee().employmentStatus(), staff.employee().feeEarner());
     }
 }

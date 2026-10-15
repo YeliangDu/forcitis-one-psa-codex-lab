@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
@@ -68,7 +69,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         long stranger = newId();
         organisation.person(initiator, 1, null).person(candidate, 1, null).person(other, 1, null).person(stranger, 1, null);
         String key = newKey("actor");
-        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator), java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator), java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
                         List.of(String.valueOf(candidate), String.valueOf(other)))))));
         return new Scene(key, instance, openTaskId(instance), initiator, candidate, other, stranger);

@@ -58,7 +58,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         Optional<EmployeeProfile> found = directory.findEmployeeByWecomUserId(new WecomUserId("wx-2"));
 
         assertThat(found).isPresent();
-        assertThat(found.get().userId()).isEqualTo(user(2));
+        assertThat(found.get().employeeId()).isEqualTo(user(2));
         assertThat(found.get().orgUnitId()).isEqualTo(unitId(3));
         assertThat(found.get().wecomUserId()).isEqualTo(new WecomUserId("wx-2"));
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
@@ -107,7 +107,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         Optional<EmployeeProfile> found = directory.findEmployeeByWecomUserId(new WecomUserId("wx-new-hire"));
 
         assertThat(found).isPresent();
-        assertThat(found.get().userId()).isEqualTo(user(3001));
+        assertThat(found.get().employeeId()).isEqualTo(user(3001));
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(count("employees")).isEqualTo(4);
         assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3001").query(Long.class).single()).isEqualTo(1L);
@@ -150,7 +150,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         Optional<EmployeeProfile> found = directory.findEmployeeByLoginName("1392");
 
         assertThat(found).isPresent();
-        assertThat(found.get().userId()).isEqualTo(user(2));
+        assertThat(found.get().employeeId()).isEqualTo(user(2));
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(orgSource.singleLookups.get()).isZero();
         assertThat(directory.findEmployeeByLoginName("  ")).isEmpty();
@@ -166,7 +166,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         Optional<EmployeeProfile> found = directory.findEmployeeByLoginName("13900003101");
 
         assertThat(found).isPresent();
-        assertThat(found.get().userId()).isEqualTo(user(3101));
+        assertThat(found.get().employeeId()).isEqualTo(user(3101));
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(count("employees")).isEqualTo(4);
         assertThat(events.stream(EmployeeRegistered.class).filter(e -> e.envelope().aggregateType().equals("Employee")

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.replay;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
@@ -32,8 +33,8 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployee(UserId userId) {
-        return Optional.ofNullable(employees.get(userId.value())).map(e -> new EmployeeProfile(new UserId(e.userId()), "exported",
+    public Optional<EmployeeProfile> findEmployee(EmployeeId employeeId) {
+        return Optional.ofNullable(employees.get(employeeId.value())).map(e -> new EmployeeProfile(new EmployeeId(e.userId()), "exported",
                 new OrgUnitId(e.orgUnitId()), null, e.employed() ? EmploymentStatus.EMPLOYED : EmploymentStatus.SEPARATED, false));
     }
 
@@ -48,20 +49,20 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public Optional<UserId> findSupervisor(UserId userId) {
-        return Optional.ofNullable(employees.get(userId.value())).map(ReplayExport.EmployeeRecord::supervisorUserId)
-                .filter(this::employed).map(UserId::new);
+    public Optional<EmployeeId> findSupervisor(EmployeeId employeeId) {
+        return Optional.ofNullable(employees.get(employeeId.value())).map(ReplayExport.EmployeeRecord::supervisorUserId)
+                .filter(this::employed).map(EmployeeId::new);
     }
 
     @Override
-    public Optional<UserId> findOrgUnitHead(OrgUnitId orgUnitId) {
-        return Optional.ofNullable(units.get(orgUnitId.value())).map(ReplayExport.OrgUnitRecord::headUserId).map(UserId::new);
+    public Optional<EmployeeId> findOrgUnitHead(OrgUnitId orgUnitId) {
+        return Optional.ofNullable(units.get(orgUnitId.value())).map(ReplayExport.OrgUnitRecord::headUserId).map(EmployeeId::new);
     }
 
     @Override
-    public Optional<UserId> findRegionalReceivablesManager(OrgUnitId orgUnitId) {
+    public Optional<EmployeeId> findRegionalReceivablesManager(OrgUnitId orgUnitId) {
         return Optional.ofNullable(units.get(orgUnitId.value())).map(ReplayExport.OrgUnitRecord::regionalReceivablesManagerId)
-                .map(UserId::new);
+                .map(EmployeeId::new);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.notification;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
@@ -48,8 +49,11 @@ class TaskNotifier {
     private final NotificationProperties properties;
     private final BusinessZone zone;
     private final MeterRegistry meters;
+    private final AccountEmployees accountEmployees;
 
-    TaskNotifier(OrgDirectory org, WecomGateway wecom, NotificationProperties properties, BusinessZone zone, MeterRegistry meters) {
+    TaskNotifier(OrgDirectory org, WecomGateway wecom, NotificationProperties properties, BusinessZone zone, MeterRegistry meters,
+            AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.org = org;
         this.wecom = wecom;
         this.properties = properties;
@@ -74,7 +78,7 @@ class TaskNotifier {
 
     @ApplicationModuleListener
     void onTaskTransferred(TaskTransferred event) {
-        String name = org.findEmployee(event.from()).map(EmployeeProfile::name).orElse(ApprovalTexts.aColleague());
+        String name = org.findEmployee(accountEmployees.employeeOf(event.from())).map(EmployeeProfile::name).orElse(ApprovalTexts.aColleague());
         send(event.taskId(), List.of(event.to()), ApprovalTexts.transferredTitle(event.document()),
                 ApprovalTexts.transferredBody(name, event.reason().value()), dedupKey(event.taskId()) + ":transfer:" + event.envelope().eventId());
     }
@@ -111,7 +115,7 @@ class TaskNotifier {
 
     @ApplicationModuleListener
     void onApprovalCompleted(ApprovalCompleted event) {
-        send(null, List.of(event.initiator()), ApprovalTexts.completedTitle(event.outcome()),
+        send(null, List.of(accountEmployees.accountOf(event.initiator())), ApprovalTexts.completedTitle(event.outcome()),
                 ApprovalTexts.completedBody(event.processKey(), event.document(), event.round().value(),
                         event.reason() == null ? null : event.reason().value()),
                 "approval-instance:" + event.instanceId().value() + ":completed");
@@ -120,7 +124,7 @@ class TaskNotifier {
     private void send(ApprovalTaskId taskId, List<UserId> recipients, String title, String description, String dedupKey) {
         List<WecomUserId> wecomIds = new ArrayList<>();
         for (UserId recipient : recipients) {
-            Optional<EmployeeProfile> profile = org.findEmployee(recipient);
+            Optional<EmployeeProfile> profile = org.findEmployee(accountEmployees.employeeOf(recipient));
             if (profile.isPresent() && profile.get().employmentStatus() != EmploymentStatus.EMPLOYED) {
                 log.info("Card {}: {} has separated, no card sent", dedupKey, recipient.value());
                 meters.counter("forcitis.platform.approval.notification.skipped").increment();
@@ -141,7 +145,7 @@ class TaskNotifier {
     }
 
     private String nameOf(UserId user) {
-        return org.findEmployee(user).map(EmployeeProfile::name).orElse(ApprovalTexts.aColleague());
+        return org.findEmployee(accountEmployees.employeeOf(user)).map(EmployeeProfile::name).orElse(ApprovalTexts.aColleague());
     }
 
     private String moment(Instant instant) {

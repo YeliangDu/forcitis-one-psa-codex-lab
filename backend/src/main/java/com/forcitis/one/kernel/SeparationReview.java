@@ -10,17 +10,18 @@ import java.util.Set;
 public interface SeparationReview {
 
     /**
-     * releaser is the person releasing a held run, null for a scheduled run. sessionMode is the mode of the releaser's session,
-     * empty text when there is no releaser or no signed-in session.
+     * releaser is the account releasing a held run, null for a scheduled run; the implementation finds the releaser's employee to set
+     * against the separating ones. sessionMode is the mode of the releaser's session, empty text when there is no releaser or no
+     * signed-in session.
      */
-    Verdict review(List<UserId> separating, UserId releaser);
+    Verdict review(List<EmployeeId> separating, UserId releaser);
 
     /**
      * separatedAdministrators are those of the separating who hold super_admin or the security auditor role; actorRetained says
      * that the releaser is an enabled holder of one of the two, explicitly employed in the organisation snapshot and not separating;
      * remainingAdministrators counts the usable super_admin holders left after the separation.
      */
-    record Verdict(Set<UserId> separatedAdministrators, boolean actorRetained, int remainingAdministrators, String sessionMode, String reason) {
+    record Verdict(Set<EmployeeId> separatedAdministrators, boolean actorRetained, int remainingAdministrators, String sessionMode, String reason) {
         public Verdict {
             separatedAdministrators = Set.copyOf(separatedAdministrators);
         }

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.approval.api.ApprovalError;
@@ -38,9 +39,11 @@ class TaskDeadline {
     private final ProcessAdministrator administrator;
     private final MeterRegistry meters;
     private final BusinessTime time;
+    private final AccountEmployees accountEmployees;
 
     TaskDeadline(ApprovalRequestRepository requests, Approvals approvals, ApprovalEngine engine, OrgDirectory org,
-            ProcessAdministrator administrator, MeterRegistry meters, BusinessTime time) {
+            ProcessAdministrator administrator, MeterRegistry meters, BusinessTime time, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.requests = requests;
         this.approvals = approvals;
         this.engine = engine;
@@ -81,8 +84,9 @@ class TaskDeadline {
 
     private void escalate(ApprovalRequest request, TaskView view, Moment now) {
         List<UserId> holders = holders(view);
-        UserId superior = view.assignee().flatMap(org::findSupervisor).filter(s -> !holders.contains(s) && !s.equals(view.initiator()))
-                .orElse(null);
+        UserId superior = view.assignee().map(accountEmployees::employeeOf).flatMap(org::findSupervisor)
+                .filter(supervisor -> !supervisor.equals(view.initiator())).map(accountEmployees::accountOf)
+                .filter(supervisor -> !holders.contains(supervisor)).orElse(null);
         boolean toAdministrator = superior == null;
         List<UserId> receivers = toAdministrator ? administratorsFor(view, holders) : List.of(superior);
         if (view.isClaimed()) {

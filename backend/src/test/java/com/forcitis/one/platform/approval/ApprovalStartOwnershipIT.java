@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -53,7 +54,7 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instanceOfB = start(documentOfB, userB, manager);
         Map<String, Object> before = variablesOf(instanceOfB);
 
-        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new UserId(userA), Set.of("needs-seal"),
+        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new EmployeeId(userA), Set.of("needs-seal"),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(userA))))))))
                 .isInstanceOf(AccessDeniedException.class);
 
@@ -80,7 +81,7 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(round1), DecisionOutcome.REJECT, "fix it")), java.util.OptionalLong.empty());
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
         assertThat(taskService.createTaskQuery().processInstanceId(round1.value()).count()).as("nothing is parked at the initiator").isZero();
-        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new UserId(userA), Set.of(), List.of()))))
+        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new EmployeeId(userA), Set.of(), List.of()))))
                 .isInstanceOf(AccessDeniedException.class);
 
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");

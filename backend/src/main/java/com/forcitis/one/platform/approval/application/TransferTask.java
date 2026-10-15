@@ -1,6 +1,8 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -23,8 +25,10 @@ public class TransferTask {
     private final Approvals approvals;
     private final OrgDirectory org;
     private final BusinessTime time;
+    private final AccountEmployees accountEmployees;
 
-    TransferTask(TaskGuard guard, ApprovalEngine engine, Approvals approvals, OrgDirectory org, BusinessTime time) {
+    TransferTask(TaskGuard guard, ApprovalEngine engine, Approvals approvals, OrgDirectory org, BusinessTime time, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.guard = guard;
         this.engine = engine;
         this.approvals = approvals;
@@ -33,28 +37,30 @@ public class TransferTask {
     }
 
     @Transactional
-    public void execute(ApprovalTaskId taskId, UserId actor, UserId to, String reason, OptionalLong expectedVersion) {
+    public void execute(ApprovalTaskId taskId, UserId actor, EmployeeId to, String reason, OptionalLong expectedVersion) {
         TaskView first = guard.requireHandler(taskId, actor, "transfer");
         ApprovalRequest request = approvals.lock(first.instanceId());
         approvals.requireVersion(request, expectedVersion);
         TaskView task = guard.requireHandler(taskId, actor, "transfer");
         requireValidTarget(task, actor, to);
-        engine.reassignTask(taskId, to);
-        request.transferTask(taskId, actor, to, Reason.ofNullable(reason), time.moment());
+        UserId assignee = accountEmployees.accountOf(to);
+        engine.reassignTask(taskId, assignee);
+        request.transferTask(taskId, actor, assignee, Reason.ofNullable(reason), time.moment());
         approvals.save(request);
     }
 
-    private void requireValidTarget(TaskView task, UserId actor, UserId to) {
+    private void requireValidTarget(TaskView task, UserId actor, EmployeeId to) {
+        UserId assignee = accountEmployees.accountOf(to);
         boolean employed = org.findEmployee(to).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
         if (!employed) {
             throw refused("Transfer target " + to.value() + " is not an employed person");
         }
-        if (to.equals(actor) || to.equals(task.initiator())) {
+        if (assignee.equals(actor) || to.equals(task.initiator())) {
             throw refused("A task cannot be handed to its handler or to the initiator");
         }
         boolean alreadyOnNode = engine.findOpenTasks(task.instanceId()).stream()
                 .filter(other -> other.nodeKey().equals(task.nodeKey()) && !other.taskId().equals(task.taskId()))
-                .anyMatch(other -> other.candidates().contains(to) || other.assignee().map(to::equals).orElse(false));
+                .anyMatch(other -> other.candidates().contains(assignee) || other.assignee().map(assignee::equals).orElse(false));
         if (alreadyOnNode) {
             throw refused("Transfer target " + to.value() + " already has a task on this node");
         }

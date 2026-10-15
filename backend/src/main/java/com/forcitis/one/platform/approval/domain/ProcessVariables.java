@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.approval.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -37,8 +37,8 @@ public record ProcessVariables(Map<String, List<String>> formFields, Map<String,
     }
 
     /** Blank, non-numeric and zero values are ignored. */
-    public static Set<UserId> parseUsers(List<String> values) {
-        List<UserId> found = new ArrayList<>();
+    public static Set<EmployeeId> parseEmployees(List<String> values) {
+        List<EmployeeId> found = new ArrayList<>();
         for (String raw : values) {
             if (raw == null) {
                 continue;
@@ -46,7 +46,7 @@ public record ProcessVariables(Map<String, List<String>> formFields, Map<String,
             try {
                 long id = Long.parseLong(raw.trim());
                 if (id != 0) {
-                    found.add(new UserId(id));
+                    found.add(new EmployeeId(id));
                 }
             } catch (NumberFormatException ignored) {
             }

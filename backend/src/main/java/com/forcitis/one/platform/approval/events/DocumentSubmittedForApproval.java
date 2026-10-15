@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.approval.events;
 
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.platform.approval.api.ApprovalField;
@@ -17,7 +17,7 @@ import java.util.List;
  * module subscribes and starts the round. It carries all the approval needs to start, so nobody asks the owner back. The envelope
  * names the owner's aggregate and its legal entity; initiator is the user who submitted the document.
  */
-public record DocumentSubmittedForApproval(EventEnvelope envelope, ProcessKey processKey, DocumentReference document, UserId initiator,
+public record DocumentSubmittedForApproval(EventEnvelope envelope, ProcessKey processKey, DocumentReference document, EmployeeId initiator,
                                            RoundNumber round, List<RoutingFlag> routingFlags, List<ApprovalField> formFields,
                                            ContentHash contentHash, ApprovalSummary summary) implements DomainEvent {
 

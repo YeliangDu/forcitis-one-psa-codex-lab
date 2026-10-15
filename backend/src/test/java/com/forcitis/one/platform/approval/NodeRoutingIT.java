@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalField;
@@ -74,7 +75,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null).person(manager, 1, null);
         String key = newKey("unknown-flag");
 
-        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, new UserId(initiator),
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName(), "projectHoursTypo"),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager))))))))
                 .isInstanceOfSatisfying(DomainException.class,
@@ -130,7 +131,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         long initiator = newId();
         long manager = newId();
         organisation.person(initiator, 1, null).person(manager, 1, null);
-        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(newKey("manual-repeat"), new UserId(initiator), Set.of("again"),
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(newKey("manual-repeat"), new EmployeeId(initiator), Set.of("again"),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
 
         decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());

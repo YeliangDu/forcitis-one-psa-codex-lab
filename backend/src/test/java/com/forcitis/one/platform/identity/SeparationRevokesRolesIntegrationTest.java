@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -46,7 +47,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Autowired
     TotpSecretVault vault;
 
-    private void publish(List<UserId> changed, List<UserId> separated) {
+    private void publish(List<EmployeeId> changed, List<EmployeeId> separated) {
         tx.executeWithoutResult(status -> events.publishEvent(
                 new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), changed, separated, List.of(), java.time.LocalDate.of(2026, 10, 15))));
     }
@@ -69,7 +70,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         registerEmergencyAdmin(1002, "breakglass-b");
         accessCache.evictAll();
 
-        publish(List.of(), List.of(new UserId(1001)));
+        publish(List.of(), List.of(new EmployeeId(1001)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1001)).isZero());
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
@@ -102,7 +103,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(1003, EmploymentStatus.SEPARATED);
         createAccount(1003, "employee", "business_admin");
 
-        publish(List.of(new UserId(1003)), List.of());
+        publish(List.of(new EmployeeId(1003)), List.of());
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1003)).isZero());
     }
@@ -113,9 +114,9 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         createAccount(1004, "employee");
         registerEmergencyAdmin(1004, "breakglass-c");
 
-        publish(List.of(), List.of(new UserId(1004)));
+        publish(List.of(), List.of(new EmployeeId(1004)));
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1004)).isZero());
-        publish(List.of(), List.of(new UserId(1004)));
+        publish(List.of(), List.of(new EmployeeId(1004)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
                 assertThat(recorded().stream().filter(e -> e.action().equals("platform.identity.session.revoked")).count()).isEqualTo(2));
@@ -127,7 +128,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("a person without an account is a quiet no-op for the roles")
     void personWithoutAnAccount() {
-        publish(List.of(), List.of(new UserId(5555)));
+        publish(List.of(), List.of(new EmployeeId(5555)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
                 assertThat(recorded().stream().filter(e -> e.subjectKey().equals("user-account:5555")).count()).isEqualTo(1));

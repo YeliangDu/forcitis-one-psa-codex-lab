@@ -1,8 +1,8 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.OrgUnitAccess;
-import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgHierarchy;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;

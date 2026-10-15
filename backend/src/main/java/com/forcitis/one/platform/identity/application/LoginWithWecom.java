@@ -29,8 +29,8 @@ public class LoginWithWecom {
             case WecomIdentification.Outcome.Identified identified -> {
                 Optional<IdentityError> refused = admission.check(identified.employee());
                 yield refused.isPresent()
-                        ? admission.reject(refused.get(), method, identified.employee().userId(), refused.get().name())
-                        : admission.complete(identified.employee().userId(), method);
+                        ? admission.reject(refused.get(), method, admission.accountOf(identified.employee()), refused.get().name())
+                        : admission.complete(admission.accountOf(identified.employee()), method);
             }
         };
     }

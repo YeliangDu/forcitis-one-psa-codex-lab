@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.infrastructure.persistence;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
@@ -235,11 +236,11 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
                  WHERE process_key = :processKey AND document_key = :id ORDER BY round_number
                 """)
                 .param("processKey", processKey.name()).param("id", document.documentId().value())
-                .query((rs, n) -> new ApprovalRound(rs.getInt("round_number"), new UserId(rs.getLong("initiator_id")),
+                .query((rs, n) -> new ApprovalRound(rs.getInt("round_number"), new EmployeeId(rs.getLong("initiator_id")),
                         new ApprovalInstanceId(rs.getString("instance_id")))).list();
     }
 
-    private record Row(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator, int round,
+    private record Row(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, EmployeeId initiator, int round,
                        ApprovalInstanceId instance, ApprovalStatus status, Reason reason, ApprovalSummary summary, long version,
                        long eventCount) {
     }
@@ -248,7 +249,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
         String reason = rs.getString("result_reason");
         return new Row(ProcessKey.valueOf(rs.getString("process_key")), new DocumentReference(DocumentType.valueOf(rs.getString("document_type")),
                 new DocumentId(rs.getString("document_key"))), new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
-                new UserId(rs.getLong("initiator_id")), rs.getInt("current_round"), new ApprovalInstanceId(rs.getString("current_instance_id")),
+                new EmployeeId(rs.getLong("initiator_id")), rs.getInt("current_round"), new ApprovalInstanceId(rs.getString("current_instance_id")),
                 ApprovalStatus.valueOf(rs.getString("status")), reason == null ? null : new Reason(reason),
                 new ApprovalSummary(rs.getString("summary_text")), rs.getLong("version"), rs.getLong("event_count"));
     }

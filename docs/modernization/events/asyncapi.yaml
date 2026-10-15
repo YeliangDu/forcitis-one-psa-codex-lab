@@ -3906,12 +3906,12 @@ components:
             type: array
             items:
               type: string
-              x-type: UserId
+              x-type: EmployeeId
           separatedEmployees:
             type: array
             items:
               type: string
-              x-type: UserId
+              x-type: EmployeeId
           changedOrgUnits:
             type: array
             items:
@@ -4110,13 +4110,13 @@ components:
         type: object
         required:
         - envelope
-        - userId
+        - employeeId
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          userId:
+          employeeId:
             type: string
-            x-type: UserId
+            x-type: EmployeeId
             description: 稳定 ID 的字符串形式
     LegalEntityAttributed:
       name: LegalEntityAttributed

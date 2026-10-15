@@ -6,10 +6,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeLegalEntities;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
@@ -31,7 +33,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class SessionCurrentUserTest {
     static final Clock CLOCK = Clock.fixed(Instant.parse("2026-12-31T16:30:00Z"), ZoneOffset.UTC);
     final EmployeeLegalEntities employeeLegalEntities = mock(EmployeeLegalEntities.class);
-    final SessionCurrentUser currentUser = new SessionCurrentUser(employeeLegalEntities, new BusinessZone(ZoneId.of("Asia/Shanghai")), CLOCK);
+    final SessionCurrentUser currentUser = new SessionCurrentUser(employeeLegalEntities, TestAccounts.apart(5000),
+            new BusinessZone(ZoneId.of("Asia/Shanghai")), CLOCK);
 
     @AfterEach
     void clear() {
@@ -45,8 +48,8 @@ class SessionCurrentUserTest {
     @Test
     @DisplayName("B-1 the legal entity is the signed-in employee's on today's business day, cut in the business zone")
     void resolvedFromTheOrganisationOnTheBusinessDay() {
-        signIn("1001");
-        when(employeeLegalEntities.on(new UserId(1001), LocalDate.of(2027, 1, 1))).thenReturn(new LegalEntityId(TestIds.uuid(7)));
+        signIn("6001");
+        when(employeeLegalEntities.on(new EmployeeId(1001), LocalDate.of(2027, 1, 1))).thenReturn(new LegalEntityId(TestIds.uuid(7)));
 
         assertThat(currentUser.legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(7)));
     }
@@ -54,12 +57,21 @@ class SessionCurrentUserTest {
     @Test
     @DisplayName("B-1 when no legal entity can be resolved the failure reaches the caller; nothing is defaulted")
     void unresolvedFails() {
-        signIn("1001");
+        signIn("6001");
         DomainException unresolved = new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED,
                 ErrorKind.UNPROCESSABLE, "none");
-        when(employeeLegalEntities.on(new UserId(1001), LocalDate.of(2027, 1, 1))).thenThrow(unresolved);
+        when(employeeLegalEntities.on(new EmployeeId(1001), LocalDate.of(2027, 1, 1))).thenThrow(unresolved);
 
         assertThatThrownBy(currentUser::legalEntityId).isSameAs(unresolved);
+    }
+
+    @Test
+    @DisplayName("R-1b P1 the signed-in person is the employee behind the account: the two ids are told apart, not read from one number")
+    void employeeIsNotTheAccountNumber() {
+        signIn("6001");
+
+        assertThat(currentUser.userId()).isEqualTo(new UserId(6001));
+        assertThat(currentUser.employeeId()).isEqualTo(new EmployeeId(1001));
     }
 
     @Test

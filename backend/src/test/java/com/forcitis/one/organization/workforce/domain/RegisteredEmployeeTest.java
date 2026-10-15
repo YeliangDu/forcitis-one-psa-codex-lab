@@ -2,7 +2,7 @@ package com.forcitis.one.organization.workforce.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 class RegisteredEmployeeTest {
 
     private static StaffEmployee staff() {
-        UserId id = new UserId(42);
+        EmployeeId id = new EmployeeId(42);
         return new StaffEmployee(new Employee(id, "E42", "Synthetic", "synthetic", null, null, null, EmploymentStatus.EMPLOYED, false),
                 new Assignment(id, new OrgUnitId(3), null, null));
     }
@@ -28,7 +28,7 @@ class RegisteredEmployeeTest {
         List<DomainEvent> events = registered.drainEvents(TestEnvelopes.INSTANCE);
 
         assertThat(events).singleElement().isInstanceOfSatisfying(EmployeeRegistered.class, e -> {
-            assertThat(e.userId()).isEqualTo(new UserId(42));
+            assertThat(e.employeeId()).isEqualTo(new EmployeeId(42));
             assertThat(e.envelope().aggregateType()).isEqualTo("Employee");
             assertThat(e.envelope().aggregateId()).isEqualTo("42");
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);

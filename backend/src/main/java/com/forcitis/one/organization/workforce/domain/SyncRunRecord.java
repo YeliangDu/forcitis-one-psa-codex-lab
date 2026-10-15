@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.HoldKind;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -12,7 +13,7 @@ import java.util.Set;
 public record SyncRunRecord(SyncRunId syncRunId, SyncTrigger trigger, SyncRunStatus status, Instant startedAt,
                             Instant finishedAt, RunStats stats, String heldReason, String failureReason, UserId releasedBy,
                             Instant releasedAt, SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds,
-                            List<UserId> heldSeparations) {
+                            List<EmployeeId> heldSeparations) {
     public SyncRunRecord {
         Objects.requireNonNull(syncRunId, "syncRunId");
         Objects.requireNonNull(trigger, "trigger");
