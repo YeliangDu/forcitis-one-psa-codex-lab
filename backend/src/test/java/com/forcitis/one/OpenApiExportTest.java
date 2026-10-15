@@ -1,5 +1,6 @@
 package com.forcitis.one;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -67,7 +68,7 @@ class OpenApiExportTest {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
@@ -83,7 +84,7 @@ class OpenApiExportTest {
 
     @Test
     void exportsTheOpenApiDocumentForTheFrontendClient() throws Exception {
-        String body = mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk())
+        String body = mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         JsonNode document = json.readTree(body);
         assertThat(document.path("paths").size()).as("springdoc found no paths").isGreaterThan(0);
@@ -96,7 +97,7 @@ class OpenApiExportTest {
 
     @Test
     void pathsUseTheVersionSegmentAndResponseComponentsAreRequiredUnlessNullable() throws Exception {
-        JsonNode document = json.readTree(mvc.perform(get("/v3/api-docs").with(user("1"))).andReturn().getResponse().getContentAsString());
+        JsonNode document = json.readTree(mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andReturn().getResponse().getContentAsString());
         document.path("paths").propertyNames().forEach(path -> assertThat(path).startsWith("/api/v1/"));
         JsonNode syncRun = document.path("components").path("schemas").path("SyncRunResponse").path("required");
         assertThat(json.convertValue(syncRun, String[].class)).contains("syncRunId", "status", "startedAt")
@@ -110,11 +111,14 @@ class OpenApiExportTest {
             "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
             "RoleResponse.roleId", "SyncRunResponse.syncRunId", "SyncRunResponse.releasedByRunId", "ProblemDetail.correlationId",
             "RegisterSourceReferenceRequest.ownId", "SourceReferenceResponse.ownId", "SourceReferenceResponse.sourceReferenceId",
+            "AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId", "AuthorizationRequestView.subjectUserId", "CurrentUserResponse.userId",
+            "LoginResponse.userId", "UserAccountResponse.userId", "HandledTaskResponse.actorId", "HistoryEntry.actorId", "PendingTemplate.authorId",
+            "parameter userId", "parameter actorId", "parameter onBehalfOfId",
             "parameter legalEntityId", "parameter ownId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers");
 
     /** Ids taken from the organisation source (A8) and the engine's task, instance and document keys: R-1b, listed by name so a new id field has to be classified. */
-    static final java.util.Set<String> OTHER_ID_NAMES = java.util.Set.of("actorId", "onBehalfOfId", "subjectUserId", "userId", "orgUnitId", "employeeId",
-            "headEmployeeId", "parentOrgUnitId", "regionalReceivablesManagerId", "ancestorOrgUnitIds", "orgUnitAndBelowIds", "authorId", "assigneeId",
+    static final java.util.Set<String> OTHER_ID_NAMES = java.util.Set.of("orgUnitId", "employeeId",
+            "headEmployeeId", "parentOrgUnitId", "regionalReceivablesManagerId", "ancestorOrgUnitIds", "orgUnitAndBelowIds", "assigneeId",
             "subjectId", "taskId", "instanceId", "documentId");
 
     /** Identifiers that belong to an external system and stay what that system gives: on the wire a whole number written as text. */
@@ -122,7 +126,7 @@ class OpenApiExportTest {
 
     @Test
     void idFieldsOfThisSystemAreStringUuidAndEveryOtherIdFieldIsClassified() throws Exception {
-        JsonNode document = json.readTree(mvc.perform(get("/v3/api-docs").with(user("1"))).andReturn().getResponse().getContentAsString());
+        JsonNode document = json.readTree(mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andReturn().getResponse().getContentAsString());
         java.util.Map<String, JsonNode> idFields = new java.util.TreeMap<>();
         document.path("components").path("schemas").properties().forEach(schema -> schema.getValue().path("properties").properties().forEach(property -> {
             if (isIdName(property.getKey())) {

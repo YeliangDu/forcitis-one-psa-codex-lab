@@ -2,8 +2,9 @@ package com.forcitis.one.platform.approval.infrastructure.replay;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -39,13 +40,14 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId) {
+    public Optional<EmployeeProfile> findEmployeeByLogin(LoginLookup lookup) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
-        return Optional.empty();
+    public EmploymentVerdict employmentOf(EmployeeId employeeId) {
+        return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.SEPARATED)
+                .orElse(EmploymentVerdict.NOT_LISTED);
     }
 
     @Override
@@ -89,7 +91,7 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
         Set<UserId> holders = new LinkedHashSet<>();
         for (Long holder : roleHolders.getOrDefault(roleCode.value(), Set.of())) {
             if (employed(holder)) {
-                holders.add(new UserId(holder));
+                holders.add(ExportedAccounts.account(holder));
             }
         }
         return holders;

@@ -11,8 +11,6 @@ organization_workforce.employee_legal_entities  # key holds the employee id take
 organization_workforce.org_unit_versions  # key holds the org unit id taken from the organisation source; R-1b
 organization_workforce.assignment_versions  # key holds the employee id taken from the organisation source; R-1b
 organization_workforce.sync_run_held_separations  # key holds the employee id taken from the organisation source; R-1b
-platform_identity.emergency_admins  # key is the user id, which is the employee id taken from the organisation source; R-1b
-platform_identity.user_accounts  # key is the user id, which is the employee id taken from the organisation source; R-1b
 platform_approval.approval_tasks  # key is the Flowable task id; R-1b gives it its own uuid (DA-6)
 platform_approval.process_archive_skips  # key is the Flowable process instance id; made with this rule, so INT-M9 asks R-1b to give it its own uuid
 # 去向 ADR-0034：账号与角色的关联表，键里含 A8 用户 ID，随 ADR-0034 处理。

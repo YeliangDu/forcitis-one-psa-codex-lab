@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity.infrastructure.persistence;
 
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.IdentityError;
@@ -37,10 +38,12 @@ class JdbcAccountRepository implements AccountRepository {
 
     @Override
     public Optional<UserAccount> find(UserId userId) {
-        Optional<UserAccount> found = jdbc.sql("select user_id, status, version, event_count from platform_identity.user_accounts where user_id = :id")
+        Optional<UserAccount> found = jdbc.sql("""
+                        select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id
+                        """)
                 .param("id", userId.value())
-                .query((rs, n) -> UserAccount.restore(new UserId(rs.getLong("user_id")), rs.getString("status"), Set.of(),
-                        rs.getLong("version"), rs.getLong("event_count")))
+                .query((rs, n) -> UserAccount.restore(new UserId(rs.getObject("user_id", UUID.class)), new EmployeeId(rs.getLong("employee_id")),
+                        rs.getString("status"), Set.of(), rs.getLong("version"), rs.getLong("event_count")))
                 .optional();
         if (found.isEmpty()) {
             return found;
@@ -48,16 +51,29 @@ class JdbcAccountRepository implements AccountRepository {
         UserAccount account = found.get();
         Set<RoleId> roles = new HashSet<>(jdbc.sql("select role_id from platform_identity.account_roles where user_id = :id")
                 .param("id", userId.value()).query(UUID.class).list().stream().map(RoleId::new).toList());
-        return Optional.of(UserAccount.restore(account.userId(), account.status().name(), roles, account.version(), account.eventSequence()));
+        return Optional.of(UserAccount.restore(account.userId(), account.employeeId(), account.status().name(), roles, account.version(),
+                account.eventSequence()));
+    }
+
+    @Override
+    public Optional<UserId> findByEmployee(EmployeeId employeeId) {
+        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :employee").param("employee", employeeId.value())
+                .query(UUID.class).optional().map(UserId::new);
+    }
+
+    @Override
+    public Optional<EmployeeId> findEmployee(UserId userId) {
+        return jdbc.sql("select employee_id from platform_identity.user_accounts where user_id = :id").param("id", userId.value())
+                .query(Long.class).optional().map(EmployeeId::new);
     }
 
     @Override
     public boolean insertIfAbsent(UserAccount opened) {
         int inserted = jdbc.sql("""
-                        insert into platform_identity.user_accounts (user_id, status, version, event_count)
-                        values (:id, :status, :version, :eventSequence) on conflict (user_id) do nothing
+                        insert into platform_identity.user_accounts (user_id, employee_id, status, version, event_count)
+                        values (:id, :employee, :status, :version, :eventSequence) on conflict (employee_id) do nothing
                         """)
-                .param("id", opened.userId().value()).param("status", opened.status().name())
+                .param("id", opened.userId().value()).param("employee", opened.employeeId().value()).param("status", opened.status().name())
                 .param("version", opened.versionAfterSave()).param("eventSequence", opened.eventSequenceAfterSave()).update();
         if (inserted == 1) {
             saveRoles(opened.userId(), opened.roles());
@@ -138,6 +154,6 @@ class JdbcAccountRepository implements AccountRepository {
                           join platform_identity.user_accounts a on a.user_id = ar.user_id
                          where lower(r.code) = lower(:code) and r.status = 'ENABLED' and a.status = 'ENABLED'
                         """)
-                .param("code", roleCode.value()).query(Long.class).list().stream().map(UserId::new).collect(Collectors.toSet());
+                .param("code", roleCode.value()).query(UUID.class).list().stream().map(UserId::new).collect(Collectors.toSet());
     }
 }

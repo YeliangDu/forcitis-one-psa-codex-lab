@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventEnvelope;
@@ -48,7 +49,7 @@ class EventPublicationOperationsIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
@@ -75,7 +76,7 @@ class EventPublicationOperationsIT {
     @DisplayName("a completed publication moves to the archive table; the cleanup job removes archived rows older than 30 days and keeps newer ones")
     void completedPublicationsAreArchivedThenCleaned() {
         EventEnvelope envelope = new EventEnvelope(UUID.randomUUID(), "organization.workforce.LegalEntityRegistered", 1, Instant.now(), "LegalEntity",
-                "701", 1, UUID.randomUUID(), null, ActorType.SYSTEM, "test", new LegalEntityId(TestIds.uuid(701)), null, new EventSource(SourceSystem.ONE, null),
+                "701", 1, UUID.randomUUID(), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope").toString(), new LegalEntityId(TestIds.uuid(701)), null, new EventSource(SourceSystem.ONE, null),
                 null, List.of());
 
         tx.executeWithoutResult(status -> publisher.publishEvent(new LegalEntityRegistered(envelope, new LegalEntityId(TestIds.uuid(701)), new LegalEntityCode("ARC"))));

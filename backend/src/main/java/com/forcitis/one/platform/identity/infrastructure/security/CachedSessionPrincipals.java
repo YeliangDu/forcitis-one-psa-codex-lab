@@ -37,8 +37,8 @@ class CachedSessionPrincipals implements AccessCache {
                 .build();
     }
 
-    SessionPrincipal get(long userId, SessionKind kind) {
-        return cache.get(new Key(new UserId(userId), kind), key -> principals.resolve(key.user(), key.kind()));
+    SessionPrincipal get(UserId userId, SessionKind kind) {
+        return cache.get(new Key(userId, kind), key -> principals.resolve(key.user(), key.kind()));
     }
 
     @Override

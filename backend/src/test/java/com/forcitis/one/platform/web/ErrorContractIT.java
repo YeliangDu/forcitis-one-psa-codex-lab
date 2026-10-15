@@ -1,8 +1,10 @@
 package com.forcitis.one.platform.web;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -60,7 +62,7 @@ class ErrorContractIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
@@ -168,7 +170,7 @@ class ErrorContractIT {
                 if (anonymous.getStatus() != 401) {
                     problems.add(endpoint + " anonymous: expected 401, was " + anonymous.getStatus());
                 }
-                MockHttpServletResponse nothing = mvc.perform(request(endpoint).with(user("5").authorities(List.of())).with(
+                MockHttpServletResponse nothing = mvc.perform(request(endpoint).with(user(TestAccounts.account(5).value().toString()).authorities(List.of())).with(
                         org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())).andReturn().getResponse();
                 assertProblem(endpoint, "without permission", nothing, problems);
                 // Method security runs after the body is bound, so an unreadable body is answered 400 before the permission is looked at.
@@ -178,7 +180,7 @@ class ErrorContractIT {
                     problems.add(endpoint + " without permission: expected 403, was " + nothing.getStatus());
                 }
             }
-            MockHttpServletResponse permitted = mvc.perform(request(endpoint).with(user("5").authorities(all)).with(
+            MockHttpServletResponse permitted = mvc.perform(request(endpoint).with(user(TestAccounts.account(5).value().toString()).authorities(all)).with(
                     org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())).andReturn().getResponse();
             assertProblem(endpoint, "permitted caller, nonsense input", permitted, problems);
         }

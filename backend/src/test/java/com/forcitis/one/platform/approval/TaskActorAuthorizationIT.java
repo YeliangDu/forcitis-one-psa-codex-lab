@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,11 +52,11 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     ReturnToInitiator returnToInitiator;
 
     static RequestPostProcessor approver(long id) {
-        return user(String.valueOf(id)).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE));
+        return user(TestAccounts.account(id).value().toString()).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE));
     }
 
     static RequestPostProcessor reader(long id) {
-        return user(String.valueOf(id)).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
+        return user(TestAccounts.account(id).value().toString()).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
     }
 
     record Scene(String key, ApprovalInstanceId instance, ApprovalTaskId task, long initiator, long candidate, long otherCandidate,
@@ -105,7 +106,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                     .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 404));
         }
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.task.denied")
-                && entry.actorId().equals(new UserId(scene.stranger())) && entry.subjectKey().equals("approval-task:" + id)));
+                && entry.actorId().equals(TestAccounts.account(scene.stranger())) && entry.subjectKey().equals("approval-task:" + id)));
     }
 
     @Test
@@ -129,7 +130,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         String id = scene.task().value();
         mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag()).with(approver(scene.candidate())))
                 .andExpect(status().isNoContent());
-        assertThat(snapshot(scene).assignee()).isEqualTo(String.valueOf(scene.candidate()));
+        assertThat(snapshot(scene).assignee()).isEqualTo(TestAccounts.account(scene.candidate()).value().toString());
 
         assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag())
                 .with(approver(scene.otherCandidate())), 404));
@@ -138,7 +139,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                 .content("{\"outcome\":\"APPROVE\",\"reason\":\"x\"}"), 404));
         assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":return").with(csrf()).with(currentEtag())
                 .with(approver(scene.otherCandidate())).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 404));
-        assertThat(snapshot(scene).assignee()).isEqualTo(String.valueOf(scene.candidate()));
+        assertThat(snapshot(scene).assignee()).isEqualTo(TestAccounts.account(scene.candidate()).value().toString());
     }
 
     @Test
@@ -146,7 +147,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     void useCasesRefuseNonHandlers() {
         Scene scene = scene();
         Snapshot before = snapshot(scene);
-        UserId stranger = new UserId(scene.stranger());
+        UserId stranger = TestAccounts.account(scene.stranger());
         assertThatThrownBy(() -> claimTask.execute(scene.task(), stranger, java.util.OptionalLong.empty())).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
         assertThatThrownBy(() -> decideTasks.execute(stranger, List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "x")), java.util.OptionalLong.empty()))
                 .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND));
@@ -159,7 +160,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     void oneForeignTaskRefusesTheWholeBatch() {
         Scene mine = scene();
         Scene foreign = scene();
-        UserId actor = new UserId(mine.candidate());
+        UserId actor = TestAccounts.account(mine.candidate());
         assertThat(foreign.candidate()).isNotEqualTo(mine.candidate());
         Snapshot beforeMine = snapshot(mine);
         Snapshot beforeForeign = snapshot(foreign);
@@ -194,7 +195,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
             outcomes.add(pool.submit(() -> {
                 go.await();
                 try {
-                    claimTask.execute(scene.task(), new UserId(candidate), java.util.OptionalLong.empty());
+                    claimTask.execute(scene.task(), TestAccounts.account(candidate), java.util.OptionalLong.empty());
                     return "won";
                 } catch (com.forcitis.one.kernel.DomainException e) {
                     return e.errorCode().name();
@@ -209,7 +210,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         pool.shutdown();
         assertThat(results).containsOnlyOnce("won");
         assertThat(results.stream().filter(r -> !r.equals("won"))).allMatch(r -> r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND") || r.equals("PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED"));
-        assertThat(snapshot(scene).assignee()).isIn(String.valueOf(scene.candidate()), String.valueOf(scene.otherCandidate()));
+        assertThat(snapshot(scene).assignee()).isIn(TestAccounts.account(scene.candidate()).value().toString(), TestAccounts.account(scene.otherCandidate()).value().toString());
     }
 
     @org.junit.jupiter.api.RepeatedTest(5)
@@ -223,7 +224,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
             outcomes.add(pool.submit(() -> {
                 go.await();
                 try {
-                    decideTasks.execute(new UserId(candidate), List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
+                    decideTasks.execute(TestAccounts.account(candidate), List.of(new TaskDecision(scene.task(), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
                     return "won";
                 } catch (com.forcitis.one.kernel.DomainException e) {
                     return e.errorCode().name();
@@ -252,7 +253,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(scene.candidate()))).andExpect(status().isOk());
         mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag()).with(reader(scene.candidate())))
                 .andExpect(status().isNoContent());
-        assertThat(snapshot(scene).assignee()).isEqualTo(String.valueOf(scene.candidate()));
+        assertThat(snapshot(scene).assignee()).isEqualTo(TestAccounts.account(scene.candidate()).value().toString());
     }
 
     @Test
@@ -281,7 +282,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @DisplayName("M-12 somebody who may not touch a task and a task that does not exist get the very same answer: status, content type, error code, title and detail")
     void strangerAndUnknownTaskAreIndistinguishable() throws Exception {
         Scene scene = scene();
-        String stranger = String.valueOf(scene.stranger());
+        String stranger = TestAccounts.account(scene.stranger()).value().toString();
         for (String action : List.of(":claim", ":release", ":decide", ":return", ":transfer")) {
             String body = "{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"assigneeId\":" + scene.otherCandidate() + "}";
             var foreign = mvc.perform(post("/api/v1/platform/approval-tasks/" + scene.task().value() + action).with(csrf()).with(currentEtag())

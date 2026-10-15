@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;
@@ -8,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 public sealed interface LoginResult {
 
     /** browserIdentifier is the new value for the browser's identifier cookie, present only when the login skipped the confirmation. */
-    record Authenticated(long userId, Instant absoluteExpiresAt, @Nullable Instant administratorModeExpiresAt,
+    record Authenticated(UserId userId, Instant absoluteExpiresAt, @Nullable Instant administratorModeExpiresAt,
             boolean identityConfirmationRequired, @Nullable String browserIdentifier) implements LoginResult {
     }
 

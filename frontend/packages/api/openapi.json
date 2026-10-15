@@ -34,6 +34,7 @@
             "type" : "string"
           },
           "actorId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "afterText" : {
@@ -60,6 +61,7 @@
             "type" : [ "string", "null" ]
           },
           "onBehalfOfId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "outcome" : {
@@ -103,8 +105,8 @@
             "type" : "string"
           },
           "requestedBy" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           },
           "roleCodes" : {
             "items" : {
@@ -120,8 +122,8 @@
             "type" : "string"
           },
           "subjectUserId" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -225,6 +227,7 @@
             "type" : "array"
           },
           "userId" : {
+            "format" : "uuid",
             "type" : "string"
           }
         },
@@ -461,6 +464,7 @@
             "$ref" : "#/components/schemas/TaskRecordAction"
           },
           "actorId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "actorName" : {
@@ -515,6 +519,7 @@
             "$ref" : "#/components/schemas/TaskRecordAction"
           },
           "actorId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "actorName" : {
@@ -710,6 +715,7 @@
             "type" : "boolean"
           },
           "userId" : {
+            "format" : "uuid",
             "type" : "string"
           }
         },
@@ -988,6 +994,7 @@
       "PendingTemplate" : {
         "properties" : {
           "authorId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "authoredAt" : {
@@ -999,6 +1006,7 @@
             "type" : "integer"
           },
           "confirmedBy" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "effectiveFrom" : {
@@ -1006,6 +1014,7 @@
             "type" : "string"
           },
           "financeConfirmedBy" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "pattern" : {
@@ -1057,6 +1066,9 @@
             "$ref" : "#/components/schemas/ErrorCode"
           },
           "instance" : {
+            "type" : "string"
+          },
+          "invalidParameters" : {
             "type" : "string"
           },
           "legacyLoginUrl" : {
@@ -1372,6 +1384,7 @@
             "type" : [ "string", "null" ]
           },
           "releasedBy" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "releasedByRunId" : {
@@ -1413,6 +1426,7 @@
       "TaskDetailResponse" : {
         "properties" : {
           "assignee" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "assigneeName" : {
@@ -1429,6 +1443,7 @@
           },
           "candidates" : {
             "items" : {
+              "format" : "uuid",
               "type" : "string"
             },
             "type" : "array"
@@ -1525,6 +1540,7 @@
       "TaskOverviewResponse" : {
         "properties" : {
           "assignee" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "createdAt" : {
@@ -1610,6 +1626,7 @@
             "type" : "string"
           },
           "userId" : {
+            "format" : "uuid",
             "type" : "string"
           }
         },
@@ -1879,7 +1896,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -2347,7 +2367,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -2527,7 +2550,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -2675,7 +2701,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         } ],
@@ -2799,7 +2828,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         } ],
@@ -2923,7 +2955,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         } ],
@@ -3954,16 +3989,16 @@
           "name" : "actorId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "query",
           "name" : "onBehalfOfId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "query",
@@ -4021,7 +4056,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -4065,8 +4103,8 @@
           "name" : "actorId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "query",
@@ -4133,7 +4171,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -4285,7 +4326,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -4417,7 +4461,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -4658,6 +4705,8 @@
           "schema" : {
             "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         } ],
@@ -4697,7 +4746,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -5238,7 +5290,10 @@
           "name" : "limit",
           "required" : false,
           "schema" : {
+            "default" : 50,
             "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
             "type" : "integer"
           }
         }, {
@@ -5417,8 +5472,8 @@
           "name" : "userId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -5454,8 +5509,8 @@
           "name" : "userId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -5499,8 +5554,8 @@
           "name" : "userId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -5544,8 +5599,8 @@
           "name" : "userId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "description" : "The same key with the same request within 24 hours gets the first answer again",
@@ -5592,8 +5647,8 @@
           "name" : "userId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",

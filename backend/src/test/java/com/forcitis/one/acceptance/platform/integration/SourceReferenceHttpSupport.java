@@ -148,7 +148,7 @@ abstract class SourceReferenceHttpSupport extends AcceptanceSupport {
 
     long outboundAccountingCode(UUID legalEntity, LocalDate on) {
         SourceReferencesProbe references = SourceReferencesProbe.of(context);
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "platform.integration.outbound")) {
+        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "acceptance.accounting-code-outbound")) {
             return references.sourceIdFor(ACCOUNTING_SYSTEM, LEGAL_ENTITY, legalEntity, on);
         }
     }

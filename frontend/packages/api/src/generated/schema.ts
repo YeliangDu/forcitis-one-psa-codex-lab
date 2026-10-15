@@ -946,6 +946,7 @@ export interface components {
         };
         AuditEntryResponse: {
             action: string;
+            /** Format: uuid */
             actorId?: string;
             afterText?: string;
             beforeText?: string;
@@ -956,6 +957,7 @@ export interface components {
             /** Format: uuid */
             entryId: string;
             loginMethod?: string;
+            /** Format: uuid */
             onBehalfOfId?: string;
             outcome?: components["schemas"]["AuditOutcome"] | (string & {});
             sourceAddress?: string;
@@ -972,14 +974,14 @@ export interface components {
             requestId?: string;
             /** Format: date-time */
             requestedAt?: string;
-            /** Format: int64 */
-            requestedBy?: number;
+            /** Format: uuid */
+            requestedBy?: string;
             roleCodes?: string[];
             /** Format: uuid */
             roleId?: string;
             roleName?: string;
-            /** Format: int64 */
-            subjectUserId?: number;
+            /** Format: uuid */
+            subjectUserId?: string;
         };
         CalendarDayRequest: {
             /** Format: date */
@@ -1018,6 +1020,7 @@ export interface components {
             orgUnitId?: string;
             orgUnitName?: string;
             permissionCodes: string[];
+            /** Format: uuid */
             userId: string;
         };
         CursorPageAuditEntryResponse: {
@@ -1092,6 +1095,7 @@ export interface components {
         };
         HandledTaskResponse: {
             action: components["schemas"]["TaskRecordAction"] | (string & {});
+            /** Format: uuid */
             actorId: string;
             actorName: string;
             /** Format: date-time */
@@ -1112,6 +1116,7 @@ export interface components {
         };
         HistoryEntry: {
             action: components["schemas"]["TaskRecordAction"] | (string & {});
+            /** Format: uuid */
             actorId: string;
             actorName: string;
             assigneeName?: string;
@@ -1185,6 +1190,7 @@ export interface components {
             /** Format: date-time */
             administratorModeExpiresAt?: string;
             identityConfirmationRequired: boolean;
+            /** Format: uuid */
             userId: string;
         };
         LoginStateRequest: {
@@ -1278,14 +1284,17 @@ export interface components {
             sourceAddress?: string;
         };
         PendingTemplate: {
+            /** Format: uuid */
             authorId?: string;
             /** Format: date-time */
             authoredAt: string;
             /** Format: int64 */
             capacity: number;
+            /** Format: uuid */
             confirmedBy?: string;
             /** Format: date */
             effectiveFrom: string;
+            /** Format: uuid */
             financeConfirmedBy?: string;
             pattern: string;
             resetPolicy: components["schemas"]["ResetPolicy"] | (string & {});
@@ -1308,6 +1317,7 @@ export interface components {
             detail?: string;
             errorCode: components["schemas"]["ErrorCode"] | (string & {});
             instance?: string;
+            invalidParameters?: string;
             legacyLoginUrl?: string;
             /** Format: int32 */
             status: number;
@@ -1423,6 +1433,7 @@ export interface components {
             previousEmployedCount?: number;
             /** Format: date-time */
             releasedAt?: string;
+            /** Format: uuid */
             releasedBy?: string;
             /** Format: uuid */
             releasedByRunId?: string;
@@ -1439,6 +1450,7 @@ export interface components {
             trigger: string;
         };
         TaskDetailResponse: {
+            /** Format: uuid */
             assignee?: string;
             assigneeName?: string;
             canAct: boolean;
@@ -1475,6 +1487,7 @@ export interface components {
             nextCursor?: string;
         };
         TaskOverviewResponse: {
+            /** Format: uuid */
             assignee?: string;
             /** Format: date-time */
             createdAt: string;
@@ -1506,6 +1519,7 @@ export interface components {
         UserAccountResponse: {
             roleCodes: string[];
             status: string;
+            /** Format: uuid */
             userId: string;
         };
         /** @enum {string} */
@@ -3322,8 +3336,8 @@ export interface operations {
     list_6: {
         parameters: {
             query?: {
-                actorId?: number;
-                onBehalfOfId?: number;
+                actorId?: string;
+                onBehalfOfId?: string;
                 action?: string;
                 actionPrefix?: string;
                 sourceAddress?: string;
@@ -3363,7 +3377,7 @@ export interface operations {
     export: {
         parameters: {
             query?: {
-                actorId?: number;
+                actorId?: string;
                 action?: string;
                 subjectKey?: string;
                 from?: string;
@@ -4396,7 +4410,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                userId: number;
+                userId: string;
             };
             cookie?: never;
         };
@@ -4431,7 +4445,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                userId: number;
+                userId: string;
             };
             cookie?: never;
         };
@@ -4464,7 +4478,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                userId: number;
+                userId: string;
             };
             cookie?: never;
         };
@@ -4496,7 +4510,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                userId: number;
+                userId: string;
             };
             cookie?: never;
         };
@@ -4533,7 +4547,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                userId: number;
+                userId: string;
             };
             cookie?: never;
         };

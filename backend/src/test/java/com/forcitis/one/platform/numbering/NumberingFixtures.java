@@ -35,8 +35,8 @@ final class NumberingFixtures {
     static void confirmSeeded(JdbcClient jdbc, String documentType) {
         jdbc.sql("""
                 update platform_numbering.numbering_rule_versions
-                   set status = 'CONFIRMED', confirmed_by = 101, confirmed_at = now(),
-                       finance_confirmed_by = case when :type = 'JOURNAL_VOUCHER' then 102 end,
+                   set status = 'CONFIRMED', confirmed_by = '01900000-0000-7000-8000-000000000101', confirmed_at = now(),
+                       finance_confirmed_by = case when :type = 'JOURNAL_VOUCHER' then '01900000-0000-7000-8000-000000000102'::uuid end,
                        finance_confirmed_at = case when :type = 'JOURNAL_VOUCHER' then now() end
                  where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = :type) and version_number = 1
                 """).param("type", documentType).update();

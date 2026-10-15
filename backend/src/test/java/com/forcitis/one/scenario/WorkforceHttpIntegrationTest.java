@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.platform.identity.api.Permission;
 
@@ -60,7 +61,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping handlerMapping;
 
     private static RequestPostProcessor caller(String... authorities) {
-        return user("9001").authorities(java.util.Arrays.stream(authorities).<org.springframework.security.core.GrantedAuthority>map(a -> () -> a).toList());
+        return user(TestAccounts.account(9001).value().toString()).authorities(java.util.Arrays.stream(authorities).<org.springframework.security.core.GrantedAuthority>map(a -> () -> a).toList());
     }
 
     private static final RequestPostProcessor READ_ORG = caller(Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
@@ -69,14 +70,14 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
     @org.junit.jupiter.api.BeforeEach
     void theCallerIsTheOrganisationDataAdministrator() {
-        jdbc.sql("insert into platform_identity.user_accounts (user_id) values (9001) on conflict do nothing").update();
-        jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) select 9001, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + TestAccounts.sql(9001) + "::uuid, 9001) on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) select " + TestAccounts.sql(9001) + "::uuid, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
     }
 
     @org.junit.jupiter.api.AfterEach
     void removeTheCallerAccount() {
-        jdbc.sql("delete from platform_identity.account_roles where user_id = 9001").update();
-        jdbc.sql("delete from platform_identity.user_accounts where user_id = 9001").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 9001)").update();
+        jdbc.sql("delete from platform_identity.user_accounts where employee_id = 9001").update();
     }
 
     private void synced() {
@@ -238,7 +239,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 .andExpect(jsonPath("$.syncRun.status").value("SUCCEEDED"));
         assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
             assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
-            assertThat(e.envelope().actorId()).isEqualTo("9001");
+            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
         });
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(4);
 

@@ -26,7 +26,7 @@ public class RegisterEmployeeOnLogin {
     public Optional<StaffEmployee> execute(WecomUserId wecomUserId) {
         List<SourcePerson> found;
         try {
-            found = source.findStaffByWecomUserId(wecomUserId);
+            found = source.findStaffByWecomUser(wecomUserId);
         } catch (ExternalSystemUnavailableException unavailable) {
             LOG.warn("organization.workforce login-miss lookup skipped, source not available: {}", unavailable.getMessage());
             return Optional.empty();

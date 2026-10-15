@@ -125,6 +125,7 @@ tables:
     writers: [organization.workforce]
   organization_workforce.legal_entity_versions:
     role: DIMENSION_VERSIONED
+    aggregate: LegalEntity
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}

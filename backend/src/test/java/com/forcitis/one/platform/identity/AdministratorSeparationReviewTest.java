@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.EmployeeId;
@@ -74,7 +75,7 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(3, "super_admin");
         knownEmployee(3, EmploymentStatus.SEPARATED);
-        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where user_id = 2").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = 2").update();
 
         assertThat(review.review(List.of(new EmployeeId(1)), null).reason()).contains("only 0 usable");
     }
@@ -88,10 +89,10 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(7, "org_data_admin");
         List<EmployeeId> separating = List.of(new EmployeeId(1));
 
-        assertThat(review.review(separating, new UserId(2)).actorRetained()).isTrue();
-        assertThat(review.review(separating, new UserId(5)).actorRetained()).isTrue();
-        assertThat(review.review(separating, new UserId(1)).actorRetained()).as("not the person leaving").isFalse();
-        assertThat(review.review(separating, new UserId(7)).actorRetained()).as("the organisation data administrator alone is not enough").isFalse();
-        assertThat(review.review(separating, new UserId(404)).actorRetained()).isFalse();
+        assertThat(review.review(separating, TestAccounts.account(2)).actorRetained()).isTrue();
+        assertThat(review.review(separating, TestAccounts.account(5)).actorRetained()).isTrue();
+        assertThat(review.review(separating, TestAccounts.account(1)).actorRetained()).as("not the person leaving").isFalse();
+        assertThat(review.review(separating, TestAccounts.account(7)).actorRetained()).as("the organisation data administrator alone is not enough").isFalse();
+        assertThat(review.review(separating, TestAccounts.account(404)).actorRetained()).isFalse();
     }
 }

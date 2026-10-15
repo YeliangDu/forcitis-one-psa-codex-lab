@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -271,12 +272,12 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        ReleaseResult released = release.execute(held.syncRunId(), new UserId(9001L), "source repaired by hand", true, false);
+        ReleaseResult released = release.execute(held.syncRunId(), TestAccounts.account(9001L), "source repaired by hand", true, false);
 
         assertThat(released).isInstanceOfSatisfying(ReleaseResult.Released.class, r -> assertThat(r.releasedRun().status()).isEqualTo("SUCCEEDED"));
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(3);
         assertThat(jdbc.sql("select status || ':' || released_by from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value())
-                .query(String.class).single()).isEqualTo("RELEASED:9001");
+                .query(String.class).single()).isEqualTo("RELEASED:" + TestAccounts.account(9001L).value());
         assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
             assertThat(e.syncRunId()).isEqualTo(held.syncRunId());
             assertThat(e.envelope().aggregateId()).isEqualTo(String.valueOf(held.syncRunId().value()));
@@ -284,8 +285,8 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
-        assertThat(release.execute(held.syncRunId(), new UserId(9001L), "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotHeld.class);
-        assertThat(release.execute(new SyncRunId(TestIds.uuid(424242)), new UserId(9001L), "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotFound.class);
+        assertThat(release.execute(held.syncRunId(), TestAccounts.account(9001L), "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotHeld.class);
+        assertThat(release.execute(new SyncRunId(TestIds.uuid(424242)), TestAccounts.account(9001L), "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotFound.class);
     }
 
     @Test
@@ -339,7 +340,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             Callable<SyncResult> run = () -> {
-                try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test")) {
+                try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "test.organization.workforce")) {
                     return sync.execute(SyncTrigger.SCHEDULED, false);
                 }
             };

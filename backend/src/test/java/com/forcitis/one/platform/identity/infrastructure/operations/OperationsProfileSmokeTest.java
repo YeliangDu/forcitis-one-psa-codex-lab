@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.infrastructure.operations;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.OneApplication;
+import com.forcitis.one.TestPostgres;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -19,7 +20,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @DisplayName("OperationsProfile: the identity-operations profile starts a context, runs one command and ends without jobs (B1-M12)")
 class OperationsProfileSmokeTest {
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
     static {
@@ -67,7 +68,7 @@ class OperationsProfileSmokeTest {
         Finished finished = run("--operator=alice", "--witness=bob");
 
         assertThat(finished.exitCode()).isEqualTo(2);
-        assertThat(finished.webServerPort()).as("B1-R3 the web part listens on no port").isEqualTo(-1);
+        assertThat(finished.webServerPort()).as("B1-R3 the web part reports port -1; Tomcat still listens on an ephemeral port until OPS-PORT").isEqualTo(-1);
         assertThat(finished.anyJobBean()).isFalse();
         assertThat(finished.anyScheduledTask()).isFalse();
     }
@@ -77,13 +78,13 @@ class OperationsProfileSmokeTest {
     void aCommandEndsCleanlyAndItsEventIsNotLost() {
         run("--operator=alice", "--witness=bob");
         JdbcClient jdbc = JdbcClient.create(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()));
-        jdbc.sql("insert into platform_identity.user_accounts (user_id) values (7) on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + com.forcitis.one.fixture.doubles.TestAccounts.sql(7) + "::uuid, 7) on conflict do nothing").update();
 
-        Finished finished = run("--operation=grant-role", "--user-id=7", "--role-code=business_admin", "--operator=alice", "--witness=bob");
+        Finished finished = run("--operation=grant-role", "--employee-id=7", "--role-code=business_admin", "--operator=alice", "--witness=bob");
 
         assertThat(finished.exitCode()).isZero();
         assertThat(finished.anyScheduledTask()).isFalse();
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where ar.user_id = 7 and r.code = 'business_admin'")
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 7) and r.code = 'business_admin'")
                 .query(Long.class).single()).isEqualTo(1);
         long waiting = jdbc.sql("select count(*) from platform_integration.event_publication where event_type like '%AccountRolesReplaced'").query(Long.class).single();
         long delivered = jdbc.sql("select count(*) from platform_integration.event_publication_archive where event_type like '%AccountRolesReplaced'").query(Long.class).single();

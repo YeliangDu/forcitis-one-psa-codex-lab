@@ -48,7 +48,7 @@ final class SeeyonOrgSource implements OrgSource {
     }
 
     @Override
-    public List<SourcePerson> findStaffByWecomUserId(WecomUserId wecomUserId) {
+    public List<SourcePerson> findStaffByWecomUser(WecomUserId wecomUserId) {
         try {
             return present(interactive.sql(SeeyonViewSql.MEMBERS_BY_WECOM_USER_ID)
                     .param("rootPathPrefix", mapping.rootPathPrefix())

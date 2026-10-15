@@ -73,7 +73,7 @@ CREATE TABLE platform_approval.approval_tasks (
     document_key    text        NOT NULL,
     node_key        text        NOT NULL,
     status          text        NOT NULL CHECK (status IN ('PENDING', 'CLAIMED', 'COMPLETED', 'CLOSED')),
-    assignee_id     bigint,
+    assignee_id     uuid,
     due_at          timestamptz,
     escalate_at     timestamptz,
     overdue_at      timestamptz,
@@ -110,7 +110,7 @@ COMMENT ON COLUMN platform_approval.approval_tasks.process_key IS '流程标识�
 COMMENT ON COLUMN platform_approval.approval_tasks.document_key IS '单据键';
 COMMENT ON COLUMN platform_approval.approval_tasks.node_key IS '节点键：流程图中的节点标识';
 COMMENT ON COLUMN platform_approval.approval_tasks.status IS '任务状态：PENDING 待认领 / CLAIMED 已认领 / COMPLETED 已办理 / CLOSED 本轮已结束而关闭，用枚举不靠文案';
-COMMENT ON COLUMN platform_approval.approval_tasks.assignee_id IS '处理人（人员 ID）：认领后唯一可以办理的人；未认领为空';
+COMMENT ON COLUMN platform_approval.approval_tasks.assignee_id IS '处理人（用户 ID）：认领后唯一可以办理的人；未认领为空';
 COMMENT ON COLUMN platform_approval.approval_tasks.due_at IS '截止时刻：任务创建所在工作日之后第 n 个工作日 23:59；无审批时限的节点为空（D-1a-111）';
 COMMENT ON COLUMN platform_approval.approval_tasks.escalate_at IS '升级时刻：提醒日之后第 n 个工作日 09:00，到点仍未办理就升级（D-1a-112、113）';
 COMMENT ON COLUMN platform_approval.approval_tasks.overdue_at IS '超时记录时刻：已发出超时提醒的时间；为空表示尚未超时';
@@ -138,9 +138,9 @@ CREATE TABLE platform_approval.approval_task_records (
     node_key         text        NOT NULL,
     node_name        text        NOT NULL,
     action_kind      text        NOT NULL CHECK (action_kind IN ('CLAIMED', 'RELEASED', 'APPROVED', 'REJECTED', 'RETURNED', 'ADVISED', 'PASSED_AUTOMATICALLY', 'TRANSFERRED', 'REASSIGNED')),
-    actor_id         bigint      NOT NULL,
-    on_behalf_of_id  bigint,
-    assignee_id      bigint,
+    actor_id         uuid        NOT NULL,
+    on_behalf_of_id  uuid,
+    assignee_id      uuid,
     record_reason    text,
     decided_at       timestamptz NOT NULL,
     created_at       timestamptz NOT NULL DEFAULT now(),
@@ -160,9 +160,9 @@ COMMENT ON COLUMN platform_approval.approval_task_records.instance_id IS '所属
 COMMENT ON COLUMN platform_approval.approval_task_records.node_key IS '节点键：流程图中的节点标识';
 COMMENT ON COLUMN platform_approval.approval_task_records.node_name IS '节点名称：做这件事时节点的显示名';
 COMMENT ON COLUMN platform_approval.approval_task_records.action_kind IS '办理动作：CLAIMED 认领 / RELEASED 释放 / APPROVED 通过 / REJECTED 驳回 / RETURNED 退回 / ADVISED 加签建议 / PASSED_AUTOMATICALLY 系统自动通过 / TRANSFERRED 转交 / REASSIGNED 改派，用枚举不靠文案';
-COMMENT ON COLUMN platform_approval.approval_task_records.actor_id IS '操作人（人员 ID）：做这件事的人；系统自动通过时是被自动通过的审批人';
-COMMENT ON COLUMN platform_approval.approval_task_records.on_behalf_of_id IS '被代理人（人员 ID）：操作人替谁办（流程管理员改派时是原处理人）；不是代办就为空';
-COMMENT ON COLUMN platform_approval.approval_task_records.assignee_id IS '处理人（人员 ID）：转交、改派之后持有任务的人；其他动作为空';
+COMMENT ON COLUMN platform_approval.approval_task_records.actor_id IS '操作人（用户 ID）：做这件事的人；系统自动通过时是被自动通过的审批人';
+COMMENT ON COLUMN platform_approval.approval_task_records.on_behalf_of_id IS '被代理人（用户 ID）：操作人替谁办（流程管理员改派时是原处理人）；不是代办就为空';
+COMMENT ON COLUMN platform_approval.approval_task_records.assignee_id IS '处理人（用户 ID）：转交、改派之后持有任务的人；其他动作为空';
 COMMENT ON COLUMN platform_approval.approval_task_records.record_reason IS '意见或原因：办理人填写的；没填就为空，不补默认值（RULE-280）';
 COMMENT ON COLUMN platform_approval.approval_task_records.created_at IS '创建时间';
 COMMENT ON COLUMN platform_approval.approval_task_records.updated_at IS '更新时间';

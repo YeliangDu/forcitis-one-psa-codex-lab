@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -42,13 +43,13 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         MvcResult result = login("c1", newState("WORKBENCH"), "WORKBENCH");
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
-        assertThat(body(result).path("userId").asString()).isEqualTo("1001");
+        assertThat(body(result).path("userId").asString()).isEqualTo(accountOf(1001).toString());
         assertThat(body(result).path("absoluteExpiresAt").asString()).isNotBlank();
         String cookie = setCookieHeader(result, "SESSION");
         assertThat(cookie).contains("HttpOnly").contains("Secure").contains("SameSite=Lax");
         assertThat(result.getResponse().getHeader("Location")).as("RULE-335: nothing in a redirect URL").isNull();
         verify(wecomGateway).resolveWecomUserId("c1", WecomEntry.WORKBENCH);
-        verify(orgDirectory).findEmployeeByWecomUserId(new WecomUserId("wx1001"));
+        verify(orgDirectory).findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx1001")));
     }
 
     @Test
@@ -61,13 +62,13 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(recorded()).anySatisfy(entry -> {
             assertThat(entry.action()).isEqualTo("platform.identity.login.succeeded");
-            assertThat(entry.actorId().value()).isEqualTo(1001);
+            assertThat(entry.actorId().value()).isEqualTo(accountOf(1001));
             assertThat(entry.detail()).contains("method=WECOM_WORKBENCH").contains("address=127.0.0.1");
         });
         assertThat(recordedIndependently()).anySatisfy(entry -> assertThat(entry.action()).isEqualTo("platform.identity.login.failed"));
-        assertThat(jdbc.sql("select last_login_address from platform_identity.user_accounts where user_id = 1001")
+        assertThat(jdbc.sql("select last_login_address from platform_identity.user_accounts where employee_id = 1001")
                 .query(String.class).single()).isEqualTo("127.0.0.1");
-        assertThat(jdbc.sql("select last_login_at is not null from platform_identity.user_accounts where user_id = 1001")
+        assertThat(jdbc.sql("select last_login_at is not null from platform_identity.user_accounts where employee_id = 1001")
                 .query(Boolean.class).single()).isTrue();
     }
 
@@ -93,7 +94,7 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("RULE-324 a WeCom user without an employee is refused and no account or session appears")
     void unmappedWecomUserIsRefused() throws Exception {
         when(wecomGateway.resolveWecomUserId("c1", WecomEntry.WORKBENCH)).thenReturn(Optional.of(new WecomUserId("stranger")));
-        when(orgDirectory.findEmployeeByWecomUserId(new WecomUserId("stranger"))).thenReturn(Optional.empty());
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("stranger")))).thenReturn(Optional.empty());
 
         MvcResult result = login("c1", newState("WORKBENCH"), "WORKBENCH");
 
@@ -152,7 +153,7 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         wecomAccepts("c1", WecomEntry.WORKBENCH, 1001);
         createAccount(1001);
-        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where user_id = 1001").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = 1001").update();
 
         MvcResult result = login("c1", newState("WORKBENCH"), "WORKBENCH");
 
@@ -181,11 +182,11 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(jdbc.sql("""
                 select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = 1001
+                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1001)
                 """).query(String.class).list()).containsExactly("employee");
-        assertThat(recordedEvents.stream(AccountOpened.class)).singleElement().satisfies(e -> assertThat(e.userId().value()).isEqualTo(1001));
+        assertThat(recordedEvents.stream(AccountOpened.class)).singleElement().satisfies(e -> assertThat(e.userId().value()).isEqualTo(accountOf(1001)));
 
-        jdbc.sql("delete from platform_identity.account_roles where user_id = 1001").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 1001)").update();
         loginWithWecom(1001);
         assertThat(count("account_roles")).isZero();
     }
@@ -208,7 +209,7 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
         var me = body(result);
-        assertThat(me.path("userId").asString()).isEqualTo("1001");
+        assertThat(me.path("userId").asString()).isEqualTo(accountOf(1001).toString());
         assertThat(me.path("displayName").asString()).isEqualTo("Employee 1001");
         assertThat(me.path("orgUnitName").asString()).isEqualTo("Delivery");
         assertThat(me.path("permissionCodes").valueStream().map(n -> n.asString()).toList())

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -41,9 +42,9 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @BeforeEach
     void callers() {
         createAccount(9, "super_admin");
-        admin = user("9").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, () -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
+        admin = user(TestAccounts.account(9).value().toString()).authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, () -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ,
                 () -> Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE);
-        reader = user("8").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
+        reader = user(TestAccounts.account(8).value().toString()).authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_READ);
     }
 
     private MvcResult createRole(String code, String name, String permissions, String scope) throws Exception {
@@ -68,7 +69,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("RULE-345 reading roles needs platform.identity:role:read; changing them needs platform.identity:role:update")
     void permissions() throws Exception {
-        assertThat(mvc.perform(get(ROLES).with(user("1"))).andReturn().getResponse().getStatus()).isEqualTo(403);
+        assertThat(mvc.perform(get(ROLES).with(user(TestAccounts.account(1).value().toString()))).andReturn().getResponse().getStatus()).isEqualTo(403);
         assertThat(mvc.perform(get(ROLES).with(reader)).andReturn().getResponse().getStatus()).isEqualTo(200);
         assertThat(mvc.perform(post(ROLES).with(xsrf()).with(reader).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"x\",\"name\":\"x\"}")).andReturn().getResponse().getStatus()).isEqualTo(403);
@@ -163,7 +164,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(jdbc.sql("select count(*) from platform_identity.account_roles where role_id = :id").param("id", analyst)
                 .query(Long.class).single()).as("a role held by an account is not deleted and its link stays").isEqualTo(1);
 
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andReturn().getResponse().getStatus()).isEqualTo(204);
         assertThat(mvc.perform(delete(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin)).andReturn().getResponse().getStatus()).isEqualTo(204);
         assertThat(jdbc.sql("select count(*) from platform_identity.role_permissions where role_id = :id").param("id", analyst)
@@ -204,20 +205,20 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         createAccount(1001, "analyst", "auditor");
         String session = loginWithWecom(1001);
 
-        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
+        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"auditor\",\"planner\"]}")).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(204);
         assertThat(jdbc.sql("""
                 select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = 1001 order by r.code
+                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1001) order by r.code
                 """).query(String.class).list()).containsExactly("auditor", "planner");
         assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus())
                 .as("RULE-338: a role change ends the sessions").isEqualTo(401);
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"ghost\"]}")).andReturn().getResponse().getStatus())
                 .isEqualTo(404);
-        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/555:replace-roles").header("If-Match", accountVersion(555)).with(xsrf()).with(admin)
+        assertThat(mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(555) + ":replace-roles").header("If-Match", accountVersion(555)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andReturn().getResponse().getStatus()).isEqualTo(404);
     }
 
@@ -231,12 +232,12 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 .param("p", Permission.Codes.PLATFORM_APPROVAL_TASK_READ).update();
         createAccount(5, "role-editor");
         createAccount(1001);
-        RequestPostProcessor editor = user("5").authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
+        RequestPostProcessor editor = user(TestAccounts.account(5).value().toString()).authorities(() -> Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
                 () -> Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE);
 
         MvcResult broad = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"mine\",\"name\":\"Mine\",\"permissionCodes\":[\"cost.timesheet:timesheet:approve\"]}")).andReturn();
-        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(editor)
+        MvcResult toSuperAdmin = mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(editor)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"role-editor\",\"super_admin\"]}")).andReturn();
         MvcResult within = mvc.perform(post(ROLES).with(xsrf()).with(editor).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"small\",\"name\":\"Small\",\"permissionCodes\":[\"" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "\"]}")).andReturn();
@@ -245,7 +246,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(errorCode(broad)).isEqualTo("PLATFORM_IDENTITY_ROLE_NOT_ALLOWED");
         assertThat(toSuperAdmin.getResponse().getStatus()).isEqualTo(403);
         assertThat(within.getResponse().getStatus()).isEqualTo(201);
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = 1001")
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1001)")
                 .query(Long.class).single()).isZero();
     }
 
@@ -256,9 +257,9 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
             knownEmployee(id, id == 3 ? EmploymentStatus.SEPARATED : EmploymentStatus.EMPLOYED);
             createAccount(id, "employee");
         }
-        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where user_id = 2").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = 2").update();
 
-        assertThat(roleDirectory.findRoleHolders(new RoleCode("employee"))).containsExactlyInAnyOrder(new UserId(1), new UserId(4));
+        assertThat(roleDirectory.findRoleHolders(new RoleCode("employee"))).containsExactlyInAnyOrder(TestAccounts.account(1), TestAccounts.account(4));
         assertThat(roleDirectory.findRoleHolders(new RoleCode("nobody-has-this"))).isEmpty();
 
         jdbc.sql("insert into platform_identity.roles (role_id, code, name, status) values (uuidv7(), 'retired', 'Retired', 'DISABLED')").update();
@@ -276,7 +277,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     void accountWritesNeedTheVersion() throws Exception {
         createRole("analyst", "Analyst", "", null);
         createAccount(1001, "analyst");
-        String url = "/api/v1/platform/user-accounts/1001";
+        String url = "/api/v1/platform/user-accounts/" + accountOrNone(1001);
         String etag = mvc.perform(get(url).with(admin)).andReturn().getResponse().getHeader("ETag");
         assertThat(etag).isEqualTo(accountVersion(1001));
 
@@ -303,7 +304,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         createAccount(1001, "analyst");
         String before = accountVersion(1001);
 
-        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").with(xsrf()).with(admin).header("If-Match", before)
+        MvcResult result = mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":replace-roles").with(xsrf()).with(admin).header("If-Match", before)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"analyst\"]}")).andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(204);
@@ -324,12 +325,12 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 .query((rs, n) -> List.of(rs.getLong(1), rs.getLong(2))).single()).as("three saves; the last one revised and disabled the role, so it announced two events: 1 + 1 + 2").isEqualTo(List.of(3L, 4L));
 
         createAccount(1001, "analyst");
-        mvc.perform(post("/api/v1/platform/user-accounts/1001:replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
+        mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[]}")).andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(204));
-        mvc.perform(post("/api/v1/platform/user-accounts/1001:disable").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin))
+        mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":disable").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin))
                 .andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(204));
 
-        assertThat(jdbc.sql("select version, event_count from platform_identity.user_accounts where user_id = 1001")
+        assertThat(jdbc.sql("select version, event_count from platform_identity.user_accounts where employee_id = 1001")
                 .query((rs, n) -> List.of(rs.getLong(1), rs.getLong(2))).single()).as("roles replaced, disabled").isEqualTo(List.of(2L, 2L));
     }
 

@@ -38,7 +38,7 @@ class SchemaPlacementIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18").withInitScript("init-dba-schemas.sql");
+    static PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-dba-schemas.sql");
 
     @Autowired
     JdbcClient jdbc;

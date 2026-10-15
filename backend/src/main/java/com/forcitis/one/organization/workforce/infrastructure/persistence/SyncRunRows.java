@@ -90,8 +90,8 @@ final class SyncRunRows {
     }
 
     private static UserId user(ResultSet rs, String column) throws SQLException {
-        long value = rs.getLong(column);
-        return rs.wasNull() ? null : new UserId(value);
+        UUID value = rs.getObject(column, UUID.class);
+        return value == null ? null : new UserId(value);
     }
 
     private static SyncRunId runId(ResultSet rs, String column) throws SQLException {
