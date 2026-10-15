@@ -140,6 +140,34 @@ terms:
   forbidden: []
   status: proposed
   note: 例 JV-FST-202610-0001；模板待管理员确认
+- id: counter_scope
+  zh: 计数范围
+  en: CounterScope
+  snake: counter_scope
+  kind: value
+  bc: platform.numbering
+  definition: 编号计数器计数的范围：全局（各法人共用一个计数）或按法人（每个法人各计各的）；范围类别与法人主体成对，全局时无法人，按法人时必有法人
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 模板不含 {LE} 时为全局
+- id: counter_scope_kind
+  zh: 计数范围类别
+  en: CounterScopeKind
+  snake: counter_scope_kind
+  kind: enum
+  bc: platform.numbering
+  definition: 计数范围的类别：GLOBAL 全局 / LEGAL_ENTITY 按法人
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - confirm
 - reconfigure

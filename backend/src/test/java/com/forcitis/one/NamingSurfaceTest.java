@@ -443,7 +443,8 @@ class NamingSurfaceTest {
         if (known.containsKey(k)) {
             return true;
         }
-        return known.entrySet().stream().anyMatch(e -> (e.getValue().startsWith("java.util.Map") || e.getValue().startsWith("java.util.List"))
+        return known.entrySet().stream().anyMatch(e -> (e.getValue().startsWith("java.util.Map") || e.getValue().startsWith("java.util.List")
+                || e.getValue().startsWith("java.util.Properties"))
                 && (k.startsWith(e.getKey() + ".") || k.startsWith(e.getKey() + "[")));
     }
 

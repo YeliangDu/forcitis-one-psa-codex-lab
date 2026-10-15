@@ -42,6 +42,8 @@
 | GitHub（用户账号） | fine-grained 令牌 forcitis-one-release-dev-2026-10-15（FORCITIS 组织、仅 forcitis-one-psa、Actions / Contents / Deployments / Metadata 只读，到期 2027-01-13）——OIDC 方案的后备，未安装到任何位置；令牌值不经会话 | 后备 | 用户 | 首次 dev 部署经 OIDC 成功后由用户删除（one-coordinator 提醒） |
 | 阿里云 / GitHub | OIDC 提供商、RAM 角色 forcitis-one-deploy-dev、云助手固定命令、仓库 OIDC sub 定制（OIDC 改造 PR 合并前执行，逐条报 one-coordinator） | 长期（待建） | one-ops | — |
 | GitHub | environments release / dev / prod、签名私钥 secret（release）、v* 标签规则（仓库级，组织级待用户定）、immutable releases | 长期 | one-ops | — |
+| 阿里云（计划，PR #111 合并后由 one-ops 经用户确认建） | OIDC 身份提供商 github-actions；部署 RAM 角色与策略 forcitis-one-deploy-dev / -prod（只改写请求参数、只读结果参数，无 ECS 接口）；OOS 参数 forcitis-one-deploy-request-<env> 及 -bundle、-bundle-sha256、-statement、-statement-sig，结果参数 forcitis-one-deploy-result-<env>；拉取策略 forcitis-one-deploy-pull 挂在现有实例角色 forcitis-one-ecs-archive 上——该实例角色承载归档写入与部署请求拉取两份最小策略（不改名、不重绑）；GitHub 仓库 OIDC sub 定制；不建云助手命令 | 长期 | one-ops | 停用部署时删除；实例角色只解挂拉取策略 |
+| ECS i-bp122xlpar8w2uylmal2（计划，PR #111 合并后由 one-ops 装） | forcitis-one-release-pull.timer / .service（root，每分钟拉取 OOS 请求参数、单实例）；/var/lib/forcitis-one-release/{processed-requests,alerts-sent}（root 0600） | 长期（后台任务） | one-ops | 停用部署时 disable 并删除单元 |
 
 ## 重要阻塞
 - 部署门禁只剩 status/blockers/090（数据范围整套，F-1）。基线开放标记存在时 deploy_gate 也拒绝部署（W4 单独 PR 删除）。
