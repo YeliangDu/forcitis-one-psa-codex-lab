@@ -164,7 +164,7 @@ class ReadOnlyAccountCheckIT {
                     new Sql(a.connection().database, "GRANT CONTROL ON SCHEMA::" + a.connection().viewSchema + " TO " + q(a.login())))),
             new Violation("复审 H-1：服务器上针对登录的授权 GRANT IMPERSONATE ON LOGIN::sa（fn_my_permissions 不列）", "d", a -> List.of(
                     new Sql("master", "GRANT IMPERSONATE ON LOGIN::sa TO " + q(a.login())))),
-            // Was GRANT UPDATE: the login's own database-level DENY UPDATE covers that one now (one-coordinator 2026-10-15 C-14 定位裁定, see coveredPublicGrantsDoNotRefuseStartup).
+            // Was GRANT UPDATE: the login's own database-level DENY UPDATE overrides that one now (one-coordinator 2026-10-15 C-14 定位裁定, see overriddenPublicGrantsDoNotRefuseStartup).
             new Violation("复审 H-1：public 角色在用户对象上的授权 GRANT CONTROL ON 可读底表 TO public（库级 DENY 清单不含 CONTROL）", "g", a -> List.of(
                     new Sql(a.connection().database, "GRANT CONTROL ON " + a.connection().baseTable + " TO public")), a -> List.of(
                     new Sql(a.connection().database, "REVOKE CONTROL ON " + a.connection().baseTable + " FROM public"))),
@@ -250,7 +250,7 @@ class ReadOnlyAccountCheckIT {
     @ParameterizedTest(name = "{0}")
     @EnumSource(ReadOnlyConnection.class)
     @DisplayName("ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15 C-14 定位裁定，安全判定放宽）：public 的对象级 GRANT UPDATE 与 GRANT EXECUTE 被本账号库级同名 DENY 覆盖时不拒绝启动")
-    void coveredPublicGrantsDoNotRefuseStartup(ReadOnlyConnection connection) throws SQLException {
+    void overriddenPublicGrantsDoNotRefuseStartup(ReadOnlyConnection connection) throws SQLException {
         Account account = baselineAccount(connection);
         String procedure = "dbo." + q("p_" + marker());
         String database = connection.database;
