@@ -96,8 +96,25 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
         return UUID.fromString(String.format("01900000-0000-7000-9000-%012x", ++probes));
     }
 
-    private Map<String, Object> accountingCode(long code, UUID legalEntity, String status, String from, String to) {
+    /** A user id of whatever type the audit columns have (bigint now, uuid once user accounts move to UUIDv7), as a JSON value. */
+    private Object userId(int n) throws SQLException {
+        try (PreparedStatement type = integration.prepareStatement("""
+                select data_type from information_schema.columns
+                 where table_schema = current_schema() and table_name = 'source_references' and column_name = 'created_by'
+                """); ResultSet rs = type.executeQuery()) {
+            assertThat(rs.next()).as("source_references.created_by").isTrue();
+            return "uuid".equals(rs.getString(1)) ? String.format("01900000-0000-7000-8000-%012x", 0xd0 + n) : (Object) (70_000L + n);
+        }
+    }
+
+    /** An accounting organization code is always registered by hand: it has an author, and a decider once it is decided. */
+    private Map<String, Object> accountingCode(long code, UUID legalEntity, String status, String from, String to) throws SQLException {
         Map<String, Object> row = new LinkedHashMap<>();
+        row.put("created_by", userId(1));
+        if ("CONFIRMED".equals(status) || "REJECTED".equals(status)) {
+            row.put("decided_by", userId(2));
+            row.put("decided_at", "2026-11-01T00:00:00Z");
+        }
         row.put("source_system", "ACCOUNTING_SYSTEM");
         row.put("source_object_kind", "LEGAL_ENTITY");
         row.put("source_id", code);
@@ -264,6 +281,19 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
         negativePerson.put("source_id", Long.MIN_VALUE);
         negativePerson.put("own_id", "01900000-0000-7000-8000-0000000000e9");
         assertThat(probe(negativePerson)).as("an organisation-source person id may be any signed 64-bit number").isEqualTo(ACCEPTED);
+    }
+
+    @Test
+    @DisplayName("R-1b P3a 复审 M-1（ADR-0033 第 5 项第 4 条）：核算系统的法人编码只由人工登记——录入人为空（伪装成来源同步写入）的核算行，库内直接写入已确认也被拒绝")
+    void accountingCodeCannotPassAsASynchronisedRow() throws Exception {
+        Map<String, Object> disguised = accountingCode(1021, LEGAL_ENTITY_A, "CONFIRMED", "2026-11-02", null);
+        disguised.put("created_by", null);
+        disguised.put("decided_by", null);
+        disguised.put("decided_at", null);
+        assertThat(probe(disguised)).as("a confirmed accounting code with no author, as a synchronisation would write it").isEqualTo(CHECK_VIOLATION);
+
+        assertThat(probe(accountingCode(1021, LEGAL_ENTITY_A, "CONFIRMED", "2026-11-02", null)))
+                .as("the same row with its author and decider named").isEqualTo(ACCEPTED);
     }
 
     @Test
