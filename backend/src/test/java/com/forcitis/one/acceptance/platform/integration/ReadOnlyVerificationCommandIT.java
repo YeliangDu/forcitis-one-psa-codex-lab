@@ -1,0 +1,632 @@
+package com.forcitis.one.acceptance.platform.integration;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
+
+import com.forcitis.one.TestImages;
+import com.forcitis.one.TestPostgres;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * PAR-2, the read-only verification command (ADR-0037 item 4, one-coordinator's terms in HANDOFF_one-1a-next-2 section 6; used by the C-14
+ * runbook): the packaged application, run as on ECS ({@code java -jar}, the connection settings and passwords only from the same environment
+ * variables as the running service), checks the login of one named read-only connection with the start-up check's own judgement and prints
+ * one line per item (a)–(g) and a result line, with an exit code per result. The contract this class assumes (profile, option, line format,
+ * exit codes, environment) is in READONLY_VERIFY_ACCEPTANCE.md next to it; nothing here refers to a production class, so the test sources
+ * compile before the command exists.
+ *
+ * <p>Black box: a separate JVM per case, against a real SQL Server whose logins come from {@link ReadOnlyBaselineFixture}. Each case also
+ * proves the command stayed off the network (no server socket opened, {@link ListeningSocketProbe}) and off the application database (the
+ * empty PostgreSQL given in SPRING_DATASOURCE_* has no table and no schema afterwards, so no Flyway history and no migration).
+ */
+class ReadOnlyVerificationCommandIT {
+
+    static final String PROFILE = "read-only-verification";
+    static final String CONNECTION_OPTION = "--connection=";
+
+    static final int EXIT_PASSED = 0;
+    static final int EXIT_USAGE = 2;
+    static final int EXIT_VIOLATED = 3;
+    static final int EXIT_UNDETERMINED = 4;
+
+    static final List<Character> ITEMS = List.of('a', 'b', 'c', 'd', 'e', 'f', 'g');
+    static final Pattern ITEM_LINE = Pattern.compile("^\\(([a-g])\\) (PASSED|VIOLATED|UNDETERMINED)((?: [a-z]+=[A-Za-z0-9_.-]+)*)$", Pattern.MULTILINE);
+    static final Pattern RESULT_LINE = Pattern.compile("^RESULT (PASSED|VIOLATED|UNDETERMINED)$", Pattern.MULTILINE);
+
+    static final Duration COMMAND_TIME_LIMIT = Duration.ofSeconds(120);
+
+    static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
+    static final AtomicInteger LOGINS = new AtomicInteger();
+
+    static final PostgreSQLContainer APPLICATION_DATABASE = TestPostgres.container();
+
+    static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
+            .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
+            .withStartupTimeout(Duration.ofMinutes(5))
+            .waitingFor(Wait.forLogMessage(".*SQL Server is now ready for client connections.*", 1));
+
+    static final Path RELEASE_JAR;
+    static final Path PROBE_CLASSES;
+    static final Map<ReadOnlyConnection, Account> VIOLATING = new EnumMap<>(ReadOnlyConnection.class);
+
+    static {
+        APPLICATION_DATABASE.start();
+        MSSQL.start();
+        createExternalWorld();
+        RELEASE_JAR = releaseJar();
+        PROBE_CLASSES = probeClasses();
+        for (ReadOnlyConnection connection : ReadOnlyConnection.values()) {
+            Account account = baselineAccount(connection);
+            try {
+                run(connection.database, "ALTER ROLE db_datareader ADD MEMBER " + q(account.login()));
+            } catch (SQLException e) {
+                throw new IllegalStateException("cannot prepare the violating login of " + connection, e);
+            }
+            VIOLATING.put(connection, account);
+        }
+    }
+
+    /** The connection names of the running service (the pool and metric tag names) and the environment variables of each, as in one.env. */
+    enum ReadOnlyConnection {
+        A8("integration-seeyon-background", "a8world", "A8_DB_URL", "A8_DB_USERNAME", "A8_DB_PASSWORD"),
+        LEGACY_NAMES("integration-legacy", "legacyworld", "LEGACY_DB_RO_URL", "LEGACY_DB_RO_USERNAME", "LEGACY_DB_RO_PASSWORD"),
+        LEGACY_APPROVAL("legacy-approval", "legacyworld", "FORCITIS_PLATFORM_APPROVAL_LEGACY_URL", "FORCITIS_PLATFORM_APPROVAL_LEGACY_USERNAME",
+                "FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD");
+
+        final String connectionName;
+        final String database;
+        final String urlVariable;
+        final String usernameVariable;
+        final String passwordVariable;
+
+        ReadOnlyConnection(String connectionName, String database, String urlVariable, String usernameVariable, String passwordVariable) {
+            this.connectionName = connectionName;
+            this.database = database;
+            this.urlVariable = urlVariable;
+            this.usernameVariable = usernameVariable;
+            this.passwordVariable = passwordVariable;
+        }
+    }
+
+    record Account(ReadOnlyConnection connection, String login, String password, String url) {
+    }
+
+    record Sql(String database, String statement) {
+    }
+
+    record Deviation(String name, char item, Function<Account, List<Sql>> apply) {
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    record ItemLine(char item, String verdict, String tokens) {
+    }
+
+    record CommandRun(int exitCode, String output) {
+
+        List<ItemLine> items() {
+            List<ItemLine> lines = new ArrayList<>();
+            Matcher m = ITEM_LINE.matcher(output);
+            while (m.find()) {
+                lines.add(new ItemLine(m.group(1).charAt(0), m.group(2), m.group(3)));
+            }
+            return lines;
+        }
+
+        ItemLine item(char item) {
+            List<ItemLine> found = items().stream().filter(line -> line.item() == item).toList();
+            assertThat(found).as("exactly one line \"(%s) <PASSED|VIOLATED|UNDETERMINED>\" in the output:\n%s", item, output).hasSize(1);
+            return found.getFirst();
+        }
+
+        List<String> results() {
+            List<String> results = new ArrayList<>();
+            Matcher m = RESULT_LINE.matcher(output);
+            while (m.find()) {
+                results.add(m.group(1));
+            }
+            return results;
+        }
+    }
+
+    static final List<Deviation> DEVIATIONS = List.of(
+            new Deviation("库级 DENY INSERT 被撤并 GRANT INSERT ON SCHEMA::dbo", 'b', a -> List.of(
+                    new Sql(a.connection().database, "REVOKE INSERT FROM " + q(a.login())),
+                    new Sql(a.connection().database, "GRANT INSERT ON SCHEMA::dbo TO " + q(a.login())))),
+            new Deviation("加入 db_datareader", 'c', a -> List.of(
+                    new Sql(a.connection().database, "ALTER ROLE db_datareader ADD MEMBER " + q(a.login())))),
+            new Deviation("账号拥有一个 schema", 'e', a -> List.of(
+                    new Sql(a.connection().database, "CREATE SCHEMA " + q(a.login() + "_owned") + " AUTHORIZATION " + q(a.login())))),
+            new Deviation("能访问基线外的另一个用户库", 'f', a -> List.of(
+                    new Sql("otherworld", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))));
+
+    static Stream<Arguments> deviations() {
+        return DEVIATIONS.stream().map(Arguments::of);
+    }
+
+    @Test
+    @DisplayName("PAR-2 对照：探针能发现打开监听套接字的进程（否则「只读核实命令不监听任何端口」的断言没有意义）")
+    void probeSeesAProcessThatListens() throws Exception {
+        List<String> command = List.of(java(), "-Xbootclasspath/a:" + PROBE_CLASSES, "--add-exports", "java.base/sun.nio.ch=ALL-UNNAMED",
+                "-Djava.nio.channels.spi.SelectorProvider=" + ListeningSocketProbe.class.getName(), ListeningSocketProbe.class.getName());
+
+        CommandRun run = launch(command, Map.of());
+
+        assertThat(run.exitCode()).as(run.output()).isZero();
+        assertThat(run.output()).contains(ListeningSocketProbe.MARKER);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("ADR-0037 第 4 项 (a)–(g)、C-14：只读核实命令对符合 RDS 基线的账号七项都标通过、结果通过、退出 0；env 文件中另两条连接配的违规账号不影响所核实的连接")
+    void baselineAccountPassesEveryItem(ReadOnlyConnection connection) throws Exception {
+        Account account = baselineAccount(connection);
+        assertMatchesTheRdsBaseline(account);
+
+        CommandRun run = verify(connection, account);
+
+        assertThat(run.exitCode()).as("exit code of a pass\n%s", run.output()).isEqualTo(EXIT_PASSED);
+        for (char item : ITEMS) {
+            assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+        }
+        assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("deviations")
+    @DisplayName("ADR-0037 第 4 项第 7 条、C-14：账号偏离基线时只读核实命令把对应项标违规、结果违规、退出违规码")
+    void deviationIsMarkedAsViolated(Deviation deviation) throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        assertMatchesTheRdsBaseline(account);
+        for (Sql sql : deviation.apply().apply(account)) {
+            run(sql.database(), sql.statement());
+        }
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertThat(run.exitCode()).as("exit code of a violation\n%s", run.output()).isEqualTo(EXIT_VIOLATED);
+        assertThat(run.item(deviation.item()).verdict()).as("(%s) for %s\n%s", deviation.item(), deviation, run.output()).isEqualTo("VIOLATED");
+        assertThat(run.items()).as("one line per item (a)–(g)\n%s", run.output()).extracting(ItemLine::item).containsExactlyElementsOf(ITEMS);
+        assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("ADR-0037 第 3 项第 5 条、第 4 项 (c)、C-14：违规只给项目标记，不输出判定原因文本（其中有角色名）：以标记值命名的自定义角色不出现在输出中")
+    void violationDoesNotTellTheNamesBehindIt() throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
+        String marker = marker();
+        String role = "role_" + marker;
+        run(account.connection().database, "CREATE ROLE " + q(role), "ALTER ROLE " + q(role) + " ADD MEMBER " + q(account.login()));
+
+        CommandRun run = verify(ReadOnlyConnection.LEGACY_NAMES, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+        assertThat(run.item('c').verdict()).as(run.output()).isEqualTo("VIOLATED");
+        assertThat(run.output()).as("the role's name is in the check's reason text; the command prints the item only").doesNotContain(marker);
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("ADR-0037 第 4 项第 2 条、C-14：确认违规与判定不了同在时结果为违规、退出违规码；判定不了的项带 SQL 错误号与 SQLState")
+    void violationTakesPrecedenceOverUndetermined() throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        run(account.connection().database, "DENY SELECT ON sys.database_permissions TO " + q(account.login()),
+                "ALTER ROLE db_datareader ADD MEMBER " + q(account.login()));
+        SQLException refused = catalogRefusal(account);
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+        assertThat(run.item('c').verdict()).as(run.output()).isEqualTo("VIOLATED");
+        assertThat(run.items()).as("(b), (e) or (g) read sys.database_permissions and cannot be determined, with the SQL error\n%s", run.output())
+                .filteredOn(line -> "beg".indexOf(line.item()) >= 0 && line.verdict().equals("UNDETERMINED"))
+                .isNotEmpty().allSatisfy(line -> assertThat(line.tokens()).contains(sqlError(refused)));
+        assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("ADR-0037 第 4 项第 2 条、C-14：校验查询被拒且无确认违规时结果判定不了、退出判定不了码，判定不了的项只带 SQL 错误号与 SQLState")
+    void refusedCatalogQueryIsUndetermined() throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        run(account.connection().database, "DENY SELECT ON sys.database_permissions TO " + q(account.login()));
+        SQLException refused = catalogRefusal(account);
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_UNDETERMINED);
+        assertThat(run.items()).as("one line per item (a)–(g)\n%s", run.output()).extracting(ItemLine::item).containsExactlyElementsOf(ITEMS);
+        assertThat(run.items()).as("nothing confirmed\n%s", run.output()).extracting(ItemLine::verdict).doesNotContain("VIOLATED");
+        assertThat(run.items()).filteredOn(line -> line.verdict().equals("UNDETERMINED")).as(run.output())
+                .isNotEmpty().allSatisfy(line -> assertThat(line.tokens()).contains(sqlError(refused)));
+        assertThat(run.results()).as(run.output()).containsExactly("UNDETERMINED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("ADR-0037 第 4 项第 2 条、C-14：目标库不存在（不可达）时七项都判定不了，只输出驱动报的错误号与 SQLState，不输出含库名的消息原文")
+    void missingDatabaseIsUndeterminedWithoutTheMessage() throws Exception {
+        Account baseline = baselineAccount(ReadOnlyConnection.LEGACY_APPROVAL);
+        String marker = marker();
+        Account account = new Account(baseline.connection(), baseline.login(), baseline.password(), url("nodb_" + marker));
+        SQLException refused = connectionFailure(account);
+        assertThat(refused.getErrorCode()).as("SQL Server: cannot open the database requested by the login").isEqualTo(4060);
+        assertThat(refused.getMessage()).as("the driver's message names the database, so printing it would leak the marker").contains(marker);
+
+        CommandRun run = verify(ReadOnlyConnection.LEGACY_APPROVAL, account);
+
+        assertUndeterminedOnEveryItem(run, refused);
+        assertThat(run.output()).as("no database message text").doesNotContain(marker);
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("ADR-0037 第 4 项第 2 条、C-14：连不上（端口无人监听）时七项都判定不了、退出判定不了码，输出驱动报的错误号与 SQLState")
+    void unreachableServerIsUndetermined() throws Exception {
+        Account baseline = baselineAccount(ReadOnlyConnection.A8);
+        int closed = freePort();
+        Account account = new Account(baseline.connection(), baseline.login(), baseline.password(),
+                "jdbc:sqlserver://127.0.0.1:" + closed + ";databaseName=" + baseline.connection().database + ";encrypt=true;trustServerCertificate=true");
+        SQLException refused = connectionFailure(account);
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertUndeterminedOnEveryItem(run, refused);
+        assertTellsNothingSecret(run, account);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"--password", "--forcitis.platform.integration.seeyon.views.password", "--A8_DB_PASSWORD", "--spring.datasource.password"})
+    @DisplayName("PAR-2 口令只从 env 文件读（ADR-0037 第 5 项、C-14 剧本「口令与记录」）：命令行出现口令类参数即拒绝，退出用法错误码，不做核实、不回显该值")
+    void passwordOnTheCommandLineIsRefused(String option) throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        String offered = "Cl1!" + UUID.randomUUID();
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account, option + "=" + offered);
+
+        assertThat(run.exitCode()).as("a password on the command line is wrong usage; with the same environment and no such option it passes\n%s",
+                run.output()).isEqualTo(EXIT_USAGE);
+        assertThat(run.items()).as("refused before any check\n%s", run.output()).isEmpty();
+        assertThat(run.results()).as(run.output()).isEmpty();
+        assertThat(run.output()).doesNotContain(offered);
+        assertTellsNothingSecret(run, account);
+    }
+
+    @ParameterizedTest(name = "[{0}]")
+    @ValueSource(strings = {"", "no-such-connection"})
+    @DisplayName("PAR-2：未指定连接名或连接名不是现有只读连接时退出用法错误码，不做核实")
+    void missingOrUnknownConnectionIsWrongUsage(String connectionName) throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        Map<String, String> environment = environment(Map.of(ReadOnlyConnection.A8, account));
+        List<String> arguments = new ArrayList<>(List.of("--spring.profiles.active=" + PROFILE));
+        if (!connectionName.isEmpty()) {
+            arguments.add(CONNECTION_OPTION + connectionName);
+        }
+
+        CommandRun run = launch(command(arguments), environment);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_USAGE);
+        assertThat(run.items()).as(run.output()).isEmpty();
+        assertStayedOffTheNetworkAndTheApplicationDatabase(run);
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("PAR-2 契约自检：退出码通过为 0，通过、违规、判定不了、用法错误两两不同，且都不是 Spring Boot 启动失败的 1")
+    void exitCodesAreDistinct() {
+        assertThat(List.of(EXIT_PASSED, EXIT_VIOLATED, EXIT_UNDETERMINED, EXIT_USAGE)).doesNotHaveDuplicates().doesNotContain(1);
+        assertThat(EXIT_PASSED).isZero();
+    }
+
+    static void assertUndeterminedOnEveryItem(CommandRun run, SQLException cause) {
+        assertThat(run.exitCode()).as("exit code of a check that cannot be determined\n%s", run.output()).isEqualTo(EXIT_UNDETERMINED);
+        for (char item : ITEMS) {
+            ItemLine line = run.item(item);
+            assertThat(line.verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("UNDETERMINED");
+            assertThat(line.tokens()).as("(%s) carries the SQL error number and SQLState\n%s", item, run.output()).contains(sqlError(cause));
+        }
+        assertThat(run.results()).as(run.output()).containsExactly("UNDETERMINED");
+    }
+
+    /** Never the password, the login, the connection URL or a password of any other connection of the environment file. */
+    static void assertTellsNothingSecret(CommandRun run, Account account) {
+        assertThat(run.output()).as("password").doesNotContain(account.password());
+        assertThat(run.output()).as("login of the connection string").doesNotContain(account.login());
+        assertThat(run.output()).as("connection string").doesNotContain(account.url());
+        assertThat(run.output()).as("application database password").doesNotContain(APPLICATION_DATABASE.getPassword() + "@")
+                .doesNotContain("password=" + APPLICATION_DATABASE.getPassword());
+        for (Account other : VIOLATING.values()) {
+            assertThat(run.output()).as("password of another connection").doesNotContain(other.password());
+        }
+    }
+
+    static void assertStayedOffTheNetworkAndTheApplicationDatabase(CommandRun run) throws SQLException {
+        assertThat(run.output()).as("the command listens on no TCP port (no web server, no management port)").doesNotContain(ListeningSocketProbe.MARKER);
+        try (Connection c = DriverManager.getConnection(APPLICATION_DATABASE.getJdbcUrl(), APPLICATION_DATABASE.getUsername(),
+                APPLICATION_DATABASE.getPassword()); Statement s = c.createStatement()) {
+            assertThat(strings(s, "SELECT table_schema || '.' || table_name FROM information_schema.tables "
+                    + "WHERE table_schema NOT IN ('pg_catalog', 'information_schema')"))
+                    .as("no Flyway history table and no migrated table in the application database").isEmpty();
+            assertThat(strings(s, "SELECT schema_name FROM information_schema.schemata "
+                    + "WHERE schema_name NOT IN ('public', 'information_schema') AND schema_name NOT LIKE 'pg\\_%'"))
+                    .as("no schema created in the application database").isEmpty();
+        }
+    }
+
+    static String sqlError(SQLException cause) {
+        return " error=" + cause.getErrorCode() + " sqlstate=" + cause.getSQLState();
+    }
+
+    static CommandRun verify(ReadOnlyConnection connection, Account account, String... moreArguments) throws Exception {
+        Map<ReadOnlyConnection, Account> accounts = new EnumMap<>(VIOLATING);
+        accounts.put(connection, account);
+        List<String> arguments = new ArrayList<>(List.of("--spring.profiles.active=" + PROFILE, CONNECTION_OPTION + connection.connectionName));
+        arguments.addAll(List.of(moreArguments));
+
+        CommandRun run = launch(command(arguments), environment(accounts));
+
+        assertStayedOffTheNetworkAndTheApplicationDatabase(run);
+        return run;
+    }
+
+    /** As on ECS (INFRA_RUNBOOK E-6): java -Duser.timezone=UTC -jar forcitis-one.jar, with the probe as the selector provider. */
+    static List<String> command(List<String> arguments) {
+        List<String> command = new ArrayList<>(List.of(java(), "-Duser.timezone=UTC", "-Xbootclasspath/a:" + PROBE_CLASSES, "--add-exports",
+                "java.base/sun.nio.ch=ALL-UNNAMED", "-Djava.nio.channels.spi.SelectorProvider=" + ListeningSocketProbe.class.getName(),
+                "-jar", RELEASE_JAR.toString()));
+        command.addAll(arguments);
+        return command;
+    }
+
+    /**
+     * The part of one.env the command may read (INFRA_RUNBOOK section 4 variable table): every read-only connection configured, the service's
+     * own database, profile, ports and jobs switch. The service's ports are set because one.env sets them and environment variables rank
+     * above a profile's properties file.
+     */
+    static Map<String, String> environment(Map<ReadOnlyConnection, Account> accounts) throws IOException {
+        Map<String, String> env = new LinkedHashMap<>();
+        env.put("SPRING_PROFILES_ACTIVE", "dev");
+        env.put("SPRING_DATASOURCE_URL", APPLICATION_DATABASE.getJdbcUrl());
+        env.put("SPRING_DATASOURCE_USERNAME", APPLICATION_DATABASE.getUsername());
+        env.put("SPRING_DATASOURCE_PASSWORD", APPLICATION_DATABASE.getPassword());
+        env.put("SERVER_ADDRESS", "127.0.0.1");
+        env.put("SERVER_PORT", String.valueOf(freePort()));
+        env.put("MANAGEMENT_SERVER_ADDRESS", "127.0.0.1");
+        env.put("MANAGEMENT_SERVER_PORT", String.valueOf(freePort()));
+        env.put("FORCITIS_JOBS_ENABLED", "true");
+        env.put("INTEGRATION_SEEYON_VIEWS_ENABLED", "true");
+        env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_HEAD_RELATIONSHIP_TYPE_ID", "7001");
+        env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID", "7002");
+        env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_DELIVERY_UNIT_YES_ENUM_ID", "9001");
+        env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_FEE_EARNER_YES_ENUM_ID", "9002");
+        env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_ROOT_PATH", "00000001");
+        env.put("INTEGRATION_LEGACY_ENABLED", "true");
+        env.put("FORCITIS_PLATFORM_APPROVAL_LEGACY_DETAIL_URL_TEMPLATE", "https://legacy.example.test/todo/{processInstanceId}/{taskId}");
+        accounts.forEach((connection, account) -> {
+            env.put(connection.urlVariable, account.url());
+            env.put(connection.usernameVariable, account.login());
+            env.put(connection.passwordVariable, account.password());
+        });
+        return env;
+    }
+
+    /** Only the given variables and what any process needs: nothing of the developer's or the CI's environment leaks into the command. */
+    static CommandRun launch(List<String> command, Map<String, String> environment) throws IOException, InterruptedException {
+        Path directory = Files.createTempDirectory("read-only-verification");
+        Path out = directory.resolve("stdout.txt");
+        Path err = directory.resolve("stderr.txt");
+        ProcessBuilder builder = new ProcessBuilder(command).redirectOutput(out.toFile()).redirectError(err.toFile());
+        Map<String, String> env = builder.environment();
+        Map<String, String> kept = new LinkedHashMap<>();
+        for (String name : List.of("PATH", "HOME", "TMPDIR", "LANG")) {
+            if (env.containsKey(name)) {
+                kept.put(name, env.get(name));
+            }
+        }
+        env.clear();
+        env.putAll(kept);
+        env.putAll(environment);
+        Process process = builder.start();
+        boolean ended = process.waitFor(COMMAND_TIME_LIMIT.toSeconds(), TimeUnit.SECONDS);
+        if (!ended) {
+            process.destroyForcibly().waitFor(30, TimeUnit.SECONDS);
+        }
+        String output = Files.readString(out, StandardCharsets.UTF_8) + "\n" + Files.readString(err, StandardCharsets.UTF_8);
+        assertThat(ended).as("the command must end by itself within %s (a command, not a service); output:\n%s", COMMAND_TIME_LIMIT, output).isTrue();
+        return new CommandRun(process.exitValue(), output);
+    }
+
+    static String java() {
+        return Path.of(System.getProperty("java.home"), "bin", "java").toString();
+    }
+
+    /** The packaged application, as handed to ECS; failsafe runs after package. A jar older than the compiled classes is refused, not used. */
+    static Path releaseJar() {
+        try (Stream<Path> files = Files.list(Path.of("target"))) {
+            Path jar = files.filter(p -> p.getFileName().toString().matches("forcitis-one-[0-9][^-]*\\.jar")).max(Comparator.comparing(ReadOnlyVerificationCommandIT::modified))
+                    .orElseThrow(() -> new IllegalStateException("no target/forcitis-one-*.jar: the command is run from the packaged application as on ECS; "
+                            + "run ./mvnw verify (failsafe runs after package)"));
+            FileTime newestClass;
+            try (Stream<Path> classes = Files.walk(Path.of("target/classes"))) {
+                newestClass = classes.filter(p -> p.toString().endsWith(".class")).map(ReadOnlyVerificationCommandIT::modified).max(Comparator.naturalOrder())
+                        .orElseThrow(() -> new IllegalStateException("target/classes holds no class"));
+            }
+            if (modified(jar).compareTo(newestClass) < 0) {
+                throw new IllegalStateException(jar + " is older than target/classes: package again (./mvnw verify) so the jar holds the code under test");
+            }
+            return jar;
+        } catch (IOException e) {
+            throw new IllegalStateException("cannot look for the packaged application in target/", e);
+        }
+    }
+
+    static FileTime modified(Path path) {
+        try {
+            return Files.getLastModifiedTime(path);
+        } catch (IOException e) {
+            throw new IllegalStateException("cannot read the time of " + path, e);
+        }
+    }
+
+    /** The probe alone, for -Xbootclasspath/a: the test classes as a whole must not reach the command's class path. */
+    static Path probeClasses() {
+        try {
+            String relative = ListeningSocketProbe.class.getName().replace('.', '/') + ".class";
+            Path compiled = Path.of(ListeningSocketProbe.class.getResource("/" + relative).toURI());
+            Path root = Files.createTempDirectory("listening-socket-probe");
+            Path target = root.resolve(relative);
+            Files.createDirectories(target.getParent());
+            Files.copy(compiled, target, StandardCopyOption.REPLACE_EXISTING);
+            return root;
+        } catch (IOException | URISyntaxException e) {
+            throw new IllegalStateException("cannot prepare the listening socket probe", e);
+        }
+    }
+
+    static int freePort() throws IOException {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        }
+    }
+
+    static String marker() {
+        return "mk" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+    }
+
+    /** What the driver tells this login when it connects to the account's URL: the oracle for the error number and SQLState the command prints. */
+    static SQLException connectionFailure(Account account) {
+        SQLException failure = catchThrowableOfType(SQLException.class,
+                () -> DriverManager.getConnection(account.url() + ";loginTimeout=10", account.login(), account.password()).close());
+        assertThat((Throwable) failure).as("the fixture: connecting to %s must fail", account.url()).isNotNull();
+        return failure;
+    }
+
+    /** What SQL Server tells this login when it reads sys.database_permissions: the oracle for the error the command prints. */
+    static SQLException catalogRefusal(Account account) throws SQLException {
+        try (Connection c = DriverManager.getConnection(account.url() + ";loginTimeout=30", account.login(), account.password());
+                Statement s = c.createStatement()) {
+            SQLException failure = catchThrowableOfType(SQLException.class, () -> strings(s, "SELECT permission_name FROM sys.database_permissions"));
+            assertThat((Throwable) failure).as("the fixture: reading sys.database_permissions must be refused").isNotNull();
+            assertThat(failure.getErrorCode()).as("SQL Server: the SELECT permission was denied").isEqualTo(229);
+            return failure;
+        }
+    }
+
+    static Account baselineAccount(ReadOnlyConnection connection) {
+        String login = connection.name().toLowerCase(Locale.ROOT) + "_ro_" + LOGINS.incrementAndGet();
+        String password = "Ro1!" + UUID.randomUUID();
+        try {
+            switch (connection) {
+                case A8 -> ReadOnlyBaselineFixture.createViewSchemaReader(ReadOnlyVerificationCommandIT::run, connection.database, login, password);
+                case LEGACY_NAMES -> ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyVerificationCommandIT::run, connection.database,
+                        "dbo.v_one_legacy_org_short_name", login, password);
+                case LEGACY_APPROVAL -> ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyVerificationCommandIT::run, connection.database,
+                        "dbo.v_psa_one_legacy_todo", login, password);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("cannot create the read-only login " + login, e);
+        }
+        return new Account(connection, login, password, url(connection.database));
+    }
+
+    static void assertMatchesTheRdsBaseline(Account account) throws SQLException {
+        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(account.url(), account.connection().database, account.login(), account.password());
+    }
+
+    static List<String> strings(Statement s, String query) throws SQLException {
+        List<String> values = new ArrayList<>();
+        try (ResultSet rs = s.executeQuery(query)) {
+            while (rs.next()) {
+                values.add(rs.getString(1));
+            }
+        }
+        return values;
+    }
+
+    static String q(String name) {
+        return ReadOnlyBaselineFixture.q(name);
+    }
+
+    static String url(String database) {
+        return "jdbc:sqlserver://" + MSSQL.getHost() + ":" + MSSQL.getMappedPort(1433) + ";databaseName=" + database
+                + ";encrypt=true;trustServerCertificate=true";
+    }
+
+    static Connection admin(String database) throws SQLException {
+        return DriverManager.getConnection(url(database) + ";loginTimeout=30", "sa", SA_PASSWORD);
+    }
+
+    static void run(String database, String... statements) throws SQLException {
+        try (Connection c = admin(database); Statement s = c.createStatement()) {
+            for (String sql : statements) {
+                s.execute(sql);
+            }
+        }
+    }
+
+    private static void createExternalWorld() {
+        try {
+            Awaitility.await("SQL Server accepts the administrator login")
+                    .atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(500)).pollInSameThread().ignoreExceptions().until(() -> {
+                        admin("master").close();
+                        return true;
+                    });
+            run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld", "CREATE DATABASE otherworld");
+            ReadOnlyBaselineFixture.createRdsPlatform(ReadOnlyVerificationCommandIT::run);
+            run("a8world", "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
+                    "CREATE TABLE dbo.member_rows (ID bigint PRIMARY KEY, NAME nvarchar(64), LOGIN_NAME nvarchar(64))",
+                    "CREATE VIEW " + ReadOnlyBaselineFixture.VIEW_SCHEMA + ".v_org_member AS SELECT ID, NAME, LOGIN_NAME FROM dbo.member_rows");
+            run("legacyworld",
+                    "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64))",
+                    "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
+                    "CREATE VIEW dbo.v_psa_one_legacy_todo AS SELECT assignee_user_id, task_id FROM dbo.todo_rows",
+                    "CREATE VIEW dbo.v_one_legacy_org_short_name AS SELECT id, short_name FROM dbo.short_name_rows");
+        } catch (SQLException | ConditionTimeoutException e) {
+            throw new IllegalStateException("cannot prepare the external databases; SQL Server log:\n" + MSSQL.getLogs(), e);
+        }
+    }
+}
