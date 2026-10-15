@@ -6,3 +6,4 @@ src/test/java/com/forcitis/one/acceptance/platform/web/ErrorLogDetailIT.java | �
 src/test/java/com/forcitis/one/acceptance/platform/web/ManagementEndpointIT.java | 测试代理 | 测试代理统一改用 TestPostgres 时（K-3a 合并后）
 src/test/java/com/forcitis/one/acceptance/platform/integration/EventPayloadScalarIdsIT.java | 测试代理 | 测试代理统一改用 TestPostgres 时（K-3a 合并后）
 src/test/java/com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java | 测试代理 | 测试代理统一改用 TestPostgres 时（K-3a 合并后）
+src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java | 测试代理 | 测试代理统一改用 TestPostgres 时（K-3a 合并后）
