@@ -210,13 +210,25 @@
 | `ui_outcome_result` | 结果 | OutcomeResult | 一次办理或一次计算得出的结论 |  |
 | `ui_advisory_note` | 加签建议 | AdvisoryNote | 加签人给出的参考意见，不算正式的办理结果 |  |
 
-## 历史数据迁入（`data-migration.yaml`）
+## 历史数据迁入（`data-migration.yaml`，ADR-0036 提议）
 
 | id | zh | en | 定义 | 是否疑似方言 |
 |---|---|---|---|---|
 | `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；批次挂在来源对照与原编号对照上，业务表不带批次列 | 「导入批次」`import_batch` 为另一种写法，R-1b 归并后列入禁用写法 |
-
-迁入的其余用语（拒收、核对、历史期间、迁入标记等）随 ADR-0036（另行 PR）登记。
+| `migration_orchestration` | 迁入编排 | MigrationOrchestration | 只依赖集成层与目标 BC api、不被依赖的迁入模块 |  |
+| `migration_reject` | 迁入拒收 | MigrationReject | 迁入时被拒绝的一条来源行，带原因代码，须逐条处置 |  |
+| `migration_reject_reason__*` | 取值无法映射 / 必填缺失 / 编号冲突 / 原行缺失 / 法人不在范围 / 试提交失败 | UnmappableValue / RequiredMissing / NumberConflict / OriginalMissing / LegalEntityOutOfScope / TrialCommitFailed | 拒收原因代码 |  |
+| `migration_reject_disposition__*` | 修正后重跑 / 确认不迁 | RerunAfterFix / Excluded | 拒收处置取值 |  |
+| `migration_tie_out` | 迁入核对 | MigrationTieOut | 来源侧聚合与暂存的比对结果 | 不用 Reconciliation（已批准为「经营勾稽」） |
+| `period_status__historical` | 历史期间 | Historical | 期间状态取值，终态：只接受迁入过账通道，不逐期关账 | 会计类用语，待财务确认 |
+| `migration_period_reservation` | 迁入占用 | MigrationPeriodReservation | 批次对 (期间, 法人) 的占用，期间模块自持 |  |
+| `migration_marker` | 迁入标记 | MigrationMarker | 事实行上区分原生与迁入的标记，只在事实行 |  |
+| `migration_posting_channel` | 迁入过账通道 | MigrationPostingChannel | 只供迁入用例的过账入口，期间可为历史期间，不发事件 |  |
+| `migration_staging` | 迁入暂存 | MigrationStaging | 唯一一份目标形状暂存，试提交与核对针对它 |  |
+| `trial_commit` | 试提交 | TrialCommit | 同一套提交代码写入后回滚，跑全部校验与约束 |  |
+| `migration_batch_status__*` | 暂存中 / 待核对 / 提交中 / 已生效 / 已冲销 / 已放弃 | Staging / AwaitingTieOut / Committing / Effective / Reversed / Abandoned | 迁入批次状态取值 |  |
+| `source_reference_status` | 对照状态 | SourceReferenceStatus | 来源对照行的当前 / 已冲销 |  |
+| `source_row_digest` | 来源行摘要 | SourceRowDigest | 来源行规范化后的 SHA-256 |  |
 
 契约演进用语（`contract-evolution.yaml`，ADR-0035）：`maintenance_mode` 维护模式、`event_quarantine` 隔离登记、`deprecation_register` 弃用登记。
 
