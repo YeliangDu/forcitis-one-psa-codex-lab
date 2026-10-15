@@ -1,6 +1,6 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。压缩后由钩子自动注入。更新：2026-10-15（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。压缩后由钩子自动注入。更新：2026-10-15 16:20（one-coordinator，/clear 前）
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
@@ -16,16 +16,21 @@
 ## 合并
 - strict 串行队列：scratchpad 的 `mq_run2.sh`（常驻，队空等待，固定在仓库目录启动）读 `merge.queue`，`merge_pr.sh` 每个队首先取消其余在队 PR 的 CI → 同步 main（gh 无 workflow 权限时改本地合并经 ssh 推送）→ 等 CI（首次失败自动重跑一次）→ 合并；`CONFLICT<n>` 非生成文件退回作者，生成产物取一边后跑 `build_all.py`，推送前跑 precheck。
 - 核对：`pgrep -f mq_run2.sh`，不在就在仓库目录 `nohup <scratchpad>/mq_run2.sh >> mq.log &` 重启。
-- 暂缓：#96（ADR-0029）。
+- 暂缓：#96（ADR-0029）。队列外待重做：#196、#199（第三轮写回作废，见待用户）、#203（one-architecture PR-A，补「规划项来自老切法」标注后入队）。
 - 关键路径：#197 只读核实命令合并 → 通知 one-ops 出 rc.2 → C-14（用户已批准）→ 删 101；F-1 实现在 R-1b P5 后。
 - 每开一个 PR 立即关 Auto-fix（用户「不允许自动打开自动修复」）。
 
 ## 待用户
 - 财务口径决策单（46 题，~/.modernize/psa/finance/FINANCE_DECISIONS.html，#176）：用户全盘定；9 条事实问财务；A1、A10 待审计师书面意见。
-- R-1b-0 开工前术语小决策页（https://claude.ai/artifact/QPwiXzEFWCTqSGVCQRdK6J）：用户点选后 one-glossary 写回。
-- one-arch-guard 任务卡待用户点开（战略层漂移选择题随后交用户）。
+- 用语：用户「先等等，我没有同意所有用语」「所有用语检查下，acl用语单列，不能进入新系统模块」（intent 161339）：第三轮写回作废；one-glossary 全量 ACL 归类（四类）→ 我抽查 → 交用户；「来源*」改归过渡期集成术语（intent 161053）。决策页必须有提交步骤（05bf4394），门禁页固定链接 https://claude.ai/artifact/MwoqwkhAYq9CtomgaedwZ1。R-1b-0 门禁暂停。
+- 架构：one-architecture（psa-terms-review 改造，远程控制已开）建架构 SSOT 与 4 张图（intent 160111；mermaid-cli 已批 160921）；架构决策页（7 问）等用语 ACL 归类后再发。
 - 规则文档瘦身对照表；同轮问 CI 覆盖率门槛是否恢复。
 - 生产前：第二名超管 / 审计员 / 组织数据管理员 / DBA 人选（role_holders.md，不入仓；dev 流程管理员由用户兼任）；C-11 关单人模式；CODEOWNERS；R-13 后备令牌待首次 OIDC 部署后删除；归档 WORM 首个写入方前锁定；RDS 扩容 C-1。
+
+## 技术裁定在途
+- OPS-PORT：运维命令真正不起 Web（结构性，one-1a-par，P2 合并后）；dev 前兜底 C-5 UnsetEnvironment（#202）。
+- R-1b P2 复审修复中（kernel 新端口移出）；R-1b-0 集成层算出「判定是否一致」交 workforce，Source* 不出集成层。
+- 只读核实命令 #197 合并 → 通知 one-ops 出 rc.2 → C-14。
 
 ## 部署阻塞
 - dev 前（NEXT_BATCH_PLAN 第 8 节，ADR-0038）：090 / F-1（R-1b P5 后）；100 / #163 → 101（真实登录核实 + C-14，前提 rc.2）；F-12；DA-13；ADR-0034 实现与 DDL-17；O-1、S-1、D1 余卡、F-2、F-3、安全缺陷卡。
