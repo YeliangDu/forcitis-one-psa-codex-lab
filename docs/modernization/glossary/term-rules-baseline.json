@@ -11,6 +11,11 @@
    "where": "指标口径（公式、粒度、时点）随 BI 指标卡补齐，来源 glossary/oat/KPI体系设计.md；不在 B1 决策页",
    "count": 75
   },
+  "scope": {
+   "owner": "one-glossary",
+   "where": "下一张用语决策单：B1 之后 main 上新登记、尚未写使用范围的提议（只读核实一组，2026-10-15）；用户定后写进提议文件并删键",
+   "count": 5
+  },
   "unique_zh_error_code": {
    "owner": "one-1a-next-3",
    "where": "R-5（CS-2.24、G48 通用错误码只在 kernel、中文名全局唯一）：各模块重复的通用错误码收进 kernel 后消失；不适用 homonyms 互列",
@@ -34,6 +39,11 @@
   "proposed/platform-approval.yaml#error__platform_approval_cutoff_passed:unique_zh_error_code": "错误码中文名「已过撤回截止点」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__cost_timesheet_cutoff_passed",
   "proposed/platform-approval.yaml#error__platform_approval_reason_required:unique_zh_error_code": "错误码中文名「必须填写原因」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__cost_timesheet_reason_required",
   "proposed/platform-approval.yaml#error__platform_approval_transition_illegal:unique_zh_error_code": "错误码中文名「状态转换不合法」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__cost_timesheet_transition_illegal",
+  "proposed/platform-integration.yaml#read_only_verification:scope": "scope「None」缺失或不在 domain/kernel/acl",
+  "proposed/platform-integration.yaml#read_only_verification_result:scope": "scope「None」缺失或不在 domain/kernel/acl",
+  "proposed/platform-integration.yaml#read_only_verification_result__passed:scope": "scope「None」缺失或不在 domain/kernel/acl",
+  "proposed/platform-integration.yaml#read_only_verification_result__undetermined:scope": "scope「None」缺失或不在 domain/kernel/acl",
+  "proposed/platform-integration.yaml#read_only_verification_result__violated:scope": "scope「None」缺失或不在 domain/kernel/acl",
   "terms.yaml#accounts_receivable:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#accrual_basis_revenue:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#actual_cost:metric": "指标须写口径：缺 formula、grain、as_of",
