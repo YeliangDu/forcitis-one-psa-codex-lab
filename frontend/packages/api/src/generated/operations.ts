@@ -180,6 +180,18 @@ export const postPlatformSessionsTicketLogin = (...[args, options]: Call<paths['
 export const postPlatformSessionsWecomLogin = (...[args, options]: Call<paths['/api/v1/platform/sessions:wecom-login']['post']>) =>
   request<Result<paths['/api/v1/platform/sessions:wecom-login']['post']>>('post', '/api/v1/platform/sessions:wecom-login', args, options, responseSchemas.postPlatformSessionsWecomLogin);
 
+export const getPlatformSourceReferences = (...[args, options]: Call<paths['/api/v1/platform/source-references']['get']>) =>
+  request<Result<paths['/api/v1/platform/source-references']['get']>>('get', '/api/v1/platform/source-references', args, options, responseSchemas.getPlatformSourceReferences);
+
+export const postPlatformSourceReferences = (...[args, options]: Call<paths['/api/v1/platform/source-references']['post']>) =>
+  request<Result<paths['/api/v1/platform/source-references']['post']>>('post', '/api/v1/platform/source-references', args, options, responseSchemas.postPlatformSourceReferences, { idempotent: true });
+
+export const postPlatformSourceReferencesBySourceReferenceIdConfirm = (...[args, options]: Call<paths['/api/v1/platform/source-references/{sourceReferenceId}:confirm']['post']>) =>
+  request<Result<paths['/api/v1/platform/source-references/{sourceReferenceId}:confirm']['post']>>('post', '/api/v1/platform/source-references/{sourceReferenceId}:confirm', args, options, responseSchemas.postPlatformSourceReferencesBySourceReferenceIdConfirm, { idempotent: true });
+
+export const postPlatformSourceReferencesBySourceReferenceIdReject = (...[args, options]: Call<paths['/api/v1/platform/source-references/{sourceReferenceId}:reject']['post']>) =>
+  request<Result<paths['/api/v1/platform/source-references/{sourceReferenceId}:reject']['post']>>('post', '/api/v1/platform/source-references/{sourceReferenceId}:reject', args, options, responseSchemas.postPlatformSourceReferencesBySourceReferenceIdReject, { idempotent: true });
+
 export const getPlatformUserAccountsByUserId = (...[args, options]: Call<paths['/api/v1/platform/user-accounts/{userId}']['get']>) =>
   request<Result<paths['/api/v1/platform/user-accounts/{userId}']['get']>>('get', '/api/v1/platform/user-accounts/{userId}', args, options, responseSchemas.getPlatformUserAccountsByUserId);
 
