@@ -85,7 +85,7 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P2 G-A1 / ADR-0033 第 6 项第 2 条：账号路径只认用户 ID 的 uuid；拿本人的员工 ID 当路径不会命中本人账号（400），不授出任何角色")
+    @DisplayName("R-1b P2 G-A1 / ADR-0033 第 6 项第 2 条 / RULING-P3B-4：账号路径只认用户 ID；拿员工的 uuid 当账号路径答 404，不授出任何角色、不写授予审计")
     void theAccountPathTakesTheUserIdNotTheEmployeeId() throws Exception {
         UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
@@ -94,10 +94,29 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
         employee(administratorEmployee, unit, null);
         employee(colleagueEmployee, unit, null);
         SignedIn administrator = roleAdministrator(administratorEmployee);
-        signIn(colleagueEmployee);
+        UUID colleague = signIn(colleagueEmployee).userId();
+        List<String> before = rolesOf(administrator, colleague);
 
-        MockHttpServletResponse byEmployeeId = replaceRoles(administrator, text(colleagueEmployee), List.of("employee"));
+        MockHttpServletResponse role = mvc.perform(post(ROLES).with(csrf()).with(session(administrator)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"synthetic_path_roles\",\"name\":\"Synthetic path roles\",\"enabled\":true,\"permissionCodes\":[]}")).andReturn().getResponse();
+        assertThat(role.getStatus()).as(role.getContentAsString()).isEqualTo(201);
+        List<String> wanted = new java.util.ArrayList<>(before);
+        wanted.add("synthetic_path_roles");
 
-        assertThat(byEmployeeId.getStatus()).as(byEmployeeId.getContentAsString()).isEqualTo(400);
+        MockHttpServletResponse byEmployeeId = replaceRoles(administrator, colleagueEmployee.toString(), wanted);
+
+        assertThat(byEmployeeId.getStatus()).as(byEmployeeId.getContentAsString()).isEqualTo(404);
+        assertThat(rolesOf(administrator, colleague)).as("the colleague's roles").containsExactlyInAnyOrderElementsOf(before);
+
+        MockHttpServletResponse control = replaceRoles(administrator, colleague.toString(), wanted);
+        assertThat(control.getStatus()).as(control.getContentAsString()).isEqualTo(204);
+        List<java.util.Map<String, Object>> grants = auditEntriesBy(administrator.userId(), AUDIT_ROLES_REPLACED);
+        assertThat(grants).as("grant audit entries of the administrator: only the control, on the colleague's account").hasSize(1)
+                .allSatisfy(entry -> assertThat(String.valueOf(entry.get("subjectKey"))).contains(colleague.toString())
+                        .doesNotContain(colleagueEmployee.toString()));
+        assertThat(auditQuery("actorId", administrator.userId().toString(), "platform.identity.grant.refused")).as("no refusal recorded for the 404").isEmpty();
     }
+
+    /** The audit action of a role replacement, from its domain event. */
+    static final String AUDIT_ROLES_REPLACED = "platform.identity.AccountRolesReplaced";
 }
