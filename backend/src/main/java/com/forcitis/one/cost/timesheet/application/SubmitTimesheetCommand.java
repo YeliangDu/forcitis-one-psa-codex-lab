@@ -3,13 +3,13 @@ package com.forcitis.one.cost.timesheet.application;
 import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.kernel.Hours;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.OptionalLong;
 
 /** workDate is the day the hours were worked, as the employee entered it; expectedVersion is the ETag the caller read (If-Match), if it sent one. */
-public record SubmitTimesheetCommand(TimesheetId timesheetId, LocalDate workDate, Hours hours, UserId projectManager,
+public record SubmitTimesheetCommand(TimesheetId timesheetId, LocalDate workDate, Hours hours, EmployeeId projectManager,
                                      OptionalLong expectedVersion) {
 
     public SubmitTimesheetCommand {
@@ -22,7 +22,7 @@ public record SubmitTimesheetCommand(TimesheetId timesheetId, LocalDate workDate
         Objects.requireNonNull(expectedVersion, "expectedVersion");
     }
 
-    public SubmitTimesheetCommand(TimesheetId timesheetId, LocalDate workDate, Hours hours, UserId projectManager) {
+    public SubmitTimesheetCommand(TimesheetId timesheetId, LocalDate workDate, Hours hours, EmployeeId projectManager) {
         this(timesheetId, workDate, hours, projectManager, OptionalLong.empty());
     }
 }

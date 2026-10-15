@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -114,7 +115,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         String session = sessionWithRole(24, "scope-own-2");
         assertThat(listed(session)).containsExactly("10");
 
-        when(orgDirectory.findEmployee(new UserId(24))).thenThrow(new IllegalStateException("organisation unavailable"));
+        when(orgDirectory.findEmployee(new EmployeeId(24))).thenThrow(new IllegalStateException("organisation unavailable"));
 
         MvcResult list = read(session, "");
         assertThat(list.getResponse().getStatus()).isEqualTo(403);
@@ -129,7 +130,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         String session = sessionWithRole(25, "scope-own-3");
         assertThat(listed(session)).containsExactly("10");
 
-        when(orgDirectory.findEmployee(new UserId(25))).thenReturn(java.util.Optional.empty());
+        when(orgDirectory.findEmployee(new EmployeeId(25))).thenReturn(java.util.Optional.empty());
 
         assertThat(read(session, "").getResponse().getStatus()).isEqualTo(403);
     }

@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.integration.api.SourceGender;
 import com.forcitis.one.platform.integration.api.SourcePersonId;
@@ -18,8 +18,8 @@ public final class SourceTerms {
         return id == null ? null : new OrgUnitId(id.value());
     }
 
-    public static UserId person(SourcePersonId id) {
-        return id == null ? null : new UserId(id.value());
+    public static EmployeeId person(SourcePersonId id) {
+        return id == null ? null : new EmployeeId(id.value());
     }
 
     public static PositionId position(SourcePositionId id) {

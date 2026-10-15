@@ -27,7 +27,7 @@ public class WithdrawTimesheet {
     @Transactional
     public void execute(TimesheetId id, String reason, java.util.OptionalLong expectedVersion) {
         Timesheet timesheet = timesheets.find(id).orElseThrow(() -> TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet"));
-        if (!timesheet.employee().equals(currentUser.userId())) {
+        if (!timesheet.employee().equals(currentUser.employeeId())) {
             throw TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet");
         }
         SubmitTimesheet.requireExpectedVersion(timesheet, expectedVersion);

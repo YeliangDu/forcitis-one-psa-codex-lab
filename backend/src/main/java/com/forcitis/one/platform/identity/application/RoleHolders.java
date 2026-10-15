@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -16,8 +17,10 @@ class RoleHolders implements RoleDirectory {
 
     private final AccountRepository accounts;
     private final OrgDirectory directory;
+    private final AccountEmployees accountEmployees;
 
-    RoleHolders(AccountRepository accounts, OrgDirectory directory) {
+    RoleHolders(AccountRepository accounts, OrgDirectory directory, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.accounts = accounts;
         this.directory = directory;
     }
@@ -26,7 +29,7 @@ class RoleHolders implements RoleDirectory {
     @Transactional(readOnly = true)
     public Set<UserId> findRoleHolders(RoleCode roleCode) {
         return accounts.findEnabledHolders(roleCode).stream()
-                .filter(userId -> directory.findEmployee(userId)
+                .filter(userId -> directory.findEmployee(accountEmployees.employeeOf(userId))
                         .map(employee -> employee.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false))
                 .collect(Collectors.toUnmodifiableSet());
     }

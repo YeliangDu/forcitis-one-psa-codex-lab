@@ -3,7 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmployeeLegalEntities;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
@@ -23,12 +23,12 @@ class EmployeeLegalEntityService implements EmployeeLegalEntities {
 
     @Override
     @Transactional(readOnly = true)
-    public LegalEntityId on(UserId employee, LocalDate date) {
+    public LegalEntityId on(EmployeeId employee, LocalDate date) {
         return find(employee, date).orElseThrow(() -> new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED,
                 ErrorKind.UNPROCESSABLE, "no legal entity applies to employee " + employee.value() + " on " + date));
     }
 
-    private Optional<LegalEntityId> find(UserId employee, LocalDate date) {
+    private Optional<LegalEntityId> find(EmployeeId employee, LocalDate date) {
         return LegalEntityResolution.resolve(sources, employee, date);
     }
 }

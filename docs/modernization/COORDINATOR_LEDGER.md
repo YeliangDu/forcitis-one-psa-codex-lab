@@ -14,6 +14,9 @@
 | one-ops（长期，不交接） | rc.1 已发布并验签（v0.1.0-rc.1，b0827667）；R-11 演练进行中（用户已知会运维群，intent #152；④ 实为 retrying，RELEASE.md 预期随执行记录更正） | R-11 ⑩ 回读后报调度 → 转告用户在运维群收尾；precheck.sh:235 pnpm 目录小项；上下文见 [OPS_CONTEXT](phase1a/infra/OPS_CONTEXT.md) |
 | one-1a-next-1（已交接） | — | 待归档 |
 
+## 开场核对
+- `gh pr list`、`ListAgents`、合并队列（`pgrep -f mq_run.sh`，须在仓库目录启动，gh 需仓库上下文）、`CronList`；`gh run list --workflow nightly-legacy-it.yml -L 1` 失败即开卡（#165 合并后生效）。
+
 ## 合并
 - strict 串行队列：scratchpad 的 `mq_run.sh` 读 `merge.queue`，`merge_pr.sh` 同步 main → 等 CI → 合并；`CONFLICT<n>` 若是非生成文件退回作者，生成产物取一边后跑 `build_all.py`。
 - 在队（scratchpad/merge.queue，runner mq_run.sh 后台运行；/clear 后用 `pgrep -f mq_run.sh` 核对，不在就重启）：#152 #129 #139 #154 #148。#145（ADR-0036 已采纳）在 #129 合并后改基分支为 main 再入队。暂缓：#96（ADR-0029）。
@@ -28,7 +31,7 @@
 - 090 数据范围（F-1）；100 只读启动校验（ADR-0037 第 4 项实现）；基线开放标记（W4 单独 PR 删除）。
 
 ## 风险登记（已接受）
-- RDS SQL Server 平台使所有登录带 ALTER ANY LOGIN 等服务器级权限，无法 DENY → 口令只放 ECS、90 天轮换、启动校验等于平台基线（intent 2026-10-15-082245）。
+- RDS SQL Server 平台使所有登录带 ALTER ANY LOGIN 等服务器级权限，无法 DENY → 口令只放 ECS、90 天轮换、启动校验等于平台基线（intent 2026-10-15-082245）。u8c 不是 sysadmin，ALTER ANY LOGIN 理论上能改它的口令；是否有拦截 ALTER LOGIN 的平台保护触发器：看不到、无法判定（u8c 破例只读：触发器 0 行，但其服务器级有效权限与只读基线相同，无 VIEW ANY DEFINITION / CONTROL SERVER）；u8c 属 processadmin。
 - 新系统只读账号可读凭据列（用户「全部可读，不排除」）；凭据值不得进入新系统任何表、日志、事件、会话。
 - CI runner 以用户本人账号运行（用户本次未选专用用户，SUPPLY_CHAIN S6）。
 - 老系统安全（实例白名单 0.0.0.0/0 等）：用户「老系统先不管」，已移出待办。

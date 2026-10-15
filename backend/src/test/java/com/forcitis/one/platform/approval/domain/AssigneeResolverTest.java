@@ -3,6 +3,8 @@ package com.forcitis.one.platform.approval.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.FakeOrganisation;
 import com.forcitis.one.platform.identity.api.RoleCode;
@@ -29,11 +31,11 @@ class AssigneeResolverTest {
                 .person(101, 1, null).person(110, 10, null).separated(120, 12, null).person(130, 13, null).person(131, 10, null)
                 .person(1, 11, 2L).person(2, 10, 3L).person(3, 1, null)
                 .person(ADMIN, 1, null);
-        resolver = new AssigneeResolver(org, org, java.util.Set.of(new UserId(ADMIN)));
+        resolver = new AssigneeResolver(org, org, java.util.Set.of(new UserId(ADMIN)), TestAccounts.sameNumber());
     }
 
     Resolution resolve(AssignmentRule rule, long initiator, ProcessVariables variables) {
-        return resolver.resolve(rule, false, new UserId(initiator), variables);
+        return resolver.resolve(rule, false, new EmployeeId(initiator), variables);
     }
 
     static Set<UserId> ids(long... values) {
@@ -100,13 +102,13 @@ class AssigneeResolverTest {
     @DisplayName("RULE-250 nothing found anywhere goes to the process administrator; without one the result is UNRESOLVED")
     void nothingFoundGoesToAdministrator() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
-        Resolution r = new AssigneeResolver(lonely, lonely, java.util.Set.of(new UserId(ADMIN)))
-                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new UserId(5), ProcessVariables.empty());
+        Resolution r = new AssigneeResolver(lonely, lonely, java.util.Set.of(new UserId(ADMIN)), TestAccounts.sameNumber())
+                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new EmployeeId(5), ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(ADMIN));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
 
-        Resolution none = new AssigneeResolver(lonely, lonely, java.util.Set.of())
-                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new UserId(5), ProcessVariables.empty());
+        Resolution none = new AssigneeResolver(lonely, lonely, java.util.Set.of(), TestAccounts.sameNumber())
+                .resolve(new AssignmentRule.InitiatorSupervisor(1), false, new EmployeeId(5), ProcessVariables.empty());
         assertThat(none.candidates()).isEmpty();
         assertThat(none.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
     }
@@ -115,19 +117,19 @@ class AssigneeResolverTest {
     @DisplayName("RULE-300 a node that may be skipped is skipped only when its input is complete and valid and nobody is left; a node that may not be skipped goes to the administrator; a node that may not be skipped goes to the administrator")
     void skipOnlyWhenEmptyAndAllowed() {
         AssignmentRule.FormFieldUsers rule = new AssignmentRule.FormFieldUsers("projectManagerId");
-        Resolution skipped = resolver.resolve(rule, false, true, new UserId(1), fields("projectManagerId", "120"));
+        Resolution skipped = resolver.resolve(rule, false, true, new EmployeeId(1), fields("projectManagerId", "120"));
         assertThat(skipped.kind()).isEqualTo(ResolutionKind.SKIPPED);
         assertThat(skipped.namedApproverInvalid()).as("the document names an approver who cannot act: remembered, so that an approval whose every node was skipped like this goes back to the initiator").isTrue();
         assertThat(skipped.candidates()).isEmpty();
         Resolution nobody = resolver.resolve(new AssignmentRule.Role(new com.forcitis.one.platform.identity.api.RoleCode("nobody-holds-this")), false, true,
-                new UserId(1), ProcessVariables.empty());
+                new EmployeeId(1), ProcessVariables.empty());
         assertThat(nobody.kind()).isEqualTo(ResolutionKind.SKIPPED);
         assertThat(nobody.namedApproverInvalid()).as("a rule that finds nobody by itself is a set-up matter").isFalse();
-        assertThat(resolver.resolve(rule, false, false, new UserId(1), fields("projectManagerId", "120")).kind())
+        assertThat(resolver.resolve(rule, false, false, new EmployeeId(1), fields("projectManagerId", "120")).kind())
                 .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
-        assertThat(resolver.resolve(rule, false, false, new UserId(1), ProcessVariables.empty()).kind())
+        assertThat(resolver.resolve(rule, false, false, new EmployeeId(1), ProcessVariables.empty()).kind())
                 .isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
-        assertThat(resolver.resolve(rule, false, true, new UserId(1), fields("projectManagerId", "2")).kind())
+        assertThat(resolver.resolve(rule, false, true, new EmployeeId(1), fields("projectManagerId", "2")).kind())
                 .isEqualTo(ResolutionKind.RESOLVED);
     }
 
@@ -137,14 +139,14 @@ class AssigneeResolverTest {
         AssignmentRule.FormFieldUsers rule = new AssignmentRule.FormFieldUsers("projectManagerId");
         for (ProcessVariables input : List.of(ProcessVariables.empty(), fields("projectManagerId"), fields("projectManagerId", " "),
                 fields("projectManagerId", "x"), fields("projectManagerId", "0"), fields("projectManagerId", "424242"))) {
-            assertThat(resolver.resolve(rule, false, true, new UserId(1), input).kind()).as(input.toString())
+            assertThat(resolver.resolve(rule, false, true, new EmployeeId(1), input).kind()).as(input.toString())
                     .isEqualTo(ResolutionKind.INVALID_INPUT);
         }
-        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, new UserId(1),
+        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, new EmployeeId(1),
                 variable("unitVar", "424242")).kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
-        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, new UserId(1), ProcessVariables.empty())
+        assertThat(resolver.resolve(new AssignmentRule.DepartmentHead("unitVar"), false, true, new EmployeeId(1), ProcessVariables.empty())
                 .kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
-        assertThat(resolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new UserId(424242),
+        assertThat(resolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new EmployeeId(424242),
                 ProcessVariables.empty()).kind()).isEqualTo(ResolutionKind.INVALID_INPUT);
     }
 
@@ -152,13 +154,13 @@ class AssigneeResolverTest {
     @DisplayName("RULE-300 a complete, valid input with really nobody (no supervisor, no head, no role holder) is SKIPPED")
     void reallyNobodyIsSkipped() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
-        AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, java.util.Set.of(new UserId(ADMIN)));
+        AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, java.util.Set.of(new UserId(ADMIN)), TestAccounts.sameNumber());
 
-        assertThat(lonelyResolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new UserId(5), ProcessVariables.empty())
+        assertThat(lonelyResolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, new EmployeeId(5), ProcessVariables.empty())
                 .kind()).isEqualTo(ResolutionKind.SKIPPED);
-        assertThat(lonelyResolver.resolve(new AssignmentRule.Role(new RoleCode("nobody-holds-this")), false, true, new UserId(5),
+        assertThat(lonelyResolver.resolve(new AssignmentRule.Role(new RoleCode("nobody-holds-this")), false, true, new EmployeeId(5),
                 ProcessVariables.empty()).kind()).isEqualTo(ResolutionKind.SKIPPED);
-        assertThat(lonelyResolver.resolve(new AssignmentRule.DepartmentHead(null), false, true, new UserId(5), ProcessVariables.empty())
+        assertThat(lonelyResolver.resolve(new AssignmentRule.DepartmentHead(null), false, true, new EmployeeId(5), ProcessVariables.empty())
                 .kind()).isEqualTo(ResolutionKind.SKIPPED);
     }
 
@@ -202,7 +204,7 @@ class AssigneeResolverTest {
     @Test
     @DisplayName("RULE-307 an employee-activity node may be approved by its initiator")
     void selfApprovalAllowedOnEmployeeActivities() {
-        Resolution r = resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), true, new UserId(1), fields("projectManagerId", "1"));
+        Resolution r = resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), true, new EmployeeId(1), fields("projectManagerId", "1"));
         assertThat(r.candidates()).isEqualTo(ids(1));
     }
 

@@ -1,8 +1,9 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.SeparationReview;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.HoldKind;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -93,8 +94,8 @@ public class ApplySourceSnapshot {
             }
             String reason = Stream.of(shrinkHeld ? verdict.reason() : null, separationHeld ? review.reason() : null)
                     .filter(Objects::nonNull).collect(Collectors.joining("; "));
-            List<UserId> leaving = separationHeld
-                    ? changes.separatedEmployees().stream().sorted(Comparator.comparingLong(UserId::value)).toList() : List.of();
+            List<EmployeeId> leaving = separationHeld
+                    ? changes.separatedEmployees().stream().sorted(Comparator.comparingLong(EmployeeId::value)).toList() : List.of();
             return hold(run, earlier, changes, reason, kinds, leaving, releasedBy != null, now);
         }
         if (verdict.held()) {
@@ -118,7 +119,7 @@ public class ApplySourceSnapshot {
 
     /** While an earlier run is still held it is refreshed instead, so a stuck hold adds no row every five minutes. */
     private SyncResult hold(SyncRun run, Optional<SyncRun> earlier, Reconciliation changes, String reason, Set<HoldKind> kinds,
-                            List<UserId> leaving, boolean releasesWithdrawn, Instant now) {
+                            List<EmployeeId> leaving, boolean releasesWithdrawn, Instant now) {
         SyncRun held = run;
         if (earlier.isPresent()) {
             held = earlier.get();

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -50,7 +51,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         for (TimesheetRoutingFlag flag : flags) {
             names.add(flag.flagName());
         }
-        return tx.execute(status -> approvals.start(startRequest(key, new UserId(s.initiator()), names, fields)));
+        return tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()), names, fields)));
     }
 
     List<String> openNodes(ApprovalInstanceId instance) {
@@ -126,7 +127,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         for (TimesheetRoutingFlag flag : flags) {
             names.add(flag.flagName());
         }
-        return tx.execute(status -> approvals.start(startRequest(key, new UserId(s.initiator()), names, fields)));
+        return tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()), names, fields)));
     }
 
     static ApprovalField projectManagers(String... values) {

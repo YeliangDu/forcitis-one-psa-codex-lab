@@ -41,7 +41,7 @@ public class GetCurrentUserProfile {
     @Transactional(readOnly = true)
     public CurrentUserView execute() {
         UserId userId = currentUser.userId();
-        Optional<EmployeeProfile> employee = directory.findEmployee(userId);
+        Optional<EmployeeProfile> employee = directory.findEmployee(currentUser.employeeId());
         Optional<OrgUnitProfile> unit = employee.flatMap(e -> directory.findOrgUnit(e.orgUnitId()));
         boolean confirmed = sessions.identityConfirmed();
         AccessProfile profile = AccessProfile.of(confirmed ? accounts.findEnabledRoles(userId) : List.of());

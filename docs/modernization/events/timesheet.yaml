@@ -20,16 +20,12 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           employee:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
+            description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
             properties:
@@ -51,11 +47,8 @@ components:
             x-type: DocumentNumber
             description: 单据编号，创建时取号
           projectManager:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
             description: 项目经理，工时审批第一道审批人
           submittedOn:
             type: string
@@ -97,16 +90,12 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           employee:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
+            description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
             properties:
@@ -155,16 +144,12 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           employee:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
+            description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
             properties:
@@ -220,16 +205,12 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           employee:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
+            description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
             properties:
@@ -285,16 +266,12 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           employee:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
+            description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
             properties:

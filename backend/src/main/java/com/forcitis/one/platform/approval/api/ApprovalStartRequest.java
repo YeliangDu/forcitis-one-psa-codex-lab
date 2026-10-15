@@ -1,8 +1,8 @@
 package com.forcitis.one.platform.approval.api;
 
 import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.UserId;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -14,7 +14,7 @@ import java.util.UUID;
  * again for the same round is a retry and returns the same instance (D-1a-78). trigger is the id of the event that asked for it.
  * contentHash fingerprints the content to approve; summary is what cards show.
  */
-public record ApprovalStartRequest(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, UserId initiator,
+public record ApprovalStartRequest(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, EmployeeId initiator,
                                    RoundNumber round, UUID trigger, Set<String> routingFlags, List<ApprovalField> formFields,
                                    ContentHash contentHash, ApprovalSummary summary) {
 

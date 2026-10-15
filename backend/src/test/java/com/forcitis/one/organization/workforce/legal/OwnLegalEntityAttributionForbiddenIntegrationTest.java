@@ -40,8 +40,8 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     static final String ORG_UNITS = "/api/v1/organization/org-unit-legal-entities/";
     static final String EMPLOYEES = "/api/v1/organization/employee-legal-entities/";
 
-    static RequestPostProcessor maintainer(String userId) {
-        return user(userId).authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
+    static RequestPostProcessor maintainer(String employeeId) {
+        return user(employeeId).authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
     }
 
     @Autowired

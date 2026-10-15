@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,9 +16,9 @@ final class ReportingLines {
     private ReportingLines() {
     }
 
-    static Map<UserId, UserId> accept(Map<UserId, UserId> claimed, Map<UserId, EmploymentStatus> statusOf,
-                                      Function<UserId, UserId> storedSupervisor, List<SyncDiff> diffs) {
-        Map<UserId, UserId> candidates = new LinkedHashMap<>();
+    static Map<EmployeeId, EmployeeId> accept(Map<EmployeeId, EmployeeId> claimed, Map<EmployeeId, EmploymentStatus> statusOf,
+                                      Function<EmployeeId, EmployeeId> storedSupervisor, List<SyncDiff> diffs) {
+        Map<EmployeeId, EmployeeId> candidates = new LinkedHashMap<>();
         claimed.forEach((person, leader) -> {
             String subject = "employee:" + person.value();
             if (person.equals(leader)) {
@@ -31,8 +31,8 @@ final class ReportingLines {
                 candidates.put(person, leader);
             }
         });
-        Set<UserId> inCycle = findCycles(candidates, claimed.keySet(), storedSupervisor);
-        Map<UserId, UserId> accepted = new LinkedHashMap<>();
+        Set<EmployeeId> inCycle = findCycles(candidates, claimed.keySet(), storedSupervisor);
+        Map<EmployeeId, EmployeeId> accepted = new LinkedHashMap<>();
         candidates.forEach((person, leader) -> {
             if (inCycle.contains(person)) {
                 diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + person.value(), IssueKind.SUPERVISOR_CYCLE,
@@ -44,22 +44,22 @@ final class ReportingLines {
         return accepted;
     }
 
-    private static Set<UserId> findCycles(Map<UserId, UserId> candidates, Set<UserId> claimedPeople,
-                                          Function<UserId, UserId> storedSupervisor) {
-        Function<UserId, UserId> next = person -> {
+    private static Set<EmployeeId> findCycles(Map<EmployeeId, EmployeeId> candidates, Set<EmployeeId> claimedPeople,
+                                          Function<EmployeeId, EmployeeId> storedSupervisor) {
+        Function<EmployeeId, EmployeeId> next = person -> {
             if (candidates.containsKey(person)) {
                 return candidates.get(person);
             }
             return claimedPeople.contains(person) ? null : storedSupervisor.apply(person);
         };
-        Map<UserId, Integer> state = new HashMap<>();
-        Set<UserId> inCycle = new HashSet<>();
-        for (UserId start : candidates.keySet()) {
+        Map<EmployeeId, Integer> state = new HashMap<>();
+        Set<EmployeeId> inCycle = new HashSet<>();
+        for (EmployeeId start : candidates.keySet()) {
             if (state.containsKey(start)) {
                 continue;
             }
-            List<UserId> path = new ArrayList<>();
-            UserId at = start;
+            List<EmployeeId> path = new ArrayList<>();
+            EmployeeId at = start;
             while (at != null && !state.containsKey(at)) {
                 state.put(at, 1);
                 path.add(at);
