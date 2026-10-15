@@ -14,6 +14,7 @@ import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import com.forcitis.one.organization.workforce.domain.SyncDiff;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -53,7 +54,8 @@ class LoginMissRegistration {
         StaffEmployee staff = new StaffEmployee(EmployeeChecks.toEmployee(person, true),
                 new Assignment(employeeId, SourceTerms.unit(person.unitId()), SourceTerms.position(person.positionId()), validSupervisor(person)));
         // The login request has no signed-in user yet, so the registration acts as SYSTEM (P2-F1).
-        try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null), ACTOR)) {
+        UUID correlationId = WorkContext.correlationId().orElseThrow(() -> new IllegalStateException("login registration needs a correlation id"));
+        try (WorkContext.Scope scope = WorkContext.enter(correlationId, WorkContext.causationId().orElse(null), ACTOR)) {
             persist.execute(staff);
         }
         return Optional.of(staff);
