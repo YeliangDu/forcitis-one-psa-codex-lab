@@ -1,9 +1,10 @@
 package com.forcitis.one.platform.integration.infrastructure.connection;
 
-import com.forcitis.one.platform.integration.api.ExternalFailure;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.DatabaseLocator;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.Locator;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.OverriddenGrant;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -11,7 +12,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -71,10 +71,6 @@ final class ReadOnlyBaseline {
     record ServerPermissionRow(int securableClass, String classDescription, String state, String permission) {
     }
 
-    /** A row of sys.database_permissions below the database level (class other than 0), of the login itself or of public on a user securable. */
-    record SecurablePermissionRow(String classDescription, long majorId, String state, String permission, boolean toPublic) {
-    }
-
     record ReachableDatabase(int id, String name) {
 
         boolean system() {
@@ -126,10 +122,24 @@ final class ReadOnlyBaseline {
      * One finding per call within an item: count is how many entries of the category the call found (permissions, roles, databases, rows);
      * a failed or empty answer counts one, so an item whose queries all fail counts its failed queries.
      */
-    record Finding(Reason reason, int count, @Nullable SqlError failure) {
+    record Finding(Reason reason, int count, @Nullable SqlError failure, List<Locator> locators) {
+
+        Finding {
+            locators = List.copyOf(locators);
+        }
+
+        Finding(Reason reason, int count, @Nullable SqlError failure) {
+            this(reason, count, failure, List.of());
+        }
 
         Optional<SqlError> sqlError() {
             return Optional.ofNullable(failure);
+        }
+
+        /** Never a name: the locators carry database, schema and object names. */
+        @Override
+        public String toString() {
+            return "Finding[reason=" + reason + ", count=" + count + ", failure=" + failure + ", locators=" + locators + "]";
         }
     }
 
@@ -143,9 +153,20 @@ final class ReadOnlyBaseline {
         String described() {
             return "(" + item + ") " + problem;
         }
+
+        /** Never the problem text: it may name roles and databases. */
+        @Override
+        public String toString() {
+            return "Unmet[item=" + item + ", confirmed=" + confirmed + ", findings=" + findings + "]";
+        }
     }
 
-    record Verdict(List<Unmet> unmet) {
+    record Verdict(List<Unmet> unmet, List<OverriddenGrant> overridden) {
+
+        Verdict {
+            unmet = List.copyOf(unmet);
+            overridden = List.copyOf(overridden);
+        }
 
         boolean passed() {
             return unmet.isEmpty();
@@ -158,6 +179,11 @@ final class ReadOnlyBaseline {
         List<String> described() {
             return unmet.stream().map(Unmet::described).toList();
         }
+
+        @Override
+        public String toString() {
+            return "Verdict[unmet=" + unmet + ", overridden=" + overridden + "]";
+        }
     }
 
     private ReadOnlyBaseline() {
@@ -165,6 +191,7 @@ final class ReadOnlyBaseline {
 
     static Verdict check(ReadOnlyCatalog catalog) {
         List<Unmet> unmet = new ArrayList<>();
+        List<OverriddenGrant> overridden = new ArrayList<>();
         item(unmet, 'a', found -> found.ask(catalog::databasePermissions)
                 .ifPresent(permissions -> sameAs(found, "database-level effective permissions", permissions, DATABASE_PERMISSIONS)));
         item(unmet, 'b', found -> found.ask(catalog::databaseLevelPermissions).ifPresent(rows -> databaseLevel(found, rows)));
@@ -172,49 +199,16 @@ final class ReadOnlyBaseline {
         item(unmet, 'd', found -> server(found, catalog));
         item(unmet, 'e', found -> found.ask(catalog::ownership).ifPresent(ownership -> ownsNothing(found, ownership)));
         item(unmet, 'f', found -> reachable(found, catalog));
-        item(unmet, 'g', found -> found.ask(catalog::securablePermissionRows).ifPresent(rows -> belowTheDatabase(found, rows)));
-        return new Verdict(List.copyOf(unmet));
+        item(unmet, 'g', found -> {
+            found.ask(catalog::securablePermissionRows).ifPresent(rows -> EffectiveGrants.belowTheDatabase(found, rows, catalog));
+            overridden.addAll(found.overridden);
+        });
+        return new Verdict(unmet, overridden);
     }
 
     /** Each entry starts with the item it breaks, "(a)" to "(g)". */
     static List<String> violations(ReadOnlyCatalog catalog) {
         return check(catalog).described();
-    }
-
-    private static final class Findings {
-
-        final Set<String> confirmed = new LinkedHashSet<>();
-        final Set<String> undeterminable = new LinkedHashSet<>();
-        final List<Finding> confirmedFindings = new ArrayList<>();
-        final List<Finding> undeterminableFindings = new ArrayList<>();
-
-        void violated(Reason reason, int count, String problem) {
-            confirmed.add(problem);
-            confirmedFindings.add(new Finding(reason, count, null));
-        }
-
-        void unknown(Reason reason, int count, String problem) {
-            undeterminable.add(problem);
-            undeterminableFindings.add(new Finding(reason, count, null));
-        }
-
-        void failed(Reason reason, Throwable failure) {
-            undeterminable.add("cannot be determined (" + ExternalFailure.of(failure) + ")");
-            undeterminableFindings.add(new Finding(reason, 1, SqlError.of(failure).orElse(null)));
-        }
-
-        <T> Optional<T> ask(Supplier<T> query) {
-            try {
-                T answer = query.get();
-                if (answer == null) {
-                    unknown(Reason.NO_ANSWER, 1, "cannot be determined (no answer)");
-                }
-                return Optional.ofNullable(answer);
-            } catch (RuntimeException failure) {
-                failed(Reason.CATALOG_QUERY_FAILED, failure);
-                return Optional.empty();
-            }
-        }
     }
 
     private static void item(List<Unmet> unmet, char item, Consumer<Findings> rule) {
@@ -375,32 +369,23 @@ final class ReadOnlyBaseline {
             found.unknown(Reason.OWN_DATABASE_NOT_LISTED, 1, "HAS_DBACCESS does not list the login's own database, cannot be determined");
         }
         if (!beyond.isEmpty()) {
-            found.violated(Reason.OTHER_DATABASE_REACHABLE, beyond.size(), "the login can also enter the databases " + beyond);
+            found.violated(Reason.OTHER_DATABASE_REACHABLE, beyond.size(), "the login can also enter the databases " + beyond, located(beyond));
         }
         if (!withOwnUser.isEmpty()) {
-            found.violated(Reason.SYSTEM_DATABASE_OWN_USER, withOwnUser.size(), "the login has a user of its own in the system databases " + withOwnUser + ", only guest is allowed there");
+            found.violated(Reason.SYSTEM_DATABASE_OWN_USER, withOwnUser.size(), "the login has a user of its own in the system databases " + withOwnUser
+                    + ", only guest is allowed there", located(withOwnUser));
         }
     }
 
-    private static void belowTheDatabase(Findings found, List<SecurablePermissionRow> rows) {
-        Set<String> beyond = new TreeSet<>();
-        for (SecurablePermissionRow row : rows) {
-            String state = row.state().trim();
-            String permission = upper(row.permission());
-            if (!(state.equals("D") || state.equals("G") && permission.equals("SELECT"))) {
-                beyond.add(row.classDescription().trim() + " " + row.majorId() + " " + state + " " + permission + (row.toPublic() ? " to public" : ""));
-            }
-        }
-        if (!beyond.isEmpty()) {
-            found.violated(Reason.SECURABLE_GRANT_BEYOND_SELECT, beyond.size(), "schema, object and other grants below the database level may only be DENY or GRANT SELECT, found " + beyond);
-        }
+    private static List<DatabaseLocator> located(Set<String> databases) {
+        return databases.stream().map(DatabaseLocator::new).toList();
     }
 
     private static int count(long value) {
         return (int) Math.min(Integer.MAX_VALUE, value);
     }
 
-    private static String upper(String value) {
+    static String upper(String value) {
         return value.trim().toUpperCase(Locale.ROOT);
     }
 
