@@ -367,6 +367,7 @@ export const ProblemDetailSchema = z.object({
   detail: z.string().optional(),
   get errorCode() { return ErrorCodeSchema; },
   instance: z.string().optional(),
+  invalidParameters: z.string().optional(),
   legacyLoginUrl: z.string().optional(),
   status: z.number().int(),
   title: z.string().optional(),
