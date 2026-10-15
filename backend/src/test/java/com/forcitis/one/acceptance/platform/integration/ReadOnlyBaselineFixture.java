@@ -19,6 +19,10 @@ import java.util.TreeSet;
  * own sys.server_permissions holds only GRANT CONNECT SQL, and SQL Server 2016 knows no finer ones. Here the same server permissions are granted
  * to public and the finer ones SQL Server 2022 derives from them are denied to public, so the effective permissions equal the RDS export
  * exactly and no login holds a server permission of its own beyond CONNECT SQL. rdscore is an empty database with guest enabled, as on RDS.
+ *
+ * <p>RDS also gives every login a user of its own in msdb (member of the three SQL Agent roles) and in rdscore (no role, CONNECT only); one-ops
+ * read that off the three real logins before C-14 rc.3 and the user took it into the baseline on 2026-10-15 (「纳入基线」). Every login here gets the
+ * same two users, so the container shows what RDS shows.
  */
 final class ReadOnlyBaselineFixture {
 
@@ -44,6 +48,9 @@ final class ReadOnlyBaselineFixture {
             + "CREATE ANY EVENT SESSION, DROP ANY EVENT SESSION, CREATE LOGIN, VIEW SERVER PERFORMANCE STATE, VIEW SERVER SECURITY STATE";
 
     static final String VIEW_SCHEMA = "forcitis_one";
+
+    /** The roles of the login's own msdb user on RDS (one-ops sample, C-14 rc.3); SQL Server ships them in msdb whether or not the Agent runs. */
+    static final List<String> MSDB_AGENT_ROLES = List.of("SQLAgentOperatorRole", "SQLAgentReaderRole", "SQLAgentUserRole");
 
     @FunctionalInterface
     interface Administrator {
@@ -84,7 +91,16 @@ final class ReadOnlyBaselineFixture {
     private static String createServerLogin(Administrator sa, String login, String password) throws SQLException {
         String user = q(login);
         sa.run("master", "CREATE LOGIN " + user + " WITH PASSWORD = N'" + password + "', CHECK_POLICY = OFF");
+        createRdsOwnUsers(sa, user);
         return user;
+    }
+
+    /** A missing SQL Agent role fails here: the baseline is not reproduced, so nothing built on it is believed. */
+    private static void createRdsOwnUsers(Administrator sa, String user) throws SQLException {
+        List<String> msdb = new ArrayList<>(List.of("CREATE USER " + user + " FOR LOGIN " + user));
+        MSDB_AGENT_ROLES.forEach(role -> msdb.add("ALTER ROLE " + role + " ADD MEMBER " + user));
+        sa.run("msdb", msdb.toArray(String[]::new));
+        sa.run("rdscore", "CREATE USER " + user + " FOR LOGIN " + user);
     }
 
     private static void grantDatabaseBaseline(Administrator sa, String database, String user) throws SQLException {
@@ -110,7 +126,36 @@ final class ReadOnlyBaselineFixture {
                             "CREATE TABLE", "CREATE VIEW", "CREATE PROCEDURE", "CREATE FUNCTION", "CREATE SCHEMA");
             assertThat(strings(s, "SELECT permission_name FROM sys.database_permissions WHERE class = 0 AND state = 'G' AND grantee_principal_id = USER_ID()"))
                     .as("database-level GRANT").containsExactlyInAnyOrder("CONNECT", "SELECT");
+            assertOwnUsersMatchRds(s, login);
         }
+    }
+
+    /** Asked as the login itself: it sees its own role memberships in msdb and rdscore, and its own jobs through sysjobs_view (SQLAgentUserRole). */
+    private static void assertOwnUsersMatchRds(Statement s, String login) throws SQLException {
+        assertThat(strings(s, ownRoles("msdb"))).as("roles of the own msdb user, %s", login).containsExactlyInAnyOrderElementsOf(MSDB_AGENT_ROLES);
+        assertThat(strings(s, ownPermissions("msdb"))).as("permissions of the own msdb user itself, %s", login).containsExactly("DATABASE G CONNECT");
+        assertThat(strings(s, "SELECT COUNT(*) FROM rdscore.sys.database_principals WHERE sid = SUSER_SID()")).as("own rdscore user, %s", login)
+                .containsExactly("1");
+        assertThat(strings(s, ownRoles("rdscore"))).as("roles of the own rdscore user, %s", login).isEmpty();
+        assertThat(strings(s, ownPermissions("rdscore"))).as("permissions of the own rdscore user, %s", login).containsExactly("DATABASE G CONNECT");
+        for (String database : List.of("master", "tempdb")) {
+            assertThat(strings(s, "SELECT COUNT(*) FROM " + database + ".sys.database_principals WHERE sid = SUSER_SID()"))
+                    .as("no own user in %s, %s", database, login).containsExactly("0");
+        }
+        assertThat(strings(s, "SELECT COUNT(*) FROM msdb.dbo.sysjobs_view WHERE owner_sid = SUSER_SID()")).as("Agent jobs owned, %s", login)
+                .containsExactly("0");
+    }
+
+    /** Role names of the login's own user in a system database, read through three-part names from the login's own database. */
+    static String ownRoles(String database) {
+        return "SELECT r.name FROM " + database + ".sys.database_role_members m JOIN " + database + ".sys.database_principals u "
+                + "ON u.principal_id = m.member_principal_id JOIN " + database + ".sys.database_principals r ON r.principal_id = m.role_principal_id "
+                + "WHERE u.sid = SUSER_SID()";
+    }
+
+    private static String ownPermissions(String database) {
+        return "SELECT CONCAT(p.class_desc, ' ', p.state, ' ', p.permission_name) FROM " + database + ".sys.database_permissions p JOIN " + database
+                + ".sys.database_principals u ON u.principal_id = p.grantee_principal_id WHERE u.sid = SUSER_SID()";
     }
 
     static List<String> strings(Statement s, String query) throws SQLException {

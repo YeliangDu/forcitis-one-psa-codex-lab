@@ -169,18 +169,25 @@ class ReadOnlyAccountCheckIT {
             new Violation("C-14 定位裁定安全条件 2：public 角色在用户对象上的授权 GRANT TAKE OWNERSHIP ON 可读底表 TO public", "g", a -> List.of(
                     new Sql(a.connection().database, "GRANT TAKE OWNERSHIP ON " + a.connection().baseTable + " TO public")), a -> List.of(
                     new Sql(a.connection().database, "REVOKE TAKE OWNERSHIP ON " + a.connection().baseTable + " FROM public"))),
-            new Violation("复审 H-2：在 msdb 有该登录自己的用户并且是 db_owner（不经 guest 进入）", "f", a -> List.of(
-                    new Sql("msdb", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())),
+            // Was CREATE USER in msdb plus db_owner: the fixture now gives every login the own msdb user RDS gives it (user 2026-10-15 「纳入基线」), so only the extra role is added.
+            new Violation("复审 H-2、C-14 (f) 纳入基线：msdb 本人用户（三个 SQLAgent 角色，同 RDS）另加 db_owner", "f", a -> List.of(
                     new Sql("msdb", "ALTER ROLE db_owner ADD MEMBER " + q(a.login())))),
             new Violation("复审 H-2：在 master 有该登录自己的用户（无角色；系统库只能经 guest 进入）", "f", a -> List.of(
-                    new Sql("master", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))));
+                    new Sql("master", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))),
+            new Violation("C-14 (f) 纳入基线：msdb 本人用户多一个三个 SQLAgent 角色以外的角色 DatabaseMailUserRole", "f", a -> List.of(
+                    new Sql("msdb", "ALTER ROLE DatabaseMailUserRole ADD MEMBER " + q(a.login())))),
+            new Violation("C-14 (f) 纳入基线：rdscore 本人用户加入一个角色 db_datareader（只允许无角色、库级只有 CONNECT）", "f", a -> List.of(
+                    new Sql("rdscore", "ALTER ROLE db_datareader ADD MEMBER " + q(a.login())))),
+            new Violation("C-14 (f) 纳入基线附加条件：本账号拥有一个 Agent 作业（msdb 作业 owner 为本登录）", "f", a -> List.of(
+                    new Sql("msdb", addJob(a.login() + "_job", a.login()))), a -> List.of(
+                    new Sql("msdb", deleteJob(a.login() + "_job")))));
 
     static Stream<Arguments> everyViolationOnEveryConnection() {
         return VIOLATIONS.stream().flatMap(v -> Stream.of(ReadOnlyConnection.values()).map(c -> Arguments.of(c, v)));
     }
 
     @Test
-    @DisplayName("ADR37-1 夹具：容器里新建的三类只读登录与 RDS 实测基线逐项相等（服务器级、库级、角色、可访问的库、库级 DENY 与 GRANT）")
+    @DisplayName("ADR37-1 夹具：容器里新建的三类只读登录与 RDS 实测基线逐项相等（服务器级、库级、角色、可访问的库、库级 DENY 与 GRANT；C-14 (f) 纳入基线：msdb 本人用户恰在三个 SQLAgent 角色、rdscore 本人用户无角色只有 CONNECT、master 与 tempdb 无本人用户、不拥有 Agent 作业）")
     void fixtureReproducesTheRdsBaseline() throws SQLException {
         for (ReadOnlyConnection connection : ReadOnlyConnection.values()) {
             assertMatchesTheRdsBaseline(baselineAccount(connection));
@@ -311,6 +318,56 @@ class ReadOnlyAccountCheckIT {
         } finally {
             run(A8_WORLD, "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
         }
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 纳入基线附加条件（one-coordinator 2026-10-15）：本账号拥有一个 Agent 作业时拒绝启动并报项 (f)，拒绝原因与日志中不出现作业名")
+    void ownedAgentJobRefusesStartupWithoutTheJobName(CapturedOutput output) throws SQLException {
+        Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
+        String job = "j_" + marker();
+        Throwable failure;
+        try {
+            run("msdb", addJob(job, account.login()));
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.LEGACY_NAMES, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run("msdb", deleteJob(job));
+        }
+
+        assertThat(failure).as("the login owns an Agent job: the application started anyway").isNotNull();
+        assertThat(messages(failure)).as("the refusal names item (f)").containsPattern("[(（]f[)）]");
+        assertThat(messages(failure)).as("no job name in the refusal").doesNotContain(job);
+        assertThat(output.getAll()).as("no job name in the log").doesNotContain(job);
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 纳入基线附加条件：启动后本账号得到一个 Agent 作业，组织同步前重检失败写 ALERT 报项 (f)，ALERT、日志与同步结果说明中不出现作业名")
+    void agentJobAfterStartupFailsTheRecheckWithoutTheJobName(CapturedOutput output) throws SQLException {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        String job = "j_" + marker();
+        try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
+            run("msdb", addJob(job, account.login()));
+            SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
+
+            assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.FAILED);
+            assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (f)").containsPattern("ALERT[^\\n]*[(（]f[)）]");
+            assertThat(output.getAll()).as("no job name in the ALERT or any log line").doesNotContain(job);
+            assertThat(String.valueOf(result.note())).as("no job name in the sync result").doesNotContain(job);
+        } finally {
+            run("msdb", deleteJob(job));
+        }
+    }
+
+    /** sa may name any login as owner; the Agent need not run for msdb to record the job (SQL Server 2022 container, checked 2026-10-15). */
+    static String addJob(String job, String ownerLogin) {
+        return "EXEC msdb.dbo.sp_add_job @job_name = N'" + job + "', @owner_login_name = N'" + ownerLogin + "'";
+    }
+
+    static String deleteJob(String job) {
+        return "IF EXISTS (SELECT 1 FROM msdb.dbo.sysjobs WHERE name = N'" + job + "') EXEC msdb.dbo.sp_delete_job @job_name = N'" + job + "'";
     }
 
     static String marker() {

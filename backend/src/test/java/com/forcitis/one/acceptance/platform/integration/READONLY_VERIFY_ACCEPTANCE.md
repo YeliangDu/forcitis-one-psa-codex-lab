@@ -61,16 +61,23 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 ```
 (f) VIOLATED reason=SYSTEM_DATABASE_OWN_USER count=2
   (f) violation reason=SYSTEM_DATABASE_OWN_USER database="master"
-  (f) violation reason=SYSTEM_DATABASE_OWN_USER database="msdb"
+  (f) violation reason=SYSTEM_DATABASE_OWN_USER database="tempdb"
+  (f) ownUser database="master" role=-
+  (f) ownUser database="msdb" role="SQLAgentOperatorRole"
+  (f) ownUser database="msdb" role="SQLAgentReaderRole"
+  (f) ownUser database="msdb" role="SQLAgentUserRole"
+  (f) ownUser database="rdscore" role=-
+  (f) ownUser database="tempdb" role=-
 (g) VIOLATED reason=SECURABLE_GRANT_BEYOND_SELECT count=1
   (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=OBJECT_OR_COLUMN schema="dbo" object="t_x" objectId=901578250 permission="CONTROL" state=GRANT grantee="public" granteeType=DATABASE_ROLE
   (g) overridden class=OBJECT_OR_COLUMN schema=- object=- objectId=1093578934 permission="EXECUTE" state=GRANT grantee="public" granteeType=DATABASE_ROLE by=DATABASE_DENY
 ```
 
-- 正则：`^  \(([fg])\) (violation|overridden)((?: [a-zA-Z]+=VALUE)+)$`，`VALUE` 为 `"(?:[^"\\\p{Cntrl}\u2028\u2029]|\\["\\nrt]|\\u[0-9A-F]{4})*"` 或 `[A-Z0-9_-]+`。以两个空格加 `(` 开头而不合此式的行算格式错误。
-- 种类：`violation` 违规定位（计入该项计数）；`overridden` 被拒绝覆盖的授权（OverriddenGrant，提议术语由实现 PR 登记；DENY overrides GRANT；信息行，不计数，不使该项违规；项为 `PASSED` 时也输出）。
+- 正则：`^  \(([fg])\) (violation|overridden|ownUser)((?: [a-zA-Z]+=VALUE)+)$`，`VALUE` 为 `"(?:[^"\\\p{Cntrl}\u2028\u2029]|\\["\\nrt]|\\u[0-9A-F]{4})*"` 或 `[A-Z0-9_-]+`。以两个空格加 `(` 开头而不合此式的行算格式错误。
+- 种类：`violation` 违规定位（计入该项计数）；`overridden` 被拒绝覆盖的授权（OverriddenGrant，提议术语由实现 PR 登记；DENY overrides GRANT；信息行，不计数，不使该项违规；项为 `PASSED` 时也输出）；`ownUser` 系统库本人用户的角色信息行（见下节「(f) 系统库本人用户」；信息行，不计数，不使该项违规；项为 `PASSED` 时也输出）。
 - 字段顺序固定（便于 `grep 'permission="EXECUTE" state=GRANT'`）：
-  - (f) `violation`：`reason database`。原因 `SYSTEM_DATABASE_OWN_USER`：每个有本登录自己用户的系统库（master、tempdb、model、msdb 与 rdscore）一行；原因 `OTHER_DATABASE_REACHABLE`：每个能进的基线外用户库一行（one-coordinator 2026-10-15 裁定，`reason` 取该原因码；由实现的单元测试覆盖，本验收不断言）。
+  - (f) `violation`：`reason database`。原因 `SYSTEM_DATABASE_OWN_USER`：每个本登录自己的用户超出下节「(f) 系统库本人用户」所允许形状的系统库（master、tempdb、model、msdb 与 rdscore）一行；原因 `OTHER_DATABASE_REACHABLE`：每个能进的基线外用户库一行（one-coordinator 2026-10-15 裁定，`reason` 取该原因码；由实现的单元测试覆盖，本验收不断言）。
+  - (f) `ownUser`：`database role`。
   - (g) `violation`：`reason class schema object objectId permission state grantee granteeType`。
   - (g) `overridden`：`class schema object objectId permission state grantee granteeType by`。
 - 值：
@@ -79,8 +86,20 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   - 占位（字段缺失或不得输出时出占位，不省略字段）：`-` 无此值或取不到（schema 级授权的 `object`；无所属 schema 的安全对象的 `schema`；账号看不见的安全对象的 `schema` 与 `object`，见下条）；`SELF` 授权对象为本账号自己的数据库用户——用户名在夹具与 RDS 上就是登录名，第 5 节禁止输出，所以一律写 `SELF`，`granteeType` 照常（`SQL_USER`）。
 - `schema` 为安全对象所属 schema（schema 级授权即该 schema 本身）；`object` 为安全对象名（列级授权记在所在表上）。
 - 元数据可见性（one-1a-par 裁定：元数据可见性，方向 A）：名称以被核实账号自己的身份读取，取决于它的元数据可见性——SQL Server 只让账号看见它持有未被拒绝的某项权限的安全对象。被本账号 DENY 覆盖的 public GRANT EXECUTE（过程）正是看不见的情形：权限行在 `sys.database_permissions` 中，但 `sys.objects`、`sys.schemas`、`OBJECT_NAME`、`INFORMATION_SCHEMA`、`HAS_PERMS_BY_NAME` 都取不到名称与所属 schema。看不见的对象写 `schema=-`、`object=-`，用 `objectId` 定位（运维以取证账号反查名称）；看得见的照常输出名称。测试以账号身份先查 `sys.objects` / `sys.schemas` 确认每个期望的可见性前提。`grantee` 只输出主体名与类型，不展开角色成员。
-- 每条授权一行：同一 `(class, objectId, permission, state, grantee)` 只一行；该项行中 `SECURABLE_GRANT_BEYOND_SELECT` 的 `count` 等于 `(g) violation` 行数，(f) 各原因的 `count` 等于该原因的 `(f) violation` 行数。排序：先 `violation` 后 `overridden`，各按字段值字典序（测试不断言顺序）。
+- 每条授权一行：同一 `(class, objectId, permission, state, grantee)` 只一行；该项行中 `SECURABLE_GRANT_BEYOND_SELECT` 的 `count` 等于 `(g) violation` 行数，(f) 中 `SYSTEM_DATABASE_OWN_USER`、`OTHER_DATABASE_REACHABLE` 的 `count` 等于该原因的 `(f) violation` 行数；`OWNS_AGENT_JOB` 不出定位行（作业名是对象名，不输出），`count` 为作业个数。排序：先 `violation` 后 `overridden`，各按字段值字典序（测试不断言顺序）。
 - 其他项、其他原因不出定位行。
+
+### (f) 系统库本人用户（C-14 (f) 纳入基线；用户 2026-10-15「纳入基线」，one-coordinator 收紧口径）
+
+依据：rc.3 前三个正式只读账号 (f) `SYSTEM_DATABASE_OWN_USER count=2`，是 RDS 平台为每个登录在 msdb 与 rdscore 自动建的本人用户；one-ops 以取证账号核对样本：rdscore 本人用户 SQL_USER、无角色、库级只有 CONNECT；msdb 本人用户 SQL_USER、属 SQLAgentOperatorRole、SQLAgentReaderRole、SQLAgentUserRole。夹具（`ReadOnlyBaselineFixture`）为每个登录建同样的两个本人用户，`assertMatchesTheRdsBaseline` 逐项核对。影响只读核实命令、启动校验与运行期重检（同一套 `ReadOnlyBaseline`）：
+
+1. 允许（不算违规）：
+   - rdscore 中的本人用户：不属于任何角色，库级授权只有 GRANT CONNECT；
+   - msdb 中的本人用户：只属于 SQLAgentOperatorRole、SQLAgentReaderRole、SQLAgentUserRole 的子集（显式三个名称，按名称精确匹配，不用通配）。
+2. 仍判违规，原因 `SYSTEM_DATABASE_OWN_USER`，定位行 `database` 为该库：master、tempdb、model 中有本人用户（无论角色）；msdb 本人用户属于上列三个以外的任一角色（如 db_datareader、db_owner、DatabaseMailUserRole）；rdscore 本人用户属于任一角色，或库级有 CONNECT 以外的授权。
+3. 附加条件：本登录拥有的 SQL Agent 作业数必须为 0，否则违规，原因 `OWNS_AGENT_JOB`（技术码，(f) 项），`count` 为作业个数，不出定位行，输出不含作业名。读法：`SELECT COUNT(*) FROM msdb.dbo.sysjobs_view WHERE owner_sid = SUSER_SID()`。**不读 `msdb.dbo.sysjobs`**：测试代理 2026-10-15 在 SQL Server 2022 容器实测，msdb 中只有 TargetServersRole 有 sysjobs 的 SELECT，三个 SQLAgent 角色的成员读 sysjobs 报 229；SELECT on `sysjobs_view` 授给 SQLAgentUserRole（另两个角色是它的成员），视图对作业所有者总列出自己的作业（`owner_sid = SUSER_SID()`）。读不到（查询失败、被拒）为判定不了，带 SQL 错误号与 SQLState（`unreadableAgentJobsAreUndetermined`：msdb 中 DENY SELECT ON sysjobs_view，预期错误先以同一登录直连取得，229）。
+4. 信息行 `ownUser`：本登录在系统库（master、tempdb、model、msdb、rdscore 中 `HAS_DBACCESS` 为 1 的）有本人用户时，每个角色一行 `  (f) ownUser database="<库>" role="<角色名>"`；无角色的本人用户一行 `role=-`。合规与违规都输出，供运维对三个正式账号逐个核对与样本一致。只列角色名称，不列成员、权限与其他对象名。角色名以本登录身份读取（经三段名读 `<库>.sys.database_role_members` 与 `<库>.sys.database_principals`，`sid = SUSER_SID()`；容器实测本登录看得见自己的成员关系）。
+5. 启动校验与运行期重检：允许的本人用户不拒绝、不告警；违规照 (f) 拒绝或停连接。拒绝原因、ALERT、日志沿用现有 problem 文本口径（可含库名与角色名），不含作业名等其他对象名（`ReadOnlyAccountCheckIT.ownedAgentJobRefusesStartupWithoutTheJobName`、`agentJobAfterStartupFailsTheRecheckWithoutTheJobName`）；名称清单只由只读核实命令的定位行与信息行输出。
 
 ### (g) 的被拒绝覆盖判定（RULING-ADR37-10 的收窄解释，安全判定放宽）
 
@@ -95,11 +114,11 @@ RULING-ADR37-10 定「库内 class≠0 的授权只允许 DENY 或 SELECT 的 GR
 
 ### 只由只读核实命令输出
 
-定位字段（库名、schema 名、对象名、权限名、grantee）只出现在只读核实命令的定位行。启动校验的拒绝原因、日志，运行期重检的 ALERT、日志与同步结果说明中不出现 schema 名与对象名（`ReadOnlyAccountCheckIT.startupRefusalNamesNoSchemaOrObject`、`recheckAlertNamesNoSchemaOrObject`）。
+定位字段（库名、schema 名、对象名、权限名、grantee）与 `ownUser` 信息行的库名、角色名只出现在只读核实命令的定位行与信息行。启动校验的拒绝原因、日志，运行期重检的 ALERT、日志与同步结果说明中不出现 schema 名与对象名（`ReadOnlyAccountCheckIT.startupRefusalNamesNoSchemaOrObject`、`recheckAlertNamesNoSchemaOrObject`）。
 
 ### 用例
 
-`ReadOnlyVerificationCommandIT`：`systemDatabaseWithAnOwnUserIsLocatedByName`、`publicExecuteOverriddenByTheDatabaseDenyPasses`、`controlAndTakeOwnershipStayViolationsBesideAnOverriddenGrant`、`schemaLevelGrantsCarryTheObjectPlaceholder`、`aSchemaDenyOverridesOnlyInItsOwnSchema`、`columnGrantsFoldIntoTheTableAndAreOverriddenByTheSchemaDeny`、`grantOnATypeStaysAViolation`、`noDenyAnswerLeavesTheGrantUndetermined`、`grantsToTheLoginItselfShowTheSelfPlaceholder`、`locatorValuesAreEscaped`。(g) 的用例在各自新建的库里（`isolatedAccount`），授给 public 的授权不波及其他用例。`ReadOnlyAccountCheckIT`：`overriddenPublicGrantsDoNotRefuseStartup` 及上节两条；复审 H-1 的 public 反例由 GRANT UPDATE 改为 GRANT CONTROL，另加 GRANT TAKE OWNERSHIP。
+`ReadOnlyVerificationCommandIT`：`systemDatabaseWithAnOwnUserIsLocatedByName`（C-14 (f) 纳入基线后改为 master 与 tempdb 两库）、`msdbOwnUserInASubsetOfTheAgentRolesPasses`、`msdbOwnUserWithAnExtraRoleIsAViolation`、`rdscoreOwnUserInARoleIsAViolation`、`rdscoreOwnUserWithMoreThanConnectIsAViolation`、`ownedAgentJobIsAViolation`、`unreadableAgentJobsAreUndetermined`，`baselineAccountPassesEveryItem` 另断言 `ownUser` 信息行；`publicExecuteOverriddenByTheDatabaseDenyPasses`、`controlAndTakeOwnershipStayViolationsBesideAnOverriddenGrant`、`schemaLevelGrantsCarryTheObjectPlaceholder`、`aSchemaDenyOverridesOnlyInItsOwnSchema`、`columnGrantsFoldIntoTheTableAndAreOverriddenByTheSchemaDeny`、`grantOnATypeStaysAViolation`、`noDenyAnswerLeavesTheGrantUndetermined`、`grantsToTheLoginItselfShowTheSelfPlaceholder`、`locatorValuesAreEscaped`。(g) 的用例在各自新建的库里（`isolatedAccount`），授给 public 的授权不波及其他用例。`ReadOnlyAccountCheckIT`：`overriddenPublicGrantsDoNotRefuseStartup` 及上节两条；复审 H-1 的 public 反例由 GRANT UPDATE 改为 GRANT CONTROL，另加 GRANT TAKE OWNERSHIP；C-14 (f) 纳入基线：`ownedAgentJobRefusesStartupWithoutTheJobName`、`agentJobAfterStartupFailsTheRecheckWithoutTheJobName`，`VIOLATIONS` 加 msdb 多角色 DatabaseMailUserRole、rdscore 本人用户入 db_datareader、拥有 Agent 作业三例，复审 H-2 的 msdb 例改为「本人用户另加 db_owner」（夹具已建本人用户）。每个账号都有 `ownUser` 行，所以 (g) 各用例的「定位行恰为…」断言由 `run.locators()` 改为 `run.findings()`（只含 `violation` 与 `overridden`；`ownUser` 由 `run.ownUsers()` 取），所断言的 (f)(g) 定位行不变。
 
 ## 4. 退出码
 
@@ -119,7 +138,7 @@ RULING-ADR37-10 定「库内 class≠0 的授权只允许 DENY 或 SELECT 的 GR
 - 口令（所核实连接的，以及 env 中其他连接的）、所核实连接的登录名与完整连接串；
 - 数据库消息原文：库名带标记值的不存在库，消息里含该标记，输出里不得有；
 - `ReadOnlyBaseline.Unmet.problem` 文本：其中可能带角色名、库名等对象名；测试建一个以标记值命名的自定义角色并把账号加进去，输出里只能有 `(c) VIOLATED`，不得有该标记；
-- 名称：唯一例外是第 3a 节定位行中的字段（(f) 库名；(g) schema、对象、权限、grantee），其他项与其他原因的名称照旧不输出；定位行中本账号的用户名也写占位 `SELF`；
+- 名称：唯一例外是第 3a 节定位行与信息行中的字段（(f) 库名、本人用户的角色名；(g) schema、对象、权限、grantee），作业名不输出，其他项与其他原因的名称照旧不输出；定位行中本账号的用户名也写占位 `SELF`；
 - 数据。
 
 ## 6. 口令只从环境读
