@@ -95,7 +95,7 @@ Prometheus 里的名字是 Micrometer 名字把点换成下划线、计数器加
 | `SyncOrgSnapshot`（组织同步，失败写成 FAILED 记录，不抛出） | `forcitis_organization_workforce_sync_runs_total{status="FAILED"}` 与 `{status="HELD"}`；另有 `forcitis_organization_workforce_sync_lag_seconds`、`forcitis_organization_workforce_sync_held_runs` | `increase(…{status="FAILED"}[30m]) > 0`；`held_runs > 0` |
 | `EnforceDeadlines`（审批时限，单个任务失败只记日志） | `forcitis_platform_approval_deadline_failed_total`（第一次失败时才出现，用 `increase`，不要用 `absent` 判断它） | `increase(…[10m]) > 0` |
 | `RefreshShortNames`（部门简称刷新，老系统不可用时跳过） | `forcitis_organization_workforce_short_name_refresh_failures_total`（启动时为 0） | `increase(…[1d]) > 0` 仅提示，不升级为 P1：简称保持上一次的值 |
-| 合并待办读老待办（员工无 (LEGACY_SYSTEM, EMPLOYEE) 来源对照时答「不可用」） | `forcitis_platform_integration_legacy_inbox_unmapped_total`（每次这样的读取加 1）；`ALERT platform.integration` 日志每名员工每个业务日只出一次，其余为 WARN | P6 导入对照前（C8）配置了老待办 URL 就会持续增长，属预期，只看趋势；P6 之后 `increase(…[1d]) > 0` 告警 |
+| 合并待办读老待办（员工无 (LEGACY_SYSTEM, EMPLOYEE) 来源对照时答「不可用」） | `forcitis_platform_integration_legacy_inbox_unmapped_total`（每次这样的读取加 1）；`ALERT platform.integration` 日志每名员工每个业务日只出一次（每个实例分别计；重启后重新计），其余为 WARN | P6 导入对照前（C8）配置了老待办 URL 就会持续增长，属预期，只看趋势；P6 之后 `increase(…[1d]) > 0` 告警 |
 
 ## 4. 外部只读账号（SQL Server，由对方 DBA 执行）
 
