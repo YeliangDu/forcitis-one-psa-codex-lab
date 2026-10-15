@@ -11,13 +11,15 @@ import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 class RegisteredEmployeeTest {
 
     private static StaffEmployee staff() {
-        EmployeeId id = new EmployeeId(42);
+        EmployeeId id = TestAccounts.employee(42);
         return new StaffEmployee(new Employee(id, "E42", "Synthetic", "synthetic", null, null, null, EmploymentStatus.EMPLOYED, false),
-                new Assignment(id, new OrgUnitId(3), null, null));
+                new Assignment(id, TestOrgIds.orgUnit(3), null, null));
     }
 
     @Test
@@ -28,9 +30,9 @@ class RegisteredEmployeeTest {
         List<DomainEvent> events = registered.drainEvents(TestEnvelopes.INSTANCE);
 
         assertThat(events).singleElement().isInstanceOfSatisfying(EmployeeRegistered.class, e -> {
-            assertThat(e.employeeId()).isEqualTo(new EmployeeId(42));
+            assertThat(e.employeeId()).isEqualTo(TestAccounts.employee(42));
             assertThat(e.envelope().aggregateType()).isEqualTo("Employee");
-            assertThat(e.envelope().aggregateId()).isEqualTo("42");
+            assertThat(e.envelope().aggregateId()).isEqualTo(TestAccounts.employee(42).value().toString());
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
         });
         assertThat(registered.eventSequence()).isEqualTo(1);

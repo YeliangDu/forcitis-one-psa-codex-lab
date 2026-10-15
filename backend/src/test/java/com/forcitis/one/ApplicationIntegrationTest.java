@@ -64,6 +64,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         // The cached context closes after the container is gone; without a short timeout the engine's close waits 30 s for a connection.
@@ -100,7 +101,7 @@ class ApplicationIntegrationTest {
     static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
 
     static final String SUBMIT = "/api/v1/cost/timesheets/7:submit";
-    static final String BODY = "{\"hours\":8,\"projectManagerId\":2002}";
+    static final String BODY = "{\"hours\":8,\"projectManagerId\":\"" + TestAccounts.employee(2002).value() + "\"}";
 
     @Autowired
     MockMvc mvc;
@@ -182,8 +183,8 @@ class ApplicationIntegrationTest {
 
     @BeforeEach
     void projectManagerExists() {
-        org.mockito.Mockito.when(orgDirectory.findEmployee(new EmployeeId(2002))).thenReturn(java.util.Optional.of(new EmployeeProfile(
-                new EmployeeId(2002), "person-2002", new OrgUnitId(1), null, EmploymentStatus.EMPLOYED, false)));
+        org.mockito.Mockito.when(orgDirectory.findEmployee(TestAccounts.employee(2002))).thenReturn(java.util.Optional.of(new EmployeeProfile(
+                TestAccounts.employee(2002), "person-2002", TestOrgIds.orgUnit(1), null, EmploymentStatus.EMPLOYED, false)));
     }
 
     @BeforeEach

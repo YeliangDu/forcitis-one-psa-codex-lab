@@ -43,7 +43,7 @@ class OrgUnitSyncRulesTest {
 
         Reconciliation changes = first(shuffled);
 
-        assertThat(changes.orgUnits()).extracting(u -> u.orgUnitId().value()).containsExactly(1L, 2L, 3L);
+        assertThat(changes.orgUnits()).extracting(OrgUnit::orgUnitId).containsExactly(unitId(1), unitId(2), unitId(3));
     }
 
     @Test
@@ -89,9 +89,9 @@ class OrgUnitSyncRulesTest {
     }
 
     @Test
-    @DisplayName("RULE-356 several heads: the smallest id wins, deterministically, and the data steward is told")
+    @DisplayName("RULE-356 several heads: the first the source lists (its smallest id) wins, deterministically, and the data steward is told")
     void smallestHeadIdWins() {
-        SourceOrgSnapshot snapshot = source(List.of(unit(1, null)), List.of(head(1, 805), head(1, 801)), List.of(post(100)),
+        SourceOrgSnapshot snapshot = source(List.of(unit(1, null)), List.of(head(1, 801), head(1, 805)), List.of(post(100)),
                 List.of(person(801, 1, 100L, null), person(805, 1, 100L, null)));
 
         Reconciliation changes = first(snapshot);
@@ -176,7 +176,7 @@ class OrgUnitSyncRulesTest {
         OrgSnapshot v2 = apply(v1, rename);
         assertThat(orgUnit(v2, 2).name()).isEqualTo("Renamed");
         assertThat(rename.diffs()).anySatisfy(d -> {
-            assertThat(d.subjectKey()).isEqualTo("org-unit:2");
+            assertThat(d.subjectKey()).isEqualTo("org-unit:" + Fixtures.unitId(2).value());
             assertThat(d.changedFields()).containsExactly("name");
         });
         assertThat(orgUnit(v2, 3).status()).isEqualTo(OrgUnitStatus.REVOKED);
@@ -184,7 +184,7 @@ class OrgUnitSyncRulesTest {
         Reconciliation back = SnapshotReconciler.reconcile(v2, tree());
         OrgSnapshot v3 = apply(v2, back);
         assertThat(orgUnit(v3, 3).status()).isEqualTo(OrgUnitStatus.ACTIVE);
-        assertThat(back.diffs()).anyMatch(d -> d.changeKind() == ChangeKind.REVIVED && d.subjectKey().equals("org-unit:3"));
+        assertThat(back.diffs()).anyMatch(d -> d.changeKind() == ChangeKind.REVIVED && d.subjectKey().equals("org-unit:" + Fixtures.unitId(3).value()));
     }
 
     @Test

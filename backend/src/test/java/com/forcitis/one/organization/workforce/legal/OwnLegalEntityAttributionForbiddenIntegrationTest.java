@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.legal;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
@@ -87,14 +88,14 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     }
 
     private int attributeEmployee(String actor, long employee) throws Exception {
-        var response = mvc.perform(put(EMPLOYEES + employee).header("If-Match", "\"0\"").with(csrf()).with(maintainer(actor))
+        var response = mvc.perform(put(EMPLOYEES + TestAccounts.employee(employee).value()).header("If-Match", "\"0\"").with(csrf()).with(maintainer(actor))
                 .contentType(MediaType.APPLICATION_JSON).content(body())).andReturn().getResponse();
         lastEtag = response.getHeader("ETag");
         return response.getStatus();
     }
 
     private int attributeOrgUnit(String actor, long orgUnit) throws Exception {
-        var response = mvc.perform(put(ORG_UNITS + orgUnit).header("If-Match", "\"0\"").with(csrf()).with(maintainer(actor))
+        var response = mvc.perform(put(ORG_UNITS + TestOrgIds.orgUnit(orgUnit).value()).header("If-Match", "\"0\"").with(csrf()).with(maintainer(actor))
                         .contentType(MediaType.APPLICATION_JSON).content(body())).andReturn().getResponse();
         lastEtag = response.getHeader("ETag");
         return response.getStatus();
@@ -103,13 +104,13 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     @Test
     @DisplayName("nobody sets their own employee entry: 403, audited in its own transaction, nothing stored")
     void ownEmployeeEntryIsRefused() throws Exception {
-        mvc.perform(put(EMPLOYEES + 1).header("If-Match", "\"0\"").with(csrf()).with(maintainer("1")).contentType(MediaType.APPLICATION_JSON).content(body()))
+        mvc.perform(put(EMPLOYEES + TestAccounts.employee(1).value()).header("If-Match", "\"0\"").with(csrf()).with(maintainer("1")).contentType(MediaType.APPLICATION_JSON).content(body()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN"));
 
         assertThat(count("legal_entity_attributions")).isZero();
         verify(audit).recordIndependently(argThat((AuditEntry entry) -> entry.action().equals("organization.workforce.legal-entity-attribution.refused")
-                && entry.actorId().equals(TestAccounts.account(1)) && entry.subjectKey().equals("legal-entity-attribution:employee:1")));
+                && entry.actorId().equals(TestAccounts.account(1)) && entry.subjectKey().equals("legal-entity-attribution:employee:" + TestAccounts.employee(1).value())));
     }
 
     @Test
@@ -117,7 +118,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     void endingTheOwnEntryIsRefused() throws Exception {
         assertThat(attributeEmployee("9001", 1)).isEqualTo(200);
 
-        mvc.perform(post(EMPLOYEES + "1:end").header("If-Match", lastEtag).with(csrf()).with(maintainer("1")).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(EMPLOYEES + TestAccounts.employee(1).value() + ":end").header("If-Match", lastEtag).with(csrf()).with(maintainer("1")).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"effectiveTo\":\"" + zone.today(clock).plusDays(30) + "\"}"))
                 .andExpect(status().isForbidden());
     }
@@ -159,9 +160,9 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
         assertThat(attributeOrgUnit("9001", 2)).isEqualTo(200);
         String unitEtag = lastEtag;
 
-        assertThat(correct(EMPLOYEES + 1, employeeEtag, "1")).as("own employee entry").isEqualTo(403);
-        assertThat(correct(ORG_UNITS + 2, unitEtag, "1")).as("own department").isEqualTo(403);
-        assertThat(correct(ORG_UNITS + 2, unitEtag, "2")).as("own department of the other person").isEqualTo(403);
+        assertThat(correct(EMPLOYEES + TestAccounts.employee(1).value(), employeeEtag, "1")).as("own employee entry").isEqualTo(403);
+        assertThat(correct(ORG_UNITS + TestOrgIds.orgUnit(2).value(), unitEtag, "1")).as("own department").isEqualTo(403);
+        assertThat(correct(ORG_UNITS + TestOrgIds.orgUnit(2).value(), unitEtag, "2")).as("own department of the other person").isEqualTo(403);
 
         assertThat(count("legal_entity_attribution_corrections")).isZero();
         verify(audit, atLeastOnce()).recordIndependently(argThat((AuditEntry entry) -> entry.action().equals("organization.workforce.legal-entity-attribution.refused")

@@ -3,7 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** The version tables refuse TRUNCATE; a test that starts from an empty schema lifts that for the one statement (the test database is its own). */
+/** The version tables and the attribution corrections refuse TRUNCATE (trigger type bit 32); a test that starts from an empty schema lifts that for the one statement (the test database is its own). */
 public final class VersionTables {
     private VersionTables() {
     }
@@ -11,7 +11,7 @@ public final class VersionTables {
     public static void truncate(JdbcClient jdbc, String statement) {
         List<String> triggers = jdbc.sql("""
                 select r.relname || '|' || g.tgname from pg_trigger g join pg_class r on r.oid = g.tgrelid join pg_namespace n on n.oid = r.relnamespace
-                 where n.nspname = 'organization_workforce' and not g.tgisinternal and g.tgname like 'tg\\_%\\_append\\_only\\_truncate'
+                 where n.nspname = 'organization_workforce' and not g.tgisinternal and (g.tgtype & 32) <> 0
                 """).query(String.class).list();
         change(jdbc, triggers, "disable");
         try {

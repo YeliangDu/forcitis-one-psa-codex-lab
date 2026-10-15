@@ -15,11 +15,11 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.user;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceGender;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourcePerson;
-import com.forcitis.one.platform.integration.api.SourcePositionId;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.SourceRegionKind;
 import com.forcitis.one.platform.integration.api.SourceRelationship;
@@ -49,9 +49,9 @@ class SyncedFieldsContractTest {
         SourcePerson p;
         String employeeCode;
         String displayName;
-        com.forcitis.one.platform.integration.api.SourceUnitId unitId;
-        SourcePositionId positionId;
-        com.forcitis.one.platform.integration.api.SourcePersonId supervisorId;
+        OwnObjectId unitId;
+        OwnObjectId positionId;
+        OwnObjectId supervisorId;
         String loginName;
         String email;
         SourceGender gender;
@@ -90,7 +90,7 @@ class SyncedFieldsContractTest {
         STAFF_CHANGES.put("employmentStatus", b -> { b.loginName = null; return b; });
         STAFF_CHANGES.put("feeEarner", b -> { b.feeEarner = true; return b; });
         STAFF_CHANGES.put("orgUnitId", b -> { b.unitId = sourceUnit(3); return b; });
-        STAFF_CHANGES.put("positionId", b -> { b.positionId = new SourcePositionId(101); return b; });
+        STAFF_CHANGES.put("positionId", b -> { b.positionId = Fixtures.sourcePosition(101); return b; });
         STAFF_CHANGES.put("reportsToEmployeeId", b -> { b.supervisorId = sourcePerson(2002); return b; });
     }
 
@@ -109,7 +109,7 @@ class SyncedFieldsContractTest {
             Reconciliation result = SnapshotReconciler.reconcile(stored, changed);
 
             assertThat(result.diffs()).as(field).anySatisfy(d -> {
-                assertThat(d.subjectKey()).isEqualTo("employee:2001");
+                assertThat(d.subjectKey()).isEqualTo("employee:" + user(2001).value());
                 assertThat(d.changedFields()).contains(field);
             });
             List<com.forcitis.one.kernel.EmployeeId> announced = new ArrayList<>(result.changedEmployees());
@@ -163,7 +163,7 @@ class SyncedFieldsContractTest {
             Reconciliation result = SnapshotReconciler.reconcile(stored, changed);
 
             assertThat(result.diffs()).as(field).anySatisfy(d -> {
-                assertThat(d.subjectKey()).isEqualTo("org-unit:3");
+                assertThat(d.subjectKey()).isEqualTo("org-unit:" + unitId(3).value());
                 assertThat(d.changedFields()).contains(field);
             });
             assertThat(result.changedOrgUnits()).as(field).containsExactly(unitId(3));

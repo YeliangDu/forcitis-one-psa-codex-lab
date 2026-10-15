@@ -12,6 +12,7 @@ import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 
 class EmploymentVerdictIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
@@ -23,9 +24,9 @@ class EmploymentVerdictIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("P2 recheck L-5 employmentOf on the database: no sync yet or a stale snapshot is unavailable, except for a person it lists as separated")
     void theVerdictFollowsTheSyncRuns() {
-        EmployeeId employed = new EmployeeId(1);
-        EmployeeId leaver = new EmployeeId(10);
-        EmployeeId unknown = new EmployeeId(999);
+        EmployeeId employed = TestAccounts.employee(1);
+        EmployeeId leaver = TestAccounts.employee(10);
+        EmployeeId unknown = TestAccounts.employee(999);
         assertThat(directory.employmentOf(employed)).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
 
         orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 2, 100L, null), person(3, 2, 100L, null), person(4, 2, 100L, null),
