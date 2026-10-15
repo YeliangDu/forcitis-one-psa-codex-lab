@@ -72,6 +72,27 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
     }
 
     @Test
+    @DisplayName("P2 recheck L-4 a refused start is audited with the signed-in caller, not with the initiator the request names")
+    void theRefusalNamesTheCallerNotTheInitiatorInTheRequest() {
+        long userA = newId();
+        long userB = newId();
+        long caller = newId();
+        long manager = newId();
+        organisation.person(userA, 1, null).person(userB, 1, null).person(caller, 1, null).person(manager, 1, null);
+        String documentOfB = newKey("ownership");
+        start(documentOfB, userB, manager);
+
+        actAs(caller);
+        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new EmployeeId(userA), Set.of(), List.of()))))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
+                && entry.actorId().equals(TestAccounts.account(caller))));
+        verify(audit, org.mockito.Mockito.never()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
+                && TestAccounts.account(userA).equals(entry.actorId())));
+    }
+
+    @Test
     @DisplayName("I-5 and RULE-287 after B's round was returned, A cannot open the next round; B does, and it is round 2 with a new instance")
     void anotherUserCannotOpenTheNextRound() {
         long userA = newId();

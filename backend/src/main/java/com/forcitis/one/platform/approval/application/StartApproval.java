@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
-import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import org.springframework.beans.factory.ObjectProvider;
 import com.forcitis.one.platform.approval.api.ApprovalError;
@@ -51,17 +51,12 @@ public class StartApproval {
         this.time = time;
     }
 
-    /** The signed-in account asking; a start from an event handler has none and is audited without an actor. */
+    /** The signed-in account asking; a start from an event handler acts as SYSTEM and is audited without an actor. */
     private UserId caller() {
-        CurrentUser user = currentUser.getIfAvailable();
-        if (user == null) {
+        if (WorkContext.systemActor().isPresent()) {
             return null;
         }
-        try {
-            return user.userId();
-        } catch (DomainException notSignedIn) {
-            return null;
-        }
+        return currentUser.getObject().userId();
     }
 
     @Transactional
