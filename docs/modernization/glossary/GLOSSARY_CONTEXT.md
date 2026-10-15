@@ -23,11 +23,12 @@
 | 待确认表 | `glossary/TERM_CONFIRMATION.md`（A 组 19 项待定） |
 | 第三轮输入 | `r0/TERMS_ROUND3_INPUT.md`、`glossary/STANDARDS_AUDIT.md`、`glossary/oat/` |
 | 前两轮做法 | 确认页 `glossary/build_confirm_page.py`、答复 `glossary/export_decisions_round2.py` |
-| 决策单范例 | 财务决策单 `r0/build_finance_decisions.py`（PR #176 分支 `claude/one-coordinator-fin-v2-decisions`）：md 为源、离线 HTML、推荐预选、导出答复 |
+| 决策单（在线页） | 第三轮 `glossary/round3/`：`build_round3_page.py` + `page-template.html` 生成私有 Artifact，db 存 `decisions/<编号>`，ArtifactData 读答复，`export_decisions.py` 导出；页面不引用 Google 字体、页面级不设 overflow 隐藏 |
+| 门禁小决策页 | `glossary/gate/`：数据 `<卡号>.json` → `build_gate_page.py` → 发布 → `export_decisions.py` → `glossary/decisions-gate-<卡号>.json` → `build_terms.py`（`apply_gate.py`）；用法见 `gate/README.md` |
 
 ## 流程
 
-登记（各会话 `new_term_issue.py` / 提议术语）→ 去重归并（同义合并、同名改开）→ 预判（级别与依据，写处理片段）→ 决策单（业务用语积压达到 100 条或距上次超过 7 天；记 `decision-sheets/`）→ 用户答复 → 写回（`decisions-*.json` 新一轮一份 + `build_terms.py` 该轮应用段 → `terms.yaml`；提议状态）→ 改名 PR 先合、`forbidden` 后合 → 代码标识由 G38 拦截，文档方言靠巡检 → 处理片段改「已关闭」并写去向。
+开工前术语门禁（每张卡验收阶段交本卡新词 → 当天预判 → 小决策页 → 用户确认 → 写回 → 负责会话才派实现）；存量与遗漏走：登记（各会话 `new_term_issue.py` / 提议术语）→ 去重归并（同义合并、同名改开）→ 预判（级别与依据，写处理片段）→ 决策单（在线页；业务用语积压达到 100 条或距上次超过 7 天；记 `decision-sheets/`）→ 用户答复 → 写回（`decisions-*.json` 新一轮一份 + `build_terms.py` 该轮应用段 → `terms.yaml`；提议状态）→ 改名 PR 先合、`forbidden` 后合 → 代码标识由 G38 拦截，文档方言靠巡检 → 处理片段改「已关闭」并写去向。
 
 ## 现状
 
@@ -35,6 +36,7 @@
 |---|---|
 | 积压 | 以 `glossary/ISSUES.md` 首段为准（门槛只算业务用语；错误码单列归 R-5，用户 2026-10-15） |
 | 已知重复 | 中文名重复 5 组（§5 起因）；同义错误码 4 组（R-5 卡） |
-| 在途 | 第三轮用语确认（分支 `claude/one-glossary-round3`） |
-| 下一步 | 清理积压 → 第三轮决策单 → 报 one-coordinator 交用户 |
+| 在途 | 固定确认页 https://claude.ai/artifact/MwoqwkhAYq9CtomgaedwZ1：ACL 归类 109 条、第三轮重做 301 条，分别提交（`glossary/acl/`、`glossary/round3/sheets/`）；第三轮首次答复作废，PR #196 不合并；R-1b-0 门禁等 ACL 结论 |
+| 下一步 | 用户提交后：ACL 用语单列（集成层允许、领域模块禁止）的存放与守护方案 → 重做第三轮写回；代码搬迁与 ADR 冲突交 one-architecture |
+| 用语规范 | evidence 只用于「证据」义（fact_evidence 等）；判定结果用 verdict（在职判定 EmploymentVerdict） |
 | 定时 | 每周积压检查（会话内定时任务，开会话后设，记在画像） |
