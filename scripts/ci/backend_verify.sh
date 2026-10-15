@@ -13,8 +13,36 @@ unit_pid=$!
 ./mvnw -B failsafe:integration-test failsafe:verify "$@" >"$integration_log" 2>&1 &
 integration_pid=$!
 
+# Watchdog: a test run past BACKEND_WATCHDOG_SECONDS gets a thread dump of every forked test JVM (uploaded as an artifact), then fails.
+# It fires before the forks' own limit (test.fork.timeout), which kills a fork without telling where it hung.
+dumps=target/thread-dumps
+watchdog_mark=$(mktemp -u)
+# Only this checkout's forks (every runner on the machine runs the same plugins; booter jars live under each checkout's target/surefire).
+# A fork closing its Spring contexts can ignore TERM for a while, hence the KILL after 20 s.
+forks="$PWD/target/surefire/"
+(
+  sleep "${BACKEND_WATCHDOG_SECONDS:-1500}"
+  mkdir -p "$dumps"
+  for pid in $(pgrep -f "java .*$forks" || true); do
+    jcmd "$pid" Thread.print -l >"$dumps/$pid.txt" 2>&1 || true
+  done
+  touch "$watchdog_mark"
+  kill "$unit_pid" "$integration_pid" 2>/dev/null
+  pkill -f "java .*$forks" 2>/dev/null; sleep 20; pkill -9 -f "java .*$forks" 2>/dev/null || true
+) &
+watchdog_pid=$!
+
 wait "$unit_pid"; unit_status=$?
 wait "$integration_pid"; integration_status=$?
+if [ ! -e "$watchdog_mark" ]; then
+  pkill -P "$watchdog_pid" sleep 2>/dev/null; kill "$watchdog_pid" 2>/dev/null
+fi
+wait "$watchdog_pid" 2>/dev/null
+if [ -e "$watchdog_mark" ]; then
+  rm -f "$watchdog_mark"
+  echo "::error::backend tests exceeded ${BACKEND_WATCHDOG_SECONDS:-1500} s; thread dumps of $(find "$dumps" -name '*.txt' | wc -l | tr -d ' ') test JVMs are in the test-reports artifact (backend/$dumps)"
+  unit_status=124
+fi
 
 echo "::group::surefire (exit $unit_status)"; cat "$unit_log"; echo "::endgroup::"
 echo "::group::failsafe (exit $integration_status)"; cat "$integration_log"; echo "::endgroup::"
