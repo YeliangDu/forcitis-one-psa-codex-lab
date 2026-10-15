@@ -55,8 +55,8 @@ class OperationsProfileSmokeTest {
         try (ConfigurableApplicationContext context = application.run(all)) {
             boolean anyJobBean = java.util.stream.Stream.of("emergencyAdminCheckJob", "credentialPurgeJob", "orgSnapshotSyncJob",
                     "shortNameRefreshJob", "eventPublicationJobs").anyMatch(context::containsBean);
-            boolean anyScheduledTask = context.getBean(ScheduledAnnotationBeanPostProcessor.class).getScheduledTasks().stream()
-                    .anyMatch(task -> task.toString().matches(".*(EmergencyAdminCheckJob|CredentialPurgeJob|OrgSnapshotSyncJob|ShortNameRefreshJob|EventPublicationJobs).*"));
+            boolean anyScheduledTask = context.getBeanProvider(ScheduledAnnotationBeanPostProcessor.class).stream()
+                    .flatMap(processor -> processor.getScheduledTasks().stream()).anyMatch(task -> task.toString().matches(".*(EmergencyAdminCheckJob|CredentialPurgeJob|OrgSnapshotSyncJob|ShortNameRefreshJob|EventPublicationJobs).*"));
             int port = context instanceof org.springframework.boot.web.server.context.WebServerApplicationContext web ? web.getWebServer().getPort() : -2;
             return new Finished(exit.get(), anyJobBean, anyScheduledTask, port);
         }
