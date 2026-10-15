@@ -11,17 +11,17 @@
 | 会话 | 在做 | 下一步 |
 |---|---|---|
 | one-1a-next-2 | 1a 下一批：R-1b（P0–P6）、D1 缺陷批、ADR-0037 实现 | #139 合后开 P1；D1-1 → 只读校验重写（解阻塞 100） |
-| one-ops（长期，不交接） | OIDC 部署通道 8 项（1–6 已建） | 7 ECS 拉取 timer、8 dev 变量；上下文见 [OPS_CONTEXT](phase1a/infra/OPS_CONTEXT.md) |
+| one-ops（长期，不交接） | OIDC 8 项已全部建好、ECS 拉取首轮通过 | 写 8 个仓库级前端构建变量（门户临时 https://bpm.forcitis.com/seeyon/、PROD=DEV）→ 触发 Release 0.1.0-rc.1 → R-11 演练（先报）；上下文见 [OPS_CONTEXT](phase1a/infra/OPS_CONTEXT.md) |
 | one-1a-next-1（已交接） | — | 待归档 |
 
 ## 合并
 - strict 串行队列：scratchpad 的 `mq_run.sh` 读 `merge.queue`，`merge_pr.sh` 同步 main → 等 CI → 合并；`CONFLICT<n>` 若是非生成文件退回作者，生成产物取一边后跑 `build_all.py`。
-- 在队：#136 → #141 → #142 → #143 → #139 → #144 → #129 → #146 → #147 → 本 PR。待用户批准：#145（ADR-0036）。暂缓：#96（ADR-0029，等岗位体系重梳）。
+- 在队（scratchpad/merge.queue，runner mq_run.sh 后台运行；/clear 后用 `pgrep -f mq_run.sh` 核对，不在就重启）：#141 #142 #143 #139 #144 #129 #146 #147 #148 #149 #150。#145（ADR-0036 已采纳）在 #129 合并后改基分支为 main 再入队。暂缓：#96（ADR-0029）。
+- Release 0.1.0-rc.1：两次失败（CI 被取消的提交；缺前端构建变量），已交 one-ops 写变量并触发。
 
 ## 待用户
-- ADR-0036 定稿 + U-1..U-5（#145，第五轮修订中，不再评审）。
 - 规则文档瘦身对照表（#129、#121 合后出）；同轮问 CI 覆盖率门槛是否恢复。
-- 财务确认单 v3 已交用户（FQ-23..27 须 1b 前答复；ADR-0031 两小问口头补问或出 v4）。
+- 财务确认单 v3 已交用户（FQ-23..27 须 1b 前答复）；待补进 v4：ADR-0031 两小问、ADR-0036 U-1 / U-3。
 - 生产前：第二名超管 / 审计员 / 组织数据管理员 / DBA 人选（私有记录 ~/.modernize/psa/infra/role_holders.md，不入仓）；C-11 关单人模式；CODEOWNERS；R-13 后备令牌待首次 OIDC 部署后由用户删除；归档 WORM 首个写入方前锁定。
 
 ## 部署阻塞
@@ -36,7 +36,7 @@
 ## 本机与调度自管
 - CI runner mac-one-1..4（~/actions-runners/one-N）与部署 runner mac-one-deploy（/opt/forcitis-one-runner）；main 分支保护 strict。
 - 私有文件：~/.modernize/psa/ 下 infra/role_holders.md、finance/FINANCE_CONFIRM_v3.html、audit/、codex/、handoff/。
-- 会话内定时任务：上下文巡检每 30 分钟（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
+- 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
 - 第三轮用语确认（提议术语积压超 100 即启动，SESSION_PLAYBOOK §5）；job_grade 定义缺陷随岗位体系重梳。
