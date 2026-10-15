@@ -21,7 +21,9 @@
 | 项 | 值 |
 |---|---|
 | 分支 | `claude/one-architecture-ssot`（基于 main 173987b4） |
-| 在途 | PR-A #203（已入队）；PR-B #204（叠在 #203 上）；ACL 方案草稿 `proposals/ACL_BOUNDARY.md`（已交 one-coordinator 审，未提交）；PR-C 聚合 / 流程 / 数据 / 指标 |
+| 在途 | PR-A #203（入队）；PR-B #204（叠在 #203 上）；ADR-0039 #207（opus 复审中，已采纳：intent 2026-10-15-164527）；分支 `claude/one-architecture-method`（FRAMEWORKS、METHOD、ACL 草稿、决策页源，等用户批准 METHOD 后开 PR，#204 合并后入队） |
+| 排定（one-coordinator） | ①#207 合并后：「人员入职到账号开通」身份生命周期研究 + C1 设计（本会话；生产取证交 sonnet，按 ADR-0037 登记，明细不进会话与仓库；结论做在线页，照 gate/README 性能约束）；须在 C1 与 ADR-0033 第 4 项实施前完成，不阻塞 P2 / P3b ②METHOD 第 5 节 6 项偏差：用户批准 METHOD 后再排 ③ADR-0039 代码子 PR 由 one-coordinator 并入 P3b / P5 |
+| 接着做 | PR-C：草稿在 scratchpad/pr-c（aggregates 15、processes 7、decisions 15、data-objects 30），核对后入 `ddd/aggregates.yaml`、`bpmn/`、`dmn/`、`dama/`，出图③④ |
 | 之后 | PR-C 聚合 / 流程 / 数据 / 指标与图③④；PR-D CI 守护与 §14 条款 |
 | 待用户 | 架构决策页 Q1–Q7（DESIGN §6）＋ ACL 冲突项；等 one-coordinator 通知再发（用语确认单先出） |
 | 用户确认 | 新建私有页手机能打开（「可以看到」，2026-10-15），决策页另建新页 |
