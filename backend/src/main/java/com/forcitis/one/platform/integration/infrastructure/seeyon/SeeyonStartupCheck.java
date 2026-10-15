@@ -5,12 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 
 /**
- * The visible columns of the frozen views must EQUAL the whitelist, and the configured ids must exist (RULE-356, M7). The login itself is
- * checked by the connection factory before any of this runs (ADR-0037 item 4).
+ * The visible columns of the frozen views must EQUAL the whitelist, the base tables read next to them must have at least their registered
+ * columns (ADR-0037 item 8.4), and the configured ids must exist (RULE-356, M7). The login itself is checked by the connection factory before
+ * any of this runs (ADR-0037 item 4).
  */
 final class SeeyonStartupCheck implements SmartInitializingSingleton {
 
@@ -34,6 +36,7 @@ final class SeeyonStartupCheck implements SmartInitializingSingleton {
         List<String> problems = new ArrayList<>(mapping.configurationProblems());
         try {
             problems.addAll(columnProblems(inspector.viewColumns()));
+            problems.addAll(baseTableProblems(inspector.baseTableColumns()));
             if (mapping.configurationProblems().stream().noneMatch(p -> p.contains("root-path"))
                     && inspector.countUnitsAtPath(mapping.rootPath()) == 0) {
                 problems.add("no org unit sits at the configured root path " + mapping.rootPath()
@@ -87,6 +90,24 @@ final class SeeyonStartupCheck implements SmartInitializingSingleton {
         }
         actual.keySet().stream().filter(v -> !expectedViews.contains(v))
                 .forEach(v -> problems.add("object " + SeeyonViewSql.SCHEMA + "." + v + " is visible to the account but is not a whitelisted view"));
+        return problems;
+    }
+
+    /** Base tables are read by name, so they only need the registered columns; any other column is ignored (ADR-0037 item 6.1). */
+    static List<String> baseTableProblems(Map<String, Set<String>> actual) {
+        List<String> problems = new ArrayList<>();
+        new TreeMap<>(SeeyonViewSql.BASE_TABLE_COLUMNS).forEach((table, columns) -> {
+            Set<String> have = actual.get(table);
+            if (have == null) {
+                problems.add("base table " + SeeyonViewSql.BASE_SCHEMA + "." + table + " is missing");
+                return;
+            }
+            Set<String> missing = new TreeSet<>(columns);
+            missing.removeAll(have);
+            if (!missing.isEmpty()) {
+                problems.add("base table " + SeeyonViewSql.BASE_SCHEMA + "." + table + " lacks registered columns: " + missing);
+            }
+        });
         return problems;
     }
 }

@@ -207,7 +207,7 @@ class CredentialColumnGuardTest {
     }
 
     @Test
-    @DisplayName("ADR37-1 凭据列守护：读取列登记的任何一行都不登记凭据列拒绝清单中的列")
+    @DisplayName("ADR37-1 凭据列守护：外部读取登记的任何一行都不登记凭据列拒绝清单中的列")
     void readRegistriesListNoCredentialColumn() throws IOException {
         List<DeniedColumn> denied = deniedColumns();
         List<String> violations = new ArrayList<>();
@@ -251,7 +251,7 @@ class CredentialColumnGuardTest {
                 + " FROM dbo." + first.table() + "\"; String password; }"), denied)).isEmpty();
         assertThat(namedDeniedColumns(stringLiterals("class Probe { String key = \"forcitis.platform.integration.legacy.password\"; }"), denied))
                 .isEmpty();
-        assertThat(namedDeniedColumns("  - { name: " + plainColumn + ", source: " + first.table() + "." + first.column() + ", category: 身份 }", denied))
+        assertThat(namedDeniedColumns("  - { name: " + plainColumn + ", source: " + first.table() + "." + first.column() + ", category: EMPLOYEE }", denied))
                 .contains(first.key());
     }
 

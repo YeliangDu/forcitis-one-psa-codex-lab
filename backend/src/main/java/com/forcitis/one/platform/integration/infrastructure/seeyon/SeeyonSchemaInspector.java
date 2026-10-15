@@ -7,6 +7,8 @@ interface SeeyonSchemaInspector {
 
     Map<String, Set<String>> viewColumns();
 
+    Map<String, Set<String>> baseTableColumns();
+
     int countUnitsAtPath(String path);
 
     int countRelationshipsOfType(long relationshipTypeId);

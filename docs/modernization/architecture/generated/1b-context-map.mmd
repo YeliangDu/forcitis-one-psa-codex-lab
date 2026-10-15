@@ -28,7 +28,7 @@ flowchart LR
     direction TB
     kernel["共享内核<br/><small>kernel</small>"]
   end
-  organization_workforce -->|客户-供应商| cost_timesheet
+  organization_workforce -->|依赖| cost_timesheet
   platform_approval -->|开放主机| cost_timesheet
   platform_identity -->|开放主机| cost_timesheet
   platform_numbering -->|开放主机| cost_timesheet
@@ -36,17 +36,18 @@ flowchart LR
   platform_audit -->|开放主机| organization_workforce
   platform_integration -->|防腐层| organization_workforce
   platform_identity -->|开放主机| platform_approval
-  organization_workforce -->|客户-供应商| platform_approval
+  organization_workforce -->|依赖| platform_approval
   platform_integration -->|防腐层| platform_approval
   platform_audit -->|开放主机| platform_approval
-  organization_attendance -->|客户-供应商| platform_approval
+  organization_attendance -->|依赖| platform_approval
   platform_integration -->|防腐层| platform_audit
   platform_identity -->|开放主机| platform_eventing
-  organization_workforce -->|客户-供应商| platform_identity
+  organization_workforce -->|依赖| platform_identity
   platform_integration -->|防腐层| platform_identity
   platform_audit -->|开放主机| platform_identity
   platform_identity -->|开放主机| platform_numbering
-  organization_workforce -->|客户-供应商| platform_numbering
+  organization_workforce -->|依赖| platform_numbering
   platform_integration -->|防腐层| platform_numbering
+  platform_web -->|依赖| platform_identity
   class cost_timesheet,organization_attendance,organization_workforce,platform_approval,platform_audit,platform_identity,platform_integration,platform_numbering,platform_scheduling,platform_idempotency,platform_eventing,platform_web built
   class kernel kernel

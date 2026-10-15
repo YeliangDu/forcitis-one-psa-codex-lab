@@ -1,0 +1,552 @@
+{
+ "FD~F-01": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "fd-facts",
+  "label": "我直接答",
+  "no": "F-01",
+  "note": "个独是公司支付的账户，用于支付居间费用。",
+  "recommended": false,
+  "submitted": "2026-10-15T20:19:29.748Z"
+ },
+ "FD~F-02": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "fd-facts",
+  "label": "我直接答",
+  "no": "F-02",
+  "note": "不填",
+  "recommended": false,
+  "submitted": "2026-10-15T20:19:29.748Z"
+ },
+ "FD~F-03": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "fd-facts",
+  "label": "我直接答",
+  "no": "F-03",
+  "note": "设计费尾款",
+  "recommended": false,
+  "submitted": "2026-10-15T20:19:29.748Z"
+ },
+ "FD~F-04": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "fd-facts",
+  "label": "我直接答",
+  "no": "F-04",
+  "note": "无",
+  "recommended": false,
+  "submitted": "2026-10-15T20:19:29.748Z"
+ },
+ "FD~F-05": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-facts",
+  "label": "请财务核实",
+  "no": "F-05",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:19:29.748Z"
+ },
+ "FD~F-06": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "fd-facts",
+  "label": "我直接答",
+  "no": "F-06",
+  "note": "就是居间费用的方言",
+  "recommended": false,
+  "submitted": "2026-10-15T20:19:29.748Z"
+ },
+ "FD~F-07": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "fd-facts",
+  "label": "我直接答",
+  "no": "F-07",
+  "note": "要跟客户协商",
+  "recommended": false,
+  "submitted": "2026-10-15T20:19:29.748Z"
+ },
+ "FD~F-08": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "fd-facts",
+  "label": "我直接答",
+  "no": "F-08",
+  "note": "目前在收复账套，数据完整，但是粒度不够。新系统要跟随权责发生制来",
+  "recommended": false,
+  "submitted": "2026-10-15T20:19:29.748Z"
+ },
+ "FD~F-09": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "fd-facts",
+  "label": "我直接答",
+  "no": "F-09",
+  "note": "没有",
+  "recommended": false,
+  "submitted": "2026-10-15T20:19:29.748Z"
+ },
+ "FD~FD-01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1a",
+  "label": "历史期间",
+  "no": "FD-01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:09:50.000Z"
+ },
+ "FD~FD-02": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1b",
+  "label": "统一四舍五入到分，口径集中在 kernel 一处",
+  "no": "FD-02",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:13:52.233Z"
+ },
+ "FD~FD-03": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1b",
+  "label": "最大余数法：差额逐分给小数部分最大的几份",
+  "no": "FD-03",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:13:52.233Z"
+ },
+ "FD~FD-04": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1b",
+  "label": "不含税 = 含税 ÷ (1 + 税率) 取到分，税额 = 含税 − 不含税",
+  "no": "FD-04",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:13:52.233Z"
+ },
+ "FD~FD-05": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1b",
+  "label": "按行计算，单据税额 = 各行税额之和",
+  "no": "FD-05",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:13:52.233Z"
+ },
+ "FD~FD-06": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1b",
+  "label": "零容差，按发票号逐行核对，不一致即告警并以发票为准冲销重做",
+  "no": "FD-06",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:13:52.233Z"
+ },
+ "FD~FD-07": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1b",
+  "label": "合计 = 各行舍入后之和",
+  "no": "FD-07",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:13:52.233Z"
+ },
+ "FD~FD-08": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1b",
+  "label": "计算过程不舍入，只在形成金额时舍入一次；存库比率 10 位、费率 6 位",
+  "no": "FD-08",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:13:52.233Z"
+ },
+ "FD~FD-09": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1b",
+  "label": "人天 × 日薪：当天成本 = 日薪，按工时占比分到项目（人天 = 工时 ÷ max(当日总工时, 7.5)）",
+  "no": "FD-09",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:13:52.233Z"
+ },
+ "FD~FD-10": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-1b",
+  "label": "全公司默认 7.5 小时，作为按法人可配置的参数（首版五家法人同值）",
+  "no": "FD-10",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:13:52.233Z"
+ },
+ "FD~FD-11": {
+  "choice": 0,
+  "defaulted": false,
+  "group": "fd-p4",
+  "label": "6 个月（自立项登记签约前投入起算），期末再按第三十条做减值测试",
+  "no": "FD-11",
+  "note": "这些要可以设置。",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-12": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "默认按「只记税额」（借 应收账款 / 贷 销项税额），收款时再记合同负债",
+  "no": "FD-12",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-13": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "首付款对应阶段经客户确认时转收入（借 合同负债 / 贷 主营业务收入），与权责账簿同一时点",
+  "no": "FD-13",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-14": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "主口径不含税；另设「含税收入」指标供年度目标跟踪；收入与成本配对一律不含税",
+  "no": "FD-14",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-15": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "应收账款只由开票事实产生（一张发票一个应收单），合同资产只由收入确认单产生；红冲用独立的红字记录指向原蓝字记录，不在原记录上加冲红字段",
+  "no": "FD-15",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-16": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "取审核时核定的「费用所属期间」（业务发生日所在月）；所属期间已关账的，账上落当前开放期间并标注原期间，经营分析按所属期间归属",
+  "no": "FD-16",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-17": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "按居间协议约定的触发事实（合同签订或回款）逐笔确认应付；属于取得合同的增量成本且摊销期超过一年的，确认为合同取得成本",
+  "no": "FD-17",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-18": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "错误源自业务单据的，走「冲销原单 + 重做」（ADR-0031）；只有非业务错误（科目映射、导入数据、税费模板）才用受控手工凭证（写理由、附附件、双人复核）",
+  "no": "FD-18",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-19": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "落当前开放期间并标注原期间；控制科目一致性检查排除迁入标记的事实，关账资料附「迁入事实差异说明」（期间、法人、科目、金额、批次）",
+  "no": "FD-19",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-20": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "两层核对：① 全部历史按「期间 × 法人 × 原单号」与 A8 档案核行数与金额，财务签字；② 与 U8C 只核切换当年及上年已确认未开票部分（它决定权责期初的合同资产）",
+  "no": "FD-20",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-21": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "以各行剩余可冲销额为权重拆到行，行内含税、不含税、税额按原分量比例拆，不按税率重算；舍入差按 FD-03；累计冲销不超过原额；混合正负的单据不做部分冲销",
+  "no": "FD-21",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-22": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "零容差，差 1 分也算不平并阻止关账",
+  "no": "FD-22",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-23": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "分别落账：差错更正落原期间（已关账则落开放期间并标原期间，列为「对以前期间的更正」）；业务冲回按冲回业务自身日期所在期间落账，不算对以前期间的更正",
+  "no": "FD-23",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-24": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "所有跨期更正须财务主管审批；单笔影响利润 ≥ 10 万元或涉及已对外报送报表的期间，再加财务负责人审批",
+  "no": "FD-24",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-25": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-p4",
+  "label": "取原分录记录的规则版本生成分录，再取反",
+  "no": "FD-25",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:14:53.932Z"
+ },
+ "FD~FD-26": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "G1 首季度次月第 5 个工作日，连续三个月按时后收紧到第 3 个工作日",
+  "no": "FD-26",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-27": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "不提供重开；已关期间的任何更正都落开放期间并标原期间，年审调整走第 13 期",
+  "no": "FD-27",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-28": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "U8C 用自带的自动转账（TR）自做损益结转，新系统不推送结转凭证；月结按「法人 × 科目」核对结转后余额",
+  "no": "FD-28",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-29": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "审计调整在新系统以受控手工凭证制单（写理由、附审计调整清单），推送 U8C 收付账套上年 12 月（U8C 年结前）；新系统收付账簿落当前开放期间并标原期间（即 A8 的期初调整分录），权责账簿按口径差异同步",
+  "no": "FD-29",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-30": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "A8 薪酬流程的汇总数据经指定导入通道进入新系统（保留原始文件与校验和），由新系统生成两本账分录并推送 U8C 收付账套",
+  "no": "FD-30",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-31": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "银行流水导入只用于与收付款事实自动匹配并出余额调节表；未匹配的利息、手续费按规则生成系统凭证，其余未匹配项进待处理队列（非空不得关账）",
+  "no": "FD-31",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-32": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "不启用；项目与合同维度只在新系统，推送 U8C 的凭证在摘要与自定义项中带项目编码供查询",
+  "no": "FD-32",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-33": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "按账户属性判定：在银行账户主档上标注「受限 / 可随时支用」及受限原因，标注变更按版本生效；保函保证金、银行承兑汇票保证金、农民工工资保证金、司法冻结默认受限",
+  "no": "FD-33",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-34": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "以「正常营业周期」为依据全部列存货，在会计政策中写明设计项目的正常营业周期；减值按 CAS 14 第三十条逐项目测算，账龄只作为减值迹象",
+  "no": "FD-34",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-35": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "收付科目表保留该科目（G2 前与 U8C 编码一一对应），新系统不自动记入，只允许受控手工凭证使用并须写明原因",
+  "no": "FD-35",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-36": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "「已计提」按准则模型测算入账：应收账款与合同资产按 CAS 22 简化方法计提整个存续期预期信用损失（账龄迁徙矩阵 + 单项），合同履约成本按 CAS 14 第三十条；「减值计划」只是预算与预测，不入账，经营分析对比两者",
+  "no": "FD-36",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-37": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "两套分开定义：管理账龄按逾期天数（未逾期、1–45、46–90、91–180、181–365、1 年以上）用于催收；减值账龄按自确认或开票日起的年度段（1 年内、1–2、2–3、3–4、4–5、5 年以上）用于预期信用损失矩阵",
+  "no": "FD-37",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-38": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "自客户确认日起算",
+  "no": "FD-38",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-39": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "DSO = 期末余额 ÷ 近 12 个月对应额 × 365；合同资产对应权责收入（含税）、应收账款对应开票额、应收票据对应开票额，合计口径用三项余额之和对应含税权责收入；余额取账面余额（不扣坏账准备）",
+  "no": "FD-39",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-40": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "工抵在网签备案或产权过户时计入回款，同时账上终止确认应收、按放弃债权公允价值确认资产；只签工抵协议的单列「已签工抵协议未网签」，不计回款；商票签收计入回款并单列，兑付时计现金流入",
+  "no": "FD-40",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-41": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "净收入 = 收入（不含税）− 委外与分包成本（转付成本）；信息服务费计入直接项目费用，在贡献毛利中扣",
+  "no": "FD-41",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-42": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "新签合同额不扣，另设「新签净额」（扣预计委外与分包）",
+  "no": "FD-42",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-43": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "权责账簿",
+  "no": "FD-43",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-44": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "首版沿用现行四档费率，迁成按版本生效的配置（经财务批准），G1 后一年内按动因（人数、工时、收入）复核",
+  "no": "FD-44",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-45": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g1",
+  "label": "G1 期间折旧导入时带「研发项目」「部门 / 区域」维度，按维度生成分录；非项目采购在 6d 迁入时于采购单上标注研发用途；固定资产明细账仍按原顺序自建",
+  "no": "FD-45",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:15:25.540Z"
+ },
+ "FD~FD-46": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "fd-g2",
+  "label": "两本账都设第 13 期，与 12 月同一闸门；只接收年度审计调整类受控手工凭证；随取代 GL-124 的新 ADR 在法定账切换前启用",
+  "no": "FD-46",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:17:32.532Z"
+ }
+}
