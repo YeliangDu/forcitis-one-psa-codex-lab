@@ -55,7 +55,7 @@ class LegalEntityController {
     @PostMapping
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
     ResponseEntity<LegalEntityResponse> create(@RequestBody CreateLegalEntityRequest request) {
-        LegalEntityView view = create.execute(request.code(), request.name(), request.accountingOrganizationNumber());
+        LegalEntityView view = create.execute(request.code(), request.name());
         return ResponseEntity.created(URI.create("/api/v1/organization/legal-entities/" + view.legalEntityId().value()))
                 .eTag(ExpectedVersion.etag(view.version())).body(LegalEntityResponse.of(view));
     }
@@ -64,8 +64,7 @@ class LegalEntityController {
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
     ResponseEntity<LegalEntityResponse> update(@PathVariable UUID legalEntityId, @RequestBody UpdateLegalEntityRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
-        LegalEntityView view = update.execute(new LegalEntityId(legalEntityId), ExpectedVersion.fromHeader(ifMatch), request.code(), request.name(), request.status(),
-                request.accountingOrganizationNumber());
+        LegalEntityView view = update.execute(new LegalEntityId(legalEntityId), ExpectedVersion.fromHeader(ifMatch), request.code(), request.name(), request.status());
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(LegalEntityResponse.of(view));
     }
 }

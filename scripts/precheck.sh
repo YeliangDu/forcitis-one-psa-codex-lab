@@ -43,6 +43,9 @@ show_tail() {
   grep -v '^警告：' "$1" | sed 's/^/      | /' | tail -n "${2:-20}"
 }
 
+# corepack picks pnpm from the nearest package.json at start-up, and only frontend/ names it; `pnpm -C frontend` would start at the root
+in_frontend() { (cd frontend && "$@"); }
+
 run_step() {
   local name=$1; shift
   local log
@@ -93,8 +96,8 @@ elif printf '%s\n' "$relevant_output" | grep -qx 'relevant=true'; then
 fi
 
 records_dir=$(dirname docs/modernization/build_all.py)
-if [ -n "$(gitq status --porcelain -- "$records_dir")" ]; then
-  report SKIP "generated docs (build_all --check)" "$records_dir has uncommitted changes: commit first, then run again (请先提交再运行)"
+if [ -n "$(gitq status --porcelain -- "$records_dir" backend/glossary/proposed)" ]; then
+  report SKIP "generated docs (build_all --check)" "$records_dir or backend/glossary/proposed has uncommitted changes: commit first, then run again (请先提交再运行)"
 else
   run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 fi
@@ -238,7 +241,7 @@ if $builds_relevant; then
   elif ! node --version 2>/dev/null | grep -q '^v24\.'; then
     report SKIP "frontend verify" "Node $(node --version 2>/dev/null) found, CI uses Node 24"
   else
-    run_step "frontend verify (pnpm verify)" pnpm -C frontend verify
+    run_step "frontend verify (pnpm verify)" in_frontend pnpm verify
   fi
 else
   report SKIP "backend tests" "relevant_change.py: nothing the builds read changed"

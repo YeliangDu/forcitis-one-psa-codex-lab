@@ -1,0 +1,207 @@
+# 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
+components:
+  messages:
+    SourceReferenceRegistered:
+      name: SourceReferenceRegistered
+      title: 有人登记了一条来源对照（核算组织编码），等待他人确认
+      payload:
+        type: object
+        properties:
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
+          ownId:
+            type: string
+            format: uuid
+            x-type: OwnObjectId
+            description: 来源对照所指的自有对象的 ID；来源标识只在来源对照表里，不进事件
+      x-event:
+        eventType: platform.integration.SourceReferenceRegistered
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceRegistered
+        aggregate: SourceReference
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：登记只需留痕；现在就发布，是因为录入人与时刻在事后无法还原
+    SourceReferenceConfirmed:
+      name: SourceReferenceConfirmed
+      title: 另一个人确认了登记的来源对照，从生效日起用于出站
+      payload:
+        type: object
+        properties:
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
+          ownId:
+            type: string
+            format: uuid
+            x-type: OwnObjectId
+            description: 来源对照所指的自有对象的 ID；来源标识只在来源对照表里，不进事件
+      x-event:
+        eventType: platform.integration.SourceReferenceConfirmed
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceConfirmed
+        aggregate: SourceReference
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：确认只需留痕；现在就发布，是因为确认人与时刻在事后无法还原
+    SourceReferenceRejected:
+      name: SourceReferenceRejected
+      title: 另一个人拒绝了登记的来源对照，已生效的对照不变
+      payload:
+        type: object
+        properties:
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
+          ownId:
+            type: string
+            format: uuid
+            x-type: OwnObjectId
+            description: 来源对照所指的自有对象的 ID；来源标识只在来源对照表里，不进事件
+      x-event:
+        eventType: platform.integration.SourceReferenceRejected
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceRejected
+        aggregate: SourceReference
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：拒绝只需留痕；现在就发布，是因为拒绝人与时刻在事后无法还原
+    SourceReferenceSuperseded:
+      name: SourceReferenceSuperseded
+      title: 生效中的来源对照在后继对照的生效日结束
+      payload:
+        type: object
+        properties:
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
+          ownId:
+            type: string
+            format: uuid
+            x-type: OwnObjectId
+            description: 来源对照所指的自有对象的 ID；来源标识只在来源对照表里，不进事件
+          effectiveTo:
+            type: string
+            format: date
+            description: 失效日（不含），即后继对照的生效日
+      x-event:
+        eventType: platform.integration.SourceReferenceSuperseded
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceSuperseded
+        aggregate: SourceReference
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 失效日（effectiveTo）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：对照的起止只需留痕；现在就发布，是因为对照何时换掉在事后无法还原
+    SourceReferenceRegistrationRefused:
+      name: SourceReferenceRegistrationRefused
+      title: 有人试图人工登记只能由同步或导入写入的来源对照，已被拒绝
+      payload:
+        type: object
+        properties:
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
+      x-event:
+        eventType: platform.integration.SourceReferenceRegistrationRefused
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceRegistrationRefused
+        aggregate: SourceReferenceRefusal
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：在独立事务内交给 Spring Modulith 事件发布登记表（被拒绝的请求回滚，本记录不回滚），提交后投递；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（被拒绝的尝试）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：被拒绝的尝试只需留痕；现在就发布，是因为企图改写同步写入的对照是安全信号，事后补不回

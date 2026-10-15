@@ -161,6 +161,31 @@ channels:
     messages:
       AuthorizationRejected:
         $ref: '#/components/messages/AuthorizationRejected'
+  sourceReferenceRegistered:
+    address: platform.integration.SourceReferenceRegistered
+    messages:
+      SourceReferenceRegistered:
+        $ref: '#/components/messages/SourceReferenceRegistered'
+  sourceReferenceConfirmed:
+    address: platform.integration.SourceReferenceConfirmed
+    messages:
+      SourceReferenceConfirmed:
+        $ref: '#/components/messages/SourceReferenceConfirmed'
+  sourceReferenceRejected:
+    address: platform.integration.SourceReferenceRejected
+    messages:
+      SourceReferenceRejected:
+        $ref: '#/components/messages/SourceReferenceRejected'
+  sourceReferenceSuperseded:
+    address: platform.integration.SourceReferenceSuperseded
+    messages:
+      SourceReferenceSuperseded:
+        $ref: '#/components/messages/SourceReferenceSuperseded'
+  sourceReferenceRegistrationRefused:
+    address: platform.integration.SourceReferenceRegistrationRefused
+    messages:
+      SourceReferenceRegistrationRefused:
+        $ref: '#/components/messages/SourceReferenceRegistrationRefused'
   numberingRuleConfirmed:
     address: platform.numbering.NumberingRuleConfirmed
     messages:
@@ -276,11 +301,6 @@ channels:
     messages:
       LegalEntityAttributionCorrected:
         $ref: '#/components/messages/LegalEntityAttributionCorrected'
-  legalEntityAccountingNumberAssigned:
-    address: organization.workforce.LegalEntityAccountingNumberAssigned
-    messages:
-      LegalEntityAccountingNumberAssigned:
-        $ref: '#/components/messages/LegalEntityAccountingNumberAssigned'
 operations:
   publishApprovalCompleted:
     action: send
@@ -793,6 +813,76 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/authorizationRejected/messages/AuthorizationRejected'
+  publishSourceReferenceRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/sourceReferenceRegistered'
+    summary: platform.integration 发布
+    messages:
+    - $ref: '#/channels/sourceReferenceRegistered/messages/SourceReferenceRegistered'
+  handleSourceReferenceRegisteredInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/sourceReferenceRegistered'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/sourceReferenceRegistered/messages/SourceReferenceRegistered'
+  publishSourceReferenceConfirmed:
+    action: send
+    channel:
+      $ref: '#/channels/sourceReferenceConfirmed'
+    summary: platform.integration 发布
+    messages:
+    - $ref: '#/channels/sourceReferenceConfirmed/messages/SourceReferenceConfirmed'
+  handleSourceReferenceConfirmedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/sourceReferenceConfirmed'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/sourceReferenceConfirmed/messages/SourceReferenceConfirmed'
+  publishSourceReferenceRejected:
+    action: send
+    channel:
+      $ref: '#/channels/sourceReferenceRejected'
+    summary: platform.integration 发布
+    messages:
+    - $ref: '#/channels/sourceReferenceRejected/messages/SourceReferenceRejected'
+  handleSourceReferenceRejectedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/sourceReferenceRejected'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/sourceReferenceRejected/messages/SourceReferenceRejected'
+  publishSourceReferenceSuperseded:
+    action: send
+    channel:
+      $ref: '#/channels/sourceReferenceSuperseded'
+    summary: platform.integration 发布
+    messages:
+    - $ref: '#/channels/sourceReferenceSuperseded/messages/SourceReferenceSuperseded'
+  handleSourceReferenceSupersededInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/sourceReferenceSuperseded'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/sourceReferenceSuperseded/messages/SourceReferenceSuperseded'
+  publishSourceReferenceRegistrationRefused:
+    action: send
+    channel:
+      $ref: '#/channels/sourceReferenceRegistrationRefused'
+    summary: platform.integration 发布
+    messages:
+    - $ref: '#/channels/sourceReferenceRegistrationRefused/messages/SourceReferenceRegistrationRefused'
+  handleSourceReferenceRegistrationRefusedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/sourceReferenceRegistrationRefused'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/sourceReferenceRegistrationRefused/messages/SourceReferenceRegistrationRefused'
   publishNumberingRuleConfirmed:
     action: send
     channel:
@@ -1122,20 +1212,6 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/legalEntityAttributionCorrected/messages/LegalEntityAttributionCorrected'
-  publishLegalEntityAccountingNumberAssigned:
-    action: send
-    channel:
-      $ref: '#/channels/legalEntityAccountingNumberAssigned'
-    summary: organization.workforce 发布
-    messages:
-    - $ref: '#/channels/legalEntityAccountingNumberAssigned/messages/LegalEntityAccountingNumberAssigned'
-  handleLegalEntityAccountingNumberAssignedInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/legalEntityAccountingNumberAssigned'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/legalEntityAccountingNumberAssigned/messages/LegalEntityAccountingNumberAssigned'
 components:
   schemas:
     EventEnvelope:
@@ -2870,6 +2946,245 @@ components:
             type: string
             x-type: UserId
             description: 稳定 ID 的字符串形式
+    SourceReferenceRegistered:
+      name: SourceReferenceRegistered
+      title: 有人登记了一条来源对照（核算组织编码），等待他人确认
+      x-event:
+        eventType: platform.integration.SourceReferenceRegistered
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceRegistered
+        aggregate: SourceReference
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：登记只需留痕；现在就发布，是因为录入人与时刻在事后无法还原
+      payload:
+        type: object
+        required:
+        - envelope
+        - sourceSystem
+        - sourceObjectKind
+        - ownId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
+          ownId:
+            type: string
+            format: uuid
+            x-type: OwnObjectId
+            description: 来源对照所指的自有对象的 ID；来源标识只在来源对照表里，不进事件
+    SourceReferenceConfirmed:
+      name: SourceReferenceConfirmed
+      title: 另一个人确认了登记的来源对照，从生效日起用于出站
+      x-event:
+        eventType: platform.integration.SourceReferenceConfirmed
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceConfirmed
+        aggregate: SourceReference
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：确认只需留痕；现在就发布，是因为确认人与时刻在事后无法还原
+      payload:
+        type: object
+        required:
+        - envelope
+        - sourceSystem
+        - sourceObjectKind
+        - ownId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
+          ownId:
+            type: string
+            format: uuid
+            x-type: OwnObjectId
+            description: 来源对照所指的自有对象的 ID；来源标识只在来源对照表里，不进事件
+    SourceReferenceRejected:
+      name: SourceReferenceRejected
+      title: 另一个人拒绝了登记的来源对照，已生效的对照不变
+      x-event:
+        eventType: platform.integration.SourceReferenceRejected
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceRejected
+        aggregate: SourceReference
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：拒绝只需留痕；现在就发布，是因为拒绝人与时刻在事后无法还原
+      payload:
+        type: object
+        required:
+        - envelope
+        - sourceSystem
+        - sourceObjectKind
+        - ownId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
+          ownId:
+            type: string
+            format: uuid
+            x-type: OwnObjectId
+            description: 来源对照所指的自有对象的 ID；来源标识只在来源对照表里，不进事件
+    SourceReferenceSuperseded:
+      name: SourceReferenceSuperseded
+      title: 生效中的来源对照在后继对照的生效日结束
+      x-event:
+        eventType: platform.integration.SourceReferenceSuperseded
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceSuperseded
+        aggregate: SourceReference
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 失效日（effectiveTo）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：对照的起止只需留痕；现在就发布，是因为对照何时换掉在事后无法还原
+      payload:
+        type: object
+        required:
+        - envelope
+        - sourceSystem
+        - sourceObjectKind
+        - ownId
+        - effectiveTo
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
+          ownId:
+            type: string
+            format: uuid
+            x-type: OwnObjectId
+            description: 来源对照所指的自有对象的 ID；来源标识只在来源对照表里，不进事件
+          effectiveTo:
+            type: string
+            format: date
+            description: 失效日（不含），即后继对照的生效日
+    SourceReferenceRegistrationRefused:
+      name: SourceReferenceRegistrationRefused
+      title: 有人试图人工登记只能由同步或导入写入的来源对照，已被拒绝
+      x-event:
+        eventType: platform.integration.SourceReferenceRegistrationRefused
+        version: 1
+        class: com.forcitis.one.platform.integration.events.SourceReferenceRegistrationRefused
+        aggregate: SourceReferenceRefusal
+        idempotencyKey: eventId
+        publisher: platform.integration
+        consumers:
+        - platform.audit
+        delivery: 至少一次：在独立事务内交给 Spring Modulith 事件发布登记表（被拒绝的请求回滚，本记录不回滚），提交后投递；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（被拒绝的尝试）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
+        noConsumer: 暂无消费方：被拒绝的尝试只需留痕；现在就发布，是因为企图改写同步写入的对照是安全信号，事后补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - sourceSystem
+        - sourceObjectKind
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          sourceSystem:
+            type: string
+            enum:
+            - ORG_SOURCE
+            - LEGACY_SYSTEM
+            - ACCOUNTING_SYSTEM
+            x-type: ExternalSource
+          sourceObjectKind:
+            type: string
+            enum:
+            - EMPLOYEE
+            - ORG_UNIT
+            - POSITION
+            - LEGAL_ENTITY
+            x-type: SourceObjectKind
     NumberingRuleConfirmed:
       name: NumberingRuleConfirmed
       title: 编号规则的模板版本确认齐全，开始发号
@@ -3931,38 +4246,3 @@ components:
             type: string
             x-type: Reason
             description: 操作人填写的更正原因
-    LegalEntityAccountingNumberAssigned:
-      name: LegalEntityAccountingNumberAssigned
-      title: 法人取得或更换了核算组织编码
-      x-event:
-        eventType: organization.workforce.LegalEntityAccountingNumberAssigned
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.LegalEntityAccountingNumberAssigned
-        aggregate: LegalEntity
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
-        noConsumer: 暂无消费方：核算对接将按数字编码识别法人；现在就发布，是因为编码变更只在发生当时可被记录，补不回
-      payload:
-        type: object
-        required:
-        - envelope
-        - legalEntityId
-        - accountingOrganizationNumber
-        properties:
-          envelope:
-            $ref: '#/components/schemas/EventEnvelope'
-          legalEntityId:
-            type: string
-            format: uuid
-            x-type: LegalEntityId
-            description: 稳定 ID 的字符串形式
-          accountingOrganizationNumber:
-            type: integer
-            x-type: AccountingOrganizationNumber

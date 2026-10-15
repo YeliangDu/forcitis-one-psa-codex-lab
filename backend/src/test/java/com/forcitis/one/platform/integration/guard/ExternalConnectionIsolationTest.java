@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.integration.guard;
 
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.equivalentTo;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,11 +21,12 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Only integration.infrastructure.seeyon connects to Seeyon; the old database is read only by approval's and integration's legacy adapters; nothing else builds a pool, driver or HTTP client. */
+/** Only integration.infrastructure.seeyon connects to Seeyon; the old database is read only by approval's and integration's legacy adapters; only the connection factory builds pools or drivers, nothing else an HTTP client. */
 class ExternalConnectionIsolationTest {
 
     static final String ROOT = "com.forcitis.one";
     static final String SEEYON = ROOT + ".platform.integration.infrastructure.seeyon..";
+    static final String CONNECTION = ROOT + ".platform.integration.infrastructure.connection..";
     static final String WECOM = ROOT + ".platform.integration.infrastructure.wecom..";
     static final String INTEGRATION_LEGACY = ROOT + ".platform.integration.infrastructure.legacy..";
     static final String APPROVAL_LEGACY = ROOT + ".platform.approval.infrastructure.legacy..";
@@ -33,12 +36,21 @@ class ExternalConnectionIsolationTest {
             .importPackages(ROOT);
 
     @Test
-    @DisplayName("§9a only three read-only adapters may build external connections: integration.seeyon (Seeyon), integration.legacy (old short-name view), approval.legacy (old to-do view)")
-    void onlyTheApprovedAdaptersBuildExternalConnections() {
-        noClasses().that().resideOutsideOfPackages(SEEYON, INTEGRATION_LEGACY, APPROVAL_LEGACY)
-                .should().dependOnClassesThat().resideInAnyPackage("com.zaxxer.hikari..", "com.microsoft.sqlserver..")
-                .because("the Seeyon database is reached only through platform.integration.infrastructure.seeyon (§3.3); the old system only "
-                        + "through the short-name view (integration.legacy) and the to-do view (approval.legacy, §3.6)")
+    @DisplayName("§9a only the connection factory of integration builds pools and touches the JDBC driver; the three read-only adapters (Seeyon, old short-name view, old to-do view) get theirs from it")
+    void onlyTheConnectionFactoryBuildsExternalConnections() {
+        noClasses().that().resideOutsideOfPackage(CONNECTION)
+                .should().dependOnClassesThat(resideInAnyPackage("com.zaxxer.hikari..", "org.springframework.jdbc.datasource..", "org.postgresql..", "com.microsoft.sqlserver..")
+                        .or(equivalentTo(java.sql.Driver.class)).or(equivalentTo(java.sql.DriverManager.class)))
+                .because("every external connection carries the query, socket and lock-wait timeouts only if it is built by platform.integration.infrastructure.connection")
+                .check(CLASSES);
+    }
+
+    @Test
+    @DisplayName("D1-1-R1 onlyTheApprovedAdaptersObtainExternalConnections: only the Seeyon, old-system and old to-do adapter packages (and the factory itself) use platform.integration.api.ExternalConnections")
+    void onlyTheApprovedAdaptersObtainExternalConnections() {
+        noClasses().that().resideOutsideOfPackages(SEEYON, INTEGRATION_LEGACY, APPROVAL_LEGACY, CONNECTION)
+                .should().dependOnClassesThat().haveFullyQualifiedName(ROOT + ".platform.integration.api.ExternalConnections")
+                .because("ADR-0037 item 2: no new exception to who may connect to the A8 or the old database; the shared api type must not widen the three adapters")
                 .check(CLASSES);
     }
 
@@ -101,14 +113,14 @@ class ExternalConnectionIsolationTest {
     @Test
     @DisplayName("the external connections are not DataSource beans: a second DataSource would switch off the application's own PostgreSQL DataSource")
     void connectionsAreNotDataSourceBeans() {
-        Optional<JavaClass> connection = CLASSES.stream().filter(c -> c.getSimpleName().equals("ReadOnlyConnection")).findFirst();
+        Optional<JavaClass> connection = CLASSES.stream().filter(c -> c.getSimpleName().equals("ExternalConnectionFactory")).findFirst();
 
         assertThat(connection).isPresent();
         assertThat(connection.get().isAssignableTo(DataSource.class)).isFalse();
-        noClasses().that().resideInAnyPackage(SEEYON, INTEGRATION_LEGACY)
+        noClasses().that().resideInAnyPackage(SEEYON, INTEGRATION_LEGACY, CONNECTION)
                 .should().beAssignableTo(DataSource.class)
                 .check(CLASSES);
-        classes().that().resideInAnyPackage(SEEYON, INTEGRATION_LEGACY).and().haveSimpleNameEndingWith("Configuration")
+        classes().that().resideInAnyPackage(SEEYON, INTEGRATION_LEGACY, CONNECTION).and().haveSimpleNameEndingWith("Configuration")
                 .should(new ArchCondition<JavaClass>("declare no @Bean method returning a DataSource") {
                     @Override
                     public void check(JavaClass c, ConditionEvents events) {

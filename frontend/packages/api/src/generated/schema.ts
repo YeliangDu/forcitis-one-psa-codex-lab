@@ -55,7 +55,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         post: operations["create_1"];
         delete?: never;
@@ -135,7 +135,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -167,7 +167,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -263,7 +263,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -279,7 +279,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -295,7 +295,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -423,7 +423,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -473,7 +473,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["confirm_1"];
+        post: operations["confirm_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -489,7 +489,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reject"];
+        post: operations["reject_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -503,7 +503,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -551,7 +551,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -585,7 +585,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["confirm"];
+        post: operations["confirm_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -615,7 +615,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -631,7 +631,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         post: operations["create"];
         delete?: never;
@@ -800,6 +800,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/source-references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/source-references/{sourceReferenceId}:confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/source-references/{sourceReferenceId}:reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/user-accounts/{userId}": {
         parameters: {
             query?: never;
@@ -957,8 +1005,6 @@ export interface components {
             reason?: string;
         };
         CreateLegalEntityRequest: {
-            /** Format: int64 */
-            accountingOrganizationNumber?: number;
             code?: string;
             name?: string;
         };
@@ -1002,6 +1048,10 @@ export interface components {
             items: components["schemas"]["RoleResponse"][];
             nextCursor?: string;
         };
+        CursorPageSourceReferenceResponse: {
+            items: components["schemas"]["SourceReferenceResponse"][];
+            nextCursor?: string;
+        };
         CursorPageSyncRunResponse: {
             items: components["schemas"]["SyncRunResponse"][];
             nextCursor?: string;
@@ -1030,7 +1080,9 @@ export interface components {
             effectiveTo?: string;
         };
         /** @enum {string} */
-        ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE" | "COST_TIMESHEET_CUTOFF_PASSED" | "COST_TIMESHEET_EMPLOYEE_UNKNOWN" | "COST_TIMESHEET_NOT_FOUND" | "COST_TIMESHEET_NOT_OWNER" | "COST_TIMESHEET_PROJECT_MANAGER_INVALID" | "COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN" | "COST_TIMESHEET_REASON_REQUIRED" | "COST_TIMESHEET_RESULT_PENDING" | "COST_TIMESHEET_TRANSITION_ILLEGAL" | "COST_TIMESHEET_WORK_DATE_FIXED" | "COST_TIMESHEET_WORK_DATE_IN_FUTURE" | "COST_TIMESHEET_WORK_DATE_REQUIRED" | "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE" | "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN" | "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR" | "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED" | "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY" | "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED" | "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE" | "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_INVALID" | "ORGANIZATION_WORKFORCE_ACCOUNTING_NUMBER_TAKEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND" | "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE" | "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL" | "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND" | "ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN" | "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED" | "ORGANIZATION_WORKFORCE_SEPARATION_HOLD_FORBIDDEN" | "ORGANIZATION_WORKFORCE_SEPARATION_HOLD_REFUSED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND" | "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL" | "PLATFORM_APPROVAL_ALREADY_APPROVED" | "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID" | "PLATFORM_APPROVAL_CONCURRENT_CHANGE" | "PLATFORM_APPROVAL_CUTOFF_PASSED" | "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE" | "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK" | "PLATFORM_APPROVAL_DECISION_EMPTY" | "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY" | "PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING" | "PLATFORM_APPROVAL_HOOK_BLOCKED" | "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED" | "PLATFORM_APPROVAL_NODE_CONFIG_INVALID" | "PLATFORM_APPROVAL_NOT_ADMINISTRATOR" | "PLATFORM_APPROVAL_NOT_INITIATOR" | "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND" | "PLATFORM_APPROVAL_NO_ROUTE" | "PLATFORM_APPROVAL_PAGE_INVALID" | "PLATFORM_APPROVAL_REASON_REQUIRED" | "PLATFORM_APPROVAL_REQUEST_NOT_FOUND" | "PLATFORM_APPROVAL_ROUND_MISMATCH" | "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN" | "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED" | "PLATFORM_APPROVAL_TASK_NOT_FOUND" | "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID" | "PLATFORM_APPROVAL_TRANSITION_ILLEGAL" | "PLATFORM_AUDIT_EXPORT_TOO_LARGE" | "PLATFORM_AUDIT_QUERY_INVALID" | "PLATFORM_IDENTITY_ACCESS_SCOPE_UNAVAILABLE" | "PLATFORM_IDENTITY_ACCOUNT_DISABLED" | "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND" | "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_ADMINISTRATOR_MODE_DENIED" | "PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED" | "PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_FOUND" | "PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING" | "PLATFORM_IDENTITY_CONCURRENT_UPDATE" | "PLATFORM_IDENTITY_CREDENTIALS_INVALID" | "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING" | "PLATFORM_IDENTITY_EMERGENCY_ADMIN_DUPLICATE" | "PLATFORM_IDENTITY_EMERGENCY_ADMIN_NOT_FOUND" | "PLATFORM_IDENTITY_EMERGENCY_ADMIN_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID" | "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED" | "PLATFORM_IDENTITY_FORCED_LOGOUT_REASON_REQUIRED" | "PLATFORM_IDENTITY_FORCED_LOGOUT_SELF_FORBIDDEN" | "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN" | "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED" | "PLATFORM_IDENTITY_NETWORK_DENIED" | "PLATFORM_IDENTITY_NOT_SIGNED_IN" | "PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED" | "PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN" | "PLATFORM_IDENTITY_OWN_ROLE_DEFINITION_FORBIDDEN" | "PLATFORM_IDENTITY_PERMISSION_ADMINISTRATOR_MODE_ONLY" | "PLATFORM_IDENTITY_PERMISSION_UNKNOWN" | "PLATFORM_IDENTITY_ROLE_BLANK_NAME" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME" | "PLATFORM_IDENTITY_ROLE_INVALID_CODE" | "PLATFORM_IDENTITY_ROLE_IN_USE" | "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED" | "PLATFORM_IDENTITY_ROLE_NOT_FOUND" | "PLATFORM_IDENTITY_ROLE_RESERVED_CODE" | "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN" | "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_SSO_UNAVAILABLE" | "PLATFORM_IDENTITY_STATE_INVALID" | "PLATFORM_IDENTITY_TICKET_INVALID" | "PLATFORM_IDENTITY_TICKET_REPLAYED" | "PLATFORM_IDENTITY_WECOM_CODE_INVALID" | "PLATFORM_IDENTITY_WECOM_NOT_BOUND" | "PLATFORM_INTEGRATION_CONCURRENT_UPDATE" | "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_CONCURRENT_UPDATE" | "PLATFORM_NUMBERING_CONFIRMATION_REPEATED" | "PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR" | "PLATFORM_NUMBERING_EFFECTIVE_DATE_PASSED" | "PLATFORM_NUMBERING_FINANCE_CONFIRMATION_NOT_REQUIRED" | "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND" | "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN" | "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID" | "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE" | "PLATFORM_NUMBERING_NOTHING_TO_CONFIRM" | "PLATFORM_NUMBERING_RULE_INVALID" | "PLATFORM_NUMBERING_RULE_NOT_CONFIRMED" | "PLATFORM_NUMBERING_RULE_NOT_FOUND" | "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_VERSION_MISMATCH" | "PLATFORM_WEB_ACCESS_DENIED" | "PLATFORM_WEB_CORRELATION_INVALID" | "PLATFORM_WEB_CURSOR_INVALID" | "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS" | "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED" | "PLATFORM_WEB_REQUEST_INVALID" | "PLATFORM_WEB_SOURCE_BROKEN" | "PLATFORM_WEB_SOURCE_UNAVAILABLE" | "PLATFORM_WEB_UNAUTHENTICATED" | "PLATFORM_WEB_UNEXPECTED" | "PLATFORM_WEB_VERSION_MALFORMED" | "PLATFORM_WEB_VERSION_MISMATCH" | "PLATFORM_WEB_VERSION_REQUIRED";
+        ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE" | "COST_TIMESHEET_CUTOFF_PASSED" | "COST_TIMESHEET_EMPLOYEE_UNKNOWN" | "COST_TIMESHEET_NOT_FOUND" | "COST_TIMESHEET_NOT_OWNER" | "COST_TIMESHEET_PROJECT_MANAGER_INVALID" | "COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN" | "COST_TIMESHEET_REASON_REQUIRED" | "COST_TIMESHEET_RESULT_PENDING" | "COST_TIMESHEET_TRANSITION_ILLEGAL" | "COST_TIMESHEET_WORK_DATE_FIXED" | "COST_TIMESHEET_WORK_DATE_IN_FUTURE" | "COST_TIMESHEET_WORK_DATE_REQUIRED" | "ORGANIZATION_ATTENDANCE_DAY_DUPLICATE" | "ORGANIZATION_ATTENDANCE_DAY_KIND_UNKNOWN" | "ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR" | "ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED" | "ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY" | "ORGANIZATION_ATTENDANCE_YEAR_CONFLICT" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_FOUND" | "ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED" | "ORGANIZATION_ATTENDANCE_YEAR_OUT_OF_RANGE" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_OVERLAP" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_FOUND" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_NOT_OPEN" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_CLOSED" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND" | "ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND" | "ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE" | "ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NAME_INVALID" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN" | "ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL" | "ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND" | "ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN" | "ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED" | "ORGANIZATION_WORKFORCE_SEPARATION_HOLD_FORBIDDEN" | "ORGANIZATION_WORKFORCE_SEPARATION_HOLD_REFUSED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED" | "ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND" | "ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL" | "PLATFORM_APPROVAL_ALREADY_APPROVED" | "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID" | "PLATFORM_APPROVAL_CONCURRENT_CHANGE" | "PLATFORM_APPROVAL_CUTOFF_PASSED" | "PLATFORM_APPROVAL_DECISION_CROSS_INSTANCE" | "PLATFORM_APPROVAL_DECISION_DUPLICATE_TASK" | "PLATFORM_APPROVAL_DECISION_EMPTY" | "PLATFORM_APPROVAL_DECISION_SINGLE_ONLY" | "PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING" | "PLATFORM_APPROVAL_HOOK_BLOCKED" | "PLATFORM_APPROVAL_HOOK_NOT_REGISTERED" | "PLATFORM_APPROVAL_NODE_CONFIG_INVALID" | "PLATFORM_APPROVAL_NOT_ADMINISTRATOR" | "PLATFORM_APPROVAL_NOT_INITIATOR" | "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND" | "PLATFORM_APPROVAL_NO_ROUTE" | "PLATFORM_APPROVAL_PAGE_INVALID" | "PLATFORM_APPROVAL_REASON_REQUIRED" | "PLATFORM_APPROVAL_REQUEST_NOT_FOUND" | "PLATFORM_APPROVAL_ROUND_MISMATCH" | "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN" | "PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED" | "PLATFORM_APPROVAL_TASK_NOT_FOUND" | "PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID" | "PLATFORM_APPROVAL_TRANSITION_ILLEGAL" | "PLATFORM_AUDIT_EXPORT_TOO_LARGE" | "PLATFORM_AUDIT_QUERY_INVALID" | "PLATFORM_IDENTITY_ACCESS_SCOPE_UNAVAILABLE" | "PLATFORM_IDENTITY_ACCOUNT_DISABLED" | "PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND" | "PLATFORM_IDENTITY_ACCOUNT_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_ADMINISTRATOR_MODE_DENIED" | "PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED" | "PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_FOUND" | "PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING" | "PLATFORM_IDENTITY_CONCURRENT_UPDATE" | "PLATFORM_IDENTITY_CREDENTIALS_INVALID" | "PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING" | "PLATFORM_IDENTITY_EMERGENCY_ADMIN_DUPLICATE" | "PLATFORM_IDENTITY_EMERGENCY_ADMIN_NOT_FOUND" | "PLATFORM_IDENTITY_EMERGENCY_ADMIN_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID" | "PLATFORM_IDENTITY_EMPLOYEE_SEPARATED" | "PLATFORM_IDENTITY_FORCED_LOGOUT_REASON_REQUIRED" | "PLATFORM_IDENTITY_FORCED_LOGOUT_SELF_FORBIDDEN" | "PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN" | "PLATFORM_IDENTITY_LOGIN_RATE_LIMITED" | "PLATFORM_IDENTITY_NETWORK_DENIED" | "PLATFORM_IDENTITY_NOT_SIGNED_IN" | "PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED" | "PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN" | "PLATFORM_IDENTITY_OWN_ROLE_DEFINITION_FORBIDDEN" | "PLATFORM_IDENTITY_PERMISSION_ADMINISTRATOR_MODE_ONLY" | "PLATFORM_IDENTITY_PERMISSION_UNKNOWN" | "PLATFORM_IDENTITY_ROLE_BLANK_NAME" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_CODE" | "PLATFORM_IDENTITY_ROLE_DUPLICATE_NAME" | "PLATFORM_IDENTITY_ROLE_INVALID_CODE" | "PLATFORM_IDENTITY_ROLE_IN_USE" | "PLATFORM_IDENTITY_ROLE_NOT_ALLOWED" | "PLATFORM_IDENTITY_ROLE_NOT_FOUND" | "PLATFORM_IDENTITY_ROLE_RESERVED_CODE" | "PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN" | "PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL" | "PLATFORM_IDENTITY_SSO_UNAVAILABLE" | "PLATFORM_IDENTITY_STATE_INVALID" | "PLATFORM_IDENTITY_TICKET_INVALID" | "PLATFORM_IDENTITY_TICKET_REPLAYED" | "PLATFORM_IDENTITY_WECOM_CODE_INVALID" | "PLATFORM_IDENTITY_WECOM_NOT_BOUND" | "PLATFORM_INTEGRATION_CONCURRENT_UPDATE" | "PLATFORM_INTEGRATION_CONFIRMER_IS_AUTHOR" | "PLATFORM_INTEGRATION_DELIVERY_TRANSITION_ILLEGAL" | "PLATFORM_INTEGRATION_SOURCE_OBJECT_KIND_NOT_ALLOWED" | "PLATFORM_INTEGRATION_SOURCE_REFERENCE_ALREADY_DECIDED" | "PLATFORM_INTEGRATION_SOURCE_REFERENCE_CONFLICT" | "PLATFORM_INTEGRATION_SOURCE_REFERENCE_INVALID" | "PLATFORM_INTEGRATION_SOURCE_REFERENCE_NOT_FOUND" | "PLATFORM_NUMBERING_CONCURRENT_UPDATE" | "PLATFORM_NUMBERING_CONFIRMATION_REPEATED" | "PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR" | "PLATFORM_NUMBERING_EFFECTIVE_DATE_PASSED" | "PLATFORM_NUMBERING_FINANCE_CONFIRMATION_NOT_REQUIRED" | "PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND" | "PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN" | "PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID" | "PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE" | "PLATFORM_NUMBERING_NOTHING_TO_CONFIRM" | "PLATFORM_NUMBERING_RULE_INVALID" | "PLATFORM_NUMBERING_RULE_NOT_CONFIRMED" | "PLATFORM_NUMBERING_RULE_NOT_FOUND" | "PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL" | "PLATFORM_NUMBERING_VERSION_MISMATCH" | "PLATFORM_WEB_ACCESS_DENIED" | "PLATFORM_WEB_CORRELATION_INVALID" | "PLATFORM_WEB_CURSOR_INVALID" | "PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS" | "PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED" | "PLATFORM_WEB_REQUEST_INVALID" | "PLATFORM_WEB_SOURCE_BROKEN" | "PLATFORM_WEB_SOURCE_UNAVAILABLE" | "PLATFORM_WEB_UNAUTHENTICATED" | "PLATFORM_WEB_UNEXPECTED" | "PLATFORM_WEB_VERSION_MALFORMED" | "PLATFORM_WEB_VERSION_MISMATCH" | "PLATFORM_WEB_VERSION_REQUIRED";
+        /** @enum {string} */
+        ExternalSource: "ORG_SOURCE" | "LEGACY_SYSTEM" | "ACCOUNTING_SYSTEM";
         ForcedLogoutRequest: {
             reason?: string;
         };
@@ -1108,10 +1160,12 @@ export interface components {
             /** Format: uuid */
             documentId: string;
             documentType: components["schemas"]["DocumentType"] | (string & {});
-            importBatch: string;
             legacyNumber: string;
             /** Format: uuid */
             legalEntityId?: string;
+            /** Format: uuid */
+            migrationBatchId: string;
+            sourceSystem: components["schemas"]["ExternalSource"] | (string & {});
         };
         LegalEntityAttributionResponse: {
             kind: string;
@@ -1119,8 +1173,6 @@ export interface components {
             subjectId: string;
         };
         LegalEntityResponse: {
-            /** Format: int64 */
-            accountingOrganizationNumber?: number;
             code: string;
             /** Format: uuid */
             legalEntityId: string;
@@ -1269,6 +1321,15 @@ export interface components {
             assigneeId?: number;
             reason?: string;
         };
+        RegisterSourceReferenceRequest: {
+            /** Format: date */
+            effectiveFrom?: string;
+            /** Format: uuid */
+            ownId?: string;
+            sourceId?: string;
+            sourceObjectKind?: components["schemas"]["SourceObjectKind"] | (string & {});
+            sourceSystem?: components["schemas"]["ExternalSource"] | (string & {});
+        };
         ReleaseRequest: {
             reason?: string;
         };
@@ -1302,6 +1363,24 @@ export interface components {
             permissionCodes: string[];
             /** Format: uuid */
             roleId: string;
+        };
+        /** @enum {string} */
+        SourceObjectKind: "EMPLOYEE" | "ORG_UNIT" | "POSITION" | "LEGAL_ENTITY";
+        /** @enum {string} */
+        SourceReferenceConfirmationStatus: "PENDING" | "CONFIRMED" | "REJECTED";
+        SourceReferenceResponse: {
+            confirmationStatus: components["schemas"]["SourceReferenceConfirmationStatus"] | (string & {});
+            /** Format: date */
+            effectiveFrom?: string;
+            /** Format: date */
+            effectiveTo?: string;
+            /** Format: uuid */
+            ownId: string;
+            sourceId: string;
+            sourceObjectKind: components["schemas"]["SourceObjectKind"] | (string & {});
+            /** Format: uuid */
+            sourceReferenceId: string;
+            sourceSystem: components["schemas"]["ExternalSource"] | (string & {});
         };
         SyncDiffResponse: {
             changeKind: string;
@@ -1420,8 +1499,6 @@ export interface components {
             reason?: string;
         };
         UpdateLegalEntityRequest: {
-            /** Format: int64 */
-            accountingOrganizationNumber?: number;
             code?: string;
             name?: string;
             status?: string;
@@ -1598,7 +1675,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: {
                 limit?: number;
@@ -1880,7 +1957,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: {
                 includeRevoked?: boolean;
@@ -1942,7 +2019,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: {
                 limit?: number;
@@ -2176,7 +2253,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: {
                 overdueOnly?: boolean;
@@ -2281,7 +2358,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: {
                 cursor?: string;
@@ -2385,7 +2462,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: {
                 cursor?: string;
@@ -3242,7 +3319,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 actorId?: number;
@@ -3350,7 +3427,7 @@ export interface operations {
             };
         };
     };
-    confirm_1: {
+    confirm_2: {
         parameters: {
             query?: never;
             header?: {
@@ -3382,7 +3459,7 @@ export interface operations {
             };
         };
     };
-    reject: {
+    reject_1: {
         parameters: {
             query?: never;
             header?: {
@@ -3414,10 +3491,12 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query: {
                 documentType: components["schemas"]["DocumentType"];
+                /** @description Required with legacyNumberPrefix: original numbers are unique per source system */
+                sourceSystem?: components["schemas"]["ExternalSource"];
                 /** @description Exactly one of legacyNumberPrefix and documentId is given */
                 legacyNumberPrefix?: string;
                 /** @description Exactly one of legacyNumberPrefix and documentId is given */
@@ -3454,6 +3533,7 @@ export interface operations {
     resolve: {
         parameters: {
             query: {
+                sourceSystem: components["schemas"]["ExternalSource"];
                 documentType: components["schemas"]["DocumentType"];
                 legacyNumber: string;
             };
@@ -3516,7 +3596,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: {
                 limit?: number;
@@ -3616,7 +3696,7 @@ export interface operations {
             };
         };
     };
-    confirm: {
+    confirm_1: {
         parameters: {
             query?: never;
             header?: {
@@ -3692,7 +3772,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: {
                 limit?: number;
@@ -3723,7 +3803,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    list_1: {
         parameters: {
             query?: {
                 limit?: number;
@@ -4156,6 +4236,148 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query: {
+                sourceSystem: components["schemas"]["ExternalSource"];
+                sourceObjectKind: components["schemas"]["SourceObjectKind"];
+                /** @description PENDING is the approver's to-do list */
+                confirmationStatus?: components["schemas"]["SourceReferenceConfirmationStatus"];
+                /** @description Every row of one own object, confirmed, pending and rejected, closed periods included */
+                ownId?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CursorPageSourceReferenceResponse"];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    register: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The same key with the same request within 24 hours gets the first answer again */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterSourceReferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SourceReferenceResponse"];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The same key with the same request within 24 hours gets the first answer again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                sourceReferenceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SourceReferenceResponse"];
+                };
+            };
+            /** @description The request was refused */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The same key with the same request within 24 hours gets the first answer again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                sourceReferenceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SourceReferenceResponse"];
                 };
             };
             /** @description The request was refused */

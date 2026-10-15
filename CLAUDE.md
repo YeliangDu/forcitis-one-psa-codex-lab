@@ -16,7 +16,7 @@
 6. 缺失或无效输入失败并告警，不静默跳过（规则卡明确允许的除外）。
 7. 代码注释能不写就不写：只在「为什么」看不出来时写一行（CODING_STANDARD CS-1.1）。
 8. 密钥：代码与测试不写密钥字面量（运行时生成）；不打印、不调用返回密钥的接口；提交前钩子 `pre-commit install`，报告前用 gitleaks 8.30.1 扫全历史。
-9. 建账号、起容器、对外调用前先问用户，本机临时环境也一样。
+9. 建账号、起容器、对外调用前先问用户，本机临时环境也一样。例外（用户 2026-10-15「长期授权测试容器」）：测试经 Testcontainers 在本机起、测完自动回收的临时容器，镜像限 `backend/architecture/test-images.txt` 登记的，不必逐次问；其他容器、常驻容器与对外调用照旧先问。
 10. 系统名称：新系统写 FORCITIS one，老系统写「老系统」（英文 the legacy system），不用「PSA」指代系统；老路径、表名、接口、代码标识、仓库名、会话名与用户原话照原样（`docs/modernization/check_legacy_name.py`）。
 11. 派子代理必须显式指定模型（haiku / sonnet / opus，按任务难度）；委派 Codex 按 SESSION_PLAYBOOK §5「Codex 派工」，派工用 `docs/modernization/templates/WORK_CARD.md`。
 12. 记录只改片段：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `build_all.py` 生成，用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段，不直接编辑生成产物（SESSION_PLAYBOOK §4 第 0 步）。

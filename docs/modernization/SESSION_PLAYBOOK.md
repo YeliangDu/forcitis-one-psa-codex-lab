@@ -47,7 +47,7 @@
 6. **必须报告**：每个完成点与收尾都向调度会话报告，未报告不算完成。
 7. **用户在工作会话中的决定**：当场用 `new_intent.py` 记原话，并立即报调度会话；调度会话用会话记录搜索核实原话。
 8. **子代理再派子代理**：后台派出的子代理结果会送到最上层会话，不会回到派它的子代理；需要再派时用前台等待，或在派工单中写明由调度会话转交结果。
-9. **后台任务与持久配置登记**：定时器、systemd 测试单元、本机 runner、云上临时资源等，建立时登记进调度台账，用完清理并写进记录。
+9. **后台任务与持久配置登记**：定时器、systemd 测试单元、本机 runner、云上临时资源等，建立时登记进 `phase1a/infra/RESOURCES.md`（调度台账只放链接），用完清理并写进记录。
 10. **密钥不进会话记录**：不调用会返回密钥的接口、不打印凭据；一旦进入记录，按安全事件上报与处置。
 11. **长期会话关闭自动归档**：调度会话、长期运维会话关闭「PR 合并或关闭时自动归档」。
 12. **收尾归档**：交接完成后归档旧会话，并更新调度台账的在途会话表。
@@ -68,7 +68,7 @@
 
 ## 4. 收尾协议（结束前，或上下文接近上限时）
 
-0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief 连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
+0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief、提议术语清单连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
 1. 把本会话的决定（用户原话）用 `python3 docs/modernization/new_intent.py --session=<会话名> "<原话>" "<落点>"` 新增为 `intent/` 片段，并写进相应 ADR 的源文件 `adr/src/`。
 2. 勾选 brief 中已满足的条件；不满足的不勾，不改写条件。
 3. 用 `python3 docs/modernization/new_log.py <会话名> "<工作单元>"` 新增一条会话日志片段（模板见 §8），填好各项，写明下一条要运行的命令。
@@ -105,7 +105,7 @@
   7. **测试只断言本模块的效果**：异步用确定性等待（事件或轮询到条件，带上限），不写宽泛的 `never()`。起因：OrgSnapshotSync 测试抖动。
   8. **契约先行**：接口路径、必填字段、表名变化时，OpenAPI 与架构文档在同一提交中更新。起因：`/api/1`、`required` 缺失、`audit_events` 文档漂移。守护：CI「OpenAPI contract unchanged」一步；PR 模板「是否同步了 OpenAPI 与架构文档」。
   9. **并行子代理同一基线出发**：整合前同步最新 main，整合提交重跑全部守护。起因：并行子代理漏改名。
-  10. **建账号、起容器、对外调用前先问用户**：本机临时环境也一样（§7）。起因：Metabase 管理员账号被擅自创建。
+  10. **建账号、起容器、对外调用前先问用户**：本机临时环境也一样（§7）。起因：Metabase 管理员账号被擅自创建。例外（用户 2026-10-15「长期授权测试容器」）：测试经 Testcontainers 在本机起、测完自动回收、镜像在 `backend/architecture/test-images.txt` 登记的临时容器不必逐次问。
   11. **能一开始做对的，不留到后续阶段**（用户 2026-10-14：「能从一开始就做对的，就不要留在后续阶段，除非后续做更有价值」）：任何推迟到后续阶段的工作（已知缺陷、守护、契约、用语、数据质量），须在规则卡或相应文档写明「为何后做更有价值」，否则当期做对。与第 4 条的分工：第 4 条限制的是**范围**（不提前做未来阶段的功能），本条约束的是**质量**（本期范围内的事不打折扣、不留尾巴）。
 - **提议术语按批次清理**（用户 2026-10-15 对抽规则答「提议术语按批次清理」；起因：提议术语积压 338 条，已批准 348 条，其中中文名重复 5 组）：
   - 每批整合时，整合会话对本批新增的提议术语去重、归并（同义合并、同名改开），结果写进整合报告；
@@ -141,7 +141,7 @@
 - 多个会话可以同时进行，但只在**互不相交的工作单元**上（不同 BC、不同阶段的不同步骤）。
 - 写代码的并行会话各用自己的 git worktree 和分支（`feature/issue-{N}-…`），互不共享工作目录。不论写代码、写文档还是运维，都不在主检出目录工作。
 - **子代理还是会话**（用户 2026-10-15 对「子代理还是会话」评估的三条改进答「采纳」）：边界清楚、交付一个 PR、需要用户拍板的事不超过一两件、数小时内完成的（运维执行、CI / 流水线、复审、文档整理、生产只读取证）派子代理；长期工作线、需反复问用户、需再派子代理并行或需主会话专属工具（如 DesignSync）的开独立会话。开发线开会话、会话内用子代理并行；调度会话用子代理做横向基础设施与复审。
-- 共享记录按「一条记录一个文件」组织（`intent/`、`session-log/`、`status/`、`adr/src/`），各会话新增自己的片段、只改自己认领单元的文件，因此并行分支之间不再在同一文件上冲突；生成产物若冲突，取任一边后重新运行 `build_all.py` 即可，不要手工合并产物。
+- 共享记录按「一条记录一个文件」组织（`intent/`、`session-log/`、`status/`、`adr/src/`），各会话新增自己的片段、只改自己认领单元的文件，因此并行分支之间不再在同一文件上冲突；提议术语清单 `backend/glossary/proposed/README.md` 同样由 `proposed/*.yaml` 生成，加术语只改 yaml，不改 README。生成产物（含该 README）若冲突，取任一边后重新运行 `build_all.py` 并提交结果，不要手工合并产物；冲突在 yaml 里时照常合并 yaml，再重新生成。
 - **公共基础先行**（用户 2026-10-14 对 1a 大修原因分析的五条建议答「采纳」）：并行写业务之前，先由一个代理建好并冻结共用构件——聚合基类与版本模型、状态机、事件信封、错误链（领域异常 → ErrorCode → ProblemDetail）、前端共用包（API 客户端、错误码、共用模型）。功能代理只使用这些构件，不各自另造；需要改共用构件时停下报告，由整合者统一改。
 - **小批复审**（同上）：每个代理交付后先单独做 opus 复审（§14、§14.1），通过后才整合；整合后再做一次整体复审。复审结论到达前不合并（调度会话合并规则）。
 - 会话之间用 `ListAgents` / `SendMessage` 打招呼（例如「我改了 platform.identity 的 api，你那边需要重新编译」）。
@@ -329,6 +329,7 @@
 - 第 1 项：`organization.workforce` 的 `BeginSyncRun` / `ApplySourceSnapshot` 在开始新的同步运行时，会在同一事务内放行被取代的 HELD 记录、关闭被遗弃的 RUNNING 记录（涉及多条 `SyncRun`）。理由：这些都是同一类型的运维记录，拆成异步会留下「两条同步同时运行」的并发窗口。
 - 第 1 项：`cost.timesheet` 的 `SubmitTimesheet` 在工时单首次提交时，同一事务内创建工时单并向编号服务取号（涉及 `Timesheet` 与 `NumberingRule` 的计数器）。理由：编号与单据同生同灭，拆开会留下空号或重号；被改的计数器只有一次原子取号，事件信封的 `relatedAggregates` 列出它，登记在 `architecture/multi-aggregate-exceptions.txt`，由 `SingleAggregateGuardTest` 守护。
 - 第 1 项（另一条）：`organization.workforce` 的 `ApplySourceSnapshot` 在同一事务内写 `SyncRun`（运行结果）与组织快照（one-coordinator 2026-10-15 接受，整合复审 INT-DDD-H2）。理由：运行结果与快照同生同灭，分开提交会出现「快照已更新但运行记为失败」或反之的不一致；登记于 `backend/architecture/multi-aggregate-exceptions.txt`，事件带 relatedAggregates。
+- 第 1 项：`platform.integration` 的 `ConfirmSourceReference` 在确认来源对照时，同一事务内关闭旧的已确认行并确认新行（两个 `SourceReference` 实例）。理由：ADR-0033 第 2 项第 1 条要求同一事务，否则会出现无编码或双编码的时点；与 `BeginSyncRun` 同类，是同一类型的两个实例，`SingleAggregateGuardTest` 按聚合类型计数，不需要登记到 `architecture/multi-aggregate-exceptions.txt`；`SourceReferenceConfirmed` 的 `relatedAggregates` 带被取代行的 ID（one-coordinator 2026-10-15 接受，#139 复审 M3）。
 
 **须落成守护的复审项**（用户 2026-10-14 对 1a 大修原因分析的五条建议答「采纳」；由 Phase 1a 实现，未实现前由复审逐项检查）：
 - G-T1　一个 `@Transactional` 应用服务只写一个聚合的仓储；例外须在上方「已登记的例外」中登记，守护读取该登记。
