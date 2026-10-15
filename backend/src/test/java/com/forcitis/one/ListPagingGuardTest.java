@@ -5,6 +5,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.kernel.ListLimits;
+import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -17,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -35,7 +38,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * G-A2 (a collection answers {items, nextCursor} and takes cursor and limit, judged by the shape of the response, not by a class name)
+ * A-3 (no list cut in memory, no export or import cap above the agreed one), G-A2 (a collection answers {items, nextCursor} and takes cursor and limit, judged by the shape of the response, not by a class name)
  * and G-P1 (the size of a page is written once, in kernel, and every limit in the contract says 1..200, default 50).
  * Gaps that exist today are listed in architecture/list-paging-gaps.txt: a new violation fails, and so does a listed gap that is already closed.
  */
@@ -47,6 +50,8 @@ import tools.jackson.databind.json.JsonMapper;
 class ListPagingGuardTest {
     static final Path GAPS = Path.of("architecture/list-paging-gaps.txt");
     static final Set<String> OWNERS = Set.of("K-3b-1", "K-3b-2", "K-3b-3", "K-3b-4", "例外");
+    static final Set<String> PREFIXES = Set.of("GET ", "com.", "slice:", "config:");
+    static final Path CONFIG = Path.of("src/main/resources/config");
     static final Pattern LIST_SIZE_CONSTANT = Pattern.compile("(?i)^(max(imum)?|default)_(limit|page_size|rows|results)$|^page_size$|^(export|import)_(max|limit)$");
 
     @MockitoBean
@@ -83,7 +88,9 @@ class ListPagingGuardTest {
             if (get.isMissingNode() || last.startsWith("{") || last.contains(":")) {
                 continue;
             }
-            JsonNode schema = resolve(document, get.path("responses").path("200").path("content").properties().iterator().next().getValue().path("schema"));
+            var content = get.path("responses").path("200").path("content").properties();
+            assertThat(content).as("GET %s declares no 200 answer with content: a GET answers a body", path.getKey()).isNotEmpty();
+            JsonNode schema = resolve(document, content.iterator().next().getValue().path("schema"));
             boolean array = "array".equals(schema.path("type").asString());
             if (!array && !schema.path("properties").has("items")) {
                 continue;
@@ -134,6 +141,48 @@ class ListPagingGuardTest {
         assertThat(wrong).as("limit parameters that do not say minimum 1 / maximum 200 / default 50").isEmpty();
     }
 
+    @Test
+    @DisplayName("A-3 no list is cut in memory (PageRequest.slice callers), and no export or import row cap in the configuration exceeds the agreed one, or is a listed gap")
+    void inMemoryPagingAndConfiguredCapsAreListed() throws Exception {
+        JavaClasses classes = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS).importPackages("com.forcitis.one");
+        Set<String> found = new TreeSet<>();
+        classes.stream().filter(type -> !type.isEquivalentTo(PageRequest.class)).forEach(type -> type.getMethodCallsFromSelf().stream()
+                .filter(call -> call.getTargetOwner().isEquivalentTo(PageRequest.class) && call.getName().equals("slice"))
+                .forEach(call -> found.add("slice:" + call.getOriginOwner().getName().replaceAll("\\$.*", ""))));
+        try (var files = Files.list(CONFIG)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".properties")).toList()) {
+                Properties properties = new Properties();
+                try (var in = Files.newInputStream(file)) {
+                    properties.load(in);
+                }
+                properties.forEach((key, value) -> {
+                    String name = key.toString();
+                    int cap = name.endsWith(".export.max-rows") ? ListLimits.EXPORT_MAX : name.endsWith(".import.max-rows") ? ListLimits.IMPORT_MAX : Integer.MAX_VALUE;
+                    if (cap != Integer.MAX_VALUE && Integer.parseInt(value.toString().strip()) > cap) {
+                        found.add("config:" + name);
+                    }
+                });
+            }
+        }
+
+        assertGaps("A-3 in-memory paging and row caps", found, "slice:", "config:");
+    }
+
+    @Test
+    @DisplayName("every line of the gap list is well formed and starts with a prefix a guard reads: a line no guard reads would be silently ignored")
+    void everyGapLineIsReadBySomeGuard() throws IOException {
+        for (String line : Files.readAllLines(GAPS)) {
+            if (line.isBlank() || line.startsWith("#")) {
+                continue;
+            }
+            String[] columns = line.split(" \\| ", -1);
+            assertThat(columns).as("%s: path | owner card | deadline", line).hasSize(3);
+            assertThat(PREFIXES.stream().anyMatch(columns[0]::startsWith)).as("%s starts with none of %s", line, PREFIXES).isTrue();
+            assertThat(OWNERS).as("owner of %s", line).contains(columns[1].strip());
+            assertThat(columns[2].strip()).as("deadline of %s", line).isNotEmpty();
+        }
+    }
+
     private JsonNode document() throws Exception {
         return json.readTree(mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
     }
@@ -143,18 +192,15 @@ class ListPagingGuardTest {
         return ref.isEmpty() ? schema : document.path("components").path("schemas").path(ref.substring(ref.lastIndexOf('/') + 1));
     }
 
-    private static void assertGaps(String guard, Set<String> found, String pathPrefix) throws IOException {
+    private static void assertGaps(String guard, Set<String> found, String... pathPrefixes) throws IOException {
         Set<String> listed = new TreeSet<>();
         for (String line : Files.readAllLines(GAPS)) {
             if (line.isBlank() || line.startsWith("#")) {
                 continue;
             }
-            String[] columns = line.split(" \\| ", -1);
-            assertThat(columns).as("%s: path | owner card | deadline", line).hasSize(3);
-            assertThat(OWNERS).as("owner of %s", line).contains(columns[1].strip());
-            assertThat(columns[2].strip()).as("deadline of %s", line).isNotEmpty();
-            if (columns[0].startsWith(pathPrefix)) {
-                assertThat(listed.add(columns[0])).as("%s is listed twice", columns[0]).isTrue();
+            String path = line.split(" \\| ", -1)[0];
+            if (java.util.Arrays.stream(pathPrefixes).anyMatch(path::startsWith)) {
+                assertThat(listed.add(path)).as("%s is listed twice", path).isTrue();
             }
         }
         Set<String> added = new TreeSet<>(found);
