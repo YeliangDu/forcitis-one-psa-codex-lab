@@ -82,16 +82,21 @@ class ReadOnlyAccountCheckIT {
     }
 
     enum ReadOnlyConnection {
-        A8("a8world", "a8_ro"),
-        LEGACY_APPROVAL("legacyworld", "todo_ro"),
-        LEGACY_NAMES("legacyworld", "names_ro");
+        A8("a8world", "a8_ro", ReadOnlyBaselineFixture.VIEW_SCHEMA, "dbo.member_rows"),
+        LEGACY_APPROVAL("legacyworld", "todo_ro", "dbo", "dbo.todo_rows"),
+        LEGACY_NAMES("legacyworld", "names_ro", "dbo", "dbo.short_name_rows");
 
         final String database;
         final String loginPrefix;
+        final String viewSchema;
+        /** A base table under that view; the database-level GRANT SELECT makes it readable to the login as well. */
+        final String baseTable;
 
-        ReadOnlyConnection(String database, String loginPrefix) {
+        ReadOnlyConnection(String database, String loginPrefix, String viewSchema, String baseTable) {
             this.database = database;
             this.loginPrefix = loginPrefix;
+            this.viewSchema = viewSchema;
+            this.baseTable = baseTable;
         }
     }
 
@@ -101,8 +106,15 @@ class ReadOnlyAccountCheckIT {
     record Sql(String database, String statement) {
     }
 
-    /** One way an account can hold more (or less) than the baseline; items are the ADR-0037 item 4 letters any of which may be reported. */
-    record Violation(String name, String items, Function<Account, List<Sql>> apply) {
+    /**
+     * One way an account can hold more (or less) than the baseline; items are the ADR-0037 item 4 letters any of which may be reported.
+     * undo is only for grants that reach beyond the case's own login (to public), so later cases in the same database start clean.
+     */
+    record Violation(String name, String items, Function<Account, List<Sql>> apply, Function<Account, List<Sql>> undo) {
+
+        Violation(String name, String items, Function<Account, List<Sql>> apply) {
+            this(name, items, apply, a -> List.of());
+        }
 
         Pattern reported() {
             return Pattern.compile("[(（][" + items + "][)）]");
@@ -145,7 +157,21 @@ class ReadOnlyAccountCheckIT {
             new Violation("缺少一项：DENY VIEW SERVER STATE（REVOKE 无效：平台授予的 ALTER SERVER STATE 隐含它）", "ad", a -> List.of(
                     new Sql("master", "DENY VIEW SERVER STATE TO " + q(a.login())))),
             new Violation("校验查询失败：sys.database_permissions 被拒绝读取", "be", a -> List.of(
-                    new Sql(a.connection().database, "DENY SELECT ON sys.database_permissions TO " + q(a.login())))));
+                    new Sql(a.connection().database, "DENY SELECT ON sys.database_permissions TO " + q(a.login())))),
+            new Violation("复审 H-1：对象级 GRANT TAKE OWNERSHIP ON OBJECT::可读底表（ALTER AUTHORIZATION 后成为所有者）", "beg", a -> List.of(
+                    new Sql(a.connection().database, "GRANT TAKE OWNERSHIP ON OBJECT::" + a.connection().baseTable + " TO " + q(a.login())))),
+            new Violation("复审 H-1：schema 级 GRANT CONTROL ON SCHEMA::所读视图的 schema", "beg", a -> List.of(
+                    new Sql(a.connection().database, "GRANT CONTROL ON SCHEMA::" + a.connection().viewSchema + " TO " + q(a.login())))),
+            new Violation("复审 H-1：服务器上针对登录的授权 GRANT IMPERSONATE ON LOGIN::sa（fn_my_permissions 不列）", "bdeg", a -> List.of(
+                    new Sql("master", "GRANT IMPERSONATE ON LOGIN::sa TO " + q(a.login())))),
+            new Violation("复审 H-1：public 角色在用户对象上的授权 GRANT UPDATE ON 可读底表 TO public", "beg", a -> List.of(
+                    new Sql(a.connection().database, "GRANT UPDATE ON " + a.connection().baseTable + " TO public")), a -> List.of(
+                    new Sql(a.connection().database, "REVOKE UPDATE ON " + a.connection().baseTable + " FROM public"))),
+            new Violation("复审 H-2：在 msdb 有该登录自己的用户并且是 db_owner（不经 guest 进入）", "fg", a -> List.of(
+                    new Sql("msdb", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())),
+                    new Sql("msdb", "ALTER ROLE db_owner ADD MEMBER " + q(a.login())))),
+            new Violation("复审 H-2：在 master 有该登录自己的用户（无角色；系统库只能经 guest 进入）", "fg", a -> List.of(
+                    new Sql("master", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))));
 
     static Stream<Arguments> everyViolationOnEveryConnection() {
         return VIOLATIONS.stream().flatMap(v -> Stream.of(ReadOnlyConnection.values()).map(c -> Arguments.of(c, v)));
@@ -197,18 +223,42 @@ class ReadOnlyAccountCheckIT {
     void deviationRefusesStartup(ReadOnlyConnection connection, Violation violation) throws SQLException {
         Account account = baselineAccount(connection);
         assertMatchesTheRdsBaseline(account);
-        for (Sql sql : violation.apply().apply(account)) {
-            run(sql.database(), sql.statement());
+        Throwable failure;
+        try {
+            for (Sql sql : violation.apply().apply(account)) {
+                run(sql.database(), sql.statement());
+            }
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            for (Sql sql : violation.undo().apply(account)) {
+                run(sql.database(), sql.statement());
+            }
         }
 
+        assertThat(failure).as("%s on the %s connection: the application started anyway", violation, connection).isNotNull();
+        assertThat(messages(failure)).as("the refusal names the unmet item, one of (%s)", violation.items()).containsPattern(violation.reported());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("ADR37-1 复审 L（删改测试覆盖）：只读连接配成新系统自己的 PostgreSQL 地址与账号，经真实工厂拒绝启动，并按项报出不满足的一项")
+    void postgresqlAddressIsRefusedThroughTheRealFactory(ReadOnlyConnection connection) {
+        Account ownAccount = new Account(connection, POSTGRES.getUsername(), POSTGRES.getPassword());
+
         Throwable failure = catchThrowable(() -> {
-            try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+            try (ConfigurableApplicationContext context = start(Map.of(connection, ownAccount), c -> POSTGRES.getJdbcUrl())) {
                 assertThat(context.isActive()).isTrue();
             }
         });
 
-        assertThat(failure).as("%s on the %s connection: the application started anyway", violation, connection).isNotNull();
-        assertThat(messages(failure)).as("the refusal names the unmet item, one of (%s)", violation.items()).containsPattern(violation.reported());
+        assertThat(failure).as("the application's own PostgreSQL account configured as the %s connection: the application started anyway", connection)
+                .isNotNull();
+        assertThat(messages(failure)).as("the refusal comes from the read-only check and names an unmet item")
+                .containsPattern("[(（][a-g][)）]");
     }
 
     @Test
@@ -285,11 +335,15 @@ class ReadOnlyAccountCheckIT {
     }
 
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled) {
-        return start(enabled, null);
+        return start(enabled, c -> url(c.database));
+    }
+
+    static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, String approvalDatabaseOverride) {
+        return start(enabled, c -> url(c == ReadOnlyConnection.LEGACY_APPROVAL ? approvalDatabaseOverride : c.database));
     }
 
     /** Command-line arguments: they rank above application.properties, which switches every external connection off by default. */
-    static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, String approvalDatabaseOverride) {
+    static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, Function<ReadOnlyConnection, String> urlOf) {
         List<String> args = new ArrayList<>(List.of(
                 "--server.port=0",
                 "--spring.main.banner-mode=off",
@@ -303,20 +357,19 @@ class ReadOnlyAccountCheckIT {
         Account a8 = enabled.get(ReadOnlyConnection.A8);
         if (a8 != null) {
             String views = "--forcitis.platform.integration.seeyon.views.";
-            args.addAll(List.of(views + "jdbc-url=" + url("a8world"), views + "username=" + a8.login(), views + "password=" + a8.password(),
+            args.addAll(List.of(views + "jdbc-url=" + urlOf.apply(ReadOnlyConnection.A8), views + "username=" + a8.login(), views + "password=" + a8.password(),
                     views + "head-relationship-type-id=" + HEAD_TYPE, views + "regional-receivables-manager-relationship-type-id=" + MANAGER_TYPE,
                     views + "delivery-unit-yes-enum-id=9001", views + "fee-earner-yes-enum-id=9002", views + "root-path=00000001"));
         }
         Account names = enabled.get(ReadOnlyConnection.LEGACY_NAMES);
         if (names != null) {
             String legacy = "--forcitis.platform.integration.legacy.";
-            args.addAll(List.of(legacy + "jdbc-url=" + url("legacyworld"), legacy + "username=" + names.login(), legacy + "password=" + names.password()));
+            args.addAll(List.of(legacy + "jdbc-url=" + urlOf.apply(ReadOnlyConnection.LEGACY_NAMES), legacy + "username=" + names.login(), legacy + "password=" + names.password()));
         }
         Account approval = enabled.get(ReadOnlyConnection.LEGACY_APPROVAL);
         String inbox = "--forcitis.platform.approval.legacy.";
         if (approval != null) {
-            String database = approvalDatabaseOverride == null ? "legacyworld" : approvalDatabaseOverride;
-            args.addAll(List.of(inbox + "url=" + url(database), inbox + "username=" + approval.login(), inbox + "password=" + approval.password(),
+            args.addAll(List.of(inbox + "url=" + urlOf.apply(ReadOnlyConnection.LEGACY_APPROVAL), inbox + "username=" + approval.login(), inbox + "password=" + approval.password(),
                     inbox + "view-name=dbo.v_psa_one_legacy_todo"));
         } else {
             args.add(inbox + "url=");
