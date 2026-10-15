@@ -3,6 +3,7 @@ package com.forcitis.one.platform.integration.infrastructure.seeyon;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestImages;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourcePerson;
@@ -31,13 +32,14 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mssqlserver.MSSQLServerContainer;
+import org.testcontainers.utility.DockerImageName;
 
 /** Real SQL Server (Testcontainers), only under Maven profile legacy-it. */
 @Testcontainers
 class SeeyonViewsMssqlIT {
 
     @Container
-    static MSSQLServerContainer mssql = new MSSQLServerContainer("mcr.microsoft.com/mssql/server:2022-latest").acceptLicense();
+    static MSSQLServerContainer mssql = new MSSQLServerContainer(DockerImageName.parse(TestImages.startingWith(TestImages.MSSQL_PREFIX)).asCompatibleSubstituteFor(TestImages.MSSQL_PREFIX)).acceptLicense();
 
     static final Path SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
     static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "-2682590999914657055", "-3267712510147735998", "00000001");
