@@ -2,6 +2,7 @@ package com.forcitis.one.platform.web;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.NotFromQuery;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,14 +12,19 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.MatrixVariable;
@@ -49,10 +55,17 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
             RequestBody.class, RequestAttribute.class, SessionAttribute.class, RequestPart.class, MatrixVariable.class);
 
     private final Map<HandlerMethod, Set<String>> declared = new ConcurrentHashMap<>();
-    private final ObjectProvider<RequestMappingHandlerAdapter> adapter;
+    private final Supplier<List<HandlerMethodArgumentResolver>> resolvers;
 
+    /** The adapter is taken when first needed: it is built from the WebMvcConfigurers, this class among them. */
+    @Autowired
     UnknownQueryParameters(ObjectProvider<RequestMappingHandlerAdapter> adapter) {
-        this.adapter = adapter;
+        this(() -> adapter.getObject().getArgumentResolvers());
+    }
+
+    /** The resolvers in the order Spring MVC asks them. */
+    UnknownQueryParameters(Supplier<List<HandlerMethodArgumentResolver>> resolvers) {
+        this.resolvers = resolvers;
     }
 
     @Override
@@ -65,7 +78,7 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
         if (!"GET".equals(request.getMethod()) || !(handler instanceof HandlerMethod method)) {
             return true;
         }
-        Set<String> known = declared.computeIfAbsent(method, m -> declaredNames(m, customResolvers(adapter.getObject())));
+        Set<String> known = declared.computeIfAbsent(method, this::declaredNames);
         Set<String> unknown = new TreeSet<>(request.getParameterMap().keySet());
         unknown.removeAll(known);
         if (!unknown.isEmpty()) {
@@ -89,18 +102,26 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
         return String.join(",", shown);
     }
 
-    /** The query parameter names a GET handler reads; a parameter whose names cannot be known fails the start of the application, naming the method. */
-    static Set<String> declaredNames(HandlerMethod method) {
-        return declaredNames(method, List.of());
-    }
-
-    /** A parameter that a resolver registered by the application supports is filled from somewhere else than the query, such as the session. */
-    static Set<String> declaredNames(HandlerMethod method, List<HandlerMethodArgumentResolver> customResolvers) {
+    /**
+     * The query parameter names a GET handler reads; a parameter whose names cannot be known fails the start of the application, naming the method.
+     * A parameter goes to the first resolver that supports it, as in Spring MVC: one marked @NotFromQuery is skipped, any other resolver of the
+     * application may read the query and fails the start.
+     */
+    Set<String> declaredNames(HandlerMethod method) {
+        List<HandlerMethodArgumentResolver> ordered = resolvers.get();
         Set<String> names = new TreeSet<>();
         for (MethodParameter parameter : method.getMethodParameters()) {
             parameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
-            if (customResolvers.stream().anyMatch(resolver -> resolver.supportsParameter(parameter))) {
-                continue;
+            Optional<HandlerMethodArgumentResolver> first = ordered.stream().filter(resolver -> resolver.supportsParameter(parameter)).findFirst();
+            if (first.isPresent()) {
+                Class<?> resolverType = AopUtils.getTargetClass(first.get());
+                if (AnnotatedElementUtils.hasAnnotation(resolverType, NotFromQuery.class)) {
+                    continue;
+                }
+                if (!resolverType.getName().startsWith("org.springframework.")) {
+                    throw unsupported(method, parameter, "resolved by " + resolverType.getSimpleName()
+                            + ", which may read the query: mark it @NotFromQuery if it does not");
+                }
             }
             Class<?> type = parameter.getParameterType();
             RequestParam annotation = parameter.getParameterAnnotation(RequestParam.class);
@@ -125,11 +146,6 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
             }
         }
         return names;
-    }
-
-    static List<HandlerMethodArgumentResolver> customResolvers(RequestMappingHandlerAdapter adapter) {
-        List<HandlerMethodArgumentResolver> resolvers = adapter.getCustomArgumentResolvers();
-        return resolvers == null ? List.of() : List.copyOf(resolvers);
     }
 
     private static boolean hasBindingAnnotation(MethodParameter parameter) {

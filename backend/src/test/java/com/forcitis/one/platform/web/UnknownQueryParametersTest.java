@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.NotFromQuery;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.time.LocalDate;
@@ -24,11 +25,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.method.annotation.RequestParamMethodArgumentResolver;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 
 class UnknownQueryParametersTest {
+    private static final UnknownQueryParameters NO_RESOLVERS = new UnknownQueryParameters(List::of);
+
     record Filter(String name) {
     }
 
@@ -74,15 +78,15 @@ class UnknownQueryParametersTest {
     @Test
     @DisplayName("K-3a the declared names are the @RequestParam names and plain simple parameters; path variables and the caller are not query parameters")
     void declaredNamesAreWhatTheHandlerReads() {
-        assertThat(UnknownQueryParameters.declaredNames(handler("declared"))).containsExactlyInAnyOrder("limit", "q");
-        assertThat(UnknownQueryParameters.declaredNames(handler("plainSimple"))).containsExactly("status");
+        assertThat(NO_RESOLVERS.declaredNames(handler("declared"))).containsExactlyInAnyOrder("limit", "q");
+        assertThat(NO_RESOLVERS.declaredNames(handler("plainSimple"))).containsExactly("status");
     }
 
     @Test
     @DisplayName("K-3a a handler whose query parameters cannot be known fails, naming the method, instead of letting requests through or refusing good ones")
     void unaccountableParametersFailNamingTheMethod() {
         for (String name : new String[] {"modelAttribute", "recordWithoutAnnotation", "mapOfAll", "multiValueMapOfAll", "rawRequest", "dateWithoutRequestParam"}) {
-            assertThatThrownBy(() -> UnknownQueryParameters.declaredNames(handler(name))).as(name).isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(() -> NO_RESOLVERS.declaredNames(handler(name))).as(name).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(name);
         }
     }
@@ -99,8 +103,22 @@ class UnknownQueryParametersTest {
         assertThat(UnknownQueryParameters.named(Set.of("bogus"))).isEqualTo("bogus");
     }
 
-    /** Supports a Filter parameter as an argument resolver registered by the application would, filling it from the session. */
-    static final HandlerMethodArgumentResolver FILTER_FROM_THE_SESSION = new HandlerMethodArgumentResolver() {
+    /** Fills Filter and String parameters from the session, as a resolver of the application marked @NotFromQuery would. */
+    @NotFromQuery(source = "the session")
+    static class FromTheSession implements HandlerMethodArgumentResolver {
+        @Override
+        public boolean supportsParameter(MethodParameter parameter) {
+            return parameter.getParameterType() == Filter.class || parameter.getParameterType() == String.class;
+        }
+
+        @Override
+        public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer container, NativeWebRequest request, WebDataBinderFactory binders) {
+            return null;
+        }
+    }
+
+    /** A resolver of the application that does not say where its values come from, so it may read the query. */
+    static class MayReadTheQuery implements HandlerMethodArgumentResolver {
         @Override
         public boolean supportsParameter(MethodParameter parameter) {
             return parameter.getParameterType() == Filter.class;
@@ -108,29 +126,47 @@ class UnknownQueryParametersTest {
 
         @Override
         public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer container, NativeWebRequest request, WebDataBinderFactory binders) {
-            return new Filter("session");
+            return null;
         }
-    };
+    }
+
+    private static UnknownQueryParameters resolvedBy(HandlerMethodArgumentResolver... ordered) {
+        return new UnknownQueryParameters(() -> List.of(ordered));
+    }
+
+    private static RequestMappingInfo apiGet() {
+        return RequestMappingInfo.paths("/api/v1/x").methods(RequestMethod.GET).build();
+    }
 
     @Test
-    @DisplayName("P2-M1 (one-1a-par) a parameter a registered argument resolver supports is not read from the query and is skipped")
-    void aParameterOfARegisteredResolverIsSkipped() {
-        assertThat(UnknownQueryParameters.declaredNames(handler("fromTheSession"), List.of(FILTER_FROM_THE_SESSION))).containsExactly("q");
-        assertThat(UnknownQueryParameters.declaredNames(handler("recordWithoutAnnotation"), List.of(FILTER_FROM_THE_SESSION))).isEmpty();
-        assertThatCode(() -> QueryParameterContract.check(Map.of(apiGet(), handler("fromTheSession")), List.of(FILTER_FROM_THE_SESSION)))
+    @DisplayName("P2-M1 (one-1a-par) a parameter whose first resolver is marked @NotFromQuery is not read from the query and is skipped")
+    void aParameterOfAResolverNotFromQueryIsSkipped() {
+        assertThat(resolvedBy(new FromTheSession()).declaredNames(handler("recordWithoutAnnotation"))).isEmpty();
+        assertThatCode(() -> QueryParameterContract.check(Map.of(apiGet(), handler("recordWithoutAnnotation")), resolvedBy(new FromTheSession())))
                 .doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("P2-M1 (one-1a-par) the same kind of parameter without a resolver that supports it still stops the start")
     void theSameParameterWithoutAResolverStillFails() {
-        assertThatThrownBy(() -> UnknownQueryParameters.declaredNames(handler("fromTheSession"), List.of())).isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> NO_RESOLVERS.declaredNames(handler("recordWithoutAnnotation"))).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("an object bound from the query");
-        assertThatThrownBy(() -> QueryParameterContract.check(Map.of(apiGet(), handler("fromTheSession")), List.of())).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("fromTheSession");
+        assertThatThrownBy(() -> QueryParameterContract.check(Map.of(apiGet(), handler("recordWithoutAnnotation")), NO_RESOLVERS))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("recordWithoutAnnotation");
     }
 
-    private static RequestMappingInfo apiGet() {
-        return RequestMappingInfo.paths("/api/v1/x").methods(RequestMethod.GET).build();
+    @Test
+    @DisplayName("P2 recheck (a) a resolver of the application that may read the query stops the start, naming the resolver")
+    void aResolverThatMayReadTheQueryStopsTheStart() {
+        assertThatThrownBy(() -> QueryParameterContract.check(Map.of(apiGet(), handler("recordWithoutAnnotation")), resolvedBy(new MayReadTheQuery())))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("MayReadTheQuery").hasMessageContaining("@NotFromQuery");
+    }
+
+    @Test
+    @DisplayName("P2 recheck (a) resolvers are asked in Spring's order: a @RequestParam taken by Spring's resolver first stays a query parameter")
+    void theFirstResolverThatSupportsAParameterDecides() {
+        assertThat(resolvedBy(new RequestParamMethodArgumentResolver(false), new FromTheSession()).declaredNames(handler("fromTheSession")))
+                .containsExactly("q");
+        assertThat(resolvedBy(new FromTheSession(), new RequestParamMethodArgumentResolver(false)).declaredNames(handler("fromTheSession"))).isEmpty();
     }
 }

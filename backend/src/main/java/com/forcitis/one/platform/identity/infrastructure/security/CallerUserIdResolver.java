@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
+import com.forcitis.one.kernel.NotFromQuery;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * modules that may not depend on identity take it this way. A broken principal is refused as not signed in (RULING-P2-4).
  */
 @Component
+@NotFromQuery(source = "the session")
 class CallerUserIdResolver implements HandlerMethodArgumentResolver, WebMvcConfigurer {
 
     static {

@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.web;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.beans.factory.SmartInitializingSingleton;
@@ -8,31 +7,26 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /** Every GET handler under /api is checked when the application starts, so a parameter UnknownQueryParameters cannot account for stops the start instead of misjudging requests. */
 @Component
 class QueryParameterContract implements SmartInitializingSingleton {
     private final ApplicationContext context;
+    private final UnknownQueryParameters queryParameters;
 
-    QueryParameterContract(ApplicationContext context) {
+    QueryParameterContract(ApplicationContext context, UnknownQueryParameters queryParameters) {
         this.context = context;
+        this.queryParameters = queryParameters;
     }
 
     @Override
     public void afterSingletonsInstantiated() {
-        check(context.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class).getHandlerMethods(),
-                UnknownQueryParameters.customResolvers(context.getBean("requestMappingHandlerAdapter", RequestMappingHandlerAdapter.class)));
+        check(context.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class).getHandlerMethods(), queryParameters);
     }
 
-    static void check(Map<RequestMappingInfo, HandlerMethod> handlers) {
-        check(handlers, List.of());
-    }
-
-    static void check(Map<RequestMappingInfo, HandlerMethod> handlers, List<HandlerMethodArgumentResolver> customResolvers) {
+    static void check(Map<RequestMappingInfo, HandlerMethod> handlers, UnknownQueryParameters queryParameters) {
         for (var entry : handlers.entrySet()) {
             RequestMappingInfo info = entry.getKey();
             if (info.getPathPatternsCondition() == null) {
@@ -43,7 +37,7 @@ class QueryParameterContract implements SmartInitializingSingleton {
             boolean get = methods.isEmpty() || methods.contains(RequestMethod.GET);
             boolean api = info.getPathPatternsCondition().getPatternValues().stream().anyMatch(pattern -> pattern.startsWith("/api/"));
             if (get && api) {
-                UnknownQueryParameters.declaredNames(entry.getValue(), customResolvers);
+                queryParameters.declaredNames(entry.getValue());
             }
         }
     }
