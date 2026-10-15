@@ -56,7 +56,7 @@
 | C-9 | 生产库 `forcitis_one_prod` 与 `one_prod_*` 角色 | 生产前 | ADR-0025 第 2 条 | [C-9](runbooks/C-9-prod-db.md) · `runbooks/sql/c9_prod_db*.sql` | 🟨 |
 | C-13 | 生产主机上身份运维命令（`identity-operations`）的「见证人」`--witness` 只是自报文本：有服务器 shell 权限的人即可一人填两个名字执行。生产前定方案（例如见证人须在命令执行时以其本人凭据确认，或改为两人分持的审批步骤），与 C-11（关闭单人模式，ADR-0030）同批落实 | 生产前 | ADR-0027 双人在场；ADR-0030；INFRA_RUNBOOK §6 | — | ⬜ |
 | C-10 | 每个环境的 one.env 设置 `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED`（`true` 或 `false`）；没有默认值，缺失则应用启动失败（交叉检查 7） | dev 前 | INFRA_RUNBOOK §5 | — | ⬜ |
-| C-15 | 删除迁移基线开放标记 `backend/architecture/migration-baseline-open`（单独 PR，不夹带迁移改动），此后迁移只追加；dev 期间保持开放，基线改动后 dev 库按 dev 库重建剧本（`runbooks/dev-db-rebuild.md`，one-ops）重建。`deploy_gate.py` 对 prod 拦截、对 dev 只告警 | 生产前 | SESSION_PLAYBOOK §12.2 第 4 条；用户 2026-10-15（ADR-0038（提议，部分取代 ADR-0033 迁移方案第 5 条）；intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`） | — | ⬜ |
+| C-15 | 删除迁移基线开放标记 `backend/architecture/migration-baseline-open`（单独 PR，不夹带迁移改动），此后迁移只追加；dev 期间保持开放，基线改动后 dev 库与服务器发布状态一起重置（见 C-16）。`deploy_gate.py` 对 prod 拦截、对 dev 只告警 | 生产前 | SESSION_PLAYBOOK §12.2 第 4 条；用户 2026-10-15（ADR-0038（提议，部分取代 ADR-0033 迁移方案第 5 条）；intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`） | — | ⬜ |
 | C-16 | dev 库重建剧本 `runbooks/dev-db-rebuild.md`（one-ops）：基线开放期内基线迁移文件改过后，删库重建 dev 库并重置服务器发布状态（安装器比对两版 `migrations.txt`，迁移文件内容变了即拒绝安装，只删库不够；重置后不得回退到重置前的版本）；含 Flowable 首次安装项与首次部署前检查 | 基线改动后的第二次 dev 部署前 | ADR-0038（提议，部分取代 ADR-0033 迁移方案第 5 条）；PAR-1 复审 H-1 | — | ⬜ |
 
 ## D. 部署后验证（Phase 1a 出口条件）

@@ -141,7 +141,7 @@ def self_test():
         os.makedirs(os.path.dirname(os.path.join(root, PROD_APPROVALS)))
         def git(*args):
             return subprocess.run(["git", "-C", root, "-c", "user.name=self-test", "-c", "user.email=self-test@invalid",
-                                   "-c", "commit.gpgsign=false", *args], check=True, capture_output=True, text=True).stdout.strip()
+                                   "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", *args], check=True, capture_output=True, text=True).stdout.strip()
 
         git("init", "-q")
         marker = os.path.join(root, BASELINE_MARKER)
