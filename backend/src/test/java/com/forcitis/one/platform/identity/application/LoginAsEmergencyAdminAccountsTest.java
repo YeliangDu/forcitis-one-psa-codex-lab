@@ -82,7 +82,7 @@ class LoginAsEmergencyAdminAccountsTest {
     private void listed(EmployeeId employee, EmploymentStatus status) {
         when(directory.findEmployee(employee)).thenReturn(Optional.of(new EmployeeProfile(employee, "person", new OrgUnitId(5), null, status, false)));
         when(directory.employmentOf(employee)).thenReturn(status == EmploymentStatus.EMPLOYED
-                ? com.forcitis.one.organization.workforce.api.EmploymentEvidence.EMPLOYED : com.forcitis.one.organization.workforce.api.EmploymentEvidence.SEPARATED);
+                ? com.forcitis.one.organization.workforce.api.EmploymentVerdict.EMPLOYED : com.forcitis.one.organization.workforce.api.EmploymentVerdict.SEPARATED);
     }
 
     @Test

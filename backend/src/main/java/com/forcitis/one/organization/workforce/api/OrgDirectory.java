@@ -11,7 +11,7 @@ public interface OrgDirectory {
     Optional<EmployeeProfile> findEmployeeByLogin(LoginLookup lookup);
 
     /** What the snapshot can say about the employment of one employee, and whether it can be trusted to say it. */
-    EmploymentEvidence employmentOf(EmployeeId employeeId);
+    EmploymentVerdict employmentOf(EmployeeId employeeId);
 
     /** Empty when none or not employed. */
     Optional<EmployeeId> findSupervisor(EmployeeId employeeId);

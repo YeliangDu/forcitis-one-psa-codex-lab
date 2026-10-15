@@ -95,11 +95,11 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public com.forcitis.one.organization.workforce.api.EmploymentEvidence employmentOf(EmployeeId employeeId) {
+    public com.forcitis.one.organization.workforce.api.EmploymentVerdict employmentOf(EmployeeId employeeId) {
         return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED
-                ? com.forcitis.one.organization.workforce.api.EmploymentEvidence.EMPLOYED
-                : com.forcitis.one.organization.workforce.api.EmploymentEvidence.SEPARATED)
-                .orElse(com.forcitis.one.organization.workforce.api.EmploymentEvidence.NOT_LISTED);
+                ? com.forcitis.one.organization.workforce.api.EmploymentVerdict.EMPLOYED
+                : com.forcitis.one.organization.workforce.api.EmploymentVerdict.SEPARATED)
+                .orElse(com.forcitis.one.organization.workforce.api.EmploymentVerdict.NOT_LISTED);
     }
 
     @Override

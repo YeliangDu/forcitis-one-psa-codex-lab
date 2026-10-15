@@ -208,7 +208,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("ADR-0027 1.3 / ADR-0033 3.7 a snapshot that is missing or stale does not stop the login: the organisation source may be down")
     void unavailableSnapshotIsAllowed() throws Exception {
         when(orgDirectory.findEmployee(new EmployeeId(7))).thenReturn(Optional.empty());
-        when(orgDirectory.employmentOf(new EmployeeId(7))).thenReturn(com.forcitis.one.organization.workforce.api.EmploymentEvidence.SNAPSHOT_UNAVAILABLE);
+        when(orgDirectory.employmentOf(new EmployeeId(7))).thenReturn(com.forcitis.one.organization.workforce.api.EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
 
         MvcResult result = login("breakglass", PASSWORD, code());
 
@@ -220,7 +220,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("ADR-0033 3.7 (U-4) a current snapshot that does not list the bound employee refuses the login")
     void currentSnapshotWithoutTheBoundEmployeeIsRefused() throws Exception {
         when(orgDirectory.findEmployee(new EmployeeId(7))).thenReturn(Optional.empty());
-        when(orgDirectory.employmentOf(new EmployeeId(7))).thenReturn(com.forcitis.one.organization.workforce.api.EmploymentEvidence.NOT_LISTED);
+        when(orgDirectory.employmentOf(new EmployeeId(7))).thenReturn(com.forcitis.one.organization.workforce.api.EmploymentVerdict.NOT_LISTED);
 
         MvcResult result = login("breakglass", PASSWORD, code());
 

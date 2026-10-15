@@ -3,7 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
-import com.forcitis.one.organization.workforce.api.EmploymentEvidence;
+import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -45,15 +45,15 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     @Override
-    public EmploymentEvidence employmentOf(EmployeeId employeeId) {
+    public EmploymentVerdict employmentOf(EmployeeId employeeId) {
         Optional<StaffEmployee> staff = snapshots.findStaff(employeeId);
         if (staff.isPresent() && staff.get().employee().employmentStatus() != EmploymentStatus.EMPLOYED) {
-            return EmploymentEvidence.SEPARATED;
+            return EmploymentVerdict.SEPARATED;
         }
         if (!freshness.isCurrent()) {
-            return EmploymentEvidence.SNAPSHOT_UNAVAILABLE;
+            return EmploymentVerdict.SNAPSHOT_UNAVAILABLE;
         }
-        return staff.isPresent() ? EmploymentEvidence.EMPLOYED : EmploymentEvidence.NOT_LISTED;
+        return staff.isPresent() ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.NOT_LISTED;
     }
 
     private Optional<EmployeeProfile> findEmployeeByWecomUser(WecomUserId wecomUserId) {

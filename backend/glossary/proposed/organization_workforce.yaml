@@ -1,13 +1,13 @@
 # Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-0018）
 # 新词一律 status: proposed；通用技术词放 common_words，业务概念放 terms。
 terms:
-- id: employment_evidence
-  zh: 在职依据
-  en: EmploymentEvidence
-  snake: employment_evidence
+- id: employment_verdict
+  zh: 在职判定
+  en: EmploymentVerdict
+  snake: employment_verdict
   kind: value
   bc: organization.workforce
-  definition: 组织快照对某员工在职情况能给出的说法：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用）
+  definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用）
   standard_ref:
   - ADR-0033 第 3 项第 7 条
   confidence: medium
@@ -21,7 +21,7 @@ terms:
   snake: login_lookup
   kind: value
   bc: organization.workforce
-  definition: 按外部登录标识（企业微信 userid 或致远登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除
+  definition: 按外部登录标识（企业微信 userid 或外部登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除
   standard_ref:
   - ADR-0033 第 4 项
   confidence: medium

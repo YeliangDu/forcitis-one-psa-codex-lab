@@ -298,8 +298,8 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
-| `employment_evidence` | 在职依据 | EmploymentEvidence | 组织快照对某员工在职情况能给出的说法：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用） |  | R-1b P2-H2 |
-| `login_lookup` | 登录查人 | LoginLookup | 按外部登录标识（企业微信 userid 或致远登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除 |  | R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限 |
+| `employment_verdict` | 在职判定 | EmploymentVerdict | 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用） |  | R-1b P2-H2 |
+| `login_lookup` | 登录查人 | LoginLookup | 按外部登录标识（企业微信 userid 或外部登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除 |  | R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限 |
 | `workforce__assignment` | 任职 | Assignment | 员工在某个组织单元、某个岗位上的任职，含直属领导（汇报线）；A8 为源 |  |  |
 | `workforce__reporting_line` | 汇报线 | ReportingLine | 员工到直属领导的上下级关系；同步时校验领导存在、在职、非本人、无环 |  |  |
 | `workforce__sync_diff` | 同步差异 | SyncDiff | 一次同步运行改动的对象与字段，以及发现的数据例外（供数据管理员处理） |  |  |

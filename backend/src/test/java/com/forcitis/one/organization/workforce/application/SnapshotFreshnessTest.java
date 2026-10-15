@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.organization.workforce.api.EmploymentEvidence;
+import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.domain.Employee;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
@@ -74,7 +74,7 @@ class SnapshotFreshnessTest {
 
     @Test
     @DisplayName("P2-H2 employmentOf: listed as separated is said even by a stale snapshot; not listed only by a current one; otherwise the snapshot is unavailable")
-    void P2_H2_employmentEvidence() {
+    void P2_H2_employmentVerdict() {
         OrgSnapshotQueries snapshots = mock(OrgSnapshotQueries.class);
         StaffEmployee employed = staff(EmploymentStatus.EMPLOYED);
         StaffEmployee separated = staff(EmploymentStatus.SEPARATED);
@@ -84,12 +84,12 @@ class SnapshotFreshnessTest {
         OrgDirectoryService current = directory(snapshots, NOW.minus(Duration.ofMinutes(1)));
         OrgDirectoryService stale = directory(snapshots, NOW.minus(Duration.ofDays(30)));
 
-        assertThat(current.employmentOf(new EmployeeId(1))).isEqualTo(EmploymentEvidence.EMPLOYED);
-        assertThat(current.employmentOf(new EmployeeId(2))).isEqualTo(EmploymentEvidence.SEPARATED);
-        assertThat(current.employmentOf(new EmployeeId(3))).isEqualTo(EmploymentEvidence.NOT_LISTED);
-        assertThat(stale.employmentOf(new EmployeeId(1))).isEqualTo(EmploymentEvidence.SNAPSHOT_UNAVAILABLE);
-        assertThat(stale.employmentOf(new EmployeeId(2))).isEqualTo(EmploymentEvidence.SEPARATED);
-        assertThat(stale.employmentOf(new EmployeeId(3))).isEqualTo(EmploymentEvidence.SNAPSHOT_UNAVAILABLE);
+        assertThat(current.employmentOf(new EmployeeId(1))).isEqualTo(EmploymentVerdict.EMPLOYED);
+        assertThat(current.employmentOf(new EmployeeId(2))).isEqualTo(EmploymentVerdict.SEPARATED);
+        assertThat(current.employmentOf(new EmployeeId(3))).isEqualTo(EmploymentVerdict.NOT_LISTED);
+        assertThat(stale.employmentOf(new EmployeeId(1))).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        assertThat(stale.employmentOf(new EmployeeId(2))).isEqualTo(EmploymentVerdict.SEPARATED);
+        assertThat(stale.employmentOf(new EmployeeId(3))).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
     }
 
     private OrgDirectoryService directory(OrgSnapshotQueries snapshots, Instant lastSucceeded) {

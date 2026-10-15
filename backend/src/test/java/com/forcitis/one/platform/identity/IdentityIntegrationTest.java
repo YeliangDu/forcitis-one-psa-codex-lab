@@ -186,7 +186,7 @@ public abstract class IdentityIntegrationTest {
         accessCache.evictAll();
         Mockito.reset(ssoVerifier);
         when(orgDirectory.employmentOf(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(com.forcitis.one.organization.workforce.api.EmploymentEvidence.SNAPSHOT_UNAVAILABLE);
+                .thenReturn(com.forcitis.one.organization.workforce.api.EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
         jdbc.sql("delete from platform_identity.sessions").update();
         jdbc.sql("delete from platform_identity.login_states").update();
         jdbc.sql("delete from platform_identity.sso_ticket_uses").update();
@@ -206,7 +206,7 @@ public abstract class IdentityIntegrationTest {
         when(orgDirectory.findEmployee(profile.employeeId())).thenReturn(Optional.of(profile));
         when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUser(profile.wecomUserId()))).thenReturn(Optional.of(profile));
         when(orgDirectory.employmentOf(profile.employeeId())).thenReturn(status == EmploymentStatus.EMPLOYED
-                ? com.forcitis.one.organization.workforce.api.EmploymentEvidence.EMPLOYED : com.forcitis.one.organization.workforce.api.EmploymentEvidence.SEPARATED);
+                ? com.forcitis.one.organization.workforce.api.EmploymentVerdict.EMPLOYED : com.forcitis.one.organization.workforce.api.EmploymentVerdict.SEPARATED);
         when(orgDirectory.findOrgUnit(new OrgUnitId(10))).thenReturn(Optional.of(new OrgUnitProfile(new OrgUnitId(10), "Delivery", null, true)));
         return profile;
     }

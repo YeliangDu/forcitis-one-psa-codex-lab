@@ -3,7 +3,7 @@ package com.forcitis.one.platform.approval.infrastructure.replay;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
-import com.forcitis.one.organization.workforce.api.EmploymentEvidence;
+import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -45,9 +45,9 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public EmploymentEvidence employmentOf(EmployeeId employeeId) {
-        return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED ? EmploymentEvidence.EMPLOYED : EmploymentEvidence.SEPARATED)
-                .orElse(EmploymentEvidence.NOT_LISTED);
+    public EmploymentVerdict employmentOf(EmployeeId employeeId) {
+        return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.SEPARATED)
+                .orElse(EmploymentVerdict.NOT_LISTED);
     }
 
     @Override
