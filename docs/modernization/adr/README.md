@@ -42,6 +42,7 @@
 | [ADR-0035](ADR-0035.md) | 契约演进与兼容 | 已采纳（用户 2026-10-15：「批准 (Recommended)」，intent `2026-10-15-082825-one-coordinator-ADR-0035-契约演进与兼容.md`；此前对 DDL 审计、原则核对 A / B 其余待决项答「全部按推荐 (Recommended)」，评审后对生效时点答「首次生产部署时生效 (Recommended)」） |
 | [ADR-0036](ADR-0036.md) | 历史数据迁入 | 已采纳（用户 2026-10-15：ADR-0036「批准 (Recommended)」；U-1 至 U-5「全部按推荐 (Recommended)」，intent `2026-10-15-084845-one-coordinator-ADR-0036-历史数据迁入.md`；此前对 DDL 审计、原则核对 A / B 其余待决项答「全部按推荐 (Recommended)」，评审与复核后答「新增终态「历史期间」 (Recommended)」「编号列存原编号作展示号 (Recommended)」「批次未生效不可见，失败整批冲销 (Recommended)」「同意改为暂存后提交 (Recommended)」「拆出单独继续改，其余规则先合并 (Recommended)」） |
 | [ADR-0037](ADR-0037.md) | 新系统读取老系统与 A8 数据的范围 | 已采纳（用户 2026-10-15「新系统可以读任何旧系统数据」、澄清「两者都是」、「修改权限」，凭据类「全部可读，不排除」；批准：ADR-0037（#136）「按建议批准 (Recommended)」——Q1 (c)、Q2 全部、Q3、Q4、Q5 先查、Q6 (i)(ii)、C-1 / C-2 按建议；均经 one-coordinator 转达，intent 2026-10-15-081242） |
+| [ADR-0038](ADR-0038.md) | 迁移基线在生产部署前关闭 | 提议 |
 
 ## ADR 生命周期与变更规则
 
