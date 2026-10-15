@@ -163,7 +163,16 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 | `DEV_VITE_SSO_PORTAL_URL`、`PROD_VITE_SSO_PORTAL_URL` | 致远门户地址（B-3） |
 | `DEV_TARO_APP_WECOM_CORP_ID`、`PROD_TARO_APP_WECOM_CORP_ID` | H5 的企业 ID |
 
-任一为空，`build.sh` 失败（不静默构建出不能登录的包）。不放在 GitHub environment 里的原因：一个作业只能绑定一个 environment，且绑定 `prod` 会触发 prod 的审批与部署记录，发布时同时构建两个环境做不到。长期做法是前端改为一次构建、运行时读取配置（例如 nginx 提供的 `/config.json`），届时这些变量移到 `one.env`，发布包只含一份静态资源（给 1a 的建议）。
+任一为空，`build.sh` 失败（不静默构建出不能登录的包）。
+
+现值（2026-10-15 写入仓库级变量并回读；release.yml 的 build 作业不绑定 environment，只读仓库级变量）：
+
+| 变量 | 值 | 出处 |
+|---|---|---|
+| `DEV_VITE_WECOM_CORP_ID`、`DEV_TARO_APP_WECOM_CORP_ID` | `wwadff8d21724e2e3e` | B-2 新自建应用的企业 ID（与 ECS `one.env` 的 `WECOM_CORP_ID` 相同） |
+| `DEV_VITE_WECOM_AGENT_ID` | `1000142` | B-2 新自建应用「FORCITIS one」（与 `one.env` 的 `WECOM_AGENT_ID` 相同） |
+| `DEV_VITE_SSO_PORTAL_URL` | `https://bpm.forcitis.com/seeyon/` | **临时**：A8 根地址（登录后进门户）。**待替换**：B-3 回传 A8 门户中新入口所在页面的地址后替换并重新发布 |
+| `PROD_*` 四个 | 与 `DEV_*` 相同 | **待替换**：`build.sh` 每次构建 dev 与 prod 两份，`PROD_*` 必填；生产前确认 prod 是否用同一企业、同一自建应用与门户地址，不同则替换后重新发布（prod 部署另受 D 节出口条件与批准行约束） |不放在 GitHub environment 里的原因：一个作业只能绑定一个 environment，且绑定 `prod` 会触发 prod 的审批与部署记录，发布时同时构建两个环境做不到。长期做法是前端改为一次构建、运行时读取配置（例如 nginx 提供的 `/config.json`），届时这些变量移到 `one.env`，发布包只含一份静态资源（给 1a 的建议）。
 
 ## 7. 一次性步骤（用户或运维执行，执行前确认）
 
