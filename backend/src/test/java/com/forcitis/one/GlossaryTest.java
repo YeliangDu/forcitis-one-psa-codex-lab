@@ -40,7 +40,9 @@ class GlossaryTest {
     // keep in step with IRREGULAR_PAST in docs/modernization/glossary/term_rules.py
     static final Set<String> IRREGULAR_PAST = Set.of("sent", "built", "held", "made", "paid", "set", "put", "read", "lost", "kept", "begun",
             "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset",
-            "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come");
+            "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come",
+            "won", "done", "sold", "bought", "withheld", "repaid", "prepaid", "overpaid", "underpaid", "told", "brought", "shut", "let", "rebuilt", "overdrawn");
+    static final Set<String> NOT_PARTICIPLES = Set.of("need", "speed", "feed", "seed", "embed", "proceed", "exceed", "succeed", "bed", "red", "shed");
     static final Map<String, String> codeProblems = new TreeMap<>();
     static final Set<String> BUILT_INS = Set.of("equals", "hashCode", "toString", "values", "valueOf", "compareTo",
             "ordinal", "name", "getClass", "describeConstable", "getDeclaringClass", "main");
@@ -186,9 +188,18 @@ class GlossaryTest {
     void aggregatesAndEventsAreGlossaryTerms() throws IOException {
         // G40 every aggregate root class has an aggregate term, G41 every domain event class a domain_event term whose name is past tense,
         // G42 no technical generic word in their names (B2, intent 2026-10-15-171959 items 3, 5, 8: code types can be traced to a term id)
-        List<String> baseline = Files.exists(CODE_BASELINE)
+        List<String> lines = Files.exists(CODE_BASELINE)
                 ? Files.readAllLines(CODE_BASELINE).stream().map(String::strip).filter(l -> !l.isEmpty() && !l.startsWith("#")).toList() : List.of();
         List<String> failures = new ArrayList<>();
+        // "count N" must equal the number of lines: the baseline can only shrink, lowering N together with deleting a line
+        List<String> baseline = lines.stream().filter(l -> !l.startsWith("count ")).toList();
+        String declared = lines.stream().filter(l -> l.startsWith("count ")).findFirst().orElse("count -1");
+        if (!declared.equals("count " + baseline.size())) {
+            failures.add("baseline declares '" + declared + "' but has " + baseline.size() + " lines (delete a line = lower the count, never raise it)");
+        }
+        if (baseline.size() != new HashSet<>(baseline).size()) {
+            failures.add("duplicate line in " + CODE_BASELINE);
+        }
         codeProblems.forEach((key, msg) -> {
             if (!baseline.contains(key)) {
                 failures.add("new problem " + key + ": " + msg);
@@ -208,7 +219,7 @@ class GlossaryTest {
             ws.remove(ws.size() - 1);
         }
         for (int i = ws.size() - 1; i >= 0; i--) {
-            if (ws.get(i).endsWith("ed") || IRREGULAR_PAST.contains(ws.get(i))) {
+            if ((ws.get(i).endsWith("ed") && !NOT_PARTICIPLES.contains(ws.get(i))) || IRREGULAR_PAST.contains(ws.get(i))) {
                 return i == ws.size() - 1 || PREPOSITIONS.contains(ws.get(i + 1));
             }
         }

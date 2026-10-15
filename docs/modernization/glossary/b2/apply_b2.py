@@ -23,6 +23,8 @@ def new_kind(entry, judged):
     """返回类别（DDD 取值或 MOVED 之一）；error_code 与已是 DDD 取值的不动。"""
     kind = entry["kind"]
     if judged is not None:
+        if judged["new_kind"] not in DDD_KINDS + MOVED:
+            raise SystemExit(f"{entry['id']}：判定表的新类别 {judged['new_kind']} 不合法")
         if judged["old_kind"] != kind:
             raise SystemExit(f"{entry['id']}：判定表的原类别 {judged['old_kind']} 与词条现状 {kind} 不符")
         return judged["new_kind"]
@@ -40,6 +42,9 @@ def apply(terms):
     unknown = sorted(set(judged) - set(byid))
     if unknown:
         raise SystemExit("判定表里有词表中不存在的词条：" + "、".join(unknown))
+    owners_moved = [i["owner"] for i in judged.values() if i.get("owner") and judged.get(i["owner"], {}).get("new_kind") in MOVED]
+    if owners_moved:
+        raise SystemExit("属性的 owner 本身被移出词表：" + "、".join(owners_moved))
     changed = moved = attached = 0
     keep = []
     for t in terms:

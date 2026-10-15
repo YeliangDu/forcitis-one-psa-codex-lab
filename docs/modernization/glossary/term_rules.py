@@ -26,7 +26,10 @@ GENERIC_FIRST = ("create", "update", "delete")
 GENERIC_LAST = ("data", "info", "manager", "handler", "helper", "util", "utils", "processor")
 PARTICLES = ("off", "out", "up", "down", "in", "over", "back", "away", "on")
 PREPOSITIONS = ("for", "to", "by", "from", "in", "on", "at", "with", "of", "into", "after", "before")
-IRREGULAR_PAST = ("sent", "built", "held", "made", "paid", "set", "put", "read", "lost", "kept", "begun", "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset", "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come")
+IRREGULAR_PAST = ("sent", "built", "held", "made", "paid", "set", "put", "read", "lost", "kept", "begun", "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset", "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come",
+                  "won", "done", "sold", "bought", "withheld", "repaid", "prepaid", "overpaid", "underpaid", "told", "brought", "shut", "let", "rebuilt", "overdrawn")
+NOT_PARTICIPLES = ("need", "speed", "feed", "seed", "embed", "proceed", "exceed", "succeed", "bed", "red", "shed")
+IMPERATIVE_ED_ING = ("proceed", "exceed", "succeed", "feed", "embed", "need", "speed", "bring", "ring", "spring", "sing", "string")
 
 
 def past_tense(ws):
@@ -35,7 +38,7 @@ def past_tense(ws):
     while len(ws) > 1 and ws[-1] in PARTICLES:
         ws = ws[:-1]
     for i in range(len(ws) - 1, -1, -1):
-        if ws[i].endswith("ed") or ws[i] in IRREGULAR_PAST:
+        if (ws[i].endswith("ed") and ws[i] not in NOT_PARTICIPLES) or ws[i] in IRREGULAR_PAST:
             return i == len(ws) - 1 or ws[i + 1] in PREPOSITIONS
     return False
 
@@ -88,7 +91,7 @@ def check(entries, bcs):
                 bad(src, e, "event_name", f"领域事件名须以过去分词结尾（聚合名加过去式业务动词），现为「{e.get('en')}」")
         if kind == "command":
             first = (words(e.get("en")) or [""])[0]
-            if first.endswith(("ed", "ing")):
+            if first.endswith(("ed", "ing")) and first not in IMPERATIVE_ED_ING:
                 bad(src, e, "command_name", f"命令名须以祈使动词开头，现为「{e.get('en')}」")
         if kind != "error_code" and e.get("status") != "deprecated":
             ws = words(e.get("en"))

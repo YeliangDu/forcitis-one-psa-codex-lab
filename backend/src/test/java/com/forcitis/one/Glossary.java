@@ -104,7 +104,9 @@ final class Glossary {
         for (Path file : files) {
             load(file, ids);
         }
-        if (Files.exists(CONTEXTS)) {
+        if (!Files.exists(CONTEXTS)) {
+            PROBLEMS.add(CONTEXTS + ": missing");
+        } else {
             loadContexts();
         }
     }
@@ -116,9 +118,19 @@ final class Glossary {
             root = new Yaml().load(in);
         }
         for (Map<String, Object> raw : (List<Map<String, Object>>) root.getOrDefault("bcs", List.of())) {
-            if ("system".equals(raw.get("kind")) && raw.get("en") != null) {
+            Object id = raw.get("id");
+            // the segments of every context id (bc, subdomain, kernel) are registered words
+            for (String part : String.valueOf(id).split("\\.")) {
+                COMMON_WORDS.add(part.toLowerCase(Locale.ROOT));
+            }
+            if ("system".equals(raw.get("kind"))) {
+                if (raw.get("en") == null) {
+                    PROBLEMS.add(CONTEXTS + " " + id + ": system entry needs en");
+                    continue;
+                }
                 String en = String.valueOf(raw.get("en"));
-                TERMS.add(new Term("bcs:" + raw.get("id"), String.valueOf(raw.get("zh")), en, String.join("_", split(en)), "approved", Map.of(), "system", null));
+                String status = String.valueOf(raw.getOrDefault("status", "approved"));
+                TERMS.add(new Term("bcs:" + id, String.valueOf(raw.get("zh")), en, String.join("_", split(en)), status, Map.of(), "system", null));
             }
         }
     }
@@ -166,6 +178,10 @@ final class Glossary {
             }
             TERMS.add(new Term(id, String.valueOf(raw.get("zh")), en, snake, status, forbidden, String.valueOf(raw.get("kind")), String.valueOf(raw.get("bc"))));
             for (Map<String, Object> attr : (List<Map<String, Object>>) raw.getOrDefault("attributes", List.of())) {
+                if (attr.get("en") == null || attr.get("snake") == null || attr.get("zh") == null) {
+                    PROBLEMS.add(id + ": attribute needs zh, en and snake");
+                    continue;
+                }
                 String attrEn = String.valueOf(attr.get("en"));
                 TERMS.add(new Term(id + "." + attr.get("snake"), String.valueOf(attr.get("zh")), attrEn, String.valueOf(attr.get("snake")), status, Map.of(), "value_object", String.valueOf(raw.get("bc"))));
             }
