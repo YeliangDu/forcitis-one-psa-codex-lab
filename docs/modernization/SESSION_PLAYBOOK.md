@@ -329,6 +329,7 @@
 - 第 1 项：`organization.workforce` 的 `BeginSyncRun` / `ApplySourceSnapshot` 在开始新的同步运行时，会在同一事务内放行被取代的 HELD 记录、关闭被遗弃的 RUNNING 记录（涉及多条 `SyncRun`）。理由：这些都是同一类型的运维记录，拆成异步会留下「两条同步同时运行」的并发窗口。
 - 第 1 项：`cost.timesheet` 的 `SubmitTimesheet` 在工时单首次提交时，同一事务内创建工时单并向编号服务取号（涉及 `Timesheet` 与 `NumberingRule` 的计数器）。理由：编号与单据同生同灭，拆开会留下空号或重号；被改的计数器只有一次原子取号，事件信封的 `relatedAggregates` 列出它，登记在 `architecture/multi-aggregate-exceptions.txt`，由 `SingleAggregateGuardTest` 守护。
 - 第 1 项（另一条）：`organization.workforce` 的 `ApplySourceSnapshot` 在同一事务内写 `SyncRun`（运行结果）与组织快照（one-coordinator 2026-10-15 接受，整合复审 INT-DDD-H2）。理由：运行结果与快照同生同灭，分开提交会出现「快照已更新但运行记为失败」或反之的不一致；登记于 `backend/architecture/multi-aggregate-exceptions.txt`，事件带 relatedAggregates。
+- 第 1 项：`platform.integration` 的 `ConfirmSourceReference` 在确认来源对照时，同一事务内关闭旧的已确认行并确认新行（两个 `SourceReference` 实例）。理由：ADR-0033 第 2 项第 1 条要求同一事务，否则会出现无编码或双编码的时点；与 `BeginSyncRun` 同类，是同一类型的两个实例，`SingleAggregateGuardTest` 按聚合类型计数，不需要登记到 `architecture/multi-aggregate-exceptions.txt`；`SourceReferenceConfirmed` 的 `relatedAggregates` 带被取代行的 ID（one-coordinator 2026-10-15 接受，#139 复审 M3）。
 
 **须落成守护的复审项**（用户 2026-10-14 对 1a 大修原因分析的五条建议答「采纳」；由 Phase 1a 实现，未实现前由复审逐项检查）：
 - G-T1　一个 `@Transactional` 应用服务只写一个聚合的仓储；例外须在上方「已登记的例外」中登记，守护读取该登记。

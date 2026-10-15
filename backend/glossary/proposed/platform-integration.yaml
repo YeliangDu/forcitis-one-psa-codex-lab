@@ -69,21 +69,21 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: ADR-0033（提议）登记，待用语确认；权限码 platform.integration:source-reference:update（组织数据管理员）、platform.integration:source-reference:approve（核算组织编码四眼确认，持有人待 U-3），授予方式均为 INDIVIDUAL
+  note: ADR-0033 登记；权限码 platform.integration:source-reference:update（授予组织数据管理员）、platform.integration:source-reference:approve（核算组织编码四眼确认，授予业务管理员），授予方式均为 INDIVIDUAL
 - id: source_system
   zh: 来源系统
   en: SourceSystem
   snake: source_system
   kind: enum
   bc: platform.integration
-  definition: 来源对照所属的外部系统（组织源、老系统、核算系统等），取值只在集成层出现
+  definition: 来源对照所属的外部系统，取值为组织源（ORG_SOURCE）、老系统（LEGACY_SYSTEM）、核算系统（ACCOUNTING_SYSTEM），只在集成层与迁入登记中出现
   standard_ref:
   - adr/ADR-0033.md
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: ADR-0033（提议）登记，待用语确认
+  note: 数据库列叫 source_system，Java 枚举叫 ExternalSource（platform.integration.api），因为 kernel.event.SourceSystem（ONE / MIGRATION）表示事件出自新系统还是历史迁入，是另一回事，不改名
 - id: source_object_kind
   zh: 来源对象类别
   en: SourceObjectKind
@@ -98,6 +98,160 @@ terms:
   forbidden: []
   status: proposed
   note: ADR-0033（提议）登记，待用语确认
+- id: org_source
+  zh: 组织源
+  en: OrgSource
+  snake: org_source
+  kind: system
+  bc: platform.integration
+  definition: 组织与人员的来源系统，来源系统取值 ORG_SOURCE；其员工、组织单元、岗位的标识登记在来源对照里
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: accounting_system
+  zh: 核算系统
+  en: AccountingSystem
+  snake: accounting_system
+  kind: system
+  bc: platform.integration
+  definition: 接收凭证的核算系统，来源系统取值 ACCOUNTING_SYSTEM；法人在其中的数字编码（核算组织编码）登记在来源对照里
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: rejected_state
+  zh: 已拒绝
+  en: RejectedState
+  snake: rejected_state
+  kind: state
+  bc: platform.integration
+  definition: 来源对照的确认状态之一：登记的对照被另一个人拒绝，不占自然键约束，不用于出站
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '展示用语；对应确认状态 REJECTED。与审批的「驳回」（Reject，platform.approval，审批人对任务给出不同意的结论）不是一回事：这里是另一个人不接受一条登记的来源对照，中文写「已拒绝」，英文命令写 Reject 时不得显示成「驳回」。确认状态的写法：编号规则版本为 PENDING_CONFIRMATION / CONFIRMED，来源对照为 PENDING / CONFIRMED / REJECTED，中文都是待确认 / 已确认 / 已拒绝（ADR-0033 第 2 项第 1 条）'
+- id: registration
+  zh: 登记
+  en: Registration
+  snake: registration
+  kind: command
+  bc: platform.integration
+  definition: 由人把一条来源对照录入系统，先处于待确认，等另一个人确认或拒绝；现在只有核算组织编码可以人工登记
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: supersede
+  zh: 取代
+  en: Supersede
+  snake: supersede
+  kind: command
+  bc: platform.integration
+  definition: 已确认的后继对照从生效日起取代生效中的对照：旧对照在后继的生效日结束，两行的来源标识与自有 ID 都不改写
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_integration_source_reference_not_found
+  zh: 来源对照不存在或无生效的已确认对照
+  en: PlatformIntegrationSourceReferenceNotFound
+  snake: platform_integration_source_reference_not_found
+  kind: error_code
+  bc: platform.integration
+  definition: 没有这条来源对照，或出站时按自有 ID 查不到当日生效的已确认对照（404）；出站查不到时投递挂起并告警
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_integration_source_reference_invalid
+  zh: 来源对照内容非法
+  en: PlatformIntegrationSourceReferenceInvalid
+  snake: platform_integration_source_reference_invalid
+  kind: error_code
+  bc: platform.integration
+  definition: 核算组织编码必须是正整数、必须给出生效日、所指法人必须存在（422）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_integration_source_reference_conflict
+  zh: 来源对照冲突
+  en: PlatformIntegrationSourceReferenceConflict
+  snake: platform_integration_source_reference_conflict
+  kind: error_code
+  bc: platform.integration
+  definition: 确认会使同一来源标识或同一自有对象的已确认对照在同一时点重叠，或后继的生效日不晚于生效中对照的生效日（409）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_integration_source_reference_already_decided
+  zh: 来源对照已决定
+  en: PlatformIntegrationSourceReferenceAlreadyDecided
+  snake: platform_integration_source_reference_already_decided
+  kind: error_code
+  bc: platform.integration
+  definition: 该来源对照已被确认或拒绝，不能再次决定（409）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_integration_source_object_kind_not_allowed
+  zh: 来源对象类别不允许人工登记
+  en: PlatformIntegrationSourceObjectKindNotAllowed
+  snake: platform_integration_source_object_kind_not_allowed
+  kind: error_code
+  bc: platform.integration
+  definition: 人工登记只接受（核算系统，法人主体）；组织源、老系统与其他类别只由同步或导入写入（422，拒绝的尝试写审计）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_integration_confirmer_is_author
+  zh: 确认人不得是登记人
+  en: PlatformIntegrationConfirmerIsAuthor
+  snake: platform_integration_confirmer_is_author
+  kind: error_code
+  bc: platform.integration
+  definition: 登记来源对照的人不能确认或拒绝它，同一人持有两个权限也不行（403，四眼）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 - id: evidence
   zh: 取证
   en: Evidence

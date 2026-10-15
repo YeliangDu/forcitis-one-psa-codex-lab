@@ -87,8 +87,8 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         jdbc.sql("delete from organization_workforce.legal_entity_attribution_corrections").update();
         jdbc.sql("alter table organization_workforce.legal_entity_attribution_corrections enable trigger user").update();
         com.forcitis.one.organization.workforce.application.VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
-        le1 = createLegalEntity.execute("FST", "Synthetic one", null).legalEntityId();
-        le2 = createLegalEntity.execute("FIT", "Synthetic two", null).legalEntityId();
+        le1 = createLegalEntity.execute("FST", "Synthetic one").legalEntityId();
+        le2 = createLegalEntity.execute("FIT", "Synthetic two").legalEntityId();
     }
 
     private void synced(Long parentOfUnit3) {

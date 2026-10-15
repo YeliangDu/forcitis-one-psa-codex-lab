@@ -13,8 +13,10 @@ terms:
   aliases: []
   forbidden:
   - 导入批次
+  - import_batch
+  - ImportBatch
   status: proposed
-  note: 用户 2026-10-15 定批次术语唯一写法；与 #139 分支 data-migration.yaml 同一条，合并时删去一处；platform.numbering 的 import_batch 在 R-1b 改为 migration_batch_id，同一提交把 import_batch / ImportBatch 加入本条 forbidden（现在加会使 G38 在改名前的代码上失败）
+  note: 用户 2026-10-15 定批次术语唯一写法；platform.numbering 的 import_batch 已在 R-1b P3a（#139）改为 migration_batch_id，同一提交加入 forbidden 并删去 platform-integration.yaml 中的重复条目
 common_words:
 # HTTP 约定中的批量命令后缀 :{动作}-batch 与计数端点 :count（NAMING_STANDARD §2.6 A-3、A-6）
 - batch
