@@ -7,12 +7,11 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.domain.ExpiredSessions;
-import java.time.Clock;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Replaces the framework's silent clean-up: each session that ends by running out leaves an audit entry that says whether it was idle or too old. */
+/** Replaces the framework's silent clean-up: each session that ends by running out leaves an audit entry that says whether it was idle or too old; SessionGuardFilter judges the absolute cap by login time and stays authoritative, this is the backstop. */
 @Service
 public class PurgeExpiredSessions {
     private static final Logger LOG = LoggerFactory.getLogger(PurgeExpiredSessions.class);
@@ -21,15 +20,13 @@ public class PurgeExpiredSessions {
     private final ExpiredSessions sessions;
     private final SessionSettings settings;
     private final AuditLog audit;
-    private final Clock clock;
     private final MeterRegistry meters;
 
-    PurgeExpiredSessions(ExpiredSessions sessions, SessionSettings settings, AuditLog audit, Clock clock, MeterRegistry meters) {
+    PurgeExpiredSessions(ExpiredSessions sessions, SessionSettings settings, AuditLog audit, MeterRegistry meters) {
         this.meters = meters;
         this.sessions = sessions;
         this.settings = settings;
         this.audit = audit;
-        this.clock = clock;
     }
 
     @Transactional
@@ -37,7 +34,7 @@ public class PurgeExpiredSessions {
         int removed = 0;
         List<ExpiredSessions.Expired> batch;
         do {
-            batch = sessions.find(clock.millis(), settings.absoluteTimeout().toMillis(), BATCH);
+            batch = sessions.find(settings.absoluteTimeout().toMillis(), BATCH);
             for (ExpiredSessions.Expired expired : batch) {
                 UserId user = accountOf(expired.principalName());
                 audit.record(new AuditEntry("platform.identity.session.expired", user, null,
