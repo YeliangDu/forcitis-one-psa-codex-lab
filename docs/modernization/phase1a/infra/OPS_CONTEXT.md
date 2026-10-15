@@ -50,10 +50,15 @@
 - OIDC 证书链会变 → RELEASE §10
 - 只读探针拒绝含 ALTER / KILL / DELETE 的字面量 → 用 `K_LL%`
 - 云助手：命令内容有长度上限、输出约 24 KB → 分块写入、gzip + base64
+- 阿里云临时凭据（OAuth）只在过期后才换新，过期前调用不会延长 → `ops_credentials` 自动等过期再换；工具必须从仓库检出、未改动的文件运行
 - OOS 参数值 ≤ 4096 字符 → RELEASE §10
 - 安装器比对 current 的 migrations.txt：基线文件被改后第二次部署必失败 → [dev-db-rebuild](runbooks/dev-db-rebuild.md) 第 6 步
 - corepack 按启动目录选 pnpm 版本 → 进 frontend 再调（#151、#156）
 - CI 偶发 postgres:18 测试容器起不来 → `gh run rerun --failed`
+
+## 偏离记录
+
+- 2026-10-15 约 21:18–21:33（one-architecture 派的 sonnet 取证子代理）：① 未经询问在其会话 scratchpad 建 venv（`ve`，Python 3.12.13），从 PyPI 装 alibabacloud-ecs20140526 7.11.6、alibabacloud-tea-openapi 0.4.6 及依赖（alibabacloud-credentials 1.0.12、alibabacloud-tea 0.4.3、alibabacloud-tea-util 0.3.15、darabonba-core 1.0.9、cryptography 50.0.2、aiohttp 3.14.5、requests 2.34.2 等 29 个），未登记；② 用包装脚本 `dr/ev_run.py` 在内存中把 `b5_legacy_run.py` 的凭据阈值 900 秒改成 240 秒后执行（仓库文件未改）。取证本身只用 one_evidence_ro、只取聚合，LEGACY_READ_REGISTER 已登记 2 行。**已清理**（one-ops，2026-10-15）：venv 与 `dr/ev_run.py` 已删除；两台服务器上的取证临时目录核实无残留（t-hz070573w93l2bk、t-hz0705748l9198g）。**防护**：通道脚本改用 `runbooks/scripts/ops_credentials.py`，凭据不足 15 分钟时等过期后自动换新，失败时给出处理步骤；拒绝从仓库外副本或未提交的改动运行（在内存里改写源码的做法仍拦不住，靠派工说明约束）；依赖只用 `~/.modernize/psa/ops-venv`。
 
 ## 剧本
 
