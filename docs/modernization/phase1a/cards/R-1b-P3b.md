@@ -240,3 +240,5 @@
 - L8 落法偏离（one-coordinator 同意）：未在 `SourceReferences.allocate` 运行时限定组织来源，改为 ArchUnit 守护 `SourceReferenceAllocationGuardTest`（主代码只许组织来源适配器调用，带负向样例），因 `LegacyReferencesIT`、`StalledExternalSourceIT`、`ReadOnlyAccountCheckIT` 经同一方法分配 LEGACY_SYSTEM 对照。后续：测试代理把这些验收改走测试专用种子路径后，再评估是否加运行时限定（不急）。
 - rebase 适配：#228 新增的 `SessionPurgeClockIT` 两个局部变量随 ID 改 UUID（机械改动，沿用 RULING-P3B-2）。
 - RULING-P3B-18（rebase 到含 R-1b-0a #250 的 main 后的验收适配，机械改动，断言含义不变）：`A8SourceFlagsIT.unitName` 原直查 `platform_integration.source_references` 取自有 ID，P3b 后被 `TestIsolationGuardTest` 拦，改经 `SourceReferences.findOwnId`（同样只取已确认对照）；其老待办关闭开关从退役旧键改为 `forcitis.platform.integration.legacy.inbox.url`（RULING-P3B-10 / 16）。
+- RULING-P3B-19（合并 main 含 #251 TestMssql，one-coordinator 要求 merge 不 rebase）：`StalledExternalSourceIT`、`ReadOnlyVerificationCommandIT`、`SeeyonViewsMssqlIT` 冲突机械合并（P3b 新键与连接名 + main 的共用容器与按类库名），断言不变。
+- RULING-P3B-20：P3b 新增的验收支撑 `OrgSourceWorldSupport` 自起 SQL Server 容器，被 #251 的 `TestContainerGuardTest.sqlServerContainersAreStartedThroughTestMssql` 拦下；由测试代理改用 `TestMssql.shared()` / `database()` / `login()`（按类生成库名与登录名），断言不变。
