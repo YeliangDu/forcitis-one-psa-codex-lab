@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.OneApplication;
 import com.forcitis.one.TestImages;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
 import com.forcitis.one.kernel.WecomUserId;
@@ -22,7 +23,6 @@ import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
-import com.forcitis.one.platform.integration.api.SourcePerson;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -72,8 +72,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * <p>Black box: a real SQL Server whose views are the DBA script itself (phase1a/SEEYON_VIEWS.sql) over A8-shaped base tables, a read-only
  * login equal to the RDS baseline ({@link ReadOnlyBaselineFixture}), the real application started with SpringApplicationBuilder, and only
  * public entry points: {@link OrgSource}, {@link SyncOrgSnapshot}, {@link GetSyncRun}, {@link OrgDirectory}, the log, the SQL Server plan cache.
- * The new source states are not referenced as types (they do not exist before the change): a {@link SourcePerson} prints its components, and
- * the enum constant names below are what the card fixes.
+ * No type of the change is referenced (none exists before it): the two judgements of card section 13 (does the org source's employment state
+ * agree with the login-name rule; is a deleted or disabled record still holding a login name) are asserted where workforce shows them, as issue
+ * kinds of the sync report (RULING-R1B0-6). Source* names stay inside the adapter and appear nowhere here.
  *
  * <p>Base-table column types follow one-ops evidence 2026-10-15: STATE, IS_DELETED, IS_ENABLE smallint and nullable, ORG_PRINCIPAL.LOGIN_NAME
  * nvarchar(50). ORG_UNIT.TYPE was not reported and is taken as nvarchar; the flags of ORG_UNIT and ORG_MEMBER.IS_INTERNAL as smallint. All
@@ -88,20 +89,14 @@ class A8SourceFlagsIT {
     static final String PURPOSE_RUNTIME_SYNC = "RUNTIME_SYNC";
     static final String PURPOSE_RUNTIME_TODO = "RUNTIME_TODO";
     static final Set<String> RUNTIME_PURPOSES = Set.of(PURPOSE_RUNTIME_SYNC, PURPOSE_RUNTIME_TODO);
-    /** The source employment state (STATE) disagrees with the login-name rule. */
-    static final String ISSUE_EMPLOYMENT_DISAGREES = "EMPLOYMENT_SOURCE_DISAGREES";
-    /** Deleted or disabled in the source, yet employed by the login-name rule. */
-    static final String ISSUE_INACTIVE_RECORD_EMPLOYED = "INACTIVE_SOURCE_RECORD_EMPLOYED";
-    /** Constants of the new SourceEmploymentState (card 3.1: 1 -> EMPLOYED, 2 -> SEPARATED). */
-    static final String SOURCE_EMPLOYED = "EMPLOYED";
-    static final String SOURCE_SEPARATED = "SEPARATED";
-    // ---- Existing names (SourceRecordState). ----
-    static final String RECORD_ACTIVE = "ACTIVE";
-    static final String RECORD_DISABLED = "DISABLED";
-    static final String RECORD_DELETED = "DELETED";
-
-    static final Pattern EMPLOYMENT_COMPONENT = Pattern.compile("=(" + SOURCE_EMPLOYED + "|" + SOURCE_SEPARATED + ")[,)]");
-    static final Pattern RECORD_COMPONENT = Pattern.compile("=(" + RECORD_ACTIVE + "|" + RECORD_DISABLED + "|" + RECORD_DELETED + ")[,)]");
+    /** Sync issue kind: the employment state in the org source (STATE) disagrees with the login-name rule (RULING-R1B0-6, provisional name). */
+    static final String ISSUE_EMPLOYMENT_MISMATCH = "EMPLOYMENT_STATE_MISMATCH";
+    /**
+     * Sync issue kind: the person record is deleted or disabled, yet has a login name. Name pending (one-glossary G07): while this holds the
+     * placeholder, any one new kind other than {@link #ISSUE_EMPLOYMENT_MISMATCH} stands for it; set the real name here once confirmed.
+     */
+    static final String ISSUE_INACTIVE_RECORD_WITH_LOGIN = "G07";
+    static final boolean INACTIVE_KIND_PENDING = ISSUE_INACTIVE_RECORD_WITH_LOGIN.equals("G07");
 
     static final Path VIEW_SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
     static final long HEAD_TYPE = -1726439953579618944L;
@@ -149,12 +144,16 @@ class A8SourceFlagsIT {
             return internal && unit != 4;
         }
 
-        String expectedEmployment() {
-            return state == 1 ? SOURCE_EMPLOYED : SOURCE_SEPARATED;
-        }
-
-        String expectedRecord() {
-            return deleted == 1 ? RECORD_DELETED : enabled == 0 ? RECORD_DISABLED : RECORD_ACTIVE;
+        /** The two judgements of card section 13, as the sync report must show them: STATE 1 = employed, 2 = separated. */
+        List<String> expectedIssues() {
+            List<String> issues = new ArrayList<>();
+            if ((state == 1) != (login != null)) {
+                issues.add(ISSUE_EMPLOYMENT_MISMATCH);
+            }
+            if ((deleted == 1 || enabled == 0) && login != null) {
+                issues.add(ISSUE_INACTIVE_RECORD_WITH_LOGIN);
+            }
+            return issues;
         }
 
         EmployeeId employeeId() {
@@ -200,7 +199,7 @@ class A8SourceFlagsIT {
     record Login(String user, String password) {
     }
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestImages.startingWith("postgres:"))
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
     static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
@@ -240,13 +239,12 @@ class A8SourceFlagsIT {
     // ------------------------------------------------------------------ 1
 
     @Test
-    @DisplayName("R-1b-0 Given 基表人员按生产四种 STATE/IS_DELETED/IS_ENABLE 组合（另加构造的分歧人员）When 读组织快照 Then 每人带来源在职状态与来源记录状态，同步范围人员集合与改动前纯视图语句完全相同")
-    void snapshotCarriesSourceStatesAndKeepsTheScope() throws SQLException {
+    @DisplayName("R-1b-0 RULING-R1B0-6 Given 基表人员按生产四种 STATE/IS_DELETED/IS_ENABLE 组合（另加构造的分歧人员）When 读组织快照并同步 Then 每人的在职状态判定是否一致、记录已删除或停用而仍有登录名与否都按基表标志进同步报告，同步范围人员集合与改动前纯视图语句完全相同")
+    void everyPersonsJudgementsReachTheReportAndTheScopeStays() throws SQLException {
         assertThat(productionCombinationsInFixture()).as("the fixture holds the four production combinations of the current scope")
                 .containsExactlyInAnyOrder("1|0|1|yes", "1|1|0|no", "2|0|0|no", "2|1|0|no");
 
         SourceOrgSnapshot snapshot = app().getBean(OrgSource.class).readSnapshot();
-
         Map<Long, String> pureView = pureViewLoginsById(MAIN);
         assertThat(pureView.keySet()).as("fixture sanity: the pure view statement sees exactly the in-scope people")
                 .containsExactlyInAnyOrderElementsOf(PEOPLE.stream().filter(Person::inScope).map(Person::id).toList());
@@ -254,15 +252,20 @@ class A8SourceFlagsIT {
         snapshot.staff().forEach(p -> read.put(p.personId().value(), p.loginName()));
         assertThat(read).as("same people, same login names as the statement before R-1b-0 (MEMBER_SCOPE unchanged)").isEqualTo(pureView);
 
+        SyncResult result = runSync();
+        assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.SUCCEEDED);
+        assertJudgementsOfEveryone(getRun(result));
+    }
+
+    /** Every in-scope person carries exactly the issues the base-table flags call for, no more, no fewer. */
+    static void assertJudgementsOfEveryone(SyncRunDetailView report) {
         for (Person person : PEOPLE.stream().filter(Person::inScope).toList()) {
-            SourcePerson read1 = snapshot.staff().stream().filter(p -> p.personId().value() == person.id()).findFirst().orElseThrow();
-            String printed = read1.toString();
-            assertThat(components(EMPLOYMENT_COMPONENT, printed)).as("source employment state of %s (STATE=%s): %s", person.label(), person.state(), printed)
-                    .containsExactly(person.expectedEmployment());
-            assertThat(components(RECORD_COMPONENT, printed))
-                    .as("source record state of %s (IS_DELETED=%s, IS_ENABLE=%s): %s", person.label(), person.deleted(), person.enabled(), printed)
-                    .containsExactly(person.expectedRecord());
+            assertThat(issueKinds(report, person))
+                    .as("%s (STATE=%s, IS_DELETED=%s, IS_ENABLE=%s, login %s)", person.label(), person.state(), person.deleted(), person.enabled(),
+                            person.login() == null ? "none" : "yes")
+                    .containsExactlyInAnyOrderElementsOf(person.expectedIssues());
         }
+        assertNoThirdNewKind(report);
     }
 
     // ------------------------------------------------------------------ 2
@@ -368,11 +371,11 @@ class A8SourceFlagsIT {
             assertThat(employee(person).employmentStatus()).as("%s has a login name: employed (RULE-363)", person.label())
                     .isEqualTo(EmploymentStatus.EMPLOYED);
         }
-        assertThat(issueKinds(report, C1)).as("C1: login, STATE=2").containsExactly(ISSUE_EMPLOYMENT_DISAGREES);
-        assertThat(issueKinds(report, C2)).as("C2: login, IS_DELETED=1").containsExactly(ISSUE_INACTIVE_RECORD_EMPLOYED);
-        assertThat(issueKinds(report, C3)).as("C3: login, IS_ENABLE=0").containsExactly(ISSUE_INACTIVE_RECORD_EMPLOYED);
+        assertThat(issueKinds(report, C1)).as("C1: login, STATE=2").containsExactly(ISSUE_EMPLOYMENT_MISMATCH);
+        assertThat(issueKinds(report, C2)).as("C2: login, IS_DELETED=1").containsExactly(ISSUE_INACTIVE_RECORD_WITH_LOGIN);
+        assertThat(issueKinds(report, C3)).as("C3: login, IS_ENABLE=0").containsExactly(ISSUE_INACTIVE_RECORD_WITH_LOGIN);
         assertThat(issueKinds(report, C5)).as("C5: login, STATE=2 and disabled: both readers, one issue each")
-                .containsExactlyInAnyOrder(ISSUE_EMPLOYMENT_DISAGREES, ISSUE_INACTIVE_RECORD_EMPLOYED);
+                .containsExactlyInAnyOrder(ISSUE_EMPLOYMENT_MISMATCH, ISSUE_INACTIVE_RECORD_WITH_LOGIN);
 
         assertThat(report.run().incomingEmployedCount()).as("shrink guard numerator: people with a login name in the unchanged scope")
                 .isEqualTo(pureViewLoginsById(MAIN).values().stream().filter(l -> l != null && !l.isBlank()).count());
@@ -391,9 +394,9 @@ class A8SourceFlagsIT {
         SyncRunDetailView report = getRun(result);
 
         assertThat(employee(C4).employmentStatus()).as("C4 has no login name: separated (RULE-363)").isEqualTo(EmploymentStatus.SEPARATED);
-        assertThat(issueKinds(report, C4)).as("C4: no login, STATE=1, active").containsExactly(ISSUE_EMPLOYMENT_DISAGREES);
+        assertThat(issueKinds(report, C4)).as("C4: no login, STATE=1, active").containsExactly(ISSUE_EMPLOYMENT_MISMATCH);
         assertThat(issueKinds(report, P2)).as("P2 (production 1|1|0, no login): STATE=1 disagrees with the login rule; deleted and not employed is no second issue")
-                .containsExactly(ISSUE_EMPLOYMENT_DISAGREES);
+                .containsExactly(ISSUE_EMPLOYMENT_MISMATCH);
         for (Person agreeing : List.of(P1, P1B, P3, P4)) {
             assertThat(issueKinds(report, agreeing)).as("%s: source state and login rule agree", agreeing.label()).isEmpty();
         }
@@ -456,10 +459,9 @@ class A8SourceFlagsIT {
      * view, so a decoy present at start would only test that check. The run-time re-check before the read looks at permissions, not objects.
      */
     @Test
-    @DisplayName("R-1b-0 Given A8 用户默认 schema 为 forcitis_one 且其下有同名诱饵 ORG_MEMBER（STATE 全为 2）When 读快照 Then 取到 dbo.ORG_MEMBER 的值")
+    @DisplayName("R-1b-0 RULING-R1B0-6 Given A8 用户默认 schema 为 forcitis_one 且其下有同名诱饵 ORG_MEMBER（STATE 全为 2）When 读快照并同步 Then 判定取自 dbo.ORG_MEMBER 的值")
     void baseTablesAreReadByTheirDboName() throws SQLException {
-        OrgSource a8 = app().getBean(OrgSource.class);
-        SourceOrgSnapshot snapshot;
+        SyncResult result;
         try {
             run(MAIN, "SELECT ID, CAST(2 AS smallint) AS STATE, CAST(1 AS smallint) AS IS_DELETED, CAST(0 AS smallint) AS IS_ENABLE "
                             + "INTO forcitis_one.ORG_MEMBER FROM dbo.ORG_MEMBER",
@@ -471,14 +473,16 @@ class A8SourceFlagsIT {
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getInt(1)).as("the trap is armed: for the A8 login an unqualified ORG_MEMBER is the decoy").isEqualTo(2);
             }
-            snapshot = a8.readSnapshot();
+            result = runSync();
         } finally {
             run(MAIN, "DROP TABLE IF EXISTS forcitis_one.ORG_MEMBER", "DROP TABLE IF EXISTS forcitis_one.ORG_UNIT");
         }
 
-        String printed = snapshot.staff().stream().filter(p -> p.personId().value() == P1.id()).findFirst().orElseThrow().toString();
-        assertThat(components(EMPLOYMENT_COMPONENT, printed)).as("dbo.ORG_MEMBER.STATE = 1, not the decoy: %s", printed).containsExactly(SOURCE_EMPLOYED);
-        assertThat(components(RECORD_COMPONENT, printed)).as("dbo flags, not the decoy: %s", printed).containsExactly(RECORD_ACTIVE);
+        assertThat(result.status()).as("the decoy ORG_UNIT (all Account) would fail the run: %s", result.note()).isEqualTo(SyncRunStatus.SUCCEEDED);
+        SyncRunDetailView report = getRun(result);
+        assertThat(issueKinds(report, P1)).as("P1 by dbo (1|0|1, login): nothing; by the decoy (2|1|0) it would carry both issues").isEmpty();
+        assertThat(issueKinds(report, C4)).as("C4 by dbo (STATE 1, no login): the mismatch; by the decoy (STATE 2) none").containsExactly(ISSUE_EMPLOYMENT_MISMATCH);
+        assertJudgementsOfEveryone(report);
     }
 
     // ------------------------------------------------------------------ 9
@@ -691,6 +695,7 @@ class A8SourceFlagsIT {
                 .filter(d -> person.subject().equals(d.subjectKey()))
                 .map(SyncDiffView::issueKind)
                 .filter(k -> k != null && !ISSUE_KINDS_BEFORE.contains(k))
+                .map(k -> INACTIVE_KIND_PENDING && !k.equals(ISSUE_EMPLOYMENT_MISMATCH) ? ISSUE_INACTIVE_RECORD_WITH_LOGIN : k)
                 .toList();
     }
 
@@ -710,17 +715,15 @@ class A8SourceFlagsIT {
     }
 
     static void assertNoThirdNewKind(SyncRunDetailView report) {
-        assertThat(report.diffs().stream().map(SyncDiffView::issueKind).filter(k -> k != null && !ISSUE_KINDS_BEFORE.contains(k))
-                .collect(Collectors.toSet())).as("only the two source-state kinds are new").isSubsetOf(ISSUE_EMPLOYMENT_DISAGREES, ISSUE_INACTIVE_RECORD_EMPLOYED);
-    }
-
-    static List<String> components(Pattern pattern, String printed) {
-        List<String> found = new ArrayList<>();
-        Matcher m = pattern.matcher(printed);
-        while (m.find()) {
-            found.add(m.group(1));
+        Set<String> fresh = report.diffs().stream().map(SyncDiffView::issueKind).filter(k -> k != null && !ISSUE_KINDS_BEFORE.contains(k))
+                .collect(Collectors.toSet());
+        Set<String> others = new TreeSet<>(fresh);
+        others.remove(ISSUE_EMPLOYMENT_MISMATCH);
+        if (INACTIVE_KIND_PENDING) {
+            assertThat(others).as("besides %s at most one new kind (the one pending as G07)", ISSUE_EMPLOYMENT_MISMATCH).hasSizeLessThanOrEqualTo(1);
+        } else {
+            assertThat(others).as("only the two new kinds").isSubsetOf(ISSUE_INACTIVE_RECORD_WITH_LOGIN);
         }
-        return found;
     }
 
     // ------------------------------------------------------------------ helpers: statements

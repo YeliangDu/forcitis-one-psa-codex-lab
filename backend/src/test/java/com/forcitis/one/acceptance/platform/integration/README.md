@@ -28,9 +28,10 @@
 
 `A8SourceFlagsIT` 按卡 R-1b-0 第 4 节（D-1a-01；ADR-0037 第 2 项第 4 条、第 3 项第 5 条、第 6 项第 3 条、第 8 项第 4 条）验证：人员的 `STATE` / `IS_DELETED` / `IS_ENABLE` 与部门的 `TYPE` 从 `dbo.` 基表读出，只进同步报告；在职判定（RULE-363 按登录名）、同步范围（`MEMBER_SCOPE`）与缩水保护不变。
 
-- 运行：`cd backend && ./mvnw -B verify -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=A8SourceFlagsIT`（failsafe，需要本机 Docker；镜像经 `TestImages`）。主库启动一次应用，启动校验用例（第 9、10 条）各建一个库、各启动一次，约 1–2 分钟。
+- 运行：`cd backend && ./mvnw -B verify -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=A8SourceFlagsIT`（failsafe，需要本机 Docker；PostgreSQL 经 `TestPostgres.container()`，SQL Server 镜像经 `TestImages`）。主库启动一次应用，启动校验用例（第 9、10 条）各建一个库、各启动一次，约 1–2 分钟。
 - 夹具：A8 形状的基表加 DBA 视图脚本原文（`docs/modernization/phase1a/SEEYON_VIEWS.sql` 的 schema、views 两段），只读登录按 `ReadOnlyBaselineFixture` 建并与 RDS 基线比对。人员按 one-ops 2026-10-15 取证的四种生产组合（STATE|IS_DELETED|IS_ENABLE|有无登录名：1|0|1|有、1|1|0|无、2|0|0|无、2|1|0|无），另构造分歧人员 C1–C5（生产当前 0 人，规则须覆盖）。列类型：三个人员标志 smallint 可空、`ORG_PRINCIPAL.LOGIN_NAME` nvarchar(50)（取证）；`ORG_UNIT.TYPE` nvarchar、部门标志与 `IS_INTERNAL` smallint 为假设，待取证核对。
-- 黑盒：只用 `OrgSource`、`SyncOrgSnapshot`、`GetSyncRun`、`OrgDirectory`、日志与 SQL Server 计划缓存。来源在职状态等新类型实现前不存在，用 `SourcePerson` 的打印形式按枚举常量名断言；第 11 条从计划缓存取适配器实际发出的语句，与冻结在测试里的改动前纯视图语句做两个方向 `EXCEPT`。
-- 待术语确认的名字（读取列登记文件名、用途取值、两个新问题类别、来源在职状态常量）集中在类顶部常量，确认后只改那里。
+- 黑盒：只用 `OrgSource`、`SyncOrgSnapshot`、`GetSyncRun`、`OrgDirectory`、日志与 SQL Server 计划缓存。不引用改动后才有的类型；两项判定（组织源在职状态与登录名判定是否一致、记录已删除或停用而仍有登录名与否，卡第 13 节）按同步报告中的问题类别断言（RULING-R1B0-6），「来源*」名字只在适配器内部，测试里不出现；第 11 条从计划缓存取适配器实际发出的语句，与冻结在测试里的改动前纯视图语句做两个方向 `EXCEPT`。
+- 待术语确认的名字（读取列登记文件名、用途取值、两个新问题类别）集中在类顶部常量，确认后只改那里；第二个问题类别名待 one-glossary（G07），占位期间「`EMPLOYMENT_STATE_MISMATCH` 以外的唯一新类别」即视为它。
 - 新增用例：在夹具 `PEOPLE` 里加一个 `Person`（10 位 ID，避免与日志中的其他数字相撞），或在 `corruptions()` 里加一行 `Corruption`；修改基表的用例在 `finally` 中还原。
 - `ReadOnlyAccountCheckIT`、`StalledExternalSourceIT` 的 A8 夹具按 RULING-R1B0-1 把视图底表改为 `dbo.ORG_MEMBER`（带三个标志列）与 `dbo.ORG_UNIT`（带 `TYPE`），视图列与测试意图不变；R-1b-0 合并后启动校验要求这两张基表存在。
+- 登录查人遇来源损坏（RULING-R1B0-5）断言在 workforce 的公开端口 `OrgDirectory.findEmployeeByWecomUserId`（登录未命中快照时经它查 A8）：不返回员工即登录被拒；完整 HTTP 登录要身份模块的角色与账号数据，不在本模块（CS-5.5），另有合法行的对照证明这条路径本身可用。
