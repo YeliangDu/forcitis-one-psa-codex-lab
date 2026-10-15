@@ -2,6 +2,12 @@
 
 日期：2026-10-14 · 起草：psa-1a-platform-bridge-reimagine · 用户决定：「全部在 1a 做 (Recommended)」。
 
+> **已升格，以下各节不再是现行规则**（正文保留，只作出处）：
+> - §1 ID 策略 → `adr/ADR-0033.md`（自有标识与来源对照，用户 2026-10-15 已批准）；对外 ID 为字符串见 `NAMING_STANDARD.md` §2.6 A-7。
+> - §2 时间与时区、§3 API 规范 → `NAMING_STANDARD.md` §2.6 HTTP 接口约定（用户 2026-10-15 对原则核对 A 答「全部按推荐 (Recommended)」）。其中 API 时刻改为 UTC 带 `Z`，取代 §2 末条的 `+08:00` 写法；业务日计算按 `Asia/Shanghai` 不变。
+> - §4 可观测性 → `GUIDING_PRINCIPLES.md` §11（同一决定）。只用 correlationId，不再承诺 `traceId`。
+> - §5 备份与恢复、§6 配置与密钥仍以本文与 `phase1a/infra/INFRA_RUNBOOK.md` 为准。
+
 **状态：已决定**（2026-10-14，经 psa-coordinator 询问）：主键「UUIDv7 (Recommended)」；分页「游标分页 (Recommended)」；备份恢复「RPO ≤ 5 分钟、RTO ≤ 1 小时 (Recommended)」；告警「按级别分通道 (Recommended)」，接收群与值班人部署前定；并发版本传递按建议采用 If-Match / ETag（未单独作答）。
 
 本文先给方案，标「**待定**」的取舍由 psa-coordinator 请用户决定，其余按建议直接实施。实施由下一轮代理完成，每条都配守护或契约测试。
@@ -52,7 +58,7 @@
 
 ## 4. 可观测性（无取舍，直接实施；告警通道见末行）
 
-- **日志**：结构化 JSON，使用 Spring Boot 4 的 structured logging，ECS 格式，输出到 `/data/forcitis-one/logs/*.json`，由 SLS 采集。字段至少包含 timestamp、level、logger、message、correlationId、traceId、userId（只记 ID）、module。不记录姓名、手机号、令牌。
+- **日志**：结构化 JSON，使用 Spring Boot 4 的 structured logging，ECS 格式，输出到 `/data/forcitis-one/logs/*.json`，由 SLS 采集。字段至少包含 timestamp、level、logger、message、correlationId、userId（只记 ID）、module。不记录姓名、手机号、令牌。
 - **correlationId 全链路**：
   - HTTP 入口读取 `X-Correlation-Id`，没有就生成；
   - 写入 MDC，并放进响应头；

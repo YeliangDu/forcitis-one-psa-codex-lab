@@ -83,7 +83,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
+  note: 待归并到迁入批次 migration_batch（用户 2026-10-15 批次术语统一，ADR-0036 第 3 条），R-1b 改名后删除
 - id: confirmation_status
   zh: 确认状态
   en: ConfirmationStatus

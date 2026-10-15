@@ -1,0 +1,57 @@
+terms:
+- id: migration_batch
+  zh: 迁入批次
+  en: MigrationBatch
+  snake: migration_batch
+  kind: entity
+  bc: platform.integration
+  definition: 一次历史数据迁入运行；登记来源系统、对象类型、范围、状态、行数与摘要，迁入行以 migration_batch_id 指向它（ADR-0036 第 3 条）
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 用户 2026-10-15 定批次术语唯一写法；platform.numbering 的「导入批次」import_batch 在 R-1b 改为本词后删除
+- id: migration_reject
+  zh: 迁入拒收
+  en: MigrationReject
+  snake: migration_reject
+  kind: entity
+  bc: platform.integration
+  definition: 迁入时被拒绝的一条来源行，带批次、来源对象、来源 ID 与原因代码；批次关闭前须逐条处置（ADR-0036 第 7 条）
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: migration_reconciliation
+  zh: 迁入对账
+  en: MigrationReconciliation
+  snake: migration_reconciliation
+  kind: entity
+  bc: platform.integration
+  definition: 一个迁入批次按期间 × 法人 × 对象类型比对来源与目标的行数、金额合计与来源 ID 摘要的结果；零差异或经财务签字（ADR-0036 第 8 条）
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 与经营勾稽 Reconciliation（跨口径对账）不同，只比对迁入前后
+- id: period_status__migrating
+  zh: 迁入中
+  en: Migrating
+  snake: migrating
+  kind: value
+  bc: accounting.period
+  definition: 期间状态的一个取值：历史期间在新系统中建立后只接受迁入过账通道的写入，对账通过后由财务确认关账（ADR-0036 第 6 条）
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 期间状态现为 OPEN / CLOSING / CLOSED（period_status）；随首个迁入权责事实的阶段实现

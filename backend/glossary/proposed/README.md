@@ -203,3 +203,14 @@
 | `ui_calculation` | 计算 | Calculation | 按规则得出日期、时限、编号等的过程 |  |
 | `ui_outcome_result` | 结果 | OutcomeResult | 一次办理或一次计算得出的结论 |  |
 | `ui_advisory_note` | 加签建议 | AdvisoryNote | 加签人给出的参考意见，不算正式的办理结果 |  |
+
+## 历史数据迁入（`data-migration.yaml`，ADR-0036 提议）
+
+| id | zh | en | 定义 | 是否疑似方言 |
+|---|---|---|---|---|
+| `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；迁入行以 `migration_batch_id` 指向它 | 「导入批次」`import_batch` 为同义的另一种写法，R-1b 归并 |
+| `migration_reject` | 迁入拒收 | MigrationReject | 迁入时被拒绝的一条来源行，带原因代码，须逐条处置 |  |
+| `migration_reconciliation` | 迁入对账 | MigrationReconciliation | 按期间 × 法人 × 对象类型比对迁入前后的行数、金额与来源 ID 摘要 |  |
+| `period_status__migrating` | 迁入中 | Migrating | 期间状态取值：历史期间只接受迁入过账，对账通过后关账 |  |
+
+前端界面用语（`frontend-ui.yaml`）另增：`correlation_id` 关联号 / CorrelationId——一次请求及其引发的事件与投递共用的追踪编号；出错时界面显示可复制的关联号（NAMING_STANDARD §4a U5）。
