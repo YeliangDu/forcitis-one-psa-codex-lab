@@ -13,11 +13,12 @@
   commit the bundle was built from (a release tagged while the baseline was open stays undeployable to prod); it is removed before the
   first production deployment, in a pull request of its own (SESSION_PLAYBOOK §12.2 step 4).
 - dev: an open baseline is allowed and only warned about. While it is open the baseline files may change after a dev deployment; when they
-  did, the dev database and the server's release state are reset first (C-16 of PREDEPLOY_CHECKLIST.md), the installer refuses changed migrations otherwise.
+  did, the dev database and the server's release state are reset first (C-16 of PREDEPLOY_CHECKLIST.md), the installer refuses
+  changed migrations otherwise.
 - prod: no pre-release version (-rc.N); every Phase 1a exit condition in section D of PREDEPLOY_CHECKLIST.md is done (verified on dev);
-  C-9 (the production database) is done. "Done" means the status cell is exactly the done mark, nothing else. The version is listed in
-  prod-approvals.txt as "<version> <commit> <bundle sha256> <YYYY-MM-DD> <approver>": on the GitHub Team plan a private repository has
-  no required reviewers, so a reviewed approval line merged into main is the human approval, and it pins the exact build approved.
+  C-9 (the production database) and C-15 (the migration baseline closed and rehearsed, ADR-0038) are done. "Done" means the status cell
+  is exactly the done mark, nothing else. The version is listed in prod-approvals.txt as
+  "<version> <commit> <bundle sha256> <YYYY-MM-DD> <approver>": on the GitHub Team plan a private repository has no required reviewers, so a reviewed approval line merged into main is the human approval, and it pins the exact build approved.
 """
 import io
 import os
@@ -33,7 +34,7 @@ DEPLOY_MARKER = "`blocks: deploy`"
 BASELINE_MARKER = "backend/architecture/migration-baseline-open"
 DONE = "✅"
 EXPECTED_EXIT_CONDITIONS = 9
-PROD_PREREQUISITES = ("C-9",)
+PROD_PREREQUISITES = ("C-9", "C-15")
 
 
 def deploy_blockers(root):
@@ -158,10 +159,10 @@ def self_test():
             handle.write(f"# header\n0.1.0 {closed_commit} {'d' * 64} 2026-10-14 平台负责人\n"
                          f"0.0.9 {open_commit} {'d' * 64} 2026-10-14 平台负责人\n")
 
-        def checklist(statuses, c9=DONE):
+        def checklist(statuses, c9=DONE, c15=DONE):
             rows = "".join(f"| D-{i} | x | y | {s} |\n" for i, s in enumerate(statuses, 1))
             with open(os.path.join(root, CHECKLIST), "w", encoding="utf-8") as handle:
-                handle.write(f"## C. 执行\n\n| # | 事项 | 状态 |\n|---|---|---|\n| C-9 | 生产库 | {c9} |\n\n"
+                handle.write(f"## C. 执行\n\n| # | 事项 | 状态 |\n|---|---|---|\n| C-9 | 生产库 | {c9} |\n| C-15 | 基线关闭 | {c15} |\n\n"
                              f"## D. 部署后验证\n\n| # | 出口条件 | 依赖 | 状态 |\n|---|---|---|---|\n{rows}\n"
                              "## 不阻塞\n| D-99 | not in D | | ⬜ |\n")
 
@@ -208,6 +209,9 @@ def self_test():
         assert check(root, "prod", "0.1.0"), "a done mark with extra text is not done"
         checklist([DONE] * 9, c9="\U0001f7e8")
         assert any("C-9" in p for p in check(root, "prod", "0.1.0"))
+        checklist([DONE] * 9, c15="⬜")
+        assert any("C-15" in p for p in check(root, "prod", "0.1.0")), "prod waits for the baseline to be closed and rehearsed (C-15)"
+        assert check(root, "dev", "0.1.0-rc.1") == [], "C-15 does not hold back dev"
         checklist([DONE] * 3)
         assert any("expected at least" in p for p in check(root, "prod", "0.1.0"))
         checklist([DONE] * 9)

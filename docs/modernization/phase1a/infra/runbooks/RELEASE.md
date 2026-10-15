@@ -128,6 +128,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 - 回滚：运维经云助手执行 `forcitis-one-release rollback`（回到 `previous`）或 `forcitis-one-release rollback <已安装的版本>`，**`--Timeout` 至少 300 秒**（健康检查最长 180 秒；被中断的 rollback 不会被自动撤销，见 §3 半切换状态）；旧版本的文件仍在 `releases/` 中，已在首次安装时校验过；回滚不跑迁移（旧版本不认识的新迁移被 Flyway 默认的 `*:future` 忽略）。修复问题后发更高的版本号再部署。
 - `forcitis-one-release status` 查看当前、上一版本、历史与最近的安装请求处理结果；回滚只用本机已装的版本，不访问网络，GitHub 不可用时照样可做。
 - 回滚只换应用，不回滚数据库（§4）。
+- **跨基线变化不回滚**（ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等） 第 2 项第 4 条）：基线开放期内 dev 按 dev 库重建剧本（PREDEPLOY_CHECKLIST C-16）重置后，重置前的版本一律不能 `rollback`（剧本已移除其版本目录）；要退回旧代码，在 main 上回退提交后发新版本，再按需重建。同一基线之内的回滚照旧。§4「只扩不缩」的前提在开放期内不成立，由这一条覆盖。
 
 ## 4. 数据库迁移
 
