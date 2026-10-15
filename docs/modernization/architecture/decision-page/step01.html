@@ -1,0 +1,114 @@
+<title>愿景能力价值流确认</title>
+<style>
+/* Layout: phone column; three sections in method order (vision → capabilities → value streams), lists folded, one decision per section, then open questions. */
+:root{
+  --bg:#f2f4f7; --card:#ffffff; --ink:#152033; --muted:#5a6678; --line:#d9dfe7;
+  --pick:#1f5fbf; --pick-soft:#e6eefb; --rec:#1d7a4e; --rec-soft:#e3f3ea; --warn:#a24a1d; --n:#8a5a12;
+  --f:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141c; --card:#18202b; --ink:#e7ecf2; --muted:#9aa6b6; --line:#2a3544;
+  --pick:#8db4f2; --pick-soft:#1e2c42; --rec:#7fd0a6; --rec-soft:#18322a; --warn:#f0a07a; --n:#e2b56a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141c; --card:#18202b; --ink:#e7ecf2; --muted:#9aa6b6; --line:#2a3544;
+  --pick:#8db4f2; --pick-soft:#1e2c42; --rec:#7fd0a6; --rec-soft:#18322a; --warn:#f0a07a; --n:#e2b56a; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f)}
+main{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:16px 40px;display:grid;gap:14px}
+h1{font-size:20px;margin:0;text-wrap:balance} h2{font-size:16px;margin:0}
+p{margin:0} ul,ol{margin:6px 0 0;padding-left:1.3em;display:grid;gap:3px;font-size:14px}
+.lede,.small{color:var(--muted);font-size:13.5px}
+.status{font-size:12.5px;color:var(--muted)} .status.off{color:var(--warn)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;min-width:0}
+details{border-top:1px solid var(--line);padding-top:7px}
+summary{cursor:pointer;font-weight:600}
+summary .n{font-weight:500;font-size:12px;color:var(--n);margin-left:4px}
+details p{margin-top:6px}
+.opts{display:grid;gap:8px}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt input{margin-top:4px;accent-color:var(--pick)}
+.opt b{font-weight:600}
+.opt .cost{grid-column:2;font-size:13px;color:var(--muted)}
+.opt.rec b::after{content:"推荐";margin-left:8px;font-size:11.5px;font-weight:600;color:var(--rec);background:var(--rec-soft);border-radius:999px;padding:1px 8px;vertical-align:1px}
+.opt:has(input:checked){border-color:var(--pick);background:var(--pick-soft)}
+.opt:has(input:focus-visible),summary:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+.oq{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.oq:first-of-type{border-top:0;padding-top:0}
+button{font:inherit;font-weight:600;border:1px solid var(--rec);background:var(--rec-soft);color:var(--rec);border-radius:10px;padding:10px 14px;cursor:pointer;justify-self:start}
+textarea{font:inherit;width:100%;box-sizing:border-box;min-height:84px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);color:var(--ink)}
+.done{font-size:13px;color:var(--rec)}
+</style>
+
+<main>
+  <h1>施工图第 0、1 步：愿景、能力、价值流</h1>
+  <p class="lede">按 ADR-0040，先定「要达成什么」和「企业做什么」，再据此重推 BC 和子域分类（下一步）。草稿取自你的原话与已批准文档，每条有出处；数字目标暂不写。推荐项已预选，点「全部按推荐保存」或逐项点。</p>
+  <div class="status" id="status" aria-live="polite">正在连接…</div>
+  <button type="button" id="all">全部按推荐保存</button>
+
+  <section class="card">
+    <h2>0 愿景：8 个目标、16 个 KPI</h2>
+    <details><summary>驱动力（为什么要做）</summary><ul><li>技术栈全线过保与公网可利用的安全缺陷</li><li>权责发生制业财一体是业务核心</li><li>权责事实分散在老系统与 OA 两处</li><li>财务总账与三大报表要由新系统直接产出</li><li>现有经营分析不满足经营管理需要</li><li>避免按旧系统架构直接现代化</li></ul></details>
+    <details><summary>01 权责业务事实只在新系统产生</summary><p>合同、交付与收入确认、工时与成本、费用、开票与应收、回款、分包与应付、付款、薪酬等权责事实的记录系统一律是 FORCITIS one，A8 不再是这些事实的产生地或存放地，U8C 只接收新系统推送的结果；每类事实在会计期间边界一次切换，不设双源期。</p><p class="small">KPI：</p><ul><li>OA 迁入模板停用率</li><li>切换后 A8 凭证插件新增凭证行数</li><li>权责事实遗留类别数</li></ul></details><details><summary>02 业务事实一次过账、事实只追加、期间受控</summary><p>触账的业务只提交类型化的过账候选，由单一过账管道校验（期间开放、借贷平衡、幂等、法人一致）并分配序号；更正只能冲销，关账后的更正落在开放期间；业务模块不认识会计科目。</p><p class="small">KPI：</p><ul><li>经单一过账管道入账的权责事实占比</li><li>月结对账等式差异数</li></ul></details><details><summary>03 新系统直接出权责口径三大报表</summary><p>五家法人（1001、1002、1003、1006、1007）每月由新系统出权责口径的资产负债表、利润表、现金流量表；收付口径账簿（法定账）与 U8C 收付账套按 法人 × 科目 对账一致；条件成熟后年度切换法定账。</p><p class="small">KPI：</p><ul><li>权责口径三大报表按月产出率 → M-35、M-36</li><li>与 U8C 收付账套对账差异数</li></ul></details><details><summary>04 经营指标一个定义、一套口径</summary><p>每个经营指标只有一个定义，定义放在口径版本中，报表、导出、AI 只经语义层取数；指标按 OAT 声明（原语、单位、期间类型、加总规则、含税、核算基础）。</p><p class="small">KPI：</p><ul><li>指标目录 OAT 声明完整率 → M-01..M-48</li><li>同一指标的并存算法数 → M-13、M-42、M-08</li></ul></details><details><summary>05 经营管理能回答「上月末是多少」，且经营结果与财务结果可勾稽</summary><p>应收、在手合同（剩余履约义务）、合同资产等存量指标随关账生成期间快照；经营口径与法定口径的差异由口径差异清单逐期勾稽。</p><p class="small">KPI：</p><ul><li>关账期间快照覆盖率 → M-06、M-13、M-17</li><li>口径差异清单逐期勾稽完成率 → M-35</li></ul></details><details><summary>06 经营管理可见权责口径成本与毛利</summary><p>项目、BU 层面可得权责口径的成本与贡献毛利（OAT 的 CM 及其变体），经营利润口径统一，取代老 BI 中「产值减当期全部费用」等混用算法。</p><p class="small">KPI：</p><ul><li>项目贡献毛利可得覆盖率 → M-29、M-30、M-32</li><li>贡献毛利率 → M-29、M-08</li></ul></details><details><summary>07 老系统在持续运行中按阶段切换并下线</summary><p>迁移期间老系统持续运行，行为功能复刻但现代化；按 BC 绞杀式切换，老系统与 A8 之间的数据通道逐阶段下线；老 BI 在切换期不中断（过渡镜像）。</p><p class="small">KPI：</p><ul><li>老系统与 A8 数据通道下线数</li><li>过渡镜像对账通过率</li></ul></details><details><summary>08 新系统不带入老系统的安全缺陷</summary><p>新系统的鉴权、会话、敏感信息处理按安全不变量建设，不信任老系统令牌，数据范围默认拒绝。</p><p class="small">KPI：</p><ul><li>安全不变量满足数</li></ul></details>
+    <div class="opts" role="radiogroup" aria-label="S0-VISION"><label class="opt rec"><input type="radio" name="S0-VISION" value="accept"><b>认可</b><span class="cost">目标与 KPI 名称按此登记；数字以后定。</span></label><label class="opt"><input type="radio" name="S0-VISION" value="amend"><b>有修改</b><span class="cost">写在备注里。</span></label></div>
+  </section>
+
+  <section class="card">
+    <h2>1a 能力地图：12 个一级、77 个二级</h2>
+    <p class="small">只说企业「做什么」，不照搬老系统模块。核心 / 支撑 / 通用下一步再定。</p>
+    <details><summary>客户与商机经营 <span class="n">4</span></summary><p class="small">获取并认识客户，把线索转化为经评估、已报价的商机。</p><ul><li>客户主数据管理</li><li>线索与商机跟进</li><li>商机评估</li><li>报价编制与承诺</li></ul></details><details><summary>合同管理 <span class="n">6</span></summary><p class="small">把客户承诺固化为可执行、可计量的合同基线，并管理其后续变化。</p><ul><li>合同基线管理</li><li>框架协议与任务订单管理</li><li>合同变更与签证索赔管理</li><li>合同完备度检查</li><li>无合同交付授权</li><li>竣工结算</li></ul></details><details><summary>项目交付管理 <span class="n">6</span></summary><p class="small">把合同转化为可计划、可执行、可验收的项目交付。</p><ul><li>项目立项</li><li>交付计划与进度管理</li><li>项目预算与完工估算</li><li>交付成果验收</li><li>质量与返工管理</li><li>项目结项</li></ul></details><details><summary>资源与工时管理 <span class="n">4</span></summary><p class="small">安排人员，并把人的时间记录为可信、可计量的投入。</p><ul><li>资源计划与排期</li><li>工时填报</li><li>工时审核与有效性认定</li><li>利用率与产能监控</li></ul></details><details><summary>项目成本核算 <span class="n">6</span></summary><p class="small">按权责发生制把人工、费用与分包成本归集到项目，并结转为合同履约成本或营业成本。</p><ul><li>成本费率管理</li><li>项目成本归集与归因</li><li>间接成本分摊</li><li>费用预提</li><li>成本结转</li><li>内部结算</li></ul></details><details><summary>收入确认与开票 <span class="n">6</span></summary><p class="small">依客户确认的价值确认收入、形成合同资产，并按合同条款开具发票。</p><ul><li>收入确认</li><li>合同资产管理</li><li>开票申请与准入</li><li>发票开具与更正</li><li>收入调整与减值</li><li>计时账单编制</li></ul></details><details><summary>应收与回款 <span class="n">6</span></summary><p class="small">管理开票后的应收，从到账认领到核销、催收与减值。</p><ul><li>应收登记与账龄管理</li><li>回款登记与核销</li><li>催收与回款计划</li><li>应收减值与坏账核销</li><li>质量保证金管理</li><li>应收票据管理</li></ul></details><details><summary>支出与应付管理 <span class="n">8</span></summary><p class="small">管理员工费用、采购与分包支出，直至应付与付款。</p><ul><li>费用事前申请与备案</li><li>费用报销与差旅</li><li>员工借还款</li><li>供应商主数据管理</li><li>采购请购与采购合同</li><li>分包采购与交付确认</li><li>应付与付款申请</li><li>付款执行</li></ul></details><details><summary>组织与人力资源 <span class="n">7</span></summary><p class="small">管理组织、人员及其从入职到离职的人事、假勤与薪酬。</p><ul><li>组织与法人架构管理</li><li>员工档案与人事异动</li><li>招聘与入职</li><li>考勤与休假管理</li><li>工作日历维护</li><li>薪酬核算与发放</li><li>绩效评定与激励</li></ul></details><details><summary>财务核算与报告 <span class="n">8</span></summary><p class="small">按权责与收付两种口径入账、结转、关账并出具财务报表。</p><ul><li>会计期间管理与关账</li><li>业务事实入账</li><li>科目与口径转换规则管理</li><li>凭证与总账核算</li><li>期末结转</li><li>财务报表编制</li><li>银行与现金核算</li><li>固定资产与税费核算</li></ul></details><details><summary>经营计划与分析 <span class="n">8</span></summary><p class="small">设定经营目标与预算，认定并归属经营事实，统一指标口径并提供经营分析。</p><ul><li>战略目标与经营计划编制</li><li>承诺目标与滚动预测</li><li>预算编制与额度管控</li><li>经营事实归属</li><li>经营口径与指标治理</li><li>经营勾稽与口径差异管理</li><li>经营分析与报表提供</li><li>经营复盘与偏差解释</li></ul></details><details><summary>平台支撑 <span class="n">8</span></summary><p class="small">为所有业务能力提供身份、审批、编号、审计、集成与迁入等共用服务。</p><ul><li>身份认证与权限管理</li><li>审批流程编排</li><li>单据编号管理</li><li>审计留痕</li><li>外部系统对接</li><li>待办与通知触达</li><li>定时作业调度</li><li>历史数据迁入与对账</li></ul></details>
+    <div class="opts" role="radiogroup" aria-label="S1-CAPS"><label class="opt rec"><input type="radio" name="S1-CAPS" value="accept"><b>认可这套能力地图</b><span class="cost">下一步据此重推 BC、定核心 / 支撑 / 通用。</span></label><label class="opt"><input type="radio" name="S1-CAPS" value="amend"><b>有修改</b><span class="cost">写在备注里，例如增删或合并。</span></label></div>
+  </section>
+
+  <section class="card">
+    <h2>1b 价值流：8 条、49 个阶段</h2>
+    <p class="small">每条：为谁、从什么开始、到什么结果；阶段后面是标志它完成的业务事件。</p>
+    <details><summary>商机到签约 <span class="n">5</span></summary><p class="small">为客户（拟签约的项目业主）：线索已获取 → 合同已签署且合同基线已生效</p><ol><li>线索与商机建立<span class="small"> → 商机已建立</span></li><li>商机评估<span class="small"> → 商机评估结论已作出</span></li><li>报价与承诺<span class="small"> → 报价已承诺给客户</span></li><li>签约前先行投入授权<span class="small"> → 风险交付已转正或已叫停</span></li><li>合同签订<span class="small"> → 合同已签署且基线版本已生效</span></li></ol></details><details><summary>签约到交付验收 <span class="n">8</span></summary><p class="small">为客户（项目业主）：合同基线已生效 → 客户已验收交付成果且项目已结项</p><ol><li>项目立项<span class="small"> → 项目已立项</span></li><li>计划与预算编制<span class="small"> → 计划基线与项目预算已批准并锁定</span></li><li>交付执行与工时填报<span class="small"> → 工时已提交</span></li><li>工时审核与有效性认定<span class="small"> → 工时已审核通过且成本与计费金额已生成</span></li><li>范围变更处理<span class="small"> → 变更已批准且合同基线已修订</span></li><li>质量与返工处理<span class="small"> → 质量问题已关闭</span></li><li>成果验收<span class="small"> → 客户验收已登记</span></li><li>项目结项<span class="small"> → 项目已结项</span></li></ol></details><details><summary>验收到收入确认与开票 <span class="n">6</span></summary><p class="small">为客户（项目业主，收票方）：客户验收已登记 → 收入已确认且发票已开具</p><ol><li>收入确认<span class="small"> → 收入已确认且合同资产已形成</span></li><li>计时账单编制<span class="small"> → 期间账单已生成</span></li><li>开票申请与准入<span class="small"> → 开票申请已准入</span></li><li>发票开具<span class="small"> → 发票已开具且应收已形成</span></li><li>收入更正与减值<span class="small"> → 更正已冲销入账</span></li><li>竣工结算<span class="small"> → 交易价格已最终确定</span></li></ol></details><details><summary>开票到回款 <span class="n">5</span></summary><p class="small">为公司（财务与经营管理层）：发票已开具 → 应收已结清或已核销</p><ol><li>应收确立与账龄监控<span class="small"> → 应收已登记并纳入账龄监控</span></li><li>催收与回款计划<span class="small"> → 回款计划已确认</span></li><li>回款认领与核销<span class="small"> → 应收已核销</span></li><li>减值与坏账处理<span class="small"> → 减值已计提或坏账已核销</span></li><li>质量保证金返还<span class="small"> → 质量保证金已收回</span></li></ol></details><details><summary>支出到付款 <span class="n">8</span></summary><p class="small">为员工；供应商与分包商：费用已发生或采购需求已提出 → 款项已支付且费用或应付已入账</p><ol><li>费用事前申请与备案<span class="small"> → 申请已备案</span></li><li>供应商准入<span class="small"> → 供应商档案已生效</span></li><li>采购与分包立项<span class="small"> → 采购合同或分包合同已签订</span></li><li>分包交付与应付确认<span class="small"> → 分包成本与应付已入账</span></li><li>费用报销<span class="small"> → 报销单已批准并入账</span></li><li>员工借还款<span class="small"> → 借款已发放或已还款核销</span></li><li>付款申请与批准<span class="small"> → 付款申请已批准</span></li><li>付款执行与银行核对<span class="small"> → 款项已支付并与银行流水匹配</span></li></ol></details><details><summary>员工入职到离职 <span class="n">6</span></summary><p class="small">为员工：用人申请已提交 → 员工已离职、交接已完成且账号已停用</p><ol><li>用人申请与招聘<span class="small"> → 录用已批准</span></li><li>入职与账号开通<span class="small"> → 员工档案已建立且账号已开通</span></li><li>考勤与休假<span class="small"> → 月度考勤已确认</span></li><li>绩效评定<span class="small"> → 月度评估已完成</span></li><li>薪酬核算与发放<span class="small"> → 薪酬已发放且职工薪酬事实已入账</span></li><li>异动、离职与交接<span class="small"> → 异动或离职已生效、交接已完成且账号已停用</span></li></ol></details><details><summary>期末核算到经营报告 <span class="n">7</span></summary><p class="small">为经营管理层与财务：会计期间已结束 → 期间已关账，三大报表与经营月报已发布</p><ol><li>成本归集与分摊<span class="small"> → 成本已归集并分摊</span></li><li>成本预提与结转<span class="small"> → 成本结转批次已过账</span></li><li>关账前置检查与勾稽<span class="small"> → 关账前置检查已通过且对账等式成立</span></li><li>凭证与期末结转<span class="small"> → 期末凭证已过账</span></li><li>期间关账<span class="small"> → 期间已关账且期间快照已冻结</span></li><li>财务报表编制<span class="small"> → 三大报表已出具</span></li><li>经营分析发布<span class="small"> → 经营月报已发布</span></li></ol></details><details><summary>经营计划到复盘 <span class="n">4</span></summary><p class="small">为经营管理层：经营计划周期已开始 → 偏差已解释且经营动作已确定</p><ol><li>目标与计划编制<span class="small"> → 经营计划与计划基线已批准</span></li><li>承诺目标与预测<span class="small"> → 承诺目标已确认且滚动预测已提交</span></li><li>预算编制与额度管控<span class="small"> → 预算基线已生效</span></li><li>经营复盘与偏差解释<span class="small"> → 偏差已解释且经营动作已确定</span></li></ol></details>
+    <div class="opts" role="radiogroup" aria-label="S1-VS"><label class="opt rec"><input type="radio" name="S1-VS" value="accept"><b>认可这些价值流</b><span class="cost">下一步按价值流做事件风暴。</span></label><label class="opt"><input type="radio" name="S1-VS" value="amend"><b>有修改</b><span class="cost">写在备注里。</span></label></div>
+  </section>
+
+  <section class="card">
+    <h2>需要你回答的 6 个问题</h2>
+    <div class="oq"><p><b>OQ-01</b> 业务增长类目标（新签合同额、收入、利润率、回款周期、人效等的目标水平）用户和文档中均未给出。哪些作为公司级目标写入 vision？</p><div class="opts" role="radiogroup" aria-label="OQ-01"><label class="opt rec"><input type="radio" name="OQ-01" value="later"><b>暂不写，系统目标先行</b><span class="cost">先把系统要达成的状态定下；增长目标以后再加。</span></label><label class="opt"><input type="radio" name="OQ-01" value="yes"><b>要写</b><span class="cost">在备注写哪几项、目标水平。</span></label></div></div><div class="oq"><p><b>OQ-02</b> 每个 KPI 的目标值与达成期限（例如 KPI-01 至 KPI-16 的数字、各阶段出口时点）由用户定。</p><div class="opts" role="radiogroup" aria-label="OQ-02"><label class="opt rec"><input type="radio" name="OQ-02" value="later"><b>以后再定</b><span class="cost">先定 KPI 名称与口径，数字在各阶段开工前定。</span></label><label class="opt"><input type="radio" name="OQ-02" value="now"><b>现在给</b><span class="cost">写在备注里。</span></label></div></div><div class="oq"><p><b>OQ-03</b> BI_SCOPE §6.1 Q12 要求的「经营管理需要回答、现在答不了的问题」清单（待业务 B4）尚无，GOAL-04 至 GOAL-06 的 KPI 是否完整，需要等该清单。</p><div class="opts" role="radiogroup" aria-label="OQ-03"><label class="opt rec"><input type="radio" name="OQ-03" value="later"><b>以后再列</b><span class="cost">经营分析阶段前补齐。</span></label><label class="opt"><input type="radio" name="OQ-03" value="now"><b>现在列</b><span class="cost">写在备注里。</span></label></div></div><div class="oq"><p><b>OQ-04</b> 知识资产与 AI 赋能（老 contexts 中 km.knowledge）是否是目标？材料中除 AI_NATIVE_SPEC（Phase 1a 范围）外，没有用户对 AI 或知识管理的目标性表述。</p><div class="opts" role="radiogroup" aria-label="OQ-04"><label class="opt rec"><input type="radio" name="OQ-04" value="later"><b>以后再说</b><span class="cost">暂不作为目标，不建对应能力。</span></label><label class="opt"><input type="radio" name="OQ-04" value="yes"><b>是目标</b><span class="cost">加入目标与能力地图。</span></label><label class="opt"><input type="radio" name="OQ-04" value="no"><b>不是</b><span class="cost">从规划中去掉。</span></label></div></div><div class="oq"><p><b>OQ-05</b> 是否需要「老系统下线日期」类目标？BI_SCOPE §6.1 Q2 已取消 2026-12-31 的日期，日期待统一编排时重估。</p><div class="opts" role="radiogroup" aria-label="OQ-05"><label class="opt rec"><input type="radio" name="OQ-05" value="yes"><b>要</b><span class="cost">下线日期在统一编排时定，先立目标。</span></label><label class="opt"><input type="radio" name="OQ-05" value="no"><b>不要</b><span class="cost"></span></label></div></div><div class="oq"><p><b>OQ-06</b> 是否需要面向员工与客户的体验类目标（例如审批时限、报销处理时长）？</p><div class="opts" role="radiogroup" aria-label="OQ-06"><label class="opt rec"><input type="radio" name="OQ-06" value="yes"><b>要</b><span class="cost">例如审批时限、报销处理时长。</span></label><label class="opt"><input type="radio" name="OQ-06" value="no"><b>不要</b><span class="cost"></span></label></div></div>
+  </section>
+
+  <section class="card">
+    <h2>备注</h2>
+    <label for="note" class="small">修改意见、目标数字等写在这里（自动保存）。</label>
+    <textarea id="note" placeholder="例如：目标 3 改为……"></textarea>
+    <div class="done" id="done"></div>
+  </section>
+</main>
+
+<script>
+const REC = {"S0-VISION": "accept", "S1-CAPS": "accept", "S1-VS": "accept", "OQ-01": "later", "OQ-02": "later", "OQ-03": "later", "OQ-04": "later", "OQ-05": "yes", "OQ-06": "yes"};
+const QS = Object.keys(REC);
+const $ = s => document.querySelector(s);
+let db = null, me = null, noteTimer = null, saved = {};
+for (const q of QS) { const r = document.querySelector(`input[name="${q}"][value="${REC[q]}"]`); if (r) r.checked = true; }
+function setStatus(t, off) { const s = $("#status"); s.textContent = t; s.classList.toggle("off", !!off); }
+function progress() { const n = QS.filter(q => saved[q]).length; $("#done").textContent = n === QS.length ? `${n} 项都已保存，我会直接读取。` : `已保存 ${n} / ${QS.length} 项（预选不算保存）。`; }
+async function save(id, body) {
+  saved[id] = true; progress();
+  if (!db) { setStatus("存储不可用：本次选择没有保存，请在 claude.ai 登录后打开", true); return; }
+  try { await db.collection("decisions").doc(id).set({...body, by: me, at: new Date().toISOString()}); setStatus("已保存"); }
+  catch (e) { setStatus("保存失败：" + (e && e.message || "请稍后再试"), true); }
+}
+document.addEventListener("change", e => { const t = e.target; if (t.type !== "radio") return; save(t.name, {choice: t.value, recommended: t.value === REC[t.name]}); });
+$("#all").addEventListener("click", async () => { for (const q of QS) { const r = document.querySelector(`input[name="${q}"][value="${REC[q]}"]`); if (r) r.checked = true; await save(q, {choice: REC[q], recommended: true}); } });
+$("#note").addEventListener("input", e => { clearTimeout(noteTimer); noteTimer = setTimeout(() => save("note", {text: e.target.value}), 700); });
+progress();
+(async () => {
+  try { const u = await window.claude?.use?.("user"); me = u ? await u.id() : null; } catch (e) {}
+  try { db = await window.claude?.use?.("db"); } catch (e) { db = null; }
+  if (!db) { setStatus("存储不可用：请在 claude.ai 登录后打开，选择才会保存", true); return; }
+  setStatus("已连接，点选即保存");
+  try {   // 只读一次、不订阅，一次性回填（gate/README 在线页性能约束）
+    const snap = await db.collection("decisions").get();
+    for (const doc of snap.docs) {
+      const d = doc.data(); if (!d) continue; saved[doc.id] = true;
+      if (doc.id === "note") { if (document.activeElement !== $("#note")) $("#note").value = d.text || ""; continue; }
+      const r = document.querySelector(`input[name="${doc.id}"][value="${d.choice}"]`); if (r) r.checked = true;
+    }
+    progress();
+  } catch (e) { setStatus("读取已保存的选择失败；点选仍会保存", true); }
+})();
+</script>

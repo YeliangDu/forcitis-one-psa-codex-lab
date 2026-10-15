@@ -21,7 +21,7 @@
 | 项 | 值 |
 |---|---|
 | 分支 | `claude/one-architecture-ssot`（基于 main 173987b4） |
-| 在途 | #203（入队）→ #204 → #208 / #210（ADR-0040，已采纳）；#207（ADR-0039，已采纳）；第 0、1 步草稿由 sonnet 起草中 |
+| 在途 | #203（入队）→ #204 → #208 / #210（ADR-0040，已采纳）；#207（ADR-0039，已采纳）；第 0、1 步确认页已发 https://claude.ai/artifact/MyMngoyiqfTyYAkVw3Lesp （草稿 `togaf/vision|capabilities|value-streams.yaml`，生成器 `decision-page/step01-src/`）；等用户答复后记 intent、去掉草稿标记，再做第 2 步 |
 | 排定（one-coordinator） | ①#207 合并后：身份生命周期研究 + C1 设计（取证交 sonnet，ADR-0037 登记，结论在线页）②ADR-0040 补齐顺序：第 0+1 步（愿景/目标/KPI + 能力/价值流）一页确认页 → 第 2 步按能力重推规划 BC（决策页 Q6 与余项随后一起发）→ 指标挂 KPI → 事件风暴与规则卡补「类别」（只补类别，sonnet 批量、我抽查）→ CI 追溯校验（守护单列，opus 复审）③ADR-0039 代码子 PR 由 one-coordinator 并入 P3b / P5；ARCH-D1..D7 交 one-1a-next-3 |
 | 用户已定 | ADR-0039（intent 164527）；ADR-0040 方法与知识框架（intent 173149）；补充框架勾选页 https://claude.ai/artifact/GtFkMvqxnWe6wZc1euM9Ec 待选（选完记 intent 再写进 FRAMEWORKS） |
 | 接着做 | PR-C：草稿在 scratchpad/pr-c（aggregates 15、processes 7、decisions 15、data-objects 30），核对后入 `ddd/aggregates.yaml`、`bpmn/`、`dmn/`、`dama/`，出图③④ |

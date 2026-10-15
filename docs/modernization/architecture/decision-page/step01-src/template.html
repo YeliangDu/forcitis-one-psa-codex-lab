@@ -1,0 +1,114 @@
+<title>愿景能力价值流确认</title>
+<style>
+/* Layout: phone column; three sections in method order (vision → capabilities → value streams), lists folded, one decision per section, then open questions. */
+:root{
+  --bg:#f2f4f7; --card:#ffffff; --ink:#152033; --muted:#5a6678; --line:#d9dfe7;
+  --pick:#1f5fbf; --pick-soft:#e6eefb; --rec:#1d7a4e; --rec-soft:#e3f3ea; --warn:#a24a1d; --n:#8a5a12;
+  --f:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141c; --card:#18202b; --ink:#e7ecf2; --muted:#9aa6b6; --line:#2a3544;
+  --pick:#8db4f2; --pick-soft:#1e2c42; --rec:#7fd0a6; --rec-soft:#18322a; --warn:#f0a07a; --n:#e2b56a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141c; --card:#18202b; --ink:#e7ecf2; --muted:#9aa6b6; --line:#2a3544;
+  --pick:#8db4f2; --pick-soft:#1e2c42; --rec:#7fd0a6; --rec-soft:#18322a; --warn:#f0a07a; --n:#e2b56a; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f)}
+main{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:16px 40px;display:grid;gap:14px}
+h1{font-size:20px;margin:0;text-wrap:balance} h2{font-size:16px;margin:0}
+p{margin:0} ul,ol{margin:6px 0 0;padding-left:1.3em;display:grid;gap:3px;font-size:14px}
+.lede,.small{color:var(--muted);font-size:13.5px}
+.status{font-size:12.5px;color:var(--muted)} .status.off{color:var(--warn)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;min-width:0}
+details{border-top:1px solid var(--line);padding-top:7px}
+summary{cursor:pointer;font-weight:600}
+summary .n{font-weight:500;font-size:12px;color:var(--n);margin-left:4px}
+details p{margin-top:6px}
+.opts{display:grid;gap:8px}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt input{margin-top:4px;accent-color:var(--pick)}
+.opt b{font-weight:600}
+.opt .cost{grid-column:2;font-size:13px;color:var(--muted)}
+.opt.rec b::after{content:"推荐";margin-left:8px;font-size:11.5px;font-weight:600;color:var(--rec);background:var(--rec-soft);border-radius:999px;padding:1px 8px;vertical-align:1px}
+.opt:has(input:checked){border-color:var(--pick);background:var(--pick-soft)}
+.opt:has(input:focus-visible),summary:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+.oq{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.oq:first-of-type{border-top:0;padding-top:0}
+button{font:inherit;font-weight:600;border:1px solid var(--rec);background:var(--rec-soft);color:var(--rec);border-radius:10px;padding:10px 14px;cursor:pointer;justify-self:start}
+textarea{font:inherit;width:100%;box-sizing:border-box;min-height:84px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);color:var(--ink)}
+.done{font-size:13px;color:var(--rec)}
+</style>
+
+<main>
+  <h1>施工图第 0、1 步：愿景、能力、价值流</h1>
+  <p class="lede">按 ADR-0040，先定「要达成什么」和「企业做什么」，再据此重推 BC 和子域分类（下一步）。草稿取自你的原话与已批准文档，每条有出处；数字目标暂不写。推荐项已预选，点「全部按推荐保存」或逐项点。</p>
+  <div class="status" id="status" aria-live="polite">正在连接…</div>
+  <button type="button" id="all">全部按推荐保存</button>
+
+  <section class="card">
+    <h2>0 愿景：{{NG}} 个目标、{{NK}} 个 KPI</h2>
+    <details><summary>驱动力（为什么要做）</summary><ul>{{DRIVERS}}</ul></details>
+    {{GOALS}}
+    {{C_VISION}}
+  </section>
+
+  <section class="card">
+    <h2>1a 能力地图：{{NC1}} 个一级、{{NC2}} 个二级</h2>
+    <p class="small">只说企业「做什么」，不照搬老系统模块。核心 / 支撑 / 通用下一步再定。</p>
+    {{CAPS}}
+    {{C_CAPS}}
+  </section>
+
+  <section class="card">
+    <h2>1b 价值流：{{NV}} 条、{{NS}} 个阶段</h2>
+    <p class="small">每条：为谁、从什么开始、到什么结果；阶段后面是标志它完成的业务事件。</p>
+    {{VS}}
+    {{C_VS}}
+  </section>
+
+  <section class="card">
+    <h2>需要你回答的 6 个问题</h2>
+    {{OQS}}
+  </section>
+
+  <section class="card">
+    <h2>备注</h2>
+    <label for="note" class="small">修改意见、目标数字等写在这里（自动保存）。</label>
+    <textarea id="note" placeholder="例如：目标 3 改为……"></textarea>
+    <div class="done" id="done"></div>
+  </section>
+</main>
+
+<script>
+const REC = /*REC*/{};
+const QS = Object.keys(REC);
+const $ = s => document.querySelector(s);
+let db = null, me = null, noteTimer = null, saved = {};
+for (const q of QS) { const r = document.querySelector(`input[name="${q}"][value="${REC[q]}"]`); if (r) r.checked = true; }
+function setStatus(t, off) { const s = $("#status"); s.textContent = t; s.classList.toggle("off", !!off); }
+function progress() { const n = QS.filter(q => saved[q]).length; $("#done").textContent = n === QS.length ? `${n} 项都已保存，我会直接读取。` : `已保存 ${n} / ${QS.length} 项（预选不算保存）。`; }
+async function save(id, body) {
+  saved[id] = true; progress();
+  if (!db) { setStatus("存储不可用：本次选择没有保存，请在 claude.ai 登录后打开", true); return; }
+  try { await db.collection("decisions").doc(id).set({...body, by: me, at: new Date().toISOString()}); setStatus("已保存"); }
+  catch (e) { setStatus("保存失败：" + (e && e.message || "请稍后再试"), true); }
+}
+document.addEventListener("change", e => { const t = e.target; if (t.type !== "radio") return; save(t.name, {choice: t.value, recommended: t.value === REC[t.name]}); });
+$("#all").addEventListener("click", async () => { for (const q of QS) { const r = document.querySelector(`input[name="${q}"][value="${REC[q]}"]`); if (r) r.checked = true; await save(q, {choice: REC[q], recommended: true}); } });
+$("#note").addEventListener("input", e => { clearTimeout(noteTimer); noteTimer = setTimeout(() => save("note", {text: e.target.value}), 700); });
+progress();
+(async () => {
+  try { const u = await window.claude?.use?.("user"); me = u ? await u.id() : null; } catch (e) {}
+  try { db = await window.claude?.use?.("db"); } catch (e) { db = null; }
+  if (!db) { setStatus("存储不可用：请在 claude.ai 登录后打开，选择才会保存", true); return; }
+  setStatus("已连接，点选即保存");
+  try {   // 只读一次、不订阅，一次性回填（gate/README 在线页性能约束）
+    const snap = await db.collection("decisions").get();
+    for (const doc of snap.docs) {
+      const d = doc.data(); if (!d) continue; saved[doc.id] = true;
+      if (doc.id === "note") { if (document.activeElement !== $("#note")) $("#note").value = d.text || ""; continue; }
+      const r = document.querySelector(`input[name="${doc.id}"][value="${d.choice}"]`); if (r) r.checked = true;
+    }
+    progress();
+  } catch (e) { setStatus("读取已保存的选择失败；点选仍会保存", true); }
+})();
+</script>
