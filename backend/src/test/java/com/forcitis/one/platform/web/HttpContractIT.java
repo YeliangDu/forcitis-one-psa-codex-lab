@@ -81,7 +81,7 @@ class HttpContractIT {
 
         assertThat(allowsNull(schemas.path("AuditEntryResponse").path("properties").path("detail"))).isTrue();
         assertThat(schemas.path("AuditEntryResponse").path("required").toString()).doesNotContain("\"detail\"").contains("\"action\"");
-        assertThat(allowsNull(schemas.path("LegalEntityResponse").path("properties").path("accountingOrganizationNumber"))).isTrue();
+        assertThat(allowsNull(schemas.path("SourceReferenceResponse").path("properties").path("effectiveTo"))).isTrue();
         assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("administratorModeExpiresAt"))).isTrue();
         assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("userId"))).isFalse();
         assertThat(allowsNull(schemas.path("CursorPageRoleResponse").path("properties").path("nextCursor"))).isTrue();
