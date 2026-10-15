@@ -22,7 +22,17 @@
 3. **删库与角色**：`sql/c3_dev_db_rollback.sql`（在 `forcitis_one` 库上执行；不触碰 IT 服务门户的库与角色）。回读 `pg_roles` 无 `one_dev_%`、`pg_database` 无 `forcitis_one_dev`。
 4. **建库建角色**：`sql/c3_dev_db.sql` → `sql/c3_dev_db_verify.sql`（期望值见 C-3「校验」）。
 5. **设口令**：`scripts/c3_set_role_passwords.py dev <RDS 内网地址> --rotate`（新口令写入 `one.env` 的 `SPRING_DATASOURCE_PASSWORD` 与 `/etc/forcitis-one/migrate/`；旧口令随角色删除已失效）。
-6. **让下一次部署按首次安装处理**（安装器只在没有当前版本时接受 Flowable 首装与迁移账号数据源）：`ln -sfn /data/forcitis-one/bootstrap /data/forcitis-one/current`；已安装的版本目录保留，可作为再部署的来源。**重建后旧发布包不能再回滚**（`forcitis-one-release rollback` 指向的旧版本与新库结构不符）；需要回到某个功能状态，只能重新部署新版本。
+6. **重置服务器的发布状态**（库重建后必须同时做；只删库不够）：
+   ```bash
+   ln -sfn /data/forcitis-one/bootstrap /data/forcitis-one/current     # 没有当前版本：下一次部署按首次安装处理
+   rm -f /data/forcitis-one/previous                                   # 不留回退目标
+   find /data/forcitis-one/releases -mindepth 1 -maxdepth 1 -exec rm -rf {} +   # 重置前的版本目录全部移除
+   forcitis-one-release status                                         # 期望 current: bootstrap，previous 为空，installed releases 为空
+   ```
+   - 为什么：安装器在迁移前用当前版本目录里的 `migrations.txt` 与新版本比对（`remote_install.sh` 的 `new_migrations`，「a migration file changed between releases」），基线文件被改动时**第二次 dev 部署会在这里失败**，与库是否已重建无关；current 指回 bootstrap 后没有比对基准，全部迁移按新库首次执行。安装器也只在没有当前版本时接受 Flowable 首装与迁移账号数据源（`FIRST_INSTALL_ONLY`）。
+   - previous 必须删：新版本健康后，安装器只在切换前有当前版本时才改写 previous，否则 previous 仍指向重置前的版本，`forcitis-one-release rollback`（不带参数）会切回与新库结构不符的旧版本。
+   - 版本目录必须移除：带版本号的 `rollback` 只要求该版本目录存在；移除后**重置前的版本一律不能回退**。需要某个旧功能状态时，重新部署（发布包从签名的 GitHub Release 重新下载）。
+   - **重建后旧发布包不能再回滚**；回滚只能靠重新部署新版本。
 7. **Flowable 首装凭据**：按 RELEASE.md §4「首次部署」在 `/etc/forcitis-one/migrate/` 放 `flowable.database-schema-update`（`true`）、`spring.datasource.username`、`spring.datasource.password`（迁移账号）、`spring.datasource.url`（带 `&currentSchema=platform_approval`），root 600。
 8. **首次部署前检查**：`platform_integration.event_publication` 不存在或为空（新库应为空，C-3 第 0.1 步）；ECS `ecs_check.sh` 通过。
 9. **恢复拉取并部署**：`systemctl start forcitis-one-release-pull.timer`；由 one-coordinator 触发 `deploy.yml`（dev，目标版本）。
