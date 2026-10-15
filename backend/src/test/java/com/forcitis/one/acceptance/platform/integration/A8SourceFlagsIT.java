@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.OneApplication;
-import com.forcitis.one.TestImages;
+import com.forcitis.one.TestMssql;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -24,7 +24,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,8 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import org.awaitility.Awaitility;
-import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,7 +47,6 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -155,8 +151,8 @@ class A8SourceFlagsIT {
 
     static final List<Person> PEOPLE = List.of(P1, P1B, P2, P3, P4, C1, C2, C3, C4, C5, OUTSIDE, EXTERNAL);
 
-    static final String MAIN = "a8flags";
-    static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
+    static final String MAIN = TestMssql.database(A8SourceFlagsIT.class, "a8flags").name();
+    static final String SA_PASSWORD = TestMssql.SA_PASSWORD;
     static final AtomicInteger LOGINS = new AtomicInteger();
     static final Map<String, Login> LOGINS_BY_DATABASE = new HashMap<>();
 
@@ -166,19 +162,14 @@ class A8SourceFlagsIT {
     static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
-    static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
-            .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
-            .withStartupTimeout(Duration.ofMinutes(5))
-            .waitingFor(Wait.forLogMessage(".*SQL Server is now ready for client connections.*", 1));
+    static final GenericContainer<?> MSSQL = TestMssql.shared();
 
     static {
         POSTGRES.start();
-        MSSQL.start();
         try {
-            waitForAdministratorLogin();
             ReadOnlyBaselineFixture.createRdsPlatform(A8SourceFlagsIT::run);
             createA8Database(MAIN);
-        } catch (SQLException | IOException | ConditionTimeoutException e) {
+        } catch (SQLException | IOException e) {
             throw new IllegalStateException("cannot prepare the A8 database; SQL Server log:\n" + MSSQL.getLogs(), e);
         }
     }
@@ -345,7 +336,7 @@ class A8SourceFlagsIT {
     @Test
     @DisplayName("R-1b-0 Given dbo.ORG_UNIT 缺 TYPE When 启动 Then 拒绝启动并报出缺的表与列")
     void missingUnitTypeRefusesStartup() throws Exception {
-        String database = "a8notype";
+        String database = TestMssql.database(A8SourceFlagsIT.class, "a8notype").name();
         createA8Database(database, "ALTER TABLE dbo.ORG_UNIT DROP COLUMN TYPE");
 
         Throwable failure = startAndClose(database);
@@ -357,7 +348,7 @@ class A8SourceFlagsIT {
     @Test
     @DisplayName("R-1b-0 Given 基表多出任意列 When 启动 Then 正常（基表做子集检查）")
     void extraBaseTableColumnsAreAccepted() throws Exception {
-        String database = "a8extracolumns";
+        String database = TestMssql.database(A8SourceFlagsIT.class, "a8extracolumns").name();
         createA8Database(database, "ALTER TABLE dbo.ORG_MEMBER ADD R1B0_PROBE_EXTRA nvarchar(8) NULL",
                 "ALTER TABLE dbo.ORG_UNIT ADD R1B0_PROBE_EXTRA nvarchar(8) NULL");
 
@@ -369,7 +360,7 @@ class A8SourceFlagsIT {
     @Test
     @DisplayName("R-1b-0 Given 视图多一列 When 启动 Then 仍拒绝（经视图读取的路径仍做相等校验）")
     void extraViewColumnStillRefuses() throws Exception {
-        String database = "a8viewextra";
+        String database = TestMssql.database(A8SourceFlagsIT.class, "a8viewextra").name();
         createA8Database(database, "ALTER VIEW forcitis_one.v_org_post AS SELECT P.ID, P.CODE, P.NAME, P.SORT_ID, P.STATUS, P.IS_DELETED, "
                 + "CAST(NULL AS nvarchar(8)) AS R1B0_PROBE_EXTRA FROM dbo.ORG_POST P");
 
@@ -403,7 +394,7 @@ class A8SourceFlagsIT {
         // The injected row of the card: a migration row pointing at a column that does not exist in A8.
         List<Map<String, String>> absent = new ArrayList<>(notRuntime);
         absent.add(Map.of("database", "a8_db", "object", "dbo.ORG_MEMBER", "column", "R1B0_NO_SUCH_COLUMN", "purpose", "MIGRATION"));
-        String database = "a8migration";
+        String database = TestMssql.database(A8SourceFlagsIT.class, "a8migration").name();
         createA8Database(database);
         for (Map<String, String> row : absent) {
             String table = row.get("object").replaceFirst("(?i)^\\[?dbo\\]?\\.", "").replace("[", "").replace("]", "");
@@ -630,12 +621,11 @@ class A8SourceFlagsIT {
     // ------------------------------------------------------------------ helpers: SQL Server fixture
 
     static String url(String database) {
-        return "jdbc:sqlserver://" + MSSQL.getHost() + ":" + MSSQL.getMappedPort(1433) + ";databaseName=" + database
-                + ";encrypt=true;trustServerCertificate=true";
+        return TestMssql.url(MSSQL, database);
     }
 
     static Connection admin(String database) throws SQLException {
-        return DriverManager.getConnection(url(database) + ";loginTimeout=30", "sa", SA_PASSWORD);
+        return TestMssql.adminConnection(MSSQL, database);
     }
 
     static void run(String database, String... statements) throws SQLException {
@@ -646,18 +636,8 @@ class A8SourceFlagsIT {
         }
     }
 
-    /** Polls in the calling thread: this runs inside the static initializer. */
-    private static void waitForAdministratorLogin() {
-        Awaitility.await("SQL Server accepts the administrator login")
-                .atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(500)).pollInSameThread().ignoreExceptions().until(() -> {
-                    admin("master").close();
-                    return true;
-                });
-    }
-
     /** A8-shaped base tables, the DBA view script as is, then the variant, then a baseline read-only login checked against the RDS export. */
     static void createA8Database(String database, String... variant) throws SQLException, IOException {
-        run("master", "CREATE DATABASE " + database);
         run(database,
                 "CREATE TABLE dbo.ORG_UNIT (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), "
                         + "TYPE nvarchar(32) NULL, IS_DELETED smallint, IS_INTERNAL smallint, IS_ENABLE smallint)",
@@ -691,7 +671,7 @@ class A8SourceFlagsIT {
         if (variant.length > 0) {
             run(database, variant);
         }
-        String login = "flags_ro_" + LOGINS.incrementAndGet();
+        String login = TestMssql.login(A8SourceFlagsIT.class, "flags_ro_" + LOGINS.incrementAndGet());
         String password = "Ro1!" + UUID.randomUUID();
         ReadOnlyBaselineFixture.createViewSchemaReader(A8SourceFlagsIT::run, database, login, password);
         ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(database), database, login, password);
