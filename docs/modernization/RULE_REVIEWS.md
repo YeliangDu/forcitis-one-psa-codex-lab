@@ -105,3 +105,13 @@
 | RULE-287 | 2026-10-14 | 同上 | 重提＝在同一单据上开新一轮（`start_rounds` 轮次 +1，幂等键含轮次）；审批历史按轮次保留，可逐轮查看 |
 | RULE-280 | 2026-10-14 | 「留空并如实审计 (Recommended)」（第二波复审 Nit，经 psa-coordinator 询问） | 审批通过时意见为空就保持为空，不再补「同意」；审计如实记录 reason=null，界面上显示「（未填写意见）」（只用于展示，不写入数据）。驳回、退回仍须填写原因；RULE-302 的系统自动通过记为系统动作，原因用固定文案。依据：proposals/RULE-280_DEFAULT_REASON.md |
 | RULE-385 | 正确 | 2026-10-14 19:49 | A closed legal-entity attribution period is never rewritten; a wrong end date is corrected by an append-only correction record | 正确（用户作答，2026-10-14 经 one-coordinator：「单独的更正记录表 (Recommended)」）：部门 / 员工法人归属期间只追加，已关闭期间不改写（T1）。结束日写错时，由组织数据管理员经独立用例追加更正记录（被更正期间、新结束日、原因、操作人），发 LegalEntityAttributionCorrected 并入审计；解析某日法人时合并期间表与更正记录；不追溯已写入单据的法人，需改单据法人的走冲销重做。规则卡：rules/LEGAL_ENTITY_ATTRIBUTION_RULES.md。 |
+
+## 结论修订（不改原结论）
+
+上表为原结论；决定其后变化时，原结论保留，修订记在 `RULE_REVIEWS.json` 条目的 `revisions` 中，当前结论取最后一条修订（SESSION_PLAYBOOK §12.2）。
+
+| Rule | 修订日期 | 用户决定（原话） | 出处 | 修订后的结论 |
+|---|---|---|---|---|
+| RULE-362 | 2026-10-15 | 「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」 | ADR-0033；intent 2026-10-15-005616、2026-10-15-005633 | 正确+修：员工与用户账号各用自有 UUIDv7，A8 人员 ID 只登记在来源对照；企业微信 userid 创建时写入 `external_identities`（原结论「ID 沿用 A8 ID」） |
+| RULE-368 | 2026-10-15 | 同上 | 同上 | 错误：身份键为自有 `user_id`（UUIDv7），A8 人员 ID 只在来源对照，`(来源系统, 类别, source_id)` 唯一（原结论「身份键为 A8 ID」） |
+| RULE-345 | 2026-10-15 | 「两份都批准 (Recommended)」 | ADR-0034；intent 2026-10-15-020346 | 正确+修：删除角色改为关闭最后一个版本、不再开新版本，角色与版本及授予历史保留（仍有当前有效授予时拒绝）；被删除角色的编码不得复用（原结论「删角色连带删关联」） |
