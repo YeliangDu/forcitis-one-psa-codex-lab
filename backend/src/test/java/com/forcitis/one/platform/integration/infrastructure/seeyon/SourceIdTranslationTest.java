@@ -26,7 +26,7 @@ class SourceIdTranslationTest {
     static final ExternalSource SOURCE = ExternalSource.ORG_SOURCE;
 
     static OrgUnitRow unit(long id) {
-        return new OrgUnitRow(id, "C" + id, "Unit " + id, "path-" + id, 1, SourceRecordState.ACTIVE, List.of(), null, null, false);
+        return new OrgUnitRow(id, "C" + id, "Unit " + id, "path-" + id, 1, SourceRecordState.ACTIVE, List.of(), null, null, false, "Department");
     }
 
     static MemberRow member(long id, long unit, Long post, Long supervisor) {
