@@ -37,14 +37,16 @@ class IntegrationConfigurationTest {
     }
 
     @Test
-    @DisplayName("both external reads are off unless switched on; once on, the start-up checks are on by default")
+    @DisplayName("both external reads are off unless switched on; once on, the checks always run (ADR37-1: no switch, see ReadOnlyCheckSwitchGuardTest)")
     void safeDefaults() throws IOException {
         Properties p = load();
 
         assertThat(p.getProperty(SEEYON + "views.enabled")).isEqualTo("${INTEGRATION_SEEYON_VIEWS_ENABLED:false}");
         assertThat(p.getProperty(LEGACY + "enabled")).isEqualTo("${INTEGRATION_LEGACY_ENABLED:false}");
-        assertThat(p.getProperty(SEEYON + "views.validate-on-startup")).isEqualTo("${INTEGRATION_SEEYON_VALIDATE_ON_STARTUP:true}");
-        assertThat(p.getProperty(LEGACY + "validate-on-startup")).isEqualTo("${INTEGRATION_LEGACY_VALIDATE_ON_STARTUP:true}");
+        assertThat(p.stringPropertyNames()).as("the only keys of the two read-only connections")
+                .filteredOn(key -> key.startsWith(SEEYON + "views.") || key.startsWith(LEGACY))
+                .containsExactlyInAnyOrder(SEEYON + "views.enabled", SEEYON + "views.jdbc-url", SEEYON + "views.username", SEEYON + "views.password",
+                        LEGACY + "enabled", LEGACY + "jdbc-url", LEGACY + "username", LEGACY + "password", LEGACY + "view-name");
     }
 
     @Test
