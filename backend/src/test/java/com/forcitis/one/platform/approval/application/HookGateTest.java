@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -55,7 +56,7 @@ class HookGateTest {
     static TaskView task(String hookKey) {
         return new TaskView(new ApprovalTaskId("t"), new ApprovalInstanceId("i"), ProcessKey.COST_TIMESHEET_APPROVAL,
                 new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc")), new LegalEntityId(TestIds.uuid(1)), "node", "Node", new EmployeeId(1),
-                Optional.empty(), Set.of(new UserId(2)), Instant.EPOCH, false, Optional.ofNullable(hookKey), false, new ContentHash("hash"));
+                Optional.empty(), Set.of(TestAccounts.account(2)), Instant.EPOCH, false, Optional.ofNullable(hookKey), false, new ContentHash("hash"));
     }
 
     @Test
@@ -69,9 +70,9 @@ class HookGateTest {
     @DisplayName("RULE-283 a node without a hook key has no hook; a node naming an unknown key is blocked")
     void unknownKeyBlocksAndNoKeyPasses() {
         HookGate gate = gate(hook("K", HookDecision.allow()));
-        assertThat(gate.check(task(null), new UserId(2), HookAction.APPROVE, null).outcome().commits()).isTrue();
-        assertThat(gate.check(task(" "), new UserId(2), HookAction.APPROVE, null).outcome().commits()).isTrue();
-        assertThatThrownBy(() -> gate.check(task("OTHER"), new UserId(2), HookAction.APPROVE, null))
+        assertThat(gate.check(task(null), TestAccounts.account(2), HookAction.APPROVE, null).outcome().commits()).isTrue();
+        assertThat(gate.check(task(" "), TestAccounts.account(2), HookAction.APPROVE, null).outcome().commits()).isTrue();
+        assertThatThrownBy(() -> gate.check(task("OTHER"), TestAccounts.account(2), HookAction.APPROVE, null))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_NOT_REGISTERED));
     }
@@ -80,7 +81,7 @@ class HookGateTest {
     @DisplayName("RULE-277 a hook that returns nothing blocks (a task action with no decision is not committed)")
     void nullDecisionBlocks() {
         HookGate gate = gate(hook("K", null));
-        assertThatThrownBy(() -> gate.check(task("K"), new UserId(2), HookAction.APPROVE, null))
+        assertThatThrownBy(() -> gate.check(task("K"), TestAccounts.account(2), HookAction.APPROVE, null))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
     }

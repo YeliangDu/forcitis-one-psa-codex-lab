@@ -1269,7 +1269,8 @@ components:
           - SYSTEM
         actorId:
           type: string
-          description: 用户 ID，或作业 / 监听器名；不带姓名
+          format: uuid
+          description: USER 为账号的用户 ID；SYSTEM 为 x-system-actors 中声明的作业或监听器的 UUIDv5（backend/architecture/system-actors.txt）；不带姓名
         legalEntityId:
           type: string
           format: uuid
@@ -1588,6 +1589,7 @@ components:
             items:
               type: string
               x-type: UserId
+              format: uuid
           summary:
             type: object
             properties:
@@ -1656,6 +1658,7 @@ components:
           claimedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     TaskResulted:
       name: TaskResulted
@@ -1727,6 +1730,7 @@ components:
           assignee:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           outcome:
             type: string
@@ -1815,10 +1819,12 @@ components:
           from:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           to:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           reason:
             type: object
@@ -1897,6 +1903,7 @@ components:
             items:
               type: string
               x-type: UserId
+              format: uuid
             description: 被提醒的人
     ApprovalTaskEscalated:
       name: ApprovalTaskEscalated
@@ -1965,6 +1972,7 @@ components:
             items:
               type: string
               x-type: UserId
+              format: uuid
           target:
             type: string
             enum:
@@ -2035,6 +2043,7 @@ components:
           releasedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     TaskReassigned:
       name: TaskReassigned
@@ -2103,10 +2112,12 @@ components:
           from:
             type: string
             x-type: UserId
+            format: uuid
             description: 原处理人，没人持有时为空
           to:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           reason:
             type: object
@@ -2497,6 +2508,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AccountDisabled:
       name: AccountDisabled
@@ -2527,6 +2539,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AccountRolesReplaced:
       name: AccountRolesReplaced
@@ -2558,6 +2571,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           roleIds:
             type: array
@@ -2595,6 +2609,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AccountOpened:
       name: AccountOpened
@@ -2626,6 +2641,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           roleIds:
             type: array
@@ -2662,6 +2678,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     EmergencyAdminEnabled:
       name: EmergencyAdminEnabled
@@ -2692,6 +2709,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     EmergencyAdminCredentialsReset:
       name: EmergencyAdminCredentialsReset
@@ -2722,6 +2740,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     EmergencyAdminDisabled:
       name: EmergencyAdminDisabled
@@ -2753,6 +2772,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           cause:
             type: string
@@ -2794,6 +2814,7 @@ components:
           requestedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AuthorizationConfirmed:
       name: AuthorizationConfirmed
@@ -2829,6 +2850,7 @@ components:
           confirmedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AuthorizationRejected:
       name: AuthorizationRejected
@@ -2864,6 +2886,7 @@ components:
           rejectedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     SourceReferenceRegistered:
       name: SourceReferenceRegistered
@@ -3768,6 +3791,7 @@ components:
           releasedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     OrgSnapshotChanged:
       name: OrgSnapshotChanged
@@ -4142,3 +4166,120 @@ components:
             type: string
             x-type: Reason
             description: 操作人填写的更正原因
+x-system-actors:
+- name: cost.timesheet.approval-result
+  actorId: 01070adc-19b2-5433-9ff5-f10eac533d00
+  module: cost.timesheet
+  description: 监听器 ApplyApprovalResult：把审批结果写回工时单
+- name: cost.timesheet.consumed.events.purge
+  actorId: ea631485-fb5d-58ad-87ec-7c953ee85365
+  module: cost.timesheet
+  description: 作业：清理已消费事件登记
+- name: organization.workforce.login-registration
+  actorId: 8fb8643a-127d-507d-91a8-5fb200b233a5
+  module: organization.workforce
+  description: 登录时登记员工（LoginMissRegistration）：企业微信或单点登录未命中快照、来源查到在职员工时登记并发布 EmployeeRegistered；登录请求尚无会话用户（P2-F1）
+- name: organization.workforce.short.name.refresh
+  actorId: 99a33b03-dfe7-501f-8537-da3c7b1b87bd
+  module: organization.workforce
+  description: 作业：刷新部门简称
+- name: organization.workforce.snapshot.reconcile
+  actorId: 3a1915f8-3e64-55a2-87f9-cc393fab0789
+  module: organization.workforce
+  description: 作业：组织快照与来源每日核对
+- name: organization.workforce.snapshot.sync
+  actorId: 57960204-0589-5d0a-91f3-72f5d147e40a
+  module: organization.workforce
+  description: 作业：组织快照同步
+- name: organization.workforce.sync.purge
+  actorId: fb812326-a9e9-5e97-8a60-32ed4802a2dc
+  module: organization.workforce
+  description: 作业：清理过期的同步记录与差异
+- name: platform.approval.approval-start
+  actorId: b1bdaa05-8daa-5a97-96a8-9c8b0e7fa3fe
+  module: platform.approval
+  description: 监听器 StartApprovalOnSubmission：工时单提交后发起审批
+- name: platform.approval.deadline.enforce
+  actorId: 903ccafd-ba92-5772-b37a-6525c16febfb
+  module: platform.approval
+  description: 作业：审批时限提醒、逾期与升级
+- name: platform.approval.process.archive
+  actorId: 8cd3cdaa-791f-54a2-ae05-7d7750cdd2b3
+  module: platform.approval
+  description: 作业：归档已结束的流程实例
+- name: platform.approval.process.archive.probe
+  actorId: c419efec-f48e-5aef-a169-101587970e54
+  module: platform.approval
+  description: 作业：流程归档探测
+- name: platform.approval.task-notification
+  actorId: 51984a1a-a49c-5d8e-b9a4-14bd612cfcda
+  module: platform.approval
+  description: 监听器 TaskNotifier：审批任务的企业微信卡片
+- name: platform.audit.domain-event-audit
+  actorId: 20dc3642-9a1a-5e06-96a1-780f9174629f
+  module: platform.audit
+  description: 监听器 AuditDomainEvents：把领域事件写进审计
+- name: platform.audit.entry.archive
+  actorId: 821c149d-4ce7-53b3-b7cb-2798a78bba98
+  module: platform.audit
+  description: 作业：审计条目归档
+- name: platform.audit.entry.archive.probe
+  actorId: 304a2664-74ef-54c4-82d6-ceacbf79aa27
+  module: platform.audit
+  description: 作业：审计归档探测
+- name: platform.idempotency.cleanup
+  actorId: 5dcad602-9ae4-5a53-be29-95914598ca0d
+  module: platform.idempotency
+  description: 作业：清理过期的幂等应答
+- name: platform.identity.account-provisioning
+  actorId: 6405fb15-3e76-548c-b34c-479c690b2588
+  module: platform.identity
+  description: 开通账号（入职事件监听器 HandleEmployeeRegistered 与各建账号入口）
+- name: platform.identity.authorization
+  actorId: 39e3e313-517f-55c7-add4-a4c531b5831a
+  module: platform.identity
+  description: 监听器 ApplyConfirmedAuthorization：执行已确认的授权申请
+- name: platform.identity.credential.purge
+  actorId: fca6f0b7-8fb1-594c-aa7b-c1b3eaeca283
+  module: platform.identity
+  description: 作业：清理过期的一次性凭据
+- name: platform.identity.emergency.admin.check
+  actorId: 99dc9df0-233b-5089-99e2-5e286ac8f761
+  module: platform.identity
+  description: 作业：应急账号每日核对
+- name: platform.identity.operations
+  actorId: 26758f3f-e27f-55a8-9789-834245457756
+  module: platform.identity
+  description: 运维命令（identity-operations 档案）
+- name: platform.identity.separation
+  actorId: 1da01607-dce4-5fbc-9490-f0ae7628d6d1
+  module: platform.identity
+  description: 离职处理：HandleOrgSnapshotChange、DisableEmergencyAdminOnSeparation、RevokeBrowserIdentifiersOnSeparation
+- name: platform.identity.session.purge
+  actorId: 7f82e786-478f-594a-a1ff-ad168fbc4775
+  module: platform.identity
+  description: 作业：清理过期会话
+- name: platform.integration.event.cleanup
+  actorId: d13191e2-64c8-5e5f-b615-64bb2a3dbae8
+  module: platform.integration
+  description: 作业：清理事件发布登记
+- name: platform.integration.event.republish
+  actorId: 7505e300-03be-5211-8e76-a4b76be8b361
+  module: platform.integration
+  description: 作业：重投未完成的事件发布
+- name: platform.integration.outbound.purge
+  actorId: 3285c99d-cb76-5fc7-b30d-4e9e41642e40
+  module: platform.integration
+  description: 作业：清理外发投递记录
+- name: platform.integration.wecom.delivery
+  actorId: ba200165-2aef-5bc9-85cd-4c489c33b763
+  module: platform.integration
+  description: 企业微信卡片投递（不在作业内调用时的执行人）
+- name: platform.integration.wecom.delivery.send
+  actorId: 2d7aa6d3-413d-5201-b3ec-453926546405
+  module: platform.integration
+  description: 作业：企业微信卡片投递
+- name: platform.numbering.counter.capacity.check
+  actorId: 2f073d56-6f12-5145-b01b-ed9cf06a8b00
+  module: platform.numbering
+  description: 作业：编号计数容量检查

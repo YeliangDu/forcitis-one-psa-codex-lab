@@ -38,8 +38,8 @@ import org.springframework.security.access.AccessDeniedException;
  */
 class RetractionInitiatorGateTest {
     static final EmployeeId INITIATOR = new EmployeeId(1001);
-    static final UserId INITIATORS_ACCOUNT = new UserId(6001);
-    static final UserId ACCOUNT_NUMBERED_LIKE_THE_INITIATOR = new UserId(1001);
+    static final UserId INITIATORS_ACCOUNT = TestAccounts.account(1001);
+    static final UserId ACCOUNT_NUMBERED_LIKE_THE_INITIATOR = TestAccounts.unknownAccount(1001);
     static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));
 
     final ApprovalRequestRepository requests = mock(ApprovalRequestRepository.class);
@@ -47,7 +47,7 @@ class RetractionInitiatorGateTest {
     final Approvals approvals = mock(Approvals.class);
     final DenialAudit denials = mock(DenialAudit.class);
     final BusinessTime time = mock(BusinessTime.class);
-    final Retraction retraction = new Retraction(requests, engine, approvals, denials, time, TestAccounts.apart(5000));
+    final Retraction retraction = new Retraction(requests, engine, approvals, denials, time, TestAccounts.everyoneHasOne());
     final ApprovalRequest running = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1,
             new ApprovalInstanceId("i-1"), ApprovalStatus.RUNNING, null, new ApprovalSummary("TS-1"), List.of(), 3, 2);
 

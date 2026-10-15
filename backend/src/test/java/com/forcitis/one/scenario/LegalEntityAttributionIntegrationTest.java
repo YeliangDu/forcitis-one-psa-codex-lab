@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
@@ -43,10 +44,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport {
-    static final RequestPostProcessor MAINTAINER = user("9001").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
-    static final RequestPostProcessor CORRECTOR = user("9003").authorities(
+    static final RequestPostProcessor MAINTAINER = user(TestAccounts.account(9001).value().toString()).authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE);
+    static final RequestPostProcessor CORRECTOR = user(TestAccounts.account(9003).value().toString()).authorities(
             () -> Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE, () -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
-    static final RequestPostProcessor READER = user("9002").authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
+    static final RequestPostProcessor READER = user(TestAccounts.account(9002).value().toString()).authorities(() -> Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
 
     @Autowired
     MockMvc mvc;
@@ -71,14 +72,16 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
 
     @org.junit.jupiter.api.BeforeEach
     void theReaderIsTheOrganisationDataAdministrator() {
-        jdbc.sql("insert into platform_identity.user_accounts (user_id) values (9002) on conflict do nothing").update();
-        jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) select 9002, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
+        for (long person : new long[] {9001, 9002, 9003}) {
+            jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + TestAccounts.sql(person) + "::uuid, " + person + ") on conflict do nothing").update();
+        }
+        jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) select " + TestAccounts.sql(9002) + "::uuid, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
     }
 
     @org.junit.jupiter.api.AfterEach
     void removeTheReaderAccount() {
-        jdbc.sql("delete from platform_identity.account_roles where user_id = 9002").update();
-        jdbc.sql("delete from platform_identity.user_accounts where user_id = 9002").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 9002)").update();
+        jdbc.sql("delete from platform_identity.user_accounts where employee_id in (9001, 9002, 9003)").update();
     }
 
     @BeforeEach
@@ -271,7 +274,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
                     assertThat(e.previousEffectiveTo()).isEqualTo(day.plusDays(10));
                     assertThat(e.newEffectiveTo()).isEqualTo(day.plusDays(5));
                     assertThat(e.reason().value()).isEqualTo("typed the wrong end day");
-                    assertThat(e.envelope().actorId()).isEqualTo("9003");
+                    assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9003).value().toString());
                 });
         assertThatThrownBy(() -> jdbc.sql("update organization_workforce.legal_entity_attribution_corrections set correction_reason = 'x'").update())
                 .hasMessageContaining("append-only");

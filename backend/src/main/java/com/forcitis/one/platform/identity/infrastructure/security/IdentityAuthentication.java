@@ -1,11 +1,13 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.application.LoginMethod;
 import com.forcitis.one.platform.identity.application.SessionKind;
 import com.forcitis.one.platform.identity.application.SessionMode;
 import java.io.Serial;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Optional;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -52,8 +54,13 @@ final class IdentityAuthentication extends AbstractAuthenticationToken {
         return loginAt;
     }
 
-    long userIdValue() {
-        return Long.parseLong(userId);
+    /** Empty when the stored principal is not an account id in its canonical form: the session is broken. */
+    Optional<UserId> account() {
+        try {
+            return Optional.of(UserId.parse(userId));
+        } catch (IllegalArgumentException broken) {
+            return Optional.empty();
+        }
     }
 
     LoginMethod loginMethod() {

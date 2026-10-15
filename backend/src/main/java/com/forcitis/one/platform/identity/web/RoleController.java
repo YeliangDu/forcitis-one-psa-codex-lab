@@ -114,7 +114,7 @@ class RoleController {
 
     @PostMapping(path = "/user-accounts/{userId}:replace-roles")
     @PreAuthorize(UPDATE_ACCOUNT_ROLES)
-    ResponseEntity<?> replaceRoles(@PathVariable long userId, @RequestBody ReplaceRolesRequest request,
+    ResponseEntity<?> replaceRoles(@PathVariable UUID userId, @RequestBody ReplaceRolesRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         Set<String> codes = request.roleCodes() == null ? Set.of() : request.roleCodes();
         return switch (replaceAccountRoles.execute(AccountPath.user(userId), codes, ExpectedVersion.fromHeader(ifMatch))) {
@@ -126,21 +126,21 @@ class RoleController {
 
     @GetMapping(path = "/user-accounts/{userId}")
     @PreAuthorize(READ)
-    ResponseEntity<UserAccountResponse> account(@PathVariable long userId) {
+    ResponseEntity<UserAccountResponse> account(@PathVariable UUID userId) {
         UserAccountView view = getUserAccount.execute(AccountPath.user(userId));
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(UserAccountResponse.of(view));
     }
 
     @PostMapping(path = "/user-accounts/{userId}:enable")
     @PreAuthorize(UPDATE)
-    ResponseEntity<Void> enable(@PathVariable long userId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
+    ResponseEntity<Void> enable(@PathVariable UUID userId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         long version = changeAccountStatus.execute(AccountPath.user(userId), true, ExpectedVersion.fromHeader(ifMatch));
         return ResponseEntity.noContent().eTag(ExpectedVersion.etag(version)).build();
     }
 
     @PostMapping(path = "/user-accounts/{userId}:disable")
     @PreAuthorize(UPDATE)
-    ResponseEntity<Void> disable(@PathVariable long userId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
+    ResponseEntity<Void> disable(@PathVariable UUID userId, @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         long version = changeAccountStatus.execute(AccountPath.user(userId), false, ExpectedVersion.fromHeader(ifMatch));
         return ResponseEntity.noContent().eTag(ExpectedVersion.etag(version)).build();
     }

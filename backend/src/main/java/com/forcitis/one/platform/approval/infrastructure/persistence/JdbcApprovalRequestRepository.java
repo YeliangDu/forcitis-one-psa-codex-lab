@@ -267,8 +267,8 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
     }
 
     private static ApprovalTask readTask(ResultSet rs) throws SQLException {
-        long assignee = rs.getLong("assignee_id");
-        UserId assigneeId = rs.wasNull() ? null : new UserId(assignee);
+        UUID assignee = rs.getObject("assignee_id", UUID.class);
+        UserId assigneeId = assignee == null ? null : new UserId(assignee);
         Instant due = instant(rs, "due_at");
         DeadlinePlan plan = due == null ? null : new DeadlinePlan(due, instant(rs, "remind_at"), instant(rs, "escalate_at"));
         String outcome = rs.getString("outcome_kind");

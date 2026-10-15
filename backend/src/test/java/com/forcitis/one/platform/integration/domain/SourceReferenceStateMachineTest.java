@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.domain;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.forcitis.one.platform.integration.api.ConfirmationStatus.CONFIRMED;
 import static com.forcitis.one.platform.integration.api.ConfirmationStatus.PENDING;
 import static com.forcitis.one.platform.integration.api.ConfirmationStatus.REJECTED;
@@ -35,8 +36,8 @@ import org.junit.jupiter.api.Test;
 class SourceReferenceStateMachineTest {
     static final Instant NOW = Instant.parse("2026-11-02T02:00:00Z");
     static final LocalDate START = LocalDate.of(2026, 11, 2);
-    static final UserId REGISTRAR = new UserId(11);
-    static final UserId DECIDER = new UserId(12);
+    static final UserId REGISTRAR = TestAccounts.account(11);
+    static final UserId DECIDER = TestAccounts.account(12);
     static final OwnObjectId LEGAL_ENTITY = new OwnObjectId(TestIds.uuid(5));
 
     static SourceReference accountingCode(ConfirmationStatus status, LocalDate effectiveTo) {

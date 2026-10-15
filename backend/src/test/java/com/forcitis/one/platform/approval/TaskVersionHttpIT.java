@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -35,7 +36,7 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
     }
 
     String etag(Scene s) throws Exception {
-        return mvc.perform(get(BASE + s.task().value()).with(user(String.valueOf(s.manager())))).andExpect(status().isOk())
+        return mvc.perform(get(BASE + s.task().value()).with(user(TestAccounts.account(s.manager()).value().toString()))).andExpect(status().isOk())
                 .andExpect(header().exists("ETag")).andReturn().getResponse().getHeader("ETag");
     }
 
@@ -45,7 +46,7 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
         Scene s = scene();
         String before = etag(s);
 
-        mvc.perform(post(BASE + s.task().value() + ":claim").with(csrf()).with(user(String.valueOf(s.manager()))).header("If-Match", before))
+        mvc.perform(post(BASE + s.task().value() + ":claim").with(csrf()).with(user(TestAccounts.account(s.manager()).value().toString())).header("If-Match", before))
                 .andExpect(status().isNoContent());
 
         org.assertj.core.api.Assertions.assertThat(etag(s)).isNotEqualTo(before);
@@ -56,7 +57,7 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
     void withoutIfMatchIsRefused() throws Exception {
         Scene s = scene();
         for (String action : List.of(":claim", ":release", ":decide", ":return", ":transfer", ":reassign")) {
-            mvc.perform(post(BASE + s.task().value() + action).with(csrf()).with(user(String.valueOf(s.manager()))).contentType(MediaType.APPLICATION_JSON)
+            mvc.perform(post(BASE + s.task().value() + action).with(csrf()).with(user(TestAccounts.account(s.manager()).value().toString())).contentType(MediaType.APPLICATION_JSON)
                     .content("{\"outcome\":\"APPROVE\",\"reason\":\"r\",\"assigneeId\":" + s.colleague() + "}"))
                     .andExpect(status().isPreconditionRequired()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                     .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_REQUIRED"));
@@ -73,16 +74,16 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
     void aStaleVersionIsRefused() throws Exception {
         Scene s = scene();
         String stale = etag(s);
-        mvc.perform(post(BASE + s.task().value() + ":claim").with(csrf()).with(user(String.valueOf(s.manager()))).header("If-Match", stale))
+        mvc.perform(post(BASE + s.task().value() + ":claim").with(csrf()).with(user(TestAccounts.account(s.manager()).value().toString())).header("If-Match", stale))
                 .andExpect(status().isNoContent());
 
         for (String action : List.of(":release", ":decide", ":return", ":transfer")) {
-            mvc.perform(post(BASE + s.task().value() + action).with(csrf()).with(user(String.valueOf(s.manager()))).header("If-Match", stale)
+            mvc.perform(post(BASE + s.task().value() + action).with(csrf()).with(user(TestAccounts.account(s.manager()).value().toString())).header("If-Match", stale)
                     .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"r\",\"assigneeId\":" + s.colleague() + "}"))
                     .andExpect(status().isPreconditionFailed()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                     .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_MISMATCH"));
         }
-        mvc.perform(post(BASE + s.task().value() + ":decide").with(csrf()).with(user(String.valueOf(s.manager()))).header("If-Match", etag(s))
+        mvc.perform(post(BASE + s.task().value() + ":decide").with(csrf()).with(user(TestAccounts.account(s.manager()).value().toString())).header("If-Match", etag(s))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\"}")).andExpect(status().isOk());
     }
 
@@ -91,7 +92,7 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
     void aMalformedIfMatchIsRefused() throws Exception {
         Scene s = scene();
         for (String malformed : List.of("W/\"1\"", "1", "\"1\", \"2\"", "\"abc\"", "*")) {
-            mvc.perform(post(BASE + s.task().value() + ":claim").with(csrf()).with(user(String.valueOf(s.manager()))).header("If-Match", malformed))
+            mvc.perform(post(BASE + s.task().value() + ":claim").with(csrf()).with(user(TestAccounts.account(s.manager()).value().toString())).header("If-Match", malformed))
                     .andExpect(status().isBadRequest()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                     .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_MALFORMED"));
         }
@@ -101,7 +102,7 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("every operation of the approval controllers declares application/problem+json refusals in the OpenAPI document")
     void everyOperationDeclaresItsRefusals() throws Exception {
-        String api = mvc.perform(get("/v3/api-docs").with(user("1"))).andReturn().getResponse().getContentAsString();
+        String api = mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andReturn().getResponse().getContentAsString();
         tools.jackson.databind.JsonNode paths = tools.jackson.databind.json.JsonMapper.builder().build().readTree(api).path("paths");
         int checked = 0;
         for (var path : paths.properties()) {

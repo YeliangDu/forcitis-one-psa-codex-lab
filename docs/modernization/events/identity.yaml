@@ -140,6 +140,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.identity.AccountEnabled
@@ -165,6 +166,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.identity.AccountDisabled
@@ -190,6 +192,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           roleIds:
             type: array
@@ -221,6 +224,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.identity.AccountSeparated
@@ -247,6 +251,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           roleIds:
             type: array
@@ -278,6 +283,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.identity.EmergencyAdminRegistered
@@ -303,6 +309,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.identity.EmergencyAdminEnabled
@@ -328,6 +335,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.identity.EmergencyAdminCredentialsReset
@@ -353,6 +361,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           cause:
             type: string
@@ -388,6 +397,7 @@ components:
           requestedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.identity.AuthorizationOpened
@@ -417,6 +427,7 @@ components:
           confirmedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.identity.AuthorizationConfirmed
@@ -446,6 +457,7 @@ components:
           rejectedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.identity.AuthorizationRejected

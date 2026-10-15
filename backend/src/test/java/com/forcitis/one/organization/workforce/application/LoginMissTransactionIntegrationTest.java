@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
@@ -61,7 +62,7 @@ class LoginMissTransactionIntegrationTest extends WorkforceIntegrationSupport {
         boolean[] lockFreeInsideTheLoginTransaction = new boolean[1];
 
         assertThatThrownBy(() -> new TransactionTemplate(transactions).executeWithoutResult(status -> {
-            assertThat(directory.findEmployeeByWecomUserId(new WecomUserId("wx-new-hire"))).isPresent();
+            assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-new-hire")))).isPresent();
             try {
                 lockFreeInsideTheLoginTransaction[0] = snapshotWriterLockIsFree();
             } catch (Exception e) {

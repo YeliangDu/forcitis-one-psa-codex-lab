@@ -39,11 +39,11 @@ export const AuthorizationRequestViewSchema = z.object({
   permissionCodes: z.array(z.string()).optional(),
   requestId: z.string().optional(),
   requestedAt: z.string().optional(),
-  requestedBy: z.number().int().optional(),
+  requestedBy: z.string().optional(),
   roleCodes: z.array(z.string()).optional(),
   roleId: z.string().optional(),
   roleName: z.string().optional(),
-  subjectUserId: z.number().int().optional(),
+  subjectUserId: z.string().optional(),
 });
 
 export const CalendarDayRequestSchema = z.object({

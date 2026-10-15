@@ -35,7 +35,7 @@
      -p UnsetEnvironment=SERVER_PORT -p UnsetEnvironment=MANAGEMENT_SERVER_PORT \
      /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/current/forcitis-one.jar \
      --spring.profiles.active=identity-operations --operation=grant-role --role-code=super_admin \
-     --user-id=<持有人人员 ID> --operator=<操作人> --witness=<见证人>
+     --employee-id=<持有人员工 ID> --operator=<操作人> --witness=<见证人>
    ```
 3. 登记应急账号（每个账号一次）：
    ```bash
@@ -43,7 +43,7 @@
      -p UnsetEnvironment=SERVER_PORT -p UnsetEnvironment=MANAGEMENT_SERVER_PORT \
      /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/current/forcitis-one.jar \
      --spring.profiles.active=identity-operations --operation=register-emergency-admin \
-     --user-id=<超管持有人人员 ID> --login-name=<应急账号名> --operator=<操作人> --witness=<见证人>
+     --employee-id=<超管持有人员工 ID> --login-name=<应急账号名> --operator=<操作人> --witness=<见证人>
    # 口令与 TOTP 密钥由命令生成，只在这一次输出里显示：持有人当场记录并扫码，随后清屏；不截图、不留存、不进文件或聊天
    ```
 4. 持有人当场在内网用应急账号登录一次（口令 + TOTP），确认进入管理模式、1 小时后失效，并收到告警；首次登录后改口令（「强制改口令」待实现，实现前人工执行）。

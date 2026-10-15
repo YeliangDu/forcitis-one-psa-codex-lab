@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestIds;
@@ -32,20 +33,20 @@ class TaskPolicyTest {
     @Test
     @DisplayName("RULE-276/I-7 before a claim every candidate may act, a stranger and a null actor may not")
     void candidatesMayActBeforeTheClaim() {
-        TaskView open = task(null, Set.of(new UserId(2), new UserId(3)));
-        assertThat(TaskActors.mayAct(open, new UserId(2))).isTrue();
-        assertThat(TaskActors.mayAct(open, new UserId(3))).isTrue();
-        assertThat(TaskActors.mayAct(open, new UserId(4))).isFalse();
+        TaskView open = task(null, Set.of(TestAccounts.account(2), TestAccounts.account(3)));
+        assertThat(TaskActors.mayAct(open, TestAccounts.account(2))).isTrue();
+        assertThat(TaskActors.mayAct(open, TestAccounts.account(3))).isTrue();
+        assertThat(TaskActors.mayAct(open, TestAccounts.account(4))).isFalse();
         assertThat(TaskActors.mayAct(open, null)).isFalse();
     }
 
     @Test
     @DisplayName("RULE-276/I-7 after a claim only the claimer may act, not even the other candidates or the initiator")
     void onlyTheClaimerMayActAfterTheClaim() {
-        TaskView claimed = task(new UserId(2), Set.of(new UserId(2), new UserId(3)));
-        assertThat(TaskActors.mayAct(claimed, new UserId(2))).isTrue();
-        assertThat(TaskActors.mayAct(claimed, new UserId(3))).isFalse();
-        assertThat(TaskActors.mayAct(claimed, new UserId(1))).isFalse();
+        TaskView claimed = task(TestAccounts.account(2), Set.of(TestAccounts.account(2), TestAccounts.account(3)));
+        assertThat(TaskActors.mayAct(claimed, TestAccounts.account(2))).isTrue();
+        assertThat(TaskActors.mayAct(claimed, TestAccounts.account(3))).isFalse();
+        assertThat(TaskActors.mayAct(claimed, TestAccounts.account(1))).isFalse();
     }
 
     @Test

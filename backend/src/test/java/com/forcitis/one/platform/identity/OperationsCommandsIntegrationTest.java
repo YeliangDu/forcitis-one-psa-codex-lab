@@ -68,20 +68,20 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     void registerIssuesCredentialsThatWork(CapturedOutput logs) throws Exception {
         createAccount(7, "super_admin");
 
-        Result result = run(with("register-emergency-admin", "--user-id=7", "--login-name=breakglass"));
+        Result result = run(with("register-emergency-admin", "--employee-id=7", "--login-name=breakglass"));
 
         assertThat(result.exitCode()).isZero();
         String password = find(PASSWORD, result.out());
         String secret = find(SECRET, result.out());
         assertThat(result.out()).contains("WARNING: only 1 usable emergency account");
-        assertThat(jdbc.sql("select password_hash from platform_identity.emergency_admins where user_id = 7").query(String.class).single())
+        assertThat(jdbc.sql("select password_hash from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 7)").query(String.class).single())
                 .startsWith("$argon2id$").doesNotContain(password);
-        assertThat(jdbc.sql("select totp_secret_encrypted from platform_identity.emergency_admins where user_id = 7").query(String.class).single())
+        assertThat(jdbc.sql("select totp_secret_encrypted from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 7)").query(String.class).single())
                 .doesNotContain(secret);
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.operations.emergency-admin.registered")).singleElement()
                 .satisfies(entry -> {
                     assertThat(entry.detail()).contains("operator=alice", "witness=bob", "loginName=breakglass").doesNotContain(password).doesNotContain(secret);
-                    assertThat(entry.subjectKey()).isEqualTo("emergency-admin:7");
+                    assertThat(entry.subjectKey()).isEqualTo("emergency-admin:" + accountOf(7));
                 });
         assertThat(logs.getAll()).as("a secret never reaches a log line").doesNotContain(password).doesNotContain(secret);
 
@@ -94,16 +94,16 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("running the registration again changes nothing and issues nothing; another login name for the same person is refused")
     void registerIsIdempotent() {
         createAccount(7, "super_admin");
-        run(with("register-emergency-admin", "--user-id=7", "--login-name=breakglass"));
-        String hash = jdbc.sql("select password_hash from platform_identity.emergency_admins where user_id = 7").query(String.class).single();
+        run(with("register-emergency-admin", "--employee-id=7", "--login-name=breakglass"));
+        String hash = jdbc.sql("select password_hash from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 7)").query(String.class).single();
 
-        Result again = run(with("register-emergency-admin", "--user-id=7", "--login-name=breakglass"));
+        Result again = run(with("register-emergency-admin", "--employee-id=7", "--login-name=breakglass"));
 
         assertThat(again.exitCode()).isZero();
         assertThat(again.out()).contains("already registered").doesNotContain("password");
-        assertThat(jdbc.sql("select password_hash from platform_identity.emergency_admins where user_id = 7").query(String.class).single()).isEqualTo(hash);
+        assertThat(jdbc.sql("select password_hash from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 7)").query(String.class).single()).isEqualTo(hash);
         assertThat(count("emergency_admins")).isEqualTo(1);
-        Result other = run(with("register-emergency-admin", "--user-id=7", "--login-name=another"));
+        Result other = run(with("register-emergency-admin", "--employee-id=7", "--login-name=another"));
         assertThat(other.exitCode()).isEqualTo(1);
         assertThat(other.err()).contains("PLATFORM_IDENTITY_EMERGENCY_ADMIN_DUPLICATE");
     }
@@ -115,10 +115,10 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
         createAccount(8, "super_admin");
         createAccount(9, "super_admin");
 
-        Result notHolder = run(with("register-emergency-admin", "--user-id=7", "--login-name=breakglass-a"));
-        Result noAccount = run(with("register-emergency-admin", "--user-id=404", "--login-name=breakglass-b"));
-        run(with("register-emergency-admin", "--user-id=8", "--login-name=breakglass-c"));
-        Result second = run(with("register-emergency-admin", "--user-id=9", "--login-name=breakglass-d"));
+        Result notHolder = run(with("register-emergency-admin", "--employee-id=7", "--login-name=breakglass-a"));
+        Result noAccount = run(with("register-emergency-admin", "--employee-id=404", "--login-name=breakglass-b"));
+        run(with("register-emergency-admin", "--employee-id=8", "--login-name=breakglass-c"));
+        Result second = run(with("register-emergency-admin", "--employee-id=9", "--login-name=breakglass-d"));
 
         assertThat(notHolder.exitCode()).isEqualTo(1);
         assertThat(notHolder.err()).contains("PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID");
@@ -133,12 +133,12 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     void witnessIsRequired() {
         createAccount(7, "super_admin");
 
-        assertThat(run("--operation=register-emergency-admin", "--user-id=7", "--login-name=breakglass", "--operator=alice").exitCode()).isEqualTo(1);
-        assertThat(run("--operation=register-emergency-admin", "--user-id=7", "--login-name=breakglass", "--operator=alice", "--witness=alice").err())
+        assertThat(run("--operation=register-emergency-admin", "--employee-id=7", "--login-name=breakglass", "--operator=alice").exitCode()).isEqualTo(1);
+        assertThat(run("--operation=register-emergency-admin", "--employee-id=7", "--login-name=breakglass", "--operator=alice", "--witness=alice").err())
                 .contains("PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED");
-        assertThat(run("--user-id=7").exitCode()).as("no operation named").isEqualTo(2);
+        assertThat(run("--employee-id=7").exitCode()).as("no operation named").isEqualTo(2);
         assertThat(run(with("register-emergency-admin", "--login-name=breakglass")).exitCode()).as("no person named").isEqualTo(2);
-        assertThat(run(with("no-such-operation", "--user-id=7")).exitCode()).isEqualTo(2);
+        assertThat(run(with("no-such-operation", "--employee-id=7")).exitCode()).isEqualTo(2);
         assertThat(count("emergency_admins")).isZero();
     }
 
@@ -147,13 +147,13 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     void resetReplacesTheCredentials() throws Exception {
         createAccount(7, "super_admin");
         knownEmployee(7, EmploymentStatus.EMPLOYED);
-        Result registered = run(with("register-emergency-admin", "--user-id=7", "--login-name=breakglass"));
+        Result registered = run(with("register-emergency-admin", "--employee-id=7", "--login-name=breakglass"));
         String oldPassword = find(PASSWORD, registered.out());
         String oldSecret = find(SECRET, registered.out());
         MvcResult first = emergencyLogin("breakglass", oldPassword, Totp.code(Totp.fromBase32(oldSecret), Totp.stepAt(clock.instant())));
         assertThat(first.getResponse().getStatus()).isEqualTo(200);
 
-        Result reset = run(with("reset-emergency-admin-credentials", "--user-id=7"));
+        Result reset = run(with("reset-emergency-admin-credentials", "--employee-id=7"));
 
         assertThat(reset.exitCode()).isZero();
         String newPassword = find(PASSWORD, reset.out());
@@ -166,24 +166,24 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
         assertThat(emergencyLogin("breakglass", newPassword, Totp.code(Totp.fromBase32(newSecret), Totp.stepAt(clock.instant()))).getResponse().getStatus())
                 .isEqualTo(200);
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.operations.emergency-admin.credentials-reset");
-        assertThat(run(with("reset-emergency-admin-credentials", "--user-id=999")).err()).contains("PLATFORM_IDENTITY_EMERGENCY_ADMIN_NOT_FOUND");
+        assertThat(run(with("reset-emergency-admin-credentials", "--employee-id=999")).err()).contains("PLATFORM_IDENTITY_EMERGENCY_ADMIN_NOT_FOUND");
     }
 
     @Test
     @DisplayName("disabling and enabling are idempotent, audited, and enabling needs the bound person to hold super_admin")
     void disableAndEnable() {
         createAccount(7, "super_admin");
-        run(with("register-emergency-admin", "--user-id=7", "--login-name=breakglass"));
+        run(with("register-emergency-admin", "--employee-id=7", "--login-name=breakglass"));
 
-        assertThat(run(with("disable-emergency-admin", "--user-id=7")).out()).isEqualTo("disabled\n");
-        assertThat(run(with("disable-emergency-admin", "--user-id=7")).out()).contains("already disabled");
-        jdbc.sql("delete from platform_identity.account_roles where user_id = 7").update();
-        Result refused = run(with("enable-emergency-admin", "--user-id=7"));
+        assertThat(run(with("disable-emergency-admin", "--employee-id=7")).out()).isEqualTo("disabled\n");
+        assertThat(run(with("disable-emergency-admin", "--employee-id=7")).out()).contains("already disabled");
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 7)").update();
+        Result refused = run(with("enable-emergency-admin", "--employee-id=7"));
         assertThat(refused.exitCode()).isEqualTo(1);
         assertThat(refused.err()).contains("PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID");
         createAccount(7, "super_admin");
-        assertThat(run(with("enable-emergency-admin", "--user-id=7")).out()).isEqualTo("enabled\n");
-        assertThat(run(with("enable-emergency-admin", "--user-id=7")).out()).contains("already enabled");
+        assertThat(run(with("enable-emergency-admin", "--employee-id=7")).out()).isEqualTo("enabled\n");
+        assertThat(run(with("enable-emergency-admin", "--employee-id=7")).out()).contains("already enabled");
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.operations.emergency-admin.disabled",
                 "platform.identity.operations.emergency-admin.enabled");
     }
@@ -193,20 +193,20 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     void grantRole() {
         knownEmployee(33, EmploymentStatus.EMPLOYED);
 
-        Result first = run(with("grant-role", "--user-id=33", "--role-code=business_admin"));
-        Result again = run(with("grant-role", "--user-id=33", "--role-code=business_admin"));
+        Result first = run(with("grant-role", "--employee-id=33", "--role-code=business_admin"));
+        Result again = run(with("grant-role", "--employee-id=33", "--role-code=business_admin"));
 
         assertThat(first.exitCode()).isZero();
         assertThat(first.out()).isEqualTo("role granted\n");
         assertThat(again.out()).contains("already held");
         assertThat(jdbc.sql("""
                 select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = 33 order by r.code
+                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 33) order by r.code
                 """).query(String.class).list()).containsExactly("business_admin", "employee");
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.operations.account.role.granted")).singleElement()
                 .satisfies(entry -> assertThat(entry.detail()).contains("operator=alice", "witness=bob", "role=business_admin"));
-        assertThat(run(with("grant-role", "--user-id=33", "--role-code=no_such_role")).err()).contains("PLATFORM_IDENTITY_ROLE_NOT_FOUND");
-        assertThat(run(with("grant-role", "--user-id=34", "--role-code=super_admin")).err()).contains("PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND");
+        assertThat(run(with("grant-role", "--employee-id=33", "--role-code=no_such_role")).err()).contains("PLATFORM_IDENTITY_ROLE_NOT_FOUND");
+        assertThat(run(with("grant-role", "--employee-id=34", "--role-code=super_admin")).err()).contains("PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND");
     }
 
     @Test
@@ -214,8 +214,8 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     void recoveryAfterALockOut() {
         knownEmployee(35, EmploymentStatus.EMPLOYED);
 
-        assertThat(run(with("grant-role", "--user-id=35", "--role-code=super_admin")).exitCode()).isZero();
-        Result registered = run(with("register-emergency-admin", "--user-id=35", "--login-name=breakglass"));
+        assertThat(run(with("grant-role", "--employee-id=35", "--role-code=super_admin")).exitCode()).isZero();
+        Result registered = run(with("register-emergency-admin", "--employee-id=35", "--login-name=breakglass"));
 
         assertThat(registered.exitCode()).isZero();
         assertThat(registered.out()).contains("emergency account registered");

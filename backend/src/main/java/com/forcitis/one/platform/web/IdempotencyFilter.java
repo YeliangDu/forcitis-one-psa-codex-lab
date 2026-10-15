@@ -2,6 +2,7 @@ package com.forcitis.one.platform.web;
 
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdempotentResponses;
+import com.forcitis.one.kernel.UserId;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletException;
@@ -78,12 +79,18 @@ class IdempotencyFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+        UserId userId;
+        try {
+            userId = UserId.parse(authentication.getName());
+        } catch (IllegalArgumentException brokenSession) {
+            refuse(response, WebError.PLATFORM_WEB_UNAUTHENTICATED, ErrorKind.UNAUTHENTICATED);
+            return;
+        }
         String key = request.getHeader(HEADER).trim();
         if (key.isEmpty() || key.length() > MAX_KEY_LENGTH || !key.chars().allMatch(c -> c > 32 && c < 127)) {
             refuse(response, WebError.PLATFORM_WEB_REQUEST_INVALID, ErrorKind.INVALID);
             return;
         }
-        long userId = Long.parseLong(authentication.getName());
         CachedBodyRequest cached = new CachedBodyRequest(request);
         String requestHash = hash(request, cached.body());
         Instant now = clock.instant();
@@ -103,7 +110,7 @@ class IdempotencyFilter extends OncePerRequestFilter {
         }
     }
 
-    private void runAndStore(long userId, String key, CachedBodyRequest request, HttpServletResponse response, FilterChain chain)
+    private void runAndStore(UserId userId, String key, CachedBodyRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(response);
         boolean completed = false;

@@ -33,8 +33,8 @@ import org.junit.jupiter.api.Test;
  */
 class TaskDeadlineAccountsTest {
     static final EmployeeId INITIATOR = new EmployeeId(1001);
-    static final UserId HOLDER = new UserId(6002);
-    static final UserId PROCESS_ADMINISTRATOR = new UserId(6009);
+    static final UserId HOLDER = TestAccounts.account(1002);
+    static final UserId PROCESS_ADMINISTRATOR = TestAccounts.account(1009);
     static final Instant LONG_AGO = Instant.parse("2026-10-01T02:00:00Z");
     static final Moment NOW = new Moment(Instant.parse("2026-10-14T02:00:00Z"), LocalDate.of(2026, 10, 14));
 
@@ -45,7 +45,7 @@ class TaskDeadlineAccountsTest {
     final ApprovalRequest request = mock(ApprovalRequest.class);
     final BusinessTime time = mock(BusinessTime.class);
     final TaskDeadline deadline = new TaskDeadline(requests, mock(Approvals.class), engine, org, administrator, new SimpleMeterRegistry(), time,
-            TestAccounts.apart(5000));
+            TestAccounts.everyoneHasOne());
 
     TaskDeadlineAccountsTest() {
         ApprovalTask task = mock(ApprovalTask.class);
@@ -69,8 +69,8 @@ class TaskDeadlineAccountsTest {
 
         deadline.enforce(OpenTasks.TASK);
 
-        verify(engine).addCandidates(eq(OpenTasks.TASK), eq(List.of(new UserId(6003))));
-        verify(request).escalateTask(eq(OpenTasks.TASK), eq(List.of(new UserId(6003))), eq(false), any());
+        verify(engine).addCandidates(eq(OpenTasks.TASK), eq(List.of(TestAccounts.account(1003))));
+        verify(request).escalateTask(eq(OpenTasks.TASK), eq(List.of(TestAccounts.account(1003))), eq(false), any());
     }
 
     @Test

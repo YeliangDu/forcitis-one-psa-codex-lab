@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -71,15 +72,15 @@ class NumberingRuleFourEyesIT {
     static final String RULES = "/api/v1/platform/numbering-rules";
     static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
     static final LocalDate BUSINESS_DAY = LocalDate.of(2099, 1, 20);
-    static final RequestPostProcessor AUTHOR = user("9").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE,
+    static final RequestPostProcessor AUTHOR = user(TestAccounts.account(9).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE,
             () -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ, () -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE);
-    static final RequestPostProcessor APPROVER = user("10").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ,
+    static final RequestPostProcessor APPROVER = user(TestAccounts.account(10).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ,
             () -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE);
-    static final RequestPostProcessor FINANCE = user("11").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ,
+    static final RequestPostProcessor FINANCE = user(TestAccounts.account(11).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ,
             () -> Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE);
-    static final RequestPostProcessor FINANCE_AND_APPROVER = user("12").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE,
+    static final RequestPostProcessor FINANCE_AND_APPROVER = user(TestAccounts.account(12).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE,
             () -> Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE);
-    static final RequestPostProcessor NEITHER = user("13").authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ,
+    static final RequestPostProcessor NEITHER = user(TestAccounts.account(13).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_READ,
             () -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
 
     @Autowired
@@ -263,13 +264,13 @@ class NumberingRuleFourEyesIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"))
                 .andExpect(jsonPath("$.requiresFinanceConfirmation").value(true))
-                .andExpect(jsonPath("$.pending.confirmedBy").value("10"));
+                .andExpect(jsonPath("$.pending.confirmedBy").value(TestAccounts.account(10).value().toString()));
         assertThatThrownBy(() -> issue(DocumentType.JOURNAL_VOUCHER)).isInstanceOf(DomainException.class);
 
         confirmByFinance(FINANCE_AND_APPROVER, "JOURNAL_VOUCHER", 1).andExpect(status().isOk());
         assertThat(issue(DocumentType.JOURNAL_VOUCHER)).isEqualTo("JV-FST-209901-0001");
         assertThat(jdbc.sql("select confirmed_by || '/' || finance_confirmed_by from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'JOURNAL_VOUCHER')")
-                .query(String.class).single()).isEqualTo("10/12");
+                .query(String.class).single()).isEqualTo(TestAccounts.account(10).value() + "/" + TestAccounts.account(12).value());
     }
 
     @Test
@@ -293,9 +294,9 @@ class NumberingRuleFourEyesIT {
         NumberingFixtures.confirmSeeded(jdbc, "QUOTE");
         jdbc.sql("""
                 insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status)
-                select uuidv7(), numbering_rule_id, 2, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2099-02-01', 9, now(), 'PENDING_CONFIRMATION'
+                select uuidv7(), numbering_rule_id, 2, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2099-02-01', :author, now(), 'PENDING_CONFIRMATION'
                   from platform_numbering.numbering_rules where document_type = 'QUOTE'
-                """).update();
+                """).param("author", TestAccounts.account(9).value()).update();
 
         assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set template_text = '{TYPE}-{seq:9}' where version_number = 1").update())
                 .hasMessageContaining("immutable");
@@ -303,9 +304,9 @@ class NumberingRuleFourEyesIT {
                 .hasMessageContaining("immutable");
         assertThatThrownBy(() -> jdbc.sql("delete from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 1").update())
                 .hasMessageContaining("append-only");
-        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = 9, confirmed_at = now(), status = 'CONFIRMED' where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 2").update())
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = " + TestAccounts.sql(9) + "::uuid, confirmed_at = now(), status = 'CONFIRMED' where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 2").update())
                 .hasMessageContaining("ck_numbering_rule_versions_confirmer_is_not_author");
-        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = 55, confirmed_at = now() where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 1").update())
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = " + TestAccounts.sql(55) + "::uuid, confirmed_at = now() where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 1").update())
                 .as("B1-M4 a confirmation cannot be replaced").hasMessageContaining("cannot be changed or taken back");
         assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = null, confirmed_at = null where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 1").update())
                 .as("nor taken back").hasMessageContaining("cannot be changed or taken back");

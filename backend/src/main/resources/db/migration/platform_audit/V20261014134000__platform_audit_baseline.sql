@@ -6,8 +6,8 @@ COMMENT ON SCHEMA platform_audit IS '审计日志（权限流程与集成平台 
 CREATE TABLE platform_audit.audit_entries (
     id                uuid        PRIMARY KEY,
     action            text        NOT NULL,
-    actor_id          bigint,
-    on_behalf_of_id   bigint,
+    actor_id          uuid,
+    on_behalf_of_id   uuid,
     subject_key       text        NOT NULL,
     detail            text,
     created_at        timestamptz NOT NULL DEFAULT now(),
@@ -29,8 +29,8 @@ CREATE UNIQUE INDEX uk_audit_entries_event_id ON platform_audit.audit_entries (e
 COMMENT ON TABLE platform_audit.audit_entries IS '审计条目：只追加，数据库触发器禁止修改和删除（G34）；粒度：每个被审计的动作或领域事件一行';
 COMMENT ON COLUMN platform_audit.audit_entries.id IS '审计条目 ID（UUIDv7）';
 COMMENT ON COLUMN platform_audit.audit_entries.action IS '动作：{子域}.{限界上下文}.{对象}.{动词}，如 platform.identity.role.created';
-COMMENT ON COLUMN platform_audit.audit_entries.actor_id IS '操作人 ID；系统动作（同步作业等）为空';
-COMMENT ON COLUMN platform_audit.audit_entries.on_behalf_of_id IS '被代理人 ID；仅显式代理动作填写（RULE-270）';
+COMMENT ON COLUMN platform_audit.audit_entries.actor_id IS '操作人用户 ID；系统动作（同步作业等）为空';
+COMMENT ON COLUMN platform_audit.audit_entries.on_behalf_of_id IS '被代理人用户 ID；仅显式代理动作填写（RULE-270）';
 COMMENT ON COLUMN platform_audit.audit_entries.subject_key IS '对象键：{类型}:{id}，如 approval-task:42';
 COMMENT ON COLUMN platform_audit.audit_entries.detail IS '说明文字，不含密钥和个人敏感信息';
 COMMENT ON COLUMN platform_audit.audit_entries.created_at IS '创建时间：即审计事实发生的时间，来自注入的时钟';

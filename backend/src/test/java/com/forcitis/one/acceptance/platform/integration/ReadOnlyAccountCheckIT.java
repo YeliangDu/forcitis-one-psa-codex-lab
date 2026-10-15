@@ -329,7 +329,7 @@ class ReadOnlyAccountCheckIT {
     }
 
     static SyncResult runSync(SyncOrgSnapshot sync) {
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test")) {
+        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
             return sync.execute(SyncTrigger.MANUAL, false);
         }
     }

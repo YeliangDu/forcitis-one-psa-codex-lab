@@ -41,6 +41,6 @@ public class ListHandledTasks {
     }
 
     private String nameOf(UserId user) {
-        return org.findEmployee(accountEmployees.employeeOf(user)).map(EmployeeProfile::name).orElse(String.valueOf(user.value()));
+        return accountEmployees.employeeOf(user).flatMap(org::findEmployee).map(EmployeeProfile::name).orElse(user.value().toString());
     }
 }

@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
  */
 class ReassignTaskAccountsTest {
     static final EmployeeId INITIATOR = new EmployeeId(1001);
-    static final UserId ADMINISTRATOR = new UserId(6009);
+    static final UserId ADMINISTRATOR = TestAccounts.account(1009);
 
     final ProcessAdministrator administrator = mock(ProcessAdministrator.class);
     final TaskGuard guard = mock(TaskGuard.class);
@@ -38,11 +38,11 @@ class ReassignTaskAccountsTest {
     final ApprovalRequest request = mock(ApprovalRequest.class);
     final BusinessTime time = mock(BusinessTime.class);
     final ReassignTask reassign = new ReassignTask(administrator, guard, engine, approvals, OpenTasks.employed(1001, 1003, 6001), mock(DenialAudit.class),
-            time, TestAccounts.apart(5000));
+            time, TestAccounts.everyoneHasOne());
 
     ReassignTaskAccountsTest() {
         when(administrator.isAdministrator(ADMINISTRATOR)).thenReturn(true);
-        when(guard.requireTask(OpenTasks.TASK)).thenReturn(OpenTasks.claimedBy(INITIATOR, new UserId(6002)));
+        when(guard.requireTask(OpenTasks.TASK)).thenReturn(OpenTasks.claimedBy(INITIATOR, TestAccounts.account(1002)));
         when(approvals.lock(OpenTasks.INSTANCE)).thenReturn(request);
         when(time.moment()).thenReturn(new Moment(Instant.parse("2026-10-14T02:00:00Z"), LocalDate.of(2026, 10, 14)));
     }
@@ -65,8 +65,8 @@ class ReassignTaskAccountsTest {
         reassignTo(6001);
         reassignTo(1003);
 
-        verify(engine).reassignTask(OpenTasks.TASK, new UserId(11001));
-        verify(engine).reassignTask(OpenTasks.TASK, new UserId(6003));
-        verify(request).reassignTask(any(), any(), org.mockito.ArgumentMatchers.eq(new UserId(6003)), any(), any());
+        verify(engine).reassignTask(OpenTasks.TASK, TestAccounts.account(6001));
+        verify(engine).reassignTask(OpenTasks.TASK, TestAccounts.account(1003));
+        verify(request).reassignTask(any(), any(), org.mockito.ArgumentMatchers.eq(TestAccounts.account(1003)), any(), any());
     }
 }

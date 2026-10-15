@@ -78,13 +78,13 @@ class OperationsProfileSmokeTest {
     void aCommandEndsCleanlyAndItsEventIsNotLost() {
         run("--operator=alice", "--witness=bob");
         JdbcClient jdbc = JdbcClient.create(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()));
-        jdbc.sql("insert into platform_identity.user_accounts (user_id) values (7) on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + com.forcitis.one.fixture.doubles.TestAccounts.sql(7) + "::uuid, 7) on conflict do nothing").update();
 
-        Finished finished = run("--operation=grant-role", "--user-id=7", "--role-code=business_admin", "--operator=alice", "--witness=bob");
+        Finished finished = run("--operation=grant-role", "--employee-id=7", "--role-code=business_admin", "--operator=alice", "--witness=bob");
 
         assertThat(finished.exitCode()).isZero();
         assertThat(finished.anyScheduledTask()).isFalse();
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where ar.user_id = 7 and r.code = 'business_admin'")
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 7) and r.code = 'business_admin'")
                 .query(Long.class).single()).isEqualTo(1);
         long waiting = jdbc.sql("select count(*) from platform_integration.event_publication where event_type like '%AccountRolesReplaced'").query(Long.class).single();
         long delivered = jdbc.sql("select count(*) from platform_integration.event_publication_archive where event_type like '%AccountRolesReplaced'").query(Long.class).single();

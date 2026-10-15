@@ -262,6 +262,7 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
+| `system_actor` | 系统操作主体 | SystemActor | 以 SYSTEM 身份发出事件的作业、监听器或运维入口；名字人为声明在 backend/architecture/system-actors.txt，事件信封 actorId 为该名字在固定命名空间下的 UUIDv5，同一名字恒定、不同于任何用户 ID，任何实例都可由目录反查名字（RULING-P2-C5） |  | RULING-P2-C5 已裁定：声明完整的静态目录，改名新增一行、旧行不删 |
 | `migration` | 历史迁入 | Migration | 事件或数据来自老系统 / A8 的一次性迁入（与新系统原生相对） |  |  |
 | `work_calendar` | 工作日历 | WorkCalendar | 按年维护的节假日与调休上班日；默认日历适用全部法人，预留法人专属日历（用户 2026-10-14） |  |  |
 | `workday` | 工作日 | Workday | 工作日历中需要上班的日期：周一至周五且非节假日，或调休上班日 |  |  |
@@ -311,6 +312,8 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
+| `employment_verdict` | 在职判定 | EmploymentVerdict | 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用） |  | R-1b P2-H2 |
+| `login_lookup` | 登录查人 | LoginLookup | 按外部登录标识（企业微信 userid 或外部登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除 |  | R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限 |
 | `workforce__assignment` | 任职 | Assignment | 员工在某个组织单元、某个岗位上的任职，含直属领导（汇报线）；A8 为源 |  |  |
 | `workforce__reporting_line` | 汇报线 | ReportingLine | 员工到直属领导的上下级关系；同步时校验领导存在、在职、非本人、无环 |  |  |
 | `workforce__sync_diff` | 同步差异 | SyncDiff | 一次同步运行改动的对象与字段，以及发现的数据例外（供数据管理员处理） |  |  |
@@ -331,7 +334,7 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 | `expected_separation_date` | 预计离职日期 | ExpectedSeparationDate | 正常结束且同意的离职申请上的预计离职日期（业务日期，可能改期，已过而员工仍在职时为已过期），不是实际离职日 | 「离职日期」已禁用；「separation_date」已禁用 | 单说离职日期有歧义，须写明预计离职日期或离职观察时间 |
 | `separation_observed_at` | 离职观察时间 | SeparationObservedAt | 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日 | 「离职日期」已禁用；「separation_date」已禁用 | 单说离职日期有歧义，须写明预计离职日期或离职观察时间 |
 
-另有错误码 10 个（kind 为 `error_code`）、技术词 84 个（`common_words`），不在表中。
+另有错误码 10 个（kind 为 `error_code`）、技术词 86 个（`common_words`），不在表中。
 
 ## platform.approval（`platform-approval.yaml`）
 
@@ -388,6 +391,7 @@ platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登�
 
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
+| `signing_key_code` | 签名密钥编码 | SigningKeyCode | 票据签发方签名密钥的编码（票据头部的 kid），一方一把；原列名 key_id 按 ADR-0033 影响面改为以 _code 结尾（R-1b P2） |  |  |
 | `login` | 登录 | Login | 用户以某种凭证建立会话的动作；所有入口过同一道「启用且在职」检查 |  |  |
 | `logout` | 登出 | Logout | 用户主动结束会话；会话在服务端删除 |  |  |
 | `session` | 会话 | Session | 服务端会话（Spring Session JDBC）：空闲 10 小时、绝对上限 24 小时，均可配置 |  |  |

@@ -33,8 +33,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class SessionCurrentUserTest {
     static final Clock CLOCK = Clock.fixed(Instant.parse("2026-12-31T16:30:00Z"), ZoneOffset.UTC);
     final EmployeeLegalEntities employeeLegalEntities = mock(EmployeeLegalEntities.class);
-    final SessionCurrentUser currentUser = new SessionCurrentUser(employeeLegalEntities, TestAccounts.apart(5000),
-            new BusinessZone(ZoneId.of("Asia/Shanghai")), CLOCK);
+    final SessionCurrentUser currentUser = new SessionCurrentUser(employeeLegalEntities, TestAccounts.everyoneHasOne(),
+            new BusinessZone(ZoneId.of("Asia/Shanghai")), CLOCK, mock(CachedSessionPrincipals.class));
 
     @AfterEach
     void clear() {
@@ -48,7 +48,7 @@ class SessionCurrentUserTest {
     @Test
     @DisplayName("B-1 the legal entity is the signed-in employee's on today's business day, cut in the business zone")
     void resolvedFromTheOrganisationOnTheBusinessDay() {
-        signIn("6001");
+        signIn(TestAccounts.account(1001).value().toString());
         when(employeeLegalEntities.on(new EmployeeId(1001), LocalDate.of(2027, 1, 1))).thenReturn(new LegalEntityId(TestIds.uuid(7)));
 
         assertThat(currentUser.legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(7)));
@@ -57,7 +57,7 @@ class SessionCurrentUserTest {
     @Test
     @DisplayName("B-1 when no legal entity can be resolved the failure reaches the caller; nothing is defaulted")
     void unresolvedFails() {
-        signIn("6001");
+        signIn(TestAccounts.account(1001).value().toString());
         DomainException unresolved = new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED,
                 ErrorKind.UNPROCESSABLE, "none");
         when(employeeLegalEntities.on(new EmployeeId(1001), LocalDate.of(2027, 1, 1))).thenThrow(unresolved);
@@ -68,9 +68,9 @@ class SessionCurrentUserTest {
     @Test
     @DisplayName("the signed-in person is the employee behind the account: the two ids are told apart, not read from one number")
     void employeeIsNotTheAccountNumber() {
-        signIn("6001");
+        signIn(TestAccounts.account(1001).value().toString());
 
-        assertThat(currentUser.userId()).isEqualTo(new UserId(6001));
+        assertThat(currentUser.userId()).isEqualTo(TestAccounts.account(1001));
         assertThat(currentUser.employeeId()).isEqualTo(new EmployeeId(1001));
     }
 
@@ -83,5 +83,28 @@ class SessionCurrentUserTest {
                 AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")));
         assertThatThrownBy(currentUser::userId).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.kind()).isEqualTo(ErrorKind.UNAUTHENTICATED));
+    }
+
+    @Test
+    @DisplayName("P2-M4 in a session the employee comes with the session principal, resolved once and cached; the account table is not asked on every call")
+    void P2_M4_employeeIdIsResolvedOncePerSession() {
+        com.forcitis.one.kernel.AccountEmployees accounts = org.mockito.Mockito.spy(TestAccounts.everyoneHasOne());
+        com.forcitis.one.platform.identity.application.SessionPrincipals resolver = mock(com.forcitis.one.platform.identity.application.SessionPrincipals.class);
+        UserId account = TestAccounts.account(1001);
+        when(resolver.resolve(org.mockito.ArgumentMatchers.eq(account), org.mockito.ArgumentMatchers.any())).thenReturn(
+                new com.forcitis.one.platform.identity.application.SessionPrincipal(com.forcitis.one.platform.identity.application.Eligibility.ACTIVE,
+                        java.util.Set.of(), new EmployeeId(1001)));
+        CachedSessionPrincipals principals = new CachedSessionPrincipals(resolver, new com.forcitis.one.platform.identity.application.SessionSettings(
+                java.time.Duration.ofHours(10), java.time.Duration.ofHours(24), java.time.Duration.ofSeconds(60), true, "Lax"), CLOCK);
+        SessionCurrentUser inSession = new SessionCurrentUser(employeeLegalEntities, accounts, new BusinessZone(ZoneId.of("Asia/Shanghai")), CLOCK, principals);
+        SecurityContextHolder.getContext().setAuthentication(new IdentityAuthentication(account.value().toString(), CLOCK.instant(), "WECOM_WORKBENCH",
+                null, List.of(), true));
+
+        for (int call = 0; call < 3; call++) {
+            assertThat(inSession.employeeId()).isEqualTo(new EmployeeId(1001));
+        }
+
+        org.mockito.Mockito.verify(accounts, org.mockito.Mockito.never()).employeeOf(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(resolver, org.mockito.Mockito.times(1)).resolve(org.mockito.ArgumentMatchers.eq(account), org.mockito.ArgumentMatchers.any());
     }
 }

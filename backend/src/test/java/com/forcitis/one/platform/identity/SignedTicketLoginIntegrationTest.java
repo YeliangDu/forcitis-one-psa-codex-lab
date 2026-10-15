@@ -31,7 +31,7 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
 
     private void insertIssuer(String code, String kid, String keyReference, boolean enabled, String... roles) {
         jdbc.sql("""
-                        insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, key_id, key_reference, is_enabled, allowed_role_codes)
+                        insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, signing_key_code, key_reference, is_enabled, allowed_role_codes)
                         values (uuidv7(), :code, :kid, :ref, :enabled, string_to_array(:roles, ','))
                         """)
                 .param("code", code).param("kid", kid).param("ref", keyReference).param("enabled", enabled)
@@ -61,7 +61,7 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
         MvcResult result = redeem(ticket(1001));
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
-        assertThat(body(result).path("userId").asString()).isEqualTo("1001");
+        assertThat(body(result).path("userId").asString()).isEqualTo(accountOf(1001).toString());
         assertThat(cookie(result, "SESSION")).isNotBlank();
         assertThat(recorded()).anySatisfy(entry -> {
             assertThat(entry.action()).isEqualTo("platform.identity.login.succeeded");
@@ -76,7 +76,7 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(redeem(ticket(1001)).getResponse().getStatus()).isEqualTo(401);
 
         jdbc.sql("delete from platform_identity.ticket_issuers").update();
-        jdbc.sql("insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, key_id, key_reference) values (uuidv7(), 'bi', 'bi-key-1', 'env:FORCITIS_TICKET_KEY_KM')").update();
+        jdbc.sql("insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, signing_key_code, key_reference) values (uuidv7(), 'bi', 'bi-key-1', 'env:FORCITIS_TICKET_KEY_KM')").update();
         assertThat(jdbc.sql("select is_enabled from platform_identity.ticket_issuers").query(Boolean.class).single())
                 .as("the column default is off").isFalse();
     }
@@ -174,12 +174,12 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("RULE-326/327 a ticket does not get past a disabled account or a separated employee")
     void sameGate() throws Exception {
-        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where user_id = 1001").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = 1001").update();
         MvcResult disabled = redeem(ticket(1001));
         assertThat(disabled.getResponse().getStatus()).isEqualTo(403);
         assertThat(errorCode(disabled)).isEqualTo("PLATFORM_IDENTITY_ACCOUNT_DISABLED");
 
-        jdbc.sql("update platform_identity.user_accounts set status = 'ENABLED' where user_id = 1001").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'ENABLED' where employee_id = 1001").update();
         knownEmployee(1001, EmploymentStatus.SEPARATED);
         MvcResult separated = redeem(ticket(1001));
         assertThat(separated.getResponse().getStatus()).isEqualTo(403);

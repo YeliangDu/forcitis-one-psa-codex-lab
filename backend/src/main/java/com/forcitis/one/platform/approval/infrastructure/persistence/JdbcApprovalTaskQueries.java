@@ -83,15 +83,13 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     }
 
     private static TaskHandling readHandling(ResultSet rs) throws SQLException {
-        long onBehalfOf = rs.getLong("on_behalf_of_id");
-        Optional<UserId> onBehalf = rs.wasNull() ? Optional.empty() : Optional.of(new UserId(onBehalfOf));
-        long assignee = rs.getLong("assignee_id");
-        Optional<UserId> assigneeId = rs.wasNull() ? Optional.empty() : Optional.of(new UserId(assignee));
+        Optional<UserId> onBehalf = Optional.ofNullable(rs.getObject("on_behalf_of_id", UUID.class)).map(UserId::new);
+        Optional<UserId> assigneeId = Optional.ofNullable(rs.getObject("assignee_id", UUID.class)).map(UserId::new);
         return new TaskHandling(new TaskRecordId(rs.getObject("record_id", UUID.class)), ProcessKey.valueOf(rs.getString("process_key")),
                 new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(rs.getString("document_key"))),
                 rs.getInt("round_number"), new ApprovalTaskId(rs.getString("task_id")), new ApprovalInstanceId(rs.getString("instance_id")),
                 new NodeKey(rs.getString("node_key")), new NodeName(rs.getString("node_name")),
-                TaskRecordAction.valueOf(rs.getString("action_kind")), new UserId(rs.getLong("actor_id")), onBehalf, assigneeId,
+                TaskRecordAction.valueOf(rs.getString("action_kind")), new UserId(rs.getObject("actor_id", UUID.class)), onBehalf, assigneeId,
                 Optional.ofNullable(rs.getString("record_reason")).map(Reason::new), JdbcApprovalRequestRepository.instant(rs, "decided_at"));
     }
 
@@ -142,8 +140,7 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     }
 
     private static TaskRecord read(ResultSet rs) throws SQLException {
-        long assignee = rs.getLong("assignee_id");
-        Optional<UserId> assigneeId = rs.wasNull() ? Optional.empty() : Optional.of(new UserId(assignee));
+        Optional<UserId> assigneeId = Optional.ofNullable(rs.getObject("assignee_id", UUID.class)).map(UserId::new);
         String outcome = rs.getString("outcome_kind");
         String effect = rs.getString("effect_kind");
         String reason = rs.getString("result_reason");
