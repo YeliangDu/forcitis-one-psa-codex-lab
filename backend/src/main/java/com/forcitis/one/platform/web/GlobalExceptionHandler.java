@@ -7,8 +7,11 @@ import com.forcitis.one.kernel.InvalidRequestException;
 import com.forcitis.one.kernel.VersionMalformedException;
 import com.forcitis.one.kernel.VersionMismatchException;
 import com.forcitis.one.kernel.VersionRequiredException;
+import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -33,6 +36,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @Order(Ordered.LOWEST_PRECEDENCE)
 class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final int MAX_CAUSE_DEPTH = 10;
 
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ProblemDetail> refused(DomainException refusal) {
@@ -92,9 +96,31 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> unexpected(Exception failure) {
-        LOG.error("unexpected failure", failure);
+        LOG.error("unexpected failure {} causes={} correlationId={}", failure.getClass().getName(), causes(failure),
+                WorkContext.correlationId().map(Object::toString).orElse("none"));
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ProblemDetails.of(HttpStatus.INTERNAL_SERVER_ERROR,
                 WebError.PLATFORM_WEB_UNEXPECTED, "Unexpected error. Quote the correlation id when reporting it."));
+    }
+
+    /** Class names and SQLState only, never a message: messages can carry row values. */
+    private static List<String> causes(Throwable failure) {
+        List<String> layers = new ArrayList<>();
+        Throwable cause = failure.getCause();
+        while (cause != null && cause != failure && layers.size() < MAX_CAUSE_DEPTH) {
+            String state = sqlState(cause);
+            layers.add(state == null ? cause.getClass().getName() : cause.getClass().getName() + "[sqlState=" + state + "]");
+            cause = cause.getCause();
+        }
+        return layers;
+    }
+
+    /** Read by name because the web layer may not depend on java.sql (ArchitectureRulesTest). */
+    private static String sqlState(Throwable cause) {
+        try {
+            return cause.getClass().getMethod("getSQLState").invoke(cause) instanceof String state ? state : null;
+        } catch (ReflectiveOperationException absent) {
+            return null;
+        }
     }
 
     @Override
