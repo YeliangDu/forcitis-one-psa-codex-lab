@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Pre-delivery self-check (CODING_STANDARD §7, CS-7.1). Runs the checks that apply to what changed since the base, offline.
+# Pre-delivery self-check (CODING_STANDARD CS-7.1). Runs the checks that apply to what changed since the base, offline.
 # Usage: scripts/precheck.sh [base-ref] [--run-backend]
 #   base-ref       defaults to origin/main; the script never fetches, so fetch first if the base may be stale
 #   --run-backend  also run the suggested backend tests (Testcontainers starts containers: ask the user first, CLAUDE.md)
+# Reviewers do not run this on a branch they do not trust: it executes the branch's own scripts. CI is the gate there.
 # Bash 3.2 compatible (macOS): no associative arrays, no mapfile.
 set -uo pipefail
 
@@ -11,7 +12,7 @@ run_backend=false
 for argument in "$@"; do
   case "$argument" in
     --run-backend) run_backend=true ;;
-    -h|--help) sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "unknown option: $argument" >&2; exit 2 ;;
     *) base="$argument" ;;
   esac
@@ -23,10 +24,18 @@ cd "$root" || exit 1
 work=$(mktemp -d "${TMPDIR:-/tmp}/precheck.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
+gitq() { git -c core.quotepath=off "$@"; }
+
+# -I keeps the caller's environment, user site and working directory off sys.path; the script's own directory is put back
+# explicitly so that scripts/ci modules can import ci_git.
+py() {
+  python3 -I -c 'import runpy, sys, os; script = sys.argv[1]; sys.path.insert(0, os.path.dirname(os.path.abspath(script))); sys.argv = sys.argv[1:]; runpy.run_path(script, run_name="__main__")' "$@"
+}
+
 passed=0; failed=0; skipped=0
 report() {
   local status=$1 name=$2 reason=$3
-  printf '%-5s %-34s %s\n' "$status" "$name" "$reason"
+  printf '%-5s %-38s %s\n' "$status" "$name" "$reason"
   case "$status" in PASS) passed=$((passed + 1)) ;; FAIL) failed=$((failed + 1)) ;; SKIP) skipped=$((skipped + 1)) ;; esac
 }
 
@@ -36,16 +45,21 @@ show_tail() {
 
 run_step() {
   local name=$1; shift
-  local log="$work/$(echo "$name" | tr -c 'A-Za-z0-9' '_').log"
+  local log
+  log="$work/$(printf '%s' "$name" | tr -c 'A-Za-z0-9' '_').log"
+  local status
   if "$@" >"$log" 2>&1; then
     local last
     last=$(grep -v '^警告：' "$log" | grep . | tail -n 1 | cut -c1-90)
     report PASS "$name" "${last:-ok}"
   else
-    report FAIL "$name" "exit $? — last lines:"
+    status=$?
+    report FAIL "$name" "exit $status — last lines:"
     show_tail "$log"
   fi
 }
+
+command -v python3 >/dev/null || { echo "FAIL  python3 not found; every check needs it"; exit 1; }
 
 if ! git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
   report FAIL "base" "$base is not a commit here (fetch it, or pass a base ref)"
@@ -54,56 +68,65 @@ if ! git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
 fi
 
 {
-  git diff --name-only "$base...HEAD"
-  git diff --name-only HEAD
-  git ls-files --others --exclude-standard
-} | sort -u >"$work/changed"
-changed_count=$(grep -c . "$work/changed" || true)
-uncommitted=$( { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | grep -c . || true)
+  gitq diff --name-only "$base...HEAD"
+  gitq diff --name-only HEAD
+  gitq ls-files --others --exclude-standard
+} | grep . | sort -u >"$work/changed"
+{ gitq diff --name-only HEAD; gitq ls-files --others --exclude-standard; } | grep . | sort -u >"$work/uncommitted"
+changed_count=$(grep -c . "$work/changed")
+uncommitted=$(grep -c . "$work/uncommitted")
 
 echo "precheck: base $base ($(git rev-parse --short "$base")), HEAD $(git rev-parse --short HEAD), $changed_count changed files ($uncommitted uncommitted)"
 echo
 
 touches() { grep -Eq "$1" "$work/changed"; }
 
-python=python3
-command -v "$python" >/dev/null || { report FAIL "python3" "python3 not found; every check below needs it"; }
+builds_relevant=false
+if py scripts/ci/relevant_change.py --paths-from "$work/changed" | grep -qx 'relevant=true'; then
+  builds_relevant=true
+fi
 
-run_step "generated docs (build_all --check)" "$python" docs/modernization/build_all.py --check
-run_step "legacy system name" "$python" docs/modernization/check_legacy_name.py
+records_dir=$(dirname docs/modernization/build_all.py)
+if [ -n "$(gitq status --porcelain -- "$records_dir")" ]; then
+  report SKIP "generated docs (build_all --check)" "$records_dir has uncommitted changes: commit first, then run again (请先提交再运行)"
+else
+  run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
+fi
+run_step "legacy system name" py docs/modernization/check_legacy_name.py
 
-if touches '^(backend/src/(main/resources/db/migration|test/resources/db/testdata)/|backend/architecture/migration-baseline-open|backend/src/main/resources/application.*\.(properties|ya?ml)$|scripts/ci/migrations_immutable\.py$)'; then
-  run_step "migrations immutable (self-test)" "$python" scripts/ci/migrations_immutable.py --self-test
-  run_step "migrations immutable" "$python" scripts/ci/migrations_immutable.py "$base"
+if touches '^(backend/src/(main/resources/db/migration|test/resources/db/testdata)/|backend/architecture/migration-baseline-open|backend/src/main/resources/application.*\.(properties|ya?ml)$|scripts/ci/(migrations_immutable|ci_git)\.py$)'; then
+  run_step "migrations immutable (self-test)" py scripts/ci/migrations_immutable.py --self-test
+  run_step "migrations immutable" py scripts/ci/migrations_immutable.py "$base"
 else
   report SKIP "migrations immutable" "no migration, marker or Flyway setting changed"
 fi
 
-if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/test/resources/acceptance/|frontend/.*__acceptance__/|scripts/ci/acceptance_)'; then
-  run_step "acceptance guard (self-test)" "$python" scripts/ci/acceptance_guard.py --self-test
-  if [ "$uncommitted" -gt 0 ] && touches '__acceptance__/|/acceptance/'; then
+if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/test/resources/acceptance/|frontend/.*__acceptance__/|scripts/ci/(acceptance_|ci_git))'; then
+  run_step "acceptance guard (self-test)" py scripts/ci/acceptance_guard.py --self-test
+  run_step "acceptance reports (self-test)" py scripts/ci/acceptance_reports.py --self-test
+  if grep -Eq '__acceptance__/|/acceptance/' "$work/uncommitted"; then
     echo "      note: uncommitted acceptance changes are judged only once committed (trailers live in commit messages)"
   fi
-  run_step "acceptance guard" "$python" scripts/ci/acceptance_guard.py "$base"
+  run_step "acceptance guard" py scripts/ci/acceptance_guard.py "$base"
 else
   report SKIP "acceptance guard" "no acceptance test changed"
 fi
 
 if touches '^(docs/modernization/phase1a/infra/one_db_roles_schemas.sql|docs/modernization/phase1a/infra/runbooks/sql/|backend/src/main/resources/db/migration/|scripts/ci/db_scripts_aligned\.py$)'; then
-  run_step "database scripts aligned (self-test)" "$python" -I scripts/ci/db_scripts_aligned.py --self-test
-  run_step "database scripts aligned" "$python" -I scripts/ci/db_scripts_aligned.py
+  run_step "database scripts aligned (self-test)" py scripts/ci/db_scripts_aligned.py --self-test
+  run_step "database scripts aligned" py scripts/ci/db_scripts_aligned.py
 else
   report SKIP "database scripts aligned" "no database script or migration changed"
 fi
 
 if touches '^(backend/|frontend/|scripts/)'; then
-  run_step "docs read by builds are registered" "$python" scripts/ci/relevant_change.py --self-test
+  run_step "docs read by builds are registered" py scripts/ci/relevant_change.py --self-test
 else
   report SKIP "docs read by builds are registered" "no backend, frontend or script changed"
 fi
 
 if touches '(src/test/.*\.java|\.test\.tsx?|\.spec\.tsx?)$'; then
-  if "$python" scripts/ci/assertion_drift.py "$base" >"$work/drift.log" 2>&1; then
+  if py scripts/ci/assertion_drift.py "$base" >"$work/drift.log" 2>&1; then
     if ! grep -q '^assertion drift: 0 finding' "$work/drift.log"; then
       report PASS "assertion drift (warning only)" "notes below: list them under 「改动的断言 / 测试及理由」"
       show_tail "$work/drift.log" 15
@@ -118,24 +141,31 @@ else
   report SKIP "assertion drift (warning only)" "no test file changed"
 fi
 
-if touches '^scripts/release/'; then
-  release_syntax() { local script; for script in scripts/release/*.sh; do bash -n "$script" || return 1; done; }
-  run_step "release scripts syntax" release_syntax
-  run_step "release scripts self-test" sh -c "$python -I scripts/release/ci_passed.py --self-test && $python -I scripts/release/manifest.py --self-test && $python -I scripts/release/deploy_gate.py --self-test"
+grep -E '\.sh$' "$work/changed" >"$work/shell" || true
+: >"$work/shell.present"
+while IFS= read -r file; do
+  if [ -f "$file" ]; then printf '%s\n' "$file" >>"$work/shell.present"; fi
+done <"$work/shell"
+if [ -s "$work/shell.present" ]; then
+  syntax_all() {
+    local file
+    while IFS= read -r file; do bash -n "$file" || return 1; done <"$work/shell.present"
+  }
+  run_step "shell syntax (bash -n)" syntax_all
 fi
 
-if touches '\.sh$'; then
-  shell_files=$(grep -E '\.sh$' "$work/changed" | while read -r file; do [ -f "$file" ] && printf '%s\n' "$file"; done)
-  if [ -n "$shell_files" ]; then
-    syntax_all() { local file; for file in $shell_files; do bash -n "$file" || return 1; done; }
-    run_step "shell syntax (bash -n)" syntax_all
-    if command -v shellcheck >/dev/null; then
-      # shellcheck disable=SC2086
-      run_step "shellcheck" shellcheck -x $shell_files
-    else
-      report SKIP "shellcheck" "shellcheck not installed (CI uses 0.11.0 on scripts/release)"
-    fi
+if touches '^scripts/release/'; then
+  release_self_tests() {
+    py scripts/release/ci_passed.py --self-test && py scripts/release/manifest.py --self-test && py scripts/release/deploy_gate.py --self-test
+  }
+  run_step "release scripts self-test" release_self_tests
+  if command -v shellcheck >/dev/null; then
+    run_step "shellcheck scripts/release" sh -c 'shellcheck -x scripts/release/*.sh'
+  else
+    report SKIP "shellcheck scripts/release" "shellcheck not installed (CI uses 0.11.0)"
   fi
+elif [ -s "$work/shell.present" ]; then
+  report SKIP "shellcheck" "CI runs shellcheck on scripts/release only; other scripts: bash -n above"
 fi
 
 if ! command -v gitleaks >/dev/null; then
@@ -147,7 +177,7 @@ else
     report PASS "gitleaks (full history)" "$(grep -Eo '[0-9]+ commits scanned' "$work/leaks.log" | tail -n 1); no leaks"
   else
     report FAIL "gitleaks (full history)" "findings (rule, file:line, commit; values never printed):"
-    "$python" -I - "$work/leaks.json" <<'PY' | sed 's/^/      | /'
+    python3 -I - "$work/leaks.json" <<'PY' | sed 's/^/      | /'
 import json, sys
 try:
     findings = json.load(open(sys.argv[1]))
@@ -163,38 +193,38 @@ PY
   fi
 fi
 
-if touches '^backend/'; then
+if $builds_relevant; then
   modules=$(grep -E '^backend/src/(main|test)/java/com/forcitis/one/[a-z]+/[a-z]+/' "$work/changed" \
     | sed -E 's#^backend/src/(main|test)/java/com/forcitis/one/([a-z]+)/([a-z]+)/.*#\2.\3#' | sort -u)
-  if [ -n "$modules" ]; then
-    selection=$(echo "$modules" | sed 's#^#com.forcitis.one.#; s#$#.**#' | paste -sd, -)
-  else
-    selection=""
-  fi
   guards="ArchitectureRulesTest,ModularityTest,ModuleDependencyTest,NamingSurfaceTest,GlossaryTest,DdlNamingTest,LegacyShapeTest,TimeSourceGuardTest,TestIsolationGuardTest"
-  if [ -n "$selection" ]; then
-    tests="$selection,$guards"
-    scope="modules: $(echo "$modules" | paste -sd' ' -)"
+  if touches '^backend/src/main/java/com/forcitis/one/kernel/'; then
+    tests=""
+    scope="kernel changed: every module depends on it"
+  elif [ -n "$modules" ]; then
+    tests="$(printf '%s\n' "$modules" | sed 's#^#com.forcitis.one.#; s#$#.**#' | paste -sd, -),$guards"
+    scope="modules: $(printf '%s\n' "$modules" | paste -sd' ' -)"
   else
     tests="$guards"
-    scope="no module code changed (kernel, resources, build or architecture lists)"
+    scope="no module code changed (shared inputs, resources, build or architecture lists)"
   fi
-  command_line="(cd backend && ./mvnw -q test -Dtest='$tests' -Dsurefire.failIfNoSpecifiedTests=false)"
-  if $run_backend; then
-    run_step "backend tests (affected + guards)" sh -c "cd backend && ./mvnw -q test -Dtest='$tests' -Dsurefire.failIfNoSpecifiedTests=false"
+  if [ -z "$tests" ]; then
+    if $run_backend; then
+      run_step "backend verify (full)" scripts/ci/backend_verify.sh
+    else
+      report SKIP "backend tests" "not run by default; $scope"
+      echo "      run the full suite: scripts/ci/backend_verify.sh (Testcontainers: ask the user before starting containers)"
+    fi
+  elif $run_backend; then
+    run_step "backend tests (affected + guards)" sh -c 'cd backend && ./mvnw -q test -Dtest="$1" -Dsurefire.failIfNoSpecifiedTests=false' precheck "$tests"
   else
     report SKIP "backend tests" "not run by default; $scope"
-    echo "      run: $command_line"
+    echo "      run: (cd backend && ./mvnw -q test -Dtest='$tests' -Dsurefire.failIfNoSpecifiedTests=false)"
     echo "      before delivery run everything: scripts/ci/backend_verify.sh (Testcontainers: ask the user before starting containers)"
   fi
   if touches '^backend/src/main/java/.*/(web|api)/' && ! touches '^frontend/packages/api/openapi\.json$'; then
     echo "      note: web or api code changed but openapi.json did not; the export test rewrites it — commit the result (CS-1.10)"
   fi
-else
-  report SKIP "backend tests" "backend not changed"
-fi
 
-if touches '^frontend/'; then
   if ! command -v pnpm >/dev/null; then
     report SKIP "frontend verify" "pnpm not installed"
   elif [ ! -d frontend/node_modules ]; then
@@ -205,7 +235,8 @@ if touches '^frontend/'; then
     run_step "frontend verify (pnpm verify)" pnpm -C frontend verify
   fi
 else
-  report SKIP "frontend verify" "frontend not changed"
+  report SKIP "backend tests" "relevant_change.py: nothing the builds read changed"
+  report SKIP "frontend verify" "relevant_change.py: nothing the builds read changed"
 fi
 
 echo
