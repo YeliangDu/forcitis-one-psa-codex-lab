@@ -138,7 +138,7 @@ rm -rf frontend/apps/web/dist frontend/apps/h5/dist
 
 echo "== deployment files"
 files_dir=docs/modernization/phase1a/infra/runbooks/files
-for f in forcitis-one.service nginx-one.conf forcitis-one.logrotate one.env.template; do
+for f in forcitis-one.service nginx-one.conf forcitis-one.logrotate one.env.template forcitis-one-release-pull.service forcitis-one-release-pull.timer; do
   cp "$files_dir/$f" "$bundle/deploy/$f"
 done
 cp scripts/release/remote_install.sh "$bundle/deploy/remote_install.sh"
