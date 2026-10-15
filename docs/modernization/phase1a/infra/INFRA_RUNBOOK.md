@@ -281,7 +281,13 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
        [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人> --witness=<见证人>
   ```
 
-  - 人员以 `--employee-id`（员工 ID，R-1b P2 期间为整数，P3b 起为 uuid 文本）指定：命令按员工取得其账号，员工在职而尚无账号时当场开通（ADR-0033 第 3 项第 6 条）；格式不对或员工不存在时退出码非 0，不写任何数据。原 `--user-id` 已删除。
+  - 人员以 `--employee-id`（员工 ID，小写规范 uuid 文本）指定：命令按员工取得其账号，员工在职而尚无账号时当场开通（ADR-0033 第 3 项第 6 条）；格式不对（整数、负数、大写 uuid 等）为用法错误、退出码 2，员工不存在时退出码 1，都不写任何数据。原 `--user-id` 已删除。
+  - 员工 ID 从只读查询命令得到（R-1b P3b，ADR-0033 第 3 项第 6 条；RULING-P3B-D8、P3B-7）：同一个 jar 以档案 `integration-operations` 启动，按组织源登录名或企业微信 userid 列出匹配的全部员工 ID 与用户 ID（同名两人都列出），**只读，不写任何数据、不记审计、不开通账号**：
+    ```
+    java -jar forcitis-one.jar --spring.profiles.active=integration-operations --operation=find-accounts-by-external-subject \
+         --provider-kind=<SEEYON_LOGIN_NAME|WECOM_USER_ID> --external-subject=<登录名或企业微信 userid>
+    ```
+    每个匹配输出一行 `employee-id=<uuid> user-id=<uuid 或 (no account)>`；退出码 0 找到、1 无人匹配、2 用法错误。不按员工编号查（员工编号不作键，ADR-0033 第 6 项）。端口与 F-12 的注意事项同上。
   - 命令：`register-emergency-admin`（需 `--login-name`）、`reset-emergency-admin-credentials`、`disable-emergency-admin`、`enable-emergency-admin`、`grant-role`（需 `--role-code`，用于首批超级管理员、业务管理员、组织数据管理员）。
   - **双人在场**：`--operator` 与 `--witness` 必填且必须是两个不同的人（比较前去掉首尾空白、折叠空格、不分大小写、全角按半角），两人都记入审计；缺一或相同则命令拒绝，什么也不做。
   - 口令与 TOTP 密钥由命令**生成**，只在这一次输出里显示（口令、base32 密钥、认证器链接），库里只存口令的 Argon2id 哈希与加密后的密钥；不要把输出复制进文件或聊天。口令强度与密钥长度由代码保证，不经命令行参数传入。

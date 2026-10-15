@@ -21,7 +21,7 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Only integration.infrastructure.seeyon connects to Seeyon; the old database is read only by approval's and integration's legacy adapters; only the connection factory builds pools or drivers, nothing else an HTTP client. */
+/** Only integration.infrastructure.seeyon connects to Seeyon; the old database is read only by integration's legacy adapters (ADR-0039 item 1, R-1b P3b); only the connection factory builds pools or drivers, nothing else an HTTP client. */
 class ExternalConnectionIsolationTest {
 
     static final String ROOT = "com.forcitis.one";
@@ -29,7 +29,6 @@ class ExternalConnectionIsolationTest {
     static final String CONNECTION = ROOT + ".platform.integration.infrastructure.connection..";
     static final String WECOM = ROOT + ".platform.integration.infrastructure.wecom..";
     static final String INTEGRATION_LEGACY = ROOT + ".platform.integration.infrastructure.legacy..";
-    static final String APPROVAL_LEGACY = ROOT + ".platform.approval.infrastructure.legacy..";
 
     static final JavaClasses CLASSES = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
@@ -46,11 +45,11 @@ class ExternalConnectionIsolationTest {
     }
 
     @Test
-    @DisplayName("D1-1-R1 onlyTheApprovedAdaptersObtainExternalConnections: only the Seeyon, old-system and old to-do adapter packages (and the factory itself) use platform.integration.api.ExternalConnections")
+    @DisplayName("D1-1-R1 onlyTheApprovedAdaptersObtainExternalConnections: only the Seeyon and old-system adapter packages of platform.integration (and the factory itself) use platform.integration.domain.ExternalConnections")
     void onlyTheApprovedAdaptersObtainExternalConnections() {
-        noClasses().that().resideOutsideOfPackages(SEEYON, INTEGRATION_LEGACY, APPROVAL_LEGACY, CONNECTION)
-                .should().dependOnClassesThat().haveFullyQualifiedName(ROOT + ".platform.integration.api.ExternalConnections")
-                .because("ADR-0037 item 2: no new exception to who may connect to the A8 or the old database; the shared api type must not widen the three adapters")
+        noClasses().that().resideOutsideOfPackages(SEEYON, INTEGRATION_LEGACY, CONNECTION)
+                .should().dependOnClassesThat().haveFullyQualifiedName(ROOT + ".platform.integration.domain.ExternalConnections")
+                .because("ADR-0037 item 2 and ADR-0039 item 1: external connections only in platform.integration; the shared api type must not widen the adapters")
                 .check(CLASSES);
     }
 
@@ -68,10 +67,10 @@ class ExternalConnectionIsolationTest {
         noClasses().that().resideOutsideOfPackage(INTEGRATION_LEGACY)
                 .should().dependOnClassesThat().resideInAPackage(INTEGRATION_LEGACY)
                 .check(CLASSES);
-        noClasses().that().resideInAnyPackage(SEEYON).should().dependOnClassesThat().resideInAnyPackage(INTEGRATION_LEGACY, APPROVAL_LEGACY)
+        noClasses().that().resideInAnyPackage(SEEYON).should().dependOnClassesThat().resideInAnyPackage(INTEGRATION_LEGACY)
                 .because("the Seeyon adapter never touches the old system")
                 .check(CLASSES);
-        noClasses().that().resideInAnyPackage(INTEGRATION_LEGACY, APPROVAL_LEGACY).should().dependOnClassesThat().resideInAPackage(SEEYON)
+        noClasses().that().resideInAnyPackage(INTEGRATION_LEGACY).should().dependOnClassesThat().resideInAPackage(SEEYON)
                 .because("the old-system adapters never touch Seeyon")
                 .check(CLASSES);
     }
@@ -87,7 +86,7 @@ class ExternalConnectionIsolationTest {
     @Test
     @DisplayName("§9a nobody outside the approved adapters injects a bean qualified 'seeyon' or 'legacy'")
     void qualifiersAreNotUsedElsewhere() {
-        classes().that().resideOutsideOfPackages(SEEYON, INTEGRATION_LEGACY, APPROVAL_LEGACY)
+        classes().that().resideOutsideOfPackages(SEEYON, INTEGRATION_LEGACY)
                 .should(new ArchCondition<JavaClass>("not inject beans qualified 'seeyon', 'legacy' or 'legacy-approval'") {
                     @Override
                     public void check(JavaClass c, ConditionEvents events) {
@@ -141,7 +140,7 @@ class ExternalConnectionIsolationTest {
         noClasses().that().resideOutsideOfPackage(INTEGRATION_LEGACY)
                 .should().dependOnClassesThat().haveSimpleName("LegacyOrgNames")
                 .check(CLASSES);
-        noClasses().that().resideOutsideOfPackage(APPROVAL_LEGACY)
+        noClasses().that().resideOutsideOfPackage(INTEGRATION_LEGACY)
                 .should().dependOnClassesThat().haveSimpleName("JdbcLegacyInbox")
                 .check(CLASSES);
     }
