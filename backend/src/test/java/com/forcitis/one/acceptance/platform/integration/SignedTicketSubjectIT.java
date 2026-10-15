@@ -8,6 +8,7 @@ import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
 import com.jayway.jsonpath.JsonPath;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.sql.Connection;
@@ -102,6 +103,11 @@ class SignedTicketSubjectIT extends AccountsAcceptanceSupport {
     }
 
     static String ticket(long subject, Instant now) throws Exception {
+        return ticket(Long.toString(subject), now);
+    }
+
+    /** A ticket whose subject field is the given text, also one that no 64-bit number can hold. */
+    static String ticket(String subject, Instant now) throws Exception {
         String nonce = UUID.randomUUID().toString().replace("-", "");
         byte[] payload = (KID + "|" + ISSUER + "|" + subject + "|" + nonce + "|" + now.minusSeconds(1).getEpochSecond() + "|"
                 + now.plusSeconds(30).getEpochSecond()).getBytes(StandardCharsets.UTF_8);
@@ -162,5 +168,34 @@ class SignedTicketSubjectIT extends AccountsAcceptanceSupport {
 
         assertThat(login.getStatus()).as("subject %s names no source reference: %s", subject, login.getContentAsString()).isEqualTo(401);
         assertThat(references(subject)).isZero();
+    }
+
+    @Test
+    @DisplayName("R-1b P3b RULING-P3B-6：票据 subject 接受完整 64 位有符号范围——subject 为 Long.MIN_VALUE（19 位负数）且有来源对照时登录成功")
+    void theLowestSixtyFourBitSubjectSignsIn() throws Exception {
+        UUID person = adoptId(allocate(Long.MIN_VALUE));
+        UUID unit = newOrgUnitId();
+        orgUnit(unit, null, null);
+        employee(person, unit, null);
+        SignedIn account = signIn(person);
+        grantRole(account.userId(), "employee");
+
+        MockHttpServletResponse login = redeem(ticket(Long.MIN_VALUE, clock.instant()));
+
+        assertThat(login.getStatus()).as(login.getContentAsString()).isEqualTo(200);
+        assertThat((String) JsonPath.read(login.getContentAsString(), "$.userId")).isEqualTo(account.userId().toString());
+        assertThat(references(Long.MIN_VALUE)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("R-1b P3b RULING-P3B-6：票据 subject 超出 64 位有符号范围（Long.MIN_VALUE - 1、Long.MAX_VALUE + 1）答 401，不建会话")
+    void aSubjectBeyondSixtyFourBitsIsRefused() throws Exception {
+        for (BigInteger beyond : new BigInteger[] {BigInteger.valueOf(Long.MIN_VALUE).subtract(BigInteger.ONE),
+                BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE)}) {
+            MockHttpServletResponse login = redeem(ticket(beyond.toString(), clock.instant()));
+
+            assertThat(login.getStatus()).as("subject %s: %s", beyond, login.getContentAsString()).isEqualTo(401);
+            assertThat(login.getHeaders("Set-Cookie")).noneMatch(header -> header.startsWith("SESSION="));
+        }
     }
 }
