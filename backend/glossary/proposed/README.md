@@ -391,6 +391,11 @@ platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 | `registration` | 登记 | Registration | 由人把一条来源对照录入系统，先处于待确认，等另一个人确认或拒绝；现在只有核算组织编码可以人工登记 |  |  |
 | `supersede` | 取代 | Supersede | 已确认的后继对照从生效日起取代生效中的对照：旧对照在后继的生效日结束，两行的来源标识与自有 ID 都不改写 |  |  |
 | `evidence` | 取证 | Evidence | 只读核对老系统与 A8 生产数据，用于复刻老行为、迁入对账与新旧等价核对；用专用取证账号，只出计数或聚合，或落 ECS 数据盘，每次登记一行 |  | ADR-0037 登记（数据库登录名 one_evidence_ro），待用语确认 |
+| `read_only_verification` | 只读核实 | ReadOnlyVerification | 运维命令：对一条只读外部连接的登录跑与启动校验同一套判定，逐项（ADR-0037 第 4 项 (a)–(g)）输出核实通过、确认违规或判定不了，判定不了时只带 SQL 错误号与 SQLState，按结果给退出码；不输出数据、消息原文与凭据，不监听端口、不迁移、不起作业，口令只从环境读 |  | PAR-2 验收测试登记（档案名 read-only-verification），待用语确认 |
+| `read_only_verification_result` | 只读核实结果 | ReadOnlyVerificationResult | 只读核实对每一项与对整条连接给出的结论，取核实通过、确认违规、判定不了之一；整条连接有任一项确认违规即为确认违规，否则有判定不了即为判定不了 |  | PAR-2 验收测试登记，待用语确认 |
+| `read_only_verification_result__passed` | 核实通过 | Passed | 只读核实结果的取值：该项（或全部各项）与 RDS 平台基线一致 |  | 不写「通过」：已是审批结论 approve 的中文名 |
+| `read_only_verification_result__violated` | 确认违规 | Violated | 只读核实结果的取值：数据库目录确实显示该项超出或缺少基线（与「判定不了」相对） |  | PAR-2 验收测试登记，待用语确认 |
+| `read_only_verification_result__undetermined` | 判定不了 | Undetermined | 只读核实结果的取值：查询出错、超时、连不上或返回为空，该项无法判定；启动时同样拒绝启动（ADR-0037 第 4 项第 2 条） |  | PAR-2 验收测试登记，待用语确认 |
 
 另有错误码 7 个（kind 为 `error_code`）、技术词 25 个（`common_words`），不在表中。
 
