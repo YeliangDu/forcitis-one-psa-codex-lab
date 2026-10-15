@@ -21,19 +21,15 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           processKey:
             type: string
             enum:
             - COST_TIMESHEET_APPROVAL
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
             description: 流程实例 ID
           round:
             type: object
@@ -58,11 +54,8 @@ components:
                 type: string
             description: 驳回、退回、撤销原因；通过时为空（RULE-280）
           initiator:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
             description: 发起人，完成卡片发给他
           returnSource:
             type: string
@@ -111,16 +104,11 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           initiator:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
             description: 提交单据的用户，由所有者记录，不取自客户端
           round:
             type: object
@@ -188,15 +176,13 @@ components:
         type: object
         properties:
           taskId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalTaskId
+            description: 稳定 ID 的字符串形式
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
+            description: 稳定 ID 的字符串形式
           processKey:
             type: string
           processName:
@@ -219,10 +205,8 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           nodeKey:
             type: object
             x-type: NodeKey
@@ -238,19 +222,14 @@ components:
                 type: string
             description: 节点显示名
           initiator:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
+            description: 稳定 ID 的字符串形式
           candidates:
             type: array
             items:
-              type: object
-              properties:
-                value:
-                  type: integer
-                  format: int64
+              type: string
+              x-type: UserId
           summary:
             type: object
             properties:
@@ -286,15 +265,13 @@ components:
         type: object
         properties:
           taskId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalTaskId
+            description: 稳定 ID 的字符串形式
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
+            description: 稳定 ID 的字符串形式
           document:
             type: object
             required:
@@ -308,16 +285,12 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           claimedBy:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.approval.TaskClaimed
         version: 1
@@ -341,15 +314,13 @@ components:
         type: object
         properties:
           taskId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalTaskId
+            description: 稳定 ID 的字符串形式
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
+            description: 稳定 ID 的字符串形式
           processKey:
             type: string
           document:
@@ -365,10 +336,8 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           nodeKey:
             type: object
             x-type: NodeKey
@@ -377,11 +346,9 @@ components:
                 type: string
             description: 流程节点标识
           assignee:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
           outcome:
             type: string
             enum:
@@ -425,15 +392,13 @@ components:
         type: object
         properties:
           taskId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalTaskId
+            description: 稳定 ID 的字符串形式
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
+            description: 稳定 ID 的字符串形式
           document:
             type: object
             required:
@@ -447,10 +412,8 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           nodeKey:
             type: object
             x-type: NodeKey
@@ -459,17 +422,13 @@ components:
                 type: string
             description: 流程节点标识
           from:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
           to:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
           reason:
             type: object
             properties:
@@ -501,15 +460,13 @@ components:
         type: object
         properties:
           taskId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalTaskId
+            description: 稳定 ID 的字符串形式
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
+            description: 稳定 ID 的字符串形式
           document:
             type: object
             required:
@@ -523,10 +480,8 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           nodeKey:
             type: object
             x-type: NodeKey
@@ -541,11 +496,8 @@ components:
           holders:
             type: array
             items:
-              type: object
-              properties:
-                value:
-                  type: integer
-                  format: int64
+              type: string
+              x-type: UserId
             description: 被提醒的人
       x-event:
         eventType: platform.approval.ApprovalTaskOverdue
@@ -569,15 +521,13 @@ components:
         type: object
         properties:
           taskId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalTaskId
+            description: 稳定 ID 的字符串形式
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
+            description: 稳定 ID 的字符串形式
           document:
             type: object
             required:
@@ -591,10 +541,8 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           nodeKey:
             type: object
             x-type: NodeKey
@@ -605,11 +553,8 @@ components:
           escalatedTo:
             type: array
             items:
-              type: object
-              properties:
-                value:
-                  type: integer
-                  format: int64
+              type: string
+              x-type: UserId
           target:
             type: string
             enum:
@@ -639,15 +584,13 @@ components:
         type: object
         properties:
           taskId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalTaskId
+            description: 稳定 ID 的字符串形式
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
+            description: 稳定 ID 的字符串形式
           document:
             type: object
             required:
@@ -661,10 +604,8 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           nodeKey:
             type: object
             x-type: NodeKey
@@ -673,11 +614,9 @@ components:
                 type: string
             description: 流程节点标识
           releasedBy:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.approval.TaskReleased
         version: 1
@@ -701,15 +640,13 @@ components:
         type: object
         properties:
           taskId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalTaskId
+            description: 稳定 ID 的字符串形式
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
+            description: 稳定 ID 的字符串形式
           document:
             type: object
             required:
@@ -723,10 +660,8 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           nodeKey:
             type: object
             x-type: NodeKey
@@ -735,18 +670,13 @@ components:
                 type: string
             description: 流程节点标识
           from:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: UserId
             description: 原处理人，没人持有时为空
           to:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: UserId
+            description: 稳定 ID 的字符串形式
           reason:
             type: object
             properties:
@@ -778,15 +708,13 @@ components:
         type: object
         properties:
           taskId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalTaskId
+            description: 稳定 ID 的字符串形式
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
+            description: 稳定 ID 的字符串形式
           document:
             type: object
             required:
@@ -800,10 +728,8 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           nodeKey:
             type: object
             x-type: NodeKey
@@ -845,19 +771,15 @@ components:
                 - TIMESHEET
                 - JOURNAL_VOUCHER
               documentId:
-                type: object
-                properties:
-                  value:
-                    type: string
+                type: string
+                x-type: DocumentId
           processKey:
             type: string
             enum:
             - COST_TIMESHEET_APPROVAL
           instanceId:
-            type: object
-            properties:
-              value:
-                type: string
+            type: string
+            x-type: ApprovalInstanceId
             description: 本轮流程实例 ID
           round:
             type: object
@@ -867,11 +789,8 @@ components:
                 type: integer
             description: 轮次，同一单据第几次发起，从 1 起
           initiator:
-            type: object
-            properties:
-              value:
-                type: integer
-                format: int64
+            type: string
+            x-type: EmployeeId
             description: 发起人
       x-event:
         eventType: platform.approval.ApprovalRoundStarted
