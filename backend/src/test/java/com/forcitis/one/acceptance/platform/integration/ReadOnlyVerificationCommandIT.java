@@ -529,8 +529,148 @@ class ReadOnlyVerificationCommandIT {
         assertTellsNothingSecret(run, account);
     }
 
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 不误判（默认授权）：令牌范围扫描遇到 SQL Server 默认授给 public 的 VIEW ANY COLUMN MASTER KEY / ENCRYPTION KEY DEFINITION 与 public、SQLAgent 角色的默认对象级 GRANT SELECT / EXECUTE 时七项都通过、定位行为空、角色信息行同 RDS（夹具先核实这些默认授权确实存在）")
+    void msdbDefaultGrantsOfPublicAndTheAgentRolesStillPass(ReadOnlyConnection connection) throws Exception {
+        try (Connection c = admin("msdb"); Statement s = c.createStatement()) {
+            ReadOnlyBaselineFixture.assertMsdbDefaultGrantsExist(s);
+        }
+        Account account = baselineAccount(connection);
+        assertThat(ReadOnlyBaselineFixture.msdbToken(account.url(), account.login(), account.password()))
+                .as("the token holds the three roles and public beside the own user").contains("public", "SQLAgentUserRole", "SQLAgentReaderRole", "SQLAgentOperatorRole");
+        assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                .as("the fixture: the defaults are inside the allow-list").isEmpty();
+
+        CommandRun run = verify(connection, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
+        for (char item : ITEMS) {
+            assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+        }
+        assertThat(run.findings()).as(run.output()).isEmpty();
+        assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
+        assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb（契约：msdb 可进即检查令牌范围权限）：账号在 msdb 没有本人用户、guest 仍启用，授给 guest 的 ALTER ANY SCHEMA 使 (f) 违规、原因 SYSTEM_DATABASE_OWN_USER_PRIVILEGE 计数 1、定位行只写库名 msdb，msdb 没有角色信息行，其余六项通过")
+    void alterAnySchemaGrantedToGuestIsAViolationWhenMsdbIsReachedThroughGuestOnly(ReadOnlyConnection connection) throws Exception {
+        Account account = guestOnlyAccount(connection);
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS, "GRANT ALTER ANY SCHEMA TO guest");
+            assertThat(ReadOnlyBaselineFixture.ownAgentJobs(account.url(), account.login(), account.password()))
+                    .as("the fixture: the verdict rests on the privileges alone, the Agent-job count is readable").containsExactly("0");
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                    .as("the fixture: guest's grant reaches the login that has no own user in msdb")
+                    .containsExactlyInAnyOrder("EFFECTIVE ALTER ANY SCHEMA", "TOKEN guest DATABASE G ALTER ANY SCHEMA");
+
+            CommandRun run = verify(connection, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+            assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+            assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER_PRIVILEGE count=1");
+            assertThat(run.findings()).as("one locator line, the database only\n%s", run.output()).containsExactly(systemDatabaseOwnUserPrivilege("msdb"));
+            assertThat(run.ownUsers()).as("no own user in msdb, so only rdscore\n%s", run.output()).containsExactly(ownUser("rdscore", null));
+            for (char item : "abcdeg".toCharArray()) {
+                assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+            }
+            assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+            assertTellsNothingSecret(run, account);
+        } finally {
+            run("msdb", "REVOKE ALTER ANY SCHEMA FROM guest", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb 的对照：guest 与 public 只有默认授权、guest 能读自己的 Agent 作业数时七项都通过、msdb 没有角色信息行、结果通过、退出 0")
+    void guestOnlyAccountWithTheDefaultGuestGrantsPasses(ReadOnlyConnection connection) throws Exception {
+        Account account = guestOnlyAccount(connection);
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS);
+
+            CommandRun run = verify(connection, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
+            for (char item : ITEMS) {
+                assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+            }
+            assertThat(run.findings()).as(run.output()).isEmpty();
+            assertThat(run.ownUsers()).as(run.output()).containsExactly(ownUser("rdscore", null));
+            assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+            assertTellsNothingSecret(run, account);
+        } finally {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+    }
+
     @Test
-    @DisplayName("C-14 定位、ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15，安全判定放宽）：public 对象级 GRANT EXECUTE 被本账号库级 DENY EXECUTE 覆盖时 (g) 通过、输出一条 overridden 信息行（被拒绝覆盖的授权）、结果通过、退出 0（rc.2 A8 账号的情形）；账号看不见该过程，schema、object 为 -，objectId 为其编号（one-1a-par 裁定：元数据可见性，方向 A）")
+    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb（现行行为，待裁定）：guest 读不到 msdb.dbo.sysjobs_view（错误 229），所以只经 guest 进入的账号即使没有越线，(f) 也因 Agent 作业数读不到而判定不了、原因 CATALOG_QUERY_FAILED、结果判定不了、退出判定不了码")
+    void guestOnlyAccountCannotReadItsAgentJobsAndIsUndetermined() throws Exception {
+        Account account = guestOnlyAccount(ReadOnlyConnection.A8);
+        SQLException refused = catchSqlException(() -> ReadOnlyBaselineFixture.ownAgentJobs(account.url(), account.login(), account.password()));
+        assertThat((Throwable) refused).as("the fixture: guest may not read sysjobs_view").isNotNull();
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_UNDETERMINED);
+        assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("UNDETERMINED");
+        assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=CATALOG_QUERY_FAILED").contains(sqlError(refused));
+        assertThat(run.findings()).as(run.output()).isEmpty();
+        assertThat(run.results()).as(run.output()).containsExactly("UNDETERMINED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    private static SQLException catchSqlException(ThrowingRunnable action) {
+        try {
+            action.run();
+            return null;
+        } catch (SQLException e) {
+            return e;
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingRunnable {
+        void run() throws SQLException;
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 不误判（guest 不在令牌）：账号在 msdb 有本人用户时，授给 guest 的 ALTER ANY SCHEMA 到不了它，七项都通过、定位行为空")
+    void aGrantToGuestDoesNotMakeAnAccountWithItsOwnMsdbUserViolate(ReadOnlyConnection connection) throws Exception {
+        Account account = baselineAccount(connection);
+        try {
+            run("msdb", "GRANT ALTER ANY SCHEMA TO guest");
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                    .as("the fixture: guest's grant does not reach a login with its own msdb user").isEmpty();
+
+            CommandRun run = verify(connection, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
+            assertThat(run.findings()).as(run.output()).isEmpty();
+            assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+        } finally {
+            run("msdb", "REVOKE ALTER ANY SCHEMA FROM guest");
+        }
+    }
+
+    /** A baseline account whose own msdb user is dropped: msdb stays reachable through the enabled guest (the fixture checks both). */
+    static Account guestOnlyAccount(ReadOnlyConnection connection) throws SQLException {
+        Account account = baselineAccount(connection);
+        ReadOnlyBaselineFixture.dropMsdbOwnUser(ReadOnlyVerificationCommandIT::run, q(account.login()));
+        assertThat(ReadOnlyBaselineFixture.msdbToken(account.url(), account.login(), account.password()))
+                .as("the fixture: msdb is reached through guest alone").containsExactly("guest", "public");
+        assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                .as("the fixture: nothing beyond the defaults for guest and public").isEmpty();
+        return account;
+    }
+
+    @Test
+    @DisplayName("C-14 定位、ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15，安全判定放宽）：public 对象级GRANT EXECUTE 被本账号库级 DENY EXECUTE 覆盖时 (g) 通过、输出一条 overridden 信息行（被拒绝覆盖的授权）、结果通过、退出 0（rc.2 A8 账号的情形）；账号看不见该过程，schema、object 为 -，objectId 为其编号（one-1a-par 裁定：元数据可见性，方向 A）")
     void publicExecuteOverriddenByTheDatabaseDenyPasses() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String procedure = "p_" + marker();

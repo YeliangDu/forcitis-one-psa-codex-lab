@@ -263,6 +263,105 @@ class ReadOnlyAccountCheckIT {
         assertThat(failure).as("an account with the one-ops direct msdb grants must pass; refused with:\n%s", messages(failure)).isNull();
     }
 
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 不误判（默认授权）：令牌范围扫描遇到 SQL Server 默认授给 public 的 VIEW ANY COLUMN MASTER KEY / ENCRYPTION KEY DEFINITION 与 public、SQLAgent 角色的默认对象级 GRANT SELECT / EXECUTE 时应用仍正常启动（夹具先核实这些默认授权确实存在、账号令牌范围无越线）")
+    void msdbDefaultGrantsOfPublicAndTheAgentRolesDoNotRefuseStartup(ReadOnlyConnection connection) throws SQLException {
+        try (Connection c = admin("msdb"); Statement s = c.createStatement()) {
+            ReadOnlyBaselineFixture.assertMsdbDefaultGrantsExist(s);
+        }
+        Account account = baselineAccount(connection);
+        assertThat(ReadOnlyBaselineFixture.msdbToken(url(connection.database), account.login(), account.password()))
+                .as("the token holds the three roles and public beside the own user").contains("public", "SQLAgentUserRole", "SQLAgentReaderRole", "SQLAgentOperatorRole");
+        assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(url(connection.database), account.login(), account.password()))
+                .as("the fixture: the defaults are inside the allow-list").isEmpty();
+
+        Throwable failure = catchThrowable(() -> {
+            try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                assertThat(context.isActive()).isTrue();
+            }
+        });
+
+        assertThat(failure).as("the platform defaults in msdb must pass; refused with:\n%s", messages(failure)).isNull();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb：账号在 msdb 没有本人用户、guest 仍启用时，授给 guest 的 ALTER ANY SCHEMA 使应用拒绝启动并报出 (f)（现行实现对「msdb 无本人用户」不查权限）")
+    void alterAnySchemaGrantedToGuestRefusesStartupWhenMsdbIsReachedThroughGuestOnly(ReadOnlyConnection connection) throws SQLException {
+        Account account = guestOnlyAccount(connection);
+        Throwable failure;
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS, "GRANT ALTER ANY SCHEMA TO guest");
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(url(connection.database), account.login(), account.password()))
+                    .as("the fixture: guest's grant reaches the login that has no own user in msdb")
+                    .containsExactlyInAnyOrder("EFFECTIVE ALTER ANY SCHEMA", "TOKEN guest DATABASE G ALTER ANY SCHEMA");
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run("msdb", "REVOKE ALTER ANY SCHEMA FROM guest", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+
+        assertThat(failure).as("%s: the application started anyway", connection).isNotNull();
+        assertThat(messages(failure)).as("the refusal names item (f)").containsPattern("[(（]f[)）]");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb 的对照：guest 只有默认授权（另让 guest 能读自己的 Agent 作业数，否则 (f) 因读不到作业判定不了）时应用正常启动（msdb 可进即检查令牌范围，没有越线就通过）")
+    void guestOnlyAccountWithTheDefaultGuestGrantsStarts(ReadOnlyConnection connection) throws SQLException {
+        Account account = guestOnlyAccount(connection);
+        Throwable failure;
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS);
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+
+        assertThat(failure).as("a login that reaches msdb through guest alone, with nothing beyond the defaults, passes; refused with:\n%s", messages(failure)).isNull();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 不误判（guest 不在令牌）：账号在 msdb 有本人用户时，授给 guest 的 ALTER ANY SCHEMA 到不了它（令牌里没有 guest），应用正常启动")
+    void aGrantToGuestDoesNotRefuseAnAccountWithItsOwnMsdbUser(ReadOnlyConnection connection) throws SQLException {
+        Account account = baselineAccount(connection);
+        Throwable failure;
+        try {
+            run("msdb", "GRANT ALTER ANY SCHEMA TO guest");
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(url(connection.database), account.login(), account.password()))
+                    .as("the fixture: guest's grant does not reach a login with its own msdb user").isEmpty();
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run("msdb", "REVOKE ALTER ANY SCHEMA FROM guest");
+        }
+
+        assertThat(failure).as("refused with:\n%s", messages(failure)).isNull();
+    }
+
+    /** A baseline account whose own msdb user is dropped: msdb stays reachable through the enabled guest (the fixture checks both), with no role of its own. */
+    static Account guestOnlyAccount(ReadOnlyConnection connection) throws SQLException {
+        Account account = baselineAccount(connection);
+        ReadOnlyBaselineFixture.dropMsdbOwnUser(ReadOnlyAccountCheckIT::run, q(account.login()));
+        assertThat(ReadOnlyBaselineFixture.msdbToken(url(connection.database), account.login(), account.password()))
+                .as("the fixture: msdb is reached through guest alone").containsExactly("guest", "public");
+        assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(url(connection.database), account.login(), account.password()))
+                .as("the fixture: nothing beyond the defaults for guest and public").isEmpty();
+        return account;
+    }
+
     @Test
     @DisplayName("ADR37-1 对照：三条只读连接同时启用、账号都符合基线时应用正常启动")
     void allThreeBaselineAccountsStartTogether() {
