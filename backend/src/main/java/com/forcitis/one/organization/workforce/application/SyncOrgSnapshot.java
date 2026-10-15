@@ -47,7 +47,7 @@ public class SyncOrgSnapshot {
             SourceOrgSnapshot snapshot = source.readSnapshot();
             result = apply.execute(run, snapshot, bypassShrinkGuard, releasedBy);
         } catch (RuntimeException failure) {
-            LOG.error("organization.workforce sync {} failed: {}", run.value(), failure.toString(), failure);
+            LOG.error("ALERT organization.workforce sync {} failed: {}", run.value(), failure.toString(), failure);
             String reason = failure.getClass().getSimpleName() + ": " + failure.getMessage();
             result = new SyncResult(run, failRun.execute(run, reason), reason);
         }
