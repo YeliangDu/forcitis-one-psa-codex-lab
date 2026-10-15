@@ -69,10 +69,14 @@ class ApprovalAccountsIT extends AccountsAcceptanceSupport {
 
     @BeforeEach
     void anInitiatorTheirSupervisorAndAProjectManager() throws Exception {
-        maintainWorkCalendar();
-        legalEntity = new LegalEntityId(createLegalEntity(newLegalEntityCode("AP"), "Synthetic approval accounts"));
         unit = newOrgUnitId();
         orgUnit(unit, null, null);
+        long maintainer = newEmployeeId();
+        employee(maintainer, unit, null);
+        grantByOperations(maintainer, "org_data_admin");
+        SignedIn maintainerSession = signIn(maintainer);
+        maintainWorkCalendar(maintainerSession);
+        legalEntity = new LegalEntityId(createLegalEntity(maintainerSession, newLegalEntityCode("AP"), "Synthetic approval accounts"));
         supervisor = newEmployeeId();
         initiator = newEmployeeId();
         projectManager = newEmployeeId();
@@ -108,11 +112,11 @@ class ApprovalAccountsIT extends AccountsAcceptanceSupport {
         return tasks;
     }
 
-    private MockHttpServletResponse detail(String taskId, UUID caller) throws Exception {
-        return mvc.perform(get(TASKS + taskId).with(as(caller))).andReturn().getResponse();
+    private MockHttpServletResponse detail(String taskId, SignedIn caller) throws Exception {
+        return mvc.perform(get(TASKS + taskId).with(session(caller))).andReturn().getResponse();
     }
 
-    private List<String> candidatesSeenBy(String taskId, UUID caller) throws Exception {
+    private List<String> candidatesSeenBy(String taskId, SignedIn caller) throws Exception {
         MockHttpServletResponse seen = detail(taskId, caller);
         assertThat(seen.getStatus()).as(seen.getContentAsString()).isEqualTo(200);
         return JsonPath.read(seen.getContentAsString(), "$.candidates");
@@ -125,15 +129,15 @@ class ApprovalAccountsIT extends AccountsAcceptanceSupport {
 
         List<String> tasks = openTasks(withAnother);
         assertThat(tasks).hasSize(1);
-        assertThat(candidatesSeenBy(tasks.getFirst(), projectManagerAccount.userId())).containsExactly(projectManagerAccount.userId().toString());
-        assertThat(detail(tasks.getFirst(), supervisorAccount.userId()).getStatus()).as("someone who is no candidate").isEqualTo(404);
+        assertThat(candidatesSeenBy(tasks.getFirst(), projectManagerAccount)).containsExactly(projectManagerAccount.userId().toString());
+        assertThat(detail(tasks.getFirst(), supervisorAccount).getStatus()).as("someone who is no candidate").isEqualTo(404);
 
         DocumentReference onlyTheInitiator = start(List.of(initiator));
 
         List<String> escalated = openTasks(onlyTheInitiator);
         assertThat(escalated).hasSize(1);
-        assertThat(candidatesSeenBy(escalated.getFirst(), supervisorAccount.userId())).containsExactly(supervisorAccount.userId().toString());
-        assertThat(detail(escalated.getFirst(), projectManagerAccount.userId()).getStatus()).as("someone who is no candidate").isEqualTo(404);
+        assertThat(candidatesSeenBy(escalated.getFirst(), supervisorAccount)).containsExactly(supervisorAccount.userId().toString());
+        assertThat(detail(escalated.getFirst(), projectManagerAccount).getStatus()).as("someone who is no candidate").isEqualTo(404);
     }
 
     @Test
@@ -152,29 +156,29 @@ class ApprovalAccountsIT extends AccountsAcceptanceSupport {
 
         DocumentReference control = start(List.of(projectManager));
         assertThat(openTasks(control)).hasSize(1);
-        assertThat(candidatesSeenBy(openTasks(control).getFirst(), projectManagerAccount.userId())).containsExactly(projectManagerAccount.userId().toString());
+        assertThat(candidatesSeenBy(openTasks(control).getFirst(), projectManagerAccount)).containsExactly(projectManagerAccount.userId().toString());
     }
 
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 3 条 / I-7（TaskGuard）：审批办理只认处理人，按用户 ID 比较：发起人办理答 404，与此单无关的人读也答 404；候选人可以办理，办理记录的操作人是其用户 ID")
     void onlyTheCandidateActsOnTheTask() throws Exception {
         String task = openTasks(start(List.of(projectManager))).getFirst();
-        MockHttpServletResponse seen = detail(task, projectManagerAccount.userId());
+        MockHttpServletResponse seen = detail(task, projectManagerAccount);
         assertThat(seen.getStatus()).as(seen.getContentAsString()).isEqualTo(200);
 
-        MockHttpServletResponse byTheInitiator = mvc.perform(post(TASKS + task + ":decide").header("If-Match", seen.getHeader("ETag")).with(csrf()).with(as(initiatorAccount.userId()))
+        MockHttpServletResponse byTheInitiator = mvc.perform(post(TASKS + task + ":decide").header("If-Match", seen.getHeader("ETag")).with(csrf()).with(session(initiatorAccount))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"synthetic\"}")).andReturn().getResponse();
 
         assertThat(byTheInitiator.getStatus()).as(byTheInitiator.getContentAsString()).isEqualTo(404);
         assertThat((String) JsonPath.read(byTheInitiator.getContentAsString(), "$.errorCode")).isEqualTo("PLATFORM_APPROVAL_TASK_NOT_FOUND");
 
-        assertThat(detail(task, supervisorAccount.userId()).getStatus()).as("someone who is neither candidate nor initiator").isEqualTo(404);
+        assertThat(detail(task, supervisorAccount).getStatus()).as("someone who is neither candidate nor initiator").isEqualTo(404);
         MockHttpServletResponse decided = mvc.perform(post(TASKS + task + ":decide").header("If-Match", seen.getHeader("ETag")).with(csrf())
-                .with(as(projectManagerAccount.userId())).contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"synthetic\"}"))
+                .with(session(projectManagerAccount)).contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"synthetic\"}"))
                 .andReturn().getResponse();
 
         assertThat(decided.getStatus()).as(decided.getContentAsString()).isEqualTo(200);
-        MockHttpServletResponse handled = mvc.perform(get("/api/v1/platform/approval-task-records").with(as(projectManagerAccount.userId()))).andReturn().getResponse();
+        MockHttpServletResponse handled = mvc.perform(get("/api/v1/platform/approval-task-records").with(session(projectManagerAccount))).andReturn().getResponse();
         assertThat(handled.getStatus()).as(handled.getContentAsString()).isEqualTo(200);
         List<String> actors = JsonPath.read(handled.getContentAsString(), "$.items[?(@.taskId == '" + task + "')].actorId");
         assertThat(actors).isNotEmpty().containsOnly(projectManagerAccount.userId().toString());

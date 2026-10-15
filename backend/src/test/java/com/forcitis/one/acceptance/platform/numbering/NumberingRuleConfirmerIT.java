@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
-import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -36,14 +35,6 @@ class NumberingRuleConfirmerIT extends AccountsAcceptanceSupport {
     @ServiceConnection
     static PostgreSQLContainer postgres = database();
 
-    private static RequestPostProcessor author(UUID userId) {
-        return as(userId, Permission.Codes.PLATFORM_NUMBERING_RULE_READ, Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE,
-                Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE);
-    }
-
-    private static RequestPostProcessor approver(UUID userId) {
-        return as(userId, Permission.Codes.PLATFORM_NUMBERING_RULE_READ, Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE);
-    }
 
     private MockHttpServletResponse confirm(RequestPostProcessor who, int templateVersion) throws Exception {
         return mvc.perform(post(QUOTE_RULE + ":confirm").with(csrf()).with(who).contentType(MediaType.APPLICATION_JSON)
@@ -59,24 +50,29 @@ class NumberingRuleConfirmerIT extends AccountsAcceptanceSupport {
         long approverEmployee = newEmployeeId();
         employee(authorEmployee, unit, null);
         employee(approverEmployee, unit, null);
-        UUID authorAccount = signIn(authorEmployee).userId();
-        UUID approverAccount = signIn(approverEmployee).userId();
-        MockHttpServletResponse rule = mvc.perform(get(QUOTE_RULE).with(author(authorAccount))).andReturn().getResponse();
+        grantByOperations(authorEmployee, "org_data_admin");
+        grantByOperations(authorEmployee, "business_admin");
+        grantByOperations(approverEmployee, "business_admin");
+        SignedIn author = signIn(authorEmployee);
+        SignedIn approver = signIn(approverEmployee);
+        UUID authorAccount = author.userId();
+        UUID approverAccount = approver.userId();
+        MockHttpServletResponse rule = mvc.perform(get(QUOTE_RULE).with(session(author))).andReturn().getResponse();
         assertThat(rule.getStatus()).as(rule.getContentAsString()).isEqualTo(200);
 
-        MockHttpServletResponse saved = mvc.perform(put(QUOTE_RULE).header("If-Match", rule.getHeader("ETag")).with(csrf()).with(author(authorAccount))
+        MockHttpServletResponse saved = mvc.perform(put(QUOTE_RULE).header("If-Match", rule.getHeader("ETag")).with(csrf()).with(session(author))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,"
                         + "\"effectiveFrom\":\"" + TODAY.plusDays(1) + "\"}")).andReturn().getResponse();
         assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(200);
         int pending = JsonPath.read(saved.getContentAsString(), "$.pending.templateVersion");
         assertThat((String) JsonPath.read(saved.getContentAsString(), "$.pending.authorId")).isEqualTo(authorAccount.toString());
 
-        MockHttpServletResponse byTheAuthor = confirm(author(authorAccount), pending);
+        MockHttpServletResponse byTheAuthor = confirm(session(author), pending);
 
         assertThat(byTheAuthor.getStatus()).as(byTheAuthor.getContentAsString()).isEqualTo(403);
         assertThat((String) JsonPath.read(byTheAuthor.getContentAsString(), "$.errorCode")).isEqualTo("PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR");
 
-        MockHttpServletResponse byAnother = confirm(approver(approverAccount), pending);
+        MockHttpServletResponse byAnother = confirm(session(approver), pending);
 
         assertThat(byAnother.getStatus()).as(byAnother.getContentAsString()).isEqualTo(200);
         try (Connection numbering = schemaConnection("platform_numbering"); PreparedStatement select = numbering.prepareStatement("""

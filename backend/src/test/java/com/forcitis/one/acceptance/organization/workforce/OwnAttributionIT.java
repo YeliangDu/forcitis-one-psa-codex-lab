@@ -5,7 +5,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
-import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -33,9 +32,8 @@ class OwnAttributionIT extends AccountsAcceptanceSupport {
     @ServiceConnection
     static PostgreSQLContainer postgres = database();
 
-    private MockHttpServletResponse attribute(String path, UUID caller, UUID legalEntity) throws Exception {
-        return mvc.perform(put(path).header("If-Match", "\"0\"").with(csrf())
-                .with(as(caller, Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE, Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ))
+    private MockHttpServletResponse attribute(String path, SignedIn caller, UUID legalEntity) throws Exception {
+        return mvc.perform(put(path).header("If-Match", "\"0\"").with(csrf()).with(session(caller))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + legalEntity + "\",\"effectiveFrom\":\"" + TODAY + "\"}"))
                 .andReturn().getResponse();
     }
@@ -51,14 +49,17 @@ class OwnAttributionIT extends AccountsAcceptanceSupport {
         long colleague = newEmployeeId();
         employee(maintainer, own, null);
         employee(colleague, top, null);
-        UUID maintainerAccount = signIn(maintainer).userId();
-        UUID colleagueAccount = signIn(colleague).userId();
+        grantByOperations(maintainer, "org_data_admin");
+        grantByOperations(colleague, "org_data_admin");
+        SignedIn maintainerSession = signIn(maintainer);
+        SignedIn colleagueSession = signIn(colleague);
+        UUID maintainerAccount = maintainerSession.userId();
         assertThat(employeeOfAccount(maintainerAccount)).isEqualTo(maintainer);
-        UUID legalEntity = createLegalEntity("OWA", "Synthetic own attribution");
+        UUID legalEntity = createLegalEntity(colleagueSession, "OWA", "Synthetic own attribution");
 
-        MockHttpServletResponse ownEntry = attribute(EMPLOYEES + maintainer, maintainerAccount, legalEntity);
-        MockHttpServletResponse ownUnit = attribute(ORG_UNITS + own, maintainerAccount, legalEntity);
-        MockHttpServletResponse unitAbove = attribute(ORG_UNITS + top, maintainerAccount, legalEntity);
+        MockHttpServletResponse ownEntry = attribute(EMPLOYEES + maintainer, maintainerSession, legalEntity);
+        MockHttpServletResponse ownUnit = attribute(ORG_UNITS + own, maintainerSession, legalEntity);
+        MockHttpServletResponse unitAbove = attribute(ORG_UNITS + top, maintainerSession, legalEntity);
 
         assertThat(ownEntry.getStatus()).as(ownEntry.getContentAsString()).isEqualTo(403);
         assertThat((String) JsonPath.read(ownEntry.getContentAsString(), "$.errorCode")).isEqualTo("ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN");
@@ -66,7 +67,7 @@ class OwnAttributionIT extends AccountsAcceptanceSupport {
         assertThat(unitAbove.getStatus()).as("department above: " + unitAbove.getContentAsString()).isEqualTo(403);
         assertThat(auditEntriesBy(maintainerAccount, "organization.workforce.legal-entity-attribution.refused")).hasSizeGreaterThanOrEqualTo(3);
 
-        MockHttpServletResponse someoneElse = attribute(EMPLOYEES + maintainer, colleagueAccount, legalEntity);
+        MockHttpServletResponse someoneElse = attribute(EMPLOYEES + maintainer, colleagueSession, legalEntity);
 
         assertThat(someoneElse.getStatus()).as(someoneElse.getContentAsString()).isEqualTo(200);
     }

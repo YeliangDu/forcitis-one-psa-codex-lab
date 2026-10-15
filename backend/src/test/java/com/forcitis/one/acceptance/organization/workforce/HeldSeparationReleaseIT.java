@@ -5,7 +5,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
-import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Array;
 import java.sql.Connection;
@@ -73,8 +72,9 @@ class HeldSeparationReleaseIT extends AccountsAcceptanceSupport {
         }
     }
 
-    private MockHttpServletResponse release(UUID run, UUID releaser) throws Exception {
-        return mvc.perform(post(SYNC_RUNS + run + ":release").with(csrf()).with(as(releaser, Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE))
+    /** The releaser acts in their own session; the permission to lift the hold comes from the security_auditor role (ADR-0028). */
+    private MockHttpServletResponse release(UUID run, SignedIn releaser) throws Exception {
+        return mvc.perform(post(SYNC_RUNS + run + ":release").with(csrf()).with(session(releaser))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"synthetic: checked with the HR department\"}")).andReturn().getResponse();
     }
 
@@ -88,23 +88,24 @@ class HeldSeparationReleaseIT extends AccountsAcceptanceSupport {
         long third = newEmployeeId();
         for (long person : List.of(leaver, retained, third)) {
             employee(person, unit, null);
+            grantByOperations(person, "super_admin");
+            grantByOperations(person, "security_auditor");
         }
-        UUID leaverAccount = signIn(leaver).userId();
-        UUID retainedAccount = signIn(retained).userId();
-        UUID thirdAccount = signIn(third).userId();
-        for (UUID account : List.of(leaverAccount, retainedAccount, thirdAccount)) {
-            grantRole(account, "super_admin");
-        }
+        SignedIn leaverSession = signIn(leaver);
+        SignedIn retainedSession = signIn(retained);
+        signIn(third);
+        UUID leaverAccount = leaverSession.userId();
+        UUID retainedAccount = retainedSession.userId();
         assertThat(employeeOfAccount(leaverAccount)).isEqualTo(leaver);
         UUID run = heldRun(leaver);
 
-        MockHttpServletResponse byTheLeaver = release(run, leaverAccount);
+        MockHttpServletResponse byTheLeaver = release(run, leaverSession);
 
         assertThat(byTheLeaver.getStatus()).as(byTheLeaver.getContentAsString()).isEqualTo(403);
         assertThat((String) JsonPath.read(byTheLeaver.getContentAsString(), "$.errorCode")).isEqualTo("ORGANIZATION_WORKFORCE_SEPARATION_HOLD_FORBIDDEN");
         assertThat(releasedKinds(run)).isEmpty();
 
-        MockHttpServletResponse byAnother = release(run, retainedAccount);
+        MockHttpServletResponse byAnother = release(run, retainedSession);
 
         assertThat(byAnother.getStatus()).as(byAnother.getContentAsString()).isEqualTo(200);
         assertThat((String) JsonPath.read(byAnother.getContentAsString(), "$.outcome")).isEqualTo("PARTLY_RELEASED");

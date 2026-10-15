@@ -5,7 +5,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
-import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -88,9 +87,10 @@ class EventEnvelopeActorIT extends AccountsAcceptanceSupport {
         orgUnit(unit, null, null);
         long person = newEmployeeId();
         employee(person, unit, null);
-        UUID account = signIn(person).userId();
-        MockHttpServletResponse created = mvc.perform(post(LEGAL_ENTITIES).with(csrf())
-                .with(as(account, Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE, Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ))
+        grantByOperations(person, "org_data_admin");
+        SignedIn signedIn = signIn(person);
+        UUID account = signedIn.userId();
+        MockHttpServletResponse created = mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(session(signedIn))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"code\":\"EVA\",\"name\":\"Synthetic envelope actor\"}")).andReturn().getResponse();
         assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
         String legalEntityId = JsonPath.read(created.getContentAsString(), "$.legalEntityId");

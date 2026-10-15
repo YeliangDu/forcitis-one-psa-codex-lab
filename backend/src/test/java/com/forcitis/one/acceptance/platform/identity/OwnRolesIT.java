@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
-import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.util.List;
 import java.util.UUID;
@@ -15,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -35,21 +33,22 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
     @ServiceConnection
     static PostgreSQLContainer postgres = database();
 
-    private static RequestPostProcessor roleAdministrator(UUID userId) {
-        return as(userId, Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
-                Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE);
+    /** A super_admin holder (operations command), signed in through WeCom and in the administrator mode of their own session. */
+    private SignedIn roleAdministrator(long employee) throws Exception {
+        grantByOperations(employee, "super_admin");
+        return administratorMode(signIn(employee));
     }
 
-    private MockHttpServletResponse replaceRoles(UUID caller, String account, List<String> roleCodes) throws Exception {
-        MockHttpServletResponse read = mvc.perform(get(ACCOUNTS + account).with(roleAdministrator(caller))).andReturn().getResponse();
+    private MockHttpServletResponse replaceRoles(SignedIn caller, String account, List<String> roleCodes) throws Exception {
+        MockHttpServletResponse read = mvc.perform(get(ACCOUNTS + account).with(session(caller))).andReturn().getResponse();
         String etag = read.getStatus() == 200 ? read.getHeader("ETag") : "\"0\"";
         String body = "{\"roleCodes\":[" + String.join(",", roleCodes.stream().map(code -> "\"" + code + "\"").toList()) + "]}";
-        return mvc.perform(post(ACCOUNTS + account + ":replace-roles").header("If-Match", etag).with(csrf()).with(roleAdministrator(caller))
+        return mvc.perform(post(ACCOUNTS + account + ":replace-roles").header("If-Match", etag).with(csrf()).with(session(caller))
                 .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
     }
 
-    private List<String> rolesOf(UUID caller, UUID account) throws Exception {
-        MockHttpServletResponse read = mvc.perform(get(ACCOUNTS + account).with(roleAdministrator(caller))).andReturn().getResponse();
+    private List<String> rolesOf(SignedIn caller, UUID account) throws Exception {
+        MockHttpServletResponse read = mvc.perform(get(ACCOUNTS + account).with(session(caller))).andReturn().getResponse();
         assertThat(read.getStatus()).as(read.getContentAsString()).isEqualTo(200);
         return JsonPath.read(read.getContentAsString(), "$..roleCodes[*]");
     }
@@ -63,25 +62,26 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
         long colleagueEmployee = newEmployeeId();
         employee(administratorEmployee, unit, null);
         employee(colleagueEmployee, unit, null);
-        UUID administrator = signIn(administratorEmployee).userId();
+        SignedIn administratorSession = roleAdministrator(administratorEmployee);
+        UUID administrator = administratorSession.userId();
         UUID colleague = signIn(colleagueEmployee).userId();
-        MockHttpServletResponse role = mvc.perform(post(ROLES).with(csrf()).with(roleAdministrator(administrator)).contentType(MediaType.APPLICATION_JSON)
+        MockHttpServletResponse role = mvc.perform(post(ROLES).with(csrf()).with(session(administratorSession)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"synthetic_own_roles\",\"name\":\"Synthetic own roles\",\"enabled\":true,\"permissionCodes\":[]}")).andReturn().getResponse();
         assertThat(role.getStatus()).as(role.getContentAsString()).isEqualTo(201);
-        List<String> before = rolesOf(administrator, administrator);
+        List<String> before = rolesOf(administratorSession, administrator);
 
-        MockHttpServletResponse own = replaceRoles(administrator, administrator.toString(), List.of("employee", "synthetic_own_roles"));
+        MockHttpServletResponse own = replaceRoles(administratorSession, administrator.toString(), List.of("employee", "synthetic_own_roles"));
 
         assertThat(own.getStatus()).as(own.getContentAsString()).isEqualTo(403);
         assertThat((String) JsonPath.read(own.getContentAsString(), "$.errorCode")).isEqualTo("PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN");
-        assertThat(rolesOf(administrator, administrator)).containsExactlyInAnyOrderElementsOf(before);
+        assertThat(rolesOf(administratorSession, administrator)).containsExactlyInAnyOrderElementsOf(before);
         assertThat(auditEntriesBy(administrator, "platform.identity.grant.refused")).extracting(entry -> entry.get("actorId"))
                 .containsOnly(administrator.toString()).isNotEmpty();
 
-        MockHttpServletResponse other = replaceRoles(administrator, colleague.toString(), List.of("employee", "synthetic_own_roles"));
+        MockHttpServletResponse other = replaceRoles(administratorSession, colleague.toString(), List.of("employee", "synthetic_own_roles"));
 
         assertThat(other.getStatus()).as(other.getContentAsString()).isEqualTo(204);
-        assertThat(rolesOf(administrator, colleague)).contains("synthetic_own_roles");
+        assertThat(rolesOf(administratorSession, colleague)).contains("synthetic_own_roles");
     }
 
     @Test
@@ -93,7 +93,7 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
         long colleagueEmployee = newEmployeeId();
         employee(administratorEmployee, unit, null);
         employee(colleagueEmployee, unit, null);
-        UUID administrator = signIn(administratorEmployee).userId();
+        SignedIn administrator = roleAdministrator(administratorEmployee);
         signIn(colleagueEmployee);
 
         MockHttpServletResponse byEmployeeId = replaceRoles(administrator, String.valueOf(colleagueEmployee), List.of("employee"));
