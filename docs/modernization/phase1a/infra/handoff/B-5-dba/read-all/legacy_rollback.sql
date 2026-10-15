@@ -1,0 +1,8 @@
+-- B-5 全库只读 · 老系统库回滚到变更前（各自视图的 SELECT 授权不受影响）
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+REVOKE SELECT ON DATABASE::[ruoyi-vue-pro] FROM psa_one_legacy_ro, one_legacy_names_ro;
+REVOKE INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, CREATE FUNCTION, CREATE SCHEMA
+  ON DATABASE::[ruoyi-vue-pro] FROM psa_one_legacy_ro, one_legacy_names_ro;
+COMMIT TRANSACTION;
+GO
