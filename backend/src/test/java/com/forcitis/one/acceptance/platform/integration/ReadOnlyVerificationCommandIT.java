@@ -344,10 +344,10 @@ class ReadOnlyVerificationCommandIT {
     @Test
     @DisplayName("C-14 (f) 纳入基线（用户 2026-10-15）：msdb 本人用户只属于三个 SQLAgent 角色的子集（只剩 SQLAgentReaderRole）时 (f) 通过、结果通过、退出 0；角色信息行列出 msdb 的一个角色与 rdscore 的无角色")
     void msdbOwnUserInASubsetOfTheAgentRolesPasses() throws Exception {
-        Account account = baselineAccount(ReadOnlyConnection.LEGACY_APPROVAL);
+        Account account = baselineAccount(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX);
         run("msdb", "ALTER ROLE SQLAgentOperatorRole DROP MEMBER " + q(account.login()), "ALTER ROLE SQLAgentUserRole DROP MEMBER " + q(account.login()));
 
-        CommandRun run = verify(ReadOnlyConnection.LEGACY_APPROVAL, account);
+        CommandRun run = verify(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX, account);
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
         for (char item : ITEMS) {
