@@ -69,7 +69,7 @@
 
 **CS-2.20 ID 值对象输出用 `value()`**（新增；R-1a 复审（PR #125 正文）H-1）
 - 类型化 ID（`UserId`、`OrgUnitId`、`SyncRunId` 等 `@ValueObject` record）写到接口响应、事件负载、日志键、游标、审计明细、SQL 参数时，一律取 `id.value()`（需要文本时 `id.value().toString()` 或 `String.valueOf(id.value())`），**不得对 ID 对象本身调用 `String.valueOf(id)` / `id.toString()` / 字符串拼接**：record 的 `toString()` 是 `OrgUnitId[value=…]`，换实现（long → UUID）时会静默改变对外形状。
-- 响应 record 的 ID 字段类型优先直接用 ID 的值类型（由 OpenAPI 生成器声明格式），而不是自己转字符串。契约格式为 OpenAPI 3.1.x，错误响应为 RFC 9457 problem details（用户 2026-10-15 采纳，intent 192555，FRAMEWORKS §9）。
+- 响应 record 的 ID 字段类型优先直接用 ID 的值类型（由 OpenAPI 生成器声明格式），而不是自己转字符串。契约以 springdoc 实际输出为准，版本升级走 ADR；错误响应为 RFC 9457 problem details（用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827））。
 - 守护（待实现：G-C1）。现状：`organization/workforce/web/*Response.java` 中有 `String.valueOf(view.orgUnitId())` 一类写法，须按 R-1 一并核对。
 
 **CS-2.21 不靠 ID 的顺序表达业务顺序**（新增；R-1a 复审（PR #125 正文）H-2）
