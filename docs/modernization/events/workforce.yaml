@@ -458,32 +458,3 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityAttributionTest
         noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为更正只在发生当时可被记录，补不回
-    LegalEntityAccountingNumberAssigned:
-      name: LegalEntityAccountingNumberAssigned
-      title: 法人取得或更换了核算组织编码
-      payload:
-        type: object
-        properties:
-          legalEntityId:
-            type: string
-            format: uuid
-            x-type: LegalEntityId
-            description: 稳定 ID 的字符串形式
-          accountingOrganizationNumber:
-            type: integer
-            x-type: AccountingOrganizationNumber
-      x-event:
-        eventType: organization.workforce.LegalEntityAccountingNumberAssigned
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.LegalEntityAccountingNumberAssigned
-        aggregate: LegalEntity
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
-        noConsumer: 暂无消费方：核算对接将按数字编码识别法人；现在就发布，是因为编码变更只在发生当时可被记录，补不回

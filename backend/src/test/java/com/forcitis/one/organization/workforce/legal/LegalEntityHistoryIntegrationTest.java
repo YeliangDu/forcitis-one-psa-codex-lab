@@ -39,14 +39,14 @@ class LegalEntityHistoryIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("K4 a legal entity starts with one open version; a rename or a status change closes it and appends the next, a no-op adds nothing")
     void everyChangeIsAVersion() {
-        LegalEntityId id = create.execute("FST", "First", null).legalEntityId();
+        LegalEntityId id = create.execute("FST", "First").legalEntityId();
         assertThat(versions(id)).containsExactly("0:First:ACTIVE:false");
 
-        update.execute(id, at(id), null, "First", "ACTIVE", null);
+        update.execute(id, at(id), null, "First", "ACTIVE");
         assertThat(versions(id)).containsExactly("0:First:ACTIVE:false");
 
-        update.execute(id, at(id), null, "First renamed", "ACTIVE", null);
-        update.execute(id, at(id), null, "First renamed", "INACTIVE", null);
+        update.execute(id, at(id), null, "First renamed", "ACTIVE");
+        update.execute(id, at(id), null, "First renamed", "INACTIVE");
 
         assertThat(versions(id)).containsExactly("0:First:ACTIVE:true", "1:First renamed:ACTIVE:true", "2:First renamed:INACTIVE:false");
     }
@@ -54,8 +54,8 @@ class LegalEntityHistoryIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("K4 the history cannot be rewritten: no delete, no change of a closed version")
     void historyIsAppendOnly() {
-        LegalEntityId id = create.execute("FIT", "Second", null).legalEntityId();
-        update.execute(id, at(id), null, "Second renamed", "ACTIVE", null);
+        LegalEntityId id = create.execute("FIT", "Second").legalEntityId();
+        update.execute(id, at(id), null, "Second renamed", "ACTIVE");
 
         assertThatThrownBy(() -> jdbc.sql("delete from organization_workforce.legal_entity_versions where legal_entity_id = :id").param("id", id.value()).update())
                 .hasMessageContaining("append-only");

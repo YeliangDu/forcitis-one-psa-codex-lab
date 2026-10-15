@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.numbering.web;
 
 import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
@@ -39,8 +40,8 @@ class LegacyNumberController {
     /** The document that carries exactly this original number. */
     @GetMapping("/legacy-numbers:resolve")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
-    ResponseEntity<LegacyNumberResponse> resolve(@RequestParam DocumentType documentType, @RequestParam String legacyNumber) {
-        return findDocument.find(documentType, legacyNumber)
+    ResponseEntity<LegacyNumberResponse> resolve(@RequestParam ExternalSource sourceSystem, @RequestParam DocumentType documentType, @RequestParam String legacyNumber) {
+        return findDocument.find(sourceSystem, documentType, legacyNumber)
                 .map(LegacyNumberResponse::from)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_LEGACY_NUMBER_NOT_FOUND, ErrorKind.NOT_FOUND,
@@ -54,6 +55,7 @@ class LegacyNumberController {
     @GetMapping("/legacy-numbers")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ + "')")
     CursorPage<LegacyNumberResponse> list(@RequestParam DocumentType documentType,
+            @Parameter(description = "Required with legacyNumberPrefix: original numbers are unique per source system") @RequestParam(required = false) ExternalSource sourceSystem,
             @Parameter(description = "Exactly one of legacyNumberPrefix and documentId is given") @RequestParam(required = false) String legacyNumberPrefix,
             @Parameter(description = "Exactly one of legacyNumberPrefix and documentId is given") @RequestParam(required = false) UUID documentId,
             @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
@@ -65,8 +67,11 @@ class LegacyNumberController {
                     .stream().map(LegacyNumberResponse::from).toList();
             return PageRequest.of(limit, cursor, "legacy-numbers").slice(all, LegacyNumberResponse::legacyNumber, "legacy-numbers");
         }
+        if (sourceSystem == null) {
+            throw new InvalidRequestException("a prefix search names the sourceSystem whose original numbers it searches");
+        }
         PageRequest page = PageRequest.of(limit, cursor, "legacy-number-prefix");
-        List<LegacyNumberResponse> found = findByPrefix.findByPrefix(documentType, legacyNumberPrefix, page.cursorValue(), page.limit() + 1)
+        List<LegacyNumberResponse> found = findByPrefix.findByPrefix(sourceSystem, documentType, legacyNumberPrefix, page.cursorValue(), page.limit() + 1)
                 .stream().map(LegacyNumberResponse::from).toList();
         List<LegacyNumberResponse> items = found.stream().limit(page.limit()).toList();
         return CursorPage.of(items, found.size() > items.size() ? PageRequest.encode("legacy-number-prefix", items.getLast().legacyNumber()) : null);
