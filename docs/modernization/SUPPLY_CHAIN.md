@@ -11,6 +11,9 @@
 - Maven 只用 Maven Central，`pom.xml` 不声明其他仓库；构建用严格校验和（`-C`）。
 - pnpm 一律 `--frozen-lockfile`；允许执行安装脚本的包只限 `pnpm-workspace.yaml` 的 `allowBuilds` 白名单，新增须在 PR 中写理由。
 - 新发布的版本满 7 天才引入（pnpm `minimumReleaseAge`，Maven 依赖由 Dependabot 冷却期控制）；安全修复可例外，PR 中写明对应的漏洞编号。
+- **文档生成用的 Python 依赖**（不进发布包与 SBOM，只在 CI 的 `build_all.py --check` 与本地生成时用）：
+  - PyYAML 6.0.3（MIT）：`docs/modernization/glossary/build_terms.py` 生成正式术语 `glossary/terms.yaml`，`build_all.py --check` 据此校验可复现（#186）。来源为本机 pyenv Python 3.12.13 的 site-packages，CI runner（`CI_RUNNERS.md`）的 PATH 先走同一 pyenv，因此 CI 与本地是同一份。缺少时 `--check` 明确失败，不跳过。
+  - 其余文档脚本只用标准库（如 `backend/glossary/build_proposed_index.py` 自带 YAML 子集解析器）；新增 Python 依赖照本条登记。
 
 ## S2 升级节奏
 

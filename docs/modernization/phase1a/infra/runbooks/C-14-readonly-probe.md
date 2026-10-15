@@ -20,6 +20,7 @@
 ## 口令与记录
 
 - 探针口令在 SQL Server 上生成（`CRYPT_GEN_RANDOM`，同 `evidence_login.sql`），只以新 ECS 临时公钥加密的密文经手，存 ECS `/etc/forcitis-one/readonly-probe.env`（root 0600），不经会话；结束时删除。
+- `readonly-probe.env` 只有三个变量，只读核实命令以 `--connection=probe` 读取：`READONLY_PROBE_DB_URL`（与 one.env 的 `LEGACY_DB_RO_URL` 同形，`databaseName=one_readonly_probe_db`，TLS 参数与 one.env 中 SQL Server 的 URL 相同：`encrypt=true;trustServerCertificate=false;trustStore=/etc/forcitis-one/sqlserver-ca.p12;trustStorePassword=…`）、`READONLY_PROBE_DB_USERNAME`（`one_readonly_probe`）、`READONLY_PROBE_DB_PASSWORD`。第 9 项连的仍是 `one_readonly_probe_db`（核实的是能否进入基线外的库），不改 URL。
 - 记录只写：每项的拒绝标记（(a)–(g) 与「通过」）、错误号；不记消息原文与任何值。
 - 每项前后各取一次探针的有效权限计数（库级、服务器级 `fn_my_permissions` 的行数），回退后须回到对照值。
 - RESOURCES.md 登记临时登录与两个探针库（建与删各一行）；LEGACY_READ_REGISTER 不涉及（不读老系统与 A8 数据）。
