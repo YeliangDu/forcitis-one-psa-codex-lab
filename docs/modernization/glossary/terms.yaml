@@ -6543,7 +6543,7 @@ terms:
   snake: business_owner
   kind: role
   bc: platform.identity
-  definition: 权限复核中，对某人的授权「维持不变」时须写明的、为这项授权的业务需要负责并确认的人；与组织单元的部门负责人不是同一概念
+  definition: 权限复核中，对某人的授权「维持不变」时须写明的、为这项授权的业务需要负责并确认的人，以员工 ID 标识（接口字段 businessOwnerEmployeeId），须在职、不得为当事人本人（ADR-0044 草案，待 Q4）；与组织单元的部门负责人不是同一概念
   standard_ref:
   - ISO/IEC 27001:2022 控制 5.18（访问权限的定期复核由资产或业务负责人确认）；ISACA 访问权限认证通行角色 Business Owner
   confidence: medium
