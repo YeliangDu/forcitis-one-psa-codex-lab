@@ -95,8 +95,13 @@
 | `outbound_delivery` | 外发投递 | OutboundDelivery | 一条待发往外部系统（企业微信）的消息及其发送结果；事务提交后由投递作业发送，失败退避重试，次数用尽进死信 |  |
 | `recipient` | 收件人 | Recipient | 消息的接收人，用企业微信用户 ID 精确指定；不允许按部门、标签或全员投递 |  |
 | `source_reference` | 来源对照 | SourceReference | 外部系统或老系统中对象标识与自有 ID 的对应；只在集成层；权限码 `platform.integration:source-reference:update`、`:approve`（ADR-0033 提议） |  |
-| `source_system` | 来源系统 | SourceSystem | 来源对照所属的外部系统（ADR-0033 提议） |  |
+| `source_system` | 来源系统 | SourceSystem | 来源对照所属的外部系统：组织源、老系统、核算系统（ADR-0033；Java 枚举叫 ExternalSource，避开 kernel.event.SourceSystem） |  |
 | `source_object_kind` | 来源对象类别 | SourceObjectKind | 来源对照所指的自有对象类别（ADR-0033 提议） |  |
+| `org_source` | 组织源 | OrgSource | 组织与人员的来源系统，来源系统取值 ORG_SOURCE |  |
+| `accounting_system` | 核算系统 | AccountingSystem | 接收凭证的核算系统，来源系统取值 ACCOUNTING_SYSTEM |  |
+| `rejected_state` | 已拒绝 | RejectedState | 来源对照的确认状态之一，不占自然键约束，不用于出站 |  |
+| `registration` | 登记 | Registration | 由人录入一条来源对照，等另一个人确认或拒绝 |  |
+| `supersede` | 取代 | Supersede | 已确认的后继对照从生效日起取代生效中的对照 |  |
 | `evidence` | 取证 | Evidence | 只读核对老系统与 A8 生产数据（复刻老行为、迁入对账、新旧等价核对）；专用取证账号，每次登记一行（ADR-0037；数据库登录名 one_evidence_ro） |  |
 
 技术词 8 个，在 `common_words`。
@@ -106,8 +111,7 @@
 | id | zh | en | 定义 | 是否疑似方言 |
 |---|---|---|---|---|
 | `legacy_number` | 原编号 | LegacyNumber | 单据迁移前在老系统中的编号，在新系统只读保留并可检索，与新单据对照（ADR-0010 决定 5） |  |
-| `import_batch` | 导入批次 | ImportBatch | 写入一批原编号对照的导入批次标识，便于整批核对与回溯 |  |
-| `confirmation_status` | 确认状态 | ConfirmationStatus | 编号规则是否已由管理员确认；默认模板在确认前为待确认（PENDING_CONFIRMATION），保存即确认（CONFIRMED） |  |
+| `confirmation_status` | 确认状态 | ConfirmationStatus | 编号规则是否已由管理员确认；默认模板在确认前为待确认（PENDING_CONFIRMATION），保存即确认（CONFIRMED）；来源对照写作 PENDING / CONFIRMED / REJECTED，中文同为待确认 / 已确认 / 已拒绝 |  |
 | `document_type_code` | 单据类型代码 | DocumentTypeCode | 单据类型在统一编号格式中的短代码（大写字母 2-4 位），在词表中登记，对应模板占位符 {TYPE} |  |
 | `qt` | 报价单据类型代码 | Qt | 报价（DocumentType.QUOTE）的单据类型代码 QT，1b 首个使用方 |  |
 

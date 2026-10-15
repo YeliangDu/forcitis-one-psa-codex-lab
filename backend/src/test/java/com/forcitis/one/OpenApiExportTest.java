@@ -10,14 +10,35 @@ import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.nio.file.Files;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverter;
+import io.swagger.v3.core.converter.ModelConverterContext;
+import io.swagger.v3.core.converter.ModelConverters;
+import io.swagger.v3.core.util.Json;
+import io.swagger.v3.oas.models.media.Schema;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.core.MethodParameter;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -56,6 +77,10 @@ class OpenApiExportTest {
     @Autowired
     JsonMapper json;
 
+    @Autowired
+    @Qualifier("requestMappingHandlerMapping")
+    RequestMappingHandlerMapping handlers;
+
     @Test
     void exportsTheOpenApiDocumentForTheFrontendClient() throws Exception {
         String body = mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk())
@@ -82,14 +107,18 @@ class OpenApiExportTest {
     /** Ids of this system (R-1a) are string / uuid on the wire; the rest are named here until R-1b gives them their own ids. */
     static final java.util.Set<String> OWN_ID_FIELDS = java.util.Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
             "AuthorizationRequestView.requestId", "AuthorizationRequestView.roleId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
-            "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
+            "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
             "RoleResponse.roleId", "SyncRunResponse.syncRunId", "SyncRunResponse.releasedByRunId", "ProblemDetail.correlationId",
-            "parameter legalEntityId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter documentId /api/v1/platform/legacy-numbers");
+            "RegisterSourceReferenceRequest.ownId", "SourceReferenceResponse.ownId", "SourceReferenceResponse.sourceReferenceId",
+            "parameter legalEntityId", "parameter ownId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers");
 
     /** Ids taken from the organisation source (A8) and the engine's task, instance and document keys: R-1b, listed by name so a new id field has to be classified. */
     static final java.util.Set<String> OTHER_ID_NAMES = java.util.Set.of("actorId", "onBehalfOfId", "subjectUserId", "userId", "orgUnitId", "employeeId",
             "headEmployeeId", "parentOrgUnitId", "regionalReceivablesManagerId", "ancestorOrgUnitIds", "orgUnitAndBelowIds", "authorId", "assigneeId",
             "subjectId", "taskId", "instanceId", "documentId");
+
+    /** Identifiers that belong to an external system and stay what that system gives: on the wire a whole number written as text. */
+    static final java.util.Set<String> EXTERNAL_ID_NAMES = java.util.Set.of("sourceId");
 
     @Test
     void idFieldsOfThisSystemAreStringUuidAndEveryOtherIdFieldIsClassified() throws Exception {
@@ -122,14 +151,67 @@ class OpenApiExportTest {
                         problems.add(key + " has an example that is not a lower-case canonical UUID");
                     }
                 }
-            } else if (!OTHER_ID_NAMES.contains(key.replaceFirst("^parameter ", "").replaceFirst("^.*\\.", "").replaceFirst(" /.*$", ""))) {
-                problems.add(key + " looks like an id: list it in OWN_ID_FIELDS (string / uuid) or, until R-1b, in OTHER_ID_NAMES");
+            } else if (EXTERNAL_ID_NAMES.contains(fieldName(key))) {
+                if (!schema.path("type").asString().equals("string") || schema.has("format")) {
+                    problems.add(key + " is an id of an external system and is a plain string on the wire, found " + schema.path("type") + " / " + schema.path("format"));
+                }
+            } else if (!OTHER_ID_NAMES.contains(fieldName(key))) {
+                problems.add(key + " looks like an id: list it in OWN_ID_FIELDS (string / uuid), in EXTERNAL_ID_NAMES (external system) or, until R-1b, in OTHER_ID_NAMES");
             }
         });
         assertThat(problems).isEmpty();
     }
 
+    private static String fieldName(String key) {
+        return key.replaceFirst("^parameter ", "").replaceFirst("^.*\\.", "").replaceFirst(" /.*$", "");
+    }
+
     private static boolean isIdName(String name) {
         return name.equals("id") || name.endsWith("Id") || name.endsWith("Ids");
+    }
+
+    /** springdoc names a component after the simple class name, so two classes of one name in different packages would silently share one component. */
+    @Test
+    void componentNamesAreUniquePerJavaType() {
+        Map<String, Set<String>> typesByComponent = new TreeMap<>();
+        ModelConverters converters = new ModelConverters(true);
+        converters.addConverter(new ModelConverter() {
+            @Override
+            public Schema<?> resolve(AnnotatedType type, ModelConverterContext context, Iterator<ModelConverter> chain) {
+                Schema<?> schema = chain.hasNext() ? chain.next().resolve(type, context, chain) : null;
+                String component = schema == null ? null : schema.get$ref() != null ? schema.get$ref().replace(COMPONENT_PREFIX, "") : schema.getName();
+                if (component != null) {
+                    typesByComponent.computeIfAbsent(component, name -> new TreeSet<>()).add(Json.mapper().constructType(type.getType()).getRawClass().getName());
+                }
+                return schema;
+            }
+        });
+        exposedTypes().forEach(type -> converters.readAll(new AnnotatedType(type)));
+
+        assertThat(typesByComponent).as("the walk found components").containsKeys("SourceReferenceResponse", "NumberingRuleResponse", "SourceObjectKind");
+        assertThat(typesByComponent.entrySet().stream().filter(entry -> entry.getValue().size() > 1).map(entry -> entry.getKey() + " names " + entry.getValue()).toList())
+                .as("one component name stands for one Java type: give one of the classes @Schema(name = ...)").isEmpty();
+        assertThat(typesByComponent.keySet()).as("OpenApiProblems writes these components itself; a Java type of the same name would be overwritten")
+                .doesNotContainAnyElementsOf(OPENAPI_PROBLEMS_COMPONENTS);
+    }
+
+    private static final Set<String> OPENAPI_PROBLEMS_COMPONENTS = Set.of("ErrorCode", "ProblemDetail");
+
+    private static final String COMPONENT_PREFIX = "#/components/schemas/";
+
+    private Set<Type> exposedTypes() {
+        Set<Type> types = new LinkedHashSet<>();
+        handlers.getHandlerMethods().values().forEach(handler -> {
+            Type returned = handler.getMethod().getGenericReturnType();
+            types.add(returned instanceof ParameterizedType wrapper && wrapper.getRawType() == ResponseEntity.class ? wrapper.getActualTypeArguments()[0] : returned);
+            for (MethodParameter parameter : handler.getMethodParameters()) {
+                if (parameter.hasParameterAnnotation(RequestBody.class) || parameter.hasParameterAnnotation(RequestParam.class)
+                        || parameter.hasParameterAnnotation(PathVariable.class)) {
+                    types.add(parameter.getGenericParameterType());
+                }
+            }
+        });
+        types.removeIf(type -> type == void.class || type == Void.class);
+        return types;
     }
 }

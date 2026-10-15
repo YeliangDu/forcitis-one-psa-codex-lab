@@ -112,3 +112,103 @@ COMMENT ON COLUMN platform_integration.event_publication_archive.completion_atte
 COMMENT ON COLUMN platform_integration.event_publication_archive.last_resubmission_date IS '最近一次重新投递时间';
 COMMENT ON COLUMN platform_integration.event_publication_archive.created_at IS '创建时间';
 COMMENT ON COLUMN platform_integration.event_publication_archive.updated_at IS '更新时间';
+
+-- ADR-0033 第 2 项：外部系统中对象的标识只登记在这张表，领域模块只用自有 ID。排他约束需要 btree_gist，由建库脚本预建，迁移只检查存在。
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'btree_gist') THEN
+        RAISE EXCEPTION 'extension btree_gist is missing: the database setup script (one_db_roles_schemas.sql) creates it before the migrations run';
+    END IF;
+END
+$$;
+
+CREATE TABLE platform_integration.source_references (
+    source_reference_id uuid        NOT NULL,
+    source_system       text        NOT NULL CONSTRAINT ck_source_references_source_system CHECK (source_system IN ('ORG_SOURCE', 'LEGACY_SYSTEM', 'ACCOUNTING_SYSTEM')),
+    source_object_kind  text        NOT NULL CONSTRAINT ck_source_references_source_object_kind CHECK (source_object_kind IN ('EMPLOYEE', 'ORG_UNIT', 'POSITION', 'LEGAL_ENTITY')),
+    source_id           bigint      NOT NULL,
+    own_id              uuid        NOT NULL,
+    confirmation_status text        NOT NULL CONSTRAINT ck_source_references_confirmation_status CHECK (confirmation_status IN ('PENDING', 'CONFIRMED', 'REJECTED')),
+    effective_from_date date,
+    effective_to_date   date,
+    created_by          bigint,
+    decided_by          bigint,
+    decided_at          timestamptz,
+    created_at          timestamptz NOT NULL DEFAULT now(),
+    updated_at          timestamptz NOT NULL DEFAULT now(),
+    version             bigint      NOT NULL DEFAULT 0,
+    event_count         bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT pk_source_references PRIMARY KEY (source_reference_id),
+    CONSTRAINT ck_source_references_accounting_code_positive
+        CHECK (NOT (source_system = 'ACCOUNTING_SYSTEM' AND source_object_kind = 'LEGAL_ENTITY') OR source_id > 0),
+    CONSTRAINT ck_source_references_period
+        CHECK (CASE WHEN source_object_kind = 'LEGAL_ENTITY'
+                    THEN effective_from_date IS NOT NULL AND (effective_to_date IS NULL OR effective_to_date >= effective_from_date)
+                    ELSE effective_from_date IS NULL AND effective_to_date IS NULL END),
+    CONSTRAINT ck_source_references_decision
+        CHECK ((decided_by IS NULL) = (decided_at IS NULL) AND (decided_by IS NULL OR confirmation_status <> 'PENDING')),
+    CONSTRAINT ck_source_references_decider_is_not_author CHECK (created_by IS NULL OR decided_by IS NULL OR decided_by <> created_by),
+    CONSTRAINT ck_source_references_manual_row_is_decided_by_someone CHECK (created_by IS NULL OR confirmation_status = 'PENDING' OR decided_by IS NOT NULL),
+    CONSTRAINT ck_source_references_accounting_code_is_manual_registration
+        CHECK (NOT (source_system = 'ACCOUNTING_SYSTEM' AND source_object_kind = 'LEGAL_ENTITY') OR created_by IS NOT NULL),
+    CONSTRAINT ex_source_references_source_id EXCLUDE USING gist (source_system WITH =, source_object_kind WITH =, source_id WITH =, daterange(effective_from_date, effective_to_date, '[)') WITH &&) WHERE (confirmation_status = 'CONFIRMED' AND source_object_kind = 'LEGAL_ENTITY'),
+    CONSTRAINT ex_source_references_own_id EXCLUDE USING gist (source_system WITH =, source_object_kind WITH =, own_id WITH =, daterange(effective_from_date, effective_to_date, '[)') WITH &&) WHERE (confirmation_status = 'CONFIRMED' AND source_object_kind = 'LEGAL_ENTITY')
+);
+CREATE UNIQUE INDEX uk_source_references_source_id ON platform_integration.source_references (source_system, source_object_kind, source_id)
+    WHERE confirmation_status = 'CONFIRMED' AND source_object_kind <> 'LEGAL_ENTITY';
+CREATE UNIQUE INDEX uk_source_references_own_id ON platform_integration.source_references (source_system, source_object_kind, own_id)
+    WHERE confirmation_status = 'CONFIRMED' AND source_object_kind <> 'LEGAL_ENTITY';
+CREATE INDEX ix_source_references_pending ON platform_integration.source_references (source_system, source_object_kind, source_reference_id) WHERE confirmation_status = 'PENDING';
+CREATE INDEX ix_source_references_own_id ON platform_integration.source_references (own_id, source_system, source_object_kind, source_reference_id);
+COMMENT ON TABLE platform_integration.source_references IS '来源对照：外部系统或老系统中一个对象的标识与自有 ID 的对应，只在集成层；已确认行的来源标识与自有 ID 各自在任一时点唯一，待确认与已拒绝的行不占约束；粒度：每个来源对象的每次对应一行（带生效区间的类别每个区间一行）';
+COMMENT ON COLUMN platform_integration.source_references.source_reference_id IS '来源对照 ID（UUIDv7）';
+COMMENT ON COLUMN platform_integration.source_references.source_system IS '来源系统：ORG_SOURCE 组织源 / LEGACY_SYSTEM 老系统 / ACCOUNTING_SYSTEM 核算系统；取值只在集成层出现';
+COMMENT ON COLUMN platform_integration.source_references.source_object_kind IS '来源对象类别：EMPLOYEE 员工 / ORG_UNIT 组织单元 / POSITION 岗位 / LEGAL_ENTITY 法人主体；决定自有 ID 指向哪类自有对象，也是自然键的一部分';
+COMMENT ON COLUMN platform_integration.source_references.source_id IS '来源标识：来源系统中该对象的 64 位有符号整数，可为负数，原值存放；核算系统的法人编码须大于 0；接口以十进制字符串传输，事件不带，领域模块不用，只在集成层与外部系统之间使用';
+COMMENT ON COLUMN platform_integration.source_references.own_id IS '自有 ID：该对象在本系统中的 UUIDv7，类别决定指向哪类对象；跨 schema 只按 ID 引用，不建外键';
+COMMENT ON COLUMN platform_integration.source_references.confirmation_status IS '确认状态：PENDING 待确认 / CONFIRMED 已确认 / REJECTED 已拒绝；来源同步与导入写入即为已确认，人工登记的核算组织编码先待确认，由他人确认或拒绝；出站与同步只读已确认行';
+COMMENT ON COLUMN platform_integration.source_references.effective_from_date IS '生效日（含）：带生效区间的类别（法人主体）必填；为空表示该类别不带区间，对照在已确认期间一直有效';
+COMMENT ON COLUMN platform_integration.source_references.effective_to_date IS '失效日（不含）：由确认后继的对照时关闭；等于生效日表示作废（同日更正，空区间不占排他约束）；为空表示至今有效或该类别不带区间';
+COMMENT ON COLUMN platform_integration.source_references.created_by IS '录入人用户 ID：人工登记的人，确认人不得是此人；核算类别只由人工登记，为空只表示由来源同步分配';
+COMMENT ON COLUMN platform_integration.source_references.decided_by IS '决定人用户 ID：确认或拒绝人工登记的人；为空表示尚未决定，或由来源同步分配而无需决定';
+COMMENT ON COLUMN platform_integration.source_references.decided_at IS '决定时间；为空表示尚未决定，或由来源同步分配而无需决定';
+COMMENT ON COLUMN platform_integration.source_references.created_at IS '创建时间';
+COMMENT ON COLUMN platform_integration.source_references.updated_at IS '更新时间';
+COMMENT ON COLUMN platform_integration.source_references.version IS '乐观锁版本';
+COMMENT ON COLUMN platform_integration.source_references.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
+
+CREATE FUNCTION platform_integration.guard_source_reference_change() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.source_reference_id IS DISTINCT FROM OLD.source_reference_id OR NEW.source_system IS DISTINCT FROM OLD.source_system
+       OR NEW.source_object_kind IS DISTINCT FROM OLD.source_object_kind OR NEW.source_id IS DISTINCT FROM OLD.source_id
+       OR NEW.own_id IS DISTINCT FROM OLD.own_id OR NEW.effective_from_date IS DISTINCT FROM OLD.effective_from_date
+       OR NEW.created_by IS DISTINCT FROM OLD.created_by THEN
+        RAISE EXCEPTION 'a source reference never has its source id, own id, kind, system, start or author rewritten' USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NEW.confirmation_status IS DISTINCT FROM OLD.confirmation_status AND OLD.confirmation_status <> 'PENDING' THEN
+        RAISE EXCEPTION 'a source reference that is % cannot become %', OLD.confirmation_status, NEW.confirmation_status USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NEW.effective_to_date IS DISTINCT FROM OLD.effective_to_date AND OLD.effective_to_date IS NOT NULL THEN
+        RAISE EXCEPTION 'the end of a source reference period is set once' USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF OLD.decided_by IS NOT NULL AND (NEW.decided_by IS DISTINCT FROM OLD.decided_by OR NEW.decided_at IS DISTINCT FROM OLD.decided_at) THEN
+        RAISE EXCEPTION 'a decision on a source reference cannot be changed or taken back' USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+CREATE TRIGGER tg_source_references_guard
+    BEFORE UPDATE ON platform_integration.source_references
+    FOR EACH ROW EXECUTE FUNCTION platform_integration.guard_source_reference_change();
+
+CREATE FUNCTION platform_integration.reject_source_reference_deletion() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+BEGIN
+    RAISE EXCEPTION 'platform_integration.source_references is closed, never deleted: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
+END;
+$$;
+CREATE TRIGGER tg_source_references_never_deleted BEFORE DELETE ON platform_integration.source_references
+    FOR EACH ROW EXECUTE FUNCTION platform_integration.reject_source_reference_deletion();
+CREATE TRIGGER tg_source_references_never_deleted_truncate BEFORE TRUNCATE ON platform_integration.source_references
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_integration.reject_source_reference_deletion();
