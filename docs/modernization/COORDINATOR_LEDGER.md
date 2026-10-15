@@ -1,6 +1,6 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。压缩后由钩子自动注入。更新：2026-10-15 16:20（one-coordinator，/clear 前）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 16:20（one-coordinator，/clear 前）
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
@@ -16,14 +16,15 @@
 ## 合并
 - strict 串行队列：scratchpad 的 `mq_run2.sh`（常驻，队空等待，固定在仓库目录启动）读 `merge.queue`，`merge_pr.sh` 每个队首先取消其余在队 PR 的 CI → 同步 main（gh 无 workflow 权限时改本地合并经 ssh 推送）→ 等 CI（首次失败自动重跑一次）→ 合并；`CONFLICT<n>` 非生成文件退回作者，生成产物取一边后跑 `build_all.py`，推送前跑 precheck。
 - 核对：`pgrep -f mq_run2.sh`，不在就在仓库目录 `nohup /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/mq_run2.sh >> /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/mq.log 2>&1 &` 重启；队列文件 `/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/merge.queue`（/clear 后 scratchpad 路径可能变，仍用这个绝对路径）。会话内定时巡检（CronList）/clear 后须重设。
-- 暂缓：#96（ADR-0029）。队列外待重做：#196、#199（第三轮写回作废，见待用户）、#203（one-architecture PR-A，补「规划项来自老切法」标注后入队）。
+- 队列：197 193 195 194 198 200 201 202 203 205 206 207。叠加链 #203 → #204 → #208：每合一个把下一个 `gh pr edit --base main` 再入队。暂缓：#96（ADR-0029）。#196、#199 已关（#206 取代）。
+- #197 后端 CI 曾卡 54 分钟（Testcontainers 连 PG 认证读无超时），已取消重跑；PG 测试连接缺 socketTimeout，待开卡。
 - 关键路径：#197 只读核实命令合并 → 通知 one-ops 出 rc.2 → C-14（用户已批准）→ 删 101；F-1 实现在 R-1b P5 后。
 - 每开一个 PR 立即关 Auto-fix（用户「不允许自动打开自动修复」）。
 
 ## 待用户
 - 财务口径决策单（46 题，~/.modernize/psa/finance/FINANCE_DECISIONS.html，#176）：用户全盘定；9 条事实问财务；A1、A10 待审计师书面意见。
 - 用语：用户「先等等，我没有同意所有用语」「所有用语检查下，acl用语单列，不能进入新系统模块」（intent 161339）：第三轮写回作废；one-glossary 全量 ACL 归类（四类）→ 我抽查 → 交用户；「来源*」改归过渡期集成术语（intent 161053）。决策页必须有提交步骤（05bf4394），门禁页固定链接 https://claude.ai/artifact/MwoqwkhAYq9CtomgaedwZ1。R-1b-0 门禁暂停。ACL 全量归类（670：领域 562、过渡期 60、长期 18、去外部名 24、待定 6）已抽查放行：原编号改「领域去外部名」、A8 长期还是过渡交用户问、代码搬迁与 ADR 冲突转 one-architecture；同一固定链接挂两张单（ACL 108 条 + 第三轮重做），one-glossary 补测提交流程后直接发用户。
-- 架构：one-architecture（psa-terms-review 改造，远程控制已开）建架构 SSOT 与 4 张图（intent 160111；mermaid-cli 已批 160921）；架构决策页（7 问）等用语 ACL 归类后再发。
+- 架构：ADR-0039 防腐层边界用户已定（4 项全推荐，C1 只定方向，intent 164527），#207 复审通过入队。身份生命周期研究（入职→企业微信开通）交 one-architecture，#207 合并后、C1 实施前，结论交用户。FRAMEWORKS.md、METHOD.md（分支 claude/one-architecture-method）待用户审，批准后排 METHOD 第 5 节 6 项偏差。架构决策页（7 问）仍待发。
 - 规则文档瘦身对照表；同轮问 CI 覆盖率门槛是否恢复。
 - 生产前：第二名超管 / 审计员 / 组织数据管理员 / DBA 人选（role_holders.md，不入仓；dev 流程管理员由用户兼任）；C-11 关单人模式；CODEOWNERS；R-13 后备令牌待首次 OIDC 部署后删除；归档 WORM 首个写入方前锁定；RDS 扩容 C-1。
 
@@ -48,6 +49,8 @@
 - 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
+- one-1a-next-3：P2（含 H-1 登录登记缺陷）→ ARCH-D1..D7 小修复批（D5、D7 疑行为缺陷，修前报我）→ P3b（先定 ADR-0039 表的 schema）→ P5（并入 B3 删信封 source）。
+- one-glossary 84%：#206 合并、用户手机验证确认页后 /clear。
 - 第三轮用语确认已完成（365 条全部同意，写回 #196；改名卡后端并入 R-2a〔next-3，生产前〕、前端界面文字归 one-1a-par〔dev 前〕）；之后按「开工前术语门禁」（§5）逐卡确认，one-glossary 承担，调度只监督门槛（业务用语积压达到 100 条或距上次决策单超过 7 天，见 `glossary/ISSUES.md` 首段；错误码单列归 R-5，SESSION_PLAYBOOK §5）；job_grade 定义缺陷随岗位体系重梳。
 - Codex 试点：R-4（R-5 之后），记录返工轮次与耗时（SESSION_PLAYBOOK §5「Codex 派工」）。
 - 首次 dev 部署：dev 前阻塞清零后经用户批准（部署归用户决定）。
