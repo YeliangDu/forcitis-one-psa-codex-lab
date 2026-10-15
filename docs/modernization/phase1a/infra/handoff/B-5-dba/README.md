@@ -30,7 +30,31 @@ FORCITIS one 只通过专用视图读这两个库，**不写任何数据，不�
 5. 口令交接：apply 脚本 STEP 3 在服务器上随机生成口令，**只显示一次**。DBA 通过约定的安全渠道（当面或密码管理器共享，不经聊天、邮件、工单）交给运维，运维写入 `/etc/forcitis-one/one.env`（`0640 root:forcitis`），以后迁到 KMS（`runbooks/C-8-kms.md`）。
 6. 回报 one-coordinator：两份 verify 结果、实际账号名、白名单已加。**不回报口令。**
 
-## 权限为什么这样给（最小化）
+## 2026-10-15 改为全库只读（取代下一节的最小化授权）
+
+依据：用户「新系统可以读任何旧系统数据」，澄清选「两者都是」（迁移取证与应用运行时都可以），随后「修改权限」；对凭据列答复「全部可读，不排除」（均经 one-coordinator 转达）。变更清单经 one-coordinator 确认后由 one-ops 执行。
+
+| 账号 | 变更前 | 变更后 |
+|---|---|---|
+| a8_db `one_a8_views_ro` | `forcitis_one` schema SELECT；`dbo` schema DENY SELECT、VIEW DEFINITION 与全部写类 | 库级 GRANT SELECT；`dbo` 的 DENY SELECT、DENY VIEW DEFINITION 撤销；库级 DENY INSERT、UPDATE、DELETE、ALTER、EXECUTE、REFERENCES、CREATE TABLE / VIEW / PROCEDURE / FUNCTION / SCHEMA；schema 级原有写类 DENY 保留 |
+| 老系统库 `psa_one_legacy_ro`、`one_legacy_names_ro` | 各自一个视图的 SELECT | 库级 GRANT SELECT；库级 DENY 同上；原视图授权保留 |
+
+- 脚本：`read-all/a8_apply.sql`、`read-all/legacy_apply.sql`（各一个事务），回滚 `read-all/a8_rollback.sql`、`read-all/legacy_rollback.sql`；执行与验证 `tools/b5_read_all_run.py`。三个账号都不加入任何数据库角色。
+- 执行记录（云助手）：前后授权导出与变更 t-hz0702doo7c0xkw：a8_db 授权 16 行 → 26 行，老系统库 4 行 → 28 行，与清单逐项一致，角色成员 0 行不变。登录验证 t-hz0702dpgo0dukg：三个账号以 one.env 中现有口令真实登录（口令在新 ECS 上以临时公钥加密转交，本会话只经手密文），基表、元数据与原视图均可读（只出计数）；UPDATE、DELETE 被拒（229），CREATE TABLE 被拒（262），allowed=0。两台服务器临时目录已清理。
+- **与应用启动校验冲突**：下一节所述「每个只读连接能 SELECT 的对象恰好一个视图」（SECURITY_INVARIANTS I-1）与 `ReadOnlyGuard`、`seeyon-view-columns.yaml` 白名单仍按最小化授权写。改为全库只读后应用启动校验会拒绝；运行时读取方式与校验口径由 ADR-0037 定，首次部署前须由代码会话改校验。`legacy_*_deny.sql` 中「读基表、读令牌表、读另一视图」三类期望已不成立，以 `read-all/*_login_*.sql` 为准。
+- 账号是否合并由 ADR-0037 定，应用配置暂不变。
+
+## 2026-10-15 取证账号与服务器级权限（ADR-0037）
+
+- **取证账号 `one_evidence_ro`**（ADR-0037 第 5 项第 4 条）：一个登录（`evidence/evidence_login.sql`，在 master 上下文执行，口令在服务器端生成、只经新 ECS 临时公钥加密的密文），a8_db 与老系统库各一个用户（`evidence/evidence_user_*.sql`），授权形状与运行时账号相同：库级 SELECT、库级 DENY 写 / DDL / EXECUTE / REFERENCES、不入角色。口令在新 ECS `/etc/forcitis-one/evidence.env`（root 0600），C-8 轮换表一行。执行与验证 `tools/b5_evidence_run.py`（云助手 t-hz07037ww67qsjk 变更，t-hz07037y4vsbfnk 登录验证）：服务器级授权只多出本登录的 CONNECT SQL，两库只多出本用户的 13 行授权；两库基表与元数据可读，UPDATE、DELETE 被拒（229），CREATE TABLE 被拒（262），allowed=0。回滚 `evidence/evidence_rollback.sql`。
+- **凭据列拒绝清单**：`evidence/credential_columns.csv`（`tools/b5_evidence_scan.py` 以取证账号扫 `INFORMATION_SCHEMA.COLUMNS`，按 ADR-0037 第 3 项第 4 条的词筛出后人工复核）：credential 92 列（A8 75、老系统 17），review 25 列（A8 的 AppKey、`KEY_VALUE` 等，可能是标识而非凭据，实现 PR 逐列定）。工作流引擎的流程定义键、业务键、内容哈希、幂等键、`secret_level` 等已剔除。
+- **风险登记（用户「接受并登记风险，加校验与轮换 (Recommended)」）**：RDS SQL Server 平台给所有登录（服务器角色 public 等）授予服务器级 ALTER ANY LOGIN、ALTER ANY LINKED SERVER、ALTER ANY CONNECTION、ALTER ANY EVENT SESSION、ALTER SERVER STATE、ALTER TRACE（及 VIEW SERVER STATE、VIEW ANY DATABASE），用户与高权限账号都不能 GRANT / DENY 服务器级权限（库级 DENY 报 4631，master 上 DENY 报 4613）。新系统只读口令泄露时，持有人可能借 ALTER ANY LOGIN 改其他非 sysadmin 登录的口令。缓解：口令只放新 ECS、按 C-8 90 天轮换；应用启动校验服务器级有效权限等于下列平台基线，逐项写死、多出即拒绝。实例白名单不动（用户「老系统先不管」）。不在生产上验证改口令。
+- **有效权限平台基线**（四个账号真实登录 `fn_my_permissions` 导出，完全相同）：
+  - 服务器级：ALTER ANY CONNECTION、ALTER ANY EVENT SESSION、ALTER ANY LINKED SERVER、ALTER ANY LOGIN、ALTER SERVER STATE、ALTER TRACE、CONNECT SQL、VIEW ANY DATABASE、VIEW SERVER STATE。
+  - 库级：CONNECT、KILL DATABASE CONNECTION、SELECT、SHOWPLAN、VIEW ANY COLUMN ENCRYPTION KEY DEFINITION、VIEW ANY COLUMN MASTER KEY DEFINITION、VIEW DATABASE STATE（A8 账号在 a8_db 同样没有单列的 VIEW DEFINITION）。
+  - 角色只有 public；`HAS_DBACCESS` 为真的库：自己的库加 master、msdb、rdscore、tempdb（guest），取证账号为两库加这四个。
+
+## 权限为什么这样给（最小化，2026-10-15 前）
 
 - **只给视图 SELECT**：A8 账号只对 `forcitis_one` schema 有 SELECT；老系统两个账号各只对一个视图有 SELECT。视图与基表同属 `dbo`，靠所有权链读取，账号对基表没有任何权限。A8 基表另加 DENY。
 - **不加入任何数据库角色**（`db_datareader` 等）：加入就等于读全库；而且应用检查授权时看不到经角色得到的权限。

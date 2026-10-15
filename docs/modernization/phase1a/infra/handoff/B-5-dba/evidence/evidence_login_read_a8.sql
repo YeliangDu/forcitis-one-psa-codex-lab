@@ -1,0 +1,5 @@
+-- 取证账号 · a8_db：基表与元数据可读（只出计数）
+SELECT COUNT(*) AS n FROM dbo.ORG_MEMBER;
+GO
+SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.COLUMNS;
+GO
