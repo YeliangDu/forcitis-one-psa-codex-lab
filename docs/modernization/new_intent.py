@@ -23,7 +23,7 @@ def parse_args(doc, n):
     return opts, args
 
 
-def create(folder, date, session, slug, text):
+def create(folder, date, session, slug, text, builder="build_records.py"):
     now = datetime.datetime.now()
     while True:
         name = f"{date}-{now:%H%M%S}-{short_name(session, 40)}" + (f"-{slug}" if slug else "") + ".md"
@@ -34,7 +34,7 @@ def create(folder, date, session, slug, text):
         except FileExistsError:
             now += datetime.timedelta(seconds=1)
     print(os.path.relpath(path, BASE))
-    subprocess.run([sys.executable, os.path.join(BASE, "build_records.py")], check=True)
+    subprocess.run([sys.executable, os.path.join(BASE, builder)], check=True)
 
 
 if __name__ == "__main__":

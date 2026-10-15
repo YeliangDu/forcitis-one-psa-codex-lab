@@ -9,7 +9,7 @@
 最硬的规则（细则与其余规则见上面三份规范：SESSION_PLAYBOOK、CODING_STANDARD、NAMING_STANDARD）：
 0. 会话语言：始终用中文与用户对话、写报告与跨会话消息；派子代理时要求其用中文回复；新开会话继承此要求（用户 2026-10-15：「始终保持中文会话，新开会话继承这个要求」）。代码、标识符、命令保持原样。
 1. 老代码只作证据，不得照搬：新代码从规格、规则卡、ADR、`docs/modernization/glossary/terms.yaml` 写起；领域模块不出现外部或老系统名称。
-2. 用语以 `terms.yaml` 为准，方言禁用：新标识符、界面文字、表列名先查词表，查不到当场登记提议术语，中英文名都查重；命名遵守 `NAMING_STANDARD.md`，守护测试不通过不得合并。
+2. 用语以 `terms.yaml` 为准，方言禁用：新标识符、界面文字、表列名先查词表，查不到当场登记提议术语，中英文名都查重；文档里的方言、同名异义等非代码用语问题用 `docs/modernization/glossary/new_term_issue.py` 登记给 one-glossary，不自行裁定；命名遵守 `NAMING_STANDARD.md`，守护测试不通过不得合并。
 3. 数据设计以 SESSION_PLAYBOOK §14、§14.1 全部条目为准：老系统与外部系统的表结构、主键、编码、状态值只作参考，自有表主键 UUIDv7。
 4. 复刻老行为以生产数据为证据，不凭推测；生产取证不逐次请示，明细与个人信息不进会话与仓库，每次取证登记一行（ADR-0037）。
 5. 不为通过测试放宽或删除断言；改断言 / 删测试须写理由并在报告与 PR 中单列。
@@ -22,6 +22,6 @@
 12. 记录只改片段：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `build_all.py` 生成，用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段，不直接编辑生成产物（SESSION_PLAYBOOK §4 第 0 步）。
 13. 交付前运行 `scripts/precheck.sh`，输出贴进 PR「precheck.sh 输出」一栏。
 14. main 受分支保护：只在自己的 worktree 分支上工作并开 PR，不在主检出目录留未提交改动；CI 三项通过后由调度会话 one-coordinator 合并；工作会话结束前向 one-coordinator 报告。用户已决定的事照做，有异议停下报告，不得自行推迟或改变。
-15. 会话管理按 SESSION_PLAYBOOK §2.1：一个会话一个工作单元、超过约 8 小时或压缩两次在批次边界交接；`one-*` 命名且不重名；权限模式与调度会话一致；每个完成点向调度会话报告；用户在本会话的决定当场记 intent 并报调度会话；后台任务与持久配置登记台账。
+15. 会话管理按 SESSION_PLAYBOOK §2.1：新开会话先写或认领画像 `docs/modernization/sessions/<会话名>.md`；一个会话一个工作单元、超过约 8 小时或压缩两次在批次边界交接；`one-*` 命名且不重名；权限模式与调度会话一致；每个完成点向调度会话报告；用户在本会话的决定当场记 intent 并报调度会话；后台任务与持久配置登记台账。
 
 另须遵守：CS-1.8 只实现当前阶段、CS-1.9 当期做对、CS-1.10 契约先行、CS-5.5 / 5.6 测试只断言本模块与确定性等待、CS-7.6 并行子代理同一基线、CS-2.24 通用错误码只在 kernel（编号见 `docs/modernization/CODING_STANDARD.md`）。
