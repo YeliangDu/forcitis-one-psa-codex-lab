@@ -440,6 +440,7 @@ ADR-0037 已采纳（Q1 选 (c)：现有 6 个视图冻结不动，新读取与 
 | R-1b P2 复审 P2-L2 | `primary-key-type-baseline.txt` 中 `account_roles` 理由「the user id is the employee id」已过时；落点 W2（ADR-0034 实现卡） |
 | R-1b P2 复审 P2-L12 | 前端测试桩数据 `userId: '1001'` 仍为数字形态；落点 P5（G-A1 收尾） |
 | R-1b P2 卡外缺陷 | `OperationsCommands` 用 `UUID.randomUUID()` 作关联号，违反 ADR-0033 第 1 项第 11 条；手术式小卡 OPS-CID，P2 合并后 |
+| R-1b P3b RULING-P3B-9 | DA-3：删除 kernel 端口 `ExternalSubjectEmployees`（集成层只读运维命令按外部主体查快照员工的过渡端口，workforce 实现）及其在 `module-dependencies.txt` 的登记行 |
 | #184 opus 点检 Low | `review_revisions.py` 的 `GITHUB_ACTIONS == "true"` 补自测（true 且无基线失败、false 只告警）；空 `--base` 被拒时先输出一行针对性错误；与 #119 余项同文件，下一张文档工具小卡 |
 
 ### 7.9 子代理工作区约定（运行环境限制，2026-10-15 起）

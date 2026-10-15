@@ -222,6 +222,7 @@
 | RULING-P3B-D10 | 数据访问注册表血缘只在注释写「经来源对照」，不新增取值 |
 | RULING-P3B-D11 | 执行用 opus（体量大），计划 7.2 P3b 行的「sonnet」以本卡为准，随 P3b PR 同步改 |
 | RULING-P3B-D12 | `LegacyShapeTest` 新规则「领域与 api / events 不得引用 `Source*` 类型」按 CS-2.29 限定为 `platform.integration.api.Source*` 与 workforce 的 `SourceTerms`，不含 kernel 的 `SourceSystem`（事件来源，P5 随信封 `source` 删除，ADR-0039 第 5.1 条） |
+| RULING-P3B-9（改判，2026-10-15，one-coordinator 同意） | 只读运维命令 find-accounts-by-external-subject 留在集成层（RULING-P3B-7），按外部主体查**组织快照**中的员工，经 kernel 端口 `ExternalSubjectEmployees`（入参中性：登录名 / 企业微信 userid 两种查询，不带 provider_kind 取值、不出现外部系统名；集成层问、workforce 实现），账号经 kernel `AccountEmployees`；端口登记在 `module-dependencies.txt` kernel 端口注释区，到期条件：DA-3 把外部身份移入集成层 `external_identities` 后删除端口与登记行（NEXT_BATCH_PLAN 7.8）。**被推翻的原裁定**：不新增 kernel 端口，命令经 `OrgSource` 登录查人取来源人员、再经 `SourceReferences` 只查不分配翻成员工 ID。**推翻理由**：命令要的是系统里已有的快照员工 ID（只有已同步的人才有员工 ID 与账号），按来源查语义不对；dev 常关组织源连接，命令恒为「无人」；验收 `ExternalSubjectLookupCommandIT` 只有快照、没有组织源，必红；集成层不能依赖 workforce（integration → workforce 成环），只能经 kernel 端口 |
 
 ## 14. 验收阶段补充裁定（2026-10-15）
 - 卡第 4 节第 3 条中「编号为空也正常建档」子用例删去：RULE-361 取数范围排除空编号、`employees.employee_code` NOT NULL，以规则卡为准。
