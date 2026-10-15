@@ -91,4 +91,18 @@ class KernelPortDetourTest {
     void P2_H2_noKernelPortDetoursAnExistingEdge() throws IOException {
         assertThat(detours(CLASSES, edges())).isEmpty();
     }
+
+    @Test
+    @DisplayName("P2 recheck L-6 positive control: were every module allowed to use every other, CallerPermissions would be reported as a detour")
+    void theGuardReportsADetourWhenTheEdgeExists() {
+        Set<String> modules = new TreeSet<>();
+        for (JavaClass type : CLASSES) {
+            if (type.getPackageName().startsWith(ROOT) && !type.getPackageName().startsWith(ROOT + "kernel")) {
+                modules.add(moduleOf(type));
+            }
+        }
+        Map<String, Set<String>> everyEdge = new HashMap<>();
+        modules.forEach(module -> everyEdge.put(module, modules));
+        assertThat(detours(CLASSES, everyEdge)).anySatisfy(detour -> assertThat(detour).startsWith("CallerPermissions: "));
+    }
 }
