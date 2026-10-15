@@ -39,6 +39,7 @@
 | 阿里云 | SLS Project forcitis-one-observability（nginx、ops 180 天，app 与 metrics 30 天）、云监控 OS 指标、ECS 快照策略 forcitis-one-daily | 长期付费（约 40 元/月以内） | one-ops | — |
 | 阿里云 | RDS 实例 pgm-bp13vak0sew3m003 参数 log_parameter_max_length -1 → 0（2026-10-15，共享实例，it_portal 慢日志同样不再带参数值；回退改回 -1） | 长期配置 | one-ops | — |
 | SQL Server rm-bp1690ep53t9778dp | 新系统只读账号 one_a8_views_ro（a8_db）、psa_one_legacy_ro 与 one_legacy_names_ro（老系统库）改为库级只读加库级写 / DDL / EXECUTE DENY（2026-10-15；依据用户「新系统可以读任何旧系统数据」「两者都是」「修改权限」「全部可读，不排除」；回滚 B-5 read-all/*_rollback.sql；应用启动校验 I-1 待 ADR-0037 改） | 长期配置 | one-ops | — |
+| SQL Server rm-bp1690ep53t9778dp / ECS | 取证登录 one_evidence_ro（a8_db 与老系统库各一用户，库级只读加库级写 / DDL / EXECUTE DENY）；口令在 ECS /etc/forcitis-one/evidence.env（root 0600），C-8 90 天轮换（2026-10-15，ADR-0037；回滚 B-5 evidence/evidence_rollback.sql） | 长期配置 | one-ops | — |
 | 阿里云 | OSS bucket forcitis-one-archive（杭州、归档、本地冗余、私有、SSE-OSS、仅 HTTPS；WORM 未锁，第一个写入方上线前重建并锁定）、RAM 策略 forcitis-one-archive-writer、RAM 角色 forcitis-one-ecs-archive（已绑定 ECS） | 长期 | one-ops | — |
 | GitHub（用户账号） | fine-grained 令牌 forcitis-one-release-dev-2026-10-15（FORCITIS 组织、仅 forcitis-one-psa、Actions / Contents / Deployments / Metadata 只读，到期 2027-01-13）——OIDC 方案的后备，未安装到任何位置；令牌值不经会话 | 后备 | 用户 | 首次 dev 部署经 OIDC 成功后由用户删除（one-coordinator 提醒） |
 | 阿里云 / GitHub | OIDC 提供商、RAM 角色 forcitis-one-deploy-dev、云助手固定命令、仓库 OIDC sub 定制（OIDC 改造 PR 合并前执行，逐条报 one-coordinator） | 长期（待建） | one-ops | — |
@@ -72,6 +73,8 @@
 - 生产前：Phase 2 / 4 出口停用生产 SQL Agent 作业（A8_ACCESS_REGISTER #28–#31），属运维动作须用户批准。
 
 ## 已登记的现有事实（one-1a-next 2026-10-15 报告，待修）
+
+- RDS SQL Server rm-bp1690ep53t9778dp 平台给所有登录服务器级 ALTER ANY LOGIN 等权限，无法 GRANT / DENY；新系统只读口令泄露可能被用来改其他非 sysadmin 登录口令。用户「接受并登记风险，加校验与轮换 (Recommended)」：口令只放 ECS、C-8 90 天轮换，应用启动校验服务器级有效权限等于平台基线（B-5 README）；实例白名单不动（2026-10-15，one-ops）
 - 生产主机上身份运维命令的「见证人」只是自报文本，有 shell 权限即可单人执行 → 生产前项，交 one-ops 写入 PREDEPLOY_CHECKLIST（与 C-11 同批定方案）。
 - 运维手册用 `--spring.profiles.active=identity-operations` 会顶掉 dev/prod，生产运维命令跳过 VERIFIED_SERVER 校验 → 缺陷，随 ADR-0030 实现（F-12）改为 include 写法，加回归测试；one-ops 同步改手册。
 - ADR-0028 第 1 条「可用超管少于 2 名即暂停」未实现（ApplySourceSnapshot 只在离职名单含超管 / 审计员时暂停）；第 4 条的运维放行命令不存在 → 缺陷卡，one-1a-next 按 §6.1 手术式修复。
