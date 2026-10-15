@@ -3,6 +3,7 @@ package com.forcitis.one.platform.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -60,7 +61,7 @@ class ErrorContractIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 

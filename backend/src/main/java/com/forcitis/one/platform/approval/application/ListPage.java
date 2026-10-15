@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.ListLimits;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -13,9 +14,6 @@ import java.util.Optional;
  */
 public record ListPage(Optional<Position> cursor, int limit) {
 
-    public static final int DEFAULT_LIMIT = 50;
-    public static final int MAX_LIMIT = 100;
-
     /** The place in a list after which a page starts: the sort time and the id of the last item of the page before. */
     public record Position(Instant at, String id) {
 
@@ -25,13 +23,13 @@ public record ListPage(Optional<Position> cursor, int limit) {
     }
 
     public static ListPage first() {
-        return new ListPage(Optional.empty(), DEFAULT_LIMIT);
+        return new ListPage(Optional.empty(), ListLimits.DEFAULT_LIMIT);
     }
 
     public static ListPage of(String cursor, Integer limit) {
-        int size = limit == null ? DEFAULT_LIMIT : limit;
-        if (size < 1 || size > MAX_LIMIT) {
-            throw ApprovalError.PLATFORM_APPROVAL_PAGE_INVALID.refusal("limit must be between 1 and " + MAX_LIMIT + ", not " + size);
+        int size = limit == null ? ListLimits.DEFAULT_LIMIT : limit;
+        if (size < 1 || size > ListLimits.MAX_LIMIT) {
+            throw ApprovalError.PLATFORM_APPROVAL_PAGE_INVALID.refusal("limit must be between 1 and " + ListLimits.MAX_LIMIT + ", not " + size);
         }
         return new ListPage(cursor == null || cursor.isBlank() ? Optional.empty() : Optional.of(decode(cursor)), size);
     }
