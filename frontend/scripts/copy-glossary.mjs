@@ -28,6 +28,7 @@ function chineseChunks(text) {
 
 /** Terms from the three glossary sources, plus the allow list. `vocabulary` holds every Chinese word a text may be built from. */
 export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory, allowList, contexts }) {
+  if (contexts === undefined) throw new Error('copy glossary: the context register path is required (G-1).');
   const terms = [];
   const problems = [];
   for (const path of [officialTerms, backendTerms]) {
@@ -52,13 +53,26 @@ export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory,
   }
   // The context register keeps what is not a term: bc, subdomain and system names, and the business words a bc describes.
   const contextWords = [];
-  if (contexts === undefined) throw new Error('copy glossary: the context register path is required (G-1).');
-  for (const context of readYaml(contexts).bcs ?? []) {
-    for (const word of [context.zh, ...(context.words ?? [])]) {
-      if (typeof word !== 'string' || word === '') problems.push(`${context.id}: a name or word without Chinese text in the context register`);
+  const describedWords = [];
+  const contextEntries = readYaml(contexts).bcs;
+  if (!Array.isArray(contextEntries) || contextEntries.length === 0) throw new Error(`copy glossary: ${contexts} has no bcs list (G-1).`);
+  for (const context of contextEntries) {
+    if (typeof context.zh !== 'string' || !HAS_CHINESE.test(context.zh)) problems.push(`${context.id}: a context register entry without a Chinese name`);
+    else {
+      chineseChunks(context.zh).forEach((chunk) => vocabulary.add(chunk));
+      contextWords.push(context.zh);
+    }
+    if (context.words === undefined) continue;
+    if (!Array.isArray(context.words)) {
+      problems.push(`${context.id}: words must be a list`);
+      continue;
+    }
+    for (const word of context.words) {
+      if (typeof word !== 'string' || !/^[一-鿿]{2,}$/.test(word)) problems.push(`${context.id}: word "${word}" must be two or more Chinese characters`);
       else {
-        chineseChunks(word).forEach((chunk) => vocabulary.add(chunk));
+        vocabulary.add(word);
         contextWords.push(word);
+        describedWords.push({ word, id: context.id });
       }
     }
   }
@@ -75,8 +89,10 @@ export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory,
     else vocabulary.add(word);
   }
 
-  const termZh = new Set([...terms.map((term) => term.zh), ...contextWords]);
+  const registeredZh = new Set(terms.map((term) => term.zh));
+  const termZh = new Set([...registeredZh, ...contextWords]);
   const forbidden = [];
+  const dialectPhrases = new Set();
   for (const term of terms) {
     const phrases = [
       ...(term.forbidden ?? []),
@@ -84,8 +100,13 @@ export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory,
     ];
     for (const phrase of phrases) {
       if (typeof phrase !== 'string' || !HAS_CHINESE.test(phrase)) continue;
+      dialectPhrases.add(phrase);
       if (!termZh.has(phrase)) forbidden.push({ phrase, term: term.zh, id: term.id });
     }
+  }
+  for (const { word, id } of describedWords) {
+    if (registeredZh.has(word)) problems.push(`${id}: word "${word}" is already a registered term; remove it from words`);
+    if (dialectPhrases.has(word)) problems.push(`${id}: word "${word}" is a forbidden dialect; words must not whitelist it`);
   }
   return { vocabulary, connectors, standalone, forbidden, termZh: [...termZh], problems, longest: Math.max(1, ...[...vocabulary].map((word) => word.length)) };
 }

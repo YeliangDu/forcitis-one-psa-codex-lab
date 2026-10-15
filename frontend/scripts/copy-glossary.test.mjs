@@ -139,3 +139,37 @@ test('the command line exits 1 on an unregistered word and 0 on clean copy', () 
   const clean = run('probe.tsx', 'export const a = <button>确定</button>;');
   assert.equal(clean.status, 0, clean.stderr);
 });
+
+function vocabularyFrom(contextsYaml, termsYaml = 'terms:\n  - { id: a, zh: 工时单, forbidden: [签证单] }\n') {
+  const dir = mkdtempSync(join(tmpdir(), 'copy-contexts-'));
+  mkdirSync(join(dir, 'proposed'));
+  writeFileSync(join(dir, 'terms.yaml'), termsYaml);
+  writeFileSync(join(dir, 'backend.yaml'), 'terms: []\n');
+  writeFileSync(join(dir, 'allow.yaml'), 'words: []\n');
+  if (contextsYaml !== null) writeFileSync(join(dir, 'contexts.yaml'), contextsYaml);
+  return () => loadVocabulary({
+    officialTerms: join(dir, 'terms.yaml'),
+    backendTerms: join(dir, 'backend.yaml'),
+    proposedDirectory: join(dir, 'proposed'),
+    allowList: join(dir, 'allow.yaml'),
+    contexts: join(dir, 'contexts.yaml'),
+  });
+}
+
+test('the context register fails loudly when it is missing, empty or malformed', () => {
+  assert.throws(vocabularyFrom(null), /is missing/);
+  assert.throws(vocabularyFrom('bcs: []\n'), /no bcs list/);
+  assert.throws(() => loadVocabulary({ officialTerms: 'x', backendTerms: 'x', proposedDirectory: 'x', allowList: 'x' }), /context register path is required/);
+  assert.match(vocabularyFrom('bcs:\n  - { id: a, kind: bc }\n')().problems.join('\n'), /without a Chinese name/);
+  assert.match(vocabularyFrom('bcs:\n  - { id: a, zh: 身份, words: 单据 }\n')().problems.join('\n'), /words must be a list/);
+  assert.match(vocabularyFrom('bcs:\n  - { id: a, zh: 身份, words: [单] }\n')().problems.join('\n'), /two or more Chinese characters/);
+});
+
+test('a bc word may not whitelist a dialect or repeat a registered term; an attribute needs a Chinese name', () => {
+  assert.match(vocabularyFrom('bcs:\n  - { id: a, zh: 身份, words: [签证单] }\n')().problems.join('\n'), /forbidden dialect/);
+  assert.match(vocabularyFrom('bcs:\n  - { id: a, zh: 身份, words: [工时单] }\n')().problems.join('\n'), /already a registered term/);
+  assert.match(vocabularyFrom('bcs:\n  - { id: a, zh: 身份 }\n', 'terms:\n  - { id: a, zh: 工时单, attributes: [{ en: X }] }\n')().problems.join('\n'), /attribute without zh/);
+  const ok = vocabularyFrom('bcs:\n  - { id: a, zh: 身份, words: [单据] }\n')();
+  assert.deepEqual(ok.problems, []);
+  assert.ok(ok.vocabulary.has('单据') && ok.vocabulary.has('身份'));
+});
