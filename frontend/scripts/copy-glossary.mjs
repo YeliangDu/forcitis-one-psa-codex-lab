@@ -1,6 +1,7 @@
 // Terminology guard for what users read (JSX text, button / title / notice / placeholder / aria-label strings, message tables).
-// Every Chinese text in production source must be made of registered terms (docs/modernization/glossary/terms.yaml, backend/glossary/terms.yaml,
-// backend/glossary/proposed/*.yaml) and the allow list of non-business words (scripts/copy-allow-list.yaml); a forbidden dialect fails outright.
+// Every Chinese text in production source must be made of registered terms (docs/modernization/glossary/terms.yaml and the attributes listed under a term,
+// backend/glossary/terms.yaml, backend/glossary/proposed/*.yaml), the names in the context register (docs/modernization/glossary/bcs.yaml: the zh of every
+// bc / subdomain / system and the `words` a bc lists for business words it describes without a term of their own) and the allow list of non-business words (scripts/copy-allow-list.yaml); a forbidden dialect fails outright.
 // A single-character allowed word (的, 和, 已 ...) is only a connector: it must sit between two words, never start, end or stand next to another one,
 // otherwise any Chinese text could be spelled from connectors and registered fragments. A state such as 已认领 is registered as a term, not assembled.
 // Tests, test helpers and generated code are not user-facing and are skipped.
@@ -26,7 +27,7 @@ function chineseChunks(text) {
 }
 
 /** Terms from the three glossary sources, plus the allow list. `vocabulary` holds every Chinese word a text may be built from. */
-export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory, allowList }) {
+export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory, allowList, contexts }) {
   const terms = [];
   const problems = [];
   for (const path of [officialTerms, backendTerms]) {
@@ -44,6 +45,22 @@ export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory,
       continue;
     }
     chineseChunks(term.zh).forEach((chunk) => vocabulary.add(chunk));
+    for (const attribute of term.attributes ?? []) {
+      if (typeof attribute?.zh !== 'string' || attribute.zh === '') problems.push(`${term.id}: an attribute without zh`);
+      else chineseChunks(attribute.zh).forEach((chunk) => vocabulary.add(chunk));
+    }
+  }
+  // The context register keeps what is not a term: bc, subdomain and system names, and the business words a bc describes.
+  const contextWords = [];
+  if (contexts === undefined) throw new Error('copy glossary: the context register path is required (G-1).');
+  for (const context of readYaml(contexts).bcs ?? []) {
+    for (const word of [context.zh, ...(context.words ?? [])]) {
+      if (typeof word !== 'string' || word === '') problems.push(`${context.id}: a name or word without Chinese text in the context register`);
+      else {
+        chineseChunks(word).forEach((chunk) => vocabulary.add(chunk));
+        contextWords.push(word);
+      }
+    }
   }
 
   const allowFile = readYaml(allowList);
@@ -58,7 +75,7 @@ export function loadVocabulary({ officialTerms, backendTerms, proposedDirectory,
     else vocabulary.add(word);
   }
 
-  const termZh = new Set(terms.map((term) => term.zh));
+  const termZh = new Set([...terms.map((term) => term.zh), ...contextWords]);
   const forbidden = [];
   for (const term of terms) {
     const phrases = [

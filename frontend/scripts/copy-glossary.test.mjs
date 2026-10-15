@@ -15,12 +15,23 @@ const glossary = loadVocabulary({
   backendTerms: join(repository, 'backend', 'glossary', 'terms.yaml'),
   proposedDirectory: join(repository, 'backend', 'glossary', 'proposed'),
   allowList: join(frontend, 'scripts', 'copy-allow-list.yaml'),
+  contexts: join(repository, 'docs', 'modernization', 'glossary', 'bcs.yaml'),
 });
 
 const kinds = (text) => problemsOfText(text, glossary).map((problem) => `${problem.kind}:${problem.word}`);
 
 test('the glossary and the allow list are well formed', () => {
   assert.deepEqual(glossary.problems, []);
+});
+
+test('context register names, bc words and term attributes pass, an unlisted word still fails', () => {
+  assert.deepEqual(kinds('企业微信扫码登录'), []);
+  assert.deepEqual(kinds('老系统的待办'), []);
+  assert.deepEqual(kinds('致远单点登录'), []);
+  assert.deepEqual(kinds('请确认你的身份'), []);
+  assert.deepEqual(kinds('编号容量'), []);
+  assert.deepEqual(kinds('单据'), []);
+  assert.deepEqual(kinds('某某杜撰词'), ['unregistered:某某杜撰词']);
 });
 
 test('registered terms, proposed terms and allowed plain words pass', () => {

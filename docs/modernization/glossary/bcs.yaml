@@ -1,5 +1,5 @@
 # bcs.yaml — 限界上下文（bc）与子域清单：词条的 bc、kernel 词条的 used_by 只能取这里的 id（one-glossary 维护，B1）
-# kind：subdomain 子域 / bc 限界上下文 / kernel 共享内核 / system 外部系统与本系统的名字（B2，不是 bc，不能作词条的 bc；有 status 时按其登记，缺省 approved）；business_owner：每个 bc 的业务确认人（intent 2026-10-15-171959 第 7 条：人选另问用户，未定前由用户兼任）
+# kind：subdomain 子域 / bc 限界上下文 / kernel 共享内核 / words 该 bc 描述中、不另立词条的业务用语（B2：原为词条的子域 / 模块名与概念，界面文字检查按它放行，不是新增术语；要登记成词条先走用语流程）；system 外部系统与本系统的名字（B2，不是 bc，不能作词条的 bc；有 status 时按其登记，缺省 approved）；business_owner：每个 bc 的业务确认人（intent 2026-10-15-171959 第 7 条：人选另问用户，未定前由用户兼任）
 bcs:
 - id: kernel
   zh: 共享内核
@@ -253,6 +253,7 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "用户、角色、权限、登录与会话、数据范围。单点登录：由外部身份提供方发起，校验在集成层，本 bc 只决定能否登录并发会话"
+  words: [身份, 单点登录, 联合身份]
 - id: platform.approval
   zh: 流程与审批
   subdomain: platform
@@ -265,6 +266,7 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "事件投递、数据集成通道、外部系统防腐层（ADR-0039：外部系统概念只在此）。含组织来源同步（从组织来源系统拉取组织与人员数据、做缩水保护与差异比对、翻译成组织变更集交组织人事应用，含运行记录与运维放行）；联合身份校验（外部身份提供方认证、集成层校验并按外部身份对照映射到本系统用户，本系统只据此决定能否登录并发会话）"
+  words: [组织来源同步]
 - id: platform.audit
   zh: 审计
   subdomain: platform
@@ -277,6 +279,7 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: ""
+  words: [单据]
 - id: platform.scheduling
   zh: 调度
   subdomain: platform
