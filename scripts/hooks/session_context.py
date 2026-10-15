@@ -3,7 +3,7 @@
 
 Session name, first hit wins: the untracked marker <root>/.claude/session-name; otherwise the longest profile name that the
 worktree directory name or the current branch without "claude/" equals or starts with followed by "-"; ended sessions listed
-in sessions/_retired.md take part in the match, so one-glossary-gen is not mistaken for one-glossary.
+in sessions/_retired.md take part in the match, so an ended session whose name extends a live one is not mistaken for it.
 Profiles are read from origin/main first (the worktree may be stale), then from the worktree; context documents are the
 backticked paths in the profile's 上下文文档 section, read from the worktree first, then origin/main.
 build_sessions.py imports context_docs() so the hook and the build check parse the section the same way.
@@ -94,6 +94,7 @@ def self_test():
     assert match(names, "one-ops", ["one-1a-next-3-abc"]) == "one-ops"
     assert match(names, "one-nope", ["one-ops"]) is None
     assert match({"one-glossary", "one-glossary-gen"}, "", ["one-glossary-gen-x"]) == "one-glossary-gen"
+    assert match({"one-glossary", "one-ops"}, "", ["modest-torvalds-293503", "one-glossary-round3"]) == "one-glossary"
     assert retired_names("<!-- x -->\n- one-glossary-gen：一次性\n") == {"one-glossary-gen"}
     print("self-test: ok")
 
