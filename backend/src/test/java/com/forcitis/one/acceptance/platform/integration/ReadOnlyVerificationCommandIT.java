@@ -433,6 +433,48 @@ class ReadOnlyVerificationCommandIT {
     }
 
     @Test
+    @DisplayName("C-14 定位、opus 安全复审 Low-2：列级 GRANT UPDATE（两列）遇本账号同名 schema 级 DENY UPDATE（库级 DENY UPDATE 被撤，账号看得见所属 schema 的表）时折叠为表上一条 overridden 行、by=SCHEMA_DENY；(g) 通过，(b) 违规、退出违规码")
+    void columnGrantsFoldIntoTheTableAndAreOverriddenByTheSchemaDeny() throws Exception {
+        Account account = isolatedAccount(ReadOnlyConnection.A8);
+        String table = "t_" + marker();
+        runIn(account, "REVOKE UPDATE FROM " + q(account.login()), "DENY UPDATE ON SCHEMA::dbo TO " + q(account.login()),
+                "CREATE TABLE dbo." + q(table) + " (a bigint, b bigint)", "GRANT UPDATE (a) ON OBJECT::dbo." + q(table) + " TO public",
+                "GRANT UPDATE (b) ON OBJECT::dbo." + q(table) + " TO public");
+        long tableId = objectId(account, "dbo." + q(table));
+        assertThat(loginSeesObject(account, tableId)).as("the fixture: the database-level GRANT SELECT shows the login the table").isTrue();
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+        assertThat(run.item('b').verdict()).as("the database-level DENY UPDATE is missing\n%s", run.output()).isEqualTo("VIOLATED");
+        assertThat(run.item('g').verdict()).as("both column grants are overridden by the schema DENY\n%s", run.output()).isEqualTo("PASSED");
+        assertThat(run.locators()).as("the two column grants fold into one line on the table\n%s", run.output()).containsExactly(
+                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), tableId, "UPDATE", PUBLIC, "SCHEMA_DENY"));
+        assertLocatorFieldsInContractOrder(run);
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("C-14 定位、opus 安全复审 Medium-1（one-1a-par 收窄）：只有对象级、列级与 schema 级 GRANT 可被覆盖——TYPE 上的 public GRANT REFERENCES 即使本账号有库级 DENY REFERENCES 仍违规并带定位（class=TYPE，objectId 为 user_type_id）")
+    void grantOnATypeStaysAViolation() throws Exception {
+        Account account = isolatedAccount(ReadOnlyConnection.A8);
+        String type = "ty_" + marker();
+        runIn(account, "CREATE TYPE dbo." + q(type) + " FROM int", "GRANT REFERENCES ON TYPE::dbo." + q(type) + " TO public");
+        long typeId = adminLong(account, "SELECT TYPE_ID(N'dbo." + q(type) + "')");
+        boolean seen = loginCounts(account, "SELECT COUNT(*) FROM sys.types WHERE user_type_id = " + typeId) == 1;
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+        assertThat(run.item('g').verdict()).as("a TYPE grant is never overridden\n%s", run.output()).isEqualTo("VIOLATED");
+        assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
+        assertThat(run.locators()).as("names as far as the login can see the type (section 3a)\n%s", run.output()).containsExactly(
+                violation("TYPE", seen ? quoted("dbo") : ABSENT, seen ? quoted(type) : ABSENT, typeId, "REFERENCES", PUBLIC));
+        assertLocatorFieldsInContractOrder(run);
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
     @DisplayName("C-14 定位、安全条件 3：本账号一条 DENY 也查不到（库级 11 项全被撤）时，可被覆盖的 public GRANT EXECUTE 判 (g) 判定不了而非被拒绝覆盖，不出 overridden 行；(b) 违规、退出违规码")
     void noDenyAnswerLeavesTheGrantUndetermined() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
