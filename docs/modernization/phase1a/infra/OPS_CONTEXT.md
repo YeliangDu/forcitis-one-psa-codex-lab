@@ -24,7 +24,7 @@
 
 | 步骤 | 下一步 | 卡在 |
 |---|---|---|
-| Release 0.1.0-rc.1 | run 38694931574（7f04d6f5，draft=false）→ R-11 演练（先报） | 构建中；部署受门禁 090 / 100 |
+| Release 0.1.0-rc.1 | #151（build.sh pnpm 检查）合并 → main push CI 绿 → 重新触发 → R-11 演练（先报） | #151 在合并队列；部署受门禁 090 / 100 |
 | 审计分区维护角色 | 写角色、授权、建库脚本 | DDL-24 卡与 PR |
 | 迁入 ID 对照 | 抽取 | ADR-0037 实现 |
 
@@ -35,6 +35,7 @@
 - 首次 dev 部署通过后：删 /root/one-ops-backup-20261015020632；白天测 GitHub 直拉速度
 - 构建变量待替换：SSO 门户地址（B-3 回传后）、PROD_*（生产前确认）
 - pg_stat_statements：Phase 2 前请示
+- 后续小项：`scripts/precheck.sh:235` 改 `(cd frontend && pnpm verify)`（守护文件流程）
 
 ## 坑
 
