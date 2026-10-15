@@ -43,6 +43,9 @@ show_tail() {
   grep -v '^警告：' "$1" | sed 's/^/      | /' | tail -n "${2:-20}"
 }
 
+# corepack picks pnpm from the nearest package.json at start-up, and only frontend/ names it; `pnpm -C frontend` would start at the root
+in_frontend() { (cd frontend && "$@"); }
+
 run_step() {
   local name=$1; shift
   local log
@@ -232,7 +235,7 @@ if $builds_relevant; then
   elif ! node --version 2>/dev/null | grep -q '^v24\.'; then
     report SKIP "frontend verify" "Node $(node --version 2>/dev/null) found, CI uses Node 24"
   else
-    run_step "frontend verify (pnpm verify)" pnpm -C frontend verify
+    run_step "frontend verify (pnpm verify)" in_frontend pnpm verify
   fi
 else
   report SKIP "backend tests" "relevant_change.py: nothing the builds read changed"
