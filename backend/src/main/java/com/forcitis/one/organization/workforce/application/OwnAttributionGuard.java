@@ -15,6 +15,9 @@ import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,6 +27,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 class OwnAttributionGuard {
+    private static final Logger LOG = LoggerFactory.getLogger(OwnAttributionGuard.class);
+
     private final OrgSnapshotQueries snapshot;
     private final AuditLog audit;
     private final AccountEmployees accountEmployees;
@@ -35,12 +40,19 @@ class OwnAttributionGuard {
     }
 
     void requireNotOwn(AttributionSubject subject, UserId actor) {
-        if (accountEmployees.employeeOf(actor).filter(actingEmployee -> concerns(subject, actingEmployee)).isEmpty()) {
-            return;
+        Optional<EmployeeId> actingEmployee = accountEmployees.employeeOf(actor);
+        if (actingEmployee.isEmpty()) {
+            LOG.error("ALERT organization.workforce account {} names no employee: its legal entity attribution change is refused", actor.value());
+            refuse(subject, actor, "the account names no employee");
         }
+        if (concerns(subject, actingEmployee.get())) {
+            refuse(subject, actor, "own legal entity attribution");
+        }
+    }
+
+    private void refuse(AttributionSubject subject, UserId actor, String detail) {
         audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.refused", actor, null,
-                "legal-entity-attribution:" + subject.kind().name().toLowerCase(Locale.ROOT) + ":" + subject.subjectKey(),
-                "own legal entity attribution"));
+                "legal-entity-attribution:" + subject.kind().name().toLowerCase(Locale.ROOT) + ":" + subject.subjectKey(), detail));
         throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN, ErrorKind.FORBIDDEN,
                 "the legal entity of your own employee entry, department or a department above it cannot be changed by you");
     }

@@ -82,4 +82,21 @@ class OwnAttributionGuardTest {
         verify(audit, never()).recordIndependently(any());
         assertRefused(AttributionSubject.of(ACTING_EMPLOYEE));
     }
+
+    @Test
+    @DisplayName("P2-M5 an actor whose account names no employee is refused, audited and alerted: the own-attribution check cannot be made, so it fails closed")
+    void P2_M5_anActorWhoseAccountNamesNoEmployeeIsRefused() {
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> logged = new ch.qos.logback.core.read.ListAppender<>();
+        logged.start();
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(OwnAttributionGuard.class);
+        logger.addAppender(logged);
+        try {
+            assertThatThrownBy(() -> guard.requireNotOwn(AttributionSubject.of(new OrgUnitId(9)), TestAccounts.unknownAccount(1001)))
+                    .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN));
+            verify(audit).recordIndependently(any());
+            assertThat(logged.list).anySatisfy(event -> assertThat(event.getFormattedMessage()).startsWith("ALERT "));
+        } finally {
+            logger.detachAppender(logged);
+        }
+    }
 }
