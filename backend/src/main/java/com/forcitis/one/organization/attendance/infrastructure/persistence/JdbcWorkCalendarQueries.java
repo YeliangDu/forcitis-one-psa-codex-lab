@@ -9,6 +9,7 @@ import com.forcitis.one.organization.attendance.domain.WorkCalendarYearRecord;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -42,7 +43,7 @@ class JdbcWorkCalendarQueries implements WorkCalendarQueries {
     }
 
     @Override
-    public List<Integer> findMaintainedYearsBefore(LegalEntityId legalEntityId, Integer beforeYear, int limit) {
+    public List<Integer> findMaintainedYearsBefore(@Nullable LegalEntityId legalEntityId, @Nullable Integer beforeYear, int limit) {
         return jdbc.sql("""
                         select year_number from organization_attendance.work_calendar_years
                          where legal_entity_id is not distinct from :legalEntityId and (cast(:beforeYear as integer) is null or year_number < :beforeYear)
