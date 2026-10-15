@@ -239,3 +239,10 @@
 - RULING-P4-D6：`OTHER_ID_NAMES` 收窄为只按全名放行 `InboxItemResponse.taskId`，写理由与到期条件（随 ADR-0039 第 6 条契约中性化），P5 清空时保留此项。
 - 开工条件：第 11 节新词经 one-glossary 定稿（部门负责人审批节点与字段名须用户确认的走确认页）；D-4 已判定；P3b（#260）合并后 rebase。
 - 新词定稿（one-glossary，2026-10-15）：节点 `OrgUnitHeadApproval` / id `orgUnitHeadApproval`（后缀 Approval；兄弟节点 Review → Approval 随 R3 改名卡，不在本卡）；表单字段 `orgUnitHeadId`；`record_number`（列注释以「办理记录序号」开头，写明同一审批请求内递增、与单据编号流水号无关）；`approval_request_id` / `ApprovalRequestId`；`subject_kind` / `subject_id`（注释「对象类别 / 对象 ID：被记录或被投递的业务对象的类别与自有 ID」，与 P5 `audit_entries` 同句）；`purpose_kind` 取值六个照候选，实现 PR 登记提议术语 `delivery_purpose` 投递用途 / DeliveryPurpose（kind state，bc platform.integration，放 `platform-integration.yaml`，由 one-glossary 放确认页，实现不等）；`trigger_event_id`（注释「触发事件 ID」）、`target_delivery_id`、`process_archive_skip_id`、`document_id`（类型 `DocumentId`）、`DeliverySubject`（只在集成层 api）。代码中 `RegionalHeadApproval`、`regionalHeadId` 等旧名本卡一并改；词表中 `regional_head*` 由 one-glossary 写回，本卡不动。
+
+## 14. 验收阶段裁定（one-1a-next-4，2026-10-15）
+- RULING-P4-1：既有三个审批验收（`ApprovalAccountsIT`、`AssigneeInputUuidIT`、`RetractionInitiatorAccountsIT`）改用文档 ID 辅助方法与按文档读行，使 P4 前后都能跑，断言不变。
+- RULING-P4-2（第 9 条 validators.ts）：现有生成器对 uuid 属性只出 `z.string()`（P3b 复审 L12，生成器局限），本卡不改生成器；验收只断言 ID 不是数字（`z.string()`），不要求 `uuid` 校验。
+- RULING-P4-3（第 6 条）：断言审批请求 ID 出自注入的 `IdGenerator`，且产生它的调用栈在 approval 领域或应用层、不在 `infrastructure.persistence`（不要求「第一个值」）。
+- RULING-P4-4（第 10 条）：「不查库」不可确定性断言，只断言非 uuid 路径参数答 400 且不是 `PLATFORM_APPROVAL_TASK_NOT_FOUND`。
+- RULING-P4-5：第 7 条验收只验表层，作业级「只跳过一次」由实现代理随 `ProcessArchiveJobIT` 改；第 8 条 `DeliverySubject` 组件顺序以验收为准（对象类别、对象 ID、用途、触发事件），企业微信 `task_id` 只断言重试稳定、行间不同、字符集合法；第 12 条不限定错误码；第 2 条两个部分索引只断言含 `created_at` / `escalate_at` 与状态谓词。
