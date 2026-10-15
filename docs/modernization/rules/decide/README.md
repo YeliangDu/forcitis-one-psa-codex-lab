@@ -25,7 +25,7 @@
 {"sheet": "D5", "title": "页面标题", "lede": "一句话：这张单子定什么",
  "groups": [{"id": "d5-routing", "title": "组名", "desc": "本组说明"}],
  "items": [{"no": "D5-01", "grp": "d5-routing", "title": "题目", "src": "来源", "ctx": "背景",
-            "now": "现状（可空）", "check": "需核实（可空）", "basis": ["依据"], "practice": ["行业做法"],
+            "now": "现状（可空）", "check": "需核实（可空）", "basis": ["依据，必填字段，可为空数组"], "practice": ["行业做法，必填字段，可为空数组"],
             "opts": [{"label": "选项", "effect": "后果", "rec": true}, {"label": "选项", "effect": "后果", "rec": false}]}],
  "info": [{"title": "首组顶部的可展开说明", "lines": ["…"], "table": [["表头"], ["行"]]}],
  "side": [{"title": "左栏可展开清单", "lines": ["…"]}]}

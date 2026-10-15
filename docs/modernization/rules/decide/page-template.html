@@ -146,7 +146,7 @@ function qHTML(it){
   const opts = it.opts.map((o, n) => `<button type="button" class="opt" data-opt="${n}" aria-pressed="${p.choice === n}">
       <span class="dot" aria-hidden="true"></span><span><b>${esc(o.label)}</b>${o.rec ? `<span class="tag">推荐</span>` : ""}</span>
       ${o.effect ? `<span class="eff">${esc(o.effect)}</span>` : ""}</button>`).join("");
-  const more = [...it.basis.map(t => "依据：" + t), ...it.practice.map(t => "实践：" + t)];
+  const more = [...(it.basis || []).map(t => "依据：" + t), ...(it.practice || []).map(t => "实践：" + t)];
   const st = k === "defer" ? `<span class="st defer">暂不定</span>` : k === "changed" ? `<span class="st changed">已改选</span>`
     : p.defaulted ? `<span class="st">推荐预选，同意就不用动</span>` : `<span class="st">已确认推荐</span>`;
   return `<article class="q" data-key="${esc(it.key)}" data-state="${k}">
