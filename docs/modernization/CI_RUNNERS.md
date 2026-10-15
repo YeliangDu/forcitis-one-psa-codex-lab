@@ -43,7 +43,17 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 
 ## 作业怎样判定可跳过
 
-`scripts/ci/relevant_change.py` 比较 PR 与基线分支：只有 `docs/`（除 `glossary/`、`events/`、`phase1a/SEEYON_VIEWS.sql` 这三处被测试读取，以及发布与部署脚本读取的 `status/blockers/`、`phase1a/infra/PREDEPLOY_CHECKLIST.md`、`phase1a/infra/runbooks/files/`）和根目录 `*.md` 的改动才算无关；此时 backend、frontend 作业照常开始并成功结束，只是跳过构建步骤，三项必需检查仍然报告。push 到 main 总是全量运行。自检会扫描 `scripts/` 等目录中引用的 docs 路径，要求都列入「被读取」清单，`scripts/release/` 也不例外。
+`scripts/ci/relevant_change.py` 比较 PR 与基线分支：只有 `docs/`（除 `glossary/`、`events/`、`phase1a/SEEYON_VIEWS.sql` 这三处被测试读取，以及发布与部署脚本读取的 `status/blockers/`、`phase1a/infra/PREDEPLOY_CHECKLIST.md`、`phase1a/infra/runbooks/files/`）和根目录 `*.md` 的改动才算无关；此时 backend、frontend 作业照常开始并成功结束，只是跳过构建步骤，三项必需检查仍然报告。push 到 main 总是全量运行（SQL Server 集成测试例外，它按改动路径判定，见下节）。自检会扫描 `scripts/` 等目录中引用的 docs 路径，要求都列入「被读取」清单，`scripts/release/` 也不例外。
+
+## SQL Server 集成测试（profile legacy-it）
+
+`*MssqlIT` 只在 `-Plegacy-it` 下编译和运行（ADR-0037 守护第 5 组）。`relevant_change.py` 另输出 `legacy_it`：改到 `platform/integration`、`platform/approval/infrastructure/legacy` 的源码与测试、`acceptance/platform/integration`、`*MssqlIT` 直接引用的类与文件（`TestImages.java`、`kernel/WecomUserId.java`、`SEEYON_VIEWS.sql` 等，自检扫描 `*MssqlIT.java` 的 import 与相对路径，漏列即失败）、`backend/architecture/` 的 `test-images.txt` 与 `seeyon-view-columns.yaml`、`backend/pom.xml`、B-5 交接包的 `.sql`、`scripts/ci/legacy_it.sh`、`ci.yml` 与 `nightly-legacy-it.yml` 时，backend 作业末尾多跑 `scripts/ci/legacy_it.sh`（超时 30 分钟）。push 到 main 与前一次推送比较，比较不了时照跑；因 `ci.yml` 的并发组会取消同一分支上未完成的运行，连续合并时中间一次可能漏跑，由 PR 门禁与每夜全量兜底。
+
+只跑 `*MssqlIT` 与 ADR 原文的 `verify -Plegacy-it` 等价：该 profile 只比默认构建多编译并运行 `*MssqlIT`，其余测试与同一作业里的默认全量运行相同，不必重跑。
+
+每夜另有 `nightly-legacy-it.yml`：北京时间 03:23（cron `23 19 * * *`，UTC 19:23）在同一批 runner 上全量运行 `backend_verify.sh -Plegacy-it`，随后核实有 `TEST-*MssqlIT.xml` 报告（没有即失败）；也可手动触发。它占一台 runner，最长 90 分钟。
+
+**怎样发现每夜失败**：不另设通知。调度会话开场执行 `gh run list --workflow nightly-legacy-it.yml -L 1`，最近一次不是 success 就开卡处理。
 
 ## 发布与部署：专用 runner
 
