@@ -19,6 +19,7 @@ import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ import org.springframework.test.web.servlet.MvcResult;
 class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
 
     static final String LOGIN = "/api/v1/platform/sessions:emergency-login";
-    static final String PASSWORD = "Str0ng!Passphrase#42";
+    static final String PASSWORD = "Aa1!" + UUID.randomUUID();
 
     @Autowired
     EmergencyAdminRepository admins;
@@ -110,7 +111,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("RULE-316 unknown login name, wrong password and wrong code give the same answer")
     void sameErrorEverywhere() throws Exception {
         String unknown = withoutCorrelation(login("nobody", PASSWORD, code()).getResponse().getContentAsString());
-        String wrongPassword = withoutCorrelation(login("breakglass", "Wrong!Passphrase#42", code()).getResponse().getContentAsString());
+        String wrongPassword = withoutCorrelation(login("breakglass", PASSWORD + "-wrong", code()).getResponse().getContentAsString());
         String wrongCode = withoutCorrelation(login("breakglass", PASSWORD, "000000").getResponse().getContentAsString());
 
         assertThat(unknown).isEqualTo(wrongPassword).isEqualTo(wrongCode).contains("PLATFORM_IDENTITY_CREDENTIALS_INVALID");
@@ -121,7 +122,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("RULE-316 five failures lock the account for 15 minutes; afterwards it works again")
     void lockout() throws Exception {
         for (int i = 0; i < 5; i++) {
-            assertThat(login("breakglass", "Wrong!Passphrase#4" + i, code()).getResponse().getStatus()).isEqualTo(401);
+            assertThat(login("breakglass", PASSWORD + "-wrong" + i, code()).getResponse().getStatus()).isEqualTo(401);
         }
         assertThat(jdbc.sql("select locked_until is not null from platform_identity.emergency_admins").query(Boolean.class).single()).isTrue();
 
@@ -160,7 +161,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("RULE-316 fewer than five failures do not lock, and success clears the counter")
     void successClearsTheCounter() throws Exception {
         for (int i = 0; i < 4; i++) {
-            login("breakglass", "Wrong!Passphrase#4" + i, code());
+            login("breakglass", PASSWORD + "-wrong" + i, code());
         }
         assertThat(login("breakglass", PASSWORD, code()).getResponse().getStatus()).isEqualTo(200);
         assertThat(jdbc.sql("select failed_attempts from platform_identity.emergency_admins").query(Integer.class).single()).isZero();
