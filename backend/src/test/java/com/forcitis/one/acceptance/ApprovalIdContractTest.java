@@ -186,8 +186,8 @@ class ApprovalIdContractTest {
     }
 
     @Test
-    @DisplayName("R-1b P4 G-A1：生成的 validators.ts 中任务、实例、单据 ID 字段是字符串校验、不是数字，且声明了 uuid 校验")
-    void generatedValidatorsTreatTheIdsAsUuidStrings() throws IOException {
+    @DisplayName("R-1b P4 G-A1：生成的 validators.ts 中任务、实例、单据 ID 字段是字符串校验、不是数字（RULING-P4-2：生成器不出 uuid 校验，不要求）")
+    void generatedValidatorsTreatTheIdsAsStrings() throws IOException {
         String validators = Files.readString(VALIDATORS);
         List<String> wrong = new ArrayList<>();
         for (String property : UUID_PROPERTIES) {
@@ -196,11 +196,11 @@ class ApprovalIdContractTest {
             Matcher line = Pattern.compile("(?m)^\\s*" + parts[1] + ":\\s*(.*),\\s*$").matcher(block);
             if (!line.find()) {
                 wrong.add(property + " is missing");
-            } else if (line.group(1).contains("number") || !line.group(1).contains("uuid")) {
+            } else if (line.group(1).contains("number") || !line.group(1).startsWith("z.string(")) {
                 wrong.add(property + " = " + line.group(1));
             }
         }
 
-        assertThat(wrong).as("validators of the approval ids that do not check for a uuid").isEmpty();
+        assertThat(wrong).as("validators of the approval ids that are not strings").isEmpty();
     }
 }
