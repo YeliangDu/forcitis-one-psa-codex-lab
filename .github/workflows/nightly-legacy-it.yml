@@ -1,0 +1,43 @@
+name: nightly-legacy-it
+
+# 每夜全量运行 Maven profile legacy-it（SQL Server 集成测试，ADR-0037 守护第 5 组）；PR 上按改动路径只跑 *MssqlIT，见 ci.yml 与 scripts/ci/relevant_change.py。
+# 定时任务只在默认分支上触发。cron 按 UTC：19:00 UTC = 次日 03:00 北京时间（UTC+8，无夏令时）。失败即作业失败，GitHub 按默认规则通知。
+on:
+  schedule:
+    - cron: "0 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-legacy-it
+  cancel-in-progress: false
+
+jobs:
+  legacy-it:
+    name: backend verify under profile legacy-it (full)
+    runs-on: [self-hosted, forcitis-one]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: toolchain is Java 25
+        run: java -version 2>&1 | head -1 | grep -q '"25'
+      - name: test images are present
+        shell: bash
+        run: |
+          test -s backend/architecture/test-images.txt
+          grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' backend/architecture/test-images.txt | while read -r image || [ -n "$image" ]; do
+            docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image"
+          done
+      - name: surefire and failsafe under profile legacy-it
+        run: scripts/ci/backend_verify.sh -Plegacy-it
+      - if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-reports
+          path: |
+            backend/target/surefire-reports
+            backend/target/failsafe-reports

@@ -45,6 +45,10 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 
 `scripts/ci/relevant_change.py` 比较 PR 与基线分支：只有 `docs/`（除 `glossary/`、`events/`、`phase1a/SEEYON_VIEWS.sql` 这三处被测试读取，以及发布与部署脚本读取的 `status/blockers/`、`phase1a/infra/PREDEPLOY_CHECKLIST.md`、`phase1a/infra/runbooks/files/`）和根目录 `*.md` 的改动才算无关；此时 backend、frontend 作业照常开始并成功结束，只是跳过构建步骤，三项必需检查仍然报告。push 到 main 总是全量运行。自检会扫描 `scripts/` 等目录中引用的 docs 路径，要求都列入「被读取」清单，`scripts/release/` 也不例外。
 
+## SQL Server 集成测试（profile legacy-it）
+
+`*MssqlIT` 只在 `-Plegacy-it` 下编译和运行（ADR-0037 守护第 5 组）。`relevant_change.py` 另输出 `legacy_it`：改到 `platform/integration`、`platform/approval/infrastructure/legacy` 的源码与测试、`acceptance/platform/integration`、`TestImages.java`、`backend/architecture/` 的 `test-images.txt` 与 `seeyon-view-columns.yaml`、`backend/pom.xml`、`SEEYON_VIEWS.sql`、B-5 交接包的 `.sql` 时，backend 作业末尾多跑 `scripts/ci/legacy_it.sh`（只跑 `*MssqlIT`）；push 到 main 与前一次推送比较，比较不了时照跑。每夜另有 `nightly-legacy-it.yml`：北京时间 03:00（cron `0 19 * * *`，UTC）在同一批 runner 上全量运行 `backend_verify.sh -Plegacy-it`，也可手动触发；失败即作业失败。
+
 ## 发布与部署：专用 runner
 
 `release.yml` 的 `build`（打包）与 `publish`（签名）都跑在 GitHub 托管的 `ubuntu-24.04`（用户决定：「签名步骤放 GitHub 托管机器」「发布打包改到 GitHub 托管机器」；这是对「CI 不用托管机器」的例外，只限发布）。`deploy.yml` 的 `deploy` 作业只跑在专用 runner 上，专用 runner 也**只**接这一个作业；`deploy.yml` 的 `gate` 不碰凭据，仍在上面 4 个 runner 上跑。专用 runner 是部署的**必需前置条件**（清单 B-10），按 RELEASE.md §7 R-0 重建。
