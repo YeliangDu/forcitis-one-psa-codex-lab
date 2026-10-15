@@ -1,3 +1,11 @@
-# 长期会话的上下文文档：worktree 目录名前缀 <TAB> 仓库内路径（压缩后由 postcompact_context.sh 注入）
-one-ops	docs/modernization/phase1a/infra/OPS_CONTEXT.md
+# 会话名 <TAB> 仓库内路径：压缩或清空后 postcompact_context.sh 按 worktree 目录名取最长匹配的会话名，依次注入该会话的全部行
+# 每份会话画像（docs/modernization/sessions/<会话名>.md）一行；长期会话另加上下文文档（SESSION_PLAYBOOK §2.1 第 13、16 条）
+# build_sessions.py（build_all.py 调用）校验：每份画像有一行、路径存在、长期会话有上下文文档且写进画像
 one-coordinator	docs/modernization/COORDINATOR_LEDGER.md
+one-coordinator	docs/modernization/sessions/one-coordinator.md
+one-ops	docs/modernization/phase1a/infra/OPS_CONTEXT.md
+one-ops	docs/modernization/sessions/one-ops.md
+one-glossary	docs/modernization/glossary/GLOSSARY_CONTEXT.md
+one-glossary	docs/modernization/sessions/one-glossary.md
+one-1a-par	docs/modernization/sessions/one-1a-par.md
+one-1a-next-3	docs/modernization/sessions/one-1a-next-3.md

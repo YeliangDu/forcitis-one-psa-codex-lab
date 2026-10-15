@@ -47,7 +47,8 @@
 - 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
-- 第三轮用语确认（提议术语积压超 100 即启动，SESSION_PLAYBOOK §5）；job_grade 定义缺陷随岗位体系重梳。
+- 第三轮用语确认：由 one-glossary 承担（画像 `sessions/one-glossary.md`，待用户新开），调度只监督阈值（`glossary/ISSUES.md` 首段积压计数，SESSION_PLAYBOOK §5）；job_grade 定义缺陷随岗位体系重梳。
+- 会话画像：`sessions/<会话名>.md`，汇总 `SESSIONS.md`（`build_all.py` 生成）；按画像派工与巡检（SESSION_PLAYBOOK §2.1 第 16 条）。
 - Codex 试点：R-4（R-5 之后），记录返工轮次与耗时（SESSION_PLAYBOOK §5「Codex 派工」）。
 - 首次 dev 部署：dev 前阻塞清零后经用户批准（部署归用户决定）。
 - 统一编排路线、brief 修订与 1b 前置项：见 MODERNIZATION_BRIEF 与 phase1a/NEXT_BATCH_PLAN.md。
