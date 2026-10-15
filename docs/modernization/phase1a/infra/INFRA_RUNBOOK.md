@@ -313,6 +313,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
    - **常驻服务不自己迁移**：生产 profile 的 `application-prod.properties` 已设 `spring.flyway.enabled=false`，环境里也写 `SPRING_FLYWAY_ENABLED=false`；常驻进程不持有迁移凭据。
 4. 切换 `current` 软链，`systemctl restart forcitis-one`，检查健康。
 5. 冒烟：匿名访问返回 401；企业微信 / 致远登录；`/me` 正常；组织同步跑一轮，sync_runs 为 SUCCEEDED。
+   - **首次全量同步较慢**：首次（及来源对照表重建后）每个未见过的部门、岗位、人员都要分配自有 ID，每次分配单独提交一个事务（R-1b P3b，ADR-0033 第 2 项），之后的同步只查不分配。首轮期间同步延迟告警可能触发，等这一轮 SUCCEEDED 后再判断。
 6. 回滚：`current` 指回上一版本并重启。数据库迁移只做向前兼容的变更，1a 期间不做破坏性迁移。
 
 ## 8. 日志、关联号与业务时区（本轮实施，运维需要知道的行为）
