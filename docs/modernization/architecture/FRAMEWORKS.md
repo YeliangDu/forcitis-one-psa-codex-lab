@@ -16,7 +16,7 @@
 |---|---|---|
 | ADM：Preliminary、A Architecture Vision、B Business、C Information Systems（数据 + 应用）、D Technology、E Opportunities and Solutions、F Migration Planning、G Implementation Governance、H Architecture Change Management；贯穿的 Requirements Management | 架构开发方法 | 施工图方法的骨架（METHOD 第 0–7 步） |
 | Business Capability | 业务能力 | 企业「能做什么」，不含怎么做、谁做、在哪做；按「名词 + 动词」命名（G211）；稳定，是连接战略与边界的锚 |
-| Value Stream / Value Stage | 价值流 / 价值阶段 | 为某个干系人产出价值的端到端阶段序列；每个阶段由若干能力支撑（G178） |
+| Value Stream / Value Stage | 价值流 / 价值流阶段 | 为某个干系人产出价值的端到端阶段序列；每个阶段由若干能力支撑（G178） |
 | Architecture Building Block (ABB) / Solution Building Block (SBB) | 架构构件 / 解决方案构件 | ABB = 与实现无关的能力单元（本项目即 BC）；SBB = 具体实现（Flowable、PostgreSQL 等），可替换 |
 | Baseline / Target / Transition Architecture | 基线 / 目标 / 过渡架构 | 老系统现状 / 目标架构 / 每个阶段结束时可运行、可回滚的中间状态（`togaf/transitions.yaml`） |
 | Architecture Roadmap | 架构路线图 | 过渡架构的排序与依赖（图②） |
@@ -31,7 +31,7 @@
 | Ubiquitous Language | 统一语言 | `glossary/terms.yaml`（ADR-0018） |
 | Bounded Context | 限界上下文 | 一个 BC = 一个模块 = 一个 schema（ADR-0003） |
 | Core Domain / Generic Subdomain（Evans）；Supporting Subdomain（Vernon，Reference 中没有） | 核心域 / 通用子域 / 支撑子域 | 子域分类（决策页 Q6）；引用「支撑」须注明出自 Vernon |
-| Context Map；关系：Partnership、Shared Kernel、Customer/Supplier Development、Conformist、Anticorruption Layer、Open-host Service、Published Language、Separate Ways、Big Ball of Mud | 上下文映射与九种关系 | `ddd/context-map.yaml` 的 `type`；防腐层 = `platform.integration`（ADR-0039 草稿） |
+| Context Map；关系：Partnership、Shared Kernel、Customer/Supplier Development、Conformist、Anticorruption Layer、Open-host Service、Published Language、Separate Ways、Big Ball of Mud | 上下文映射与九种关系 | `ddd/context-map.yaml` 的 `type`；防腐层 = `platform.integration`（ADR-0039） |
 | Aggregate、Entity、Value Object、Domain Event、Service、Repository、Factory、Module | 聚合、实体、值对象、领域事件、领域服务、仓储、工厂、模块 | `ddd/aggregates.yaml`；一个事务只改一个聚合（§14 第 1 项） |
 | Domain Vision Statement、Highlighted Core | 领域愿景声明、突出核心 | 核心子域的一页说明（METHOD 第 2 步） |
 | Event Storming：Big Picture → Process Level → Design Level | 事件风暴三个层级 | 价值流阶段 → 关键事件 → 命令、策略、读模型、聚合（METHOD 第 3 步）。便签颜色与元素清单的官方定义**未核实** |
