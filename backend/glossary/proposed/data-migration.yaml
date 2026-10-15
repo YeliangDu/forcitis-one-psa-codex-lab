@@ -181,21 +181,6 @@ terms:
   forbidden: []
   status: proposed
   note: 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账
-- id: period_status__historical
-  zh: 历史期间
-  en: Historical
-  snake: historical
-  kind: value_object
-  bc: accounting.period
-  scope: domain
-  definition: 期间状态的一个取值，终态：FORCITIS one 首个业务期间之前的 (期间, 法人)，永不接受业务过账，只接受迁入过账通道；不逐期关账、不发关账事件（ADR-0036 第 6 条）
-  standard_ref:
-  - ADR-0036 历史数据迁入
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 会计类用语，待财务确认（ADR-0018；ADR-0036 U-3）
 - id: migration_period_reservation
   zh: 迁入占用
   en: MigrationPeriodReservation

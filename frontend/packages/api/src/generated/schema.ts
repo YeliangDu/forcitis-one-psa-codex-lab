@@ -1017,6 +1017,7 @@ export interface components {
             identityConfirmed: boolean;
             mode: string;
             navigation: components["schemas"]["NavigationResponse"][];
+            /** Format: uuid */
             orgUnitId?: string;
             orgUnitName?: string;
             permissionCodes: string[];
@@ -1175,6 +1176,7 @@ export interface components {
         LegalEntityAttributionResponse: {
             kind: string;
             periods: components["schemas"]["Period"][];
+            /** Format: uuid */
             subjectId: string;
         };
         LegalEntityResponse: {
@@ -1264,11 +1266,15 @@ export interface components {
         OrgUnitResponse: {
             code: string;
             deliveryUnit: boolean;
+            /** Format: uuid */
             headEmployeeId?: string;
             name: string;
+            /** Format: uuid */
             orgUnitId: string;
+            /** Format: uuid */
             parentOrgUnitId?: string;
             regionCategory?: string;
+            /** Format: uuid */
             regionalReceivablesManagerId?: string;
             shortName?: string;
             /** Format: int32 */
@@ -1327,8 +1333,8 @@ export interface components {
         /** @enum {string} */
         ProcessKey: "COST_TIMESHEET_APPROVAL";
         ReassignTaskRequest: {
-            /** Format: int64 */
-            assigneeId?: number;
+            /** Format: uuid */
+            assigneeId?: string;
             reason?: string;
         };
         RegisterSourceReferenceRequest: {
@@ -1507,8 +1513,8 @@ export interface components {
             ticket?: string;
         };
         TransferTaskRequest: {
-            /** Format: int64 */
-            assigneeId?: number;
+            /** Format: uuid */
+            assigneeId?: string;
             reason?: string;
         };
         UpdateLegalEntityRequest: {
@@ -1548,7 +1554,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                employeeId: number;
+                employeeId: string;
             };
             cookie?: never;
         };
@@ -1581,7 +1587,7 @@ export interface operations {
                 "If-Match": string;
             };
             path: {
-                employeeId: number;
+                employeeId: string;
             };
             cookie?: never;
         };
@@ -1620,7 +1626,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                employeeId: number;
+                employeeId: string;
             };
             cookie?: never;
         };
@@ -1659,7 +1665,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                employeeId: number;
+                employeeId: string;
             };
             cookie?: never;
         };
@@ -1830,7 +1836,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                orgUnitId: number;
+                orgUnitId: string;
             };
             cookie?: never;
         };
@@ -1863,7 +1869,7 @@ export interface operations {
                 "If-Match": string;
             };
             path: {
-                orgUnitId: number;
+                orgUnitId: string;
             };
             cookie?: never;
         };
@@ -1902,7 +1908,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                orgUnitId: number;
+                orgUnitId: string;
             };
             cookie?: never;
         };
@@ -1941,7 +1947,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                orgUnitId: number;
+                orgUnitId: string;
             };
             cookie?: never;
         };
@@ -2007,7 +2013,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                orgUnitId: number;
+                orgUnitId: string;
             };
             cookie?: never;
         };

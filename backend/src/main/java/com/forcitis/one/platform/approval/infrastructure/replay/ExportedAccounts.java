@@ -22,11 +22,11 @@ final class ExportedAccounts implements AccountEmployees {
 
     @Override
     public Optional<EmployeeId> employeeOf(UserId account) {
-        return Optional.of(new EmployeeId(person(account)));
+        return Optional.of(ExportedIds.employee(person(account)));
     }
 
     @Override
     public Optional<UserId> accountOf(EmployeeId employee) {
-        return Optional.of(account(employee.value()));
+        return Optional.of(account(ExportedIds.person(employee)));
     }
 }

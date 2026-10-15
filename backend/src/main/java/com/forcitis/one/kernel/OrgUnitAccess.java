@@ -1,6 +1,7 @@
 package com.forcitis.one.kernel;
 
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Which org units the signed-in person may see through a permission, worked out from the scope of the enabled roles that grant it.
@@ -12,7 +13,7 @@ public interface OrgUnitAccess {
     Visible visibleOrgUnits(String permissionCode);
 
     /** orgUnits are visible as such, orgUnitSubtrees with everything below them; empty and not everything means nothing. */
-    record Visible(boolean everything, Set<Long> orgUnits, Set<Long> orgUnitSubtrees) {
+    record Visible(boolean everything, Set<UUID> orgUnits, Set<UUID> orgUnitSubtrees) {
         public Visible {
             orgUnits = Set.copyOf(orgUnits);
             orgUnitSubtrees = Set.copyOf(orgUnitSubtrees);

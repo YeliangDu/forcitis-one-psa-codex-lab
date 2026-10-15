@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -211,8 +212,8 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(204);
         assertThat(jdbc.sql("""
                 select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1001) order by r.code
-                """).query(String.class).list()).containsExactly("auditor", "planner");
+                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee) order by r.code
+                """).param("employee", TestAccounts.employee(1001).value()).query(String.class).list()).containsExactly("auditor", "planner");
         assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus())
                 .as("RULE-338: a role change ends the sessions").isEqualTo(401);
         assertThat(mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
@@ -246,7 +247,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(errorCode(broad)).isEqualTo("PLATFORM_IDENTITY_ROLE_NOT_ALLOWED");
         assertThat(toSuperAdmin.getResponse().getStatus()).isEqualTo(403);
         assertThat(within.getResponse().getStatus()).isEqualTo(201);
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1001)")
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")")
                 .query(Long.class).single()).isZero();
     }
 
@@ -257,7 +258,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
             knownEmployee(id, id == 3 ? EmploymentStatus.SEPARATED : EmploymentStatus.EMPLOYED);
             createAccount(id, "employee");
         }
-        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = 2").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = " + TestOrgIds.sqlEmployee(2)).update();
 
         assertThat(roleDirectory.findRoleHolders(new RoleCode("employee"))).containsExactlyInAnyOrder(TestAccounts.account(1), TestAccounts.account(4));
         assertThat(roleDirectory.findRoleHolders(new RoleCode("nobody-has-this"))).isEmpty();
@@ -330,7 +331,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":disable").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin))
                 .andExpect(result -> assertThat(result.getResponse().getStatus()).isEqualTo(204));
 
-        assertThat(jdbc.sql("select version, event_count from platform_identity.user_accounts where employee_id = 1001")
+        assertThat(jdbc.sql("select version, event_count from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001))
                 .query((rs, n) -> List.of(rs.getLong(1), rs.getLong(2))).single()).as("roles replaced, disabled").isEqualTo(List.of(2L, 2L));
     }
 

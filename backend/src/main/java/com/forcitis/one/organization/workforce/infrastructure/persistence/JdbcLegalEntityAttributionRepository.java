@@ -14,6 +14,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityAttribution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionRepository;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
@@ -36,11 +37,9 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
 
     @Override
     public Optional<LegalEntityAttribution> find(AttributionSubject subject) {
-        return jdbc.sql("""
-                        select attribution_id, version, event_count from organization_workforce.legal_entity_attributions
-                         where subject_kind = :kind and subject_id = :id
-                        """)
-                .param("kind", subject.kind().name()).param("id", subject.subjectKey())
+        return jdbc.sql("select attribution_id, version, event_count from organization_workforce.legal_entity_attributions where "
+                        + EffectiveAttributionPeriods.subjectColumn(subject.kind()) + " = :id")
+                .param("id", subject.subjectId())
                 .query((rs, n) -> LegalEntityAttribution.restore(new AttributionId(rs.getObject("attribution_id", UUID.class)), subject, periods(subject),
                         rs.getLong("version"), rs.getLong("event_count"))).optional();
     }
@@ -49,7 +48,7 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
         String sql = subject.kind() == AttributionKind.ORG_UNIT
                 ? "update organization_workforce.org_unit_legal_entities set effective_to_date = :to, updated_at = :updatedAt where org_unit_id = :id and effective_from_date = :from"
                 : "update organization_workforce.employee_legal_entities set effective_to_date = :to, updated_at = :updatedAt where employee_id = :id and effective_from_date = :from";
-        jdbc.sql(sql).param("id", subject.subjectKey()).param("from", Date.valueOf(period.effectiveFrom()))
+        jdbc.sql(sql).param("id", subject.subjectId()).param("from", Date.valueOf(period.effectiveFrom()))
                 .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE)
                 .param("updatedAt", Timestamp.from(clock.instant())).update();
     }
@@ -78,16 +77,16 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
 
     private void insertPeriod(AttributionSubject subject, AttributionPeriod period) {
         String sql = subject.kind() == AttributionKind.ORG_UNIT
-                ? "insert into organization_workforce.org_unit_legal_entities (org_unit_id, legal_entity_id, effective_from_date, effective_to_date) values (:id, :legalEntity, :from, :to)"
-                : "insert into organization_workforce.employee_legal_entities (employee_id, legal_entity_id, effective_from_date, effective_to_date) values (:id, :legalEntity, :from, :to)";
-        jdbc.sql(sql).param("id", subject.subjectKey()).param("legalEntity", period.legalEntityId().value())
+                ? "insert into organization_workforce.org_unit_legal_entities (org_unit_legal_entity_id, org_unit_id, legal_entity_id, effective_from_date, effective_to_date) values (:rowId, :id, :legalEntity, :from, :to)"
+                : "insert into organization_workforce.employee_legal_entities (employee_legal_entity_id, employee_id, legal_entity_id, effective_from_date, effective_to_date) values (:rowId, :id, :legalEntity, :from, :to)";
+        jdbc.sql(sql).param("rowId", ids.next()).param("id", subject.subjectId()).param("legalEntity", period.legalEntityId().value())
                 .param("from", Date.valueOf(period.effectiveFrom()))
                 .param("to", period.effectiveTo() == null ? null : Date.valueOf(period.effectiveTo()), java.sql.Types.DATE).update();
     }
 
     private List<AttributionPeriod> periods(AttributionSubject subject) {
         return jdbc.sql(EffectiveAttributionPeriods.select(subject.kind()))
-                .param("id", subject.subjectKey())
+                .param("id", subject.subjectId())
                 .query((rs, n) -> new AttributionPeriod(new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
                         rs.getDate("effective_from_date").toLocalDate(),
                         rs.getDate("effective_to_date") == null ? null : rs.getDate("effective_to_date").toLocalDate())).list();
@@ -98,11 +97,11 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
         if (attribution.storedId() == null) {
             try {
                 jdbc.sql("""
-                                insert into organization_workforce.legal_entity_attributions (attribution_id, subject_kind, subject_id, version, event_count)
-                                values (:id, :kind, :subject, :version, :eventCount)
+                                insert into organization_workforce.legal_entity_attributions (attribution_id, org_unit_id, employee_id, version, event_count)
+                                values (:id, :orgUnit, :employee, :version, :eventCount)
                                 """)
                         .param("id", ids.next())
-                        .param("kind", attribution.subject().kind().name()).param("subject", attribution.subject().subjectKey())
+                        .param("orgUnit", orgUnitOf(attribution.subject()), Types.OTHER).param("employee", employeeOf(attribution.subject()), Types.OTHER)
                         .param("version", attribution.versionAfterSave()).param("eventCount", attribution.eventSequenceAfterSave()).update();
             } catch (DuplicateKeyException saved) {
                 throw conflict(attribution);
@@ -127,20 +126,29 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
     private void insertCorrections(LegalEntityAttribution attribution) {
         for (AttributionCorrection correction : attribution.pendingCorrections()) {
             jdbc.sql("""
-                    insert into organization_workforce.legal_entity_attribution_corrections (correction_id, subject_kind, subject_id,
+                    insert into organization_workforce.legal_entity_attribution_corrections (correction_id, org_unit_id, employee_id,
                            period_effective_from_date, previous_effective_to_date, new_effective_to_date, correction_reason, corrected_by_user_id)
-                    values (:id, :kind, :subject, :from, :previous, :next, :reason, :by)
+                    values (:id, :orgUnit, :employee, :from, :previous, :next, :reason, :by)
                     """)
-                    .param("id", ids.next()).param("kind", attribution.subject().kind().name()).param("subject", attribution.subject().subjectKey())
+                    .param("id", ids.next())
+                    .param("orgUnit", orgUnitOf(attribution.subject()), Types.OTHER).param("employee", employeeOf(attribution.subject()), Types.OTHER)
                     .param("from", Date.valueOf(correction.periodFrom())).param("previous", Date.valueOf(correction.previousEffectiveTo()))
                     .param("next", Date.valueOf(correction.newEffectiveTo())).param("reason", correction.reason().value())
                     .param("by", correction.correctedBy().value()).update();
         }
     }
 
+    private static UUID orgUnitOf(AttributionSubject subject) {
+        return subject.orgUnit() == null ? null : subject.orgUnit().value();
+    }
+
+    private static UUID employeeOf(AttributionSubject subject) {
+        return subject.employee() == null ? null : subject.employee().value();
+    }
+
     private static DomainException conflict(LegalEntityAttribution attribution) {
         AttributionKind kind = attribution.subject().kind();
         return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
-                "the attribution of " + kind + " " + attribution.subject().subjectKey() + " was changed by someone else");
+                "the attribution of " + kind + " " + attribution.subject().subjectId() + " was changed by someone else");
     }
 }

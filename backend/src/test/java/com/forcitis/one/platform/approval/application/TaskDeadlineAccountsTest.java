@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
  * the superior is looked up as an employee, set against the initiator (an employee), and the task goes to the superior's account.
  */
 class TaskDeadlineAccountsTest {
-    static final EmployeeId INITIATOR = new EmployeeId(1001);
+    static final EmployeeId INITIATOR = TestAccounts.employee(1001);
     static final UserId HOLDER = TestAccounts.account(1002);
     static final UserId PROCESS_ADMINISTRATOR = TestAccounts.account(1009);
     static final Instant LONG_AGO = Instant.parse("2026-10-01T02:00:00Z");
@@ -65,7 +65,7 @@ class TaskDeadlineAccountsTest {
     @Test
     @DisplayName("the holder's superior takes the task as the superior's account")
     void superiorGetsTheTaskAsItsAccount() {
-        when(org.findSupervisor(new EmployeeId(1002))).thenReturn(Optional.of(new EmployeeId(1003)));
+        when(org.findSupervisor(TestAccounts.employee(1002))).thenReturn(Optional.of(TestAccounts.employee(1003)));
 
         deadline.enforce(OpenTasks.TASK);
 
@@ -76,7 +76,7 @@ class TaskDeadlineAccountsTest {
     @Test
     @DisplayName("when the superior is the initiator the task goes to the process administrator, found by employee although the account numbers differ")
     void initiatorAsSuperiorIsSkipped() {
-        when(org.findSupervisor(new EmployeeId(1002))).thenReturn(Optional.of(INITIATOR));
+        when(org.findSupervisor(TestAccounts.employee(1002))).thenReturn(Optional.of(INITIATOR));
 
         deadline.enforce(OpenTasks.TASK);
 
@@ -87,7 +87,7 @@ class TaskDeadlineAccountsTest {
     @Test
     @DisplayName("the superior is looked up by the holder's employee: the employee numbered like the holder's account has another superior")
     void holderIsLookedUpAsItsEmployee() {
-        when(org.findSupervisor(new EmployeeId(6002))).thenReturn(Optional.of(new EmployeeId(1003)));
+        when(org.findSupervisor(TestAccounts.employee(6002))).thenReturn(Optional.of(TestAccounts.employee(1003)));
 
         deadline.enforce(OpenTasks.TASK);
 

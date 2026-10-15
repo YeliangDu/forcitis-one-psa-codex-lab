@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
  * employee's account. Employee 1001 started the approval; accounts are the employee's number plus 5000.
  */
 class ReassignTaskAccountsTest {
-    static final EmployeeId INITIATOR = new EmployeeId(1001);
+    static final EmployeeId INITIATOR = TestAccounts.employee(1001);
     static final UserId ADMINISTRATOR = TestAccounts.account(1009);
 
     final ProcessAdministrator administrator = mock(ProcessAdministrator.class);
@@ -48,7 +48,7 @@ class ReassignTaskAccountsTest {
     }
 
     private void reassignTo(long employee) {
-        reassign.execute(OpenTasks.TASK, ADMINISTRATOR, new EmployeeId(employee), "swap", OptionalLong.empty());
+        reassign.execute(OpenTasks.TASK, ADMINISTRATOR, TestAccounts.employee(employee), "swap", OptionalLong.empty());
     }
 
     @Test

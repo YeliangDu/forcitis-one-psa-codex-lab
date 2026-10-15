@@ -10,13 +10,18 @@ final class EffectiveAttributionPeriods {
     private EffectiveAttributionPeriods() {
     }
 
+    /** The column that names the subject of the kind, in the attribution, correction and period tables alike (DA-5). */
+    static String subjectColumn(AttributionKind kind) {
+        return kind == AttributionKind.ORG_UNIT ? "org_unit_id" : "employee_id";
+    }
+
     static String select(AttributionKind kind) {
         String table = kind == AttributionKind.ORG_UNIT ? "org_unit_legal_entities" : "employee_legal_entities";
-        String column = kind == AttributionKind.ORG_UNIT ? "org_unit_id" : "employee_id";
+        String column = subjectColumn(kind);
         return "select p.legal_entity_id, p.effective_from_date, coalesce(c.new_effective_to_date, p.effective_to_date) as effective_to_date"
                 + " from organization_workforce." + table + " p"
                 + " left join lateral (select new_effective_to_date from organization_workforce.legal_entity_attribution_corrections"
-                + "                     where subject_kind = '" + kind.name() + "' and subject_id = p." + column
+                + "                     where " + column + " = p." + column
                 + "                       and period_effective_from_date = p.effective_from_date"
                 + "                     order by correction_number desc limit 1) c on true"
                 + " where p." + column + " = :id";

@@ -17,19 +17,21 @@ import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 class AccessScopeTest {
 
     static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
     static final LegalEntityId LE2 = new LegalEntityId(TestIds.uuid(2));
-    static final OrgUnitId ROOT = new OrgUnitId(1);
-    static final OrgUnitId DEPT_15 = new OrgUnitId(15);
-    static final OrgUnitId DEPT_16 = new OrgUnitId(16);
-    static final OrgUnitId DEPT_20 = new OrgUnitId(20);
-    static final EmployeeId ME = new EmployeeId(1001);
-    static final EmployeeId REPORT = new EmployeeId(2001);
-    static final EmployeeId REPORTS_REPORT = new EmployeeId(3001);
-    static final EmployeeId STRANGER = new EmployeeId(9999);
+    static final OrgUnitId ROOT = TestOrgIds.orgUnit(1);
+    static final OrgUnitId DEPT_15 = TestOrgIds.orgUnit(15);
+    static final OrgUnitId DEPT_16 = TestOrgIds.orgUnit(16);
+    static final OrgUnitId DEPT_20 = TestOrgIds.orgUnit(20);
+    static final EmployeeId ME = TestAccounts.employee(1001);
+    static final EmployeeId REPORT = TestAccounts.employee(2001);
+    static final EmployeeId REPORTS_REPORT = TestAccounts.employee(3001);
+    static final EmployeeId STRANGER = TestAccounts.employee(9999);
 
     static AccessTarget row(LegalEntityId le, OrgUnitId unit, EmployeeId owner) {
         List<OrgUnitId> path = unit.equals(DEPT_16) ? List.of(DEPT_16, DEPT_15, ROOT) : unit.equals(DEPT_15) ? List.of(DEPT_15, ROOT)

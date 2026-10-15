@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.api.RoundNumber;
@@ -135,15 +136,15 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     void roundsAreUniqueInTheDatabase() {
         String key = newKey("unique");
         jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_key, legal_entity_id, initiator_id,"
-                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, '" + LEGAL_ENTITY.value() + "', 5, 1, 'RUNNING', 's')", key);
+                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(5) + ", 1, 'RUNNING', 's')", key);
         String event = java.util.UUID.randomUUID().toString();
         jdbc.update("insert into platform_approval.start_rounds (id, process_key, document_key, round_number, initiator_id, instance_id,"
-                + " trigger_event_id) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', ?, 1, 5, 'a', ?::uuid)", key, event);
+                + " trigger_event_id) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', ?, 1, " + TestOrgIds.sqlEmployee(5) + ", 'a', ?::uuid)", key, event);
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (id, process_key, document_key, round_number,"
-                + " initiator_id, instance_id, trigger_event_id) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', ?, 1, 5, 'b', gen_random_uuid())", key))
+                + " initiator_id, instance_id, trigger_event_id) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', ?, 1, " + TestOrgIds.sqlEmployee(5) + ", 'b', gen_random_uuid())", key))
                 .isInstanceOf(DuplicateKeyException.class);
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (id, process_key, document_key, round_number,"
-                + " initiator_id, instance_id, trigger_event_id) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', ?, 2, 5, 'b', ?::uuid)", key, event))
+                + " initiator_id, instance_id, trigger_event_id) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', ?, 2, " + TestOrgIds.sqlEmployee(5) + ", 'b', ?::uuid)", key, event))
                 .isInstanceOf(DuplicateKeyException.class);
     }
 
@@ -152,9 +153,9 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     void requestsAreUniqueInTheDatabase() {
         String key = newKey("unique-request");
         jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_key, legal_entity_id, initiator_id,"
-                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, '" + LEGAL_ENTITY.value() + "', 5, 1, 'RUNNING', 's')", key);
+                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(5) + ", 1, 'RUNNING', 's')", key);
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_key,"
-                + " legal_entity_id, initiator_id, current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, '" + LEGAL_ENTITY.value() + "', 6, 1,"
+                + " legal_entity_id, initiator_id, current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(6) + ", 1,"
                 + " 'RUNNING', 's')", key)).isInstanceOf(DuplicateKeyException.class);
     }
 
@@ -166,9 +167,9 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null).person(manager, 1, null);
         String key = newKey("round-order");
         ApprovalInstanceId first = start(key, initiator, manager);
-        java.util.function.Function<Integer, ApprovalInstanceId> ask = round -> tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        java.util.function.Function<Integer, ApprovalInstanceId> ask = round -> tx.execute(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))), round)));
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))), round)));
 
         assertThat(ask.apply(1)).isEqualTo(first);
         assertThatThrownBy(() -> ask.apply(2)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class,
@@ -207,8 +208,8 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null);
         String key = newKey("rollback");
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
-            approvals.start(startRequest(key, new EmployeeId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                    List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(initiator))))));
+            approvals.start(startRequest(key, TestAccounts.employee(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+                    List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(initiator).toString())))));
             throw new IllegalStateException("business transaction fails after the start");
         })).isInstanceOf(IllegalStateException.class);
         assertThat(instancesOf(key)).isZero();

@@ -236,7 +236,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
                  WHERE process_key = :processKey AND document_key = :id ORDER BY round_number
                 """)
                 .param("processKey", processKey.name()).param("id", document.documentId().value())
-                .query((rs, n) -> new ApprovalRound(rs.getInt("round_number"), new EmployeeId(rs.getLong("initiator_id")),
+                .query((rs, n) -> new ApprovalRound(rs.getInt("round_number"), new EmployeeId(rs.getObject("initiator_id", UUID.class)),
                         new ApprovalInstanceId(rs.getString("instance_id")))).list();
     }
 
@@ -249,7 +249,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
         String reason = rs.getString("result_reason");
         return new Row(ProcessKey.valueOf(rs.getString("process_key")), new DocumentReference(DocumentType.valueOf(rs.getString("document_type")),
                 new DocumentId(rs.getString("document_key"))), new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
-                new EmployeeId(rs.getLong("initiator_id")), rs.getInt("current_round"), new ApprovalInstanceId(rs.getString("current_instance_id")),
+                new EmployeeId(rs.getObject("initiator_id", UUID.class)), rs.getInt("current_round"), new ApprovalInstanceId(rs.getString("current_instance_id")),
                 ApprovalStatus.valueOf(rs.getString("status")), reason == null ? null : new Reason(reason),
                 new ApprovalSummary(rs.getString("summary_text")), rs.getLong("version"), rs.getLong("event_count"));
     }

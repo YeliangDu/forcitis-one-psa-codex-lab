@@ -1,20 +1,20 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceGender;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourcePerson;
-import com.forcitis.one.platform.integration.api.SourcePersonId;
 import com.forcitis.one.platform.integration.api.SourcePosition;
-import com.forcitis.one.platform.integration.api.SourcePositionId;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.SourceRelationship;
 import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
-import com.forcitis.one.platform.integration.api.SourceUnitId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,19 +23,23 @@ public final class Fixtures {
     }
 
     public static OrgUnitId unitId(long id) {
-        return new OrgUnitId(id);
+        return TestOrgIds.orgUnit(id);
     }
 
     public static EmployeeId user(long id) {
-        return new EmployeeId(id);
+        return TestAccounts.employee(id);
     }
 
-    public static SourceUnitId sourceUnit(long id) {
-        return new SourceUnitId(id);
+    public static OwnObjectId sourceUnit(long id) {
+        return TestOrgIds.ownOrgUnit(id);
     }
 
-    public static SourcePersonId sourcePerson(long id) {
-        return new SourcePersonId(id);
+    public static OwnObjectId sourcePerson(long id) {
+        return TestOrgIds.ownEmployee(id);
+    }
+
+    public static OwnObjectId sourcePosition(long id) {
+        return TestOrgIds.ownPosition(id);
     }
 
     public static SourceOrgUnit unit(long id, Long parent) {
@@ -52,7 +56,7 @@ public final class Fixtures {
     }
 
     public static SourcePosition post(long id, SourceRecordState state) {
-        return new SourcePosition(new SourcePositionId(id), "P" + id, "Post " + id, (int) id, state);
+        return new SourcePosition(sourcePosition(id), "P" + id, "Post " + id, (int) id, state);
     }
 
     public static SourcePerson person(long id, long unit, Long post, Long leader) {
@@ -61,7 +65,7 @@ public final class Fixtures {
 
     public static SourcePerson person(long id, long unit, Long post, Long leader, String login, String wecom) {
         return new SourcePerson(sourcePerson(id), "E" + id, "Person " + id, sourceUnit(unit),
-                post == null ? null : new SourcePositionId(post), leader == null ? null : sourcePerson(leader), login,
+                post == null ? null : sourcePosition(post), leader == null ? null : sourcePerson(leader), login,
                 "p" + id + "@example.test", SourceGender.MALE, wecom == null ? null : new WecomUserId(wecom), false);
     }
 

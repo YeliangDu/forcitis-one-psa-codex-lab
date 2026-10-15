@@ -95,7 +95,7 @@ public class ApplySourceSnapshot {
             String reason = Stream.of(shrinkHeld ? verdict.reason() : null, separationHeld ? review.reason() : null)
                     .filter(Objects::nonNull).collect(Collectors.joining("; "));
             List<EmployeeId> leaving = separationHeld
-                    ? changes.separatedEmployees().stream().sorted(Comparator.comparingLong(EmployeeId::value)).toList() : List.of();
+                    ? changes.separatedEmployees().stream().sorted(Comparator.comparing(EmployeeId::value)).toList() : List.of();
             return hold(run, earlier, changes, reason, kinds, leaving, releasedBy != null, now);
         }
         if (verdict.held()) {

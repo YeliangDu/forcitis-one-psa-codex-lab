@@ -15,7 +15,10 @@ import com.forcitis.one.organization.workforce.application.SyncResult;
 import com.forcitis.one.organization.workforce.application.SyncRunDetailView;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
+import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.api.SourceObjectKind;
+import com.forcitis.one.platform.integration.application.SourceReferences;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -451,8 +454,11 @@ class A8SourceFlagsIT {
         return app().getBean(GetSyncRun.class).execute(result.syncRunId()).orElseThrow();
     }
 
-    static String unitName(long unitId) {
-        return app().getBean(OrgDirectory.class).findOrgUnit(new OrgUnitId(unitId)).orElseThrow().name();
+    static String unitName(long sourceUnitId) {
+        UUID ownId = app().getBean(SourceReferences.class)
+                .findOwnId(ExternalSource.ORG_SOURCE, SourceObjectKind.ORG_UNIT, sourceUnitId)
+                .orElseThrow(() -> new AssertionError("one confirmed reference of source unit " + sourceUnitId));
+        return app().getBean(OrgDirectory.class).findOrgUnit(new OrgUnitId(ownId)).orElseThrow().name();
     }
 
     // ------------------------------------------------------------------ helpers: statements
@@ -598,7 +604,7 @@ class A8SourceFlagsIT {
                 "--flowable.async-executor-activate=false",
                 "--forcitis.platform.approval.deadline.enabled=false",
                 "--forcitis.platform.integration.legacy.enabled=false",
-                "--forcitis.platform.approval.legacy.url=",
+                "--forcitis.platform.integration.legacy.inbox.url=",
                 views + "enabled=true",
                 views + "jdbc-url=" + url(database), views + "username=" + reader.user(), views + "password=" + reader.password(),
                 views + "head-relationship-type-id=" + HEAD_TYPE, views + "regional-receivables-manager-relationship-type-id=" + MANAGER_TYPE,

@@ -5488,7 +5488,7 @@ terms:
   snake: period_status
   kind: state
   bc: accounting.period
-  definition: OPEN / CLOSING / CLOSED（重开政策待财务确认）
+  definition: OPEN / CLOSING / CLOSED / HISTORICAL（历史期间，见 period_status__historical）；重开政策待财务确认
   standard_ref:
   - ADR-0016 权责发生制业财一体主干
   confidence: medium
@@ -5496,7 +5496,7 @@ terms:
   forbidden: []
   status: approved
   change_ref: G-16
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；用户 2026-10-15 财务口径决策页 FD-01（历史期间）（用户裁定，rulings.yaml）
   scope: domain
 - id: period_close
   zh: 期末关账
@@ -7495,7 +7495,7 @@ terms:
   snake: regional_head
   kind: role
   bc: platform.approval
-  definition: 区域组织单元的负责人；含售前工时的工时单还要经他审批（表单字段 regionalHeadId）
+  definition: 区域组织单元的负责人；区域是介于项目和公司之间的一层组织，与事业部同属组织单元的类型（F1-05、Q37a），将另作数据范围维度；不承担工时审批，售前工时的审批人是部门负责人（D5-06）
   standard_ref:
   - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
   confidence: medium
@@ -7503,7 +7503,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（原提议 platform-approval.yaml#regional_head，R3-AP-66）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-15 D5-06 及其说明（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）（用户裁定，rulings.yaml）
   scope: domain
 - id: skip
   zh: 跳过
@@ -7540,13 +7540,13 @@ terms:
   note: 用语确认第三轮转正式（原提议 platform-approval.yaml#project_manager_review，R3-AP-68）
   confirmed: 2026-10-15（用户，用语确认第三轮）
   scope: domain
-- id: regional_head_approval
-  zh: 区域负责人审批
-  en: RegionalHeadApproval
-  snake: regional_head_approval
+- id: org_unit_head_approval
+  zh: 部门负责人审批
+  en: OrgUnitHeadApproval
+  snake: org_unit_head_approval
   kind: value_object
   bc: platform.approval
-  definition: 工时审批中由区域负责人办理的节点，对应售前工时
+  definition: 工时审批中由部门负责人办理的节点，对应售前工时；审批人是售前对象归属部门在组织架构登记的部门负责人（D5-06）
   standard_ref:
   - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
   confidence: medium
@@ -7554,10 +7554,19 @@ terms:
   - name: RegionalHeadReview
     type: old-code
     deprecated: true
-  forbidden: []
+  - name: 区域负责人审批
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-15 工时审批路径决策页 D5-06（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）；用户：节点与用语改称「部门负责人审批」
+  - name: RegionalHeadApproval
+    type: old-code
+    deprecated: true
+    source: 用户 2026-10-15 工时审批路径决策页 D5-06（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）；用户：节点与用语改称「部门负责人审批」
+  forbidden:
+  - 区域负责人审批
   status: approved
   note: 用语确认第三轮转正式（原提议 platform-approval.yaml#regional_head_review，R3-AP-69）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-15 工时审批路径决策页 D5-06（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）；用户：节点与用语改称「部门负责人审批」（用户裁定，rulings.yaml）
   scope: domain
 - id: supervisor_approval
   zh: 直属上级审批
@@ -7857,21 +7866,30 @@ terms:
   note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#accrual_revenue，R3-FI-05）
   confirmed: 2026-10-15（用户，用语确认第三轮）
   scope: domain
-- id: information_service_fee
-  zh: 信息服务费
-  en: InformationServiceFee
-  snake: information_service_fee
+- id: intermediary_fee
+  zh: 居间费用
+  en: IntermediaryFee
+  snake: intermediary_fee
   kind: value_object
   bc: expense.spend
-  definition: 公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；性质（转付成本、合同取得成本或销售费用）待向财务核实，决定其在净收入还是贡献毛利中扣减
+  definition: 居间协议约定的佣金支出；公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；应付登记须挂触发事实，不是转付成本，在贡献毛利中扣减、不在净收入中扣（FD-17、FD-41）
   standard_ref:
   - 企业会计准则第 14 号——收入（第二十八条合同取得成本、第三十四条主要责任人与代理人）
   confidence: medium
-  aliases: []
-  forbidden: []
+  aliases:
+  - name: 信息服务费
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-15 财务口径决策页 F-06「就是居间费用的方言」（intent 2026-10-15-222618-one-rules-财务口径决策页-需向财务核实的事）
+  - name: InformationServiceFee
+    type: old-code
+    deprecated: true
+    source: 用户 2026-10-15 财务口径决策页 F-06「就是居间费用的方言」（intent 2026-10-15-222618-one-rules-财务口径决策页-需向财务核实的事）
+  forbidden:
+  - 信息服务费
   status: approved
   note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#information_service_fee，R3-FI-06）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-15 财务口径决策页 F-06「就是居间费用的方言」（intent 2026-10-15-222618-one-rules-财务口径决策页-需向财务核实的事）（用户裁定，rulings.yaml）
   scope: domain
 - id: debt_settlement_asset
   zh: 抵债资产
@@ -10548,6 +10566,22 @@ terms:
   note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#expected_separation_date，R3-WF-28）
   confirmed: 2026-10-15（用户，用语确认第三轮）
   scope: domain
+- id: period_status__historical
+  zh: 历史期间
+  en: Historical
+  snake: historical
+  kind: value_object
+  bc: accounting.period
+  scope: domain
+  definition: 期间状态的一个取值，终态：FORCITIS one 首个业务期间之前的 (期间, 法人)，永不接受业务过账，只接受迁入过账通道；不逐期关账、不发关账事件（ADR-0036 第 6 条）
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-15（用户，财务口径决策页 FD-01）
+  note: 用户裁定转正式：用户 2026-10-15 财务口径决策页 FD-01 选定名称「历史期间」（intent 2026-10-15-221430-one-rules-财务口径决策页-FD-01-新系）；含义不变，沿用提议定义
 common_words:
 - Id
 - Uuid

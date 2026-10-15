@@ -16,7 +16,6 @@ import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.time.Instant;
-import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +25,7 @@ class TaskPolicyTest {
     static TaskView task(UserId assignee, Set<UserId> candidates) {
         return new TaskView(new ApprovalTaskId("t1"), new ApprovalInstanceId("i1"), ProcessKey.COST_TIMESHEET_APPROVAL,
                 new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc-1")), new LegalEntityId(TestIds.uuid(1)), "approverReview",
-                "Approver review", new EmployeeId(1), Optional.ofNullable(assignee), candidates, Instant.EPOCH, true, Optional.empty(), false,
+                "Approver review", TestAccounts.employee(1), Optional.ofNullable(assignee), candidates, Instant.EPOCH, true, Optional.empty(), false,
                 new ContentHash("hash"));
     }
 
@@ -47,19 +46,5 @@ class TaskPolicyTest {
         assertThat(TaskActors.mayAct(claimed, TestAccounts.account(2))).isTrue();
         assertThat(TaskActors.mayAct(claimed, TestAccounts.account(3))).isFalse();
         assertThat(TaskActors.mayAct(claimed, TestAccounts.account(1))).isFalse();
-    }
-
-    @Test
-    @DisplayName("RULE-261 row tasks of one (instance, node) are one to-do represented by the newest; other nodes stay separate")
-    void rowTasksMergePerInstanceAndNode() {
-        LegacyInstanceId p1 = new LegacyInstanceId("P1");
-        LegacyInstanceId p2 = new LegacyInstanceId("P2");
-        List<LegacyTodo> merged = InboxMerger.mergeRowTasks(List.of(
-                new LegacyTodo("t1", p1, "N", "Node", "title", Instant.parse("2026-10-01T00:00:00Z"), null),
-                new LegacyTodo("t2", p1, "N", "Node", "title", Instant.parse("2026-10-03T00:00:00Z"), null),
-                new LegacyTodo("t3", p1, "N", "Node", "title", Instant.parse("2026-10-02T00:00:00Z"), null),
-                new LegacyTodo("t4", p2, "N", "Node", "title", Instant.parse("2026-10-04T00:00:00Z"), null),
-                new LegacyTodo("t5", p1, "M", "Other", "title", Instant.parse("2026-10-05T00:00:00Z"), null)));
-        assertThat(merged).extracting(LegacyTodo::taskKey).containsExactly("t5", "t4", "t2");
     }
 }

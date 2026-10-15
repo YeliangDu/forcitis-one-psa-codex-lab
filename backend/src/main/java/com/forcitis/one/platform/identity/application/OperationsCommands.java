@@ -109,10 +109,14 @@ public class OperationsCommands {
 
     private static EmployeeId employeeId(ApplicationArguments arguments) {
         String value = single(arguments, EMPLOYEE_ID);
-        if (value == null || !value.matches("-?[0-9]{1,18}") || Long.parseLong(value) == 0) {
+        if (value == null) {
             throw new IllegalArgumentException("--employee-id must be the employee's id");
         }
-        return new EmployeeId(Long.parseLong(value));
+        try {
+            return EmployeeId.parse(value);
+        } catch (IllegalArgumentException notCanonical) {
+            throw new IllegalArgumentException("--employee-id must be the employee's id as a lower-case canonical UUID");
+        }
     }
 
     private static String single(ApplicationArguments arguments, String name) {

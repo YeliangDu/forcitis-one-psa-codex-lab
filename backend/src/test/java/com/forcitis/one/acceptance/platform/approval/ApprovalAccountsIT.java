@@ -59,10 +59,10 @@ class ApprovalAccountsIT extends AccountsAcceptanceSupport {
     ApprovalProcesses approvals;
 
     LegalEntityId legalEntity;
-    long unit;
-    long supervisor;
-    long initiator;
-    long projectManager;
+    UUID unit;
+    UUID supervisor;
+    UUID initiator;
+    UUID projectManager;
     SignedIn supervisorAccount;
     SignedIn initiatorAccount;
     SignedIn projectManagerAccount;
@@ -71,7 +71,7 @@ class ApprovalAccountsIT extends AccountsAcceptanceSupport {
     void anInitiatorTheirSupervisorAndAProjectManager() throws Exception {
         unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long maintainer = newEmployeeId();
+        UUID maintainer = newEmployeeId();
         employee(maintainer, unit, null);
         grantByOperations(maintainer, "org_data_admin");
         SignedIn maintainerSession = signIn(maintainer);
@@ -88,11 +88,11 @@ class ApprovalAccountsIT extends AccountsAcceptanceSupport {
         projectManagerAccount = signIn(projectManager);
     }
 
-    private DocumentReference start(List<Long> projectManagers) {
+    private DocumentReference start(List<UUID> projectManagers) {
         DocumentReference document = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("acceptance-" + UUID.randomUUID()));
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "acceptance.timesheet-submission")) {
-            approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, new EmployeeId(initiator), new RoundNumber(1),
-                    UUID.randomUUID(), Set.of("projectHours"), List.of(new ApprovalField("projectManagerId", projectManagers.stream().map(String::valueOf).toList())),
+            approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, employeeIdOf(initiator), new RoundNumber(1),
+                    UUID.randomUUID(), Set.of("projectHours"), List.of(new ApprovalField("projectManagerId", projectManagers.stream().map(AccountsAcceptanceSupport::text).toList())),
                     new ContentHash("synthetic-content"), new ApprovalSummary("Synthetic timesheet " + document.documentId().value())));
         }
         return document;
@@ -143,7 +143,7 @@ class ApprovalAccountsIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 3 条（审批选人）：表单选中的员工没有账号时指派失败并告警，不静默跳过：发起失败、不留下审批；有账号的员工照常指派")
     void anEmployeeWithoutAnAccountCannotBeAssigned() throws Exception {
-        long withoutAccount = newEmployeeId();
+        UUID withoutAccount = newEmployeeId();
         employee(withoutAccount, unit, null);
         assertThat(accountsOfEmployee(withoutAccount)).isEmpty();
         int mark = logMark();

@@ -47,11 +47,9 @@ class NodeAssignment {
     Resolution resolve(UserTask node, String instanceId, Map<String, Object> engineVariables) {
         NodePolicy policy = NodePolicyReader.read(node);
         ProcessVariables variables = EngineVariables.fromEngine(engineVariables);
-        EmployeeId initiator = new EmployeeId(Long.parseLong(variables.firstVariable(FlowableApprovalEngine.VARIABLE_INITIATOR)
-                .orElseThrow(() -> new IllegalStateException("Instance " + instanceId + " has no initiator"))));
-
         Resolution resolution;
         try {
+            EmployeeId initiator = FlowableApprovalEngine.initiatorOf(variables, instanceId);
             resolution = new AssigneeResolver(org, roles, administrator.holders(), accountEmployees)
                     .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
         } catch (RuntimeException failed) {

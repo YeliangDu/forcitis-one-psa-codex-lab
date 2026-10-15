@@ -1,6 +1,7 @@
 package com.forcitis.one.scenario;
 
-import com.forcitis.one.fixture.doubles.TestAccounts;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlEmployee;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlOrgUnit;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
@@ -20,6 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -73,15 +76,15 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     @org.junit.jupiter.api.BeforeEach
     void theReaderIsTheOrganisationDataAdministrator() {
         for (long person : new long[] {9001, 9002, 9003}) {
-            jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + TestAccounts.sql(person) + "::uuid, " + person + ") on conflict do nothing").update();
+            jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + TestAccounts.sql(person) + "::uuid, " + sqlEmployee(person) + ") on conflict do nothing").update();
         }
         jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) select " + TestAccounts.sql(9002) + "::uuid, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
     }
 
     @org.junit.jupiter.api.AfterEach
     void removeTheReaderAccount() {
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 9002)").update();
-        jdbc.sql("delete from platform_identity.user_accounts where employee_id in (9001, 9002, 9003)").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + sqlEmployee(9002) + ")").update();
+        jdbc.sql("delete from platform_identity.user_accounts where employee_id in (" + sqlEmployee(9001) + ", " + sqlEmployee(9002) + ", " + sqlEmployee(9003) + ")").update();
     }
 
     @BeforeEach
@@ -101,6 +104,10 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         sync.execute(SyncTrigger.SCHEDULED, false);
     }
 
+    private static String unitText(long n) {
+        return TestOrgIds.orgUnit(n).value().toString();
+    }
+
     private LocalDate today() {
         return zone.today(clock);
     }
@@ -110,7 +117,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     }
 
     private void attributeOrgUnit(long orgUnitId, LegalEntityId legalEntity, LocalDate from) throws Exception {
-        String url = "/api/v1/organization/org-unit-legal-entities/" + orgUnitId;
+        String url = "/api/v1/organization/org-unit-legal-entities/" + unitText(orgUnitId);
         String etag = etagOf(url);
         var request = put(url).with(csrf()).with(MAINTAINER);
         mvc.perform((etag == null ? request.header("If-Match", "\"0\"") : request.header("If-Match", etag))
@@ -143,7 +150,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         sync.execute(SyncTrigger.SCHEDULED, false);
 
         assertThat(count("org_unit_versions")).isEqualTo(5);
-        assertThat(jdbc.sql("select effective_to_date from organization_workforce.org_unit_versions where org_unit_id = 3 order by effective_from_date limit 1")
+        assertThat(jdbc.sql("select effective_to_date from organization_workforce.org_unit_versions where org_unit_id = " + sqlOrgUnit(3) + " order by effective_from_date limit 1")
                 .query(java.sql.Date.class).single().toLocalDate()).isEqualTo(first.plusDays(3));
 
         attributeOrgUnit(1, le1, first);
@@ -165,7 +172,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         assertThat(resolver.on(user(2), day)).as("a subtree overrides the ancestor").isEqualTo(le2);
         assertThat(resolver.on(user(1), day)).isEqualTo(le1);
 
-        mvc.perform(put("/api/v1/organization/employee-legal-entities/2").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
+        mvc.perform(put("/api/v1/organization/employee-legal-entities/" + TestAccounts.employee(2).value()).header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"legalEntityId\":\"" + le1.value() + "\",\"effectiveFrom\":\"" + day.plusDays(1) + "\"}")).andExpect(status().isOk());
         assertThat(resolver.on(user(2), day)).isEqualTo(le2);
@@ -195,22 +202,22 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         LocalDate day = today();
         attributeOrgUnit(1, le1, day);
 
-        mvc.perform(get("/api/v1/organization/org-unit-legal-entities/1").with(READER)).andExpect(status().isOk())
+        mvc.perform(get("/api/v1/organization/org-unit-legal-entities/" + unitText(1)).with(READER)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.periods[0].legalEntityId").value(String.valueOf(le1.value())))
                 .andExpect(jsonPath("$.periods[0].effectiveTo").doesNotExist());
-        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/1").with(csrf()).with(READER)
+        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/" + unitText(1)).with(csrf()).with(READER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + le2.value() + "\",\"effectiveFrom\":\"" + day.plusDays(1) + "\"}"))
                 .andExpect(status().isForbidden());
-        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/404").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
+        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/" + unitText(404)).header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + le1.value() + "\",\"effectiveFrom\":\"" + day + "\"}"))
                 .andExpect(status().isNotFound());
-        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/2").header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
+        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/" + unitText(2)).header("If-Match", "\"0\"").with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + TestIds.uuid(404) + "\",\"effectiveFrom\":\"" + day + "\"}"))
                 .andExpect(status().isUnprocessableContent());
-        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/1").header("If-Match", etagOf("/api/v1/organization/org-unit-legal-entities/1")).with(csrf()).with(MAINTAINER)
+        mvc.perform(put("/api/v1/organization/org-unit-legal-entities/" + unitText(1)).header("If-Match", etagOf("/api/v1/organization/org-unit-legal-entities/" + unitText(1))).with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + le2.value() + "\",\"effectiveFrom\":\"" + day.minusDays(5) + "\"}"))
                 .andExpect(status().isUnprocessableContent());
-        mvc.perform(post("/api/v1/organization/org-unit-legal-entities/1:end").header("If-Match", etagOf("/api/v1/organization/org-unit-legal-entities/1")).with(csrf()).with(MAINTAINER)
+        mvc.perform(post("/api/v1/organization/org-unit-legal-entities/" + unitText(1) + ":end").header("If-Match", etagOf("/api/v1/organization/org-unit-legal-entities/" + unitText(1))).with(csrf()).with(MAINTAINER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"effectiveTo\":\"" + day.plusDays(10) + "\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.periods[0].effectiveTo").value(day.plusDays(10).toString()));
         assertThatThrownBy(() -> resolver.on(user(2), day.plusDays(10))).as("the attribution has ended").isInstanceOf(DomainException.class);
@@ -221,7 +228,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     void writesNeedTheVersion() throws Exception {
         synced(2L);
         LocalDate day = today();
-        String url = "/api/v1/organization/org-unit-legal-entities/1";
+        String url = "/api/v1/organization/org-unit-legal-entities/" + unitText(1);
         String body = "{\"legalEntityId\":\"" + le1.value() + "\",\"effectiveFrom\":\"" + day + "\"}";
 
         mvc.perform(put(url).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isPreconditionRequired());
@@ -254,7 +261,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     void rule385CorrectionIsAppendedAndResolutionFollowsIt() throws Exception {
         synced(2L);
         LocalDate day = today();
-        String url = "/api/v1/organization/org-unit-legal-entities/1";
+        String url = "/api/v1/organization/org-unit-legal-entities/" + unitText(1);
         attributeOrgUnit(1, le1, day);
         attributeOrgUnit(1, le2, day.plusDays(10));
         assertThat(resolver.on(user(1), day.plusDays(7))).isEqualTo(le1);
@@ -263,7 +270,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         String answer = correct(url, etagOf(url), body, CORRECTOR, 200);
 
         assertThat(answer).contains(day.plusDays(5).toString());
-        assertThat(jdbc.sql("select effective_to_date from organization_workforce.org_unit_legal_entities where org_unit_id = 1 and effective_from_date = :d")
+        assertThat(jdbc.sql("select effective_to_date from organization_workforce.org_unit_legal_entities where org_unit_id = " + sqlOrgUnit(1) + " and effective_from_date = :d")
                 .param("d", java.sql.Date.valueOf(day)).query(java.sql.Date.class).single().toLocalDate()).as("the stored row is not rewritten").isEqualTo(day.plusDays(10));
         assertThat(jdbc.sql("select count(*) from organization_workforce.legal_entity_attribution_corrections").query(Long.class).single()).isEqualTo(1);
         assertThat(resolver.on(user(1), day.plusDays(4))).isEqualTo(le1);
@@ -282,7 +289,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         assertThatThrownBy(() -> jdbc.sql("truncate table organization_workforce.legal_entity_attribution_corrections").update()).hasMessageContaining("append-only");
 
         attributeOrgUnit(1, le1, day.plusDays(20));
-        assertThat(jdbc.sql("select effective_to_date from organization_workforce.org_unit_legal_entities where org_unit_id = 1 and effective_from_date = :d")
+        assertThat(jdbc.sql("select effective_to_date from organization_workforce.org_unit_legal_entities where org_unit_id = " + sqlOrgUnit(1) + " and effective_from_date = :d")
                 .param("d", java.sql.Date.valueOf(day)).query(java.sql.Date.class).single().toLocalDate()).as("a later attribution leaves the corrected period alone").isEqualTo(day.plusDays(10));
         assertThat(resolver.on(user(1), day.plusDays(25))).isEqualTo(le1);
     }
@@ -292,7 +299,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     void rule385Refusals() throws Exception {
         synced(2L);
         LocalDate day = today();
-        String url = "/api/v1/organization/org-unit-legal-entities/1";
+        String url = "/api/v1/organization/org-unit-legal-entities/" + unitText(1);
         attributeOrgUnit(1, le1, day);
         attributeOrgUnit(1, le2, day.plusDays(10));
         String etag = etagOf(url);

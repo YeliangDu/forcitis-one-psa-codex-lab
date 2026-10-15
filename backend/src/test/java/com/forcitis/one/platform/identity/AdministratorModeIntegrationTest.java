@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -133,7 +135,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
         createAccount(9, "super_admin", "employee");
         String elevated = cookie(enterAdministratorMode(loginWithWecom(9), 9), "SESSION");
         assertThat(status("/api/v1/platform/roles", elevated)).isEqualTo(200);
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 9) and role_id = (select role_id from platform_identity.roles where code = 'super_admin')").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(9) + ") and role_id = (select role_id from platform_identity.roles where code = 'super_admin')").update();
 
         clock.advance(Duration.ofSeconds(61));
 
@@ -206,7 +208,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
             assertThat(status(base + "/some-task", session)).isEqualTo(403);
             assertThat(status("/api/v1/platform/approval-task-records", session)).isEqualTo(403);
             assertThat(status("/api/v1/platform/approval-task-overviews", session)).isEqualTo(403);
-            String body = "{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"assigneeId\":1}";
+            String body = "{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"assigneeId\":\"" + TestAccounts.employee(1).value() + "\"}";
             for (String action : List.of(":claim", ":release", ":decide", ":return", ":transfer", ":reassign")) {
                 assertThat(mvc.perform(post(base + "/some-task" + action).with(xsrf()).cookie(new Cookie("SESSION", session))
                         .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getStatus()).as(action).isEqualTo(403);

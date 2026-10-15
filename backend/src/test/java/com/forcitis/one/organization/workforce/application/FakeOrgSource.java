@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import java.util.List;
@@ -29,20 +30,14 @@ public class FakeOrgSource implements OrgSource {
     }
 
     @Override
-    public List<SourcePerson> findStaffByWecomUser(WecomUserId wecomUserId) {
+    public List<SourcePerson> findStaffByLogin(StaffLookup lookup) {
         singleLookups.incrementAndGet();
         if (unavailable) {
             throw new ExternalSystemUnavailableException("source is down (test)");
         }
-        return singleLookupResult.stream().filter(m -> wecomUserId.equals(m.wecomUserId())).toList();
-    }
-
-    @Override
-    public List<SourcePerson> findStaffByLoginName(String loginName) {
-        singleLookups.incrementAndGet();
-        if (unavailable) {
-            throw new ExternalSystemUnavailableException("source is down (test)");
-        }
-        return singleLookupResult.stream().filter(m -> loginName.equals(m.loginName())).toList();
+        return singleLookupResult.stream().filter(m -> switch (lookup) {
+            case StaffLookup.ByWecomUser byWecom -> byWecom.wecomUserId().equals(m.wecomUserId());
+            case StaffLookup.ByLoginName byLogin -> byLogin.loginName().equals(m.loginName());
+        }).toList();
     }
 }

@@ -1,17 +1,17 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
-import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
@@ -32,7 +32,7 @@ class LegalEntityAttributionTest {
     static final LocalDate JUL = LocalDate.of(2026, 7, 1);
 
     static LegalEntityAttribution unit() {
-        return LegalEntityAttribution.empty(new AttributionSubject(AttributionKind.ORG_UNIT, 3));
+        return LegalEntityAttribution.empty(AttributionSubject.of(TestOrgIds.orgUnit(3)));
     }
 
     @Test
@@ -51,7 +51,7 @@ class LegalEntityAttributionTest {
     @Test
     @DisplayName("each attribution and each ending announces its own event, numbered after the stored count, with the legal entity and the day")
     void events() {
-        LegalEntityAttribution attribution = LegalEntityAttribution.restore(new com.forcitis.one.organization.workforce.api.AttributionId(java.util.UUID.randomUUID()), new AttributionSubject(AttributionKind.EMPLOYEE, 42),
+        LegalEntityAttribution attribution = LegalEntityAttribution.restore(new com.forcitis.one.organization.workforce.api.AttributionId(java.util.UUID.randomUUID()), AttributionSubject.of(TestAccounts.employee(42)),
                 List.of(), 2, 2);
         attribution.attribute(LE1, JAN);
         attribution.end(JUL);
@@ -63,7 +63,7 @@ class LegalEntityAttributionTest {
             assertThat(e.effectiveFrom()).isEqualTo(JAN);
             assertThat(e.envelope().legalEntityId()).isEqualTo(LE1);
             assertThat(e.envelope().businessDate()).isEqualTo(JAN);
-            assertThat(e.envelope().aggregateId()).isEqualTo("EMPLOYEE:42");
+            assertThat(e.envelope().aggregateId()).isEqualTo("EMPLOYEE:" + TestAccounts.employee(42).value());
         });
         assertThat(events.get(1)).isInstanceOfSatisfying(LegalEntityAttributionEnded.class, e -> {
             assertThat(e.effectiveTo()).isEqualTo(JUL);
@@ -130,10 +130,10 @@ class LegalEntityAttributionTest {
     @DisplayName("ADR-0026 resolution: the employee's own attribution wins; else the nearest department up the chain; a cycle or nothing resolves to empty")
     void resolution() {
         Sources sources = new Sources();
-        EmployeeId employee = new EmployeeId(7);
-        OrgUnitId leaf = new OrgUnitId(3);
-        OrgUnitId middle = new OrgUnitId(2);
-        OrgUnitId root = new OrgUnitId(1);
+        EmployeeId employee = TestAccounts.employee(7);
+        OrgUnitId leaf = TestOrgIds.orgUnit(3);
+        OrgUnitId middle = TestOrgIds.orgUnit(2);
+        OrgUnitId root = TestOrgIds.orgUnit(1);
         sources.assigned.put(employee, leaf);
         sources.parents.put(leaf, middle);
         sources.parents.put(middle, root);
@@ -155,7 +155,7 @@ class LegalEntityAttributionTest {
         cyclic.parents.put(middle, leaf);
         assertThat(LegalEntityResolution.resolve(cyclic, employee, JAN)).as("a broken tree does not loop").isEmpty();
 
-        assertThat(LegalEntityResolution.resolve(new Sources(), new EmployeeId(8), JAN)).as("an unknown employee").isEmpty();
+        assertThat(LegalEntityResolution.resolve(new Sources(), TestAccounts.employee(8), JAN)).as("an unknown employee").isEmpty();
     }
 
     @Test

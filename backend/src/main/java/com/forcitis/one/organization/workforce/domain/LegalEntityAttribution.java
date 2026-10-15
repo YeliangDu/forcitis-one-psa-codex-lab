@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import com.forcitis.one.organization.workforce.api.AttributionSubjectId;
 
 /**
  * Which legal entity a department or an employee belongs to, period by period. Periods never overlap; history is only closed,
@@ -101,7 +102,7 @@ public final class LegalEntityAttribution extends AggregateRoot {
         next.add(new AttributionPeriod(legalEntityId, from, null));
         this.periods = List.copyOf(next);
         record((envelopes, sequence) -> new LegalEntityAttributed(envelopes.wrap(draft("LegalEntityAttributed", sequence, legalEntityId, from)),
-                subject, legalEntityId, from));
+                subject.kind(), new AttributionSubjectId(subject.subjectId()), legalEntityId, from));
     }
 
     public void end(LocalDate to) {
@@ -116,7 +117,7 @@ public final class LegalEntityAttribution extends AggregateRoot {
         next.set(next.indexOf(open), open.closedOn(to));
         this.periods = List.copyOf(next);
         record((envelopes, sequence) -> new LegalEntityAttributionEnded(envelopes.wrap(draft("LegalEntityAttributionEnded", sequence,
-                open.legalEntityId(), to)), subject, open.legalEntityId(), to));
+                open.legalEntityId(), to)), subject.kind(), new AttributionSubjectId(subject.subjectId()), open.legalEntityId(), to));
     }
 
     /**
@@ -154,12 +155,12 @@ public final class LegalEntityAttribution extends AggregateRoot {
         this.periods = List.copyOf(next);
         pendingCorrections.add(new AttributionCorrection(periodFrom, previous, newEffectiveTo, reason, correctedBy));
         record((envelopes, sequence) -> new LegalEntityAttributionCorrected(envelopes.wrap(draft("LegalEntityAttributionCorrected", sequence,
-                period.legalEntityId(), newEffectiveTo)), subject, period.legalEntityId(), periodFrom, previous, newEffectiveTo, reason));
+                period.legalEntityId(), newEffectiveTo)), subject.kind(), new AttributionSubjectId(subject.subjectId()), period.legalEntityId(), periodFrom, previous, newEffectiveTo, reason));
     }
 
     private EventDraft draft(String eventName, long sequence, LegalEntityId legalEntityId, LocalDate businessDate) {
         return new EventDraft("organization.workforce." + eventName, 1, "LegalEntityAttribution",
-                subject.kind() + ":" + subject.subjectKey(), sequence, legalEntityId, businessDate,
+                subject.kind() + ":" + subject.subjectId(), sequence, legalEntityId, businessDate,
                 new EventSource(SourceSystem.ONE, null), List.of());
     }
 }

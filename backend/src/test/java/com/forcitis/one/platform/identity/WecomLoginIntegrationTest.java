@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -66,9 +68,9 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
             assertThat(entry.detail()).contains("method=WECOM_WORKBENCH").contains("address=127.0.0.1");
         });
         assertThat(recordedIndependently()).anySatisfy(entry -> assertThat(entry.action()).isEqualTo("platform.identity.login.failed"));
-        assertThat(jdbc.sql("select last_login_address from platform_identity.user_accounts where employee_id = 1001")
+        assertThat(jdbc.sql("select last_login_address from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001))
                 .query(String.class).single()).isEqualTo("127.0.0.1");
-        assertThat(jdbc.sql("select last_login_at is not null from platform_identity.user_accounts where employee_id = 1001")
+        assertThat(jdbc.sql("select last_login_at is not null from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001))
                 .query(Boolean.class).single()).isTrue();
     }
 
@@ -153,7 +155,7 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         wecomAccepts("c1", WecomEntry.WORKBENCH, 1001);
         createAccount(1001);
-        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = 1001").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = " + TestOrgIds.sqlEmployee(1001)).update();
 
         MvcResult result = login("c1", newState("WORKBENCH"), "WORKBENCH");
 
@@ -182,11 +184,11 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(jdbc.sql("""
                 select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1001)
-                """).query(String.class).list()).containsExactly("employee");
+                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee)
+                """).param("employee", TestAccounts.employee(1001).value()).query(String.class).list()).containsExactly("employee");
         assertThat(recordedEvents.stream(AccountOpened.class)).singleElement().satisfies(e -> assertThat(e.userId().value()).isEqualTo(accountOf(1001)));
 
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 1001)").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
         loginWithWecom(1001);
         assertThat(count("account_roles")).isZero();
     }

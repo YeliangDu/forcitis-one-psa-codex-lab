@@ -32,7 +32,7 @@ class SignedTicketTest {
 
         assertThat(parsed.kid()).isEqualTo("km-key-1");
         assertThat(parsed.issuer()).isEqualTo("km");
-        assertThat(parsed.subject()).isEqualTo(1001);
+        assertThat(parsed.subject()).isEqualTo("1001");
         assertThat(parsed.nonce()).isEqualTo(NONCE);
         assertThat(parsed.expiresAt()).isEqualTo(NOW.plusSeconds(30));
         assertThat(parsed.isSignedWith(KEY)).isTrue();
@@ -78,5 +78,18 @@ class SignedTicketTest {
         String badSubject = Base64.getUrlEncoder().withoutPadding().encodeToString(
                 ("km-key-1|km|abc|" + NONCE + "|1|2").getBytes(StandardCharsets.UTF_8)) + ".AAAA";
         assertThat(SignedTicket.parse(badSubject)).as("subject must be a number").isEmpty();
+        String twentyDigits = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                ("km-key-1|km|" + "1234567890".repeat(2) + "|" + NONCE + "|1|2").getBytes(StandardCharsets.UTF_8)) + ".AAAA";
+        assertThat(SignedTicket.parse(twentyDigits)).as("subject has at most 19 digits").isEmpty();
+    }
+
+    @Test
+    @DisplayName("RULING-P3B-6 the subject is the source person id as text, the whole signed 64-bit range included")
+    void subjectIsTheSourcePersonIdAsText() {
+        String lowest = SignedTicket.sign(KEY, "km-key-1", "km", Long.MIN_VALUE, NONCE, NOW, NOW.plusSeconds(30));
+        String highest = SignedTicket.sign(KEY, "km-key-1", "km", Long.MAX_VALUE, NONCE, NOW, NOW.plusSeconds(30));
+
+        assertThat(SignedTicket.parse(lowest).orElseThrow().subject()).isEqualTo(Long.toString(Long.MIN_VALUE));
+        assertThat(SignedTicket.parse(highest).orElseThrow().subject()).isEqualTo(Long.toString(Long.MAX_VALUE));
     }
 }

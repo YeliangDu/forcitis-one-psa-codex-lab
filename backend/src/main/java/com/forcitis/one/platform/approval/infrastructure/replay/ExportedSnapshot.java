@@ -35,8 +35,8 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
 
     @Override
     public Optional<EmployeeProfile> findEmployee(EmployeeId employeeId) {
-        return Optional.ofNullable(employees.get(employeeId.value())).map(e -> new EmployeeProfile(new EmployeeId(e.userId()), "exported",
-                new OrgUnitId(e.orgUnitId()), null, e.employed() ? EmploymentStatus.EMPLOYED : EmploymentStatus.SEPARATED, false));
+        return Optional.ofNullable(employees.get(ExportedIds.person(employeeId))).map(e -> new EmployeeProfile(ExportedIds.employee(e.userId()), "exported",
+                ExportedIds.orgUnit(e.orgUnitId()), null, e.employed() ? EmploymentStatus.EMPLOYED : EmploymentStatus.SEPARATED, false));
     }
 
     @Override
@@ -52,35 +52,35 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
 
     @Override
     public Optional<EmployeeId> findSupervisor(EmployeeId employeeId) {
-        return Optional.ofNullable(employees.get(employeeId.value())).map(ReplayExport.EmployeeRecord::supervisorUserId)
-                .filter(this::employed).map(EmployeeId::new);
+        return Optional.ofNullable(employees.get(ExportedIds.person(employeeId))).map(ReplayExport.EmployeeRecord::supervisorUserId)
+                .filter(this::employed).map(ExportedIds::employee);
     }
 
     @Override
     public Optional<EmployeeId> findOrgUnitHead(OrgUnitId orgUnitId) {
-        return Optional.ofNullable(units.get(orgUnitId.value())).map(ReplayExport.OrgUnitRecord::headUserId).map(EmployeeId::new);
+        return Optional.ofNullable(units.get(ExportedIds.unit(orgUnitId))).map(ReplayExport.OrgUnitRecord::headUserId).map(ExportedIds::employee);
     }
 
     @Override
     public Optional<EmployeeId> findRegionalReceivablesManager(OrgUnitId orgUnitId) {
-        return Optional.ofNullable(units.get(orgUnitId.value())).map(ReplayExport.OrgUnitRecord::regionalReceivablesManagerId)
-                .map(EmployeeId::new);
+        return Optional.ofNullable(units.get(ExportedIds.unit(orgUnitId))).map(ReplayExport.OrgUnitRecord::regionalReceivablesManagerId)
+                .map(ExportedIds::employee);
     }
 
     @Override
     public Optional<OrgUnitProfile> findOrgUnit(OrgUnitId orgUnitId) {
-        return Optional.ofNullable(units.get(orgUnitId.value())).map(u -> new OrgUnitProfile(new OrgUnitId(u.orgUnitId()), "exported",
-                u.parentOrgUnitId() == null ? null : new OrgUnitId(u.parentOrgUnitId()), u.active()));
+        return Optional.ofNullable(units.get(ExportedIds.unit(orgUnitId))).map(u -> new OrgUnitProfile(ExportedIds.orgUnit(u.orgUnitId()), "exported",
+                u.parentOrgUnitId() == null ? null : ExportedIds.orgUnit(u.parentOrgUnitId()), u.active()));
     }
 
     @Override
     public List<OrgUnitId> findAncestors(OrgUnitId orgUnitId) {
         List<OrgUnitId> ancestors = new ArrayList<>();
         Set<Long> seen = new HashSet<>();
-        seen.add(orgUnitId.value());
-        ReplayExport.OrgUnitRecord current = units.get(orgUnitId.value());
+        seen.add(ExportedIds.unit(orgUnitId));
+        ReplayExport.OrgUnitRecord current = units.get(ExportedIds.unit(orgUnitId));
         while (current != null && current.parentOrgUnitId() != null && seen.add(current.parentOrgUnitId())) {
-            ancestors.add(new OrgUnitId(current.parentOrgUnitId()));
+            ancestors.add(ExportedIds.orgUnit(current.parentOrgUnitId()));
             current = units.get(current.parentOrgUnitId());
         }
         return ancestors;

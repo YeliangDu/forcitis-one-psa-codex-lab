@@ -11,6 +11,10 @@ final class LegacyVocabulary {
             "area_leader", "regionalHeadId",
             "deliveryDeptId", "deliveryUnitId");
 
+    /** The new names of the fields that name a person, and of those that name a department, by the old system's number. */
+    static final java.util.Set<String> PERSON_FIELDS = java.util.Set.of("projectManagerId", "regionalHeadId");
+    static final java.util.Set<String> DEPARTMENT_FIELDS = java.util.Set.of("deliveryUnitId");
+
     static final Map<String, String> RULE_TYPES = table(
             "INITIATOR_LEADER", "INITIATOR_SUPERVISOR");
 
@@ -59,7 +63,11 @@ final class LegacyVocabulary {
 
     static Map<String, List<String>> fields(Map<String, List<String>> values) {
         Map<String, List<String>> out = new LinkedHashMap<>();
-        values.forEach((name, list) -> out.put(field(name), list));
+        values.forEach((name, list) -> {
+            String field = field(name);
+            out.put(field, PERSON_FIELDS.contains(field) ? list.stream().map(ExportedIds::employeeText).toList()
+                    : DEPARTMENT_FIELDS.contains(field) ? list.stream().map(ExportedIds::orgUnitText).toList() : list);
+        });
         return out;
     }
 

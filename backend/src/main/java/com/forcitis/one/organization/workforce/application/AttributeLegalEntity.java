@@ -16,6 +16,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityStatus;
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 /** From the given day on the department or the employee belongs to the legal entity; the period before it is closed on that day. */
 @Service
@@ -36,7 +37,7 @@ public class AttributeLegalEntity {
     }
 
     @Transactional
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LegalEntityId target, LocalDate effectiveFrom, ExpectedVersion expected, UserId actor) {
+    public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId, LegalEntityId target, LocalDate effectiveFrom, ExpectedVersion expected, UserId actor) {
         AttributionSubject subject = subjects.require(kind, subjectId);
         ownAttribution.requireNotOwn(subject, actor);
         if (target == null || legalEntities.find(target).filter(e -> e.status() == LegalEntityStatus.ACTIVE).isEmpty()) {
