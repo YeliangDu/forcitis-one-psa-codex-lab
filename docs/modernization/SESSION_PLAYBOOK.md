@@ -68,7 +68,7 @@
 
 ## 4. 收尾协议（结束前，或上下文接近上限时）
 
-0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief 连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
+0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief、提议术语清单连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
 1. 把本会话的决定（用户原话）用 `python3 docs/modernization/new_intent.py --session=<会话名> "<原话>" "<落点>"` 新增为 `intent/` 片段，并写进相应 ADR 的源文件 `adr/src/`。
 2. 勾选 brief 中已满足的条件；不满足的不勾，不改写条件。
 3. 用 `python3 docs/modernization/new_log.py <会话名> "<工作单元>"` 新增一条会话日志片段（模板见 §8），填好各项，写明下一条要运行的命令。
@@ -141,7 +141,7 @@
 - 多个会话可以同时进行，但只在**互不相交的工作单元**上（不同 BC、不同阶段的不同步骤）。
 - 写代码的并行会话各用自己的 git worktree 和分支（`feature/issue-{N}-…`），互不共享工作目录。不论写代码、写文档还是运维，都不在主检出目录工作。
 - **子代理还是会话**（用户 2026-10-15 对「子代理还是会话」评估的三条改进答「采纳」）：边界清楚、交付一个 PR、需要用户拍板的事不超过一两件、数小时内完成的（运维执行、CI / 流水线、复审、文档整理、生产只读取证）派子代理；长期工作线、需反复问用户、需再派子代理并行或需主会话专属工具（如 DesignSync）的开独立会话。开发线开会话、会话内用子代理并行；调度会话用子代理做横向基础设施与复审。
-- 共享记录按「一条记录一个文件」组织（`intent/`、`session-log/`、`status/`、`adr/src/`），各会话新增自己的片段、只改自己认领单元的文件，因此并行分支之间不再在同一文件上冲突；生成产物若冲突，取任一边后重新运行 `build_all.py` 即可，不要手工合并产物。
+- 共享记录按「一条记录一个文件」组织（`intent/`、`session-log/`、`status/`、`adr/src/`），各会话新增自己的片段、只改自己认领单元的文件，因此并行分支之间不再在同一文件上冲突；提议术语清单 `backend/glossary/proposed/README.md` 同样由 `proposed/*.yaml` 生成，加术语只改 yaml，不改 README。生成产物（含该 README）若冲突，取任一边后重新运行 `build_all.py` 并提交结果，不要手工合并产物；冲突在 yaml 里时照常合并 yaml，再重新生成。
 - **公共基础先行**（用户 2026-10-14 对 1a 大修原因分析的五条建议答「采纳」）：并行写业务之前，先由一个代理建好并冻结共用构件——聚合基类与版本模型、状态机、事件信封、错误链（领域异常 → ErrorCode → ProblemDetail）、前端共用包（API 客户端、错误码、共用模型）。功能代理只使用这些构件，不各自另造；需要改共用构件时停下报告，由整合者统一改。
 - **小批复审**（同上）：每个代理交付后先单独做 opus 复审（§14、§14.1），通过后才整合；整合后再做一次整体复审。复审结论到达前不合并（调度会话合并规则）。
 - 会话之间用 `ListAgents` / `SendMessage` 打招呼（例如「我改了 platform.identity 的 api，你那边需要重新编译」）。

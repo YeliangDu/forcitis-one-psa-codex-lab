@@ -1,3 +1,4 @@
+# 前三条（尾调、舍入差、按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。冲销单至冲销动作、修正动作十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。另有 `migration`、`work_calendar`、`workday` 等提议术语，以及若干技术词在 `common_words`。
 terms:
 - id: migration
   zh: 历史迁入

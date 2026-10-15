@@ -1,4 +1,5 @@
 # 契约演进与部署排空用语（proposed，ADR-0035，待用语确认，ADR-0018）。
+# 契约演进用语（`contract-evolution.yaml`，ADR-0035）：`maintenance_mode` 维护模式、`event_quarantine` 隔离登记、`deprecation_register` 弃用登记。
 terms:
 - id: maintenance_mode
   zh: 维护模式
