@@ -139,7 +139,10 @@ main{display:grid;gap:26px;min-width:0}
 const ITEMS = /*__ITEMS__*/[];
 // 一页可挂多张决策单：每张单子的答复存在各自的集合（it.coll），文档 id 为条目编号；页面内部键为「集合~编号」
 const COLLS = [...new Set(ITEMS.map(i => i.coll))];
-const ref = key => { const at = key.indexOf("~"); return db.collection(key.slice(0, at)).doc(key.slice(at + 1)); };
+// 所有单子的答复存在同一个集合 answers（文档 id 为「单子集合名~编号」），提交记录存在 answers-submit（文档 id 为单子集合名）：
+// 打开时只订阅 1 个集合；第 7–9 版每个单子各订阅一次（18 个），手机上一直停在加载中（2026-10-15）
+const ANSWERS = "answers", SUBMITS = "answers-submit";
+const ref = key => db.collection(ANSWERS).doc(key);
 const GROUPS = /*__GROUPS__*/[];
 const OPTS = {std:[["approve","同意建议"],["keep","保持原样"],["rename","改为…"]],
               asis:[["approve","同意"],["rename","改为…"]],
@@ -313,7 +316,7 @@ document.addEventListener("click", async e => {
     const at = new Date().toISOString(), colls = COLLS.filter(c => scopeOf(c) === s);
     for (const c of colls){
       const body = {at, by: myId, summary: counts([c])};
-      try { await db.collection(c + "-submit").doc("latest").set(body); submits.set(c, body); }
+      try { await db.collection(SUBMITS).doc(c).set(body); submits.set(c, body); }
       catch(err){ el.textContent = "提交失败：" + (err && err.message || "请稍后再试"); return; }
     }
     submitState();
@@ -325,11 +328,12 @@ render();
   try { db = await window.claude?.use?.("db"); } catch(e){ db = null; }
   if (!db){ $("#conn").textContent = "存储不可用：请登录 claude.ai 后打开本页，选择才会保存"; $("#conn").classList.add("off"); return; }
   $("#conn").textContent = "已连接，选择会自动保存";
-  Promise.all(COLLS.map(c => db.collection(c + "-submit").doc("latest").get().then(s => { if (s.exists) submits.set(c, s.data()); }).catch(() => {}))).then(submitState);
-  for (const coll of COLLS) db.collection(coll).onSnapshot(snap => {
+  db.collection(SUBMITS).get().then(snap => { for (const d of snap.docs) if (COLLS.includes(d.id)) submits.set(d.id, d.data()); submitState(); }).catch(() => {});
+  db.collection(ANSWERS).onSnapshot(snap => {
     let changed = false;
     for (const ch of snap.docChanges()){
-      const key = coll + "~" + ch.doc.id;
+      const key = ch.doc.id;
+      if (!ITEMS.some(i => i.key === key)) continue;
       if (ch.type === "removed"){ if (decisions.delete(key)) changed = true; }
       else { const b = ch.doc.data(); if (b && !(pending.has(key) && document.activeElement?.closest?.(`[data-key="${CSS.escape(key)}"]`))){ decisions.set(key, {...b}); changed = true; } }
     }

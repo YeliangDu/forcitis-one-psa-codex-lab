@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """把门禁小决策页的答复导出为 glossary/decisions-gate-<卡号>.json（门禁卡，build_terms.py 自动写回）或 glossary/answers/<单子>.json（ACL 归类、第三轮重做，由 one-glossary 按单子另行写回），键为 GATE-<单子>-<编号>。
-只认用户点过「确认提交」的答复：先用 ArtifactData list 把集合 gate-<卡号> 与 gate-<卡号>-submit 都存到同一个 out_dir，再运行
+只认用户点过「确认提交」的答复：先用 ArtifactData list 把集合 answers 与 answers-submit 都存到同一个 out_dir，再运行
 python3 docs/modernization/glossary/gate/export_decisions.py <卡号> <out_dir>
 没有提交记录、或提交之后又改过选择的，导出失败（请用户重新提交）；没选的条目算未定，不导出、不按建议处理。"""
 import glob, json, os, re, sys
@@ -10,16 +10,16 @@ card, base = sys.argv[1], sys.argv[2]
 coll = "gate-" + re.sub(r"[^A-Za-z0-9-]", "-", card)
 src = next(p for p in (os.path.join(d, f"{card}.json") for d in (HERE, os.path.join(HERE, "..", "acl"), os.path.join(HERE, "..", "round3", "sheets"))) if os.path.exists(p))
 codes = {i["code"] for i in json.load(open(src, encoding="utf-8"))["items"]}
-submit_path = os.path.join(base, f"{coll}-submit", "latest.json")
+submit_path = os.path.join(base, "answers-submit", f"{coll}.json")
 if not os.path.exists(submit_path):
-    sys.exit(f"{card}：用户还没有提交（{coll}-submit/latest 不存在）")
+    sys.exit(f"{card}：用户还没有提交（answers-submit/{coll} 不存在）")
 submit = json.load(open(submit_path, encoding="utf-8"))
 submit = submit.get("data", submit)
 out = {}
-for f in sorted(glob.glob(os.path.join(base, coll, "*.json"))):
+for f in sorted(glob.glob(os.path.join(base, "answers", f"{coll}~*.json"))):
     d = json.load(open(f, encoding="utf-8"))
     d = d.get("data", d)
-    code = os.path.basename(f)[:-5]
+    code = os.path.basename(f)[:-5].split("~", 1)[1]
     if code not in codes:
         sys.exit(f"{code}：不是本卡条目")
     if d.get("at", "") > submit["at"]:
