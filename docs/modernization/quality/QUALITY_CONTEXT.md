@@ -9,4 +9,7 @@
 | FLAKY-SESS 会话清理与固定时钟不同源，整分钟偶发 401 | one-1a-next-3 按 H 修（会话时间基准例外） | 运行 38772041094 |
 | Testcontainers 连接 PG 认证读无超时，CI 曾卡 54 分钟 | 待开卡（JDBC socketTimeout） | #197 运行 38746203340 |
 | 覆盖率门槛是否恢复 | 待用户 | COORDINATOR_LEDGER「待用户」 |
-| nightly-legacy-it 巡检 | 接手后设会话内定时 | `gh run list --workflow nightly-legacy-it.yml` |
+| nightly-legacy-it 巡检 | 会话内定时每日 23:17（本机 CEST），7 天到期前续设；10-15 运行 38794167238 成功 11.5 分钟 | `gh run list --workflow nightly-legacy-it.yml` |
+| 断言漂移漏报（中文路径、整删文件） | #243 已过 opus 复审入队；复审三条建议（引号路径告警、kept 断言、gpgsign）待合并后小 PR | #243 |
+| 后端 CI 时长 | 不拆 runner 分片（同机 16 核，与 #237 降并发相悖）；改降每类开销：C1 共享容器 + 模板库试点，全量排在 P3b 合并后；C2 MSSQL 长类先跑待做 | 运行 38793746825：上下文 87 次 583 秒、PG 容器 79 个 209 秒 |
+| PR 的 gitleaks 增量扫描 | 待用户：扫描只占 15–25 秒，作业慢在发布脚本自测（216–287 秒） | 调度认为可取消 |
