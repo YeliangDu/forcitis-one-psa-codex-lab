@@ -1,37 +1,81 @@
 package com.forcitis.one.kernel;
 
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The id a job or an event handler acts with when it is the actor of an event (NEXT_BATCH_PLAN 7.2 C5): a name-based UUID (RFC 9562
- * version 5) of the job's name in a namespace of its own, so the same job always has the same id and no account id (version 7) is ever
- * one. Every name that acts is recorded here, which is how the audit trail names the job behind an id.
+ * The id a job, an event handler or an operations entry acts with when it is the actor of an event (RULING-P2-C5): a name-based UUID
+ * (RFC 9562 version 5) of a name declared in architecture/system-actors.txt. The catalogue is read once when the class loads, so every
+ * instance can name the job behind an id at any time; a name that is not declared cannot act.
  */
 public final class SystemActors {
     static final UUID NAMESPACE = UUID.fromString("0d4f6c1e-7b2c-4c39-9e5d-3f1b7c2e6d90");
+    public static final String CATALOGUE = "architecture/system-actors.txt";
 
-    private static final Map<UUID, String> NAMES = new ConcurrentHashMap<>();
+    private static final Map<String, UUID> IDS;
+    private static final Map<UUID, String> NAMES;
+
+    static {
+        Map<String, UUID> ids = new HashMap<>();
+        Map<UUID, String> names = new HashMap<>();
+        try {
+            for (URL catalogue : Collections.list(SystemActors.class.getClassLoader().getResources(CATALOGUE))) {
+                try (InputStream in = catalogue.openStream()) {
+                    read(new String(in.readAllBytes(), StandardCharsets.UTF_8), catalogue.toString(), ids, names);
+                }
+            }
+        } catch (IOException unreadable) {
+            throw new IllegalStateException("the system actor catalogue " + CATALOGUE + " cannot be read", unreadable);
+        }
+        if (ids.isEmpty()) {
+            throw new IllegalStateException("the system actor catalogue " + CATALOGUE + " is missing from the class path");
+        }
+        IDS = Map.copyOf(ids);
+        NAMES = Map.copyOf(names);
+    }
 
     private SystemActors() {
     }
 
+    static void read(String text, String where, Map<String, UUID> ids, Map<UUID, String> names) {
+        for (String line : text.split("\n")) {
+            String row = line.strip();
+            if (row.isEmpty() || row.startsWith("#")) {
+                continue;
+            }
+            String[] fields = row.split("\\|");
+            if (fields.length != 4) {
+                throw new IllegalStateException(where + ": a line is <name> | <uuid> | <module> | <reason>: " + row);
+            }
+            String name = fields[0].strip();
+            UUID id = UUID.fromString(fields[1].strip());
+            if (!id.equals(fromName(name))) {
+                throw new IllegalStateException(where + ": " + name + " has the id " + fromName(name) + ", not " + id);
+            }
+            if (ids.putIfAbsent(name, id) != null) {
+                throw new IllegalStateException(where + ": " + name + " is declared twice");
+            }
+            names.put(id, name);
+        }
+    }
+
+    /** The id of a declared actor; an undeclared name is a programming error. */
     public static UUID idOf(String name) {
         Objects.requireNonNull(name, "name");
-        if (name.isBlank()) {
-            throw new IllegalArgumentException("a system actor has a name");
-        }
-        UUID id = fromName(name);
-        String earlier = NAMES.putIfAbsent(id, name);
-        if (earlier != null && !earlier.equals(name)) {
-            throw new IllegalStateException("two system actors share an id: " + earlier + " and " + name);
+        UUID id = IDS.get(name);
+        if (id == null) {
+            throw new IllegalStateException("system actor " + name + " is not declared in " + CATALOGUE);
         }
         return id;
     }

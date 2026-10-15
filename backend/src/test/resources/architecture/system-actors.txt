@@ -1,0 +1,14 @@
+# 只在测试类路径上的系统操作主体（测试与验收测试里用到的作业名），格式同 backend/architecture/system-actors.txt；生产 jar 不含本文件。
+acceptance.timesheet-submission | dec82003-4b26-55d7-8282-3885350117d5 | acceptance | 验收测试 ApprovalAccountsIT 模拟工时单提交
+job | f49f0a6f-5f77-555e-bca5-453bb978476d | test | 测试用作业
+test | a5663648-f345-57b2-a98e-c53a1b5ab734 | test | 测试用信封
+login.race.test | d2b255e2-db86-5648-b674-c07b4c23bf41 | test | 登录并发测试
+numbering.race.test | d99fa459-6046-5713-91ed-2b8ce4eba716 | test | 编号并发测试
+organization.attendance.test | 63e54b0c-16ba-53b3-a397-6a24d9f25281 | test | 考勤测试
+organization.workforce.smoke | a33010ab-01b7-5d69-8d39-b75bf8551eba | test | 组织人事冒烟测试
+organization.workforce.sync | 1c6c2c03-091f-538e-9309-5e84455140e5 | test | 组织同步测试
+organization.workforce.test | 38c70be6-b4ca-59c8-aa2a-1d2e259cb60e | test | 组织人事测试
+platform.integration.outbound | 4a338a57-629d-5989-99fd-b6104e7a5734 | test | 外发投递测试
+platform.eventing.probe.job | 9539a37d-8386-5f0b-96e7-836d2c5b749c | test | 事件单元的作业探针（EventingTest）
+test.flaky-listener | 18d52d1e-0c79-5e77-a337-50297f12fbed | test | 审批测试中首投失败的监听器
+test.correlation.probe | c0c9a9ad-8b8b-5ddf-b804-f2f1dd408d7a | test | CorrelationIT 的探针监听器

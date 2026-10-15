@@ -1,10 +1,12 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Service;
 
+@SystemActorName("platform.identity.account-provisioning")
 @Service
 public class HandleEmployeeRegistered {
 

@@ -350,6 +350,7 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     /** A business module's listener that fails the first delivery of a document called flaky-*, so the registry's redelivery can be shown. */
+    @com.forcitis.one.kernel.SystemActorName("test.flaky-listener")
     public static class FlakyListener {
         private final List<ApprovalCompleted> delivered = new CopyOnWriteArrayList<>();
         private final Set<String> failedOnce = java.util.concurrent.ConcurrentHashMap.newKeySet();

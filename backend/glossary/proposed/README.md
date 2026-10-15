@@ -248,7 +248,7 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
-| `system_actor` | 系统操作主体 | SystemActor | 以 SYSTEM 身份发出事件的作业或监听器；事件信封 actorId 为按作业名在固定命名空间生成的 UUID（version 5），同一作业恒定、不同于任何用户 ID，作业名可由该 UUID 反查（NEXT_BATCH_PLAN 7.2 C5，R-1b P2） |  | 待 opus 复审裁定 C5 |
+| `system_actor` | 系统操作主体 | SystemActor | 以 SYSTEM 身份发出事件的作业、监听器或运维入口；名字人为声明在 backend/architecture/system-actors.txt，事件信封 actorId 为该名字在固定命名空间下的 UUIDv5，同一名字恒定、不同于任何用户 ID，任何实例都可由目录反查名字（RULING-P2-C5） |  | RULING-P2-C5 已裁定：声明完整的静态目录，改名新增一行、旧行不删 |
 | `migration` | 历史迁入 | Migration | 事件或数据来自老系统 / A8 的一次性迁入（与新系统原生相对） |  |  |
 | `work_calendar` | 工作日历 | WorkCalendar | 按年维护的节假日与调休上班日；默认日历适用全部法人，预留法人专属日历（用户 2026-10-14） |  |  |
 | `workday` | 工作日 | Workday | 工作日历中需要上班的日期：周一至周五且非节假日，或调休上班日 |  |  |

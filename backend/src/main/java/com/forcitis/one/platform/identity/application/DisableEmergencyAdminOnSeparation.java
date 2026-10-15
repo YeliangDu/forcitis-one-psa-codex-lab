@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
  * The emergency account bound to a separated person is disabled (ADR-0027 section 1). It is its own aggregate and so has its own
  * listener and transaction, apart from the account and its roles in HandleOrgSnapshotChange.
  */
+@SystemActorName("platform.identity.separation")
 @Component
 class DisableEmergencyAdminOnSeparation {
 

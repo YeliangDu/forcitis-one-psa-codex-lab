@@ -157,6 +157,7 @@ class CorrelationIT {
         }
 
         @Component
+        @com.forcitis.one.kernel.SystemActorName("test.correlation.probe")
         static class ProbeListener {
             private final Seen seen;
             private final WecomGateway gateway;
@@ -198,7 +199,7 @@ class CorrelationIT {
         Map<String, String> inHandler = seen.handlerContext.getFirst();
         assertThat(inHandler.get("correlation")).isEqualTo(correlation.toString());
         assertThat(inHandler.get("causation")).isEqualTo(thing.envelope().eventId().toString());
-        assertThat(inHandler.get("actor")).contains("on");
+        assertThat(inHandler.get("actor")).isEqualTo("test.correlation.probe");
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
                 jdbc.sql("select count(*) from platform_integration.outbound_deliveries where deduplication_key in ('probe:request', 'probe:handler')")

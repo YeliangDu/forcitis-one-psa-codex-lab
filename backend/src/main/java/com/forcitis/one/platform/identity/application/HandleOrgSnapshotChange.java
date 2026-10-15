@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
  * AccountSeparated fact in its own transaction. The per-request check (SessionPrincipals) holds even if this event is late or lost,
  * so session revocation does not depend on it.
  */
+@SystemActorName("platform.identity.separation")
 @Service
 public class HandleOrgSnapshotChange {
 

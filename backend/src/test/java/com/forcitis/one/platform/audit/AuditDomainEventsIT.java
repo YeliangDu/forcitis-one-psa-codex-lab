@@ -111,9 +111,9 @@ class AuditDomainEventsIT {
     @Test
     @DisplayName("an event whose record says @NotAudited writes no entry, and its neighbour in the same minute still does")
     void notAuditedEventsAreSkipped() {
-        SyncRunSucceeded skipped = new SyncRunSucceeded(envelope("organization.workforce.SyncRunSucceeded", "601", ActorType.SYSTEM, SystemActors.idOf("job").toString(), UUID.randomUUID()),
+        SyncRunSucceeded skipped = new SyncRunSucceeded(envelope("organization.workforce.SyncRunSucceeded", "601", ActorType.SYSTEM, SystemActors.idOf("platform.approval.deadline.enforce").toString(), UUID.randomUUID()),
                 new SyncRunId(TestIds.uuid(601)));
-        LegalEntityRegistered audited = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "603", ActorType.SYSTEM, SystemActors.idOf("job").toString(), UUID.randomUUID()),
+        LegalEntityRegistered audited = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "603", ActorType.SYSTEM, SystemActors.idOf("platform.approval.deadline.enforce").toString(), UUID.randomUUID()),
                 new LegalEntityId(TestIds.uuid(603)), new LegalEntityCode("NEI"));
 
         tx.executeWithoutResult(status -> {

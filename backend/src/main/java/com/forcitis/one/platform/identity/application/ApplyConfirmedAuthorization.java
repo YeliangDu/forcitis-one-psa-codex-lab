@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
@@ -10,6 +11,7 @@ import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 /** After the second person confirmed: the grant or the role change takes effect in its own transaction. A failure stays visible and is redelivered. */
+@SystemActorName("platform.identity.authorization")
 @Component
 class ApplyConfirmedAuthorization {
 

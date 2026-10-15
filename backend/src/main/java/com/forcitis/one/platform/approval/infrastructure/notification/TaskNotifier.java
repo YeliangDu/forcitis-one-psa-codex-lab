@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.notification;
 
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.UserId;
@@ -37,6 +38,7 @@ import org.springframework.stereotype.Component;
  * Recipients are exact WeCom user ids, never a broadcast (I-6); the dedup key per card makes at-least-once sending idempotent. A
  * separated person gets no card (D-1a-141); a card nobody can receive is logged as an error and counted, never dropped quietly.
  */
+@SystemActorName("platform.approval.task-notification")
 @Component
 @EnableConfigurationProperties(NotificationProperties.class)
 class TaskNotifier {

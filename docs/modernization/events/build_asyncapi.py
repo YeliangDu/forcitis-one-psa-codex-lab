@@ -26,6 +26,17 @@ import yaml
 
 HERE = pathlib.Path(__file__).resolve().parent
 TARGET = HERE / 'asyncapi.yaml'
+SYSTEM_ACTORS = HERE.parents[2] / 'backend' / 'architecture' / 'system-actors.txt'
+
+
+def system_actors():
+    actors = []
+    for row in SYSTEM_ACTORS.read_text().splitlines():
+        if not row.strip() or row.startswith('#'):
+            continue
+        name, uuid, module, reason = (field.strip() for field in row.split('|'))
+        actors.append({'name': name, 'actorId': uuid, 'module': module, 'description': reason})
+    return actors
 
 ENVELOPE = {
     'type': 'object',
@@ -43,7 +54,7 @@ ENVELOPE = {
         'correlationId': {'type': 'string', 'format': 'uuid', 'description': '同一业务操作的全部事件共用；来自 X-Correlation-Id'},
         'causationId': {'type': 'string', 'format': 'uuid', 'nullable': True, 'description': '直接上游事件的 eventId，根事件为空'},
         'actorType': {'type': 'string', 'enum': ['USER', 'SYSTEM']},
-        'actorId': {'type': 'string', 'format': 'uuid', 'description': 'USER 为账号的用户 ID；SYSTEM 为代表该作业或监听器的固定 UUID（按作业名生成，kernel.SystemActors 可反查作业名）；不带姓名'},
+        'actorId': {'type': 'string', 'format': 'uuid', 'description': 'USER 为账号的用户 ID；SYSTEM 为 x-system-actors 中声明的作业或监听器的 UUIDv5（backend/architecture/system-actors.txt）；不带姓名'},
         'legalEntityId': {'type': 'string', 'format': 'uuid', 'nullable': True, 'description': '属于某个法人的聚合必填；只有平台级事件为空'},
         'businessDate': {'type': 'string', 'format': 'date', 'nullable': True, 'description': '按 Asia/Shanghai 截日；取哪个日期见各事件的 x-event.businessDate'},
         'source': {'type': 'object', 'properties': {'system': {'type': 'string', 'enum': ['ONE', 'MIGRATION']},
@@ -95,6 +106,7 @@ def compose():
         'channels': channels,
         'operations': operations,
         'components': {'schemas': {'EventEnvelope': ENVELOPE}, 'messages': composed},
+        'x-system-actors': system_actors(),
     }
 
 

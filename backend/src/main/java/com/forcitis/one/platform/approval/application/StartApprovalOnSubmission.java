@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorCode;
 import com.forcitis.one.platform.approval.api.ApprovalError;
@@ -29,6 +30,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * technical failure are logged as an alert, counted and left in the event registry for redelivery. A start asked for by somebody
  * other than the initiator is alerted and dropped: retrying cannot change who asked.
  */
+@SystemActorName("platform.approval.approval-start")
 @Component
 class StartApprovalOnSubmission {
 
