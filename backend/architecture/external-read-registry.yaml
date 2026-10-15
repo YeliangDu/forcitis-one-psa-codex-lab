@@ -19,7 +19,7 @@
 #   object       读取的对象：forcitis_one.v_* 视图或 dbo.<表或视图>
 #   column       对象上的列
 #   source       来源 dbo.<表>.<列>（「经」表示经哪一列关联）
-#   category     ORG_UNIT 组织单元 | EMPLOYEE 员工 | EXTERNAL_IDENTITY 外部身份 | TODO 待办
+#   category     ORG_UNIT 组织单元 | POSITION 岗位 | EMPLOYEE 员工 | ASSIGNMENT 任职 | EXTERNAL_IDENTITY 外部身份 | TODO 待办
 #   sensitivity  PUBLIC | INTERNAL | SENSITIVE | RESTRICTED，与对应自有列的分级（data-classification.txt）一致
 #   purpose      RUNTIME_SYNC 运行时同步 | RUNTIME_TODO 运行时待办 | MIGRATION 迁入 | MIGRATION_TIE_OUT 迁入核对（取值见词表 read_purpose）
 databases: [a8_db, ruoyi-vue-pro]
@@ -34,16 +34,16 @@ columns:
   - { database: a8_db, object: forcitis_one.v_org_unit, column: IS_ENABLE, source: dbo.ORG_UNIT.IS_ENABLE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_unit, column: CATEGORY, source: dbo.CTP_ENUM_ITEM.SHOWVALUE（经 dbo.ADDRESSBOOK.EXT_ATTR_33）, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_unit, column: DELIVERY_FLAG_ENUM_ID, source: dbo.ADDRESSBOOK.EXT_ATTR_32, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_relationship, column: SOURCE_MEMBER_ID, source: dbo.ORG_RELATIONSHIP.SOURCE_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_relationship, column: ORG_UNIT_ID, source: dbo.ORG_RELATIONSHIP.OBJECTIVE0_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_relationship, column: RELATIONSHIP_TYPE_ID, source: dbo.ORG_RELATIONSHIP.OBJECTIVE1_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_relationship, column: MEMBER_IS_DELETED, source: dbo.ORG_MEMBER.IS_DELETED, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: ID, source: dbo.ORG_POST.ID, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: CODE, source: dbo.ORG_POST.CODE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: NAME, source: dbo.ORG_POST.NAME, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: SORT_ID, source: dbo.ORG_POST.SORT_ID, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: STATUS, source: dbo.ORG_POST.STATUS, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_post, column: IS_DELETED, source: dbo.ORG_POST.IS_DELETED, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_relationship, column: SOURCE_MEMBER_ID, source: dbo.ORG_RELATIONSHIP.SOURCE_ID, category: ASSIGNMENT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_relationship, column: ORG_UNIT_ID, source: dbo.ORG_RELATIONSHIP.OBJECTIVE0_ID, category: ASSIGNMENT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_relationship, column: RELATIONSHIP_TYPE_ID, source: dbo.ORG_RELATIONSHIP.OBJECTIVE1_ID, category: ASSIGNMENT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_relationship, column: MEMBER_IS_DELETED, source: dbo.ORG_MEMBER.IS_DELETED, category: ASSIGNMENT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: ID, source: dbo.ORG_POST.ID, category: POSITION, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: CODE, source: dbo.ORG_POST.CODE, category: POSITION, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: NAME, source: dbo.ORG_POST.NAME, category: POSITION, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: SORT_ID, source: dbo.ORG_POST.SORT_ID, category: POSITION, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: STATUS, source: dbo.ORG_POST.STATUS, category: POSITION, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_post, column: IS_DELETED, source: dbo.ORG_POST.IS_DELETED, category: POSITION, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: ID, source: dbo.ORG_MEMBER.ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: NAME, source: dbo.ORG_MEMBER.NAME, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: CODE, source: dbo.ORG_MEMBER.CODE, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
