@@ -381,8 +381,10 @@ attempt() {
     PROCESSED="$STATE_DIR/processed-requests"
     ALERTS="$STATE_DIR/alerts-sent"
     ACTIVATION="$STATE_DIR/activation"
-    STATE_ALERT_MARK="$case_dir/state-alert-mark"
-    LOCK="$case_dir/lock"
+    RUN_DIR="$case_dir/run"
+    STATE_ALERT_MARK="$RUN_DIR/state-alert"
+    LOCK="$RUN_DIR/lock"
+    SELF="$here/remote_install.sh"
     BASE="$case_dir"
     releases="$case_dir/releases"
     current_link="$case_dir/current"
@@ -401,6 +403,7 @@ prepare_case() {
   if [ -n "$running" ]; then
     mkdir -p "$dir/releases/$running" && ln -s "releases/$running" "$dir/current"
   fi
+  [ -z "${PREVIOUS:-}" ] || { mkdir -p "$dir/releases/$PREVIOUS" && ln -s "releases/$PREVIOUS" "$dir/previous"; }
   case "$processed_before" in
     yes) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4242:1\t2026-10-14T00:00:00Z\tsucceeded\tv0.1.0 x\n' > "$dir/state/processed-requests") ;;
     failed) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4242:1\t2026-10-14T00:00:00Z\tfailed\tdownload: x\n' > "$dir/state/processed-requests") ;;
@@ -409,6 +412,10 @@ prepare_case() {
     interrupted) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4100:1\t2026-10-14T00:00:00Z\tsucceeded\tv0.0.9 x\n4242:1\t2026-10-15T00:00:00Z\tstarted\tv0.1.0\n' > "$dir/state/processed-requests") \
       && (umask 077 && printf '0.0.9 0.1.0 4242:1\n' > "$dir/state/activation") && ln -sfn releases/0.1.0 "$dir/current" ;;
     alerts-unwritable) mkdir -m 0700 "$dir/state" && mkdir -m 0600 "$dir/state/alerts-sent" ;;
+    interrupted-first) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4242:1\t2026-10-15T00:00:00Z\tstarted\tv0.1.0\n' > "$dir/state/processed-requests") \
+      && (umask 077 && printf -- '- 0.1.0 4242:1\n' > "$dir/state/activation") && ln -sfn releases/0.1.0 "$dir/current" ;;
+    activation-unwritable) mkdir -m 0700 "$dir/state" && mkdir "$dir/state/activation" ;;
+    alerted) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4242:1 activation\t%s\n' "$(date +%s)" > "$dir/state/alerts-sent") ;;
   esac
   [ -z "${STALE_INCOMING:-}" ] || mkdir -p "$dir/releases/.incoming.Ab12Cd"
   [ -z "${STATE_BLOCKED:-}" ] || { mkdir -p "$dir/read-only" && chmod 0500 "$dir/read-only"; }
@@ -448,7 +455,7 @@ check() {
   [ ! -f "$dir/state/processed-requests" ] || cp "$dir/state/processed-requests" "$dir/processed-before"
   # Not in an if: errexit, which the sourced installer sets, must stay in force inside the attempt
   # Another pull holds the lock for the whole attempt
-  [ -z "${LOCK_HELD:-}" ] || { exec 8>"$dir/lock"; test_flock -n 8; }
+  [ -z "${LOCK_HELD:-}" ] || { mkdir -p "$dir/run"; exec 8>"$dir/run/lock"; test_flock -n 8; }
   set +e
   attempt "$dir" "${SERVER_ENV:-dev}" "${RUNNING:-}" out "$@"
   rc=$?
@@ -581,7 +588,11 @@ REQUEST=hashes-not-object check hashes-not-object "reject:asset_url_sha256 must 
 REQUEST=hash-upper-case check hash-upper-case "reject:asset_url_sha256.bundle is not 64 lowercase hexadecimal characters"
 REQUEST=hash-short check hash-short "reject:asset_url_sha256.statement is not 64 lowercase hexadecimal characters"
 
-REQUEST=host=evil.example check host-evil "reject:host 'evil.example'"
+REQUEST=host=evil.example TWICE=yes check host-evil "reject:host 'evil.example'"
+invalid_link_final() {
+  result_is "$1" "4242:1,failed,invalid-link" && grep -q $'^4242:1\t.*\tfailed\tinvalid-link: ' "$1/state/processed-requests" && second_run_quiet "$1"
+}
+expect host-evil "a link that is not acceptable ends failed (not retrying) and is not taken up again" invalid_link_final
 REQUEST=host=release-assets.githubusercontent.com.evil.com check host-suffix-trick "reject:host 'release-assets.githubusercontent.com.evil.com'"
 REQUEST=host=githubusercontent.com check host-parent-domain "reject:host 'githubusercontent.com'"
 REQUEST=host=objects.githubusercontent.com. check host-trailing-dot "reject:host 'objects.githubusercontent.com.'"
@@ -632,6 +643,9 @@ metrics_not_printed() { ! grep -q 'jvm_threads\|forcitis_outbox' "$1/out"; }
 expect metrics-missing "without forcitis_ metrics the switch is undone" switched_back
 expect metrics-missing "result: started, then failed (activation)" result_activation_failed
 expect metrics-missing "the metrics text is never printed" metrics_not_printed
+marker_removed() { [ ! -e "$1/state/activation" ]; }
+expect valid-request "the switch marker is removed after succeeded is recorded" marker_removed
+expect metrics-missing "the switch marker is removed after switching back" marker_removed
 RUNNING=0.1.0 check same-version-healthy ok
 same_version_untouched() {
   [ ! -e "$1/switches" ] && ! grep -q 'fetching' "$1/out" && ! grep -q '^restart' "$1/systemctl" \
@@ -645,6 +659,8 @@ result_terminated() { result_is "$1" "4242:1,started,- 4242:1,failed,terminated"
 alert_terminated() { grep -q '^P2 one.release-pull dev: request 4242:1 terminated: stopped by a signal during migration' "$1/alerts"; }
 expect term-during-migration "recorded failed (terminated), result failed, one alert" result_terminated
 expect term-during-migration "alert names the request and the interrupted step" alert_terminated
+orphan_migrations_stopped() { grep -qx "stop forcitis-one-migrate-\*" "$1/systemctl"; }
+expect term-during-migration "leftover migration units are stopped" orphan_migrations_stopped
 RUNNING=0.0.9 TERM_AT=health check term-after-switch "reject:stopped by a signal during activation"
 activation_cleared() { switched_back "$1" && [ ! -e "$1/state/activation" ]; }
 expect term-after-switch "a switch not yet confirmed is undone, the marker removed" activation_cleared
@@ -658,6 +674,63 @@ finished_interrupted() {
     && grep -q '^P2 one.release-pull dev: request 4242:1 terminated: ' "$1/alerts"
 }
 expect finish-interrupted "switched back to 0.0.9, request 4242:1 ended failed (terminated) with result and alert" finished_interrupted
+expect finish-interrupted "leftover migration units are stopped" orphan_migrations_stopped
+
+# An operator's rollback interrupted half-way: its own trap leaves the marker, and the pull unit's ExecStopPost does not undo it
+RUNNING=0.1.0 TERM_AT=health COMMAND=cmd_rollback check rollback-interrupted "reject:rollback stopped by a signal before its health check finished" 0.0.9
+set +e
+COMMAND=cmd_finish_interrupted attempt "$scratch/rollback-interrupted" dev 0.1.0 out-finish
+set -e
+rollback_left_alone() {
+  [ "$(cat "$1/switches")" = "0.0.9" ] && [ "$(readlink "$1/current")" = releases/0.0.9 ] && [ "$(cat "$1/state/activation")" = "0.1.0 0.0.9 -" ] \
+    && grep -q 'manual-switch-marker: an unconfirmed switch 0.1.0 -> 0.0.9 (request -, - is a manual rollback) was found and left as it is' "$1/alerts" \
+    && ! grep -q 'switching back' "$1/out-finish"
+}
+expect rollback-interrupted "finish-interrupted keeps the rollback: no switch back, marker kept, one alert" rollback_left_alone
+
+PROCESSED_BEFORE=interrupted-first COMMAND=cmd_finish_interrupted check first-install-interrupted ok
+set +e
+COMMAND=cmd_status attempt "$scratch/first-install-interrupted" dev "" out-status
+set -e
+first_install_reported() {
+  [ ! -e "$1/switches" ] && [ -e "$1/state/activation" ] && result_is "$1" "4242:1,failed,terminated" \
+    && grep -q 'first installation: the switch to 0.1.0 was not confirmed and the service is still running' "$1/alerts" \
+    && grep -q '^UNCONFIRMED SWITCH (before target request; - = none / manual rollback): - 0.1.0 4242:1$' "$1/out-status"
+}
+expect first-install-interrupted "alert says the first installation is unconfirmed and running; status shows the marker" first_install_reported
+
+PROCESSED_BEFORE=activation-unwritable check activation-unwritable "reject:could not write"
+not_switched() { [ ! -e "$1/switches" ] && result_is "$1" "4242:1,started,- 4242:1,failed,activation"; }
+expect activation-unwritable "no switch without the marker; the request ends failed" not_switched
+
+RUNNING=0.0.9 FAKE_METRICS_FOR=0.0.9 PROCESSED_BEFORE=alerted check alert-limited-still-recorded "reject:release 0.1.0 was unhealthy"
+recorded_without_alert() {
+  [ ! -e "$1/alerts" ] && result_activation_failed "$1" && grep -q $'^4242:1\t.*\tfailed\tactivation: ' "$1/state/processed-requests"
+}
+expect alert-limited-still-recorded "an alert already sent is not repeated, but failed and the result are still written" recorded_without_alert
+
+RUNNING=0.1.0 PREVIOUS=0.0.9 FAKE_METRICS_FOR=0.0.9 check same-version-unhealthy "reject:release 0.1.0 was unhealthy; 0.0.9 is running again"
+back_to_previous() { [ "$(tr '\n' ' ' < "$1/switches")" = "0.1.0 0.0.9 " ] && ! grep -qx 'stop forcitis-one' "$1/systemctl"; }
+expect same-version-unhealthy "same version unhealthy: back to previous, the service is never stopped" back_to_previous
+RUNNING=0.1.0 FAKE_METRICS_FOR=none check same-version-unhealthy-alone "reject:there is no previous release; the service is left running"
+never_stopped() { ! grep -qx 'stop forcitis-one' "$1/systemctl"; }
+expect same-version-unhealthy-alone "no previous release: error only, the service is not stopped" never_stopped
+
+exposure_case() {
+  (
+    # shellcheck source=scripts/release/remote_install.sh
+    source "$here/remote_install.sh"
+    ETC="$scratch/exposure"
+    mkdir -p "$ETC"
+    printf 'MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=%s\n' "$1" > "$ETC/one.env"
+    prometheus_exposed
+  )
+}
+if exposure_case 'health,prometheus' && exposure_case "'health, prometheus'" && ! exposure_case health && ! exposure_case 'health,prometheusx'; then
+  pass "check_server_files: one.env must expose prometheus (health,prometheus passes; health alone does not)"
+else
+  flunk "check_server_files: prometheus exposure check is wrong"
+fi
 
 STALE_INCOMING=yes check stale-download-removed accept
 stale_removed() { [ -z "$(find "$1/releases" -maxdepth 1 -name '.incoming.*')" ] && grep -q 'removed 1 incomplete download' "$1/out"; }

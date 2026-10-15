@@ -35,7 +35,7 @@ ALERT_SENDER=/usr/local/sbin/one_alert_send
 GLOBAL_ALERT_SECONDS=3600
 ALERTS_PER_HOUR=6
 # Remembers the last "state directory unavailable" alert when the state directory itself is missing
-STATE_ALERT_MARK=/run/forcitis-one-release.state-alert
+STATE_ALERT_MARK=/run/forcitis-one-release/state-alert
 # GitHub serves release assets from these hosts as short-lived signed URLs; the deploy job resolves them, nothing else is fetched
 ASSET_HOSTS='objects.githubusercontent.com release-assets.githubusercontent.com'
 # Every request taken up, keyed <run_id>:<run_attempt>, with its outcome (root 0600, appended only); a key listed here is never installed again
@@ -53,7 +53,9 @@ STATEMENT_NAMESPACE=forcitis-one-release
 STATEMENT_FORMAT=forcitis-one-release-statement/1
 RELEASE_WORKFLOW=FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main
 RELEASE_LOGS=/var/log/forcitis-one-release
-LOCK=/run/forcitis-one-release.lock
+# RuntimeDirectory of the pull unit (kept between runs); rollback outside the unit creates it if missing
+RUN_DIR=/run/forcitis-one-release
+LOCK="$RUN_DIR/lock"
 UNIT=forcitis-one
 APP_USER=forcitis
 MIGRATION_USER=forcitis-migrate
@@ -61,13 +63,16 @@ APPLICATION_CLASS=OneApplication
 MIGRATE_PROFILE_RESOURCE=BOOT-INF/classes/application-migrate.properties
 VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
 MAX_BUNDLE_BYTES=$((1024 * 1024 * 1024))
-# Step limits of one `pull`: three small assets, the bundle, the migration, and the health check of the new release plus that of the
-# release switched back to. Their sum (2640 s) plus margin stays below forcitis-one-release-pull.service TimeoutStartSec (3000 s).
+# Time budget of one `pull` (forcitis-one-release-pull.service allows 3000 s): no step starts after PULL_BUDGET_SECONDS. The switch needs
+# SWITCH_RESERVE_SECONDS: two restarts with their health checks (new release, then the one switched back to) plus OOS calls; the migration
+# and the bundle download only start when the time they may take still leaves that reserve.
 SMALL_ASSET_TIMEOUT_SECONDS=60
 DOWNLOAD_TIMEOUT_SECONDS=1200
 HEALTH_TIMEOUT_SECONDS=180
+RESTART_SECONDS=60
 MIGRATION_TIMEOUT_SECONDS=900
-PULL_BUDGET_SECONDS=2900
+SWITCH_RESERVE_SECONDS=$((2 * (HEALTH_TIMEOUT_SECONDS + RESTART_SECONDS) + 90))
+PULL_BUDGET_SECONDS=2700
 # The application refuses to start unless the JVM default zone is UTC (kernel.UtcJvm); every java launch here passes it
 JVM_TIMEZONE=-Duser.timezone=UTC
 KEEP_RELEASES=5
@@ -76,21 +81,25 @@ FIRST_INSTALL_ONLY='^(spring\.datasource\..+|flowable\.database-schema-update)$'
 
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
 # In `pull`, stage names the cause. A failure before the request is recorded as started can heal by itself (the next round reads the
-# parameters again), so it reports `retrying`; after that the request ends `failed`. A cause already reported for this request (or,
+# parameters again), so it reports `retrying`; after that, and for a link that is not acceptable at all, the request ends `failed`. A cause already reported for this request (or,
 # without a request, within the hour) ends quietly, so the timer does not repeat the same alert and log every minute.
 fail() {
   local cause="${stage:-install}" status=retrying due=0
   [ -z "${request_in_progress:-}" ] || status=failed
   if [ -n "${pulling:-}" ]; then
     alert_due "$cause" || due=$?
-    [ "$due" -ne 1 ] || exit 0
+    # Already reported: stay quiet, unless a request is in progress, which must still end recorded as failed
+    [ "$due" -ne 1 ] || [ -n "${request_in_progress:-}" ] || exit 0
   fi
   log "FAILED: $*"
   [ -z "${request_in_progress:-}" ] || record_request "$request_in_progress" failed "$cause: $*" || log "could not record request $request_in_progress as failed"
   request_in_progress=""
   if [ -n "${pulling:-}" ]; then
     [ -z "${request_id:-}" ] || write_result "$status" "$cause"
-    if [ "$due" -eq 0 ]; then send_alert "$cause" "$*"; else log "alert for $cause not sent: $ALERTS cannot record it"; fi
+    case "$due" in
+      0) send_alert "$cause" "$*" ;;
+      2) log "alert for $cause not sent: $ALERTS cannot record it" ;;
+    esac
   fi
   exit 1
 }
@@ -257,28 +266,39 @@ switch_to() {
 record() { printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" >> "$releases/HISTORY"; }
 
 # While a switch is unconfirmed, ACTIVATION names the release to return to, so a run killed half-way can still be switched back
+# While a switch is unconfirmed, ACTIVATION names the release to return to; the caller removes it once the outcome is recorded. Without
+# it a run killed half-way could not be switched back, so no switch happens unless it is written.
 activate() {
-  local version="$1" before
+  local version="$1" before fallback
   before="$(linked_version "$current_link")"
   log "switching current: ${before:-none} -> $version"
-  [ ! -d "$STATE_DIR" ] || (umask 077 && printf '%s %s %s\n' "${before:--}" "$version" "${request_id:--}" > "$ACTIVATION") \
-    || log "could not write $ACTIVATION"
+  [ -d "$STATE_DIR" ] || mkdir -m 0700 "$STATE_DIR" 2>/dev/null || fail "cannot create $STATE_DIR; not switching without a way back"
+  (umask 077 && printf '%s %s %s\n' "${before:--}" "$version" "${request_id:--}" > "$ACTIVATION") 2>/dev/null \
+    || fail "could not write $ACTIVATION; not switching without a way back"
   switch_to "$version"
   if health_ok; then
     [ -z "$before" ] || [ "$before" = "$version" ] || ln -sfn "releases/$before" "$previous_link"
     record "$version" "active"
-    rm -f "$ACTIVATION"
     log "release $version is healthy"
     return 0
   fi
   record "$version" "unhealthy"
-  if [ -z "$before" ] || [ "$before" = "$version" ]; then
+  fallback="$before"
+  if [ "$before" = "$version" ]; then
+    # Reinstalling the running version: go back to the previous release if there is one, never stop the service for it
+    fallback="$(linked_version "$previous_link")"
+    [ "$fallback" != "$version" ] || fallback=""
+    if [ -z "$fallback" ]; then
+      rm -f "$ACTIVATION"
+      fail "release $version is current but did not become healthy, and there is no previous release; the service is left running"
+    fi
+  elif [ -z "$before" ]; then
     systemctl stop "$UNIT" || true
     rm -f "$ACTIVATION"
     fail "release $version did not become healthy and there is no earlier release to return to; the service is stopped"
   fi
-  log "release $version did not become healthy within ${HEALTH_TIMEOUT_SECONDS}s; switching back to $before"
-  switch_back "$before"
+  log "release $version did not become healthy within ${HEALTH_TIMEOUT_SECONDS}s; switching back to $fallback"
+  switch_back "$fallback"
   fail "release $version was unhealthy; $switch_back_outcome"
 }
 
@@ -370,6 +390,12 @@ check_server_files() {
     grep -qE "^${key}=" "$ETC/one.env" || missing+=("$key")
   done < <(grep -oE '^[A-Z][A-Z0-9_]*=' "$dir/deploy/one.env.template" | tr -d '=')
   [ "${#missing[@]}" -eq 0 ] || fail "$ETC/one.env lacks keys this release expects (add them, empty if unused): ${missing[*]}"
+  prometheus_exposed || fail "$ETC/one.env MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE lacks prometheus; the post-switch metrics check would fail"
+}
+
+# The health check after a switch reads /actuator/prometheus, so one.env must expose it
+prometheus_exposed() {
+  env_value MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE | tr ',' '\n' | tr -d ' ' | grep -qx -e prometheus -e '\*'
 }
 
 grant_static_read() {
@@ -627,7 +653,7 @@ fetch_release() {
   download_asset "$top.release" "$incoming/statement" "$SMALL_ASSET_TIMEOUT_SECONDS"
   download_asset "$top.release.sig" "$incoming/statement.sig" "$SMALL_ASSET_TIMEOUT_SECONDS"
   # The bundle gets what is left once the migration and two health checks are reserved, at most DOWNLOAD_TIMEOUT_SECONDS
-  seconds=$(($(remaining) - MIGRATION_TIMEOUT_SECONDS - 2 * HEALTH_TIMEOUT_SECONDS))
+  seconds=$(($(remaining) - MIGRATION_TIMEOUT_SECONDS - SWITCH_RESERVE_SECONDS))
   [ "$seconds" -le "$DOWNLOAD_TIMEOUT_SECONDS" ] || seconds="$DOWNLOAD_TIMEOUT_SECONDS"
   [ "$seconds" -gt 0 ] || fail "no time left to download the bundle within this run's budget"
   download_asset "$top.tar.gz" "$archive" "$seconds"
@@ -734,7 +760,7 @@ migrate() {
   log "running migrations of $version as unit $unit (log $log_file)"
   systemd-run --unit="$unit" --uid="$MIGRATION_USER" --gid="$APP_USER" --working-directory="$release" \
     -p EnvironmentFile="$ETC/one.env" "${credentials[@]}" "${unset_env[@]}" -p PrivateTmp=yes -p NoNewPrivileges=yes \
-    -p StandardOutput="append:$log_file" -p StandardError="append:$log_file" \
+    -p RuntimeMaxSec="$MIGRATION_TIMEOUT_SECONDS" -p StandardOutput="append:$log_file" -p StandardError="append:$log_file" \
     /usr/bin/java "$JVM_TIMEZONE" -XX:+ExitOnOutOfMemoryError -jar "$release/forcitis-one.jar" "${args[@]}"
   deadline=$((SECONDS + MIGRATION_TIMEOUT_SECONDS))
   started=false
@@ -771,7 +797,7 @@ prune() {
 }
 
 lock() {
-  exec 9>"$LOCK"
+  open_lock
   flock -n 9 || fail "another release operation is running"
 }
 
@@ -805,7 +831,11 @@ read_request() {
   # Not a replay but a write race between two runs: nothing is recorded, so the same request is taken up once the parameters agree
   [ "$rc" -ne 3 ] || fail "link parameters $mismatched do not match the request's asset_url_sha256 (written by different deploy runs); rewrite them and resend"
   stage="invalid-link"
-  [ "$rc" -eq 0 ] || fail "$mismatched"
+  # Links that match the request's own hashes but are not acceptable will not get better: the request ends failed and is not retried
+  if [ "$rc" -ne 0 ]; then
+    request_in_progress="$request_id"
+    fail "$mismatched"
+  fi
 
   # Split in memory: a here-string could be backed by a temporary file, and these lines hold the signed links
   asset_names=("${assets[@]}") asset_links=()
@@ -826,14 +856,28 @@ on_term() {
   local interrupted="$stage" before target
   trap - TERM INT
   stage="terminated"
+  stop_orphan_migrations
   if [ -f "$ACTIVATION" ] && read -r before target _ < "$ACTIVATION"; then
     if [ "$before" != "-" ] && [ "$before" != "$target" ]; then
       log "stopped while switching to $target; switching back to $before"
       switch_back "$before"
+    elif [ "$before" = "-" ]; then
+      fail "stopped by a signal during $interrupted; first installation: the switch to $target was not confirmed and the service is still running; check it by hand (RELEASE.md §3, half-switched state)"
     fi
     rm -f "$ACTIVATION"
   fi
   fail "stopped by a signal during $interrupted"
+}
+
+# A migration started by an interrupted run would otherwise keep its JVM running
+stop_orphan_migrations() {
+  systemctl stop 'forcitis-one-migrate-*' 2>/dev/null || log "could not stop leftover migration units (systemctl list-units 'forcitis-one-migrate-*')"
+}
+
+# An operator's rollback stopped by a signal is not undone automatically: the marker stays for the operator (RELEASE.md §3)
+on_rollback_term() {
+  trap - TERM INT
+  fail "rollback stopped by a signal before its health check finished; $ACTIVATION names the releases involved; check with forcitis-one-release status (RELEASE.md §3, half-switched state)"
 }
 
 cmd_pull() {
@@ -841,7 +885,7 @@ cmd_pull() {
   local target_env pinned_expected profile running new first_install=false version commit staged stale
   request_id="" alert_key="" nothing_new="" pulling=1
   pull_deadline=$((SECONDS + PULL_BUDGET_SECONDS))
-  exec 9>"$LOCK"
+  open_lock
   # Another pull or an operator's rollback is running: this round has nothing to do
   flock -n 9 || exit 0
   trap on_term TERM INT
@@ -905,17 +949,18 @@ cmd_pull() {
     log "no new migrations; the run still validates the applied ones against this release"
   fi
   stage=budget
-  [ "$(remaining)" -ge $((MIGRATION_TIMEOUT_SECONDS + 2 * HEALTH_TIMEOUT_SECONDS)) ] \
+  [ "$(remaining)" -ge $((MIGRATION_TIMEOUT_SECONDS + SWITCH_RESERVE_SECONDS)) ] \
     || fail "only $(remaining)s left of this run's budget; not starting the migration and the switch"
   stage=migration
   migrate "$version" "$first_install"
   stage=budget
-  [ "$(remaining)" -ge $((2 * HEALTH_TIMEOUT_SECONDS)) ] || fail "only $(remaining)s left of this run's budget; not switching"
+  [ "$(remaining)" -ge "$SWITCH_RESERVE_SECONDS" ] || fail "only $(remaining)s left of this run's budget; not switching"
   stage=activation
   activate "$version"
   record_request "$request_id" succeeded "v$version $commit" || log "could not record request $request_id as succeeded"
   request_in_progress=""
   write_result succeeded
+  rm -f "$ACTIVATION"
   prune
 }
 
@@ -923,29 +968,48 @@ cmd_pull() {
 # `started` ends `failed` (cause terminated), with its result and an alert
 cmd_finish_interrupted() {
   [ "$#" -eq 0 ] || fail "finish-interrupted takes no arguments"
-  local target_env pinned_expected before target ids id
+  local target_env pinned_expected before="" target="" owner="" ids id note
   request_id="" alert_key="" pulling=1 stage="terminated"
-  exec 9>"$LOCK"
+  open_lock
   flock -n 9 || exit 0
   [ -d "$STATE_DIR" ] || exit 0
   read_release_source
-  if [ -f "$ACTIVATION" ] && read -r before target _ < "$ACTIVATION"; then
+  stop_orphan_migrations
+  ids="$(awk -F'\t' '{ state[$1] = $3 } END { for (id in state) if (state[id] == "started") print id }' "$PROCESSED" 2>/dev/null || true)"
+  [ ! -f "$ACTIVATION" ] || read -r before target owner < "$ACTIVATION" || true
+  # Only a switch made by a pull whose request is still `started` is undone here; any other marker (an operator's rollback) stays
+  if [ -n "$target" ] && { [ "$owner" = "-" ] || ! printf '%s\n' "$ids" | grep -qx -- "$owner"; }; then
+    alert_key="activation-$(sha256sum < "$ACTIVATION" | cut -c1-16)"
+    log "found an unconfirmed switch marker not made by an interrupted pull (${before} -> ${target}, request ${owner}); left for an operator"
+    if alert_due manual-switch-marker; then
+      send_alert manual-switch-marker "an unconfirmed switch ${before} -> ${target} (request ${owner}, - is a manual rollback) was found and left as it is; check with forcitis-one-release status (RELEASE.md §3, half-switched state)"
+    fi
+    alert_key=""
+    target=""
+  fi
+  note="the run stopped before it finished (${SERVICE_RESULT:-unknown})"
+  if [ -n "$target" ]; then
     if [ "$before" != "-" ] && [ "$before" != "$target" ]; then
       log "the run stopped while switching to $target; switching back to $before"
       switch_back "$before"
+      note="$note; switched back: $switch_back_outcome"
     else
-      log "the run stopped while switching to $target with no earlier release; check it by hand (RELEASE.md §3, half-switched state)"
+      log "first installation: the switch to $target was not confirmed and the service is still running; check it by hand (RELEASE.md §3, half-switched state)"
+      note="$note; first installation: the switch to $target was not confirmed and the service is still running"
     fi
-    rm -f "$ACTIVATION"
   fi
-  ids="$(awk -F'\t' '{ state[$1] = $3 } END { for (id in state) if (state[id] == "started") print id }' "$PROCESSED" 2>/dev/null || true)"
   for id in $ids; do
     request_id="$id" alert_key="$id"
     record_request "$id" failed "terminated: the run stopped before it finished" || log "could not record request $id as failed"
-    log "FAILED: request $id: the run stopped before it finished"
+    log "FAILED: request $id: $note"
     write_result failed terminated
-    send_alert terminated "the run stopped before it finished (${SERVICE_RESULT:-unknown})"
+    send_alert terminated "$note"
   done
+}
+
+open_lock() {
+  [ -d "$RUN_DIR" ] || mkdir -m 0700 "$RUN_DIR" 2>/dev/null || true
+  exec 9>"$LOCK"
 }
 
 cmd_rollback() {
@@ -959,7 +1023,9 @@ cmd_rollback() {
   fi
   valid_version "$target" || fail "invalid version '$target'"
   [ "$target" != "$(linked_version "$current_link")" ] || fail "$target is already current"
+  trap on_rollback_term TERM INT
   activate "$target"
+  rm -f "$ACTIVATION"
 }
 
 cmd_status() {
@@ -967,10 +1033,17 @@ cmd_status() {
   echo "previous: $(linked_version "$previous_link")"
   echo "installer sha256: $(sha256sum "$SELF" | cut -d' ' -f1)"
   echo "installed releases:"
-  find "$releases" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -printf '  %f\n' | sort
+  local dir
+  for dir in "$releases"/*; do
+    [ ! -d "$dir" ] || printf '  %s\n' "$(basename "$dir")"
+  done
   [ ! -f "$releases/HISTORY" ] || { echo "recent history:"; tail -5 "$releases/HISTORY"; }
   [ ! -f "$PROCESSED" ] || { echo "recent install requests:"; tail -5 "$PROCESSED"; }
   [ ! -f "$ALERTS" ] || { echo "recent alerts:"; tail -5 "$ALERTS"; }
+  if [ -f "$ACTIVATION" ]; then
+    echo "UNCONFIRMED SWITCH (before target request; - = none / manual rollback): $(cat "$ACTIVATION")"
+    echo "  see RELEASE.md §3, half-switched state"
+  fi
 }
 
 main() {

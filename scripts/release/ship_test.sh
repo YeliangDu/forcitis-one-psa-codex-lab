@@ -201,7 +201,7 @@ retry_waited() {
 }
 failure_reported() { rc_is "$1" 1 && says "$1" "request 4242:2: the ECS reports failed (download)"; }
 timeout_names_request() {
-  rc_failed "$1" && says "$1" "no result for request 4242:2 after 3300s" && says "$1" "journalctl -u forcitis-one-release-pull.service" \
+  rc_failed "$1" && says "$1" "no result for request 4242:2 after 4200s" && says "$1" "journalctl -u forcitis-one-release-pull.service" \
     && says "$1" "set forcitis-one-deploy-request-dev back to {}"
 }
 transient_retried() { rc_is "$1" 0 && says "$1" "failed (2 of 6 in a row)" && says "$1" "succeeded on the ECS"; }

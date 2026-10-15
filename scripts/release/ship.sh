@@ -26,8 +26,9 @@ need() {
   [ "${#missing[@]}" -eq 0 ] || fail "environment $env lacks ${missing[*]} (RELEASE.md §7)"
 }
 
-# forcitis-one-release-pull.service TimeoutStartSec (3000) + timer period (60) + margin; deploy.yml allows 75 minutes for the job
-WAIT_SECONDS=3300
+# forcitis-one-release-pull.service TimeoutStartSec (3000) + timer period (60) + room for a run already in progress; deploy.yml allows
+# 75 minutes for the whole job
+WAIT_SECONDS=4200
 POLL_SECONDS=15
 MAX_POLL_FAILURES=6
 # Same names, limit and hosts as the installer (remote_install.sh)
