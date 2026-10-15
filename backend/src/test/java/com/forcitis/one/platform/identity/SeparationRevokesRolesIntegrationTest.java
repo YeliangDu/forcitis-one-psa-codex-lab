@@ -20,6 +20,7 @@ import com.forcitis.one.platform.identity.events.EmergencyAdminDisabled;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +56,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     }
 
     private void registerEmergencyAdmin(long userId, String name) {
-        emergencyAdmins.insertIfAbsent(EmergencyAdmin.register(new UserId(userId), name, hasher.hash("Str0ng!Passphrase#42"), vault.seal(Totp.newSecret())));
+        emergencyAdmins.insertIfAbsent(EmergencyAdmin.register(new UserId(userId), name, hasher.hash(UUID.randomUUID().toString()), vault.seal(Totp.newSecret())));
     }
 
     @Test
