@@ -73,6 +73,7 @@ class ArchitectureRulesTest {
     @Test
     void webAndInfrastructureAreNotPublic() {
         classes().that().resideInAnyPackage("..web..", "..infrastructure..")
+                .and().doNotHaveFullyQualifiedName(ROOT + ".platform.web.NotFromQuery")
                 .should().notBePublic()
                 .because("controllers and adapters are wired by Spring; nothing else should reference them")
                 .check(CLASSES);

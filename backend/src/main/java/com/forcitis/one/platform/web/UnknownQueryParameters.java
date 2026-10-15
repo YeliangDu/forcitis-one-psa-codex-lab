@@ -11,13 +11,19 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.MatrixVariable;
@@ -26,14 +32,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.method.annotation.ModelAttributeMethodProcessor;
+import org.springframework.web.method.annotation.RequestParamMapMethodArgumentResolver;
+import org.springframework.web.method.annotation.RequestParamMethodArgumentResolver;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 /** A GET under /api that carries a query parameter its handler does not declare is refused by name, so a misspelt filter never reads as "no filter" (NAMING_STANDARD A-4). */
 @Configuration
@@ -46,6 +57,18 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
             RequestBody.class, RequestAttribute.class, SessionAttribute.class, RequestPart.class, MatrixVariable.class);
 
     private final Map<HandlerMethod, Set<String>> declared = new ConcurrentHashMap<>();
+    private final Supplier<List<HandlerMethodArgumentResolver>> resolvers;
+
+    /** The adapter is taken when first needed: it is built from the WebMvcConfigurers, this class among them. */
+    @Autowired
+    UnknownQueryParameters(ObjectProvider<RequestMappingHandlerAdapter> adapter) {
+        this(() -> adapter.getObject().getArgumentResolvers());
+    }
+
+    /** The resolvers in the order Spring MVC asks them. */
+    UnknownQueryParameters(Supplier<List<HandlerMethodArgumentResolver>> resolvers) {
+        this.resolvers = resolvers;
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -57,7 +80,7 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
         if (!"GET".equals(request.getMethod()) || !(handler instanceof HandlerMethod method)) {
             return true;
         }
-        Set<String> known = declared.computeIfAbsent(method, UnknownQueryParameters::declaredNames);
+        Set<String> known = declared.computeIfAbsent(method, this::declaredNames);
         Set<String> unknown = new TreeSet<>(request.getParameterMap().keySet());
         unknown.removeAll(known);
         if (!unknown.isEmpty()) {
@@ -81,11 +104,30 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
         return String.join(",", shown);
     }
 
-    /** The query parameter names a GET handler reads; a parameter whose names cannot be known fails the start of the application, naming the method. */
-    static Set<String> declaredNames(HandlerMethod method) {
+    /**
+     * The query parameter names a GET handler reads; a parameter whose names cannot be known fails the start of the application, naming the method.
+     * A parameter goes to the first resolver that supports it, as in Spring MVC: one marked @NotFromQuery is skipped, any other resolver of the
+     * application may read the query and fails the start.
+     */
+    Set<String> declaredNames(HandlerMethod method) {
+        List<HandlerMethodArgumentResolver> ordered = resolvers.get();
         Set<String> names = new TreeSet<>();
         for (MethodParameter parameter : method.getMethodParameters()) {
             parameter.initParameterNameDiscovery(new DefaultParameterNameDiscoverer());
+            Optional<HandlerMethodArgumentResolver> first = ordered.stream().filter(resolver -> resolver.supportsParameter(parameter)).findFirst();
+            if (first.isPresent()) {
+                Class<?> resolverType = AopUtils.getTargetClass(first.get());
+                if (AnnotatedElementUtils.hasAnnotation(resolverType, NotFromQuery.class)) {
+                    continue;
+                }
+                if (!resolverType.getName().startsWith("org.springframework.")) {
+                    throw unsupported(method, parameter, "resolved by " + resolverType.getSimpleName()
+                            + ", which may read the query: mark it @NotFromQuery if it does not");
+                }
+                if (!readsTheQuery(first.get(), parameter)) {
+                    continue;
+                }
+            }
             Class<?> type = parameter.getParameterType();
             RequestParam annotation = parameter.getParameterAnnotation(RequestParam.class);
             if (annotation != null) {
@@ -109,6 +151,14 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
             }
         }
         return names;
+    }
+
+    /** Spring's resolvers that may read the query; any other of Spring's resolvers fills the parameter from elsewhere (a Locale, the principal). */
+    private static boolean readsTheQuery(HandlerMethodArgumentResolver resolver, MethodParameter parameter) {
+        Class<?> type = parameter.getParameterType();
+        return resolver instanceof RequestParamMethodArgumentResolver || resolver instanceof RequestParamMapMethodArgumentResolver
+                || resolver instanceof ModelAttributeMethodProcessor
+                || ServletRequest.class.isAssignableFrom(type) || WebRequest.class.isAssignableFrom(type);
     }
 
     private static boolean hasBindingAnnotation(MethodParameter parameter) {

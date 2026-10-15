@@ -49,14 +49,18 @@ final class SessionGuardFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication instanceof IdentityAuthentication identity) {
+        if (authentication instanceof IdentityAuthentication identity && identity.account().isEmpty()) {
+            log.error("ALERT platform.identity a session whose principal is not an account id was ended");
+            terminate(request);
+        } else if (authentication instanceof IdentityAuthentication identity) {
+            UserId account = identity.account().orElseThrow();
             Instant now = clock.instant();
-            auditNaturalExpiry(identity, request, now);
+            auditNaturalExpiry(identity, account, request, now);
             if (identity.loginAt().plus(settings.absoluteTimeout()).isBefore(now) || emergencySessionOver(identity, now)) {
                 terminate(request);
             } else {
                 SessionKind kind = identity.kindAt(now);
-                SessionPrincipal principal = principals.get(identity.userIdValue(), kind);
+                SessionPrincipal principal = principals.get(account, kind);
                 if (principal.isActive()) {
                     HttpSession session = request.getSession(false);
                     boolean unconfirmed = session == null || !Boolean.TRUE.equals(session.getAttribute(ServletSessionRegistry.CONFIRMED_ATTRIBUTE));
@@ -76,17 +80,17 @@ final class SessionGuardFilter extends OncePerRequestFilter {
     }
 
     /** Without it the end of the mode would leave no trace: the exit audit is written once per mode, by the first request after the end. */
-    private void auditNaturalExpiry(IdentityAuthentication identity, HttpServletRequest request, Instant now) {
+    private void auditNaturalExpiry(IdentityAuthentication identity, UserId account, HttpServletRequest request, Instant now) {
         Instant until = identity.administratorModeUntil();
         HttpSession session = request.getSession(false);
         if (until == null || now.isBefore(until) || session == null || until.equals(session.getAttribute(EXPIRY_AUDITED))) {
             return;
         }
         session.setAttribute(EXPIRY_AUDITED, until);
-        audit.recordIndependently(new AuditEntry("platform.identity.administrator-mode.exited", new UserId(identity.userIdValue()), null,
-                "user-account:" + identity.userIdValue(), "expired at " + until).withTrace(request.getRemoteAddr(), AuditOutcome.SUCCEEDED,
+        audit.recordIndependently(new AuditEntry("platform.identity.administrator-mode.exited", account, null,
+                "user-account:" + account.value(), "expired at " + until).withTrace(request.getRemoteAddr(), AuditOutcome.SUCCEEDED,
                 identity.loginMethod().name()));
-        log.error("ALERT platform.identity administrator mode of user {} expired at {}", identity.userIdValue(), until);
+        log.error("ALERT platform.identity administrator mode of user {} expired at {}", account.value(), until);
     }
 
     private static boolean emergencySessionOver(IdentityAuthentication identity, Instant now) {

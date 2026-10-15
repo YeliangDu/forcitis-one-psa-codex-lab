@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.WecomGateway;
@@ -48,7 +49,8 @@ import tools.jackson.databind.json.JsonMapper;
  * for redelivery, carries every id as a scalar. Today an id is a record and is written as {"value": ...}. The events are caused over HTTP
  * only; the registry is read in its own schema (platform_integration), unqualified, through a connection whose search path is that schema.
  * The ids of a person (user, employee) are checked in the same way by AccountDisabled and AccountRolesReplaced, which carry a user id
- * whatever the type behind it is called.
+ * whatever the type behind it is called. From R-1b P2 on the user id is a UUID of its own and the account row names its employee
+ * (RULING-P2-1: the account case rewritten with UUIDs).
  */
 @Testcontainers
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "spring.datasource.hikari.connection-timeout=2000"})
@@ -81,14 +83,16 @@ class EventPayloadScalarIdsIT {
     @Autowired
     DataSource dataSource;
 
-    // The session principal of a test caller; 70000 + n is the form the account id has today.
+    // The session principal of a test caller in the form the build's account id has: a number before R-1b P2, a UUID from P2 on.
     static RequestPostProcessor person(int number, String... permissions) {
         List<GrantedAuthority> authorities = new ArrayList<>();
         authorities.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
         for (String permission : permissions) {
             authorities.add(new SimpleGrantedAuthority(permission));
         }
-        return SecurityMockMvcRequestPostProcessors.user(String.valueOf(70000 + number)).authorities(authorities);
+        Class<?> idType = UserId.class.isRecord() ? UserId.class.getRecordComponents()[0].getType() : long.class;
+        String principal = idType == UUID.class ? String.format("01900000-0000-7000-8000-%012d", number) : String.valueOf(70000 + number);
+        return SecurityMockMvcRequestPostProcessors.user(principal).authorities(authorities);
     }
 
     private Connection schemaConnection(String schema) throws SQLException {
@@ -185,12 +189,14 @@ class EventPayloadScalarIdsIT {
     }
 
     @Test
-    @DisplayName("R-1b P1 / G-C5 领域事件负载中的 ID 为标量：AccountDisabled 的 userId 与 AccountRolesReplaced 的 userId、roleIds 是标量，不是 {\"value\": …}")
+    @DisplayName("R-1b P1 / G-C5 领域事件负载中的 ID 为标量：AccountDisabled 的 userId 与 AccountRolesReplaced 的 userId、roleIds 是标量，不是 {\"value\": …}；R-1b P2（RULING-P2-1）账号 ID 是 uuid 字符串，不是员工 ID")
     void accountEventsCarryScalarUserAndRoleIds() throws Exception {
-        long user = 75001;
+        UUID user = UUID.randomUUID();
+        long employee = 75001;
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement account = identity.prepareStatement(
-                "insert into user_accounts (user_id) values (?) on conflict do nothing")) {
-            account.setLong(1, user);
+                "insert into user_accounts (user_id, employee_id) values (?, ?) on conflict do nothing")) {
+            account.setObject(1, user);
+            account.setLong(2, employee);
             account.executeUpdate();
         }
         MockHttpServletResponse role = mvc.perform(post(ROLES).with(csrf()).with(ROLE_ADMINISTRATOR).contentType(MediaType.APPLICATION_JSON)
@@ -209,13 +215,15 @@ class EventPayloadScalarIdsIT {
                 .with(ROLE_ADMINISTRATOR)).andReturn().getResponse();
         assertThat(disabled.getStatus()).as(disabled.getContentAsString()).isEqualTo(204);
 
-        List<JsonNode> replacedEvents = registered("AccountRolesReplaced", String.valueOf(user));
-        List<JsonNode> disabledEvents = registered("AccountDisabled", String.valueOf(user));
+        List<JsonNode> replacedEvents = registered("AccountRolesReplaced", user.toString());
+        List<JsonNode> disabledEvents = registered("AccountDisabled", user.toString());
 
         assertIdsAreScalar(replacedEvents, field -> field.equals("userId"));
         assertIdsAreScalar(replacedEvents, field -> field.equals("roleIds"));
         assertIdsAreScalar(disabledEvents, field -> field.equals("userId"));
         assertThat(replacedEvents.getFirst().path("roleIds")).hasSize(1);
         assertThat(UUID.fromString(replacedEvents.getFirst().path("roleIds").get(0).asString())).isNotNull();
+        assertThat(replacedEvents.getFirst().path("userId").asString(null)).isEqualTo(user.toString());
+        assertThat(disabledEvents.getFirst().path("userId").asString(null)).isEqualTo(user.toString()).isNotEqualTo(String.valueOf(employee));
     }
 }

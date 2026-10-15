@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.web;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -56,10 +57,10 @@ class HttpContractIT {
     @Test
     @DisplayName("the version lives in the path: /api/1/... is not a route, /api/v1/... is")
     void numericVersionSegmentIsNotFound() throws Exception {
-        mvc.perform(get("/api/1/organization/legal-entities").with(user("1"))).andExpect(status().isNotFound())
+        mvc.perform(get("/api/1/organization/legal-entities").with(user(TestAccounts.account(1).value().toString()))).andExpect(status().isNotFound())
                 .andExpect(header().exists(WorkContext.HEADER));
-        mvc.perform(get("/api/v2/organization/legal-entities").with(user("1"))).andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/organization/legal-entities").with(user("1")))
+        mvc.perform(get("/api/v2/organization/legal-entities").with(user(TestAccounts.account(1).value().toString()))).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/organization/legal-entities").with(user(TestAccounts.account(1).value().toString())))
                 .andExpect(result -> assertThat(result.getResponse().getStatus()).isNotEqualTo(404));
     }
 
@@ -67,7 +68,7 @@ class HttpContractIT {
     @DisplayName("an unknown route answers a ProblemDetail with the correlation id of the request")
     void notFoundIsAProblemDetail() throws Exception {
         UUID given = UUID.randomUUID();
-        mvc.perform(get("/api/1/organization/legal-entities").with(user("1")).header(WorkContext.HEADER, given.toString()))
+        mvc.perform(get("/api/1/organization/legal-entities").with(user(TestAccounts.account(1).value().toString())).header(WorkContext.HEADER, given.toString()))
                 .andExpect(status().isNotFound())
                 .andExpect(header().string(WorkContext.HEADER, given.toString()))
                 .andExpect(jsonPath("$.status").value(404));
@@ -77,7 +78,7 @@ class HttpContractIT {
     @DisplayName("a response field that can be null is declared nullable in the contract, a required one is not; a page's nextCursor is nullable")
     void nullableFieldsAreDeclaredNullable() throws Exception {
         tools.jackson.databind.JsonNode schemas = new tools.jackson.databind.json.JsonMapper().readTree(
-                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
                 .path("components").path("schemas");
 
         assertThat(allowsNull(schemas.path("AuditEntryResponse").path("properties").path("detail"))).isTrue();
@@ -93,7 +94,7 @@ class HttpContractIT {
     @DisplayName("the confirmation status of a source reference is its own component with its own values, not the one of the numbering rules")
     void sourceReferenceConfirmationStatusListsItsOwnValues() throws Exception {
         tools.jackson.databind.JsonNode schemas = new tools.jackson.databind.json.JsonMapper().readTree(
-                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
                 .path("components").path("schemas");
 
         assertThat(schemas.path("SourceReferenceResponse").path("properties").path("confirmationStatus").path("$ref").asString())
@@ -115,7 +116,7 @@ class HttpContractIT {
     @DisplayName("every list endpoint answers a cursor page with limit and cursor parameters, or is an unpaged list with its reason on record")
     void listsArePagedOrExempt() throws Exception {
         tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(
-                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
+                mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
         java.util.Set<String> unpaged = new java.util.TreeSet<>();
         int paged = 0;
         for (var path : paths.properties()) {
@@ -143,7 +144,7 @@ class HttpContractIT {
     @DisplayName("the original-number list declares documentType as required and its two search keys as alternatives; the exact lookup is its own operation")
     void legacyNumberSearchKeysAreAlternatives() throws Exception {
         tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(
-                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
+                mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
         java.util.Map<String, Boolean> required = new java.util.TreeMap<>();
         paths.path("/api/v1/platform/legacy-numbers").path("get").path("parameters").forEach(p -> required.put(p.path("name").asString(), p.path("required").asBoolean()));
 
@@ -156,7 +157,7 @@ class HttpContractIT {
     @DisplayName("Idempotency-Key is offered exactly where the answer is stored: on POSTs, never under /sessions or on the login states, which hand out credentials")
     void idempotencyKeyIsOfferedExactlyWhereItIsStored() throws Exception {
         tools.jackson.databind.JsonNode paths = new tools.jackson.databind.json.JsonMapper().readTree(
-                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
+                mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("paths");
         int offered = 0;
         for (var path : paths.properties()) {
             for (var operation : path.getValue().properties()) {

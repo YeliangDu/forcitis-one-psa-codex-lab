@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.domain;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.TransitionTable;
@@ -16,7 +17,7 @@ import org.junit.jupiter.api.Test;
 class EmergencyAdminTest {
 
     static EmergencyAdmin at(EmergencyAdminStatus status) {
-        return EmergencyAdmin.restore(new UserId(7), "breakglass", "hash", "sealed", 0, 0, null, status == EmergencyAdminStatus.ENABLED, 3, 3);
+        return EmergencyAdmin.restore(TestAccounts.account(7), "breakglass", "hash", "sealed", 0, 0, null, status == EmergencyAdminStatus.ENABLED, 3, 3);
     }
 
     @Test
@@ -31,7 +32,7 @@ class EmergencyAdminTest {
     @Test
     @DisplayName("registering, disabling, enabling and resetting each record their event, numbered without gaps")
     void events() {
-        EmergencyAdmin admin = EmergencyAdmin.register(new UserId(7), "breakglass", "hash", "sealed");
+        EmergencyAdmin admin = EmergencyAdmin.register(TestAccounts.account(7), "breakglass", "hash", "sealed");
         admin.disable(EmergencyAdminDisableCause.SEPARATION);
         admin.enable();
         admin.resetCredentials("hash2", "sealed2");

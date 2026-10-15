@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -78,7 +79,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(listed(session)).isEmpty();
         assertThat(read(session, "/10").getResponse().getStatus()).isEqualTo(404);
         assertThat(denials()).singleElement().satisfies(entry -> {
-            assertThat(entry.actorId()).isEqualTo(new UserId(21));
+            assertThat(entry.actorId()).isEqualTo(TestAccounts.account(21));
             assertThat(entry.subjectKey()).isEqualTo("org-unit:10");
         });
     }

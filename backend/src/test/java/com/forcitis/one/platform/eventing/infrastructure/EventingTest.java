@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.eventing.infrastructure;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -7,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
@@ -54,7 +56,7 @@ class EventingTest {
 
     static CurrentUser signedIn(long id) {
         CurrentUser user = mock(CurrentUser.class);
-        when(user.userId()).thenReturn(new UserId(id));
+        when(user.userId()).thenReturn(TestAccounts.account(id));
         return user;
     }
 
@@ -80,18 +82,19 @@ class EventingTest {
     }
 
     @Test
-    @DisplayName("with a signed-in user the actor is USER and his id; inside a job or a handled event it is SYSTEM and the job or handler name")
+    @DisplayName("with a signed-in user the actor is USER and his id; inside a job or a handled event it is SYSTEM and the fixed UUID of the job or handler, which names it again (C5)")
     void actorIsTheUserOrTheJob() {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, null)) {
             EventEnvelope byUser = envelopes(signedIn(9001)).wrap(draft());
             assertThat(byUser.actorType()).isEqualTo(ActorType.USER);
-            assertThat(byUser.actorId()).isEqualTo("9001");
+            assertThat(byUser.actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
         }
         UUID cause = UUID.randomUUID();
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), cause, "organization.workforce.snapshot.sync")) {
             EventEnvelope byJob = envelopes(signedIn(9001)).wrap(draft());
             assertThat(byJob.actorType()).isEqualTo(ActorType.SYSTEM);
-            assertThat(byJob.actorId()).isEqualTo("organization.workforce.snapshot.sync");
+            assertThat(byJob.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.snapshot.sync").toString());
+            assertThat(SystemActors.nameOf(UUID.fromString(byJob.actorId()))).contains("organization.workforce.snapshot.sync");
             assertThat(byJob.causationId()).as("the handled event is the cause").isEqualTo(cause);
         }
     }
@@ -109,11 +112,11 @@ class EventingTest {
     @DisplayName("outside any request or job a correlation id is generated for the event, and nothing leaks into the thread afterwards")
     void correlationIdIsGeneratedWhenThereIsNone() {
         EventEnvelope envelope;
-        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "test")) {
+        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "test.envelope")) {
             WorkContext.correlationId();
         }
         assertThat(WorkContext.correlationId()).isEmpty();
-        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "job")) {
+        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "test.job")) {
             envelope = envelopes(null).wrap(draft());
         }
         assertThat(envelope.correlationId()).isNotNull();
@@ -127,13 +130,13 @@ class EventingTest {
     void scopesNest() {
         UUID outer = UUID.randomUUID();
         UUID inner = UUID.randomUUID();
-        try (WorkContext.Scope a = WorkContext.enter(outer, null, "outer")) {
-            try (WorkContext.Scope b = WorkContext.enter(inner, UUID.randomUUID(), "inner")) {
+        try (WorkContext.Scope a = WorkContext.enter(outer, null, "test.outer")) {
+            try (WorkContext.Scope b = WorkContext.enter(inner, UUID.randomUUID(), "test.inner")) {
                 assertThat(WorkContext.correlationId()).contains(inner);
-                assertThat(WorkContext.systemActor()).contains("inner");
+                assertThat(WorkContext.systemActor()).contains("test.inner");
             }
             assertThat(WorkContext.correlationId()).contains(outer);
-            assertThat(WorkContext.systemActor()).contains("outer");
+            assertThat(WorkContext.systemActor()).contains("test.outer");
             assertThat(WorkContext.causationId()).isEmpty();
         }
     }
@@ -143,7 +146,7 @@ class EventingTest {
         public UUID seenCorrelation;
 
         @Scheduled(fixedDelay = 1000)
-        @SchedulerLock(name = "platform.eventing.probe.job")
+        @SchedulerLock(name = "test.eventing.probe.job")
         public void run() {
             seenActor = WorkContext.systemActor().orElse(null);
             seenCorrelation = WorkContext.correlationId().orElse(null);
@@ -160,7 +163,7 @@ class EventingTest {
 
         proxy.run();
 
-        assertThat(target.seenActor).isEqualTo("platform.eventing.probe.job");
+        assertThat(target.seenActor).isEqualTo("test.eventing.probe.job");
         assertThat(target.seenCorrelation).isNotNull();
         assertThat(WorkContext.correlationId()).isEmpty();
     }

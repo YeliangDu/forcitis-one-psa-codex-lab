@@ -42,7 +42,7 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.access.denied")).hasSize(1)
                 .singleElement().satisfies(entry -> {
-                    assertThat(entry.actorId().value()).isEqualTo(1771);
+                    assertThat(entry.actorId().value()).isEqualTo(accountOf(1771));
                     assertThat(entry.subjectKey()).startsWith("operation:RoleController.list");
                 });
     }
@@ -62,11 +62,11 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
 
         mvc.perform(get("/api/v1/platform/roles").cookie(new Cookie("SESSION", administrator))).andReturn();
         mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", administrator))).andReturn();
-        mvc.perform(MockMvcRequestBuilders.post("/api/v1/platform/user-accounts/404:disable").with(xsrf())
+        mvc.perform(MockMvcRequestBuilders.post("/api/v1/platform/user-accounts/" + accountOrNone(404) + ":disable").with(xsrf())
                 .cookie(new Cookie("SESSION", administrator))).andReturn();
 
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.privileged.request"))
                 .extracting(AuditEntry::subjectKey)
-                .containsExactly("request:GET /api/v1/platform/roles", "request:POST /api/v1/platform/user-accounts/404:disable");
+                .containsExactly("request:GET /api/v1/platform/roles", "request:POST /api/v1/platform/user-accounts/" + accountOrNone(404) + ":disable");
     }
 }

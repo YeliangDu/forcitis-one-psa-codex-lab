@@ -21,7 +21,7 @@ class ForcedLogoutIntegrationTest extends IdentityIntegrationTest {
     MeterRegistry meters;
 
     private MvcResult forceLogout(String session, long target, String body) throws Exception {
-        return mvc.perform(post("/api/v1/platform/user-accounts/" + target + ":force-logout").with(xsrf()).cookie(new Cookie("SESSION", session))
+        return mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(target) + ":force-logout").with(xsrf()).cookie(new Cookie("SESSION", session))
                 .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn();
     }
 
@@ -53,8 +53,8 @@ class ForcedLogoutIntegrationTest extends IdentityIntegrationTest {
         assertThat(status(victim)).isEqualTo(401);
         assertThat(status(other)).isEqualTo(200);
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.session.revoked")).singleElement().satisfies(entry -> {
-            assertThat(entry.actorId().value()).isEqualTo(9);
-            assertThat(entry.subjectKey()).isEqualTo("user-account:1001");
+            assertThat(entry.actorId().value()).isEqualTo(accountOf(9));
+            assertThat(entry.subjectKey()).isEqualTo("user-account:" + accountOf(1001));
             assertThat(entry.detail()).contains("lost phone");
             assertThat(entry.sourceAddress()).as("who did it, from where").isEqualTo("127.0.0.1");
             assertThat(entry.outcome()).isEqualTo(AuditOutcome.SUCCEEDED);

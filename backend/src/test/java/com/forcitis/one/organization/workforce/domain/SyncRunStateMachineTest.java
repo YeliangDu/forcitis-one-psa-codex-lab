@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.forcitis.one.organization.workforce.domain.SyncRunStatus.FAILED;
 import static com.forcitis.one.organization.workforce.domain.SyncRunStatus.HELD;
 import static com.forcitis.one.organization.workforce.domain.SyncRunStatus.RELEASED;
@@ -48,7 +49,7 @@ class SyncRunStateMachineTest {
                 .operation("succeed", run -> run.succeed(NOW, STATS, NO_CHANGE, SNAPSHOT_DAY), RUNNING, SUCCEEDED)
                 .operation("hold", run -> run.hold(NOW, STATS, "shrunk"), RUNNING, HELD, HELD, HELD)
                 .operation("fail", run -> run.fail(NOW, "down"), RUNNING, FAILED)
-                .operation("release", run -> run.release(new UserId(9), new SyncRunId(TestIds.uuid(6)), NOW, new com.forcitis.one.kernel.Reason("synthetic")), HELD, RELEASED)
+                .operation("release", run -> run.release(TestAccounts.account(9), new SyncRunId(TestIds.uuid(6)), NOW, new com.forcitis.one.kernel.Reason("synthetic")), HELD, RELEASED)
                 .verify();
     }
 
@@ -122,13 +123,13 @@ class SyncRunStateMachineTest {
         assertThat(failed.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(SyncRunFailed.class);
 
         SyncRun released = at(HELD);
-        released.release(new UserId(9), new SyncRunId(TestIds.uuid(6)), NOW, new com.forcitis.one.kernel.Reason("checked with the source"));
+        released.release(TestAccounts.account(9), new SyncRunId(TestIds.uuid(6)), NOW, new com.forcitis.one.kernel.Reason("checked with the source"));
         assertThat(released.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(SyncRunReleased.class,
                 e -> {
                     assertThat(e.releasedByRunId()).isEqualTo(new SyncRunId(TestIds.uuid(6)));
                     assertThat(e.reason()).isEqualTo(new com.forcitis.one.kernel.Reason("checked with the source"));
                 });
-        assertThat(released.releasedBy()).isEqualTo(new UserId(9));
+        assertThat(released.releasedBy()).isEqualTo(TestAccounts.account(9));
     }
 
     @Test
@@ -150,15 +151,15 @@ class SyncRunStateMachineTest {
         run.hold(NOW, STATS, "both", Set.of(HoldKind.SHRINK_GUARD, HoldKind.ADMINISTRATOR_SEPARATION), List.of(new EmployeeId(1)));
         run.drainEvents(TestEnvelopes.INSTANCE);
 
-        run.releaseKind(HoldKind.SHRINK_GUARD, new UserId(9));
+        run.releaseKind(HoldKind.SHRINK_GUARD, TestAccounts.account(9));
 
         assertThat(run.allHoldsReleased()).isFalse();
         assertThat(run.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(SyncRunHoldReleased.class, e -> {
             assertThat(e.holdKind()).isEqualTo(HoldKind.SHRINK_GUARD);
-            assertThat(e.releasedBy()).isEqualTo(new UserId(9));
+            assertThat(e.releasedBy()).isEqualTo(TestAccounts.account(9));
         });
-        assertThatThrownBy(() -> run.releaseKind(HoldKind.SHRINK_GUARD, new UserId(9))).isInstanceOf(DomainException.class);
-        run.releaseKind(HoldKind.ADMINISTRATOR_SEPARATION, new UserId(8));
+        assertThatThrownBy(() -> run.releaseKind(HoldKind.SHRINK_GUARD, TestAccounts.account(9))).isInstanceOf(DomainException.class);
+        run.releaseKind(HoldKind.ADMINISTRATOR_SEPARATION, TestAccounts.account(8));
         assertThat(run.allHoldsReleased()).isTrue();
     }
 
@@ -167,7 +168,7 @@ class SyncRunStateMachineTest {
     void aChangedHoldWithdrawsTheLifts() {
         SyncRun run = at(RUNNING);
         run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new EmployeeId(1)));
-        run.releaseKind(HoldKind.ADMINISTRATOR_SEPARATION, new UserId(9));
+        run.releaseKind(HoldKind.ADMINISTRATOR_SEPARATION, TestAccounts.account(9));
 
         run.hold(NOW, STATS, "x", Set.of(HoldKind.ADMINISTRATOR_SEPARATION), List.of(new EmployeeId(1)));
         assertThat(run.releasedKinds()).containsExactly(HoldKind.ADMINISTRATOR_SEPARATION);

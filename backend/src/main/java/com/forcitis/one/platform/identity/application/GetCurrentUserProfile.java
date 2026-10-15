@@ -50,7 +50,7 @@ public class GetCurrentUserProfile {
                 : profile.permissionCodes().stream().filter(code -> !AdministratorMode.PLATFORM_ONLY.contains(code)).collect(Collectors.toUnmodifiableSet());
         List<NavigationEntry> menu = confirmed ? NavigationTree.visibleTo(permissions, navigation.findEnabled())
                 .stream().map(GetCurrentUserProfile::entry).toList() : List.of();
-        return new CurrentUserView(userId.value(), employee.map(EmployeeProfile::name).orElse(""),
+        return new CurrentUserView(userId, employee.map(EmployeeProfile::name).orElse(""),
                 employee.map(e -> e.orgUnitId().value()).orElse(null), unit.map(OrgUnitProfile::name).orElse(""),
                 permissions.stream().sorted().toList(), menu, mode, session.administratorModeExpiresAt().orElse(null), confirmed);
     }

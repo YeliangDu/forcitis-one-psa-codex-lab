@@ -14,17 +14,19 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 @Component
 class QueryParameterContract implements SmartInitializingSingleton {
     private final ApplicationContext context;
+    private final UnknownQueryParameters queryParameters;
 
-    QueryParameterContract(ApplicationContext context) {
+    QueryParameterContract(ApplicationContext context, UnknownQueryParameters queryParameters) {
         this.context = context;
+        this.queryParameters = queryParameters;
     }
 
     @Override
     public void afterSingletonsInstantiated() {
-        check(context.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class).getHandlerMethods());
+        check(context.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class).getHandlerMethods(), queryParameters);
     }
 
-    static void check(Map<RequestMappingInfo, HandlerMethod> handlers) {
+    static void check(Map<RequestMappingInfo, HandlerMethod> handlers, UnknownQueryParameters queryParameters) {
         for (var entry : handlers.entrySet()) {
             RequestMappingInfo info = entry.getKey();
             if (info.getPathPatternsCondition() == null) {
@@ -35,7 +37,7 @@ class QueryParameterContract implements SmartInitializingSingleton {
             boolean get = methods.isEmpty() || methods.contains(RequestMethod.GET);
             boolean api = info.getPathPatternsCondition().getPatternValues().stream().anyMatch(pattern -> pattern.startsWith("/api/"));
             if (get && api) {
-                UnknownQueryParameters.declaredNames(entry.getValue());
+                queryParameters.declaredNames(entry.getValue());
             }
         }
     }

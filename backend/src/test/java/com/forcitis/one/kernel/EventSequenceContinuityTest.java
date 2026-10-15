@@ -1,5 +1,7 @@
 package com.forcitis.one.kernel;
 
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestIds;
@@ -81,10 +83,10 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("UserAccount: events are numbered 1..n and a save without events leaves the sequence alone")
     void userAccount() {
-        checkMany(() -> UserAccount.restore(new UserId(1), "ENABLED", Set.of(), 0, 0), List.of(
+        checkMany(() -> UserAccount.restore(TestAccounts.account(1), new EmployeeId(1), "ENABLED", Set.of(), 0, 0), List.of(
                 UserAccount::enable, UserAccount::disable, a -> a.declareEnabled(true), a -> a.declareEnabled(false),
                 a -> a.replaceRoles(Set.of(new RoleId(TestIds.uuid(2)), new RoleId(TestIds.uuid(3))))));
-        checkMany(() -> UserAccount.open(new UserId(2), Set.of(new RoleId(TestIds.uuid(1)))), List.of(UserAccount::disable, UserAccount::enable));
+        checkMany(() -> UserAccount.open(TestAccounts.account(2), new EmployeeId(2), Set.of(new RoleId(TestIds.uuid(1)))), List.of(UserAccount::disable, UserAccount::enable));
     }
 
     @Test
@@ -97,7 +99,7 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("EmergencyAdmin: events are numbered 1..n")
     void emergencyAdmin() {
-        checkMany(() -> com.forcitis.one.platform.identity.domain.EmergencyAdmin.restore(new UserId(1), "breakglass", "hash", "sealed", 0, 0, null, true, 0, 0),
+        checkMany(() -> com.forcitis.one.platform.identity.domain.EmergencyAdmin.restore(TestAccounts.account(1), "breakglass", "hash", "sealed", 0, 0, null, true, 0, 0),
                 List.of(a -> a.disable(com.forcitis.one.platform.identity.api.EmergencyAdminDisableCause.SEPARATION),
                         com.forcitis.one.platform.identity.domain.EmergencyAdmin::enable, a -> a.resetCredentials("other-hash", "other-sealed")));
     }
@@ -106,8 +108,8 @@ class EventSequenceContinuityTest {
     @DisplayName("AuthorizationRequest: events are numbered 1..n")
     void authorizationRequest() {
         checkMany(() -> com.forcitis.one.platform.identity.domain.AuthorizationRequest.replaceRoles(
-                        new com.forcitis.one.platform.identity.api.AuthorizationRequestId(java.util.UUID.randomUUID()), new UserId(1), NOW, new UserId(2), Set.of("employee")),
-                List.of(r -> r.confirm(new UserId(3), NOW), r -> r.reject(new UserId(4), NOW)));
+                        new com.forcitis.one.platform.identity.api.AuthorizationRequestId(java.util.UUID.randomUUID()), TestAccounts.account(1), NOW, TestAccounts.account(2), Set.of("employee")),
+                List.of(r -> r.confirm(TestAccounts.account(3), NOW), r -> r.reject(TestAccounts.account(4), NOW)));
     }
 
     @Test
@@ -142,9 +144,9 @@ class EventSequenceContinuityTest {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);
         TemplateVersion seeded = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, NOW, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
         checkMany(() -> NumberingRule.restore(DocumentType.QUOTE, List.of(seeded), 0, 0), List.of(
-                r -> r.confirm(new UserId(2), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(1)), r -> r.propose(pattern, 5, LocalDate.of(2026, 10, 16), new UserId(3), NOW),
-                r -> r.propose(pattern, 0, LocalDate.of(2026, 10, 16), new UserId(3), NOW),
-                r -> r.confirm(new UserId(3), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2)), r -> r.confirm(new UserId(4), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2))));
+                r -> r.confirm(TestAccounts.account(2), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(1)), r -> r.propose(pattern, 5, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
+                r -> r.propose(pattern, 0, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
+                r -> r.confirm(TestAccounts.account(3), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2)), r -> r.confirm(TestAccounts.account(4), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2))));
     }
 
     @Test
@@ -155,7 +157,7 @@ class EventSequenceContinuityTest {
                 a -> a.attribute(new LegalEntityId(TestIds.uuid(1 + dates.nextInt(2))), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400))),
                 a -> a.end(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800))),
                 a -> a.correct(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400)), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800)),
-                        new Reason("typo"), new UserId(1))));
+                        new Reason("typo"), TestAccounts.account(1))));
     }
 
     @Test
@@ -181,8 +183,8 @@ class EventSequenceContinuityTest {
         var own = new com.forcitis.one.platform.integration.api.OwnObjectId(TestIds.uuid(5));
         checkMany(() -> com.forcitis.one.platform.integration.domain.SourceReference.register(
                         new com.forcitis.one.platform.integration.domain.SourceReferenceId(TestIds.uuid(1)), system, kind,
-                        new com.forcitis.one.platform.integration.api.SourceObjectId(1021), own, TODAY, new UserId(1)),
-                List.of(r -> r.confirm(new UserId(2), NOW), r -> r.reject(new UserId(3), NOW), r -> r.supersede(TODAY.plusDays(30))));
+                        new com.forcitis.one.platform.integration.api.SourceObjectId(1021), own, TODAY, TestAccounts.account(1)),
+                List.of(r -> r.confirm(TestAccounts.account(2), NOW), r -> r.reject(TestAccounts.account(3), NOW), r -> r.supersede(TODAY.plusDays(30))));
     }
 
     @Test

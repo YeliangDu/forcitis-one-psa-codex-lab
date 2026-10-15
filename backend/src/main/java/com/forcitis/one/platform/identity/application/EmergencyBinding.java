@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.IdentityError;
@@ -30,6 +31,12 @@ class EmergencyBinding {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID, ErrorKind.UNPROCESSABLE,
                     "user " + person.value() + " has no enabled account that holds super_admin");
         }
+    }
+
+    /** The account of the employee an operations command names, when the command is about an emergency account that must exist already. */
+    UserId boundAccount(EmployeeId employee) {
+        return accounts.findByEmployee(employee).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_EMERGENCY_ADMIN_NOT_FOUND,
+                ErrorKind.NOT_FOUND, "employee " + employee.value() + " has no account and so no emergency account"));
     }
 
     EmergencyAdmin require(UserId person) {

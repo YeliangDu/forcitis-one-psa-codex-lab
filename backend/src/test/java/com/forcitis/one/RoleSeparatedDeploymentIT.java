@@ -133,7 +133,7 @@ class RoleSeparatedDeploymentIT {
     @Test
     @DisplayName("the runtime account alone is enough: a write through the application (entity, versions, event registry, audit by listener) and a read both work")
     void smokeAsTheRuntimeAccount() throws Exception {
-        try (var acting = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.smoke")) {
+        try (var acting = WorkContext.enter(UUID.randomUUID(), null, "test.organization.workforce.smoke")) {
             createLegalEntity.execute("SMK", "Smoke legal entity");
         }
 

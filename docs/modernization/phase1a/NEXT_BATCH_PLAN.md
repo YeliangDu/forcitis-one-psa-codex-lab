@@ -435,6 +435,12 @@ ADR-0037 已采纳（Q1 选 (c)：现有 6 个视图冻结不动，新读取与 
 | 只追加表的 `updated_at` | 保留并加注释；统一去掉另开 PR，由 one-coordinator 定 |
 | A8 同步范围 | `MEMBER_SCOPE` 不看删除 / 启用标志，已删除或停用人员进入快照；R-1b-0 之后的同步卡或 DA-3 处理 |
 | RULE-363 | 修订随 DA-3（7.6） |
+| R-1b P2 复核 L-1（one-1a-next-3） | 系统操作主体目录 `system-actors.txt`「改名新增一行、旧行不删」加守护：CI 以 `git show origin/main:backend/architecture/system-actors.txt` 校验旧行仍在；落点 P5（P5 独占全部守护文件） |
+| R-1b P2 复核 L-8 | `SnapshotFreshness.cycleOf` 只取 cron 第一个间隔，间隔不均匀的 cron 会算错（现行每 5 分钟，无影响）；落点 P5 或首次改同步 cron 的卡 |
+| R-1b P2 复审 P2-L2 | `primary-key-type-baseline.txt` 中 `account_roles` 理由「the user id is the employee id」已过时；落点 W2（ADR-0034 实现卡） |
+| R-1b P2 复审 P2-L12 | 前端测试桩数据 `userId: '1001'` 仍为数字形态；落点 P5（G-A1 收尾） |
+| R-1b P2 卡外缺陷 | `OperationsCommands` 用 `UUID.randomUUID()` 作关联号，违反 ADR-0033 第 1 项第 11 条；手术式小卡 OPS-CID，P2 合并后 |
+| #184 opus 点检 Low | `review_revisions.py` 的 `GITHUB_ACTIONS == "true"` 补自测（true 且无基线失败、false 只告警）；空 `--base` 被拒时先输出一行针对性错误；与 #119 余项同文件，下一张文档工具小卡 |
 
 ### 7.9 子代理工作区约定（运行环境限制，2026-10-15 起）
 
@@ -480,7 +486,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | K-3a 公共契约与守护 | kernel 常量（`limit` 默认 50 / 上限 200、批量 100、导出 10,000、导入 5,000、不分页小表 1,000）；游标编解码；`sort` 白名单解析；小表上限断言（超出失败并 ALERT）；`PageRequest.slice` 标弃用；platform.web 未知参数 400 拦截器（排除 springdoc、actuator、非 `/api`）与 OpenAPI `limit` 的 `minimum: 1` / `maximum: 200`；新增守护类 G-A2（按响应形状判 `{items, nextCursor}`）、G-P1（kernel 外无上限常量、OpenAPI 声明 200），现存缺口登记于 `backend/architecture/list-paging-gaps.txt`（每行：路径、负责卡、期限）；DDL-11 测试容器 initdb 排序统一为 C.UTF-8（与 dev 库一致，one-ops C-3；与 S-1 G-S4 协调）；G-X2 前端 `localeCompare` 带 `'zh'` 守护与后端约定；工作日历年份列表试点 | 现在；测试代理先写验收；新增守护类开工前征得 one-1a-next-3 同意，PR 单列守护文件改动，opus 复审 |
 | K-3b-1 identity、numbering、integration 接入 | 授权申请、编号规则、老编号 `documentId` 分支改 SQL 键集或登记小表 | R-1b P2 之后 |
 | K-3b-2 workforce 接入 | 部门列表、`HELD` 同步列表套小表上限；`status` 具名枚举与白名单；法人列表键集 | R-1b P3b 之后、F-1 实现之前 |
-| K-3b-3 approval 接入 | 上限 100→200、三个列表响应统一、收件箱计数改 `:count`、删 `PLATFORM_APPROVAL_PAGE_INVALID` | R-1b P4 之后 |
+| K-3b-3 approval 接入 | 三个列表响应统一、收件箱计数改 `:count`、删 `PLATFORM_APPROVAL_PAGE_INVALID`（上限 100→200 已在 K-3a #190 提前做，one-coordinator 裁定复审 H-1 选 (a)） | R-1b P4 之后 |
 | K-3b-4 audit 接入 | 本人登录记录分页；导出与列表同一组过滤参数（A-4）；导出上限 50,000→10,000、去掉导出前 `count(*)`（dev 前，运行正确性）；删 `AuditQuery.MAX_LIMIT` 与 `QUERY_INVALID` | R-1b P5 之后 |
 | K-3c 其余共用件 | 事件消费幂等、共用导出控制、日期边界测试夹具（另卡）；共用脱敏并入 DA-13（A-11 掩码） | 另排；F-1 只依赖分页约定 |
 
@@ -501,6 +507,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | 卡 | 内容 | 前置 | 来源 |
 |---|---|---|---|
 | FLW-2 BPMN 不用引擎计时器与到期 | 守护：流程定义（`processes/**.bpmn20.xml`）不得含计时器事件与 `flowable:dueDate`，时限只由 `approval_tasks` 与定时作业判定（RULE-386）；执行者到时定，opus 复审 | R-1b P4 之后（P4 独占 `EngineWiring`） | FLW-1 复审 L-6；one-coordinator 2026-10-15 排卡 |
+| OPS-PORT 运维命令档案不起 Web（结构性） | `identity-operations` 档案真正不起 Web：单独装配不依赖 Web 应用类型的 JDBC 会话仓库，控制器、安全链与 `CallerUserIdResolver` 等 Web 配置不进该档案上下文；`OperationsProfileSmokeTest` B1-R3 改为断言没有 WebServer（更严，PR 单列）；回归测试 `OperationsProfileListensOnNoPortTest`（分支 `claude/one-1a-par-ops-port`，先红已提交）。起因：one.env 的 `SERVER_PORT` / `MANAGEMENT_SERVER_PORT` 环境变量优先于档案文件；保留 servlet 设 `port=-1` 时 Tomcat 仍开随机端口（B1-R3 断言名不副实，已先改说明）。dev 前兜底：C-5 运行写法加 `UnsetEnvironment` 两端口变量（one-ops），`SERVER_ADDRESS=127.0.0.1` 使随机端口只绑回环；开工前向 one-1a-next-3 确认独占构件、按术语门禁列新词 | R-1b P2 合并后 | one-1a-par 发现；one-coordinator 2026-10-15 裁定方向 A、标结构性 |
 
 **F-1 规格裁定**（one-coordinator 2026-10-15 裁定，验收测试据此写，分支 `claude/one-1a-par-f1-acceptance`，与实现同一 PR 合并）：
 - 自定义部门明细挂在角色版本上，归 `role:update`（已采纳 ADR-0034 第 5 项）；2.4 F-1 行「授予时选范围的权限沿用 `account-role:update`」写于 ADR-0034 采纳前，以 ADR 为准；contract D-1a-58 在 1a 范围内由 ADR-0034 解决。
@@ -510,6 +517,8 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 - 人员详情用新权限码 `organization.workforce:employee:read`，按敏感权限分级登记。
 - 验收未覆盖、实现卡必做并补测试：祖先部门导航（RULE-353）、超期 5 个工作日升级与无收件人告警、HELD 期间不生成、按时刻还原授权历史、注册表与 ArchUnit 守护。
 | PAR-5 K-3 | 列表分页契约统一（游标、上限 200，A 2-H1 / 2-H2）与 DDL-11、G-X2；与 R-1b 在途文件冲突则排后 | 与 R-1b 在途文件不相交 |
+- 用语：第三轮用语确认（用户全部同意建议）已批准 F-1 验收分支的 12 条提议术语（uphold、include_descendants 等），由 one-glossary 写回正式词表；**F-1 实现 PR 合并前 rebase 到写回之后的 main，与 one-glossary 对名单后从 `backend/glossary/proposed/f1-data-scope.yaml` 删去这些条目**。改名卡 ID-22（`glossary/round3/RENAME_CARDS.md`）随 F-1 实现一起改。
+- 开工前术语门禁（SESSION_PLAYBOOK §5，#195）对 F-1 已满足（12 条已确认）；其后新卡在测试代理写验收时列「本卡新词」交 one-glossary，经用户确认后再派实现。
 
 **依据 ADR**：ADR-0033 迁移方案第 5 条等以「首次部署 dev」为界的时点，由 ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等） 改为生产前（取代范围见 ADR-0038 标题行与第 4、5 项）；本节的 W4 时点与 PAR-1 以其为依据。
 
@@ -557,3 +566,9 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 |---|---|---|
 | 集成层日志与向外异常不带 SQL 异常消息（扫描 `getMessage()` 等） | O-1 | 集成层有非 SQL 路径的合理用法（`DeliverWecomCards`、`ResolveWecomUserId`、`MigrateOnlyListener`），扫描范围须与 O-1 的日志口径一起定；seeyon 适配器现已统一用 `ExternalFailure` |
 | 迁入、对账端口的用途边界 ArchUnit | ADR-0036 第一个迁入端口 | 现在没有任何迁入、对账端口，守护无守护对象；随第一个端口一起写才能带真实负向样例 |
+
+### Phase 2 前置项（流程梳理须定，one-1a-next-3 登记）
+
+| 项 | 内容 | 验收条件 | 现状 |
+|---|---|---|---|
+| ARCH-D5 工时审批路线旗标映射 | 工时行类型、混合行到审批旗标（`projectHours` / `preSalesHours` / `overheadHours`）的映射，以及区域负责人的来源，交用户逐条决定（D-1a-127，`process/1a/TIMESHEET审批.md`:194）；老行为（老系统按工时行类型 0/1/2）先生产取证，按 ADR-0037 登记 `LEGACY_READ_REGISTER.md` | 映射卡实现时一并加「提交时一个旗标都没置即失败并告警」（现在不加：旗标写死 `PROJECT_HOURS`，检查必然通过，CS-1.8；one-coordinator 2026-10-15） | 1a 只有项目经理一路（D-1a-107 已关闭提交入口） |
