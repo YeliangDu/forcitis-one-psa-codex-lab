@@ -31,8 +31,19 @@ class CredentialColumnGuardTest {
     static final Path MAIN_RESOURCES = Path.of("src/main/resources");
     static final Path REGISTRIES = Path.of("architecture");
 
-    /** "review" rows of the deny list that the implementation PR has judged not to be credentials: table.column of database -> reason. */
-    static final Map<String, String> REVIEWED_NOT_CREDENTIAL = Map.of();
+    /**
+     * "review" rows of the deny list that the implementation PR (ADR37-1) has judged not to be credentials, from the table and column names alone
+     * (no database was read): database.table.column -> reason. Every other review row stays denied: an AppKey, a PEM key, a user or office key
+     * and the value column of a system configuration table may hold a secret.
+     */
+    static final Map<String, String> REVIEWED_NOT_CREDENTIAL = Map.of(
+            "a8_db.ADDRESSBOOK_SET.KEY_INFO", "通讯录设置表中的关键信息项配置，是显示设置，不是密钥",
+            "a8_db.CAP_BUTTON.KEY_VALUE", "表单按钮的键值配置（界面元素），不是密钥",
+            "a8_db.CAP_CONTROL.KEY_VALUE", "表单控件的键值配置（界面元素），不是密钥",
+            "a8_db.COMMON_MENU_SWITCH.KEY_VALUE", "菜单开关的键值配置，不是密钥",
+            "a8_db.COMMON_MENU_TOP_MENU.KEY_VALUE", "顶部菜单的键值配置，不是密钥",
+            "a8_db.CTP_CUSTOMIZE.CKEY", "个性化设置的配置项名（键名，值在另一列），不是密钥",
+            "a8_db.PORTAL_HOTSPOT.HOTSPOTKEY", "门户热点的标识键，不是密钥");
 
     record DeniedColumn(String database, String table, String column) {
 
@@ -46,6 +57,7 @@ class CredentialColumnGuardTest {
         List<String> lines = Files.readAllLines(DENY_LIST);
         assertThat(lines).as("deny list header").first().isEqualTo("database,schema,table,column,classification");
         List<DeniedColumn> denied = new ArrayList<>();
+        Set<String> reviewRows = new TreeSet<>();
         for (String line : lines.subList(1, lines.size())) {
             if (line.isBlank()) {
                 continue;
@@ -54,10 +66,15 @@ class CredentialColumnGuardTest {
             assertThat(f).as("deny list row: %s", line).hasSize(5);
             assertThat(f[4]).as("classification of %s", line).isIn("credential", "review");
             DeniedColumn column = new DeniedColumn(f[0], f[2], f[3]);
+            if (f[4].equals("review")) {
+                reviewRows.add(column.key());
+            }
             if (f[4].equals("credential") || !REVIEWED_NOT_CREDENTIAL.containsKey(column.key())) {
                 denied.add(column);
             }
         }
+        assertThat(reviewRows).as("every column judged not a credential is a review row of the current deny list (a rescan may drop or reclassify it)")
+                .containsAll(REVIEWED_NOT_CREDENTIAL.keySet());
         assertThat(denied).as("the deny list has credential rows").isNotEmpty();
         return denied;
     }
@@ -146,24 +163,41 @@ class CredentialColumnGuardTest {
     @DisplayName("ADR37-1 凭据列守护自检：含凭据列的语句被识别，同表的非凭据列与只出现列名的普通文字不被误报")
     void detectorFindsAnInjectedCredentialColumn() throws IOException {
         List<DeniedColumn> denied = deniedColumns();
-        String java = """
-                class Probe {
-                    // SELECT CREDENTIAL_VALUE FROM dbo.ORG_PRINCIPAL is only a comment
-                    String password = "x";
-                    static final String SQL = "SELECT P.LOGIN_NAME, P.CREDENTIAL_VALUE FROM dbo.ORG_PRINCIPAL P";
-                    static final String TOKENS = \"""
-                            SELECT [token] FROM dbo.system_user_session
-                            \""";
-                }
-                """;
+        List<DeniedColumn> credentials = denied.stream().filter(d -> !REVIEWED_NOT_CREDENTIAL.containsKey(d.key())).toList();
+        DeniedColumn first = credentials.getFirst();
+        DeniedColumn other = credentials.stream().filter(d -> !d.database().equals(first.database()) && !d.table().equalsIgnoreCase(first.table()))
+                .findFirst().orElseThrow(() -> new AssertionError("the deny list covers two databases with different credential tables"));
+        String plainColumn = "ID";
+        assertThat(denied).as("precondition: %s.%s is not deny-listed", first.table(), plainColumn)
+                .noneMatch(d -> d.table().equalsIgnoreCase(first.table()) && d.column().equalsIgnoreCase(plainColumn));
+        String java = "class Probe {\n"
+                + "    // SELECT " + first.column() + " FROM dbo." + first.table() + " is only a comment\n"
+                + "    String password = \"x\";\n"
+                + "    static final String SQL = \"SELECT P." + plainColumn + ", P." + first.column() + " FROM dbo." + first.table() + " P\";\n"
+                + "    static final String TEXT = \"\"\"\n"
+                + "            SELECT [" + other.column() + "] FROM dbo." + other.table() + "\n"
+                + "            \"\"\";\n"
+                + "}\n";
 
-        assertThat(namedDeniedColumns(stringLiterals(java), denied))
-                .containsExactlyInAnyOrder("a8_db.ORG_PRINCIPAL.CREDENTIAL_VALUE", "ruoyi-vue-pro.system_user_session.token");
-        assertThat(namedDeniedColumns(stringLiterals("class Probe { String sql = \"SELECT LOGIN_NAME FROM dbo.ORG_PRINCIPAL\"; String password; }"), denied))
-                .isEmpty();
+        assertThat(namedDeniedColumns(stringLiterals(java), denied)).contains(first.key(), other.key());
+        assertThat(namedDeniedColumns(stringLiterals("class Probe {\n    // " + first.column() + "\n    String sql = \"SELECT " + plainColumn
+                + " FROM dbo." + first.table() + "\"; String password; }"), denied)).isEmpty();
         assertThat(namedDeniedColumns(stringLiterals("class Probe { String key = \"forcitis.platform.integration.legacy.password\"; }"), denied))
                 .isEmpty();
-        assertThat(namedDeniedColumns("  - { name: LOGIN_NAME, source: ORG_PRINCIPAL.CREDENTIAL_VALUE, category: 身份 }", denied))
-                .containsExactly("a8_db.ORG_PRINCIPAL.CREDENTIAL_VALUE");
+        assertThat(namedDeniedColumns("  - { name: " + plainColumn + ", source: " + first.table() + "." + first.column() + ", category: 身份 }", denied))
+                .contains(first.key());
+    }
+
+    @Test
+    @DisplayName("ADR37-1 凭据列守护自检：判定为非凭据的 review 列不再拒绝，其余 review 列仍拒绝")
+    void reviewedColumnsAreReleasedOthersStayDenied() throws IOException {
+        List<DeniedColumn> denied = deniedColumns();
+
+        assertThat(denied).extracting(DeniedColumn::key).doesNotContainAnyElementsOf(REVIEWED_NOT_CREDENTIAL.keySet());
+        List<String> stillDeniedReviews = Files.readAllLines(DENY_LIST).stream().filter(l -> l.endsWith(",review"))
+                .map(l -> l.split(",", -1)).map(f -> f[0] + "." + f[2] + "." + f[3])
+                .filter(key -> !REVIEWED_NOT_CREDENTIAL.containsKey(key)).toList();
+        assertThat(stillDeniedReviews).as("review rows judged credentials").isNotEmpty();
+        assertThat(denied).extracting(DeniedColumn::key).containsAll(stillDeniedReviews);
     }
 }
