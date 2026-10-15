@@ -92,7 +92,9 @@ class OwnAttributionGuardTest {
         logger.addAppender(logged);
         try {
             assertThatThrownBy(() -> guard.requireNotOwn(AttributionSubject.of(new OrgUnitId(9)), TestAccounts.unknownAccount(1001)))
-                    .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN));
+                    .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN))
+                    .as("P2 recheck L-3 the refusal says the account names no employee, not that the entry is the caller's own")
+                    .hasMessageContaining("names no employee");
             verify(audit).recordIndependently(any());
             assertThat(logged.list).anySatisfy(event -> assertThat(event.getFormattedMessage()).startsWith("ALERT "));
         } finally {

@@ -43,18 +43,19 @@ class OwnAttributionGuard {
         Optional<EmployeeId> actingEmployee = accountEmployees.employeeOf(actor);
         if (actingEmployee.isEmpty()) {
             LOG.error("ALERT organization.workforce account {} names no employee: its legal entity attribution change is refused", actor.value());
-            refuse(subject, actor, "the account names no employee");
+            throw refused(subject, actor, "the account names no employee",
+                    "your account names no employee, so whether this is your own legal entity attribution cannot be told");
         }
         if (concerns(subject, actingEmployee.get())) {
-            refuse(subject, actor, "own legal entity attribution");
+            throw refused(subject, actor, "own legal entity attribution",
+                    "the legal entity of your own employee entry, department or a department above it cannot be changed by you");
         }
     }
 
-    private void refuse(AttributionSubject subject, UserId actor, String detail) {
+    private DomainException refused(AttributionSubject subject, UserId actor, String detail, String message) {
         audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.refused", actor, null,
                 "legal-entity-attribution:" + subject.kind().name().toLowerCase(Locale.ROOT) + ":" + subject.subjectKey(), detail));
-        throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN, ErrorKind.FORBIDDEN,
-                "the legal entity of your own employee entry, department or a department above it cannot be changed by you");
+        return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN, ErrorKind.FORBIDDEN, message);
     }
 
     private boolean concerns(AttributionSubject subject, EmployeeId actingEmployee) {
