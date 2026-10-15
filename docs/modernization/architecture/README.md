@@ -9,7 +9,7 @@
 | `togaf/` | 能力（只引 forcitis-architecture 编号）、价值流、过渡架构与批次 | PR-B / PR-C |
 | `bpmn/`、`dmn/` | 流程清单、决策清单 | PR-C |
 | `dama/` | 数据对象与类别 | PR-C |
-| `olap/` | 指标（沿用 M-xx） | PR-C |
+| （OLAP） | 不另建文件：指标口径以 OAT 与 METRIC_BASELINE 为准，KPI → M-xx 只在 `togaf/vision.yaml` 登记（ADR-0040 决定 4） | — |
 | `generated/` | mermaid 源、SVG、追溯表（生成，勿手改） | PR-B 起 |
 
 规则：新 BC、聚合、事件、命令、流程、决策先在这里登记再写代码；老仓库与老代码只作 `evidence`；结构性选择交用户定（架构决策页）。
