@@ -62,7 +62,7 @@ class DatabaseTransportCheckTest {
         Map<String, String> properties = configuration("jdbc:postgresql://db/one?sslmode=verify-full&sslrootcert=" + ca);
         properties.put("forcitis.platform.integration.seeyon.views.jdbc-url", "jdbc:sqlserver://a8:1433;databaseName=a8;encrypt=true;trustServerCertificate=true");
         properties.put("forcitis.platform.integration.legacy.jdbc-url", "jdbc:sqlserver://old:1433;databaseName=old");
-        properties.put("forcitis.platform.approval.legacy.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=false;trustStore=" + ca);
+        properties.put("forcitis.platform.integration.legacy.inbox.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=false;trustStore=" + ca);
 
         assertThat(DatabaseTransportCheck.problems(DatabaseTransportRequirement.VERIFIED_SERVER, properties::get)).as("views and legacy switched off").isEmpty();
 
@@ -76,20 +76,15 @@ class DatabaseTransportCheckTest {
     }
 
     @Test
-    @DisplayName("N-3 the legacy inbox connection is checked under its integration key as well as under the former approval key")
-    void legacyInboxIsCheckedUnderBothKeys() throws IOException {
+    @DisplayName("N-3 the legacy inbox connection is checked under its integration key; the former approval key is no longer read")
+    void legacyInboxIsCheckedUnderItsIntegrationKey() throws IOException {
         String ca = caFile().toString();
         Map<String, String> properties = configuration("jdbc:postgresql://db/one?sslmode=verify-full&sslrootcert=" + ca);
         properties.put("forcitis.platform.integration.legacy.inbox.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=true");
-        properties.put("forcitis.platform.approval.legacy.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=false;trustStore=" + ca);
-
-        assertThat(DatabaseTransportCheck.problems(DatabaseTransportRequirement.VERIFIED_SERVER, properties::get)).singleElement().asString()
-                .contains("legacy inbox").doesNotContain("former key").contains("trustServerCertificate=true");
-
-        properties.put("forcitis.platform.integration.legacy.inbox.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=false;trustStore=" + ca);
         properties.put("forcitis.platform.approval.legacy.url", "jdbc:sqlserver://old:1433;databaseName=old");
+
         assertThat(DatabaseTransportCheck.problems(DatabaseTransportRequirement.VERIFIED_SERVER, properties::get)).singleElement().asString()
-                .contains("legacy inbox (former key)");
+                .contains("legacy inbox").contains("forcitis.platform.integration.legacy.inbox.url").contains("trustServerCertificate=true");
     }
 
     @Test

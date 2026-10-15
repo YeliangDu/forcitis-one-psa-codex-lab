@@ -4,8 +4,6 @@ package com.forcitis.one.platform.integration.infrastructure.legacy;
 record LegacyInboxProperties(String url, String username, String password, String viewName, String detailUrlTemplate) {
 
     static final String PREFIX = "forcitis.platform.integration.legacy.inbox";
-    /** The keys before the reader moved into platform.integration (R-1b P3b); read only while the new url is not set. */
-    static final String FORMER_PREFIX = "forcitis.platform.approval.legacy";
     static final String DEFAULT_VIEW = "dbo.v_psa_one_legacy_todo";
 
     LegacyInboxProperties {

@@ -20,8 +20,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * The to-do connection is no DataSource bean, so the application's DataSource, Flowable and Flyway never pick it up. The connection
- * factory refuses the start-up when its login fails the read-only check (ADR-0037 item 4) and re-checks it daily. The keys are forcitis.platform.integration.legacy.inbox.*; the former forcitis.platform.approval.legacy.* are read
- * only while the new url is not set, with a warning.
+ * factory refuses the start-up when its login fails the read-only check (ADR-0037 item 4) and re-checks it daily. The keys are
+ * forcitis.platform.integration.legacy.inbox.*.
  */
 @Configuration
 class LegacyInboxConfiguration {
@@ -32,24 +32,11 @@ class LegacyInboxConfiguration {
 
     @Bean
     LegacyInboxSettings legacyInboxSettings(Environment environment) {
-        return new LegacyInboxSettings(settings(environment, true));
+        return new LegacyInboxSettings(settings(environment));
     }
 
-    static LegacyInboxProperties settings(Environment environment, boolean warn) {
-        Binder binder = Binder.get(environment);
-        LegacyInboxProperties current = binder.bind(LegacyInboxProperties.PREFIX, LegacyInboxProperties.class).orElseGet(LegacyInboxProperties::none);
-        if (current.isConfigured()) {
-            return current;
-        }
-        LegacyInboxProperties former = binder.bind(LegacyInboxProperties.FORMER_PREFIX, LegacyInboxProperties.class).orElseGet(LegacyInboxProperties::none);
-        if (former.isConfigured()) {
-            if (warn) {
-                log.warn("the old to-do connection is configured under {}.*, which is deprecated: use {}.*", LegacyInboxProperties.FORMER_PREFIX,
-                        LegacyInboxProperties.PREFIX);
-            }
-            return former;
-        }
-        return current;
+    static LegacyInboxProperties settings(Environment environment) {
+        return Binder.get(environment).bind(LegacyInboxProperties.PREFIX, LegacyInboxProperties.class).orElseGet(LegacyInboxProperties::none);
     }
 
     @Bean
@@ -81,7 +68,7 @@ class LegacyInboxConfiguration {
     static final class Connected implements org.springframework.context.annotation.Condition {
         @Override
         public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-            return settings(context.getEnvironment(), false).isConfigured();
+            return settings(context.getEnvironment()).isConfigured();
         }
     }
 }

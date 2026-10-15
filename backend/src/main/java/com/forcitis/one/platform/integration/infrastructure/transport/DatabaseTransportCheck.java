@@ -27,7 +27,6 @@ final class DatabaseTransportCheck {
         sources.put("A8 views", "forcitis.platform.integration.seeyon.views.jdbc-url");
         sources.put("legacy short names", "forcitis.platform.integration.legacy.jdbc-url");
         sources.put("legacy inbox", "forcitis.platform.integration.legacy.inbox.url");
-        sources.put("legacy inbox (former key)", "forcitis.platform.approval.legacy.url");
         return sources;
     }
 
