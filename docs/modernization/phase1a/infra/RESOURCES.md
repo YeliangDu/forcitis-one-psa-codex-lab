@@ -8,6 +8,7 @@ SESSION_PLAYBOOK §2.1 第 9 条：定时器、本机 runner、云上资源与�
 | ECS | /etc/forcitis-one/release-signers、release-source、github-release-token（空，OIDC 改造后删除）、one-release-token-check.{service,timer}（未启用，OIDC 改造后删除） | 长期 / 待撤 | one-ops | 随 OIDC 改造 PR |
 | ECS | /data/forcitis-one/import/c6/20261015/（C-6 导出，root 0700） | 临时 | one-ops | 1a 生产切换后 30 天 |
 | ECS | one-cert-check.timer、one-time-sync-check.timer（2026-10-15，t-hz07045fzz8xtkw）、LoongCollector（ilogtaild / loongcollectord）、/etc/forcitis-one/ops-alert.env（群机器人 Webhook，root 0600）、/etc/forcitis-one/one.env、one-admin.pgpass、migrate/ | 长期 | one-ops | — |
+| ECS | /etc/forcitis-one/one.env.bak-20261016035106（改 C-17 / C-18 / SSO 前的备份，root 0600）；/root/one-ops-c14/app.jar（rc.3，C-14 用） | 临时 | one-ops | 备份：dev 首次部署通过后删除；jar：C-14 完成后删除 |
 | 本机 Mac | 自托管 runner mac-one-1..4（~/actions-runners/one-N，LaunchAgent，用户 yeliang）与 mac-one-deploy（/opt/forcitis-one-runner，LaunchDaemon，用户 forcitis-deploy，pre-job hook） | 长期 | one-coordinator / one-ops | — |
 | 本机 Mac | ~/.modernize/psa/ops-venv（运维用 Python 3.12 环境，阿里云 SDK；版本锁在 `ops-venv-requirements.txt`） | 长期 | one-ops | — |
 | 本机 Mac | ~/.modernize/psa/infra/role_holders.md（人名，0600）、~/.modernize/psa/finance/FINANCE_CONFIRM_v3.html（0600） | 长期私有 | one-coordinator | — |
