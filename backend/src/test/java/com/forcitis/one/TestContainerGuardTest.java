@@ -8,6 +8,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
@@ -28,7 +29,9 @@ class TestContainerGuardTest {
     static final String JDBC_URL = "jdbc:" + "tc:";
     static final String MSSQL_CONTAINER = "org.testcontainers.mssqlserver.MSSQLServerContainer";
     static final String MSSQL_HOME = "com.forcitis.one.TestMssql";
-    static final String MSSQL_IMAGE_SOURCES = "/TestMssql.java|/TestImages.java|/TestContainerGuardTest.java";
+    static final Set<String> MSSQL_IMAGE_SOURCES = Set.of("java/com/forcitis/one/TestMssql.java", "java/com/forcitis/one/TestImages.java",
+            "java/com/forcitis/one/TestContainerGuardTest.java");
+    static final List<String> MSSQL_IMAGE_MARKS = List.of("MSSQL_PREFIX", "mssql/server", "mcr.microsoft.com/mssql");
 
     @Test
     @DisplayName("DDL-11 the PostgreSQL container is built, subclassed or referenced as a constructor in TestPostgres only; the files that still do are listed, and a listed file that no longer does is deleted from the list")
@@ -100,14 +103,15 @@ class TestContainerGuardTest {
         // a constant is inlined by javac, so the read of the image prefix is found in the source text
         try (Stream<Path> files = Files.walk(TEST_SOURCES)) {
             for (Path file : files.filter(Files::isRegularFile).filter(f -> f.toString().endsWith(".java")).toList()) {
-                String path = file.toString().replace('\\', '/');
-                if (!MSSQL_IMAGE_SOURCES.contains(path.substring(path.lastIndexOf('/'))) && Files.readString(file).contains("MSSQL_PREFIX")) {
-                    found.add(path);
+                String relative = TEST_SOURCES.relativize(file).toString().replace('\\', '/');
+                String text = Files.readString(file);
+                if (!MSSQL_IMAGE_SOURCES.contains(relative) && MSSQL_IMAGE_MARKS.stream().anyMatch(text::contains)) {
+                    found.add("src/test/" + relative);
                 }
             }
         }
 
-        assertThat(found).as("test sources that start SQL Server themselves or read TestImages.MSSQL_PREFIX: use TestMssql.shared() / database() / container()")
+        assertThat(found).as("test sources that start SQL Server themselves, read TestImages.MSSQL_PREFIX or name the SQL Server image: use TestMssql.shared() / database()")
                 .isEmpty();
     }
 }

@@ -18,8 +18,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 /**
  * The one way tests start SQL Server. A fork shares one container ({@link #shared()}, started on first use, left to Ryuk when the JVM ends) and every
- * class takes databases and logins of its own from it, named by class and purpose so no two classes meet. A class that changes server-wide state the others
- * must not see takes {@link #container()} and stops it itself.
+ * class takes databases and logins of its own from it, named by class and purpose so no two classes meet. A class that would change server-wide state the
+ * others must not see needs a container of its own; none does today.
  */
 public final class TestMssql {
 
@@ -46,11 +46,6 @@ public final class TestMssql {
     /** One container per fork: lazily started once (class initialization is thread-safe), never stopped here; Ryuk removes it with the JVM. */
     public static GenericContainer<?> shared() {
         return Holder.SHARED;
-    }
-
-    /** A container for the caller alone: the caller stops it (@AfterAll). */
-    public static GenericContainer<?> container() {
-        return start();
     }
 
     /** Creates the database of this class and purpose on the shared container; asking twice for the same class and purpose fails. */
@@ -101,13 +96,20 @@ public final class TestMssql {
                 .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
                 .withStartupTimeout(Duration.ofMinutes(5))
                 .waitingFor(Wait.forLogMessage(".*SQL Server is now ready for client connections.*", 1));
-        container.start();
-        // the log line comes before the login subsystem accepts the administrator
-        Awaitility.await("SQL Server accepts the administrator login").atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(500))
-                .pollInSameThread().ignoreExceptions().until(() -> {
-                    adminConnection(container, "master").close();
-                    return true;
-                });
-        return container;
+        try {
+            container.start();
+            // the log line comes before the login subsystem accepts the administrator
+            Awaitility.await("SQL Server accepts the administrator login").atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(500))
+                    .pollInSameThread().ignoreExceptions().until(() -> {
+                        adminConnection(container, "master").close();
+                        return true;
+                    });
+            return container;
+        } catch (RuntimeException e) {
+            // every later class of the fork would only see NoClassDefFoundError: keep the cause and the server log in this first failure
+            String log = container.isCreated() ? container.getLogs() : "(container not created)";
+            container.stop();
+            throw new IllegalStateException("SQL Server did not start; its log:\n" + log, e);
+        }
     }
 }
