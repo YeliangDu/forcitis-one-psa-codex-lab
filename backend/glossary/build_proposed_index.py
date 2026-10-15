@@ -50,7 +50,7 @@ def scalar(text, where):
         return {}
     if text.startswith("[") and text.endswith("]"):
         items = [item.strip() for item in text[1:-1].split(",")]
-        if any(not item or re.search(r"[\[\]{}'\"#&*!|>]", item) for item in items):
+        if any(not item or re.search(r"[\[\]{}'\"#&*!|>?]", item) for item in items):
             raise YamlSubsetError(f"{where}: 单行序列只支持不加引号的简单值")
         return [scalar(item, where) for item in items]
     if text.startswith('"'):
@@ -76,7 +76,7 @@ def scalar(text, where):
     if text in ("null", "~"):
         return None
     if YAML11_SPECIAL.fullmatch(text):
-        raise YamlSubsetError(f"{where}: 值 {text!r} 在 YAML 1.1 中会被读成布尔、空、数字或日期，请加引号")
+        raise YamlSubsetError(f"{where}: 值 {text!r} 可能被 YAML 1.1 读成非字符串，请加引号")
     return text
 
 
@@ -342,6 +342,7 @@ common_words:
     check("单行序列", parse_yaml("forbidden: [离职日期, separation_date]\n")["forbidden"], ["离职日期", "separation_date"])
     rejects("嵌套单行序列", "terms: [a, [b]]\n")
     rejects("单行序列含引号", "terms: [a, 'b']\n")
+    rejects("单行序列含问号", "terms: [?7]\n")
     rejects("锚点", "terms: &x []\n")
     rejects("重复键", "terms: []\nterms: []\n")
     rejects("未闭合引号", "terms:\n- id: \"abc\n")
