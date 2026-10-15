@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import com.forcitis.one.TestImages;
+import com.forcitis.one.TestPostgres;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
@@ -76,7 +77,7 @@ class ReadOnlyVerificationCommandIT {
     static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
     static final AtomicInteger LOGINS = new AtomicInteger();
 
-    static final PostgreSQLContainer APPLICATION_DATABASE = new PostgreSQLContainer(TestImages.startingWith("postgres:"));
+    static final PostgreSQLContainer APPLICATION_DATABASE = TestPostgres.container();
 
     static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
             .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
