@@ -231,7 +231,9 @@
 
 ## 13. 负责会话裁定（one-1a-next-4，2026-10-15）
 - RULING-P4-D1..D3、D5..D9、D11..D15：按第 12 节建议采纳。
-- RULING-P4-D4（去重键不含收件人、`target_delivery_id` 取代 `#handled` 后缀）：负责会话同意，因 ADR-0033 第 7 项第 3 条写明「具体列在 R-1b 的清单中列出」；仍请 one-coordinator 认可后再派实现。
+- D-4（去重键暂不含收件人）**待定**：one-coordinator 认为 ADR-0033 第 7 项第 3 条已列收件人 `user_id`，拿掉属偏离已采纳 ADR，已转 one-architecture 判定——认定为分阶段实施并写入 ADR-0033 落地清单则不算 ADR 变更；否则做勘误或修订交用户批准。结论前不派实现。`target_delivery_id` 取代 `#handled` 后缀不受影响。
+  - 收件人列何时补：DA-10（收件人解析移入集成层、收件人改 `UserId`、一人一行）随 DA-3 → DA-10，按计划 7.11 排在 F-1 之后、首次生产部署前，属 R-1b 之后的数据架构卡，不在 P4–P5。
+  - 补列时唯一约束迁移：基线开放期内（生产部署前）直接改基线——`outbound_deliveries` 加 `recipient_user_id uuid NOT NULL`，一张卡多收件人拆为一人一行，`uk_outbound_deliveries_card` 换为含 `recipient_user_id` 的新唯一约束（名称按 §2.4，`DdlNamingTest` 为准），`target_delivery_id` 指向被替换的那一人那一行；dev 库按 §12.2 重建，无存量迁移。若届时基线已关闭，则走新 Flyway 迁移：加可空列 → 按 `recipient_codes` 拆行回填（经 DA-10 的收件人对照）→ 置 NOT NULL → 建新唯一约束 → 删旧约束，回填不完整即迁移失败（不静默跳过）。
 - RULING-P4-D10：发起时核对表单字段名，未登记即发起失败并 ALERT（CLAUDE.md 第 6 条）；测试代理据此写验收第 12 条。
 - RULING-P4-D6：`OTHER_ID_NAMES` 收窄为只按全名放行 `InboxItemResponse.taskId`，写理由与到期条件（随 ADR-0039 第 6 条契约中性化），P5 清空时保留此项。
-- 开工条件：第 11 节新词经 one-glossary 定稿（部门负责人审批节点与字段名须用户确认的走确认页）；D-4 经 one-coordinator 认可；P3b（#260）合并后 rebase。
+- 开工条件：第 11 节新词经 one-glossary 定稿（部门负责人审批节点与字段名须用户确认的走确认页）；D-4 经 one-architecture 判定（及必要时用户批准）；P3b（#260）合并后 rebase。
