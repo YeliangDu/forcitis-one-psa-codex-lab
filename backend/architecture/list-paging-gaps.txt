@@ -1,0 +1,9 @@
+# Known gaps of the list paging guards G-A2 and G-P1 (ListPagingGuardTest): path | owner card | deadline, one per line.
+# A new violation fails the guard; so does a line whose gap is already closed: delete the line in the same change that closes it.
+# A path is "GET <openapi path>" for G-A2 and "<class>.<constant>" for G-P1. Owners K-3b-1..K-3b-4 are the cards of NEXT_BATCH_PLAN section 8; 例外 is a ruling.
+GET /api/v1/organization/org-units | K-3b-2 | R-1b P3b 之后、F-1 实现之前
+GET /api/v1/platform/own-login-records | K-3b-4 | R-1b P5 之后
+GET /api/v1/platform/approval-tasks | 例外 | 上限 200，P6 后再议（新旧待办合并，one-coordinator 裁定 2026-10-15 第 4 条）
+com.forcitis.one.platform.approval.application.ListPage.DEFAULT_LIMIT | K-3b-3 | R-1b P4 之后
+com.forcitis.one.platform.approval.application.ListPage.MAX_LIMIT | K-3b-3 | R-1b P4 之后
+com.forcitis.one.platform.audit.domain.AuditQuery.MAX_LIMIT | K-3b-4 | R-1b P5 之后
