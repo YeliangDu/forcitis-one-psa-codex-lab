@@ -186,7 +186,8 @@ class LegacyShapeTest {
         String javaRoot = "com/forcitis/one/";
         int at = file.indexOf(javaRoot);
         if (file.endsWith(".java") && at >= 0) {
-            String[] parts = file.substring(at + javaRoot.length()).split("/");
+            String relative = file.substring(at + javaRoot.length());
+            String[] parts = (relative.startsWith("acceptance/") ? relative.substring("acceptance/".length()) : relative).split("/");
             if (parts.length >= 3 && parts[0].equals("kernel")) {
                 return "kernel";
             }
