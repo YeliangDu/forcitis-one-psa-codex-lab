@@ -48,9 +48,11 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Autowired
     TotpSecretVault vault;
 
-    private void publish(List<EmployeeId> changed, List<EmployeeId> separated) {
-        tx.executeWithoutResult(status -> events.publishEvent(
-                new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), changed, separated, List.of(), java.time.LocalDate.of(2026, 10, 15))));
+    private UUID publish(List<EmployeeId> changed, List<EmployeeId> separated) {
+        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), changed, separated,
+                List.of(), java.time.LocalDate.of(2026, 10, 15));
+        tx.executeWithoutResult(status -> events.publishEvent(event));
+        return event.envelope().eventId();
     }
 
     private long roleCount(long userId) {
@@ -129,14 +131,14 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("P2-H3 a person without an account is a quiet no-op: once the separation listener has handled the event, no account is opened, no role and no session is revoked (R-1b P2: there is no account id to name)")
     void P2_H3_noAccountIsOpenedForASeparatedPersonWithout() {
-        publish(List.of(), List.of(new EmployeeId(5555)));
+        UUID published = publish(List.of(), List.of(new EmployeeId(5555)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(jdbc.sql("""
                 select count(*) from (select listener_id, completion_date, serialized_event from platform_integration.event_publication
                                       union all
                                       select listener_id, completion_date, serialized_event from platform_integration.event_publication_archive) p
-                 where p.listener_id like '%HandleOrgSnapshotChange%' and p.completion_date is not null and p.serialized_event like '%5555%'
-                """).query(Long.class).single()).isEqualTo(1));
+                 where p.listener_id like '%HandleOrgSnapshotChange%' and p.completion_date is not null and p.serialized_event like :event
+                """).param("event", "%" + published + "%").query(Long.class).single()).isEqualTo(1));
         assertThat(count("user_accounts")).isZero();
         assertThat(count("account_roles")).isZero();
         assertThat(recorded()).noneMatch(e -> e.action().equals("platform.identity.session.revoked"));
