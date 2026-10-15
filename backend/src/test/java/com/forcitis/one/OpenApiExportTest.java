@@ -82,14 +82,15 @@ class OpenApiExportTest {
     /** Ids of this system (R-1a) are string / uuid on the wire; the rest are named here until R-1b gives them their own ids. */
     static final java.util.Set<String> OWN_ID_FIELDS = java.util.Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
             "AuthorizationRequestView.requestId", "AuthorizationRequestView.roleId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
-            "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
+            "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
             "RoleResponse.roleId", "SyncRunResponse.syncRunId", "SyncRunResponse.releasedByRunId", "ProblemDetail.correlationId",
-            "parameter legalEntityId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter documentId /api/v1/platform/legacy-numbers");
+            "RegisterSourceReferenceRequest.ownId", "SourceReferenceResponse.ownId", "SourceReferenceResponse.sourceReferenceId",
+            "parameter legalEntityId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers");
 
     /** Ids taken from the organisation source (A8) and the engine's task, instance and document keys: R-1b, listed by name so a new id field has to be classified. */
     static final java.util.Set<String> OTHER_ID_NAMES = java.util.Set.of("actorId", "onBehalfOfId", "subjectUserId", "userId", "orgUnitId", "employeeId",
             "headEmployeeId", "parentOrgUnitId", "regionalReceivablesManagerId", "ancestorOrgUnitIds", "orgUnitAndBelowIds", "authorId", "assigneeId",
-            "subjectId", "taskId", "instanceId", "documentId");
+            "subjectId", "taskId", "instanceId", "documentId", "sourceId");
 
     @Test
     void idFieldsOfThisSystemAreStringUuidAndEveryOtherIdFieldIsClassified() throws Exception {

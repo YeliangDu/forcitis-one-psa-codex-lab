@@ -109,7 +109,7 @@
 | `_text`、`_description`、`_reason`、`_note`、`_title`、`_message` | 自由文本 | `text` |
 | `_address` | 地址（邮箱、IP） | `text` |
 | `_ciphertext` | 加密后的值 | `text` |
-| `_status`、`_kind`、`_type`、`_policy` | 枚举 | `text` + `CHECK` 列出枚举名 |
+| `_status`、`_kind`、`_type`、`_policy`、`_system` | 枚举（`_system`：外部系统的类别，如 `source_system` 来源系统，ADR-0033） | `text` + `CHECK` 列出枚举名 |
 | `_at` | 时间点 | `timestamptz` |
 | `_date` | 业务日期 | `date` |
 | `_amount` | 金额，必须配同名 `_currency` | `numeric` |
