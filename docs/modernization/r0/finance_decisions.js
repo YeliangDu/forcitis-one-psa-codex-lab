@@ -47,6 +47,7 @@ function renderItem(root, i) {
     card.append(d);
   }
   if (i.check) card.append(el("div", {className: "check"}, "需核实：" + i.check));
+  if (i.now) card.append(el("div", {className: "check"}, "现状：" + i.now));
   const lab = el("label", {className: "f"}, "说明（改选时请写理由）");
   const t = el("textarea", {placeholder: "可选", value: state[i.id]?.note || ""});
   t.addEventListener("input", () => upd(i.id, {note: t.value}));

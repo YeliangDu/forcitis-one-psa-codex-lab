@@ -358,13 +358,13 @@ ADR-0037 已采纳（Q1 选 (c)：现有 6 个视图冻结不动，新读取与 
 - `HAS_DBACCESS` 为 1 的库恰好是目标业务库加 master、msdb、rdscore、tempdb（guest）。
 - 无法判定（查询失败、结果为空）即拒绝启动；不提供关闭开关（`*_VALIDATE_ON_STARTUP` 不再可关，`ProductionConfigSanityTest` 断言）；`LegacyInboxConfiguration` 不再吞掉数据库异常继续启动。
 - 每次同步任务开始前重跑同一校验，失败即停掉该适配器并告警。
-- 凭据列拒绝清单守护：以 `credential_columns.csv`（one-ops，#143）为准——credential 92 列（A8 75、老系统 17）；review 25 列（均为 A8），实现 PR 逐列判定是否凭据。守护断言 `src/main` 的 SQL 与读取列登记都不引用清单里的凭据列。清单只含表名与列名，不含值。
+- 凭据列拒绝清单守护：以 `credential_columns.csv`（one-ops，#143）为准——credential 92 列（A8 75、老系统 17）；review 25 列（均为 A8），实现 PR 逐列判定是否凭据。守护断言 `src/main` 的 SQL 与外部读取登记都不引用清单里的凭据列。清单只含表名与列名，不含值。
 - 适配器出错只记错误号与 SQLState，不记异常消息（SQL Server 的类型转换错误消息会带出字段值）。
 - MSSQL 集成测试（SQL Server）进 CI：改到 `platform.integration..` 或 `platform.approval.infrastructure.legacy..` 时按路径过滤运行，另加每夜一次全量；并按 architecture-critic B-2 逐项构造越权反例，范围以 ADR-0037 守护节为准。起 SQL Server 测试容器前先向 one-coordinator 确认在 Testcontainers 授权范围内。
 - 实现 PR 注明 SQL Server 2016 版差异、RDS 平台限制与已登记风险，ADR 正文不改。
 - 执行与复审：测试代理 opus 先写；执行 opus（含安全闸门）；复审 opus（high）。对外库的真实登录核实按 CLAUDE.md 先请示，未获准前以容器内集成测试为证据。
 
-**R-1b-0**：A8 标志列（`TYPE`、`IS_DELETED`、`IS_ENABLE`、`STATE`）直接读基表，WIP 提交 `f1a67d33`（视图加列、白名单 37 列）作废或改写；基表一律写 `dbo.` 限定名；读取列登记只留一份并加「用途」列，启动时只检查运行时用途的行。one-ops 取证（只出分组计数，未入仓）显示同步范围 1291 条中有 18 条标记已删除；现行同步范围（`MEMBER_SCOPE`）不看删除与启用标志，已删除或停用人员进入快照，处理见 7.8。
+**R-1b-0**：A8 标志列（`TYPE`、`IS_DELETED`、`IS_ENABLE`、`STATE`）直接读基表，WIP 提交 `f1a67d33`（视图加列、白名单 37 列）作废或改写；基表一律写 `dbo.` 限定名；外部读取登记只留一份并加「用途」列，启动时只检查运行时用途的行。one-ops 取证（只出分组计数，未入仓）显示同步范围 1291 条中有 18 条标记已删除；现行同步范围（`MEMBER_SCOPE`）不看删除与启用标志，已删除或停用人员进入快照，处理见 7.8。
 
 **完成后**：删除 `status/blockers/100-ADR-0037-readonly-guard-before-deploy.md`。
 
@@ -456,6 +456,35 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 ```
 
 两条线文件基本不相交，可并行；P3b 在 D1-1、R-1b-0 之后（同改集成层）。
+
+### 7.11 ADR-0039 之后的 R-1b 排序（one-1a-next-3；one-coordinator 2026-10-15 采纳「甲′」）
+
+> 与 7.2、7.4、7.10 不一致处以本节为准。论证（文件交集、每张表只改一次）见负责会话私有证据 `~/.modernize/psa/handoff/one-1a-next-3/p3b-sequencing.md`。
+
+顺序（用户 2026-10-15「先保 dev（推荐）」，intent `2026-10-15-214511-one-coordinator-先保-dev-推荐.md`，取代原「甲′」顺序）：**R-1b-0a → P3b → P4 → P5 → F-1**；组织同步拆分 b → 拆分 a → R-1b-0b → DA-3 移到 F-1 之后、首次生产部署前。原顺序为 R-1b-0a → P3b → 拆分 b → 拆分 a → R-1b-0b → DA-3 → P5。
+
+理由：先把 dev 部署所需的 R-1b 收口与 F-1 做出来，拆分及其依赖项（依赖反转成环的设计卡、新词门禁）不挡关键路径；代价是组织同步几张表可能改两次，用户已接受。其后用户又定阻塞项 090 不挡 dev 首次部署、改为白名单外开放前与生产前完成（intent `2026-10-15-214650`），F-1 与 P3b–P5 已不在 dev 关键路径上，按质量节奏推进；F-1 仍按用户原定在 P5 合并后开（intent `2026-10-15-124901`），执行者 one-1a-par。
+
+随之调整（one-coordinator 2026-10-15 认可）：
+
+| 项 | 调整 |
+|---|---|
+| P5 守护收口 | 三处保留例外、到期改为拆分：`primary-key-type-baseline.txt` 中 `sync_run_held_separations` 复合主键一行（拆分 b）；`sync_diffs.subject_key` 混装主体键登记为 `OTHER_ID_NAMES` / 去哨兵守护的例外（拆分 a）；`ddl-naming-baseline.txt` 中 `sync_runs`、`sync_diffs` 的约束与索引改名行（拆分 a）。P5 只拆 `audit_entries.subject_key` |
+| K-3b-2 | 只做部门与法人列表；`HELD` 同步列表的上限随拆分 b（该表在拆分 b 改造） |
+| F-1 | 「调岗或离岗生成待调整权限待办」只依赖领域事件、不依赖同步内部类，避免拆分 b 后搬监听点（写进 F-1 卡） |
+| P4 | 不依赖拆分或 DA-3 |
+
+下表为 ADR-0039 之后「甲′」的各项决定，除顺序外仍有效。
+
+| 项 | 决定 |
+|---|---|
+| ADR-0039:41「P3b 直接写到新 schema」 | 解释为：同步三表移出 P3b，由拆分按最终形态新建；P3b 只改 `sync_run_held_separations.employee_id` 的类型（外键指向 `employees.id`，无法避开）。决定本身不变（表只改一次、直接在最终位置）；该句与「3 个权限码」「5 个事件」计数由 one-architecture 在 ADR-0039 中加勘误说明 |
+| P3b 不等拆分 | P3b 本就要经来源对照分配自有 ID（ADR-0033 第 2 项第 3、4 条），不依赖拆分；拆分须先解决依赖反转成环（integration → workforce 与 audit → integration）、两事务一致性与新词门禁，前置会拖住 P3b → P4 → P5 → F-1 |
+| 表的位置 | P3b：workforce 快照、版本、归属期间与法人归属（DA-5 分列）、`user_accounts.employee_id`、`timesheets` 三列、审批 `initiator_id`；拆分 b：`sync_run_held_separations` 改为 workforce 待放行离职表、`last_sync_run_id` 改为引用变更集；拆分 a：`sync_runs`、`sync_diffs` 在 `platform_integration` 按最终形态新建（`subject_key` 拆列），`ddl-naming-baseline.txt` 同步表行直接删、新表合规命名（C10 例外）；DA-3：`employees` 删登录名与企业微信列；P5：`audit_entries.subject_key` |
+| 拆分内部顺序 | b 先 a 后：a 先则离职暂停仍挂在运行上，集成层须知道「谁是管理员」（被否决的 A2） |
+| R-1b-0 拆为 0a / 0b（重开 C-10） | 0a（外部读取登记合并、`dbo.` 限定、启动时基表子集检查、`TYPE` 校验、三项守护 = D-1a-01 全部）现在做、P3b 前；0b（`STATE` / `IS_DELETED` / `IS_ENABLE` 读取、两项不一致判定记在集成层同步差异、RULING-R1B0-5）排在拆分 a 后。理由：按 ADR-0039 不一致判定的输入都是 A8 概念，只能在集成层，而同步差异要到拆分 a 才在集成层；不拆则 D-1a-01 要晚到拆分 a 之后 |
+| 新词 G06 / G07 | 撤下，随拆分 a 与集成层新词一并确认；G01–G05 照常确认（0a 只用 G01–G03） |
+| 拆分前设计卡 | one-architecture：依赖反转成环、登录查人改为 workforce 定义端口 / 集成层实现、D-1a-03「单事务」条款改写（不再问用户：用户选 A1 时已批两事务与组织同步整体搬） |
 
 ## 8. 2026-10-15 追加：部署前开发编排调整（one-1a-par）
 
@@ -560,8 +589,21 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | OSS-1、OSS-2 结论 | 首次部署前须有结论 | **dev 前**；dev 不启用归档写入时，改为启用归档写入之前 | 归档写入方上线即需要 |
 | 安全缺陷卡（B3-R2..R5、b12-M-8、b12-M-11、B2b NEW-2、INT-M4 / M5、INT-L30） | 首次部署前 | **dev 前** | 安全与正确性类 |
 
+**R-1b-0 推迟的两项守护**（one-1a-next-3，one-coordinator 2026-10-15 同意 C-8；卡见 `cards/R-1b-0.md`）：
+
+| 守护（ADR-0037 守护第 3 组） | 推迟到 | 为何后做更有价值（CS-1.9） |
+|---|---|---|
+| 集成层日志与向外异常不带 SQL 异常消息（扫描 `getMessage()` 等） | O-1 | 集成层有非 SQL 路径的合理用法（`DeliverWecomCards`、`ResolveWecomUserId`、`MigrateOnlyListener`），扫描范围须与 O-1 的日志口径一起定；seeyon 适配器现已统一用 `ExternalFailure` |
+| 迁入、对账端口的用途边界 ArchUnit | ADR-0036 第一个迁入端口 | 现在没有任何迁入、对账端口，守护无守护对象；随第一个端口一起写才能带真实负向样例 |
+
 ### Phase 2 前置项（流程梳理须定，one-1a-next-3 登记）
 
 | 项 | 内容 | 验收条件 | 现状 |
 |---|---|---|---|
-| ARCH-D5 工时审批路线旗标映射 | 工时行类型、混合行到审批旗标（`projectHours` / `preSalesHours` / `overheadHours`）的映射，以及区域负责人的来源，交用户逐条决定（D-1a-127，`process/1a/TIMESHEET审批.md`:194）；老行为（老系统按工时行类型 0/1/2）先生产取证，按 ADR-0037 登记 `LEGACY_READ_REGISTER.md` | 映射卡实现时一并加「提交时一个旗标都没置即失败并告警」（现在不加：旗标写死 `PROJECT_HOURS`，检查必然通过，CS-1.8；one-coordinator 2026-10-15） | 1a 只有项目经理一路（D-1a-107 已关闭提交入口） |
+| ARCH-D5 工时审批路线旗标映射 | 工时行类型、混合行到审批旗标（`projectHours` / `preSalesHours` / `overheadHours`）的映射，以及区域负责人的来源，交用户逐条决定（D-1a-127，`process/1a/TIMESHEET审批.md`:194）；先对照 AEC 行业项目制专业服务公司的通行做法定审批路线，老系统按行类型 0/1/2 的行为与生产数据只作参考与核对（取证已登记 `LEGACY_READ_REGISTER.md`），交 one-rules / 用户定——方案页 https://claude.ai/artifact/GGz4AuMS63ooyL85itojya（`rules/decide/sheets/D5.json`）；用户 2026-10-15 六题全部选定，见 RULE-388～392（`rules/TIMESHEET_ROUTING_RULES.md`）；「区域负责人」节点与用语改为部门负责人，经 one-glossary 与改名卡 | 映射卡实现时一并加「提交时一个旗标都没置即失败并告警」（现在不加：旗标写死 `PROJECT_HOURS`，检查必然通过，CS-1.8；one-coordinator 2026-10-15） | 1a 只有项目经理一路（D-1a-107 已关闭提交入口） |
+
+### 数据范围后续维度（one-rules 登记，2026-10-15）
+
+| 项 | 内容 | 依据 | 排期 |
+|---|---|---|---|
+| 区域范围维度 | 「区域」登记为后续数据范围维度：区域是介于项目和公司之间的一层组织，变动频率较高，现有区域与事业部两种（用户说明）。须定：区域取自组织树的哪一层或单独维护、区域与事业部是否同一维度、组织调整后范围怎么复核（参照 RULE-387）、与部门、法人、项目角色维度的关系 | 用户 F1-05「现在就登记「区域」为后续范围维度并排期」（intent 2026-10-15，one-rules）；`rules/decide/answers/F1.json` | 待 one-architecture 排期 |
