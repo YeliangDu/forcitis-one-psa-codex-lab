@@ -84,7 +84,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
         scenario.publish(request(key, initiator, manager, 1, "noSuchFlag")).andWaitForStateChange(
                 () -> meters.counter("forcitis.platform.approval.start.failed").count() > before ? Boolean.TRUE : null);
 
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_key = ?", Integer.class, key)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key)).isZero();
     }
 
     @Test
@@ -103,7 +103,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
         scenario.publish(request(key, initiator, manager, 1, "projectHours")).andWaitForStateChange(
                 () -> meters.counter("forcitis.platform.approval.start.ignored").count() > before ? Boolean.TRUE : null);
 
-        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_key = ?", Integer.class, key))
+        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key))
                 .isEqualTo(2);
     }
 }

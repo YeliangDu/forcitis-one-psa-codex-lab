@@ -85,8 +85,11 @@ class HttpWecomClientTest {
         wecom.stubFor(post(urlPathEqualTo(SEND_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\",\"response_code\":\"rc-1\"}")));
     }
 
+    private static final com.forcitis.one.platform.integration.api.DeliverySubject SUBJECT = com.forcitis.one.platform.integration.api.DeliverySubject.of(
+            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(42));
+
     private static OutboundDelivery delivery() {
-        return OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(1)), "approval-task:42", List.of(new WecomUserId("alice"), new WecomUserId("bob")),
+        return OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(1)), SUBJECT, List.of(new WecomUserId("alice"), new WecomUserId("bob")),
                 "title", "description", "https://one.example.test/tasks/42", "PENDING", 1, null, null, null, DeliveryKind.CARD, null, null, 0, 0);
     }
 
@@ -263,11 +266,11 @@ class HttpWecomClientTest {
     void replacementUsesTheResponseCode() {
         tokenIs("token-1", 7200);
         wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\"}")));
-        OutboundDelivery sent = OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(1)), "approval-task:42",
+        OutboundDelivery sent = OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(1)), SUBJECT,
                 List.of(new WecomUserId("alice"), new WecomUserId("bob")), "title", "description", "https://one.example.test/tasks/42",
                 "SENT", 1, "rc-1", null, null, DeliveryKind.CARD, null, null, 0, 0);
 
-        client.replaceWithHandledNote(sent, "handled by Carol");
+        client.replaceWithHandledNote(sent, OutboundDelivery.handledNoteFor(sent, "handled by Carol", java.util.UUID.randomUUID(), java.time.Instant.EPOCH));
 
         StringValuePattern body = containing("\"response_code\":\"rc-1\"");
         wecom.verify(postRequestedFor(urlPathEqualTo(UPDATE_PATH)).withRequestBody(body)

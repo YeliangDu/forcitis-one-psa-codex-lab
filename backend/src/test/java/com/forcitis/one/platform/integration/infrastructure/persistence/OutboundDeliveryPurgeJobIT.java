@@ -50,16 +50,16 @@ class OutboundDeliveryPurgeJobIT {
     }
 
     private String delivery(String status, int daysAgo) {
-        String key = status + "-" + daysAgo;
+        String key = java.util.UUID.randomUUID().toString();
         jdbc.sql("""
-                insert into platform_integration.outbound_deliveries (id, deduplication_key, recipient_codes, title, target_url, status, created_at, updated_at)
-                values (uuidv7(), :key, array['alice'], 'title', 'https://one.example.test/x', :status, now() - make_interval(days => :days), now() - make_interval(days => :days))
+                insert into platform_integration.outbound_deliveries (id, subject_kind, subject_id, purpose_kind, recipient_codes, title, target_url, status, created_at, updated_at)
+                values (uuidv7(), 'APPROVAL_TASK', cast(:key as uuid), 'TASK_ASSIGNED', array['alice'], 'title', 'https://one.example.test/x', :status, now() - make_interval(days => :days), now() - make_interval(days => :days))
                 """).param("key", key).param("status", status).param("days", daysAgo).update();
         return key;
     }
 
     private boolean exists(String key) {
-        return jdbc.sql("select count(*) from platform_integration.outbound_deliveries where deduplication_key = :key").param("key", key).query(Long.class).single() == 1;
+        return jdbc.sql("select count(*) from platform_integration.outbound_deliveries where subject_id = cast(:key as uuid)").param("key", key).query(Long.class).single() == 1;
     }
 
     @Test

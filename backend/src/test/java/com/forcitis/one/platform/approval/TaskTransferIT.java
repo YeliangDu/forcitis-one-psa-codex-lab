@@ -87,7 +87,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
             assertThat(event.envelope().actorId()).isEqualTo(TestAccounts.account(s.handler()).value().toString());
         });
         verify(wecom, timeout(10_000)).send(argThat(card -> card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(s.colleague()))))
-                && card.deduplicationKey().startsWith("approval-task:" + s.task().value() + ":transfer:")));
+                && card.subject().purpose() == com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_TRANSFERRED && card.subject().id().equals(s.task().value())));
 
         decideTasks.execute(TestAccounts.account(s.colleague()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
         assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
@@ -138,8 +138,8 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = tx.execute(st -> approvals.start(startRequest(newKey("transfer-twin"), TestAccounts.employee(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()), List.of(new ApprovalField(
                         TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(first).toString(), TestAccounts.employee(second).toString()))))));
-        ApprovalTaskId firstTask = new ApprovalTaskId(taskService.createTaskQuery().processInstanceId(instance.value()).taskCandidateUser(TestAccounts.account(first).value().toString())
-                .singleResult().getId());
+        ApprovalTaskId firstTask = new ApprovalTaskId(java.util.UUID.fromString(taskService.createTaskQuery().processInstanceId(instance.value().toString()).taskCandidateUser(TestAccounts.account(first).value().toString())
+                .singleResult().getId()));
         claimTask.execute(firstTask, TestAccounts.account(first), java.util.OptionalLong.empty());
 
         assertThatThrownBy(() -> transferTask.execute(firstTask, TestAccounts.account(first), TestAccounts.employee(second), "r", java.util.OptionalLong.empty())).isInstanceOfSatisfying(

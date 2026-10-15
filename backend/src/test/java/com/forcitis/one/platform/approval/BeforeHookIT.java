@@ -84,7 +84,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         assertThat(rejected.status()).isEqualTo(ApprovalStatus.REJECTED);
         assertThat(requestStatus(key)).isEqualTo("REJECTED");
         assertThat(approvals.isFinished(instance)).isTrue();
-        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value()).count()).isEqualTo(1);
+        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value().toString()).count()).isEqualTo(1);
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
             assertThat(e.document().documentId().value()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalOutcome.REJECTED);
@@ -103,7 +103,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         boolean[] observed = new boolean[2];
         hook.onCall = context -> {
             observed[0] = TransactionSynchronizationManager.isActualTransactionActive();
-            observed[1] = taskService.createTaskQuery().taskId(context.taskId().value()).count() == 1;
+            observed[1] = taskService.createTaskQuery().taskId(context.taskId().value().toString()).count() == 1;
         };
 
         decideTasks.execute(TestAccounts.account(s.head()), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), java.util.OptionalLong.empty());
@@ -134,7 +134,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
                     .isInstanceOfSatisfying(DomainException.class,
                             e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_HOOK_BLOCKED));
             assertThat(openTaskId(instance)).isEqualTo(task);
-            assertThat(taskService.createTaskQuery().taskId(task.value()).singleResult().getAssignee()).isNull();
+            assertThat(taskService.createTaskQuery().taskId(task.value().toString()).singleResult().getAssignee()).isNull();
             assertThat(requestStatus(key)).isEqualTo("RUNNING");
         }
         hook.next = new HookDecision(HookOutcome.NOT_APPLICABLE, null, List.of());
@@ -160,7 +160,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
             commitGate.failing = false;
         }
 
-        assertThat(runtime.getVariable(instance.value(), "approvedAmount")).isNull();
+        assertThat(runtime.getVariable(instance.value().toString(), "approvedAmount")).isNull();
         assertThat(openTaskId(instance)).isEqualTo(task);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
     }
@@ -174,7 +174,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = atDepartmentNode(s, key);
         hook.next = new HookDecision(HookOutcome.ALLOW, null, List.of(new ApprovalField("approvedAmount", List.of("100"))));
         decideTasks.execute(TestAccounts.account(s.head()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, "x")), java.util.OptionalLong.empty());
-        assertThat(history.createHistoricVariableInstanceQuery().processInstanceId(instance.value()).variableName("approvedAmount")
+        assertThat(history.createHistoricVariableInstanceQuery().processInstanceId(instance.value().toString()).variableName("approvedAmount")
                 .singleResult().getValue()).isEqualTo("100");
     }
 

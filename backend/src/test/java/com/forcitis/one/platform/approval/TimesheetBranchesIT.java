@@ -56,7 +56,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     }
 
     List<String> openNodes(ApprovalInstanceId instance) {
-        return taskService.createTaskQuery().processInstanceId(instance.value()).list().stream().map(Task::getTaskDefinitionKey)
+        return taskService.createTaskQuery().processInstanceId(instance.value().toString()).list().stream().map(Task::getTaskDefinitionKey)
                 .sorted().toList();
     }
 

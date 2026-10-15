@@ -16,6 +16,8 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
+import com.forcitis.one.platform.integration.api.DeliveryPurpose;
+import com.forcitis.one.platform.integration.api.DeliverySubject;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.forcitis.one.platform.integration.api.WecomGateway;
@@ -113,7 +115,12 @@ class WecomDeliveryIT {
     }
 
     private static WecomCard card(String key, WecomUserId... recipients) {
-        return new WecomCard(List.of(recipients), "Approval to do", "Quote 17 waits for you", "https://one.example.test/tasks/" + key, key);
+        return new WecomCard(List.of(recipients), "Approval to do", "Quote 17 waits for you", "https://one.example.test/tasks/" + key, subjectOf(key));
+    }
+
+    /** The old tests name a card by a text; its subject is the task that text stands for. */
+    private static DeliverySubject subjectOf(String key) {
+        return DeliverySubject.of(DeliveryPurpose.TASK_ASSIGNED, UUID.nameUUIDFromBytes(key.replace("#handled", "").getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     }
 
     private void queue(WecomCard card) {
@@ -121,8 +128,8 @@ class WecomDeliveryIT {
     }
 
     private Map<String, Object> row(String key) {
-        Map<String, Object> raw = jdbc.sql("select * from platform_integration.outbound_deliveries where deduplication_key = :key").param("key", key)
-                .query().singleRow();
+        Map<String, Object> raw = jdbc.sql("select * from platform_integration.outbound_deliveries where subject_id = :id and kind = :kind")
+                .param("id", subjectOf(key).id()).param("kind", key.endsWith("#handled") ? "HANDLED_NOTE" : "CARD").query().singleRow();
         Map<String, Object> row = new java.util.HashMap<>(raw);
         row.replaceAll((column, value) -> value instanceof java.sql.Array array ? elements(array) : value);
         return row;
@@ -141,8 +148,8 @@ class WecomDeliveryIT {
     }
 
     private void makeDue(String key) {
-        jdbc.sql("update platform_integration.outbound_deliveries set next_attempt_at = now() - interval '1 second' where deduplication_key = :key")
-                .param("key", key).update();
+        jdbc.sql("update platform_integration.outbound_deliveries set next_attempt_at = now() - interval '1 second' where subject_id = :id and kind = :kind")
+                .param("id", subjectOf(key).id()).param("kind", key.endsWith("#handled") ? "HANDLED_NOTE" : "CARD").update();
     }
 
     private double gauge(String name) {
@@ -195,8 +202,8 @@ class WecomDeliveryIT {
         deliver.execute();
         deliver.execute();
 
-        assertThat(jdbc.sql("select count(*) from platform_integration.outbound_deliveries where deduplication_key = 'approval-task:4'")
-                .query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("select count(*) from platform_integration.outbound_deliveries where subject_id = :id")
+                .param("id", subjectOf("approval-task:4").id()).query(Long.class).single()).isEqualTo(1);
         wecom.verify(1, postRequestedFor(urlPathEqualTo(SEND_PATH)));
     }
 
@@ -306,7 +313,7 @@ class WecomDeliveryIT {
     }
 
     private void markHandled(String key, String note) {
-        tx.executeWithoutResult(status -> gateway.markHandled(key, note));
+        tx.executeWithoutResult(status -> gateway.markHandled(subjectOf(key), note));
     }
 
     @Test
@@ -420,7 +427,7 @@ class WecomDeliveryIT {
     @Test
     @DisplayName("markHandled outside a transaction is refused")
     void markHandledNeedsTheCallersTransaction() {
-        assertThatThrownBy(() -> gateway.markHandled("approval-task:x", "n")).isInstanceOf(IllegalTransactionStateException.class);
+        assertThatThrownBy(() -> gateway.markHandled(subjectOf("approval-task:x"), "n")).isInstanceOf(IllegalTransactionStateException.class);
     }
 
     @Test
@@ -437,7 +444,7 @@ class WecomDeliveryIT {
         assertThat(second.attemptCount()).isEqualTo(2);
         first.markSent("stale-code", now);
         assertThat(repository.save(first)).isFalse();
-        var retried = repository.findByKey("approval-task:18").orElseThrow();
+        var retried = repository.findCard(subjectOf("approval-task:18")).orElseThrow();
         assertThat(retried.attemptCount()).isEqualTo(2);
         var staleRetry = claimedAs(first);
         staleRetry.scheduleRetry(now, "stale");
@@ -451,16 +458,16 @@ class WecomDeliveryIT {
         assertThat(row("approval-task:18")).containsEntry("status", "PENDING").containsEntry("attempt_count", 2);
         second.markSent("rc-18", now);
         assertThat(repository.save(second)).isTrue();
-        var again = repository.findByKey("approval-task:18").orElseThrow();
+        var again = repository.findCard(subjectOf("approval-task:18")).orElseThrow();
         assertThatThrownBy(() -> again.markSent("again", now)).as("already sent").isInstanceOf(DomainException.class);
         assertThat(row("approval-task:18")).containsEntry("status", "SENT").containsEntry("response_code", "rc-18");
     }
 
     private static com.forcitis.one.platform.integration.domain.OutboundDelivery claimedAs(
             com.forcitis.one.platform.integration.domain.OutboundDelivery claim) {
-        return com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(claim.deliveryId(), claim.deduplicationKey(),
+        return com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(claim.deliveryId(), claim.subject(),
                 claim.recipients(), claim.title(), claim.description(), claim.targetUrl(), "PENDING", claim.attemptCount(), null, null, null,
-                claim.kind(), claim.targetKey(), claim.correlation(), claim.version(), claim.eventSequence());
+                claim.kind(), claim.targetDeliveryId(), claim.correlation(), claim.version(), claim.eventSequence());
     }
 
     @Test

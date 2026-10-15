@@ -10,6 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.DeliveryPurpose;
+import com.forcitis.one.platform.integration.api.DeliverySubject;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -22,8 +24,10 @@ class OutboundDeliveryStateMachineTest {
     static final WecomUserId ALICE = new WecomUserId("alice");
     static final WecomUserId BOB = new WecomUserId("bob");
 
+    static final DeliverySubject SUBJECT = DeliverySubject.of(DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(1));
+
     static OutboundDelivery at(DeliveryStatus status) {
-        return OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(3)), "approval-task:1", List.of(ALICE), "t", "d", "https://one.example.test/x",
+        return OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(3)), SUBJECT, List.of(ALICE), "t", "d", "https://one.example.test/x",
                 status.name(), 2, null, null, null, DeliveryKind.CARD, null, UUID.randomUUID(), 5, 5);
     }
 
@@ -67,15 +71,15 @@ class OutboundDeliveryStateMachineTest {
         RecipientPolicy allowList = new RecipientPolicy(true, Set.of(ALICE));
         UUID correlation = UUID.randomUUID();
 
-        OutboundDelivery none = OutboundDelivery.queue("k1", List.of(), open, "t", "d", "u", correlation, NOW);
+        OutboundDelivery none = OutboundDelivery.queue(DeliverySubject.of(DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(11)), List.of(), open, "t", "d", "u", correlation, NOW);
         assertThat(none.status()).isEqualTo(FAILED);
         assertThat(none.lastError()).contains("no recipient");
 
-        OutboundDelivery notAllowed = OutboundDelivery.queue("k2", List.of(BOB), allowList, "t", "d", "u", correlation, NOW);
+        OutboundDelivery notAllowed = OutboundDelivery.queue(DeliverySubject.of(DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(12)), List.of(BOB), allowList, "t", "d", "u", correlation, NOW);
         assertThat(notAllowed.status()).isEqualTo(SKIPPED);
         assertThat(notAllowed.skippedRecipients()).containsExactly(BOB);
 
-        OutboundDelivery mixed = OutboundDelivery.queue("k3", List.of(ALICE, BOB), allowList, "t", "d", "u", correlation, NOW);
+        OutboundDelivery mixed = OutboundDelivery.queue(DeliverySubject.of(DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(13)), List.of(ALICE, BOB), allowList, "t", "d", "u", correlation, NOW);
         assertThat(mixed.status()).isEqualTo(PENDING);
         assertThat(mixed.recipients()).containsExactly(ALICE);
         assertThat(mixed.skippedRecipients()).containsExactly(BOB);
@@ -90,8 +94,8 @@ class OutboundDeliveryStateMachineTest {
 
         assertThat(note.status()).isEqualTo(PENDING);
         assertThat(note.kind()).isEqualTo(DeliveryKind.HANDLED_NOTE);
-        assertThat(note.deduplicationKey()).isEqualTo("approval-task:1#handled");
-        assertThat(note.targetKey()).isEqualTo("approval-task:1");
+        assertThat(note.subject()).isEqualTo(SUBJECT);
+        assertThat(note.targetDeliveryId()).isEqualTo(TestIds.uuid(3));
         assertThat(note.description()).isEqualTo("handled by Dave");
     }
 }

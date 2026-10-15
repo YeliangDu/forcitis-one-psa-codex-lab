@@ -85,7 +85,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
 
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
         assertThat(approvals.isFinished(first)).isTrue();
-        assertThat(taskService.createTaskQuery().processInstanceId(first.value()).count()).isZero();
+        assertThat(taskService.createTaskQuery().processInstanceId(first.value().toString()).count()).isZero();
         assertThat(jdbc.queryForList("select status from platform_approval.approval_tasks where instance_id = ?", String.class, first.value()))
                 .containsExactly("CLOSED");
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
@@ -144,9 +144,9 @@ class RetractionIT extends ApprovalIntegrationSupport {
 
         assertThat(requestStatus(key)).isEqualTo("CANCELLED");
         assertThat(approvals.isFinished(instance)).isTrue();
-        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value()).count()).isEqualTo(1);
-        assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(instance.value()).count()).isEqualTo(1);
-        assertThat(jdbc.queryForObject("select result_reason from platform_approval.approval_requests where document_key = ?", String.class, key))
+        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value().toString()).count()).isEqualTo(1);
+        assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(instance.value().toString()).count()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select result_reason from platform_approval.approval_requests where document_id = cast(? as uuid)", String.class, key))
                 .isEqualTo("not needed any more");
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
             assertThat(e.document().documentId().value()).isEqualTo(key);

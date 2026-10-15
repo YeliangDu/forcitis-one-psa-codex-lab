@@ -71,6 +71,12 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @ExtendWith(OutputCaptureExtension.class)
 @Testcontainers
 class CorrelationIT {
+
+    static final com.forcitis.one.platform.integration.api.DeliverySubject PROBE_REQUEST = com.forcitis.one.platform.integration.api.DeliverySubject.of(
+            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, com.forcitis.one.TestIds.uuid(901));
+    static final com.forcitis.one.platform.integration.api.DeliverySubject PROBE_HANDLER = com.forcitis.one.platform.integration.api.DeliverySubject.of(
+            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, com.forcitis.one.TestIds.uuid(902));
+
     static final WireMockServer wecom = new WireMockServer(WireMockConfiguration.options().dynamicPort());
 
     static {
@@ -152,7 +158,7 @@ class CorrelationIT {
                 ThingAggregate thing = new ThingAggregate();
                 thing.happen();
                 events.publish(thing);
-                gateway.send(new WecomCard(List.of(new WecomUserId("alice")), "Probe", "from the request", "https://one.example.test/probe", "probe:request"));
+                gateway.send(new WecomCard(List.of(new WecomUserId("alice")), "Probe", "from the request", "https://one.example.test/probe", PROBE_REQUEST));
                 return "ok";
             }
         }
@@ -174,7 +180,7 @@ class CorrelationIT {
                 seen.handlerContext.add(Map.of("correlation", String.valueOf(WorkContext.correlationId().orElse(null)),
                         "causation", String.valueOf(WorkContext.causationId().orElse(null)),
                         "actor", String.valueOf(WorkContext.systemActor().orElse(null))));
-                gateway.send(new WecomCard(List.of(new WecomUserId("bob")), "Probe", "from the handler", "https://one.example.test/probe", "probe:handler"));
+                gateway.send(new WecomCard(List.of(new WecomUserId("bob")), "Probe", "from the handler", "https://one.example.test/probe", PROBE_HANDLER));
             }
         }
     }
@@ -203,10 +209,10 @@ class CorrelationIT {
         assertThat(inHandler.get("actor")).isEqualTo("test.correlation.probe");
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
-                jdbc.sql("select count(*) from platform_integration.outbound_deliveries where deduplication_key in ('probe:request', 'probe:handler')")
-                        .query(Integer.class).single()).isEqualTo(2));
-        assertThat(jdbc.sql("select distinct correlation_id from platform_integration.outbound_deliveries where deduplication_key in ('probe:request', 'probe:handler')")
-                .query(UUID.class).list()).containsExactly(correlation);
+                jdbc.sql("select count(*) from platform_integration.outbound_deliveries where subject_id in (:ids)")
+                        .param("ids", List.of(PROBE_REQUEST.id(), PROBE_HANDLER.id())).query(Integer.class).single()).isEqualTo(2));
+        assertThat(jdbc.sql("select distinct correlation_id from platform_integration.outbound_deliveries where subject_id in (:ids)")
+                .param("ids", List.of(PROBE_REQUEST.id(), PROBE_HANDLER.id())).query(UUID.class).list()).containsExactly(correlation);
 
         deliver.execute();
 

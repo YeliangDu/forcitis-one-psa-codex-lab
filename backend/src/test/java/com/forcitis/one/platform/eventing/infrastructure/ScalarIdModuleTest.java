@@ -47,7 +47,7 @@ class ScalarIdModuleTest {
     @DisplayName("G-C5 a typed id is written as the text of its value, in a payload, in a list and as a nested field")
     void idsAreWrittenAsText() throws Exception {
         Payload payload = new Payload(TestAccounts.account(7), TestAccounts.employee(8), List.of(TestOrgIds.orgUnit(1), TestOrgIds.orgUnit(2)),
-                new LegalEntityId(TestIds.uuid(5)), new ApprovalTaskId("task-9"), new Reason("because"));
+                new LegalEntityId(TestIds.uuid(5)), com.forcitis.one.TestApprovalIds.task("task-9"), new Reason("because"));
 
         assertThat(JSON.readTree(JSON.writeValueAsString(payload))).isEqualTo(JSON.readTree("""
                 {"actor":"%s","employee":"%s","units":["%s","%s"],"legalEntityId":"%s","taskId":"task-9","reason":{"value":"because"}}
@@ -59,7 +59,7 @@ class ScalarIdModuleTest {
     @DisplayName("G-C5 what was written reads back to equal ids, and a long id is also read from a bare number")
     void idsReadBack() throws Exception {
         Payload payload = new Payload(TestAccounts.account(7), TestAccounts.employee(8), List.of(TestOrgIds.orgUnit(1)), new LegalEntityId(TestIds.uuid(5)),
-                new ApprovalTaskId("task-9"), new Reason("because"));
+                com.forcitis.one.TestApprovalIds.task("task-9"), new Reason("because"));
 
         assertThat(JSON.readValue(JSON.writeValueAsString(payload), Payload.class)).isEqualTo(payload);
         assertThat(JSON.readValue("\"" + TestAccounts.employee(7).value() + "\"", EmployeeId.class)).isEqualTo(TestAccounts.employee(7));

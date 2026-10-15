@@ -50,7 +50,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
     }
 
     List<Task> openTasks(ApprovalInstanceId instance) {
-        return taskService.createTaskQuery().processInstanceId(instance.value()).includeIdentityLinks().list();
+        return taskService.createTaskQuery().processInstanceId(instance.value().toString()).includeIdentityLinks().list();
     }
 
     String candidateOf(Task task) {
@@ -59,7 +59,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
     }
 
     DecisionResult decide(long actor, Task task, DecisionOutcome outcome, String reason) {
-        return decideTasks.execute(TestAccounts.account(actor), List.of(new TaskDecision(new ApprovalTaskId(task.getId()), outcome, reason)), java.util.OptionalLong.empty());
+        return decideTasks.execute(TestAccounts.account(actor), List.of(new TaskDecision(new ApprovalTaskId(java.util.UUID.fromString(task.getId())), outcome, reason)), java.util.OptionalLong.empty());
     }
 
     @Test
@@ -154,13 +154,13 @@ class CountersignIT extends ApprovalIntegrationSupport {
 
         assertThat(decide(s.first(), regular, DecisionOutcome.APPROVE, null).status()).isEqualTo(ApprovalStatus.APPROVED);
         eventually(() -> {
-            assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(key)).toList())
+            assertThat(events.resulted().stream().filter(e -> e.document().documentId().toString().equals(key)).toList())
                     .anySatisfy(e -> {
                         assertThat(e.effect()).isEqualTo(TaskEffect.ADVISORY);
                         assertThat(e.outcome()).isEqualTo(TaskOutcome.REJECTED);
                         assertThat(e.reason()).isEqualTo(new Reason("I would not"));
                     });
-            assertThat(events.completed().stream().filter(e -> e.document().documentId().value().equals(key)).map(e -> e.outcome()).toList())
+            assertThat(events.completed().stream().filter(e -> e.document().documentId().toString().equals(key)).map(e -> e.outcome()).toList())
                     .containsExactly(ApprovalOutcome.APPROVED);
         });
     }

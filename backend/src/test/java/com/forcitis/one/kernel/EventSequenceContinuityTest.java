@@ -200,7 +200,7 @@ class EventSequenceContinuityTest {
     @DisplayName("OutboundDelivery: it announces no event, so its sequence stays where it was while the lock version moves")
     void outboundDelivery() {
         checkMany(() -> com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(
-                        new com.forcitis.one.platform.integration.domain.OutboundDeliveryId(TestIds.uuid(1)), "approval-task:42",
+                        new com.forcitis.one.platform.integration.domain.OutboundDeliveryId(TestIds.uuid(1)), com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(42)),
                         List.of(new WecomUserId("alice")), "title", "description", null, "PENDING", 0, null, null, null,
                         com.forcitis.one.platform.integration.domain.DeliveryKind.CARD, null, java.util.UUID.randomUUID(), 0, 0),
                 List.of(d -> d.markSent("0", NOW), d -> d.scheduleRetry(NOW, "later"), d -> d.deadLetter("gave up"), d -> d.skip("not allowed")));
