@@ -21,7 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * src/main and the Flyway scripts never name A8 form tables, the A8 database, LEXMIS or U8C tables; registered dbo objects are named only by the
- * integration layer, and every dbo object and view the integration layer's SQL names is in the read-column register (ADR-0037 item 6.1).
+ * integration layer, and every dbo object and view the integration layer's SQL names is in the external read register (ADR-0037 item 6.1).
  */
 class SeeyonSourceScanTest {
 
@@ -171,7 +171,7 @@ class SeeyonSourceScanTest {
     }
 
     @Test
-    @DisplayName("R-1b-0 集成层 SQL 引用的每个 dbo 对象与 forcitis_one 视图都取自读取列登记")
+    @DisplayName("R-1b-0 集成层 SQL 引用的每个 dbo 对象与 forcitis_one 视图都取自外部读取登记")
     void integrationSqlNamesOnlyRegisteredObjects() throws IOException {
         List<Path> layer = CredentialColumnGuardTest.integrationLayer();
         Set<String> named = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);

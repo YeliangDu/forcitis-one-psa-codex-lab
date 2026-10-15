@@ -17,7 +17,7 @@ import java.util.TreeMap;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Keeps the read-column register, the code constants of SeeyonViewSql and the DBA view script in line with each other (ADR-0037 item 6.1). */
+/** Keeps the external read register, the code constants of SeeyonViewSql and the DBA view script in line with each other (ADR-0037 item 6.1). */
 class ExternalReadRegisterTest {
 
     static final Path DBA_SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
@@ -66,7 +66,7 @@ class ExternalReadRegisterTest {
     }
 
     @Test
-    @DisplayName("R-1b-0 读取列登记每行字段齐全、取值合法，名字像敏感信息的列登记为 SENSITIVE / RESTRICTED")
+    @DisplayName("R-1b-0 外部读取登记每行字段齐全、取值合法，名字像敏感信息的列登记为 SENSITIVE / RESTRICTED")
     void everyRowIsCompleteAndLegal() throws IOException {
         List<Row> rows = ExternalReadRegister.rows();
 
@@ -79,7 +79,7 @@ class ExternalReadRegisterTest {
     }
 
     @Test
-    @DisplayName("R-1b-0 读取列登记守护自检：缺字段、未知字段、非法用途（含 RECONCILIATION）、非法库与对象、敏感列登记为 INTERNAL、跨行的行都被报出")
+    @DisplayName("R-1b-0 外部读取登记守护自检：缺字段、未知字段、非法用途（含 RECONCILIATION）、非法库与对象、敏感列登记为 INTERNAL、跨行的行都被报出")
     void injectedBadRowsAreFound() throws IOException {
         List<String> lines = new ArrayList<>(List.of("databases: [a8_db]", "columns:",
                 "  - { database: a8_db, object: dbo.ORG_UNIT, column: TYPE, source: dbo.ORG_UNIT.TYPE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }",

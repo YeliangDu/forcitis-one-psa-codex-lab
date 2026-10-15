@@ -61,7 +61,7 @@ final class SeeyonViewSql {
     static final String COUNT_FEE_EARNER_MARKED = "SELECT COUNT(*) FROM " + SCHEMA + "." + ORG_MEMBER_VIEW
             + " WHERE FEE_EARNER_ENUM_ID = :enumId";
 
-    /** Only the view schema: the login may read the whole database (ADR-0037), the column whitelist applies to the views alone. */
+    /** Only the view schema: the login may read the whole database (ADR-0037), only the views are held to exact column equality. */
     static final String VIEW_COLUMNS_IN_SCHEMA = "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
             + "WHERE TABLE_SCHEMA = :schema";
 

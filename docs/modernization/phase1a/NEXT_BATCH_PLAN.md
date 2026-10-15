@@ -358,13 +358,13 @@ ADR-0037 已采纳（Q1 选 (c)：现有 6 个视图冻结不动，新读取与 
 - `HAS_DBACCESS` 为 1 的库恰好是目标业务库加 master、msdb、rdscore、tempdb（guest）。
 - 无法判定（查询失败、结果为空）即拒绝启动；不提供关闭开关（`*_VALIDATE_ON_STARTUP` 不再可关，`ProductionConfigSanityTest` 断言）；`LegacyInboxConfiguration` 不再吞掉数据库异常继续启动。
 - 每次同步任务开始前重跑同一校验，失败即停掉该适配器并告警。
-- 凭据列拒绝清单守护：以 `credential_columns.csv`（one-ops，#143）为准——credential 92 列（A8 75、老系统 17）；review 25 列（均为 A8），实现 PR 逐列判定是否凭据。守护断言 `src/main` 的 SQL 与读取列登记都不引用清单里的凭据列。清单只含表名与列名，不含值。
+- 凭据列拒绝清单守护：以 `credential_columns.csv`（one-ops，#143）为准——credential 92 列（A8 75、老系统 17）；review 25 列（均为 A8），实现 PR 逐列判定是否凭据。守护断言 `src/main` 的 SQL 与外部读取登记都不引用清单里的凭据列。清单只含表名与列名，不含值。
 - 适配器出错只记错误号与 SQLState，不记异常消息（SQL Server 的类型转换错误消息会带出字段值）。
 - MSSQL 集成测试（SQL Server）进 CI：改到 `platform.integration..` 或 `platform.approval.infrastructure.legacy..` 时按路径过滤运行，另加每夜一次全量；并按 architecture-critic B-2 逐项构造越权反例，范围以 ADR-0037 守护节为准。起 SQL Server 测试容器前先向 one-coordinator 确认在 Testcontainers 授权范围内。
 - 实现 PR 注明 SQL Server 2016 版差异、RDS 平台限制与已登记风险，ADR 正文不改。
 - 执行与复审：测试代理 opus 先写；执行 opus（含安全闸门）；复审 opus（high）。对外库的真实登录核实按 CLAUDE.md 先请示，未获准前以容器内集成测试为证据。
 
-**R-1b-0**：A8 标志列（`TYPE`、`IS_DELETED`、`IS_ENABLE`、`STATE`）直接读基表，WIP 提交 `f1a67d33`（视图加列、白名单 37 列）作废或改写；基表一律写 `dbo.` 限定名；读取列登记只留一份并加「用途」列，启动时只检查运行时用途的行。one-ops 取证（只出分组计数，未入仓）显示同步范围 1291 条中有 18 条标记已删除；现行同步范围（`MEMBER_SCOPE`）不看删除与启用标志，已删除或停用人员进入快照，处理见 7.8。
+**R-1b-0**：A8 标志列（`TYPE`、`IS_DELETED`、`IS_ENABLE`、`STATE`）直接读基表，WIP 提交 `f1a67d33`（视图加列、白名单 37 列）作废或改写；基表一律写 `dbo.` 限定名；外部读取登记只留一份并加「用途」列，启动时只检查运行时用途的行。one-ops 取证（只出分组计数，未入仓）显示同步范围 1291 条中有 18 条标记已删除；现行同步范围（`MEMBER_SCOPE`）不看删除与启用标志，已删除或停用人员进入快照，处理见 7.8。
 
 **完成后**：删除 `status/blockers/100-ADR-0037-readonly-guard-before-deploy.md`。
 
@@ -469,7 +469,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | P3b 不等拆分 | P3b 本就要经来源对照分配自有 ID（ADR-0033 第 2 项第 3、4 条），不依赖拆分；拆分须先解决依赖反转成环（integration → workforce 与 audit → integration）、两事务一致性与新词门禁，前置会拖住 P3b → P4 → P5 → F-1 |
 | 表的位置 | P3b：workforce 快照、版本、归属期间与法人归属（DA-5 分列）、`user_accounts.employee_id`、`timesheets` 三列、审批 `initiator_id`；拆分 b：`sync_run_held_separations` 改为 workforce 待放行离职表、`last_sync_run_id` 改为引用变更集；拆分 a：`sync_runs`、`sync_diffs` 在 `platform_integration` 按最终形态新建（`subject_key` 拆列），`ddl-naming-baseline.txt` 同步表行直接删、新表合规命名（C10 例外）；DA-3：`employees` 删登录名与企业微信列；P5：`audit_entries.subject_key` |
 | 拆分内部顺序 | b 先 a 后：a 先则离职暂停仍挂在运行上，集成层须知道「谁是管理员」（被否决的 A2） |
-| R-1b-0 拆为 0a / 0b（重开 C-10） | 0a（读取列登记合并、`dbo.` 限定、启动时基表子集检查、`TYPE` 校验、三项守护 = D-1a-01 全部）现在做、P3b 前；0b（`STATE` / `IS_DELETED` / `IS_ENABLE` 读取、两项不一致判定记在集成层同步差异、RULING-R1B0-5）排在拆分 a 后。理由：按 ADR-0039 不一致判定的输入都是 A8 概念，只能在集成层，而同步差异要到拆分 a 才在集成层；不拆则 D-1a-01 要晚到拆分 a 之后 |
+| R-1b-0 拆为 0a / 0b（重开 C-10） | 0a（外部读取登记合并、`dbo.` 限定、启动时基表子集检查、`TYPE` 校验、三项守护 = D-1a-01 全部）现在做、P3b 前；0b（`STATE` / `IS_DELETED` / `IS_ENABLE` 读取、两项不一致判定记在集成层同步差异、RULING-R1B0-5）排在拆分 a 后。理由：按 ADR-0039 不一致判定的输入都是 A8 概念，只能在集成层，而同步差异要到拆分 a 才在集成层；不拆则 D-1a-01 要晚到拆分 a 之后 |
 | 新词 G06 / G07 | 撤下，随拆分 a 与集成层新词一并确认；G01–G05 照常确认（0a 只用 G01–G03） |
 | 拆分前设计卡 | one-architecture：依赖反转成环、登录查人改为 workforce 定义端口 / 集成层实现、D-1a-03「单事务」条款改写（不再问用户：用户选 A1 时已批两事务与组织同步整体搬） |
 

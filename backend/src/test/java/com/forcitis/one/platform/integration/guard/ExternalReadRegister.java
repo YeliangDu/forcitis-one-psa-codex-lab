@@ -13,7 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.yaml.snakeyaml.Yaml;
 
-/** The read-column register (ADR-0037 item 6.1), read by the guards; it is not on the run-time class path. */
+/** The external read register (ADR-0037 item 6.1), read by the guards; it is not on the run-time class path. */
 public final class ExternalReadRegister {
 
     public static final Path FILE = Path.of("architecture/external-read-registry.yaml");
