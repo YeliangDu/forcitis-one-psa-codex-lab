@@ -30,7 +30,10 @@ jobs:
             docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image"
           done
       - name: surefire and failsafe under profile legacy-it
-        run: scripts/ci/backend_verify.sh -Plegacy-it
+        # Same concurrency limit and watchdog as ci.yml: the nightly run shares the runners' Docker Desktop
+        env:
+          BACKEND_WATCHDOG_SECONDS: '1500'
+        run: scripts/ci/backend_verify.sh -Plegacy-it -Dtest.forks=2 -Dtest.fork.timeout=1800
       - name: the SQL Server integration tests ran
         shell: bash
         run: compgen -G 'backend/target/failsafe-reports/TEST-*MssqlIT.xml'
@@ -41,3 +44,4 @@ jobs:
           path: |
             backend/target/surefire-reports
             backend/target/failsafe-reports
+            backend/target/thread-dumps

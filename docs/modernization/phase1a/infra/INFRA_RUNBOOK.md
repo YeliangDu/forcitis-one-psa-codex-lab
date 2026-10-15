@@ -284,7 +284,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   - 命令：`register-emergency-admin`（需 `--login-name`）、`reset-emergency-admin-credentials`、`disable-emergency-admin`、`enable-emergency-admin`、`grant-role`（需 `--role-code`，用于首批超级管理员、业务管理员、组织数据管理员）。
   - **双人在场**：`--operator` 与 `--witness` 必填且必须是两个不同的人（比较前去掉首尾空白、折叠空格、不分大小写、全角按半角），两人都记入审计；缺一或相同则命令拒绝，什么也不做。
   - 口令与 TOTP 密钥由命令**生成**，只在这一次输出里显示（口令、base32 密钥、认证器链接），库里只存口令的 Argon2id 哈希与加密后的密钥；不要把输出复制进文件或聊天。口令强度与密钥长度由代码保证，不经命令行参数传入。
-  - 档案关闭所有定时任务（`forcitis.platform.scheduling.jobs-enabled=false` 及各任务自己的开关），Web 部分只监听本机随机端口，几秒钟后随进程结束；命令发布的事件若监听器没来得及处理，仍留在事件发布登记表里，由常驻应用的重投作业接手（§9）。
+  - 档案关闭所有定时任务（`forcitis.platform.scheduling.jobs-enabled=false` 及各任务自己的开关；总开关生效的前提是 Spring Modulith 的 `MomentsAutoConfiguration` 已被排除，#228 起，见 §9），Web 部分只监听本机随机端口，几秒钟后随进程结束；命令发布的事件若监听器没来得及处理，仍留在事件发布登记表里，由常驻应用的重投作业接手（§9）。
   - 退出码：0 成功（含「已是该状态，未改变」）；1 被拒绝（错误码在标准错误输出）；2 用法错误。
   - 注册后若可用应急账号少于 2 个，命令输出 `WARNING`；必须有至少 2 个、绑定不同的超级管理员持有人。
 - 应急账号只能从内网段登录，失败 5 次锁 15 分钟；检查与计数在凭据验证之前一步完成，并发猜测也只有 5 次机会。应急登录直接进入管理模式，1 小时后会话结束。
