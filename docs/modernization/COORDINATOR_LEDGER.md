@@ -1,6 +1,6 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 16:20（one-coordinator，/clear 前）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 18:30（one-coordinator）
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
@@ -49,9 +49,13 @@
 - 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
+- 18:30：已合并 #200–#207、#209、#211；队列 208 197 210。#197 合并后通知 one-ops 出 rc.2。
+- P3b 排序定为甲′：R-1b-0a → P3b → 拆分 b → 拆分 a → R-1b-0b → DA-3 → P5（next-3 的 p3b-sequencing.md）；G06/G07 撤下随拆分 a。待转 one-architecture（/clear 后）：ADR-0039 勘误（:41 排期解释、3 个权限码实为 2、SyncRunHoldReleased 语义）+ 拆分前设计卡。
+- one-glossary：A（写回）、C（项目样例页）开工；B1 等 A，B2 等 B1，均 opus 复审；kind 映射裁定见 18:20 消息（单据→聚合 / 实体，字段挂实体，子域等入 bcs.yaml）。
+- one-architecture：C1 方案确认页（不复刻默认口令）、工程框架勾选页、3NF / 六边形待用户；step01 分支待用户确认第 0、1 步后开 PR。
 - one-1a-next-3：P2（含 H-1 登录登记缺陷）→ ARCH-D1..D7 小修复批（D5、D7 疑行为缺陷，修前报我）→ P3b（先定 ADR-0039 表的 schema）→ P5（并入 B3 删信封 source）。
 - one-glossary 已 /clear（4f921bec）：#206 合并后开写回 A、B（含 DDD 8 条，intent 171959）、C 三个 PR，先报方案。
-- 钩子：#205 合并后，第一次真实压缩时核对是否注入（压缩路径尚无样本；74995d04 有快照无 compact_boundary，可从此查）。
+- 钩子：/clear 路径已实测生效（one-architecture d2803f88，来源 startup，注入画像与 ARCH_CONTEXT）；未合 main 的 worktree（glossary、1a-par、ops）仍是旧 matcher，合 main 受保护文件需用户确认。压缩路径：第一次真实压缩时核对是否注入（压缩路径尚无样本；74995d04 有快照无 compact_boundary，可从此查）。
 - 第三轮用语确认已完成（365 条全部同意，写回 #196；改名卡后端并入 R-2a〔next-3，生产前〕、前端界面文字归 one-1a-par〔dev 前〕）；之后按「开工前术语门禁」（§5）逐卡确认，one-glossary 承担，调度只监督门槛（业务用语积压达到 100 条或距上次决策单超过 7 天，见 `glossary/ISSUES.md` 首段；错误码单列归 R-5，SESSION_PLAYBOOK §5）；job_grade 定义缺陷随岗位体系重梳。
 - Codex 试点：R-4（R-5 之后），记录返工轮次与耗时（SESSION_PLAYBOOK §5「Codex 派工」）。
 - 首次 dev 部署：dev 前阻塞清零后经用户批准（部署归用户决定）。

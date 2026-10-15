@@ -12,7 +12,7 @@
     ],
     "SessionStart": [
       {
-        "matcher": "compact|clear",
+        "matcher": "startup|clear|compact",
         "hooks": [
           {
             "type": "command",

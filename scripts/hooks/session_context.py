@@ -86,7 +86,7 @@ def main(root):
     if profile is None:
         print("【会话画像】未能读取 origin/main，改用工作区画像。")
         profile = from_tree(root, profile_path) or f"（缺文件：{profile_path}）"
-    print(f"【压缩或清空后恢复上下文】本会话（{name}）的画像与上下文文档全文如下，以它们为准接续工作；完成点后继续更新。")
+    print(f"【新开、清空或压缩后恢复上下文】本会话（{name}）的画像与上下文文档全文如下，以它们为准接续工作；完成点后继续更新。")
     print(f"\n===== {profile_path} =====")
     print(profile.rstrip("\n"))
     for doc in context_docs(profile):
