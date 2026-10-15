@@ -195,7 +195,7 @@ class SystemActorCatalogueTest {
         int seen = 0;
         try (Stream<Path> files = Files.walk(root)) {
             for (Path file : files.filter(f -> f.toString().endsWith(".java") && !f.endsWith("SystemActorCatalogueTest.java")
-                    && !f.endsWith("SystemActorsTest.java")).toList()) {
+                    && !f.endsWith("SystemActorsTest.java") && !f.endsWith("SystemActorCheckTest.java")).toList()) {
                 String source = Files.readString(file);
                 for (Pattern pattern : patterns) {
                     Matcher matcher = pattern.matcher(source);
