@@ -131,6 +131,25 @@
 
 **守护**：`DdlNamingTest` 按全部迁移脚本推算最终表结构（跟踪 `ADD COLUMN`、`RENAME COLUMN`、`RENAME CONSTRAINT`、`ALTER INDEX ... RENAME TO`），检查类别词与类型、约束与索引命名；注入样例覆盖每类错误。规则生效前已存在的项登记在 `backend/architecture/ddl-naming-baseline.txt`（每行附改名建议），新违规和「已修好却没删」的基线行都会失败。框架拥有列名的表豁免：`platform_identity.sessions`、`sessions_attributes`（Spring Session JDBC）、`platform_integration.event_publication`（Spring Modulith）、`platform_scheduling.scheduler_locks`（ShedLock）。
 
+### 2.4a DDL 设计原则（用户 2026-10-15：问「看看 ddl 设计上还有什么需要强化的原则？比如索引？」后选「全部采纳 (Recommended)」）
+
+适用于全部自有表；框架自建表（Spring Session、ShedLock、Modulith 事件登记）豁免并在守护中登记。标「守护」的由 `DdlNamingTest` / `DataArchitectureTest` 检查，其余靠每波复审（SESSION_PLAYBOOK §14.1）。
+
+1. **业务唯一约束**：主键一律 UUIDv7（§14.1 D16）；交易、主数据、参考、配置表另须至少一个业务唯一约束（如单据类型 + 单据编号、法人代码、角色代码、来源系统 + 对象类型 + 来源 ID；带生效区间的用排他约束），并在数据访问注册表登记 `business_key`。纯日志、事件类表可豁免，须写理由。引用一律用 UUID，不以业务键作外键。守护。
+2. **索引**：
+   - 外键列必须有以该列开头的索引（PostgreSQL 不自动建）。守护。
+   - 每条列表 / 查询路径在注册表登记（过滤列、排序列），并有索引覆盖；游标分页的排序键以 `id` 兜底组成联合索引。复审，可用 EXPLAIN 集成测试抽查。
+   - 状态类热点用部分索引（`WHERE status IN (...)`）。
+   - 不留重复或冗余索引（与另一索引前缀相同、与唯一约束重复）。守护。
+3. **空值与默认值**：默认 `NOT NULL`；可空列须在列注释写明「空」的业务含义（守护：可空列注释含「为空表示」或等价说明）。文本列禁止空串代替空值（`CHECK (col <> '')`）。数据库只允许技术默认值（如 `version` 初值）；业务值与时间一律由应用显式写入。守护。
+4. **删除语义**：外键默认 `ON DELETE RESTRICT`；仅同一聚合内的子行允许 `CASCADE`，须登记。不用软删除标志列；业务删除以状态或版本表达，物理删除只用于技术数据过期清理。守护（CASCADE 白名单、禁 `is_deleted` 类列）。
+5. **代码格式与文本长度**：`_code` 列有格式 CHECK（字符集、大小写、长度）；不区分大小写比较的列，唯一约束建在规范化值上（如 `lower(email_address)`）。自由文本类列设长度上限（`CHECK (char_length(col) <= n)`）。守护。
+6. **枚举演进**：不用 PostgreSQL `ENUM` 类型，统一 `text + CHECK`；新增取值以迁移改 CHECK，删除取值先迁移数据。守护（禁 `CREATE TYPE ... AS ENUM`）。
+7. **jsonb 边界**：`jsonb` 只用于本来无固定结构的载荷（事件归档、外部原文、幂等应答体），领域字段必须是正式列；每个 `jsonb` 列在注册表登记用途并有 `jsonb_typeof` CHECK。守护。
+8. **大表规划**：保留期超过 3 年或预计超过千万行的只追加表（审计、事件归档、过程归档等），在建表时定好分区键（按时间范围）与归档 / 清理方式，登记在注册表；上线后再分区要重写全表。复审。
+9. **上线后迁移安全**（基线开放标记删除后生效）：表结构变更只能「先扩后缩」（expand / contract）；加索引用 `CREATE INDEX CONCURRENTLY`（单独迁移、非事务）；迁移设 `lock_timeout` 与 `statement_timeout`；禁止会重写全表的变更（如改列类型、加带易变默认值的列）；删列、改名分两次发布。守护（迁移脚本静态检查）。
+10. **高频更新行**：同一行被反复更新的表（编号计数格、幂等登记等）可设 `fillfactor`，减少膨胀与锁竞争；属性能建议，按需使用并在表注释说明。
+
 ### 2.5 列级敏感分级
 
 | 级别 | 含义 | 处理 |

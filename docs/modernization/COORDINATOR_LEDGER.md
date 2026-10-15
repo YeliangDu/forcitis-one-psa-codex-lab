@@ -38,6 +38,7 @@
 | 本机 Mac | ~/.modernize/psa/infra/role_holders.md（人名，0600）、~/.modernize/psa/finance/FINANCE_CONFIRM_v3.html（0600） | 长期私有 | one-coordinator | — |
 | 阿里云 | SLS Project forcitis-one-observability（30 天）、云监控 OS 指标、ECS 快照策略 forcitis-one-daily | 长期付费（约 40 元/月以内） | one-ops | — |
 | 阿里云 | OSS bucket forcitis-one-archive（杭州、归档、本地冗余、私有、SSE-OSS、仅 HTTPS；WORM 未锁，第一个写入方上线前重建并锁定）、RAM 策略 forcitis-one-archive-writer、RAM 角色 forcitis-one-ecs-archive（已绑定 ECS） | 长期 | one-ops | — |
+| GitHub（用户账号） | fine-grained 令牌 forcitis-one-release-dev-2026-10-15（FORCITIS 组织、仅 forcitis-one-psa、Actions / Contents / Deployments / Metadata 只读，到期 2027-01-13）——OIDC 方案的后备，未安装到任何位置；令牌值不经会话 | 后备 | 用户 | 首次 dev 部署经 OIDC 成功后由用户删除（one-coordinator 提醒） |
 | 阿里云 / GitHub | OIDC 提供商、RAM 角色 forcitis-one-deploy-dev、云助手固定命令、仓库 OIDC sub 定制（OIDC 改造 PR 合并前执行，逐条报 one-coordinator） | 长期（待建） | one-ops | — |
 | GitHub | environments release / dev / prod、签名私钥 secret（release）、v* 标签规则（仓库级，组织级待用户定）、immutable releases | 长期 | one-ops | — |
 
@@ -87,6 +88,8 @@
 - 公安联网备案：用户「已经完成所有备案」；登录页只展示 ICP 号（F-15，W3）。
 
 ## 排定的后续
+- 规则文档瘦身（用户 2026-10-15「好，按这个计划做」）：前置——CODING_STANDARD（A–D）合并、原则核对 A / B 采纳；然后派 opus 出「规则 → 唯一位置」对照表与删除 / 归档清单，经用户确认后执行，加防重复检查。
+- 待用户决定项集中问：DDL 基线审计、原则核对 A / B、CODING_STANDARD 冲突清单。
 - 第三轮用语确认（复用 psa-terms-review）：1a 下一批交付后启动；合并 1a 全部提议术语（按业务 / 技术分组）、R0 的 TERMS_ROUND3_INPUT（A 组 19、新词约 45、NRPM 与「人工成本产出倍数」对齐）、前端用语（含同步 / 放行 / 被中止与 held_run 重叠、待办与 todo / inbox 重叠）、工时类别（项目 / 售前 / OH，OH 疑似方言）、legacy_system（老系统，方言为旧名称）、TS / JV 单据类型代码。ADR-0018：阶段结束时不得留有会计类提议术语。
 - 统一编排路线（1a 试点结束、brief 重新生成时一起审批）：Phase 1a–5、6a–6f（ADR-0021）、G1/G2（ADR-0022）、R0–R6（ADR-0023 / 0025）统一编号与依赖；6a 入口加「收付口径推送通道就绪」「过渡镜像就绪」；Phase 4、6a–6c、G1 合为业财一体阶段作为可选方案；客商主数据是否提前；6a–6f、G 与 R 阶段并入模板时补「流程梳理」入口条件。
 - 1b 前必须：区域应收负责人指派类型按规格建；代理审批授权模型评审（RULE-270）；ADR-0026 列出的新规则先在 RULE_REVIEWS 登记（法人限定、审批参与只读访问、授予时职责分离组合）；组织数据管理员是否列敏感复核；Phase 1b 流程梳理（新会话 one-1b-process-review）。
