@@ -1,0 +1,74 @@
+# C-14 剧本：只读启动校验拒绝路径的真实登录核实（计划，待用户批准）
+
+依据：ADR-0037 第 4 项第 7 条；PREDEPLOY_CHECKLIST C-14；校验实现 #163（`ReadOnlyBaseline`、`JdbcReadOnlyCatalog`）。dev 首次部署前完成。**用户批准前不建登录、不建库、不改授权。**
+
+## 范围
+
+- 不动四个正式登录（one_a8_views_ro、psa_one_legacy_ro、one_legacy_names_ro、one_evidence_ro），不碰 a8_db、ruoyi-vue-pro。
+- RDS SQL Server rm-bp1690ep53t9778dp 上新建：临时登录 `one_readonly_probe`；空库 `one_readonly_probe_db`（第 9 项另建 `one_readonly_probe_db2`）；探针库内的辅助主体（第 6–8 项）。全部做完删除。
+- 执行账号：老系统主数据源 u8c（RDS 高权限账号，只用于这些授权变更，ADR-0037 第 5 项第 4 条）；探针以自己的口令真实登录跑校验。
+
+## 应用侧核实入口：选 one-1a-next-2 补的只读命令
+
+- 选它的理由：第 7 条要核实的是**实现**的拒绝路径；只读命令执行的就是 `ReadOnlyBaseline.violations` 本身，拿到的标记即应用启动时会给出的标记。`read-all/readonly_check.sql` 只覆盖同一组查询，比对规则要人工复述 `ReadOnlyBaseline`，核实的是我对代码的理解而不是代码。
+- 前提：命令在签名发布包中（#163 与命令合并后的 rc.2）；在 ECS 上从发布包中的 jar 运行（解到临时目录，不安装、不切换、不启动服务），连接参数与探针口令从 ECS 文件读取。
+- 若命令赶不上：退回 `readonly_check.sql` 加人工比对，执行记录中注明「未经应用代码核实」，并保留 C-14 未关闭。
+
+## 口令与记录
+
+- 探针口令在 SQL Server 上生成（`CRYPT_GEN_RANDOM`，同 `evidence_login.sql`），只以新 ECS 临时公钥加密的密文经手，存 ECS `/etc/forcitis-one/readonly-probe.env`（root 0600），不经会话；结束时删除。
+- 记录只写：每项的拒绝标记（(a)–(f) 与「通过」）、错误号；不记消息原文与任何值。
+- 每项前后各取一次探针的有效权限计数（库级、服务器级 `fn_my_permissions` 的行数），回退后须回到对照值。
+- RESOURCES.md 登记临时登录与两个探针库（建与删各一行）；LEGACY_READ_REGISTER 不涉及（不读老系统与 A8 数据）。
+
+## 时间窗口与共享实例影响
+
+- 约 60 分钟，工作日非高峰（建议 12:00–13:00 或 18:30 以后），提前告知 one-coordinator。
+- 影响：实例上临时多一个登录、两个空库（几 MB，进入实例备份，删库后随备份保留期过期）；所有偏离只在探针库内或针对探针登录；不改 public、不改其他库，对 a8_db、ruoyi-vue-pro、it_portal 等库没有锁与授权变化。第 10 项的服务器级 DENY 预期被平台拒绝（4613），不产生变更。
+- 停止条件：任一回退后计数不回到对照值、对照项不通过、出现对探针库以外对象的任何变更 → 立即停下报 one-coordinator。
+
+## 准备（批准后执行）
+
+```sql
+-- master 上下文
+DECLARE @s nvarchar(64) = N'Pr-' + CONVERT(nvarchar(64), CRYPT_GEN_RANDOM(24), 2);
+EXEC (N'CREATE LOGIN [one_readonly_probe] WITH PASSWORD = ' + QUOTENAME(@s, N'''') + N', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF, DEFAULT_DATABASE = [master]');
+SELECT N'one_readonly_probe' AS login_name, @s AS one_time_secret;
+CREATE DATABASE [one_readonly_probe_db];   -- 若 T-SQL 建库被平台拒绝：停下，改用 RDS CreateDatabase 前先报
+-- one_readonly_probe_db 上下文：与正式账号同形
+CREATE USER [one_readonly_probe] FOR LOGIN [one_readonly_probe] WITH DEFAULT_SCHEMA = dbo;
+GRANT CONNECT, SELECT ON DATABASE::[one_readonly_probe_db] TO [one_readonly_probe];
+DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, CREATE FUNCTION, CREATE SCHEMA
+  ON DATABASE::[one_readonly_probe_db] TO [one_readonly_probe];
+```
+
+## 逐项（偏离 → 预期标记 → 回退）
+
+偏离均在 `one_readonly_probe_db` 上下文执行（第 9、10 项另注），每项：对照计数 → 偏离 → 跑校验 → 回退 → 计数复原。
+
+| # | 偏离 SQL | 预期 | 回退 SQL |
+|---|---|---|---|
+| 1 | 无（基线） | 通过 | — |
+| 2 | `REVOKE INSERT ON DATABASE::[one_readonly_probe_db] FROM [one_readonly_probe]; GRANT INSERT ON SCHEMA::dbo TO [one_readonly_probe];` | (b)（DENY 缺 INSERT），可能另有 (a) | `REVOKE INSERT ON SCHEMA::dbo FROM [one_readonly_probe]; DENY INSERT ON DATABASE::[one_readonly_probe_db] TO [one_readonly_probe];` |
+| 3 | `GRANT VIEW DEFINITION ON DATABASE::[one_readonly_probe_db] TO [one_readonly_probe];` | (a)（多出 VIEW DEFINITION）；(b)（GRANT 不再恰为 CONNECT、SELECT） | `REVOKE VIEW DEFINITION ON DATABASE::[one_readonly_probe_db] FROM [one_readonly_probe];` |
+| 4 | `ALTER ROLE db_datareader ADD MEMBER [one_readonly_probe];` | (c)，可能另有 (a) | `ALTER ROLE db_datareader DROP MEMBER [one_readonly_probe];` |
+| 5 | `CREATE ROLE [probe_select_role]; GRANT SELECT ON DATABASE::[one_readonly_probe_db] TO [probe_select_role]; ALTER ROLE [probe_select_role] ADD MEMBER [one_readonly_probe];` | (c) | `ALTER ROLE [probe_select_role] DROP MEMBER [one_readonly_probe]; DROP ROLE [probe_select_role];` |
+| 6 | `CREATE SCHEMA [probe_owned] AUTHORIZATION [one_readonly_probe];` | (e)（拥有 schema） | `DROP SCHEMA [probe_owned];` |
+| 7 | `CREATE ROLE [probe_owned_role] AUTHORIZATION [one_readonly_probe];` | (e)（拥有角色） | `DROP ROLE [probe_owned_role];` |
+| 8 | `CREATE USER [probe_target] WITHOUT LOGIN; GRANT IMPERSONATE ON USER::[probe_target] TO [one_readonly_probe];` | (e)（主体级授权） | `REVOKE IMPERSONATE ON USER::[probe_target] FROM [one_readonly_probe]; DROP USER [probe_target];` |
+| 9 | master：`CREATE DATABASE [one_readonly_probe_db2];` 其中：`CREATE USER [one_readonly_probe] FOR LOGIN [one_readonly_probe];` | (f)（可访问基线外的库） | 其中 `DROP USER [one_readonly_probe];`；master：`DROP DATABASE [one_readonly_probe_db2];` |
+| 10 | master：`DENY VIEW SERVER STATE TO [one_readonly_probe];` | 预期平台报 4613 → 记「平台不可构造」；若执行成功则预期 (d) | 成功时：`REVOKE VIEW SERVER STATE FROM [one_readonly_probe];` |
+| 11 | `DENY SELECT ON sys.database_permissions TO [one_readonly_probe];` | 无法判定、拒绝启动：(b) 与 (e) 报 cannot be determined | `REVOKE SELECT ON sys.database_permissions FROM [one_readonly_probe];` |
+
+平台不可构造、由 `ReadOnlyAccountCheckIT` 覆盖：CONTROL SERVER、加入 securityadmin、多出服务器级权限（u8c 无服务器级授予权限，4613；见 B-5 README 风险登记）。
+
+## 收尾
+
+```sql
+-- master 上下文
+DROP DATABASE [one_readonly_probe_db];
+DROP LOGIN [one_readonly_probe];
+-- 回读：sys.server_principals 无 one_readonly_probe；sys.databases 无 one_readonly_probe_db*
+```
+
+ECS 删除 `/etc/forcitis-one/readonly-probe.env` 与临时目录（解开的 jar）；RESOURCES.md 记删除；执行记录写入本文件与 PREDEPLOY_CHECKLIST C-14。
