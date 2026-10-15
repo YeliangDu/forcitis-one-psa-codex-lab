@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.OneApplication;
 import com.forcitis.one.TestImages;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.application.RefreshShortNames;
@@ -67,7 +68,7 @@ class ReadOnlyAccountCheckIT {
     static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
     static final AtomicInteger LOGINS = new AtomicInteger();
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestImages.startingWith("postgres:"))
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
     static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))

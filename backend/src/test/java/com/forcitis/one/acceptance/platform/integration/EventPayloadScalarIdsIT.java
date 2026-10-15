@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.SessionRoles;
@@ -71,7 +72,7 @@ class EventPayloadScalarIdsIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18").withInitScript("init-schemas.sql")
+    static PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
     @MockitoBean

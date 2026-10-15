@@ -8,6 +8,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.MutableClock;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -72,7 +73,7 @@ public abstract class AcceptanceSupport {
     }
 
     protected static PostgreSQLContainer database() {
-        return new PostgreSQLContainer("postgres:18").withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
+        return TestPostgres.container().withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
     }
 
     @MockitoBean
