@@ -3,7 +3,8 @@
 版式与第三轮用语确认页相同（page-template.html）：每条 同意建议 / 保持原样 / 改为…，选择存在固定在线页数据库的集合 gate-<卡号>/<编号>（发布到 README 写明的固定链接，手机端新链接首次加载可能卡住）。
 数据格式见 gate/README.md；校验不通过即失败。
 固定页可同时挂多张单子（逗号分隔），每张一组、答复各存 gate-<卡号> 集合；其他会话的决策单（如架构决策）也用同一格式交 one-glossary 一起发布。
-用法：python3 docs/modernization/glossary/gate/build_gate_page.py <卡号>[,<卡号>...] <输出路径>"""
+用法：python3 docs/modernization/glossary/gate/build_gate_page.py <卡号>[,<卡号>...] <输出路径> [--by-bc]
+--by-bc：新系统用语按条目的 bc 分组显示，ACL 单（卡号 ACL-*）保持按归类分组（用户 2026-10-15：「我希望用语按照bc进行汇集」「新系统用语按照bc，acl还是按照你现在的规划」），每组各自提交。"""
 import json, pathlib, re, sys
 
 HERE = pathlib.Path(__file__).parent
@@ -69,19 +70,40 @@ def page_item(card, i):
 
 
 def main():
-    if len(sys.argv) != 3:
-        sys.exit("用法：build_gate_page.py <卡号>[,<卡号>...] <输出路径>")
-    docs = [load(card) for card in sys.argv[1].split(",")]
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if len(args) != 2:
+        sys.exit("用法：build_gate_page.py <卡号>[,<卡号>...] <输出路径> [--by-bc]")
+    by_bc = "--by-bc" in sys.argv
+    docs = [load(card) for card in args[0].split(",")]
     items, groups = [], []
     for doc in docs:
         mine = [page_item(doc["card"], i) for i in doc["items"]]
+        keep = doc["card"].startswith("ACL-")   # 用户：「新系统用语按照bc，acl还是按照你现在的规划」——ACL 单保持按归类分组
+        if by_bc and not keep:
+            for x, i in zip(mine, doc["items"]):
+                x["grp"] = "bc-" + re.sub(r"[^A-Za-z0-9-]", "-", i.get("bc") or "none")
+                x["bc"] = i.get("bc") or "（未定模块）"
+                x["sheet"] = doc.get("title") or doc["card"]
         items += mine
-        groups.append({"id": collection(doc["card"]), "title": f"{doc.get('title') or doc['card'] + ' 本卡新词'}（{len(mine)} 项）",
-                       "desc": doc["lede"] + " 点「同意建议」即按建议定；有不同意见点「改为…」写上你要的叫法。"})
-    biggest = max(len(d["items"]) for d in docs)
+        if not by_bc or keep:
+            groups.append({"id": collection(doc["card"]), "title": f"{doc.get('title') or doc['card'] + ' 本卡新词'}（{len(mine)} 项）",
+                           "desc": doc["lede"] + " 点「同意建议」即按建议定；有不同意见点「改为…」写上你要的叫法。"})
+    if by_bc:
+        # 用户 2026-10-15：「我希望用语按照bc进行汇集」——按模块分组，组内各条注明来自哪张单子；每组各自提交
+        fixed = [g["id"] for g in groups]
+        order = sorted({x["grp"]: x["bc"] for x in items if x["grp"] not in fixed}.items(), key=lambda kv: -sum(1 for x in items if x["grp"] == kv[0]))
+        for gid, bc in order:
+            mine = [x for x in items if x["grp"] == gid]
+            parts = {}
+            for x in mine:
+                parts[x["sheet"]] = parts.get(x["sheet"], 0) + 1
+            groups.append({"id": gid, "title": f"{bc}（{len(mine)} 项）",
+                           "desc": "本模块待确认：" + "；".join(f"{k} {v} 条" for k, v in parts.items()) + "。点「同意建议」即按建议定；有不同意见点「改为…」。选完点本组底部「提交本组」。"})
+        items.sort(key=lambda x: [g["id"] for g in groups].index(x["grp"]))
+    biggest = max(sum(1 for x in items if x["grp"] == g["id"]) for g in groups)
     if biggest > 120:
         sys.exit(f"单组 {biggest} 条，超过 120 条上限：页面默认一屏只画一组，组太大手机上会停在加载中，请拆组")
-    lede = docs[0]["lede"] if len(docs) == 1 else f"当前待确认 {len(docs)} 组、共 {len(items)} 条，用上方「分组」切换，每组底部有「下一组」。选择自动存为草稿，选完点左侧「提交」。"
+    lede = docs[0]["lede"] if len(docs) == 1 and not by_bc else f"当前待确认 {len(groups)} 组、共 {len(items)} 条，用「分组」切换，每组底部有「提交本组」和「下一组」。选择先存为草稿，提交并确认后才算数。"
     dump = lambda v: json.dumps(v, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     tpl = (HERE / "page-template.html").read_text(encoding="utf-8")
     page = (tpl.replace("/*__ITEMS__*/[]", dump(items)).replace("/*__GROUPS__*/[]", dump(groups))
@@ -93,8 +115,8 @@ def main():
     page = page.replace("<script>", "<script>\n(() => {", 1).replace("</script>", "})();\n</script>", 1)
     if re.search(r"https?://", page):
         sys.exit("页面不得引用任何外部地址（用户：不要外部字体；手机端会卡在加载中）")
-    pathlib.Path(sys.argv[2]).write_text(page, encoding="utf-8")
-    print(f"{sys.argv[2]}：" + "；".join(f"{d['card']} {len(d['items'])} 项" for d in docs))
+    pathlib.Path(args[1]).write_text(page, encoding="utf-8")
+    print(f"{args[1]}：{len(groups)} 组；" + "；".join(f"{d['card']} {len(d['items'])} 项" for d in docs))
 
 
 if __name__ == "__main__":

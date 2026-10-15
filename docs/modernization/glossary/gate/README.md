@@ -5,6 +5,7 @@
 | 步骤 | 做法 |
 |---|---|
 | 1. 写数据 | `gate/<卡号>.json`，格式见下 |
+| 2. 生成页面（多张单子） | 固定页：`build_gate_page.py ACL-UNDECIDED,ACL-TRANSITION,ACL-LONGTERM,ACL-DEFFIX,R3-AP,…,R3-DF <输出> --by-bc`：新系统用语按 bc 分组，ACL 单保持按归类分组（用户 2026-10-15），每组底部「提交本组」 |
 | 2. 生成页面 | `python3 docs/modernization/glossary/gate/build_gate_page.py <卡号> <scratchpad>/gate-<卡号>.html` |
 | 3. 发布 | 发布到固定链接 https://claude.ai/artifact/MwoqwkhAYq9CtomgaedwZ1（Artifact 带 `url`，能力沿用 `db` + `user`，`write: owner`）；每次覆盖为当前这张卡，链接不变。用户手机上新链接首次加载会卡在加载中，固定链接能打开（2026-10-15） |
 | 4. 读答复 | 用户点「我选好了，提交」并确认后才读。ArtifactData `list` 集合 `answers` 与 `answers-submit`（同一个 `out_dir`；答复文档 id 为 `gate-<卡号>~<编号>`，提交记录文档 id 为 `gate-<卡号>`），再 `python3 docs/modernization/glossary/gate/export_decisions.py <卡号> <out_dir>` → `glossary/decisions-gate-<卡号>.json`；没提交或提交后又改过的导出失败，没选的条目算未定 |

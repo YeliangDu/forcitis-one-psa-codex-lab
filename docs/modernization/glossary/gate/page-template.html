@@ -191,6 +191,7 @@ function entryHTML(it){
   return `<article class="entry" data-key="${esc(it.key)}" data-state="${st}">
     <div>
       ${from}
+      ${it.sheet ? `<div class="refs">${esc(it.sheet)}</div>` : ""}
       <div class="hw"><span class="no">${esc(it.no)}</span><span class="zh">${esc(it.zh)}</span><span class="en">${esc(it.en)}</span>${money}</div>
       ${to}
       ${it.defn?`<p class="defn">${esc(it.defn)}</p>`:""}
@@ -218,7 +219,7 @@ function render(){
     const head = open ? `<div class="bchead"><span></span><button class="bulk" data-bulk="${esc(g.id)}">本组未确认的 ${open} 项全部同意建议</button></div>` : "";
     const at = GROUPS.findIndex(x => x.id === g.id), next = GROUPS[at + 1];
     const nav = fGroup !== "all" && next ? `<div class="bchead"><span></span><button class="bulk" data-next="${esc(next.id)}">下一组：${esc(next.title)}</button></div>` : "";
-    parts.push(`<div class="bc">${head}${list.map(entryHTML).join("")}${nav}</div></section>`);
+    parts.push(`<div class="bc">${head}${list.map(entryHTML).join("")}${submitFooter(g.id)}${nav}</div></section>`);
   }
   $("#main").innerHTML = parts.join("") || `<div class="empty">没有符合筛选条件的条目。</div>`;
   stats();
@@ -280,45 +281,38 @@ document.addEventListener("input", e => {
 GROUPS.forEach(g => { const o = document.createElement("option"); o.value = g.id; o.textContent = g.title; $("#fGroupSel").append(o); });
 $("#fGroupSel").addEventListener("change", e => { fGroup = e.target.value; render(); });
 setTimeout(() => { $("#fGroupSel").value = fGroup; }, 0);
-// 提交：页面上的选择只是草稿；按单子（集合名 gate-<单子>-… 的第一段）分别提交，用户看过汇总、点「确认提交」后写 <集合>-submit/latest，用语管家只读已提交的答复
-const scopeOf = c => c.replace(/^gate-/, "").split("-")[0];
-const SCOPES = [...new Set(COLLS.map(scopeOf))];
-const SCOPE_NAMES = {ACL: "ACL 归类", R3: "第三轮重做"};
-const submits = new Map();   // coll -> {at}
-const titleOf = c => (GROUPS.find(g => g.id === c) || {}).title || c;
-function lastChange(coll){ let m = ""; for (const [k, d] of decisions) if (k.startsWith(coll + "~") && d.at > m) m = d.at; return m; }
-function counts(colls){
-  let a = 0, k = 0, r = 0, n = 0;
-  for (const i of ITEMS.filter(i => colls.includes(i.coll))){ n++; const d = decisions.get(i.key); if (!d) continue; if (d.choice === "approve") a++; else if (d.choice === "rename") r++; else k++; }
-  return `同意建议 ${a} 条、保持原样 ${k} 条、改为 ${r} 条、未选 ${n - a - k - r} 条`;
+// 提交：页面上的选择只是草稿；按组提交（组即页面上的分组），用户看过本组汇总、点「确认提交」后写 answers-submit/<组>，
+// 记下提交时刻与本组条目；用语管家只读已提交、且提交后没再改过的答复
+const submits = new Map();   // 组 id -> {at, keys}
+const groupItems = gid => ITEMS.filter(i => i.grp === gid);
+function lastChange(gid){ let m = ""; for (const i of groupItems(gid)){ const d = decisions.get(i.key); if (d && d.at > m) m = d.at; } return m; }
+function counts(gid){
+  let a = 0, k = 0, r = 0; const its = groupItems(gid);
+  for (const i of its){ const d = decisions.get(i.key); if (!d) continue; if (d.choice === "approve") a++; else if (d.choice === "rename") r++; else k++; }
+  return `同意建议 ${a} 条、保持原样 ${k} 条、改为 ${r} 条、未选 ${its.length - a - k - r} 条`;
 }
+function stateText(gid){ const s = submits.get(gid); return !s ? "本组未提交" : lastChange(gid) > s.at ? "本组提交后又改过，请重新提交" : `本组已提交（${new Date(s.at).toLocaleString()}）`; }
 function submitState(){
-  for (const s of SCOPES){
-    const colls = COLLS.filter(c => scopeOf(c) === s), el = document.getElementById("st-" + s); if (!el) continue;
-    const subs = colls.map(c => submits.get(c));
-    el.textContent = subs.some(x => !x) ? "未提交" : colls.some(c => lastChange(c) > submits.get(c).at) ? "提交后又改过，请重新提交" : `已提交（${new Date(subs[0].at).toLocaleString()}）`;
-  }
+  for (const g of GROUPS){ const el = document.getElementById("st-" + g.id); if (el) el.textContent = stateText(g.id); }
+  const done = GROUPS.filter(g => submits.has(g.id) && lastChange(g.id) <= submits.get(g.id).at).length;
+  $("#submitBox").textContent = `已提交 ${done} / ${GROUPS.length} 组。选择先存为草稿，在每组底部「提交本组」并确认后才算数；没选的条目算未定。`;
 }
-$("#submitBox").innerHTML = SCOPES.map(s => `<div class="sub" data-scope="${esc(s)}">
-  <button type="button" class="bulk" data-submit="${esc(s)}">${esc(SCOPE_NAMES[s] || s)}：我选好了，提交</button>
-  <div class="confirm" hidden><p class="why"></p><button type="button" class="bulk" data-yes="${esc(s)}">确认提交</button> <button type="button" class="chip" data-no="${esc(s)}">再看看</button></div>
-  <p class="saved">${esc(SCOPE_NAMES[s] || s)}：<span id="st-${esc(s)}">未提交</span></p></div>`).join("")
-  + `<p class="saved">选择先存为草稿；点「提交」并确认后，用语管家才按你的选择处理。没选的条目算未定。</p>`;
+function submitFooter(gid){
+  return `<div class="sub" data-scope="${esc(gid)}"><button type="button" class="bulk" data-submit="${esc(gid)}">提交本组</button>
+    <div class="confirm" hidden><p class="why"></p><button type="button" class="bulk" data-yes="${esc(gid)}">确认提交</button> <button type="button" class="chip" data-no="${esc(gid)}">再看看</button></div>
+    <p class="saved" id="st-${esc(gid)}">${esc(stateText(gid))}</p></div>`;
+}
 document.addEventListener("click", async e => {
   const sb = e.target.closest("[data-submit]"), yes = e.target.closest("[data-yes]"), no = e.target.closest("[data-no]");
-  if (sb){ const box = sb.parentElement.querySelector(".confirm"); const colls = COLLS.filter(c => scopeOf(c) === sb.dataset.submit);
-    box.querySelector(".why").textContent = counts(colls) + "。未选的条目视为未定，不会按建议处理。"; box.hidden = false; return; }
+  if (sb){ const box = sb.parentElement.querySelector(".confirm"); box.querySelector(".why").textContent = counts(sb.dataset.submit) + "。未选的条目视为未定，不会按建议处理。"; box.hidden = false; return; }
   if (no){ no.parentElement.hidden = true; return; }
   if (yes){
     yes.parentElement.hidden = true;
-    const s = yes.dataset.yes, el = document.getElementById("st-" + s);
+    const gid = yes.dataset.yes, el = document.getElementById("st-" + gid);
     if (!db){ el.textContent = "存储不可用，未能提交"; return; }
-    const at = new Date().toISOString(), colls = COLLS.filter(c => scopeOf(c) === s);
-    for (const c of colls){
-      const body = {at, by: myId, summary: counts([c])};
-      try { await db.collection(SUBMITS).doc(c).set(body); submits.set(c, body); }
-      catch(err){ el.textContent = "提交失败：" + (err && err.message || "请稍后再试"); return; }
-    }
+    const body = {at: new Date().toISOString(), by: myId, summary: counts(gid), keys: groupItems(gid).map(i => i.key)};
+    try { await db.collection(SUBMITS).doc(gid).set(body); submits.set(gid, body); }
+    catch(err){ el.textContent = "提交失败：" + (err && err.message || "请稍后再试"); return; }
     submitState();
   }
 });
@@ -328,7 +322,7 @@ render();
   try { db = await window.claude?.use?.("db"); } catch(e){ db = null; }
   if (!db){ $("#conn").textContent = "存储不可用：请登录 claude.ai 后打开本页，选择才会保存"; $("#conn").classList.add("off"); return; }
   $("#conn").textContent = "已连接，选择会自动保存";
-  db.collection(SUBMITS).get().then(snap => { for (const d of snap.docs) if (COLLS.includes(d.id)) submits.set(d.id, d.data()); submitState(); }).catch(() => {});
+  db.collection(SUBMITS).get().then(snap => { for (const d of snap.docs) if (GROUPS.some(g => g.id === d.id)) submits.set(d.id, d.data()); submitState(); }).catch(() => {});
   db.collection(ANSWERS).onSnapshot(snap => {
     let changed = false;
     for (const ch of snap.docChanges()){
