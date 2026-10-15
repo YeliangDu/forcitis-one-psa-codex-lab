@@ -2,6 +2,7 @@ package com.forcitis.one.platform.integration.infrastructure.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestPostgres;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -23,7 +24,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class MigrateOnlyIT {
     @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18").withInitScript("init-dba-schemas.sql")
+    static PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-dba-schemas.sql")
             .withCommand("sh", "-c", "openssl req -new -x509 -days 1 -nodes -subj /CN=localhost -out /var/lib/postgresql/server.crt -keyout /var/lib/postgresql/server.key"
                     + " && chmod 600 /var/lib/postgresql/server.key && chown postgres:postgres /var/lib/postgresql/server.key /var/lib/postgresql/server.crt"
                     + " && exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key");

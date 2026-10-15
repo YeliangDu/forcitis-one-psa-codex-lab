@@ -45,6 +45,7 @@ function importsFor(...parts) {
 }
 
 // ---- no-restricted-syntax building blocks --------------------------------------------------------------------
+const HAS_TIME_ZONE = ':has(Property:matches([key.name="timeZone"], [key.value="timeZone"]))';
 const BASE_SYNTAX = [
   // F5 no hand-written API URLs
   { selector: 'Literal[value=/^\\/(admin-|app-)?api\\//]', message: 'No hand-written API URLs; use the generated operations.' },
@@ -54,6 +55,13 @@ const BASE_SYNTAX = [
   { selector: "AssignmentExpression > MemberExpression.left[property.name=/^(innerHTML|outerHTML)$/]", message: 'Render text, not HTML (SEC-008).' },
   // F12 explicit public surface
   { selector: 'ExportAllDeclaration', message: 'No `export *`: a module index lists its public surface explicitly.' },
+  // G-X2 Chinese text sorts by pinyin and every time on screen is Shanghai time, whatever the browser's locale and zone are
+  { selector: "CallExpression[callee.property.name='localeCompare']:not([arguments.1.value=/^zh/])", message: "localeCompare takes the locale 'zh' as its second argument (G-X2): a.localeCompare(b, 'zh')." },
+  { selector: `NewExpression[callee.object.name='Intl'][callee.property.name='Collator']:not([arguments.0.value=/^zh/])`, message: "Intl.Collator takes the locale 'zh' as its first argument (G-X2)." },
+  { selector: `CallExpression[callee.object.name='Intl'][callee.property.name='Collator']:not([arguments.0.value=/^zh/])`, message: "Intl.Collator takes the locale 'zh' as its first argument (G-X2)." },
+  { selector: `NewExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']:not(${HAS_TIME_ZONE})`, message: "Intl.DateTimeFormat takes a timeZone option (G-X2): the business zone is 'Asia/Shanghai'." },
+  { selector: `CallExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']:not(${HAS_TIME_ZONE})`, message: "Intl.DateTimeFormat takes a timeZone option (G-X2): the business zone is 'Asia/Shanghai'." },
+  { selector: `CallExpression[callee.property.name=/^toLocale(Date|Time)?String$/]:not(${HAS_TIME_ZONE})`, message: "toLocaleString / toLocaleDateString / toLocaleTimeString take a timeZone option (G-X2); format a number with Intl.NumberFormat." },
 ];
 const STYLE_SYNTAX = [
   // F14 no inline styles, no hard-coded colours, no palette primitives

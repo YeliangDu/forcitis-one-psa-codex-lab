@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
@@ -85,7 +86,7 @@ public abstract class IdentityIntegrationTest {
         return bytes;
     }
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
     static {

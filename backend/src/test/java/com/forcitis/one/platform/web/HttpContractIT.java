@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -45,7 +46,7 @@ class HttpContractIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
