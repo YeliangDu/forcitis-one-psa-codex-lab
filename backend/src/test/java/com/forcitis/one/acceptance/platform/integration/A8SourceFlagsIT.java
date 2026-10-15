@@ -38,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -182,6 +183,12 @@ class A8SourceFlagsIT {
     static final Person OUTSIDE = new Person("OUT", 4_100_000_090L, 4, 1, 0, 1, "13977770090", "wx-out", true, null);
     static final Person EXTERNAL = new Person("EXT", 4_100_000_091L, 2, 1, 0, 1, "13977770091", "wx-ext", false, null);
 
+    /** RULING-R1B0-5: not in the fixture at start (so not in the snapshot); inserted with an illegal STATE only for the login case. */
+    static final Person LOGIN_VICTIM = new Person("L1", 4_100_000_021L, 2, 3, 0, 1, "13977770021", "wx-l1", true, null);
+
+    /** Control of RULING-R1B0-5: the same login-miss path with a legal row. */
+    static final Person LOGIN_CONTROL = new Person("L0", 4_100_000_020L, 2, 1, 0, 1, "13977770020", "wx-l0", true, null);
+
     static final List<Person> PEOPLE = List.of(P1, P1B, P2, P3, P4, C1, C2, C3, C4, C5, OUTSIDE, EXTERNAL);
     static final List<Person> PRODUCTION_COMBINATIONS = List.of(P1, P1B, P2, P3, P4);
 
@@ -269,6 +276,7 @@ class A8SourceFlagsIT {
 
     static final String MEMBER_RESTORE = "STATE = 1, IS_DELETED = 0, IS_ENABLE = 1, NAME = N'" + P1B.name() + "'";
     static final String UNIT_RESTORE = "TYPE = N'Department', NAME = N'Support'";
+    static final String ROOT_RESTORE = "TYPE = N'Account', NAME = N'Root'";
 
     static Stream<Arguments> corruptions() {
         return Stream.of(
@@ -280,7 +288,10 @@ class A8SourceFlagsIT {
                 new Corruption("IS_ENABLE=2", "IS_ENABLE", "dbo.ORG_MEMBER", P1B.id(), "IS_ENABLE = 2", MEMBER_RESTORE),
                 new Corruption("IS_ENABLE=NULL", "IS_ENABLE", "dbo.ORG_MEMBER", P1B.id(), "IS_ENABLE = NULL", MEMBER_RESTORE),
                 new Corruption("非根单元 TYPE=Group", "TYPE", "dbo.ORG_UNIT", 3, "TYPE = N'Group'", UNIT_RESTORE),
-                new Corruption("非根单元 TYPE=NULL", "TYPE", "dbo.ORG_UNIT", 3, "TYPE = NULL", UNIT_RESTORE))
+                new Corruption("非根单元 TYPE=NULL", "TYPE", "dbo.ORG_UNIT", 3, "TYPE = NULL", UNIT_RESTORE),
+                // RULING-R1B0-2: the root may be Department or Account (C-4), never NULL or anything else.
+                new Corruption("根单元 TYPE=Group（RULING-R1B0-2）", "TYPE", "dbo.ORG_UNIT", 1, "TYPE = N'Group'", ROOT_RESTORE),
+                new Corruption("根单元 TYPE=NULL（RULING-R1B0-2）", "TYPE", "dbo.ORG_UNIT", 1, "TYPE = NULL", ROOT_RESTORE))
                 .map(Arguments::of);
     }
 
@@ -291,7 +302,8 @@ class A8SourceFlagsIT {
         SyncResult baseline = runSync();
         assertThat(baseline.status()).as("fixture sanity, the clean source syncs: %s", baseline.note()).isEqualTo(SyncRunStatus.SUCCEEDED);
         boolean member = corruption.table().equals("dbo.ORG_MEMBER");
-        assertThat(member ? employee(P1B).name() : unitName(3)).as("snapshot before").isEqualTo(member ? P1B.name() : "Support");
+        String original = member ? P1B.name() : corruption.rowId() == 1 ? "Root" : "Support";
+        assertThat(member ? employee(P1B).name() : unitName(corruption.rowId())).as("snapshot before").isEqualTo(original);
         String marker = "Zq" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         int mark = output.getAll().length();
         SyncResult result;
@@ -306,7 +318,8 @@ class A8SourceFlagsIT {
         assertThat(result.status()).as("%s: an illegal source value rejects the whole read (C-3); note: %s", corruption, result.note())
                 .isEqualTo(SyncRunStatus.FAILED);
         assertThat(log).as("a failed sync raises an ALERT line").containsPattern("ALERT[^\\n]*organization\\.workforce[^\\n]*sync");
-        assertThat(member ? employee(P1B).name() : unitName(3)).as("the snapshot is not written: the renamed row would show").isEqualTo(member ? P1B.name() : "Support");
+        assertThat(member ? employee(P1B).name() : unitName(corruption.rowId())).as("the snapshot is not written: the renamed row would show")
+                .isEqualTo(original);
         String reason = String.valueOf(result.note()) + "\n" + getRun(result).run().failureReason();
         assertThat(reason).as("the failure names the column").containsPattern("\\b" + corruption.column() + "\\b");
         for (String text : List.of(reason, log)) {
@@ -584,6 +597,71 @@ class A8SourceFlagsIT {
         assertThat(exceptCount(PURE_VIEW_UNITS, UNIT_VIEW_COLUMNS, units)).as("pure view statement EXCEPT new org unit statement").isZero();
         assertThat(rowCount(PURE_VIEW_MEMBERS)).as("fixture sanity: the comparison is over real rows").isEqualTo(PEOPLE.stream().filter(Person::inScope).count());
         assertThat(rowCount(PURE_VIEW_UNITS)).isEqualTo(3);
+    }
+
+    // ------------------------------------------------------------------ RULING-R1B0-5
+
+    /**
+     * A WeCom login of someone missing from the snapshot looks the person up in A8 through {@link OrgDirectory#findEmployeeByWecomUserId}; the
+     * login is refused exactly when that answers no employee. Asserted at this public port of workforce: a full HTTP login needs identity data
+     * (roles, accounts) that is not this module's (CS-5.5).
+     */
+    @Test
+    @DisplayName("R-1b-0 RULING-R1B0-5 对照：企业微信 userid 命中快照外、标志合法的人，单人查找登记并返回该员工（登录可继续）")
+    void loginMissOfALegalSourcePersonRegistersTheEmployee() throws SQLException {
+        Person person = LOGIN_CONTROL;
+        assertSnapshotHoldsUnitsAndPositions();
+        OrgDirectory directory = app().getBean(OrgDirectory.class);
+        assertThat(directory.findEmployee(person.employeeId())).as("not in the snapshot yet").isEmpty();
+        Optional<EmployeeProfile> found;
+        try {
+            run(MAIN, personRows(person).toArray(String[]::new));
+            found = loginLookup(directory, person);
+        } finally {
+            run(MAIN, "DELETE dbo.ORG_PRINCIPAL WHERE MEMBER_ID = " + person.id(), "DELETE dbo.ORG_MEMBER WHERE ID = " + person.id());
+        }
+
+        assertThat(found).as("the login-miss path itself works").isPresent();
+        assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
+    }
+
+    @Test
+    @DisplayName("R-1b-0 RULING-R1B0-5 Given 企业微信 userid 命中快照外、STATE 非法的人 When 登录查人 Then 不返回员工（登录被拒，失败关闭）、不登记、日志 ALERT，不按来源不可用降级")
+    void loginMissOfABrokenSourcePersonIsRefused(CapturedOutput output) throws SQLException {
+        Person victim = LOGIN_VICTIM;
+        assertSnapshotHoldsUnitsAndPositions();
+        OrgDirectory directory = app().getBean(OrgDirectory.class);
+        assertThat(directory.findEmployee(victim.employeeId())).as("not in the snapshot: the login falls back to the single-person source lookup").isEmpty();
+        int mark = output.getAll().length();
+        List<Optional<EmployeeProfile>> answer = new ArrayList<>();
+        Throwable failure;
+        try {
+            run(MAIN, personRows(victim).toArray(String[]::new));
+            failure = catchThrowable(() -> answer.add(loginLookup(directory, victim)));
+        } finally {
+            run(MAIN, "DELETE dbo.ORG_PRINCIPAL WHERE MEMBER_ID = " + victim.id(), "DELETE dbo.ORG_MEMBER WHERE ID = " + victim.id());
+        }
+        String log = output.getAll().substring(mark);
+
+        assertThat(answer.stream().flatMap(Optional::stream).toList()).as("no employee from a broken row: the login is refused (fail closed)").isEmpty();
+        assertThat(directory.findEmployee(victim.employeeId())).as("the person is not registered from a broken row").isEmpty();
+        assertThat(log).as("an ALERT, unlike the WARN of an unavailable source").contains("ALERT");
+        String told = log + "\n" + (failure == null ? "" : messages(failure));
+        assertThat(told).as("no personal data, no SQL Server message").doesNotContain(victim.name()).doesNotContain(victim.login())
+                .doesNotContain(Long.toString(victim.id())).doesNotContain("SQLServerException");
+    }
+
+    /** Inside a work context, as the login request runs: registering a person publishes an event, which needs an actor. */
+    static Optional<EmployeeProfile> loginLookup(OrgDirectory directory, Person person) {
+        try (WorkContext.Scope login = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.test")) {
+            return directory.findEmployeeByWecomUserId(new WecomUserId(person.wecom()));
+        }
+    }
+
+    /** A login miss registers a person only into org units and positions the snapshot already holds. */
+    static void assertSnapshotHoldsUnitsAndPositions() {
+        SyncResult sync = runSync();
+        assertThat(sync.status()).as("fixture sanity: %s", sync.note()).isEqualTo(SyncRunStatus.SUCCEEDED);
     }
 
     // ------------------------------------------------------------------ helpers: sync report
@@ -885,14 +963,7 @@ class A8SourceFlagsIT {
                         + MANAGER_TYPE + ")",
                 "INSERT dbo.formmain_0307 (field0217, field0234, field0284, FIELD0244) VALUES ('" + P1.code() + "', 'p1@example.test', N'男', " + FEE_EARNER_YES + ")"));
         for (Person p : PEOPLE) {
-            seed.add("INSERT dbo.ORG_MEMBER (ID, NAME, CODE, ORG_DEPARTMENT_ID, ORG_POST_ID, EXT_ATTR_37, EXT_ATTR_21, we_com_id, IS_INTERNAL, STATE, IS_DELETED, IS_ENABLE) "
-                    + "VALUES (" + p.id() + ", N'" + p.name() + "', '" + p.code() + "', " + p.unit() + ", 100, "
-                    + (p.supervisor() == null ? "NULL" : "'" + p.supervisor() + "'") + ", '1990-01-01', "
-                    + (p.wecom() == null ? "NULL" : "'" + p.wecom() + "'") + ", " + (p.internal() ? 1 : 0) + ", "
-                    + p.state() + ", " + p.deleted() + ", " + p.enabled() + ")");
-            if (p.login() != null) {
-                seed.add("INSERT dbo.ORG_PRINCIPAL (MEMBER_ID, LOGIN_NAME) VALUES (" + p.id() + ", N'" + p.login() + "')");
-            }
+            seed.addAll(personRows(p));
         }
         run(database, seed.toArray(String[]::new));
         applyViewScript(database);
@@ -904,6 +975,19 @@ class A8SourceFlagsIT {
         ReadOnlyBaselineFixture.createViewSchemaReader(A8SourceFlagsIT::run, database, login, password);
         ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(database), database, login, password);
         LOGINS_BY_DATABASE.put(database, new Login(login, password));
+    }
+
+    static List<String> personRows(Person p) {
+        List<String> rows = new ArrayList<>();
+        rows.add("INSERT dbo.ORG_MEMBER (ID, NAME, CODE, ORG_DEPARTMENT_ID, ORG_POST_ID, EXT_ATTR_37, EXT_ATTR_21, we_com_id, IS_INTERNAL, STATE, IS_DELETED, IS_ENABLE) "
+                + "VALUES (" + p.id() + ", N'" + p.name() + "', '" + p.code() + "', " + p.unit() + ", 100, "
+                + (p.supervisor() == null ? "NULL" : "'" + p.supervisor() + "'") + ", '1990-01-01', "
+                + (p.wecom() == null ? "NULL" : "'" + p.wecom() + "'") + ", " + (p.internal() ? 1 : 0) + ", "
+                + p.state() + ", " + p.deleted() + ", " + p.enabled() + ")");
+        if (p.login() != null) {
+            rows.add("INSERT dbo.ORG_PRINCIPAL (MEMBER_ID, LOGIN_NAME) VALUES (" + p.id() + ", N'" + p.login() + "')");
+        }
+        return rows;
     }
 
     /** The schema and views blocks of the DBA script, batch by batch, verbatim. */
