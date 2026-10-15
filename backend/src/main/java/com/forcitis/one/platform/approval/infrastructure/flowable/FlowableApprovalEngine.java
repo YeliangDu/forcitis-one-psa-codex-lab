@@ -303,10 +303,25 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 definition.processKey(), documentOf(variables),
                 new LegalEntityId(UUID.fromString(variables.firstVariable(VARIABLE_LEGAL_ENTITY).orElseThrow())),
                 task.getTaskDefinitionKey(), task.getName(),
-                EmployeeId.parse((variables.firstVariable(VARIABLE_INITIATOR).orElseThrow())),
+                initiatorOfTask(variables, task),
                 Optional.ofNullable(task.getAssignee()).map(a -> EngineUserIds.parse(a, "the assignee of task " + task.getId())), candidates, createdAt(task),
                 node.getSubProcess() != null, policy.beforeHookKey(), Boolean.TRUE.equals(task.getTaskLocalVariables().get(VARIABLE_ADVISORY)),
                 new ContentHash(variables.firstVariable(VARIABLE_CONTENT_HASH).orElseThrow()));
+    }
+
+    static EmployeeId initiatorOf(ProcessVariables variables, String instanceId) {
+        return EmployeeId.parse(variables.firstVariable(VARIABLE_INITIATOR)
+                .orElseThrow(() -> new IllegalStateException("Instance " + instanceId + " has no initiator")));
+    }
+
+    private static EmployeeId initiatorOfTask(ProcessVariables variables, Task task) {
+        try {
+            return initiatorOf(variables, task.getProcessInstanceId());
+        } catch (RuntimeException invalid) {
+            log.error("ALERT platform.approval task {} of instance {} cannot be shown: its initiator is missing or not an employee id ({})",
+                    task.getId(), task.getProcessInstanceId(), invalid.toString());
+            throw invalid;
+        }
     }
 
     private static Instant createdAt(Task task) {
