@@ -1,4 +1,4 @@
-# 数据对象（DAMA-DMBOK2R）。ID = DO-<模块>-<对象>；tables 引用数据访问注册表键（全部 50 个键各归一处）；category 取 SESSION_PLAYBOOK §14.1 D17 细则第 1 条七类之一。
+# 数据对象（DAMA-DMBOK2R）。ID = DO-<模块>-<对象>；tables 只引用数据访问注册表键作分组（全部 50 个键各归一处），负责 BC 由 schema 推导、不另存（ADR-0040 接缝 4）；category 取 SESSION_PLAYBOOK §14.1 D17 细则第 1 条七类之一。
 # 初稿：2026-10-15 由 sonnet 子代理归并；category 为推断（注册表尚无此字段），拿不准的见各条 category_basis。维护：one-architecture。
 meta:
   generated: '2026-10-15'
@@ -14,7 +14,6 @@ data_objects:
   lineage_source: NEW
   migrated_from:
   - old timesheet rows
-  owner_bc: cost.timesheet
   tables:
   - cost_timesheet.timesheets
   sensitive_columns: []
@@ -24,7 +23,6 @@ data_objects:
   category: technical
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: cost.timesheet
   tables:
   - cost_timesheet.consumed_events
   sensitive_columns: []
@@ -36,7 +34,6 @@ data_objects:
   lineage_source: NEW
   migrated_from:
   - old work calendar 2016-2026
-  owner_bc: organization.attendance
   tables:
   - organization_attendance.work_calendar_years
   - organization_attendance.work_calendar_days
@@ -47,7 +44,6 @@ data_objects:
   category: master
   system_of_record: 外部来源：致远 A8 组织数据（经 platform.integration 的视图适配器同步，新系统只读副本）
   lineage_source: ORG_SOURCE
-  owner_bc: organization.workforce
   tables:
   - organization_workforce.employees
   sensitive_columns:
@@ -63,7 +59,6 @@ data_objects:
   category: master
   system_of_record: 外部来源：致远 A8 组织数据（经 platform.integration 的视图适配器同步，新系统只读副本）
   lineage_source: ORG_SOURCE
-  owner_bc: organization.workforce
   tables:
   - organization_workforce.org_units
   - organization_workforce.org_unit_versions
@@ -74,7 +69,6 @@ data_objects:
   category: master
   system_of_record: 外部来源：致远 A8 组织数据（经 platform.integration 的视图适配器同步，新系统只读副本）
   lineage_source: ORG_SOURCE
-  owner_bc: organization.workforce
   tables:
   - organization_workforce.positions
   sensitive_columns: []
@@ -84,7 +78,6 @@ data_objects:
   category: master
   system_of_record: 外部来源：致远 A8 组织数据（经 platform.integration 的视图适配器同步，新系统只读副本）
   lineage_source: ORG_SOURCE
-  owner_bc: organization.workforce
   tables:
   - organization_workforce.assignments
   - organization_workforce.assignment_versions
@@ -95,7 +88,6 @@ data_objects:
   category: master
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: organization.workforce
   tables:
   - organization_workforce.legal_entities
   - organization_workforce.legal_entity_versions
@@ -106,7 +98,6 @@ data_objects:
   category: master
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: organization.workforce
   tables:
   - organization_workforce.legal_entity_attributions
   - organization_workforce.org_unit_legal_entities
@@ -119,7 +110,6 @@ data_objects:
   category: technical
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: organization.workforce
   tables:
   - organization_workforce.sync_runs
   - organization_workforce.sync_diffs
@@ -131,7 +121,6 @@ data_objects:
   category: transaction
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.approval
   tables:
   - platform_approval.approval_requests
   - platform_approval.approval_task_records
@@ -144,7 +133,6 @@ data_objects:
   category: technical
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.approval
   tables:
   - platform_approval.process_archive_skips
   sensitive_columns: []
@@ -154,7 +142,6 @@ data_objects:
   category: technical
   system_of_record: 框架（Flowable / Spring Session / Spring Modulith / ShedLock），非业务数据
   lineage_source: FRAMEWORK
-  owner_bc: platform.approval
   tables:
   - platform_approval.act_*
   sensitive_columns: []
@@ -164,7 +151,6 @@ data_objects:
   category: audit
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.audit
   tables:
   - platform_audit.audit_entries
   - platform_audit.audit_archive_batches
@@ -176,7 +162,6 @@ data_objects:
   category: technical
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.idempotency
   tables:
   - platform_idempotency.idempotent_responses
   sensitive_columns: []
@@ -186,7 +171,6 @@ data_objects:
   category: master
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.identity
   tables:
   - platform_identity.user_accounts
   - platform_identity.account_roles
@@ -198,7 +182,6 @@ data_objects:
   category: master
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.identity
   tables:
   - platform_identity.roles
   - platform_identity.role_permissions
@@ -209,7 +192,6 @@ data_objects:
   category: master
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.identity
   tables:
   - platform_identity.emergency_admins
   sensitive_columns:
@@ -223,7 +205,6 @@ data_objects:
   category: transaction
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.identity
   tables:
   - platform_identity.authorization_requests
   sensitive_columns: []
@@ -233,7 +214,6 @@ data_objects:
   category: config
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.identity
   tables:
   - platform_identity.navigation_items
   sensitive_columns: []
@@ -243,7 +223,6 @@ data_objects:
   category: config
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.identity
   tables:
   - platform_identity.ticket_issuers
   sensitive_columns:
@@ -254,7 +233,6 @@ data_objects:
   category: technical
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.identity
   tables:
   - platform_identity.login_states
   - platform_identity.sso_ticket_uses
@@ -269,7 +247,6 @@ data_objects:
   category: technical
   system_of_record: 框架（Flowable / Spring Session / Spring Modulith / ShedLock），非业务数据
   lineage_source: FRAMEWORK
-  owner_bc: platform.identity
   tables:
   - platform_identity.sessions
   - platform_identity.sessions_attributes
@@ -282,7 +259,6 @@ data_objects:
   category: technical
   system_of_record: 框架（Flowable / Spring Session / Spring Modulith / ShedLock），非业务数据
   lineage_source: FRAMEWORK
-  owner_bc: platform.integration
   tables:
   - platform_integration.event_publication
   - platform_integration.event_publication_archive
@@ -293,7 +269,6 @@ data_objects:
   category: technical
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.integration
   tables:
   - platform_integration.outbound_deliveries
   sensitive_columns:
@@ -305,7 +280,6 @@ data_objects:
   category: master
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.integration
   tables:
   - platform_integration.source_references
   sensitive_columns: []
@@ -315,7 +289,6 @@ data_objects:
   category: config
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.numbering
   tables:
   - platform_numbering.numbering_rules
   - platform_numbering.numbering_rule_versions
@@ -326,7 +299,6 @@ data_objects:
   category: technical
   system_of_record: 新系统
   lineage_source: NEW
-  owner_bc: platform.numbering
   tables:
   - platform_numbering.numbering_counters
   sensitive_columns: []
@@ -338,7 +310,6 @@ data_objects:
   lineage_source: MIGRATION
   migrated_from:
   - old document numbers
-  owner_bc: platform.numbering
   tables:
   - platform_numbering.legacy_numbers
   sensitive_columns: []
@@ -348,7 +319,6 @@ data_objects:
   category: technical
   system_of_record: 框架（Flowable / Spring Session / Spring Modulith / ShedLock），非业务数据
   lineage_source: FRAMEWORK
-  owner_bc: platform.scheduling
   tables:
   - platform_scheduling.scheduler_locks
   sensitive_columns: []
