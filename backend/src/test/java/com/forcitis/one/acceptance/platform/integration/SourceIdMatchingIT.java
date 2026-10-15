@@ -36,7 +36,7 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
     @DisplayName("R-1b P3b ADR-0033 第 2 项第 3 条：同步按来源 ID 匹配，找不到才新建——第二次同步中姓名、员工编号、登录名都变了的人仍是同一自有 ID；只有新的来源 ID 才新建对照与对象；已有对照的对象不再调分配")
     void theSyncMatchesBySourceIdAndCreatesOnlyForNewOnes() throws Exception {
         unit(UNIT, "C9100", "Matching unit", UNIT_PATH);
-        member(CHANGING, "Before", "E9101", UNIT, UNIT_PATH, null, null, "wx-world-9101", "world-9101");
+        member(CHANGING, "Before", "E9101", UNIT, UNIT_PATH, BASE_POST, null, "wx-world-9101", "world-9101");
         syncOnce();
         UUID person = ownIdOf(EMPLOYEE, CHANGING);
         assertThat(snapshotValue("employees", person, "display_name")).isEqualTo("Before");
@@ -53,7 +53,7 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
         assertThat(references(EMPLOYEE)).as("no reference is made for a person already seen").isEqualTo(employeeReferences);
         assertThat(allocationStatements()).as("no allocation for objects that have a reference").isZero();
 
-        member(NEWCOMER, "Newcomer", "E9104", UNIT, UNIT_PATH, null, null, "wx-world-9104", "world-9104");
+        member(NEWCOMER, "Newcomer", "E9104", UNIT, UNIT_PATH, BASE_POST, null, "wx-world-9104", "world-9104");
         countAllocations();
         syncOnce();
 
@@ -68,8 +68,8 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
     @DisplayName("R-1b P3b ADR-0033 守护 7 / 第 6 项第 1 条：员工编号不作键——两人同编号都正常建档，各得一个自有 ID")
     void twoPeopleWithTheSameCodeBothGetAnEntry() throws Exception {
         unit(UNIT + 50, "C9150", "Same code unit", ROOT_PATH + "0022");
-        member(SAME_CODE_FIRST, "First", SHARED_CODE, UNIT + 50, ROOT_PATH + "0022", null, null, "wx-world-9102", "world-9102");
-        member(SAME_CODE_SECOND, "Second", SHARED_CODE, UNIT + 50, ROOT_PATH + "0022", null, null, "wx-world-9103", "world-9103");
+        member(SAME_CODE_FIRST, "First", SHARED_CODE, UNIT + 50, ROOT_PATH + "0022", BASE_POST, null, "wx-world-9102", "world-9102");
+        member(SAME_CODE_SECOND, "Second", SHARED_CODE, UNIT + 50, ROOT_PATH + "0022", BASE_POST, null, "wx-world-9103", "world-9103");
 
         syncOnce();
 
