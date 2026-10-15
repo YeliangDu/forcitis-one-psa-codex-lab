@@ -36,6 +36,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-01"
     },
     {
@@ -70,6 +71,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-02"
     },
     {
@@ -81,37 +83,38 @@
      "source": "backend/glossary/proposed/frontend-ui.yaml（platform.approval）；备注：扫描前端界面文案发现；办理弹层字段名",
      "blocking": "在途分支用到：claude/one-1a-next-3-r1b-p2、claude/one-1a-par-f1-acceptance；派工卡与计划点名：NEXT_BATCH_PLAN.md",
      "in_code": true,
-     "verdict": "方言",
+     "verdict": "正式",
      "accounting": false,
-     "standard": "国内 OA / 审批产品通行叫法（企业微信审批、钉钉审批、飞书审批）「审批意见」；kernel.Reason（通用必填原因）",
+     "standard": "适用范围：审批办理场景的叫法依据国内 OA / 审批产品通行的「审批意见」；「理由」作通用说明依据的用法见 kernel.Reason（用户第 2 批决定）、ADR-0031（冲销与修正须写理由）",
      "naming_issues": "与 AP-54（意见）指同一内容（同一字段，通过时可空）；中文「理由」与全仓 kernel 错误用语「必须填写原因」也不一致",
-     "reason": "「理由」与「意见」指同一个审批说明字段（驳回、退回时必填），一个字段两个名字会混用；并入「意见」后，必填规则写在字段约束里。代码中的 Reason 需开卡改名后再加禁用。",
+     "reason": "「理由」（justification，说明依据）与审批办理中留下的「意见」（comment）是两个概念：更正理由、冲销理由、拒绝原因都要求说明依据，kernel 的 Reason 是通用值对象（用户第 2 批决定上限 500 字）。所以「理由」保留为正式用语，只把审批办理场景下的文字说明定为「意见」；不加禁用、不开改名卡。本条现定义写的是审批办理场景，写回时把定义改为通用的「说明依据」，审批场景引用「意见」。",
      "options": [
-      {
-       "action": "merge",
-       "zh": "意见",
-       "en": "Opinion",
-       "into": "opinion",
-       "label": "并入「意见 / Opinion」，「理由」归方言",
-       "recommended": true
-      },
-      {
-       "action": "rename",
-       "zh": "原因",
-       "en": "Reason",
-       "into": "",
-       "label": "改为：原因 / Reason（与「意见」分立，作驳回、退回必填的说明）",
-       "recommended": false
-      },
       {
        "action": "approve",
        "zh": "理由",
        "en": "Reason",
        "into": "",
-       "label": "批准：理由 / Reason（与「意见」并存）",
+       "label": "批准：理由 / Reason，限用于更正、冲销、拒绝等需要说明依据的场景；审批办理中填写的内容另叫「意见」（不加禁用、不改名）",
+       "recommended": true
+      },
+      {
+       "action": "merge",
+       "zh": "意见",
+       "en": "Opinion",
+       "into": "opinion",
+       "label": "并入「意见 / Opinion」，「理由」归方言（原起草建议）",
+       "recommended": false
+      },
+      {
+       "action": "defer",
+       "zh": "",
+       "en": "",
+       "into": "",
+       "label": "暂缓",
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-03"
     },
     {
@@ -146,6 +149,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-04"
     },
     {
@@ -180,6 +184,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-05"
     },
     {
@@ -214,6 +219,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-06"
     },
     {
@@ -248,6 +254,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-07"
     },
     {
@@ -282,6 +289,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-08"
     },
     {
@@ -316,6 +324,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-09"
     },
     {
@@ -358,6 +367,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-10"
     },
     {
@@ -392,6 +402,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-11"
     },
     {
@@ -426,6 +437,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-12"
     },
     {
@@ -468,6 +480,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-13"
     },
     {
@@ -502,6 +515,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-14"
     },
     {
@@ -536,6 +550,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-15"
     },
     {
@@ -578,6 +593,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-16"
     },
     {
@@ -612,6 +628,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-17"
     },
     {
@@ -646,6 +663,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-18"
     },
     {
@@ -680,6 +698,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-19"
     },
     {
@@ -714,6 +733,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-20"
     },
     {
@@ -756,6 +776,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-21"
     },
     {
@@ -790,6 +811,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-22"
     },
     {
@@ -824,6 +846,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-23"
     },
     {
@@ -858,6 +881,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-24"
     },
     {
@@ -900,6 +924,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-25"
     },
     {
@@ -942,6 +967,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "改正式词条 journal_voucher 的中文名「会计凭证」→「记账凭证」（英文 JournalVoucher 不变，代码标识符不用改）。界面：frontend/packages/core/src/approval/labels.ts 的单据类型显示名与编号规则页的测试；文档：terms.yaml、GLOSSARY.md、GL_COMPLIANCE_CHECKLIST.md、业务编号流程等 15 个文件随写回更新；「凭证号规则」一条（NU 组）随本条。",
      "code": "AP-26"
     },
     {
@@ -976,6 +1002,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-27"
     },
     {
@@ -1010,6 +1037,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-28"
     },
     {
@@ -1044,6 +1072,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-29"
     },
     {
@@ -1078,6 +1107,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-30"
     },
     {
@@ -1112,6 +1142,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-31"
     },
     {
@@ -1146,6 +1177,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-32"
     },
     {
@@ -1180,6 +1212,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-33"
     },
     {
@@ -1214,6 +1247,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-34"
     },
     {
@@ -1248,6 +1282,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-35"
     },
     {
@@ -1282,6 +1317,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-36"
     },
     {
@@ -1316,6 +1352,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-37"
     },
     {
@@ -1350,6 +1387,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-38"
     },
     {
@@ -1384,6 +1422,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-39"
     },
     {
@@ -1426,6 +1465,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-40"
     },
     {
@@ -1460,6 +1500,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-41"
     },
     {
@@ -1494,6 +1535,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-42"
     },
     {
@@ -1528,6 +1570,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-43"
     },
     {
@@ -1562,6 +1605,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-44"
     },
     {
@@ -1596,6 +1640,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-45"
     },
     {
@@ -1630,6 +1675,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-46"
     },
     {
@@ -1664,6 +1710,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-47"
     },
     {
@@ -1698,6 +1745,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-48"
     },
     {
@@ -1732,6 +1780,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-49"
     },
     {
@@ -1766,6 +1815,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-50"
     },
     {
@@ -1800,6 +1850,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-51"
     },
     {
@@ -1834,6 +1885,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-52"
     },
     {
@@ -1868,6 +1920,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-53"
     },
     {
@@ -1883,14 +1936,14 @@
      "accounting": false,
      "standard": "国内 OA / 审批产品通行叫法（企业微信审批、钉钉审批、飞书审批）「审批意见」；Flowable / Camunda TaskService comment",
      "naming_issues": "英文 Opinion 不是审批场景惯用写法（引擎与 OA 英文版用 comment）；代码字段名为 reason（kernel.Reason）",
-     "reason": "「意见」是 OA 审批通行叫法，与 RULE-280「（未填写意见）」一致；英文保留 Opinion，代码不用改名。",
+     "reason": "「意见」是 OA 审批通行叫法，与 RULE-280「（未填写意见）」一致；只用于审批办理场景，需要说明依据的场景用「理由」（见本组「理由」一条）。英文保留 Opinion，代码不用改名。",
      "options": [
       {
        "action": "approve",
        "zh": "意见",
        "en": "Opinion",
        "into": "",
-       "label": "批准：意见 / Opinion（「理由」并入本条）",
+       "label": "批准：意见 / Opinion（审批办理中填写的内容）",
        "recommended": true
       },
       {
@@ -1910,6 +1963,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-54"
     },
     {
@@ -1944,6 +1998,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-55"
     },
     {
@@ -1978,6 +2033,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-56"
     },
     {
@@ -2012,6 +2068,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-57"
     },
     {
@@ -2046,6 +2103,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-58"
     },
     {
@@ -2080,6 +2138,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-59"
     },
     {
@@ -2114,6 +2173,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-60"
     },
     {
@@ -2148,6 +2208,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-61"
     },
     {
@@ -2182,6 +2243,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-62"
     },
     {
@@ -2216,6 +2278,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-63"
     },
     {
@@ -2250,6 +2313,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-64"
     },
     {
@@ -2284,6 +2348,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-65"
     },
     {
@@ -2318,6 +2383,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-66"
     },
     {
@@ -2352,6 +2418,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-67"
     },
     {
@@ -2386,6 +2453,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-68"
     },
     {
@@ -2420,6 +2488,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-69"
     },
     {
@@ -2454,6 +2523,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-70"
     },
     {
@@ -2488,6 +2558,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-71"
     },
     {
@@ -2522,6 +2593,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-72"
     },
     {
@@ -2556,6 +2628,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-73"
     },
     {
@@ -2590,6 +2663,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-74"
     },
     {
@@ -2624,6 +2698,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AP-75"
     }
    ]
@@ -2663,6 +2738,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-01"
     },
     {
@@ -2705,6 +2781,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-02"
     },
     {
@@ -2739,6 +2816,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-03"
     },
     {
@@ -2781,6 +2859,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-04"
     },
     {
@@ -2815,6 +2894,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-05"
     },
     {
@@ -2849,6 +2929,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-06"
     },
     {
@@ -2883,6 +2964,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-07"
     },
     {
@@ -2917,6 +2999,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-08"
     },
     {
@@ -2951,6 +3034,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-09"
     },
     {
@@ -2993,6 +3077,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-10"
     },
     {
@@ -3027,6 +3112,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-11"
     },
     {
@@ -3061,6 +3147,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-12"
     },
     {
@@ -3095,6 +3182,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-13"
     },
     {
@@ -3129,6 +3217,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-14"
     },
     {
@@ -3171,6 +3260,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-15"
     },
     {
@@ -3205,6 +3295,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-16"
     },
     {
@@ -3239,6 +3330,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-17"
     },
     {
@@ -3273,6 +3365,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-18"
     },
     {
@@ -3315,6 +3408,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-19"
     },
     {
@@ -3357,6 +3451,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-20"
     },
     {
@@ -3391,6 +3486,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-21"
     },
     {
@@ -3425,6 +3521,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-22"
     },
     {
@@ -3459,6 +3556,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-23"
     },
     {
@@ -3493,6 +3591,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-24"
     },
     {
@@ -3527,6 +3626,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-25"
     },
     {
@@ -3561,6 +3661,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-26"
     },
     {
@@ -3595,6 +3696,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-27"
     },
     {
@@ -3629,6 +3731,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-28"
     },
     {
@@ -3663,6 +3766,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-29"
     },
     {
@@ -3705,6 +3809,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-30"
     },
     {
@@ -3739,6 +3844,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-31"
     },
     {
@@ -3773,6 +3879,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-32"
     },
     {
@@ -3815,6 +3922,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-33"
     },
     {
@@ -3849,6 +3957,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-34"
     },
     {
@@ -3883,6 +3992,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-35"
     },
     {
@@ -3917,6 +4027,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-36"
     },
     {
@@ -3951,6 +4062,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-37"
     },
     {
@@ -3985,6 +4097,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-38"
     },
     {
@@ -4027,6 +4140,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-39"
     },
     {
@@ -4061,6 +4175,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-40"
     },
     {
@@ -4103,6 +4218,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-41"
     },
     {
@@ -4137,6 +4253,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-42"
     },
     {
@@ -4171,6 +4288,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "ID-43"
     }
    ]
@@ -4210,6 +4328,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-01"
     },
     {
@@ -4244,6 +4363,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-02"
     },
     {
@@ -4278,6 +4398,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-03"
     },
     {
@@ -4312,6 +4433,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-04"
     },
     {
@@ -4346,6 +4468,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-05"
     },
     {
@@ -4380,6 +4503,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-06"
     },
     {
@@ -4422,6 +4546,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-07"
     },
     {
@@ -4456,6 +4581,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-08"
     },
     {
@@ -4490,6 +4616,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-09"
     },
     {
@@ -4524,6 +4651,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-10"
     },
     {
@@ -4566,6 +4694,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-11"
     },
     {
@@ -4600,6 +4729,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-12"
     },
     {
@@ -4634,6 +4764,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-13"
     },
     {
@@ -4668,6 +4799,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-14"
     },
     {
@@ -4710,6 +4842,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-15"
     },
     {
@@ -4752,6 +4885,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-16"
     },
     {
@@ -4786,6 +4920,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-17"
     },
     {
@@ -4820,6 +4955,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-18"
     },
     {
@@ -4854,6 +4990,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-19"
     },
     {
@@ -4888,6 +5025,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-20"
     },
     {
@@ -4922,6 +5060,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-21"
     },
     {
@@ -4956,6 +5095,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-22"
     },
     {
@@ -4990,6 +5130,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-23"
     },
     {
@@ -5024,6 +5165,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-24"
     },
     {
@@ -5058,6 +5200,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-25"
     },
     {
@@ -5092,6 +5235,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-26"
     },
     {
@@ -5126,6 +5270,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-27"
     },
     {
@@ -5168,6 +5313,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-28"
     },
     {
@@ -5202,6 +5348,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-29"
     },
     {
@@ -5236,6 +5383,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-30"
     },
     {
@@ -5270,6 +5418,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-31"
     },
     {
@@ -5304,6 +5453,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-32"
     },
     {
@@ -5338,6 +5488,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-33"
     },
     {
@@ -5372,6 +5523,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-34"
     },
     {
@@ -5406,6 +5558,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-35"
     },
     {
@@ -5440,6 +5593,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-36"
     },
     {
@@ -5474,6 +5628,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-37"
     },
     {
@@ -5508,6 +5663,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-38"
     },
     {
@@ -5542,6 +5698,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-39"
     },
     {
@@ -5584,6 +5741,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-40"
     },
     {
@@ -5618,6 +5776,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-41"
     },
     {
@@ -5652,6 +5811,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "IN-42"
     }
    ]
@@ -5699,6 +5859,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-01"
     },
     {
@@ -5733,6 +5894,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-02"
     },
     {
@@ -5767,6 +5929,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-03"
     },
     {
@@ -5801,6 +5964,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-04"
     },
     {
@@ -5835,6 +5999,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-05"
     },
     {
@@ -5869,6 +6034,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-06"
     },
     {
@@ -5903,6 +6069,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-07"
     },
     {
@@ -5945,6 +6112,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-08"
     },
     {
@@ -5987,6 +6155,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-09"
     },
     {
@@ -6037,6 +6206,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-10"
     },
     {
@@ -6087,6 +6257,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-11"
     },
     {
@@ -6137,6 +6308,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-12"
     },
     {
@@ -6171,6 +6343,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-13"
     },
     {
@@ -6205,6 +6378,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-14"
     },
     {
@@ -6239,6 +6413,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-15"
     },
     {
@@ -6273,6 +6448,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-16"
     },
     {
@@ -6307,6 +6483,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-17"
     },
     {
@@ -6341,6 +6518,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-18"
     },
     {
@@ -6375,6 +6553,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "NU-19"
     }
    ]
@@ -6414,6 +6593,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "PL-01"
     },
     {
@@ -6448,6 +6628,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "PL-02"
     },
     {
@@ -6482,6 +6663,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "PL-03"
     }
    ]
@@ -6521,6 +6703,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-01"
     },
     {
@@ -6555,6 +6738,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-02"
     },
     {
@@ -6589,6 +6773,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-03"
     },
     {
@@ -6623,6 +6808,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-04"
     },
     {
@@ -6657,6 +6843,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-05"
     },
     {
@@ -6699,6 +6886,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-06"
     },
     {
@@ -6733,6 +6921,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-07"
     },
     {
@@ -6775,6 +6964,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-08"
     },
     {
@@ -6809,6 +6999,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-09"
     },
     {
@@ -6843,6 +7034,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-10"
     },
     {
@@ -6877,6 +7069,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-11"
     },
     {
@@ -6911,6 +7104,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-12"
     },
     {
@@ -6945,6 +7139,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-13"
     },
     {
@@ -6987,6 +7182,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-14"
     },
     {
@@ -7021,6 +7217,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-15"
     },
     {
@@ -7055,6 +7252,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-16"
     },
     {
@@ -7089,6 +7287,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-17"
     },
     {
@@ -7123,6 +7322,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-18"
     },
     {
@@ -7157,6 +7357,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-19"
     },
     {
@@ -7191,6 +7392,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-20"
     },
     {
@@ -7225,6 +7427,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-21"
     },
     {
@@ -7259,6 +7462,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-22"
     },
     {
@@ -7293,6 +7497,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-23"
     },
     {
@@ -7335,6 +7540,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-24"
     },
     {
@@ -7377,6 +7583,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-25"
     },
     {
@@ -7411,6 +7618,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-26"
     },
     {
@@ -7445,6 +7653,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-27"
     },
     {
@@ -7479,6 +7688,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-28"
     },
     {
@@ -7513,6 +7723,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "WF-29"
     }
    ]
@@ -7552,6 +7763,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-01"
     },
     {
@@ -7586,6 +7798,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-02"
     },
     {
@@ -7620,6 +7833,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-03"
     },
     {
@@ -7654,6 +7868,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-04"
     },
     {
@@ -7688,6 +7903,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-05"
     },
     {
@@ -7722,6 +7938,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-06"
     },
     {
@@ -7756,6 +7973,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-07"
     },
     {
@@ -7790,7 +8008,9 @@
        "recommended": false
       }
      ],
-     "code": "AT-08"
+     "changes_approved": "",
+     "code": "AT-08",
+     "confidence": "medium"
     },
     {
      "key": "organization_attendance.yaml#holiday",
@@ -7824,6 +8044,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-09"
     },
     {
@@ -7858,6 +8079,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-10"
     },
     {
@@ -7892,6 +8114,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-11"
     },
     {
@@ -7926,6 +8149,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "AT-12"
     }
    ]
@@ -7965,6 +8189,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "TS-01"
     },
     {
@@ -7999,6 +8224,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "TS-02"
     },
     {
@@ -8033,6 +8259,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "TS-03"
     },
     {
@@ -8075,6 +8302,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "TS-04"
     }
    ]
@@ -8114,6 +8342,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-01"
     },
     {
@@ -8148,6 +8377,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-02"
     },
     {
@@ -8182,6 +8412,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-03"
     },
     {
@@ -8216,6 +8447,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-04"
     },
     {
@@ -8250,6 +8482,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-05"
     },
     {
@@ -8284,6 +8517,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-06"
     },
     {
@@ -8318,6 +8552,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-07"
     },
     {
@@ -8352,6 +8587,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-08"
     },
     {
@@ -8394,6 +8630,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-09"
     },
     {
@@ -8428,6 +8665,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-10"
     },
     {
@@ -8462,6 +8700,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-11"
     },
     {
@@ -8496,6 +8735,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-12"
     },
     {
@@ -8530,6 +8770,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-13"
     },
     {
@@ -8564,6 +8805,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-14"
     },
     {
@@ -8598,6 +8840,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-15"
     },
     {
@@ -8632,6 +8875,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "KN-16"
     }
    ]
@@ -8671,6 +8915,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "FI-01"
     },
     {
@@ -8705,6 +8950,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "FI-02"
     },
     {
@@ -8747,6 +8993,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "FI-03"
     },
     {
@@ -8781,6 +9028,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "FI-04"
     },
     {
@@ -8823,6 +9071,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "FI-05"
     },
     {
@@ -8865,6 +9114,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "FI-06"
     },
     {
@@ -8907,6 +9157,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "FI-07"
     },
     {
@@ -8941,6 +9192,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "FI-08"
     },
     {
@@ -8975,6 +9227,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "FI-09"
     }
    ]
@@ -9015,6 +9268,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「实际结果」→ 经营结果 / BusinessResult",
      "code": "RA-01"
     },
@@ -9058,6 +9312,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「待签合约」→ 合同草案 / ContractDraft",
      "code": "RA-02"
     },
@@ -9101,6 +9356,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「待签项目投入」→ 无合同风险敞口 / UncontractedExposure",
      "code": "RA-03"
     },
@@ -9136,6 +9392,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「收费工时」→ 可计费工时 / BillableHours",
      "code": "RA-04"
     },
@@ -9179,6 +9436,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「委外费」→ 外包成本 / OutsourcingCost",
      "code": "RA-05"
     },
@@ -9222,8 +9480,10 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「已确认未开票」→ 合同资产 / ContractAsset",
-     "code": "RA-06"
+     "code": "RA-06",
+     "confidence": "medium"
     },
     {
      "key": "r0#A7",
@@ -9265,8 +9525,10 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「存量资产」→ 合同资产 / ContractAsset",
-     "code": "RA-07"
+     "code": "RA-07",
+     "confidence": "medium"
     },
     {
      "key": "r0#A8",
@@ -9300,8 +9562,10 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「本年度未开票」→ 合同资产 / ContractAsset",
-     "code": "RA-08"
+     "code": "RA-08",
+     "confidence": "medium"
     },
     {
      "key": "r0#A9",
@@ -9335,6 +9599,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「开票收入」→ 开票 / InvoiceIssued",
      "code": "RA-09"
     },
@@ -9370,8 +9635,10 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「已开票未回款」→ 应收账款 / AccountsReceivable",
-     "code": "RA-10"
+     "code": "RA-10",
+     "confidence": "medium"
     },
     {
      "key": "r0#A11",
@@ -9405,30 +9672,31 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「回款收入」→ 回款 / CashReceived",
      "code": "RA-11"
     },
     {
      "key": "r0#A12",
      "id": "",
-     "zh": "信用损失准备",
-     "en": "CreditLossAllowance",
+     "zh": "坏账准备",
+     "en": "AllowanceForBadDebts",
      "definition": "按预期信用损失模型计提的损失准备余额（应收账款、应收票据与合同资产）",
      "source": "TERMS_ROUND3_INPUT.md A：坏账 → 坏账核销 ArWrittenOff｜receivables.collection｜建议方言；与「收入冲减」区分（D17-8）（来源：应收账款分析底表，OA 坏账申请导出）",
      "blocking": "",
      "in_code": false,
-     "verdict": "方言",
+     "verdict": "正式",
      "accounting": true,
-     "standard": "企业会计准则第 22 号——金融工具确认和计量（财会〔2017〕7 号） 第六十三条（应收款项与合同资产按整个存续期预期信用损失计量）；IFRS 9 Financial Instruments §5.5.15、Appendix A（loss allowance）",
+     "standard": "《企业会计准则——应用指南》附录会计科目（1231 坏账准备）；企业会计准则第 22 号——金融工具确认和计量（预期信用损失）；IFRS 9 Financial Instruments（loss allowance）",
      "naming_issues": "",
-     "reason": "用户已定：R2-A-ar_written_off-0（附答复：OA「应收坏账申请」是「计提」坏账准备、不是核销，round2-proposals.yaml 注明计提词条起草后改挂）。本报表列正是该申请的导出，所以应挂计提侧词条而不是坏账核销；与收入冲减（D17-8）另行区分。",
+     "reason": "用户第二轮决定（R2-A-ar_written_off-0）：OA「坏账申请」是计提坏账准备，不是核销。「坏账准备」是会计科目表中的正式科目名，财务答复 FQ-15 也用这个科目；要纠正的只是把「坏账」当成核销的叫法。报表列报为信用减值损失相关项目（CAS 22）。",
      "options": [
       {
        "action": "merge",
-       "zh": "信用损失准备",
-       "en": "CreditLossAllowance",
+       "zh": "坏账准备",
+       "en": "AllowanceForBadDebts",
        "into": "credit_loss_allowance",
-       "label": "归为方言，改挂本轮新增的信用损失准备 RN-49（计提语境）",
+       "label": "「坏账准备」是正式科目名；「坏账申请」改称「坏账准备计提申请」；单说「坏账」指核销的用法归为方言（核销用「坏账核销」）",
        "recommended": true
       },
       {
@@ -9436,19 +9704,20 @@
        "zh": "坏账核销",
        "en": "ArWrittenOff",
        "into": "ar_written_off",
-       "label": "归为方言，按输入挂坏账核销 ar_written_off",
+       "label": "归为方言，挂在坏账核销 ar_written_off 下",
        "recommended": false
       },
       {
-       "action": "merge",
-       "zh": "信用损失准备 / 坏账核销",
-       "en": "CreditLossAllowance / ArWrittenOff",
-       "into": "credit_loss_allowance",
-       "label": "归为方言，按语境分挂：计提挂信用损失准备、核销挂坏账核销",
+       "action": "approve",
+       "zh": "坏账",
+       "en": "AllowanceForBadDebts",
+       "into": "",
+       "label": "「坏账」可与「坏账准备」并列",
        "recommended": false
       }
      ],
-     "title": "「坏账」→ 信用损失准备 / CreditLossAllowance",
+     "changes_approved": "",
+     "title": "「坏账」→ 坏账准备 / AllowanceForBadDebts",
      "code": "RA-12"
     },
     {
@@ -9483,6 +9752,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "改正式词条 aging_bucket 的中文名「账龄桶」→「账龄区间」（英文 AgingBucket 不变）。代码、界面：main 上没有出现「账龄桶」，不用改；文档：terms.yaml、GLOSSARY.md、TERM_CONFIRMATION.md 等 8 个文件随写回更新，「账龄桶」登记为方言。",
      "title": "「账龄区间」→ 账龄区间 / AgingBucket",
      "code": "RA-13"
     },
@@ -9518,6 +9788,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「预计回款」→ 回款计划 / CollectionPlan",
      "code": "RA-14"
     },
@@ -9553,8 +9824,10 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「预收」→ 合同负债 / ContractLiability",
-     "code": "RA-15"
+     "code": "RA-15",
+     "confidence": "medium"
     },
     {
      "key": "r0#A16",
@@ -9596,6 +9869,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「合同额」→ 交易价格 / TransactionPrice",
      "code": "RA-16"
     },
@@ -9631,8 +9905,10 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「剩余合同额」→ 剩余履约义务 / RemainingPerformanceObligation",
-     "code": "RA-17"
+     "code": "RA-17",
+     "confidence": "medium"
     },
     {
      "key": "r0#A18",
@@ -9666,8 +9942,10 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「合约储备」→ 剩余履约义务 / RemainingPerformanceObligation",
-     "code": "RA-18"
+     "code": "RA-18",
+     "confidence": "medium"
     },
     {
      "key": "r0#A19",
@@ -9701,6 +9979,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「产能饱和度」→ 利用率 / UtilizationRate",
      "code": "RA-19"
     }
@@ -9742,6 +10021,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「毛利、毛利率（含交付毛利、产值毛利、BU 毛利、项目毛利润等变体）」→ 贡献毛利 / 贡献毛利率 / ContributionMargin / ContributionMarginRatio",
      "code": "RD-01"
     },
@@ -9777,6 +10057,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「产工比（含产值产工比、开票产工比、回款产工比、产值产出比）」→ 人工成本产出倍数 / LaborCostMultiplier",
      "code": "RD-02"
     },
@@ -9812,6 +10093,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「逾期（指开票后超 N 天时；含「超期应收」「逾期金额 > 90 天」）」→ 账龄超 N 天应收 / AgedReceivable",
      "code": "RD-03"
     },
@@ -9847,6 +10129,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "title": "「预实比」→ 目标达成率 / TargetAttainmentRate",
      "code": "RD-04"
     }
@@ -9888,6 +10171,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-01"
     },
     {
@@ -9922,6 +10206,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-02"
     },
     {
@@ -9956,6 +10241,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-03"
     },
     {
@@ -9998,6 +10284,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-04"
     },
     {
@@ -10032,6 +10319,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-05"
     },
     {
@@ -10074,6 +10362,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-06"
     },
     {
@@ -10108,6 +10397,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-07"
     },
     {
@@ -10142,6 +10432,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-08"
     },
     {
@@ -10184,6 +10475,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-09"
     },
     {
@@ -10218,6 +10510,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-10"
     },
     {
@@ -10252,6 +10545,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-11"
     },
     {
@@ -10286,6 +10580,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-12"
     },
     {
@@ -10320,6 +10615,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-13"
     },
     {
@@ -10354,6 +10650,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-14"
     },
     {
@@ -10388,6 +10685,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-15"
     },
     {
@@ -10422,6 +10720,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-16"
     },
     {
@@ -10456,6 +10755,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-17"
     },
     {
@@ -10490,6 +10790,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-18"
     },
     {
@@ -10524,6 +10825,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-19"
     },
     {
@@ -10558,6 +10860,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-20"
     },
     {
@@ -10600,6 +10903,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-21"
     },
     {
@@ -10634,6 +10938,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-22"
     },
     {
@@ -10668,6 +10973,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-23"
     },
     {
@@ -10702,6 +11008,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-24"
     },
     {
@@ -10736,6 +11043,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-25"
     },
     {
@@ -10770,6 +11078,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-26"
     },
     {
@@ -10804,6 +11113,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-27"
     },
     {
@@ -10838,6 +11148,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-28"
     },
     {
@@ -10872,6 +11183,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-29"
     },
     {
@@ -10906,6 +11218,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-30"
     },
     {
@@ -10940,6 +11253,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-31"
     },
     {
@@ -10974,6 +11288,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-32"
     },
     {
@@ -11008,6 +11323,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-33"
     },
     {
@@ -11042,6 +11358,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-34"
     },
     {
@@ -11076,6 +11393,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-35"
     },
     {
@@ -11110,6 +11428,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-36"
     },
     {
@@ -11152,6 +11471,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-37"
     },
     {
@@ -11186,6 +11506,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-38"
     },
     {
@@ -11228,6 +11549,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-39"
     },
     {
@@ -11262,6 +11584,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-40"
     },
     {
@@ -11296,6 +11619,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-41"
     },
     {
@@ -11330,6 +11654,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-42"
     },
     {
@@ -11364,6 +11689,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-43"
     },
     {
@@ -11398,6 +11724,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-44"
     },
     {
@@ -11432,6 +11759,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-45"
     },
     {
@@ -11466,6 +11794,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-46"
     },
     {
@@ -11481,7 +11810,7 @@
      "accounting": false,
      "standard": "FORCITIS one 内部概念（准则 / 国标无对应条目）",
      "naming_issues": "",
-     "reason": "管理口径分层，定义写明不是减值计量，避免与预期信用损失（信用损失准备）混用。",
+     "reason": "管理口径分层，定义写明不是减值计量，避免与预期信用损失（坏账准备）混用。",
      "options": [
       {
        "action": "approve",
@@ -11500,6 +11829,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-47"
     },
     {
@@ -11534,40 +11864,51 @@
        "recommended": false
       }
      ],
-     "code": "RN-48"
+     "changes_approved": "",
+     "code": "RN-48",
+     "confidence": "medium"
     },
     {
      "key": "r0#N-credit_loss_allowance",
      "id": "credit_loss_allowance",
-     "zh": "信用损失准备",
-     "en": "CreditLossAllowance",
+     "zh": "坏账准备",
+     "en": "AllowanceForBadDebts",
      "definition": "按预期信用损失模型计提的损失准备余额，适用于应收账款、应收票据与合同资产；科目名分别为「坏账准备」「合同资产减值准备」；区别于减值分录（事件）",
      "source": "TERMS_ROUND3_INPUT.md N3：信用损失准备 CreditLossAllowance｜metric｜应收与合同资产的减值准备余额（科目名「坏账准备」）；区别于减值分录（事件）｜OAT IMP",
      "blocking": "",
      "in_code": false,
      "verdict": "正式",
      "accounting": true,
-     "standard": "企业会计准则第 22 号——金融工具确认和计量（财会〔2017〕7 号） 第六十三条；IFRS 9 Financial Instruments §5.5.15、Appendix A（loss allowance）；OAT canonical_symbol IMP",
+     "standard": "《企业会计准则——应用指南》附录会计科目（1231 坏账准备）；企业会计准则第 22 号——金融工具确认和计量；IFRS 9 Financial Instruments（loss allowance）",
      "naming_issues": "",
-     "reason": "准则原文是「损失准备」，加「信用」限定以免与存货、长期资产减值准备混淆。合同资产减值记资产减值损失、应收记信用减值损失（FQ-15、D17-8 修订）是损益列报科目不同，余额仍同属预期信用损失准备，定义中写明两个科目名。RA-12「坏账」与 R2 的「应收坏账申请」改挂本条（用户 R2 答复「计提」）。",
+     "reason": "应收与合同资产减值准备的余额，在会计科目表中就叫「坏账准备」（1231），财务答复 FQ-15 同此；IFRS 9 口径叫 loss allowance，所以英文 CreditLossAllowance 只作别名并写明口径。区别于计提这一事件（减值分录）。",
      "options": [
+      {
+       "action": "rename",
+       "zh": "坏账准备",
+       "en": "AllowanceForBadDebts",
+       "into": "",
+       "label": "改为：坏账准备 / AllowanceForBadDebts（科目名）；CreditLossAllowance 作 IFRS 9 口径的英文别名",
+       "recommended": true
+      },
       {
        "action": "approve",
        "zh": "信用损失准备",
        "en": "CreditLossAllowance",
        "into": "",
-       "label": "批准：信用损失准备 / CreditLossAllowance（定义写明两个科目名）",
-       "recommended": true
+       "label": "批准：信用损失准备 / CreditLossAllowance（原起草）",
+       "recommended": false
       },
       {
        "action": "rename",
        "zh": "损失准备",
        "en": "LossAllowance",
        "into": "",
-       "label": "改为：损失准备 / LossAllowance（准则原文用语，但单独使用过泛）",
+       "label": "改为：损失准备 / LossAllowance（IFRS 9 原文用语，单独使用过泛）",
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-49"
     },
     {
@@ -11602,6 +11943,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-50"
     },
     {
@@ -11636,6 +11978,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-51"
     },
     {
@@ -11678,6 +12021,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-52"
     },
     {
@@ -11712,6 +12056,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-53"
     },
     {
@@ -11754,6 +12099,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-54"
     },
     {
@@ -11788,6 +12134,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-55"
     },
     {
@@ -11822,6 +12169,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-56"
     },
     {
@@ -11856,6 +12204,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-57"
     },
     {
@@ -11890,6 +12239,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-58"
     },
     {
@@ -11924,6 +12274,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-59"
     },
     {
@@ -11958,6 +12309,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-60"
     },
     {
@@ -11992,6 +12344,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-61"
     },
     {
@@ -12026,6 +12379,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-62"
     },
     {
@@ -12068,6 +12422,7 @@
        "recommended": false
       }
      ],
+     "changes_approved": "",
      "code": "RN-63"
     }
    ]
@@ -13023,5 +13378,6 @@
     }
    ]
   }
- ]
+ ],
+ "blocking_note": "其中 51 条来自 R-1b P2（分支 one-1a-next-3-r1b-p2）的大改动面：该分支改动多，代码里出现的词多，未必都是新用语。"
 }

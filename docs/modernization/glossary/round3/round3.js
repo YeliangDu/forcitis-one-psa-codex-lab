@@ -34,6 +34,7 @@ function renderItem(root, i) {
   card.append(head);
   const tags = el("div", {className: "tags"});
   if (i.blocking) tags.append(el("span", {className: "tag block", title: i.blocking}, "影响在途开发"));
+  if (i.changes_approved) tags.append(el("span", {className: "tag block"}, "改已批准词条"));
   if (i.accounting) tags.append(el("span", {className: "tag acct"}, "会计类"));
   if (i.verdict !== "不涉及") tags.append(el("span", {className: "tag"}, i.verdict === "正式" ? "预判：正式用语" : i.verdict === "方言" ? "预判：方言" : "预判：待定"));
   if (i.in_code) tags.append(el("span", {className: "tag", title: "main 上的代码标识符里已出现这个词"}, "代码中已出现"));
@@ -41,6 +42,7 @@ function renderItem(root, i) {
   if (i.definition) card.append(el("p", {className: "def"}, i.definition));
   card.append(el("div", {className: "src"}, "出处：" + i.source));
   if (i.blocking) card.append(el("div", {className: "src"}, "影响：" + i.blocking));
+  if (i.changes_approved) card.append(el("div", {className: "issue"}, "改已批准词条，影响面：" + i.changes_approved));
   const why = el("p", {className: "why"});
   why.append(el("b", {}, "推荐理由："), document.createTextNode(i.reason));
   card.append(why);
