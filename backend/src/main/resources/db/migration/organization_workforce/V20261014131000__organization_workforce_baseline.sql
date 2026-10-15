@@ -215,22 +215,17 @@ CREATE TABLE organization_workforce.legal_entities (
     updated_at timestamptz NOT NULL DEFAULT now(),
     version    bigint      NOT NULL DEFAULT 0,
     event_count bigint     NOT NULL DEFAULT 0,
-    accounting_organization_number bigint,
-    CONSTRAINT legal_entities_code_format CHECK (code ~ '^[A-Z]{2,10}$'),
-    CONSTRAINT uk_legal_entities_accounting_organization_number UNIQUE (accounting_organization_number),
-    CONSTRAINT ck_legal_entities_accounting_organization_number CHECK (accounting_organization_number IS NULL OR accounting_organization_number > 0)
+    CONSTRAINT legal_entities_code_format CHECK (code ~ '^[A-Z]{2,10}$')
 );
 COMMENT ON TABLE organization_workforce.legal_entities IS '法人主体：由管理员在新系统维护的法人小表（约 5 家），不从外部系统同步；粒度：每个法人一行，变化历史在 legal_entity_versions';
 COMMENT ON COLUMN organization_workforce.legal_entities.id IS '法人 ID（UUIDv7）';
-COMMENT ON COLUMN organization_workforce.legal_entities.code IS '法人代码：2 至 10 位大写字母，全表唯一，创建后不改，用于单据编号的 {LE} 占位符';
+COMMENT ON COLUMN organization_workforce.legal_entities.code IS '法人代码：2 至 10 位大写字母，全表唯一，该法人发过号之前可更正、发号后禁改，用于单据编号的 {LE} 占位符；核算系统中的数字编码不在此表，见 platform_integration.source_references';
 COMMENT ON COLUMN organization_workforce.legal_entities.name IS '法人名称';
 COMMENT ON COLUMN organization_workforce.legal_entities.status IS '状态：ACTIVE 启用 / INACTIVE 停用';
 COMMENT ON COLUMN organization_workforce.legal_entities.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.legal_entities.updated_at IS '更新时间';
 COMMENT ON COLUMN organization_workforce.legal_entities.version IS '乐观锁版本';
 COMMENT ON COLUMN organization_workforce.legal_entities.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
--- D-1a-28：字母代码用于业务编号，对接核算系统与老系统按数字编码。
-COMMENT ON COLUMN organization_workforce.legal_entities.accounting_organization_number IS '核算组织编码：核算系统中该法人的数字编码，全表唯一；尚未取得时为空';
 
 -- ADR-0026 第 2 项：员工与部门的法人归属带生效区间，按日期解析；数据打分卡 T1：组织单元与任职的变化历史在交易库保留。
 -- 区间一律左闭右开：effective_from_date 当天起有效，effective_to_date 当天不再有效，为空表示至今。

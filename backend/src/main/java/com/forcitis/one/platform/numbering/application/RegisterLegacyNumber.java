@@ -24,9 +24,9 @@ class RegisterLegacyNumber implements RegisterLegacyNumbers {
         if (legacyNumbers.insertIfAbsent(entry)) {
             return;
         }
-        LegacyNumberEntry existing = legacyNumbers.find(entry.document().documentType(), entry.legacyNumber()).orElseThrow();
+        LegacyNumberEntry existing = legacyNumbers.find(entry.sourceSystem(), entry.document().documentType(), entry.legacyNumber()).orElseThrow();
         if (!existing.document().equals(entry.document())) {
-            throw new DomainException(NumberingError.PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN, ErrorKind.CONFLICT, "Legacy number " + entry.legacyNumber() + " of " + entry.document().documentType()
+            throw new DomainException(NumberingError.PLATFORM_NUMBERING_LEGACY_NUMBER_TAKEN, ErrorKind.CONFLICT, "Legacy number " + entry.legacyNumber() + " of " + entry.document().documentType() + " from " + entry.sourceSystem()
                     + " already belongs to document " + existing.document().documentId().value());
         }
     }

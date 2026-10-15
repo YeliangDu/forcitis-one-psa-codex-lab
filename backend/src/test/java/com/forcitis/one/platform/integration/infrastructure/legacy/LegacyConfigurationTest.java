@@ -4,14 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
+import com.forcitis.one.platform.integration.api.ExternalConnections;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 class LegacyConfigurationTest {
 
-    private final ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(LegacyConfiguration.class);
+    private final ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(LegacyConfiguration.class)
+            .withBean(ExternalConnections.class, () -> (poolName, url, user, password, kind) -> new DriverManagerDataSource(url, user, password));
 
     private static final String PREFIX = "forcitis.platform.integration.legacy.";
 

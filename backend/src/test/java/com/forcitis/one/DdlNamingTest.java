@@ -52,6 +52,7 @@ class DdlNamingTest {
         ADDRESS("_address", "text"),
         CIPHERTEXT("_ciphertext", "text"),
         POLICY("_policy", "text"),
+        SYSTEM("_system", "text"),
         STATUS("_status", "text"),
         KIND("_kind", "text"),
         TYPE("_type", "text"),

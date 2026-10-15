@@ -14,12 +14,14 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 final class SeeyonOrgSource implements OrgSource {
 
-    private final JdbcClient jdbc;
+    private final JdbcClient interactive;
+    private final JdbcClient background;
     private final SeeyonMapping mapping;
     private final SeeyonViewReader mapper;
 
-    SeeyonOrgSource(JdbcClient jdbc, SeeyonMapping mapping) {
-        this.jdbc = jdbc;
+    SeeyonOrgSource(JdbcClient interactive, JdbcClient background, SeeyonMapping mapping) {
+        this.interactive = interactive;
+        this.background = background;
         this.mapping = mapping;
         this.mapper = new SeeyonViewReader(mapping);
     }
@@ -27,13 +29,13 @@ final class SeeyonOrgSource implements OrgSource {
     @Override
     public SourceOrgSnapshot readSnapshot() {
         try {
-            List<OrgUnitRow> rows = present(jdbc.sql(SeeyonViewSql.ORG_UNITS).param("rootPathPrefix", mapping.rootPathPrefix()).query((rs, n) -> mapper.orgUnit(rs)).list());
-            List<SourceRelationship> relationships = present(jdbc.sql(SeeyonViewSql.RELATIONSHIPS)
+            List<OrgUnitRow> rows = present(background.sql(SeeyonViewSql.ORG_UNITS).param("rootPathPrefix", mapping.rootPathPrefix()).query((rs, n) -> mapper.orgUnit(rs)).list());
+            List<SourceRelationship> relationships = present(background.sql(SeeyonViewSql.RELATIONSHIPS)
                     .param("leaderTypeId", mapping.headRelationshipTypeId())
                     .param("managerTypeId", mapping.regionalReceivablesManagerRelationshipTypeId())
                     .query((rs, n) -> mapper.relationship(rs)).list());
-            List<SourcePosition> positions = present(jdbc.sql(SeeyonViewSql.POSITIONS).query((rs, n) -> mapper.position(rs)).list());
-            List<SourcePerson> people = present(jdbc.sql(SeeyonViewSql.MEMBERS).param("rootPathPrefix", mapping.rootPathPrefix()).query((rs, n) -> mapper.person(rs)).list());
+            List<SourcePosition> positions = present(background.sql(SeeyonViewSql.POSITIONS).query((rs, n) -> mapper.position(rs)).list());
+            List<SourcePerson> people = present(background.sql(SeeyonViewSql.MEMBERS).param("rootPathPrefix", mapping.rootPathPrefix()).query((rs, n) -> mapper.person(rs)).list());
             return new SourceOrgSnapshot(SeeyonOrgTree.resolve(rows, mapping.rootPath()), relationships, positions, people);
         } catch (DataAccessException unreachable) {
             throw unavailable(unreachable);
@@ -43,7 +45,7 @@ final class SeeyonOrgSource implements OrgSource {
     @Override
     public List<SourcePerson> findStaffByWecomUserId(WecomUserId wecomUserId) {
         try {
-            return present(jdbc.sql(SeeyonViewSql.MEMBERS_BY_WECOM_USER_ID)
+            return present(interactive.sql(SeeyonViewSql.MEMBERS_BY_WECOM_USER_ID)
                     .param("rootPathPrefix", mapping.rootPathPrefix())
                     .param("wecomUserId", wecomUserId.value())
                     .query((rs, n) -> mapper.person(rs)).list());
@@ -55,7 +57,7 @@ final class SeeyonOrgSource implements OrgSource {
     @Override
     public List<SourcePerson> findStaffByLoginName(String loginName) {
         try {
-            return present(jdbc.sql(SeeyonViewSql.MEMBERS_BY_LOGIN_NAME)
+            return present(interactive.sql(SeeyonViewSql.MEMBERS_BY_LOGIN_NAME)
                     .param("rootPathPrefix", mapping.rootPathPrefix())
                     .param("loginName", loginName)
                     .query((rs, n) -> mapper.person(rs)).list());

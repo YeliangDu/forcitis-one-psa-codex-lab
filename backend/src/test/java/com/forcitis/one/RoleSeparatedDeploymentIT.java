@@ -134,7 +134,7 @@ class RoleSeparatedDeploymentIT {
     @DisplayName("the runtime account alone is enough: a write through the application (entity, versions, event registry, audit by listener) and a read both work")
     void smokeAsTheRuntimeAccount() throws Exception {
         try (var acting = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.smoke")) {
-            createLegalEntity.execute("SMK", "Smoke legal entity", null);
+            createLegalEntity.execute("SMK", "Smoke legal entity");
         }
 
         assertThat(listLegalEntities.execute(com.forcitis.one.kernel.PageRequest.of(null, null, "legal-entities")).items()).extracting(view -> view.code()).contains("SMK");

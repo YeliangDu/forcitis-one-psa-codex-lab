@@ -81,11 +81,28 @@ class HttpContractIT {
 
         assertThat(allowsNull(schemas.path("AuditEntryResponse").path("properties").path("detail"))).isTrue();
         assertThat(schemas.path("AuditEntryResponse").path("required").toString()).doesNotContain("\"detail\"").contains("\"action\"");
-        assertThat(allowsNull(schemas.path("LegalEntityResponse").path("properties").path("accountingOrganizationNumber"))).isTrue();
+        assertThat(allowsNull(schemas.path("SourceReferenceResponse").path("properties").path("effectiveTo"))).isTrue();
         assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("administratorModeExpiresAt"))).isTrue();
         assertThat(allowsNull(schemas.path("LoginResponse").path("properties").path("userId"))).isFalse();
         assertThat(allowsNull(schemas.path("CursorPageRoleResponse").path("properties").path("nextCursor"))).isTrue();
         assertThat(schemas.path("CursorPageRoleResponse").path("required").toString()).isEqualTo("[\"items\"]");
+    }
+
+    @Test
+    @DisplayName("the confirmation status of a source reference is its own component with its own values, not the one of the numbering rules")
+    void sourceReferenceConfirmationStatusListsItsOwnValues() throws Exception {
+        tools.jackson.databind.JsonNode schemas = new tools.jackson.databind.json.JsonMapper().readTree(
+                mvc.perform(get("/v3/api-docs").with(user("1"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+                .path("components").path("schemas");
+
+        assertThat(schemas.path("SourceReferenceResponse").path("properties").path("confirmationStatus").path("$ref").asString())
+                .isEqualTo("#/components/schemas/SourceReferenceConfirmationStatus");
+        java.util.List<String> values = new java.util.ArrayList<>();
+        schemas.path("SourceReferenceConfirmationStatus").path("enum").forEach(value -> values.add(value.asString()));
+        assertThat(values).containsExactlyInAnyOrder("PENDING", "CONFIRMED", "REJECTED");
+        java.util.List<String> numbering = new java.util.ArrayList<>();
+        schemas.path("ConfirmationStatus").path("enum").forEach(value -> numbering.add(value.asString()));
+        assertThat(numbering).containsExactlyInAnyOrder("PENDING_CONFIRMATION", "CONFIRMED");
     }
 
     /** A list that answers a bare array instead of a cursor page, with the reason: the whole tree is needed to draw the hierarchy. */
