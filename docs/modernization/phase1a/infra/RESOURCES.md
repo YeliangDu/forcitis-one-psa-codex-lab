@@ -7,7 +7,7 @@ SESSION_PLAYBOOK §2.1 第 9 条：定时器、本机 runner、云上资源与�
 | ECS i-bp122xlpar8w2uylmal2 | /root/one-ops-backup-20261015020632（nginx 切换前配置与续期配置备份） | 临时（回滚用） | one-ops | 首次 dev 部署验证通过后删除（已同意） |
 | ECS | /etc/forcitis-one/release-signers、release-source、github-release-token（空，OIDC 改造后删除）、one-release-token-check.{service,timer}（未启用，OIDC 改造后删除） | 长期 / 待撤 | one-ops | 随 OIDC 改造 PR |
 | ECS | /data/forcitis-one/import/c6/20261015/（C-6 导出，root 0700） | 临时 | one-ops | 1a 生产切换后 30 天 |
-| ECS | one-cert-check.timer、LoongCollector（ilogtaild / loongcollectord）、/etc/forcitis-one/ops-alert.env（群机器人 Webhook，root 0600）、/etc/forcitis-one/one.env、one-admin.pgpass、migrate/ | 长期 | one-ops | — |
+| ECS | one-cert-check.timer、one-time-sync-check.timer（2026-10-15，t-hz07045fzz8xtkw）、LoongCollector（ilogtaild / loongcollectord）、/etc/forcitis-one/ops-alert.env（群机器人 Webhook，root 0600）、/etc/forcitis-one/one.env、one-admin.pgpass、migrate/ | 长期 | one-ops | — |
 | 本机 Mac | 自托管 runner mac-one-1..4（~/actions-runners/one-N，LaunchAgent，用户 yeliang）与 mac-one-deploy（/opt/forcitis-one-runner，LaunchDaemon，用户 forcitis-deploy，pre-job hook） | 长期 | one-coordinator / one-ops | — |
 | 本机 Mac | ~/.modernize/psa/infra/role_holders.md（人名，0600）、~/.modernize/psa/finance/FINANCE_CONFIRM_v3.html（0600） | 长期私有 | one-coordinator | — |
 | 阿里云 | SLS Project forcitis-one-observability（nginx、ops 180 天，app 与 metrics 30 天）、云监控 OS 指标、ECS 快照策略 forcitis-one-daily | 长期付费（约 40 元/月以内） | one-ops | — |
