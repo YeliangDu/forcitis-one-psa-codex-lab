@@ -53,7 +53,7 @@ class EmployeeIdContractTest {
 
     /** RULING-P3B-D5: the events of a legal entity attribution name their subject in two flat fields. */
     static final List<String> ATTRIBUTION_EVENTS = List.of("LegalEntityAttributed", "LegalEntityAttributionEnded", "LegalEntityAttributionCorrected");
-    static final String SUBJECT_KIND = "subjectKind";
+    static final String SUBJECT_KIND = "kind";
     static final String SUBJECT_ID = "subjectId";
 
     /** Fields of the generated validators that hold an employee or org unit id. */
@@ -159,7 +159,7 @@ class EmployeeIdContractTest {
     }
 
     @Test
-    @DisplayName("R-1b P3b DA-5 / RULING-P3B-D5：法人归属三个事件的 subject 扁平为 subjectKind 与 subjectId（format: uuid），不再有 AttributionSubject 字段")
+    @DisplayName("R-1b P3b DA-5 / RULING-P3B-D5 / RULING-P3B-5：法人归属三个事件的 subject 扁平为 kind 与 subjectId（format: uuid），不再有 AttributionSubject 字段")
     @SuppressWarnings("unchecked")
     void attributionEventsNameTheirSubjectInTwoFields() throws IOException {
         Map<String, Map<String, Object>> payloads = new java.util.HashMap<>();
@@ -186,6 +186,16 @@ class EmployeeIdContractTest {
         }
 
         assertThat(wrong).isEmpty();
+    }
+
+    @Test
+    @DisplayName("R-1b P3b RULING-P3B-5：法人归属接口沿用 kind + subjectId，不改名为 subjectKind")
+    void theAttributionResponseKeepsItsFieldNames() throws IOException {
+        JsonNode properties = UserIdContractTest.openApi().path("components").path("schemas").path("LegalEntityAttributionResponse").path("properties");
+
+        assertThat(properties.has(SUBJECT_KIND)).as("LegalEntityAttributionResponse.%s", SUBJECT_KIND).isTrue();
+        assertThat(properties.has(SUBJECT_ID)).as("LegalEntityAttributionResponse.%s", SUBJECT_ID).isTrue();
+        assertThat(properties.has("subjectKind")).as("no subjectKind field").isFalse();
     }
 
     @Test

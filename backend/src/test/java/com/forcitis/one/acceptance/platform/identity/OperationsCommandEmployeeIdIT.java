@@ -38,9 +38,13 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
     @ServiceConnection
     static PostgreSQLContainer postgres = database();
 
-    /** Command and argument names of RULING-P3B-D8 (one-glossary 2026-10-15); the argument name is this test's proposal. */
+    /** Command and argument names of RULING-P3B-D8 (one-glossary 2026-10-15): the subject and the kind of its identity provider. */
     static final String FIND_ACCOUNTS = "find-accounts-by-external-subject";
     static final String EXTERNAL_SUBJECT = "external-subject";
+    static final String PROVIDER_KIND = "provider-kind";
+    /** Values of --provider-kind: this test's proposal until the provider_kind values are fixed (one-glossary). */
+    static final String ORG_SOURCE_LOGIN_NAME = "ORG_SOURCE_LOGIN_NAME";
+    static final String WECOM_USER_ID = "WECOM_USER_ID";
     static final int WRONG_USAGE = 2;
 
     @Autowired
@@ -66,6 +70,10 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         int exit = operations.run(new DefaultApplicationArguments(all.toArray(String[]::new)), new PrintStream(out, true, StandardCharsets.UTF_8),
                 new PrintStream(err, true, StandardCharsets.UTF_8));
         return new Outcome(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
+    }
+
+    private Outcome find(String providerKind, String subject) {
+        return run("--operation=" + FIND_ACCOUNTS, "--" + PROVIDER_KIND + "=" + providerKind, "--" + EXTERNAL_SUBJECT + "=" + subject);
     }
 
     private Outcome grant(String employeeId) {
@@ -157,7 +165,7 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         UUID firstAccount = signIn(first).userId();
         List<Integer> before = identityRows();
 
-        Outcome found = run("--operation=" + FIND_ACCOUNTS, "--" + EXTERNAL_SUBJECT + "=" + shared);
+        Outcome found = find(ORG_SOURCE_LOGIN_NAME, shared);
 
         assertThat(found.exit()).as(found.err()).isZero();
         assertThat(found.out()).contains(first.toString(), firstAccount.toString(), second.toString()).doesNotContain(other.toString());
@@ -173,8 +181,8 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         employee(other, unit, null);
         UUID account = signIn(person).userId();
 
-        Outcome found = run("--operation=" + FIND_ACCOUNTS, "--" + EXTERNAL_SUBJECT + "=" + wecomUserIdOf(person));
-        Outcome nobody = run("--operation=" + FIND_ACCOUNTS, "--" + EXTERNAL_SUBJECT + "=acceptance-nobody-" + serialOf(person));
+        Outcome found = find(WECOM_USER_ID, wecomUserIdOf(person));
+        Outcome nobody = find(WECOM_USER_ID, "acceptance-nobody-" + serialOf(person));
 
         assertThat(found.exit()).as(found.err()).isZero();
         assertThat(found.out()).contains(person.toString(), account.toString()).doesNotContain(other.toString());
