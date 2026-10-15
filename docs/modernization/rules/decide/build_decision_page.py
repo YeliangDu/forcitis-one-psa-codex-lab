@@ -69,6 +69,9 @@ def validate(sheets):
             seen.add(key)
             if i["grp"] not in {g["id"] for g in sh["groups"]}:
                 errs.append(f"{key}：组 {i['grp']} 不存在")
+            for k in ("basis", "practice"):
+                if not isinstance(i.get(k), list):
+                    errs.append(f"{key}：{k} 须是数组（可以为空），缺了页面脚本会抛错、整页空白")
             if len(i["opts"]) < 2 or sum(bool(o.get("rec")) for o in i["opts"]) != 1:
                 errs.append(f"{key}：须至少两个选项且恰好一个推荐")
         for g in sh["groups"]:
