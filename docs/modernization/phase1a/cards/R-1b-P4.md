@@ -228,3 +228,10 @@
 | D-13 | 执行模型：计划 7.2 P4 行为「sonnet / opus（high）」，拆分图写测试 sonnet；本卡按 one-coordinator 派卡说明为测试 sonnet、实现 sonnet、首轮复审 opus 一次、修后复核 sonnet | 以本卡为准；体量（approval 约 60 个 main 文件、integration 10 个、测试约 40 个）若实现中途超出 sonnet 能力，停下报告改派 opus，不自行降低范围 |
 | D-14 | 审批请求聚合目前 `aggregateId()` 为「单据类型:单据 ID」文本、表主键由仓储 `ids.next()` 生成；ADR-0033 第 1 项第 9 条要求构造时生成 | 新增类型化审批请求 ID（名称待门禁），`begin` 时取得；`aggregateId()` 文本暂不改（信封随 P5）；`start_rounds.id` 由仓储取亦可（发起轮次不是聚合），PR 写明 |
 | D-15 | Flowable 回滚预案：`idGenerator` 若在引擎内部出问题 | 按 ADR-0033 回滚方案退到 `StrongUuidGenerator`（产出 v1 uuid，表结构不变），`FlowableIdTest` 同一提交改为接受 v1 并注明原因，报负责会话；不退回顺序数字 ID |
+
+## 13. 负责会话裁定（one-1a-next-4，2026-10-15）
+- RULING-P4-D1..D3、D5..D9、D11..D15：按第 12 节建议采纳。
+- RULING-P4-D4（去重键不含收件人、`target_delivery_id` 取代 `#handled` 后缀）：负责会话同意，因 ADR-0033 第 7 项第 3 条写明「具体列在 R-1b 的清单中列出」；仍请 one-coordinator 认可后再派实现。
+- RULING-P4-D10：发起时核对表单字段名，未登记即发起失败并 ALERT（CLAUDE.md 第 6 条）；测试代理据此写验收第 12 条。
+- RULING-P4-D6：`OTHER_ID_NAMES` 收窄为只按全名放行 `InboxItemResponse.taskId`，写理由与到期条件（随 ADR-0039 第 6 条契约中性化），P5 清空时保留此项。
+- 开工条件：第 11 节新词经 one-glossary 定稿（部门负责人审批节点与字段名须用户确认的走确认页）；D-4 经 one-coordinator 认可；P3b（#260）合并后 rebase。
