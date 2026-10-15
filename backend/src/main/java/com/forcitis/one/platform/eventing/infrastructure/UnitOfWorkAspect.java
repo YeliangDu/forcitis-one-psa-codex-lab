@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.eventing.infrastructure;
 
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvent;
@@ -12,7 +13,10 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 
-/** A scheduled job starts a correlation of its own; an event handler continues the correlation of the event it handles. */
+/**
+ * A scheduled job starts a correlation of its own and acts under its lock name; an event handler continues the correlation of the event it
+ * handles and acts under the name its class declares. Both names are declared in architecture/system-actors.txt (RULING-P2-C5).
+ */
 @Aspect
 @Component
 class UnitOfWorkAspect {
@@ -26,7 +30,11 @@ class UnitOfWorkAspect {
     @Around("@annotation(org.springframework.modulith.events.ApplicationModuleListener)")
     Object handleEvent(ProceedingJoinPoint call) throws Throwable {
         MethodSignature method = (MethodSignature) call.getSignature();
-        String handler = method.getDeclaringType().getSimpleName() + "." + method.getName();
+        SystemActorName declared = ((Class<?>) method.getDeclaringType()).getAnnotation(SystemActorName.class);
+        if (declared == null) {
+            throw new IllegalStateException("event listener " + method.getDeclaringType().getName() + " declares no @SystemActorName");
+        }
+        String handler = declared.value();
         Object[] args = call.getArgs();
         UUID correlationId;
         UUID causationId = null;
@@ -45,7 +53,10 @@ class UnitOfWorkAspect {
     Object runJob(ProceedingJoinPoint call) throws Throwable {
         MethodSignature method = (MethodSignature) call.getSignature();
         SchedulerLock lock = method.getMethod().getAnnotation(SchedulerLock.class);
-        String job = lock == null ? method.getDeclaringType().getSimpleName() + "." + method.getName() : lock.name();
+        if (lock == null) {
+            throw new IllegalStateException("scheduled job " + method.getDeclaringType().getName() + "." + method.getName() + " has no @SchedulerLock name");
+        }
+        String job = lock.name();
         try (WorkContext.Scope scope = WorkContext.enter(newCorrelation(), null, job)) {
             return call.proceed();
         }

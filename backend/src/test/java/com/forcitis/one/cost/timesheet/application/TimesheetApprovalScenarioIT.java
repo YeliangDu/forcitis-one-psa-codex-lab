@@ -1,5 +1,6 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -123,7 +124,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     void signInAs(long user) {
-        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(String.valueOf(user), "x", "ROLE_TEST"));
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(TestAccounts.account(user).value().toString(), "x", "ROLE_TEST"));
     }
 
     static TimesheetId newTimesheet() {
@@ -170,7 +171,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     List<com.forcitis.one.platform.approval.application.InboxItem> inboxOf(TimesheetId id) {
-        return listInbox.execute(new UserId(manager), com.forcitis.one.platform.approval.application.ListPage.first()).items().stream()
+        return listInbox.execute(TestAccounts.account(manager), com.forcitis.one.platform.approval.application.ListPage.first()).items().stream()
                 .filter(item -> item.documentId().filter(String.valueOf(id.value())::equals).isPresent()).toList();
     }
 
@@ -201,10 +202,10 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThat(event.submittedOn()).isEqualTo(LocalDate.now(ZONE));
 
         ApprovalTaskId task = taskOf(id);
-        scenario.stimulate(() -> claimTask.execute(task, new UserId(manager), java.util.OptionalLong.empty())).andWaitForEventOfType(TaskClaimed.class)
-                .matching(e -> e.taskId().equals(task)).toArriveAndVerify(e -> assertThat(e.claimedBy()).isEqualTo(new UserId(manager)));
+        scenario.stimulate(() -> claimTask.execute(task, TestAccounts.account(manager), java.util.OptionalLong.empty())).andWaitForEventOfType(TaskClaimed.class)
+                .matching(e -> e.taskId().equals(task)).toArriveAndVerify(e -> assertThat(e.claimedBy()).isEqualTo(TestAccounts.account(manager)));
 
-        scenario.stimulate(() -> decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty()))
+        scenario.stimulate(() -> decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty()))
                 .andWaitForEventOfType(TimesheetApproved.class).matching(e -> e.document().equals(document)).toArriveAndVerify(e -> {
                     assertThat(e.round()).isEqualTo(new RoundNumber(1));
                     assertThat(e.employee()).isEqualTo(new EmployeeId(employee));
@@ -245,7 +246,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         submitAndAwaitApproval(scenario, id, "6");
         ApprovalTaskId task = taskOf(id);
 
-        scenario.stimulate(() -> decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty()))
+        scenario.stimulate(() -> decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty()))
                 .andWaitForEventOfType(TimesheetApproved.class).matching(e -> e.document().equals(document)).toArrive();
         ApprovalCompleted original = published.ofType(ApprovalCompleted.class).matching(e -> e.document().equals(document)).iterator().next();
 
@@ -295,7 +296,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         submitAndAwaitApproval(scenario, id, workDate, "9");
         ApprovalTaskId task = taskOf(id);
 
-        scenario.stimulate(() -> decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.REJECT, "too many hours")), java.util.OptionalLong.empty()))
+        scenario.stimulate(() -> decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(task, DecisionOutcome.REJECT, "too many hours")), java.util.OptionalLong.empty()))
                 .andWaitForEventOfType(TimesheetReturned.class).matching(e -> e.document().equals(document)).toArriveAndVerify(e -> {
                     assertThat(e.reason()).isEqualTo(new Reason("too many hours"));
                     assertThat(e.round()).isEqualTo(new RoundNumber(1));
@@ -309,7 +310,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThat(view(id).round()).isEqualTo(2);
         assertThat(view(id).workDate()).as("submitting again does not move the hours to another day").isEqualTo(workDate);
         ApprovalTaskId secondTask = taskOf(id);
-        scenario.stimulate(() -> decideTasks.execute(new UserId(manager), List.of(new TaskDecision(secondTask, DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty()))
+        scenario.stimulate(() -> decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(secondTask, DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty()))
                 .andWaitForEventOfType(TimesheetApproved.class).matching(e -> e.document().equals(document)).toArriveAndVerify(e -> {
                     assertThat(e.round()).isEqualTo(new RoundNumber(2));
                     assertThat(e.submittedHours()).isEqualTo(Hours.of("7.5"));
@@ -512,7 +513,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
 
     Object submitOnThread(TimesheetId id, CountDownLatch go) throws InterruptedException {
         go.await();
-        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(String.valueOf(employee), "x", "ROLE_TEST"));
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(TestAccounts.account(employee).value().toString(), "x", "ROLE_TEST"));
         try {
             return submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("6"), new EmployeeId(manager)));
         } catch (RuntimeException refused) {

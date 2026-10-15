@@ -159,7 +159,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
 
     @Override
     public List<TaskView> findOpenTasksFor(UserId user) {
-        String id = String.valueOf(user.value());
+        String id = EngineUserIds.text(user);
         Map<String, Task> found = new LinkedHashMap<>();
         tasks.createTaskQuery().taskAssignee(id).includeIdentityLinks().includeProcessVariables().includeTaskLocalVariables().list()
                 .forEach(t -> found.putIfAbsent(t.getId(), t));
@@ -173,7 +173,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
     @Override
     public boolean claimTask(ApprovalTaskId taskId, UserId user) {
         try {
-            tasks.claim(taskId.value(), String.valueOf(user.value()));
+            tasks.claim(taskId.value(), EngineUserIds.text(user));
             return true;
         } catch (FlowableTaskAlreadyClaimedException | FlowableOptimisticLockingException e) {
             return false;
@@ -187,12 +187,12 @@ class FlowableApprovalEngine implements ApprovalEngine {
 
     @Override
     public void reassignTask(ApprovalTaskId taskId, UserId to) {
-        tasks.setAssignee(taskId.value(), String.valueOf(to.value()));
+        tasks.setAssignee(taskId.value(), EngineUserIds.text(to));
     }
 
     @Override
     public void addCandidates(ApprovalTaskId taskId, Collection<UserId> users) {
-        users.forEach(user -> tasks.addCandidateUser(taskId.value(), String.valueOf(user.value())));
+        users.forEach(user -> tasks.addCandidateUser(taskId.value(), EngineUserIds.text(user)));
     }
 
     @Override
@@ -296,7 +296,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
         Set<UserId> candidates = new LinkedHashSet<>();
         for (IdentityLinkInfo link : task.getIdentityLinks()) {
             if (IdentityLinkType.CANDIDATE.equals(link.getType()) && link.getUserId() != null) {
-                candidates.add(new UserId(Long.parseLong(link.getUserId())));
+                candidates.add(EngineUserIds.parse(link.getUserId(), "a candidate of task " + task.getId()));
             }
         }
         return new TaskView(new ApprovalTaskId(task.getId()), new ApprovalInstanceId(task.getProcessInstanceId()),
@@ -304,7 +304,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 new LegalEntityId(UUID.fromString(variables.firstVariable(VARIABLE_LEGAL_ENTITY).orElseThrow())),
                 task.getTaskDefinitionKey(), task.getName(),
                 new EmployeeId(Long.parseLong(variables.firstVariable(VARIABLE_INITIATOR).orElseThrow())),
-                Optional.ofNullable(task.getAssignee()).map(a -> new UserId(Long.parseLong(a))), candidates, createdAt(task),
+                Optional.ofNullable(task.getAssignee()).map(a -> EngineUserIds.parse(a, "the assignee of task " + task.getId())), candidates, createdAt(task),
                 node.getSubProcess() != null, policy.beforeHookKey(), Boolean.TRUE.equals(task.getTaskLocalVariables().get(VARIABLE_ADVISORY)),
                 new ContentHash(variables.firstVariable(VARIABLE_CONTENT_HASH).orElseThrow()));
     }

@@ -1,8 +1,10 @@
 package com.forcitis.one.platform.approval.infrastructure.legacy;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.ApprovalIntegrationSupport;
 import com.forcitis.one.platform.approval.ApprovalIntegrationSupport.RecordingExternalConnections;
@@ -69,7 +71,7 @@ class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
     @DisplayName("ADR-0037 item 3.5 a failed read is logged with error number and SQLState only, never the database message")
     void failedReadLogsNoMessage(CapturedOutput output) {
         LegacyInbox.LegacyTodos result = new JdbcLegacyInbox(JdbcClient.create(legacy), "legacy_fixture.no_such_view_marker_7731", null)
-                .readTodos(new UserId(1));
+                .readTodos(new EmployeeId(1));
 
         assertThat(result.available()).isFalse();
         assertThat(output.getAll().lines().filter(line -> line.contains("no_such_view_marker_7731")))
@@ -81,7 +83,7 @@ class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
     @DisplayName("C1a-14 an unreachable old database yields legacyAvailable = false, never an exception")
     void unreachableDatabaseDegrades() {
         DriverManagerDataSource unreachable = new DriverManagerDataSource("jdbc:postgresql://127.0.0.1:1/none", "x", "y");
-        LegacyInbox.LegacyTodos result = new JdbcLegacyInbox(JdbcClient.create(unreachable), VIEW, null).readTodos(new UserId(1));
+        LegacyInbox.LegacyTodos result = new JdbcLegacyInbox(JdbcClient.create(unreachable), VIEW, null).readTodos(new EmployeeId(1));
         assertThat(result.available()).isFalse();
         assertThat(result.todos()).isEmpty();
     }
@@ -91,7 +93,7 @@ class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
     void notConfiguredIsUnavailable() {
         assertThat(new LegacyInboxConfiguration().legacyInbox(new LegacyProperties(null, null, null, null, null),
                 new org.springframework.beans.factory.support.DefaultListableBeanFactory().getBeanProvider(DataSource.class))
-                .readTodos(new UserId(1)).available()).isFalse();
-        assertThat(legacyInbox.readTodos(new UserId(newId())).available()).isTrue();
+                .readTodos(new EmployeeId(1)).available()).isFalse();
+        assertThat(legacyInbox.readTodos(new EmployeeId(newId())).available()).isTrue();
     }
 }

@@ -39,7 +39,8 @@ class Retraction {
     }
 
     WithdrawCheck check(ProcessKey processKey, DocumentReference document, UserId actor) {
-        return requests.find(processKey, document).map(request -> request.checkWithdraw(accountEmployees.employeeOf(actor), cutoffPassed(request)))
+        return requests.find(processKey, document).map(request -> accountEmployees.employeeOf(actor)
+                        .map(employee -> request.checkWithdraw(employee, cutoffPassed(request))).orElse(WithdrawCheck.NOT_INITIATOR))
                 .orElse(WithdrawCheck.NOT_RUNNING);
     }
 
@@ -49,7 +50,7 @@ class Retraction {
             return RetractionResult.NOT_RUNNING;
         }
         ApprovalRequest request = found.get();
-        EmployeeId employee = accountEmployees.employeeOf(actor);
+        EmployeeId employee = accountEmployees.employeeOf(actor).orElse(null);
         requireInitiator(request, employee, actor);
         boolean cutoff = cutoffPassed(request);
         RetractionResult refusal = refusal(request, employee, cutoff, reason);
@@ -68,7 +69,7 @@ class Retraction {
             return RetractionResult.NOT_RUNNING;
         }
         ApprovalRequest request = found.get();
-        EmployeeId employee = accountEmployees.employeeOf(actor);
+        EmployeeId employee = accountEmployees.employeeOf(actor).orElse(null);
         requireInitiator(request, employee, actor);
         boolean cutoff = cutoffPassed(request);
         RetractionResult refusal = refusal(request, employee, cutoff, reason);

@@ -4,7 +4,7 @@ COMMENT ON SCHEMA platform_idempotency IS '幂等键模块：同一写请求重�
 -- Idempotency-Key：同一用户、同一键、同一请求在 24 小时内得到第一次的应答；同一键换了请求体是 422。
 CREATE TABLE platform_idempotency.idempotent_responses (
     idempotent_response_id uuid NOT NULL,
-    user_id         bigint      NOT NULL,
+    user_id         uuid        NOT NULL,
     idempotency_key text        NOT NULL,
     request_hash    text        NOT NULL,
     response_number integer,

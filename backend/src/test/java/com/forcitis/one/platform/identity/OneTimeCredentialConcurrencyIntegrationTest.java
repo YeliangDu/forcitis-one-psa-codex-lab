@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -58,7 +59,7 @@ class OneTimeCredentialConcurrencyIntegrationTest extends IdentityIntegrationTes
     void portalTicket() throws Exception {
         when(ssoVerifier.verify("RACE")).thenReturn(new SsoVerdict.LoginName("13800000000"));
         var employee = knownEmployee(1001, EmploymentStatus.EMPLOYED);
-        when(orgDirectory.findEmployeeByLoginName("13800000000")).thenReturn(Optional.of(employee));
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName("13800000000"))).thenReturn(Optional.of(employee));
 
         List<Integer> statuses = race(() -> postJson(SsoLoginIntegrationTest.LOGIN, "{\"ticket\":\"RACE\"}").getResponse().getStatus());
 
@@ -71,7 +72,7 @@ class OneTimeCredentialConcurrencyIntegrationTest extends IdentityIntegrationTes
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         createAccount(1001, "employee");
         jdbc.sql("""
-                insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, key_id, key_reference, is_enabled, allowed_role_codes)
+                insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, signing_key_code, key_reference, is_enabled, allowed_role_codes)
                 values (uuidv7(), 'km', 'km-key-1', 'env:FORCITIS_TICKET_KEY_KM', true, array['employee'])
                 """).update();
         String ticket = SignedTicket.sign(KM_KEY.getBytes(StandardCharsets.UTF_8), "km-key-1", "km", 1001, "race-nonce-0123456789",

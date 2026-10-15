@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,7 +28,7 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
 
     private void personWithLoginName(String loginName, long id, EmploymentStatus status) {
         EmployeeProfile employee = knownEmployee(id, status);
-        when(orgDirectory.findEmployeeByLoginName(loginName)).thenReturn(Optional.of(employee));
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName(loginName))).thenReturn(Optional.of(employee));
     }
 
     private MvcResult redeem(String ticket) throws Exception {
@@ -47,10 +48,10 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
         MvcResult result = redeem("T1");
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
-        assertThat(body(result).path("userId").asString()).isEqualTo("1001");
+        assertThat(body(result).path("userId").asString()).isEqualTo(accountOf(1001).toString());
         assertThat(cookie(result, "SESSION")).isNotBlank();
         verify(ssoVerifier).verify("T1");
-        verify(orgDirectory).findEmployeeByLoginName("13800000000");
+        verify(orgDirectory).findEmployeeByLogin(new LoginLookup.ByLoginName("13800000000"));
         assertThat(jdbc.sql("select ticket_source from platform_identity.sso_ticket_uses").query(String.class).single()).isEqualTo("SSO");
     }
 
@@ -73,7 +74,7 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("RULE-320 failure: a ticket for an unknown login name is refused and burned (the mark comes before the lookup)")
     void unknownLoginName() throws Exception {
         portalSays("T2", new SsoVerdict.LoginName("ghost"));
-        when(orgDirectory.findEmployeeByLoginName("ghost")).thenReturn(Optional.empty());
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName("ghost"))).thenReturn(Optional.empty());
 
         MvcResult first = redeem("T2");
         MvcResult second = redeem("T2");
@@ -111,7 +112,7 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(result.getResponse().getStatus()).isEqualTo(401);
         assertThat(errorCode(result)).isEqualTo("PLATFORM_IDENTITY_TICKET_INVALID");
-        verify(orgDirectory, never()).findEmployeeByLoginName(anyString());
+        verify(orgDirectory, never()).findEmployeeByLogin(org.mockito.ArgumentMatchers.any());
         assertThat(count("sso_ticket_uses")).as("an invalid ticket is not burned").isZero();
     }
 

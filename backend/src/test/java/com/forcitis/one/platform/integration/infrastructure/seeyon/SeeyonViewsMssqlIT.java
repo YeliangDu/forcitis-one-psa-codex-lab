@@ -183,9 +183,9 @@ class SeeyonViewsMssqlIT {
     void singleLookup() {
         SeeyonOrgSource source = new SeeyonOrgSource(reader, reader, MAPPING, () -> { });
 
-        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-8002")))
+        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-8002")))
                 .containsExactly(source.readSnapshot().staff().stream().filter(m -> m.personId().value() == 8002).findFirst().orElseThrow());
-        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-8004"))).as("outside the root path").isEmpty();
+        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-8004"))).as("outside the root path").isEmpty();
     }
 
     @Test

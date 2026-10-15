@@ -1,5 +1,19 @@
 # platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登录、会话、票据、角色与数据范围用到的词。
 terms:
+- id: signing_key_code
+  zh: 签名密钥编码
+  en: SigningKeyCode
+  snake: signing_key_code
+  kind: value
+  bc: platform.identity
+  definition: 票据签发方签名密钥的编码（票据头部的 kid），一方一把；原列名 key_id 按 ADR-0033 影响面改为以 _code 结尾（R-1b P2）
+  standard_ref:
+  - ADR-0033 影响面「ticket_issuers.key_id 改名」
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 - id: error__platform_identity_role_transition_illegal
   zh: 角色状态转换非法
   en: PlatformIdentityRoleTransitionIllegal

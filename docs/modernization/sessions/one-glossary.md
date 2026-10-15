@@ -8,13 +8,14 @@
 
 - 用语管家：持续处理用语问题（`glossary/issues/`）与提议术语积压（`backend/glossary/proposed/`），统一语言自动化。
 - 去重归并：同义合并、同名改开；按 `terms.yaml` 的 `meta.naming_priority`（准则 → 国标 → 行业通行；其余为方言；判定不了为待定）逐条预判并写依据。
-- 业务用语积压（不含错误码）达到 100 条或每周一次，生成「用语决策单」离线 HTML（推荐预选，导出答复）交用户；用户答复后写回词表与提议状态，方言进 `forbidden` 由守护拦截。
+- 业务用语积压（不含错误码）达到 100 条或每周一次，生成「用语决策单」交用户：在线页（私有 Artifact，db 存选择，版式同第三轮确认页，推荐预选），用户点选后用 ArtifactData 直接读取；用户答复后写回词表与提议状态，方言进 `forbidden` 由守护拦截（用户 2026-10-15：「直接在html选择后你自动获取我的选择，以后都这么操作」）。
 - 首件事：清理现有积压（数字以 `glossary/ISSUES.md` 首段为准；另含 TERM_CONFIRMATION A 组 19 项），出第三轮决策单。
+- 开工前术语门禁（用户 2026-10-15，SESSION_PLAYBOOK §5）：负责会话在验收阶段交来本卡新词，当天预判；纯技术词直接定，业务用语做成只含本卡新词的在线小决策页（`glossary/gate/`，推荐预选）交用户，ArtifactData 读答复、写回正式词表，结果回负责会话（抄 one-coordinator）；确认前负责会话不派实现。「达到 100 条」门槛保留为兜底。
 - 错误码不在本会话门槛内：单列，归结构重构主线（R-5、CS-2.24），阶段出口前清零；本会话只在去重时提示。
 
 ## 独占
 
-- `glossary/GLOSSARY_CONTEXT.md`；`glossary/issues/*.resolution.md`（问题的处理片段）、`glossary/decision-sheets/`；用语决策单及其生成脚本与答复导入。
+- `glossary/GLOSSARY_CONTEXT.md`；`glossary/issues/*.resolution.md`（问题的处理片段）、`glossary/decision-sheets/`；用语决策单及其生成脚本与答复导入；门禁小决策页 `glossary/gate/`（模板、各卡数据、答复 `glossary/decisions-gate-<卡号>.json`）。
 - 用户答复后的写回：`glossary/terms.yaml`（经 `glossary/build_terms.py` 与决定记录）、`glossary/TERM_CONFIRMATION.md`、提议条目的 `status` / `aliases` / `forbidden`。
 
 ## 不碰
@@ -36,7 +37,7 @@
 
 ## 触发与节奏
 
-- 事件：新登记的问题或提议术语（按批处理，不逐条打断）；用户答复到达即写回。
+- 事件：新登记的问题或提议术语（按批处理，不逐条打断）；负责会话交来本卡新词（门禁，当天处理）；用户答复到达即写回。
 - 定时：每周检查一次积压（`glossary/ISSUES.md` 首段：业务用语积压与距上次决策单天数）；积压达到 100 条或距上次决策单满 7 天即出决策单（记一份 `glossary/decision-sheets/<日期>.md`）并报 one-coordinator。
 
 ## 自动化
@@ -61,4 +62,4 @@
 
 ## 当前状态
 
-在岗（由 one-glossary-gen 改名继续，分支 claude/one-glossary-round3）：第三轮用语确认进行中。
+在岗。第三轮用语确认的首次答复作废（页面无提交确认，用户说「我没有同意所有用语」），写回 PR #196 不合并；全量 ACL 归类（用户：「acl用语单列，不能进入新系统模块」）与第三轮重做已挂在固定确认页，等用户提交。开工前术语门禁已接手，R-1b-0 等 ACL 结论。

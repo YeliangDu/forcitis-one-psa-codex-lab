@@ -64,6 +64,19 @@
           <execution><id>report</id><phase>verify</phase><goals><goal>report</goal></goals></execution>
         </executions>
       </plugin>
+      <!-- kernel.SystemActors reads the declared system actors from the class path (RULING-P2-C5); the catalogue stays in architecture/ -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>system-actor-catalogue</id><phase>process-resources</phase><goals><goal>copy-resources</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}/architecture</outputDirectory>
+              <resources><resource><directory>${project.basedir}/architecture</directory><includes><include>system-actors.txt</include></includes></resource></resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!-- SQL Server integration tests (*MssqlIT) need the profile legacy-it: neither compiled nor run by default -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId>

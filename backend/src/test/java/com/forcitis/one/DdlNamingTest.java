@@ -71,7 +71,7 @@ class DdlNamingTest {
         HASH("_hash", "text"),
         URL("_url", "text"),
         PATH("_path", "text"),
-        BY("_by", "bigint"),
+        BY("_by", "uuid"),
         VALUE("_value", "numeric", "integer", "bigint"),
         IS("is_", "boolean"),
         HAS("has_", "boolean");

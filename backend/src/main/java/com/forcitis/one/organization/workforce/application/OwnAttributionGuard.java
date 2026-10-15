@@ -15,6 +15,9 @@ import com.forcitis.one.platform.audit.api.AuditLog;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,6 +27,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 class OwnAttributionGuard {
+    private static final Logger LOG = LoggerFactory.getLogger(OwnAttributionGuard.class);
+
     private final OrgSnapshotQueries snapshot;
     private final AuditLog audit;
     private final AccountEmployees accountEmployees;
@@ -35,14 +40,22 @@ class OwnAttributionGuard {
     }
 
     void requireNotOwn(AttributionSubject subject, UserId actor) {
-        if (!concerns(subject, accountEmployees.employeeOf(actor))) {
-            return;
+        Optional<EmployeeId> actingEmployee = accountEmployees.employeeOf(actor);
+        if (actingEmployee.isEmpty()) {
+            LOG.error("ALERT organization.workforce account {} names no employee: its legal entity attribution change is refused", actor.value());
+            throw refused(subject, actor, "the account names no employee",
+                    "your account names no employee, so whether this is your own legal entity attribution cannot be told");
         }
+        if (concerns(subject, actingEmployee.get())) {
+            throw refused(subject, actor, "own legal entity attribution",
+                    "the legal entity of your own employee entry, department or a department above it cannot be changed by you");
+        }
+    }
+
+    private DomainException refused(AttributionSubject subject, UserId actor, String detail, String message) {
         audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.refused", actor, null,
-                "legal-entity-attribution:" + subject.kind().name().toLowerCase(Locale.ROOT) + ":" + subject.subjectKey(),
-                "own legal entity attribution"));
-        throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN, ErrorKind.FORBIDDEN,
-                "the legal entity of your own employee entry, department or a department above it cannot be changed by you");
+                "legal-entity-attribution:" + subject.kind().name().toLowerCase(Locale.ROOT) + ":" + subject.subjectKey(), detail));
+        return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN, ErrorKind.FORBIDDEN, message);
     }
 
     private boolean concerns(AttributionSubject subject, EmployeeId actingEmployee) {

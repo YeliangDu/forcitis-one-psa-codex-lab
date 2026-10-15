@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -27,8 +28,8 @@ public class EnableEmergencyAdmin {
 
     /** True when the account was disabled and now is enabled. */
     @Transactional
-    public boolean execute(OperationAttestation attestation, long personId) {
-        UserId person = new UserId(personId);
+    public boolean execute(OperationAttestation attestation, EmployeeId employeeId) {
+        UserId person = binding.boundAccount(employeeId);
         EmergencyAdmin admin = binding.require(person);
         if (admin.enabled()) {
             return false;
@@ -37,7 +38,7 @@ public class EnableEmergencyAdmin {
         admin.enable();
         admins.save(admin);
         events.publish(admin);
-        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.enabled", null, null, "emergency-admin:" + personId,
+        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.enabled", null, null, "emergency-admin:" + person.value(),
                 attestation.describe()));
         return true;
     }

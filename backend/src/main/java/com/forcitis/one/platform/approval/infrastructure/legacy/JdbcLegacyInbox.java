@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.legacy;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.domain.LegacyInbox;
 import com.forcitis.one.platform.approval.domain.LegacyInstanceId;
 import com.forcitis.one.platform.approval.domain.LegacyTodo;
@@ -34,11 +34,11 @@ class JdbcLegacyInbox implements LegacyInbox {
     }
 
     @Override
-    public LegacyTodos readTodos(UserId user) {
+    public LegacyTodos readTodos(EmployeeId person) {
         try {
             List<LegacyTodo> todos = jdbc.sql("SELECT task_id, process_instance_id, task_def_key, task_name, process_title, created_at FROM "
                             + viewName + " WHERE assignee_user_id = :user ORDER BY created_at DESC")
-                    .param("user", user.value()).query((rs, n) -> read(rs)).list();
+                    .param("user", person.value()).query((rs, n) -> read(rs)).list();
             return new LegacyTodos(true, todos);
         } catch (DataAccessException e) {
             log.error("Legacy to-do view {} could not be read ({}); the merged inbox shows new tasks only", viewName, ExternalFailure.of(e));

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
@@ -103,14 +104,14 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, head).person(head, unit, null).person(initiator, unit, head).person(manager, unit, null);
         String key = newKey("rounds");
         ApprovalInstanceId first = start(key, initiator, manager);
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(first), DecisionOutcome.REJECT, "no")), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(openTaskId(first), DecisionOutcome.REJECT, "no")), java.util.OptionalLong.empty());
         // rejected inside the sub-process = returned: round 1 is over (M3)
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
 
         ApprovalInstanceId second = startWithSupervisor(key, initiator, manager);
         assertThat(second).isNotEqualTo(first);
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(second, "projectManagerReview"), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
-        decideTasks.execute(new UserId(head), List.of(new TaskDecision(openTaskId(second, "supervisorReview"), DecisionOutcome.REJECT, "final no")), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(openTaskId(second, "projectManagerReview"), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(head), List.of(new TaskDecision(openTaskId(second, "supervisorReview"), DecisionOutcome.REJECT, "final no")), java.util.OptionalLong.empty());
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
 
         ApprovalInstanceId third = startWithSupervisor(key, initiator, manager);
@@ -120,8 +121,8 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         assertThat(jdbc.queryForList("select round_number from platform_approval.start_rounds where document_key = ? order by 1",
                 Integer.class, key)).containsExactly(1, 2, 3);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(third, "projectManagerReview"), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
-        decideTasks.execute(new UserId(head), List.of(new TaskDecision(openTaskId(third, "supervisorReview"), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(openTaskId(third, "projectManagerReview"), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(head), List.of(new TaskDecision(openTaskId(third, "supervisorReview"), DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty());
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
             assertThat(e.document().documentId().value()).isEqualTo(key);
             assertThat(e.round()).isEqualTo(new RoundNumber(3));

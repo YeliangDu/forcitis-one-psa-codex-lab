@@ -152,7 +152,7 @@ class SessionController {
 
     private static LoginResponse respond(LoginResult result, String legacyLoginUrl) {
         return switch (result) {
-            case LoginResult.Authenticated ok -> new LoginResponse(String.valueOf(ok.userId()), ok.absoluteExpiresAt(), ok.administratorModeExpiresAt(),
+            case LoginResult.Authenticated ok -> new LoginResponse(ok.userId().value(), ok.absoluteExpiresAt(), ok.administratorModeExpiresAt(),
                     ok.identityConfirmationRequired());
             case LoginResult.Rejected rejected -> {
                 DomainException refusal = rejected.error().refusal("login refused");

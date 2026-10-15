@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-public record AuthorizationRequestView(UUID requestId, String kind, long requestedBy, Instant requestedAt, @Nullable Long subjectUserId,
+public record AuthorizationRequestView(UUID requestId, String kind, UUID requestedBy, Instant requestedAt, @Nullable UUID subjectUserId,
                                        @Nullable UUID roleId, List<String> roleCodes, @Nullable String roleName, List<String> permissionCodes) {
 
     public AuthorizationRequestView {

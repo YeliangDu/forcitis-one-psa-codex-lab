@@ -33,14 +33,14 @@ import org.junit.jupiter.api.Test;
  * the employee numbered like the account (6001) is somebody else and may be changed.
  */
 class OwnAttributionGuardTest {
-    static final UserId ACTOR = new UserId(6001);
+    static final UserId ACTOR = TestAccounts.account(1001);
     static final EmployeeId ACTING_EMPLOYEE = new EmployeeId(1001);
     static final OrgUnitId OWN_UNIT = new OrgUnitId(5);
     static final OrgUnitId UNIT_ABOVE = new OrgUnitId(2);
 
     final OrgSnapshotQueries snapshot = mock(OrgSnapshotQueries.class);
     final AuditLog audit = mock(AuditLog.class);
-    final OwnAttributionGuard guard = new OwnAttributionGuard(snapshot, audit, TestAccounts.apart(5000));
+    final OwnAttributionGuard guard = new OwnAttributionGuard(snapshot, audit, TestAccounts.everyoneHasOne());
 
     OwnAttributionGuardTest() {
         Employee employee = new Employee(ACTING_EMPLOYEE, "E1001", "Actor", "actor", null, null, null, EmploymentStatus.EMPLOYED, false);
@@ -81,5 +81,24 @@ class OwnAttributionGuardTest {
         assertThatCode(() -> guard.requireNotOwn(AttributionSubject.of(OWN_UNIT), ACTOR)).doesNotThrowAnyException();
         verify(audit, never()).recordIndependently(any());
         assertRefused(AttributionSubject.of(ACTING_EMPLOYEE));
+    }
+
+    @Test
+    @DisplayName("P2-M5 an actor whose account names no employee is refused, audited and alerted: the own-attribution check cannot be made, so it fails closed")
+    void P2_M5_anActorWhoseAccountNamesNoEmployeeIsRefused() {
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> logged = new ch.qos.logback.core.read.ListAppender<>();
+        logged.start();
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(OwnAttributionGuard.class);
+        logger.addAppender(logged);
+        try {
+            assertThatThrownBy(() -> guard.requireNotOwn(AttributionSubject.of(new OrgUnitId(9)), TestAccounts.unknownAccount(1001)))
+                    .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN))
+                    .as("P2 recheck L-3 the refusal says the account names no employee, not that the entry is the caller's own")
+                    .hasMessageContaining("names no employee");
+            verify(audit).recordIndependently(any());
+            assertThat(logged.list).anySatisfy(event -> assertThat(event.getFormattedMessage()).startsWith("ALERT "));
+        } finally {
+            logger.detachAppender(logged);
+        }
     }
 }

@@ -3,7 +3,9 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
@@ -19,9 +21,11 @@ class OrgDirectoryService implements OrgDirectory {
     private final OrgSnapshotQueries snapshots;
     private final RegisterEmployeeOnLogin registerOnLogin;
     private final RegisterEmployeeOnLoginName registerOnLoginName;
+    private final SnapshotFreshness freshness;
 
     OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
-                        RegisterEmployeeOnLoginName registerOnLoginName) {
+                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness) {
+        this.freshness = freshness;
         this.snapshots = snapshots;
         this.registerOnLogin = registerOnLogin;
         this.registerOnLoginName = registerOnLoginName;
@@ -33,14 +37,32 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId) {
-        return snapshots.findStaffByWecomUserId(wecomUserId)
+    public Optional<EmployeeProfile> findEmployeeByLogin(LoginLookup lookup) {
+        return switch (lookup) {
+            case LoginLookup.ByWecomUser wecom -> findEmployeeByWecomUser(wecom.wecomUserId());
+            case LoginLookup.ByLoginName login -> findEmployeeByLoginName(login.loginName());
+        };
+    }
+
+    @Override
+    public EmploymentVerdict employmentOf(EmployeeId employeeId) {
+        Optional<StaffEmployee> staff = snapshots.findStaff(employeeId);
+        if (staff.isPresent() && staff.get().employee().employmentStatus() != EmploymentStatus.EMPLOYED) {
+            return EmploymentVerdict.SEPARATED;
+        }
+        if (!freshness.isCurrent()) {
+            return EmploymentVerdict.SNAPSHOT_UNAVAILABLE;
+        }
+        return staff.isPresent() ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.NOT_LISTED;
+    }
+
+    private Optional<EmployeeProfile> findEmployeeByWecomUser(WecomUserId wecomUserId) {
+        return snapshots.findStaffByWecomUser(wecomUserId)
                 .or(() -> registerOnLogin.execute(wecomUserId))
                 .map(OrgDirectoryService::profile);
     }
 
-    @Override
-    public Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
+    private Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
         if (loginName == null || loginName.isBlank()) {
             return Optional.empty();
         }

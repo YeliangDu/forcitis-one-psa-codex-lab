@@ -136,7 +136,7 @@ CREATE TABLE organization_workforce.sync_runs (
     employed_without_wecom_count   integer,
     held_reason                    text,
     failure_reason                 text,
-    released_by                    bigint,
+    released_by                    uuid,
     released_at                    timestamptz,
     released_by_run_id             uuid,
     created_at                     timestamptz NOT NULL DEFAULT now(),
@@ -168,7 +168,7 @@ COMMENT ON COLUMN organization_workforce.sync_runs.issue_count IS '数据例外�
 COMMENT ON COLUMN organization_workforce.sync_runs.employed_without_wecom_count IS '在职但无企业微信 userid 的人数（数据质量，RULE-374）';
 COMMENT ON COLUMN organization_workforce.sync_runs.held_reason IS '中止原因（缩水保护）';
 COMMENT ON COLUMN organization_workforce.sync_runs.failure_reason IS '失败原因';
-COMMENT ON COLUMN organization_workforce.sync_runs.released_by IS '放行人（员工 ID）';
+COMMENT ON COLUMN organization_workforce.sync_runs.released_by IS '放行人（用户 ID）';
 COMMENT ON COLUMN organization_workforce.sync_runs.released_at IS '放行时间';
 COMMENT ON COLUMN organization_workforce.sync_runs.released_by_run_id IS '放行后实际执行的同步记录';
 COMMENT ON COLUMN organization_workforce.sync_runs.created_at IS '创建时间';
@@ -396,7 +396,7 @@ CREATE TABLE organization_workforce.legal_entity_attribution_corrections (
     previous_effective_to_date   date        NOT NULL,
     new_effective_to_date        date        NOT NULL,
     correction_reason            text        NOT NULL,
-    corrected_by_user_id         bigint      NOT NULL,
+    corrected_by_user_id         uuid        NOT NULL,
     created_at                   timestamptz NOT NULL DEFAULT now(),
     updated_at                   timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_legal_entity_attribution_corrections PRIMARY KEY (correction_id),
@@ -415,7 +415,7 @@ COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.pe
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.previous_effective_to_date IS '更正前的结束日（不含）';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.new_effective_to_date IS '更正后的结束日（不含）';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.correction_reason IS '更正原因：操作人填写，不得为空';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.corrected_by_user_id IS '操作人 ID：来自登录会话';
+COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.corrected_by_user_id IS '操作人用户 ID：来自登录会话';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.updated_at IS '更新时间（行不可更新，恒等于创建时间）';
 

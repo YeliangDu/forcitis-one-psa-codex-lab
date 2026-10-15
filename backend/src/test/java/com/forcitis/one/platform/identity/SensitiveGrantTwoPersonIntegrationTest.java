@@ -19,7 +19,7 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
 
     private MvcResult replaceRoles(String session, long target, String... roleCodes) throws Exception {
         String codes = String.join("\",\"", roleCodes);
-        return mvc.perform(post("/api/v1/platform/user-accounts/" + target + ":replace-roles").header("If-Match", accountVersion(target)).with(xsrf()).cookie(new Cookie("SESSION", session))
+        return mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(target) + ":replace-roles").header("If-Match", accountVersion(target)).with(xsrf()).cookie(new Cookie("SESSION", session))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"" + codes + "\"]}")).andReturn();
     }
 
@@ -38,7 +38,7 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
     }
 
     private boolean holds(long user, String roleCode) {
-        return jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where ar.user_id = :u and r.code = :c")
+        return jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :u) and r.code = :c")
                 .param("u", user).param("c", roleCode).query(Long.class).single() == 1;
     }
 

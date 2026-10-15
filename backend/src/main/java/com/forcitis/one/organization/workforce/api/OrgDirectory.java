@@ -1,18 +1,17 @@
 package com.forcitis.one.organization.workforce.api;
 
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.kernel.WecomUserId;
 import java.util.List;
 import java.util.Optional;
 
 public interface OrgDirectory {
     Optional<EmployeeProfile> findEmployee(EmployeeId employeeId);
 
-    /** Falls back to a single-person source lookup when the id is unknown. */
-    Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId);
-
     /** Falls back to a single-person source lookup when unknown; empty when nobody is found or the source is unavailable. */
-    Optional<EmployeeProfile> findEmployeeByLoginName(String loginName);
+    Optional<EmployeeProfile> findEmployeeByLogin(LoginLookup lookup);
+
+    /** What the snapshot can say about the employment of one employee, and whether it can be trusted to say it. */
+    EmploymentVerdict employmentOf(EmployeeId employeeId);
 
     /** Empty when none or not employed. */
     Optional<EmployeeId> findSupervisor(EmployeeId employeeId);

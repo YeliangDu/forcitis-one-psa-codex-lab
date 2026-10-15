@@ -1,5 +1,6 @@
 package com.forcitis.one.cost.timesheet;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -18,7 +19,7 @@ class TimesheetEntryClosedIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("D-1a-107 Phase 1a exposes no timesheet entry: submit, withdraw, cancel and read do not exist over HTTP, whatever permission the caller holds")
     void noTimesheetEndpointIsExposed() throws Exception {
-        var holder = user("1").authorities(() -> Permission.Codes.TIMESHEET_SUBMIT, () -> Permission.Codes.TIMESHEET_APPROVE);
+        var holder = user(TestAccounts.account(1).value().toString()).authorities(() -> Permission.Codes.TIMESHEET_SUBMIT, () -> Permission.Codes.TIMESHEET_APPROVE);
         String body = "{\"workDate\":\"2026-10-13\",\"hours\":8,\"projectManagerId\":2,\"reason\":\"x\"}";
         List<Integer> statuses = List.of(
                 mvc.perform(post("/api/v1/cost/timesheets/1:submit").with(csrf()).with(holder).contentType(MediaType.APPLICATION_JSON).content(body))

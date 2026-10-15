@@ -1,9 +1,7 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.domain.Resolution;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.function.Function;
 import org.flowable.bpmn.model.UserTask;
 import org.flowable.engine.delegate.DelegateExecution;
@@ -28,6 +26,6 @@ class ApproverResolution implements Function<DelegateExecution, Collection<Strin
         if (resolution.namedApproverInvalid()) {
             execution.setVariable(FlowableApprovalEngine.VARIABLE_APPROVER_INVALID, Boolean.TRUE);
         }
-        return resolution.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).map(id -> String.valueOf(id.value())).toList();
+        return resolution.candidates().stream().sorted(EngineUserIds.ORDER).map(EngineUserIds::text).toList();
     }
 }
