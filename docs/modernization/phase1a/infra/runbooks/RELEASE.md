@@ -73,7 +73,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 
 ## 3. 部署（`deploy`）
 
-只能在 main 上手动运行，输入环境（dev / prod）、版本；prod 另须在 `confirm` 再输一次版本。
+只能在 main 上手动运行，输入环境（dev / prod）、版本；prod 另须在 `confirm` 再输一次版本。**部署一律从 main 触发 `deploy.yml`，以 `version` 输入选择发布包**；`v*` 标签只用于发布（`release.yml` 打标签、`gh release download` 寻址），不用于触发部署。从标签触发的运行：`gate` 与 `deploy` 两个作业的 `if: github.ref == 'refs/heads/main'` 不执行；即使改了标签所指提交里的 deploy.yml，OIDC 令牌的 `job_workflow_ref` 为 `…@refs/tags/…`，与 §8.2 信任条件不符，STS 拒绝（失败关闭）。
 
 1. `gate` 作业（`forcitis-one` runner，不进 environment，失败不必等审批）：版本格式；prod 的确认；`deploy_gate.py`：
    - `docs/modernization/status/blockers/` 中任一条目含 `` `blocks: deploy` `` 标记 → 失败。阻塞片段是单行（`build_records.py` 的格式），标记写在行内而非 front-matter。修复批合并后由调度会话删除该条目或标记。
@@ -163,7 +163,16 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 | `DEV_VITE_SSO_PORTAL_URL`、`PROD_VITE_SSO_PORTAL_URL` | 致远门户地址（B-3） |
 | `DEV_TARO_APP_WECOM_CORP_ID`、`PROD_TARO_APP_WECOM_CORP_ID` | H5 的企业 ID |
 
-任一为空，`build.sh` 失败（不静默构建出不能登录的包）。不放在 GitHub environment 里的原因：一个作业只能绑定一个 environment，且绑定 `prod` 会触发 prod 的审批与部署记录，发布时同时构建两个环境做不到。长期做法是前端改为一次构建、运行时读取配置（例如 nginx 提供的 `/config.json`），届时这些变量移到 `one.env`，发布包只含一份静态资源（给 1a 的建议）。
+任一为空，`build.sh` 失败（不静默构建出不能登录的包）。
+
+现值（2026-10-15 写入仓库级变量并回读；release.yml 的 build 作业不绑定 environment，只读仓库级变量）：
+
+| 变量 | 值 | 出处 |
+|---|---|---|
+| `DEV_VITE_WECOM_CORP_ID`、`DEV_TARO_APP_WECOM_CORP_ID` | `wwadff8d21724e2e3e` | B-2 新自建应用的企业 ID（与 ECS `one.env` 的 `WECOM_CORP_ID` 相同） |
+| `DEV_VITE_WECOM_AGENT_ID` | `1000142` | B-2 新自建应用「FORCITIS one」（与 `one.env` 的 `WECOM_AGENT_ID` 相同） |
+| `DEV_VITE_SSO_PORTAL_URL` | `https://bpm.forcitis.com/seeyon/` | **临时**：A8 根地址（登录后进门户）。**待替换**：B-3 回传 A8 门户中新入口所在页面的地址后替换并重新发布 |
+| `PROD_*` 四个 | 与 `DEV_*` 相同 | **待替换**：`build.sh` 每次构建 dev 与 prod 两份，`PROD_*` 必填；生产前确认 prod 是否用同一企业、同一自建应用与门户地址，不同则替换后重新发布（prod 部署另受 D 节出口条件与批准行约束） |不放在 GitHub environment 里的原因：一个作业只能绑定一个 environment，且绑定 `prod` 会触发 prod 的审批与部署记录，发布时同时构建两个环境做不到。长期做法是前端改为一次构建、运行时读取配置（例如 nginx 提供的 `/config.json`），届时这些变量移到 `one.env`，发布包只含一份静态资源（给 1a 的建议）。
 
 ## 7. 一次性步骤（用户或运维执行，执行前确认）
 
@@ -206,13 +215,13 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 | # | 步骤 | 位置 / 做法 |
 |---|---|---|
-| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 **✅ 2026-10-15**：三个 environment 已建，部署分支策略均只有 `main`。 **补充（2026-10-15）**：dev、prod 另加标签部署策略 `v*`（deployment 的 ref 是标签 `v<版本>`，只允许 `main` 时可能被拒；用户「允许，首次部署前加上 (Recommended)」）；回读：release=main，dev / prod=main + v*（tag）。（OIDC 方案起 deploy 作业不再建以标签为 `ref` 的部署记录，`v*` 策略保留无害。） | 仓库 Settings → Environments |
+| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 **✅ 2026-10-15**：三个 environment 已建，部署分支策略均只有 `main`。 **补充（2026-10-15）**：dev、prod 另加标签部署策略 `v*`（deployment 的 ref 是标签 `v<版本>`，只允许 `main` 时可能被拒；用户「允许，首次部署前加上 (Recommended)」）；回读：release=main，dev / prod=main + v*（tag）。**撤销（2026-10-15）**：OIDC 方案起 deploy 作业不再建以标签为 `ref` 的部署记录，`v*` 策略已无用处（从标签触发的部署被 `gate` 的 `if` 与 §8.2 信任条件两道拒绝，见 §3），只多允许标签触发的运行进入 dev / prod environment；用户「撤掉，只留 main (Recommended)」，已删 dev、prod 的 `v*`（tag）策略，回读：release、dev、prod 均只有 `main`。 | 仓库 Settings → Environments |
 | R-2 | 仓库级 Actions variables：§6 的 8 个构建期变量（B-2、B-3 完成后填） | Settings → Secrets and variables → Actions → Variables |
 | R-3 | ~~OSS bucket~~ **不再需要**：发布包改由 ECS 自取 GitHub Release（§8，用户「先测 GitHub 直拉，可行就用 (Recommended)」），不建发布用 bucket；B-13 归档 bucket 与此无关 | — |
-| R-4 | **OIDC 身份提供商 + RAM 角色（运维执行，经用户确认；不建 RAM 用户、不生成 AccessKey）**：① GitHub 仓库 OIDC `sub` 定制：`PUT /repos/FORCITIS/forcitis-one-psa/actions/oidc/customization/sub`，`{"use_default": false, "include_claim_keys": ["repo", "context", "job_workflow_ref"]}`，回读 `GET` 同路径；② 阿里云 IMS `CreateOIDCProvider`：`IssuerUrl=https://token.actions.githubusercontent.com`、`ClientIds=sts.aliyuncs.com`、`Fingerprints`（运维创建时从该地址的证书链现场取得并核对）、名称 `github-actions`；③ RAM `CreateRole`（每环境一个，如 `forcitis-one-deploy-dev`，`MaxSessionDuration=3600`，信任策略见 §8.2）；④ RAM `CreatePolicy`（§8.2 的部署策略 `forcitis-one-deploy-dev`：五个请求参数只有 `oos:UpdateParameter`、结果参数只有 `oos:GetParameter`，**没有任何 ECS 接口**）+ `AttachPolicyToRole`；⑤ RAM `CreatePolicy`（§8.2 的拉取策略 `forcitis-one-deploy-pull`：五个请求参数只有 `oos:GetParameter`、结果参数只有 `oos:UpdateParameter`）+ `AttachPolicyToRole`（附到 ECS 现有实例角色 `forcitis-one-ecs-archive`；**不新建、不改名、不重绑实例角色**：一台 ECS 只能绑一个实例角色。该实例角色承载归档写入与部署请求拉取两份最小策略）；⑥ 回读：`GetRole`、`ListPoliciesForRole`（两个角色）、`GetOIDCProvider`、`GetPolicyVersion` | 阿里云 RAM / IMS OpenAPI；GitHub REST |
+| R-4 | **OIDC 身份提供商 + RAM 角色（运维执行，经用户确认；不建 RAM 用户、不生成 AccessKey）**：① GitHub 仓库 OIDC `sub` 定制：`PUT /repos/FORCITIS/forcitis-one-psa/actions/oidc/customization/sub`，`{"use_default": false, "include_claim_keys": ["repo", "context", "job_workflow_ref"], "use_immutable_subject": true}`，回读 `GET` 同路径（2026-10-15 已执行，回读 `sub_claim_prefix` 为 `repo:FORCITIS@282818954/forcitis-one-psa@1418536044`）；② 阿里云 IMS `CreateOIDCProvider`：`IssuerUrl=https://token.actions.githubusercontent.com`、`ClientIds=sts.aliyuncs.com`、`Fingerprints`（运维创建时从该地址的证书链现场取得并核对；登记链上的 CA 证书，不登记叶子证书，见 §10）、名称 `github-actions`（2026-10-15 已执行，`acs:ram::1980847222980247:oidc-provider/github-actions`）；③ RAM `CreateRole`（每环境一个，如 `forcitis-one-deploy-dev`，`MaxSessionDuration=3600`，信任策略见 §8.2；dev 2026-10-15 已执行，`acs:ram::1980847222980247:role/forcitis-one-deploy-dev`，回读信任策略逐字一致）；④ RAM `CreatePolicy`（§8.2 的部署策略 `forcitis-one-deploy-dev`：五个请求参数只有 `oos:UpdateParameter`、结果参数只有 `oos:GetParameter`，**没有任何 ECS 接口**）+ `AttachPolicyToRole`（dev 2026-10-15 已执行，回读 v1 逐字一致，角色上只此一份）；⑤ RAM `CreatePolicy`（§8.2 的拉取策略 `forcitis-one-deploy-pull`：五个请求参数只有 `oos:GetParameter`、结果参数只有 `oos:UpdateParameter`）+ `AttachPolicyToRole`（附到 ECS 现有实例角色 `forcitis-one-ecs-archive`；**不新建、不改名、不重绑实例角色**：一台 ECS 只能绑一个实例角色。该实例角色承载归档写入与部署请求拉取两份最小策略；dev 2026-10-15 已执行，回读 v1 逐字一致，实例角色上恰为 `forcitis-one-archive-writer` 与本策略两份，实例绑定不变）；⑥ 回读：`GetRole`、`ListPoliciesForRole`（两个角色）、`GetOIDCProvider`、`GetPolicyVersion` | 阿里云 RAM / IMS OpenAPI；GitHub REST |
 | R-5 | 每个 environment 的 secrets：**dev / prod 不需要任何阿里云 secret**（凭据由 OIDC 临时换取）；只剩 environment `release` 的 `RELEASE_SIGNING_KEY`（R-12）。SSH 触发方式已删除，`DEPLOY_SSH_KEY`、`DEPLOY_KNOWN_HOSTS` 不再使用 | Environments |
-| R-6 | 每个 environment 的 variables（运维以 `gh api` 写入并回读；都不是机密）：`ALIBABA_CLOUD_ROLE_ARN`（R-4 ③ 的角色 ARN）、`ALIBABA_CLOUD_OIDC_PROVIDER_ARN`（R-4 ②）、`ECS_REGION=cn-hangzhou`（OOS 参数所在地域）。拉取模式下部署作业不再知道实例与命令：原 `ECS_INSTANCE_ID`、`ECS_COMMAND_ID`（以及 `DEPLOY_TRIGGER`、`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_PORT`、`OSS_*`）不再使用，已建的删除；dev 的 ECS 为 `i-bp122xlpar8w2uylmal2`，prod 的 ECS（待建）只出现在 prod 的策略与 R-7 中；企业微信校验文件名在 ECS 本机 `release-source` 的 `WECOM_VERIFY_FILE` | Environments → dev / prod |
-| R-7 | ECS（运维经云助手，root）：C-4 E-3、E-5、E-9、E-10 的新做法；安装器、签名公钥、`release-source`（`ENVIRONMENT`、可选 `WECOM_VERIFY_FILE`）、拉取定时器与服务（`forcitis-one-release-pull.timer` / `.service`，下方命令块）、OOS 请求参数五个与结果参数一个（下方表格，运维一次性预建）；已按旧做法装过令牌文件与令牌检查的 ECS 先按下方「卸载」清理。ECS 上不需要 aliyun CLI 或任何 GitHub 令牌；读写参数用现有实例角色（R-4 ⑤），ECS 出方向须能访问 `oos.cn-hangzhou.aliyuncs.com:443`（E-14 白名单若按域名限制，须加上）；告警经已装的 `/usr/local/sbin/one_alert_send`。不建云助手命令 | ECS；OOS OpenAPI |
+| R-6 | 每个 environment 的 variables（运维以 `gh api` 写入并回读；都不是机密）：`ALIBABA_CLOUD_ROLE_ARN`（R-4 ③ 的角色 ARN）、`ALIBABA_CLOUD_OIDC_PROVIDER_ARN`（R-4 ②）、`ECS_REGION=cn-hangzhou`（OOS 参数所在地域）。拉取模式下部署作业不再知道实例与命令：原 `ECS_INSTANCE_ID`、`ECS_COMMAND_ID`（以及 `DEPLOY_TRIGGER`、`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_PORT`、`OSS_*`）不再使用，已建的删除；dev 的 ECS 为 `i-bp122xlpar8w2uylmal2`，prod 的 ECS（待建）只出现在 prod 的策略与 R-7 中；企业微信校验文件名在 ECS 本机 `release-source` 的 `WECOM_VERIFY_FILE` **✅ dev 2026-10-15**：三个变量已写入并回读；仓库级与 dev / prod / release 都没有 `ECS_INSTANCE_ID`、`ECS_COMMAND_ID`；prod 待 prod ECS 建好后写。 | Environments → dev / prod |
+| R-7 | ECS（运维经云助手，root）：C-4 E-3、E-5、E-9、E-10 的新做法；安装器、签名公钥、`release-source`（`ENVIRONMENT`、可选 `WECOM_VERIFY_FILE`）、拉取定时器与服务（`forcitis-one-release-pull.timer` / `.service`，下方命令块）、OOS 请求参数五个与结果参数一个（下方表格，运维一次性预建）；已按旧做法装过令牌文件与令牌检查的 ECS 先按下方「卸载」清理。ECS 上不需要 aliyun CLI 或任何 GitHub 令牌；读写参数用现有实例角色（R-4 ⑤），ECS 出方向须能访问 `oos.cn-hangzhou.aliyuncs.com:443`（E-14 白名单若按域名限制，须加上）；告警经已装的 `/usr/local/sbin/one_alert_send`。不建云助手命令 **✅ dev 2026-10-15**（云助手 t-hz07039tq9kcpvk）：首次安装的安装器与拉取单元取自 main `7f04d6f5`（发布包尚未构建；ECS 上 `sha256sum -c` 核对后安装，安装器 SHA256 `122af6a5…2c76`），**此后一律以签名发布包 `deploy/` 中的文件为准**（不一致时按下方「安装器更新」替换）；`release-signers` 与 `allowed_signers` 公钥行一致；旧令牌文件与检查单元已删，`release-source` 去掉 `GITHUB_REPOSITORY`；定时器已启用，首轮拉取 Result=success、无告警（读到占位 `{}` 静默结束，元数据加固流程、实例角色与 OOS 读取均通）。 | ECS；OOS OpenAPI |
 | R-8 | 标签保护：Rules → Rulesets 新建标签规则 `v*`，限制创建、更新、删除（仅管理员与 release 工作流） **✅ 2026-10-15（偏差）**：仓库级规则不允许把 GitHub Actions 设为例外（须组织级规则），若限制创建，release 工作流打不了新标签；因此规则「release tags v*」只限制**更新与删除**（例外：仓库管理员），不限制创建。残余：有写权限者可新建 `v*` 标签，但产生不了签名的发布声明，部署验签不过。 | Settings → Rules |
 | R-9 | 启用 immutable releases（本仓库 API 返回 `enabled:false`：功能存在、未启用；只对启用后的新 Release 生效）；确认 Actions 允许工作流声明 `contents: write`，且允许使用 GitHub 托管 runner 运行 `publish`（Team 计划含托管分钟数） **✅ 2026-10-15**：immutable releases 已启用；Actions 允许全部、默认令牌只读（工作流按需声明 `contents: write`）、托管 runner 可用。 | Settings → General（Releases）/ Actions |
 | R-10 | 首次部署前 `/etc/forcitis-one/one.env` 补 `SPRING_FLYWAY_ENABLED=false`；按 §4 在 `/etc/forcitis-one/migrate/` 放迁移凭据文件（首次另加 Flowable 安装项） | ECS |
@@ -372,7 +381,7 @@ OOS 参数（运维一次性预建，`CreateParameter`，类型 `String`，地�
         "StringEquals": {
           "oidc:iss": "https://token.actions.githubusercontent.com",
           "oidc:aud": "sts.aliyuncs.com",
-          "oidc:sub": "repo:FORCITIS/forcitis-one-psa:environment:dev:job_workflow_ref:FORCITIS/forcitis-one-psa/.github/workflows/deploy.yml@refs/heads/main"
+          "oidc:sub": "repo:FORCITIS@282818954/forcitis-one-psa@1418536044:environment:dev:job_workflow_ref:FORCITIS/forcitis-one-psa/.github/workflows/deploy.yml@refs/heads/main"
         }
       }
     }
@@ -380,7 +389,7 @@ OOS 参数（运维一次性预建，`CreateParameter`，类型 `String`，地�
 }
 ```
 
-`oidc:sub` 的这一形式依赖 R-4 ① 的仓库 `sub` 定制（`repo`、`context`、`job_workflow_ref`）：`context` 对绑定 environment 的作业是 `environment:<名称>`，`job_workflow_ref` 把工作流文件与分支一并钉住。定制前 GitHub 发出的默认 `sub` 为 `repo:FORCITIS/forcitis-one-psa:environment:dev`，与条件不符，STS 拒绝——失败关闭。用 `StringEquals` 精确匹配，不用通配。
+`oidc:sub` 的这一形式依赖 R-4 ① 的仓库 `sub` 定制（`repo`、`context`、`job_workflow_ref`，保留不可变 sub）：`repo` 段带组织与仓库的数字 ID（`FORCITIS@282818954/forcitis-one-psa@1418536044`，回读的 `sub_claim_prefix`），仓库改名或转移后不会被同名仓库冒用；`context` 对绑定 environment 的作业是 `environment:<名称>`，`job_workflow_ref` 把工作流文件与分支一并钉住。`job_workflow_ref` 段在不可变模式下是否也带 ID，官方文档未写明，首次真实换 STS 凭据时核对实际 `sub`，不符则按实际值改信任策略（仍精确匹配）。定制前 GitHub 发出的默认 `sub` 与条件不符，STS 拒绝——失败关闭。用 `StringEquals` 精确匹配，不用通配。
 
 ### 8.3 GitHub 直拉的链路（杭州 ECS）
 
@@ -420,6 +429,7 @@ prod 的部署还要求：正式版本（非 `-rc`）、清单 D 节全部 ✅�
 - **OOS 参数值上限 4096 字符**（官方文档）：一个签名地址实测约 930 字符，因此每个地址各占一个参数，请求 JSON 约 470 字符；`ship.sh` 与安装器都拒绝超过 4096 字符的值。GitHub 若把签名地址加长到超过 4096，部署失败关闭（`ship.sh` 报「signed link has N characters」），届时再定方案。真实上限在 R-11 ② 验证。
 - **请求参数不是原子写入**：五个参数逐个写，安装器可能读到一次运行的请求配另一次运行的地址（deploy.yml 的 `concurrency: deploy-<环境>` 只让运行排队，前一次运行超时或被取消时仍可能交错；拉取定时器也可能恰在写入途中读取；运维手工改写参数也会造成）。防护：请求带 `request_id` 与四个地址值的 SHA-256，安装器在防重放记录与下载之前逐个核对，不符即拒绝并发 P2 告警。不只靠验签兜底：错配的地址也可能指向另一个已签名的版本，验签会通过、版本核对才拦住；哈希核对让错配在下载前就被认出并告警。这类拒绝**不消耗**防重放记录：混搭是写入竞态，不是重放，记下它反而会让修正后的同一请求无法再发。
 - `remote_install.sh`、`ship.sh`、`toolchain.sh` 依赖 Linux / 阿里云接口 / GitHub API / 网络下载，本机只做了语法、静态检查与可本地运行部分的验证（请求校验、下载、验签与版本核对由 `install_request_test.sh` 以本地签名的测试附件覆盖）；`ship_test.sh` 以替身 gh / curl / aliyun 覆盖 Location 解析、STS 应答解析、屏蔽、参数写入与结果轮询，`install_request_test.sh` 以本机替身服务覆盖元数据加固模式、OOS 签名（另以阿里云 SDK 文档的 RPC 签名示例做已知答案测试）、读写参数、静默跳过、告警限频与单实例；真实的 `AssumeRoleWithOIDC`、`UpdateParameter`、`GetParameter`、systemd 定时器与附件 API 的 302 应答在 R-11 与首次 dev 部署时验证。迁移以 `Started OneApplication` 判定是在 migrate profile 合入前的过渡做法（§4）。
+- **OIDC 签发方的证书链会变**：阿里云 OIDC 身份提供商按登记的 CA 证书指纹（至多 5 个）核对 `token.actions.githubusercontent.com` 的证书链。2026-10-15 登记的是当时链上的三张 CA：Let's Encrypt YR2（中间，2028-09 到期）`2D74D6DF…DC37`、Root YR（交叉签名，2032-09）`AB9D0263…E998`、ISRG Root X1（自签根，2035-06）`CABD2A79…A5E8`；叶子证书约 90 天一换，不登记。GitHub 以前用过 DigiCert 链，以后也可能再换。链上没有一张对得上时 STS 拒绝换凭据（失败关闭，部署失败、不会放错身份进来）。处置：运维在运维机 `openssl s_client -connect token.actions.githubusercontent.com:443 -showcerts` 取当前链，逐张算 SHA-1 指纹（根证书再与操作系统根证书库核对），`UpdateOIDCProvider` 增补（保留仍有效的旧指纹，总数不超过 5），`GetOIDCProvider` 回读后重新运行 deploy；变更报 one-coordinator 并记入本节。
 - GitHub 直拉的白天速度未测（§8.3），首次部署时补测。
 - 前端按环境各构建一份，同一版本 dev 与 prod 的静态文件不是同一份产物（§6）。
 
