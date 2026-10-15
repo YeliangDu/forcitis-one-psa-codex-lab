@@ -49,6 +49,12 @@
 - 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
+- 23:25 现状（以此为准）：
+  - 合并改「文档合集」：纯文档 PR 不再逐个入队，由调度合成 `claude/one-coordinator-docs-train-N` 一个 PR 跑一次 CI 合入（用户采纳 PR 策略三条，intent 本日 PR 策略）；代码 PR 仍串行入队。合集 1 含 #233 #225 #229 #238 #244 #245 #247 #255 #249 #253 #256 #257 #261 #224 #258 #259；#252（one-ops，PREDEPLOY C-4..C-6 行冲突）退回作者。
+  - 代码队列：226 234 236 243 246 251 260。文档 PR 只跑轻量 CI（跳过前后端重步骤）派 one-quality（改 ci.yml，守护单列，opus 复审）。
+  - 用户决定：Docker Desktop 不买（intent 本日）；CI 搬 Linux / 试用机未答；Colima 试点在 mac-one-4（one-quality，样本够后出对比表）。
+  - P4 卡 D-4：one-architecture 判定属 ADR-0033 分阶段落地，收件人列由 DA-10 必补（F-1 后、基线关闭前）；DA-10 排期记此。
+  - C-14 (f)：opus 复审两个 High——H-1 msdb 直接授权与嵌套不设防（调度定补检查）、H-2 SQLAgent 角色固有能力（交用户知情确认，写入 ADR-0037 第 4 项 (f)）。
 - 22:40 /clear 前现状（以此为准，较早条目可能过时）：
   - 合并队列：Monitor「合并队列」需重设；队列文件见「合并」节；mq_run2.sh 在跑；merge_pr.sh 已改为等待期间持续取消他人 CI（新版本是新 inode）。
   - 会话：one-1a-next-4（opus，接 next-3）、one-1a-par、one-ops、one-glossary、one-glossary-b1、one-rules、one-quality（以上 sonnet）、one-architecture（opus）。模型策略见 SESSION_PLAYBOOK §5（#253）。
