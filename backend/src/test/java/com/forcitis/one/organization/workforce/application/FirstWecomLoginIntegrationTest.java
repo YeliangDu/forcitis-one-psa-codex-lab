@@ -10,6 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.kernel.event.ActorType;
@@ -42,6 +44,9 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
     ApplicationEvents events;
 
+    @Autowired
+    AccountEmployees accountEmployees;
+
     private static MockHttpServletRequestBuilder withXsrf(MockHttpServletRequestBuilder request) {
         return request.cookie(new Cookie("XSRF-TOKEN", "test-xsrf-token")).header("X-XSRF-TOKEN", "test-xsrf-token");
     }
@@ -66,7 +71,7 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
 
         assertThat(login.getResponse().getStatus()).as(login.getResponse().getContentAsString()).isEqualTo(200);
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = 3001").query(Integer.class).single()).isEqualTo(1);
-        assertThat(jdbc.sql("select count(*) from platform_identity.user_accounts where employee_id = 3001").query(Integer.class).single()).isEqualTo(1);
+        assertThat(accountEmployees.accountOf(new EmployeeId(3001))).as("the account is opened").isPresent();
         assertThat(events.stream(EmployeeRegistered.class).map(EmployeeRegistered::envelope)).singleElement().satisfies(envelope -> {
             assertThat(envelope.actorType()).isEqualTo(ActorType.SYSTEM);
             assertThat(envelope.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.login-registration").toString());
