@@ -71,6 +71,20 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 
 另有技术词 2 个（`common_words`），不在表中。
 
+## `finance-decisions.yaml`
+
+涉及模块：`expense.spend`、`operations.policy`、`receivables.collection`。
+
+财务口径决策单（docs/modernization/r0/FINANCE_DECISIONS.md，2026-10-15）中出现、词表未收的会计与经营用语。
+
+会计类提议术语须经财务口径确认（ADR-0018）；「产值收入」是方言，登记在正式用语「权责收入」下。
+
+| id | zh | en | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|
+| `accrual_revenue` | 权责收入 | AccrualRevenue | 权责口径账簿按客户确认（收入确认单）确认的营业收入（不含税）；与收付口径账簿按开票确认的收入相对，经营分析以此为收入主口径 | 「产值收入」方言·已禁用 | 收付口径账簿的收入在开票时确认，叫法见「开票」词条的别名「开票收入」；指标含税口径见决策单 FD-14 |
+| `information_service_fee` | 信息服务费 | InformationServiceFee | 公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；性质（转付成本、合同取得成本或销售费用）待向财务核实，决定其在净收入还是贡献毛利中扣减 |  | 决策单 FD-41、F-06；A8 流程「信息服务费备案申请」（OA_PROCESS_INVENTORY 第 81 行） |
+| `debt_settlement_asset` | 抵债资产 | DebtSettlementAsset | 客户以房产、车位、卡券等非现金资产清偿所欠款项时，公司取得控制权后按放弃债权的公允价值确认的资产；取得控制权前仍为对客户的应收款 | 「工抵资产」待定；「工抵」待定 | 「工抵」为工程行业「工程款抵房」的简称，是否作为正式用语待用语确认；回款计入时点见决策单 FD-40，专项台账见用户 A6 |
+
 ## `fix-b.yaml`
 
 涉及模块：`organization.workforce`、`platform.approval`、`platform.identity`、`platform.integration`、`platform.numbering`、`platform.web`。

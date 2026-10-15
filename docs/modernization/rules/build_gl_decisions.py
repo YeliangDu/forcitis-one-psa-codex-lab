@@ -23,7 +23,7 @@ out += ["", "## 结论", "", "| 编号 | 事项 | 状态 | 作答 | 结论 | 相
 for k, x in dec.items():
     ans = x["answer"] + (f"（推荐：{x['recommended']}）" if x.get("recommended") else "")
     out.append(f"| {k} | {x['title']} | {V[x['verdict']]} | {ans} | {x['decision']} | {'、'.join(x.get('rules', []))} |")
-out += ["", "## 待财务清单", "", "财务通过《财务确认单》第 2 版（`../r0/FINANCE_CONFIRM.html`，离线打开、不需登录，题目来自 `../r0/FINANCE_QUESTIONS.md`）作答，交回的答复文件用 `python3 ../r0/import_finance_answers.py <答复文件>` 按来源写回并重新生成。", ""]
+out += ["", "## 待财务清单", "", "财务通过《财务确认单》第 2、3 版（`../r0/FINANCE_CONFIRM.html`，题目来自 `../r0/FINANCE_QUESTIONS.md`）作答；第 2 版答复已由用户逐条处理（2026-10-15），各问题的「去向」写在其后：已定的写出处，未定的指向《财务口径决策单》（`../r0/FINANCE_DECISIONS.md`）的题号。", ""]
 i = 0
 for k, x in dec.items():
     fa = x.get("finance_answers", [])
@@ -31,7 +31,10 @@ for k, x in dec.items():
         i += 1
         a = fa[j] if j < len(fa) else None
         ans = f" — **财务答复**（{a['role'] or '未填岗位'}，{a['date']}）：{a['choice'] or ''}{'；' if a['choice'] and a['note'] else ''}{a['note']}" if a else ""
-        out.append(f"{i}. **{k}** {q}{ans}")
+        rs = x.get("resolution", [])
+        r = rs[j] if j < len(rs) else None
+        dest = f" — **去向**（{r['status']}，{r['at']}）：{r['text']}" + (f"（{r['ref']}）" if r.get("ref") else "") if r else ""
+        out.append(f"{i}. **{k}** {q}{ans}{dest}")
 out += ["", f"记录时间：{min(x['at'] for x in dec.values())[:10]}。", ""]
 (here / "GL_FINANCE_DECISIONS.md").write_text("\n".join(out))
 print(f"{len(dec)} decisions, {i} finance questions")
