@@ -168,6 +168,20 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: calendar_scope
+  zh: 日历适用范围
+  en: CalendarScope
+  snake: calendar_scope
+  kind: enum
+  bc: organization.attendance
+  definition: 工作日历适用的范围：默认日历或某个法人主体专属日历；默认日历不用空法人加哨兵值表示
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ADR-0033（提议）登记，待用语确认
 common_words:
 - maintain
 - maintained

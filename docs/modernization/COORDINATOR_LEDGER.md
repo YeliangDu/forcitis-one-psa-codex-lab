@@ -37,6 +37,7 @@
 | 本机 Mac | 自托管 runner mac-one-1..4（~/actions-runners/one-N，LaunchAgent，用户 yeliang）与 mac-one-deploy（/opt/forcitis-one-runner，LaunchDaemon，用户 forcitis-deploy，pre-job hook） | 长期 | one-coordinator / one-ops | — |
 | 本机 Mac | ~/.modernize/psa/infra/role_holders.md（人名，0600）、~/.modernize/psa/finance/FINANCE_CONFIRM_v3.html（0600） | 长期私有 | one-coordinator | — |
 | 阿里云 | SLS Project forcitis-one-observability（nginx、ops 180 天，app 与 metrics 30 天）、云监控 OS 指标、ECS 快照策略 forcitis-one-daily | 长期付费（约 40 元/月以内） | one-ops | — |
+| 阿里云 | RDS 实例 pgm-bp13vak0sew3m003 参数 log_parameter_max_length -1 → 0（2026-10-15，共享实例，it_portal 慢日志同样不再带参数值；回退改回 -1） | 长期配置 | one-ops | — |
 | SQL Server rm-bp1690ep53t9778dp | 新系统只读账号 one_a8_views_ro（a8_db）、psa_one_legacy_ro 与 one_legacy_names_ro（老系统库）改为库级只读加库级写 / DDL / EXECUTE DENY（2026-10-15；依据用户「新系统可以读任何旧系统数据」「两者都是」「修改权限」「全部可读，不排除」；回滚 B-5 read-all/*_rollback.sql；应用启动校验 I-1 待 ADR-0037 改） | 长期配置 | one-ops | — |
 | 阿里云 | OSS bucket forcitis-one-archive（杭州、归档、本地冗余、私有、SSE-OSS、仅 HTTPS；WORM 未锁，第一个写入方上线前重建并锁定）、RAM 策略 forcitis-one-archive-writer、RAM 角色 forcitis-one-ecs-archive（已绑定 ECS） | 长期 | one-ops | — |
 | GitHub（用户账号） | fine-grained 令牌 forcitis-one-release-dev-2026-10-15（FORCITIS 组织、仅 forcitis-one-psa、Actions / Contents / Deployments / Metadata 只读，到期 2027-01-13）——OIDC 方案的后备，未安装到任何位置；令牌值不经会话 | 后备 | 用户 | 首次 dev 部署经 OIDC 成功后由用户删除（one-coordinator 提醒） |
@@ -65,8 +66,6 @@
 - （2026-10-15 用户「需要我做的，都让ops 会话自己做」：R-4 改 OIDC、R-13 免除、云助手命令与 B-13 由 one-ops 做；ICP 与备案用户「已经完成所有备案」。下列旧条目以此为准。）
 - 用户待办（旧）：RDS 控制台查日志备份频率（RPO；查不到则平台约定改为「主机故障不丢、误操作恢复精度取决于日志备份」）；ICP 备案主体核验；建企业微信「FORCITIS one 运维」群与机器人（A-5，Webhook 经 one-ops 安全窗口）；R-0 部署 runner 重建（sudo）；R-1..R-12；建归档 OSS bucket（国内、归档存储、本地冗余、WORM 2557 天，B-11）与法兰克福发布 bucket；向 A8 方提 v_org_member 加离职日期列。
 - 发布流水线 U-1 / U-2 / U-3 / U-5：首次 prod 部署前定（建议接受 U-1、U-2、U-3；U-5 届时再定）。
-- 生产前维护窗口（用户定时间）：RDS SQL Server rm-bp1690ep53t9778dp 开 SSL 并强制校验；RDS PG 证书重签（私钥曾进 one-ops 会话记录）。
-- 老系统安全风险登记（用户「老系统先不管」）：SQL Server 公网白名单 0.0.0.0/0、psa-nacos 8848 对公司出口免登录可读生产库高权限口令、48088 对公网——这台 SQL Server 也承载新系统读 A8 的只读账号，1a 上线前须再请用户评估。
 - 部署前清单：A 类与 N-1..N-3 已决定（用户「A 类全部按建议」「其他人选先空着，N-2、N-3 也采纳」）；平台负责人为用户本人，其余人选待定（本机私有记录 `~/.modernize/psa/infra/role_holders.md`，不入仓库）——生产前须补齐第二名超管（运维）、安全审计员（不能是超管）、组织数据管理员、DBA。B 类只能用户或运维执行（先做 B-1 `/design-sync`、B-2 企业微信应用）；C 类执行前须确认，C-5 等运维命令实现。CI 无发布流水线（清单遗漏项）——待安排。
 - 财务：确认单 v2（`~/.modernize/psa/finance/FINANCE_CONFIRM_v2.html`，FQ-01..FQ-22 + 7 份 ADR），答复用 `r0/import_finance_answers.py` 导入；G1 开工前必须。FQ-18 需先跑 U8C 分类查询另行发送。
 - 用户：B1–B5 与经营问题清单（`~/.modernize/psa/bi-inputs/questions/`）；OAT 4 个文件在 ddd-theory 提交后改引提交号；确认单末尾「会计类新术语由财务逐条确认」是否保留（未答）。
