@@ -1,6 +1,6 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 22:10（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 22:40（one-coordinator，/clear 前）
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
@@ -49,6 +49,14 @@
 - 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
+- 22:40 /clear 前现状（以此为准，较早条目可能过时）：
+  - 合并队列：Monitor「合并队列」需重设；队列文件见「合并」节；mq_run2.sh 在跑；merge_pr.sh 已改为等待期间持续取消他人 CI（新版本是新 inode）。
+  - 会话：one-1a-next-4（opus，接 next-3）、one-1a-par、one-ops、one-glossary、one-glossary-b1、one-rules、one-quality（以上 sonnet）、one-architecture（opus）。模型策略见 SESSION_PLAYBOOK §5（#253）。
+  - dev 首次部署剩：C-14（(f) 纳入基线 + 本人拥有 Agent 作业数为 0，one-1a-par 改 ReadOnlyBaseline → 新 rc → 重跑第一步；#242 待 #238 合并后复核 → 探针 → 删 101）；C-19 白名单留 1 条（用户在 one-ops 会话答第几条或 userid，未答）；SLS 行动策略 one-alert-p1/p2 未查到（用户确认是否建在 SLS 主账号 1980847222980247 下）。
+  - 代码：#250（0a）→ P3b（next-4，H1 已修，合并时 one.env 老待办键改名同一 rc）→ P4（含 regionalHead 改名）→ P5 → F-1（one-1a-par，P5 后）。
+  - 待用户批：ADR-0043（分级两维度）、0044（0032 修订，Q1 撤并来源）、0045（FD-27 关账不重开）合一页（one-architecture 先发我过目）；C-6 回放差异页 https://claude.ai/artifact/Y7ogz8AWPmZdeuE4HCEGqL 未提交。
+  - 财务事实待外部：F-01..F-04、F-08 财务 / 税务复核，F-05 待财务（FINANCE_DECISIONS，#249）。
+  - 在途小项：C-6 DEFECT a/b 取证（one-ops，c6_defect_probe.py 先合并再用）；one-quality 小 PR 待 #243、#246 合并后开；C1 全量铺开排 P3b 后；ARCH-D5 写回在 #249。
 - 22:10 现状：常驻会话新增 one-rules、one-quality；one-1a-next-3 已交接给 one-1a-next-4。
 - dev 首次部署只剩：101（C-14：rc.3 → 正式账号核实 → (f)/(g) 定处理 → #242 → 探针）、C-19 可见范围与白名单（用户本人操作 / 告知 userid）、one.env 已改三键；090 改为白名单外开放前与生产前（intent 214650，#241）；人选 dev 全由用户兼任（215052）；B-3 dev 暂缓。
 - 代码：先保 dev（214511）——0a → P3b → P4 → P5 → F-1（P5 后，one-1a-par）；拆分 a/b、R-1b-0b、DA-3 生产前。P3b 合并时 one.env 老待办键改名同一 rc（ops）。
