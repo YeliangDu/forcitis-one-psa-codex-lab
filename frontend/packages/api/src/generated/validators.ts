@@ -377,7 +377,7 @@ export const ProblemDetailSchema = z.object({
 export const ProcessKeySchema = lenientEnum("ProcessKey", ["COST_TIMESHEET_APPROVAL"]).nullable();
 
 export const ReassignTaskRequestSchema = z.object({
-  assigneeId: z.number().int().optional(),
+  assigneeId: z.string().optional(),
   reason: z.string().optional(),
 });
 
@@ -539,7 +539,7 @@ export const TicketLoginRequestSchema = z.object({
 });
 
 export const TransferTaskRequestSchema = z.object({
-  assigneeId: z.number().int().optional(),
+  assigneeId: z.string().optional(),
   reason: z.string().optional(),
 });
 
