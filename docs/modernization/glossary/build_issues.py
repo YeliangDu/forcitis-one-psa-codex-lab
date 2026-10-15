@@ -26,8 +26,6 @@ SHEET_DAYS = 7
 KINDS = {"new": "新词", "dialect": "疑似方言", "conflict": "同名异义", "duplicate": "同义异名", "other": "其他"}
 STATES = ("已预判", "待用户", "已关闭")
 KEYS = ["词或现象", "出处", "使用范围", "bc", "类型", "登记会话", "状态"]
-# B1 之前登记的片段没有「使用范围」「bc」两行；片段只增不改，按旧格式照常读，两栏显示为空
-KEYS_V1 = ["词或现象", "出处", "类型", "登记会话", "状态"]
 SCOPES = ("domain", "kernel", "acl")
 TEMPLATE = "## 用语问题\n\n" + "".join(f"- {k}：{{{i}}}\n" for i, k in enumerate(KEYS))
 BCS = os.path.join(HERE, "bcs.yaml")
@@ -68,11 +66,8 @@ def parse_issue(text, file_name):
     m = FILE.fullmatch(file_name)
     if not m or file_name.endswith(".resolution.md"):
         raise IssueError(f"{file_name}：文件名须为 <日期>-<HHMMSS>-<会话名>-<短名>.md（用 new_term_issue.py 生成）")
-    v1 = len(text.rstrip("\n").split("\n")) == 2 + len(KEYS_V1)
-    item = keyed_lines(text, "## 用语问题", KEYS_V1 if v1 else KEYS, file_name)
-    if v1:
-        item.update(使用范围="", bc="")
-    elif item["使用范围"] not in SCOPES or item["bc"] not in bc_ids():
+    item = keyed_lines(text, "## 用语问题", KEYS, file_name)
+    if item["使用范围"] not in SCOPES or item["bc"] not in bc_ids():
         raise IssueError(f"{file_name}：使用范围须为 {'|'.join(SCOPES)}，bc 须在 glossary/bcs.yaml 中")
     for key in ("词或现象", "出处", "登记会话"):
         if not item[key]:
@@ -178,9 +173,6 @@ def self_test():
 
     name = "2026-10-15-120000-one-ops-OH工时.md"
     good = TEMPLATE.format("OH工时", "cost-timesheet.yaml:40", "domain", "cost.timesheet", "dialect", "one-ops", "待处理")
-    old = "## 用语问题\n\n" + "".join(f"- {k}：{v}\n" for k, v in zip(KEYS_V1, ("OH工时", "x.yaml:1", "dialect", "one-ops", "待处理")))
-    if load_issues({name: old})[0]["使用范围"] != "":
-        failures.append("旧格式片段（无使用范围、bc）应照常读取")
     rejects("使用范围取值", lambda: parse_issue(good.replace("- 使用范围：domain", "- 使用范围：领域"), name))
     rejects("bc 不在 bcs.yaml", lambda: parse_issue(good.replace("- bc：cost.timesheet", "- bc：cost.hours"), name))
     items = load_issues({name: good})

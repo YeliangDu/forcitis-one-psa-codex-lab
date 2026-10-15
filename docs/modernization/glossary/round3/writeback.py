@@ -7,6 +7,7 @@
 5. ACL 归类（apply_acl.plan()）：已答复的结果写进 acl/acl-classification.json（class、decision，组织同步 7 条另写 bc）；
    仍留在提议文件的条目写 scope（ACL 再写 acl_class），组织同步 7 条 bc 改为集成层，「领域·定义去外部名」的按答复改写定义。
 正式词条由 glossary/build_terms.py 的第三轮应用段生成，不在这里写。
+一次性执行（#212）；之后 B1 给待改名登记补了弃用字段 replaced_by / until / owner（glossary/term_rules.py），不要重跑覆盖。
 用法：python3 docs/modernization/glossary/round3/writeback.py"""
 import json, os, re, sys
 import yaml

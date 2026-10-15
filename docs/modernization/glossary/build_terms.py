@@ -707,17 +707,29 @@ print("acl: 写使用范围", _scoped, "条；尚无归类", len(_unscoped), "�
 # 并入 glossary/term-fields.yaml 的补充字段，再连同 backend/glossary/proposed/*.yaml 逐条校验（glossary/term_rules.py，存量问题见 term-rules-baseline.json）
 sys.path.insert(0, "glossary")
 import term_rules
-_bcs = {b["id"] for b in yaml.safe_load(open("glossary/bcs.yaml", encoding="utf-8"))["bcs"]}
+_bcs = {b["id"]: b["kind"] for b in yaml.safe_load(open("glossary/bcs.yaml", encoding="utf-8"))["bcs"]}
 _extra = yaml.safe_load(open("glossary/term-fields.yaml", encoding="utf-8"))["terms"] or {}
 _ids = {t["id"] for t in terms}
 if set(_extra) - _ids:
     raise SystemExit("glossary/term-fields.yaml 有不存在的词条 id：" + "、".join(sorted(set(_extra) - _ids)))
+_EXTRA_FIELDS = {"scope", "used_by", "upstream_term", "homonyms", "formula", "grain", "as_of"}
+_to_kernel = []
 for t in terms:
-    if t["bc"] == "kernel" and t.get("scope") in (None, "domain"):
+    _x = _extra.get(t["id"]) or {}
+    if set(_x) - _EXTRA_FIELDS:
+        raise SystemExit(f"glossary/term-fields.yaml {t['id']}：只能写 {'、'.join(sorted(_EXTRA_FIELDS))}，不能写 " + "、".join(sorted(set(_x) - _EXTRA_FIELDS)))
+    if "scope" in _x and t.get("scope"):
+        raise SystemExit(f"glossary/term-fields.yaml {t['id']}：使用范围已由 ACL 归类答复写定（{t['scope']}），不得覆盖")
+    if t["bc"] == "kernel" and t.get("scope") in (None, "domain") and "scope" not in _x:
         t["scope"] = "kernel"
-    t.update(_extra.get(t["id"]) or {})
+        _to_kernel.append(t["id"])
+    t.update(_x)
+print("term_rules: bc 为 kernel 的领域词条转为共享内核", len(_to_kernel), "条：", "、".join(_to_kernel))
 _entries = [("terms.yaml", t) for t in terms]
-for _f in sorted(glob.glob("../../backend/glossary/proposed/*.yaml")):
+_proposed = sorted(glob.glob("../../backend/glossary/proposed/*.yaml"))
+if not _proposed:
+    raise SystemExit("找不到 backend/glossary/proposed/*.yaml（须在 docs/modernization 下运行）")
+for _f in _proposed:
     for _e in (yaml.safe_load(open(_f, encoding="utf-8")) or {}).get("terms") or []:
         _entries.append((f"proposed/{os.path.basename(_f)}", _e))
 _left, _by_rule = term_rules.enforce(_entries, _bcs)

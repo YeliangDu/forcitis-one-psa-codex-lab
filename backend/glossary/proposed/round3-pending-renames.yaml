@@ -15,6 +15,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: handle
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Act（claude/one-1a-par-f1-acceptance）
 - id: round3_pending__assigned
   zh: 已分配
@@ -30,6 +33,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: task_assigned
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Assigned（claude/one-1a-next-3-r1b-p2）
 - id: round3_pending__completed
   zh: 已完成
@@ -45,6 +51,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: approval_completed
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Completed（main）
 - id: round3_pending__escalated
   zh: 已升级
@@ -60,6 +69,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: rerouted_to_superior
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Escalated（claude/one-1a-next-3-r1b-p2）
 - id: round3_pending__fallback
   zh: 兜底
@@ -75,6 +87,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: administrator_fallback
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Fallback（claude/one-1a-next-3-r1b-p2）
 - id: round3_pending__form
   zh: 表单
@@ -90,6 +105,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: approval_field
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Form（claude/one-1a-next-3-r1b-p2、claude/one-1a-par-f1-acceptance、claude/one-1a-par-k3a）
 - id: round3_pending__round
   zh: 轮次
@@ -105,6 +123,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: approval_round
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Round（claude/one-1a-next-3-r1b-p2、claude/one-1a-par-k3a）
 - id: round3_pending__row
   zh: 行
@@ -120,6 +141,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: line_task
+  until: "代码改名随 R-2a，生产前；界面文字 dev 前"
+  owner: "one-1a-next-3、one-1a-par"
   note: 界面文字仍用「行」；代码仍用 Row（claude/one-1a-next-3-r1b-p2、claude/one-1a-par-f1-acceptance、claude/one-1a-par-k3a）
 - id: round3_pending__deadline
   zh: 审批时限
@@ -135,6 +159,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: approval_time_limit
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Deadline（claude/one-1a-par-k3a）
 - id: round3_pending__effect
   zh: 效力
@@ -150,6 +177,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: task_effect
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Effect（claude/one-1a-par-f1-acceptance、claude/one-1a-par-k3a）
 - id: round3_pending__release_of_task
   zh: 释放
@@ -165,6 +195,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: unclaim
+  until: "界面文字 dev 前"
+  owner: "one-1a-par"
   note: 界面文字仍用「释放」
 - id: round3_pending__ui_business_summary
   zh: 业务摘要
@@ -180,6 +213,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: approval_summary
+  until: "界面文字 dev 前"
+  owner: "one-1a-par"
   note: 界面文字仍用「业务摘要」
 - id: round3_pending__ui_proxy_handling
   zh: 代理
@@ -195,6 +231,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: ui_proxy_handling
+  until: "界面文字 dev 前"
+  owner: "one-1a-par"
   note: 界面文字仍用「代理」
 - id: round3_pending__task_participant
   zh: 参与人
@@ -210,6 +249,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: task_participant
+  until: "界面文字 dev 前"
+  owner: "one-1a-par"
   note: 界面文字仍用「参与人」
 - id: round3_pending__decision
   zh: 决定
@@ -225,6 +267,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: task_decision
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Decision（main）
 - id: round3_pending__resulted
   zh: 已出结果
@@ -240,6 +285,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: task_handled
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Resulted（main）
 - id: round3_pending__skipped
   zh: 已跳过
@@ -255,6 +303,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: notification_skipped
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Skipped（main）
 - id: round3_pending__project_manager_review
   zh: 项目经理审批
@@ -270,6 +321,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: project_manager_approval
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 ProjectManagerReview（main）
 - id: round3_pending__regional_head_review
   zh: 区域负责人审批
@@ -285,6 +339,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: regional_head_approval
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 RegionalHeadReview（main）
 - id: round3_pending__supervisor_review
   zh: 一级汇报人审批
@@ -300,6 +357,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: supervisor_approval
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 SupervisorReview（main）
 - id: round3_pending__cutoff
   zh: 撤回截止点
@@ -315,6 +375,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: withdrawal_cutoff
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Cutoff（main）
 - id: round3_pending__administrator_mode
   zh: 管理模式
@@ -330,6 +393,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: administrator_mode
+  until: "界面文字 dev 前"
+  owner: "one-1a-par"
   note: 界面文字仍用「管理模式」
 - id: round3_pending__authorization
   zh: 授权
@@ -345,6 +411,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: grant_permission
+  until: "代码改名随 R-2a，生产前；界面文字 dev 前"
+  owner: "one-1a-next-3、one-1a-par"
   note: 界面文字仍用「授权」；代码仍用 Authorization（claude/one-1a-next-3-r1b-p2、claude/one-1a-par-f1-acceptance）
 - id: round3_pending__account_disabled
   zh: 停用
@@ -360,6 +429,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: account_disabled
+  until: "界面文字 dev 前"
+  owner: "one-1a-par"
   note: 界面文字仍用「停用」
 - id: round3_pending__permission_adjustment_kind__sensitive_role_holder
   zh: 敏感角色持有人
@@ -375,6 +447,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: permission_adjustment_kind__sensitive_role_review
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 SensitiveRoleHolder（claude/one-1a-par-f1-acceptance）
 - id: round3_pending__size
   zh: 大小
@@ -390,6 +465,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: byte_count
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Size（claude/one-1a-next-3-r1b-p2、claude/one-1a-par-f1-acceptance、claude/one-1a-par-k3a）
 - id: round3_pending__keep
   zh: 保留
@@ -405,6 +483,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: data_retention_period
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Keep（claude/one-1a-par-f1-acceptance）
 - id: round3_pending__worm
   zh: 一次写入多次读取
@@ -420,6 +501,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: write_once_read_many
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Worm（main）
 - id: round3_pending__voucher_numbering_rule
   zh: 凭证号规则
@@ -435,6 +519,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: journal_voucher_numbering_rule
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 VoucherNumberingRule（main）
 - id: round3_pending__rule_version
   zh: 规则版本
@@ -450,6 +537,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: numbering_rule_version
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 RuleVersion（main）
 - id: round3_pending__overhead_hours
   zh: OH 工时
@@ -465,6 +555,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: indirect_hours
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 OverheadHours（main）
 - id: round3_pending__workforce__email
   zh: 企业邮箱
@@ -480,6 +573,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: workforce__email_address
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Email（claude/one-1a-par-f1-acceptance）
 - id: round3_pending__department
   zh: 部门
@@ -495,6 +591,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: org_unit
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Department（claude/one-1a-next-3-r1b-p2、claude/one-1a-par-f1-acceptance）
 - id: round3_pending__ui_task_handler
   zh: 办理人
@@ -510,6 +609,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: actor
+  until: "界面文字 dev 前"
+  owner: "one-1a-par"
   note: 界面文字仍用「办理人」
 - id: round3_pending__running
   zh: 进行中
@@ -525,6 +627,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: ui_approval_running
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Running（main）
 - id: round3_pending__ts
   zh: 工时单据类型代码
@@ -540,6 +645,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: document_type_code
+  until: "废弃分支 one-design-sync-staging 删除后即删本条（one-coordinator 2026-10-15：该卡不派）"
+  owner: "one-glossary"
   note: 代码仍用 Ts（claude/one-design-sync-staging）
 - id: round3_pending__qt
   zh: 报价单据类型代码
@@ -555,6 +663,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: document_type_code
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Qt（main）
 - id: round3_pending__jv
   zh: 记账凭证单据类型代码
@@ -570,6 +681,9 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: document_type_code
+  until: "代码改名随 R-2a，生产前"
+  owner: "one-1a-next-3"
   note: 代码仍用 Jv（main）
 - id: round3_pending__journal_voucher
   zh: 会计凭证
@@ -585,4 +699,7 @@ terms:
   aliases: []
   forbidden: []
   status: deprecated
+  replaced_by: journal_voucher
+  until: "界面文字 dev 前"
+  owner: "one-1a-par"
   note: 界面文字仍用「会计凭证」

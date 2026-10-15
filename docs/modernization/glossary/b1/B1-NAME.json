@@ -55,7 +55,7 @@
    "en": "ContractAssetImpairmentRiskRaised",
    "kind": "event",
    "bc": "receivables.wip",
-   "definition": "WIP/AR 侧的前置预警信号统称（区别于法定计提；两侧事件已拆分）",
+   "definition": "合同资产（WIP）一侧的减值前置预警信号，区别于法定计提",
    "verdict": "正式",
    "refs": "来源：正式词表#contract_asset_impairment_risk_raised；规则：同一 bc 内一个概念一个中文名（DDD 统一语言第 6 条）、事件用过去式（第 5 条）",
    "why": "两个事件都叫「减值预警」。一个针对合同资产（WIP），一个针对应收账款，名字里写明对象。",
@@ -77,7 +77,7 @@
    "en": "ArImpairmentRiskRaised",
    "kind": "event",
    "bc": "receivables.wip",
-   "definition": "WIP/AR 侧的前置预警信号统称（区别于法定计提；两侧事件已拆分）",
+   "definition": "应收账款一侧的减值前置预警信号，区别于法定计提",
    "verdict": "正式",
    "refs": "来源：正式词表#ar_impairment_risk_raised；规则：同一 bc 内一个概念一个中文名（DDD 统一语言第 6 条）、事件用过去式（第 5 条）",
    "why": "同上，这条是应收账款一侧的预警。",
@@ -124,14 +124,14 @@
    "definition": "员工从在职变为离职这件事；离职时删除全部角色授予、停用应急账号、吊销会话（ADR-0027 第 1 项）。事件、字段与方法里的 separated 是同一概念的过去分词（已离职），登记为技术词，不另立术语",
    "verdict": "正式",
    "refs": "来源：正式词表#separation；规则：同一 bc 内一个概念一个中文名（DDD 统一语言第 6 条）、事件用过去式（第 5 条）",
-   "why": "身份 bc 的「离职」指员工离开这件事，保持原名；与组织人事的「已离职」互列为相关词。",
+   "why": "身份 bc 的「离职」指员工离开这件事，保持原名；上一条改名后两者不再同名，作相关词即可。",
    "code_note": "",
    "options": [
     {
      "action": "approve",
      "zh": "离职",
      "en": "Separation",
-     "label": "离职 / Separation（保持，与「已离职」互列）",
+     "label": "离职 / Separation（保持；与组织人事的「已离职」是相关词）",
      "recommended": true
     }
    ],
