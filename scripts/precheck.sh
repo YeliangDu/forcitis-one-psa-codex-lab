@@ -94,6 +94,10 @@ if [ "$relevant_status" -ne 0 ]; then
 elif printf '%s\n' "$relevant_output" | grep -qx 'relevant=true'; then
   builds_relevant=true
 fi
+legacy_it_relevant=false
+if [ "$relevant_status" -ne 0 ] || printf '%s\n' "$relevant_output" | grep -qx 'legacy_it=true'; then
+  legacy_it_relevant=true
+fi
 
 records_dir=$(dirname docs/modernization/build_all.py)
 if [ -n "$(gitq status --porcelain -- "$records_dir" backend/glossary/proposed)" ]; then
@@ -246,6 +250,19 @@ if $builds_relevant; then
 else
   report SKIP "backend tests" "relevant_change.py: nothing the builds read changed"
   report SKIP "frontend verify" "relevant_change.py: nothing the builds read changed"
+fi
+
+if $legacy_it_relevant; then
+  if ! $run_backend; then
+    report SKIP "SQL Server integration tests" "not run by default; the change touches what the *MssqlIT tests exercise (profile legacy-it)"
+    echo "      run: scripts/ci/legacy_it.sh (Testcontainers: ask the user before starting containers)"
+  elif ! command -v docker >/dev/null || ! docker info >/dev/null 2>&1; then
+    report SKIP "SQL Server integration tests" "Docker is not installed or not running; CI runs scripts/ci/legacy_it.sh"
+  else
+    run_step "SQL Server integration tests (legacy-it)" scripts/ci/legacy_it.sh
+  fi
+else
+  report SKIP "SQL Server integration tests" "relevant_change.py: nothing the *MssqlIT tests exercise changed"
 fi
 
 echo
