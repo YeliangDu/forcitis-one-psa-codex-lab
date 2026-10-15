@@ -15,7 +15,7 @@ mkdir -p "$dir" && chmod 700 "$dir"
 out="$dir/$(date +%Y%m%d-%H%M%S)-${session_id:-unknown}.md"
 
 {
-  echo "# 压缩前快照（$trigger）"
+  echo "# 压缩前快照（${trigger}）"
   echo
   echo "- 时间：$(date '+%Y-%m-%d %H:%M:%S %z')"
   echo "- 会话：${session_id:-未知}"
@@ -39,5 +39,5 @@ out="$dir/$(date +%Y%m%d-%H%M%S)-${session_id:-unknown}.md"
   fi
 } > "$out" 2>/dev/null
 chmod 600 "$out"
-echo "压缩前快照已写入 $out；压缩后先读它，并按 SESSION_PLAYBOOK §2.1 判断是否交接。"
+echo "压缩前快照已写入 ${out}；压缩后先读它，并按 SESSION_PLAYBOOK §2.1 判断是否交接。"
 exit 0

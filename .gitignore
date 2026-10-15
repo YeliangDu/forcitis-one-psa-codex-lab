@@ -12,4 +12,7 @@ ds-bundle/
 docs/modernization/INTENT.md
 docs/modernization/SESSION_LOG.md
 docs/modernization/STATUS.md
+docs/modernization/SESSIONS.md
+docs/modernization/glossary/ISSUES.md
 __pycache__/
+.claude/session-name
