@@ -110,6 +110,31 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 
 两库都要把 172.16.89.86 加入白名单。账号口令只写入 `/etc/forcitis-one/one.env` 或 KMS。
 
+### 4.1 只读核实命令（PAR-2；C-14 与授权变更后的核对用）
+
+同一个发布包里的 jar（`forcitis-one.jar`，入口不变），以档案 `read-only-verification` 运行，对**一条**只读连接的登录跑与启动校验同一套判定（`ReadOnlyBaseline`，查询用 `JdbcReadOnlyCatalog`，连接与超时用连接工厂的后台限值），逐项输出后退出：
+
+```
+java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-only-verification --connection=<连接名>
+```
+
+- 连接名与读取的环境变量（变量名与 one.env 相同；探针的三项放 `/etc/forcitis-one/readonly-probe.env`，root 0600，one-ops 定）：
+
+  | `--connection=` | 环境变量 |
+  |---|---|
+  | `integration-seeyon-background` | `A8_DB_URL`、`A8_DB_USERNAME`、`A8_DB_PASSWORD` |
+  | `integration-legacy` | `LEGACY_DB_RO_URL`、`LEGACY_DB_RO_USERNAME`、`LEGACY_DB_RO_PASSWORD` |
+  | `legacy-approval` | `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL`、`_USERNAME`、`_PASSWORD` |
+  | `probe`（C-14 探针登录） | `READONLY_PROBE_DB_URL`、`READONLY_PROBE_DB_USERNAME`、`READONLY_PROBE_DB_PASSWORD` |
+
+  环境变量的给法：与迁移步骤同法用 `systemd-run --pipe --wait --collect -p EnvironmentFile=/etc/forcitis-one/one.env [-p EnvironmentFile=/etc/forcitis-one/readonly-probe.env] /usr/bin/java …`，不要把 env 文件 source 进交互 shell。只读所指定连接的三项；另两条连接配了什么不影响结果。缺任一项：用法错误，列出缺的变量名（不列值），不做核实。
+- 输出：每项一行 `(a) PASSED|VIOLATED|UNDETERMINED`，之后可带 ` reason=<原因代码> count=<个数>`（`ReadOnlyBaseline.Reason`，只是类别，不含角色名、库名、登录名）与查询失败时的 ` error=<SQL 错误号> sqlstate=<SQLState>`（驱动报出的最内层 SQL 异常）；末行 `RESULT PASSED|VIOLATED|UNDETERMINED`，有任一项违规即违规，否则有判定不了即判定不了。连不上时七项都是判定不了且带同一个错误号（只连一次，不按每个查询等连接池超时）。
+- 退出码：0 通过；2 用法错误（缺少、重复或未知的连接名，非 `--名=值` 形式的参数，参数名含 `password` / `secret` / `credential`（不分大小写）——口令只从环境读，参数值不回显，缺少环境变量，URL 既非 SQL Server 也非 PostgreSQL）；3 违规（含与判定不了同在）；4 判定不了。1 只表示进程本身失败（与 Spring Boot 启动失败一样），不是任何结果。
+- 不输出：口令（任何连接的）、登录名、连接串（探针 URL 里有 `trustStorePassword`）、数据库消息原文、启动校验的 problem 文本、数据。连接池与驱动（`com.zaxxer.hikari`、`com.microsoft.sqlserver`、`org.postgresql`、`org.springframework.jdbc`）的日志在命令内关闭，因为它们可能带服务器消息。
+- 不启动 Web、不迁移、不起作业：命令在 Spring 准备好环境（档案、配置文件、环境变量都已读入）之后、建立任何应用上下文之前运行并结束进程（与 `migrate` 模式同一做法，`spring.factories` 登记的环境就绪监听器），所以不建服务库数据源、不跑 Flyway、不起 Tomcat 与管理端口、不起定时任务、调度、事件发布作业、流程引擎与异步执行器，也不读 OSS、企业微信、单点登录、应急密钥与服务库的设置。one.env 里的 `SERVER_PORT`、`MANAGEMENT_SERVER_PORT` 等环境变量因此不起作用；命令另把 `spring.main.web-application-type=none` 放在最高优先级的属性源（高于 `SPRING_MAIN_WEB_APPLICATION_TYPE` 等环境变量），档案文件 `application-read-only-verification.properties` 再写一遍 web=none、Flyway 与作业关闭，作为第二道。
+- 发布包：命令与档案都在 jar 内，签名发布包不需要另登记文件；发布脚本与签名流程不变。
+- 验收：`ReadOnlyVerificationCommandIT`（以打包好的 jar 起子进程，探针证明不监听端口、服务库无表无 schema）；契约见 `backend/src/test/java/com/forcitis/one/acceptance/platform/integration/READONLY_VERIFY_ACCEPTANCE.md`。
+
 ## 5. dev 环境连接配置的取法
 
 - **唯一来源**：服务器上的 `/etc/forcitis-one/one.env`，权限 `0640 root:forcitis`，由 systemd 的 `EnvironmentFile` 加载。仓库、镜像、聊天、工单中都不出现这些值。
