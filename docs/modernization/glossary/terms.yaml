@@ -36,6 +36,7 @@ terms:
   forbidden: []
   status: approved
   note: 权责发生制事实只追加（ADR-0016）
+  scope: domain
 - id: fact_evidence
   zh: 事实证据
   en: FactEvidence
@@ -49,6 +50,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: business_fact_attributed
   zh: 事实归属
   en: BusinessFactAttributed
@@ -63,6 +65,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: primary_attribution
   zh: 主归属
   en: PrimaryAttribution
@@ -77,6 +80,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: attribution_rule_set
   zh: 归属规则
   en: AttributionRuleSet
@@ -91,6 +95,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: business_fact_restated
   zh: 事实重述
   en: BusinessFactRestated
@@ -106,6 +111,7 @@ terms:
   forbidden: []
   status: approved
   note: 准则「差错更正」是会计口径；此处为经营事实更正，只借用概念
+  scope: domain
 - id: operations_facts__responsible_party
   zh: 责任对象
   en: ResponsibleParty
@@ -120,6 +126,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: business_period
   zh: 经营期间
   en: BusinessPeriod
@@ -136,6 +143,7 @@ terms:
   status: approved
   note: 与 AccountingPeriod 的对齐关系见 G-16
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: business_fact_ledger
   zh: 经营台账
   en: BusinessFactLedger
@@ -150,6 +158,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: business_variance
   zh: 经营偏差
   en: BusinessVariance
@@ -164,6 +173,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: business_result
   zh: 经营结果
   en: BusinessResult
@@ -176,12 +186,15 @@ terms:
   confidence: high
   aliases:
   - name: 实际结果
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：运营看板
-  forbidden: []
+    decision: R0 在用报表叫法（R3-RA-01）
+  forbidden:
+  - 实际结果
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: policy
   zh: 经营口径
   en: Policy
@@ -196,6 +209,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: policy_version
   zh: 口径版本
   en: PolicyVersion
@@ -210,6 +224,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: metric_definition
   zh: 指标定义
   en: MetricDefinition
@@ -224,6 +239,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: reconciliation
   zh: 经营勾稽
   en: Reconciliation
@@ -237,6 +253,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: reconciliation_deviation
   zh: 勾稽差异
   en: ReconciliationDeviation
@@ -251,6 +268,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: reconciliation_deviation_case
   zh: 勾稽差异案
   en: ReconciliationDeviationCase
@@ -265,6 +283,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: formula
   zh: 公式
   en: Formula
@@ -279,6 +298,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: source_mapping
   zh: 数据来源映射
   en: SourceMapping
@@ -293,6 +313,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: deviation_explanation
   zh: 偏差解释
   en: DeviationExplanation
@@ -307,6 +328,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: result_explanation
   zh: 经营结果解释
   en: ResultExplanation
@@ -321,6 +343,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: operations_policy__basis_difference_list
   zh: 口径差异清单
   en: BasisDifferenceList
@@ -335,6 +358,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: attribution_rule_version
   zh: 归属规则版本
   en: AttributionRuleVersion
@@ -349,6 +373,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: operating_accounting_taxonomy
   zh: 经营会计分类法
   en: OperatingAccountingTaxonomy
@@ -362,6 +387,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: standard_accounting_primitive
   zh: 标准财务原语
   en: StandardAccountingPrimitive
@@ -376,6 +402,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: operating_accounting_extension
   zh: 经营扩展原语
   en: OperatingAccountingExtension
@@ -390,6 +417,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: go_no_go_template
   zh: 评估模板
   en: GoNoGoTemplate
@@ -404,6 +432,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract
   zh: 合同
   en: Contract
@@ -426,6 +455,7 @@ terms:
   status: approved
   note: CAS 14 / IFRS 15 第一步「识别与客户订立的合同」；收入合同
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: contract_type
   zh: 合同形态
   en: ContractType
@@ -440,6 +470,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_draft
   zh: 合同草案
   en: ContractDraft
@@ -452,12 +483,15 @@ terms:
   confidence: high
   aliases:
   - name: 待签合约
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：经营分析报告、交付中心汇报
-  forbidden: []
+    decision: R0 在用报表叫法（R3-RA-02）
+  forbidden:
+  - 待签合约
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: contract_source_ref
   zh: 合同来源
   en: ContractSourceRef
@@ -472,6 +506,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: customer_party
   zh: 客户方主体
   en: CustomerParty
@@ -486,6 +521,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: signature_evidence
   zh: 签署证据
   en: SignatureEvidence
@@ -500,13 +536,14 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: approval_evidence
   zh: 审批证据
   en: ApprovalEvidence
   snake: approval_evidence
   kind: entity
   bc: contract.baseline
-  definition: OA 审批结果事实（流程 ID、结论、审批人——经防腐层接入）
+  definition: 合同审批结果事实（审批实例、结论、审批人），取自 FORCITIS one 的审批流程
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
@@ -514,6 +551,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: active_baseline_version
   zh: 当前有效基线
   en: ActiveBaselineVersion
@@ -528,6 +566,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: deviation_disposition
   zh: 承诺差异处理结论
   en: DeviationDisposition
@@ -542,6 +581,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_gap_item
   zh: 合同缺口项
   en: ContractGapItem
@@ -556,6 +596,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: waive_contract_gap
   zh: 缺口豁免
   en: WaiveContractGap
@@ -570,6 +611,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_gap_waived
   zh: 缺口豁免
   en: ContractGapWaived
@@ -584,6 +626,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: tm_cap
   zh: T&M 封顶
   en: TmCap
@@ -600,6 +643,7 @@ terms:
     deprecated: false
   forbidden: []
   status: approved
+  scope: domain
 - id: framework_capacity_reservation
   zh: 框架限额占用
   en: FrameworkCapacityReservation
@@ -614,6 +658,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: payment_term_item
   zh: 付款条件项
   en: PaymentTermItem
@@ -635,6 +680,7 @@ terms:
   status: approved
   note: IFRS 15 重大融资成分判断需读付款条件
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: import_legacy_contract_baseline
   zh: 历史合同导入
   en: ImportLegacyContractBaseline
@@ -649,6 +695,8 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: acl
+  acl_class: 过渡期
 - id: contract_signed
   zh: 合同签署事实
   en: ContractSigned
@@ -663,6 +711,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: scope_item
   zh: 合同范围条目
   en: ScopeItem
@@ -676,6 +725,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: framework_link
   zh: 框架挂靠信息
   en: FrameworkLink
@@ -690,6 +740,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: internal_settlement_term
   zh: 内部结算条款
   en: InternalSettlementTerm
@@ -704,6 +755,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_period
   zh: 合同期间
   en: ContractPeriod
@@ -718,6 +770,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: baseline_version_no
   zh: 基线版本号
   en: BaselineVersionNo
@@ -732,6 +785,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_completeness_result
   zh: 合同完备度结论
   en: ContractCompletenessResult
@@ -746,6 +800,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: legal_entity_ref
   zh: 我方法人引用
   en: LegalEntityRef
@@ -760,6 +815,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: change_order_ref
   zh: 变更引用
   en: ChangeOrderRef
@@ -774,6 +830,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: opportunity_accepted_snapshot
   zh: 赢单预填快照
   en: OpportunityAcceptedSnapshot
@@ -788,6 +845,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: proposal_commitment_snapshot
   zh: 承诺比对基准快照
   en: ProposalCommitmentSnapshot
@@ -802,6 +860,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: project_owner_party
   zh: 项目业主主体
   en: ProjectOwnerParty
@@ -816,6 +875,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_working_terms
   zh: 合同工作条款
   en: ContractWorkingTerms
@@ -830,6 +890,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_signing_exception
   zh: 签署例外
   en: ContractSigningException
@@ -844,6 +905,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: legacy_baseline_quality
   zh: 历史导入质量等级
   en: LegacyBaselineQuality
@@ -858,6 +920,8 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: acl
+  acl_class: 过渡期
 - id: correct_contract_party
   zh: 修正合同主体
   en: CorrectContractParty
@@ -872,6 +936,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_baseline
   zh: 合同基线
   en: ContractBaseline
@@ -892,6 +957,7 @@ terms:
   change_ref: G-29
   note: 实体 ContractBaseline，事件 ContractBaselined 保留
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: baseline_version
   zh: 基线版本
   en: BaselineVersion
@@ -906,6 +972,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_scope
   zh: 合同范围
   en: ContractScope
@@ -919,6 +986,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: performance_condition
   zh: 履约条件
   en: PerformanceCondition
@@ -932,6 +1000,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: pricing_model
   zh: 计价模式
   en: PricingModel
@@ -946,6 +1015,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: pricing_model_spec
   zh: 计价模式规格
   en: PricingModelSpec
@@ -960,6 +1030,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: fixed_price
   zh: 固定总价
   en: FixedPrice
@@ -974,6 +1045,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: time_and_materials
   zh: T&M 工时计费
   en: TimeAndMaterials
@@ -989,6 +1061,7 @@ terms:
   forbidden: []
   status: approved
   note: IFRS 15 B16 「有权开票金额」实务简化常用于 T&M
+  scope: domain
 - id: framework_agreement
   zh: 框架协议
   en: FrameworkAgreement
@@ -1002,6 +1075,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: task_order
   zh: 任务订单
   en: TaskOrder
@@ -1022,6 +1096,7 @@ terms:
   change_ref: G-29
   note: 词表以事件名充当实体名；实体 TaskOrder，事件 TaskOrderRegistered 保留
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: cost_plus
   zh: 成本加酬金
   en: CostPlus
@@ -1035,6 +1110,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: rate_card_item
   zh: 费率表
   en: RateCardItem
@@ -1055,6 +1131,7 @@ terms:
   forbidden: []
   status: approved
   core: true
+  scope: domain
 - id: contract_clause
   zh: 合同条款
   en: ContractClause
@@ -1099,6 +1176,7 @@ terms:
   old_codes: []
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: evidence_level
   zh: 证据效力等级
   en: EvidenceLevel
@@ -1113,6 +1191,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contracting_legal_entity
   zh: 签约法人
   en: ContractingLegalEntity
@@ -1127,6 +1206,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: commitment_deviation
   zh: 承诺差异
   en: CommitmentDeviation
@@ -1141,6 +1221,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_completeness
   zh: 合同完备度
   en: ContractCompleteness
@@ -1155,6 +1236,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_gap_identified
   zh: 合同缺口
   en: ContractGapIdentified
@@ -1169,6 +1251,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: change_order
   zh: 变更
   en: ChangeOrder
@@ -1196,11 +1279,20 @@ terms:
     type: dialect
     deprecated: true
     source: A8 模板
+  - name: 变更单
+    type: standard-zh
+    deprecated: false
+    source: 第三轮并入（R3-FI-09）
+  - name: ChangeOrderDocument
+    type: old-code
+    deprecated: true
+    source: 第三轮并入（R3-FI-09）
   forbidden:
   - 销售合同变更
   status: approved
   note: 国标「工程变更」，FIDIC Cl.13 Variation；进入核算时对应 CAS 14 / IFRS 15「合同变更」(contract modification)
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: change_order_draft
   zh: 变更意向
   en: ChangeOrderDraft
@@ -1215,6 +1307,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: impact_assessment
   zh: 影响评估
   en: ImpactAssessment
@@ -1228,6 +1321,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: unapproved_work_flag
   zh: 未批先干
   en: UnapprovedWorkFlag
@@ -1242,6 +1336,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: supplemental_agreement
   zh: 增补
   en: SupplementalAgreement
@@ -1255,6 +1350,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: site_visa
   zh: 现场签证
   en: SiteVisa
@@ -1275,6 +1371,7 @@ terms:
   change_ref: G-26
   note: 中文改用国标原文「现场签证」；英文 SiteVisa 为业主确认的中国 AEC 方言（03 词表），FIDIC 无对等术语，暂保留
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: site_visa_time_window
   zh: 现场签证时效
   en: SiteVisaTimeWindow
@@ -1293,6 +1390,7 @@ terms:
   - 签证时效
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: claim
   zh: 索赔
   en: Claim
@@ -1308,6 +1406,7 @@ terms:
   forbidden: []
   status: approved
   note: FIDIC 2017 Cl.20 Employer's and Contractor's Claims
+  scope: domain
 - id: claim_asserted
   zh: 索赔通知
   en: ClaimAsserted
@@ -1321,6 +1420,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: claim_time_bar
   zh: 索赔时限
   en: ClaimTimeBar
@@ -1334,6 +1434,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: risk_delivery
   zh: 风险交付
   en: RiskDelivery
@@ -1348,6 +1449,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: risk_delivery_authorization
   zh: 风险交付授权
   en: RiskDeliveryAuthorization
@@ -1362,6 +1464,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: uncontracted_delivery
   zh: 无合同交付
   en: UncontractedDelivery
@@ -1376,6 +1479,7 @@ terms:
   forbidden: []
   status: approved
   note: CAS 14 合同成立五条件未满足时不得确认收入
+  scope: domain
 - id: out_of_scope_delivery
   zh: 超范围交付
   en: OutOfScopeDelivery
@@ -1390,6 +1494,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: scope_creep_identified
   zh: 无签证范围蔓延
   en: ScopeCreepIdentified
@@ -1403,6 +1508,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: contract_risk
   zh: 合约风险
   en: ContractRisk
@@ -1417,6 +1523,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: risk_type
   zh: 风险类型
   en: RiskType
@@ -1431,6 +1538,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: risk_level
   zh: 风险等级
   en: RiskLevel
@@ -1445,6 +1553,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: authorized_limit
   zh: 授权额度
   en: AuthorizedLimit
@@ -1459,6 +1568,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: authorization_period
   zh: 授权期限
   en: AuthorizationPeriod
@@ -1473,6 +1583,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_riskdelivery__responsible_party
   zh: 责任承担方
   en: ResponsibleParty
@@ -1487,6 +1598,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: uncontracted_exposure
   zh: 无合同风险敞口
   en: UncontractedExposure
@@ -1505,16 +1617,19 @@ terms:
     type: old-code
     deprecated: true
   - name: 待签项目投入
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：交付中心汇报 5.1–5.2
+    decision: R0 在用报表叫法（R3-RA-03）
   forbidden:
   - RiskExposure
   - 风险敞口
+  - 待签项目投入
   status: approved
   change_ref: G-27
   note: 定义专指无合同敞口（NR+CA+AR，F127A），通用名 RiskExposure 与其它风险敞口歧义；且无合同时不存在准则口径合同资产，CA 段应为未开票在制
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: regularized
   zh: 转正
   en: Regularized
@@ -1529,6 +1644,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: halted
   zh: 叫停
   en: Halted
@@ -1543,6 +1659,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: scope_changed
   zh: 范围变化
   en: ScopeChanged
@@ -1557,6 +1674,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: change_order_approved
   zh: 变更批准
   en: ChangeOrderApproved
@@ -1571,6 +1689,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: site_visa_confirmed
   zh: 现场签证签认
   en: SiteVisaConfirmed
@@ -1589,6 +1708,7 @@ terms:
   - 签认
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_changeorder__responsible_party
   zh: 责任方
   en: ResponsibleParty
@@ -1603,6 +1723,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: reason_category
   zh: 原因分类
   en: ReasonCategory
@@ -1617,6 +1738,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: claim_settled
   zh: 达成
   en: ClaimSettled
@@ -1630,6 +1752,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: liquidated_damages
   zh: 违约金
   en: LiquidatedDamages
@@ -1661,6 +1784,7 @@ terms:
   change_ref: G-20
   note: 「罚款」在中文法律语境指行政处罚；合同扣罚为违约金（民法典第五百八十五条），FIDIC Cl.8.8 Delay Damages；核算上属可变对价
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: wbs_node
   zh: WBS
   en: WbsNode
@@ -1686,6 +1810,7 @@ terms:
   forbidden: []
   status: approved
   core: true
+  scope: domain
 - id: delivery_package
   zh: 交付包
   en: DeliveryPackage
@@ -1702,6 +1827,7 @@ terms:
   change_ref: G-22
   note: 与 WorkPackage 是否同一概念待业务确认（验收对象类型含交付包）
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: work_package
   zh: 工作包
   en: WorkPackage
@@ -1731,6 +1857,7 @@ terms:
   note: PMBOK 中文版用「工作包」（WBS 最底层）；「任务包」降为别名
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: deliverable
   zh: 交付物
   en: Deliverable
@@ -1752,6 +1879,7 @@ terms:
   forbidden: []
   status: approved
   core: true
+  scope: domain
 - id: delivery_plan
   zh: 交付计划
   en: DeliveryPlan
@@ -1766,6 +1894,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: plan_baseline
   zh: 计划基线
   en: PlanBaseline
@@ -1787,6 +1916,7 @@ terms:
   status: approved
   note: PMBOK performance measurement baseline
   core: true
+  scope: domain
 - id: milestone
   zh: 里程碑
   en: Milestone
@@ -1800,6 +1930,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: milestone_completion_submitted
   zh: 完成申报
   en: MilestoneCompletionSubmitted
@@ -1814,6 +1945,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: eac_assessment
   zh: EAC
   en: EacAssessment
@@ -1836,6 +1968,7 @@ terms:
   status: approved
   note: EAC = AC + ETC 与 PMBOK 一致；值对象另立 EstimateAtCompletion（G-23）
   core: true
+  scope: domain
 - id: estimate_to_complete
   zh: ETC
   en: EstimateToComplete
@@ -1857,6 +1990,7 @@ terms:
   forbidden: []
   status: approved
   core: true
+  scope: domain
 - id: schedule_variance_identified
   zh: 进度偏差识别
   en: ScheduleVarianceIdentified
@@ -1882,6 +2016,7 @@ terms:
   change_ref: G-23
   note: 定义即 EVM 的 SV / SPI，用 PMBOK 原词
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: phased_delivery
   zh: 阶段性交付
   en: PhasedDelivery
@@ -1896,6 +2031,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: delivery_cycle_time
   zh: 交付周期
   en: DeliveryCycleTime
@@ -1910,6 +2046,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: delivery_variance
   zh: 交付偏差
   en: DeliveryVariance
@@ -1924,6 +2061,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: post_completion_service_order
   zh: 后期服务单
   en: PostCompletionServiceOrder
@@ -1938,6 +2076,7 @@ terms:
   forbidden: []
   status: approved
   note: 质保期服务；国标称缺陷责任期 / 保修期，见 G-17
+  scope: domain
 - id: post_completion_service_hours
   zh: 后期服务工时
   en: PostCompletionServiceHours
@@ -1952,6 +2091,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: quality_standard
   zh: 质量标准
   en: QualityStandard
@@ -1966,6 +2106,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: delivery_confirmation
   zh: 交付确认单
   en: DeliveryConfirmation
@@ -1980,6 +2121,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: acceptance_record
   zh: 验收单
   en: AcceptanceRecord
@@ -2002,6 +2144,7 @@ terms:
   status: approved
   note: 最终验收对应国标「竣工验收」、FIDIC Cl.10 Taking-Over；收入确认触发点（ACC-R01 客户价值确认单）
   core: true
+  scope: domain
 - id: acceptance_target_type
   zh: 验收对象类型
   en: AcceptanceTargetType
@@ -2016,6 +2159,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: conditional_pass
   zh: 有条件通过
   en: ConditionalPass
@@ -2030,6 +2174,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: acceptance_returned
   zh: 验收退回
   en: AcceptanceReturned
@@ -2044,6 +2189,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: acceptance_status
   zh: 交付验收状态
   en: AcceptanceStatus
@@ -2058,6 +2204,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: quality_issue
   zh: 质量问题
   en: QualityIssue
@@ -2072,6 +2219,7 @@ terms:
   forbidden: []
   status: approved
   note: ISO 9000 nonconformity
+  scope: domain
 - id: blocking_quality_issue
   zh: 阻断性质量问题
   en: BlockingQualityIssue
@@ -2086,6 +2234,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: concession_acceptance
   zh: 让步接受
   en: ConcessionAcceptance
@@ -2099,6 +2248,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: rework_recognition
   zh: 返工认定
   en: ReworkRecognition
@@ -2113,6 +2263,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: rework_reason_category
   zh: 返工原因分类
   en: ReworkReasonCategory
@@ -2127,6 +2278,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: responsibility_attribution
   zh: 责任归因
   en: ResponsibilityAttribution
@@ -2141,6 +2293,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: quality_loss
   zh: 质量损失
   en: QualityLoss
@@ -2155,6 +2308,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: rework_rate
   zh: 返工率
   en: ReworkRate
@@ -2169,6 +2323,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: defect_rate
   zh: 质量缺陷率
   en: DefectRate
@@ -2183,6 +2338,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: milestone_accepted
   zh: 验收通过
   en: MilestoneAccepted
@@ -2197,6 +2353,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: rework
   zh: 返工
   en: Rework
@@ -2210,6 +2367,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: time_entry
   zh: 工时
   en: TimeEntry
@@ -2238,6 +2396,7 @@ terms:
   - Works
   status: approved
   core: true
+  scope: domain
 - id: timesheet
   zh: 工时单
   en: Timesheet
@@ -2267,6 +2426,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: effective_hours
   zh: 有效工时
   en: EffectiveHours
@@ -2281,6 +2441,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: ineffective_hours
   zh: 无效工时
   en: IneffectiveHours
@@ -2295,6 +2456,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: rework_hours
   zh: 返工工时
   en: ReworkHours
@@ -2309,6 +2471,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: billable_hours
   zh: 可计费工时
   en: BillableHours
@@ -2327,12 +2490,16 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 收费工时
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：运营看板人效情况
-  forbidden: []
+    decision: R0 在用报表叫法（R3-RA-04）
+  forbidden:
+  - 收费工时
   status: approved
   core: true
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: effectiveness_assessment
   zh: 有效性认定
   en: EffectivenessAssessment
@@ -2347,6 +2514,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: capacity_realization
   zh: 产能变现
   en: CapacityRealization
@@ -2362,6 +2530,7 @@ terms:
   forbidden: []
   status: approved
   note: 行业近义指标为 Utilization（利用率），口径不同不合并
+  scope: domain
 - id: idle_capacity
   zh: 闲置产能
   en: IdleCapacity
@@ -2375,6 +2544,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: project_cost
   zh: 项目成本
   en: ProjectCost
@@ -2395,6 +2565,7 @@ terms:
   forbidden: []
   status: approved
   core: true
+  scope: domain
 - id: project_cost_account
   zh: 成本账户
   en: ProjectCostAccount
@@ -2409,6 +2580,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: cost_entry
   zh: 成本明细
   en: CostEntry
@@ -2429,6 +2601,7 @@ terms:
   forbidden: []
   status: approved
   core: true
+  scope: domain
 - id: direct_labor
   zh: 直接人工
   en: DirectLabor
@@ -2443,6 +2616,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: direct_expense
   zh: 直接费用
   en: DirectExpense
@@ -2456,6 +2630,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: outsourcing_cost
   zh: 外包成本
   en: OutsourcingCost
@@ -2468,12 +2643,15 @@ terms:
   confidence: medium
   aliases:
   - name: 委外费
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：损益表、现金流量表（外包或分包待确认）
-  forbidden: []
+    decision: R0 在用报表叫法（R3-RA-05）
+  forbidden:
+  - 委外费
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: subcontract_cost
   zh: 分包成本
   en: SubcontractCost
@@ -2494,6 +2672,7 @@ terms:
   - 项目委外
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: cost_accumulated
   zh: 成本归集
   en: CostAccumulated
@@ -2515,6 +2694,7 @@ terms:
   change_ref: G-18
   note: 「归集」= accumulation；allocation 是「分配 / 分摊」，与 AllocateOverhead 冲突
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: cost_attribution
   zh: 成本归因
   en: CostAttribution
@@ -2529,6 +2709,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: cost_adjustment
   zh: 成本调整
   en: CostAdjustment
@@ -2542,6 +2723,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: standard_cost_rate_card
   zh: 标准费率
   en: StandardCostRateCard
@@ -2563,6 +2745,7 @@ terms:
   status: approved
   change_ref: G-3
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: rate_card_version
   zh: 费率版本
   en: RateCardVersion
@@ -2582,6 +2765,7 @@ terms:
   status: approved
   change_ref: G-3
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: pending_intercompany_settlement
   zh: 待内部结算
   en: PendingIntercompanySettlement
@@ -2596,6 +2780,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: cost_budget
   zh: 成本预算
   en: CostBudget
@@ -2609,6 +2794,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: cost_budget_variance
   zh: 成本预算偏差
   en: CostBudgetVariance
@@ -2634,6 +2820,7 @@ terms:
   change_ref: G-24
   note: PMBOK 的 CostVariance 专指 EVM 的 CV = EV − AC；本词定义是预算 vs 实际（BURN_STD），换名避免与 EVM 指标同名异义
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: period_close_readiness
   zh: 成本关账前置检查
   en: PeriodCloseReadiness
@@ -2667,6 +2854,7 @@ terms:
   note: 期间状态只归 accounting.period；成本侧只提供关账前置检查结论
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_fulfilment_cost
   zh: 合同履约成本
   en: ContractFulfilmentCost
@@ -2707,13 +2895,14 @@ terms:
   note: 准则科目名「合同履约成本」（IFRS 15 §95-98 costs to fulfil a contract；ACC-R12 要求 1/2 级科目用准则原词）；与回款侧未开票在制同名异物（09-业务规则 §7 警示），代码禁用裸 Wip
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: indirect_cost_pool
   zh: 间接成本池 / 被分摊池
   en: IndirectCostPool
   snake: indirect_cost_pool
   kind: entity
   bc: cost.costing
-  definition: 汇集待两档分摊的间接（OH）成本的池（丢单商机费用、期间费用等入池；即「分摊」三义中的分摊源；物理表 psa_oh_cost_pool）
+  definition: 汇集待两档分摊的间接（OH）成本的池（丢单商机费用、期间费用等入池；即「分摊」三义中的分摊源）
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   - US Cost Accounting Standards 418（Allocation of direct and indirect costs）
@@ -2739,13 +2928,14 @@ terms:
   status: approved
   change_ref: G-28
   core: true
+  scope: domain
 - id: cost_transfer_batch
   zh: 成本结转批次
   en: CostTransferBatch
   snake: cost_transfer_batch
   kind: entity
   bc: cost.costing
-  definition: 一次成本结转的批量执行载体（台账行 → 成本 WIP → 凭证请求同批确认，支撑四方对账；carry_type 0/1/2/3/4，DRAFT→POSTED）
+  definition: 一次成本结转的批量执行载体（台账行 → 成本 WIP → 凭证请求同批确认，支撑四方对账；状态由草稿到已过账）
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   confidence: medium
@@ -2769,13 +2959,14 @@ terms:
   note: 「结转」= transfer；carry / carry forward 在会计英语中指余额结转下期，语义不符
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: expense_root_category
   zh: 费用类型一级分类
   en: ExpenseRootCategory
   snake: expense_root_category
   kind: value
   bc: cost.costing
-  definition: 成本行的根费用类别（root_category → 费用性质，由费用分类视图产出，A11）
+  definition: 成本行的根费用类别，决定该行的费用性质
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
@@ -2783,13 +2974,14 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: profit_or_loss_ledger
   zh: 损益台账
   en: ProfitOrLossLedger
   snake: profit_or_loss_ledger
   kind: entity
   bc: cost.costing
-  definition: 成本转损益 / 红冲的损益侧只追加台账（psa_pl_ledger）
+  definition: 成本转损益 / 红冲的损益侧只追加台账
   standard_ref:
   - IAS 1 Presentation of Financial Statements
   - 企业会计准则第 30 号——财务报表列报
@@ -2810,6 +3002,7 @@ terms:
   note: Pl 是自造缩写；IAS 1 原文 profit or loss
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: allocate_indirect_cost
   zh: 间接成本分摊
   en: AllocateIndirectCost
@@ -2850,19 +3043,21 @@ terms:
   note: 与 IndirectCostPool 同一词族；OH 只作别名。分摊仅管理口径、不过账（COST-R42）
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: allocation_result
   zh: 分摊结果
   en: AllocationResult
   snake: allocation_result
   kind: entity
   bc: cost.costing
-  definition: 分摊主行＋分摊行的生效结果（batch_type 试算/全量、status 草稿/生效，B4）
+  definition: 分摊主行与分摊行的生效结果；运行分试算与全量，状态分草稿与生效
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   confidence: medium
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: submit_timesheet
   zh: 填报
   en: SubmitTimesheet
@@ -2881,6 +3076,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: approve_timesheet
   zh: 审核
   en: ApproveTimesheet
@@ -2899,6 +3095,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: validation_evidence
   zh: 认定证据
   en: ValidationEvidence
@@ -2913,6 +3110,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: submission_deadline
   zh: 填报截止
   en: SubmissionDeadline
@@ -2927,6 +3125,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: unbilled_wip
   zh: 未开票在制（WIP）
   en: UnbilledWip
@@ -2951,6 +3150,7 @@ terms:
   change_ref: G-9
   note: WIP 是 PSA 行业管理口径（未开票价值），合同资产是准则口径；两者差异 = 无合同 WIP + 合同负债抵消 + 减值，见 G-8/G-9
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_asset
   zh: 合同资产
   en: ContractAsset
@@ -2974,23 +3174,30 @@ terms:
     type: legacy-table
     deprecated: true
   - name: 已确认未开票
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：交付中心汇报、运营看板立项明细
+    decision: R0 在用报表叫法（R3-RA-06）
   - name: 存量资产
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：交付中心汇报区域健康度
+    decision: R0 在用报表叫法（R3-RA-07）
   - name: 本年度未开票
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：交付中心汇报 3.1（本年形成的已确认未开票，即合同资产的「形成期间」切片，不得与全量相加；见 r0 基线 M-17、GL-024）
+    decision: R0 在用报表叫法（R3-RA-08）
   forbidden:
   - WipAccount
+  - 已确认未开票
+  - 存量资产
+  - 本年度未开票
   status: approved
   change_ref: G-8
   note: IFRS 15 §105-109；与应收账款（无条件收款权）区分；预期信用损失按 CAS 22 / IFRS 9 计提
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: measure_of_progress
   zh: 履约进度
   en: MeasureOfProgress
@@ -3021,6 +3228,7 @@ terms:
   note: 「完工百分比」是已废止的 IAS 11 / CAS 15 建造合同用语；CAS 14 / IFRS 15 §39-45 称履约进度。POC 保留为 KPI 符号别名
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: progress_assessment
   zh: 履约进度认定
   en: ProgressAssessment
@@ -3036,6 +3244,7 @@ terms:
   forbidden: []
   status: approved
   note: 履约进度认定单
+  scope: domain
 - id: input_method
   zh: 投入法
   en: InputMethod
@@ -3051,6 +3260,7 @@ terms:
   forbidden: []
   status: approved
   note: IFRS 15 B18-B19
+  scope: domain
 - id: output_method
   zh: 产出法
   en: OutputMethod
@@ -3066,6 +3276,7 @@ terms:
   forbidden: []
   status: approved
   note: IFRS 15 B15-B17；ACC-R01 定稿收入确认统一为产出法·客户价值确认，与词表「T&M 用投入法」冲突待财务确认
+  scope: domain
 - id: invoice_issued
   zh: 开票
   en: InvoiceIssued
@@ -3082,14 +3293,17 @@ terms:
     deprecated: true
     source: A8 档案 formmain_0428
   - name: 开票收入
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：损益表（开票收入（含税））
+    decision: R0 在用报表叫法（R3-RA-09）
   forbidden:
   - 发票档案
+  - 开票收入
   status: approved
   note: 开票 ≠ 收入；开票时合同资产转应收账款（或冲合同负债）
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: billing_request
   zh: 开票申请
   en: BillingRequest
@@ -3118,6 +3332,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: invoice_eligibility_confirmed
   zh: 开票准入
   en: InvoiceEligibilityConfirmed
@@ -3132,6 +3347,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: tm_period_bill
   zh: T&M 期间账单
   en: TmPeriodBill
@@ -3145,6 +3361,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: uncontracted_wip
   zh: 无合同 WIP
   en: UncontractedWip
@@ -3161,6 +3378,7 @@ terms:
   status: approved
   change_ref: G-9
   note: 无合同即不满足 CAS 14 合同成立条件：永不进入 ContractAsset，只存在于管理口径未开票在制
+  scope: domain
 - id: revenue_recognition
   zh: 收入确认单
   en: RevenueRecognition
@@ -3229,6 +3447,7 @@ terms:
   change_ref: G-12
   note: 用户 2026-10-14 裁定：「产值确认单就是收入确认单，系统用收入确认这个语言，现在的叫法可以归为方言」。ACC-R01：客户价值确认是确认收入的唯一触发点。事件名 RevenueRecognized
   core: true
+  scope: domain
 - id: period_adjustment
   zh: 期间调整
   en: PeriodAdjustment
@@ -3243,6 +3462,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: accounts_receivable
   zh: 应收账款
   en: AccountsReceivable
@@ -3263,13 +3483,17 @@ terms:
     type: old-code
     deprecated: false
   - name: 已开票未回款
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：应收账款分析底表
+    decision: R0 在用报表叫法（R3-RA-10）
   forbidden:
   - Ar
+  - 已开票未回款
   status: approved
   note: 准则：无条件收款权（仅取决于时间流逝）；代码保留 Ar 前缀写法 ArItem
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: ar_item
   zh: 应收单
   en: ArItem
@@ -3283,6 +3507,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: cash_received
   zh: 回款
   en: CashReceived
@@ -3295,12 +3520,15 @@ terms:
   confidence: high
   aliases:
   - name: 回款收入
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：损益表区域表（含现金、保理、商票、工抵）
-  forbidden: []
+    decision: R0 在用报表叫法（R3-RA-11）
+  forbidden:
+  - 回款收入
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: cash_receipt
   zh: 回款单
   en: CashReceipt
@@ -3320,6 +3548,7 @@ terms:
   - 回款单档案
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: receipt_claiming
   zh: 到账认领
   en: ReceiptClaiming
@@ -3334,6 +3563,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: receipt_allocation
   zh: 回款分配
   en: ReceiptAllocation
@@ -3348,6 +3578,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: cash_application
   zh: 核销
   en: CashApplication
@@ -3361,6 +3592,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: ar_written_off
   zh: 坏账核销
   en: ArWrittenOff
@@ -3378,13 +3610,16 @@ terms:
     deprecated: true
     source: A8 模板「应收坏账申请流程」；计提还是核销待财务确认
   - name: 坏账
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：应收账款分析底表（OA 坏账申请导出）
+    decision: 单说「坏账」指核销的用法归为方言（R3-RA-12）
   forbidden:
   - 应收坏账申请
+  - 坏账
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: aging
   zh: 账龄
   en: Aging
@@ -3398,8 +3633,9 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: aging_bucket
-  zh: 账龄桶
+  zh: 账龄区间
   en: AgingBucket
   snake: aging_bucket
   kind: value
@@ -3409,12 +3645,14 @@ terms:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
   confidence: high
   aliases:
-  - name: 账龄区间
-    type: undetermined
-    deprecated: false
-    source: 在用报表：应收账款分析底表
-  forbidden: []
+  - name: 账龄桶
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 账龄桶
   status: approved
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: disputed_receivable
   zh: 争议应收
   en: DisputedReceivable
@@ -3429,6 +3667,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: retention_money
   zh: 质量保证金
   en: RetentionMoney
@@ -3456,6 +3695,7 @@ terms:
   change_ref: G-17
   note: 国标全称「质量保证金」，FIDIC Cl.14 Retention Money；裸 Retention 与 java.lang.annotation.Retention、日志保留等冲突。未到期质保金在准则上通常属合同资产而非应收账款，待财务确认
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: collection
   zh: 催收
   en: Collection
@@ -3469,6 +3709,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: collection_plan
   zh: 回款计划
   en: CollectionPlan
@@ -3481,11 +3722,15 @@ terms:
   confidence: high
   aliases:
   - name: 预计回款
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：应收账款分析底表、运营看板开票明细
-  forbidden: []
+    decision: R0 在用报表叫法（R3-RA-14）
+  forbidden:
+  - 预计回款
   status: approved
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: ar_overdue_detected
   zh: 逾期应收
   en: ArOverdueDetected
@@ -3500,6 +3745,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: ecl_alert
   zh: ECL 预警
   en: EclAlert
@@ -3514,6 +3760,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: bad_debt_risk
   zh: 坏账风险
   en: BadDebtRisk
@@ -3527,6 +3774,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: impairment_risk
   zh: 减值风险
   en: ImpairmentRisk
@@ -3541,6 +3789,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: cash_conversion
   zh: 现金转化
   en: CashConversion
@@ -3555,6 +3804,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: time_capture_rate
   zh: 工时捕获率
   en: TimeCaptureRate
@@ -3568,6 +3818,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: contract_asset_impairment_risk_raised
   zh: 减值预警
   en: ContractAssetImpairmentRiskRaised
@@ -3589,6 +3840,7 @@ terms:
   status: approved
   change_ref: G-8
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: ar_impairment_risk_raised
   zh: 减值预警
   en: ArImpairmentRiskRaised
@@ -3603,6 +3855,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: retention_money_release_due
   zh: 质量保证金到期返还
   en: RetentionMoneyReleaseDue
@@ -3628,6 +3881,7 @@ terms:
   change_ref: G-17
   note: 期间称「缺陷责任期」（建质〔2017〕138 号），「质保期」为别名
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: final_account
   zh: 竣工结算
   en: FinalAccount
@@ -3660,6 +3914,7 @@ terms:
   old_codes: []
   core: null
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: final_account_discount
   zh: 结算折让
   en: FinalAccountDiscount
@@ -3684,8 +3939,9 @@ terms:
   change_ref: G-19
   note: 核算上属可变对价 / 交易价格调整
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: journal_voucher
-  zh: 会计凭证
+  zh: 记账凭证
   en: JournalVoucher
   snake: journal_voucher
   kind: document
@@ -3701,9 +3957,19 @@ terms:
   - name: psa_voucher* / psa_u8c_voucher
     type: legacy-table
     deprecated: true
-  forbidden: []
+  - name: AccountingVoucherText
+    type: old-code
+    deprecated: true
+    source: 第三轮并入（R3-AP-26）
+  - name: 会计凭证
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 会计凭证
   status: approved
   core: true
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: general_ledger
   zh: 总账
   en: GeneralLedger
@@ -3717,6 +3983,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: account
   zh: 科目
   en: Account
@@ -3731,6 +3998,7 @@ terms:
   forbidden: []
   status: approved
   note: 会计科目；1/2 级科目用准则原词（ACC-R12）
+  scope: domain
 - id: balance_sheet
   zh: 资产负债
   en: BalanceSheet
@@ -3746,6 +4014,7 @@ terms:
   forbidden: []
   status: approved
   note: IAS 1 称 statement of financial position
+  scope: domain
 - id: income_statement
   zh: 利润表
   en: IncomeStatement
@@ -3761,6 +4030,7 @@ terms:
   forbidden: []
   status: approved
   note: CAS 30 利润表；IAS 1 statement of profit or loss
+  scope: domain
 - id: financial_statement
   zh: 财务报表
   en: FinancialStatement
@@ -3775,6 +4045,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: accounting_period_closed
   zh: 会计期间
   en: AccountingPeriodClosed
@@ -3790,6 +4061,7 @@ terms:
   forbidden: []
   status: approved
   note: 实体 AccountingPeriod 移入 accounting.period（G-4、G-16）
+  scope: domain
 - id: statutory_revenue_booked
   zh: 法定收入
   en: StatutoryRevenueBooked
@@ -3804,6 +4076,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: statutory_cost
   zh: 法定成本
   en: StatutoryCost
@@ -3818,6 +4091,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: period_end_closing
   zh: 期末结转
   en: PeriodEndClosing
@@ -3831,6 +4105,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: impairment_booked
   zh: 减值分录
   en: ImpairmentBooked
@@ -3845,6 +4120,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: accounting_ledger__basis_difference_list
   zh: 合规口径
   en: BasisDifferenceList
@@ -3859,6 +4135,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: functional_currency
   zh: 记账本位币
   en: FunctionalCurrency
@@ -3873,6 +4150,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: currency_translation
   zh: 汇率折算
   en: CurrencyTranslation
@@ -3887,6 +4165,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: related_party_transaction
   zh: 关联交易
   en: RelatedPartyTransaction
@@ -3901,6 +4180,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: intercompany_balance
   zh: 内部往来
   en: IntercompanyBalance
@@ -3915,6 +4195,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: intercompany_elimination
   zh: 内部往来抵销
   en: IntercompanyElimination
@@ -3936,6 +4217,7 @@ terms:
   change_ref: G-25
   note: CAS 33 原文用「抵销」，不用「对销」
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: intercompany_settlement
   zh: 内部结算
   en: IntercompanySettlement
@@ -3950,6 +4232,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: transfer_pricing
   zh: 转移定价
   en: TransferPricing
@@ -3963,6 +4246,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
+  scope: domain
 - id: accounting_mapping_rule_set
   zh: 核算映射规则
   en: AccountingMappingRuleSet
@@ -3977,6 +4261,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: period_close_sequence
   zh: 期间关闭顺序
   en: PeriodCloseSequence
@@ -3991,6 +4276,7 @@ terms:
   forbidden: []
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: quote
   zh: 报价单
   en: Quote
@@ -4019,6 +4305,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: cost_estimate_node
   zh: 成本估算树
   en: CostEstimateNode
@@ -4041,6 +4328,7 @@ terms:
   change_ref: G-5
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: labor_estimate_line
   zh: 工时估算明细
   en: LaborEstimateLine
@@ -4063,6 +4351,7 @@ terms:
   change_ref: G-1
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: opportunity
   zh: 商机
   en: Opportunity
@@ -4083,6 +4372,7 @@ terms:
   forbidden: []
   status: approved
   core: true
+  scope: domain
 - id: customer
   zh: 客户
   en: Customer
@@ -4104,6 +4394,7 @@ terms:
   forbidden: []
   status: approved
   core: true
+  scope: domain
 - id: rate_card
   zh: 费率卡
   en: RateCard
@@ -4134,6 +4425,7 @@ terms:
   core: true
   change_ref: G-3
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: project
   zh: 项目
   en: Project
@@ -4170,6 +4462,7 @@ terms:
   note: PSA 行业中与客户的整体合作也称 Engagement；本系统 Engagement 仅用于客户侧 EngagementHistory，不作项目别名
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: project_budget
   zh: 项目预算（WBS 预算）
   en: ProjectBudget
@@ -4200,6 +4493,7 @@ terms:
   change_ref: G-29
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: expense_claim
   zh: 报销单
   en: ExpenseClaim
@@ -4231,6 +4525,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: travel_expense
   zh: 差旅
   en: TravelExpense
@@ -4257,6 +4552,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: legal_entity
   zh: 法人主体
   en: LegalEntity
@@ -4279,6 +4575,7 @@ terms:
   - companyCode
   status: approved
   core: true
+  scope: domain
 - id: employee
   zh: 员工
   en: Employee
@@ -4300,6 +4597,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: org_unit
   zh: 组织单元
   en: OrgUnit
@@ -4317,10 +4615,19 @@ terms:
   - name: system_users, system_dept
     type: legacy-table
     deprecated: true
+  - name: 部门
+    type: standard-zh
+    deprecated: false
+    source: 第三轮并入（R3-AP-09）
+  - name: Department
+    type: old-code
+    deprecated: true
+    source: 第三轮并入（R3-AP-09）
   forbidden: []
   status: approved
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: job_grade
   zh: 职级
   en: JobGrade
@@ -4342,6 +4649,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: position
   zh: 岗位
   en: Position
@@ -4363,6 +4671,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: accounting_period
   zh: 会计期间
   en: AccountingPeriod
@@ -4389,6 +4698,7 @@ terms:
   core: true
   change_ref: G-4
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: user
   zh: 用户
   en: User
@@ -4410,6 +4720,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: role
   zh: 角色
   en: Role
@@ -4431,6 +4742,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: permission
   zh: 权限
   en: Permission
@@ -4452,6 +4764,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: workflow
   zh: 流程
   en: Workflow
@@ -4473,6 +4786,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: workflow_instance
   zh: 流程实例
   en: WorkflowInstance
@@ -4494,6 +4808,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: approval
   zh: 审批
   en: Approval
@@ -4515,6 +4830,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: rule_engine
   zh: 规则引擎
   en: RuleEngine
@@ -4530,6 +4846,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: rule_execution
   zh: 规则执行
   en: RuleExecution
@@ -4545,6 +4862,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: dead_letter_queue
   zh: 异常队列
   en: DeadLetterQueue
@@ -4566,6 +4884,8 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: acl
+  acl_class: 长期
 - id: delivery_guarantee
   zh: 投递保证
   en: DeliveryGuarantee
@@ -4587,6 +4907,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: audit_log
   zh: 审计日志
   en: AuditLog
@@ -4616,6 +4937,7 @@ terms:
   status: approved
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_liability
   zh: 合同负债
   en: ContractLiability
@@ -4640,18 +4962,21 @@ terms:
     deprecated: true
     source: A8 模板「预收款单新增」
   - name: 预收
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：运营看板回款明细「是否预收」
+    decision: R0 在用报表叫法（R3-RA-15）
   forbidden:
   - DeferredRevenue
   - AdvanceReceipt
   - 预收款
   - 递延收入
   - 预收款单
+  - 预收
   status: approved
   change_ref: G-11
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: performance_obligation
   zh: 履约义务
   en: PerformanceObligation
@@ -4672,6 +4997,7 @@ terms:
   status: approved
   change_ref: G-21
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: transaction_price
   zh: 交易价格
   en: TransactionPrice
@@ -4688,15 +5014,18 @@ terms:
     type: dialect
     deprecated: true
   - name: 合同额
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：经营分析报告（合同额、合同额占比）
+    decision: R0 在用报表叫法（R3-RA-16）
   forbidden:
   - 合同金额
   - 最终交易价格
+  - 合同额
   status: approved
   change_ref: G-21
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: variable_consideration
   zh: 可变对价
   en: VariableConsideration
@@ -4713,6 +5042,7 @@ terms:
   status: approved
   change_ref: G-20
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: contract_modification
   zh: 合同变更（会计口径）
   en: ContractModification
@@ -4729,6 +5059,7 @@ terms:
   status: approved
   change_ref: G-21
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: costs_to_obtain_contract
   zh: 合同取得成本
   en: CostsToObtainContract
@@ -4746,6 +5077,7 @@ terms:
   status: approved
   change_ref: G-10
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: satisfied_over_time
   zh: 时段履约
   en: SatisfiedOverTime
@@ -4762,6 +5094,7 @@ terms:
   status: approved
   change_ref: G-13
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: satisfied_at_point_in_time
   zh: 时点履约
   en: SatisfiedAtPointInTime
@@ -4778,6 +5111,7 @@ terms:
   status: approved
   change_ref: G-13
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: revenue_recognized
   zh: 收入已确认
   en: RevenueRecognized
@@ -4798,6 +5132,7 @@ terms:
   status: approved
   change_ref: G-12
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: cost_of_sales
   zh: 营业成本
   en: CostOfSales
@@ -4819,6 +5154,7 @@ terms:
   status: approved
   change_ref: G-10
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: remaining_performance_obligation
   zh: 剩余履约义务
   en: RemainingPerformanceObligation
@@ -4836,17 +5172,22 @@ terms:
     type: industry
     deprecated: false
   - name: 剩余合同额
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：运营看板人效情况
+    decision: R0 在用报表叫法（R3-RA-17）
   - name: 合约储备
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：经营分析报告业绩摘要
-  forbidden: []
+    decision: R0 在用报表叫法（R3-RA-18）
+  forbidden:
+  - 剩余合同额
+  - 合约储备
   status: approved
   change_ref: G-21
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: onerous_contract
   zh: 亏损合同
   en: OnerousContract
@@ -4863,6 +5204,7 @@ terms:
   status: approved
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: estimate_at_completion
   zh: 完工估算
   en: EstimateAtCompletion
@@ -4882,6 +5224,7 @@ terms:
   status: approved
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: planned_value
   zh: 计划价值
   en: PlannedValue
@@ -4902,6 +5245,7 @@ terms:
   status: approved
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: earned_value
   zh: 挣值
   en: EarnedValue
@@ -4922,6 +5266,7 @@ terms:
   status: approved
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: actual_cost
   zh: 实际成本
   en: ActualCost
@@ -4941,6 +5286,7 @@ terms:
   status: approved
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: cost_performance_index
   zh: 成本绩效指数
   en: CostPerformanceIndex
@@ -4960,6 +5306,7 @@ terms:
   status: approved
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: schedule_performance_index
   zh: 进度绩效指数
   en: SchedulePerformanceIndex
@@ -4979,6 +5326,7 @@ terms:
   status: approved
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: schedule_variance
   zh: 进度偏差
   en: ScheduleVariance
@@ -4998,6 +5346,7 @@ terms:
   status: approved
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: earned_value_cost_variance
   zh: 挣值成本偏差
   en: EarnedValueCostVariance
@@ -5018,6 +5367,7 @@ terms:
   status: approved
   change_ref: G-24
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: defects_liability_period
   zh: 缺陷责任期
   en: DefectsLiabilityPeriod
@@ -5042,6 +5392,7 @@ terms:
   status: approved
   change_ref: G-17
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: interim_payment_certificate
   zh: 期中支付证书
   en: InterimPaymentCertificate
@@ -5064,6 +5415,7 @@ terms:
   status: approved
   change_ref: G-19
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: period_status
   zh: 期间状态
   en: PeriodStatus
@@ -5079,6 +5431,7 @@ terms:
   status: approved
   change_ref: G-16
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: period_close
   zh: 期末关账
   en: PeriodClose
@@ -5101,6 +5454,7 @@ terms:
   status: approved
   change_ref: G-16
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: reopen_accounting_period
   zh: 期间重开
   en: ReopenAccountingPeriod
@@ -5116,6 +5470,7 @@ terms:
   status: approved
   change_ref: G-16
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: posting_candidate
   zh: 过账候选
   en: PostingCandidate
@@ -5131,6 +5486,7 @@ terms:
   status: approved
   change_ref: G-16
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: reversing_entry
   zh: 冲销
   en: ReversingEntry
@@ -5157,6 +5513,7 @@ terms:
   status: approved
   change_ref: G-16
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: bill_rate_card
   zh: 计费费率卡
   en: BillRateCard
@@ -5172,6 +5529,7 @@ terms:
   status: approved
   change_ref: G-3
   confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
 - id: utilization_rate
   zh: 利用率
   en: UtilizationRate
@@ -5187,13 +5545,16 @@ terms:
     type: industry
     deprecated: false
   - name: 产能饱和度
-    type: undetermined
-    deprecated: false
+    type: dialect
+    deprecated: true
     source: 在用报表：运营看板人效情况、交付中心汇报
-  forbidden: []
+    decision: R0 在用报表叫法（R3-RA-19）
+  forbidden:
+  - 产能饱和度
   status: approved
   change_ref: G-2
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: hours
   zh: 小时数
   en: Hours
@@ -5209,6 +5570,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#hours）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: submitted_hours
   zh: 填报工时
   en: SubmittedHours
@@ -5227,6 +5589,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#declared-hours）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: work_date
   zh: 工作日期
   en: WorkDate
@@ -5241,6 +5604,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#work-date）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: planned_hours
   zh: 计划工时
   en: PlannedHours
@@ -5255,6 +5619,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#planned-hours）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: actual_hours
   zh: 实际工时
   en: ActualHours
@@ -5269,6 +5634,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#actual-hours）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: remaining_hours
   zh: 剩余工时
   en: RemainingHours
@@ -5283,6 +5649,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#remaining-hours）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: delivery
   zh: 项目交付
   en: Delivery
@@ -5298,6 +5665,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#delivery）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: document
   zh: 单据
   en: Document
@@ -5312,6 +5680,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#document）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: document_type
   zh: 单据类型
   en: DocumentType
@@ -5326,6 +5695,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#document-type）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: document_number
   zh: 单据编号
   en: DocumentNumber
@@ -5344,6 +5714,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#document-number）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: numbering_rule
   zh: 编号规则
   en: NumberingRule
@@ -5358,6 +5729,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#numbering-rule）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: numbering_pattern
   zh: 编号模板
   en: NumberingPattern
@@ -5372,6 +5744,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#numbering-pattern）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: numbering_counter
   zh: 编号计数器
   en: NumberingCounter
@@ -5386,6 +5759,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#numbering-counter）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: reset_policy
   zh: 流水号重置周期
   en: ResetPolicy
@@ -5403,6 +5777,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#reset-policy）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: period_key
   zh: 周期键
   en: PeriodKey
@@ -5417,6 +5792,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#period-key）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: approval_instance
   zh: 审批实例
   en: ApprovalInstance
@@ -5435,6 +5811,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#approval-instance）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: approval_process
   zh: 审批流程
   en: ApprovalProcess
@@ -5449,6 +5826,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#approval-process）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: process_key
   zh: 流程标识
   en: ProcessKey
@@ -5463,6 +5841,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#process-key）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: business_key
   zh: 业务键
   en: BusinessKey
@@ -5477,6 +5856,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#business-key）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: initiator
   zh: 发起人
   en: Initiator
@@ -5491,6 +5871,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#initiator）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: approver
   zh: 审批人
   en: Approver
@@ -5505,6 +5886,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#approver）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: approval_task
   zh: 审批任务
   en: ApprovalTask
@@ -5522,6 +5904,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#task）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: routing_flag
   zh: 路由标记
   en: RoutingFlag
@@ -5536,6 +5919,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#routing-flag）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: money
   zh: 金额
   en: Money
@@ -5551,6 +5935,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#money）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: amount
   zh: 数额
   en: Amount
@@ -5566,6 +5951,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#amount）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: currency
   zh: 币种
   en: Currency
@@ -5581,6 +5967,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#currency）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: business_date
   zh: 业务日期
   en: BusinessDate
@@ -5595,6 +5982,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#business-date）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: cost
   zh: 成本
   en: Cost
@@ -5611,6 +5999,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#cost）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: error_code
   zh: 错误码
   en: ErrorCode
@@ -5626,6 +6015,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#error-code）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: numbering_capacity
   zh: 编号容量
   en: NumberingCapacity
@@ -5643,6 +6033,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#capacity）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: scheduler_lock
   zh: 调度锁
   en: SchedulerLock
@@ -5662,6 +6053,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 template-carryover.yaml#scheduler-lock）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: wecom
   zh: 企业微信
   en: Wecom
@@ -5677,6 +6069,8 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#wecom）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: acl
+  acl_class: 长期
 - id: wecom_entry
   zh: 企业微信登录入口
   en: WecomEntry
@@ -5692,6 +6086,8 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#wecom_entry）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: acl
+  acl_class: 长期
 - id: workbench
   zh: 企业微信工作台
   en: Workbench
@@ -5710,6 +6106,8 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#workbench）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: acl
+  acl_class: 长期
 - id: mini_program
   zh: 小程序
   en: MiniProgram
@@ -5725,6 +6123,8 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#mini_program）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: acl
+  acl_class: 长期
 - id: qr_code_login
   zh: 扫码登录
   en: QrCodeLogin
@@ -5744,6 +6144,8 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#web_scan）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: acl
+  acl_class: 长期
 - id: identity
   zh: 身份
   en: Identity
@@ -5759,6 +6161,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#identity）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: organization
   zh: 组织
   en: Organization
@@ -5774,6 +6177,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#organization）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: workforce
   zh: 组织人事
   en: Workforce
@@ -5789,13 +6193,14 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#workforce）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: employment_status
   zh: 在职状态
   en: EmploymentStatus
   snake: employment_status
   kind: value
   bc: organization.workforce
-  definition: 员工在职或离职（A8 登录名为空即离职，RULE-363）
+  definition: 员工在职或离职；由组织人事按规则判定（RULE-363），外部记录的翻译只在集成层
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
@@ -5804,6 +6209,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#employment_status）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: employed
   zh: 在职
   en: Employed
@@ -5819,6 +6225,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#employed）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: separated
   zh: 离职
   en: Separated
@@ -5834,13 +6241,14 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#separated）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: fee_earner
   zh: 收费员工标识
   en: FeeEarner
   snake: fee_earner
   kind: attribute
   bc: organization.workforce
-  definition: A8 员工档案中的人事分类（FIELD0244）；不是可计费性判定，只是输入之一（GUIDING_PRINCIPLES §9a）
+  definition: 员工档案中的人事分类；不是可计费性判定，只是输入之一（GUIDING_PRINCIPLES §9a）
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
@@ -5849,13 +6257,14 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#fee_earner）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: supervisor
   zh: 直属上级
   en: Supervisor
   snake: supervisor
   kind: role
   bc: organization.workforce
-  definition: 人员级汇报对象（A8 ORG_MEMBER.EXT_ATTR_37，RULE-372）
+  definition: 员工的人员级汇报对象（RULE-372）
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
@@ -5872,13 +6281,14 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#direct_leader）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: org_unit_head
   zh: 部门负责人
   en: OrgUnitHead
   snake: org_unit_head
   kind: role
   bc: organization.workforce
-  definition: A8 关系表中的部门负责人（RULE-356/257）
+  definition: 组织单元的负责人（RULE-356/257）
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
@@ -5887,13 +6297,14 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#org_unit_head）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: regional_receivables_manager
   zh: 区域应收负责人
   en: RegionalReceivablesManager
   snake: regional_receivables_manager
   kind: role
   bc: organization.workforce
-  definition: A8 关系表中的部门「区域 AR」（RULE-255/356）；职责角色，不是应收事实
+  definition: 组织单元的区域应收负责人（RULE-255/356）；职责角色，不是应收事实
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
@@ -5905,6 +6316,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#regional_receivables_manager）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: ancestor
   zh: 上级组织链
   en: Ancestor
@@ -5920,6 +6332,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#ancestor）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: employee_profile
   zh: 员工概况
   en: EmployeeProfile
@@ -5939,6 +6352,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#employee_profile）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: org_unit_profile
   zh: 组织单元概况
   en: OrgUnitProfile
@@ -5958,13 +6372,14 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#org_unit_profile）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: org_snapshot
   zh: 组织快照
   en: OrgSnapshot
   snake: org_snapshot
   kind: entity
   bc: organization.workforce
-  definition: 从 A8 只读同步得到的组织数据
+  definition: 组织人事模块持有的组织单元、员工、岗位与任职数据（只读，经组织同步写入）
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
@@ -5973,6 +6388,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#org_snapshot）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: sync_run
   zh: 同步记录
   en: SyncRun
@@ -5992,6 +6408,8 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#sync_run）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: acl
+  acl_class: 过渡期
 - id: role_holder
   zh: 角色持有人
   en: RoleHolder
@@ -6007,6 +6425,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#role_holder）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: actor
   zh: 操作人
   en: Actor
@@ -6017,11 +6436,21 @@ terms:
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
-  aliases: []
-  forbidden: []
+  aliases:
+  - name: 办理人
+    type: dialect
+    deprecated: true
+    source: 第三轮并入（R3-AP-32）
+  - name: TaskHandler
+    type: old-code
+    deprecated: true
+    source: 第三轮并入（R3-AP-32）
+  forbidden:
+  - 办理人
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#actor）
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
 - id: on_behalf_of
   zh: 被代理人
   en: OnBehalfOf
@@ -6037,6 +6466,7 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#on_behalf_of）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
 - id: audit_subject
   zh: 审计对象
   en: AuditSubject
@@ -6055,6 +6485,4011 @@ terms:
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#subject）
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
+- id: approve
+  zh: 通过
+  en: Approve
+  snake: approve
+  kind: command
+  bc: platform.approval
+  definition: 审批人对任务给出同意的结论
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#approve，R3-AP-01）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: reason
+  zh: 理由
+  en: Reason
+  snake: reason
+  kind: value
+  bc: platform.approval
+  definition: 审批人办理任务时填写的说明；驳回和退回必填
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#reason，R3-AP-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: handle
+  zh: 办理
+  en: Handle
+  snake: handle
+  kind: command
+  bc: platform.approval
+  definition: 对任务执行认领、通过、驳回、退回等操作
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Act
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#act，R3-AP-04）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: task_assigned
+  zh: 任务已分配
+  en: TaskAssigned
+  snake: task_assigned
+  kind: event
+  bc: platform.approval
+  definition: 任务已分配给候选组（TaskAssigned）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Assigned
+    type: old-code
+    deprecated: true
+  - name: 已分配
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 已分配
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#assigned，R3-AP-05）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: assignee
+  zh: 处理人
+  en: Assignee
+  snake: assignee
+  kind: role
+  bc: platform.approval
+  definition: 认领后唯一可以办理任务的人（RULE-276，I-7）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#assignee，R3-AP-06）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: approval_completed
+  zh: 审批已完成
+  en: ApprovalCompleted
+  snake: approval_completed
+  kind: event
+  bc: platform.approval
+  definition: 审批已结束（ApprovalCompleted）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Completed
+    type: old-code
+    deprecated: true
+  - name: 已完成
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 已完成
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#completed，R3-AP-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: decide
+  zh: 作出决定
+  en: Decide
+  snake: decide
+  kind: command
+  bc: platform.approval
+  definition: 通过或驳回任务
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: 办理决定
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 办理决定
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#decide，R3-AP-08）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: rerouted_to_superior
+  zh: 已上推
+  en: ReroutedToSuperior
+  snake: rerouted_to_superior
+  kind: value
+  bc: platform.approval
+  definition: 候选集已按规则上推（汇报线不完整、防自审）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Escalated
+    type: old-code
+    deprecated: true
+  - name: 已升级
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 已升级
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#escalated，R3-AP-10）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: administrator_fallback
+  zh: 转流程管理员
+  en: AdministratorFallback
+  snake: administrator_fallback
+  kind: value
+  bc: platform.approval
+  definition: 取不到人时转流程管理员
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Fallback
+    type: old-code
+    deprecated: true
+  - name: 兜底
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 兜底
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#fallback，R3-AP-11）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: approval_field
+  zh: 审批表单字段
+  en: ApprovalField
+  snake: approval_field
+  kind: entity
+  bc: platform.approval
+  definition: 业务单据的表单数据
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Form
+    type: old-code
+    deprecated: true
+  - name: 表单
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 表单
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#form，R3-AP-12）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: inbox
+  zh: 待办列表
+  en: Inbox
+  snake: inbox
+  kind: entity
+  bc: platform.approval
+  definition: 当前用户待处理任务的列表（RULE-261）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: 待办收件箱
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 待办收件箱
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#inbox，R3-AP-13）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: return
+  zh: 退回
+  en: Return
+  snake: return
+  kind: command
+  bc: platform.approval
+  definition: 退回发起人（RULE-275）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#return，R3-AP-14）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: approval_round
+  zh: 审批轮次
+  en: ApprovalRound
+  snake: approval_round
+  kind: entity
+  bc: platform.approval
+  definition: 同一单据第几次发起（RULE-278）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Round
+    type: old-code
+    deprecated: true
+  - name: 轮次
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 轮次
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#round，R3-AP-15）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: line_task
+  zh: 行级任务
+  en: LineTask
+  snake: line_task
+  kind: entity
+  bc: platform.approval
+  definition: 行级任务（RULE-261）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Row
+    type: old-code
+    deprecated: true
+  - name: 行
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 行
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#row，R3-AP-16）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: terminate
+  zh: 终止
+  en: Terminate
+  snake: terminate
+  kind: command
+  bc: platform.approval
+  definition: 终止流程实例（顶层驳回，RULE-271）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#terminate，R3-AP-17）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: project_manager
+  zh: 项目经理
+  en: ProjectManager
+  snake: project_manager
+  kind: role
+  bc: platform.approval
+  definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）
+  standard_ref:
+  - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#project_manager，R3-AP-18）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: timesheet_approval
+  zh: 工时单审批
+  en: TimesheetApproval
+  snake: timesheet_approval
+  kind: value
+  bc: platform.approval
+  definition: 工时单的审批流程；通知卡片上展示的流程名
+  standard_ref:
+  - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
+  confidence: medium
+  aliases:
+  - name: 工时审批
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 工时审批
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#timesheet_approval，R3-AP-19）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: transfer
+  zh: 转交
+  en: Transfer
+  snake: transfer
+  kind: command
+  bc: platform.approval
+  definition: 当前处理人把任务交给另一位在职人员，原处理人不再能办理（RULE-285）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-285）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#transfer，R3-AP-20）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: approval_time_limit
+  zh: 审批时限
+  en: ApprovalTimeLimit
+  snake: approval_time_limit
+  kind: value
+  bc: platform.approval
+  definition: 提交日起第 n 个工作日结束；n 与升级间隔由节点的决策表给出（RULE-377/378）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-377）
+  confidence: medium
+  aliases:
+  - name: Deadline
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#deadline，R3-AP-21）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: task_effect
+  zh: 办理效力
+  en: TaskEffect
+  snake: task_effect
+  kind: value
+  bc: platform.approval
+  definition: 任务办理结果对本轮审批的效力：约束性的结束本轮，建议性的（加签人的驳回）只记录意见（RULE-273、RULE-291）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Effect
+    type: old-code
+    deprecated: true
+  - name: 效力
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 效力
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#effect，R3-AP-22）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: escalation
+  zh: 升级
+  en: Escalation
+  snake: escalation
+  kind: action
+  bc: platform.approval
+  definition: 审批任务超时未处理时，转给上级处理
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b.yaml#escalation，R3-AP-23）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: reassignment
+  zh: 改派
+  en: Reassignment
+  snake: reassignment
+  kind: action
+  bc: platform.approval
+  definition: 流程管理员把待办改给另一个人
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b.yaml#reassignment，R3-AP-24）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: unclaim
+  zh: 取消认领
+  en: Unclaim
+  snake: unclaim
+  kind: action
+  bc: platform.approval
+  definition: 认领人放回已认领的任务，让候选人重新认领
+  standard_ref:
+  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  confidence: medium
+  aliases:
+  - name: ReleaseOfTask
+    type: old-code
+    deprecated: true
+  - name: 释放
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 释放
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b.yaml#release_of_task，R3-AP-25）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: dead_letter_job
+  zh: 死信作业
+  en: DeadLetterJob
+  snake: dead_letter_job
+  kind: entity
+  bc: platform.approval
+  definition: 流程引擎用尽重试后移入死信表的作业，需要运维处理；数量由指标 dead.letter.jobs 导出
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2b-events.yaml#dead_letter_job，R3-AP-27）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: handled_task
+  zh: 已办
+  en: HandledTask
+  snake: handled_task
+  kind: entity
+  bc: platform.approval
+  definition: 当前用户已经办理过的审批任务，列出办理结果和意见
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: DoneTask
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_done_task，R3-AP-28）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_pending_claim
+  zh: 待认领
+  en: PendingClaim
+  snake: pending_claim
+  kind: state
+  bc: platform.approval
+  definition: 任务有候选审批人但还没有人认领；与「已认领」相对
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_pending_claim，R3-AP-29）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_approval_record
+  zh: 审批记录
+  en: ApprovalRecord
+  snake: approval_record
+  kind: entity
+  bc: platform.approval
+  definition: 任务详情中按时间列出的办理记录：节点、办理结果、办理人、办理时间、意见
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_approval_record，R3-AP-30）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_task_outcome
+  zh: 办理结果
+  en: TaskOutcome
+  snake: task_outcome
+  kind: value
+  bc: platform.approval
+  definition: 一次办理的结论：通过、驳回、退回、转交或自动通过
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_task_outcome，R3-AP-31）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_flow_node
+  zh: 节点
+  en: FlowNode
+  snake: flow_node
+  kind: entity
+  bc: platform.approval
+  definition: 审批流程中的一个环节，每个节点有自己的审批人规则
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_flow_node，R3-AP-33）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_approval_running
+  zh: 审批中
+  en: ApprovalRunning
+  snake: approval_running
+  kind: state
+  bc: platform.approval
+  definition: 审批已经发起且尚未结束；工时单提交之后即处于此状态
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: 进行中
+    type: standard-zh
+    deprecated: false
+    source: 第三轮并入（R3-AP-61）
+  - name: Running
+    type: old-code
+    deprecated: true
+    source: 第三轮并入（R3-AP-61）
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_approval_running，R3-AP-34）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_approval_approved
+  zh: 已通过
+  en: ApprovalApproved
+  snake: approval_approved
+  kind: state
+  bc: platform.approval
+  definition: 审批以通过结束
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_approval_approved，R3-AP-35）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_approval_rejected
+  zh: 已驳回
+  en: ApprovalRejected
+  snake: approval_rejected
+  kind: state
+  bc: platform.approval
+  definition: 审批以驳回结束
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_approval_rejected，R3-AP-36）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_approval_returned
+  zh: 已退回
+  en: ApprovalReturned
+  snake: approval_returned
+  kind: state
+  bc: platform.approval
+  definition: 审批被退回，本轮结束，发起人修改后重提开新一轮
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_approval_returned，R3-AP-37）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_auto_approved
+  zh: 自动通过
+  en: AutoApproved
+  snake: auto_approved
+  kind: value
+  bc: platform.approval
+  definition: 系统在同一审批人重复出现等情形下自动给出的通过，办理记录里标注「自动」
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_auto_approved，R3-AP-38）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: notice
+  zh: 知会
+  en: Notice
+  snake: notice
+  kind: entity
+  bc: platform.approval
+  definition: 只通知、不阻塞流程的审批知会；在合并待办里单列，打开即已读
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: CcNotice
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_cc_notice，R3-AP-40）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: approval_summary
+  zh: 审批摘要
+  en: ApprovalSummary
+  snake: approval_summary
+  kind: value
+  bc: platform.approval
+  definition: 业务模块在发起审批时随请求提供的单据摘要，待办与通知据此显示，不回查业务单据
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: BusinessSummary
+    type: old-code
+    deprecated: true
+  - name: 业务摘要
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 业务摘要
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_business_summary，R3-AP-41）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_proxy_handling
+  zh: 代理办理
+  en: ProxyHandling
+  snake: proxy_handling
+  kind: role
+  bc: platform.approval
+  definition: 流程管理员替被代理人办理任务；审批记录同时显示操作人与被代理人
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: 代理
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 代理
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_proxy_handling，R3-AP-42）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_task_deadline
+  zh: 截止时间
+  en: TaskDeadline
+  snake: task_deadline
+  kind: value
+  bc: platform.approval
+  definition: 审批任务应办理完的时刻；超过则提醒并升级，待办标出已超时
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_task_deadline，R3-AP-43）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_advisory_note
+  zh: 加签建议
+  en: AdvisoryNote
+  snake: advisory_note
+  kind: value
+  bc: platform.approval
+  definition: 加签人给出的参考意见，不算正式的办理结果
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_advisory_note，R3-AP-45）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: candidate_approver
+  zh: 候选审批人
+  en: CandidateApprover
+  snake: candidate_approver
+  kind: role
+  bc: platform.approval
+  definition: 任务尚未认领时，有资格认领并办理该任务的审批人
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#candidate_approver，R3-AP-47）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: task_claim
+  zh: 认领
+  en: TaskClaim
+  snake: task_claim
+  kind: command
+  bc: platform.approval
+  definition: 候选审批人把任务认到自己名下，认领后只有他可以办理
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#task_claim，R3-AP-48）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: reject
+  zh: 驳回
+  en: Reject
+  snake: reject
+  kind: command
+  bc: platform.approval
+  definition: 审批人对任务给出不同意的结论，是否终止流程取决于所在节点
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#reject，R3-AP-49）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: current_node
+  zh: 当前节点
+  en: CurrentNode
+  snake: current_node
+  kind: entity
+  bc: platform.approval
+  definition: 审批任务当前所在的流程节点
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#current_node，R3-AP-51）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: business_check
+  zh: 业务校验
+  en: BusinessCheck
+  snake: business_check
+  kind: rule
+  bc: platform.approval
+  definition: 办理审批前由业务模块执行的校验，不通过则不能办理
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#business_check，R3-AP-52）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: task_participant
+  zh: 任务参与人
+  en: TaskParticipant
+  snake: task_participant
+  kind: role
+  bc: platform.approval
+  definition: 审批任务的候选审批人或处理人
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: 参与人
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 参与人
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#task_participant，R3-AP-53）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: opinion
+  zh: 意见
+  en: Opinion
+  snake: opinion
+  kind: value
+  bc: platform.approval
+  definition: 办理人随办理结果留下的文字说明；通过时可以留空，留空如实保存为空，界面显示为「（未填写意见）」（RULE-280）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#opinion，R3-AP-54）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: advisory
+  zh: 建议性
+  en: Advisory
+  snake: advisory
+  kind: value
+  bc: platform.approval
+  definition: 加签人的驳回只记录意见、不终止流程（RULE-291，1b）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#advisory，R3-AP-55）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: claimed
+  zh: 已认领
+  en: Claimed
+  snake: claimed
+  kind: state
+  bc: platform.approval
+  definition: 任务已被候选人认领
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#claimed，R3-AP-56）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: task_decision
+  zh: 审批决定
+  en: TaskDecision
+  snake: task_decision
+  kind: entity
+  bc: platform.approval
+  definition: 对一个任务的通过或驳回
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Decision
+    type: old-code
+    deprecated: true
+  - name: 决定
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 决定
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#decision，R3-AP-57）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: director
+  zh: 总监
+  en: Director
+  snake: director
+  kind: role
+  bc: platform.approval
+  definition: BU-002 部门总监（RULE-256）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#director，R3-AP-58）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: live
+  zh: 在途
+  en: Live
+  snake: live
+  kind: state
+  bc: platform.approval
+  definition: 审批仍在进行或退回待重提
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#live，R3-AP-59）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: task_handled
+  zh: 任务已办理
+  en: TaskHandled
+  snake: task_handled
+  kind: event
+  bc: platform.approval
+  definition: 一个任务已办理（TaskResulted）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Resulted
+    type: old-code
+    deprecated: true
+  - name: 已出结果
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 已出结果
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#resulted，R3-AP-60）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: todo
+  zh: 待办
+  en: Todo
+  snake: todo
+  kind: entity
+  bc: platform.approval
+  definition: 待处理任务
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: 待办事项
+    type: dialect
+    deprecated: true
+  - name: PendingTask
+    type: old-code
+    deprecated: true
+    source: 第三轮并入（R3-AP-46）
+  forbidden:
+  - 待办事项
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#todo，R3-AP-62）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: resubmit
+  zh: 重新提交
+  en: Resubmit
+  snake: resubmit
+  kind: command
+  bc: platform.approval
+  definition: 退回后由发起人重新提交（I-5）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#resubmit，R3-AP-63）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: notification
+  zh: 通知
+  en: Notification
+  snake: notification
+  kind: entity
+  bc: platform.approval
+  definition: 发给审批参与人的消息通知，经集成层外发投递（模块内接口隔离，架构 3.7）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#notification，R3-AP-64）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: notification_skipped
+  zh: 通知已跳过
+  en: NotificationSkipped
+  snake: notification_skipped
+  kind: state
+  bc: platform.approval
+  definition: 收件人没有可用的外部投递标识，跳过并告警（I-6）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）
+  confidence: medium
+  aliases:
+  - name: Skipped
+    type: old-code
+    deprecated: true
+  - name: 已跳过
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 已跳过
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#skipped，R3-AP-65）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: regional_head
+  zh: 区域负责人
+  en: RegionalHead
+  snake: regional_head
+  kind: role
+  bc: platform.approval
+  definition: 区域组织单元的负责人；含售前工时的工时单还要经他审批（表单字段 regionalHeadId）
+  standard_ref:
+  - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#regional_head，R3-AP-66）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: skip
+  zh: 跳过
+  en: Skip
+  snake: skip
+  kind: command
+  bc: platform.approval
+  definition: 节点显式允许且确实没有审批人时，不创建任务直接放行（RULE-300）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#skip，R3-AP-67）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: project_manager_approval
+  zh: 项目经理审批
+  en: ProjectManagerApproval
+  snake: project_manager_approval
+  kind: value
+  bc: platform.approval
+  definition: 工时审批中由项目经理办理的节点，对应项目工时
+  standard_ref:
+  - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
+  confidence: medium
+  aliases:
+  - name: ProjectManagerReview
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#project_manager_review，R3-AP-68）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: regional_head_approval
+  zh: 区域负责人审批
+  en: RegionalHeadApproval
+  snake: regional_head_approval
+  kind: value
+  bc: platform.approval
+  definition: 工时审批中由区域负责人办理的节点，对应售前工时
+  standard_ref:
+  - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
+  confidence: medium
+  aliases:
+  - name: RegionalHeadReview
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#regional_head_review，R3-AP-69）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: supervisor_approval
+  zh: 直属上级审批
+  en: SupervisorApproval
+  snake: supervisor_approval
+  kind: value
+  bc: platform.approval
+  definition: 工时审批中由发起人的一级汇报人办理的节点，对应 OH 工时
+  standard_ref:
+  - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
+  confidence: medium
+  aliases:
+  - name: SupervisorReview
+    type: old-code
+    deprecated: true
+  - name: 一级汇报人审批
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 一级汇报人审批
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#supervisor_review，R3-AP-70）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: countersign
+  zh: 会签
+  en: Countersign
+  snake: countersign
+  kind: command
+  bc: platform.approval
+  definition: 节点上每位不同的审批人各有一个任务，全部通过才算通过；一路里任一人正式驳回即结束本轮（RULE-248/273）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-248）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#countersign，R3-AP-71）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: withdraw
+  zh: 撤回
+  en: Withdraw
+  snake: withdraw
+  kind: command
+  bc: platform.approval
+  definition: 发起人把在途审批拉回自己修改：本轮以退回结束，可重新发起下一轮（RULE-269）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-269）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#withdraw，R3-AP-72）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: cancel
+  zh: 撤销
+  en: Cancel
+  snake: cancel
+  kind: command
+  bc: platform.approval
+  definition: 发起人结束整个审批并保留历史，单据回到草稿，不记为驳回（RULE-268/279/288）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-268）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#cancel，R3-AP-73）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: withdrawal_cutoff
+  zh: 撤回截止点
+  en: WithdrawalCutoff
+  snake: withdrawal_cutoff
+  kind: value
+  bc: platform.approval
+  definition: 流程里标了「撤回截止」的节点：其上有已完成任务之后，发起人不能再撤回或撤销（RULE-309）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-309）
+  confidence: medium
+  aliases:
+  - name: Cutoff
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#cutoff，R3-AP-74）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: overdue
+  zh: 已超时
+  en: Overdue
+  snake: overdue
+  kind: state
+  bc: platform.approval
+  definition: 任务超过审批时限仍未处理，已记录并提醒处理人；只提醒，不自动通过（RULE-377..384）
+  standard_ref:
+  - docs/modernization/rules/APPROVAL_DEADLINE_RULES.md（RULE-379）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#overdue，R3-AP-75）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_locked_day
+  zh: 已锁定
+  en: LockedDay
+  snake: locked_day
+  kind: state
+  bc: organization.attendance
+  definition: 工作日历中已经过去的日期；修改需要组织数据管理员二次确认
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_locked_day，R3-AT-01）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: work_calendar
+  zh: 工作日历
+  en: WorkCalendar
+  snake: work_calendar
+  kind: entity
+  bc: organization.attendance
+  definition: 按年维护的节假日与调休上班日；默认日历适用全部法人，预留法人专属日历（用户 2026-10-14）
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#work_calendar，R3-AT-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: attendance
+  zh: 考勤与休假
+  en: Attendance
+  snake: attendance
+  kind: entity
+  bc: organization.attendance
+  definition: 考勤与休假限界上下文；1a 只含工作日历，请假与打卡后做（用户 2026-10-14：BC 提前到 1a 建）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2
+  confidence: medium
+  aliases:
+  - name: 考勤
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 考勤
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_attendance.yaml#attendance，R3-AT-04）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: work_calendar_locked_days_changed
+  zh: 工作日历锁定日期被修改
+  en: WorkCalendarLockedDaysChanged
+  snake: work_calendar_locked_days_changed
+  kind: event
+  bc: organization.attendance
+  definition: 组织数据管理员确认修改了工作日历中早于今天的日期；载荷列出每个被改日期的改前改后类别，进审计
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2-data.yaml#work_calendar_locked_days_changed，R3-AT-05）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_rest_day
+  zh: 休息日
+  en: RestDay
+  snake: rest_day
+  kind: value
+  bc: organization.attendance
+  definition: 周末且不是调休上班日的日期
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_rest_day，R3-AT-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: workday
+  zh: 工作日
+  en: Workday
+  snake: workday
+  kind: value
+  bc: organization.attendance
+  definition: 工作日历中需要上班的日期：周一至周五且非节假日，或调休上班日
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#workday，R3-AT-08）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: holiday
+  zh: 节假日
+  en: Holiday
+  snake: holiday
+  kind: value
+  bc: organization.attendance
+  definition: 工作日历中休息的日期，可落在周一至周五
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_attendance.yaml#holiday，R3-AT-09）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: make_up_workday
+  zh: 调休上班日
+  en: MakeUpWorkday
+  snake: make_up_workday
+  kind: value
+  bc: organization.attendance
+  definition: 工作日历中需要上班的周六或周日
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_attendance.yaml#make_up_workday，R3-AT-10）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: work_calendar_year
+  zh: 工作日历年度
+  en: WorkCalendarYear
+  snake: work_calendar_year
+  kind: entity
+  bc: organization.attendance
+  definition: 某个日历的一个已维护年份；没有维护的年份，依赖它的计算失败并告警，不假定全部是工作日
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_attendance.yaml#work_calendar_year，R3-AT-11）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: calendar_scope
+  zh: 日历适用范围
+  en: CalendarScope
+  snake: calendar_scope
+  kind: enum
+  bc: organization.attendance
+  definition: 工作日历适用的范围：默认日历或某个法人主体专属日历；默认日历不用空法人加哨兵值表示
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_attendance.yaml#calendar_scope，R3-AT-12）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: accrual_basis_revenue
+  zh: 权责发生制收入
+  en: AccrualBasisRevenue
+  snake: accrual_basis_revenue
+  kind: metric
+  bc: operations.policy
+  definition: 权责口径账簿按客户确认（收入确认单）确认的营业收入（不含税）；与收付口径账簿按开票确认的收入相对，经营分析以此为收入主口径
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - ADR-0022 总账纳入新系统
+  - ADR-0023 经营分析纳入现代化
+  confidence: medium
+  aliases:
+  - name: 产值收入
+    type: dialect
+    deprecated: true
+    source: 财务确认单第 2 版答复（ADR-0023 意见）
+  - name: AccrualRevenue
+    type: old-code
+    deprecated: true
+  - name: 权责收入
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 产值收入
+  - 权责收入
+  status: approved
+  note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#accrual_revenue，R3-FI-05）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: information_service_fee
+  zh: 信息服务费
+  en: InformationServiceFee
+  snake: information_service_fee
+  kind: value
+  bc: expense.spend
+  definition: 公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；性质（转付成本、合同取得成本或销售费用）待向财务核实，决定其在净收入还是贡献毛利中扣减
+  standard_ref:
+  - 企业会计准则第 14 号——收入（第二十八条合同取得成本、第三十四条主要责任人与代理人）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#information_service_fee，R3-FI-06）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: debt_settlement_asset
+  zh: 抵债资产
+  en: DebtSettlementAsset
+  snake: debt_settlement_asset
+  kind: entity
+  bc: receivables.collection
+  definition: 客户以房产、车位、卡券等非现金资产清偿所欠款项时，公司取得控制权后按放弃债权的公允价值确认的资产；取得控制权前仍为对客户的应收款
+  standard_ref:
+  - 企业会计准则第 12 号——债务重组（2019 修订）
+  - 企业会计准则第 23 号——金融资产转移
+  confidence: medium
+  aliases:
+  - name: 工抵资产
+    type: undetermined
+    deprecated: false
+    source: 财务确认单第 2 版答复（ADR-0016 第 6 条补充）
+  - name: 工抵
+    type: undetermined
+    deprecated: false
+    source: 财务确认单第 2 版答复（FQ-14、FQ-16）
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#debt_settlement_asset，R3-FI-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: tail_adjustment
+  zh: 尾调
+  en: TailAdjustment
+  snake: tail_adjustment
+  kind: value
+  bc: presales.quoting
+  definition: 报价整单的人工调整额：最终报价 = 行合计 + 尾调，审批单显示尾调金额及其占行合计的比例（RULE-142）；与舍入产生的舍入差是两个概念
+  standard_ref:
+  - RULE-142
+  - CROSS_CUTTING_MATRIX.md §3.1
+  confidence: medium
+  aliases:
+  - name: 尾差
+    type: dialect
+    deprecated: true
+    source: 老系统报价（RULE-142 原称）；同一词也被用来指舍入差，一词两义，新系统不用
+  forbidden:
+  - 尾差
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#tail_adjustment，R3-FI-08）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: witness
+  zh: 见证人
+  en: Witness
+  snake: witness
+  kind: role
+  bc: platform.identity
+  definition: 运维命令执行时在场的另一个人，与操作人一起记入审计（双人在场）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#witness，R3-ID-01）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: separation
+  zh: 离职
+  en: Separation
+  snake: separation
+  kind: concept
+  bc: platform.identity
+  definition: 员工从在职变为离职这件事；离职时删除全部角色授予、停用应急账号、吊销会话（ADR-0027 第 1 项）。事件、字段与方法里的 separated 是同一概念的过去分词（已离职），登记为技术词，不另立术语
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#separation，R3-ID-02）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: authorization_request
+  zh: 授权申请
+  en: AuthorizationRequest
+  snake: authorization_request
+  kind: concept
+  bc: platform.identity
+  definition: 授予敏感权限、或把角色改成含敏感权限时先建的申请，另一人确认后才生效
+  standard_ref:
+  - adr/src/ADR-0028.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#authorization_request，R3-ID-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: administrator_mode
+  zh: 管理员模式
+  en: AdministratorMode
+  snake: administrator_mode
+  kind: concept
+  bc: platform.identity
+  definition: super_admin 持有人经再次验证后在同一会话进入的模式，最长 1 小时、不延长；只有五项平台权限（ADR-0027 第 2 项、ADR-0028），不含业务、敏感读与审计查看
+  standard_ref:
+  - adr/src/ADR-0026.md
+  confidence: medium
+  aliases:
+  - name: 管理模式
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 管理模式
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#administrator_mode，R3-ID-04）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: org_data_admin
+  zh: 组织数据管理员
+  en: OrgDataAdmin
+  snake: org_data_admin
+  kind: role
+  bc: platform.identity
+  definition: 系统角色 org_data_admin：维护组织与法人归属、工作日历、编号模板、同步运行；无敏感权限、不能确认模板（ADR-0027 第 2 项）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#org_data_admin，R3-ID-05）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: business_admin
+  zh: 业务管理员
+  en: BusinessAdmin
+  snake: business_admin
+  kind: role
+  bc: platform.identity
+  definition: 系统角色 business_admin：确认各单据编号模板（凭证号模板的财务确认不在 1a 内设角色）（ADR-0027 第 2 项）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#business_admin，R3-ID-06）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: security_auditor
+  zh: 安全审计员
+  en: SecurityAuditor
+  snake: security_auditor
+  kind: role
+  bc: platform.identity
+  definition: 系统角色 security_auditor：查看与导出审计记录，并在普通会话里放行管理员离职造成的同步暂停（ADR-0027 第 3 项、ADR-0028）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#security_auditor，R3-ID-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: user_account
+  zh: 用户账号
+  en: UserAccount
+  snake: user_account
+  kind: entity
+  bc: platform.identity
+  definition: 一名员工在本系统的登录主体，可启用或停用
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#user_account，R3-ID-08）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: totp_code
+  zh: 动态口令
+  en: TotpCode
+  snake: totp_code
+  kind: value
+  bc: platform.identity
+  definition: 应急管理员登录时的一次性动态口令（TOTP）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#totp_code，R3-ID-09）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: grant_permission
+  zh: 授予权限
+  en: GrantPermission
+  snake: grant_permission
+  kind: command
+  bc: platform.identity
+  definition: 向用户授予权限；也指外部身份提供方确认用户身份的授权
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: Authorization
+    type: old-code
+    deprecated: true
+  - name: 授权
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 授权
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#authorization，R3-ID-10）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: account_disabled
+  zh: 账号停用
+  en: AccountDisabled
+  snake: account_disabled
+  kind: state
+  bc: platform.identity
+  definition: 账号被管理员停用，停用后不能登录，已有会话随即失效
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: 停用
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 停用
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#account_disabled，R3-ID-11）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: login
+  zh: 登录
+  en: Login
+  snake: login
+  kind: action
+  bc: platform.identity
+  definition: 用户以某种凭证建立会话的动作；所有入口过同一道「启用且在职」检查
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#login，R3-ID-12）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: logout
+  zh: 登出
+  en: Logout
+  snake: logout
+  kind: action
+  bc: platform.identity
+  definition: 用户主动结束会话；会话在服务端删除
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#logout，R3-ID-13）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: session
+  zh: 会话
+  en: Session
+  snake: session
+  kind: entity
+  bc: platform.identity
+  definition: 服务端会话（Spring Session JDBC）：空闲 10 小时、绝对上限 24 小时，均可配置
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#session，R3-ID-14）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: emergency_admin
+  zh: 应急管理员
+  en: EmergencyAdmin
+  snake: emergency_admin
+  kind: entity
+  bc: platform.identity
+  definition: 独立凭据（Argon2id 口令 + TOTP）的 break-glass 管理员，只能从内网登录
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#emergency_admin，R3-ID-16）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: administrator
+  zh: 管理员
+  en: Administrator
+  snake: administrator
+  kind: role
+  bc: platform.identity
+  definition: 持有 super_admin 或管理员角色的人；不得通过外部票据进入
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#administrator，R3-ID-17）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: password
+  zh: 口令
+  en: Password
+  snake: password
+  kind: value
+  bc: platform.identity
+  definition: 应急管理员的登录口令，至少 12 位并有复杂度要求
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#password，R3-ID-18）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: access_scope
+  zh: 数据范围
+  en: AccessScope
+  snake: access_scope
+  kind: value
+  bc: platform.identity
+  definition: 法人 × 部门 × 项目角色的行可见范围；空范围 = 零行
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#access_scope，R3-ID-19）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: permission_adjustment
+  zh: 待调整权限
+  en: PermissionAdjustment
+  snake: permission_adjustment
+  kind: entity
+  bc: platform.identity
+  definition: 同步发现某人的任职变化后，提醒有权的人复核其授权的待办条目；条目类型 + 去重键，只链接到标准授予流程，本身不授予也不收回（ADR-0032 第 4 项第 3 条、第 5 项）
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#permission_adjustment，R3-ID-20）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: permission_adjustment_kind
+  zh: 待调整权限类型
+  en: PermissionAdjustmentKind
+  snake: permission_adjustment_kind
+  kind: enum
+  bc: platform.identity
+  definition: 待调整权限条目的类型：敏感角色持有人、范围待复核（ADR-0032 第 5 项第 2 条）
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#permission_adjustment_kind，R3-ID-21）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: permission_adjustment_kind__sensitive_role_review
+  zh: 敏感角色复核
+  en: SensitiveRoleReview
+  snake: sensitive_role_review
+  kind: value
+  bc: platform.identity
+  definition: 待调整权限类型：持有双人逐人级角色的人部门或岗位变化（ADR-0032 第 4 项第 3 条），送达组织数据管理员与安全审计员，不送本人
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases:
+  - name: SensitiveRoleHolder
+    type: old-code
+    deprecated: true
+  - name: 敏感角色持有人
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 敏感角色持有人
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#permission_adjustment_kind__sensitive_role_holder，R3-ID-22）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: permission_adjustment_kind__scope_review
+  zh: 范围复核
+  en: ScopeReview
+  snake: scope_review
+  kind: value
+  bc: platform.identity
+  definition: 待调整权限类型：持有含自定义部门或列出法人的授权的人调动，送新部门负责人复核（ADR-0032 第 4 项第 2 条）
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases:
+  - name: 范围待复核
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 范围待复核
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#permission_adjustment_kind__scope_review，R3-ID-23）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: permission_adjustment_status
+  zh: 待调整权限状态
+  en: PermissionAdjustmentStatus
+  snake: permission_adjustment_status
+  kind: enum
+  bc: platform.identity
+  definition: 待调整权限条目的状态：开启 → 已维持 / 已调整 / 因离职关闭（ADR-0032 第 4 项第 3 条）
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#permission_adjustment_status，R3-ID-24）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: permission_adjustment_status__open
+  zh: 待处理
+  en: Open
+  snake: open
+  kind: state
+  bc: platform.identity
+  definition: 待调整权限条目尚未处理
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases:
+  - name: 开启
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 开启
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#permission_adjustment_status__open，R3-ID-25）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: uphold_permission_action
+  zh: 维持授权
+  en: Uphold
+  snake: uphold
+  kind: command
+  bc: platform.identity
+  definition: 处理待调整权限条目：确认此人的授权不需调整并填写原因，路径 :uphold；不改任何授予，本人不能处理关于本人的条目
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#uphold_permission_action，R3-ID-26）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: permission_adjustment_status__upheld
+  zh: 已维持
+  en: Upheld
+  snake: upheld
+  kind: state
+  bc: platform.identity
+  definition: 待调整权限条目已由处理人维持授权（填写原因）；不改任何授予
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#permission_adjustment_status__upheld，R3-ID-27）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: permission_adjustment_status__adjusted
+  zh: 已调整
+  en: Adjusted
+  snake: adjusted
+  kind: state
+  bc: platform.identity
+  definition: 授权已经按标准授予流程调整，条目关联授权申请或授予审计条目
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#permission_adjustment_status__adjusted，R3-ID-28）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: permission_adjustment_status__closed_by_separation
+  zh: 因离职关闭
+  en: ClosedBySeparation
+  snake: closed_by_separation
+  kind: state
+  bc: platform.identity
+  definition: 此人离职，离职处置已关闭其全部授予，开启中的条目随之关闭
+  standard_ref:
+  - adr/src/ADR-0032.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#permission_adjustment_status__closed_by_separation，R3-ID-29）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: custom_org_unit
+  zh: 自定义部门
+  en: CustomOrgUnit
+  snake: custom_org_unit
+  kind: value
+  bc: platform.identity
+  definition: 范围类型为 CUSTOM_ORG_UNITS 的角色在角色版本上列出的部门，每个部门选「含下级」或「仅本部门」；改明细即新增角色版本（ADR-0026「1a 交付范围」、ADR-0034 第 5 项）
+  standard_ref:
+  - adr/src/ADR-0026.md
+  - adr/src/ADR-0034.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#custom_org_unit，R3-ID-30）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: include_descendants
+  zh: 含下级
+  en: IncludeDescendants
+  snake: include_descendants
+  kind: value
+  bc: platform.identity
+  definition: 自定义部门的逐部门选择：为真时该部门连同全部下级部门在范围内，组织同步新增的下级部门自动纳入；为假即「仅本部门」
+  standard_ref:
+  - adr/src/ADR-0034.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 f1-data-scope.yaml#include_descendants，R3-ID-31）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: forced_logout
+  zh: 强制登出
+  en: ForcedLogout
+  snake: forced_logout
+  kind: concept
+  bc: platform.identity
+  definition: 管理员结束某个人的全部会话：一次一人、须写理由、不能对自己，结束超级管理员或安全审计员的会话会告警（ADR-0027 第 3 项）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases:
+  - name: 强制下线
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 强制下线
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#forced_logout，R3-ID-32）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: access_grant
+  zh: 数据范围授权
+  en: AccessGrant
+  snake: access_grant
+  kind: value
+  bc: platform.identity
+  definition: 数据范围中的一格：法人 × 部门（可含下级）× 项目角色
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#access_grant，R3-ID-36）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: navigation
+  zh: 导航
+  en: Navigation
+  snake: navigation
+  kind: entity
+  bc: platform.identity
+  definition: 用户可见的菜单树
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#navigation，R3-ID-37）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: navigation_item
+  zh: 导航项
+  en: NavigationItem
+  snake: navigation_item
+  kind: entity
+  bc: platform.identity
+  definition: 菜单树中的目录或页面
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#navigation_item，R3-ID-38）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: direct_report
+  zh: 直接下属
+  en: DirectReport
+  snake: direct_report
+  kind: concept
+  bc: platform.identity
+  definition: 汇报线上直接向某人汇报的人；「本人及下属」只算直接下属
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-identity.yaml#direct_report，R3-ID-40）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: probe
+  zh: 探针
+  en: Probe
+  snake: probe
+  kind: action
+  bc: platform.integration
+  definition: 不留下数据的写入检查：启动时和每天一次检查归档目标是否可用
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2-data.yaml#probe，R3-IN-06）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: byte_count
+  zh: 字节数
+  en: ByteCount
+  snake: byte_count
+  kind: value
+  bc: platform.integration
+  definition: 归档对象的字节数
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases:
+  - name: Size
+    type: old-code
+    deprecated: true
+  - name: 大小
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 大小
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2-data.yaml#size，R3-IN-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: data_retention_period
+  zh: 数据保留期限
+  en: DataRetentionPeriod
+  snake: data_retention_period
+  kind: action
+  bc: platform.integration
+  definition: 把数据留在在线库或归档库的期限，到期后删除或转归档；与「质保金」无关
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases:
+  - name: Keep
+    type: old-code
+    deprecated: true
+  - name: 保留
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 保留
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2-data.yaml#keep，R3-IN-08）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: event_quarantine
+  zh: 事件隔离区
+  en: EventQuarantine
+  snake: event_quarantine
+  kind: entity
+  bc: platform.integration
+  definition: 部署或回滚时排不空的事件发布被移入的登记，保留原负载、类型、关联号与部署批次，修复后重新投递或人工处理（ADR-0035 第 6 条）
+  standard_ref:
+  - ADR-0035 契约演进与兼容
+  confidence: medium
+  aliases:
+  - name: 隔离登记
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 隔离登记
+  status: approved
+  note: 用语确认第三轮转正式（原提议 contract-evolution.yaml#event_quarantine，R3-IN-16）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: archived
+  zh: 已归档
+  en: Archived
+  snake: archived
+  kind: value
+  bc: platform.integration
+  definition: 已写入归档库并经归档库确认的状态或时间
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2-data.yaml#archived，R3-IN-35）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: write_once_read_many
+  zh: 一次写入多次读取
+  en: WriteOnceReadMany
+  snake: write_once_read_many
+  kind: concept
+  bc: platform.integration
+  definition: 归档库的合规保留锁：锁定期内对象不能被覆盖或删除
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases:
+  - name: Worm
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2-data.yaml#worm，R3-IN-36）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: migration
+  zh: 历史迁入
+  en: Migration
+  snake: migration
+  kind: value
+  bc: kernel
+  definition: 历史迁入：由迁入写入的业务事实与事件的来源标记，永久保留在事件与事实中，用于区分迁入数据与新系统原生数据
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#migration，R3-KN-02）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: effective_from_date
+  zh: 生效日
+  en: EffectiveFromDate
+  snake: effective_from_date
+  kind: value
+  bc: kernel
+  definition: 某个事实、版本或模板从哪一天起生效（含当天）的日期；事件负载与代码里叫 effectiveFrom，列名带类别词 _date。OrgSnapshotChanged 的 effectiveFrom 语义相同：变化从哪一天起生效，因此与其他地方统一叫 effectiveFrom，不再另设 effectiveDate
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2b-events.yaml#effective_from_date，R3-KN-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: correlation_id
+  zh: 关联号
+  en: CorrelationId
+  snake: correlation_id
+  kind: value
+  bc: kernel
+  definition: 一次请求及其引发的事件与投递共用的追踪编号（X-Correlation-Id）；出错时界面显示可复制的关联号，便于对日志（NAMING_STANDARD §4a U5、GUIDING_PRINCIPLES §11 O-1）
+  standard_ref:
+  - GUIDING_PRINCIPLES §11 O-1
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#correlation_id，R3-KN-05）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: rounding_residual
+  zh: 舍入差
+  en: RoundingResidual
+  snake: rounding_residual
+  kind: value
+  bc: kernel
+  definition: 金额按统一口径舍入到分后，各份之和与总额之间的分厘差；由按权重拆分按既定规则分配，使各份之和恰等于总额
+  standard_ref:
+  - CROSS_CUTTING_MATRIX.md §3.3
+  confidence: medium
+  aliases:
+  - name: 尾差
+    type: dialect
+    deprecated: true
+    source: 老系统分摊（RULE-069「尾差标志位」等）；一词两义，新系统不用
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#rounding_residual，R3-KN-06）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: prorate
+  zh: 按权重拆分
+  en: Prorate
+  snake: prorate
+  kind: command
+  bc: kernel
+  definition: 把一笔金额按一组非负权重拆成若干份，各份之和恰等于原额，舍入差按最大余数法分配，结果确定、可镜像；是 kernel 的金额原语，不是业务动作「间接成本分摊」（allocate_indirect_cost）
+  standard_ref:
+  - CROSS_CUTTING_MATRIX.md §3.3
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#prorate，R3-KN-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: reversal_document
+  zh: 冲销单
+  en: ReversalDocument
+  snake: reversal_document
+  kind: document
+  bc: kernel
+  definition: 只冲不重做的更正单据，用于退回或撤销，可全额也可部分；与原单同一单据类型、各为单一聚合，引用记在冲销单上，原单不写入
+  standard_ref:
+  - ADR-0031 第 2 项第 2 条
+  - ADR-0016 第 2 条
+  - ADR-0022 第 2 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#reversal_document，R3-KN-08）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: correction_document
+  zh: 修正单
+  en: CorrectionDocument
+  snake: correction_document
+  kind: document
+  bc: kernel
+  definition: 完成一次冲销重做的更正单据，自带被更正单据引用，生效时冲尽被更正单据的剩余并按新内容重做；单一聚合，一个编号、一次审批、一个过账批；不得改变法人
+  standard_ref:
+  - ADR-0031 第 2 项第 2、4 条
+  - SESSION_PLAYBOOK §12.3
+  confidence: medium
+  aliases:
+  - name: 重做
+    type: synonym
+    deprecated: false
+    source: ADR-0031 第 8 项第 1 条列为修正单的同义词；修正单完成的动作沿用已有叫法「冲销重做」
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#correction_document，R3-KN-09）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: document_nature
+  zh: 单据性质
+  en: DocumentNature
+  snake: document_nature
+  kind: enum
+  bc: kernel
+  definition: 单据在冲销与修正模式中的身份，取原单、冲销单、修正单三者之一；冲销行存正数量与正金额，符号由单据性质决定
+  standard_ref:
+  - ADR-0031 第 2 项第 2 条、第 7 项第 3、4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#document_nature，R3-KN-10）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: reversal_kind
+  zh: 冲销类别
+  en: ReversalKind
+  snake: reversal_kind
+  kind: enum
+  bc: kernel
+  definition: 冲销的缘由，取差错或业务冲回之一；差错落开放期间并标注原期间，业务冲回如客户退回按其业务日期落账期间判定
+  standard_ref:
+  - ADR-0031 第 5 项第 1、2 条
+  - FQ-29
+  confidence: medium
+  aliases:
+  - name: ReversalCategory
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#reversal_category，R3-KN-11）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: reversible_balance
+  zh: 可冲销余额
+  en: ReversibleBalance
+  snake: reversible_balance
+  kind: metric
+  bc: kernel
+  definition: 原单某行尚可被冲销的金额，等于原额减去已生效冲销合计；按已通过的冲销单与修正单计算（含待过账），不按已过账事实；冲销单不可再被冲销
+  standard_ref:
+  - ADR-0031 第 2 项第 5 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#reversible_balance，R3-KN-12）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: derived_reversal
+  zh: 派生冲销
+  en: DerivedReversal
+  snake: derived_reversal
+  kind: entity
+  bc: kernel
+  definition: 上游单据被冲销后，由下游引用方按冲销事件自动生成的冲销，如收入确认单被冲销后配对成本的冲回；继承上游，不另审批，期间取上游实际落账期间
+  standard_ref:
+  - ADR-0031 第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#derived_reversal，R3-KN-13）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: original_period
+  zh: 原期间
+  en: OriginalPeriod
+  snake: original_period
+  kind: value
+  bc: kernel
+  definition: 被冲销或被更正的单据所属的会计期间；冲销或更正落在开放期间时标注，与实际落账期间分开记录
+  standard_ref:
+  - ADR-0016 第 2 条
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#original_period，R3-KN-14）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: reverse
+  zh: 冲销动作
+  en: Reverse
+  snake: reverse
+  kind: command
+  bc: kernel
+  definition: 权限码与接口中发起冲销的动作 reverse，对应路径 :reverse，授予范围与该单据的提交权限相同
+  standard_ref:
+  - ADR-0031 第 7 项第 6 条
+  - ADR-0022 第 125 行
+  - U8C_CAPABILITY_MAP.md §2.3
+  confidence: medium
+  aliases:
+  - name: ReverseAction
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#reverse_action，R3-KN-15）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: correct
+  zh: 修正动作
+  en: Correct
+  snake: correct
+  kind: command
+  bc: kernel
+  definition: 权限码与接口中发起修正单的动作 correct，对应路径 :correct，授予范围与该单据的提交权限相同
+  standard_ref:
+  - ADR-0031 第 7 项第 6 条
+  confidence: medium
+  aliases:
+  - name: CorrectAction
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#correct_action，R3-KN-16）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: confirmer
+  zh: 确认人
+  en: Confirmer
+  snake: confirmer
+  kind: role
+  bc: platform.numbering
+  definition: 确认某个编号模板版本的人：业务确认人持有 numbering-rule:approve，财务确认人持有凭证号模板的确认权限
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#confirmer，R3-NU-02）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: author
+  zh: 作者
+  en: Author
+  snake: author
+  kind: role
+  bc: platform.numbering
+  definition: 保存某个编号模板版本的人；作者不能确认自己保存的版本（四眼）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#author，R3-NU-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: legacy_number
+  zh: 原编号
+  en: LegacyNumber
+  snake: legacy_number
+  kind: entity
+  bc: platform.numbering
+  definition: 迁入单据保留的原始编号，只读，用于追溯与检索（ADR-0010 第 5 条）
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-numbering.yaml#legacy_number，R3-NU-04）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: confirmation_status
+  zh: 确认状态
+  en: ConfirmationStatus
+  snake: confirmation_status
+  kind: value
+  bc: platform.numbering
+  definition: 编号规则是否已由管理员确认；默认模板在确认前为待确认（PENDING_CONFIRMATION），保存即确认（CONFIRMED）。来源对照（platform.integration）沿用同一个词，取值写作 PENDING / CONFIRMED / REJECTED（待确认 / 已确认 / 已拒绝），中文一致、枚举名各随其表（ADR-0033 第 2 项第 1 条）
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-numbering.yaml#confirmation_status，R3-NU-05）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: counter_scope_kind
+  zh: 计数范围类别
+  en: CounterScopeKind
+  snake: counter_scope_kind
+  kind: enum
+  bc: platform.numbering
+  definition: 计数范围的类别：GLOBAL 全局 / LEGAL_ENTITY 按法人
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-numbering.yaml#counter_scope_kind，R3-NU-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: journal_voucher_numbering_rule
+  zh: 记账凭证编号规则
+  en: JournalVoucherNumberingRule
+  snake: journal_voucher_numbering_rule
+  kind: concept
+  bc: platform.numbering
+  definition: 凭证号模板的编号规则；其确认权限 voucher-numbering-rule:approve 是敏感权限，1a 不设持有角色，待首个过账阶段再定（用户决定）
+  standard_ref:
+  - adr/src/ADR-0027.md
+  confidence: medium
+  aliases:
+  - name: VoucherNumberingRule
+    type: old-code
+    deprecated: true
+  - name: 凭证号规则
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 凭证号规则
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#voucher_numbering_rule，R3-NU-08）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: numbering_rule_version
+  zh: 编号规则版本
+  en: NumberingRuleVersion
+  snake: numbering_rule_version
+  kind: value
+  bc: platform.numbering
+  definition: 编号模板的版本号值对象（RuleVersion），从 1 起，每保存一个新模板加 1；版本表的 version_number 列、接口字段 templateVersion 和事件负载 ruleVersion 是同一个东西；与乐观锁 version、事件序号 event_count 无关
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases:
+  - name: RuleVersion
+    type: old-code
+    deprecated: true
+  - name: 规则版本
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 规则版本
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2b-events.yaml#rule_version，R3-NU-09）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_pending_confirmation_state
+  zh: 待确认
+  en: PendingConfirmationState
+  snake: pending_confirmation_state
+  kind: state
+  bc: platform.numbering
+  definition: 编号规则还没有由管理员确认
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_pending_confirmation_state，R3-NU-10）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_confirmed_state
+  zh: 已确认
+  en: ConfirmedState
+  snake: confirmed_state
+  kind: state
+  bc: platform.numbering
+  definition: 编号规则已由管理员确认
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_confirmed_state，R3-NU-11）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: ui_never_reset
+  zh: 不重置
+  en: NeverReset
+  snake: never_reset
+  kind: value
+  bc: platform.numbering
+  definition: 流水号永不重置，一直递增
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-c.yaml#ui_never_reset，R3-NU-12）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: sequence_number
+  zh: 流水号
+  en: SequenceNumber
+  snake: sequence_number
+  kind: value
+  bc: platform.numbering
+  definition: 编号中随单据递增的序号部分
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: SerialNumber
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#serial_number，R3-NU-13）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: initial_sequence_number
+  zh: 起始流水号
+  en: InitialSequenceNumber
+  snake: initial_sequence_number
+  kind: value
+  bc: platform.numbering
+  definition: 编号规则中流水号的起始值
+  standard_ref: []
+  confidence: medium
+  aliases:
+  - name: StartSerialNumber
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#start_serial_number，R3-NU-14）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: issue_number
+  zh: 发号
+  en: IssueNumber
+  snake: issue_number
+  kind: command
+  bc: platform.numbering
+  definition: 按编号规则为一张单据分配编号
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#issue_number，R3-NU-15）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: document_type_code
+  zh: 单据类型代码
+  en: DocumentTypeCode
+  snake: document_type_code
+  kind: value
+  bc: platform.numbering
+  definition: 单据类型在统一编号格式中的短代码（大写字母 2-4 位），在词表中登记，对应模板占位符 {TYPE}
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-numbering.yaml#document_type_code，R3-NU-16）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: counter_scope
+  zh: 计数范围
+  en: CounterScope
+  snake: counter_scope
+  kind: value
+  bc: platform.numbering
+  definition: 编号计数器计数的范围：全局（各法人共用一个计数）或按法人（每个法人各计各的）；范围类别与法人主体成对，全局时无法人，按法人时必有法人
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 platform-numbering.yaml#counter_scope，R3-NU-19）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: maintenance_mode
+  zh: 维护模式
+  en: MaintenanceMode
+  snake: maintenance_mode
+  kind: value
+  bc: platform.scheduling
+  definition: 部署或回滚期间的系统状态：停写请求与业务类定时作业，事件投递与重投照常，用于排空事件发布；状态存于库内标记，由 one-ops 部署剧本开关（ADR-0035 第 6 条）
+  standard_ref:
+  - ADR-0035 契约演进与兼容
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 contract-evolution.yaml#maintenance_mode，R3-PL-01）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: deprecation_register
+  zh: 弃用登记
+  en: DeprecationRegister
+  snake: deprecation_register
+  kind: entity
+  bc: platform.web
+  definition: 已标为弃用的接口、字段、事件或数据集列的登记（backend/architecture/deprecations.yaml）：对象、弃用日、消费方类别、到期条件、出处；G-C1 据此放行到期删除（ADR-0035 第 7 条）
+  standard_ref:
+  - ADR-0035 契约演进与兼容
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 contract-evolution.yaml#deprecation_register，R3-PL-02）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: job_failure
+  zh: 作业失败
+  en: JobFailure
+  snake: job_failure
+  kind: concept
+  bc: platform.scheduling
+  definition: 带 SchedulerLock 的定时作业抛出异常的一次运行；按作业名（锁名）计数，指标 job.failures。作业自己捕获并记录的失败不在其中，由所属模块的指标覆盖
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2b-events.yaml#job_failure，R3-PL-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: contribution_margin
+  zh: 贡献毛利
+  en: ContributionMargin
+  snake: contribution_margin
+  kind: metric
+  bc: operations.policy
+  definition: 净服务收入减直接人工与直接项目费用后的余额；按层级（项目、项目小组、区域、公司）与变体（报价、预算、预估、实际）声明；扣减项按财务口径 FD-41
+  standard_ref:
+  - OAT canonical_symbol CM；《管理会计应用指引第 401 号——本量利分析》（边际贡献，口径不同，见 naming_issues）；企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（转付成本是否计入收入总额）
+  confidence: medium
+  aliases:
+  - name: 毛利
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  - name: 交付毛利
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  - name: 产值毛利
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  - name: BU 毛利
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  - name: 项目毛利润
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  forbidden:
+  - 毛利
+  - 交付毛利
+  - 产值毛利
+  - 项目毛利润
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-contribution_margin，R3-RN-01）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: contribution_margin_ratio
+  zh: 贡献毛利率
+  en: ContributionMarginRatio
+  snake: contribution_margin_ratio
+  kind: metric
+  bc: operations.policy
+  definition: 贡献毛利 ÷ 对应层级的净服务收入（不含税）；分母须与贡献毛利同层级、同变体
+  standard_ref:
+  - OAT canonical_symbol CMR；管理会计（准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: 毛利率
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  forbidden:
+  - 毛利率
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-contribution_margin_ratio，R3-RN-02）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: net_service_revenue
+  zh: 净服务收入
+  en: NetServiceRevenue
+  snake: net_service_revenue
+  kind: metric
+  bc: operations.policy
+  definition: 收入（不含税）减转付成本（分包、外包与可向客户转收的代垫费用）后的余额；扣减范围按财务口径 FD-41
+  standard_ref:
+  - OAT canonical_symbol NR；企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；AEC 行业 Net Service Revenue（PSMJ / Deltek 通行口径）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-net_service_revenue，R3-RN-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: management_operating_profit
+  zh: 经营利润
+  en: ManagementOperatingProfit
+  snake: management_operating_profit
+  kind: metric
+  bc: operations.policy
+  definition: 管理口径：贡献毛利减间接成本与分摊后的余额；法定口径的营业利润由财务报表提供
+  standard_ref:
+  - 企业会计准则第 30 号——财务报表列报（营业利润）；IFRS 18 Presentation and Disclosure in Financial Statements（operating profit or loss 小计、管理层定义的业绩指标）；OAT canonical_symbol OP
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-operating_profit，R3-RN-04）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: management_operating_profit_margin
+  zh: 经营利润率
+  en: ManagementOperatingProfitMargin
+  snake: management_operating_profit_margin
+  kind: metric
+  bc: operations.policy
+  definition: 经营利润 ÷ 收入确认（不含税），层级与经营利润一致
+  standard_ref:
+  - 管理会计（准则 / 国标无对应条目）；IFRS 18（管理层定义的业绩指标）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-operating_profit_margin，R3-RN-05）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: indirect_cost
+  zh: 间接成本
+  en: IndirectCost
+  snake: indirect_cost
+  kind: metric
+  bc: operations.policy
+  definition: 不能直接归属项目的成本与费用，按职能（研发、总部、支持、销售、居间等）归集；分摊规则按财务口径 FD-44
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）（间接费用）；US Cost Accounting Standards 418（Allocation of direct and indirect costs）；OAT canonical_symbol OH
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-overhead，R3-RN-06）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: pass_through_cost
+  zh: 转付成本
+  en: PassThroughCost
+  snake: pass_through_cost
+  kind: metric
+  bc: operations.policy
+  definition: 为履行合同转付给第三方的成本：分包成本、外包成本与可向客户转收的代垫费用；在净服务收入中扣减（FD-41）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；OAT canonical_symbol PTC；AEC 行业 pass-through / reimbursable costs
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-pass_through_cost，R3-RN-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: policy_parameter
+  zh: 口径参数
+  en: PolicyParameter
+  snake: policy_parameter
+  kind: value
+  bc: operations.policy
+  definition: 随口径版本生效的参数：税率、日标准工时、账龄分段、分摊费率、色标阈值等；不追溯（SESSION_PLAYBOOK §12.2 配置类）
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）；SESSION_PLAYBOOK §12.2 配置类版本化
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-policy_parameter，R3-RN-08）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: labor_cost_multiplier
+  zh: 人工成本产出倍数
+  en: LaborCostMultiplier
+  snake: labor_cost_multiplier
+  kind: metric
+  bc: operations.policy
+  definition: 指定分子（收入确认、开票或回款）÷ 同期人工成本；指标名须写明分子，例如「人工成本产出倍数（回款）」；人工成本范围按口径参数
+  standard_ref:
+  - AEC 行业 labor multiplier（PSMJ / Deltek：net multiplier = 净服务收入 ÷ 直接人工）；OAT canonical_symbol NRPM（参照）
+  confidence: medium
+  aliases:
+  - name: 产工比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  - name: 产值产工比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  - name: 开票产工比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  - name: 回款产工比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  - name: 产值产出比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  forbidden:
+  - 产工比
+  - 产值产工比
+  - 开票产工比
+  - 回款产工比
+  - 产值产出比
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-labor_cost_multiplier，R3-RN-09）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: strategic_goal
+  zh: 战略目标
+  en: StrategicGoal
+  snake: strategic_goal
+  kind: entity
+  bc: operations.planning
+  definition: 公司层面的长期经营意图，经营计划的输入
+  standard_ref:
+  - 《管理会计应用指引第 100 号——战略管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-strategic_goal，R3-RN-10）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: business_plan
+  zh: 经营计划
+  en: BusinessPlan
+  snake: business_plan
+  kind: entity
+  bc: operations.planning
+  definition: 计划周期内目标与动作的版本化计划；审批生效的版本为经营计划基线
+  standard_ref:
+  - 《管理会计应用指引第 100 号——战略管理》（财政部）；FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-business_plan，R3-RN-11）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: business_plan_baseline
+  zh: 经营计划基线
+  en: BusinessPlanBaseline
+  snake: business_plan_baseline
+  kind: entity
+  bc: operations.planning
+  definition: 经营计划审批生效后的不可变版本
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-plan_baseline，R3-RN-12）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: planning_period
+  zh: 计划周期
+  en: PlanningPeriod
+  snake: planning_period
+  kind: value
+  bc: operations.planning
+  definition: 经营计划覆盖的时间段（年度 / 季度，多级待确认）
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）（预算期间）；FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-planning_period，R3-RN-13）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: business_review
+  zh: 经营复盘
+  en: BusinessReview
+  snake: business_review
+  kind: entity
+  bc: operations.planning
+  definition: 面向计划周期的行动复盘（区别于口径侧的经营结果解释）
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）；ISO 9001:2015 §9.3 Management review（GB/T 19001-2016 管理评审，同名异义）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-management_review，R3-RN-15）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: action_item
+  zh: 经营动作
+  en: ActionItem
+  snake: action_item
+  kind: entity
+  bc: operations.planning
+  definition: 经营复盘产生的、有责任对象与期限的改进行动
+  standard_ref:
+  - PMI PMBOK Guide（action item）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-action_item，R3-RN-16）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: target_variance
+  zh: 目标偏差
+  en: TargetVariance
+  snake: target_variance
+  kind: metric
+  bc: operations.planning
+  definition: 计划目标值与实际经营结果之差（三偏差术语之一：目标偏差、经营偏差、勾稽差异）
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-target_variance，R3-RN-17）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_baseline
+  zh: 预算基线
+  en: BudgetBaseline
+  snake: budget_baseline
+  kind: entity
+  bc: operations.budgeting
+  definition: 预算年度 × 预算主体的版本化编制结果；生效后不可变，调整产生新版本
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_baseline，R3-RN-18）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_preparation
+  zh: 预算编制
+  en: BudgetPreparation
+  snake: budget_preparation
+  kind: command
+  bc: operations.budgeting
+  definition: 依据计划目标值（目标类型：预算）形成预算基线的过程
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_preparation，R3-RN-19）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_breakdown
+  zh: 预算分解
+  en: BudgetBreakdown
+  snake: budget_breakdown
+  kind: command
+  bc: operations.budgeting
+  definition: 预算基线按维度树逐级生成预算账户
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_breakdown，R3-RN-20）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_unit
+  zh: 预算主体
+  en: BudgetUnit
+  snake: budget_unit
+  kind: value
+  bc: operations.budgeting
+  definition: 预算账户的归属维度（法人、BU、项目、部门）
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_subject，R3-RN-21）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_reserved
+  zh: 预算占用
+  en: BudgetReserved
+  snake: budget_reserved
+  kind: event
+  bc: operations.budgeting
+  definition: 业务单据驱动的额度预留，可用额度即时扣减
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）；ERP 资金管理（funds reservation / commitment）通行写法
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_reserved，R3-RN-22）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_released
+  zh: 预算释放
+  en: BudgetReleased
+  snake: budget_released
+  kind: event
+  bc: operations.budgeting
+  definition: 引用占用记录的额度归还
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_released，R3-RN-23）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_consumed
+  zh: 预算消耗
+  en: BudgetConsumed
+  snake: budget_consumed
+  kind: event
+  bc: operations.budgeting
+  definition: 实际发生事实对占用的冲减
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_consumed，R3-RN-24）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: available_budget
+  zh: 可用额度
+  en: AvailableBudget
+  snake: available_budget
+  kind: metric
+  bc: operations.budgeting
+  definition: 分解额 − 生效占用 − 已消耗 + 已释放，恒可复算
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）；ERP 预算可用性控制（available budget）通行写法
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-available_budget，R3-RN-25）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_adjusted
+  zh: 预算调整
+  en: BudgetAdjusted
+  snake: budget_adjusted
+  kind: event
+  bc: operations.budgeting
+  definition: 产生预算基线新版本的受控变更
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_adjusted，R3-RN-26）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_overrun_approval
+  zh: 超预算审批
+  en: BudgetOverrunApproval
+  snake: budget_overrun_approval
+  kind: entity
+  bc: operations.budgeting
+  definition: 额度 + 期限 + 责任方三要素的超预算例外授权
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_overrun_approval，R3-RN-27）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_freeze
+  zh: 预算冻结
+  en: BudgetFreeze
+  snake: budget_freeze
+  kind: state
+  bc: operations.budgeting
+  definition: 账户级禁止新增占用的管控状态
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_freeze，R3-RN-28）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_execution
+  zh: 预算执行
+  en: BudgetExecution
+  snake: budget_execution
+  kind: entity
+  bc: operations.budgeting
+  definition: 占用、消耗、可用的执行事实与查询视图
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_execution，R3-RN-29）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_category
+  zh: 预算科目
+  en: BudgetCategory
+  snake: budget_category
+  kind: value
+  bc: operations.budgeting
+  definition: 预算账户的科目维度（可映射会计科目，但不等同）
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_category，R3-RN-30）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: plan_target_value
+  zh: 计划目标值
+  en: PlanTargetValue
+  snake: plan_target_value
+  kind: metric
+  bc: operations.planning
+  definition: 某目标类型、某版本下，组织 × 期间 × 指标的目标值；每次修改留版本
+  standard_ref:
+  - OAT canonical_symbol PLAN_TARGET_VALUE；FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: 预算目标
+    type: standard-zh
+    deprecated: false
+    source: 第三轮并入（R3-RN-14）
+  - name: BudgetTarget
+    type: old-code
+    deprecated: true
+    source: 第三轮并入（R3-RN-14）
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-plan_target_value，R3-RN-31）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: target_type
+  zh: 目标类型
+  en: TargetType
+  snake: target_type
+  kind: enum
+  bc: operations.planning
+  definition: 计划目标值的类型：预算 Budget、承诺 Commitment、挑战 Stretch、预测 Forecast、减值计划 ImpairmentPlan；理论、线性由参数推导，不作类型
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-target_type，R3-RN-32）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: target_attainment_rate
+  zh: 目标达成率
+  en: TargetAttainmentRate
+  snake: target_attainment_rate
+  kind: metric
+  bc: operations.planning
+  definition: 实际 ÷ 指定目标类型的计划目标值；指标名须带目标类型，例如「目标达成率（承诺）」
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: 预实比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-04）
+  forbidden:
+  - 预实比
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-target_attainment_rate，R3-RN-33）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: elapsed_period_ratio
+  zh: 时间进度
+  en: ElapsedPeriodRatio
+  snake: elapsed_period_ratio
+  kind: value
+  bc: operations.planning
+  definition: 已过期间 ÷ 计划周期；只作参照线，不作达成指标
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-elapsed_period_ratio，R3-RN-34）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: commitment_list
+  zh: 承诺清单
+  en: CommitmentList
+  snake: commitment_list
+  kind: document
+  bc: operations.planning
+  definition: 到项目 / 发票粒度的承诺明细，汇总为目标类型「承诺」的计划目标值
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-commitment_list，R3-RN-35）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: budget_consumption_rate
+  zh: 预算消耗率
+  en: BudgetConsumptionRate
+  snake: budget_consumption_rate
+  kind: metric
+  bc: operations.budgeting
+  definition: 已消耗 ÷ 预算基线（同一预算账户、同一期间）
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）；OAT canonical_symbol BURN
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_burn_rate，R3-RN-36）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: new_contract_value
+  zh: 新签合同额
+  en: NewContractValue
+  snake: new_contract_value
+  kind: metric
+  bc: contract.baseline
+  definition: 合同签署日落在期间内的合同交易价格之和（不含税为主，含税另列且名称带「含税」）；不扣转付成本，扣预计分包与外包的另设「新签净额」（FD-42）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号） 第十四条（交易价格）；国家统计局建筑业统计报表制度（本年新签合同额）；OAT canonical_symbol SIGNED_NET_BOOKINGS（变体）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-new_contract_value，R3-RN-37）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: project_initiation_value
+  zh: 项目立项金额
+  en: ProjectInitiationValue
+  snake: project_initiation_value
+  kind: metric
+  bc: delivery.execution
+  definition: 项目立项时登记的预计合同金额（含税口径另列），订单前置指标；与新签合同额分开统计，看立项到签约的转化
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）；拟登记为经营扩展原语（operating_accounting_extension）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-project_initiation_value，R3-RN-38）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: settlement_method
+  zh: 回款方式
+  en: SettlementMethod
+  snake: settlement_method
+  kind: enum
+  bc: receivables.collection
+  definition: 回款的结算方式：现金（含银行存款）、商业承兑汇票、以资产清偿（工抵，形成抵债资产）、无追索权保理；有追索权保理单列，不计回款（用户 A11）
+  standard_ref:
+  - 《支付结算办法》（中国人民银行，结算方式）；企业会计准则第 12 号——债务重组（以资产清偿债务）；企业会计准则第 23 号——金融资产转移（保理终止确认）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-settlement_method，R3-RN-39）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: commercial_acceptance_bill
+  zh: 商业承兑汇票
+  en: CommercialAcceptanceBill
+  snake: commercial_acceptance_bill
+  kind: document
+  bc: receivables.collection
+  definition: 客户以商业承兑汇票支付的票据，签收计入回款并单列，到期兑付时计现金流入（FD-40 推荐）；报表列应收票据
+  standard_ref:
+  - 《中华人民共和国票据法》（汇票）；《商业汇票承兑、贴现与再贴现管理办法》（中国人民银行、原银保监会）；财会〔2019〕6 号（应收票据）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-commercial_acceptance_bill，R3-RN-41）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: aged_receivable
+  zh: 账龄超 N 天应收
+  en: AgedReceivable
+  snake: aged_receivable
+  kind: metric
+  bc: receivables.collection
+  definition: 账龄超过 N 天的应收账款余额；N 与起算日为口径参数（管理账龄与减值账龄分段见 FD-37）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（财会〔2017〕7 号） 第六十三条（账龄组合）；财会〔2019〕6 号（附注按账龄披露）
+  confidence: medium
+  aliases:
+  - name: 超期应收
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-03）
+  forbidden:
+  - 超期应收
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-aged_receivable，R3-RN-42）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: days_sales_outstanding
+  zh: 应收周转天数
+  en: DaysSalesOutstanding
+  snake: days_sales_outstanding
+  kind: metric
+  bc: receivables.collection
+  definition: 应收余额（合同资产、应收账款、应收票据分别及合计）÷ 对应额 × 天数；分子分母与天数基准按 FD-39
+  standard_ref:
+  - OAT canonical_symbol DSO；财务分析通行指标（days sales outstanding）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-days_sales_outstanding，R3-RN-43）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: billing_conversion_rate
+  zh: 开票转化率
+  en: BillingConversionRate
+  snake: billing_conversion_rate
+  kind: metric
+  bc: receivables.wip
+  definition: 开票金额 ÷ 收入确认金额（同一税口径、同一期间）
+  standard_ref:
+  - OAT canonical_symbol BCR；专业服务 / PSA 行业通行写法（Kantata / Certinia / Deltek）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-billing_conversion_rate，R3-RN-44）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: collection_rate
+  zh: 回款率
+  en: CollectionRate
+  snake: collection_rate
+  kind: metric
+  bc: receivables.collection
+  definition: 回款 ÷ 开票金额（同一税口径、同一期间）
+  standard_ref:
+  - OAT canonical_symbol COLR；专业服务 / PSA 行业通行写法（Kantata / Certinia / Deltek）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-collection_rate，R3-RN-45）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: overdue_billing_commitment
+  zh: 承诺开票超期
+  en: OverdueBillingCommitment
+  snake: overdue_billing_commitment
+  kind: metric
+  bc: receivables.wip
+  definition: 承诺开票日已过而未开票的金额
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-overdue_billing_commitment，R3-RN-46）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: contract_asset_risk_tier
+  zh: 合同资产风险分层
+  en: ContractAssetRiskTier
+  snake: contract_asset_risk_tier
+  kind: enum
+  bc: receivables.wip
+  definition: 合同资产的管理分层：近期可转化、长期挂账、高风险；分层规则为口径参数；不是减值计量
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-contract_asset_risk_tier，R3-RN-47）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: revenue_reduction
+  zh: 收入冲减
+  en: RevenueReduction
+  snake: revenue_reduction
+  kind: event
+  bc: receivables.wip
+  definition: 可变对价（结算折让、扣款等）导致的已确认收入减少（D17-8），区别于信用损失与会计冲销
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）（可变对价）；IFRS 15 §50–59 Variable consideration；D17-8
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-revenue_reduction，R3-RN-48）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: allowance_for_bad_debts
+  zh: 坏账准备
+  en: AllowanceForBadDebts
+  snake: allowance_for_bad_debts
+  kind: metric
+  bc: receivables.collection
+  definition: 按预期信用损失模型计提的损失准备余额，适用于应收账款、应收票据与合同资产；科目名分别为「坏账准备」「合同资产减值准备」；区别于减值分录（事件）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（财会〔2017〕7 号） 第六十三条；IFRS 9 Financial Instruments §5.5.15、Appendix A（loss allowance）；OAT canonical_symbol IMP
+  confidence: medium
+  aliases:
+  - name: CreditLossAllowance
+    type: standard-en
+    deprecated: false
+    source: IFRS 9 口径（loss allowance）的英文别名
+  - name: 信用损失准备
+    type: dialect
+    deprecated: true
+  - name: 坏账
+    type: dialect
+    deprecated: true
+    source: R0 在用报表叫法（R3-RA-12）
+  - name: 坏账准备计提申请
+    type: standard-zh
+    deprecated: false
+    source: 原「坏账申请」的正式叫法（R3-RA-12）
+  forbidden:
+  - 信用损失准备
+  - 坏账
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-credit_loss_allowance，R3-RN-49）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: average_headcount
+  zh: 平均在册人数
+  en: AverageHeadcount
+  snake: average_headcount
+  kind: metric
+  bc: organization.workforce
+  definition: 期间内在册人数的平均值；计算口径（月初月末平均或日均、是否含实习与外包）待 B2；所有「人均」的统一除数
+  standard_ref:
+  - 国家统计局劳动工资统计报表制度（平均人数）；OAT canonical_symbol AVG_HEADCOUNT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-average_headcount，R3-RN-50）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: attrition_rate
+  zh: 离职率
+  en: AttritionRate
+  snake: attrition_rate
+  kind: metric
+  bc: organization.workforce
+  definition: 期间离职人数 ÷ 平均在册人数，分主动、被动
+  standard_ref:
+  - 人力资源管理通行指标（attrition rate）；OAT EMPLOYEE_SEPARATIONS ÷ AVG_HEADCOUNT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-attrition_rate，R3-RN-51）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: org_unit_level
+  zh: 组织单元层级
+  en: OrgUnitLevel
+  snake: org_unit_level
+  kind: enum
+  bc: organization.workforce
+  definition: 组织单元的层级与类型（区域、事业部、交付中心、客户服务中心等，K14）；层级名由组织维度设计确定
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-org_unit_level，R3-RN-52）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: customer_group
+  zh: 客户集团
+  en: CustomerGroup
+  snake: customer_group
+  kind: entity
+  bc: presales.customer
+  definition: 同一实际控制方下的客户集合；参考主数据轻聚合，本身不是客户、不承载业务单据，只作统计与规则继承维度；客户以集团归属单归属引用
+  standard_ref:
+  - 企业会计准则第 33 号——合并财务报表（控制）；FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-customer_group，R3-RN-53）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: customer_tier
+  zh: 客户分级
+  en: CustomerTier
+  snake: customer_tier
+  kind: enum
+  bc: presales.customer
+  definition: 按分级规则版本评定的客户分层（GLOSSARY：S 战略 / A 重点 / B 机会 / C 交易 / D 风险）；评定维度含合同额占比、贡献毛利率、应收周转天数；黑名单是客户关系状态，不是分级
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-customer_tier，R3-RN-54）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: pipeline_value
+  zh: 商机管道金额
+  en: PipelineValue
+  snake: pipeline_value
+  kind: metric
+  bc: presales.quoting
+  definition: 未关闭商机的金额；加权口径（× 赢单概率）另列，名称带「加权」
+  standard_ref:
+  - OAT canonical_symbol PIPE；CRM 行业通行写法（sales pipeline）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-pipeline_value，R3-RN-55）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: win_rate
+  zh: 赢单率
+  en: WinRate
+  snake: win_rate
+  kind: metric
+  bc: presales.quoting
+  definition: 赢单数 ÷（赢单数 + 丢单数）；金额口径另列
+  standard_ref:
+  - OAT canonical_symbol WR；CRM 行业通行写法（win rate）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-win_rate，R3-RN-56）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: lead_conversion_rate
+  zh: 线索转化率
+  en: LeadConversionRate
+  snake: lead_conversion_rate
+  kind: metric
+  bc: presales.customer
+  definition: 期间内转为商机的线索数 ÷ 期间线索数
+  standard_ref:
+  - OAT canonical_symbol CONV；CRM 行业通行写法（lead conversion rate）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-lead_conversion_rate，R3-RN-57）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: business_line
+  zh: 业务线
+  en: BusinessLine
+  snake: business_line
+  kind: enum
+  bc: organization.workforce
+  definition: 公司业务线（组织结构主数据，取值由组织主数据维护；GLOSSARY 附录：幕墙设计、照明设计、景观设计、第三方评估、项目管理）
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-business_line，R3-RN-58）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: external_reference_dataset
+  zh: 外部参考数据集
+  en: ExternalReferenceDataset
+  snake: external_reference_dataset
+  kind: entity
+  bc: presales.customer
+  definition: 土拍、规划许可证、宏观等外部数据，登记来源与维护人、按期导入，只用于市占率等分析，不进入指标目录的口径主权
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-external_reference_dataset，R3-RN-59）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: expense_payment
+  zh: 费用支付
+  en: ExpensePayment
+  snake: expense_payment
+  kind: metric
+  bc: payables.payment
+  definition: 按支付日计的费用付款金额（收付口径，含税），与按发生期间计的费用（权责）对照
+  standard_ref:
+  - 企业会计准则第 31 号——现金流量表（支付的各项费用）；企业会计准则——基本准则 第九条（权责发生制）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-expense_payment，R3-RN-60）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: ledger
+  zh: 账簿
+  en: Ledger
+  snake: ledger
+  kind: entity
+  bc: accounting.ledger
+  definition: 同一法人并行的会计账簿：收付账簿（法定口径，推送外部核算系统）与权责账簿（管理口径，出权责三大报表）（ADR-0022）
+  standard_ref:
+  - 《会计基础工作规范》（财政部，会计账簿）；ADR-0022 总账纳入新系统；ERP 并行账簿（parallel ledgers）通行写法
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-ledger，R3-RN-61）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: kickoff_completion_rate
+  zh: 启动会完成率
+  en: KickoffCompletionRate
+  snake: kickoff_completion_rate
+  kind: metric
+  bc: delivery.execution
+  definition: 期间内已开启动会的项目数 ÷ 应开启动会的项目数
+  standard_ref:
+  - PMI PMBOK Guide（kick-off meeting）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-kickoff_completion_rate，R3-RN-62）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: internal_review_coverage
+  zh: 内部评审覆盖率
+  en: InternalReviewCoverage
+  snake: internal_review_coverage
+  kind: metric
+  bc: delivery.acceptance
+  definition: 已完成内部评审的项目 ÷ 已交付项目
+  standard_ref:
+  - GB/T 19001-2016 §8.3.4 设计和开发控制（评审）、§9.2 内部审核（「内审」的标准含义）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-internal_review_coverage，R3-RN-63）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+- id: project_hours
+  zh: 项目工时
+  en: ProjectHours
+  snake: project_hours
+  kind: value
+  bc: cost.timesheet
+  definition: 工时类别的取值：记在项目工作上的工时
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 cost-timesheet.yaml#project_hours，R3-TS-01）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: time_entry_category
+  zh: 工时类别
+  en: TimeEntryCategory
+  snake: time_entry_category
+  kind: value
+  bc: cost.timesheet
+  definition: 工时按用途的分类，取值为项目工时、售前工时、OH 工时；决定工时单走哪些审批分支
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 cost-timesheet.yaml#time_entry_category，R3-TS-02）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: pre_sales_hours
+  zh: 售前工时
+  en: PreSalesHours
+  snake: pre_sales_hours
+  kind: value
+  bc: cost.timesheet
+  definition: 工时类别的取值：记在售前工作上的工时
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 cost-timesheet.yaml#pre_sales_hours，R3-TS-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: indirect_hours
+  zh: 间接工时
+  en: IndirectHours
+  snake: indirect_hours
+  kind: value
+  bc: cost.timesheet
+  definition: 工时类别的取值：记在间接（管理）工作上的工时
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）
+  confidence: medium
+  aliases:
+  - name: OH工时
+    type: dialect
+    deprecated: true
+  - name: OverheadHours
+    type: old-code
+    deprecated: true
+  - name: OH 工时
+    type: dialect
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 cost-timesheet.yaml#overhead_hours，R3-TS-04）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: retained
+  zh: 留任
+  en: Retained
+  snake: retained
+  kind: concept
+  bc: organization.workforce
+  definition: 放行同步暂停的人必须仍是启用账号、持有 super_admin 或安全审计员、在组织快照中明确在职且不在离职名单上（ADR-0028）
+  standard_ref:
+  - adr/src/ADR-0028.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#retained，R3-WF-01）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: workforce__email_address
+  zh: 企业邮箱
+  en: EmailAddress
+  snake: email_address
+  kind: value
+  bc: organization.workforce
+  definition: 员工的企业邮箱
+  standard_ref:
+  - COLUMN_OWNERSHIP.md §1
+  confidence: medium
+  aliases:
+  - name: Email
+    type: old-code
+    deprecated: true
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#workforce__email，R3-WF-06）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: workforce__gender
+  zh: 性别
+  en: Gender
+  snake: gender
+  kind: value
+  bc: organization.workforce
+  definition: 员工性别；未维护或无法识别时为空，不默认写成女
+  standard_ref:
+  - COLUMN_OWNERSHIP.md §1
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#workforce__gender，R3-WF-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: workforce__revoked
+  zh: 已撤销
+  en: Revoked
+  snake: revoked
+  kind: value
+  bc: organization.workforce
+  definition: 已撤销、不再有效的组织单元；与「停用」是两个不同状态（RULE-355）
+  standard_ref:
+  - RULE-355
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#workforce__revoked，R3-WF-09）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: revision_number
+  zh: 修订序号
+  en: RevisionNumber
+  snake: revision_number
+  kind: value
+  bc: organization.workforce
+  definition: 版本表同一生效日内的修订序号：同日再次变化时关闭当天版本（空区间）并以加 1 的序号追加新行
+  standard_ref:
+  - phase1a/DATA_SCORECARD.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2-data.yaml#revision_number，R3-WF-10）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: org_browse
+  zh: 组织浏览
+  en: OrgBrowse
+  snake: org_browse
+  kind: entity
+  bc: organization.workforce
+  definition: 只读浏览组织单元树的页面
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#org_browse，R3-WF-13）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: delivery_unit
+  zh: 交付单元
+  en: DeliveryUnit
+  snake: delivery_unit
+  kind: entity
+  bc: organization.workforce
+  definition: 承担项目交付的组织单元
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 frontend-ui.yaml#delivery_unit，R3-WF-16）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: workforce__assignment
+  zh: 任职
+  en: Assignment
+  snake: assignment
+  kind: entity
+  bc: organization.workforce
+  definition: 员工在某个组织单元、某个岗位上的任职，含直属领导（汇报线）
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.3
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#workforce__assignment，R3-WF-17）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: workforce__reporting_line
+  zh: 汇报线
+  en: ReportingLine
+  snake: reporting_line
+  kind: value
+  bc: organization.workforce
+  definition: 员工到直属领导的上下级关系；同步时校验领导存在、在职、非本人、无环
+  standard_ref:
+  - RULE-372
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#workforce__reporting_line，R3-WF-18）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: workforce__org_hierarchy
+  zh: 组织层级
+  en: OrgHierarchy
+  snake: org_hierarchy
+  kind: value
+  bc: organization.workforce
+  definition: 组织单元之间的上下级结构；「本部门及以下」不含已撤销部门
+  standard_ref:
+  - RULE-360
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#workforce__org_hierarchy，R3-WF-21）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: workforce__short_name
+  zh: 部门简称
+  en: ShortName
+  snake: short_name
+  kind: value
+  bc: organization.workforce
+  definition: 组织单元的简称
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.3
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#workforce__short_name，R3-WF-23）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: workforce__headquarters
+  zh: 总部
+  en: Headquarters
+  snake: headquarters
+  kind: value
+  bc: organization.workforce
+  definition: 组织单元的总部 / 区域类别中的「总部」
+  standard_ref:
+  - RULE-356
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#workforce__headquarters，R3-WF-26）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: separation_request
+  zh: 离职申请
+  en: SeparationRequest
+  snake: separation_request
+  kind: document
+  bc: organization.workforce
+  definition: 员工发起的离职申请（表单）；只有正常结束且同意的申请才是预计离职日期的来源
+  standard_ref:
+  - docs/modernization/rules/WORKFORCE_HISTORY_RULES.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#separation_request，R3-WF-27）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+- id: expected_separation_date
+  zh: 预计离职日期
+  en: ExpectedSeparationDate
+  snake: expected_separation_date
+  kind: value
+  bc: organization.workforce
+  definition: 正常结束且同意的离职申请上的预计离职日期（业务日期，可能改期，已过而员工仍在职时为已过期），不是实际离职日
+  standard_ref:
+  - docs/modernization/rules/WORKFORCE_HISTORY_RULES.md
+  confidence: medium
+  aliases: []
+  forbidden:
+  - 离职日期
+  - separation_date
+  status: approved
+  note: 用语确认第三轮转正式（原提议 organization_workforce.yaml#expected_separation_date，R3-WF-28）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
 common_words:
 - Id
 - Uuid

@@ -35,3 +35,12 @@
 - 移到 R-1b-0b 的用例（人员标志、两项不一致判定、单人查找、登录查人遇来源损坏）不在本类，逐条记在 `backend/src/test/resources/acceptance/platform/integration/r1b0b-pending/A8MemberFlagsCases.md`，0b 开卡后据此重写。
 - 新增用例：在 `corruptions()` 里加一行 `Corruption`，或照启动用例用 `createA8Database(库名, 变体 SQL...)` 建库后 `startAndClose`；修改基表的用例在 `finally` 中还原。
 - `ReadOnlyAccountCheckIT`、`StalledExternalSourceIT` 的 A8 夹具按 RULING-R1B0-1 把视图底表改为 `dbo.ORG_MEMBER`（带三个标志列）与 `dbo.ORG_UNIT`（带 `TYPE`），视图列与测试意图不变；R-1b-0a 合并后启动校验要求 `dbo.ORG_UNIT` 带 `TYPE`。
+
+# 验收测试：只读核实命令（PAR-2，ADR-0037 第 4 项、C-14）
+
+`ReadOnlyVerificationCommandIT` 以打包好的应用（`java -jar target/forcitis-one-*.jar`，与 ECS 一样）运行只读核实命令，每个用例一个独立 JVM，对真实 SQL Server 容器（登录由 `ReadOnlyBaselineFixture` 建）核实一条只读连接，断言逐项标记 (a)–(g)、结果行与退出码。测试假定的契约（档案名、参数、输出行格式、退出码、环境变量）见同目录 `READONLY_VERIFY_ACCEPTANCE.md`；测试不引用生产类。
+
+- 运行：`cd backend && ./mvnw -B verify -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=ReadOnlyVerificationCommandIT`（failsafe 在 package 之后运行，需要本机 Docker；镜像经 `TestImages`）。`target/` 中没有发布包、或发布包比 `target/classes` 旧时，类初始化即失败，不跳过。
+- 每个用例另断言：命令没有打开任何监听套接字（`ListeningSocketProbe` 作为选择器提供者装入子进程，对照用例 `probeSeesAProcessThatListens` 证明它能发现监听），服务库（空 PostgreSQL）中没有表、没有新 schema（无 Flyway 历史表、无迁移）；输出不含口令、登录名、连接串。
+- 预期值以同一登录直连 SQL Server 取得（`connectionFailure`、`catalogRefusal`），不凭推测：库不存在 4060、目录视图被拒 229，SQLState 取驱动所报。
+- 新增反例：在 `DEVIATIONS` 加一行 `new Deviation(名称, 应标违规的项目字母, 账号 -> 要执行的 SQL)`；授权只加在本用例新建的登录上。新增「不得输出」的情形：构造一个带 `marker()` 的对象名，断言输出不含它。

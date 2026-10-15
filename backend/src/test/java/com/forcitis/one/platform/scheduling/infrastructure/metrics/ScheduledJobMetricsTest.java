@@ -8,9 +8,9 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,7 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 class ScheduledJobMetricsTest {
     static final String FAILURES = "forcitis.platform.scheduling.job.failures";
 
-    @Configuration
+    @TestConfiguration
     @EnableAspectJAutoProxy(proxyTargetClass = true)
     @EnableScheduling
     static class Jobs {

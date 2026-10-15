@@ -4,6 +4,7 @@
 数据格式见 gate/README.md；校验不通过即失败。
 固定页可同时挂多张单子（逗号分隔），每张一组、答复各存 gate-<卡号> 集合；其他会话的决策单（如架构决策）也用同一格式交 one-glossary 一起发布。
 用法：python3 docs/modernization/glossary/gate/build_gate_page.py <卡号>[,<卡号>...] <输出路径> [--by-bc]
+<卡号>:<编号>+<编号>：只出该卡的这几条（其余留到下一次），如 R-1b-0:G01+G02+G03。
 --by-bc：新系统用语按条目的 bc 分组显示，ACL 单（卡号 ACL-*）保持按归类分组（用户 2026-10-15：「我希望用语按照bc进行汇集」「新系统用语按照bc，acl还是按照你现在的规划」），每组各自提交。"""
 import json, pathlib, re, sys
 
@@ -13,9 +14,9 @@ VERDICTS = {"正式", "方言", "待定"}
 
 
 def load(card):
-    path = next((d / f"{card}.json" for d in (HERE, HERE.parent / "acl", HERE.parent / "round3" / "sheets") if (d / f"{card}.json").exists()), None)
+    path = next((d / f"{card}.json" for d in (HERE, HERE.parent / "acl", HERE.parent / "round3" / "sheets", HERE.parent / "homonym") if (d / f"{card}.json").exists()), None)
     if path is None:
-        sys.exit(f"找不到 {card}.json（gate/、acl/ 或 round3/sheets/）")
+        sys.exit(f"找不到 {card}.json（gate/、acl/、round3/sheets/ 或 homonym/）")
     doc = json.loads(path.read_text(encoding="utf-8"))
     errs = []
     for k in ("card", "session", "date", "lede", "items"):
@@ -72,9 +73,19 @@ def page_item(card, i):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     if len(args) != 2:
-        sys.exit("用法：build_gate_page.py <卡号>[,<卡号>...] <输出路径> [--by-bc]")
+        sys.exit("用法：build_gate_page.py <卡号>[:<编号>+...][,<卡号>...] <输出路径> [--by-bc]")
     by_bc = "--by-bc" in sys.argv
-    docs = [load(card) for card in args[0].split(",")]
+    docs = []
+    for spec in args[0].split(","):
+        card, _, only = spec.partition(":")
+        doc = load(card)
+        if only:
+            want = only.split("+")
+            unknown = [c for c in want if c not in {i["code"] for i in doc["items"]}]
+            if unknown:
+                sys.exit(f"{card} 没有条目 {'、'.join(unknown)}")
+            doc["items"] = [i for i in doc["items"] if i["code"] in want]
+        docs.append(doc)
     items, groups = [], []
     for doc in docs:
         mine = [page_item(doc["card"], i) for i in doc["items"]]
