@@ -33,3 +33,10 @@ cd backend
 - 组织源与老系统（`platform/integration/OrgSourceWorldSupport`）：一个 SQL Server 容器，每个测试 JVM 起一次，继承它的类共用；类开始时只留启动校验需要的基础行，各类自己加行；每类自己的 PostgreSQL。触发同步只经 `syncOnce()`，拆分 a 把同步移进集成层时只改这一处。分配次数用测试库里 `source_references` 上的语句级触发器计数（`countAllocations()` / `allocationStatements()`）。
 - `SourceTypeBoundaryTest` 读 `backend/architecture/source-type-exceptions.txt`：每行 `路径 | 理由 | 拆分 a`，文件头含「只减不增」；规则名 `SOURCE_TYPE`、`SOURCE_OR_LEGACY_ID`。
 - 断言用到的新名字（列名、约束名、命令名、事件字段）集中为各测试类的常量，术语门禁改名时只改常量。
+
+## R-1b P4 审批 ID、投递去重键、部门负责人审批改名
+
+- 新名字（列名、约束名、节点 id、字段名、投递对象类型名）集中在 `P4Names`，术语变化时只改它。
+- 审批类用例继承 `ApprovalP4Support`：一个发起人、一个直属领导、两个项目经理、一个部门负责人，各有账号；文档 ID 经 `documentIdOf` 构造（P4 前是 `DocumentId(String)`，之后是 `DocumentId(UUID)`）；`DescendingIds` 是递减的 `IdGenerator`（后产生的 ID 更小，并记下调用栈），用 `@TestConfiguration` 的 `@Primary` bean 注入，用来证明排序与游标不依赖 ID 次序。
+- `OutboundDeliveryKeysIT` 用真实 `WecomGateway` 加企业微信桩（同 `WecomDeliveryIT`，不继承 `AcceptanceSupport`，因其把网关换成了桩）；结构化投递键 `DeliverySubject` 与新的 `WecomCard` 经反射按记录组件类型装配，类型尚不存在时在运行时失败，不让目录编译失败。
+- RULING-P4-1：`AccountsAcceptanceSupport.newDocumentId()`、`approvalRowsOf`、`pendingTaskIdsOf` 让既有的 `ApprovalAccountsIT`、`AssigneeInputUuidIT`、`RetractionInitiatorAccountsIT` 在 P4 前后都能跑，断言未改。
