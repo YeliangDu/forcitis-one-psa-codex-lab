@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.platform.identity.api.SessionRoles;
@@ -143,6 +145,60 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
     protected static String newLegalEntityCode(String prefix) {
         long n = CODES.incrementAndGet();
         return prefix + (char) ('A' + (n / 26) % 26) + (char) ('A' + n % 26);
+    }
+
+    /** True once DocumentId wraps a UUID and the approval tables name the document by document_id and hang the child tables on the request (R-1b P4, RULING-P4-1). */
+    protected static final boolean DOCUMENT_IDS_ARE_UUIDS = DocumentId.class.getRecordComponents()[0].getType() == UUID.class;
+
+    /** A document id not used before: a UUID once DocumentId wraps one, before that the text "acceptance-" and a UUID. */
+    protected static DocumentId newDocumentId() {
+        try {
+            Class<?> type = DocumentId.class.getRecordComponents()[0].getType();
+            UUID id = UUID.randomUUID();
+            return DocumentId.class.getDeclaredConstructor(type).newInstance(type == UUID.class ? id : "acceptance-" + id);
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError(unexpected);
+        }
+    }
+
+    /** Rows of an approval table that belong to the document, read in whichever form the build has (RULING-P4-1). */
+    protected int approvalRowsOf(String table, DocumentReference document) throws SQLException {
+        String sql;
+        Object key;
+        if (!DOCUMENT_IDS_ARE_UUIDS) {
+            sql = "select count(*) from " + table + " where document_key = ?";
+            key = document.documentId().toString();
+        } else if (table.equals("approval_requests")) {
+            sql = "select count(*) from approval_requests where document_id = ?";
+            key = UUID.fromString(document.documentId().toString());
+        } else {
+            sql = "select count(*) from " + table + " t join approval_requests r on r.id = t.approval_request_id where r.document_id = ?";
+            key = UUID.fromString(document.documentId().toString());
+        }
+        try (Connection approval = schemaConnection("platform_approval"); PreparedStatement count = approval.prepareStatement(sql)) {
+            count.setObject(1, key);
+            try (ResultSet rs = count.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
+
+    /** The ids (as text) of the document's tasks that wait to be claimed. */
+    protected List<String> pendingTaskIdsOf(DocumentReference document) throws SQLException {
+        String sql = DOCUMENT_IDS_ARE_UUIDS
+                ? "select t.task_id from approval_tasks t join approval_requests r on r.id = t.approval_request_id where r.document_id = ? and t.status = 'PENDING'"
+                : "select task_id from approval_tasks where document_key = ? and status = 'PENDING'";
+        List<String> tasks = new ArrayList<>();
+        try (Connection approval = schemaConnection("platform_approval"); PreparedStatement select = approval.prepareStatement(sql)) {
+            select.setObject(1, DOCUMENT_IDS_ARE_UUIDS ? UUID.fromString(document.documentId().toString()) : document.documentId().toString());
+            try (ResultSet rs = select.executeQuery()) {
+                while (rs.next()) {
+                    tasks.add(rs.getString(1));
+                }
+            }
+        }
+        return tasks;
     }
 
     protected static String wecomUserIdOf(UUID employeeId) {
