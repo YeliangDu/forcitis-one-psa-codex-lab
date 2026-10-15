@@ -1,6 +1,8 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.platform.integration.api.ArchiveVault;
 import com.forcitis.one.platform.integration.api.ArchivedObject;
 import io.micrometer.core.instrument.Counter;
@@ -67,6 +69,7 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
     }
 
     private final JdbcClient jdbc;
+    private final IdGenerator ids;
     private final HistoryService engineHistory;
     private final ArchiveVault vault;
     private final Clock clock;
@@ -76,9 +79,10 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
     private final Counter probeFailures;
     private final JsonMapper json = JsonMapper.builder().build();
 
-    ProcessArchiveJob(JdbcClient jdbc, HistoryService engineHistory, ArchiveVault vault, Clock clock, BusinessZone zone, ProcessArchivePolicy policy,
+    ProcessArchiveJob(JdbcClient jdbc, IdGenerator ids, HistoryService engineHistory, ArchiveVault vault, Clock clock, BusinessZone zone, ProcessArchivePolicy policy,
                       MeterRegistry meters) {
         this.jdbc = jdbc;
+        this.ids = ids;
         this.engineHistory = engineHistory;
         this.vault = vault;
         this.clock = clock;
@@ -130,7 +134,7 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
                               from platform_approval.act_hi_procinst p
                               left join platform_approval.act_re_procdef d on d.id_ = p.proc_def_id_
                              where p.end_time_ is not null and p.end_time_ < :cutoff
-                               and not exists (select 1 from platform_approval.process_archive_skips k where k.process_instance_id = p.id_)
+                               and not exists (select 1 from platform_approval.process_archive_skips k where k.process_instance_id = cast(p.id_ as uuid))
                              order by p.end_time_, p.id_ limit :batch
                             """)
                     .param("cutoff", cutoff).param("batch", BATCH).query((rs, n) -> new Finished(rs.getString("id_"),
@@ -165,15 +169,15 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
 
     private void insertSkipped(String instanceId, String objectKey, String failure) {
         jdbc.sql("""
-                insert into platform_approval.process_archive_skips (process_instance_id, object_key, failure_message, skipped_at)
-                values (:id, :key, :failure, :now) on conflict (process_instance_id) do nothing
-                """).param("id", instanceId).param("key", objectKey).param("failure", failure).param("now", Timestamp.from(clock.instant())).update();
+                insert into platform_approval.process_archive_skips (process_archive_skip_id, process_instance_id, object_key, failure_message, skipped_at)
+                values (:skipId, :id, :key, :failure, :now) on conflict (process_instance_id) do nothing
+                """).param("skipId", ids.next()).param("id", Uuids.parseCanonical(instanceId)).param("key", objectKey).param("failure", failure).param("now", Timestamp.from(clock.instant())).update();
     }
 
     private void remindAboutSkipped() {
         long outstanding = jdbc.sql("""
                 select count(*) from platform_approval.process_archive_skips k
-                  join platform_approval.act_hi_procinst p on p.id_ = k.process_instance_id
+                  join platform_approval.act_hi_procinst p on p.id_ = cast(k.process_instance_id as text)
                 """).query(Long.class).single();
         if (outstanding > 0) {
             LOG.error("ALERT platform.approval {} archived process instance(s) are still in the engine because it could not delete them (process_archive_skips)", outstanding);

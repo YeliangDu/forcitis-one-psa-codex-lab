@@ -1,8 +1,8 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -28,8 +28,10 @@ class Approvals {
     private final ApprovalEngine engine;
     private final DomainEvents events;
     private final BusinessTime time;
+    private final IdGenerator ids;
 
-    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time) {
+    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time, IdGenerator ids) {
+        this.ids = ids;
         this.requests = requests;
         this.engine = engine;
         this.events = events;
@@ -51,13 +53,13 @@ class Approvals {
 
     /** The aggregate of the round a start asks for: a new request, or the existing one opened again. */
     ApprovalRequest openRound(ApprovalStartRequest request, Optional<ApprovalRequest> existing) {
-        ApprovalInstanceId instanceId = new ApprovalInstanceId(Uuids.timeOrdered(time.clock()).toString());
+        ApprovalInstanceId instanceId = new ApprovalInstanceId(ids.next());
         Moment now = time.moment();
         if (existing.isPresent()) {
             existing.get().restart(request.initiator(), instanceId, request.summary(), request.trigger(), now);
             return existing.get();
         }
-        return ApprovalRequest.begin(request.processKey(), request.document(), request.legalEntityId(), request.initiator(), instanceId,
+        return ApprovalRequest.begin(ids, request.processKey(), request.document(), request.legalEntityId(), request.initiator(), instanceId,
                 request.summary(), request.trigger(), now);
     }
 

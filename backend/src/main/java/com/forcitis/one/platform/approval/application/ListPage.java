@@ -1,12 +1,14 @@
 package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.ListLimits;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Which part of a list the caller wants: the page after cursor, at most limit long. A cursor is only ever one this module handed
@@ -40,6 +42,15 @@ public record ListPage(Optional<Position> cursor, int limit) {
             int bar = text.indexOf('|');
             return new Position(Instant.parse(text.substring(0, bar)), text.substring(bar + 1));
         } catch (IllegalArgumentException | StringIndexOutOfBoundsException | DateTimeParseException malformed) {
+            throw ApprovalError.PLATFORM_APPROVAL_PAGE_INVALID.refusal("The cursor is not one this list handed out");
+        }
+    }
+
+    /** The id part of a cursor, which only this module's own lists make up: anything else is as malformed as an unreadable cursor. */
+    public static UUID idOf(Position position) {
+        try {
+            return Uuids.parseCanonical(position.id());
+        } catch (IllegalArgumentException malformed) {
             throw ApprovalError.PLATFORM_APPROVAL_PAGE_INVALID.refusal("The cursor is not one this list handed out");
         }
     }

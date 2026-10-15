@@ -86,7 +86,7 @@ public final class ApprovalTexts {
     public static String startRefused(String errorCode) {
         String why = switch (errorCode) {
             case "PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND" -> "找不到可以处理的审批人";
-            case "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN" -> "没有适用的审批路径";
+            case "PLATFORM_APPROVAL_NO_ROUTE", "PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN", "PLATFORM_APPROVAL_FORM_FIELD_UNKNOWN" -> "没有适用的审批路径";
             default -> "审批规则不允许发起";
         };
         return "审批没有发起，已退回给你：" + why + "（" + errorCode + "）";

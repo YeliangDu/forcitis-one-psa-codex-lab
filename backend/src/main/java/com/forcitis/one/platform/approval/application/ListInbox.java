@@ -43,7 +43,7 @@ public class ListInbox {
         Instant now = time.now();
         for (TaskView task : open) {
             Optional<Instant> due = Optional.ofNullable(deadlines.get(task.taskId()));
-            items.add(new InboxItem(InboxSource.NEW, task.taskId().value(),
+            items.add(new InboxItem(InboxSource.NEW, task.taskId().toString(),
                     ApprovalTexts.inboxTitle(task.processKey(), task.document()), Optional.of(task.nodeName()),
                     Optional.of(task.createdAt()), task.isClaimed(), Optional.empty(), due, due.map(now::isAfter).orElse(false), Optional.of(task.processKey()),
                     Optional.of(task.document().documentId().value()), InboxCategory.TODO));

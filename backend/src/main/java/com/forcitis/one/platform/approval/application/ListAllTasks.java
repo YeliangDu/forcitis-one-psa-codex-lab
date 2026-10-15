@@ -42,14 +42,14 @@ public class ListAllTasks {
                 overdueOnly ? "overdue only" : null));
         Instant now = time.now();
         List<TaskRecord> rows = tasks.openTasks(overdueOnly ? Optional.of(now) : Optional.empty(), page.cursor().map(ListPage.Position::at),
-                page.cursor().map(position -> new ApprovalTaskId(position.id())), page.limit() + 1);
+                page.cursor().map(position -> new ApprovalTaskId(ListPage.idOf(position))), page.limit() + 1);
         boolean more = rows.size() > page.limit();
         List<TaskRecord> shown = more ? rows.subList(0, page.limit()) : rows;
         List<TaskOverview> items = shown.stream()
                 .map(record -> new TaskOverview(record.taskId(), record.processKey(), record.document(), record.nodeKey(), record.status(),
                         record.assignee(), record.createdAt(), record.dueAt(), record.dueAt().map(now::isAfter).orElse(false)))
                 .toList();
-        return new TaskOverviewPage(items, more ? Optional.of(ListPage.cursorAfter(shown.getLast().createdAt(), shown.getLast().taskId().value()))
+        return new TaskOverviewPage(items, more ? Optional.of(ListPage.cursorAfter(shown.getLast().createdAt(), shown.getLast().taskId().value().toString()))
                 : Optional.empty());
     }
 }

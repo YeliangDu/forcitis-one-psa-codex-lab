@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.domain;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DocumentReference;
@@ -16,6 +17,7 @@ import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
+import com.forcitis.one.platform.approval.api.ApprovalRequestId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
@@ -42,7 +44,6 @@ import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
 import com.forcitis.one.platform.approval.api.TaskRecordAction;
 import com.forcitis.one.platform.approval.api.TaskRecordId;
-import com.forcitis.one.kernel.Uuids;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -68,6 +69,8 @@ public final class ApprovalRequest extends AggregateRoot {
             .allow(ApprovalStatus.CANCELLED, ApprovalStatus.RUNNING)
             .build();
 
+    private final ApprovalRequestId id;
+    private final IdGenerator ids;
     private final ProcessKey processKey;
     private final DocumentReference document;
     private final LegalEntityId legalEntityId;
@@ -84,10 +87,12 @@ public final class ApprovalRequest extends AggregateRoot {
     private ApprovalSummary summary;
     private UUID trigger;
 
-    private ApprovalRequest(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, EmployeeId initiator, int round,
-            ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason, ApprovalSummary summary, List<ApprovalTask> tasks,
-            UUID trigger, long version, long eventSequence, boolean isNew) {
+    private ApprovalRequest(ApprovalRequestId id, IdGenerator ids, ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId,
+            EmployeeId initiator, int round, ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason, ApprovalSummary summary,
+            List<ApprovalTask> tasks, UUID trigger, long version, long eventSequence, boolean isNew) {
         super(version, eventSequence);
+        this.id = Objects.requireNonNull(id, "id");
+        this.ids = Objects.requireNonNull(ids, "ids");
         this.processKey = Objects.requireNonNull(processKey, "processKey");
         this.document = Objects.requireNonNull(document, "document");
         this.legalEntityId = Objects.requireNonNull(legalEntityId, "legalEntityId");
@@ -104,18 +109,18 @@ public final class ApprovalRequest extends AggregateRoot {
         this.isNew = isNew;
     }
 
-    public static ApprovalRequest begin(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, EmployeeId initiator,
-            ApprovalInstanceId instanceId, ApprovalSummary summary, UUID trigger, Moment now) {
-        ApprovalRequest request = new ApprovalRequest(processKey, document, legalEntityId, initiator, 1, instanceId, ApprovalStatus.RUNNING,
+    public static ApprovalRequest begin(IdGenerator ids, ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId,
+            EmployeeId initiator, ApprovalInstanceId instanceId, ApprovalSummary summary, UUID trigger, Moment now) {
+        ApprovalRequest request = new ApprovalRequest(new ApprovalRequestId(ids.next()), ids, processKey, document, legalEntityId, initiator, 1, instanceId, ApprovalStatus.RUNNING,
                 null, summary, List.of(), Objects.requireNonNull(trigger, "trigger"), 0, 0, true);
         request.announceRound(now);
         return request;
     }
 
-    public static ApprovalRequest restore(ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId, EmployeeId initiator,
-            int round, ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason, ApprovalSummary summary,
-            List<ApprovalTask> tasks, long version, long eventSequence) {
-        return new ApprovalRequest(processKey, document, legalEntityId, initiator, round, instanceId, status, resultReason, summary, tasks,
+    public static ApprovalRequest restore(ApprovalRequestId id, IdGenerator ids, ProcessKey processKey, DocumentReference document,
+            LegalEntityId legalEntityId, EmployeeId initiator, int round, ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason,
+            ApprovalSummary summary, List<ApprovalTask> tasks, long version, long eventSequence) {
+        return new ApprovalRequest(id, ids, processKey, document, legalEntityId, initiator, round, instanceId, status, resultReason, summary, tasks,
                 null, version, eventSequence, false);
     }
 
@@ -301,7 +306,7 @@ public final class ApprovalRequest extends AggregateRoot {
     }
 
     private void note(ApprovalTask task, TaskRecordAction action, UserId actor, UserId onBehalfOf, UserId assignee, Reason reason, Moment now) {
-        handlings.add(new TaskHandling(new TaskRecordId(Uuids.timeOrdered(now.at())), processKey, document, round, task.taskId(),
+        handlings.add(new TaskHandling(new TaskRecordId(ids.next()), processKey, document, round, task.taskId(),
                 task.instanceId(), task.nodeKey(), task.nodeName(), action, actor, Optional.ofNullable(onBehalfOf), Optional.ofNullable(assignee),
                 Optional.ofNullable(reason), now.at()));
     }
@@ -359,6 +364,10 @@ public final class ApprovalRequest extends AggregateRoot {
 
     public String aggregateId() {
         return document.documentType().name() + ":" + document.documentId().value();
+    }
+
+    public ApprovalRequestId id() {
+        return id;
     }
 
     public ProcessKey processKey() {
