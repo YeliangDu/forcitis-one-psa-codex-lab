@@ -14,8 +14,8 @@ import org.jspecify.annotations.Nullable;
  * 「纳入基线」, narrowed by one-coordinator, checked on RDS by one-ops): RDS gives every login a user in msdb, in a subset of the three SQL Agent
  * roles, and one in rdscore without a role and with CONNECT only. Any other own user, role or rdscore grant is a violation, and so is an Agent
  * job the login owns. What the login holds in msdb, through its own user, roles, public or guest, is judged by {@link MsdbPrivileges} whenever msdb
- * is reachable. A login known to have no user of its own in msdb is taken to own no Agent job and, through guest, may not read sysjobs_view (229), so
- * its jobs are not asked (one-1a-par).
+ * is reachable. The Agent jobs are asked whenever (f) gets that far; a login that reaches msdb through guest alone may not read sysjobs_view (229),
+ * so (f) cannot be determined for it (one-coordinator ruling B, CLAUDE.md rule 6: no silent skip).
  */
 final class SystemDatabaseUsers {
 
@@ -53,7 +53,6 @@ final class SystemDatabaseUsers {
 
     static void check(Findings found, ReadOnlyCatalog catalog, List<ReachableDatabase> systemDatabases) {
         Set<String> beyond = new TreeSet<>();
-        boolean agentJobsPossible = true;
         for (ReachableDatabase database : systemDatabases) {
             Optional<List<Membership>> rows = found.ask(() -> catalog.ownUserMemberships(database.name()));
             boolean ownUser = rows.isPresent() && !rows.get().isEmpty();
@@ -65,7 +64,6 @@ final class SystemDatabaseUsers {
                 }
             }
             if (msdb(database)) {
-                agentJobsPossible = ownUser || rows.isEmpty();
                 MsdbPrivileges.check(found, catalog, ownUser);
             }
         }
@@ -73,9 +71,6 @@ final class SystemDatabaseUsers {
             found.violated(Reason.SYSTEM_DATABASE_OWN_USER, beyond.size(), "the login has a user of its own in the system databases " + beyond
                     + " beyond the msdb and rdscore users the platform gives every login, only guest is allowed there otherwise",
                     beyond.stream().map(DatabaseLocator::new).toList());
-        }
-        if (!agentJobsPossible) {
-            return;
         }
         found.ask(catalog::ownedAgentJobs).filter(jobs -> jobs > 0).ifPresent(jobs -> found.violated(Reason.OWNS_AGENT_JOB,
                 (int) Math.min(Integer.MAX_VALUE, jobs), "the login owns " + jobs + " SQL Agent job(s)"));

@@ -333,18 +333,13 @@ class MsdbPrivilegesTest {
     }
 
     @Test
-    @DisplayName("复审 H-1′ 只经 guest 进 msdb：令牌范围越线（授给 guest）违规，定位只写 msdb，没有 msdb 角色信息行；不读本人用户授权，也不读 Agent 作业数")
-    void aGuestOnlyLoginIsJudgedOnItsTokenAndNotAskedForOwnRowsOrAgentJobs() {
+    @DisplayName("复审 H-1′ 只经 guest 进 msdb：令牌范围越线（授给 guest）违规，定位只写 msdb，没有 msdb 角色信息行；不读本人用户授权")
+    void aGuestOnlyLoginIsJudgedOnItsTokenAndNotAskedForOwnRows() {
         FakeCatalog guestOnly = new FakeCatalog() {
             @Override
             public List<OwnUserPermission> ownUserPermissions(String systemDatabase) {
                 assertThat(systemDatabase).as("no own user in msdb, so its rows are not asked").isNotEqualTo("msdb");
                 return super.ownUserPermissions(systemDatabase);
-            }
-
-            @Override
-            public long ownedAgentJobs() {
-                throw new AssertionError("a login without its own msdb user owns no Agent job and is not asked");
             }
         }.ownUser("rdscore");
         assertThat(ReadOnlyBaseline.check(guestOnly).passed()).isTrue();

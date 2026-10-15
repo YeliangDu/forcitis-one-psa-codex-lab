@@ -220,14 +220,24 @@ class SystemDatabaseUsersTest {
     }
 
     @Test
-    @DisplayName("C-14 (f) 复审 H-1′（one-1a-par 决定）：msdb 可进而没有本人用户的登录不可能拥有 Agent 作业，不读作业数；msdb 不可进时照读")
-    void agentJobsAreNotAskedOfALoginWithoutItsOwnMsdbUser() {
-        FakeCatalog guestOnly = new FakeCatalog().ownUser("rdscore");
-        guestOnly.ownedAgentJobs = 3;
-        assertThat(ReadOnlyBaseline.check(guestOnly).passed()).isTrue();
+    @DisplayName("C-14 (f) 复审 H-1′（one-coordinator 裁定 B，CLAUDE.md 第 6 条）：只经 guest 进 msdb 的登录照读 Agent 作业数，读不到（229）判定不了（CATALOG_QUERY_FAILED，带错误号与 SQLState），不跳过；作业数可读时照判")
+    void aGuestOnlyLoginThatCannotReadItsAgentJobsIsUndetermined() {
+        FakeCatalog guestOnly = new FakeCatalog() {
+            @Override
+            public long ownedAgentJobs() {
+                throw new CannotGetJdbcConnectionException("msdb", new SQLException("denied", "S0001", 229));
+            }
+        }.ownUser("rdscore");
 
-        guestOnly.reachableDatabases.remove("msdb");
-        assertThat(ReadOnlyBaseline.check(guestOnly).unmet()).singleElement()
-                .satisfies(f -> assertThat(f.findings()).extracting(Finding::reason).containsExactly(Reason.OWNS_AGENT_JOB));
+        Unmet f = ReadOnlyBaseline.check(guestOnly).unmet().getFirst();
+
+        assertThat(f.item()).isEqualTo('f');
+        assertThat(f.confirmed()).isFalse();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::failure).containsExactly(tuple(Reason.CATALOG_QUERY_FAILED, new SqlError(229, "S0001")));
+
+        FakeCatalog readable = new FakeCatalog().ownUser("rdscore");
+        readable.ownedAgentJobs = 3;
+        assertThat(ReadOnlyBaseline.check(readable).unmet()).singleElement()
+                .satisfies(u -> assertThat(u.findings()).extracting(Finding::reason).containsExactly(Reason.OWNS_AGENT_JOB));
     }
 }
