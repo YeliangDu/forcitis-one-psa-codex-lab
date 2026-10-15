@@ -50,7 +50,8 @@
 
 ## 排定后续（指针）
 - one-1a-next-3：P2（含 H-1 登录登记缺陷）→ ARCH-D1..D7 小修复批（D5、D7 疑行为缺陷，修前报我）→ P3b（先定 ADR-0039 表的 schema）→ P5（并入 B3 删信封 source）。
-- one-glossary 84%：#206 合并、用户手机验证确认页后 /clear。
+- one-glossary 已 /clear（4f921bec）：#206 合并后开写回 A、B（含 DDD 8 条，intent 171959）、C 三个 PR，先报方案。
+- 钩子：#205 合并后，第一次真实压缩时核对是否注入（压缩路径尚无样本；74995d04 有快照无 compact_boundary，可从此查）。
 - 第三轮用语确认已完成（365 条全部同意，写回 #196；改名卡后端并入 R-2a〔next-3，生产前〕、前端界面文字归 one-1a-par〔dev 前〕）；之后按「开工前术语门禁」（§5）逐卡确认，one-glossary 承担，调度只监督门槛（业务用语积压达到 100 条或距上次决策单超过 7 天，见 `glossary/ISSUES.md` 首段；错误码单列归 R-5，SESSION_PLAYBOOK §5）；job_grade 定义缺陷随岗位体系重梳。
 - Codex 试点：R-4（R-5 之后），记录返工轮次与耗时（SESSION_PLAYBOOK §5「Codex 派工」）。
 - 首次 dev 部署：dev 前阻塞清零后经用户批准（部署归用户决定）。
