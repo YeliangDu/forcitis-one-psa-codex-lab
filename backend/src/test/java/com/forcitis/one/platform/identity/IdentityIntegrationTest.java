@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -150,9 +151,6 @@ public abstract class IdentityIntegrationTest {
     @MockitoBean
     protected SsoTicketVerifier ssoVerifier;
 
-    /** Not current unless a test says so: the employment check of the emergency login then lets the login through (ADR-0027 1.3). */
-    @MockitoBean
-    protected com.forcitis.one.kernel.OrgSnapshotStatus orgSnapshot;
 
     @Autowired
     protected MockMvc mvc;
@@ -186,6 +184,8 @@ public abstract class IdentityIntegrationTest {
         domainEvents.clear();
         accessCache.evictAll();
         Mockito.reset(ssoVerifier);
+        when(orgDirectory.employmentOf(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(com.forcitis.one.organization.workforce.api.EmploymentEvidence.SNAPSHOT_UNAVAILABLE);
         jdbc.sql("delete from platform_identity.sessions").update();
         jdbc.sql("delete from platform_identity.login_states").update();
         jdbc.sql("delete from platform_identity.sso_ticket_uses").update();
@@ -203,7 +203,9 @@ public abstract class IdentityIntegrationTest {
     protected EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
         EmployeeProfile profile = profile(id, status);
         when(orgDirectory.findEmployee(profile.employeeId())).thenReturn(Optional.of(profile));
-        when(orgDirectory.findEmployeeByWecomUserId(profile.wecomUserId())).thenReturn(Optional.of(profile));
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(profile.wecomUserId()))).thenReturn(Optional.of(profile));
+        when(orgDirectory.employmentOf(profile.employeeId())).thenReturn(status == EmploymentStatus.EMPLOYED
+                ? com.forcitis.one.organization.workforce.api.EmploymentEvidence.EMPLOYED : com.forcitis.one.organization.workforce.api.EmploymentEvidence.SEPARATED);
         when(orgDirectory.findOrgUnit(new OrgUnitId(10))).thenReturn(Optional.of(new OrgUnitProfile(new OrgUnitId(10), "Delivery", null, true)));
         return profile;
     }

@@ -2,10 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.identity.api.IdentityError;
-import com.forcitis.one.organization.workforce.api.EmployeeProfile;
-import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.kernel.OrgSnapshotStatus;
 import com.forcitis.one.platform.identity.domain.AccessProfile;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
@@ -45,12 +42,10 @@ public class LoginAsEmergencyAdmin {
     private final NetworkAllowList internalNetworks;
     private final EmergencySettings settings;
     private final LoginAdmission admission;
-    private final OrgSnapshotStatus snapshot;
     private final Clock clock;
 
     LoginAsEmergencyAdmin(EmergencyAdminRepository admins, AccountRepository accounts, PasswordHasher hasher, TotpSecretVault vault,
-            OrgDirectory directory, ClientOrigin origin, EmergencySettings settings, LoginAdmission admission, OrgSnapshotStatus snapshot, Clock clock) {
-        this.snapshot = snapshot;
+            OrgDirectory directory, ClientOrigin origin, EmergencySettings settings, LoginAdmission admission, Clock clock) {
         this.admins = admins;
         this.accounts = accounts;
         this.hasher = hasher;
@@ -100,21 +95,21 @@ public class LoginAsEmergencyAdmin {
             return rejectCredentials(admin, "the bound person no longer holds super_admin");
         }
         EmployeeId bound = account.get().employeeId();
-        Optional<EmployeeProfile> employee = directory.findEmployee(bound);
-        if (employee.isPresent() && employee.get().employmentStatus() != EmploymentStatus.EMPLOYED) {
-            return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
-                    "the organisation snapshot lists the bound person as separated");
-        }
-        boolean snapshotCurrent = snapshot.isCurrent();
-        if (employee.isEmpty() && snapshotCurrent) {
-            log.error("ALERT platform.identity emergency login of user {} refused: the organisation snapshot is current and does not list employee {}",
-                    admin.userId().value(), bound.value());
-            return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
-                    "the organisation snapshot is current and does not list the bound person");
-        }
-        if (!snapshotCurrent) {
-            log.error("ALERT platform.identity emergency login of user {} without a current organisation snapshot: employment of employee {} not checked",
-                    admin.userId().value(), bound.value());
+        switch (directory.employmentOf(bound)) {
+            case SEPARATED -> {
+                return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
+                        "the organisation snapshot lists the bound person as separated");
+            }
+            case NOT_LISTED -> {
+                log.error("ALERT platform.identity emergency login of user {} refused: the organisation snapshot is current and does not list employee {}",
+                        admin.userId().value(), bound.value());
+                return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
+                        "the organisation snapshot is current and does not list the bound person");
+            }
+            case SNAPSHOT_UNAVAILABLE -> log.error("ALERT platform.identity emergency login of user {} let through without a current organisation snapshot: "
+                    + "employee {} is not listed as separated, but the snapshot cannot confirm the employment", admin.userId().value(), bound.value());
+            case EMPLOYED -> {
+            }
         }
         return admission.complete(admin.userId(), method);
     }

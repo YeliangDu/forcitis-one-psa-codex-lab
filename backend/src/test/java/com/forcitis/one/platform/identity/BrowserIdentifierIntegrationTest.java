@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -35,7 +36,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
     void people() {
         for (long id : new long[] {1001, 1002}) {
             EmployeeProfile employee = knownEmployee(id, EmploymentStatus.EMPLOYED);
-            when(orgDirectory.findEmployeeByLoginName("login" + id)).thenReturn(Optional.of(employee));
+            when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName("login" + id))).thenReturn(Optional.of(employee));
         }
     }
 

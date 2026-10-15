@@ -86,14 +86,20 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
-        return Optional.empty();
+    public Optional<EmployeeProfile> findEmployeeByLogin(com.forcitis.one.organization.workforce.api.LoginLookup lookup) {
+        if (!(lookup instanceof com.forcitis.one.organization.workforce.api.LoginLookup.ByWecomUserId(WecomUserId wecomUserId))) {
+            return Optional.empty();
+        }
+        return people.values().stream().filter(p -> wecomUserId.value().equals(p.wecom())).findFirst()
+                .flatMap(p -> findEmployee(new EmployeeId(p.id())));
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId) {
-        return people.values().stream().filter(p -> wecomUserId.value().equals(p.wecom())).findFirst()
-                .flatMap(p -> findEmployee(new EmployeeId(p.id())));
+    public com.forcitis.one.organization.workforce.api.EmploymentEvidence employmentOf(EmployeeId employeeId) {
+        return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED
+                ? com.forcitis.one.organization.workforce.api.EmploymentEvidence.EMPLOYED
+                : com.forcitis.one.organization.workforce.api.EmploymentEvidence.SEPARATED)
+                .orElse(com.forcitis.one.organization.workforce.api.EmploymentEvidence.NOT_LISTED);
     }
 
     @Override

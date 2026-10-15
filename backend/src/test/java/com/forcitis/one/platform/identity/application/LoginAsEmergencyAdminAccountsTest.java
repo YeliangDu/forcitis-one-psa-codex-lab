@@ -53,7 +53,7 @@ class LoginAsEmergencyAdminAccountsTest {
     final ClientOrigin origin = mock(ClientOrigin.class);
     final LoginAdmission admission = mock(LoginAdmission.class);
     final LoginAsEmergencyAdmin login = new LoginAsEmergencyAdmin(admins, accounts, hasher, vault, directory, origin,
-            new EmergencySettings(List.of("127.0.0.1/32"), 5, Duration.ofMinutes(15), ""), admission, () -> true,
+            new EmergencySettings(List.of("127.0.0.1/32"), 5, Duration.ofMinutes(15), ""), admission,
             Clock.fixed(NOW, ZoneOffset.UTC));
 
     LoginAsEmergencyAdminAccountsTest() {
@@ -81,6 +81,8 @@ class LoginAsEmergencyAdminAccountsTest {
 
     private void listed(EmployeeId employee, EmploymentStatus status) {
         when(directory.findEmployee(employee)).thenReturn(Optional.of(new EmployeeProfile(employee, "person", new OrgUnitId(5), null, status, false)));
+        when(directory.employmentOf(employee)).thenReturn(status == EmploymentStatus.EMPLOYED
+                ? com.forcitis.one.organization.workforce.api.EmploymentEvidence.EMPLOYED : com.forcitis.one.organization.workforce.api.EmploymentEvidence.SEPARATED);
     }
 
     @Test

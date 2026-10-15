@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -48,7 +49,7 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(cookie).contains("HttpOnly").contains("Secure").contains("SameSite=Lax");
         assertThat(result.getResponse().getHeader("Location")).as("RULE-335: nothing in a redirect URL").isNull();
         verify(wecomGateway).resolveWecomUserId("c1", WecomEntry.WORKBENCH);
-        verify(orgDirectory).findEmployeeByWecomUserId(new WecomUserId("wx1001"));
+        verify(orgDirectory).findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx1001")));
     }
 
     @Test
@@ -93,7 +94,7 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("RULE-324 a WeCom user without an employee is refused and no account or session appears")
     void unmappedWecomUserIsRefused() throws Exception {
         when(wecomGateway.resolveWecomUserId("c1", WecomEntry.WORKBENCH)).thenReturn(Optional.of(new WecomUserId("stranger")));
-        when(orgDirectory.findEmployeeByWecomUserId(new WecomUserId("stranger"))).thenReturn(Optional.empty());
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("stranger")))).thenReturn(Optional.empty());
 
         MvcResult result = login("c1", newState("WORKBENCH"), "WORKBENCH");
 

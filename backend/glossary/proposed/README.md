@@ -290,6 +290,8 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
+| `employment_evidence` | 在职依据 | EmploymentEvidence | 组织快照对某员工在职情况能给出的说法：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用） |  | R-1b P2-H2 |
+| `login_lookup` | 登录查人 | LoginLookup | 按外部登录标识（企业微信 userid 或致远登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除 |  | R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限 |
 | `workforce__assignment` | 任职 | Assignment | 员工在某个组织单元、某个岗位上的任职，含直属领导（汇报线）；A8 为源 |  |  |
 | `workforce__reporting_line` | 汇报线 | ReportingLine | 员工到直属领导的上下级关系；同步时校验领导存在、在职、非本人、无环 |  |  |
 | `workforce__sync_diff` | 同步差异 | SyncDiff | 一次同步运行改动的对象与字段，以及发现的数据例外（供数据管理员处理） |  |  |
@@ -310,7 +312,7 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 | `expected_separation_date` | 预计离职日期 | ExpectedSeparationDate | 正常结束且同意的离职申请上的预计离职日期（业务日期，可能改期，已过而员工仍在职时为已过期），不是实际离职日 | 「离职日期」已禁用；「separation_date」已禁用 | 单说离职日期有歧义，须写明预计离职日期或离职观察时间 |
 | `separation_observed_at` | 离职观察时间 | SeparationObservedAt | 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日 | 「离职日期」已禁用；「separation_date」已禁用 | 单说离职日期有歧义，须写明预计离职日期或离职观察时间 |
 
-另有错误码 10 个（kind 为 `error_code`）、技术词 84 个（`common_words`），不在表中。
+另有错误码 10 个（kind 为 `error_code`）、技术词 86 个（`common_words`），不在表中。
 
 ## platform.approval（`platform-approval.yaml`）
 

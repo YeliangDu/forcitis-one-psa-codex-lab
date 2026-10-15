@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.Digests;
@@ -51,7 +52,7 @@ class WecomIdentification {
         if (wecomUserId.isEmpty()) {
             return new Outcome.Failed(IdentityError.PLATFORM_IDENTITY_WECOM_CODE_INVALID, "WeCom did not accept the code");
         }
-        Optional<EmployeeProfile> employee = directory.findEmployeeByWecomUserId(wecomUserId.get());
+        Optional<EmployeeProfile> employee = directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(wecomUserId.get()));
         if (employee.isEmpty()) {
             return new Outcome.Failed(IdentityError.PLATFORM_IDENTITY_WECOM_NOT_BOUND,
                     "no employee for WeCom user id " + wecomUserId.get().value());

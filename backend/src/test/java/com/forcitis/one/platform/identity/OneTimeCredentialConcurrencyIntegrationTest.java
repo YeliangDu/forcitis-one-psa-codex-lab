@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -58,7 +59,7 @@ class OneTimeCredentialConcurrencyIntegrationTest extends IdentityIntegrationTes
     void portalTicket() throws Exception {
         when(ssoVerifier.verify("RACE")).thenReturn(new SsoVerdict.LoginName("13800000000"));
         var employee = knownEmployee(1001, EmploymentStatus.EMPLOYED);
-        when(orgDirectory.findEmployeeByLoginName("13800000000")).thenReturn(Optional.of(employee));
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName("13800000000"))).thenReturn(Optional.of(employee));
 
         List<Integer> statuses = race(() -> postJson(SsoLoginIntegrationTest.LOGIN, "{\"ticket\":\"RACE\"}").getResponse().getStatus());
 

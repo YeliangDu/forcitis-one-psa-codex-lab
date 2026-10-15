@@ -1,0 +1,109 @@
+package com.forcitis.one.organization.workforce.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.organization.workforce.api.EmploymentEvidence;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.domain.Employee;
+import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
+import com.forcitis.one.organization.workforce.domain.StaffEmployee;
+import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+class SnapshotFreshnessTest {
+    static final Instant NOW = Instant.parse("2026-10-15T08:00:00Z");
+    static final String EVERY_FIVE_MINUTES = "0 */5 * * * *";
+
+    final SyncRunQueries runs = mock(SyncRunQueries.class);
+
+    private SnapshotFreshness freshness(Instant now, Duration staleAfter) {
+        return new SnapshotFreshness(runs, Clock.fixed(now, ZoneOffset.UTC), staleAfter, EVERY_FIVE_MINUTES);
+    }
+
+    @Test
+    @DisplayName("P2-M6 the snapshot is current up to stale-after after the last successful run, and stale one second later; never synced is not current")
+    void P2_M6_snapshotIsCurrentUpToStaleAfter() {
+        when(runs.findLastSucceededAt()).thenReturn(Optional.of(NOW.minus(Duration.ofMinutes(10))));
+
+        assertThat(freshness(NOW, Duration.ofMinutes(10)).isCurrent()).isTrue();
+        assertThat(freshness(NOW.plusSeconds(1), Duration.ofMinutes(10)).isCurrent()).isFalse();
+
+        when(runs.findLastSucceededAt()).thenReturn(Optional.empty());
+        assertThat(freshness(NOW, Duration.ofMinutes(10)).isCurrent()).isFalse();
+    }
+
+    @Test
+    @DisplayName("P2-M6 stale-after must leave room for two sync runs and stay within an hour, or the application does not start")
+    void P2_M6_staleAfterIsBounded() {
+        assertThatThrownBy(() -> freshness(NOW, Duration.ofMinutes(9))).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("two sync runs");
+        assertThatThrownBy(() -> freshness(NOW, Duration.ofMinutes(61))).isInstanceOf(IllegalArgumentException.class);
+        assertThat(freshness(NOW, Duration.ofMinutes(10))).isNotNull();
+        assertThat(freshness(NOW, Duration.ofHours(1))).isNotNull();
+    }
+
+    @Test
+    @DisplayName("P2-M6 the alert OneWorkforceSyncLagging fires at the same lag that makes the snapshot stale")
+    void P2_M6_alertThresholdEqualsStaleAfter() throws IOException {
+        Properties settings = new Properties();
+        try (var in = Files.newInputStream(Path.of("src/main/resources/config/organization_workforce.properties"))) {
+            settings.load(in);
+        }
+        Duration staleAfter = Duration.parse(settings.getProperty("forcitis.organization.workforce.sync.stale-after"));
+        String rules = Files.readString(Path.of("../docs/modernization/phase1a/infra/runbooks/files/alert-rules.yaml"));
+        Matcher threshold = Pattern.compile("alert: OneWorkforceSyncLagging\\s+expr: max\\(forcitis_organization_workforce_sync_lag_seconds\\) > (\\d+)").matcher(rules);
+
+        assertThat(threshold.find()).as("the OneWorkforceSyncLagging rule").isTrue();
+        assertThat(Long.parseLong(threshold.group(1))).isEqualTo(staleAfter.toSeconds());
+    }
+
+    @Test
+    @DisplayName("P2-H2 employmentOf: listed as separated is said even by a stale snapshot; not listed only by a current one; otherwise the snapshot is unavailable")
+    void P2_H2_employmentEvidence() {
+        OrgSnapshotQueries snapshots = mock(OrgSnapshotQueries.class);
+        StaffEmployee employed = staff(EmploymentStatus.EMPLOYED);
+        StaffEmployee separated = staff(EmploymentStatus.SEPARATED);
+        when(snapshots.findStaff(new EmployeeId(1))).thenReturn(Optional.of(employed));
+        when(snapshots.findStaff(new EmployeeId(2))).thenReturn(Optional.of(separated));
+        when(snapshots.findStaff(new EmployeeId(3))).thenReturn(Optional.empty());
+        OrgDirectoryService current = directory(snapshots, NOW.minus(Duration.ofMinutes(1)));
+        OrgDirectoryService stale = directory(snapshots, NOW.minus(Duration.ofDays(30)));
+
+        assertThat(current.employmentOf(new EmployeeId(1))).isEqualTo(EmploymentEvidence.EMPLOYED);
+        assertThat(current.employmentOf(new EmployeeId(2))).isEqualTo(EmploymentEvidence.SEPARATED);
+        assertThat(current.employmentOf(new EmployeeId(3))).isEqualTo(EmploymentEvidence.NOT_LISTED);
+        assertThat(stale.employmentOf(new EmployeeId(1))).isEqualTo(EmploymentEvidence.SNAPSHOT_UNAVAILABLE);
+        assertThat(stale.employmentOf(new EmployeeId(2))).isEqualTo(EmploymentEvidence.SEPARATED);
+        assertThat(stale.employmentOf(new EmployeeId(3))).isEqualTo(EmploymentEvidence.SNAPSHOT_UNAVAILABLE);
+    }
+
+    private OrgDirectoryService directory(OrgSnapshotQueries snapshots, Instant lastSucceeded) {
+        SyncRunQueries history = mock(SyncRunQueries.class);
+        when(history.findLastSucceededAt()).thenReturn(Optional.of(lastSucceeded));
+        return new OrgDirectoryService(snapshots, mock(RegisterEmployeeOnLogin.class), mock(RegisterEmployeeOnLoginName.class),
+                new SnapshotFreshness(history, Clock.fixed(NOW, ZoneOffset.UTC), Duration.ofMinutes(10), EVERY_FIVE_MINUTES));
+    }
+
+    private static StaffEmployee staff(EmploymentStatus status) {
+        Employee employee = mock(Employee.class);
+        when(employee.employmentStatus()).thenReturn(status);
+        StaffEmployee staff = mock(StaffEmployee.class);
+        when(staff.employee()).thenReturn(employee);
+        return staff;
+    }
+}
