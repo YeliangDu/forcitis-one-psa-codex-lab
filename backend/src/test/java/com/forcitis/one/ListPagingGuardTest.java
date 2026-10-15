@@ -26,6 +26,8 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -149,20 +151,27 @@ class ListPagingGuardTest {
         classes.stream().filter(type -> !type.isEquivalentTo(PageRequest.class)).forEach(type -> type.getMethodCallsFromSelf().stream()
                 .filter(call -> call.getTargetOwner().isEquivalentTo(PageRequest.class) && call.getName().equals("slice"))
                 .forEach(call -> found.add("slice:" + call.getOriginOwner().getName().replaceAll("\\$.*", ""))));
-        try (var files = Files.list(CONFIG)) {
-            for (Path file : files.filter(f -> f.toString().endsWith(".properties")).toList()) {
-                Properties properties = new Properties();
+        for (Path file : configurationFiles()) {
+            Properties properties = new Properties();
+            if (file.toString().endsWith(".properties")) {
                 try (var in = Files.newInputStream(file)) {
                     properties.load(in);
                 }
-                properties.forEach((key, value) -> {
-                    String name = key.toString();
-                    int cap = name.endsWith(".export.max-rows") ? ListLimits.EXPORT_MAX : name.endsWith(".import.max-rows") ? ListLimits.IMPORT_MAX : Integer.MAX_VALUE;
-                    if (cap != Integer.MAX_VALUE && Integer.parseInt(value.toString().strip()) > cap) {
-                        found.add("config:" + name);
-                    }
-                });
+            } else {
+                YamlPropertiesFactoryBean yaml = new YamlPropertiesFactoryBean();
+                yaml.setResources(new FileSystemResource(file));
+                Properties flat = yaml.getObject();
+                if (flat != null) {
+                    properties.putAll(flat);
+                }
             }
+            properties.forEach((key, value) -> {
+                String name = key.toString();
+                int cap = name.endsWith(".export.max-rows") ? ListLimits.EXPORT_MAX : name.endsWith(".import.max-rows") ? ListLimits.IMPORT_MAX : Integer.MAX_VALUE;
+                if (cap != Integer.MAX_VALUE && Integer.parseInt(value.toString().strip()) > cap) {
+                    found.add("config:" + name);
+                }
+            });
         }
 
         assertGaps("A-3 in-memory paging and row caps", found, "slice:", "config:");
@@ -181,6 +190,17 @@ class ListPagingGuardTest {
             assertThat(OWNERS).as("owner of %s", line).contains(columns[1].strip());
             assertThat(columns[2].strip()).as("deadline of %s", line).isNotEmpty();
         }
+    }
+
+    /** config/*.properties and the application*.properties / .yml / .yaml next to it. */
+    private static List<Path> configurationFiles() throws IOException {
+        List<Path> files = new ArrayList<>();
+        try (var config = Files.list(CONFIG); var application = Files.list(CONFIG.getParent())) {
+            config.filter(f -> f.toString().endsWith(".properties")).forEach(files::add);
+            application.filter(f -> f.getFileName().toString().matches("application.*\\.(properties|yml|yaml)")).forEach(files::add);
+        }
+        assertThat(files).as("configuration files found").isNotEmpty();
+        return files;
     }
 
     private JsonNode document() throws Exception {
