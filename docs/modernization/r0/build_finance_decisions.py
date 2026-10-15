@@ -12,7 +12,7 @@ QUESTIONS = HERE / "FINANCE_QUESTIONS.md"
 GL_JSON = HERE.parent / "rules" / "GL_FINANCE_DECISIONS.json"
 OUT = HERE / "FINANCE_DECISIONS.html"
 STAGES = ["1a 出口", "1b 前", "Phase 4 前", "G1 前", "G2 前"]
-KEYS = {"来源": "src", "背景": "ctx", "核实": "check"}
+KEYS = {"来源": "src", "背景": "ctx", "核实": "check", "现状": "now"}
 MULTI = {"依据": "basis", "实践": "practice"}
 
 
@@ -77,6 +77,8 @@ def parse(md):
                 doc["facts"].append(cur)
             elif cur and line.startswith("影响："):
                 cur["impact"] = line[len("影响："):].strip()
+            elif cur and line.startswith(("答复：", "复核：")):
+                cur["answer" if line.startswith("答复：") else "review"] = line[3:].strip()
             continue
         if section == "decided" and line.startswith("- "):
             doc["decided"].append(line[2:].strip())
