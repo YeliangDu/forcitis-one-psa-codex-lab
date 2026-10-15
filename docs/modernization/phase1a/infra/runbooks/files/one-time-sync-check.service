@@ -1,0 +1,10 @@
+[Unit]
+Description=FORCITIS one node time sync check (INFRA_RUNBOOK §8)
+After=chronyd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/one_time_sync_check.sh
+PrivateTmp=true
+ProtectHome=true
+NoNewPrivileges=true
