@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 import org.springframework.dao.DataAccessResourceFailureException;
 
 /** A catalog that answers exactly what the RDS baseline login sees; each test bends one answer. */
-final class FakeCatalog implements ReadOnlyCatalog {
+class FakeCatalog implements ReadOnlyCatalog {
 
     static final String LEAKED = "10.0.0.1 marker-value-7731";
 
@@ -39,6 +39,8 @@ final class FakeCatalog implements ReadOnlyCatalog {
     final Map<String, Long> ownUsers = new HashMap<>();
     String currentDatabase = "legacyworld";
     volatile boolean unreachable;
+    /** When set, every query throws it instead of answering. */
+    volatile RuntimeException failure;
 
     static List<DatabaseLevelPermission> baselineDatabaseLevel() {
         List<DatabaseLevelPermission> rows = new ArrayList<>();
@@ -58,6 +60,9 @@ final class FakeCatalog implements ReadOnlyCatalog {
         queries.incrementAndGet();
         if (unreachable) {
             throw new DataAccessResourceFailureException("cannot reach " + LEAKED);
+        }
+        if (failure != null) {
+            throw failure;
         }
         return value.get();
     }
