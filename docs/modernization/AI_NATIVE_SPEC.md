@@ -195,7 +195,7 @@ channels:
 |---|---|---|
 | 企业微信 | `gettoken`（缓存至过期前 5 分钟）、`auth/getuserinfo`、`message/send`（`touser` 精确，**不带 `@all`**）、`update_template_card` | 连接 / 读超时 5 s；失败按事件发布登记表重试；凭据 `${WECOM_CORP_ID}` `${WECOM_CORP_SECRET}` `${WECOM_AGENT_ID}` `${WECOM_CB_TOKEN}` `${WECOM_CB_AES_KEY}` |
 | 致远 A8 | SSO 验票 `${SEEYON_OA_BASE_URL}`；组织数据只读（`${A8_DB_URL}`，只读账号） | 验票超时 5 s；同步缩水保护 80 % |
-| 老系统 | **不访问令牌表**（Q-1、I-1）；`bpm_task_ext` / `bpm_process_instance_ext` / `bpm_oa_customized` 只读（合并待办） | 只读账号 `${LEGACY_DB_RO_URL}`；不写任何老表（所有权矩阵：1a 无反向同步） |
+| 老系统 | **不写、不校验令牌表，应用代码不引用**（Q-1、I-1、ADR-0037）；`bpm_task_ext` / `bpm_process_instance_ext` / `bpm_oa_customized` 只读（合并待办） | 只读账号 `${LEGACY_DB_RO_URL}`；不写任何老表（所有权矩阵：1a 无反向同步） |
 
 ---
 

@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.domain.LegacyInbox;
 import com.forcitis.one.platform.approval.domain.LegacyInstanceId;
 import com.forcitis.one.platform.approval.domain.LegacyTodo;
+import com.forcitis.one.platform.integration.api.ExternalFailure;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
@@ -40,7 +41,7 @@ class JdbcLegacyInbox implements LegacyInbox {
                     .param("user", user.value()).query((rs, n) -> read(rs)).list();
             return new LegacyTodos(true, todos);
         } catch (DataAccessException e) {
-            log.error("Legacy to-do view {} could not be read; the merged inbox shows new tasks only", viewName, e);
+            log.error("Legacy to-do view {} could not be read ({}); the merged inbox shows new tasks only", viewName, ExternalFailure.of(e));
             return LegacyTodos.unavailable();
         }
     }
