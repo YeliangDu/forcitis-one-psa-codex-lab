@@ -6,11 +6,11 @@
 |---|---|---|
 | `ddd/` | `subdomains.yaml` 子域、`contexts.yaml` 限界上下文、`context-map.yaml` 上下文映射 | 初稿（PR-A）；未定项标 `undecided`，等架构决策页 |
 | `ddd/aggregates.yaml` | 聚合、命令、事件、表 | PR-C |
-| `togaf/` | 能力（只引 forcitis-architecture 编号）、价值流、过渡架构与批次 | PR-B / PR-C |
+| `togaf/` | `transitions.yaml` 过渡架构（阶段 → BC）；能力（只引 forcitis-architecture 编号）、价值流 | 过渡架构已登记（PR-B）；能力与价值流待 Q1 |
 | `bpmn/`、`dmn/` | 流程清单、决策清单 | PR-C |
 | `dama/` | 数据对象与类别 | PR-C |
 | `olap/` | 指标（沿用 M-xx） | PR-C |
-| `generated/` | mermaid 源、SVG、追溯表（生成，勿手改） | PR-B 起 |
+| `generated/` | ①a 上下文全景、①b 已建上下文映射、② 过渡架构；mermaid 源、SVG、`index.html`（生成，勿手改）。`build_architecture.py --svg` 本机渲染（mermaid-cli，SUPPLY_CHAIN S1），`--check` 校验 | PR-B |
 
 规则：新 BC、聚合、事件、命令、流程、决策先在这里登记再写代码；老仓库与老代码只作 `evidence`；结构性选择交用户定（架构决策页）。
 

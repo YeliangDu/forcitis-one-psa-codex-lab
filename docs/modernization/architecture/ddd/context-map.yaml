@@ -723,15 +723,6 @@ relations:
   basis: legacy-evidence
   review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
   evidence: 老仓库 00_战略设计/05-上下文映射.md L84（§客户-供应商）
-- id: presales.customer>*
-  upstream: presales.customer
-  downstream: '*'
-  type: customer-supplier
-  via: CustomerMerged 广播（canonical mapping）
-  status: planned
-  basis: legacy-evidence
-  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
-  evidence: 老仓库 00_战略设计/05-上下文映射.md L85（§客户-供应商）
 - id: presales.customer>contract.baseline
   upstream: presales.customer
   downstream: contract.baseline
