@@ -143,7 +143,7 @@ CREATE TABLE platform_integration.source_references (
         CHECK (NOT (source_system = 'ACCOUNTING_SYSTEM' AND source_object_kind = 'LEGAL_ENTITY') OR source_id > 0),
     CONSTRAINT ck_source_references_period
         CHECK (CASE WHEN source_object_kind = 'LEGAL_ENTITY'
-                    THEN effective_from_date IS NOT NULL AND (effective_to_date IS NULL OR effective_to_date > effective_from_date)
+                    THEN effective_from_date IS NOT NULL AND (effective_to_date IS NULL OR effective_to_date >= effective_from_date)
                     ELSE effective_from_date IS NULL AND effective_to_date IS NULL END),
     CONSTRAINT ck_source_references_decision
         CHECK ((decided_by IS NULL) = (decided_at IS NULL) AND (decided_by IS NULL OR confirmation_status <> 'PENDING')),
@@ -168,8 +168,8 @@ COMMENT ON COLUMN platform_integration.source_references.source_id IS '来源标
 COMMENT ON COLUMN platform_integration.source_references.own_id IS '自有 ID：该对象在本系统中的 UUIDv7，类别决定指向哪类对象；跨 schema 只按 ID 引用，不建外键';
 COMMENT ON COLUMN platform_integration.source_references.confirmation_status IS '确认状态：PENDING 待确认 / CONFIRMED 已确认 / REJECTED 已拒绝；来源同步与导入写入即为已确认，人工登记的核算组织编码先待确认，由他人确认或拒绝；出站与同步只读已确认行';
 COMMENT ON COLUMN platform_integration.source_references.effective_from_date IS '生效日（含）：带生效区间的类别（法人主体）必填；为空表示该类别不带区间，对照在已确认期间一直有效';
-COMMENT ON COLUMN platform_integration.source_references.effective_to_date IS '失效日（不含）：由确认后继的对照时关闭；为空表示至今有效或该类别不带区间';
-COMMENT ON COLUMN platform_integration.source_references.created_by IS '录入人用户 ID：人工登记的人，确认人不得是此人；为空表示由来源同步或导入分配';
+COMMENT ON COLUMN platform_integration.source_references.effective_to_date IS '失效日（不含）：由确认后继的对照时关闭；等于生效日表示作废（同日更正，空区间不占排他约束）；为空表示至今有效或该类别不带区间';
+COMMENT ON COLUMN platform_integration.source_references.created_by IS '录入人用户 ID：人工登记的人，确认人不得是此人；核算类别只由人工登记，为空只表示由来源同步分配';
 COMMENT ON COLUMN platform_integration.source_references.decided_by IS '决定人用户 ID：确认或拒绝人工登记的人；为空表示尚未决定，或由来源同步分配而无需决定';
 COMMENT ON COLUMN platform_integration.source_references.decided_at IS '决定时间；为空表示尚未决定，或由来源同步分配而无需决定';
 COMMENT ON COLUMN platform_integration.source_references.created_at IS '创建时间';

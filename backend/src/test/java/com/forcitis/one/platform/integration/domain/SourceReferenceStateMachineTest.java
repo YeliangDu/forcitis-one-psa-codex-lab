@@ -11,7 +11,9 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.DomainEvent;
+import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.platform.integration.api.ConfirmationStatus;
 import com.forcitis.one.platform.integration.api.ExternalSource;
@@ -78,6 +80,23 @@ class SourceReferenceStateMachineTest {
     }
 
     @Test
+    @DisplayName("a confirmation that closes the reference in effect names it as a related aggregate; one that closes nothing names none")
+    void aConfirmationNamesTheReferenceItSupersedes() {
+        SourceReferenceId superseded = new SourceReferenceId(TestIds.uuid(8));
+        SourceReference correction = registered();
+        correction.confirm(DECIDER, NOW, superseded);
+        SourceReference first = registered();
+        first.confirm(DECIDER, NOW);
+
+        assertThat(confirmedEnvelope(correction).relatedAggregates()).containsExactly(new AggregateReference("SourceReference", superseded.toString()));
+        assertThat(confirmedEnvelope(first).relatedAggregates()).isEmpty();
+    }
+
+    private static EventEnvelope confirmedEnvelope(SourceReference reference) {
+        return reference.drainEvents(TestEnvelopes.INSTANCE).stream().filter(SourceReferenceConfirmed.class::isInstance).findFirst().orElseThrow().envelope();
+    }
+
+    @Test
     @DisplayName("four eyes: the person who registered a reference cannot confirm or reject it, whatever else they may do")
     void theRegistrantCannotDecide() {
         for (java.util.function.Consumer<SourceReference> decision : List.<java.util.function.Consumer<SourceReference>>of(
@@ -125,18 +144,34 @@ class SourceReferenceStateMachineTest {
     }
 
     @Test
-    @DisplayName("the confirmed reference in effect ends where its successor starts, once, and announces SourceReferenceSuperseded; a successor not after its start is a conflict")
+    @DisplayName("the confirmed reference in effect ends where its successor starts, once, and announces SourceReferenceSuperseded; a successor before its start, or a reference not in effect, is a conflict")
     void supersedingEndsTheReferenceInEffect() {
         SourceReference inEffect = at(CONFIRMED);
         inEffect.supersede(START.plusDays(14));
 
         assertThat(inEffect.effectiveTo()).isEqualTo(START.plusDays(14));
         assertThat(inEffect.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(SourceReferenceSuperseded.class);
-        for (SourceReference unsuitable : List.of(at(CONFIRMED), at(PENDING), at(REJECTED), accountingCode(CONFIRMED, START.plusDays(5)))) {
-            LocalDate successorFrom = unsuitable.effectiveTo() == null ? START : START.plusDays(10);
-            assertThatThrownBy(() -> unsuitable.supersede(successorFrom)).isInstanceOfSatisfying(DomainException.class,
-                    e -> assertThat(e.errorCode()).isEqualTo(IntegrationError.PLATFORM_INTEGRATION_SOURCE_REFERENCE_CONFLICT));
-        }
+        assertConflict(at(CONFIRMED), START.minusDays(1));
+        assertConflict(at(PENDING), START.plusDays(1));
+        assertConflict(at(REJECTED), START.plusDays(1));
+        assertConflict(accountingCode(CONFIRMED, START.plusDays(5)), START.plusDays(10));
+    }
+
+    @Test
+    @DisplayName("a successor from the same day voids the reference in effect: its period becomes empty and SourceReferenceSuperseded is announced")
+    void aSuccessorFromTheSameDayEmptiesThePeriod() {
+        SourceReference wrong = at(CONFIRMED);
+        wrong.supersede(START);
+
+        assertThat(wrong.effectiveFrom()).isEqualTo(START);
+        assertThat(wrong.effectiveTo()).isEqualTo(START);
+        assertThat(wrong.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(SourceReferenceSuperseded.class);
+        assertConflict(wrong, START.plusDays(3));
+    }
+
+    private static void assertConflict(SourceReference reference, LocalDate successorFrom) {
+        assertThatThrownBy(() -> reference.supersede(successorFrom)).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(IntegrationError.PLATFORM_INTEGRATION_SOURCE_REFERENCE_CONFLICT));
     }
 
     @Test

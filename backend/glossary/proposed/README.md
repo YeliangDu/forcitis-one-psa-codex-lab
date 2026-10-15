@@ -102,6 +102,7 @@
 | `rejected_state` | 已拒绝 | RejectedState | 来源对照的确认状态之一，不占自然键约束，不用于出站 |  |
 | `registration` | 登记 | Registration | 由人录入一条来源对照，等另一个人确认或拒绝 |  |
 | `supersede` | 取代 | Supersede | 已确认的后继对照从生效日起取代生效中的对照 |  |
+| `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；登记来源系统、对象类型、范围、状态、行数与来源 ID 摘要；批次挂在来源对照与原编号对照上，业务表不带批次列（ADR-0036 第 3 条） |  |
 
 技术词 8 个，在 `common_words`。
 

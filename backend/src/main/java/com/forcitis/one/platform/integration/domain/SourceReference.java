@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventSource;
 import com.forcitis.one.kernel.event.SourceSystem;
@@ -34,6 +35,8 @@ public final class SourceReference extends AggregateRoot {
     public static final StateMachine<ConfirmationStatus> MACHINE = StateMachine.of(ConfirmationStatus.class)
             .allow(ConfirmationStatus.PENDING, ConfirmationStatus.CONFIRMED, ConfirmationStatus.REJECTED)
             .build();
+
+    private static final String AGGREGATE_TYPE = "SourceReference";
 
     private final SourceReferenceId sourceReferenceId;
     private final ExternalSource system;
@@ -110,10 +113,16 @@ public final class SourceReference extends AggregateRoot {
     }
 
     public void confirm(UserId confirmer, Instant at) {
+        confirm(confirmer, at, null);
+    }
+
+    /** {@code superseded} is the reference in effect that the application closes in the same transaction. */
+    public void confirm(UserId confirmer, Instant at, @Nullable SourceReferenceId superseded) {
         requireNotTheRegistrant(confirmer);
         this.status = MACHINE.require(status, ConfirmationStatus.CONFIRMED, IntegrationError.PLATFORM_INTEGRATION_SOURCE_REFERENCE_ALREADY_DECIDED);
         decide(confirmer, at);
-        record((envelopes, version) -> new SourceReferenceConfirmed(envelopes.wrap(draft("SourceReferenceConfirmed", version)), system, kind, ownId));
+        List<AggregateReference> related = superseded == null ? List.of() : List.of(new AggregateReference(AGGREGATE_TYPE, superseded.toString()));
+        record((envelopes, version) -> new SourceReferenceConfirmed(envelopes.wrap(draft("SourceReferenceConfirmed", version, null, related)), system, kind, ownId));
     }
 
     public void reject(UserId rejecter, Instant at) {
@@ -123,10 +132,10 @@ public final class SourceReference extends AggregateRoot {
         record((envelopes, version) -> new SourceReferenceRejected(envelopes.wrap(draft("SourceReferenceRejected", version)), system, kind, ownId));
     }
 
-    /** The confirmed reference in effect ends where its successor starts. */
+    /** The confirmed reference in effect ends where its successor starts; a successor from the same day voids it, leaving an empty period. */
     public void supersede(LocalDate successorFrom) {
         Objects.requireNonNull(successorFrom, "successorFrom");
-        if (status != ConfirmationStatus.CONFIRMED || effectiveTo != null || effectiveFrom == null || !successorFrom.isAfter(effectiveFrom)) {
+        if (status != ConfirmationStatus.CONFIRMED || effectiveTo != null || effectiveFrom == null || successorFrom.isBefore(effectiveFrom)) {
             throw new DomainException(IntegrationError.PLATFORM_INTEGRATION_SOURCE_REFERENCE_CONFLICT, ErrorKind.CONFLICT,
                     "the reference in effect since " + effectiveFrom + " cannot end on " + successorFrom);
         }
@@ -204,7 +213,11 @@ public final class SourceReference extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version, @Nullable LocalDate businessDate) {
-        return new EventDraft("platform.integration." + eventName, 1, "SourceReference", sourceReferenceId.toString(), version, null, businessDate,
-                new EventSource(SourceSystem.ONE, null), List.of());
+        return draft(eventName, version, businessDate, List.of());
+    }
+
+    private EventDraft draft(String eventName, long version, @Nullable LocalDate businessDate, List<AggregateReference> related) {
+        return new EventDraft("platform.integration." + eventName, 1, AGGREGATE_TYPE, sourceReferenceId.toString(), version, null, businessDate,
+                new EventSource(SourceSystem.ONE, null), related);
     }
 }

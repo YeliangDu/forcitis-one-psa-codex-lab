@@ -6,6 +6,7 @@ import com.forcitis.one.platform.integration.domain.SourceReference;
 import com.forcitis.one.platform.integration.domain.SourceReferenceId;
 import com.forcitis.one.platform.integration.domain.SourceReferenceRepository;
 import java.time.Clock;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,14 +27,15 @@ public class ConfirmSourceReference {
     @Transactional
     public SourceReferenceView execute(UUID sourceReferenceId, UserId confirmer) {
         SourceReference reference = references.findForUpdate(new SourceReferenceId(sourceReferenceId)).orElseThrow(() -> new SourceReferenceNotFound(sourceReferenceId));
-        reference.confirm(confirmer, clock.instant());
-        if (reference.kind().hasPeriod()) {
-            references.findOpenConfirmedForUpdate(reference.system(), reference.kind(), reference.ownId()).ifPresent(inEffect -> {
-                inEffect.supersede(reference.effectiveFrom());
-                references.save(inEffect);
-                events.publish(inEffect);
-            });
-        }
+        Optional<SourceReference> inEffect = reference.kind().hasPeriod()
+                ? references.findOpenConfirmedForUpdate(reference.system(), reference.kind(), reference.ownId())
+                : Optional.empty();
+        reference.confirm(confirmer, clock.instant(), inEffect.map(SourceReference::sourceReferenceId).orElse(null));
+        inEffect.ifPresent(superseded -> {
+            superseded.supersede(reference.effectiveFrom());
+            references.save(superseded);
+            events.publish(superseded);
+        });
         references.save(reference);
         events.publish(reference);
         return SourceReferenceView.of(reference);
